@@ -1,10 +1,12 @@
-﻿/**
+/**
  * Workout Design Lab interaction contract
  * Proves selector reachability, receipts, Rolodex state, and world switching.
  */
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { StyleLensProvider, type StorageLike } from "../../../../core/style-lens-os";
+import { SWAN_STYLE_LENS_REGISTRY } from "../../../../adapters/style-lens-swan";
 import WorkoutDesignLabPage from "./WorkoutDesignLabPage";
 import { CONCEPT_REGISTRY, DEFAULT_CONCEPT_ID } from "./conceptRegistry";
 
@@ -35,9 +37,23 @@ vi.mock("../../../WorkoutLogger/NASMExerciseRolodex", () => ({
     ) : null,
 }));
 
+const renderLab = () => {
+  const values = new Map<string, string>();
+  const storage: StorageLike = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => void values.set(key, value),
+    removeItem: (key) => void values.delete(key),
+  };
+  return render(
+    <StyleLensProvider registry={SWAN_STYLE_LENS_REGISTRY} storage={storage}>
+      <WorkoutDesignLabPage />
+    </StyleLensProvider>,
+  );
+};
+
 describe("Workout Design Lab interactions", () => {
   it("renders all 25 worlds through an accessible selector and emits action receipts", () => {
-    render(<WorkoutDesignLabPage />);
+    renderLab();
     const selector = screen.getByRole("listbox", {
       name: /choose a workout world/i,
     });
@@ -61,7 +77,7 @@ describe("Workout Design Lab interactions", () => {
   });
 
   it("defaults and resets to the recommended Crystalline Swan World", () => {
-    render(<WorkoutDesignLabPage />);
+    renderLab();
     const defaultOption = screen.getByRole("option", {
       name: /Crystalline Swan World/i,
     });
@@ -77,7 +93,7 @@ describe("Workout Design Lab interactions", () => {
   });
 
   it("filters 25 choices and supports previous, next, and arrow-key navigation", () => {
-    render(<WorkoutDesignLabPage />);
+    renderLab();
     const search = screen.getByRole("searchbox", {
       name: /filter workout worlds/i,
     });
@@ -111,7 +127,7 @@ describe("Workout Design Lab interactions", () => {
   });
 
   it("keeps shared workout state when switching worlds and never writes client data", () => {
-    render(<WorkoutDesignLabPage />);
+    renderLab();
     fireEvent.click(
       screen.getByRole("button", { name: /open exercise rolodex/i }),
     );

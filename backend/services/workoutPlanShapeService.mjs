@@ -240,6 +240,40 @@ export const extractCurrentSession = (plan) => {
 //   handler also adds it at top level for direct access).
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Public — planDataToAllWeeks
+// PURPOSE: flatten the ENTIRE plan (every week -> days -> exercises), not just
+//   the current week. `planDataToWorkoutDays` intentionally returns only the
+//   current week, so a client-facing full-plan view (the Plan Detail modal)
+//   would otherwise show one week and call it "the plan".
+//   Reuses the SAME parsers, so legacy weeklySchedule + weeks[].days[] /
+//   weeks[].sessions[] shapes stay supported in one place.
+// ─────────────────────────────────────────────────────────────
+export const planDataToAllWeeks = (planData) => {
+  const data = toPlainObject(planData) || {};
+  const weeks = Array.isArray(data.weeks) ? data.weeks : [];
+
+  // Legacy/flat plans have no weeks[] — surface their days as a single week 1
+  // so the consumer never has to branch on plan vintage.
+  if (weeks.length === 0) {
+    const days = planDataToWorkoutDays(data, 1);
+    return days.length ? [{ weekNumber: 1, focus: data.focus || null, days }] : [];
+  }
+
+  return weeks.map((entry, index) => {
+    const week = toPlainObject(entry) || {};
+    const weekNumber = toPositiveInteger(week.weekNumber ?? week.week ?? index + 1, index + 1);
+    const dayEntries = pickFirstNonEmptyArray(week.days, week.sessions);
+
+    return {
+      weekNumber,
+      focus: week.focus || week.phaseName || null,
+      // Reuse the day parser by handing it a one-week planData slice.
+      days: planDataToWorkoutDays({ weeks: [{ weekNumber, days: dayEntries }] }, weekNumber),
+    };
+  });
+};
+
 export const toCurrentWorkoutPlanResponse = (plan) => {
   const raw = toPlainObject(plan) || {};
   const planData = raw.planData || raw.plan_data || { weeks: [] };

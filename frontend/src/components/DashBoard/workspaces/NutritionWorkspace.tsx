@@ -66,9 +66,11 @@ const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
   const [reviewDraft, setReviewDraft] = useState<NutritionEntryDraft | null>(null);
-  // Increments on every successful save so the diary refetches even when the macro-summary
-  // endpoint is erroring (its refreshKey would otherwise be a constant — see handleReviewSaved).
-  const [savedTick, setSavedTick] = useState(0);
+  // Bumped on every successful meal save. The macro-error diary branch keys
+  // its refetch on this — a constant key there meant the diary NEVER
+  // refetched after a save while the summary endpoint was down; only a full
+  // reload recovered.
+  const [diarySaveTick, setDiarySaveTick] = useState(0);
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
@@ -78,7 +80,10 @@ const NutritionWorkspace: React.FC = () => {
   const activeMoreTab = isMoreNutritionTab(activeTab);
 
   const handleMealLogResult = useCallback((success: boolean) => {
-    if (success) refetchMacroSummary();
+    if (success) {
+      refetchMacroSummary();
+      setDiarySaveTick((tick) => tick + 1);
+    }
   }, [refetchMacroSummary]);
 
   const toggleGentleMode = useCallback(() => {
@@ -102,13 +107,6 @@ const NutritionWorkspace: React.FC = () => {
     if (success) {
       handleMealLogResult(true);
       setActiveTab('today');
-      // Bump the diary's refresh key on every successful save. On the healthy path the key
-      // is derived from the macro summary (date:mealCount), which changes after a save — but
-      // in the macroError branch it was the CONSTANT string 'summary-unavailable'. Since the
-      // diary's effect depends on [loadDiary (stable), refreshKey], a constant key meant the
-      // effect fired once on mount and NEVER again: if the summary endpoint stayed down, the
-      // meal the client just saved never appeared and only a full page reload recovered.
-      setSavedTick((n) => n + 1);
     }
     if (success && options?.closeDrawer !== false) setReviewDraft(null);
   }, [handleMealLogResult]);
@@ -185,7 +183,7 @@ const NutritionWorkspace: React.FC = () => {
                   <section aria-label="Nutrition Today diary">
                     <NutritionDiaryTimeline
                       gentleMode={gentleMode}
-                      refreshKey={`summary-unavailable:${savedTick}`}
+                      refreshKey={`summary-unavailable:${diarySaveTick}`}
                       onReviewDraft={setReviewDraft}
                     />
                   </section>

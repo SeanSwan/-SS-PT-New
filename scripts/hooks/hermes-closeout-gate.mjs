@@ -74,6 +74,12 @@ export function analyzeTurn(entries) {
   for (const entry of turn) {
     if (entry?.type !== 'assistant') continue;
     const content = entry.message?.content;
+    if (typeof content === 'string') {
+      // Some transcript shapes carry assistant text as a plain string — a memo
+      // citation there must still count, or a compliant turn gets re-blocked.
+      if (EMISSION_PATH_RE.test(content)) signals.memoEmitted = true;
+      continue;
+    }
     if (!Array.isArray(content)) continue;
     for (const item of content) {
       if (item?.type === 'tool_use') {

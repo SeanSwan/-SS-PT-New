@@ -147,7 +147,7 @@ async function openLab(page: Page) {
   });
   await expect(
     page.getByRole("heading", {
-      name: "25 workout worlds. One shared session.",
+      name: /25 Worlds.*25 Styles\. One session\./,
     }),
   ).toBeVisible();
 }

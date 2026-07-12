@@ -82,9 +82,70 @@ export const uploadLimiter = rateLimit({
 export const waiverLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  // Both fields — see contactLimiter. Public-form consumers read `data.message`.
   message: {
     success: false,
     error: 'Too many waiver submissions, please try again later.',
+    message: 'Too many waiver submissions, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Public contact / pricing-inquiry rate limiter (5 req / 15 min per IP).
+ *
+ * POST /api/contact is PUBLIC (prospects aren't logged in) and each accepted
+ * submission fans out to SendGrid email + Twilio SMS — real per-message cost,
+ * delivered to the owner AND owner's second recipient — plus a CRM lead row.
+ * The storefront "Ask About Pricing" button makes this endpoint trivially
+ * reachable, so an unthrottled flood would burn Twilio spend, blow up the
+ * owners' phones, and poison the lead pipeline. Stricter than waiverLimiter
+ * for that reason. 5 leaves room for a genuine prospect asking about several
+ * packages; it kills automated abuse.
+ *
+ * Per-IP keying is correct here: core/app.mjs sets `trust proxy` to 1, so
+ * req.ip resolves to the real client, not Render's proxy.
+ */
+export const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  // `message` AND `error` carry the same text on purpose: the public form
+  // consumers read `data.message` (PricingInquiryModal, OrientationForm), while
+  // this module's older limiters used `error`. Sending both means a throttled
+  // PROSPECT sees "try again in a few minutes" instead of a generic failure —
+  // a false-positive block must stay recoverable, because a lost lead costs
+  // vastly more than the handful of messages the cap saves.
+  message: {
+    success: false,
+    error: 'Too many inquiries from this IP. Please try again in a few minutes.',
+    message: 'Too many inquiries from this IP. Please try again in a few minutes.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Public orientation / "Schedule Your Free Consultation" rate limiter
+ * (5 req / 15 min per IP).
+ *
+ * POST /api/orientation/submit is explicitly public. Each submission writes an
+ * Orientation row, raises an admin notification, and intakes SENSITIVE data
+ * (healthInfo + waiver initials). Unthrottled it can be used to flood the
+ * owner's notifications, poison the consultation pipeline that acquisition
+ * depends on, and mass-inject junk health records. A real prospect books a
+ * consultation once, so 5 is generous.
+ */
+export const orientationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  // Both fields — see contactLimiter. OrientationForm reads `errorData.message`.
+  message: {
+    success: false,
+    error: 'Too many consultation requests from this IP. Please try again in a few minutes.',
+    message: 'Too many consultation requests from this IP. Please try again in a few minutes.',
     retryAfter: '15 minutes'
   },
   standardHeaders: true,
@@ -97,4 +158,6 @@ export default {
   adminLimiter,
   uploadLimiter,
   waiverLimiter,
+  contactLimiter,
+  orientationLimiter,
 };

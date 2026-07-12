@@ -49,9 +49,21 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 // Shared validation constants (DRY)
+/**
+ * Escape LIKE wildcards so an Op.iLike duplicate pre-check is an exact
+ * case-insensitive match, never a pattern match ("100% Band" must not match
+ * "100x Band"). Postgres default escape char is backslash.
+ */
+function escapeLikeLiteral(value) {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 const VALID_CATEGORIES = [
   'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
   'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
+  // 4B.1 completion (P0.3e): lacrosse_ball is in the MODEL validate list but
+  // was missing here — manual add/update silently coerced it to 'other'.
+  'lacrosse_ball',
   'stability_ball', 'medicine_ball', 'pull_up_bar', 'trx', 'other'
 ];
 const VALID_RESISTANCE_TYPES = [
@@ -180,8 +192,13 @@ router.get('/', async (req, res) => {
       order: [['isDefault', 'DESC'], ['name', 'ASC']],
     });
 
-    // Auto-create default profiles for trainers/admins on first fetch
-    if (profiles.length === 0 && trainerId) {
+    // Auto-create default profiles for trainers/admins on first fetch.
+    // Guard on the trainer's UNFILTERED profile count: `profiles` was queried
+    // with request filters (e.g. ?locationType=custom), so an empty filtered
+    // result must not re-seed defaults for a trainer who already owns
+    // (possibly renamed or archived) profiles.
+    if (profiles.length === 0 && trainerId
+        && (await EquipmentProfile.count({ where: { trainerId } })) === 0) {
       try {
         const defaults = DEFAULT_PROFILES.map(d => ({ ...d, trainerId }));
         await EquipmentProfile.bulkCreate(defaults);
@@ -253,11 +270,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Profile name must be 100 characters or less' });
     }
 
+    // P0.3e input hardening: both fields feed .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined && description !== null && typeof description !== 'string') {
+      return res.status(400).json({ success: false, error: 'description must be a string or null' });
+    }
+    if (address !== undefined && address !== null && typeof address !== 'string') {
+      return res.status(400).json({ success: false, error: 'address must be a string or null' });
+    }
+
     const EquipmentProfile = getEquipmentProfile();
 
-    // Check for duplicate name
+    // Check for duplicate name — ACTIVE profiles only (archived names must be
+    // re-creatable), CASE-INSENSITIVE to match the partial lower(name) index.
+    // (Name length is already validated ≤100 above, matching STRING(100).)
     const existing = await EquipmentProfile.findOne({
-      where: { trainerId: req.user.id, name: name.trim() },
+      where: { trainerId: req.user.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
@@ -275,6 +303,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, profile });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+    }
     logger.error('[EquipmentRoutes] Create profile error:', err);
     res.status(500).json({ success: false, error: 'Failed to create profile' });
   }
@@ -316,12 +348,40 @@ router.put('/:id', async (req, res) => {
     if (locationType !== undefined && VALID_LOCATION_TYPES.includes(locationType)) {
       updates.locationType = locationType;
     }
-    if (description !== undefined) updates.description = description?.slice(0, 1000) || null;
-    if (address !== undefined) updates.address = address?.slice(0, 255) || null;
+    // P0.3c input hardening: both fields feed .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined) {
+      if (description !== null && typeof description !== 'string') {
+        return res.status(400).json({ success: false, error: 'description must be a string or null' });
+      }
+      updates.description = description?.slice(0, 1000) || null;
+    }
+    if (address !== undefined) {
+      if (address !== null && typeof address !== 'string') {
+        return res.status(400).json({ success: false, error: 'address must be a string or null' });
+      }
+      updates.address = address?.slice(0, 255) || null;
+    }
+
+    // Rename duplicate pre-check — ACTIVE siblings only, CASE-INSENSITIVE,
+    // matching the partial lower(name) index (P0.3e). Self-rename exempt.
+    if (updates.name && updates.name !== profile.name) {
+      const EquipmentProfile = getEquipmentProfile();
+      const duplicate = await EquipmentProfile.findOne({
+        where: { trainerId: profile.trainerId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: profile.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+      }
+    }
 
     await profile.update(updates);
     res.json({ success: true, profile });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+    }
     logger.error('[EquipmentRoutes] Update profile error:', err);
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
@@ -390,19 +450,22 @@ router.post('/:id/items', async (req, res) => {
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Equipment name is required' });
     }
+    // P0.3c input hardening: description feeds .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined && description !== null && typeof description !== 'string') {
+      return res.status(400).json({ success: false, error: 'description must be a string or null' });
+    }
 
     const EquipmentItem = getEquipmentItem();
 
-    // Check duplicate within profile — ACTIVE rows only, matching the partial
-    // unique index (soft-deleted names must not block a re-add, P0.3).
-    //
-    // Check the SAME value we store. The create truncates to 150 chars, so pre-checking the
-    // untruncated name missed the already-stored (truncated) row for any name longer than
-    // that: the insert then collided with the partial unique index and the catch returned a
-    // 500 instead of this clean 409.
-    const storedName = name.trim().slice(0, 150);
+    // Check duplicate within profile — ACTIVE rows only, CASE-INSENSITIVE to
+    // match the scan dedup + the lower(name) partial unique index (P0.3d).
+    // Pre-check the TRUNCATED stored form: a >150-char name is persisted as
+    // its slice, so checking the raw string would miss the stored duplicate
+    // and fall through to the index race path on every re-add.
+    const storedItemName = name.trim().slice(0, 150);
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: storedName, isActive: true },
+      where: { profileId: profile.id, name: { [Op.iLike]: escapeLikeLiteral(storedItemName) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -410,7 +473,7 @@ router.post('/:id/items', async (req, res) => {
 
     const item = await EquipmentItem.create({
       profileId: profile.id,
-      name: storedName,
+      name: storedItemName,
       category: VALID_CATEGORIES.includes(category) ? category : 'other',
       resistanceType: VALID_RESISTANCE_TYPES.includes(resistanceType) ? resistanceType : null,
       description: description?.slice(0, 500) || null,
@@ -426,6 +489,11 @@ router.post('/:id/items', async (req, res) => {
 
     res.status(201).json({ success: true, item });
   } catch (err) {
+    // Race backstop: concurrent add can beat the pre-check; the partial unique
+    // index rejects it — surface as a duplicate, not a server error (P0.3b).
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Add item error:', err);
     res.status(500).json({ success: false, error: 'Failed to add item' });
   }
@@ -440,9 +508,26 @@ router.put('/:id/items/:itemId', async (req, res) => {
 
     const { name, trainerLabel, category, resistanceType, description, quantity } = req.body;
     const updates = {};
-    if (name !== undefined) updates.name = name.trim().slice(0, 150);
-    if (trainerLabel !== undefined) updates.trainerLabel = trainerLabel?.trim().slice(0, 150) || null;
-    if (description !== undefined) updates.description = description?.slice(0, 500) || null;
+    // P0.3c input hardening: these fields feed string methods — non-string or
+    // empty name must be a 400, not a TypeError 500 / silent empty-name write.
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'Equipment name must be a non-empty string' });
+      }
+      updates.name = name.trim().slice(0, 150);
+    }
+    if (trainerLabel !== undefined) {
+      if (trainerLabel !== null && typeof trainerLabel !== 'string') {
+        return res.status(400).json({ success: false, error: 'trainerLabel must be a string or null' });
+      }
+      updates.trainerLabel = trainerLabel?.trim().slice(0, 150) || null;
+    }
+    if (description !== undefined) {
+      if (description !== null && typeof description !== 'string') {
+        return res.status(400).json({ success: false, error: 'description must be a string or null' });
+      }
+      updates.description = description?.slice(0, 500) || null;
+    }
     if (quantity !== undefined) updates.quantity = Math.max(1, parseInt(quantity, 10) || 1);
 
     if (category !== undefined && VALID_CATEGORIES.includes(category)) {
@@ -452,9 +537,27 @@ router.put('/:id/items/:itemId', async (req, res) => {
       updates.resistanceType = resistanceType;
     }
 
+    // Rename duplicate pre-check — ACTIVE siblings only, CASE-INSENSITIVE to
+    // match the lower(name) partial unique index (P0.3b/P0.3d). Same-name
+    // renames skip the lookup; case-only self-renames pass via the Op.ne guard.
+    if (updates.name && updates.name !== item.name) {
+      const EquipmentItem = getEquipmentItem();
+      const duplicate = await EquipmentItem.findOne({
+        where: { profileId: item.profileId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: item.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+      }
+    }
+
     await item.update(updates);
     res.json({ success: true, item });
   } catch (err) {
+    // Race backstop: a concurrent write can beat the pre-check; the partial
+    // unique index rejects it — surface as a duplicate, not a server error.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Update item error:', err);
     res.status(500).json({ success: false, error: 'Failed to update item' });
   }
@@ -555,6 +658,31 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       const duplicateMatch = matchExistingEquipment(candidate, existingItems);
       if (duplicateMatch) {
         duplicateCandidates.push({ ...candidate, ...duplicateMatch, status: 'duplicate', candidateIndex });
+        continue;
+      }
+
+      // In-memory matching can miss a stored duplicate (trainerLabel shadows
+      // the raw name at match time; AI category drift defeats the
+      // name+category rule) while the lower(name) partial unique index still
+      // rejects the insert — aborting the WHOLE scan transaction into a 500
+      // and discarding every other detected item. Pre-check the index's own
+      // semantics (case-insensitive stored name) before creating.
+      const storedNameDuplicate = await EquipmentItem.findOne({
+        where: {
+          profileId: profile.id,
+          name: { [Op.iLike]: escapeLikeLiteral(candidate.suggestedName) },
+          isActive: true,
+        },
+        transaction: t,
+      });
+      if (storedNameDuplicate) {
+        duplicateCandidates.push({
+          ...candidate,
+          duplicateOfItemId: storedNameDuplicate.id,
+          matchType: 'stored_name',
+          status: 'duplicate',
+          candidateIndex,
+        });
         continue;
       }
 
@@ -679,6 +807,15 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     });
   } catch (err) {
     logger.error('[EquipmentRoutes] Scan error:', err);
+    // Cross-request race backstop: another request inserted the same
+    // lower(name) between our pre-check and create. The transaction rolled
+    // back — tell the trainer it's a duplicate, not a server failure.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        success: false,
+        error: 'A scanned item duplicates equipment that was just added. Re-run the scan to pick up the current inventory.',
+      });
+    }
     const msg = err.message || 'Equipment scan failed';
     // Map service errors to appropriate HTTP status codes
     if (msg.includes('GOOGLE_API_KEY') || msg.includes('GEMINI_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
@@ -753,11 +890,29 @@ router.put('/:id/items/:itemId/approve', async (req, res) => {
       approvalStatus: 'approved',
       approvedAt: new Date(),
     };
+    // P0.3e input hardening: overrides feed string methods — non-string → 400.
+    if (name !== undefined && name !== null && typeof name !== 'string') {
+      return res.status(400).json({ success: false, error: 'name must be a string' });
+    }
+    if (trainerLabel !== undefined && trainerLabel !== null && typeof trainerLabel !== 'string') {
+      return res.status(400).json({ success: false, error: 'trainerLabel must be a string' });
+    }
     if (name) updates.name = name.trim().slice(0, 150);
     if (trainerLabel) updates.trainerLabel = trainerLabel.trim().slice(0, 150);
 
     if (category && VALID_CATEGORIES.includes(category)) updates.category = category;
     if (resistanceType && VALID_RESISTANCE_TYPES.includes(resistanceType)) updates.resistanceType = resistanceType;
+
+    // Name override duplicate pre-check — ACTIVE siblings, case-insensitive,
+    // matching the partial lower(name) index (P0.3e). Same-name exempt.
+    if (updates.name && updates.name !== item.name) {
+      const duplicate = await getEquipmentItem().findOne({
+        where: { profileId: item.profileId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: item.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+      }
+    }
 
     await item.update(updates);
 
@@ -781,6 +936,10 @@ router.put('/:id/items/:itemId/approve', async (req, res) => {
 
     res.json({ success: true, item });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Approve error:', err);
     res.status(500).json({ success: false, error: 'Failed to approve item' });
   }
@@ -812,6 +971,11 @@ router.put('/:id/items/:itemId/reject', async (req, res) => {
     await EquipmentExerciseMap.destroy({
       where: { equipmentItemId: item.id, isAiSuggested: true, confirmed: false },
     });
+
+    // Refresh cached count — reject soft-deletes an active item (P0.3e; the
+    // add/delete/approve paths already refresh, reject was the stale one).
+    const count = await getEquipmentItem().count({ where: { profileId: profile.id, isActive: true } });
+    await profile.update({ equipmentCount: count });
 
     res.json({ success: true, message: 'Scan rejected and item archived' });
   } catch (err) {
@@ -848,8 +1012,9 @@ router.post('/:id/items/:itemId/exercises', async (req, res) => {
     if (!result) return;
 
     const { exerciseKey, exerciseName, isCustomExercise, customExerciseId, isPrimary } = req.body;
-    if (!exerciseKey || !exerciseName) {
-      return res.status(400).json({ success: false, error: 'exerciseKey and exerciseName are required' });
+    // P0.3e input hardening: both feed .slice — require non-empty strings.
+    if (!exerciseKey || typeof exerciseKey !== 'string' || !exerciseName || typeof exerciseName !== 'string') {
+      return res.status(400).json({ success: false, error: 'exerciseKey and exerciseName are required strings' });
     }
 
     const EquipmentExerciseMap = getEquipmentExerciseMap();
@@ -886,9 +1051,13 @@ router.delete('/:id/items/:itemId/exercises/:mapId', async (req, res) => {
     const result = await getOwnedItem(req, res);
     if (!result) return;
 
+    const mapId = parseInt(req.params.mapId, 10);
+    if (isNaN(mapId)) {
+      return res.status(400).json({ success: false, error: 'Invalid mapping ID' });
+    }
     const EquipmentExerciseMap = getEquipmentExerciseMap();
     const mapping = await EquipmentExerciseMap.findOne({
-      where: { id: req.params.mapId, equipmentItemId: result.item.id },
+      where: { id: mapId, equipmentItemId: result.item.id },
     });
     if (!mapping) {
       return res.status(404).json({ success: false, error: 'Mapping not found' });
@@ -908,9 +1077,13 @@ router.put('/:id/items/:itemId/exercises/:mapId/confirm', async (req, res) => {
     const result = await getOwnedItem(req, res);
     if (!result) return;
 
+    const mapId = parseInt(req.params.mapId, 10);
+    if (isNaN(mapId)) {
+      return res.status(400).json({ success: false, error: 'Invalid mapping ID' });
+    }
     const EquipmentExerciseMap = getEquipmentExerciseMap();
     const mapping = await EquipmentExerciseMap.findOne({
-      where: { id: req.params.mapId, equipmentItemId: result.item.id },
+      where: { id: mapId, equipmentItemId: result.item.id },
     });
     if (!mapping) {
       return res.status(404).json({ success: false, error: 'Mapping not found' });

@@ -113,10 +113,13 @@ EquipmentItem.init({
   paranoid: false,
   indexes: [
     { fields: ['profileId'], name: 'idx_equipment_item_profile' },
-    // Partial: only ACTIVE items are unique per profile. Items are soft-deleted
-    // (isActive=false) on delete/reject, so soft-deleted names must NOT block a
-    // re-add. Managed by migration 20260711000000-equipment-item-partial-unique-index.
-    { fields: ['profileId', 'name'], unique: true, where: { isActive: true }, name: 'idx_equipment_item_profile_name_active' },
+    // Partial + case-insensitive: only ACTIVE items are unique per profile, on
+    // ("profileId", lower("name")) — matching the scan dedupe's normalizeToken.
+    // Items are soft-deleted (isActive=false) on delete/reject, so dead names
+    // must NOT block a re-add. Managed by migrations 20260711000000 (partial)
+    // and 20260712000000 (case-insensitive); functional lower() index is
+    // expressed here via fn for documentation — the migration owns the schema.
+    { fields: ['profileId', sequelize.fn('lower', sequelize.col('name'))], unique: true, where: { isActive: true }, name: 'idx_equipment_item_profile_lower_name_active' },
     { fields: ['category'], name: 'idx_equipment_item_category' },
     { fields: ['approvalStatus'], name: 'idx_equipment_item_approval' },
     { fields: ['isActive'], name: 'idx_equipment_item_active' },

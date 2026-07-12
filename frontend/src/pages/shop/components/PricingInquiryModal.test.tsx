@@ -95,6 +95,22 @@ describe('PricingInquiryModal', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
+  it('shows the rate-limit message (429 `error` field) instead of a generic failure', async () => {
+    // A throttled prospect must learn they can simply retry shortly — otherwise
+    // they hammer the form or give up, and a lost lead costs far more than the cap saves.
+    post.mockRejectedValueOnce({
+      response: { status: 429, data: { success: false, error: 'Too many inquiries from this IP. Please try again in a few minutes.' } },
+    });
+    render(<PricingInquiryModal package={fixedPackage} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'jane@example.test' } });
+    submitForm();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/try again in a few minutes/i);
+    // and the form stays usable so they can retry
+    expect(screen.getByLabelText(/^name/i)).not.toBeDisabled();
+  });
+
   it('closes on Escape and via the close button', () => {
     const onClose = vi.fn();
     const { rerender } = render(<PricingInquiryModal package={fixedPackage} onClose={onClose} />);

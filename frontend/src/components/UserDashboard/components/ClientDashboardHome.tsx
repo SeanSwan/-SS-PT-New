@@ -19,7 +19,6 @@ import {
   ClientTopNavigation,
   NextSessionCard,
   TodaySnapshotCard,
-  TodaysAssignmentCard,
 } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
 import {
@@ -47,9 +46,12 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
             <PrimaryStack>
               <ClientProfileHero {...props} />
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
+              {/* The plan the member is paying for — above the fold, always present.
+                  The shelf owns its own loading/empty/error states, so this slot is
+                  never conditionally removed. */}
+              {props.programShelf}
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
-                <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
                 <TrainingFocusCard {...props} />
                 {props.canBookSessions && <NextSessionCard sessionPreview={props.sessionPreview} onNavigate={props.onNavigate} />}
               </ThreeColumnGrid>

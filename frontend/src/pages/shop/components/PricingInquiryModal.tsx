@@ -157,7 +157,11 @@ const PricingInquiryModal: React.FC<PricingInquiryModalProps> = ({
         setStatus('success');
       } catch (err: any) {
         logger.warn('Pricing inquiry submit failed:', err);
-        const apiMsg = err?.response?.data?.message || err?.message;
+        // Read BOTH shapes: validation errors use `message`, rate-limit (429)
+        // uses `error`. Without this a throttled prospect sees a generic
+        // failure instead of "try again in a few minutes" — and retries harder.
+        const data = err?.response?.data;
+        const apiMsg = data?.message || data?.error || err?.message;
         setErrorMsg(
           apiMsg || 'Something went wrong sending your request. Please try again.'
         );

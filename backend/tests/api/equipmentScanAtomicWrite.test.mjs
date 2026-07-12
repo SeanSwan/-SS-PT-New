@@ -20,7 +20,9 @@ const FAKE_T = { __txSentinel: true };
 const mocks = vi.hoisted(() => ({
   currentUser: { id: 10, role: 'trainer' },
   equipmentProfile: { findByPk: vi.fn() },
-  equipmentItem: { findAll: vi.fn(), create: vi.fn() },
+  // findOne backs the in-transaction stored-name duplicate pre-check
+  // (queue-drain fix): null by default = no stored duplicate, creates proceed.
+  equipmentItem: { findAll: vi.fn(), create: vi.fn(), findOne: vi.fn().mockResolvedValue(null) },
   equipmentExerciseMap: { bulkCreate: vi.fn() },
   transaction: vi.fn(),
   scan: { isEquipmentScanConfigured: vi.fn(), scanEquipmentImageMulti: vi.fn() },

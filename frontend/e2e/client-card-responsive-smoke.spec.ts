@@ -228,7 +228,7 @@ for (const viewport of responsiveViewports) {
     await expect(page.getByRole('tab', { name: 'Training', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel', { name: /training plans/i })).toBeVisible();
     await expect(page.getByLabel(/active training arc/i)).toBeVisible();
-    await expect(page.getByText(/Plan Arc Vault/i)).toBeVisible();
+    await expect(page.getByText(/Plan Arc Library/i)).toBeVisible();
     await expect(page.getByLabel('6 Month plan arc').getByText(/Six-Month Performance Rebuild/i)).toBeVisible();
     await expect(page.getByLabel('6 Month plan arc').getByRole('button', { name: /open 6 month pdf plan/i })).toBeVisible();
 

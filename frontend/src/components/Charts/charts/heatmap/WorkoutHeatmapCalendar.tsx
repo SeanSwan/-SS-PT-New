@@ -54,32 +54,26 @@ interface Props {
   userId?: number | string;
 }
 
-/** Local-time 'MM/DD' key — the SAME shape the grid walk below builds its labels in. */
-const localDayKey = (d: Date): string =>
-  `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-
 /**
  * Builds the 7xWEEKS day-grid from the per-session duration-trend series
- * (one point per logged session day, last 90 days) by walking back from today —
- * 84 cells cannot collide across years.
+ * (one point per logged session day, last 90 days) by walking back from
+ * today — 84 cells cannot collide across years.
  *
- * TIMEZONE: the server's `x` label is rendered from a TIMESTAMP in the DB session's
- * timezone (UTC), while the grid walk below derives its labels in the browser's LOCAL
- * time. Keying on `x` therefore mis-filed every evening workout: a Sunday 22:00 PT
- * session is Monday 05:00 UTC, so it landed on the local MONDAY cell — the wrong day,
- * and (columns being Monday-aligned, with Sunday the last cell of the PREVIOUS column)
- * the wrong week too. Bucket on the raw timestamp converted to the user's local day
- * instead; fall back to `x` only for responses that predate the `ts` field.
+ * Day bucketing: when the API supplies `iso` (YYYY-MM-DD, formatted by the
+ * backend in UTC), the walk also runs in UTC so both sides agree on which
+ * calendar day a session belongs to — matching the weekly charts'
+ * DATE_TRUNC('week') UTC buckets. Without `iso` (older payloads/mocks) it
+ * falls back to the legacy browser-local MM/DD matching.
  */
 export const buildHeatmapGridFromSessions = (
-  points: Array<{ x: string; ts?: string }>,
+  points: Array<{ x: string; iso?: string }>,
   today = new Date(),
 ): number[][] | null => {
   if (!points.length) return null;
+  const useIso = points.every((point) => typeof point.iso === 'string' && point.iso.length === 10);
   const counts = new Map<string, number>();
   points.forEach((point) => {
-    const parsed = point.ts ? new Date(point.ts) : null;
-    const key = parsed && !Number.isNaN(parsed.getTime()) ? localDayKey(parsed) : point.x;
+    const key = useIso ? (point.iso as string) : point.x;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   });
   // grid[dayOfWeek Mon=0][weekIndex oldest=0]
@@ -88,12 +82,16 @@ export const buildHeatmapGridFromSessions = (
   // 7-day blocks anchored to today would mix two calendar weeks in every
   // column (except when today is Sunday) and disagree with the weekly
   // charts' DATE_TRUNC('week') buckets.
-  const mondayOffset = (today.getDay() + 6) % 7; // days since this week's Monday
+  const dayOfWeek = useIso ? today.getUTCDay() : today.getDay();
+  const mondayOffset = (dayOfWeek + 6) % 7; // days since this week's Monday
   for (let daysBack = 0; daysBack < WEEKS * 7 + mondayOffset; daysBack += 1) {
     const date = new Date(today);
-    date.setDate(date.getDate() - daysBack);
-    const label = localDayKey(date);
-    const dayRow = (date.getDay() + 6) % 7; // JS Sunday=0 -> Monday-first rows
+    if (useIso) date.setUTCDate(date.getUTCDate() - daysBack);
+    else date.setDate(date.getDate() - daysBack);
+    const label = useIso
+      ? `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+      : `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    const dayRow = ((useIso ? date.getUTCDay() : date.getDay()) + 6) % 7; // JS Sunday=0 -> Monday-first rows
     const weeksBack = Math.floor((daysBack - mondayOffset + 6) / 7);
     const weekCol = WEEKS - 1 - weeksBack;
     if (weekCol >= 0) grid[dayRow][weekCol] = counts.get(label) ?? 0;
@@ -103,7 +101,7 @@ export const buildHeatmapGridFromSessions = (
 
 const WorkoutHeatmapCalendar: React.FC<Props> = ({ data, userId }) => {
   const shouldFetch = !data && userId != null;
-  const { data: sessionsRes, loading } = useAnalytics<{ data: Array<{ x: string; ts?: string }> }>(
+  const { data: sessionsRes, loading } = useAnalytics<{ data: Array<{ x: string }> }>(
     userId,
     'chart-duration-trend',
     shouldFetch,

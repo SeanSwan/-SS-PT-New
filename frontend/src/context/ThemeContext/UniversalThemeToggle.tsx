@@ -12,15 +12,23 @@
  * - themeToggleMetadata (exported here) — per-theme icon + accessible name,
  *   contract-locked against the theme registry.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords,
   Flower2, TreePine, Waves, Crown, Leaf, Gem, Orbit, Layers
 } from 'lucide-react';
 import { useUniversalTheme, type ThemeId } from './UniversalThemeContext';
-import ThemePickerPanel from './UniversalThemeToggle.panel';
-import { ToggleRoot, SwatchButton, IconHalo } from './UniversalThemeToggle.styles';
+import {
+  useStyleLensAppearance,
+  type AppearanceProfile,
+} from '../../core/style-lens-os';
+import { ToggleRoot, SwatchButton, IconHalo, StudioLoadingState } from './UniversalThemeToggle.styles';
+
+const AppearanceStudioPanel = React.lazy(
+  () => import('./AppearanceStudio/AppearanceStudioPanel'),
+);
 
 type ThemeToggleIconKey =
   | 'sparkles' | 'sun' | 'zap' | 'moon' | 'flame' | 'snowflake' | 'contrast'
@@ -104,20 +112,87 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
   className
 }) => {
   const { currentTheme, theme, setTheme, motionEnabled, setMotionEnabled } = useUniversalTheme();
+  const {
+    state,
+    registry,
+    beginPreview,
+    cancelPreview,
+    commitPreview,
+  } = useStyleLensAppearance();
   const [open, setOpen] = useState(false);
+  const [draftTheme, setDraftTheme] = useState<ThemeId>(currentTheme);
+  const [draftProfile, setDraftProfile] = useState(state.committed);
+  const [dirty, setDirty] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  // Close on outside click / Escape
+  const restoreTriggerFocus = useCallback(() => {
+    queueMicrotask(() => triggerRef.current?.focus());
+  }, []);
+
+  const openStudio = useCallback(() => {
+    setDraftTheme(currentTheme);
+    setDraftProfile(state.committed);
+    setDirty(false);
+    setOpen(true);
+  }, [currentTheme, state.committed]);
+
+  const cancelAndClose = useCallback(() => {
+    cancelPreview();
+    setDraftTheme(currentTheme);
+    setDraftProfile(state.committed);
+    setDirty(false);
+    setOpen(false);
+    restoreTriggerFocus();
+  }, [cancelPreview, currentTheme, restoreTriggerFocus, state.committed]);
+
+  const handleProfileChange = useCallback((profile: AppearanceProfile) => {
+    setDraftProfile(profile);
+    setDirty(true);
+    beginPreview(profile);
+  }, [beginPreview]);
+
+  const handleThemeChange = useCallback((themeId: ThemeId) => {
+    const profile = {
+      ...draftProfile,
+      paletteThemeId: themeId,
+      updatedAt: new Date().toISOString(),
+    };
+    setDraftTheme(themeId);
+    setDraftProfile(profile);
+    setDirty(true);
+    beginPreview(profile);
+  }, [beginPreview, draftProfile]);
+
+  const handleApply = useCallback(async () => {
+    const applied = !dirty || await commitPreview();
+    if (!applied) return;
+    setTheme(draftTheme);
+    setMotionEnabled(draftProfile.motionMode !== 'off');
+    setDirty(false);
+    setOpen(false);
+    restoreTriggerFocus();
+  }, [
+    commitPreview,
+    dirty,
+    draftProfile.motionMode,
+    draftTheme,
+    restoreTriggerFocus,
+    setMotionEnabled,
+    setTheme,
+  ]);
+
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      const studio = document.querySelector('[data-appearance-studio]');
+      if (rootRef.current?.contains(target) || studio?.contains(target)) return;
+      cancelAndClose();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') cancelAndClose();
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -127,7 +202,7 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
       document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open]);
+  }, [cancelAndClose, open]);
 
   const collapse = prefersReducedMotion || !motionEnabled;
   const panelVariants: Variants = collapse
@@ -148,11 +223,15 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
   return (
     <ToggleRoot ref={rootRef} className={className}>
       <SwatchButton
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-haspopup="menu"
+        onClick={() => {
+          if (open) cancelAndClose();
+          else openStudio();
+        }}
+        aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Theme: ${theme.name}. Open theme picker`}
+        aria-label={`Theme: ${theme.name}. Open Appearance Studio`}
         title={`Theme: ${theme.name}`}
         $bg={theme.background.primary}
         $accent={theme.colors.primary}
@@ -162,23 +241,30 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
         <IconHalo>{getThemeIcon(currentTheme, iconSize)}</IconHalo>
       </SwatchButton>
 
-      <AnimatePresence>
-        {open && (
-          <ThemePickerPanel
-            currentTheme={currentTheme}
-            motionEnabled={motionEnabled}
-            variants={panelVariants}
-            panelBg={theme.background.primary}
-            panelLine={theme.colors.primary}
-            panelText={theme.text.primary}
-            panelMuted={theme.text.muted}
-            onPick={(id) => {
-              setTheme(id);
-            }}
-            onToggleMotion={() => setMotionEnabled(!motionEnabled)}
-          />
-        )}
-      </AnimatePresence>
+      {typeof document !== 'undefined' && createPortal(
+        <Suspense fallback={
+          <StudioLoadingState role='status' aria-live='polite'>
+            Opening Appearance Studio?
+          </StudioLoadingState>
+        }>
+          <AnimatePresence>
+            {open && (
+              <AppearanceStudioPanel
+                currentTheme={currentTheme}
+                draftTheme={draftTheme}
+                draftProfile={draftProfile}
+                registry={registry}
+                variants={panelVariants}
+                onThemeChange={handleThemeChange}
+                onProfileChange={handleProfileChange}
+                onApply={handleApply}
+                onCancel={cancelAndClose}
+              />
+            )}
+          </AnimatePresence>
+        </Suspense>,
+        document.body,
+      )}
     </ToggleRoot>
   );
 };

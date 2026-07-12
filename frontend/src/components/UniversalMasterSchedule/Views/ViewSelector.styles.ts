@@ -73,10 +73,20 @@ export const Tabs = styled.div`
   }
 
   @media (max-width: 480px) {
+    /* phone: one swipeable snap row — no cramped multi-row wrap */
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 0.375rem;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 `;
 
@@ -120,11 +130,12 @@ export const ViewTab = styled.button<{ $active?: boolean }>`
   }
 
   @media (max-width: 480px) {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.7rem;
-    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    border-radius: 999px;
     flex: 0 0 auto;
     white-space: nowrap;
+    scroll-snap-align: start;
   }
 
   @media (min-width: 2560px) {

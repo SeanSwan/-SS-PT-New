@@ -1,6 +1,8 @@
 import express from "express";
+import { Op } from 'sequelize';
 import Contact from '../models/contact.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { contactLimiter } from '../middleware/rateLimiter.mjs';
 import sequelize from '../database.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
@@ -73,7 +75,9 @@ router.get("/", protect, adminOnly, async (req, res) => {
 });
 
 // Enhanced Contact Route - Database First + Smart External Services
-router.post("/", async (req, res) => {
+// PUBLIC. contactLimiter caps abuse: each accepted submission costs real
+// Twilio/SendGrid spend and creates a CRM lead. See middleware/rateLimiter.mjs.
+router.post("/", contactLimiter, async (req, res) => {
   console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
   
   try {
@@ -303,19 +307,63 @@ Your SwanStudios Contact System`,
   }
 }
 
+/**
+ * GLOBAL SMS COST CEILING.
+ *
+ * Per-IP rate limiting (contactLimiter) is necessary but NOT sufficient:
+ *   1. express-rate-limit uses an in-memory store, and this backend runs on
+ *      MULTIPLE Render instances — each keeps its own counter, so the real cap
+ *      is ~max × instances, not `max`. (Verified in prod: ratelimit-remaining
+ *      bounces instead of counting down.)
+ *   2. NO per-IP limit survives IP rotation. Redis would not fix that either.
+ *
+ * Twilio bills per message, so the only thing that truly bounds spend is a cap
+ * on the expensive action itself. This counts recent Contact rows (shared
+ * Postgres = shared across every instance, and IP-agnostic) and suppresses the
+ * paid SMS fan-out above the ceiling.
+ *
+ * IMPORTANT: this suppresses ONLY the SMS. The Contact row, the admin
+ * notification, the email, and the CRM lead still happen — a real lead is NEVER
+ * dropped, the owner just doesn't get texted a thousand times.
+ *
+ * FAILS OPEN: if the count query errors we send anyway. A diagnostic hiccup must
+ * never silence a genuine lead alert.
+ */
+const SMS_HOURLY_CAP = Number(process.env.CONTACT_SMS_HOURLY_CAP || 25);
+
+async function smsBudgetExhausted() {
+  try {
+    const since = new Date(Date.now() - 60 * 60 * 1000);
+    const recent = await Contact.count({ where: { createdAt: { [Op.gte]: since } } });
+    return { exhausted: recent > SMS_HOURLY_CAP, recent };
+  } catch (err) {
+    console.log('⚠️ SMS budget check failed (non-critical) — allowing send:', err.message);
+    return { exhausted: false, recent: null };
+  }
+}
+
 // === TWILIO SMS NOTIFICATION FUNCTION ===
 async function trySMSNotification(contact, formData, results) {
   try {
     console.log('📱 Attempting Twilio SMS notification...');
     results.sms.attempted = true;
-    
+
     // Check if Twilio is properly configured
     const requiredSMSVars = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'];
     const missingSMSVars = requiredSMSVars.filter(varName => !process.env[varName]);
-    
+
     if (missingSMSVars.length > 0) {
       const error = `Missing environment variables: ${missingSMSVars.join(', ')}`;
       console.log(`⚠️ Twilio skipped: ${error}`);
+      results.sms.error = error;
+      return;
+    }
+
+    // Hard cost ceiling — bounds Twilio spend even under a distributed flood.
+    const budget = await smsBudgetExhausted();
+    if (budget.exhausted) {
+      const error = `Global SMS cap reached (${budget.recent} contacts in the last hour > ${SMS_HOURLY_CAP}). SMS suppressed to bound Twilio spend; the contact, email, and CRM lead were still saved.`;
+      console.log(`🛑 Twilio suppressed: ${error}`);
       results.sms.error = error;
       return;
     }

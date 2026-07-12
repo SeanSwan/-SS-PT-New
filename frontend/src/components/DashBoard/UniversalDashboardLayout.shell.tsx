@@ -62,13 +62,12 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
   onLogout,
   onTeachMeCoachPrompt,
 }) => {
-  const dashboardTheme = createUniversalDashboardTheme(activeRole);
   const prefersReducedMotion = Boolean(useReducedMotion());
   const isCoachAssistantRoute = /\/coach-assistant(?:\/|$)/.test(locationPathname);
   const themedShell = (content: React.ReactNode) => (
-    <ThemeProvider theme={dashboardTheme}>
+    <ThemeProvider theme={(parentTheme) => createUniversalDashboardTheme(activeRole, parentTheme)}>
       <UniversalGlobalStyles />
-      <UniversalLayoutContainer>{content}</UniversalLayoutContainer>
+      <UniversalLayoutContainer data-style-lens-shell>{content}</UniversalLayoutContainer>
     </ThemeProvider>
   );
 
