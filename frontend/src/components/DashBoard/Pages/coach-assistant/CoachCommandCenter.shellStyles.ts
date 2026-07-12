@@ -68,14 +68,6 @@ export const coachCommandShellStyles = css`
     outline-offset: 3px;
   }
 
-  .app-shell {
-    display: grid;
-    gap: 16px;
-    grid-template-columns: 292px minmax(0, 1fr) 320px;
-    min-height: calc(100dvh - 48px);
-    width: 100%;
-  }
-
   .glass {
     background: linear-gradient(
       180deg,
