@@ -35,7 +35,7 @@ const { generatePlan } = await import('../services/workoutBuilderService.mjs');
 const context = {
   clientName: 'Test Client',
   constraints: { nasmPhase: 2, excludedMuscles: [], compensationTypes: [], recentlyUsedExercises: [] },
-  pain: { exclusions: [], warnings: [] },
+  pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [] },
   movement: { compensations: [] },
   variation: { lastSessionType: null, currentPattern: 'BUILD/SWITCH' },
   equipment: [],

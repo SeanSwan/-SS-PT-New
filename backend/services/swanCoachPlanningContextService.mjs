@@ -13,6 +13,7 @@ export {
 } from './swanCoachPlanningActivePlanContextService.mjs';
 export {
   buildSwanCoachPlanningFingerprint,
+  buildSwanCoachPlanningSafetyGateFromContext,
 } from './swanCoachPlanningFingerprintService.mjs';
 
 export function appendSwanCoachPlanningGuidance(prompt, { placement = 'append' } = {}) {

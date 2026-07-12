@@ -72,7 +72,7 @@ function fakeContext(compensations = []) {
       recentlyUsedExercises: [],
       estimated1RMs: null,
     },
-    pain: { exclusions: [], warnings: [] },
+    pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [] },
     movement: { compensations },
     variation: { lastSessionType: null, currentPattern: 'BUILD/SWITCH' },
     equipment: [],

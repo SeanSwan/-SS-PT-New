@@ -30,7 +30,9 @@ const buildContext = (overrides = {}) => ({
     ...(overrides.constraints || {}),
   },
   pain: {
+    status: (overrides.painExclusions || []).length > 0 ? 'loaded_active_issue' : 'loaded_no_active_issue',
     exclusions: overrides.painExclusions || [],
+    warnings: [],
     activeEntries: [],
   },
   movement: {
@@ -99,7 +101,7 @@ describe('generatePlan — R1 additive shape (D1 lock)', () => {
   });
 
   it('preserves all existing top-level fields with their existing shapes', async () => {
-    const plan = await generatePlan(baseOptions({ durationWeeks: 4 }));
+    const plan = await generatePlan(baseOptions({ durationWeeks: 4, planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' }));
 
     // Existing shape preserved EXACTLY
     expect(plan).toHaveProperty('clientId');
@@ -157,7 +159,7 @@ describe('generatePlan — R1 additive shape (D1 lock)', () => {
   });
 
   it('adds recommendationDetails[] as NEW additive top-level field', async () => {
-    const plan = await generatePlan(baseOptions({ durationWeeks: 4 }));
+    const plan = await generatePlan(baseOptions({ durationWeeks: 4, planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' }));
     expect(Array.isArray(plan.recommendationDetails)).toBe(true);
     expect(plan.recommendationDetails.length).toBeGreaterThan(0);
     plan.recommendationDetails.forEach((rec) => {
@@ -312,7 +314,7 @@ describe('generatePlan — R10 recommendations contract', () => {
   });
 
   it('recommendations is string[]; recommendationDetails is object[]', async () => {
-    const plan = await generatePlan(baseOptions({ durationWeeks: 4 }));
+    const plan = await generatePlan(baseOptions({ durationWeeks: 4, planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' }));
     expect(Array.isArray(plan.recommendations)).toBe(true);
     expect(plan.recommendations.every((r) => typeof r === 'string')).toBe(true);
     expect(Array.isArray(plan.recommendationDetails)).toBe(true);
@@ -322,7 +324,7 @@ describe('generatePlan — R10 recommendations contract', () => {
   });
 
   it('recommendationDetails sourceCitation contains SCHEMA-PATH only, never raw client data values', async () => {
-    const plan = await generatePlan(baseOptions({ durationWeeks: 4 }));
+    const plan = await generatePlan(baseOptions({ durationWeeks: 4, planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' }));
     plan.recommendationDetails.forEach((rec) => {
       // sourceCitation should look like "context.foo.bar" or "options.x" — a path string.
       // It must NOT contain client-identifying data like a name or a body part value with

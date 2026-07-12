@@ -13,7 +13,6 @@
 import {
   getBootcampClassLog,
   getBootcampSpaceProfile,
-  getClientPainEntry,
 } from '../../models/index.mjs';
 import { getExerciseRegistry } from '../variationEngine.mjs';
 import { applyExerciseQualityGate } from '../exerciseQualityGate.mjs';
@@ -28,6 +27,7 @@ import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
+import { applyPainAwareGating } from './painAwareGating.mjs';
 
 // ── Exercise Selection Algorithms ─────────────────────────────────────
 
@@ -502,49 +502,12 @@ export async function generateBootcampClass(options) {
     });
   }
 
-  // Step 9b: Pain-aware annotations — flag exercises that may aggravate active injuries
-  const painAlerts = [];
-  if (trainerId) {
-    try {
-      const PainEntry = getClientPainEntry();
-      const activeEntries = await PainEntry.findAll({
-        where: { createdById: trainerId, status: 'active', painLevel: { [Op.gte]: 5 } },
-        attributes: ['bodyRegion', 'side', 'painLevel', 'painType', 'userId'],
-      });
-      if (activeEntries.length > 0) {
-        const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
-        const REGION_MUSCLE_MAP = {
-          left_knee: ['quadriceps', 'hamstrings'], right_knee: ['quadriceps', 'hamstrings'],
-          lower_back: ['erector_spinae', 'core', 'glutes'], upper_back: ['trapezius', 'rhomboids', 'lats'],
-          left_shoulder: ['shoulders', 'chest'], right_shoulder: ['shoulders', 'chest'],
-          left_hip: ['glutes', 'hip_flexors', 'adductors'], right_hip: ['glutes', 'hip_flexors', 'adductors'],
-          left_ankle: ['calves', 'tibialis'], right_ankle: ['calves', 'tibialis'],
-        };
-
-        for (const region of painRegions) {
-          const relatedMuscles = REGION_MUSCLE_MAP[region] || [];
-          const flaggedExercises = allExercises.filter(ex => {
-            const exMuscles = ex.muscleTargets?.toLowerCase() || '';
-            return relatedMuscles.some(m => exMuscles.includes(m));
-          });
-          if (flaggedExercises.length > 0) {
-            painAlerts.push({
-              region,
-              severity: Math.max(...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel)),
-              flaggedExercises: flaggedExercises.map(e => e.exerciseName),
-              recommendation: `Participants with ${region.replace(/_/g, ' ')} issues should use Board 2 joint-friendly alternatives or Board 3 low-impact swaps for these exercises.`,
-            });
-          }
-        }
-        if (painAlerts.length > 0) {
-          explanations.push({
-            type: 'pain_alert',
-            message: `Pain-aware: ${painAlerts.length} exercise group(s) flagged based on active client injuries. Board 2 joint-friendly modifications and Board 3 low-impact swaps recommended.`,
-          });
-        }
-      }
-    } catch { /* pain check is non-fatal */ }
-  }
+  // Step 9b (Cortex P0 §5.5): pain-aware GATING across the trainer's
+  // active-client roster — repairs the dead `status: 'active'` query (Rule 58
+  // drift: ClientPainEntry has `isActive`) and the wrong createdById roster
+  // semantics, and swaps severe-pain Board-1 exercises to joint-friendly
+  // alternatives instead of only decorating. See painAwareGating.mjs.
+  const painAlerts = await applyPainAwareGating({ trainerId, allExercises, explanations });
 
   // Step 10: Apply class style modifications
   applyClassStyle(classStyle, allExercises, explanations);

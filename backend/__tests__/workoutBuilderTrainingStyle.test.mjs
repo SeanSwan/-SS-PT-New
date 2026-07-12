@@ -91,7 +91,7 @@ describe('workoutBuilder training style policy', () => {
   });
 
   it('applies hardcore density cues only to eligible single-workout exercises', async () => {
-    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { exclusions: [], warnings: [] } }));
+    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [] } }));
 
     const workout = await generateWorkout({
       clientId: 1,
@@ -123,6 +123,8 @@ describe('workoutBuilder training style policy', () => {
       durationWeeks: 4,
       sessionsPerWeek: 4,
       primaryGoal: 'general_fitness',
+      planningReviewAcknowledged: true,
+      planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
       registryOverride: registry,
       trainingIntensityMode: 'base',
       hardcoreMethod: 'descending',
@@ -137,7 +139,7 @@ describe('workoutBuilder training style policy', () => {
   });
 
   it('adds hardcore method metadata and review guidance to long-horizon plans', async () => {
-    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { exclusions: [], warnings: [] } }));
+    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [] } }));
 
     const plan = await generatePlan({
       clientId: 1,

@@ -3,8 +3,16 @@
  * ============================================
  * Regression coverage for schema-bound Coach frontend draft actions.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createCoachActionProposalsFromAiResponse } from '../../services/ai/coachActionProposalService.mjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// This file covers the dispatch BRIDGE mechanics (schema binding, field
+// stripping, role gating). Eligibility (registry/pain, Cortex P0 §5.4) is
+// covered in coachDispatchEligibility.test.mjs — pass-through it here.
+vi.mock('../../services/ai/coachDispatchEligibilityService.mjs', () => ({
+  filterEligibleFrontendActions: vi.fn(async ({ actions }) => ({ allowed: actions, refusals: [] })),
+}));
+
+const { createCoachActionProposalsFromAiResponse } = await import('../../services/ai/coachActionProposalService.mjs');
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -127,7 +135,7 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
       sequelizeOverride: db,
     });
 
-    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(result).toEqual({ proposals: [], frontendActions: [], frontendActionRefusals: [] });
     expect(db.calls).toEqual([]);
   });
 
@@ -155,7 +163,7 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
       sequelizeOverride: db,
     });
 
-    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(result).toEqual({ proposals: [], frontendActions: [], frontendActionRefusals: [] });
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
   });
 
@@ -175,7 +183,7 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
       sequelizeOverride: db,
     });
 
-    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(result).toEqual({ proposals: [], frontendActions: [], frontendActionRefusals: [] });
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
   });
   it('does not emit frontend draft actions for client-role conversations', async () => {
@@ -194,7 +202,7 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
       sequelizeOverride: db,
     });
 
-    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(result).toEqual({ proposals: [], frontendActions: [], frontendActionRefusals: [] });
     expect(db.calls).toEqual([]);
   });
 });

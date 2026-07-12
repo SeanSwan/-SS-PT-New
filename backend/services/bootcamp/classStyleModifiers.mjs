@@ -41,6 +41,34 @@ function firstAvailableAlternative(exercise, fields) {
   return null;
 }
 
+// Region → preferred modification field for pain-aware swaps (Cortex P0 §5.5).
+const REGION_MOD_FIELD = {
+  knee: 'kneeMod',
+  ankle: 'ankleMod',
+  back: 'backMod',
+  shoulder: 'shoulderMod',
+  wrist: 'wristMod',
+  elbow: 'elbowMod',
+  foot: 'footMod',
+  hip: 'hipMod',
+};
+
+/**
+ * Derive the best joint-friendly alternative name for an exercise, preferring
+ * the modification field that matches the painful body region (e.g. a
+ * left_knee report prefers kneeMod), then any joint mod, then easyVariation.
+ * Returns null when the exercise carries no usable alternative.
+ */
+export function deriveJointFriendlyAlternative(exercise, region = '') {
+  const normalized = String(region).toLowerCase();
+  const preferredField = Object.entries(REGION_MOD_FIELD)
+    .find(([key]) => normalized.includes(key))?.[1];
+  const preferred = preferredField ? cleanAlternativeName(exercise[preferredField]) : null;
+  return preferred
+    || firstAvailableAlternative(exercise, JOINT_MOD_FIELDS)
+    || cleanAlternativeName(exercise.easyVariation);
+}
+
 function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, boardLabel) {
   return {
     ...exercise,
