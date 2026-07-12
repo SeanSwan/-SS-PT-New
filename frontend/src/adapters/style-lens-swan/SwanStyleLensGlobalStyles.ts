@@ -89,6 +89,48 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
       var(--bg-base, #0a0a0f);
   }
 
+  :root[data-style-lens='recovery-cloister'] {
+    --lens-sidebar-width: 220px;
+    --lens-main-padding: clamp(32px, 4vw, 72px);
+    --lens-panel-radius: 30px 8px 30px 8px;
+    --lens-shell-gap: 12px;
+    --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ice-wing, #60c0f0) 18%, transparent), transparent 38%), #08243a;
+  }
+
+  :root[data-style-lens='tempo-forge'] {
+    --lens-sidebar-width: 296px;
+    --lens-main-padding: clamp(18px, 1.8vw, 34px);
+    --lens-panel-radius: 4px 18px 4px 18px;
+    --lens-navigation-edge: var(--wing-purple, #8b5cf6);
+    --lens-canvas: repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 10%, transparent) 32px 33px), #141419;
+  }
+
+  :root[data-style-lens='coach-ledger'] {
+    --lens-sidebar-width: 324px;
+    --lens-main-padding: clamp(20px, 2vw, 40px);
+    --lens-panel-radius: 2px;
+    --lens-shell-gap: 1px;
+    --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: linear-gradient(90deg, color-mix(in srgb, var(--gilded-fern, #c6a84b) 7%, transparent) 0 1px, transparent 1px 100%), #1a1a24;
+  }
+
+  :root[data-style-lens='signal-garden'] {
+    --lens-sidebar-width: 244px;
+    --lens-main-padding: clamp(24px, 3vw, 58px);
+    --lens-panel-radius: 28px 28px 8px 28px;
+    --lens-shell-gap: 16px;
+    --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: radial-gradient(ellipse at 8% 50%, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, transparent), transparent 34%), linear-gradient(145deg, #062e3a, var(--bg-base, #0a0a0f));
+  }
+
+  :root[data-style-lens='split-horizon'] {
+    --lens-sidebar-width: 264px;
+    --lens-main-padding: clamp(22px, 2.5vw, 50px);
+    --lens-panel-radius: 18px 3px 18px 3px;
+    --lens-navigation-edge: var(--wing-purple, #8b5cf6);
+    --lens-canvas: linear-gradient(180deg, #101d46 0 49.75%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent) 50%, var(--bg-base, #0a0a0f) 50.25% 100%);
+  }
   :root[data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;

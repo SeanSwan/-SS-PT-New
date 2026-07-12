@@ -5,12 +5,17 @@ import { describe, expect, it } from 'vitest';
 const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8');
 
-const sentinelIds = [
+const promotedLensIds = [
   'quiet-meridian',
   'blueprint-fold',
   'kintsugi-circuit',
   'analog-flight-recorder',
   'candy-glass-arcade',
+  'recovery-cloister',
+  'tempo-forge',
+  'coach-ledger',
+  'signal-garden',
+  'split-horizon',
 ];
 
 describe('Swan Style Lens runtime binding', () => {
@@ -24,12 +29,12 @@ describe('Swan Style Lens runtime binding', () => {
     );
   });
 
-  it('binds every sentinel to scoped structural CSS variables', () => {
+  it('binds every promoted lens to scoped structural CSS variables', () => {
     const styles = source(
       'src/adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts',
     );
 
-    sentinelIds.forEach((id) => {
+    promotedLensIds.forEach((id) => {
       expect(styles).toContain("data-style-lens='" + id + "'");
     });
     expect(styles).toContain('--lens-sidebar-width');

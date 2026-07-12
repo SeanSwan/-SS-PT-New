@@ -1,4 +1,4 @@
-/** Five-sentinel Appearance Studio browser and responsive gate. */
+/** Promoted Style Lens Appearance Studio browser and responsive gate. */
 import { createRequire } from "node:module";
 import { expect, test, type Page, type Route } from "@playwright/test";
 const AXE_PATH = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
@@ -14,12 +14,17 @@ const ADMIN = {
   isActive: true,
 };
 
-const SENTINELS = [
+const PROMOTED_LENSES = [
   ["Quiet Meridian", "quiet-meridian"],
   ["Blueprint Fold", "blueprint-fold"],
   ["Kintsugi Circuit", "kintsugi-circuit"],
   ["Analog Flight Recorder", "analog-flight-recorder"],
   ["Candy Glass Arcade", "candy-glass-arcade"],
+  ["Recovery Cloister", "recovery-cloister"],
+  ["Tempo Forge", "tempo-forge"],
+  ["Coach Ledger", "coach-ledger"],
+  ["Signal Garden", "signal-garden"],
+  ["Split Horizon", "split-horizon"],
 ] as const;
 
 const VIEWPORTS = [
@@ -85,7 +90,7 @@ async function openDashboard(page: Page) {
   ).toBeVisible();
 }
 
-test("five sentinels preview, apply, and remain overflow-free", async ({
+test("promoted lenses preview, apply, and remain overflow-free", async ({
   page,
 }, testInfo) => {
   const writes: string[] = [];
@@ -99,7 +104,7 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
     if (request.url().includes('AppearanceStudioPanel')) {
       studioChunkRequests.push(request.url());
     }
-    if (request.url().includes("/api/") && request.method() !== "GET") {
+    if (request.url().includes("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method())) {
       writes.push(`${request.method()} ${request.url()}`);
     }
   });
@@ -113,7 +118,7 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
   expect(studioChunkRequests).toHaveLength(1);
 
   await page.addScriptTag({ path: AXE_PATH });
-  for (const [name, id] of SENTINELS) {
+  for (const [lensIndex, [name, id]] of PROMOTED_LENSES.entries()) {
     await page.getByRole("button", { name: `${name} style` }).click();
     await expect(page.getByTestId("appearance-preview")).toHaveAttribute(
       "data-preview-lens",
@@ -132,6 +137,9 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
       return result.violations;
     });
     expect(violations, `${name} WCAG violations`).toEqual([]);
+    if (lensIndex >= 5) {
+      await page.screenshot({ path: testInfo.outputPath(`appearance-studio-${id}.png`) });
+    }
   }
 
   await page.setViewportSize({ width: 414, height: 896 });
@@ -201,7 +209,7 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
         if (!(entry as PerformanceEntry & { hadRecentInput?: boolean }).hadRecentInput) scope.__styleLensCls += (entry as PerformanceEntry & { value?: number }).value ?? 0;
       }
     });
-    observer.observe({ type: 'layout-shift', buffered: true });
+    observer.observe({ type: 'layout-shift' });
     scope.__styleLensObserver = observer;
   });
   await page.getByRole("button", { name: "Quiet Meridian style" }).click();
@@ -209,8 +217,10 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
     path: testInfo.outputPath("appearance-studio-desktop.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Apply appearance" }).click();
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { (globalThis as typeof globalThis & { __styleLensCls: number }).__styleLensCls = 0; });
   const commitStarted = Date.now();
+  await page.getByRole("button", { name: "Apply appearance" }).click();
   await expect(page.locator("html")).toHaveAttribute(
     "data-style-lens",
     "quiet-meridian",
@@ -230,7 +240,7 @@ test("five sentinels preview, apply, and remain overflow-free", async ({
   expect(errors).toEqual([]);
 });
 
-test('every sentinel preserves a static reduced-motion fallback', async ({ page }) => {
+test('every promoted lens preserves a static reduced-motion fallback', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -239,7 +249,7 @@ test('every sentinel preserves a static reduced-motion fallback', async ({ page 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openDashboard(page);
 
-  for (const [name, id] of SENTINELS) {
+  for (const [name, id] of PROMOTED_LENSES) {
     await page.getByRole('button', { name: /Open Appearance Studio/ }).click();
     await page.getByRole('button', { name: `${name} style` }).click();
     await page.getByRole('button', { name: 'Apply appearance' }).click();
@@ -259,7 +269,7 @@ test('every sentinel preserves a static reduced-motion fallback', async ({ page 
   expect(errors).toEqual([]);
 });
 
-test('five sentinel commits stay responsive under 4x CPU throttle', async ({
+test('promoted lens commits stay responsive under 4x CPU throttle', async ({
   page, context, browserName,
 }) => {
   test.skip(browserName !== 'chromium', 'CDP CPU throttling is Chromium-only');
@@ -268,7 +278,7 @@ test('five sentinel commits stay responsive under 4x CPU throttle', async ({
   await openDashboard(page);
   const timings: number[] = [];
 
-  for (const [name, id] of SENTINELS) {
+  for (const [name, id] of PROMOTED_LENSES) {
     await page.getByRole('button', { name: /Open Appearance Studio/ }).click();
     await page.getByRole('button', { name: `${name} style` }).click();
     const started = Date.now();

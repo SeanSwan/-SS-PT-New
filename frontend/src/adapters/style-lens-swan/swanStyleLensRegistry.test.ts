@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SWAN_EXPANSION_MANIFESTS,
   SWAN_FLAGSHIP_MANIFEST,
   SWAN_ROLE_SLOT_MAP,
   SWAN_SENTINEL_MANIFESTS,
@@ -13,6 +14,14 @@ const expectedSentinels = [
   ['kintsugi-circuit', 'Kintsugi Circuit'],
   ['analog-flight-recorder', 'Analog Flight Recorder'],
   ['candy-glass-arcade', 'Candy Glass Arcade'],
+];
+
+const expectedExpansion = [
+  ['recovery-cloister', 'Recovery Cloister'],
+  ['tempo-forge', 'Tempo Forge'],
+  ['coach-ledger', 'Coach Ledger'],
+  ['signal-garden', 'Signal Garden'],
+  ['split-horizon', 'Split Horizon'],
 ];
 
 const luminance = (hex: string) => {
@@ -44,13 +53,31 @@ describe('Swan Style Lens adapter', () => {
 
   it('keeps Default and Swan flagship separate from the sentinel gate', () => {
     expect(SWAN_FLAGSHIP_MANIFEST.id).toBe('swan-flagship');
-    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(7);
+    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(12);
     expect(SWAN_STYLE_LENS_REGISTRY.resolve('not-a-lens').id).toBe(
       'default-safety',
     );
   });
 
-  it.each(SWAN_SENTINEL_MANIFESTS)(
+  it('publishes expansion batch 6-10 with pairwise structural differentiation', () => {
+    expect(SWAN_EXPANSION_MANIFESTS.map(({ id, name }) => [id, name])).toEqual(expectedExpansion);
+    const promoted = [...SWAN_SENTINEL_MANIFESTS, ...SWAN_EXPANSION_MANIFESTS];
+    const dimensions = ['layoutSignature', 'navigationRenderer', 'shellRenderer'] as const;
+    promoted.forEach((lens, index) => promoted.slice(index + 1).forEach((peer) => {
+      expect(dimensions.filter((key) => lens[key] !== peer[key]).length).toBeGreaterThanOrEqual(2);
+    }));
+  });
+
+  it('keeps retired Galaxy-Swan colors out of adapter runtime source', () => {
+    const runtimeSource = JSON.stringify({
+      manifests: SWAN_STYLE_LENS_REGISTRY.available(),
+      visuals: SWAN_STYLE_LENS_VISUALS,
+    }).toLowerCase();
+    ['#0a0a1a', '#00ffff', '#7851a9'].forEach((retired) => {
+      expect(runtimeSource).not.toContain(retired);
+    });
+  });
+  it.each([...SWAN_SENTINEL_MANIFESTS, ...SWAN_EXPANSION_MANIFESTS])(
     '$name carries accessibility, motion, and one-hop fallback receipts',
     (manifest) => {
       expect(manifest.promotion.status).toBe('approved');
@@ -66,11 +93,11 @@ describe('Swan Style Lens adapter', () => {
 
   it('defines distinct static visual receipts without remote assets', () => {
     expect(Object.keys(SWAN_STYLE_LENS_VISUALS)).toEqual(
-      expectedSentinels.map(([id]) => id),
+      [...expectedSentinels, ...expectedExpansion].map(([id]) => id),
     );
     expect(new Set(
       Object.values(SWAN_STYLE_LENS_VISUALS).map(({ signatureMoment }) => signatureMoment),
-    ).size).toBe(5);
+    ).size).toBe(10);
     Object.values(SWAN_STYLE_LENS_VISUALS).forEach((visual) => {
       expect(visual.assetTier).toBe('static-css');
       expect(visual.primaryActionMinHeight).toBeGreaterThanOrEqual(44);

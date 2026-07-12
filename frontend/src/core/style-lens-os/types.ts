@@ -39,7 +39,12 @@ export type ShellRendererId =
   | 'folded-grid-shell'
   | 'fracture-shell'
   | 'instrument-shell'
-  | 'arcade-shell';
+  | 'arcade-shell'
+  | 'recovery-cloister-shell'
+  | 'tempo-forge-shell'
+  | 'coach-ledger-shell'
+  | 'signal-garden-shell'
+  | 'split-horizon-shell';
 export type NavigationRendererId =
   | 'default-navigation'
   | 'flagship-navigation'
@@ -47,7 +52,12 @@ export type NavigationRendererId =
   | 'blueprint-tabs-navigation'
   | 'circuit-orbit-navigation'
   | 'instrument-strip-navigation'
-  | 'arcade-dock-navigation';
+  | 'arcade-dock-navigation'
+  | 'cloister-bottom-navigation'
+  | 'tempo-strip-navigation'
+  | 'ledger-index-navigation'
+  | 'garden-branch-navigation'
+  | 'horizon-dock-navigation';
 export type ComponentRecipeId =
   | 'default-recipe'
   | 'flagship-recipe'
@@ -55,7 +65,12 @@ export type ComponentRecipeId =
   | 'blueprint-recipe'
   | 'kintsugi-recipe'
   | 'instrument-recipe'
-  | 'arcade-recipe';
+  | 'arcade-recipe'
+  | 'recovery-cloister-recipe'
+  | 'tempo-forge-recipe'
+  | 'coach-ledger-recipe'
+  | 'signal-garden-recipe'
+  | 'split-horizon-recipe';
 
 export interface RendererAllowlist {
   shell: readonly string[];

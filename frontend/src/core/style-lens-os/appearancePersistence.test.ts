@@ -109,6 +109,13 @@ describe('appearance persistence', () => {
     ).toBe(false);
   });
 
+  it('rejects an appearance envelope larger than the bounded profile budget', () => {
+    const storage = createStorage();
+    const persistence = createAppearancePersistence({ storage, sourceId: 'x'.repeat(9_000) });
+
+    expect(persistence.save(profile('quiet-meridian'), { suppressed: false })).toBe(false);
+    expect(storage.values.size).toBe(0);
+  });
   it('writes an origin envelope and ignores its own storage event', () => {
     const storage = createStorage();
     const persistence = createAppearancePersistence({

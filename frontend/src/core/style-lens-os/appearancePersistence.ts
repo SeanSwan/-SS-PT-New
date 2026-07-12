@@ -5,6 +5,7 @@ import {
 import type { AppearanceProfile } from './types';
 
 export const APPEARANCE_STORAGE_KEY = 'style-lens-os:appearance-profile';
+export const MAX_APPEARANCE_ENVELOPE_CHARS = 8_192;
 
 export interface StorageLike {
   getItem: (key: string) => string | null;
@@ -110,6 +111,7 @@ export const createAppearancePersistence = ({
   load: (): PersistenceLoadResult => {
     const raw = storage.getItem(APPEARANCE_STORAGE_KEY);
     if (raw === null) return { profile: DEFAULT_APPEARANCE_PROFILE };
+    if (raw.length > MAX_APPEARANCE_ENVELOPE_CHARS) return resetResult();
 
     const envelope = parseEnvelope(raw);
     const migrated = envelope ? migrateProfile(envelope.profile) : null;
@@ -122,9 +124,11 @@ export const createAppearancePersistence = ({
   ): boolean => {
     if (suppressed || !isCurrentProfile(profile)) return false;
     try {
+      const serialized = JSON.stringify({ sourceId, profile });
+      if (serialized.length > MAX_APPEARANCE_ENVELOPE_CHARS) return false;
       storage.setItem(
         APPEARANCE_STORAGE_KEY,
-        JSON.stringify({ sourceId, profile }),
+        serialized,
       );
       return true;
     } catch {
@@ -137,7 +141,7 @@ export const createAppearancePersistence = ({
     current: AppearanceProfile,
     { suppressed = false }: { suppressed?: boolean } = {},
   ): AppearanceProfile | null => {
-    if (suppressed) return null;
+    if (suppressed || (raw?.length ?? 0) > MAX_APPEARANCE_ENVELOPE_CHARS) return null;
     const envelope = parseEnvelope(raw);
     if (!envelope || envelope.sourceId === sourceId) return null;
     const external = migrateProfile(envelope.profile);

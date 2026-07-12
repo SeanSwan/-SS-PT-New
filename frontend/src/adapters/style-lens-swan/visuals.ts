@@ -91,4 +91,38 @@ export const SWAN_STYLE_LENS_VISUALS: Record<
     blueButtonGlowToken: "wing-purple",
     purpleButtonGlowToken: "ice-wing",
   },
-};
+  "recovery-cloister": {
+    signatureMoment: "A quiet readiness ring anchors the lower-action sanctuary.",
+    assetTier: "static-css", primaryActionMinHeight: 48, textContrast: 13.2,
+    foregroundToken: "frost-white", backgroundToken: "recovery-cloister-canvas",
+    foregroundFallback: "#e0ecf4", backgroundFallback: "#08243a",
+    blueButtonGlowToken: "wing-purple", purpleButtonGlowToken: "ice-wing",
+  },
+  "tempo-forge": {
+    signatureMoment: "Cadence bands preserve a tempo-safe working zone.",
+    assetTier: "static-css", primaryActionMinHeight: 48, textContrast: 15.28,
+    foregroundToken: "frost-white", backgroundToken: "carbon",
+    foregroundFallback: "#e0ecf4", backgroundFallback: "#141419",
+    blueButtonGlowToken: "wing-purple", purpleButtonGlowToken: "ice-wing",
+  },
+  "coach-ledger": {
+    signatureMoment: "A gilded annotation margin turns coaching history into an index.",
+    assetTier: "static-css", primaryActionMinHeight: 48, textContrast: 14.36,
+    foregroundToken: "frost-white", backgroundToken: "graphite",
+    foregroundFallback: "#e0ecf4", backgroundFallback: "#1a1a24",
+    blueButtonGlowToken: "wing-purple", purpleButtonGlowToken: "ice-wing",
+  },
+  "signal-garden": {
+    signatureMoment: "A branching progress rail grows toward the next best action.",
+    assetTier: "static-css", primaryActionMinHeight: 48, textContrast: 11.97,
+    foregroundToken: "frost-white", backgroundToken: "signal-garden-canvas",
+    foregroundFallback: "#e0ecf4", backgroundFallback: "#062e3a",
+    blueButtonGlowToken: "wing-purple", purpleButtonGlowToken: "ice-wing",
+  },
+  "split-horizon": {
+    signatureMoment: "A luminous horizon separates live work from decision insight.",
+    assetTier: "static-css", primaryActionMinHeight: 48, textContrast: 13.59,
+    foregroundToken: "frost-white", backgroundToken: "split-horizon-canvas",
+    foregroundFallback: "#e0ecf4", backgroundFallback: "#101d46",
+    blueButtonGlowToken: "wing-purple", purpleButtonGlowToken: "ice-wing",
+  },};

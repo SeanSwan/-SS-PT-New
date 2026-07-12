@@ -5,9 +5,12 @@ import {
 } from '../../core/style-lens-os';
 import { themes } from '../../context/ThemeContext/UniversalThemeContext';
 import {
+  SWAN_EXPANSION_MANIFESTS,
   SWAN_SENTINEL_MANIFESTS,
   SWAN_STYLE_LENS_REGISTRY,
 } from './index';
+
+const PROMOTED_LENSES = [...SWAN_SENTINEL_MANIFESTS, ...SWAN_EXPANSION_MANIFESTS];
 
 const luminance = (hex: string) => {
   const channels = hex.match(/[a-f\d]{2}/gi)?.map((value) => parseInt(value, 16) / 255) ?? [];
@@ -23,12 +26,12 @@ const contrast = (foreground: string, background: string) => {
 };
 
 describe('Swan color theme and structural lens precedence', () => {
-  it('keeps color identity additive across every registered theme and sentinel', () => {
+  it('keeps color identity additive across every registered theme and promoted lens', () => {
     const themeIds = Object.keys(themes);
     expect(themeIds.length).toBeGreaterThanOrEqual(18);
 
     themeIds.forEach((paletteThemeId) => {
-      SWAN_SENTINEL_MANIFESTS.forEach((lens) => {
+      PROMOTED_LENSES.forEach((lens) => {
         expect(lens.palettePolicy).toEqual({ mode: 'inherit-any' });
         expect(
           validateAppearanceProfile(
@@ -46,7 +49,7 @@ describe('Swan color theme and structural lens precedence', () => {
     });
 
   });
-  it('proves primary text contrast across the full color by sentinel matrix', () => {
+  it('proves primary text contrast across the full color by promoted-lens matrix', () => {
     const rows = Object.entries(themes).map(([id, theme]) => ({
       id,
       ratio: contrast(theme.text.primary, theme.background.primary),
@@ -55,7 +58,7 @@ describe('Swan color theme and structural lens precedence', () => {
       row.ratio < lowest.ratio ? row : lowest,
     );
     const light = rows.find(({ id }) => id === 'crystalline-light');
-    const combinations = rows.length * SWAN_SENTINEL_MANIFESTS.length;
+    const combinations = rows.length * PROMOTED_LENSES.length;
 
     console.log(
       `[style-lens-palette-matrix] themes=${rows.length} combinations=${combinations} min=${minimum.id}:${minimum.ratio.toFixed(2)} light=${light?.ratio.toFixed(2)}`,
@@ -65,7 +68,7 @@ describe('Swan color theme and structural lens precedence', () => {
   });
 
   it('defines color as token ownership and lenses as structural ownership', () => {
-    expect(SWAN_SENTINEL_MANIFESTS.every(
+    expect(PROMOTED_LENSES.every(
       ({ palettePolicy }) => palettePolicy.mode === 'inherit-any',
     )).toBe(true);
   });

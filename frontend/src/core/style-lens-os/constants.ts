@@ -17,6 +17,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'fracture-shell',
     'instrument-shell',
     'arcade-shell',
+    'recovery-cloister-shell',
+    'tempo-forge-shell',
+    'coach-ledger-shell',
+    'signal-garden-shell',
+    'split-horizon-shell',
   ]),
   navigation: Object.freeze([
     'default-navigation',
@@ -26,6 +31,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'circuit-orbit-navigation',
     'instrument-strip-navigation',
     'arcade-dock-navigation',
+    'cloister-bottom-navigation',
+    'tempo-strip-navigation',
+    'ledger-index-navigation',
+    'garden-branch-navigation',
+    'horizon-dock-navigation',
   ]),
   recipes: Object.freeze([
     'default-recipe',
@@ -35,6 +45,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'kintsugi-recipe',
     'instrument-recipe',
     'arcade-recipe',
+    'recovery-cloister-recipe',
+    'tempo-forge-recipe',
+    'coach-ledger-recipe',
+    'signal-garden-recipe',
+    'split-horizon-recipe',
   ]),
 });
 
