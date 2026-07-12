@@ -113,7 +113,7 @@ describe('Cortex P0 safety gate coverage (post-ship hostile-review lock, 2026-07
       ROUTES.indexOf("router.post('/backup/:userId/generate'"),
       ROUTES.indexOf("router.post('/blend'"),
     );
-    expect(backupBlock).toContain("error.name === 'SwanCoachPlanningReviewError'");
+    expect(backupBlock).toMatch(/err(or)?\.name === 'SwanCoachPlanningReviewError'/);
     expect(backupBlock).toContain('reviewRequiredSignals');
     expect(backupBlock).toContain('planningReviewAcknowledged: planningReviewAcknowledged === true');
   });
