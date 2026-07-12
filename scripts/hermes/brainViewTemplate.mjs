@@ -1,10 +1,8 @@
 /**
- * brainViewTemplate.mjs — HTML/SVG renderer for the Hermes Brain cockpit.
- * Slice 1 (v2 plan): the SVG carries VECTORS ONLY (edges, node circles, glow,
- * orbit rings, core); ALL text lives in an HTML overlay in real device px
- * (the fix for SVG-text-shrinks-to-3px). Layout is the full-screen grid shell.
- * STATIC — no client JS yet (Slice 2 adds the camera by transforming the
- * .label-layer container, proven by graphGeometry.mjs).
+ * HTML/SVG renderer for the Hermes Brain cockpit. Vector geometry stays in SVG;
+ * readable text stays in the device-pixel HTML overlay. The view-only camera
+ * transforms both layers under the graphGeometry parity contract and grants no
+ * operator authority.
  */
 import { CSS } from './brainViewStyles.mjs';
 import { cameraClientJs } from './brainCamera.mjs';
@@ -52,8 +50,9 @@ function node(p, { color, label, sub = '', state = 'live', r = 22, small = false
   const svg = `
     <line x1="${CX}" y1="${CY}" x2="${p.x}" y2="${p.y}" class="edge ${live ? 'live' : ''}" stroke="${stroke}"/>
     ${spark && live ? `<circle class="spark" r="2.2" fill="${color}" style="offset-path:path('M ${CX} ${CY} L ${p.x} ${p.y}');animation-delay:${delay}s"/>` : ''}
-    <circle cx="${p.x}" cy="${p.y}" r="${r}" class="node ${live ? 'pulse' : ''}" fill="${fill}" stroke="${stroke}" stroke-width="${fault ? 2 : 1.5}" ${planned ? 'stroke-dasharray="4 4"' : ''} style="--glow:${stroke};--halo:${glow}px;opacity:${state === 'dark' ? '.35' : '1'}"${focusAttrs}><title>${esc(label)}${sub ? ' — ' + esc(sub) : ''}</title></circle>
-    ${fault ? `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="var(--c-fault)" stroke-width="1" opacity=".5"/>` : ''}`;
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" class="node ${live ? 'pulse' : ''}" fill="${fill}" stroke="${stroke}" stroke-width="${fault ? 2 : 1.5}" ${planned ? 'stroke-dasharray="4 4"' : ''} style="--glow:${stroke};--halo:${glow}px;opacity:${state === 'dark' ? '.35' : '1'}"><title>${esc(label)}${sub ? ' — ' + esc(sub) : ''}</title></circle>
+    ${fault ? `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="var(--c-fault)" stroke-width="1" opacity=".5"/>` : ''}
+    ${id ? `<circle class="node-hit" cx="${p.x}" cy="${p.y}" r="32" fill="transparent" stroke="transparent"${focusAttrs}><title>${esc(label)}${sub ? ' — ' + esc(sub) : ''}</title></circle>` : ''}`;
   const cls = (fault ? 'nlabel fault' : dim ? 'nlabel dim' : 'nlabel') + (kind ? ` ${kind}` : '');
   const labelData = labelled ? { id: id || label, label, sub, cls, x: p.x, y: p.y,
     angle: Math.atan2(p.y - CY, p.x - CX), cluster: kind || 'graph' } : null;
@@ -71,7 +70,7 @@ function sparkline(hours, tier2) {
   const bars = hours.map((v, h) => {
     const height = v ? Math.max(8, (v / max) * 100) : 3;
     const upper = v ? Math.min(100, (tier2[h] / v) * 100) : 0;
-    return `<span class="skybar${v ? '' : ' zero'}" style="height:${height}%"><i style="height:${upper}%"></i><title>${String(h).padStart(2,'0')}:00 UTC ? ${v} receipt(s), ${tier2[h]} T2+</title></span>`;
+    return `<span class="skybar${v ? '' : ' zero'}" style="height:${height}%"><i style="height:${upper}%"></i><title>${String(h).padStart(2,'0')}:00 UTC &mdash; ${v} receipt(s), ${tier2[h]} T2+</title></span>`;
   }).join('');
   return `<div class="skyline sparkline" role="img" aria-label="24-hour receipt skyline">${bars}</div><div class="sky-ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>peak ${String(peakHour).padStart(2,'0')}:00</span></div>`;
 }
@@ -121,20 +120,22 @@ export function renderBrainHtml(d) {
   const faultStrip = failClosed
     ? `<div class="fault-strip">${d.switches === null ? 'switches UNREADABLE — fail closed; the operator gate is down, restore it first' : 'hermes-doctor reports a FAULT — read the doctor receipt before anything else'}</div>`
     : '';
-  const staleBanner = d.dataAgeDays >= 1
-    ? `<div class="stale-strip" role="alert">DATA IS ${d.dataAgeDays} DAY${d.dataAgeDays === 1 ? '' : 'S'} OLD &mdash; generated ${esc(d.when)}; today is ${esc(d.today)}. Double-click the Command Center to refresh.</div>`
-    : '';
+  const staleBanner = d.dataDateOffsetDays < 0
+    ? `<div class="stale-strip" role="alert">DATA DATE IS ${Math.abs(d.dataDateOffsetDays)} DAY${d.dataDateOffsetDays === -1 ? '' : 'S'} AHEAD &mdash; snapshot ${esc(d.isoDate)}; today is ${esc(d.today)}. Check the system clock and render date.</div>`
+    : d.dataAgeDays >= 1
+      ? `<div class="stale-strip" role="alert">DATA IS ${d.dataAgeDays} DAY${d.dataAgeDays === 1 ? '' : 'S'} OLD &mdash; snapshot ${esc(d.isoDate)}; generated ${esc(d.when)}; today is ${esc(d.today)}. Double-click the Command Center to refresh.</div>`
+      : '';
   const heatCells = d.healthHistory.map((x) => `<span class="heat-cell ${x.state}" title="${x.date} &mdash; ${x.state}, ${x.count} receipt(s)"></span>`).join('');
 
-  const delta = (n) => n > 0 ? `\u2191${n}` : n < 0 ? `\u2193${Math.abs(n)}` : '\u00b70';
+  const delta = (n) => n == null ? '&mdash;' : n > 0 ? `\u2191${n}` : n < 0 ? `\u2193${Math.abs(n)}` : '\u00b70';
   const tiles = [
     [d.receiptCount, 'receipts today', '', d.tileDeltas.receipts],
     [d.skills.length, 'skills wired', '', d.tileDeltas.skills],
     [d.memoriesTotal ?? '?', 'memory notes', '', d.tileDeltas.memories],
     [d.routines.length, 'routines', d.routines.some((r) => r.state === 'fault') ? 'bad' : '', d.tileDeltas.routines],
-    [d.queueOpen, d.digest.approvalFlow.medianMin == null ? 'await approval' : `approval ? median ${d.digest.approvalFlow.medianMin}m`, d.queueOpen ? 'warn' : '', d.tileDeltas.approvals],
+    [d.queueOpen, d.digest.approvalFlow.medianMin == null ? 'await approval' : `approval median ${d.digest.approvalFlow.medianMin}m`, d.queueOpen ? 'warn' : '', d.tileDeltas.approvals],
     [d.anchorLevel.toUpperCase(), 'anchor', d.anchorLevel === 'ok' ? '' : d.anchorLevel === 'warn' ? 'warn' : 'bad', d.tileDeltas.anchor],
-  ].map(([n,k,st,change]) => `<div class="tile ${st}"><div class="n">${esc(String(n))}</div><div class="delta ${change > 0 ? 'up' : change < 0 ? 'down' : ''}">${delta(change)}</div><div class="k">${esc(k)}</div>${st ? '<span class="dotp"></span>' : ''}</div>`).join('');
+  ].map(([n,k,st,change]) => `<div class="tile ${st}"><div class="n">${esc(String(n))}</div><div class="delta ${change == null ? 'unavailable' : change > 0 ? 'up' : change < 0 ? 'down' : ''}">${delta(change)}</div><div class="k">${esc(k)}</div>${st ? '<span class="dotp"></span>' : ''}</div>`).join('');
 
   const switchGroup = (name) => /BROKER/.test(name) ? 'BROKERS' : /MASTER|HARNESS|STALE/.test(name) ? 'SAFETY' : 'ROUTINES';
   const swGroups = ['BROKERS','ROUTINES','SAFETY'].map((group) => {
@@ -149,9 +150,9 @@ export function renderBrainHtml(d) {
 <style>${CSS}</style>
 <div class="shell${d.silentDay ? ' silent' : ''}">
   <div class="aurora"></div>
-  <input class="tab-radio" type="radio" name="brain-tab" id="tab-overview" checked>
-  <input class="tab-radio" type="radio" name="brain-tab" id="tab-graph">
-  <input class="tab-radio" type="radio" name="brain-tab" id="tab-detail">
+  <input class="tab-radio" type="radio" name="brain-tab" id="tab-overview" aria-label="Overview" checked>
+  <input class="tab-radio" type="radio" name="brain-tab" id="tab-graph" aria-label="Graph">
+  <input class="tab-radio" type="radio" name="brain-tab" id="tab-detail" aria-label="Detail">
   <header class="gbar">
     <h1>HERMES <em>BRAIN</em></h1>
     <span class="meta">second-brain command center · ${esc(d.isoDate)} · read-only</span>
@@ -185,13 +186,13 @@ export function renderBrainHtml(d) {
         ${labelParts.join('\n')}
         <div class="corelabel" style="left:50%;top:${P(CY, VB_H)}%"><span class="cn">${esc(d.brain.label)}</span><span class="cs">${esc(d.brain.sub)}</span></div>
       </div>
+      </div>
+      <div id="ann" class="sr-live" aria-live="polite"></div>
       <div class="viewctl">
         <button id="zout" type="button" aria-label="zoom out">&minus;</button>
         <button id="zreset" type="button" aria-label="reset view">&#8862;</button>
         <button id="zin" type="button" aria-label="zoom in">+</button>
       </div>
-      </div>
-      <div id="ann" class="sr-live" aria-live="polite"></div>
     </div>
     <section class="heat-strip" aria-label="30-day brain health"><div class="heat-cells">${heatCells}</div><div class="heat-ticks"><span>-29d</span><span>-22d</span><span>-15d</span><span>-8d</span><span>today</span></div></section>
     </div>
@@ -199,7 +200,7 @@ export function renderBrainHtml(d) {
       <h2>Thinking today <span class="muted">(${d.receiptCount} receipts by hour, UTC)</span></h2>
       ${sparkline(d.hourly, d.hourlyTier2)}
       <h2>Thought stream</h2>
-      ${d.thoughts.map((t) => `<div class="thought ${t.attention ? 'attention' : ''}"><span class="dot ${t.mood}"></span><span class="thought-body"><span class="thought-meta"><time>${t.time} UTC</time><b class="tier ${t.tier}">${t.tier}</b><span>${esc(t.actor)}</span></span>${esc(t.what)}<span class="tsub ${t.mood}">${esc(t.outcome.slice(0,96))}</span></span></div>`).join('') || '<p class="muted silent-day">silent day ? no receipts yet; the core is dimmed, not healthy-looking</p>'}
+      ${d.thoughts.map((t) => `<div class="thought ${t.attention ? 'attention' : ''}"><span class="dot ${t.mood}"></span><span class="thought-body"><span class="thought-meta"><time>${t.time} UTC</time><b class="tier ${t.tier}">${t.tier}</b><span>${esc(t.actor)}</span></span>${esc(t.what)}<span class="tsub ${t.mood}">${esc(t.outcome.slice(0,96))}</span></span></div>`).join('') || '<p class="muted silent-day">silent day &mdash; no receipts yet; the core is dimmed, not healthy-looking</p>'}
       ${d.moreThoughts ? `<a class="digest-more" href="digest-${esc(d.isoDate)}.md">${d.moreThoughts} more in digest &rarr;</a>` : ''}
       <h2>Operator ring</h2>
       <div class="bar">
@@ -214,7 +215,7 @@ export function renderBrainHtml(d) {
       <p class="muted" style="margin-top:auto">${esc(d.anchorNote)} · detail: <a href="hermes-status.html">hermes-status.html</a> · generated ${esc(d.when)} by brain-view (T0) · view-only · no network · grants nothing.</p>
     </div>
   </div>
-  <nav class="phone-tabs" role="tablist" aria-label="Brain view"><label for="tab-overview" role="tab" aria-pressed="true">Overview</label><label for="tab-graph" role="tab" aria-pressed="false">Graph</label><label for="tab-detail" role="tab" aria-pressed="false">Detail</label></nav>
+  <nav class="phone-tabs" aria-label="Brain view"><label for="tab-overview">Overview</label><label for="tab-graph">Graph</label><label for="tab-detail">Detail</label></nav>
 </div>
 <script>${cameraClientJs(escapeForEmbed(nodesIndex))}</script>`;
 }

@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 /**
- * brain-view.mjs — the GRAPHICAL command center (F-2/SB-2 from the 7★ consult
- * review; Sean's ask: "visual nodes and lights showing the brain, how it's
- * thinking and what's in it"). Renders ONE static HTML/SVG page — the ARMS/
- * Four-C second-brain graph around a pulsing HERMES core, lit by LIVE state:
- * Applications (C2 connections) · Routines (C4: real schedule + runner state) ·
- * Memory (C1: real store counts) · Skills (C3: real .claude/skills inventory) ·
- * operator ring (switches, queue, anchor) · a thought-stream of the latest
- * receipts. Same doctrine as status-page: ZERO action surface (no script/
- * button/form/input — lights are pure CSS/SVG animation, disabled under
- * prefers-reduced-motion), no broker path, unplug changes nothing.
- * Registered T0 `brain-view`. Writes runs/digests/hermes-brain.html + receipt.
+ * Graphical Hermes command center. Renders a deterministic HTML/SVG view of
+ * applications, routines, memory, skills, receipts, switches, queue, and anchor.
+ * The inlined client code only zooms, pans, focuses, and switches responsive
+ * views; it has no network, broker, approval, or command path. Motion disables
+ * under reduced-motion. Registered T0 brain-view writes the page and a receipt.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,7 +29,8 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const when = now || new Date().toISOString();
   const today = when.slice(0, 10);
   const ageMs = Date.parse(`${today}T00:00:00Z`) - Date.parse(`${isoDate}T00:00:00Z`);
-  const dataAgeDays = Number.isFinite(ageMs) ? Math.max(0, Math.floor(ageMs / 86400000)) : 0;
+  const dataDateOffsetDays = Number.isFinite(ageMs) ? Math.trunc(ageMs / 86400000) : 0;
+  const dataAgeDays = Math.max(0, dataDateOffsetDays);
   const map = JSON.parse(fs.readFileSync(path.join(HERE, 'brain-map.json'), 'utf8'));
   const sw = readSwitches(switchesFile);
   const digest = computeDigestData(vaultRoot, isoDate);
@@ -90,12 +85,13 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const yesterdayDate = new Date(Date.parse(`${isoDate}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
   const yesterdayReceipts = readReceipts(vaultRoot, yesterdayDate);
   const healthHistory = buildHealthHistory(vaultRoot, isoDate);
-  const tileDeltas = { receipts: receipts.length - yesterdayReceipts.length, skills: 0, memories: 0, routines: 0, approvals: digest.approvalFlow.opened, anchor: 0 };
-  const memoriesTotal = memory.reduce((n, m) => n + (m.count || 0), 0) || null;
+  const tileDeltas = { receipts: receipts.length - yesterdayReceipts.length, skills: null, memories: null, routines: null, approvals: null, anchor: null };
+  const knownMemoryCounts = memory.filter((m) => m.count != null).map((m) => m.count);
+  const memoriesTotal = knownMemoryCounts.length ? knownMemoryCounts.reduce((n, count) => n + count, 0) : null;
 
   // Aurora: one color readable from across the room.
   const anyFault = anchor.level === 'fault' || switches === null || (doctor && !String(doctor.outcome).startsWith('ok'));
-  const anyWarn = anchor.level === 'warn' || open.length > 0 || routines.some((r) => r.state === 'fault');
+  const anyWarn = anchor.level === 'warn' || !doctor || open.length > 0 || dataDateOffsetDays < 0 || routines.some((r) => r.state === 'fault');
   const health = anyFault ? 'red' : (anyWarn || dataAgeDays >= 1) ? 'amber' : 'green';
 
   // The brain's own next-best-action — the product's north-star pattern applied
@@ -114,7 +110,7 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const nba = nbaRail[0];
 
   return {
-    when, isoDate, today, dataAgeDays, brain: map.brain, applications, routines, memory, skills, skillStats, skillNodes,
+    when, isoDate, today, dataAgeDays, dataDateOffsetDays, brain: map.brain, applications, routines, memory, skills, skillStats, skillNodes,
     switches, switchExplanations: map.switchExplain || {}, anchorLevel: anchor.level, anchorNote: (anchor.faults[0] || anchor.notes?.[0] || ''),
     queueOpen: open.length, doctorOk: doctor ? String(doctor.outcome).startsWith('ok') : null,
     receiptCount: receipts.length, thoughts, moreThoughts: Math.max(0, thoughtRows.length - 10), hourly, hourlyTier2, memoriesTotal, health, nba, nbaRail,

@@ -23,7 +23,7 @@ export function buildHealthHistory(vaultRoot,isoDate){
 const tierRings=(counts)=>['T0','T1','T2','T3','T4'].map((tier,i)=>{
   const n=counts?.[tier]||0; const rx=68+i*26,ry=48+i*26; const width=(1+Math.log2(1+n)).toFixed(2);
   const dash=tier==='T4'&&n===0?' stroke-dasharray="5 7"':''; const pulse=tier==='T4'&&n>0?' hot':'';
-  const x=(CX+rx*.707).toFixed(1),y=(CY-ry*.707).toFixed(1);
+  const x=(CX+8).toFixed(1),y=(CY-ry-6).toFixed(1);
   return `<ellipse class="tier-ring${pulse}" data-tier="${tier}" cx="${CX}" cy="${CY}" rx="${rx}" ry="${ry}" fill="none" stroke="var(--c-${tier==='T4'?'fault':'app'})" stroke-width="${width}"${dash}/><text class="tier-label" x="${x}" y="${y}" font-size="17">${tier} ${n}</text>`;
 }).join('');
 
@@ -47,7 +47,7 @@ const actors=(rows=[])=>rows.slice(0,6).map(([who,count],i)=>{
   const right=x>=CX; return `<circle class="actor-satellite" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="var(--c-memory)" opacity=".72"><title>${esc(who)} ${count}</title></circle><text class="actor-label" x="${(x+(right?r+6:-r-6)).toFixed(1)}" y="${(y+5).toFixed(1)}" text-anchor="${right?'start':'end'}" font-size="17">${esc(who)} ${count}</text>`;
 }).join('');
 
-const productSatellite=(p)=>p?`<circle class="product-satellite ${p.state}" cx="1020" cy="600" r="18" fill="var(--bg-card)" stroke="var(--c-${p.state==='red'?'fault':p.state==='amber'?'routine':'app'})" stroke-width="3"><title>SwanStudios product health: ${esc(p.outcome)}</title></circle><text class="product-label" x="1044" y="605" font-size="17">SwanStudios ${esc(p.state)}</text>`:'';
+const productSatellite=(p)=>{if(!p)return '';const stroke=p.state==='red'?'var(--c-fault)':p.state==='amber'?'var(--c-routine)':p.state==='green'?'var(--c-app)':'var(--c-muted)';return `<circle class="product-satellite ${p.state}" cx="1020" cy="600" r="18" fill="var(--bg-card)" stroke="${stroke}" stroke-width="3"><title>SwanStudios product health: ${esc(p.outcome)}</title></circle><text class="product-label" x="1044" y="605" font-size="17">SwanStudios ${esc(p.state)}</text>`;};
 
 export function renderDensitySvg(d){
   return `${tierRings(d.counts)}${refusalThorns(d.clusters,d.floodHit)}${integrityCrack(d)}${countdowns(d.queueEntries,d.when)}${actors(d.actorRows)}${productSatellite(d.productHealth)}`;

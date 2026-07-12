@@ -70,7 +70,7 @@ export const CSS = `
   .tile{background:var(--bg-card);border:1px solid var(--bg-edge);border-radius:14px;padding:var(--s4) var(--s4) var(--s3);
     position:relative;overflow:hidden}
   .tile::after{content:'';position:absolute;inset:0;border-radius:14px;padding:1px;
-    background:linear-gradient(135deg,var(--tc,var(--chip-edge))66,transparent 46%);
+    background:linear-gradient(135deg,color-mix(in srgb,var(--tc,var(--chip-edge)) 40%,transparent),transparent 46%);
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
   .tile.bad::after{background:linear-gradient(135deg,var(--c-fault),transparent 46%)}
   .tile.warn::after{background:linear-gradient(135deg,var(--c-routine),transparent 46%)}
@@ -79,8 +79,8 @@ export const CSS = `
   .tile .delta{position:absolute;right:var(--s4);top:var(--s4);font:700 var(--t-sub)/1 'Fira Code',monospace;color:var(--c-muted)}
   .tile .delta.up{color:var(--c-app)}.tile .delta.down{color:var(--c-routine)}
   .tile .k{font-size:var(--t-cap);letter-spacing:.12em;color:var(--c-muted);text-transform:uppercase;margin-top:var(--s1)}
-  .tile.bad .dotp,.tile.warn .dotp{position:absolute;top:var(--s3);right:var(--s3);width:8px;height:8px;border-radius:50%;
-    background:currentColor;animation:pulse 1.6s ease-in-out infinite}
+  .tile.bad .dotp,.tile.warn .dotp{position:absolute;bottom:var(--s3);right:var(--s3);width:8px;height:8px;border-radius:50%;animation:pulse 1.6s ease-in-out infinite}
+  .tile.bad .dotp{background:var(--c-fault)}.tile.warn .dotp{background:var(--c-routine)}
   /* D - main split: graph + inspector rail */
   .main{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(480px,1fr);gap:clamp(16px,1.4vw,32px);height:clamp(760px,calc(100vh - 420px),1400px);min-height:0;align-items:stretch}
   .left-col{display:grid;grid-template-rows:minmax(560px,1fr) auto;gap:var(--s4);min-width:0}
@@ -161,7 +161,8 @@ export const CSS = `
   .camera{will-change:transform}
   .label-layer{will-change:transform}
   [data-node]{cursor:pointer}
-  [data-node]:focus-visible{outline:2px solid var(--c-app);outline-offset:2px}
+  .node-hit{pointer-events:all}
+  [data-node]:focus-visible{outline:none;stroke:var(--c-app);stroke-width:4}
   .sr-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .viewctl{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;z-index:3}
   .viewctl button{width:36px;height:36px;min-width:44px;min-height:44px;display:grid;place-items:center;
@@ -184,5 +185,5 @@ export const CSS = `
   @media(prefers-reduced-motion:reduce){*{animation:none!important}}
   @media (max-width:1080px){.main{grid-template-columns:1fr;height:auto}.panel{max-width:none;overflow:visible}}
   @media (max-width:760px){.shell{padding-inline:var(--s4)}.gbar .meta{margin-left:0}.nba{padding:var(--s4)}:root{--t-hero:26px;--t-hud:24px}}
-  @media(max-width:700px){body{overflow-x:hidden}.shell{padding-bottom:68px}.tab-radio{position:absolute;opacity:0;pointer-events:none}.phone-tabs{position:fixed;display:grid;grid-template-columns:repeat(3,1fr);left:0;right:0;bottom:0;z-index:20;background:var(--bg-card);border-top:1px solid var(--bg-edge)}.phone-tabs label{min-height:44px;display:grid;place-items:center;font:700 var(--t-sub)/1 'Sora',sans-serif;color:var(--c-muted);border-bottom:3px solid transparent;cursor:pointer}.phone-tabs label:focus-visible{outline:2px solid var(--c-app);outline-offset:-3px}#tab-overview:checked~.phone-tabs label[for="tab-overview"],#tab-graph:checked~.phone-tabs label[for="tab-graph"],#tab-detail:checked~.phone-tabs label[for="tab-detail"]{color:var(--c-text);border-bottom-color:var(--c-app)}#tab-overview:checked~.main{display:none}#tab-graph:checked~.nba,#tab-graph:checked~.hud,#tab-detail:checked~.nba,#tab-detail:checked~.hud{display:none}#tab-graph:checked~.main{display:block;overflow:hidden;height:auto}#tab-graph:checked~.main .panel,#tab-graph:checked~.main .heat-strip{display:none}#tab-graph:checked~.main .left-col{display:block;width:100%;max-width:100%;overflow-x:auto}#tab-graph:checked~.main .graph-pane{width:980px;min-width:980px;height:calc(100vh - 92px);min-height:620px}#tab-graph:checked~.main .graph-stage{top:0;transform:none}#tab-detail:checked~.main{display:block;height:auto}#tab-detail:checked~.main .left-col{display:none}#tab-detail:checked~.main .panel{display:flex;overflow:visible}.hud{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{border-radius:14px}.gbar{padding-top:var(--s4)}}
+  @media(max-width:700px){body{overflow-x:hidden}.shell{padding-bottom:68px}.tab-radio{display:block;position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}.phone-tabs{position:fixed;display:grid;grid-template-columns:repeat(3,1fr);left:0;right:0;bottom:0;z-index:20;background:var(--bg-card);border-top:1px solid var(--bg-edge)}.phone-tabs label{min-height:44px;display:grid;place-items:center;font:700 var(--t-sub)/1 'Sora',sans-serif;color:var(--c-muted);border-bottom:3px solid transparent;cursor:pointer}#tab-overview:focus-visible~.phone-tabs label[for="tab-overview"],#tab-graph:focus-visible~.phone-tabs label[for="tab-graph"],#tab-detail:focus-visible~.phone-tabs label[for="tab-detail"]{outline:2px solid var(--c-app);outline-offset:-3px}#tab-overview:checked~.phone-tabs label[for="tab-overview"],#tab-graph:checked~.phone-tabs label[for="tab-graph"],#tab-detail:checked~.phone-tabs label[for="tab-detail"]{color:var(--c-text);border-bottom-color:var(--c-app)}#tab-overview:checked~.main{display:none}#tab-graph:checked~.nba,#tab-graph:checked~.hud,#tab-detail:checked~.nba,#tab-detail:checked~.hud{display:none}#tab-graph:checked~.main{display:block;overflow:hidden;height:auto}#tab-graph:checked~.main .panel,#tab-graph:checked~.main .heat-strip{display:none}#tab-graph:checked~.main .left-col{display:block;width:100%;max-width:100%;overflow-x:auto}#tab-graph:checked~.main .graph-pane{width:980px;min-width:980px;height:calc(100vh - 92px);min-height:620px}#tab-graph:checked~.main .graph-stage{top:0;transform:none}#tab-graph:checked~.main .viewctl{position:fixed;right:16px;bottom:60px;left:auto;z-index:22}#tab-detail:checked~.main{display:block;height:auto}#tab-detail:checked~.main .left-col{display:none}#tab-detail:checked~.main .panel{display:flex;overflow:visible}.hud{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{border-radius:14px}.gbar{padding-top:var(--s4)}}
 `;

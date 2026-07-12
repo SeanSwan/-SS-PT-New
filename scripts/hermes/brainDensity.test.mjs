@@ -37,3 +37,12 @@ test('V2 health history classifies 30 real calendar cells without inventing data
   assert.deepEqual(rows.slice(-3).map(x=>x.state),['red','amber','green']);
   assert.equal(rows[0].state,'no-data');
 });
+
+test('hostile review: tier labels are spaced and no-data product health is neutral',()=>{
+  const html=renderDensitySvg({...density,productHealth:{state:'no-data',outcome:'health sweep not run'}});
+  const ys=[...html.matchAll(/class="tier-label"[^>]*y="([\d.]+)"/g)].map((m)=>Number(m[1]));
+  assert.equal(ys.length,5);
+  const sorted=[...ys].sort((a,b)=>a-b);
+  assert.ok(sorted.every((y,i)=>i===0||y-sorted[i-1]>=22),`tier label spacing: ${ys}`);
+  assert.match(html,/class="product-satellite no-data"[^>]*stroke="var\(--c-muted\)"/);
+});

@@ -56,3 +56,25 @@ Screenshots are outside the repository; no QA clutter was added to the repo.
 ## Review gate
 
 V3-V6 are blocked on the required Fable screenshot review of this V1+V2 checkpoint. The live data currently reports an anchor FAULT; the cockpit now surfaces that truth loudly and this visual slice does not mutate the underlying ledger.
+## Hostile review repair pass - 2026-07-11
+
+The recursive hostile review found and repaired fourteen release issues before push:
+
+1. Hidden phone Graph plus-key input produced `translate(NaN NaN)` and a console error.
+2. Mobile tabs had stale ARIA state and no keyboard-focus path.
+3. Interactive skill nodes exposed roughly 14px targets instead of 44px-class hit areas.
+4. Tier labels collided with each other and an actor label.
+5. The launcher trusted a potentially stale local `origin/main` ref.
+6. Future-dated snapshots were silently clamped to current.
+7. Five unavailable metric deltas were presented as invented zero change.
+8. A genuine zero memory count was collapsed to unknown.
+9. Missing doctor state could retain a green health presentation.
+10. No-data product health used the healthy accent color.
+11. Visible tooltip/copy separators rendered as literal question marks.
+12. Centering the phone graph left zoom/reset controls outside the initial viewport.
+13. An invalid CSS-variable alpha suffix caused browsers to discard the HUD chrome gradient.
+14. Fault/warning dots inherited a neutral color and collided with the top-right delta.
+
+Additional race hardening cancels superseded camera tweens and clears drag state on `pointercancel`. The phone graph now recenters after its native radio becomes visible, and its controls remain fixed above the 44px bottom tabs.
+
+Regression evidence: `brainHostileReview.test.mjs` plus the expanded density tests failed against the checkpoint for the expected reasons, then passed after the repairs. The complete Hermes suite now contains 190 passing tests.

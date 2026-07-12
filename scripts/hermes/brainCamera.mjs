@@ -32,7 +32,7 @@ export function cameraClientJs(nodesJson) {
   return `(function(){
   "use strict";
   var VB_W=${VB_W},VB_H=${VB_H};
-  var reduce=matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduce=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   var pane=document.querySelector('.graph-stage');
   var g=document.querySelector('svg.brain .camera');
   var layer=document.querySelector('.label-layer');
@@ -40,10 +40,11 @@ export function cameraClientJs(nodesJson) {
   if(!pane||!g||!layer){return;}
   var NODES=${nodesJson};
   var cam={tx:0,ty:0,s:1},HOME={tx:0,ty:0,s:1};
-  var MINS=0.5,MAXS=4;
+  var MINS=0.5,MAXS=4,tweenFrame=0;
   function ppu(){return pane.clientWidth/VB_W;}
   function clamp(v,a,b){return v<a?a:v>b?b:v;}
   function apply(){
+    if(!pane.clientWidth){return;}
     var p=ppu();
     g.setAttribute('transform','translate('+cam.tx+' '+cam.ty+') scale('+cam.s+')');
     layer.style.transformOrigin='0 0';
@@ -54,6 +55,7 @@ export function cameraClientJs(nodesJson) {
   function say(t){if(live){live.textContent=t;}}
   // zoom toward a client point (keeps the world point under the cursor fixed)
   function zoomAt(cx,cy,factor){
+    if(!pane.clientWidth){return;}
     var p=ppu(),rect=pane.getBoundingClientRect();
     var lx=(cx-rect.left)/p,ly=(cy-rect.top)/p;
     var s2=clamp(cam.s*factor,MINS,MAXS);
@@ -61,15 +63,16 @@ export function cameraClientJs(nodesJson) {
     cam.tx=lx-wx*s2;cam.ty=ly-wy*s2;cam.s=s2;apply();
   }
   function tween(to){
+    if(tweenFrame){cancelAnimationFrame(tweenFrame);tweenFrame=0;}
     if(reduce){cam.tx=to.tx;cam.ty=to.ty;cam.s=to.s;apply();return;}
     var f={tx:cam.tx,ty:cam.ty,s:cam.s},t0=null;
     function step(ts){
       if(t0===null){t0=ts;}
       var k=Math.min(1,(ts-t0)/560),e=1-Math.pow(1-k,3);
       cam.tx=f.tx+(to.tx-f.tx)*e;cam.ty=f.ty+(to.ty-f.ty)*e;cam.s=f.s+(to.s-f.s)*e;apply();
-      if(k<1){requestAnimationFrame(step);}
+      if(k<1){tweenFrame=requestAnimationFrame(step);}else{tweenFrame=0;}
     }
-    requestAnimationFrame(step);
+    tweenFrame=requestAnimationFrame(step);
   }
   function focusNode(id){
     var n=null;for(var i=0;i<NODES.length;i++){if(NODES[i].id===id){n=NODES[i];break;}}
@@ -89,11 +92,13 @@ export function cameraClientJs(nodesJson) {
     if(Math.abs(dx)>4||Math.abs(dy)>4){moved=true;}
     cam.tx=drag.tx+dx/p;cam.ty=drag.ty+dy/p;apply();});
   pane.addEventListener('pointerup',function(){drag=null;});
+  pane.addEventListener('pointercancel',function(){drag=null;moved=false;});
   // click/keyboard focus on a node (suppressed right after a pan)
   pane.addEventListener('click',function(e){if(moved){moved=false;return;}var el=e.target.closest('[data-node]');if(el){focusNode(el.getAttribute('data-node'));}});
   pane.addEventListener('keydown',function(e){var el=e.target.closest&&e.target.closest('[data-node]');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();focusNode(el.getAttribute('data-node'));}});
   // global keys
   document.addEventListener('keydown',function(e){
+    if(!pane.clientWidth){return;}
     if(e.key==='Escape'){reset();}
     else if(e.key==='0'){reset();}
     else if(e.key==='+'||e.key==='='){zoomAt(pane.getBoundingClientRect().left+pane.clientWidth/2,pane.getBoundingClientRect().top+pane.clientHeight/2,1.2);}
@@ -106,6 +111,9 @@ export function cameraClientJs(nodesJson) {
   if(zi){zi.addEventListener('click',function(){ctr(1.25);});}
   if(zo){zo.addEventListener('click',function(){ctr(1/1.25);});}
   if(zr){zr.addEventListener('click',reset);}
+  var graphTab=document.getElementById('tab-graph'),graphScroller=document.querySelector('.left-col');
+  function revealGraph(){if(!graphTab||!graphTab.checked){return;}requestAnimationFrame(function(){apply();if(graphScroller){graphScroller.scrollLeft=Math.max(0,(graphScroller.scrollWidth-graphScroller.clientWidth)/2);}});}
+  if(graphTab){graphTab.addEventListener('change',revealGraph);}
   window.addEventListener('resize',apply,{passive:true});
   apply();say('Command center ready. Scroll to zoom, drag to pan, click a node to focus.');
 })();`;

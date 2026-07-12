@@ -1,7 +1,7 @@
 /**
- * brainLabels.mjs � deterministic collision resolver for graph overlay labels.
+ * brainLabels.mjs - deterministic collision resolver for graph overlay labels.
  * Labels keep device-pixel type while their anchor coordinates remain in the
- * graph's 1280�700 design space. Crowded labels degrade to a titled hover tier.
+ * graph's 1280x700 design space. Crowded labels degrade to a titled hover tier.
  */
 const FONT_PX = 16;
 const LINE_H = 20;

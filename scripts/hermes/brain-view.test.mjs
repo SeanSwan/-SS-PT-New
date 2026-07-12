@@ -136,7 +136,7 @@ test('Slice-2 camera: client JS is view-only, reduced-motion gated, and transfor
   assert.ok(js.includes("g.setAttribute('transform'"), 'SVG camera group transformed');
   assert.ok(js.includes('layer.style.transform'), 'label layer transformed');
   assert.ok(js.includes("layer.style.transformOrigin='0 0'"), 'origin 0 0 — required for the parity math');
-  assert.ok(/reduce=matchMedia/.test(js) && /if\(reduce\)\{cam\.tx=to\.tx/.test(js), 'reduced-motion gates the rAF tween at init');
+  assert.ok(/reduce=typeof matchMedia/.test(js) && /if\(reduce\)\{cam\.tx=to\.tx/.test(js), 'reduced-motion gates the rAF tween at init');
   assert.ok(!js.includes('innerHTML') && !/fetch\(|XMLHttpRequest|WebSocket\(|sendBeacon/.test(js), 'no innerHTML, no network');
 });
 
@@ -230,7 +230,7 @@ test('V1 launcher warns when pinned runtime differs from the release marker', ()
   const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
   const cmd = fs.readFileSync(path.join(here, 'Hermes-Command-Center.cmd'), 'utf8');
   assert.match(cmd, /git -C "%RR%" rev-parse HEAD/);
-  assert.match(cmd, /rev-parse origin\/main/);
+  assert.match(cmd, /ls-remote origin refs\/heads\/main/);
   assert.match(cmd, /RUNTIME DRIFT/);
 });
 
