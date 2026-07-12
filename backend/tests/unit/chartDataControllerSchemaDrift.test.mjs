@@ -259,6 +259,20 @@ describe('Phase 14 — chart-duration-trend', () => {
     expect(executedSql).toMatch(/ws\.duration\s*>\s*0/i);
     assertNoForbiddenTables(executedSql);
   });
+
+  it('emits a YYYY-MM-DD iso field alongside MM/DD so day-bucketing consumers share the SQL UTC day', async () => {
+    const { req, res, sql } = makeReqRes({
+      rows: [{ date: '07/06', iso_date: '2026-07-06', duration: 45 }],
+    });
+    await getDurationTrendChart(req, res);
+    expect(sql[0]).toMatch(/TO_CHAR\(ws\.date,\s*'YYYY-MM-DD'\)/i);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: [{ x: '07/06', iso: '2026-07-06', y: 45 }],
+      }),
+    );
+  });
 });
 
 describe('Phase 14 — chart-intensity-rpe-trend', () => {

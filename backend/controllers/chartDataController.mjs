@@ -297,6 +297,7 @@ export async function getDurationTrendChart(req, res) {
     const rows = await safeQuery(sequelize,
       `SELECT
          TO_CHAR(ws.date, 'MM/DD') AS date,
+         TO_CHAR(ws.date, 'YYYY-MM-DD') AS iso_date,
          ws.duration::int AS duration
        FROM workout_sessions ws
        WHERE ws."userId" = :userId AND ws.status = 'completed'
@@ -305,9 +306,13 @@ export async function getDurationTrendChart(req, res) {
        ORDER BY ws.date ASC`,
       { userId }, 'getDurationTrendChart');
 
+    // iso rides alongside the MM/DD label so day-bucketing consumers (the
+    // heatmap) can bucket in the same UTC day the SQL formatted, instead of
+    // re-deriving days in browser-local time and landing evening workouts
+    // on the wrong row/column. Line-chart consumers keep x untouched.
     res.json({
       success: true,
-      data: rows.map(r => ({ x: r.date, y: r.duration })),
+      data: rows.map(r => ({ x: r.date, iso: r.iso_date, y: r.duration })),
     });
   } catch (error) {
     console.error('Error getting duration trend chart:', error);
