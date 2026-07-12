@@ -71,6 +71,19 @@ describe('buildPrCandidates', () => {
     expect(result).toHaveLength(1);
     expect(result[0].weight.value).toBe(245);
   });
+
+  it('merges case-variant names into ONE candidate (no duplicate baselines)', () => {
+    // "Bench Press" vs "bench press" minted two personal_records rows while
+    // analytics GROUP BY LOWER() treated them as one — the engine must agree.
+    const result = buildPrCandidates([
+      exercise('Bench Press', [{ weight: 185, reps: 5 }]),
+      exercise('bench press', [{ weight: 225, reps: 3 }]),
+      exercise('BENCH PRESS', [{ weight: 205, reps: 4 }]),
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].weight.value).toBe(225);
+    expect(result[0].exerciseName).toBe('Bench Press'); // first-seen casing kept for display
+  });
 });
 
 describe('wiring + safety contracts', () => {
@@ -87,8 +100,18 @@ describe('wiring + safety contracts', () => {
     expect(ADAPTER).toMatch(/PR detection failed \(non-critical\)/);
   });
 
+  it('prior-best lookup and award keys are case-insensitive (lower(), not LIKE)', () => {
+    // Exact-match on lower(exerciseName) — LIKE/ILIKE would need metachar
+    // escaping; fn('lower') + Op.in does not.
+    expect(SERVICE).toMatch(/sequelizeWhere\(fn\('lower', col\('exerciseName'\)\), \{ \[Op\.in\]: lowerNames \}\)/);
+    // Candidate/prior join + legacy duplicate rows resolve on the lowercased key,
+    // comparing against the HIGHEST prior so a stale low baseline can't fake a PR.
+    expect(SERVICE).toMatch(/\$\{row\.exerciseName\.toLowerCase\(\)\}::\$\{row\.metric\}/);
+    expect(SERVICE).toMatch(/Number\(row\.value\) > Number\(current\.value\)/);
+  });
+
   it('awards are idempotent, sliced, and first-ever lifts earn no points', () => {
-    expect(SERVICE).toMatch(/idempotencyKey: `pr:\$\{numericUserId\}:\$\{candidate\.exerciseName\.slice\(0, 60\)\}/);
+    expect(SERVICE).toMatch(/idempotencyKey: `pr:\$\{numericUserId\}:\$\{candidate\.exerciseName\.toLowerCase\(\)\.slice\(0, 60\)\}/);
     expect(SERVICE).toMatch(/source: 'achievement_earned'/);
     expect(PR_POINTS).toBeGreaterThan(0);
     // First-ever branch records the row and pushes a first event WITHOUT any
