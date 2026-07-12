@@ -16,6 +16,7 @@ import { universalMasterScheduleService } from '../../services/universal-master-
 
 // Sub-components
 import ScheduleHeader from './components/ScheduleHeader';
+import ScheduleDayStrip from './components/ScheduleDayStrip';
 import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
@@ -842,6 +843,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           creditsDisplay={creditsDisplay}
         />
       ) : (
+        <>
+        <ScheduleDayStrip
+          currentDate={currentDate}
+          sessions={displaySessions}
+          onSelectDay={drillDownToDay}
+        />
         <ScheduleCalendar
           activeView={activeView}
           currentDate={currentDate}
@@ -862,6 +869,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           expandedTrainerIds={expandedTrainerIds}
           onToggleTrainerExpand={handleToggleTrainerExpand}
         />
+        </>
       )}
 
       <BookingDrawer
