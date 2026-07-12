@@ -1181,6 +1181,17 @@ router.post("/:sessionId/book", protect, async (req, res) => {
       user.availableSessions -= 1;
       await user.save({ transaction });
 
+      // CRITICAL: record the deduction on the session. The entire money system keys off the
+      // invariant "a credit was taken  <=>  session.sessionDeducted === true": completeSession
+      // only deducts when the flag is FALSE, the 24h settlement sweep deducts when it's FALSE,
+      // and cancelSession only restores when it's TRUE. This handler took the credit but left
+      // the flag false, so a schedule-booked session was double-deducted at completion/settlement
+      // and its credit was silently lost on cancel. Setting it (same transaction => atomic) makes
+      // the deduction honest. NOTE: this legacy file is still live via api.mjs despite the
+      // "REMOVED" comment at core/routes.mjs:290 — the dead-file cleanup is a separate slice.
+      session.sessionDeducted = true;
+      await session.save({ transaction });
+
       logger.info(`Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
     }
 

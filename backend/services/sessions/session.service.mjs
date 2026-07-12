@@ -2244,7 +2244,28 @@ class UnifiedSessionService {
     try {
       // 1. Validate order and user
       const { order, user } = await this.validateOrderAndUser(orderId, userId, transaction);
-      
+
+      // 1b. IDEMPOTENCY (natural key = the order). The webhook guards on order.paymentAppliedAt
+      // BEFORE calling this, but the admin route POST /api/sessions/allocate-from-order calls it
+      // directly with no guard — so a re-click (or webhook + admin both running) granted the
+      // sessions a SECOND time and inserted a duplicate FinancialTransaction for the same amount
+      // (a $16,800 package => 2x sessions and $33,600 recorded). Guarding here protects EVERY
+      // caller: if a FinancialTransaction already exists for this order, it was already allocated.
+      const existingAllocation = await this.FinancialTransaction.findOne({
+        where: { orderId: order.id },
+        transaction,
+      });
+      if (existingAllocation) {
+        await transaction.commit();
+        logger.warn(`[UnifiedSessionService] Order ${orderId} already allocated (idempotent skip)`);
+        return {
+          success: true,
+          allocated: 0,
+          alreadyAllocated: true,
+          message: 'Sessions were already allocated for this order',
+        };
+      }
+
       // 2. Extract session information from order items
       const sessionData = await this.extractSessionDataFromOrder(order);
       
@@ -2560,6 +2581,10 @@ class UnifiedSessionService {
           as: 'storefrontItem'
         }]
       }],
+      // Row-lock the ORDER only (FOR UPDATE OF "Order", not the nullable joined side — same
+      // pattern as SessionGrantService.findLockedCart) so two concurrent allocations for the
+      // same order serialize; the loser then sees the committed FinancialTransaction guard.
+      lock: { level: transaction.LOCK.UPDATE, of: this.Order },
       transaction
     });
 
