@@ -22,7 +22,7 @@ describe('legacy sessionRoutes no-pay fallback guards', () => {
 
   it('keeps direct legacy credit mutations behind no-pay-aware guards', () => {
     const mutations = [...routeSource.matchAll(/(?:user|client)\.availableSessions -= (?:1|sessionsNeeded);/g)];
-    expect(mutations.length).toBeGreaterThanOrEqual(5);
+    expect(mutations.length).toBeGreaterThan(0);
 
     for (const mutation of mutations) {
       const mutationText = mutation[0];

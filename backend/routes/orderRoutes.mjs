@@ -8,7 +8,7 @@ import {
   getUser,
 } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-import sessionAllocationService from '../services/SessionAllocationService.mjs';
+import unifiedSessionService from '../services/sessions/session.service.mjs';
 import { applyOrderPayment, createOrderFromCart } from '../controllers/orderController.mjs';
 
 const router = express.Router();
@@ -124,6 +124,7 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     const previousStatus = order.status;
+    const previousCompletedAt = order.completedAt;
     order.status = status || order.status;
     if (notes) order.notes = notes;
     if (status === 'completed' && !order.completedAt) order.completedAt = new Date();
@@ -134,7 +135,7 @@ router.put('/:id', protect, async (req, res) => {
     if (status === 'completed' && previousStatus !== 'completed') {
       try {
         logger.info(`Order ${orderId} completed, allocating sessions for user ${order.userId}`);
-        sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(orderId, order.userId);
+        sessionCreationResult = await unifiedSessionService.allocateSessionsFromOrder(orderId, order.userId);
         logger.info(`Successfully allocated ${sessionCreationResult.allocated} sessions for order ${orderId}`, {
           orderNumber: order.orderNumber,
           totalSessions: sessionCreationResult.totalSessions,
@@ -153,6 +154,10 @@ router.put('/:id', protect, async (req, res) => {
           orderNumber: order.orderNumber,
           timestamp: new Date().toISOString(),
         });
+        order.status = previousStatus;
+        order.completedAt = previousCompletedAt;
+        await order.save();
+        throw sessionError;
       }
     }
 

@@ -54,4 +54,17 @@ describe('admin finance truth contract', () => {
     expect(source).toContain('[Op.gte]: getTimeRangeStart(timeRange)');
     expect(source).toContain('dateRange: { startDate, endDate, timeRange }');
   });
+
+  it('computes transaction summary from the full filtered result instead of the current page', () => {
+    const source = readFileSync(resolve(__dirname, '../../routes/admin/adminFinanceRoutes.mjs'), 'utf8');
+    expect(source).toContain('const transactionSummary = await ShoppingCart.findOne({');
+    expect(source).not.toContain('pendingPayments: transactions.filter');
+  });
+
+  it('counts each active customer once even when they have multiple completed carts', () => {
+    const source = readFileSync(resolve(__dirname, '../../routes/admin/adminFinanceRoutes.mjs'), 'utf8');
+    expect(source).toContain('const activeCustomers = await User.count({');
+    expect(source).toContain('distinct: true,');
+    expect(source).toContain("col: 'User.id',");
+  });
 });

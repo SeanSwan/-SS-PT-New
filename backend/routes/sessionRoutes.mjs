@@ -20,7 +20,6 @@ import {
 import {
   sessionBookedEmail,
   sessionCancelledEmail,
-  sessionRescheduledEmail,
   recurringBookedEmail,
   trainerSessionNotificationEmail,
   SMS,
@@ -1788,149 +1787,11 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
  * @access  Private
  */
 router.put("/reschedule/:sessionId", protect, async (req, res) => {
-  try {
-    const Session = getSession();
-    const User = getUser();
-    const { sessionId } = req.params;
-    const { newSessionDate } = req.body;
-
-    const session = await Session.findByPk(sessionId);
-    
-    if (!session) {
-      return res.status(404).json({ message: "Session not found." });
-    }
-    
-    // Check if user is authorized to reschedule
-    const isOwner = session.userId === req.user.id;
-    const isAssignedTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
-    if (!isOwner && !isAssignedTrainer && req.user.role !== 'admin') {
-      return res.status(403).json({
-        message: "You can only reschedule your own sessions."
-      });
-    }
-
-    if (!['scheduled', 'confirmed'].includes(session.status)) {
-      return res.status(400).json({ 
-        message: "Only scheduled or confirmed sessions can be rescheduled." 
-      });
-    }
-
-    const oldDate = moment(session.sessionDate);
-    const newDate = moment(newSessionDate);
-    const hoursDiff = newDate.diff(oldDate, "hours");
-
-    let sessionDeducted = false;
-    
-    // Deduct a session if rescheduled within 24 hours of current time
-    if (hoursDiff < 24 && req.user.role !== 'admin') {
-      // Check if client has available sessions
-      const client = await User.findByPk(session.userId);
-      if (client && isNonDeductingClient(client)) {
-        logger.info(`Late reschedule credit deduction skipped for non-deducting client source ${client.clientSource}`, {
-          sessionId,
-          clientId: session.userId
-        });
-      } else if (client && client.availableSessions > 0) {
-        client.availableSessions -= 1;
-        await client.save();
-        
-        sessionDeducted = true;
-        session.sessionDeducted = true;
-        session.deductionDate = new Date();
-      } else {
-        // No sessions to deduct, but we'll still allow the reschedule
-        console.warn(`Client ${session.userId} has no available sessions to deduct for late reschedule`);
-      }
-    }
-
-    // Update session date
-    session.sessionDate = newSessionDate;
-    await session.save();
-
-    // Notify relevant parties
-    const user = await User.findByPk(session.userId);
-
-    if (user) {
-      const notifyClient = req.body.notifyClient !== undefined ? req.body.notifyClient : session.notifyClient !== false;
-      const newDateFormatted = new Date(newSessionDate).toLocaleString(
-        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-      );
-      const oldDateFormatted = oldDate.toDate().toLocaleString(
-        'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-      );
-
-      // Galaxy-Swan themed email
-      if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
-        await sendEmailNotification({
-          to: user.email,
-          subject: 'Session Rescheduled - SwanStudios',
-          text: `Your session has been rescheduled to ${newDateFormatted}.${sessionDeducted ? ' A session was deducted due to late rescheduling.' : ''}`,
-          html: sessionRescheduledEmail({
-            clientName: user.firstName,
-            oldDate: oldDateFormatted,
-            newDate: newDateFormatted,
-            location: session.location,
-            sessionDeducted,
-          }),
-        });
-      }
-
-      if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
-        await sendSmsNotification({
-          to: user.phone,
-          body: SMS.rescheduled({ newDate: newDateFormatted }),
-        });
-      }
-
-      if (shouldNotifyClient({ user, channel: 'push', notifyClient })) {
-        logger.info(`Push notification queued for user ${user.id}: session rescheduled`);
-      }
-    }
-
-    // Notify trainer if assigned
-    if (session.trainerId) {
-      const trainer = await User.findByPk(session.trainerId);
-      if (trainer && trainer.email) {
-        const newDateFormatted = new Date(newSessionDate).toLocaleString(
-          'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-        );
-        await sendEmailNotification({
-          to: trainer.email,
-          subject: 'Session Rescheduled - SwanStudios',
-          text: `A session has been rescheduled to ${newDateFormatted}.`,
-          html: trainerSessionNotificationEmail({
-            trainerName: trainer.firstName,
-            clientName: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
-            sessionDate: newDateFormatted,
-            duration: session.duration,
-            location: session.location,
-            eventType: 'rescheduled',
-          }),
-        });
-
-        if (trainer.phone && trainer.smsNotifications !== false) {
-          await sendSmsNotification({
-            to: trainer.phone,
-            body: `SwanStudios: Session with ${user ? `${user.firstName} ${user.lastName}` : 'a client'} rescheduled to ${newDateFormatted}.`,
-          });
-        }
-      }
-    }
-
-    res.status(200).json({
-      message: `Session rescheduled successfully. ${
-        sessionDeducted
-          ? "A session was deducted due to late rescheduling."
-          : "No session was deducted."
-      }`,
-      session,
-    });
-  } catch (error) {
-    console.error("Error rescheduling session:", error.message);
-    res.status(500).json({ message: "Server error rescheduling session." });
-  }
+  return res.status(410).json({
+    success: false,
+    message: 'This legacy reschedule endpoint is retired. Use PUT /api/sessions/:sessionId/reschedule.'
+  });
 });
-
 /**
  * @route   GET /api/sessions/:sessionId/cancel-warning
  * @desc    Get late cancellation warning info before cancelling

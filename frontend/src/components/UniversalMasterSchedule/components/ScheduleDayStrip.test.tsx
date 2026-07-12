@@ -30,6 +30,31 @@ describe('ScheduleDayStrip logic', () => {
     expect(chips.find(({ key }) => key === '2026-07-15')?.isMonthBoundary).toBe(false);
   });
 
+  it('re-anchors around out-of-window selections and holds at the edges', () => {
+    const today = new Date(2026, 6, 11); // Jul 11
+    // inside the window (edges inclusive): stays today-anchored
+    for (const offset of [-7, 0, 21]) {
+      const selected = new Date(2026, 6, 11 + offset);
+      const chips = buildDayWindow(today, selected);
+      expect(chips[0].key).toBe('2026-07-04');
+      expect(chips.some(({ key }) => key === localDayKey(selected))).toBe(true);
+    }
+    // one past each edge: window re-anchors around the selection
+    const past = buildDayWindow(today, new Date(2026, 6, 3)); // -8
+    expect(past.some(({ key }) => key === '2026-07-03')).toBe(true);
+    const future = buildDayWindow(today, new Date(2026, 7, 2)); // +22
+    expect(future.some(({ key }) => key === '2026-08-02')).toBe(true);
+    // isToday stays truthful even when the anchor moved
+    expect(future.find(({ isToday }) => isToday)).toBeUndefined();
+    // year rollover + DST-transition selections keep exact-day membership
+    const newYear = buildDayWindow(today, new Date(2026, 11, 31));
+    expect(newYear.some(({ key }) => key === '2026-12-31')).toBe(true);
+    expect(newYear.some(({ key }) => key === '2027-01-01')).toBe(true);
+    const dstFall = buildDayWindow(today, new Date(2026, 10, 1)); // Nov 1 (US DST end)
+    expect(dstFall.filter(({ key }) => key === '2026-11-01')).toHaveLength(1);
+    expect(dstFall.some(({ key }) => key === '2026-11-02')).toBe(true);
+  });
+
   it('counts sessions per LOCAL day via the schedule date-resolution chain', () => {
     const counts = countSessionsByDay([
       { sessionDate: new Date(2026, 6, 11, 6, 0).toISOString() },
@@ -90,13 +115,29 @@ describe('ScheduleDayStrip component', () => {
     expect(localDayKey(selectedDate)).toBe(localDayKey(today));
   });
 
-  it('pages the ribbon without changing the selected date', () => {
+  it('pages the ribbon without changing the selected date (scrollLeft fallback, zero unhandled)', () => {
     const onSelectDay = vi.fn();
-    render(
+    const { container } = render(
       <ScheduleDayStrip currentDate={today} sessions={[]} onSelectDay={onSelectDay} />,
     );
+    // jsdom has no Element.scrollBy — clicking must fall back to scrollLeft
+    // without throwing (Codex REVISE finding 3: assertions passed but the
+    // run exited 1 on unhandled TypeErrors).
     fireEvent.click(screen.getByRole('button', { name: /later days/i }));
     fireEvent.click(screen.getByRole('button', { name: /earlier days/i }));
     expect(onSelectDay).not.toHaveBeenCalled();
+    expect(container).toBeTruthy();
+  });
+
+  it('shows the selected chip even when selection is far outside the window', () => {
+    const farFuture = new Date(today);
+    farFuture.setDate(today.getDate() + 60);
+    render(
+      <ScheduleDayStrip currentDate={farFuture} sessions={[]} onSelectDay={vi.fn()} />,
+    );
+    const nav = screen.getByRole('navigation', { name: /jump to a day/i });
+    const selected = nav.querySelector('[aria-current="date"]') as HTMLElement;
+    expect(selected).not.toBeNull();
+    expect(selected.textContent).toContain(String(farFuture.getDate()));
   });
 });

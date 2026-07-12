@@ -45,9 +45,14 @@ const ScheduleDayStrip: React.FC<ScheduleDayStripProps> = ({
   onSelectDay,
 }) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const chips = useMemo(() => buildDayWindow(), []);
-  const counts = useMemo(() => countSessionsByDay(sessions), [sessions]);
   const selectedKey = localDayKey(currentDate);
+  // Re-derives when the selected day changes: re-anchors the window when
+  // the selection leaves -7/+21, and rolls the "today" mark past midnight.
+  const chips = useMemo(
+    () => buildDayWindow(new Date(), currentDate),
+    [selectedKey], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const counts = useMemo(() => countSessionsByDay(sessions), [sessions]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -58,10 +63,15 @@ const ScheduleDayStrip: React.FC<ScheduleDayStripProps> = ({
   }, [selectedKey]);
 
   const page = (direction: 1 | -1) => {
-    scrollerRef.current?.scrollBy({
-      left: direction * WEEK_PAGE_PX,
-      behavior: 'smooth',
-    });
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    // jsdom (and some embedded webviews) lack Element.scrollBy — the
+    // optional chain guards `current`, not the method (Codex finding 3).
+    if (typeof scroller.scrollBy === 'function') {
+      scroller.scrollBy({ left: direction * WEEK_PAGE_PX, behavior: 'smooth' });
+    } else {
+      scroller.scrollLeft += direction * WEEK_PAGE_PX;
+    }
   };
 
   return (
