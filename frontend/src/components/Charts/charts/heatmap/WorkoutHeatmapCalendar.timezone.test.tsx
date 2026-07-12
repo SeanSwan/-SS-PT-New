@@ -16,6 +16,8 @@
  *
  * The fix buckets on the raw timestamp converted to the user's LOCAL day. These tests
  * pin the Sunday-evening case, which is exactly where the old code broke.
+ * (Sean's ruling 2026-07-12: user-local wins over the interim UTC-bucketing
+ * approach — a calendar of "did I train that day" shows the user's own day.)
  */
 import { describe, expect, it } from 'vitest';
 import { buildHeatmapGridFromSessions } from './WorkoutHeatmapCalendar';
