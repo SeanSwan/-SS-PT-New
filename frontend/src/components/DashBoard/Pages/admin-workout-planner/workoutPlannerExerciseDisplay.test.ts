@@ -44,6 +44,21 @@ describe('workoutPlannerExerciseDisplay', () => {
     expect(formatWorkoutPlannerExerciseName('Single-Arm NASM Row')).toBe('Single-Arm NASM Row');
   });
 
+  it('humanizes raw DB slugs so a client never sees hyphen-joined names', () => {
+    expect(formatWorkoutPlannerExerciseName('Sport-Golf-Single-Leg-Romanian-Deadlift-Dumbbell'))
+      .toBe('Sport Golf Single Leg Romanian Deadlift Dumbbell');
+    expect(formatWorkoutPlannerExerciseName('Barbell-Back-Squat')).toBe('Barbell Back Squat');
+    expect(formatWorkoutPlannerExerciseName('goblet_squat')).toBe('goblet squat');
+    // NASM prefix strip composes with slug humanization.
+    expect(formatWorkoutPlannerExerciseName('NASM-Barbell-Back-Squat')).toBe('Barbell Back Squat');
+  });
+
+  it('leaves spaced, human-entered names verbatim (only slug-shaped names are humanized)', () => {
+    expect(formatWorkoutPlannerExerciseName('T-Bar Row')).toBe('T-Bar Row');
+    expect(formatWorkoutPlannerExerciseName('Bench Press')).toBe('Bench Press');
+    expect(formatWorkoutPlannerExerciseName('Push Up')).toBe('Push Up');
+  });
+
   it('returns a safe fallback for blank labels', () => {
     expect(formatWorkoutPlannerExerciseName('')).toBe('Unknown Exercise');
     expect(formatWorkoutPlannerExerciseName(null)).toBe('Unknown Exercise');

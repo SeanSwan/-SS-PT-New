@@ -7,13 +7,26 @@
 import type { GeneratedPlan, GeneratedPlanWeekDay } from './WorkoutPlannerTypes';
 
 const NASM_PREFIX = /^NASM(?:\s*[-:]\s*|\s+)/i;
+// A DB slug reads as one hyphen/underscore-joined token with NO spaces, e.g.
+// "Sport-Golf-Single-Leg-Romanian-Deadlift-Dumbbell". Human-entered names keep
+// their spaces ("Single-Arm NASM Row", "T-Bar Row"), so the presence of a space
+// is the signal to leave a name verbatim.
+const SLUG_LIKE = /^[^\s]*[-_][^\s]*$/;
 
 export function formatWorkoutPlannerExerciseName(name: string | null | undefined): string {
   const trimmed = String(name || '').trim();
   if (!trimmed) return 'Unknown Exercise';
 
-  const withoutPrefix = trimmed.replace(NASM_PREFIX, '').trim();
-  return withoutPrefix || trimmed;
+  const withoutPrefix = trimmed.replace(NASM_PREFIX, '').trim() || trimmed;
+
+  // Humanize raw DB slugs so a client never sees "Sport-Golf-Single-Leg-..."
+  // printed on their plan. Only touch slug-shaped names (no spaces + a
+  // separator); spaced, human-entered names pass through unchanged.
+  if (SLUG_LIKE.test(withoutPrefix)) {
+    return withoutPrefix.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  return withoutPrefix;
 }
 
 type GeneratedExercise = GeneratedPlanWeekDay['exercises'][number];

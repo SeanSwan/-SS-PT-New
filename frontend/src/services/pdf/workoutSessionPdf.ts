@@ -17,6 +17,7 @@ import {
   addWrappedText,
   createSwanPdfDoc,
 } from './swanPdfKit';
+import { resolveBrandIdentity } from './brandIdentity';
 
 export interface SessionPdfSet {
   reps: number | null;
@@ -45,6 +46,8 @@ export interface WorkoutSessionPdfInput {
   /** Document title line, e.g. "Workout - 7/7" or "Week of 6/30". */
   title: string;
   days: SessionPdfDay[];
+  /** Client's source — drives white-label branding (move_fitness -> Move Fitness only). */
+  clientSource?: string | null;
 }
 
 const safeFilenamePart = (value: string): string =>
@@ -72,7 +75,8 @@ const sessionTableBody = (session: SessionPdfSession): string[][] =>
 
 export const renderWorkoutSessionPdf = (doc: PdfDoc, input: WorkoutSessionPdfInput): Blob => {
   const pageW = doc.internal.pageSize.getWidth();
-  let y = addBrandHeader(doc, { docLabel: 'WORKOUT SESSION LOG', metaLine: input.clientName });
+  const brand = resolveBrandIdentity(input.clientSource);
+  let y = addBrandHeader(doc, { docLabel: 'WORKOUT SESSION LOG', metaLine: input.clientName }, brand);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -123,7 +127,7 @@ export const renderWorkoutSessionPdf = (doc: PdfDoc, input: WorkoutSessionPdfInp
     });
   });
 
-  addBrandFooter(doc);
+  addBrandFooter(doc, brand);
   return doc.output('blob');
 };
 
@@ -131,7 +135,8 @@ export const buildWorkoutSessionPdfFile = async (input: WorkoutSessionPdfInput):
   if (typeof File === 'undefined') return null;
   const doc = await createSwanPdfDoc();
   const blob = renderWorkoutSessionPdf(doc, input);
-  const filename = `SwanStudios-Session-${safeFilenamePart(input.title)}.pdf`;
+  const brand = resolveBrandIdentity(input.clientSource);
+  const filename = `${brand.filenamePrefix}-Session-${safeFilenamePart(input.title)}.pdf`;
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });
 };
 

@@ -98,3 +98,9 @@ Layered so it doesn't:
 - Does **not** invent a new Hermes transport — extends the proven daemon repo-read path.
 - Does **not** replace the learning-packet or continuity bridge — it's the third, lower-friction lane.
 - Does **not** carry PII/secrets — committed + LLM-read, so IDs/roles only.
+
+## Automatic closeout override (Sean opted in 2026-07-11)
+
+The `SessionStart` hook still injects the pending count. A deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs`, fail-open, zero model calls) now evaluates
+completed turns and blocks the first stop only when substantial work needs a memo. It passes trivial
+turns, already-emitted closeouts, and `stop_hook_active` continuations to avoid noise and loops.

@@ -45,9 +45,11 @@ export interface ProgressReportPdfButtonProps {
   charts: CanonicalProgressCharts;
   /** Name printed in the PDF header band; defaults to a neutral label. */
   clientName?: string;
+  /** Subject client's source — drives white-label branding (move_fitness -> Move Fitness only). */
+  clientSource?: string | null;
 }
 
-const ProgressReportPdfButton: React.FC<ProgressReportPdfButtonProps> = ({ charts, clientName }) => {
+const ProgressReportPdfButton: React.FC<ProgressReportPdfButtonProps> = ({ charts, clientName, clientSource }) => {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -57,7 +59,8 @@ const ProgressReportPdfButton: React.FC<ProgressReportPdfButtonProps> = ({ chart
     try {
       const { downloadProgressReportPdf } = await import('../../../services/pdf/progressReportPdf');
       const delivered = await downloadProgressReportPdf({
-        clientName: clientName?.trim() || 'SwanStudios Client',
+        clientName: clientName?.trim() || 'Client',
+        clientSource,
         generatedOnLabel: new Date().toLocaleDateString(),
         sections: buildProgressReportSections(charts),
       });

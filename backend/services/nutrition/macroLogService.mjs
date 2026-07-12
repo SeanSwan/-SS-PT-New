@@ -123,7 +123,7 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     sugar:            sanitizeNumber(data.sugar),
     sodium:           sanitizeNumber(data.sodium),
     items:            Array.isArray(data.items) ? data.items.slice(0, 50).map(sanitizeMacroItem) : [],
-    aiConversationId: (typeof data.aiConversationId === 'string' && data.aiConversationId.length <= 100)
+    aiConversationId: Number.isSafeInteger(data.aiConversationId) && data.aiConversationId > 0
                         ? data.aiConversationId : null,
     source:           normalizeMacroSource(source),
     verified:         false,

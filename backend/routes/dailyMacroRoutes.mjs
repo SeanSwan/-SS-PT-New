@@ -17,6 +17,7 @@ import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
+import dailyMacroDraftRoutes from './dailyMacroDraftRoutes.mjs';
 import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
 import {
   ALLOWED_MEAL_TYPES,
@@ -46,6 +47,7 @@ const parseEntryId = (value) => {
 };
 
 router.use(protect);
+router.use('/drafts', dailyMacroDraftRoutes);
 
 router.post('/', async (req, res) => {
   try {
@@ -94,8 +96,8 @@ router.post('/', async (req, res) => {
     // Validate items array
     const safeItems = Array.isArray(items) ? items.slice(0, MAX_ITEMS_COUNT) : [];
 
-    // Validate aiConversationId (string or null, max 100 chars)
-    const safeAiConversationId = (typeof aiConversationId === 'string' && aiConversationId.length <= 100)
+    // The model column is an INTEGER foreign key; never persist string IDs.
+    const safeAiConversationId = Number.isSafeInteger(aiConversationId) && aiConversationId > 0
       ? aiConversationId : null;
 
     // Delegate to shared nutrition write service — normalizes source to model-valid value

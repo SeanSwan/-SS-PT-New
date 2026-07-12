@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 
 const mockState = vi.hoisted(() => ({
   dailyMacroLogFindAll: vi.fn(),
+  dailyMacroLogFindAndCountAll: vi.fn(),
   dailyMacroLogFindOne: vi.fn(),
   assertAssignmentOrAdmin: vi.fn(),
   user: { id: 9001, role: 'admin' },
@@ -24,6 +25,7 @@ vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
 vi.mock('../../models/DailyMacroLog.mjs', () => ({
   default: {
     findAll: mockState.dailyMacroLogFindAll,
+    findAndCountAll: mockState.dailyMacroLogFindAndCountAll,
     findOne: mockState.dailyMacroLogFindOne,
   },
 }));
@@ -52,6 +54,7 @@ export const makeApp = () => {
 export const resetRosterRouteMocks = () => {
   mocks.user = { id: 9001, role: 'admin' };
   mocks.dailyMacroLogFindAll.mockReset();
+  mocks.dailyMacroLogFindAndCountAll.mockReset();
   mocks.dailyMacroLogFindOne.mockReset();
   mocks.assertAssignmentOrAdmin.mockReset();
   mocks.assertAssignmentOrAdmin.mockResolvedValue(true);

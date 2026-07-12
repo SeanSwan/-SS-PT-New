@@ -1,5 +1,8 @@
 import { formatLocalCalendarDate, getLocalCalendarDateDaysAgo } from './clients-team/nutritionDate';
-export { buildRepeatMacroPayload } from './NutritionTodayPanel.repeatMeal';
+export {
+  buildRepeatMacroPayload,
+  repeatMacroEntryToNutritionDraft,
+} from './NutritionTodayPanel.repeatMeal';
 export type { RepeatMacroEntry } from './NutritionTodayPanel.repeatMeal';
 export type NutritionTodayTarget = 'log' | 'voice' | 'search' | 'hydration' | 'macros';
 

@@ -28,6 +28,13 @@ interface FoodSearchProxyResponse {
   message?: string;
 }
 
+export class FoodSearchUnavailableError extends Error {
+  constructor() {
+    super('Food search is temporarily unavailable.');
+    this.name = 'FoodSearchUnavailableError';
+  }
+}
+
 export const CATEGORIES = [
   'All', 'Protein', 'Vegetables', 'Fruits', 'Grains',
   'Dairy', 'Snacks', 'Beverages', 'International',
@@ -88,11 +95,11 @@ export const fetchFoodSearchResults = async (query: string): Promise<FoodResult[
     const response = await apiService.get<FoodSearchProxyResponse>(
       `/api/nutrition/food-search?q=${encodeURIComponent(query)}&pageSize=15`,
     );
-    if (!response.data?.success) return [];
+    if (!response.data?.success) throw new FoodSearchUnavailableError();
     return deduplicateResults((response.data.foods || [])
       .map(normalizeFoodResult)
       .filter(hasStableFoodIdentity));
   } catch {
-    return [];
+    throw new FoodSearchUnavailableError();
   }
 };

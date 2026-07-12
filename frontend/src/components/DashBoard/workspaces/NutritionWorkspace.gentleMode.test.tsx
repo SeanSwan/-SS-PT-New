@@ -113,7 +113,7 @@ describe('NutritionWorkspace Gentle Mode', () => {
     expect(screen.queryByRole('button', { name: /review macros/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask coach for gentle support/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
 
     expect(screen.getByRole('region', { name: /gentle mode macro charts hidden/i })).toBeInTheDocument();
     expect(screen.queryByLabelText('macro donut')).not.toBeInTheDocument();

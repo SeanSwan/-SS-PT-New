@@ -16,6 +16,7 @@
  */
 import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
+import { encrypt } from './encryption/encryptionService.mjs';
 import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
 import { sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
 import {
@@ -389,7 +390,7 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
     userId,
     date: resolveNutritionWriteDate(data.date),
     mealType: trustedMacroMealType(data.mealType),
-    description: safeDescription,
+    description: encrypt(safeDescription, 'health:nutrition:description'),
     calories: sanitizeAiMacroNumber(data.calories),
     protein: sanitizeAiMacroNumber(data.protein),
     carbs: sanitizeAiMacroNumber(data.carbs),
@@ -432,7 +433,7 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
     { replacements, type: sequelize.QueryTypes.INSERT }
   );
 
-  logger.info('[AIDataWrite] Macro log added for user %d: %s', userId, safeDescription);
+  logger.info('[AIDataWrite] Macro log added for user %d via %s', userId, replacements.source);
 }
 
 async function updateProgressLevel(userId, data, sequelize) {

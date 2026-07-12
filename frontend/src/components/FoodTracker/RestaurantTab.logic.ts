@@ -2,6 +2,7 @@ import type { FoodDetail, FoodResult } from '../../hooks/useRestaurantSearch';
 import { cleanMacro } from './mealPhotoLog';
 
 export interface RestaurantAddFoodPayload {
+  id?: string;
   name: string;
   calories: number;
   protein: number;
@@ -34,6 +35,7 @@ export function formatRestaurantServing(value: unknown): string | null {
 export function buildRestaurantLogPayload(food: FoodDetail): RestaurantAddFoodPayload {
   const serving = food.primaryServing;
   return {
+    id: String(food.id),
     name: food.brand ? `${food.brand} ${food.name}` : food.name,
     calories: cleanMacro(serving.calories) ?? 0,
     protein: cleanMacro(serving.protein) ?? 0,

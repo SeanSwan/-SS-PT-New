@@ -34,6 +34,7 @@ import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { getEquipmentProfile, getEquipmentItem, getEquipmentExerciseMap } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 import { isEquipmentScanConfigured, scanEquipmentImageMulti } from '../services/equipmentScanService.mjs';
 import { matchExistingEquipment } from '../services/equipmentScanV2Support.mjs';
 import { persistEquipmentScanReviewSession } from '../services/equipmentScanReviewPersistence.mjs';
@@ -538,6 +539,11 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     const reviewCandidates = [...baseReviewItems, ...possibleCandidates];
     const scannedAt = new Date().toISOString();
 
+    // P0.2: item + exercise-mapping writes commit atomically in one transaction,
+    // so a partial failure rolls everything back and inventory can't be left
+    // half-populated. The best-effort review ledger (persistEquipmentScanReviewSession)
+    // stays OUTSIDE this tx below — it never throws and needs the committed item IDs.
+    await sequelize.transaction(async (t) => {
     for (const [candidateIndex, candidate] of scanSession.items.entries()) {
       const duplicateMatch = matchExistingEquipment(candidate, existingItems);
       if (duplicateMatch) {
@@ -581,7 +587,7 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
         },
         approvalStatus: 'pending',
         isActive: true,
-      });
+      }, { transaction: t });
       createdItems.push(item);
       createdCandidates.push(candidate);
       createdCandidateRecords.push({ candidateIndex, candidate, itemId: item.id });
@@ -597,9 +603,10 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
           isAiSuggested: true,
           confirmed: false,
         }));
-        await EquipmentExerciseMap.bulkCreate(mappings, { ignoreDuplicates: true });
+        await EquipmentExerciseMap.bulkCreate(mappings, { ignoreDuplicates: true, transaction: t });
       }
     }
+    });
 
     const persistedReview = await persistEquipmentScanReviewSession({
       profile,

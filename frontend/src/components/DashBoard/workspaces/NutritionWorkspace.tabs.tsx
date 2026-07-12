@@ -20,6 +20,7 @@ export type Tab =
   | 'log'
   | 'voice'
   | 'search'
+  | 'barcode'
   | 'restaurant'
   | 'hydration'
   | 'macros'
@@ -37,19 +38,20 @@ interface NutritionTabConfig {
 }
 
 export const NUTRITION_PRIMARY_TABS: NutritionTabConfig[] = [
-  { id: 'today', label: 'Today', icon: <CalendarCheck size={16} /> },
-  { id: 'log', label: 'Log Meal', icon: <Utensils size={16} /> },
+  { id: 'log', label: 'Manual Meal', icon: <Utensils size={16} /> },
+  { id: 'search', label: 'Food Search', icon: <Search size={16} /> },
+  { id: 'barcode', label: 'Barcode', icon: <ScanBarcode size={16} /> },
   { id: 'voice', label: 'Speak a Meal', icon: <Mic size={16} /> },
-  { id: 'search', label: 'Food Search', icon: <ScanBarcode size={16} /> },
+  { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
+];
+
+export const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
+  { id: 'today', label: 'Today Dashboard', icon: <CalendarCheck size={16} /> },
   { id: 'hydration', label: 'Hydration', icon: <Droplets size={16} /> },
   { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
   { id: 'meal-plan', label: 'Swan Coach Meal Plan', icon: <Brain size={16} /> },
   { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
   { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
-];
-
-export const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
-  { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
   { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
   { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
   { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
@@ -61,6 +63,9 @@ export const NUTRITION_TAB_LABELS = ALL_TABS.reduce<Record<Tab, string>>((labels
   labels[tab.id] = tab.label;
   return labels;
 }, {} as Record<Tab, string>);
+
+export const isCaptureNutritionTab = (tab: Tab) =>
+  NUTRITION_PRIMARY_TABS.some((captureTab) => captureTab.id === tab);
 
 export const isMoreNutritionTab = (tab: Tab) =>
   NUTRITION_MORE_TABS.some((secondaryTab) => secondaryTab.id === tab);

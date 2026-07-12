@@ -63,3 +63,7 @@ Then tell Sean in chat: packet written (path), tier-gate result, and whether the
 - Does **not** invent a new Hermes transport — it extends the proven daemon repo-read path (now local on the 5090).
 - Does **not** auto-emit by default — manual "feed Hermes" trigger unless Sean opts into auto.
 - Does **not** modify the Hermes runtime without Sean (config edits = T2 per the operator bridge; the Pi deployment is RETIRED).
+
+## Automatic closeout override (Sean opted in 2026-07-11)
+
+This section supersedes the earlier manual-default language. The deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs`, fail-open, zero model calls) evaluates every completed turn. When a substantial Fable-tier synthesis contains a permanent transferable lesson and no packet was already reported, it blocks the first stop and directs the agent to emit this packet. `stop_hook_active` passes immediately to prevent loops. Trivial work and sub-Fable conclusions do not enter the durable corpus.

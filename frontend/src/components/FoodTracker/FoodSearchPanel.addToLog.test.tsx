@@ -44,6 +44,61 @@ describe('FoodSearchPanel add-to-log (Nutrition search proxy)', () => {
     expect(apiMocks.get).toHaveBeenCalledWith('/api/nutrition/food-search?q=chicken&pageSize=15');
   });
 
+  it('ignores a stale search response that resolves after the latest query', async () => {
+    let resolveApple!: (value: unknown) => void;
+    let resolveBanana!: (value: unknown) => void;
+    apiMocks.get.mockReset();
+    apiMocks.get
+      .mockReturnValueOnce(new Promise((resolve) => { resolveApple = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { resolveBanana = resolve; }));
+    const user = userEvent.setup();
+
+    render(<FoodSearchPanel onDataSent={vi.fn()} />);
+    const search = screen.getByPlaceholderText(/search foods/i);
+    await user.type(search, 'apple');
+    await waitFor(() => expect(apiMocks.get).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    await user.clear(search);
+    await user.type(search, 'banana');
+    await waitFor(() => expect(apiMocks.get).toHaveBeenCalledTimes(2), { timeout: 2000 });
+
+    resolveBanana({ data: { success: true, foods: [{
+      ...chickenFood, id: 'banana-1', name: 'Banana',
+    }] } });
+    expect(await screen.findByRole('button', { name: /add banana to snack/i })).toBeInTheDocument();
+
+    resolveApple({ data: { success: true, foods: [{
+      ...chickenFood, id: 'apple-1', name: 'Apple',
+    }] } });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /add banana to snack/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /add apple to snack/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('hands a searched food to the shared review contract without writing first', async () => {
+    const user = userEvent.setup();
+    const onReviewDraft = vi.fn();
+
+    render(<FoodSearchPanel onDataSent={vi.fn()} onReviewDraft={onReviewDraft} />);
+    await user.selectOptions(screen.getByLabelText(/add to/i), 'dinner');
+    await user.type(screen.getByPlaceholderText(/search foods/i), 'chicken');
+    await user.click(await screen.findByRole('button', {
+      name: /review chicken breast for dinner/i,
+    }, { timeout: 2000 }));
+
+    expect(onReviewDraft).toHaveBeenCalledWith(expect.objectContaining({
+      contractVersion: '1.0',
+      source: 'search',
+      rawPayloadRef: expect.objectContaining({ provider: 'USDA', externalId: 'usda-1' }),
+      foods: [expect.objectContaining({
+        mealType: 'dinner',
+        serving: expect.objectContaining({ basis: 'label', label: '100g' }),
+        nutrients: expect.objectContaining({ calories: 165, protein: 31 }),
+      })],
+    }));
+    expect(apiMocks.post).not.toHaveBeenCalled();
+  });
+
   it('logs a searched food to /api/macros with DB macros (usda_lookup, verified:false) and refreshes macros', async () => {
     apiMocks.post.mockResolvedValue({ data: { success: true } });
     const onDataSent = vi.fn();
@@ -154,6 +209,25 @@ describe('FoodSearchPanel add-to-log (Nutrition search proxy)', () => {
     expect(await screen.findByText(/no foods found/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add mystery packaged chicken/i })).not.toBeInTheDocument();
     expect(apiMocks.post).not.toHaveBeenCalled();
+  });
+
+  it('distinguishes provider downtime from an empty result and offers retry', async () => {
+    apiMocks.get.mockRejectedValueOnce(new Error('private upstream details'));
+    const user = userEvent.setup();
+
+    render(<FoodSearchPanel onDataSent={vi.fn()} />);
+    await user.type(screen.getByPlaceholderText(/search foods/i), 'chicken');
+
+    const alert = await screen.findByRole('alert', {}, { timeout: 2000 });
+    expect(alert).toHaveTextContent(/food search is temporarily unavailable/i);
+    expect(screen.queryByText(/private upstream details/i)).not.toBeInTheDocument();
+
+    mockFoodSearch();
+    await user.click(screen.getByRole('button', { name: /retry food search/i }));
+
+    expect(await screen.findByRole('button', {
+      name: /add chicken breast to snack/i,
+    }, { timeout: 2000 })).toBeEnabled();
   });
 
   it('blocks a rapid double-tap from double-logging the same searched food', async () => {

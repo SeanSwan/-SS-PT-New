@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ListPlus } from 'lucide-react';
 import apiService from '../../../../services/api.service';
 import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientDisplayName } from './clientIdentity';
@@ -23,6 +23,7 @@ import {
   EstimateReviewList,
   EstimateReviewMeal,
   EstimateReviewMeta,
+  EstimateReviewMoreButton,
   EstimateReviewShell,
   EstimateReviewState,
   EstimateReviewTitle,
@@ -39,14 +40,17 @@ interface ReviewQueueResponse {
   data?: {
     success?: boolean;
     entries?: NutritionEstimateReviewEntry[];
+    total?: number;
+    hasMore?: boolean;
   };
 }
 
 interface VerifyResponse {
-  data?: {
-    success?: boolean;
-  };
+  data?: { success?: boolean };
 }
+
+const PAGE_LIMIT = 25;
+const VISIBLE_STEP = 5;
 
 const toReviewClients = (clients: ClientOption[]): NutritionEstimateReviewClient[] =>
   clients.map((client) => ({
@@ -54,17 +58,31 @@ const toReviewClients = (clients: ClientOption[]): NutritionEstimateReviewClient
     displayName: getClientDisplayName(client),
   }));
 
-const getEntriesFromResponse = (response: ReviewQueueResponse): NutritionEstimateReviewEntry[] => {
+const queuePage = (response: ReviewQueueResponse) => {
   if (!response.data?.success || !Array.isArray(response.data.entries)) {
     throw new Error('Nutrition review queue response was not successful');
   }
-  return response.data.entries;
+  const entries = response.data.entries;
+  return {
+    entries,
+    total: Number.isSafeInteger(response.data.total) ? Number(response.data.total) : entries.length,
+    hasMore: Boolean(response.data.hasMore),
+  };
+};
+
+const queueUrl = (rosterClientIds: number[], offset: number) => {
+  const params = new URLSearchParams({
+    date: formatLocalCalendarDate(),
+    userIds: rosterClientIds.join(','),
+    days: '7',
+    limit: String(PAGE_LIMIT),
+    offset: String(offset),
+  });
+  return `/api/macros/review-queue?${params.toString()}`;
 };
 
 const assertVerifySuccess = (response: VerifyResponse) => {
-  if (!response.data?.success) {
-    throw new Error('Nutrition verify response was not successful');
-  }
+  if (!response.data?.success) throw new Error('Nutrition verify response was not successful');
 };
 
 const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReviewPanelProps> = ({ clients, hidden }) => {
@@ -72,6 +90,10 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
   const rosterClientIds = useMemo(() => selectRosterClientIds(reviewClients), [reviewClients]);
   const [state, setState] = useState<LoadState>('loading');
   const [entries, setEntries] = useState<NutritionEstimateReviewEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(VISIBLE_STEP);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [verifyingId, setVerifyingId] = useState<number | string | null>(null);
   const [verifyError, setVerifyError] = useState(false);
 
@@ -79,36 +101,65 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
     if (hidden || rosterClientIds.length === 0) return undefined;
 
     let cancelled = false;
-    const date = formatLocalCalendarDate();
-    const params = new URLSearchParams({ date, userIds: rosterClientIds.join(','), days: '7' });
     setState('loading');
     setVerifyError(false);
+    setVisibleCount(VISIBLE_STEP);
 
-    apiService.get(`/api/macros/review-queue?${params.toString()}`)
+    apiService.get(queueUrl(rosterClientIds, 0))
       .then((response) => {
         if (cancelled) return;
-        setEntries(getEntriesFromResponse(response as ReviewQueueResponse));
+        const page = queuePage(response as ReviewQueueResponse);
+        setEntries(page.entries);
+        setTotal(page.total);
+        setHasMore(page.hasMore);
         setState('ready');
       })
       .catch(() => {
         if (!cancelled) setState('error');
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [hidden, rosterClientIds]);
 
   if (hidden || rosterClientIds.length === 0) return null;
 
   const allRows = buildNutritionEstimateReviewRows(
     reviewClients.filter((client) => rosterClientIds.includes(client.id)),
-    entries
+    entries,
   );
-  const rows = allRows.slice(0, 5);
-  const pendingMeta = allRows.length > rows.length
-    ? `Showing ${rows.length} of ${allRows.length} pending`
-    : `${allRows.length} pending`;
+  const rows = allRows.slice(0, visibleCount);
+  const unloadedCount = Math.max(0, total - entries.length);
+  const pendingCount = allRows.length + unloadedCount;
+  const pendingMeta = pendingCount > rows.length
+    ? `Showing ${rows.length} of ${pendingCount} pending`
+    : `${pendingCount} pending`;
+  const canLoadMore = visibleCount < allRows.length || hasMore;
+
+  const loadMore = async () => {
+    if (loadingMore) return;
+    if (visibleCount < allRows.length) {
+      setVisibleCount((current) => current + VISIBLE_STEP);
+      return;
+    }
+
+    setLoadingMore(true);
+    try {
+      const page = queuePage(await apiService.get(
+        queueUrl(rosterClientIds, entries.length),
+      ) as ReviewQueueResponse);
+      setEntries((current) => {
+        const existingIds = new Set(current.map((entry) => String(entry.id)));
+        return [...current, ...page.entries.filter((entry) => !existingIds.has(String(entry.id)))];
+      });
+      setTotal(page.total);
+      setHasMore(page.hasMore);
+      setVisibleCount((current) => current + VISIBLE_STEP);
+    } catch {
+      setVerifyError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const verifyRow = async (row: NutritionEstimateReviewRow) => {
     if (verifyingId !== null) return;
@@ -116,9 +167,12 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
     setVerifyingId(row.id);
 
     try {
-      const response = await apiService.patch(`/api/macros/client-timeline/${encodeURIComponent(String(row.id))}/verify`);
+      const response = await apiService.patch(
+        `/api/macros/client-timeline/${encodeURIComponent(String(row.id))}/verify`,
+      );
       assertVerifySuccess(response as VerifyResponse);
-      setEntries((currentEntries) => currentEntries.filter((entry) => String(entry.id) !== String(row.id)));
+      setEntries((current) => current.filter((entry) => String(entry.id) !== String(row.id)));
+      setTotal((current) => Math.max(0, current - 1));
     } catch {
       setVerifyError(true);
     } finally {
@@ -141,42 +195,56 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
         <EstimateReviewMeta>{state === 'ready' ? pendingMeta : 'Needs coach review'}</EstimateReviewMeta>
       </EstimateReviewHeader>
 
-      {verifyError ? (
-        <EstimateReviewState role="alert">
-          Nutrition estimate review unavailable
-        </EstimateReviewState>
-      ) : null}
+      {verifyError && (
+        <EstimateReviewState role="alert">Nutrition estimate review unavailable</EstimateReviewState>
+      )}
 
       {stateMessage ? (
-        <EstimateReviewState role={state === 'error' ? 'alert' : 'status'}>
-          {stateMessage}
-        </EstimateReviewState>
+        <EstimateReviewState role={state === 'error' ? 'alert' : 'status'}>{stateMessage}</EstimateReviewState>
       ) : (
-        <EstimateReviewList>
-          {rows.map((row) => (
-            <EstimateReviewCard key={row.id}>
-              <EstimateReviewBody>
-                <EstimateReviewClient>{row.clientName}</EstimateReviewClient>
-                <EstimateReviewMeal>{row.mealTitle}</EstimateReviewMeal>
-                <EstimateReviewDescription>{row.description}</EstimateReviewDescription>
-                <EstimateReviewFacts>
-                  <EstimateReviewFact>{row.macroLine}</EstimateReviewFact>
-                  <EstimateReviewFact>{row.sourceLabel}</EstimateReviewFact>
-                </EstimateReviewFacts>
-              </EstimateReviewBody>
-              <EstimateReviewButton
-                type="button"
-                aria-label={`Mark ${row.clientName} ${row.mealTitle} verified`}
-                aria-busy={verifyingId === row.id}
-                disabled={verifyingId !== null}
-                onClick={() => verifyRow(row)}
-              >
-                <CheckCircle2 size={16} aria-hidden="true" />
-                Mark verified
-              </EstimateReviewButton>
-            </EstimateReviewCard>
-          ))}
-        </EstimateReviewList>
+        <>
+          <EstimateReviewList>
+            {rows.map((row) => (
+              <EstimateReviewCard key={row.id}>
+                <EstimateReviewBody>
+                  <EstimateReviewClient>{row.clientName}</EstimateReviewClient>
+                  <EstimateReviewMeal>{row.mealTitle}</EstimateReviewMeal>
+                  <EstimateReviewDescription>{row.description}</EstimateReviewDescription>
+                  <EstimateReviewFacts>
+                    <EstimateReviewFact>{row.macroLine}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.sourceLabel}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.reviewReasonLabel}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.reviewStatusLabel}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.servingLabel}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.confidenceLabel}</EstimateReviewFact>
+                    <EstimateReviewFact>{row.reconciliationLabel}</EstimateReviewFact>
+                  </EstimateReviewFacts>
+                </EstimateReviewBody>
+                <EstimateReviewButton
+                  type="button"
+                  aria-label={`Mark ${row.clientName} ${row.mealTitle} verified`}
+                  aria-busy={verifyingId === row.id}
+                  disabled={verifyingId !== null}
+                  onClick={() => verifyRow(row)}
+                >
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  Mark verified
+                </EstimateReviewButton>
+              </EstimateReviewCard>
+            ))}
+          </EstimateReviewList>
+          {canLoadMore && (
+            <EstimateReviewMoreButton
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              aria-busy={loadingMore}
+            >
+              <ListPlus size={16} aria-hidden="true" />
+              {loadingMore ? 'Loading estimates...' : 'Load more pending estimates'}
+            </EstimateReviewMoreButton>
+          )}
+        </>
       )}
     </EstimateReviewShell>
   );

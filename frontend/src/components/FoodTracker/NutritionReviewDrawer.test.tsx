@@ -39,10 +39,14 @@ const twoFoodDraft = {
       id: 'food-panera-apple',
       description: 'Panera Apple',
       displayName: 'Apple',
-      calories: 80,
-      protein: 0,
-      carbs: 22,
-      fat: 0,
+      serving: { basis: 'label' as const, quantity: 1, unit: 'apple', label: '1 apple' },
+      nutrients: {
+        ...draft.foods[0].nutrients,
+        calories: 80,
+        protein: 0,
+        carbs: 22,
+        fat: 0,
+      },
     },
   ],
 };
@@ -53,7 +57,7 @@ describe('NutritionReviewDrawer', () => {
     mocks.post.mockResolvedValue({ data: { success: true } });
   });
 
-  it('requires review and saves provider estimates to /api/macros as unverified rows', async () => {
+  it('requires review and saves one atomic provider draft as unverified data', async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
     const onClose = vi.fn();
@@ -61,7 +65,7 @@ describe('NutritionReviewDrawer', () => {
     render(<NutritionReviewDrawer draft={draft} onClose={onClose} onSaved={onSaved} />);
 
     expect(screen.getByRole('dialog', { name: /review turkey sandwich/i })).toBeInTheDocument();
-    expect(screen.getByText(/Provider estimate - review before saving/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provider estimate - review serving and nutrient values/i)).toBeInTheDocument();
     expect(screen.getByText(/FatSecret/i)).toBeInTheDocument();
 
     const calories = screen.getByLabelText(/calories for turkey sandwich/i);
@@ -69,32 +73,35 @@ describe('NutritionReviewDrawer', () => {
     await user.type(calories, '525');
     await user.click(screen.getByRole('button', { name: /approve and save 1 item/i }));
 
-    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
-      description: 'Panera Turkey Sandwich',
-      mealType: 'lunch',
-      calories: 525,
-      source: 'usda_lookup',
-      verified: false,
-      items: [expect.objectContaining({ provider: 'FatSecret', source: 'restaurant' })],
+    await waitFor(() => expect(mocks.post).toHaveBeenCalledWith('/api/macros/drafts', expect.objectContaining({
+      contractVersion: '1.0',
+      draftId: 'draft-panera',
+      source: 'restaurant',
+      foods: [expect.objectContaining({
+        description: 'Panera Turkey Sandwich',
+        mealType: 'lunch',
+        verified: false,
+        nutrients: expect.objectContaining({ calories: 525 }),
+      })],
     })));
+    expect(mocks.post).toHaveBeenCalledTimes(1);
     expect(onSaved).toHaveBeenCalledWith(true, { closeDrawer: true });
   });
 
-  it('keeps the review drawer open when only some rows save', async () => {
+  it('keeps the review drawer open when the atomic request fails', async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
 
-    mocks.post
-      .mockResolvedValueOnce({ data: { success: true } })
-      .mockRejectedValueOnce(new Error('network failed'));
+    mocks.post.mockRejectedValueOnce(new Error('network failed'));
 
     render(<NutritionReviewDrawer draft={twoFoodDraft} onClose={vi.fn()} onSaved={onSaved} />);
 
     await user.click(screen.getByRole('button', { name: /approve and save 2 items/i }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/saved 1 of 2/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no diary entries were added/i);
     expect(screen.getByRole('dialog', { name: /review restaurant lunch/i })).toBeInTheDocument();
-    expect(onSaved).toHaveBeenCalledWith(true, { closeDrawer: false });
+    expect(mocks.post).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledWith(false, { closeDrawer: false });
   });
 
   it('does not save blank review rows', async () => {

@@ -58,8 +58,9 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
     const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: null, notificationPreferences: { sms: true } });
     expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
   });
-  it('FAIL channel_not_implemented for a non-sms channel', () => {
-    const d = evaluateScheduledMessage({ channel: 'email' }, { phone: '+1' });
+  it('FAIL channel_not_implemented for an unimplemented channel (push)', () => {
+    // email is now implemented (Epic 1 email channel); push remains unimplemented.
+    const d = evaluateScheduledMessage({ channel: 'push' }, { phone: '+1' });
     expect(d).toMatchObject({ action: 'fail', reason: 'channel_not_implemented' });
   });
   it('DEFER during quiet hours, with a nextAttempt', () => {
@@ -109,6 +110,21 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
     expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
   });
 
+  // Locks the deliberate deliverable-address-BEFORE-quiet-hours order (guards defer-forever).
+  it('email with quiet hours but NO email fails immediately (not defer)', () => {
+    const d = evaluateScheduledMessage({ channel: 'email' }, { email: null, notificationPreferences: { quietHours: { start: '00:00', end: '23:59' } } }, new Date(), ALLOWED);
+    expect(d).toMatchObject({ action: 'fail', reason: 'no_email' });
+  });
+  it('sms with quiet hours but NO phone fails immediately (not defer)', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: null, notificationPreferences: { sms: true, quietHours: { start: '00:00', end: '23:59' } } }, new Date(), ALLOWED);
+    expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
+  });
+  // Guards the zero-width quiet-hours case (equal start/end must NOT be a permanent blackout).
+  it('equal-window quiet hours is a no-op → send', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true, quietHours: { start: '12:00', end: '12:00' } } }, new Date(), ALLOWED);
+    expect(d.action).toBe('send');
+  });
+
 });
 
 describe('previewScheduledMessages (dry-run)', () => {
@@ -127,7 +143,7 @@ describe('previewScheduledMessages (dry-run)', () => {
       10: { id: 10, phone: '+15550001111', notificationPreferences: { sms: true } },   // send
       20: { id: 20, phone: '+15550002222', notificationPreferences: { sms: false } },  // cancel
       30: { id: 30, phone: null, notificationPreferences: { sms: true } },             // fail no_phone
-      40: { id: 40, phone: '+15550004444', notificationPreferences: { sms: true } },   // fail channel
+      40: { id: 40, phone: '+15550004444', notificationPreferences: { sms: true } },   // email channel + no email → fail no_email
     })[id] || null));
   });
 
@@ -136,7 +152,7 @@ describe('previewScheduledMessages (dry-run)', () => {
     expect(res.dryRun).toBe(true);
     expect(res.total).toBe(4);
     expect(res.summary).toEqual({ wouldSend: 1, wouldDefer: 0, wouldCancel: 1, wouldFail: 2 });
-    expect(res.byReason).toMatchObject({ eligible: 1, sms_disabled: 1, no_phone: 1, channel_not_implemented: 1 });
+    expect(res.byReason).toMatchObject({ eligible: 1, sms_disabled: 1, no_phone: 1, no_email: 1 });
   });
 
   it('sends NOTHING and mutates NO logs (pure dry-run)', async () => {

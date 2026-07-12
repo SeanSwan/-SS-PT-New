@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   hydration: { filled: 3, dailyGoal: 8, glassOz: 8, loading: false },
   updateFilled: vi.fn(),
   apiGet: vi.fn(),
-  apiPost: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useHydration', () => ({
@@ -26,7 +25,6 @@ vi.mock('../../../hooks/useHydration', () => ({
 vi.mock('../../../services/api.service', () => ({
   default: {
     get: mocks.apiGet,
-    post: mocks.apiPost,
   },
 }));
 
@@ -55,8 +53,6 @@ describe('NutritionTodayPanel', () => {
     mocks.hydration.loading = false;
     mocks.updateFilled.mockClear();
     mocks.apiGet.mockReset();
-    mocks.apiPost.mockReset();
-    mocks.apiPost.mockResolvedValue({ data: { success: true } });
     mocks.apiGet.mockImplementation((url: string) => {
       if (url.startsWith('/api/macros?date=')) {
         return Promise.resolve({
@@ -253,65 +249,4 @@ describe('NutritionTodayPanel', () => {
     await waitFor(() => expect(mocks.apiGet).toHaveBeenCalled());
   });
 
-  it('repeats the latest meal as an unverified self-logged row', async () => {
-    const user = userEvent.setup();
-    const onLogged = vi.fn();
-
-    render(<NutritionTodayPanel summary={summary} onNavigate={vi.fn()} onLogged={onLogged} />);
-
-    await user.click(await screen.findByRole('button', { name: /repeat latest meal/i }));
-
-    expect(mocks.apiPost).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
-      mealType: 'lunch',
-      description: 'Chicken bowl',
-      calories: 640,
-      protein: 45,
-      source: 'food-scanner',
-      verified: false,
-    }));
-    expect(onLogged).toHaveBeenCalledTimes(1);
-    expect(await screen.findByRole('status')).toHaveTextContent(/repeated latest meal/i);
-  });
-
-  it('offers one-tap repeat from a recent prior-day meal when today is empty', async () => {
-    const user = userEvent.setup();
-    const yesterday = daysAgoIso(1);
-    mocks.apiGet.mockImplementation((url: string) => {
-      if (url === `/api/macros?date=${todayIso()}`) {
-        return Promise.resolve({ data: { entries: [] } });
-      }
-      if (url === `/api/macros?date=${yesterday}`) {
-        return Promise.resolve({
-          data: {
-            entries: [{
-              mealType: 'breakfast',
-              description: 'Greek yogurt bowl',
-              calories: 410,
-              protein: 32,
-              carbs: 38,
-              fat: 11,
-              verified: true,
-            }],
-          },
-        });
-      }
-      return Promise.resolve({ data: { days: [{ date: todayIso(), mealCount: 0 }] } });
-    });
-
-    render(<NutritionTodayPanel summary={{ ...summary, mealCount: 0 }} onNavigate={vi.fn()} />);
-
-    await user.click(await screen.findByRole('button', { name: /repeat latest meal/i }));
-
-    expect(mocks.apiGet).toHaveBeenCalledWith(`/api/macros?date=${todayIso()}`);
-    expect(mocks.apiGet).toHaveBeenCalledWith(`/api/macros?date=${yesterday}`);
-    expect(mocks.apiPost).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
-      date: todayIso(),
-      mealType: 'breakfast',
-      description: 'Greek yogurt bowl',
-      calories: 410,
-      protein: 32,
-      source: 'manual',
-      verified: false,
-    }));
-  });
 });

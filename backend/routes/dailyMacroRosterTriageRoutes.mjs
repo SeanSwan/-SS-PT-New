@@ -23,12 +23,18 @@ const router = express.Router();
 router.use(protect);
 
 const NUTRITION_REVIEW_ROLES = new Set(['admin', 'trainer']);
+const REVIEW_QUEUE_DEFAULT_LIMIT = 50;
+const REVIEW_QUEUE_MAX_LIMIT = 100;
+const REVIEW_QUEUE_MAX_OFFSET = 10000;
 const TRIAGE_MACRO_ATTRIBUTES = [
   'userId', 'date', 'mealType', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'createdAt',
 ];
 const REVIEW_MACRO_ATTRIBUTES = [
   'id', 'userId', 'date', 'mealType', 'description', 'calories', 'protein', 'carbs', 'fat',
-  'fiber', 'sugar', 'sodium', 'source', 'verified', 'createdAt',
+  'fiber', 'sugar', 'sodium', 'source', 'verified', 'contractVersion', 'draftId',
+  'workoutProximity', 'servingBasis', 'servingQuantity', 'servingUnit',
+  'caloriesReported', 'caloriesCalculated', 'reconciliationStatus',
+  'confidenceScore', 'reviewStatus', 'reviewReason', 'reviewedByUserId', 'reviewedAt', 'createdAt',
 ];
 
 const requireNutritionReviewer = (req, res, next) => {
@@ -36,6 +42,14 @@ const requireNutritionReviewer = (req, res, next) => {
     return res.status(403).json({ success: false, error: 'Nutrition review access denied' });
   }
   return next();
+};
+
+const parseQueueInteger = (value, fallback, max, allowZero = false) => {
+  if (typeof value === 'undefined') return fallback;
+  const pattern = allowZero ? /^\d+$/ : /^[1-9]\d*$/;
+  if (typeof value !== 'string' || !pattern.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed <= max ? parsed : null;
 };
 
 router.get('/roster-triage', requireNutritionReviewer, async (req, res) => {
@@ -113,7 +127,16 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
       return res.status(404).json({ success: false, error: 'Macro data not found' });
     }
 
-    const updatedEntry = await entry.update({ verified: true });
+    if (entry.verified && entry.reviewStatus === 'verified' && entry.reviewedByUserId && entry.reviewedAt) {
+      return res.json({ success: true, entry: timelineEntry(entry) });
+    }
+
+    const updatedEntry = await entry.update({
+      verified: true,
+      reviewStatus: 'verified',
+      reviewedByUserId: req.user.id,
+      reviewedAt: new Date(),
+    });
     return res.json({ success: true, entry: timelineEntry(updatedEntry || entry) });
   } catch (err) {
     logger.error('[DailyMacroRosterTriageRoutes] Verify client timeline entry error:', err.message);
@@ -136,6 +159,15 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
     if (!days) {
       return res.status(400).json({ success: false, error: 'Invalid days' });
     }
+    const limit = parseQueueInteger(
+      req.query.limit,
+      REVIEW_QUEUE_DEFAULT_LIMIT,
+      REVIEW_QUEUE_MAX_LIMIT,
+    );
+    const offset = parseQueueInteger(req.query.offset, 0, REVIEW_QUEUE_MAX_OFFSET, true);
+    if (limit === null || offset === null) {
+      return res.status(400).json({ success: false, error: 'Invalid pagination' });
+    }
 
     for (const userId of userIds) {
       const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, userId);
@@ -145,16 +177,23 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
     }
 
     const startDate = daysBefore(date, days - 1);
-    const rows = await DailyMacroLog.findAll({
+    const { count, rows } = await DailyMacroLog.findAndCountAll({
       attributes: REVIEW_MACRO_ATTRIBUTES,
       where: {
         userId: { [Op.in]: userIds },
         date: { [Op.between]: [startDate, date] },
         verified: false,
-        source: { [Op.in]: ESTIMATE_REVIEW_SOURCES },
+        [Op.or]: [
+          { reviewStatus: 'needs_review' },
+          {
+            reviewStatus: null,
+            source: { [Op.in]: ESTIMATE_REVIEW_SOURCES },
+          },
+        ],
       },
       order: [['date', 'DESC'], ['createdAt', 'DESC']],
-      limit: 50,
+      limit,
+      offset,
     });
 
     return res.json({
@@ -163,6 +202,10 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
       startDate,
       days,
       entries: rows.map(reviewQueueEntry),
+      total: count,
+      limit,
+      offset,
+      hasMore: offset + rows.length < count,
     });
   } catch (err) {
     logger.error('[DailyMacroRosterTriageRoutes] Get nutrition review queue error:', err.message);

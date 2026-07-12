@@ -207,10 +207,18 @@ const SummaryTile = ({ label, value }: { label: string; value: string }) => (
   </SummaryCard>
 );
 
-export const SubmitRow = ({ loading, editing }: { loading: boolean; editing: boolean }) => (
+export const SubmitRow = ({ loading, editing, reviewMode = false }: {
+  loading: boolean;
+  editing: boolean;
+  reviewMode?: boolean;
+}) => (
   <SubmitButton type="submit" disabled={loading} $loading={loading} aria-busy={loading}>
     {loading ? <Spinner /> : <UtensilsCrossed />}
-    {loading ? (editing ? 'Updating...' : 'Submitting...') : (editing ? 'Update Saved Meal' : 'Log Food Intake')}
+    {loading
+      ? (editing ? 'Updating...' : 'Submitting...')
+      : editing
+        ? 'Update Saved Meal'
+        : reviewMode ? 'Review Meal' : 'Log Food Intake'}
   </SubmitButton>
 );
 

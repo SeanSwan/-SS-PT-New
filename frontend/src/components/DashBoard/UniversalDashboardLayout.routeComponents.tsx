@@ -20,6 +20,7 @@ export const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-
 export const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));
 export const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'));
 export const AdminCreateSpecialManager = React.lazy(() => import('./Pages/admin-specials/AdminCreateSpecialManager'));
+export const AdminAccountAccessPage = React.lazy(() => import('./Pages/admin-account-access/AdminAccountAccessPage'));
 export const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
 export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
 export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
@@ -58,6 +59,7 @@ export const ChallengeCommandWorkspace = React.lazy(() => import('./Pages/challe
 export const ContentStudioHub = React.lazy(() => import('./Pages/content-studio/ContentStudioHub'));
 export const FeatureAccessPage = React.lazy(() => import('./Pages/admin-feature-access/FeatureAccessPage'));
 export const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planner/WorkoutPlannerPage'));
+export const WorkoutDesignLabPage = React.lazy(() => import('./Pages/workout-design-lab/WorkoutDesignLabPage'));
 export const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 export const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'));
