@@ -50,10 +50,10 @@
  * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
  * │ METHOD                  ENDPOINT                        PURPOSE                          │
  * ├──────────────────────────────────────────────────────────────────────────────────────────┤
- * │ getAllUsers             GET /api/auth/users             List all users (exclude PII)     │
- * │ promoteToClient         POST /api/auth/promote-client   Promote user to client role      │
- * │ promoteToAdmin          POST /api/auth/promote-admin    Promote user to admin (w/ code)  │
- * │ updateUser              PUT /api/auth/users/:id         Update user details              │
+ * │ getAllUsers             GET /api/admin/users            List all users (exclude PII)     │
+ * │ promoteToClient         POST /api/admin/promote-client   Promote user to client role      │
+ * │ promoteToAdmin          POST /api/admin/promote-admin    Promote user to admin (w/ code)  │
+ * │ updateUser              PUT /api/admin/users/:id         Update user details              │
  * │ getRecentSignups        GET /api/admin/recent-signups   Last N hours signups + stats     │
  * │ getDashboardStats       GET /api/admin/dashboard-stats  Comprehensive dashboard metrics  │
  * │ getDatabaseHealth       GET /api/admin/database-health  Database connectivity test       │
@@ -67,7 +67,7 @@
  *     participant T as Sequelize Transaction
  *     participant DB as PostgreSQL
  *
- *     A->>C: POST /api/auth/promote-admin {userId, adminCode}
+ *     A->>C: POST /api/admin/promote-admin {userId, adminCode}
  *     C->>T: Begin transaction
  *     C->>C: Validate adminCode === ADMIN_ACCESS_CODE
  *
@@ -249,19 +249,19 @@
  * Usage Examples:
  *
  * // List all users (paginated in route handler)
- * GET /api/auth/users
+ * GET /api/admin/users
  * Response: { success: true, users: [...] }
  *
  * // Promote user to client with 10 sessions
- * POST /api/auth/promote-client
+ * POST /api/admin/promote-client
  * Body: { userId: "abc-123", availableSessions: 10 }
  *
  * // Promote user to admin (requires access code)
- * POST /api/auth/promote-admin
+ * POST /api/admin/promote-admin
  * Body: { userId: "abc-123", adminCode: "secret-code-here" }
  *
  * // Update user details
- * PUT /api/auth/users/abc-123
+ * PUT /api/admin/users/abc-123
  * Body: { firstName: "John", lastName: "Doe", isActive: false }
  *
  * // Get recent signups (last 48 hours, max 100 results)
@@ -318,6 +318,7 @@
 
 // backend/controllers/userManagementController.mjs
 // 🎯 ENHANCED P0 FIX: Coordinated model imports to prevent initialization race condition
+import { createHash, timingSafeEqual } from 'crypto';
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -326,8 +327,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Admin access code from environment variables
-const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE;
+// Admin access code is read at CALL time (not module load) so env rotation
+// and the boot-time guard stay truthful. Comparison is constant-time over
+// sha256 digests — length-independent, no early-exit timing signal.
+const constantTimeEquals = (a, b) => timingSafeEqual(
+  createHash('sha256').update(String(a)).digest(),
+  createHash('sha256').update(String(b)).digest(),
+);
 const PAID_CREDIT_FREE_TRACKING_MESSAGE = 'Admin user management cannot assign paid credits to free-tracking clients';
 
 const parseAdminSessionCreditInput = (value, fallback = 0) => {
@@ -354,7 +360,7 @@ const logUserManagementControllerError = (eventName, error) => {
 
 /**
  * @desc    Get all users (admin only)
- * @route   GET /api/auth/users
+ * @route   GET /api/admin/users
  * @access  Private (Admin Only)
  */
 export const getAllUsers = async (req, res) => {
@@ -383,7 +389,7 @@ export const getAllUsers = async (req, res) => {
 
 /**
  * @desc    Promote user to client role
- * @route   POST /api/auth/promote-client
+ * @route   POST /api/admin/promote-client
  * @access  Private (Admin Only)
  */
 export const promoteToClient = async (req, res) => {
@@ -466,7 +472,7 @@ export const promoteToClient = async (req, res) => {
 
 /**
  * @desc    Promote user to admin role with access code verification
- * @route   POST /api/auth/promote-admin
+ * @route   POST /api/admin/promote-admin
  * @access  Private (Admin Only)
  */
 export const promoteToAdmin = async (req, res) => {
@@ -475,7 +481,7 @@ export const promoteToAdmin = async (req, res) => {
   try {
     const { userId, adminCode } = req.body;
     
-    if (!userId || !adminCode) {
+    if (!userId || !adminCode || typeof adminCode !== 'string') {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -483,8 +489,22 @@ export const promoteToAdmin = async (req, res) => {
       });
     }
     
-    // Verify admin code
-    if (adminCode !== ADMIN_ACCESS_CODE) {
+    // Fail closed when the access code is not configured — never fall
+    // through to a comparison against undefined. (Preserves the explicit
+    // 503 the removed legacy /api/auth handler had; production boot is
+    // separately guarded by assertAdminAccessCode.)
+    const expectedAdminCode = process.env.ADMIN_ACCESS_CODE;
+    if (!expectedAdminCode) {
+      logger.error('ADMIN_ACCESS_CODE is not configured; refusing admin promotion');
+      await transaction.rollback();
+      return res.status(503).json({
+        success: false,
+        message: 'Admin promotion is not configured'
+      });
+    }
+
+    // Verify admin code (constant-time)
+    if (!constantTimeEquals(adminCode, expectedAdminCode)) {
       logger.warn(`Invalid admin code attempt by user ${req.user.id}`);
       await transaction.rollback();
       return res.status(401).json({
@@ -537,7 +557,7 @@ export const promoteToAdmin = async (req, res) => {
 
 /**
  * @desc    Update user details (admin only)
- * @route   PUT /api/auth/users/:id
+ * @route   PUT /api/admin/users/:id
  * @access  Private (Admin Only)
  */
 export const updateUser = async (req, res) => {

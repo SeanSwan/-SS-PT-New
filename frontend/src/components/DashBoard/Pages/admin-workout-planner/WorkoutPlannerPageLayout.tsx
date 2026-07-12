@@ -13,6 +13,8 @@ import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip from './WorkoutPlannerStatusAssistantStrip';
+import SafetyGateModal from '../../../cortex/SafetyGateModal';
+import type { SafetyGateReviewState } from './useWorkoutPlannerSafetyGate';
 import { Page, ThreePanel } from './WorkoutPlannerStyles';
 import {
   buildWorkoutPlannerCoachReviewRoute,
@@ -30,6 +32,11 @@ type ConfirmDialogProps = React.ComponentProps<typeof WorkoutPlannerConfirmDialo
 type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
   SavedPlansProps & ConfirmDialogProps & {
     teachModeProps: TeachModeProps;
+    // Cortex P0 §5.3: acknowledged-review contract surface
+    safetyGateReview: SafetyGateReviewState | null;
+    acknowledgingSafetyGate: boolean;
+    onConfirmSafetyGate: (reason: string) => void;
+    onCancelSafetyGate: () => void;
   };
 
 const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
@@ -51,6 +58,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
   pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose, onPlansChanged,
+  safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate, onCancelSafetyGate,
 }) => {
   const location = useLocation();
   const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
@@ -203,6 +211,14 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onPlansChanged={onPlansChanged}
       />
       <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
+      <SafetyGateModal
+        open={Boolean(safetyGateReview)}
+        signals={safetyGateReview?.signals ?? []}
+        missingData={safetyGateReview?.missingData ?? []}
+        confirming={acknowledgingSafetyGate}
+        onConfirm={onConfirmSafetyGate}
+        onCancel={onCancelSafetyGate}
+      />
     </Page>
   );
 };

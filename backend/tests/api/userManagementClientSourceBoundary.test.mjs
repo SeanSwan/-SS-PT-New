@@ -49,21 +49,17 @@ describe('user management clientSource boundary', () => {
     const controllerStart = controllerSource.indexOf('export const promoteToClient = async');
     const controllerEnd = controllerSource.indexOf('/**', controllerStart + 1);
     const controllerSlice = controllerSource.slice(controllerStart, controllerEnd);
-    const routeStart = routeSource.indexOf("router.post('/promote-client'");
-    const routeEnd = routeSource.indexOf('/**', routeStart + 1);
-    const routeSlice = routeSource.slice(routeStart, routeEnd);
 
+    // Promotion is served ONLY by the controller via /api/admin — the legacy
+    // inline /api/auth duplicates were removed 2026-07-12
+    // (see promoteRoleCanonicalSurface.test.mjs).
     expect(adminRouteSource).toContain("router.post('/promote-client', userManagementController.promoteToClient)");
+    expect(routeSource).not.toContain("router.post('/promote-client'");
     expect(controllerSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
-    expect(routeSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
     expect(controllerSlice).toContain('isNonDeductingClient(user)');
     expect(controllerSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
     expect(controllerSlice.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(controllerSlice.indexOf('availableSessions: requestedAvailableSessions'));
-    expect(routeSlice).toContain('isNonDeductingClient(user)');
-    expect(routeSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
-    expect(routeSlice.indexOf('isNonDeductingClient(user)'))
-      .toBeLessThan(routeSlice.indexOf('user.availableSessions ='));
   });
 
   it('keeps active auth user deactivation on six-month soft-delete retention', () => {

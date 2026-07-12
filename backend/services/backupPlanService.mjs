@@ -107,7 +107,13 @@ export async function generateBackupPlan({
   sessionsPerWeek = 3,
   primaryGoal = 'general_fitness',
   equipmentProfileId = null,
+  planningReviewAcknowledged = false,
+  planningReviewReason = null,
 }) {
+  // Cortex P0 caller sweep: generatePlan now BLOCKS behind the deterministic
+  // safety gate (409 acknowledged-review contract). Forward the trainer's
+  // acknowledgement and let SwanCoachPlanningReviewError propagate — the
+  // route maps it to the same 409/400 shape the builder routes use.
   const generated = await generatePlan({
     clientId: userId,
     trainerId,
@@ -115,6 +121,8 @@ export async function generateBackupPlan({
     sessionsPerWeek,
     primaryGoal,
     equipmentProfileId,
+    planningReviewAcknowledged: planningReviewAcknowledged === true,
+    planningReviewReason,
   });
 
   const planData = buildBackupPlanData(generated);

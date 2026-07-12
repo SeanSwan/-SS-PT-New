@@ -15,6 +15,7 @@ import {
   parseSafeFrontendDispatch,
 } from './coachActionProposalClassifier.mjs';
 import { linkCoachActionProposalToIntake } from './coachActionProposalIntakeLinkService.mjs';
+import { filterEligibleFrontendActions } from './coachDispatchEligibilityService.mjs';
 
 export const COACH_PROPOSAL_STATUS = Object.freeze({
   PENDING: 'PENDING',
@@ -255,7 +256,8 @@ export async function createCoachActionProposalsFromAiResponse({
 }) {
   const db = sequelizeOverride || sequelize;
   const proposals = [];
-  const frontendActions = [];
+  let frontendActions = [];
+  let frontendActionRefusals = [];
   const canPrepareWrites = user?.role === 'admin' || user?.role === 'trainer';
 
   for (const block of parseJsonActionBlocks(content)) {
@@ -277,7 +279,29 @@ export async function createCoachActionProposalsFromAiResponse({
     proposals.push({ ...classified, summary });
   }
 
-  if (proposals.length === 0) return { proposals: [], frontendActions };
+  // Cortex P0 §5.4: chat dispatches pass the same deterministic eligibility as
+  // the workout builder (registry membership + pain exclusions, fail-closed)
+  // before they can stage anything into a client's form.
+  if (frontendActions.length > 0) {
+    const targetUserId = conversation?.targetUserId || user?.id;
+    const eligibility = await filterEligibleFrontendActions({
+      actions: frontendActions,
+      targetUserId,
+      requestingUserId: user?.id,
+      loadRegistry: async () => {
+        const { getExerciseRegistryFromDB } = await import('../variationEngine.mjs');
+        return getExerciseRegistryFromDB();
+      },
+      loadClientContext: async (clientId, requesterId) => {
+        const { getClientContext } = await import('../clientIntelligenceService.mjs');
+        return getClientContext(clientId, requesterId);
+      },
+    });
+    frontendActions = eligibility.allowed;
+    frontendActionRefusals = eligibility.refusals;
+  }
+
+  if (proposals.length === 0) return { proposals: [], frontendActions, frontendActionRefusals };
   if (!await proposalTableExists(db)) throw new CoachActionProposalSchemaUnavailableError();
 
   const persisted = [];
@@ -293,5 +317,5 @@ export async function createCoachActionProposalsFromAiResponse({
     persisted.push(saved);
   }
   logger.info('[CoachActionProposal] Prepared %d pending proposal(s)', persisted.length);
-  return { proposals: persisted, frontendActions };
+  return { proposals: persisted, frontendActions, frontendActionRefusals };
 }

@@ -1,7 +1,10 @@
 /**
  * Hook: useWorkoutPlannerGenerationActions
  * Purpose: Own Swan Coach generation actions and generated-output UI state
- * for the admin/trainer Workout Planner.
+ * for the admin/trainer Workout Planner. Cortex P0 (§5.3): generation now
+ * honors the deterministic safety gate's acknowledged-review contract —
+ * 409 SWAN_COACH_REVIEW_REQUIRED opens the SafetyGateModal and the retry
+ * carries planningReviewAcknowledged + the trainer's written reason.
  */
 
 import { useCallback, useState } from 'react';
@@ -21,24 +24,32 @@ import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTyp
 import {
   buildPlanGenerationRequest,
   buildWorkoutGenerationRequest,
-  generatedWorkoutSafetyWarning,
   getGeneratedPlanSafetyWarning,
-  isSwanCoachPlanningPayload,
-  mapGeneratedWorkoutToPlanExercises,
   planGenerationErrorMessage,
-  readGeneratedPlan,
-  readGeneratedWorkout,
-  unverifiedPlanMessage,
-  unverifiedWorkoutMessage,
   workoutGenerationErrorMessage,
 } from './workoutPlannerGenerationActions.helpers';
-import type { GeneratedWorkoutPayload } from './workoutPlannerGenerationActions.helpers';
+import {
+  applyGeneratedWorkout,
+  canGenerateHorizonPlan,
+  verifiedGeneratedPlan,
+  verifiedGeneratedWorkout,
+} from './workoutPlannerGenerationApply.helpers';
+import {
+  parseSafetyGateReviewError,
+  useWorkoutPlannerSafetyGate,
+} from './useWorkoutPlannerSafetyGate';
+import type { SafetyGateReviewState } from './useWorkoutPlannerSafetyGate';
 import { isGuidedGenerationMode } from './workoutPlannerGuidedCandidates.helpers';
 import { useWorkoutPlannerGuidedCandidateActions } from './useWorkoutPlannerGuidedCandidateActions';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 
 interface PlannerAuthClient {
   post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
+}
+
+interface PlanningReviewAck {
+  planningReviewAcknowledged: true;
+  planningReviewReason: string;
 }
 
 interface WorkoutPlannerGenerationActionsInput {
@@ -59,73 +70,12 @@ interface WorkoutPlannerGenerationActionsInput {
   resetLoadedPlanState: () => void;
 }
 
-interface WorkoutApplicationInput {
-  workout: GeneratedWorkoutPayload;
-  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
-  setExplanations: Dispatch<SetStateAction<WorkoutPlannerBuilderExplanation[]>>;
-  setPhaseNumber: Dispatch<SetStateAction<number>>;
-  setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
-  setShowExplanations: Dispatch<SetStateAction<boolean>>;
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-  resetLoadedPlanState: () => void;
-}
-
 interface PlanApplicationInput {
   plan: GeneratedPlan;
   setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
 }
-
-const canGenerateHorizonPlan = (
-  selectedClientId: number | null,
-  planDuration: PlanDuration,
-): selectedClientId is number => Boolean(selectedClientId) && planDuration !== 'single';
-
-const verifiedGeneratedWorkout = (
-  data: unknown,
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
-): GeneratedWorkoutPayload | null => {
-  const workout = readGeneratedWorkout(data);
-  if (!workout) return null;
-  if (isSwanCoachPlanningPayload(workout)) return workout;
-  setStatusMsg(unverifiedWorkoutMessage());
-  return null;
-};
-
-const verifiedGeneratedPlan = (
-  data: unknown,
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
-): GeneratedPlan | null => {
-  const plan = readGeneratedPlan(data);
-  if (!plan) return null;
-  if (isSwanCoachPlanningPayload(plan)) return plan;
-  setStatusMsg(unverifiedPlanMessage());
-  return null;
-};
-
-const applyGeneratedWorkout = ({
-  workout,
-  setDegradedIntelligence,
-  setExplanations,
-  setPhaseNumber,
-  setPlanExercises,
-  setShowExplanations,
-  setStatusMsg,
-  resetLoadedPlanState,
-}: WorkoutApplicationInput) => {
-  const isDegraded = workout.context?.criticalDataUnavailable === true;
-  setDegradedIntelligence(isDegraded);
-  if (isDegraded) setStatusMsg({ type: 'error', text: generatedWorkoutSafetyWarning(workout) });
-  if (workout.nasmPhase) setPhaseNumber(workout.nasmPhase);
-  setPlanExercises(mapGeneratedWorkoutToPlanExercises(workout));
-  resetLoadedPlanState();
-  const explanations = workout.explanations ?? [];
-  if (explanations.length > 0) {
-    setExplanations(explanations);
-    setShowExplanations(true);
-  }
-};
 
 const applyGeneratedPlan = ({
   plan,
@@ -187,14 +137,11 @@ export const useWorkoutPlannerGenerationActions = ({
   const clearExplanations = useCallback(() => setExplanations([]), []);
   const handleToggleExplanations = useCallback(() => setShowExplanations(value => !value), []);
 
-  const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
-    if (isGuidedGenerationMode(generationMode)) {
-      setGenerating(true);
-      await handleGuidedCandidateGenerate(selectedClientId);
-      setGenerating(false);
-      return;
-    }
-    if (!selectedClientId) return;
+  /** Returns review details when the safety gate blocked, null otherwise. */
+  const postWorkoutGeneration = useCallback(async (
+    selectedClientId: number,
+    ack?: PlanningReviewAck,
+  ) => {
     setGenerating(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
@@ -202,15 +149,18 @@ export const useWorkoutPlannerGenerationActions = ({
     setShowExplanations(false);
     clearGuidedCandidates();
     try {
-      const res = await authAxios.post('/api/workout-builder/generate', buildWorkoutGenerationRequest({
-        selectedClientId,
-        category,
-        goal,
-        phaseNumber,
-        selectedEquipmentProfileId,
-        trainingIntensityMode,
-        hardcoreMethod,
-      }));
+      const res = await authAxios.post('/api/workout-builder/generate', {
+        ...buildWorkoutGenerationRequest({
+          selectedClientId,
+          category,
+          goal,
+          phaseNumber,
+          selectedEquipmentProfileId,
+          trainingIntensityMode,
+          hardcoreMethod,
+        }),
+        ...(ack ?? {}),
+      });
       const workout = verifiedGeneratedWorkout(res.data, setStatusMsg);
       if (workout) {
         applyGeneratedWorkout({
@@ -224,16 +174,23 @@ export const useWorkoutPlannerGenerationActions = ({
           resetLoadedPlanState,
         });
       }
+      return null;
     } catch (err: unknown) {
+      const review = parseSafetyGateReviewError(err);
+      if (review) return review;
       logApiError('Swan Coach workout generation failed', err);
       setStatusMsg(workoutGenerationErrorMessage(err));
+      return null;
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, clearGuidedCandidates, generationMode, goal, handleGuidedCandidateGenerate, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
-  const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
-    if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
+  /** Returns review details when the safety gate blocked, null otherwise. */
+  const postPlanGeneration = useCallback(async (
+    selectedClientId: number,
+    ack?: PlanningReviewAck,
+  ) => {
     setGeneratingPlan(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
@@ -242,25 +199,64 @@ export const useWorkoutPlannerGenerationActions = ({
     clearGuidedCandidates();
     resetLoadedPlanState();
     try {
-      const res = await authAxios.post('/api/workout-builder/plan', buildPlanGenerationRequest({
-        selectedClientId,
-        goal,
-        phaseNumber,
-        planDuration,
-        sessionsPerWeek,
-        selectedEquipmentProfileId,
-        trainingIntensityMode,
-        hardcoreMethod,
-      }));
+      const res = await authAxios.post('/api/workout-builder/plan', {
+        ...buildPlanGenerationRequest({
+          selectedClientId,
+          goal,
+          phaseNumber,
+          planDuration,
+          sessionsPerWeek,
+          selectedEquipmentProfileId,
+          trainingIntensityMode,
+          hardcoreMethod,
+        }),
+        ...(ack ?? {}),
+      });
       const plan = verifiedGeneratedPlan(res.data, setStatusMsg);
       if (plan) applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
+      return null;
     } catch (err: unknown) {
+      const review = parseSafetyGateReviewError(err);
+      if (review) return review;
       logApiError('Plan generation failed', err);
       setStatusMsg(planGenerationErrorMessage(err));
+      return null;
     } finally {
       setGeneratingPlan(false);
     }
   }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+
+  const onAcknowledged = useCallback(async (review: SafetyGateReviewState, reason: string) => {
+    const ack: PlanningReviewAck = { planningReviewAcknowledged: true, planningReviewReason: reason };
+    if (review.mode === 'workout') await postWorkoutGeneration(review.clientId, ack);
+    else await postPlanGeneration(review.clientId, ack);
+  }, [postWorkoutGeneration, postPlanGeneration]);
+
+  const {
+    safetyGateReview,
+    acknowledging,
+    openSafetyGateReview,
+    cancelSafetyGateReview,
+    confirmSafetyGateReview,
+  } = useWorkoutPlannerSafetyGate({ onAcknowledged });
+
+  const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
+    if (isGuidedGenerationMode(generationMode)) {
+      setGenerating(true);
+      await handleGuidedCandidateGenerate(selectedClientId);
+      setGenerating(false);
+      return;
+    }
+    if (!selectedClientId) return;
+    const review = await postWorkoutGeneration(selectedClientId);
+    if (review) openSafetyGateReview({ mode: 'workout', clientId: selectedClientId, ...review });
+  }, [generationMode, handleGuidedCandidateGenerate, openSafetyGateReview, postWorkoutGeneration]);
+
+  const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
+    if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
+    const review = await postPlanGeneration(selectedClientId);
+    if (review) openSafetyGateReview({ mode: 'plan', clientId: selectedClientId, ...review });
+  }, [openSafetyGateReview, planDuration, postPlanGeneration]);
 
   return {
     generating,
@@ -270,6 +266,10 @@ export const useWorkoutPlannerGenerationActions = ({
     degradedIntelligence,
     explanations,
     showExplanations,
+    safetyGateReview,
+    acknowledgingSafetyGate: acknowledging,
+    confirmSafetyGateReview,
+    cancelSafetyGateReview,
     clearExplanations,
     clearGuidedCandidates,
     handleSwanCoachWorkoutGenerate,

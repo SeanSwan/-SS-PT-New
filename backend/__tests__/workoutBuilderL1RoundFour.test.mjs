@@ -87,7 +87,7 @@ const buildContext = (overrides = {}) => ({
     compensationTypes: [],
     ...(overrides.constraints || {}),
   },
-  pain: { exclusions: [], activeEntries: [] },
+  pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [], activeEntries: [] },
   movement: { compensations: [] },
   variation: { currentPattern: 'standard', lastSessionType: null },
   equipment: [{ id: 1, name: 'Bodyweight', items: [{ name: 'bodyweight', category: 'bodyweight', resistanceType: 'load' }] }],

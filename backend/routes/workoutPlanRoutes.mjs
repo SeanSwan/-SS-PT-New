@@ -268,7 +268,10 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
   async (req, res) => {
     try {
       const { generateBackupPlan } = await import('../services/backupPlanService.mjs');
-      const { durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId } = req.body || {};
+      const {
+        durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
+        planningReviewAcknowledged, planningReviewReason,
+      } = req.body || {};
       const result = await generateBackupPlan({
         userId: parseInt(req.params.userId, 10),
         trainerId: req.user.id,
@@ -276,10 +279,26 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
         sessionsPerWeek: Math.min(Math.max(parseInt(sessionsPerWeek, 10) || 3, 1), 7),
         primaryGoal,
         equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
+        planningReviewAcknowledged: planningReviewAcknowledged === true,
+        planningReviewReason: typeof planningReviewReason === 'string' ? planningReviewReason : null,
       });
       return res.status(result.refreshed ? 200 : 201).json({ success: true, ...result });
-    } catch (error) {
-      logger.error('[WorkoutPlan] backup generate error: %s', error.message);
+    } catch (err) {
+      // Cortex P0 (§5.3): surface the deterministic safety gate's
+      // acknowledged-review contract (409 review-required / 400
+      // reason-required) instead of masking the block as a 500 — the same
+      // mapping the workout-builder routes use, and the shape the
+      // SafetyGateModal already parses.
+      if (err.name === 'SwanCoachPlanningReviewError') {
+        return res.status(err.status).json({
+          success: false,
+          code: err.code,
+          error: err.message,
+          reviewRequiredSignals: err.reviewRequiredSignals,
+          missingCriticalData: err.missingCriticalData,
+        });
+      }
+      logger.error('[WorkoutPlan] backup generate error: %s', err.message);
       return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
     }
   });

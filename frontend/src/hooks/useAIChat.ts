@@ -196,7 +196,8 @@ function enrichAssistantMessageWithActionMetadata(data: any): Message {
     data.coachActionProposals ||
     data.coachActionProposalError ||
     data.clientCreateResult ||
-    data.workoutImportResults
+    data.workoutImportResults ||
+    data.frontendActionRefusals
   ) {
     enrichedAssistantMsg.metadata = {
       ...enrichedAssistantMsg.metadata,
@@ -204,6 +205,8 @@ function enrichAssistantMessageWithActionMetadata(data: any): Message {
       coachActionProposalError: data.coachActionProposalError || undefined,
       clientCreateResult: data.clientCreateResult || undefined,
       workoutImportResults: data.workoutImportResults || undefined,
+      // Cortex P0 §5.4: server-refused dispatches → charming-no notice
+      frontendActionRefusals: data.frontendActionRefusals || undefined,
     };
   }
   return enrichedAssistantMsg;

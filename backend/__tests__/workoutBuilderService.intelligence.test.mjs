@@ -46,7 +46,7 @@ function fakeContext(overrides = {}) {
       estimated1RMs: null,
       ...(overrides.constraints || {}),
     },
-    pain: overrides.pain ?? { exclusions: [], warnings: [] },
+    pain: overrides.pain ?? { status: 'loaded_no_active_issue', exclusions: [], warnings: [] },
     movement: overrides.movement ?? { compensations: [] },
     variation: overrides.variation ?? { lastSessionType: null, currentPattern: 'standard', sessionHistory: [] },
     equipment: overrides.equipment ?? [],
@@ -170,7 +170,7 @@ describe('workoutBuilderService intelligence upgrades', () => {
       },
     }));
 
-    const workout = await generate();
+    const workout = await generate({ planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' });
 
     const goblet = workout.exercises.find((ex) => ex.exerciseKey === 'goblet_squat');
     expect(goblet.progression.action).toBe('hold');

@@ -17,6 +17,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import ProviderBadge from './ProviderBadge';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import CoachActionProposalCard from './CoachActionProposalCard';
+import CoachDispatchRefusalNotice from './CoachDispatchRefusalNotice';
 import { CoachMessageTranscriptCards } from './CoachMessageTranscriptCards';
 import CoachMessageLoggerHandoff from './CoachMessageLoggerHandoff';
 import CoachMessageResponseVariants, {
@@ -143,6 +144,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const clientCreate = message.metadata?.clientCreateResult;
   const workoutImports = message.metadata?.workoutImportResults;
   const coachActionProposals = message.metadata?.coachActionProposals;
+  const frontendActionRefusals = message.metadata?.frontendActionRefusals;
   const coachActionProposalError = message.metadata?.coachActionProposalError;
   const commandConfirmation = message.metadata?.commandConfirmation;
   const commandResult = message.metadata?.commandResult;
@@ -168,6 +170,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       {coachActionProposals?.map((proposal) => (
         <CoachActionProposalCard key={proposal.id} proposal={proposal} />
       ))}
+
+      {frontendActionRefusals && (
+        <CoachDispatchRefusalNotice refusals={frontendActionRefusals} />
+      )}
 
       {coachActionProposalError && (
         <CriticalActionCard>

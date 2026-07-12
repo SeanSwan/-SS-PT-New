@@ -399,6 +399,9 @@ const CES_MAP = {
 const PAIN_AUTO_EXCLUDE_HOURS = 72;
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
 const PAIN_WARN_SEVERITY = 4;
+// Cortex P0 (directive §5.1): an active issue untouched this long is flagged for
+// reassessment — flagged, never silently dropped from planning context.
+const PAIN_STALE_REVIEW_DAYS = 30;
 
 // ── Compensation Trend Analysis ──────────────────────────────────────
 
@@ -487,8 +490,7 @@ export async function getClientContext(clientId, trainerId) {
   const now = new Date();
   const seventyTwoHoursAgo = new Date(now.getTime() - PAIN_AUTO_EXCLUDE_HOURS * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  // Issue #5 FIX: 7-day window covers 72h business requirement + timezone buffer
-  const painQueryWindow = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const painStaleCutoff = new Date(now.getTime() - PAIN_STALE_REVIEW_DAYS * 24 * 60 * 60 * 1000);
 
   // Parallel queries to all subsystems
   const [
@@ -508,16 +510,19 @@ export async function getClientContext(clientId, trainerId) {
     onboardingQuestionnaire,
     workoutStreak,
     trainingVaultContext,
+    painTotalCount,
   ] = await Promise.all([
     // 1. Active pain entries (SAFETY-CRITICAL: failure is tracked)
-    // Issue #5 FIX: 7-day window + limit:100 prevents unbounded memory growth
+    // Cortex P0 (directive §5.1): NO creation-time window — an unresolved chronic
+    // issue must never age out of planning context. Severity-first ordering keeps
+    // the worst issues inside the memory-bound limit; recency is computed
+    // separately in processing (72h auto-exclude + 30-day staleness).
     getClientPainEntry().findAll({
       where: {
         userId: clientId,
         isActive: true,
-        createdAt: { [Op.gte]: painQueryWindow },
       },
-      order: [['createdAt', 'DESC']],
+      order: [['painLevel', 'DESC'], ['createdAt', 'DESC']],
       limit: 100,
     }).catch(err => {
       logger.error(
@@ -730,6 +735,12 @@ export async function getClientContext(clientId, trainerId) {
       );
       return null;
     }),
+
+    // 17. Lifetime pain-entry count (Cortex P0 §5.2): distinguishes a client whose
+    // pain intake was NEVER collected from one with a clean/resolved history.
+    Promise.resolve()
+      .then(() => getClientPainEntry().count({ where: { userId: clientId } }))
+      .catch(() => null),
   ]);
 
   // ── Critical Data Failure Tracking ─────────────────────────────
@@ -746,12 +757,34 @@ export async function getClientContext(clientId, trainerId) {
 
   const painExclusions = [];
   const painWarnings = [];
+  const staleActiveIssues = [];
   const excludedMuscles = new Set();
+  let lastPainTouchMs = null;
 
   for (const entry of safePainEntries) {
     const muscles = REGION_TO_MUSCLE_MAP[entry.bodyRegion] || [];
     const isRecent = entry.createdAt >= seventyTwoHoursAgo;
     const severity = entry.painLevel || 0;
+    const lastTouched = entry.updatedAt || entry.createdAt;
+
+    if (lastTouched) {
+      const touchedMs = new Date(lastTouched).getTime();
+      if (Number.isFinite(touchedMs) && (lastPainTouchMs === null || touchedMs > lastPainTouchMs)) {
+        lastPainTouchMs = touchedMs;
+      }
+    }
+
+    // Cortex P0 (§5.1): active issue untouched past the review window — flag for
+    // reassessment. It STILL flows through exclusion/warning processing below.
+    if (lastTouched && new Date(lastTouched) < painStaleCutoff) {
+      staleActiveIssues.push({
+        entryId: entry.id,
+        bodyRegion: entry.bodyRegion,
+        painLevel: severity,
+        lastReviewedAt: new Date(lastTouched).toISOString(),
+        reason: `Active issue not reviewed in ${PAIN_STALE_REVIEW_DAYS}+ days -- reassess`,
+      });
+    }
 
     if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY && isRecent) {
       painExclusions.push({
@@ -775,6 +808,22 @@ export async function getClientContext(clientId, trainerId) {
         entryId: entry.id,
       });
     }
+  }
+
+  // ── Pain Source State (Cortex P0 §5.2) ─────────────────────────
+  // "No active pain reported" and "pain information unavailable" are different
+  // facts; the safety gate keys on this status, never on array shapes.
+  let painDataStatus;
+  if (painEntries && painEntries.__failed) {
+    painDataStatus = 'unavailable';
+  } else if (safePainEntries.length > 0) {
+    painDataStatus = 'loaded_active_issue';
+  } else if (painTotalCount === 0) {
+    painDataStatus = 'never_collected';
+  } else {
+    // Prior entries exist (or the count probe failed after a successful load):
+    // the source itself was read successfully and shows zero active issues.
+    painDataStatus = 'loaded_no_active_issue';
   }
 
   // ── Process Movement Profile ───────────────────────────────────
@@ -1004,7 +1053,11 @@ export async function getClientContext(clientId, trainerId) {
     health: healthSummary,
 
     pain: {
+      status: painDataStatus,
       activeEntries: safePainEntries.length,
+      activeIssueCount: safePainEntries.length,
+      lastPainReviewAt: lastPainTouchMs !== null ? new Date(lastPainTouchMs).toISOString() : null,
+      staleActiveIssues,
       exclusions: painExclusions,
       warnings: painWarnings,
       excludedMuscles: Array.from(excludedMuscles),

@@ -509,7 +509,7 @@ describe('coachActionProposalService', () => {
       sequelizeOverride: db,
     });
 
-    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(result).toEqual({ proposals: [], frontendActions: [], frontendActionRefusals: [] });
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
   });
 

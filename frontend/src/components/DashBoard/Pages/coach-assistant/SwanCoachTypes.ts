@@ -47,6 +47,16 @@ export interface ContextChip {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Messages
 // ─────────────────────────────────────────────────────────────
+
+/** Cortex P0 §5.4 — a frontend dispatch the server refused (registry/pain/safety). */
+export interface CoachDispatchRefusal {
+  event: string;
+  exerciseName?: string;
+  code: 'EXERCISE_NOT_IN_REGISTRY' | 'SAFETY_DATA_UNAVAILABLE' | 'PAIN_EXCLUDED' | string;
+  reason: string;
+  alternatives: string[];
+}
+
 export interface CoachMessageData {
   id: string;
   role: 'user' | 'assistant';
@@ -95,6 +105,8 @@ export interface CoachMessageData {
       code: string;
       message: string;
     };
+    /** Cortex P0 §5.4 — dispatches refused server-side; renders the charming-no notice */
+    frontendActionRefusals?: CoachDispatchRefusal[];
     /** Injected by command lane — renders ConfirmationCard in CoachMessage */
     commandConfirmation?: {
       message: string;

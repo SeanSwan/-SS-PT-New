@@ -906,6 +906,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       coachActionProposals: proposalResult.proposals.length > 0 ? proposalResult.proposals : undefined,
       coachActionProposalError: proposalError || undefined,
       frontendActions: proposalResult.frontendActions.length > 0 ? proposalResult.frontendActions : undefined,
+      // Cortex P0 §5.4: refused dispatches (registry/pain/safety) so the coach
+      // UI can explain the refusal and offer the eligible alternatives.
+      frontendActionRefusals: proposalResult.frontendActionRefusals?.length > 0
+        ? proposalResult.frontendActionRefusals
+        : undefined,
     });
   } catch (err) {
     logger.error('[AIChatRoutes] Send message error:', err.message);
