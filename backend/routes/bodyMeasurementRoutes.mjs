@@ -15,6 +15,7 @@ import {
 } from '../controllers/bodyMeasurementController.mjs';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
+import { signPhotoUrls } from '../services/photoUrlSigner.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 
 const router = express.Router();
@@ -88,7 +89,10 @@ router.post('/upload-photos', authorize(['admin', 'trainer']), (req, res, next) 
       }))
     );
     const photoUrls = results.map(r => r.url);
-    res.json({ success: true, photoUrls });
+    // photoUrls = BARE paths (what the client persists into the measurement);
+    // photoPreviewUrls = short-TTL signed variants for immediate <img> preview
+    // (the public proxy refuses bare measurement URLs).
+    res.json({ success: true, photoUrls, photoPreviewUrls: signPhotoUrls(photoUrls) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Photo upload failed' });
   }

@@ -215,12 +215,14 @@ describe('session booking clientSource boundary', () => {
     expect(session.sessionDeducted).toBe(false);
   });
 
-  it('does not deduct late-reschedule credits from every non-booking client source', () => {
+  it('retires the duplicate late-reschedule credit path in favor of the unified endpoint', () => {
     const { start, end, source } = routeSlice('router.put("/reschedule/:sessionId"', 'router.delete("/cancel/:sessionId"');
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('isNonDeductingClient(client)');
+    expect(source).toContain('return res.status(410).json({');
+    expect(source).toContain('PUT /api/sessions/:sessionId/reschedule');
+    expect(source).not.toContain('availableSessions -= 1');
   });
 
   it('blocks every non-booking client source from the no-user-id self-service booking route', () => {

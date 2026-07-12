@@ -357,8 +357,11 @@ const validationSchemas = {
     body('role')
       .optional()
       .trim()
-      .isIn(['user', 'client', 'admin'])
-      .withMessage('Public signup only supports user, client, or protected admin registration'),
+      // Sean 2026-07-12: 'admin' removed from public self-registration entirely
+      // (CLI/seed provisioning only). The controller hard-blocks it too — this
+      // just makes validation and controller tell the same story.
+      .isIn(['user', 'client'])
+      .withMessage('Public signup only supports user or client accounts'),
 
     body('clientSource')
       .optional()

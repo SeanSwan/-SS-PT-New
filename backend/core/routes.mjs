@@ -555,6 +555,19 @@ export const setupRoutes = async (app) => {
         return res.status(400).json({ error: 'Invalid photo path' });
       }
 
+      // Sensitive categories (body/health photos) require a short-TTL signed
+      // URL — a leaked bare link must NOT be permanently public. The API mints
+      // signatures on every measurement response; plain <img> tags work
+      // because the signature rides the query string. FAIL-CLOSED.
+      const { SENSITIVE_PHOTO_CATEGORIES, verifySignedPhotoPath } =
+        await import('../services/photoUrlSigner.mjs');
+      if (SENSITIVE_PHOTO_CATEGORIES.has(category)) {
+        const barePath = `/api/serve-photo/${objectKey}`;
+        if (!verifySignedPhotoPath(barePath, req.query.exp, req.query.sig)) {
+          return res.status(401).json({ error: 'Signed URL required or expired' });
+        }
+      }
+
       const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');
       if (r2Configured) {
         const { GetObjectCommand } = await import('@aws-sdk/client-s3');

@@ -221,7 +221,6 @@
 import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
@@ -264,34 +263,13 @@ const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
 const PUBLIC_REGISTRATION_CLIENT_SOURCES = CLIENT_SOURCES;
 const PUBLIC_NON_CLIENT_SOURCE = 'external';
-const PUBLIC_SELF_REGISTRATION_ROLES = new Set(['user', 'client', 'admin']);
-
-/**
- * Constant-time check of the admin access code.
- *
- * This gate sits on the PUBLIC, unauthenticated POST /api/auth/register path and is the
- * only thing between an anonymous caller and a full admin account, so it must not leak
- * the secret through timing. The previous `adminCode !== process.env.ADMIN_ACCESS_CODE`
- * short-circuits on the first differing byte.
- *
- * FAILS CLOSED: an unset OR empty ADMIN_ACCESS_CODE can never be matched (so a missing
- * env var cannot silently turn admin registration into a free-for-all), and a length
- * mismatch still performs a comparison so the code's length is not trivially timeable.
- */
-const adminAccessCodeMatches = (provided, expected) => {
-  if (typeof expected !== 'string' || expected.length === 0) return false;
-  if (typeof provided !== 'string' || provided.length === 0) return false;
-
-  const providedBuf = Buffer.from(provided, 'utf8');
-  const expectedBuf = Buffer.from(expected, 'utf8');
-
-  if (providedBuf.length !== expectedBuf.length) {
-    // Burn an equal-length compare so a wrong length isn't distinguishable by timing.
-    crypto.timingSafeEqual(expectedBuf, expectedBuf);
-    return false;
-  }
-  return crypto.timingSafeEqual(providedBuf, expectedBuf);
-};
+// Sean's ruling 2026-07-12: 'admin' is REMOVED from public self-registration
+// entirely. Admin accounts are provisioned via CLI/seed only
+// (backend/scripts/create-admin-user.mjs, adminSeeder.mjs) — no anonymous
+// path to the crown-jewel role exists anymore, access-code-gated or not.
+// (ADMIN_ACCESS_CODE remains in use by userManagementController's
+// authenticated promotion path; it no longer guards public registration.)
+const PUBLIC_SELF_REGISTRATION_ROLES = new Set(['user', 'client']);
 
 const resolvePublicRegistrationClientSource = ({ role, clientSource }) => {
   if (role !== 'client') {
@@ -535,8 +513,7 @@ export const register = async (req, res) => {
       });
     }
 
-    // Extract role and adminCode from request body
-    const { adminCode, clientSource } = req.body;
+    const { clientSource } = req.body;
     const requestedRole = typeof req.body.role === 'string' ? req.body.role.trim() : 'user';
     const role = requestedRole || 'user';
 
@@ -549,6 +526,18 @@ export const register = async (req, res) => {
       });
     }
 
+    if (role === 'admin') {
+      await transaction.rollback();
+      // Loud + attributable: an anonymous attempt at the crown-jewel role.
+      logger.error('[Auth] SECURITY: public admin self-registration attempt blocked (admin accounts are provisioned via CLI/seed only)', {
+        ip: getClientIp(req),
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Admin accounts are created by SwanStudios staff.'
+      });
+    }
+
     if (!PUBLIC_SELF_REGISTRATION_ROLES.has(role)) {
       await transaction.rollback();
       logger.warn('Public registration attempt with invalid role');
@@ -556,33 +545,6 @@ export const register = async (req, res) => {
         success: false,
         message: 'Please select a valid account type'
       });
-    }
-
-    // Validate admin role requires a valid admin code
-    if (role === 'admin') {
-      if (!adminCode) {
-        await transaction.rollback();
-        logger.warn('Admin registration attempt without admin code');
-        return res.status(400).json({
-          success: false,
-          message: 'Admin access code is required for admin registration'
-        });
-      }
-
-      if (!adminAccessCodeMatches(adminCode, process.env.ADMIN_ACCESS_CODE)) {
-        await transaction.rollback();
-        // Loud + attributable: this is an anonymous attempt at the crown-jewel role.
-        logger.error('[Auth] SECURITY: failed admin registration attempt (bad admin access code)', {
-          ip: getClientIp(req),
-        });
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid admin access code'
-        });
-      }
-
-      // Log successful admin code verification
-      logger.info('Valid admin code provided for admin registration');
     }
 
     const resolvedClientSource = resolvePublicRegistrationClientSource({ role, clientSource });

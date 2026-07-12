@@ -42,6 +42,10 @@ const toSource = (value: unknown): 'rpe' | 'intensity' => {
 const point = <T extends object>(raw: RawPoint, index: number, extra: RawPoint = {}): T | null => {
   const y = toPositiveNumber(raw.y);
   if (y === null) return null;
+  // Rebuilds each point as a fresh {x, y} — extra endpoint fields (e.g. the
+  // duration-trend `ts` raw timestamp) are INTENTIONALLY dropped here. Bundle
+  // consumers are all x/y line charts; anything that needs day-level truth
+  // (the workout heatmap) must fetch the endpoint directly, not this bundle.
   return {
     ...extra,
     x: toLabel(raw.x, `Point ${index + 1}`),

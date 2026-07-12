@@ -36,7 +36,13 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain("from './CoachCommandCenter.controller'");
     expect(pageSource).toContain("from './useCoachCommandCenterDrawerEffects'");
     expect(pageSource).toContain("from './CoachCommandCenter.bridgeStyles'");
-    expect(pageSource).toContain("from './CoachCommandCenterReviewPanel'");
+    // Review is a code-split boundary: the page must import the LAZY
+    // wrapper, never the eager panel (that would re-inflate the chunk).
+    expect(pageSource).toContain("from './CoachCommandCenterReviewPanelLazy'");
+    expect(pageSource).not.toContain("from './CoachCommandCenterReviewPanel';");
+    const lazySource = readCoachFile('CoachCommandCenterReviewPanelLazy.tsx');
+    expect(lazySource).toContain('React.lazy(');
+    expect(lazySource).toContain("import('./CoachCommandCenterReviewPanel')");
     expect(pageSource).toContain("from './CoachChatTranscript'");
     expect(pageSource).toContain("from './CoachClientBar'");
     expect(pageSource).toContain("from './CoachCommandTabBar'");

@@ -1,15 +1,20 @@
 /**
  * FILE: CoachCommandCenter.bridgeMobileDockStyles.ts
  * PURPOSE: Mobile-first overrides that keep Floor Mode reachable and thumb-sized.
+ * Device-matrix aware: notch-side safe areas + a short-viewport (iPhone SE
+ * class, P10/P12 buckets) chat-height fix so the dock never overflows.
  */
 
 import { css } from 'styled-components';
+import { media, safeArea } from '../../../../styles/device-matrix';
 
 export const coachCommandBridgeMobileDockStyles = css`
   @media (max-width: 720px) {
     .bridge-shell {
       gap: 8px;
       min-height: 0;
+      padding-left: ${safeArea('left', '0px')};
+      padding-right: ${safeArea('right', '0px')};
     }
 
     .bridge-shell.is-chat-tab {
@@ -59,7 +64,7 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .tab-button {
-      font-size: 12px;
+      font-size: 13px;
       justify-content: center;
       min-height: 48px;
       min-width: 0;
@@ -130,7 +135,7 @@ export const coachCommandBridgeMobileDockStyles = css`
 
     .dock-status {
       flex-basis: auto;
-      font-size: 12px;
+      font-size: 13px;
       min-height: 16px;
       max-width: 100%;
     }
@@ -198,6 +203,16 @@ export const coachCommandBridgeMobileDockStyles = css`
       min-height: 52px;
       min-width: 52px;
       width: 52px;
+    }
+  }
+
+  /* Short phones (SE class 667px tall, P10/P12 buckets, landscape): a
+     480px minimum chat column + ~200px chrome overflows the viewport —
+     let the transcript own the remaining height instead. */
+  ${media.shortViewport(700)} and (pointer: coarse) {
+    .bridge-shell.is-chat-tab {
+      height: calc(100dvh - 160px - env(safe-area-inset-bottom));
+      min-height: 320px;
     }
   }
 `;
