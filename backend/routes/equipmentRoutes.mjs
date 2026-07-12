@@ -316,8 +316,20 @@ router.put('/:id', async (req, res) => {
     if (locationType !== undefined && VALID_LOCATION_TYPES.includes(locationType)) {
       updates.locationType = locationType;
     }
-    if (description !== undefined) updates.description = description?.slice(0, 1000) || null;
-    if (address !== undefined) updates.address = address?.slice(0, 255) || null;
+    // P0.3c input hardening: both fields feed .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined) {
+      if (description !== null && typeof description !== 'string') {
+        return res.status(400).json({ success: false, error: 'description must be a string or null' });
+      }
+      updates.description = description?.slice(0, 1000) || null;
+    }
+    if (address !== undefined) {
+      if (address !== null && typeof address !== 'string') {
+        return res.status(400).json({ success: false, error: 'address must be a string or null' });
+      }
+      updates.address = address?.slice(0, 255) || null;
+    }
 
     await profile.update(updates);
     res.json({ success: true, profile });
@@ -390,6 +402,11 @@ router.post('/:id/items', async (req, res) => {
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Equipment name is required' });
     }
+    // P0.3c input hardening: description feeds .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined && description !== null && typeof description !== 'string') {
+      return res.status(400).json({ success: false, error: 'description must be a string or null' });
+    }
 
     const EquipmentItem = getEquipmentItem();
 
@@ -439,9 +456,26 @@ router.put('/:id/items/:itemId', async (req, res) => {
 
     const { name, trainerLabel, category, resistanceType, description, quantity } = req.body;
     const updates = {};
-    if (name !== undefined) updates.name = name.trim().slice(0, 150);
-    if (trainerLabel !== undefined) updates.trainerLabel = trainerLabel?.trim().slice(0, 150) || null;
-    if (description !== undefined) updates.description = description?.slice(0, 500) || null;
+    // P0.3c input hardening: these fields feed string methods — non-string or
+    // empty name must be a 400, not a TypeError 500 / silent empty-name write.
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'Equipment name must be a non-empty string' });
+      }
+      updates.name = name.trim().slice(0, 150);
+    }
+    if (trainerLabel !== undefined) {
+      if (trainerLabel !== null && typeof trainerLabel !== 'string') {
+        return res.status(400).json({ success: false, error: 'trainerLabel must be a string or null' });
+      }
+      updates.trainerLabel = trainerLabel?.trim().slice(0, 150) || null;
+    }
+    if (description !== undefined) {
+      if (description !== null && typeof description !== 'string') {
+        return res.status(400).json({ success: false, error: 'description must be a string or null' });
+      }
+      updates.description = description?.slice(0, 500) || null;
+    }
     if (quantity !== undefined) updates.quantity = Math.max(1, parseInt(quantity, 10) || 1);
 
     if (category !== undefined && VALID_CATEGORIES.includes(category)) {
