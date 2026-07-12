@@ -41,7 +41,7 @@ export const coachCommandOpsStyles = css`
 
   .ops-rail-header p {
     color: var(--coach-muted);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.4;
     margin: 4px 0 0;
     max-width: 34ch;
@@ -51,7 +51,7 @@ export const coachCommandOpsStyles = css`
     color: var(--coach-muted);
     display: block;
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     margin-bottom: 4px;
     text-transform: uppercase;
@@ -206,7 +206,7 @@ export const coachCommandOpsStyles = css`
 
   .teach-mode-toggle small {
     color: var(--coach-muted);
-    font-size: 11px;
+    font-size: 13px;
     margin-top: 3px;
   }
 
@@ -238,7 +238,7 @@ export const coachCommandOpsStyles = css`
 
   .workout-command-card small {
     color: var(--coach-muted);
-    font-size: 11px;
+    font-size: 13px;
     margin-top: 3px;
   }
 

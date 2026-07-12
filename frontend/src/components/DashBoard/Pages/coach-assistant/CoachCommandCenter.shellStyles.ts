@@ -15,7 +15,11 @@ export const coachCommandShellStyles = css`
   --coach-line-strong: var(--border-strong, rgba(96, 192, 240, 0.38));
   --coach-text: var(--text-primary, #e0ecf4);
   --coach-text-soft: var(--text-secondary, #dbe8f7);
-  --coach-muted: var(--text-muted, #9eb0c7);
+  --coach-muted: color-mix(
+    in srgb,
+    var(--text-muted, #9eb0c7) 42%,
+    var(--text-secondary, #dbe8f7) 58%
+  );
   --coach-sapphire: var(--brand-primary, var(--accent-secondary, #4070c0));
   --coach-cyan: var(--accent-primary, #60c0f0);
   --coach-purple: var(--accent-secondary, #8b5cf6);
@@ -119,7 +123,7 @@ export const coachCommandShellStyles = css`
     border-radius: 999px;
     display: inline-flex;
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: 13px;
     gap: 8px;
     justify-content: center;
     line-height: 1;
@@ -133,8 +137,9 @@ export const coachCommandShellStyles = css`
   }
 
   .route-chip {
-    background: var(--coach-soft);
-    color: var(--coach-muted);
+    background: var(--surface-soft, rgba(255, 255, 255, 0.12));
+    border-color: var(--border-strong, rgba(96, 192, 240, 0.38));
+    color: var(--coach-text-soft);
     justify-self: start;
   }
 
@@ -149,7 +154,7 @@ export const coachCommandShellStyles = css`
   .status-pill.stale {
     background: color-mix(in srgb, var(--coach-purple) 16%, transparent);
     border-color: color-mix(in srgb, var(--coach-purple) 34%, transparent);
-    color: color-mix(in srgb, var(--coach-purple) 54%, var(--coach-text));
+    color: color-mix(in srgb, var(--coach-purple) 34%, var(--coach-text));
   }
 
   .mini-chip.gold,

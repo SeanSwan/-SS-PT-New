@@ -3,7 +3,7 @@ import { css } from 'styled-components';
 export const coachCommandThreadHeaderStyles = css`
   .active-thread-header {
     align-items: center;
-    background: color-mix(in srgb, var(--coach-surface-strong, #003080) 72%, transparent);
+    background: color-mix(in srgb, var(--coach-surface-strong, #003080) 88%, transparent);
     border: 1px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 22%, var(--coach-line, #273449));
     border-radius: 999px;
     color: var(--coach-text, #e0ecf4);
@@ -31,8 +31,8 @@ export const coachCommandThreadHeaderStyles = css`
 
   .active-thread-header span,
   .active-thread-header small {
-    color: var(--coach-muted, #b8c7d9);
-    font-size: 12px;
+    color: var(--coach-text-soft, #dbe8f7);
+    font-size: 13px;
     font-weight: 720;
   }
 

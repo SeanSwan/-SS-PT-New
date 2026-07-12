@@ -71,7 +71,7 @@ export const coachCommandBridgeStyles = css`
   .now-label {
     color: var(--coach-muted);
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -142,7 +142,7 @@ export const coachCommandBridgeStyles = css`
     border-radius: 999px;
     color: #ffffff;
     display: inline-flex;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 820;
     height: 18px;
     justify-content: center;
@@ -190,7 +190,7 @@ export const coachCommandBridgeStyles = css`
   .review-eyebrow {
     color: var(--coach-muted);
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -232,7 +232,7 @@ export const coachCommandBridgeStyles = css`
   .review-next-card small,
   .review-section-card small {
     color: var(--coach-muted);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.35;
   }
 
@@ -262,7 +262,7 @@ export const coachCommandBridgeStyles = css`
 
   .review-section-card em {
     color: color-mix(in srgb, var(--coach-gold) 82%, var(--coach-text));
-    font-size: 12px;
+    font-size: 13px;
     font-style: normal;
     font-weight: 820;
   }

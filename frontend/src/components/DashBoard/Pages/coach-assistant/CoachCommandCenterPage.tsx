@@ -13,7 +13,7 @@ import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
-import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanel';
+import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';

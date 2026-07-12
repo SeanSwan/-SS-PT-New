@@ -98,6 +98,14 @@ vi.mock('../../../PlaudClipMerge/PlaudMergeWorkspace', () => ({
   ),
 }));
 
+// The Review panel ships behind a React.lazy code-split boundary in prod.
+// Page suites assert review content synchronously, so the harness swaps
+// the boundary for the real (child-mocked) panel; the Suspense path is
+// covered by CoachCommandCenterReviewPanelLazy.test.tsx.
+vi.mock('./CoachCommandCenterReviewPanelLazy', () =>
+  import('./CoachCommandCenterReviewPanel'),
+);
+
 export const unifiedSummary = {
   total: 22,
   actionable: 9,
