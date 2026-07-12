@@ -320,14 +320,21 @@ async function calculateOrderAnalytics(timeRange = '30d') {
       raw: true
     });
     
-    // Calculate totals
+    // Summary revenue/orders/AOV must count ONLY completed carts. The query above returns
+    // every status bucket (for statusBreakdown), but folding them all into revenue counted
+    // abandoned 'active', 'cancelled', and 'pending_payment' carts as money — a $175 real
+    // sale plus 24 abandoned/cancelled carts showed as ~$3,775 / 25 orders. The per-status
+    // breakdown below still shows all buckets, so no information is lost.
     const totals = orderStats.reduce((acc, stat) => {
-      acc.orders += Number.parseInt(stat.count, 10);
-      acc.revenue += parseFloat(stat.totalAmount || 0);
+      if (stat.status === 'completed') {
+        acc.orders += Number.parseInt(stat.count, 10);
+        acc.revenue += parseFloat(stat.totalAmount || 0);
+      }
       return acc;
     }, { orders: 0, revenue: 0 });
     
-    // Get daily order trend
+    // Get daily order trend — completed carts only (this is a revenue trend; abandoned/
+    // cancelled carts must not appear as revenue, same fix as the summary totals above).
     const dailyTrend = await ShoppingCart.findAll({
       attributes: [
         [fn('DATE', col('createdAt')), 'date'],
@@ -335,6 +342,7 @@ async function calculateOrderAnalytics(timeRange = '30d') {
         [fn('SUM', col('total')), 'revenue']
       ],
       where: {
+        status: 'completed',
         createdAt: {
           [Op.between]: [startDate, endDate]
         }

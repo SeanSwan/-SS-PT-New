@@ -1323,7 +1323,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
         `SELECT
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "isActive" != false) AS "activeClients",
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "createdAt" >= NOW() - INTERVAL '30 days') AS "newClientsThisMonth",
-           (SELECT COALESCE(SUM("totalAmount"), 0) FROM orders WHERE status IN ('completed', 'paid') AND "createdAt" >= NOW() - INTERVAL '30 days') AS "revenueThisMonth",
+           (SELECT COALESCE(SUM("totalAmount"), 0) FROM orders WHERE status = 'completed' AND "createdAt" >= NOW() - INTERVAL '30 days') AS "revenueThisMonth",
            (SELECT COUNT(*) FROM workout_sessions ws WHERE ws.status = 'completed' AND ws.date >= NOW() - INTERVAL '7 days') AS "platformWorkouts7d"`,
         {}) : Promise.resolve([]),
       // 20. Check-in data placeholder (for when check-in scheduling is built out)

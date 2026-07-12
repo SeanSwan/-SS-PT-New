@@ -522,14 +522,14 @@ async function fetchRevenueMetrics() {
         COALESCE(SUM(CAST("totalAmount" AS NUMERIC)), 0) as current_revenue,
         COUNT(*) as current_orders
       FROM orders
-      WHERE status = 'paid' AND "createdAt" >= DATE_TRUNC('month', NOW())
+      WHERE status = 'completed' AND "createdAt" >= DATE_TRUNC('month', NOW())
     `);
 
     // Previous month revenue (for growth rate)
     const prevResult = await query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS NUMERIC)), 0) as prev_revenue
       FROM orders
-      WHERE status = 'paid'
+      WHERE status = 'completed'
         AND "createdAt" >= DATE_TRUNC('month', NOW() - INTERVAL '1 month')
         AND "createdAt" < DATE_TRUNC('month', NOW())
     `);
@@ -540,7 +540,7 @@ async function fetchRevenueMetrics() {
         COALESCE(SUM(CAST("totalAmount" AS NUMERIC)), 0) as lifetime_revenue,
         COUNT(DISTINCT "userId") as paying_clients
       FROM orders
-      WHERE status = 'paid'
+      WHERE status = 'completed'
     `);
 
     // Pending and refunded
@@ -559,7 +559,7 @@ async function fetchRevenueMetrics() {
         COALESCE(SUM(CAST("totalAmount" AS NUMERIC)), 0) as revenue,
         COUNT(*) as orders
       FROM orders
-      WHERE status = 'paid' AND "createdAt" >= NOW() - INTERVAL '6 months'
+      WHERE status = 'completed' AND "createdAt" >= NOW() - INTERVAL '6 months'
       GROUP BY DATE_TRUNC('month', "createdAt")
       ORDER BY month ASC
     `);

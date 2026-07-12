@@ -524,7 +524,14 @@ router.get('/metrics', validateTimeRangeQuery, async (req, res) => {
       attributes: [
         'role',
         [fn('COUNT', col('id')), 'count'],
-        [fn('AVG', literal('(SELECT COALESCE(SUM(total), 0) FROM ShoppingCarts WHERE userId = User.id AND status = "completed")')), 'avgSpent']
+        // Correlated subquery — three bugs made the whole /finance/metrics panel 500:
+        //   FROM ShoppingCarts   -> real table is snake_case `shopping_carts`
+        //   status = "completed" -> double quotes = an IDENTIFIER; string literal needs 'single'
+        //   userId = User.id     -> unquoted camelCase folds to lowercase; must be "userId"/"User"."id"
+        // Sequelize aliases the outer User model as "User" (modelName). NOTE: raw correlated
+        // SQL — verify on staging (Rule 55) before trusting the number; the shape is untestable
+        // against a mocked sequelize.query.
+        [fn('AVG', literal('(SELECT COALESCE(SUM(total), 0) FROM shopping_carts WHERE "userId" = "User"."id" AND status = \'completed\')')), 'avgSpent']
       ],
       group: ['role'],
       raw: true

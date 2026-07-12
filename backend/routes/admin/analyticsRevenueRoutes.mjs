@@ -238,7 +238,7 @@ router.get('/statistics/revenue', async (req, res) => {
 async function generateRevenueAnalytics(startDate, endDate, prevStart, prevEnd) {
   try {
     // ── Completed/paid statuses for revenue queries ──
-    const revenueStatuses = { [Op.in]: ['completed', 'paid'] };
+    const revenueStatuses = { [Op.in]: ['completed'] };
     const dateRange = { [Op.between]: [startDate, endDate] };
     const prevDateRange = { [Op.between]: [prevStart, prevEnd] };
 
@@ -408,7 +408,7 @@ async function generateRecentTransactions(count = 5) {
   try {
     const recentOrders = await Order.findAll({
       where: {
-        status: { [Op.in]: ['completed', 'paid', 'processing', 'pending'] },
+        status: { [Op.in]: ['completed', 'processing', 'pending'] },
       },
       order: [['createdAt', 'DESC']],
       limit: count,

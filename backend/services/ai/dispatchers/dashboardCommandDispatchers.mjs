@@ -50,7 +50,9 @@ const dateRangeWhere = (days, field = 'createdAt') => ({
 });
 
 const revenueWhere = (days) => ({
-  status: { [Op.in]: ['completed', 'paid'] },
+  // 'paid' is not a valid enum_orders_status label; payment success writes 'completed'.
+  // The phantom label made safeSum swallow the enum error and report $0 revenue.
+  status: { [Op.in]: ['completed'] },
   ...dateRangeWhere(days),
 });
 

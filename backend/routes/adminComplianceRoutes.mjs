@@ -85,7 +85,7 @@ router.get('/analytics/business-kpis', validateBusinessKpiPeriod, authorize(['ad
         SELECT
           COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '${days} days' THEN "totalAmount" END), 0) AS "totalRevenue",
           COALESCE(SUM(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN "totalAmount" END), 0) AS "mrr"
-        FROM orders WHERE status IN ('completed', 'paid')
+        FROM orders WHERE status = 'completed'
       `);
       if (revRows?.[0]) revData = revRows[0];
     } catch (e) {
