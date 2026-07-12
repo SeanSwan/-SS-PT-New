@@ -22,6 +22,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'coach-ledger-shell',
     'signal-garden-shell',
     'split-horizon-shell',
+    'prism-terminal-shell',
+    'tidal-columns-shell',
+    'monastic-grid-shell',
+    'orbit-atlas-shell',
+    'carbon-atelier-shell',
   ]),
   navigation: Object.freeze([
     'default-navigation',
@@ -36,6 +41,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'ledger-index-navigation',
     'garden-branch-navigation',
     'horizon-dock-navigation',
+    'prism-command-navigation',
+    'tidal-ribbon-navigation',
+    'monastic-index-navigation',
+    'orbital-map-navigation',
+    'atelier-toolrail-navigation',
   ]),
   recipes: Object.freeze([
     'default-recipe',
@@ -50,6 +60,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'coach-ledger-recipe',
     'signal-garden-recipe',
     'split-horizon-recipe',
+    'prism-terminal-recipe',
+    'tidal-columns-recipe',
+    'monastic-grid-recipe',
+    'orbit-atlas-recipe',
+    'carbon-atelier-recipe',
   ]),
 });
 

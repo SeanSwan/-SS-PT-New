@@ -16,6 +16,11 @@ const promotedLensIds = [
   'coach-ledger',
   'signal-garden',
   'split-horizon',
+  'prism-terminal',
+  'tidal-columns',
+  'monastic-grid',
+  'orbit-atlas',
+  'carbon-atelier',
 ];
 
 describe('Swan Style Lens runtime binding', () => {

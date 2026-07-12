@@ -13,6 +13,11 @@ import { TEMPO_FORGE_MANIFEST } from './manifests/tempoForge';
 import { COACH_LEDGER_MANIFEST } from './manifests/coachLedger';
 import { SIGNAL_GARDEN_MANIFEST } from './manifests/signalGarden';
 import { SPLIT_HORIZON_MANIFEST } from './manifests/splitHorizon';
+import { PRISM_TERMINAL_MANIFEST } from './manifests/prismTerminal';
+import { TIDAL_COLUMNS_MANIFEST } from './manifests/tidalColumns';
+import { MONASTIC_GRID_MANIFEST } from './manifests/monasticGrid';
+import { ORBIT_ATLAS_MANIFEST } from './manifests/orbitAtlas';
+import { CARBON_ATELIER_MANIFEST } from './manifests/carbonAtelier';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -33,6 +38,11 @@ export const SWAN_EXPANSION_MANIFESTS = Object.freeze([
   COACH_LEDGER_MANIFEST,
   SIGNAL_GARDEN_MANIFEST,
   SPLIT_HORIZON_MANIFEST,
+  PRISM_TERMINAL_MANIFEST,
+  TIDAL_COLUMNS_MANIFEST,
+  MONASTIC_GRID_MANIFEST,
+  ORBIT_ATLAS_MANIFEST,
+  CARBON_ATELIER_MANIFEST,
 ]);
 
 export const SWAN_STYLE_LENS_REGISTRY = createStyleLensRegistry([

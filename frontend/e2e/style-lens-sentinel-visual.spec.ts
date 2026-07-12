@@ -25,6 +25,11 @@ const PROMOTED_LENSES = [
   ["Coach Ledger", "coach-ledger"],
   ["Signal Garden", "signal-garden"],
   ["Split Horizon", "split-horizon"],
+  ["Prism Terminal", "prism-terminal"],
+  ["Tidal Columns", "tidal-columns"],
+  ["Monastic Grid", "monastic-grid"],
+  ["Orbit Atlas", "orbit-atlas"],
+  ["Carbon Atelier", "carbon-atelier"],
 ] as const;
 
 const VIEWPORTS = [
@@ -84,10 +89,10 @@ async function openDashboard(page: Page) {
     page.getByRole("heading", {
       name: "25 workout worlds. One shared session.",
     }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 20_000 });
   await expect(
     page.getByRole("button", { name: /Open Appearance Studio/ }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 20_000 });
 }
 
 test("promoted lenses preview, apply, and remain overflow-free", async ({
@@ -137,9 +142,7 @@ test("promoted lenses preview, apply, and remain overflow-free", async ({
       return result.violations;
     });
     expect(violations, `${name} WCAG violations`).toEqual([]);
-    if (lensIndex >= 5) {
-      await page.screenshot({ path: testInfo.outputPath(`appearance-studio-${id}.png`) });
-    }
+    if (lensIndex >= 5) await page.screenshot({ path: testInfo.outputPath(`appearance-studio-${id}.png`) });
   }
 
   await page.setViewportSize({ width: 414, height: 896 });

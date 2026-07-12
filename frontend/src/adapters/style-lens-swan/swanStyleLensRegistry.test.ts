@@ -22,6 +22,11 @@ const expectedExpansion = [
   ['coach-ledger', 'Coach Ledger'],
   ['signal-garden', 'Signal Garden'],
   ['split-horizon', 'Split Horizon'],
+  ['prism-terminal', 'Prism Terminal'],
+  ['tidal-columns', 'Tidal Columns'],
+  ['monastic-grid', 'Monastic Grid'],
+  ['orbit-atlas', 'Orbit Atlas'],
+  ['carbon-atelier', 'Carbon Atelier'],
 ];
 
 const luminance = (hex: string) => {
@@ -53,13 +58,13 @@ describe('Swan Style Lens adapter', () => {
 
   it('keeps Default and Swan flagship separate from the sentinel gate', () => {
     expect(SWAN_FLAGSHIP_MANIFEST.id).toBe('swan-flagship');
-    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(12);
+    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(17);
     expect(SWAN_STYLE_LENS_REGISTRY.resolve('not-a-lens').id).toBe(
       'default-safety',
     );
   });
 
-  it('publishes expansion batch 6-10 with pairwise structural differentiation', () => {
+  it('publishes expansion batches 6-15 with pairwise structural differentiation', () => {
     expect(SWAN_EXPANSION_MANIFESTS.map(({ id, name }) => [id, name])).toEqual(expectedExpansion);
     const promoted = [...SWAN_SENTINEL_MANIFESTS, ...SWAN_EXPANSION_MANIFESTS];
     const dimensions = ['layoutSignature', 'navigationRenderer', 'shellRenderer'] as const;
@@ -97,7 +102,7 @@ describe('Swan Style Lens adapter', () => {
     );
     expect(new Set(
       Object.values(SWAN_STYLE_LENS_VISUALS).map(({ signatureMoment }) => signatureMoment),
-    ).size).toBe(10);
+    ).size).toBe(15);
     Object.values(SWAN_STYLE_LENS_VISUALS).forEach((visual) => {
       expect(visual.assetTier).toBe('static-css');
       expect(visual.primaryActionMinHeight).toBeGreaterThanOrEqual(44);

@@ -131,6 +131,38 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-navigation-edge: var(--wing-purple, #8b5cf6);
     --lens-canvas: linear-gradient(180deg, #101d46 0 49.75%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent) 50%, var(--bg-base, #0a0a0f) 50.25% 100%);
   }
+  :root[data-style-lens='prism-terminal'] {
+    --lens-sidebar-width: 256px; --lens-main-padding: clamp(22px, 2.8vw, 52px);
+    --lens-panel-radius: 5px 24px 5px 24px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: conic-gradient(from 210deg at 82% 16%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, transparent), transparent 28%, color-mix(in srgb, var(--ice-wing, #60c0f0) 12%, transparent) 48%, transparent 68%), #10203a;
+  }
+
+  :root[data-style-lens='tidal-columns'] {
+    --lens-sidebar-width: 238px; --lens-main-padding: clamp(26px, 3.4vw, 64px);
+    --lens-panel-radius: 38px 10px 38px 10px; --lens-shell-gap: 18px;
+    --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: linear-gradient(100deg, #062a42 0 30%, color-mix(in srgb, var(--royal-depth, #003080) 72%, #062a42) 30% 68%, var(--bg-base, #0a0a0f) 68%);
+  }
+
+  :root[data-style-lens='monastic-grid'] {
+    --lens-sidebar-width: 208px; --lens-main-padding: clamp(36px, 5vw, 84px);
+    --lens-panel-radius: 0; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: linear-gradient(color-mix(in srgb, var(--frost-white, #e0ecf4) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--frost-white, #e0ecf4) 5%, transparent) 1px, transparent 1px), #181a20;
+    background-size: 72px 72px;
+  }
+
+  :root[data-style-lens='orbit-atlas'] {
+    --lens-sidebar-width: 278px; --lens-main-padding: clamp(24px, 2.5vw, 48px);
+    --lens-panel-radius: 50% 18px 18px 18px; --lens-navigation-edge: var(--wing-purple, #8b5cf6);
+    --lens-canvas: radial-gradient(circle at 78% 24%, transparent 0 90px, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, transparent) 91px 93px, transparent 94px 150px, color-mix(in srgb, var(--wing-purple, #8b5cf6) 14%, transparent) 151px 153px, transparent 154px), #0e1638;
+  }
+
+  :root[data-style-lens='carbon-atelier'] {
+    --lens-sidebar-width: 340px; --lens-main-padding: clamp(16px, 1.6vw, 30px);
+    --lens-panel-radius: 12px 2px 12px 2px; --lens-shell-gap: 4px;
+    --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: linear-gradient(120deg, #17171b 0 64%, color-mix(in srgb, var(--royal-depth, #003080) 36%, #17171b) 64% 100%);
+  }
   :root[data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;
