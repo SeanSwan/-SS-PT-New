@@ -258,3 +258,30 @@ test('every sentinel preserves a static reduced-motion fallback', async ({ page 
 
   expect(errors).toEqual([]);
 });
+
+test('five sentinel commits stay responsive under 4x CPU throttle', async ({
+  page, context, browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'CDP CPU throttling is Chromium-only');
+  const client = await context.newCDPSession(page);
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  await openDashboard(page);
+  const timings: number[] = [];
+
+  for (const [name, id] of SENTINELS) {
+    await page.getByRole('button', { name: /Open Appearance Studio/ }).click();
+    await page.getByRole('button', { name: `${name} style` }).click();
+    const started = Date.now();
+    await page.getByRole('button', { name: 'Apply appearance' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-style-lens', id);
+    timings.push(Date.now() - started);
+  }
+
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  const sorted = [...timings].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1];
+  console.log(`[style-lens-4x-cpu] runs=${timings.join(',')} median=${median}ms p95=${p95}ms`);
+  expect(median).toBeLessThan(1500);
+  expect(p95).toBeLessThan(1500);
+});

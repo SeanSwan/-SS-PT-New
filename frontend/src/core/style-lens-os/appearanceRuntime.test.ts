@@ -84,6 +84,22 @@ describe('appearance runtime', () => {
     root.remove();
   });
 
+  it('falls back immediately when native View Transition throws', async () => {
+    const root = document.createElement('div');
+    const coordinator = createAppearanceTransitionCoordinator({
+      root,
+      getViewportWidth: () => 1440,
+      getSystemReducedMotion: () => false,
+      getMotionEnabled: () => true,
+      startViewTransition: () => {
+        throw new Error('Native transition unavailable');
+      },
+    });
+
+    await coordinator.transition(profile('quiet-meridian'));
+    expect(root.dataset.styleLens).toBe('quiet-meridian');
+  });
+
   it('coalesces queued switches so the last user intent wins', async () => {
     const root = document.createElement('div');
     const finishers: Array<() => void> = [];
