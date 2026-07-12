@@ -192,8 +192,13 @@ router.get('/', async (req, res) => {
       order: [['isDefault', 'DESC'], ['name', 'ASC']],
     });
 
-    // Auto-create default profiles for trainers/admins on first fetch
-    if (profiles.length === 0 && trainerId) {
+    // Auto-create default profiles for trainers/admins on first fetch.
+    // Guard on the trainer's UNFILTERED profile count: `profiles` was queried
+    // with request filters (e.g. ?locationType=custom), so an empty filtered
+    // result must not re-seed defaults for a trainer who already owns
+    // (possibly renamed or archived) profiles.
+    if (profiles.length === 0 && trainerId
+        && (await EquipmentProfile.count({ where: { trainerId } })) === 0) {
       try {
         const defaults = DEFAULT_PROFILES.map(d => ({ ...d, trainerId }));
         await EquipmentProfile.bulkCreate(defaults);
@@ -278,6 +283,7 @@ router.post('/', async (req, res) => {
 
     // Check for duplicate name — ACTIVE profiles only (archived names must be
     // re-creatable), CASE-INSENSITIVE to match the partial lower(name) index.
+    // (Name length is already validated ≤100 above, matching STRING(100).)
     const existing = await EquipmentProfile.findOne({
       where: { trainerId: req.user.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
     });
@@ -454,8 +460,12 @@ router.post('/:id/items', async (req, res) => {
 
     // Check duplicate within profile — ACTIVE rows only, CASE-INSENSITIVE to
     // match the scan dedup + the lower(name) partial unique index (P0.3d).
+    // Pre-check the TRUNCATED stored form: a >150-char name is persisted as
+    // its slice, so checking the raw string would miss the stored duplicate
+    // and fall through to the index race path on every re-add.
+    const storedItemName = name.trim().slice(0, 150);
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
+      where: { profileId: profile.id, name: { [Op.iLike]: escapeLikeLiteral(storedItemName) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -463,7 +473,7 @@ router.post('/:id/items', async (req, res) => {
 
     const item = await EquipmentItem.create({
       profileId: profile.id,
-      name: name.trim().slice(0, 150),
+      name: storedItemName,
       category: VALID_CATEGORIES.includes(category) ? category : 'other',
       resistanceType: VALID_RESISTANCE_TYPES.includes(resistanceType) ? resistanceType : null,
       description: description?.slice(0, 500) || null,
@@ -651,6 +661,31 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
         continue;
       }
 
+      // In-memory matching can miss a stored duplicate (trainerLabel shadows
+      // the raw name at match time; AI category drift defeats the
+      // name+category rule) while the lower(name) partial unique index still
+      // rejects the insert — aborting the WHOLE scan transaction into a 500
+      // and discarding every other detected item. Pre-check the index's own
+      // semantics (case-insensitive stored name) before creating.
+      const storedNameDuplicate = await EquipmentItem.findOne({
+        where: {
+          profileId: profile.id,
+          name: { [Op.iLike]: escapeLikeLiteral(candidate.suggestedName) },
+          isActive: true,
+        },
+        transaction: t,
+      });
+      if (storedNameDuplicate) {
+        duplicateCandidates.push({
+          ...candidate,
+          duplicateOfItemId: storedNameDuplicate.id,
+          matchType: 'stored_name',
+          status: 'duplicate',
+          candidateIndex,
+        });
+        continue;
+      }
+
       const item = await EquipmentItem.create({
         profileId: profile.id,
         photoUrl,
@@ -772,6 +807,15 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     });
   } catch (err) {
     logger.error('[EquipmentRoutes] Scan error:', err);
+    // Cross-request race backstop: another request inserted the same
+    // lower(name) between our pre-check and create. The transaction rolled
+    // back — tell the trainer it's a duplicate, not a server failure.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        success: false,
+        error: 'A scanned item duplicates equipment that was just added. Re-run the scan to pick up the current inventory.',
+      });
+    }
     const msg = err.message || 'Equipment scan failed';
     // Map service errors to appropriate HTTP status codes
     if (msg.includes('GOOGLE_API_KEY') || msg.includes('GEMINI_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
