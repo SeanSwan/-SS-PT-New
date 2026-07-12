@@ -395,8 +395,14 @@ router.post('/:id/items', async (req, res) => {
 
     // Check duplicate within profile — ACTIVE rows only, matching the partial
     // unique index (soft-deleted names must not block a re-add, P0.3).
+    //
+    // Check the SAME value we store. The create truncates to 150 chars, so pre-checking the
+    // untruncated name missed the already-stored (truncated) row for any name longer than
+    // that: the insert then collided with the partial unique index and the catch returned a
+    // 500 instead of this clean 409.
+    const storedName = name.trim().slice(0, 150);
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: name.trim(), isActive: true },
+      where: { profileId: profile.id, name: storedName, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -404,7 +410,7 @@ router.post('/:id/items', async (req, res) => {
 
     const item = await EquipmentItem.create({
       profileId: profile.id,
-      name: name.trim().slice(0, 150),
+      name: storedName,
       category: VALID_CATEGORIES.includes(category) ? category : 'other',
       resistanceType: VALID_RESISTANCE_TYPES.includes(resistanceType) ? resistanceType : null,
       description: description?.slice(0, 500) || null,

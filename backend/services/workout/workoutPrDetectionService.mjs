@@ -21,7 +21,7 @@
  * try/catch; any throw here must never block the 201/save. Returns
  * { prEvents } for the response so SaveSuccessPanel celebrates truthfully.
  */
-import { Op } from 'sequelize';
+import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import { getPersonalRecord } from '../../models/index.mjs';
 import { estimateBrzycki1RM } from '../oneRepMaxService.mjs';
 import logger from '../../utils/logger.mjs';
@@ -43,11 +43,15 @@ export function buildPrCandidates(exercises = []) {
   for (const exercise of exercises) {
     const name = String(exercise?.exerciseName || exercise?.name || '').trim();
     if (!name) continue;
+    // Case-folded map key so "Bench Press" and "bench press" in the SAME log collapse to one
+    // candidate instead of two that then fight over the same PR row. The FIRST spelling seen
+    // is kept as the display name.
+    const nameKey = name.toLowerCase();
     for (const set of exercise?.sets || []) {
       const weight = toPositiveNumber(set?.weight);
       const reps = toPositiveNumber(set?.reps);
       if (!weight || !reps || weight > PR_MAX_WEIGHT) continue;
-      const entry = candidates.get(name) || { exerciseName: name, weight: null, est1rm: null };
+      const entry = candidates.get(nameKey) || { exerciseName: name, weight: null, est1rm: null };
       if (!entry.weight || weight > entry.weight.value) {
         entry.weight = { value: weight, weight, reps };
       }
@@ -58,7 +62,7 @@ export function buildPrCandidates(exercises = []) {
           entry.est1rm = { value: estValue, weight, reps };
         }
       }
-      candidates.set(name, entry);
+      candidates.set(nameKey, entry);
     }
   }
   return [...candidates.values()];
@@ -95,12 +99,23 @@ export async function detectAndRecordPersonalRecords({
   const candidates = buildPrCandidates(exercises);
   if (candidates.length === 0) return { prEvents: [] };
 
-  const names = candidates.map((c) => c.exerciseName);
+  // Match exercise names CASE-INSENSITIVELY. The PR table keyed on the raw name while the
+  // analytics/history layer groups by LOWER(exerciseName) — so "Bench Press" and
+  // "bench press" were ONE exercise everywhere else but TWO here: the lookup missed the
+  // existing row, the create path ran, and the client got a duplicate PR baseline plus a
+  // second "first lift unlocked" for a movement they'd already recorded. Fold case for
+  // matching; the stored display name is left exactly as the client/coach typed it.
+  const lowerNames = [...new Set(candidates.map((c) => c.exerciseName.toLowerCase()))];
   const PersonalRecord = getPersonalRecord();
   const existing = await PersonalRecord.findAll({
-    where: { userId: numericUserId, exerciseName: { [Op.in]: names } },
+    where: {
+      userId: numericUserId,
+      [Op.and]: [sqlWhere(fn('LOWER', col('exerciseName')), { [Op.in]: lowerNames })],
+    },
   });
-  const existingByKey = new Map(existing.map((r) => [`${r.exerciseName}::${r.metric}`, r]));
+  const existingByKey = new Map(
+    existing.map((r) => [`${String(r.exerciseName).toLowerCase()}::${r.metric}`, r]),
+  );
 
   const prEvents = [];
   const dateKey = String(date || new Date().toISOString().slice(0, 10)).slice(0, 10);
@@ -109,7 +124,8 @@ export async function detectAndRecordPersonalRecords({
     for (const metric of ['weight', 'est1rm']) {
       const best = candidate[metric];
       if (!best) continue;
-      const key = `${candidate.exerciseName}::${metric}`;
+      // Case-folded to match existingByKey above (see the LOWER() lookup).
+      const key = `${candidate.exerciseName.toLowerCase()}::${metric}`;
       const prior = existingByKey.get(key);
 
       if (!prior) {

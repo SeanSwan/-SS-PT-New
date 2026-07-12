@@ -297,6 +297,7 @@ export async function getDurationTrendChart(req, res) {
     const rows = await safeQuery(sequelize,
       `SELECT
          TO_CHAR(ws.date, 'MM/DD') AS date,
+         ws.date AS ts,
          ws.duration::int AS duration
        FROM workout_sessions ws
        WHERE ws."userId" = :userId AND ws.status = 'completed'
@@ -305,9 +306,15 @@ export async function getDurationTrendChart(req, res) {
        ORDER BY ws.date ASC`,
       { userId }, 'getDurationTrendChart');
 
+    // `x` stays the MM/DD display label the trend charts render on their axis. But
+    // workout_sessions.date is a TIMESTAMP and the DB session runs in UTC, so that label is
+    // the UTC calendar day — a Sunday 22:00 PT workout carries MONDAY's label. The heatmap
+    // buckets days in the browser's LOCAL time, so matching it against the UTC label placed
+    // the workout on the wrong DAY and (columns being Monday-aligned) the wrong WEEK.
+    // Ship the raw timestamp too so the client can bucket by the user's real local day.
     res.json({
       success: true,
-      data: rows.map(r => ({ x: r.date, y: r.duration })),
+      data: rows.map(r => ({ x: r.date, y: r.duration, ts: r.ts })),
     });
   } catch (error) {
     console.error('Error getting duration trend chart:', error);

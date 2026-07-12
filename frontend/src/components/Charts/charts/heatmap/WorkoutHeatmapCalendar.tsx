@@ -54,19 +54,33 @@ interface Props {
   userId?: number | string;
 }
 
+/** Local-time 'MM/DD' key — the SAME shape the grid walk below builds its labels in. */
+const localDayKey = (d: Date): string =>
+  `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+
 /**
  * Builds the 7xWEEKS day-grid from the per-session duration-trend series
- * (one point per logged session day, 'MM/DD' labels, last 90 days) by
- * walking back from today — 84 cells cannot collide across years.
+ * (one point per logged session day, last 90 days) by walking back from today —
+ * 84 cells cannot collide across years.
+ *
+ * TIMEZONE: the server's `x` label is rendered from a TIMESTAMP in the DB session's
+ * timezone (UTC), while the grid walk below derives its labels in the browser's LOCAL
+ * time. Keying on `x` therefore mis-filed every evening workout: a Sunday 22:00 PT
+ * session is Monday 05:00 UTC, so it landed on the local MONDAY cell — the wrong day,
+ * and (columns being Monday-aligned, with Sunday the last cell of the PREVIOUS column)
+ * the wrong week too. Bucket on the raw timestamp converted to the user's local day
+ * instead; fall back to `x` only for responses that predate the `ts` field.
  */
 export const buildHeatmapGridFromSessions = (
-  points: Array<{ x: string }>,
+  points: Array<{ x: string; ts?: string }>,
   today = new Date(),
 ): number[][] | null => {
   if (!points.length) return null;
   const counts = new Map<string, number>();
   points.forEach((point) => {
-    counts.set(point.x, (counts.get(point.x) ?? 0) + 1);
+    const parsed = point.ts ? new Date(point.ts) : null;
+    const key = parsed && !Number.isNaN(parsed.getTime()) ? localDayKey(parsed) : point.x;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   });
   // grid[dayOfWeek Mon=0][weekIndex oldest=0]
   const grid: number[][] = Array.from({ length: 7 }, () => Array.from({ length: WEEKS }, () => 0));
@@ -78,7 +92,7 @@ export const buildHeatmapGridFromSessions = (
   for (let daysBack = 0; daysBack < WEEKS * 7 + mondayOffset; daysBack += 1) {
     const date = new Date(today);
     date.setDate(date.getDate() - daysBack);
-    const label = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    const label = localDayKey(date);
     const dayRow = (date.getDay() + 6) % 7; // JS Sunday=0 -> Monday-first rows
     const weeksBack = Math.floor((daysBack - mondayOffset + 6) / 7);
     const weekCol = WEEKS - 1 - weeksBack;
@@ -89,7 +103,7 @@ export const buildHeatmapGridFromSessions = (
 
 const WorkoutHeatmapCalendar: React.FC<Props> = ({ data, userId }) => {
   const shouldFetch = !data && userId != null;
-  const { data: sessionsRes, loading } = useAnalytics<{ data: Array<{ x: string }> }>(
+  const { data: sessionsRes, loading } = useAnalytics<{ data: Array<{ x: string; ts?: string }> }>(
     userId,
     'chart-duration-trend',
     shouldFetch,

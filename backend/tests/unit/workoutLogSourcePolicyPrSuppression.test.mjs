@@ -75,3 +75,19 @@ describe('estimateBrzycki1RM — above-ceiling input is REJECTED, not clamped', 
     expect(estimateBrzycki1RM(100, 1)).toBe(100);
   });
 });
+
+describe('buildPrCandidates — exercise names are matched case-insensitively', () => {
+  it('collapses "Bench Press" and "bench press" into ONE candidate', async () => {
+    const { buildPrCandidates } = await import('../../services/workout/workoutPrDetectionService.mjs');
+    const candidates = buildPrCandidates([
+      { exerciseName: 'Bench Press', sets: [{ weight: 185, reps: 5 }] },
+      { exerciseName: 'bench press', sets: [{ weight: 205, reps: 3 }] },
+    ]);
+    // One movement, not two competing PR baselines.
+    expect(candidates).toHaveLength(1);
+    // The FIRST spelling seen is kept for display.
+    expect(candidates[0].exerciseName).toBe('Bench Press');
+    // ...and the heavier set still wins.
+    expect(candidates[0].weight.value).toBe(205);
+  });
+});
