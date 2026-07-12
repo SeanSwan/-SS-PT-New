@@ -56,7 +56,10 @@ const nutritionAccentButtonCss = css`
   ${nutritionControlCss}
   border-color: transparent;
   background: var(--button-primary-bg, #002060);
-  color: var(--button-primary-text, #E0ECF4);
+  /* --button-primary-text = getReadableAccentText(theme.colors.primary = Ice Wing),
+     i.e. it resolves DARK on the light primary button. The fallback must match that,
+     or a missing var would render light-on-light. (Matches visionAccentButtonCss.) */
+  color: var(--button-primary-text, #030712);
   box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
 `;
 

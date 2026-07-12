@@ -28,6 +28,13 @@ const makeDetail = (overrides: Partial<FoodDetail> = {}): FoodDetail => ({
 describe('RestaurantTab logic', () => {
   it('builds the same food-log payload shape for restaurant detail saves', () => {
     expect(buildRestaurantLogPayload(makeDetail())).toEqual({
+      // The provider food id is carried on the payload (added intentionally by
+      // 82176f154 "upgrade decision logger workflow", which did not update this
+      // expectation — the test has been red since). NOTE: restaurantFoodToNutritionDraft
+      // currently ignores this id and mints its own, so restaurant drafts do NOT get an
+      // externalId the way searchFoodToNutritionDraft does. Wiring that through is a
+      // product decision, tracked separately — not silently changed here.
+      id: 'food-1',
       name: 'Chipotle Burrito Bowl',
       calories: 620,
       protein: 42,
