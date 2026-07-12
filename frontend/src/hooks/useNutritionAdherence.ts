@@ -18,6 +18,8 @@ export type NutritionAdherenceStatus = 'loading' | 'no-targets' | 'ready' | 'err
 
 export interface UseNutritionAdherenceResult {
   status: NutritionAdherenceStatus;
+  /** The 7-day weekly fetch failed on its own (the plan/targets may still be fine). */
+  weekFailed: boolean;
   targets: AdherenceTargets | null;
   planName: string | null;
   week: LoggedDay[];
@@ -81,7 +83,14 @@ export function useNutritionAdherence(userId?: number): UseNutritionAdherenceRes
     status = 'ready';
   }
 
-  return { status, targets, planName: plan.data?.name ?? null, week };
+  // The weekly fetch can fail INDEPENDENTLY of the plan fetch. Before this, `weekState`
+  // was consumed only for the 'loading' case above, so a failed weekly fetch left
+  // status='ready' with week=[] and the 7-day strip simply rendered nothing — a silent
+  // vanish, which is the exact bug class the "honest error state" work set out to kill.
+  // Surface it so the consumer can say so, without hiding today's (working) rows.
+  const weekFailed = weekState === 'error';
+
+  return { status, targets, planName: plan.data?.name ?? null, week, weekFailed };
 }
 
 export default useNutritionAdherence;

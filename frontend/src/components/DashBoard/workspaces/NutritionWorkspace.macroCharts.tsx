@@ -175,6 +175,11 @@ const MacroChartsPanel: React.FC<MacroChartsPanelProps> = ({ summary, loading, g
               </RowFigures>
             </AdherenceRowShell>
           ))}
+          {adherence.weekFailed && weekStrip.length === 0 && (
+            <RowFigures role="status">
+              7-day trend unavailable right now — today&apos;s totals above are still accurate.
+            </RowFigures>
+          )}
           {weekStrip.length > 0 && (
             <WeekStrip aria-label="Seven day calorie adherence">
               {weekStrip.map((day) => (

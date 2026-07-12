@@ -10,13 +10,23 @@ import { SpecialOfferError } from './specialOfferErrors.mjs';
 import logger from '../utils/logger.mjs';
 
 /**
- * The paid boundary CANNOT throw on a cancelled/expired special: by the time this
- * runs, Stripe has already charged the client, so throwing would (a) strand a paying
- * customer with zero sessions and (b) roll back the grant transaction, 500-looping the
- * webhook forever (Stripe then disables the endpoint). Prevention — stopping the payment
- * — belongs at cancel time (expire the in-flight Stripe session) and at checkout (cap the
- * session expiry). Here we HONOR the payment but make the anomaly LOUD and never silently
- * overwrite a terminal 'cancelled' status, so an admin can review/refund.
+ * The paid boundary must not throw on a CANCELLED/EXPIRED special: by the time this runs
+ * Stripe has already charged the client, so throwing would (a) strand a paying customer
+ * with zero sessions and (b) roll back the grant transaction, 500-looping the webhook
+ * forever (Stripe eventually disables the endpoint). So we HONOR the payment and make the
+ * anomaly LOUD instead, letting an admin review/refund. Real prevention — stopping the
+ * payment — belongs at cancel time (expire the in-flight Stripe session) and at checkout
+ * (cap the session expiry); neither is built yet.
+ *
+ * KNOWN RESIDUAL (deliberate, flagged 2026-07-11): recordSpecialRedemption below still
+ * THROWS NO_REDEMPTIONS_LEFT when a finite deal is already spent. That contradicts the
+ * paragraph above and would strand a paid customer the same way — it is currently
+ * UNREACHABLE only because the pre-checkout gate plus the one-open-cart partial unique
+ * index (migration 20260711000000) prevent a second payable cart for a spent deal. If that
+ * index is ever dropped, this becomes a live paid-customer-stranding webhook loop. Left as
+ * a throw because two suites lock it (specialOfferService + sessionPackageCheckoutFulfillment);
+ * changing it is a money-path behavior decision, not a silent refactor.
+ *
  * @returns {boolean} true when the special was cancelled/expired at redemption time
  */
 function flagIfNotRedeemableAtPayment(customPackage, { now = new Date() } = {}) {
