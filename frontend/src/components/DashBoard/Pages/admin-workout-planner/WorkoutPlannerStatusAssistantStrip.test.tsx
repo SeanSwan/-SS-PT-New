@@ -91,9 +91,10 @@ describe('WorkoutPlannerStatusAssistantStrip', () => {
         selectedClientId={7}
       />,
     );
-    await act(async () => {});
-
-    expect(screen.getByTestId('ai-terminal')).toBeInTheDocument();
+    // AITerminalPanel is lazy(() => import(...)) behind <Suspense>. A single act()
+    // flush does not reliably resolve that dynamic import under test-worker load,
+    // so getBy* would throw intermittently. findBy* retries until it mounts.
+    expect(await screen.findByTestId('ai-terminal')).toBeInTheDocument();
     expect(terminalPanelProps.at(-1)?.clientId).toBeUndefined();
   });
 

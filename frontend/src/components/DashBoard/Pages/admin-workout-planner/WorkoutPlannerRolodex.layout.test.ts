@@ -99,7 +99,10 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
 
   it('carries clientSource into branded generated-plan PDF exports', () => {
     expect(TYPES_SOURCE).toMatch(/clientSource\?:\s*'swanstudios' \| 'move_fitness' \| 'external'/);
-    expect(GENERATED_PLAN_SOURCE).toMatch(/exportPopulatedPlanPDF\([\s\S]*selectedClient\?\.clientSource[\s\S]*\);/);
+    // A3: the branded export now runs through the Approval Vault preview builder
+    // (buildPopulatedPlanPdfBlob) instead of a direct download — the client's
+    // source must still reach it, or an MF client's plan would print SwanStudios.
+    expect(GENERATED_PLAN_SOURCE).toMatch(/buildPopulatedPlanPdfBlob\([\s\S]*selectedClient\?\.clientSource[\s\S]*\);/);
     expect(PAGE_SOURCE).not.toContain('PlannerClient does not');
   });
 
