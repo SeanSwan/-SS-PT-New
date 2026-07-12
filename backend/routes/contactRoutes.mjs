@@ -1,6 +1,7 @@
 import express from "express";
 import Contact from '../models/contact.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { contactLimiter } from '../middleware/rateLimiter.mjs';
 import sequelize from '../database.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
@@ -73,7 +74,9 @@ router.get("/", protect, adminOnly, async (req, res) => {
 });
 
 // Enhanced Contact Route - Database First + Smart External Services
-router.post("/", async (req, res) => {
+// PUBLIC. contactLimiter caps abuse: each accepted submission costs real
+// Twilio/SendGrid spend and creates a CRM lead. See middleware/rateLimiter.mjs.
+router.post("/", contactLimiter, async (req, res) => {
   console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
   
   try {
