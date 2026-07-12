@@ -1,10 +1,8 @@
-import React from 'react';
-import { Dumbbell, Link2, Minus, Plus, Star, Unlink, X } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Dumbbell, Link2, Plus, Star, Unlink, X } from 'lucide-react';
 import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
+import ExerciseSetRowComponent from './ExerciseSetRowComponent';
 import GhostDataRow from './GhostDataRow';
-import OverloadSuggestion from './OverloadSuggestion';
-import RestTimer from './RestTimer';
-import TempoInput from './TempoInput';
 import { getExerciseSetRowKey } from './WorkoutLogger.helpers';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 import {
@@ -24,15 +22,9 @@ import {
 } from './ExerciseCardComponent.styles';
 import {
   AddSetButton,
-  NumberInput,
-  RemoveSetButton,
-  SetCell,
-  SetNumber,
-  SetRow,
+  SetDetailsToggle,
   SetsTable,
   TableHeader,
-  TextInput,
-  WeightInputWrapper,
 } from './ExerciseSetRow.styles';
 
 interface ExerciseCardComponentProps {
@@ -66,211 +58,165 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onRemoveSet,
   onRemoveExercise,
   getOverload,
+  onSetLogged,
   ghostSkip = false,
-}) => (
-  <CardContainer
-    $isSuperset={supersetGroup != null && supersetGroup > 0}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: exerciseIndex * 0.1 }}
-  >
-    <ExerciseHeader>
-      <ExerciseTitle>
-        <h3>
-          <Dumbbell size={20} />
-          {exercise.exerciseName}
-          {supersetGroup != null && supersetGroup > 0 && <SupersetBadge>SS{supersetGroup}</SupersetBadge>}
-        </h3>
-        {onToggleSupersetLink && (
-          <SupersetLinkButton
-            type="button"
-            onClick={onToggleSupersetLink}
-            aria-pressed={linkedToPrevious}
-            aria-label={
-              linkedToPrevious
-                ? `Unlink ${exercise.exerciseName} from the superset above`
-                : `Superset ${exercise.exerciseName} with the exercise above`
-            }
-            title={linkedToPrevious ? 'Unlink superset' : 'Superset with previous'}
-          >
-            {linkedToPrevious ? <Unlink size={16} /> : <Link2 size={16} />}
-            <span>{linkedToPrevious ? 'Unlink' : 'Superset'}</span>
-          </SupersetLinkButton>
-        )}
-      </ExerciseTitle>
-      <ExerciseRatings>
-        <RatingGroup>
-          <label>Form Rating (1-5):</label>
-          <RatingControlRow>
-            <StarRatingContainer>
-              {[1, 2, 3, 4, 5].map(rating => (
-                <StarButton
-                  key={rating}
-                  type="button"
-                  $filled={rating <= (exercise.formRating ?? 0)}
-                  onClick={() => onUpdateExercise(exerciseIndex, 'formRating', rating)}
-                  aria-label={`Set form rating to ${rating} stars`}
-                  aria-pressed={rating === exercise.formRating}
-                >
-                  <Star size={16} />
-                </StarButton>
-              ))}
-            </StarRatingContainer>
-            <SliderValue>{exercise.formRating ?? 0}/5</SliderValue>
-          </RatingControlRow>
-        </RatingGroup>
-        <RatingGroup>
-          <label>Pain Level (0-10):</label>
-          <RatingControlRow>
-            <SliderInput
-              type="range"
-              min={0}
-              max={10}
-              value={exercise.painLevel}
-              onChange={event => onUpdateExercise(exerciseIndex, 'painLevel', parseInt(event.target.value))}
-            />
-            <SliderValue>{exercise.painLevel}/10</SliderValue>
-          </RatingControlRow>
-        </RatingGroup>
-        <RemoveExerciseBtn
-          type="button"
-          onClick={() => onRemoveExercise(exerciseIndex)}
-          aria-label={`Remove ${exercise.exerciseName}`}
-        >
-          <X size={18} />
-        </RemoveExerciseBtn>
-      </ExerciseRatings>
-    </ExerciseHeader>
+}) => {
+  // Phone disclosure for secondary set fields (Phase-2C law grid).
+  const [showSetDetails, setShowSetDetails] = useState(false);
+  // Session-local logged marks; logging a set starts the rest timer upstream.
+  const [loggedSetKeys, setLoggedSetKeys] = useState<ReadonlySet<string>>(() => new Set());
 
-    <SetsTable>
-      <TableHeader>
-        <div>Set</div>
-        <div>Weight (lbs)</div>
-        <div>Reps</div>
-        <div>Tempo</div>
-        <div>RPE (1-10)</div>
-        <div>Form (1-5)</div>
-        <div>Rest (sec)</div>
-        <div>Notes</div>
-        <div></div>
-      </TableHeader>
-      {exercise.sets.map((set, setIndex) => (
-        <React.Fragment key={getExerciseSetRowKey(set)}>
-          {clientId && setIndex === 0 && (
-            <GhostDataRow
-              exerciseName={exercise.exerciseName}
-              clientId={clientId}
-              setIndex={setIndex}
-              skip={ghostSkip}
-            />
-          )}
-          <SetRow>
-            <SetCell data-label="Set">
-              <SetNumber>{set.setNumber}</SetNumber>
-            </SetCell>
-            <SetCell data-label="Weight">
-              <WeightInputWrapper>
-                <NumberInput
-                  type="number"
-                  value={set.weight ?? ''}
-                  onChange={event => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(event.target.value) || 0)}
-                  placeholder="0"
-                  aria-label={`Set ${set.setNumber} weight in lbs`}
-                />
-                {getOverload && (
-                  <OverloadSuggestion
-                    suggestion={getOverload(exercise.exerciseName, setIndex)}
-                    onApply={() => {
-                      const suggestion = getOverload(exercise.exerciseName, setIndex);
-                      if (suggestion) onUpdateSet(exerciseIndex, setIndex, 'weight', suggestion.suggested);
-                    }}
-                  />
-                )}
-              </WeightInputWrapper>
-            </SetCell>
-            <SetCell data-label="Reps">
-              <NumberInput
-                type="number"
-                value={set.reps ?? ''}
-                onChange={event => onUpdateSet(exerciseIndex, setIndex, 'reps', parseInt(event.target.value) || 0)}
-                placeholder="0"
-                aria-label={`Set ${set.setNumber} reps`}
-              />
-            </SetCell>
-            <SetCell data-label="Tempo">
-              <TempoInput
-                value={set.tempo || ''}
-                onChange={val => onUpdateSet(exerciseIndex, setIndex, 'tempo', val)}
-                ariaLabel={`Set ${set.setNumber} tempo`}
-              />
-            </SetCell>
-            <SetCell data-label="RPE">
-              <RatingControlRow>
-                <SliderInput
-                  type="range"
-                  min={1}
-                  max={10}
-                  value={set.rpe ?? 1}
-                  onChange={event => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(event.target.value))}
-                />
-                <SliderValue>{set.rpe ?? 1}</SliderValue>
-              </RatingControlRow>
-            </SetCell>
-            <SetCell data-label="Form">
-              <RatingControlRow>
-                <StarRatingContainer>
-                  {[1, 2, 3, 4, 5].map(rating => (
-                    <StarButton
-                      key={rating}
-                      type="button"
-                      $filled={rating <= (set.formQuality ?? 0)}
-                      onClick={() => onUpdateSet(exerciseIndex, setIndex, 'formQuality', rating)}
-                      aria-label={`Set ${set.setNumber} form quality: ${rating} stars`}
-                      aria-pressed={rating === set.formQuality}
-                    >
-                      <Star size={16} />
-                    </StarButton>
-                  ))}
-                </StarRatingContainer>
-              </RatingControlRow>
-            </SetCell>
-            <SetCell data-label="Rest">
-              <RestTimer restSeconds={set.restTime || 60} compact />
-            </SetCell>
-            <SetCell data-label="Notes">
-              <TextInput
-                value={set.notes || ''}
-                onChange={event => onUpdateSet(exerciseIndex, setIndex, 'notes', event.target.value)}
-                placeholder="Form notes..."
-                aria-label={`Set ${set.setNumber} notes`}
-              />
-            </SetCell>
-            <SetCell data-label="">
-              <RemoveSetButton
-                type="button"
-                onClick={() => onRemoveSet(exerciseIndex, setIndex)}
-                disabled={exercise.sets.length <= 1}
-                aria-label={`Remove set ${set.setNumber}`}
-              >
-                <Minus size={16} />
-              </RemoveSetButton>
-            </SetCell>
-          </SetRow>
-        </React.Fragment>
-      ))}
-    </SetsTable>
+  const toggleLogged = useCallback((setIndex: number) => {
+    const set = exercise.sets[setIndex];
+    if (!set) return;
+    const key = getExerciseSetRowKey(set);
+    setLoggedSetKeys(previous => {
+      const next = new Set(previous);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+        onSetLogged?.(exerciseIndex, setIndex);
+      }
+      return next;
+    });
+  }, [exercise.sets, exerciseIndex, onSetLogged]);
 
-    <AddSetButton
-      type="button"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onAddSet(exerciseIndex)}
+  return (
+    <CardContainer
+      className="lens2-row"
+      $isSuperset={supersetGroup != null && supersetGroup > 0}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: exerciseIndex * 0.1 }}
     >
-      <Plus size={16} />
-      Add Set
-    </AddSetButton>
-  </CardContainer>
-));
+      <ExerciseHeader>
+        <ExerciseTitle>
+          <h3>
+            <Dumbbell size={20} />
+            {exercise.exerciseName}
+            {supersetGroup != null && supersetGroup > 0 && <SupersetBadge>SS{supersetGroup}</SupersetBadge>}
+          </h3>
+          {onToggleSupersetLink && (
+            <SupersetLinkButton
+              type="button"
+              onClick={onToggleSupersetLink}
+              aria-pressed={linkedToPrevious}
+              aria-label={
+                linkedToPrevious
+                  ? `Unlink ${exercise.exerciseName} from the superset above`
+                  : `Superset ${exercise.exerciseName} with the exercise above`
+              }
+              title={linkedToPrevious ? 'Unlink superset' : 'Superset with previous'}
+            >
+              {linkedToPrevious ? <Unlink size={16} /> : <Link2 size={16} />}
+              <span>{linkedToPrevious ? 'Unlink' : 'Superset'}</span>
+            </SupersetLinkButton>
+          )}
+        </ExerciseTitle>
+        <ExerciseRatings>
+          <RatingGroup>
+            <label>Form Rating (1-5):</label>
+            <RatingControlRow>
+              <StarRatingContainer>
+                {[1, 2, 3, 4, 5].map(rating => (
+                  <StarButton
+                    key={rating}
+                    type="button"
+                    $filled={rating <= (exercise.formRating ?? 0)}
+                    onClick={() => onUpdateExercise(exerciseIndex, 'formRating', rating)}
+                    aria-label={`Set form rating to ${rating} stars`}
+                    aria-pressed={rating === exercise.formRating}
+                  >
+                    <Star size={16} />
+                  </StarButton>
+                ))}
+              </StarRatingContainer>
+              <SliderValue>{exercise.formRating ?? 0}/5</SliderValue>
+            </RatingControlRow>
+          </RatingGroup>
+          <RatingGroup>
+            <label>Pain Level (0-10):</label>
+            <RatingControlRow>
+              <SliderInput
+                type="range"
+                min={0}
+                max={10}
+                value={exercise.painLevel}
+                onChange={event => onUpdateExercise(exerciseIndex, 'painLevel', parseInt(event.target.value))}
+              />
+              <SliderValue>{exercise.painLevel}/10</SliderValue>
+            </RatingControlRow>
+          </RatingGroup>
+          <RemoveExerciseBtn
+            type="button"
+            onClick={() => onRemoveExercise(exerciseIndex)}
+            aria-label={`Remove ${exercise.exerciseName}`}
+          >
+            <X size={18} />
+          </RemoveExerciseBtn>
+        </ExerciseRatings>
+      </ExerciseHeader>
+
+      <SetsTable>
+        <TableHeader>
+          <div data-m="set">Set</div>
+          <div data-m="weight">Weight (lbs)</div>
+          <div data-m="reps">Reps</div>
+          <div>Tempo</div>
+          <div>RPE (1-10)</div>
+          <div>Form (1-5)</div>
+          <div>Rest (sec)</div>
+          <div>Notes</div>
+          <div data-m="log">Log</div>
+          <div></div>
+        </TableHeader>
+        {exercise.sets.map((set, setIndex) => (
+          <React.Fragment key={getExerciseSetRowKey(set)}>
+            {clientId && setIndex === 0 && (
+              <GhostDataRow
+                exerciseName={exercise.exerciseName}
+                clientId={clientId}
+                setIndex={setIndex}
+                skip={ghostSkip}
+              />
+            )}
+            <ExerciseSetRowComponent
+              exercise={exercise}
+              exerciseIndex={exerciseIndex}
+              set={set}
+              setIndex={setIndex}
+              showDetails={showSetDetails}
+              isLogged={loggedSetKeys.has(getExerciseSetRowKey(set))}
+              canRemove={exercise.sets.length > 1}
+              onToggleLogged={toggleLogged}
+              onUpdateSet={onUpdateSet}
+              onRemoveSet={onRemoveSet}
+              getOverload={getOverload}
+            />
+          </React.Fragment>
+        ))}
+        <SetDetailsToggle
+          type="button"
+          aria-expanded={showSetDetails}
+          onClick={() => setShowSetDetails(previous => !previous)}
+        >
+          {showSetDetails ? 'Hide set details' : 'Show set details (tempo, RPE, form, rest, notes)'}
+        </SetDetailsToggle>
+      </SetsTable>
+
+      <AddSetButton
+        type="button"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onAddSet(exerciseIndex)}
+      >
+        <Plus size={16} />
+        Add Set
+      </AddSetButton>
+    </CardContainer>
+  );
+});
 
 ExerciseCardComponent.displayName = 'ExerciseCardComponent';
 export default ExerciseCardComponent;

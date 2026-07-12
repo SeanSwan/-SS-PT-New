@@ -60,7 +60,7 @@ const WorkoutLoggerHeader: React.FC<WorkoutLoggerHeaderProps> = React.memo(({
     <Header>
       <ClientInfo>
         <HeaderRow>
-          <h2>
+          <h2 className="lens2-display">
             <User size={24} />
             Logging Workout for: {clientFirstName} {clientLastName}
           </h2>

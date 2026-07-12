@@ -58,6 +58,7 @@ import SaveSuccessPanel from './SaveSuccessPanel';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import { shouldBlockWorkoutSubmitForSessionBalance } from './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
+import WorkoutLoggerLensFrame from './WorkoutLoggerLensFrame';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
 import { type ParsedWorkout } from './VoiceMemoUpload';
 import WorkoutLoggerVoiceImportSection from './WorkoutLoggerVoiceImportSection';
@@ -948,6 +949,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   return (
     <NASMLearningProvider>
+      <WorkoutLoggerLensFrame>
       <WorkoutLoggerContainer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1129,25 +1131,27 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               onSetLogged={handleSetLogged}
             />
           ) : (
-            exercises.map((exercise, exerciseIndex) => (
-              <ExerciseCardComponent
-                key={getExerciseEntryRowKey(exercise)}
-                exercise={exercise}
-                exerciseIndex={exerciseIndex}
-                clientId={effectiveClientId}
-                supersetGroup={exercise.supersetGroup ?? undefined}
-                linkedToPrevious={isLinkedToPrevious(exercises, exerciseIndex)}
-                onToggleSupersetLink={exerciseIndex > 0 ? () => toggleSuperset(exerciseIndex) : undefined}
-                onUpdateExercise={updateExercise}
-                onUpdateSet={updateSet}
-                onAddSet={addSet}
-                onRemoveSet={removeSet}
-                onRemoveExercise={removeExercise}
-                getOverload={ghostPreFill.getOverload}
-                onSetLogged={handleSetLogged}
-                ghostSkip={isClientSelfMode}
-              />
-            ))
+            <div className="lens2-collection">
+              {exercises.map((exercise, exerciseIndex) => (
+                <ExerciseCardComponent
+                  key={getExerciseEntryRowKey(exercise)}
+                  exercise={exercise}
+                  exerciseIndex={exerciseIndex}
+                  clientId={effectiveClientId}
+                  supersetGroup={exercise.supersetGroup ?? undefined}
+                  linkedToPrevious={isLinkedToPrevious(exercises, exerciseIndex)}
+                  onToggleSupersetLink={exerciseIndex > 0 ? () => toggleSuperset(exerciseIndex) : undefined}
+                  onUpdateExercise={updateExercise}
+                  onUpdateSet={updateSet}
+                  onAddSet={addSet}
+                  onRemoveSet={removeSet}
+                  onRemoveExercise={removeExercise}
+                  getOverload={ghostPreFill.getOverload}
+                  onSetLogged={handleSetLogged}
+                  ghostSkip={isClientSelfMode}
+                />
+              ))}
+            </div>
           )}
 
           {exercises.length > 0 && (
@@ -1255,6 +1259,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           <Timer size={18} aria-hidden="true" />
         </TimerFAB>
       )}
+      </WorkoutLoggerLensFrame>
     </NASMLearningProvider>
   );
 };

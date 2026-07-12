@@ -6,7 +6,8 @@ export const CardContainer = styled(motion.div)<{ $isSuperset?: boolean }>`
   background: ${withAlpha(CS.cardDark, 0.7)};
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-radius: 1.5rem;
+  /* Lens token seam: recipes may retune the panel radius; host value is the fallback. */
+  border-radius: var(--world-panel-radius, 1.5rem);
   padding: 2rem;
   margin-bottom: ${({ $isSuperset }) => $isSuperset ? '0.25rem' : '1.5rem'};
   border: 1px solid ${({ $isSuperset }) => $isSuperset ? withAlpha(CS.secondary, 0.2) : withAlpha(CS.text, 0.03)};
@@ -41,7 +42,7 @@ export const CardContainer = styled(motion.div)<{ $isSuperset?: boolean }>`
 
   @media (max-width: 430px) {
     padding: 1.25rem;
-    border-radius: 1rem;
+    border-radius: var(--world-panel-radius, 1rem);
   }
 `;
 

@@ -12,17 +12,18 @@
  * ============================================================================
  */
 import React, { useMemo, type ReactNode } from "react";
-import styled from "styled-components";
+import styled, { type RuleSet } from "styled-components";
 import { compileRecipe } from "../../../../core/style-lens-os/v2/compileRecipe";
+import type { HostCapabilityManifest } from "../../../../core/style-lens-os/v2/hostCapabilityManifest";
 import type { RecipeV2 } from "../../../../core/style-lens-os/v2/recipeV2";
 import { LAB_HOST_MANIFEST } from "../../../../adapters/style-lens-swan/v2/labRecipes";
 import { lensRepresentationStyles } from "./lensRepresentationStyles";
 
-const FrameRoot = styled.div`
+const FrameRoot = styled.div<{ $representation?: RuleSet<object> }>`
   display: block;
   min-width: 0;
   container-type: inline-size;
-  ${lensRepresentationStyles};
+  ${({ $representation }) => $representation ?? lensRepresentationStyles};
 `;
 
 const CompileReceipt = styled.p`
@@ -37,22 +38,33 @@ const CompileReceipt = styled.p`
 interface LensPlanFrameProps {
   recipe: RecipeV2;
   children: ReactNode;
+  /** Host/surface manifest to compile against. Defaults to the Lab host. */
+  manifest?: HostCapabilityManifest;
+  /**
+   * Host-owned representation mapping (a styled-components `css` block
+   * keyed off data-lens2-* attrs). Defaults to the Lab world styles.
+   * LensPlanFrame remains the ONLY recipe→DOM boundary; hosts supply how
+   * their own primitives interpret the resolved variants.
+   */
+  representationStyles?: RuleSet<object>;
   "aria-label"?: string;
 }
 
 export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
   recipe,
   children,
+  manifest = LAB_HOST_MANIFEST,
+  representationStyles,
   "aria-label": ariaLabel,
 }) => {
   const result = useMemo(
-    () => compileRecipe(recipe, LAB_HOST_MANIFEST),
-    [recipe],
+    () => compileRecipe(recipe, manifest),
+    [recipe, manifest],
   );
 
   if (!result.ok) {
     return (
-      <FrameRoot aria-label={ariaLabel}>
+      <FrameRoot aria-label={ariaLabel} $representation={representationStyles}>
         <CompileReceipt role="status">
           Lens “{recipe.id}” failed compilation ({result.issues.length}{" "}
           issue{result.issues.length === 1 ? "" : "s"}) — rendering host
@@ -73,6 +85,7 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
   return (
     <FrameRoot
       aria-label={ariaLabel}
+      $representation={representationStyles}
       data-lens2-plan={plan.lensId}
       data-lens2-template={plan.templates["desktop-enhanced"]}
       data-lens2-display={plan.variants["text.display"]}

@@ -4,7 +4,8 @@ import { CS, withAlpha } from './WorkoutLoggerCS';
 
 export const SetsTable = styled.div`
   background: ${withAlpha(CS.bgDeep, 0.6)};
-  border-radius: 1rem;
+  /* Lens token seam: row-surface radius follows the active recipe. */
+  border-radius: var(--world-row-radius, 1rem);
   overflow: hidden;
   margin-bottom: 1.5rem;
   border: 1px solid ${withAlpha(CS.text, 0.04)};
@@ -12,7 +13,7 @@ export const SetsTable = styled.div`
 
 export const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 44px;
+  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 48px 44px;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   background: ${withAlpha(CS.surfaceDark, 0.8)};
@@ -24,11 +25,19 @@ export const TableHeader = styled.div`
   font-family: 'Sora', sans-serif;
   border-bottom: 1px solid ${CS.glassBorder};
   @media (max-width: 1180px) { display: none; }
+
+  /* Phase-2C law: phones show the essentials header (Set | Weight | Reps | Log). */
+  @media (max-width: 767px) {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) 48px;
+    padding: 0.625rem 0.875rem;
+    & > div:not([data-m]) { display: none; }
+  }
 `;
 
 export const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 44px;
+  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 48px 44px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid ${withAlpha(CS.gaming, 0.08)};
@@ -46,6 +55,18 @@ export const SetRow = styled.div`
     padding: 4px 0;
     border-bottom: none;
     &:last-child { margin-bottom: 4px; }
+  }
+
+  /* Phase-2C law grid (HOST-FIXED, lens-immutable): Set# | Weight | Reps | Log.
+     Secondary fields span full width below and hide behind the details
+     disclosure. 320px is a hard gate. */
+  @media (max-width: 767px) {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) 48px;
+    grid-auto-rows: minmax(56px, auto);
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.375rem 0.625rem;
   }
 `;
 
@@ -80,11 +101,30 @@ export const SetCell = styled.div`
   }
 
   @media (max-width: 430px) { padding: 6px 10px; }
+
+  /* Phase-2C law grid roles on phones. */
+  @media (max-width: 767px) {
+    &[data-essential='cell'] {
+      display: contents;
+      &::before { content: none; }
+    }
+    &[data-essential='log'] {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      grid-row: 1;
+      grid-column: 4;
+      padding: 0;
+      &::before { content: none; }
+    }
+    &:not([data-essential]) { grid-column: 1 / -1; }
+    ${SetRow}[data-details='closed'] &:not([data-essential]) { display: none; }
+  }
 `;
 
 export const SetNumber = styled.div`
   font-weight: 700;
-  color: ${CS.gaming};
+  color: var(--world-accent, ${CS.gaming});
   font-size: 1.1rem;
   text-align: center;
   font-family: 'Fira Code', 'Courier New', monospace;
@@ -183,6 +223,8 @@ export const AddSetButton = styled(motion.button)`
     box-shadow: 0 0 0 4px ${withAlpha(CS.glow, 0.15)};
   }
 `;
+
+export { LogSetButton, SetDetailsToggle } from './ExerciseSetRowControls.styles';
 
 export const RemoveSetButton = styled.button`
   background: ${withAlpha(CS.error, 0.1)};

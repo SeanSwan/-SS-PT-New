@@ -49,7 +49,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
     : summaryLockedReason ?? 'Save Workout to Send Summary';
 
   return (
-    <ActionButtons>
+    <ActionButtons className="lens2-actions">
       <Button
         type="button"
         variant="secondary"

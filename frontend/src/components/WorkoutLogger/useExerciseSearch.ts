@@ -34,6 +34,8 @@ interface UseExerciseSearchReturn {
   isSearching: boolean;
   /** True while fetching the full exercise list from API */
   isLoading: boolean;
+  /** Honest-state: set when the library failed to load and no cache exists */
+  loadError: string | null;
   /** Update the search query */
   setQuery: (q: string) => void;
   /** Update the active body part category filter */
@@ -53,6 +55,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
   const [category, setCategoryState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
   const exerciseCacheRef = useRef<ExerciseSlim[]>([]);
@@ -168,6 +171,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
         }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);
+        setLoadError(null);
         lastFetchRef.current = Date.now();
 
         // Send to worker
@@ -180,6 +184,11 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
       }
     } catch (err) {
       console.error('Failed to load exercise list:', err);
+      // Honest-state contract: never let a failed library load masquerade
+      // as "no exercises found" — surface it so the UI can offer a retry.
+      if (exerciseCacheRef.current.length === 0) {
+        setLoadError('The exercise library failed to load.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -217,6 +226,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
     allExercises,
     isSearching,
     isLoading,
+    loadError,
     setQuery,
     setCategory,
     query,

@@ -58,10 +58,12 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     allExercises,
     isSearching,
     isLoading,
+    loadError,
     setQuery,
     setCategory,
     query,
     category,
+    refresh,
   } = useExerciseSearch();
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [previewExercise, setPreviewExercise] = useState<ExerciseSlim | null>(null);
@@ -259,7 +261,14 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
             </ListContainer>
           ) : !isLoading && (
             <EmptyState>
-              {query.length >= 1 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
+              {loadError ? (
+                <>
+                  {loadError} Check your connection, then{' '}
+                  <FilterToggle type="button" onClick={refresh}>
+                    Try again
+                  </FilterToggle>
+                </>
+              ) : query.length >= 1 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
             </EmptyState>
           )}
         </ListSide>

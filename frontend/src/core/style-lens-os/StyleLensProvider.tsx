@@ -235,3 +235,11 @@ export const useStyleLensAppearance = (): StyleLensContextValue => {
   }
   return context;
 };
+
+/**
+ * Optional variant for surfaces that must render with or without the
+ * provider (e.g. unit-tested production surfaces). Returns undefined when
+ * no StyleLensProvider is mounted — callers fall back to host defaults.
+ */
+export const useOptionalStyleLensAppearance = (): StyleLensContextValue | undefined =>
+  useContext(StyleLensContext);

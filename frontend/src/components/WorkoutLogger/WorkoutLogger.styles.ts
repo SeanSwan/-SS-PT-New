@@ -232,7 +232,8 @@ export const AddExerciseButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 1.25rem 2rem;
-  background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
+  /* Dual-Button Glow law: Purple background -> Cyan glow. */
+  background: linear-gradient(135deg, ${CS.secondary}, ${CS.tertiary});
   border: none;
   border-radius: 1rem;
   color: var(--button-text, ${CS.text});
@@ -246,7 +247,7 @@ export const AddExerciseButton = styled(motion.button)`
   min-height: 52px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 24px ${withAlpha(CS.glow, 0.25)};
+  box-shadow: 0 4px 24px ${withAlpha(CS.gaming, 0.25)};
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -263,7 +264,7 @@ export const AddExerciseButton = styled(motion.button)`
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 36px ${withAlpha(CS.glow, 0.4)};
+    box-shadow: 0 8px 36px ${withAlpha(CS.gaming, 0.4)};
   }
   &:active { transform: scale(0.98); }
 
