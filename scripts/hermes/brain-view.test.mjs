@@ -39,7 +39,7 @@ test('renders the full brain: clusters, core, HUD, thought stream, sparkline, au
   const out = renderBrainView(root, swFile, DAY, { now: NOW });
   const html = fs.readFileSync(out.path, 'utf8');
   for (const s of ['HERMES', 'APPLICATIONS · C2', 'ROUTINES · C4', 'MEMORY · C1', 'SKILLS · C3', 'class="glegend"',
-    'Thought stream', 'Next best action', 'class="aurora"', 'class="sparkline"', 'core-spin', 'prefers-reduced-motion']) {
+    'Thought stream', 'Next best action', 'class="aurora"', 'class="skyline sparkline"', 'core-spin', 'prefers-reduced-motion']) {
     assert.ok(html.includes(s), s);
   }
   assert.ok(out.skills >= 20, 'real .claude/skills inventory rendered');
@@ -230,5 +230,35 @@ test('V1 launcher warns when pinned runtime differs from the release marker', ()
   const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
   const cmd = fs.readFileSync(path.join(here, 'Hermes-Command-Center.cmd'), 'utf8');
   assert.match(cmd, /git -C "%RR%" rev-parse HEAD/);
+  assert.match(cmd, /rev-parse origin\/main/);
   assert.match(cmd, /RUNTIME DRIFT/);
+});
+
+test('V2 data density passes digest analytics once into graph, rail, history, skills, and trends', () => {
+  const { root, swFile } = fresh();
+  receipt(root, { who: 'broker/telegram', what: 'switch-flip (T2)', outcome: 'refused - flood cap' });
+  for (let i = 0; i < 5; i += 1) receipt(root, { who: 'broker/telegram', what: 'switch-flip (T2)', outcome: `refused - flood cap ${i}`, when: `${DAY}T0${i}:10:00Z` });
+  receipt(root, { who: 'hermes/runner', what: 'tierless-command', outcome: 'partial - malformed tier marker' });
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.digest.counts.T2 >= 6, true);
+  assert.equal(data.healthHistory.length, 30);
+  assert.equal(data.thoughts.length <= 10, true);
+  assert.match(data.thoughts[0].outcome, /refused|partial|failed/);
+  assert.equal(data.skillNodes.length <= 13, true);
+  assert.ok(data.skillStats.every((s) => Number.isInteger(s.count)));
+  assert.equal(data.hourlyTier2.length, 24);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  for (const marker of ['data-tier="T4"', 'refusal-thorn', 'integrity-crack', 'class="skyline sparkline"', 'BROKERS', 'ROUTINES', 'SAFETY', 'class="skill-grid"']) assert.ok(html.includes(marker), marker);
+  assert.equal((html.match(/class="heat-cell /g) || []).length, 30);
+  assert.equal((html.match(/class="skybar/g) || []).length, 24);
+});
+
+test('V2 silence state keeps a zero-receipt day truthful', () => {
+  const { root, swFile } = fresh();
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.receiptCount, 0);
+  assert.equal(data.silentDay, true);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  assert.match(html, /silent day/i);
+  assert.equal((html.match(/class="skybar zero/g) || []).length, 24);
 });

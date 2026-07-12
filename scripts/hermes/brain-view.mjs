@@ -19,6 +19,8 @@ import { listEntries } from './queueModel.mjs';
 import { anchorStatus } from './anchorLedger.mjs';
 import { readSchedule, readState } from './runnerLib.mjs';
 import { renderBrainHtml } from './brainViewTemplate.mjs';
+import { computeDigestData } from './receipt-digest.mjs';
+import { buildHealthHistory } from './brainDensity.mjs';
 import {
   readSwitches, readReceipts, resolveSwitchesFile, resolveVaultRoot, writeReceipt,
 } from './hermesRunsLib.mjs';
@@ -36,7 +38,8 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const dataAgeDays = Number.isFinite(ageMs) ? Math.max(0, Math.floor(ageMs / 86400000)) : 0;
   const map = JSON.parse(fs.readFileSync(path.join(HERE, 'brain-map.json'), 'utf8'));
   const sw = readSwitches(switchesFile);
-  const receipts = readReceipts(vaultRoot, isoDate);
+  const digest = computeDigestData(vaultRoot, isoDate);
+  const receipts = digest.receipts;
   let anchor;
   try { anchor = anchorStatus(vaultRoot, { today: isoDate }); } catch { anchor = { level: 'fault', faults: ['anchor check crashed'], notes: [] }; }
   let open = [];
@@ -45,7 +48,7 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const sched = readSchedule(vaultRoot);
   const rstate = readStateSafe(vaultRoot);
   const routines = (sched.entries || []).map((e) => ({
-    label: e.command, cadence: e.cadence,
+    label: e.command, cadence: e.cadence, activity: receipts.filter((x) => String(x.what).startsWith(`${e.command} (`)).length,
     state: !e.enabled ? 'dark' : rstate.demoted[e.command] ? 'fault' : rstate.handled[e.command] === isoDate ? 'live' : 'idle',
   }));
 
@@ -54,24 +57,40 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
     packets: countDir(path.join(REPO, 'docs', 'ai-workflow', 'hermes-learning-packets'), (n) => n.endsWith('.md')),
     brainstorms: countDir(path.join(REPO, 'docs', 'ai-workflow', 'brainstorms'), (n) => n.endsWith('.md')),
   };
-  const memory = map.memory.map((m) => ({ ...m, count: m.live ? liveCounts[m.live] : null }));
+  const mentions = (label) => receipts.filter((r) => [r.what,r.target].some((v) => String(v || '').toLowerCase().includes(String(label).toLowerCase()))).length;
+  const applications = map.applications.map((a) => ({ ...a, activity: mentions(a.label) }));
+  const memory = map.memory.map((m) => ({ ...m, count: m.live ? liveCounts[m.live] : null, activity: mentions(m.label) }));
   const skills = (() => {
     try { return fs.readdirSync(path.join(REPO, '.claude', 'skills')).filter((n) => !n.startsWith('.')); } catch { return []; }
   })();
+  const skillStats = skills.map((name) => ({ name, count: receipts.filter((r) =>
+    [r.what, r.target].some((v) => String(v || '').toLowerCase().includes(name.toLowerCase()))).length }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const topSkills = skillStats.slice(0, 12);
+  const skillNodes = [...topSkills, ...(skillStats.length > 12 ? [{ name: `+${skillStats.length - 12} more`, count: skillStats.slice(12).reduce((n, x) => n + x.count, 0), aggregate: true }] : [])];
 
   const switches = sw.ok ? Object.entries(sw.state).map(([name, v]) => ({ name, on: v === true })) : null;
   const doctor = [...receipts].reverse().find((r) => r.what === 'hermes-doctor (T0)');
-  const thoughts = receipts.slice(-6).reverse().map((r) => ({
-    id: r.id, what: r.what, outcome: String(r.outcome),
-    mood: /^ok/.test(String(r.outcome)) ? 'ok' : /^refused/.test(String(r.outcome)) ? 'refused' : 'warn',
+  const thoughtRows = receipts.map((r) => ({
+    id: r.id, what: r.what, outcome: String(r.outcome), actor: r.who || 'unknown',
+    time: Number.isFinite(Date.parse(r.when)) ? new Date(r.when).toISOString().slice(11, 16) : '--:--',
+    tier: /\((T[0-4])\)/.exec(String(r.what))?.[1] || 'T0',
+    mood: /^ok/.test(String(r.outcome)) ? 'ok' : /^refused|^failed/.test(String(r.outcome)) ? 'refused' : 'warn',
+    attention: /^(refused|failed|partial)/.test(String(r.outcome)),
   }));
+  const thoughts = thoughtRows.sort((a, b) => Number(b.attention) - Number(a.attention) || b.time.localeCompare(a.time)).slice(0, 10);
 
   // Hour-by-hour thinking sparkline (UTC hour of each receipt's `when`).
   const hourly = Array.from({ length: 24 }, () => 0);
+  const hourlyTier2 = Array.from({ length: 24 }, () => 0);
   for (const r of receipts) {
     const h = new Date(r.when).getUTCHours();
-    if (Number.isFinite(h)) hourly[h] += 1;
+    if (Number.isFinite(h)) { hourly[h] += 1; if (/\(T[2-4]\)/.test(String(r.what))) hourlyTier2[h] += 1; }
   }
+  const yesterdayDate = new Date(Date.parse(`${isoDate}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  const yesterdayReceipts = readReceipts(vaultRoot, yesterdayDate);
+  const healthHistory = buildHealthHistory(vaultRoot, isoDate);
+  const tileDeltas = { receipts: receipts.length - yesterdayReceipts.length, skills: 0, memories: 0, routines: 0, approvals: digest.approvalFlow.opened, anchor: 0 };
   const memoriesTotal = memory.reduce((n, m) => n + (m.count || 0), 0) || null;
 
   // Aurora: one color readable from across the room.
@@ -95,10 +114,12 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const nba = nbaRail[0];
 
   return {
-    when, isoDate, today, dataAgeDays, brain: map.brain, applications: map.applications, routines, memory, skills,
-    switches, anchorLevel: anchor.level, anchorNote: (anchor.faults[0] || anchor.notes?.[0] || ''),
+    when, isoDate, today, dataAgeDays, brain: map.brain, applications, routines, memory, skills, skillStats, skillNodes,
+    switches, switchExplanations: map.switchExplain || {}, anchorLevel: anchor.level, anchorNote: (anchor.faults[0] || anchor.notes?.[0] || ''),
     queueOpen: open.length, doctorOk: doctor ? String(doctor.outcome).startsWith('ok') : null,
-    receiptCount: receipts.length, thoughts, hourly, memoriesTotal, health, nba, nbaRail,
+    receiptCount: receipts.length, thoughts, moreThoughts: Math.max(0, thoughtRows.length - 10), hourly, hourlyTier2, memoriesTotal, health, nba, nbaRail,
+    digest, queueEntries: open, healthHistory, tileDeltas, silentDay: receipts.length === 0,
+    productHealth: (() => { const row=[...receipts].reverse().find((x)=>x.what==='health-sweep (T0)'); return row ? { state:/^ok/.test(String(row.outcome))?'green':/^failed/.test(String(row.outcome))?'red':'amber', outcome:String(row.outcome) } : { state:'no-data', outcome:'health sweep not run' }; })(),
   };
 }
 
