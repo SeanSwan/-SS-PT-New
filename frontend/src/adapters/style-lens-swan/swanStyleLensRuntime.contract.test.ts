@@ -73,6 +73,26 @@ describe('Swan Style Lens runtime binding', () => {
     expect(preview).toContain("data-swan-button-tone='blue'");
   });
 
+  it('guards every lens-id descendant rule against crossing a ScopedLensFrame boundary', () => {
+    // With a committed global lens on <html>, preview frames are still DOM
+    // descendants of the html lens attribute. Any lens-id rule that styles
+    // shell/scroll-root descendants MUST exclude subtrees of a scoped frame
+    // carrying a different lens, or the global lens contaminates Compare
+    // panes / the Style Explorer stage (e.g. analog-flight-recorder forcing
+    // monospace into a quiet-meridian preview).
+    const styles = source(
+      'src/adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts',
+    );
+
+    const lensDescendantRules = styles.match(
+      /\[data-style-lens='[a-z-]+'\][^{,]*\[data-(?:style-lens-shell|dashboard-scroll-root)\][^{]*\{/g,
+    ) ?? [];
+    expect(lensDescendantRules.length).toBeGreaterThan(0);
+    lensDescendantRules.forEach((rule) => {
+      expect(rule).toContain(":not([data-scoped-lens-frame]:not([data-style-lens='");
+    });
+  });
+
   it('marks and consumes the canonical dashboard shell', () => {
     const shell = source(
       'src/components/DashBoard/UniversalDashboardLayout.shell.tsx',

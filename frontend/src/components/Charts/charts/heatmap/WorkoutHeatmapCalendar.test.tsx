@@ -49,6 +49,39 @@ describe('buildHeatmapGridFromSessions', () => {
   it('returns null for empty history so the honest empty state renders', () => {
     expect(buildHeatmapGridFromSessions([])).toBeNull();
   });
+
+  it('buckets by the backend UTC day when iso is present (evening-workout tz drift guard)', () => {
+    // A Sunday 7pm PT workout is stored as Monday 02:00 UTC; the backend's
+    // TO_CHAR labels it Monday. The iso path must bucket it on the UTC
+    // Monday row (agreeing with DATE_TRUNC('week') weekly charts) no
+    // matter what timezone the browser runs in — this assertion is
+    // tz-independent because the iso walk uses only UTC getters.
+    const today = new Date(Date.UTC(2026, 6, 7, 12)); // Tue 2026-07-07 UTC
+    const grid = buildHeatmapGridFromSessions(
+      [
+        { x: '07/06', iso: '2026-07-06' },
+        { x: '07/07', iso: '2026-07-07' },
+        { x: '07/07', iso: '2026-07-07' },
+      ],
+      today,
+    );
+
+    expect(grid).not.toBeNull();
+    expect(grid![0][11]).toBe(1); // Monday UTC row, newest week column
+    expect(grid![1][11]).toBe(2); // Tuesday UTC row
+    expect(grid![6][10]).toBe(0); // NOT re-bucketed onto a local Sunday
+  });
+
+  it('falls back to legacy browser-local MM/DD matching when any point lacks iso', () => {
+    const today = new Date(2026, 6, 7); // local Tue
+    const grid = buildHeatmapGridFromSessions(
+      [{ x: '07/07', iso: '2026-07-07' }, { x: '07/06' }],
+      today,
+    );
+
+    expect(grid![0][11]).toBe(1); // Monday via legacy local labels
+    expect(grid![1][11]).toBe(1); // Tuesday via legacy local labels
+  });
 });
 
 describe('WorkoutHeatmapCalendar with userId', () => {

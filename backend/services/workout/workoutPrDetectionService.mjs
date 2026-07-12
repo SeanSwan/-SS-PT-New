@@ -21,7 +21,7 @@
  * try/catch; any throw here must never block the 201/save. Returns
  * { prEvents } for the response so SaveSuccessPanel celebrates truthfully.
  */
-import { Op } from 'sequelize';
+import { Op, fn, col, where as sequelizeWhere } from 'sequelize';
 import { getPersonalRecord } from '../../models/index.mjs';
 import { estimateBrzycki1RM } from '../oneRepMaxService.mjs';
 import logger from '../../utils/logger.mjs';
@@ -37,17 +37,22 @@ const toPositiveNumber = (value) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-/** Pure: best weight + best est-1RM candidate per exercise from logged sets. */
+/** Pure: best weight + best est-1RM candidate per exercise from logged sets.
+ * Exercises are keyed CASE-INSENSITIVELY ("Bench Press" == "bench press") so
+ * a casing difference can never mint a second baseline — analytics already
+ * GROUP BY LOWER(exerciseName), and the PR engine must agree with it. The
+ * first-seen casing is kept as the display name. */
 export function buildPrCandidates(exercises = []) {
   const candidates = new Map();
   for (const exercise of exercises) {
     const name = String(exercise?.exerciseName || exercise?.name || '').trim();
     if (!name) continue;
+    const nameKey = name.toLowerCase();
     for (const set of exercise?.sets || []) {
       const weight = toPositiveNumber(set?.weight);
       const reps = toPositiveNumber(set?.reps);
       if (!weight || !reps || weight > PR_MAX_WEIGHT) continue;
-      const entry = candidates.get(name) || { exerciseName: name, weight: null, est1rm: null };
+      const entry = candidates.get(nameKey) || { exerciseName: name, weight: null, est1rm: null };
       if (!entry.weight || weight > entry.weight.value) {
         entry.weight = { value: weight, weight, reps };
       }
@@ -58,7 +63,7 @@ export function buildPrCandidates(exercises = []) {
           entry.est1rm = { value: estValue, weight, reps };
         }
       }
-      candidates.set(name, entry);
+      candidates.set(nameKey, entry);
     }
   }
   return [...candidates.values()];
@@ -95,12 +100,25 @@ export async function detectAndRecordPersonalRecords({
   const candidates = buildPrCandidates(exercises);
   if (candidates.length === 0) return { prEvents: [] };
 
-  const names = candidates.map((c) => c.exerciseName);
+  // Prior-best lookup is CASE-INSENSITIVE (exact match on lower(), not LIKE —
+  // no metacharacter escaping needed): analytics GROUP BY LOWER(exerciseName),
+  // so "Bench Press" and "bench press" must resolve to ONE baseline here too.
+  const lowerNames = candidates.map((c) => c.exerciseName.toLowerCase());
   const PersonalRecord = getPersonalRecord();
   const existing = await PersonalRecord.findAll({
-    where: { userId: numericUserId, exerciseName: { [Op.in]: names } },
+    where: {
+      userId: numericUserId,
+      [Op.and]: [sequelizeWhere(fn('lower', col('exerciseName')), { [Op.in]: lowerNames })],
+    },
   });
-  const existingByKey = new Map(existing.map((r) => [`${r.exerciseName}::${r.metric}`, r]));
+  // Legacy data may already hold case-variant duplicate rows; compare against
+  // the HIGHEST prior so a duplicate lower baseline can never mint a fake PR.
+  const existingByKey = new Map();
+  for (const row of existing) {
+    const rowKey = `${row.exerciseName.toLowerCase()}::${row.metric}`;
+    const current = existingByKey.get(rowKey);
+    if (!current || Number(row.value) > Number(current.value)) existingByKey.set(rowKey, row);
+  }
 
   const prEvents = [];
   const dateKey = String(date || new Date().toISOString().slice(0, 10)).slice(0, 10);
@@ -109,7 +127,7 @@ export async function detectAndRecordPersonalRecords({
     for (const metric of ['weight', 'est1rm']) {
       const best = candidate[metric];
       if (!best) continue;
-      const key = `${candidate.exerciseName}::${metric}`;
+      const key = `${candidate.exerciseName.toLowerCase()}::${metric}`;
       const prior = existingByKey.get(key);
 
       if (!prior) {
@@ -180,8 +198,9 @@ export async function detectAndRecordPersonalRecords({
               points: PR_POINTS,
               source: 'achievement_earned',
               description: `Personal record: ${candidate.exerciseName} (${metric === 'weight' ? 'top weight' : 'est. 1RM'})`,
-              // Name sliced to keep the key inside PointTransaction's 128-char column.
-              idempotencyKey: `pr:${numericUserId}:${candidate.exerciseName.slice(0, 60)}:${metric}:${dateKey}`,
+              // Name lowercased (case variants share one key) + sliced to keep
+              // the key inside PointTransaction's 128-char column.
+              idempotencyKey: `pr:${numericUserId}:${candidate.exerciseName.toLowerCase().slice(0, 60)}:${metric}:${dateKey}`,
               metadata: { exerciseName: candidate.exerciseName, metric, value: best.value, previous },
             });
           } catch (awardErr) {

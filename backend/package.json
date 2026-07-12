@@ -116,7 +116,6 @@
     "connect-redis": "^9.0.0",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
-    "dcraw-vendored-linux": "^9.28.2",
     "dcrawr": "^1.0.0",
     "decimal.js": "^10.6.0",
     "dotenv": "^16.4.7",
@@ -155,5 +154,8 @@
     "sequelize-cli": "^6.6.2",
     "supertest": "^7.2.2",
     "vitest": "^4.0.18"
+  },
+  "optionalDependencies": {
+    "dcraw-vendored-linux": "^9.28.2"
   }
 }

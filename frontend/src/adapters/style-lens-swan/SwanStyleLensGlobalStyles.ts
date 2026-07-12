@@ -243,17 +243,26 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     }
   }
 
-  [data-style-lens='analog-flight-recorder'] [data-style-lens-shell] {
+  /* Lens-id descendant rules must not cross a ScopedLensFrame boundary: with
+     a committed global lens on <html>, every preview frame (Style Explorer
+     stage, both Compare panes) is still a DOM descendant of the html lens
+     attribute, so an unguarded rule would contaminate frames previewing a
+     DIFFERENT lens (e.g. global analog-flight-recorder forcing monospace into
+     a quiet-meridian pane). The :where(:not(...)) guard excludes anything
+     inside a scoped frame whose own lens differs — frames previewing the
+     matching lens still get the treatment, and :where() keeps specificity
+     identical to the unguarded rule. */
+  [data-style-lens='analog-flight-recorder'] [data-style-lens-shell]:where(:not([data-scoped-lens-frame]:not([data-style-lens='analog-flight-recorder']) *)) {
     font-family: 'Fira Code', monospace;
     box-shadow: inset 0 36px 0 color-mix(in srgb, var(--gilded-fern, #c6a84b) 12%, transparent);
   }
 
-  [data-style-lens='quiet-meridian'] [data-dashboard-scroll-root] > * {
+  [data-style-lens='quiet-meridian'] [data-dashboard-scroll-root] > :where(:not([data-scoped-lens-frame]:not([data-style-lens='quiet-meridian']) *)) {
     max-width: 1680px;
     margin-inline: auto;
   }
 
-  [data-style-lens='candy-glass-arcade'] [data-dashboard-scroll-root] {
+  [data-style-lens='candy-glass-arcade'] [data-dashboard-scroll-root]:where(:not([data-scoped-lens-frame]:not([data-style-lens='candy-glass-arcade']) *)) {
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, var(--frost-white, #e0ecf4) 18%, transparent),
       0 0 42px color-mix(in srgb, var(--wing-purple, #8b5cf6) 14%, transparent);
