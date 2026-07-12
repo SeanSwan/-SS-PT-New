@@ -47,6 +47,42 @@ test('routes client-scoped memory reads with explicit client refs', () => {
   });
 });
 
+test('strips possessives from client refs — the greedy name class must not eat the apostrophe-s', () => {
+  // view_client_profile previously had NO coverage at all
+  assert.deepEqual(intent("show Ava's profile"), {
+    intent: 'view_client_profile',
+    clientRef: 'Ava',
+    params: {},
+    confidence: 1,
+  });
+  assert.deepEqual(intent('pull up Marcus Lee profile'), {
+    intent: 'view_client_profile',
+    clientRef: 'Marcus Lee',
+    params: {},
+    confidence: 1,
+  });
+  assert.deepEqual(intent("open Marcus Lee's workout history"), {
+    intent: 'view_workout_history',
+    clientRef: 'Marcus Lee',
+    params: {},
+    confidence: 1,
+  });
+  // trailing bare apostrophe (possessive of names ending in s)
+  assert.deepEqual(intent("show Chris' profile"), {
+    intent: 'view_client_profile',
+    clientRef: 'Chris',
+    params: {},
+    confidence: 1,
+  });
+  // internal apostrophes are part of the NAME and must survive
+  assert.deepEqual(intent("view O'Brien's workout log"), {
+    intent: 'view_workout_history',
+    clientRef: "O'Brien",
+    params: {},
+    confidence: 1,
+  });
+});
+
 test('routes selected-client memory reads without forcing a name', () => {
   assert.deepEqual(intent('what did we do last time'), {
     intent: 'view_last_workout',
