@@ -113,7 +113,10 @@ EquipmentItem.init({
   paranoid: false,
   indexes: [
     { fields: ['profileId'], name: 'idx_equipment_item_profile' },
-    { fields: ['profileId', 'name'], unique: true, name: 'idx_equipment_item_profile_name' },
+    // Partial: only ACTIVE items are unique per profile. Items are soft-deleted
+    // (isActive=false) on delete/reject, so soft-deleted names must NOT block a
+    // re-add. Managed by migration 20260711000000-equipment-item-partial-unique-index.
+    { fields: ['profileId', 'name'], unique: true, where: { isActive: true }, name: 'idx_equipment_item_profile_name_active' },
     { fields: ['category'], name: 'idx_equipment_item_category' },
     { fields: ['approvalStatus'], name: 'idx_equipment_item_approval' },
     { fields: ['isActive'], name: 'idx_equipment_item_active' },

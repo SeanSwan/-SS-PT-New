@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildWorkoutSessionPdfFile } from './workoutSessionPdf';
+import { buildWorkoutSessionPdfFile, buildWorkoutSessionPdfPreview } from './workoutSessionPdf';
 import type { AutoTableOptions } from '../pdfAutoTable';
 
 const mocks = vi.hoisted(() => ({
@@ -68,6 +68,23 @@ describe('workoutSessionPdf', () => {
       ['', '#2', '8', '140 lb', '-'],
       ['TRX Row', '#1', '12', '-', '6'],
     ]);
+  });
+
+  it('builds the Approval Vault preview payload: same bytes + filename + brand wordmark', async () => {
+    const preview = await buildWorkoutSessionPdfPreview({
+      clientName: 'MF Client',
+      clientSource: 'move_fitness',
+      title: 'Workout — 07/11',
+      days: [],
+    });
+    expect(preview?.blob).toBeInstanceOf(Blob);
+    expect(preview?.filename).toBe('MoveFitness-Session-Workout-07-11.pdf');
+    expect(preview?.brandWordmark).toBe('Move Fitness');
+
+    // Fail-safe: unknown source previews as SwanStudios.
+    const swan = await buildWorkoutSessionPdfPreview({ clientName: 'X', title: 'Workout — 07/11', days: [] });
+    expect(swan?.brandWordmark).toBe('SwanStudios');
+    expect(swan?.filename).toContain('SwanStudios');
   });
 
   it('white-labels a Move Fitness client: Move Fitness branding + filename, zero SwanStudios', async () => {
