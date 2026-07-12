@@ -36,7 +36,7 @@ console.log(`Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 let sequelize;
 
 // Create a logging function that can be disabled in production
-const dbLogger = isProduction || isTest 
+const dbLogger = isProduction || isTest
   ? false // Disable logging in production for performance and security
   : (msg) => console.log(`[DB]: ${msg}`);
 
