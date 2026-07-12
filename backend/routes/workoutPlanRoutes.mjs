@@ -280,22 +280,25 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
         primaryGoal,
         equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
         planningReviewAcknowledged: planningReviewAcknowledged === true,
-        planningReviewReason,
+        planningReviewReason: typeof planningReviewReason === 'string' ? planningReviewReason : null,
       });
       return res.status(result.refreshed ? 200 : 201).json({ success: true, ...result });
-    } catch (error) {
-      // Cortex P0 §5.3: surface the acknowledged-review contract (409/400)
-      // instead of collapsing it into a generic 500.
-      if (error.name === 'SwanCoachPlanningReviewError') {
-        return res.status(error.status).json({
+    } catch (err) {
+      // Cortex P0 (§5.3): surface the deterministic safety gate's
+      // acknowledged-review contract (409 review-required / 400
+      // reason-required) instead of masking the block as a 500 — the same
+      // mapping the workout-builder routes use, and the shape the
+      // SafetyGateModal already parses.
+      if (err.name === 'SwanCoachPlanningReviewError') {
+        return res.status(err.status).json({
           success: false,
-          code: error.code,
-          message: error.message,
-          reviewRequiredSignals: error.reviewRequiredSignals,
-          missingCriticalData: error.missingCriticalData,
+          code: err.code,
+          error: err.message,
+          reviewRequiredSignals: err.reviewRequiredSignals,
+          missingCriticalData: err.missingCriticalData,
         });
       }
-      logger.error('[WorkoutPlan] backup generate error: %s', error.message);
+      logger.error('[WorkoutPlan] backup generate error: %s', err.message);
       return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
     }
   });

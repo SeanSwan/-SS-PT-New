@@ -110,9 +110,10 @@ export async function generateBackupPlan({
   planningReviewAcknowledged = false,
   planningReviewReason = null,
 }) {
-  // Cortex P0 §5.3: backup plans run the SAME deterministic safety gate as
-  // primary generation — a pain-flagged client 409s here too unless the
-  // trainer acknowledges with a written reason (post-ship hostile-review fix).
+  // Cortex P0 caller sweep: generatePlan now BLOCKS behind the deterministic
+  // safety gate (409 acknowledged-review contract). Forward the trainer's
+  // acknowledgement and let SwanCoachPlanningReviewError propagate — the
+  // route maps it to the same 409/400 shape the builder routes use.
   const generated = await generatePlan({
     clientId: userId,
     trainerId,
@@ -120,7 +121,7 @@ export async function generateBackupPlan({
     sessionsPerWeek,
     primaryGoal,
     equipmentProfileId,
-    planningReviewAcknowledged,
+    planningReviewAcknowledged: planningReviewAcknowledged === true,
     planningReviewReason,
   });
 

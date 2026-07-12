@@ -43,15 +43,11 @@ router.get('/database-health', userManagementController.getDatabaseHealth);
 // Trainer management endpoints
 router.get('/trainers', async (req, res) => {
   try {
-    console.log('Admin /trainers endpoint called');
-
     const trainers = await sequelize.models.User.findAll({
       where: { role: ['trainer', 'admin'] },
       order: [['createdAt', 'DESC']],
       attributes: { exclude: ['password', 'refreshTokenHash'] }
     });
-
-    console.log(`Found ${trainers.length} trainers`);
 
     res.json({
       success: true,
@@ -73,14 +69,12 @@ router.use('/', adminClientRoutes); // Mount at root since routes already have /
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
   try {
-    console.log('Admin /contacts endpoint called');
-
     const contacts = await Contact.findAll({
       order: [['createdAt', 'DESC']],
       limit: 50
     });
 
-    console.log(`Found ${contacts.length} contacts`);
+    logger.info('Admin contacts fetched', { count: contacts.length });
 
     res.json({
       success: true,
@@ -98,11 +92,7 @@ router.get('/contacts', async (req, res) => {
 // Get recent contacts for notifications.
 router.get('/contacts/recent', async (req, res) => {
   try {
-    console.log('Admin /contacts/recent endpoint called');
-
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    console.log(`Looking for contacts since: ${oneDayAgo.toISOString()}`);
 
     const recentContacts = await Contact.findAll({
       where: {
@@ -113,7 +103,7 @@ router.get('/contacts/recent', async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    console.log(`Found ${recentContacts.length} recent contacts`);
+    logger.info('Admin recent contacts fetched', { count: recentContacts.length });
 
     res.json({
       success: true,
@@ -134,8 +124,6 @@ router.get('/contacts/recent', async (req, res) => {
 // Mark contact as viewed
 router.patch('/contacts/:id/viewed', async (req, res) => {
   try {
-    console.log(`Marking contact ${req.params.id} as viewed`);
-
     const contact = await Contact.findByPk(req.params.id);
     if (!contact) {
       return res.status(404).json({
@@ -146,7 +134,7 @@ router.patch('/contacts/:id/viewed', async (req, res) => {
 
     await contact.update({ viewedAt: new Date() });
 
-    console.log(`Contact ${req.params.id} marked as viewed`);
+    logger.info('Admin contact marked viewed', { contactId: req.params.id });
 
     res.json({
       success: true,

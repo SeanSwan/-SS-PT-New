@@ -27,7 +27,7 @@ export const coachCommandCrystallineFocusStyles = css`
   .client-bar {
     background: linear-gradient(180deg, color-mix(in srgb, var(--coach-focus-elevated) 92%, transparent), var(--coach-focus-surface)), var(--coach-focus-surface);
     border-color: var(--coach-focus-line);
-    border-radius: 18px;
+    border-radius: calc(var(--lens-panel-radius, 16px) + 2px);
     box-shadow: 0 22px 62px color-mix(in srgb, var(--coach-focus-canvas) 74%, transparent);
     gap: 14px;
     padding: 14px;
@@ -132,7 +132,7 @@ export const coachCommandCrystallineFocusStyles = css`
   .tab-content {
     background: var(--coach-focus-surface);
     border: 1px solid var(--coach-focus-line);
-    border-radius: 18px;
+    border-radius: calc(var(--lens-panel-radius, 16px) + 2px);
     box-shadow: 0 18px 54px color-mix(in srgb, var(--coach-focus-canvas) 58%, transparent);
     padding: 10px;
   }
@@ -143,7 +143,7 @@ export const coachCommandCrystallineFocusStyles = css`
   .transcript-stream {
     background: linear-gradient(180deg, color-mix(in srgb, var(--coach-focus-elevated) 92%, transparent), var(--coach-focus-surface)), var(--coach-focus-surface);
     border: 1px solid var(--coach-focus-line);
-    border-radius: 16px;
+    border-radius: var(--lens-panel-radius, 16px);
     padding: 16px;
   }
   .transcript-empty { max-width: 720px; }
@@ -171,7 +171,7 @@ export const coachCommandCrystallineFocusStyles = css`
   .console-dock {
     background: color-mix(in srgb, var(--coach-focus-surface) 92%, transparent);
     border: 1px solid var(--coach-focus-line);
-    border-radius: 18px;
+    border-radius: calc(var(--lens-panel-radius, 16px) + 2px);
     box-shadow: 0 18px 54px color-mix(in srgb, var(--coach-focus-canvas) 58%, transparent);
     padding: 12px;
   }
@@ -209,7 +209,7 @@ export const coachCommandCrystallineFocusStyles = css`
     .ops-button,
     .ops-rail-close { display: none; }
     .right-rail {
-      border-radius: 18px;
+      border-radius: calc(var(--lens-panel-radius, 16px) + 2px);
       grid-area: ops;
       height: auto;
       max-height: calc(100dvh - 32px);
@@ -230,7 +230,7 @@ export const coachCommandCrystallineFocusStyles = css`
   }
 
   @media (max-width: 768px) {
-    .client-bar { border-radius: 16px; padding: 12px; }
+    .client-bar { border-radius: var(--lens-panel-radius, 16px); padding: 12px; }
     .new-client-button { width: 100%; }
     .client-action-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .client-action-button { min-height: 68px; }

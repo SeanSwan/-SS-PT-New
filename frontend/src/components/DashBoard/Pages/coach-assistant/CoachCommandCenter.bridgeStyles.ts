@@ -18,6 +18,7 @@ import { coachCommandNotebookStyles } from './CoachCommandCenter.notebookStyles'
 import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
 import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
 import { coachCommandOwnerControlsStyles } from './CoachCommandCenter.ownerControlsStyles';
+import { coachCommandPresenceStyles } from './CoachCommandCenter.presenceStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 import { coachCommandThreadHeaderStyles } from './CoachCommandCenter.threadHeaderStyles';
 
@@ -34,7 +35,7 @@ export const coachCommandBridgeStyles = css`
 
   .client-bar {
     align-items: center;
-    border-radius: 22px;
+    border-radius: calc(var(--lens-panel-radius, 16px) + 6px);
     display: grid;
     gap: 12px;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -106,7 +107,7 @@ export const coachCommandBridgeStyles = css`
   .tab-bar {
     background: color-mix(in srgb, var(--coach-surface) 80%, transparent);
     border: 1px solid var(--coach-line);
-    border-radius: 16px;
+    border-radius: var(--lens-panel-radius, 16px);
     display: flex;
     flex: 0 0 auto;
     gap: 6px;
@@ -171,7 +172,7 @@ export const coachCommandBridgeStyles = css`
   }
 
   .tab-scroll .left-rail {
-    border-radius: 18px;
+    border-radius: calc(var(--lens-panel-radius, 16px) + 2px);
     max-height: none;
     position: static;
     top: auto;
@@ -292,4 +293,5 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandOpsMissionStyles}
   ${coachCommandCrystallineFocusStyles}
   ${coachCommandBridgeMobileDockStyles}
+  ${coachCommandPresenceStyles}
 `;
