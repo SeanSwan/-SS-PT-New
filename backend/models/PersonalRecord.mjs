@@ -74,10 +74,14 @@ PersonalRecord.init(
     tableName: 'personal_records',
     timestamps: true,
     indexes: [
+      // Docs-only mirror — migration 20260712030000 owns the schema. The
+      // uniqueness is CASE-INSENSITIVE (lower(exerciseName)) so concurrent
+      // mixed-case first-ever saves cannot mint duplicate baseline rows;
+      // the raw-name index it replaced allowed exactly that race.
       {
         unique: true,
-        fields: ['userId', 'exerciseName', 'metric'],
-        name: 'personal_records_user_exercise_metric_unique',
+        fields: ['userId', sequelize.fn('lower', sequelize.col('exerciseName')), 'metric'],
+        name: 'personal_records_user_lower_exercise_metric_unique',
       },
     ],
   }
