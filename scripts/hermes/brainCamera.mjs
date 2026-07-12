@@ -33,7 +33,7 @@ export function cameraClientJs(nodesJson) {
   "use strict";
   var VB_W=${VB_W},VB_H=${VB_H};
   var reduce=matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var pane=document.querySelector('.graph-pane');
+  var pane=document.querySelector('.graph-stage');
   var g=document.querySelector('svg.brain .camera');
   var layer=document.querySelector('.label-layer');
   var live=document.getElementById('ann');

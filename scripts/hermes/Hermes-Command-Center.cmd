@@ -9,6 +9,16 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
+rem Surface runtime truth: warn when the pinned checkout is not its tracked release.
+set "PINNED_HEAD="
+set "TRACKED_HEAD="
+for /f "delims=" %%h in ('git -C "%RR%" rev-parse HEAD 2^>nul') do set "PINNED_HEAD=%%h"
+for /f "delims=" %%h in ('git -C "%RR%" rev-parse @{upstream} 2^>nul') do set "TRACKED_HEAD=%%h"
+if defined PINNED_HEAD if defined TRACKED_HEAD if /i not "%PINNED_HEAD%"=="%TRACKED_HEAD%" (
+  echo [!] RUNTIME DRIFT - pinned Hermes checkout differs from its tracked release.
+  echo     The page will render with the pinned code; refresh runner-repo before release verification.
+)
+
 rem Activated = the 6am task exists (not just the runtime folder - a half-finished
 rem activation must resume, caught live 2026-07-07).
 schtasks /Query /TN "HermesOS-Daily" >nul 2>nul

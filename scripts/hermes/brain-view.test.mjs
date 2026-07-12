@@ -190,3 +190,45 @@ test('degrades honestly: no receipts, missing repo stores -> renders, never cras
   const html = fs.readFileSync(renderBrainView(root, path.join(root, 'never.json'), DAY, { now: NOW }).path, 'utf8');
   assert.match(html, /switches UNREADABLE|fail closed/);
 });
+
+test('V1 truth: stale snapshots expose age, force an amber health floor, and render a warning', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const staleNow = '2026-07-04T08:00:00Z';
+  const data = gatherBrainData(root, swFile, DAY, { now: staleNow });
+  assert.equal(data.dataAgeDays, 3);
+  assert.equal(data.today, '2026-07-04');
+  assert.notEqual(data.health, 'green');
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: staleNow }).path, 'utf8');
+  assert.match(html, /DATA IS 3 DAYS OLD/);
+  assert.match(html, /generated 2026-07-04T08:00:00Z; today is 2026-07-04/);
+});
+
+test('V1 truth: current-day snapshots omit the stale-data banner', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.dataAgeDays, 0);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  assert.ok(!html.includes('DATA IS 0 DAYS OLD'));
+});
+
+test('V1 repair shell: phone tabs, 30-day strip, atmosphere layers, and lit node gradients ship together', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  for (const id of ['tab-overview', 'tab-graph', 'tab-detail']) assert.ok(html.includes(`id="${id}"`), id);
+  assert.equal((html.match(/class="heat-cell /g) || []).length, 30);
+  for (const layer of ['stars-near', 'stars-mid', 'stars-far']) assert.ok(html.includes(`class="${layer}"`), layer);
+  assert.match(html, /radialGradient id="node-live"/);
+  assert.match(html, /radialGradient id="node-idle"/);
+  assert.ok(!/class="node[^"]*"[^>]*fill="none"/.test(html), 'live/idle node bulbs never render unlit');
+  assert.match(html, /@media\(prefers-reduced-motion:reduce\)[\s\S]*animation:none!important/);
+});
+
+test('V1 launcher warns when pinned runtime differs from the release marker', () => {
+  const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  const cmd = fs.readFileSync(path.join(here, 'Hermes-Command-Center.cmd'), 'utf8');
+  assert.match(cmd, /git -C "%RR%" rev-parse HEAD/);
+  assert.match(cmd, /RUNTIME DRIFT/);
+});

@@ -51,8 +51,9 @@ export const CSS = `
   .gbar h1 em{font-style:normal;color:var(--c-app)}
   .gbar .meta{margin-left:auto;color:var(--c-muted);font-size:var(--t-sub);letter-spacing:.02em}
   /* fault strip (only when fail-closed) */
-  .fault-strip{font-size:var(--t-fault);font-weight:700;color:#fff;background:linear-gradient(90deg,var(--c-fault),var(--fault-dark));
+  .fault-strip{font-size:var(--t-fault);font-weight:700;color:var(--c-text);background:linear-gradient(90deg,var(--c-fault),var(--fault-dark));
     border-radius:10px;padding:var(--s3) var(--s5);margin-bottom:var(--s3);box-shadow:0 0 24px rgba(229,72,77,.35)}
+  .stale-strip{font-size:var(--t-fault);font-weight:700;color:var(--bg-deep);background:linear-gradient(90deg,var(--c-routine),color-mix(in srgb,var(--c-routine) 68%,var(--c-text)));border-radius:10px;padding:var(--s3) var(--s5);margin-bottom:var(--s3);box-shadow:0 0 24px color-mix(in srgb,var(--c-routine) 28%,transparent)}
   /* B — NBA hero (loudest by construction) */
   .nba{border-radius:16px;padding:var(--s5) var(--s6);margin-bottom:var(--s4);border:1px solid var(--bg-edge);
     background:linear-gradient(100deg,rgba(96,192,240,.10),rgba(139,92,246,.09));position:relative;overflow:hidden}
@@ -79,14 +80,21 @@ export const CSS = `
   .tile.bad .dotp,.tile.warn .dotp{position:absolute;top:var(--s3);right:var(--s3);width:8px;height:8px;border-radius:50%;
     background:currentColor;animation:pulse 1.6s ease-in-out infinite}
   /* D — main split: graph + inspector rail */
-  .main{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(480px,1fr);gap:clamp(16px,1.4vw,32px);min-height:0;align-items:start}
-  .graph-pane{position:relative;aspect-ratio:1280/700;background:radial-gradient(560px 380px at 50% 47%, var(--pane) 0%, transparent 70%);
+  .main{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(480px,1fr);gap:clamp(16px,1.4vw,32px);min-height:0;align-items:stretch}
+  .left-col{display:grid;grid-template-rows:minmax(560px,1fr) auto;gap:var(--s4);min-width:0}
+  .graph-pane{position:relative;min-height:560px;background:radial-gradient(480px 480px at 24% 68%,color-mix(in srgb,var(--c-app) 7%,transparent),transparent),radial-gradient(480px 480px at 74% 74%,color-mix(in srgb,var(--c-routine) 7%,transparent),transparent),radial-gradient(480px 480px at 26% 24%,color-mix(in srgb,var(--c-memory) 7%,transparent),transparent),radial-gradient(480px 480px at 76% 20%,color-mix(in srgb,var(--c-skill) 7%,transparent),transparent),radial-gradient(560px 380px at 50% 47%,var(--pane) 0%,transparent 70%);
     border:1px solid var(--bg-edge);border-radius:18px;overflow:hidden}
+  .heat-strip{background:var(--bg-card);border:1px solid var(--bg-edge);border-radius:14px;padding:var(--s4)}
+  .heat-cells{display:grid;grid-template-columns:repeat(30,minmax(6px,18px));gap:4px;justify-content:space-between}
+  .heat-cell{display:block;height:18px;border-radius:5px;background:var(--bg-edge)}
+  .heat-cell.green{background:var(--c-app)}.heat-cell.amber{background:var(--c-routine)}.heat-cell.red{background:var(--c-fault)}.heat-cell.no-data{opacity:.42}
+  .heat-ticks{display:flex;justify-content:space-between;margin-top:var(--s2);font:var(--t-sub)/1 'Fira Code',monospace;color:var(--c-muted)}
+  .graph-stage{position:absolute;left:0;right:0;top:50%;aspect-ratio:1280/700;transform:translateY(-50%)}
   svg.brain{position:absolute;inset:0;width:100%;height:100%;display:block}
   .label-layer{position:absolute;inset:0;pointer-events:none}
   .nlabel{position:absolute;transform:translate(-50%,0);text-align:center;white-space:nowrap;line-height:1.25;
     font-size:var(--t-body);font-weight:600;color:var(--c-text);text-shadow:0 1px 4px rgba(0,0,0,.85)}
-  .nlabel.dim{color:var(--c-muted)} .nlabel.fault{color:var(--c-fault)}
+  .nlabel.dim{color:var(--c-muted)} .nlabel.fault{color:var(--c-fault)} .nlabel.hover-tier{color:var(--c-muted);opacity:.6}
   .nlabel .nsub{display:block;font-size:var(--t-sub);font-weight:500;color:var(--c-muted);letter-spacing:.01em}
   /* family legend — fixed chrome (never camera-transformed), colour maps to the arcs */
   .glegend{position:absolute;left:var(--s4);top:var(--s4);display:flex;flex-direction:column;gap:var(--s1);z-index:2;pointer-events:none}
@@ -104,9 +112,9 @@ export const CSS = `
   .edge{stroke-width:1;opacity:.3}
   .edge.live{opacity:.6;stroke-dasharray:4 8;animation:flow 3s linear infinite}
   .spark{offset-rotate:0deg;animation:travel 3.4s linear infinite;opacity:0}
-  .node{filter:drop-shadow(0 0 7px var(--glow))}
+  .node{filter:drop-shadow(0 0 var(--halo,6px) var(--glow))}
   .pulse{animation:pulse 2.6s ease-in-out infinite}
-  .core-glow{filter:drop-shadow(0 0 16px var(--c-app)) drop-shadow(0 0 34px color-mix(in srgb, var(--c-skill) 55%, transparent))}
+  .core-glow{filter:drop-shadow(0 0 16px var(--c-app)) drop-shadow(0 0 34px color-mix(in srgb,var(--c-skill) 55%,transparent));animation:coredrift 90s linear infinite}
   .core-ring{fill:none;stroke:var(--c-app);opacity:.28;animation:ringgrow 3.4s ease-out infinite}
   .core-ring.r2{animation-delay:1.7s;stroke:var(--c-skill)}
   .core-spin{fill:none;stroke:var(--c-skill);stroke-dasharray:3 14;opacity:.55;transform-origin:640px 350px;animation:spin 26s linear infinite}
@@ -135,9 +143,10 @@ export const CSS = `
   @keyframes ringgrow{0%{r:46;opacity:.3}100%{r:118;opacity:0}}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes travel{0%{offset-distance:0%;opacity:0}12%{opacity:.9}88%{opacity:.9}100%{offset-distance:100%;opacity:0}}
+  @keyframes coredrift{to{filter:hue-rotate(360deg) drop-shadow(0 0 16px var(--c-app))}}
   /* Slice 2 — interactivity chrome (view-only) */
-  .graph-pane{cursor:grab;touch-action:none}
-  .graph-pane:active{cursor:grabbing}
+  .graph-stage{cursor:grab;touch-action:none}
+  .graph-stage:active{cursor:grabbing}
   .camera{will-change:transform}
   .label-layer{will-change:transform}
   [data-node]{cursor:pointer}
@@ -159,8 +168,9 @@ export const CSS = `
   [data-zoom="cluster"] .nlabel.k-sk{display:none}
   [data-zoom="cluster"] .nlabel .nsub{display:none}
   [data-zoom="macro"] .nlabel.k-sk{display:none}
-  @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+  .tab-radio,.phone-tabs{display:none}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
   @media (max-width:1080px){.main{grid-template-columns:1fr}.panel{max-width:none}}
-  @media (max-width:760px){.shell{padding-inline:var(--s4)}.gbar .meta{margin-left:0}.nba{padding:var(--s4)}
-    :root{--t-hero:26px;--t-hud:24px}}
+  @media (max-width:760px){.shell{padding-inline:var(--s4)}.gbar .meta{margin-left:0}.nba{padding:var(--s4)}:root{--t-hero:26px;--t-hud:24px}}
+  @media(max-width:700px){body{overflow-x:hidden}.shell{padding-bottom:68px}.tab-radio{position:absolute;opacity:0;pointer-events:none}.phone-tabs{position:fixed;display:grid;grid-template-columns:repeat(3,1fr);left:0;right:0;bottom:0;z-index:20;background:var(--bg-card);border-top:1px solid var(--bg-edge)}.phone-tabs label{min-height:44px;display:grid;place-items:center;font:700 var(--t-sub)/1 'Sora',sans-serif;color:var(--c-muted);border-bottom:3px solid transparent;cursor:pointer}.phone-tabs label:focus-visible{outline:2px solid var(--c-app);outline-offset:-3px}#tab-overview:checked~.phone-tabs label[for="tab-overview"],#tab-graph:checked~.phone-tabs label[for="tab-graph"],#tab-detail:checked~.phone-tabs label[for="tab-detail"]{color:var(--c-text);border-bottom-color:var(--c-app)}#tab-overview:checked~.main{display:none}#tab-graph:checked~.nba,#tab-graph:checked~.hud,#tab-detail:checked~.nba,#tab-detail:checked~.hud{display:none}#tab-graph:checked~.main{display:block;overflow:hidden}#tab-graph:checked~.main .panel,#tab-graph:checked~.main .heat-strip{display:none}#tab-graph:checked~.main .left-col{display:block;overflow-x:auto}#tab-graph:checked~.main .graph-pane{width:980px;min-width:980px;height:calc(100vh - 92px);min-height:620px}#tab-detail:checked~.main{display:block}#tab-detail:checked~.main .left-col{display:none}#tab-detail:checked~.main .panel{display:flex}.hud{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{border-radius:14px}.gbar{padding-top:var(--s4)}}
 `;

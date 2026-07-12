@@ -31,6 +31,9 @@ const countDir = (p, filter = () => true) => {
 
 export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) {
   const when = now || new Date().toISOString();
+  const today = when.slice(0, 10);
+  const ageMs = Date.parse(`${today}T00:00:00Z`) - Date.parse(`${isoDate}T00:00:00Z`);
+  const dataAgeDays = Number.isFinite(ageMs) ? Math.max(0, Math.floor(ageMs / 86400000)) : 0;
   const map = JSON.parse(fs.readFileSync(path.join(HERE, 'brain-map.json'), 'utf8'));
   const sw = readSwitches(switchesFile);
   const receipts = readReceipts(vaultRoot, isoDate);
@@ -74,7 +77,7 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   // Aurora: one color readable from across the room.
   const anyFault = anchor.level === 'fault' || switches === null || (doctor && !String(doctor.outcome).startsWith('ok'));
   const anyWarn = anchor.level === 'warn' || open.length > 0 || routines.some((r) => r.state === 'fault');
-  const health = anyFault ? 'red' : anyWarn ? 'amber' : 'green';
+  const health = anyFault ? 'red' : (anyWarn || dataAgeDays >= 1) ? 'amber' : 'green';
 
   // The brain's own next-best-action — the product's north-star pattern applied
   // to the operator. v2 fix: collect ALL true conditions into a RANKED rail (the
@@ -92,7 +95,7 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const nba = nbaRail[0];
 
   return {
-    when, isoDate, brain: map.brain, applications: map.applications, routines, memory, skills,
+    when, isoDate, today, dataAgeDays, brain: map.brain, applications: map.applications, routines, memory, skills,
     switches, anchorLevel: anchor.level, anchorNote: (anchor.faults[0] || anchor.notes?.[0] || ''),
     queueOpen: open.length, doctorOk: doctor ? String(doctor.outcome).startsWith('ok') : null,
     receiptCount: receipts.length, thoughts, hourly, memoriesTotal, health, nba, nbaRail,
