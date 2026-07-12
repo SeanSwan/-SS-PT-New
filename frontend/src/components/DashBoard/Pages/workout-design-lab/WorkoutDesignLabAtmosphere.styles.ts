@@ -50,8 +50,10 @@ export const NebulaField = styled.div`
     radial-gradient(ellipse 90% 60% at 18% 8%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 22%, transparent), transparent 55%),
     radial-gradient(ellipse 70% 55% at 82% 18%, color-mix(in srgb, var(--ice-wing, #60c0f0) 18%, transparent), transparent 60%),
     radial-gradient(ellipse 80% 70% at 55% 92%, color-mix(in srgb, var(--midnight-sapphire, #002060) 65%, transparent), transparent 70%),
-    radial-gradient(ellipse 40% 30% at 68% 55%, color-mix(in srgb, var(--gilded-fern, #c6a84b) 9%, transparent), transparent 65%),
-    var(--obsidian-black, #0a0a0f);
+    radial-gradient(ellipse 40% 30% at 68% 55%, color-mix(in srgb, var(--gilded-fern, #c6a84b) 9%, transparent), transparent 65%);
+  /* NO opaque base layer on purpose: the lens canvas beneath must stay
+     visible so an applied Style Lens recolors this page (the original
+     "all lenses look the same" bug was exactly this kind of covering). */
 
   &::before {
     content: "";

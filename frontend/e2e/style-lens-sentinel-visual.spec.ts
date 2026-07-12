@@ -70,7 +70,7 @@ async function openDashboard(page: Page) {
   });
   await expect(
     page.getByRole("heading", {
-      name: "25 workout worlds. One shared session.",
+      name: /Worlds × 25 Styles. One session./,
     }),
   ).toBeVisible({ timeout: 20_000 });
   await expect(
@@ -241,7 +241,9 @@ test('every promoted lens preserves a static reduced-motion fallback', async ({ 
     await page.getByRole('button', { name: 'Apply appearance' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-style-lens', id);
     await expect(page.locator('html')).toHaveAttribute('data-motion-mode', 'reduced');
-    const motion = await page.locator('[data-style-lens-shell]').evaluate((element) => {
+    // v5: scoped preview frames add inner shells — assert on the OUTER
+    // dashboard shell (first in DOM order).
+    const motion = await page.locator('[data-style-lens-shell]').first().evaluate((element) => {
       const style = getComputedStyle(element);
       return {
         animationDuration: Number.parseFloat(style.animationDuration),

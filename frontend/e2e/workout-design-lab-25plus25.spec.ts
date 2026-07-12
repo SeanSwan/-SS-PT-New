@@ -119,9 +119,20 @@ test("Style and Compare modes expose 25+25 without multiplying pages", async ({
   await page
     .getByRole("combobox", { name: "Compare workout world" })
     .selectOption("swiss-precision-lab");
+  // v5: compare renders TWO live stages — the same world rendered once per
+  // Style Lens pane, each inside its own scoped lens frame.
   await expect(
     page.getByRole("region", { name: "Swiss Precision Lab", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(2);
+  await page
+    .getByRole("combobox", { name: "Compare Style Lens B" })
+    .selectOption("candy-glass-arcade");
+  const paneFrames = comparison.locator("[data-scoped-lens-frame]");
+  await expect(paneFrames).toHaveCount(2);
+  const lensA = await paneFrames.nth(0).getAttribute("data-style-lens");
+  const lensB = await paneFrames.nth(1).getAttribute("data-style-lens");
+  expect(lensB).toBe("candy-glass-arcade");
+  expect(lensA).not.toBe(lensB);
   expect(writes).toEqual([]);
 });
 

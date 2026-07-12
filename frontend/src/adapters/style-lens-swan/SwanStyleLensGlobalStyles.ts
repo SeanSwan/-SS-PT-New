@@ -216,12 +216,15 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     gap: var(--lens-shell-gap, 0px);
     background: var(--lens-canvas, var(--bg-base, #0a0a0f));
   }
-  [data-style-lens-shell] [data-swan-button-tone='blue'] {
+  /* :where() keeps these at single-selector specificity: a non-destructive
+     Dual-Button-Glow floor for plain buttons and lens recipes that never
+     overrides GlowButton's own richer glow/hover treatment. */
+  [data-style-lens-shell] :where([data-swan-button-tone='blue']) {
     min-height: 44px;
     box-shadow: 0 0 22px color-mix(in srgb, var(--wing-purple, #8b5cf6) 48%, transparent);
   }
 
-  [data-style-lens-shell] [data-swan-button-tone='purple'] {
+  [data-style-lens-shell] :where([data-swan-button-tone='purple']) {
     min-height: 44px;
     box-shadow: 0 0 22px color-mix(in srgb, var(--ice-wing, #60c0f0) 48%, transparent);
   }
