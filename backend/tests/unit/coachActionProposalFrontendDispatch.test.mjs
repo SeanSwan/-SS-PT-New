@@ -13,6 +13,7 @@ vi.mock('../../services/ai/coachDispatchEligibilityService.mjs', () => ({
 }));
 
 const { createCoachActionProposalsFromAiResponse } = await import('../../services/ai/coachActionProposalService.mjs');
+const { filterEligibleFrontendActions } = await import('../../services/ai/coachDispatchEligibilityService.mjs');
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -69,6 +70,47 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
       payload: { exerciseName: 'Goblet squat', sets: 3, reps: 10 },
     }]);
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
+  });
+
+  it('WIRES the eligibility gate: filter is invoked with the CLIENT\'s id (conversation.targetUserId), not the trainer\'s', async () => {
+    // Review-queue REVISE item (2026-07-12): the only suite running the real
+    // service mocked the gate as a pass-through and never asserted it was
+    // called. A refactor deleting the filter block — or evaluating eligibility
+    // against the TRAINER's pain context — would keep every test green while
+    // the chat bypass silently reopened. This pins both seams.
+    const db = fakeSequelize();
+    const content = [
+      'Draft form action prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'frontend_dispatch',
+        payload: {
+          event: 'AI_ADD_EXERCISE',
+          payload: { exerciseName: 'Goblet squat', sets: 3 },
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    filterEligibleFrontendActions.mockClear();
+    await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(filterEligibleFrontendActions).toHaveBeenCalledTimes(1);
+    expect(filterEligibleFrontendActions).toHaveBeenCalledWith(expect.objectContaining({
+      targetUserId: 42,          // the CLIENT the dispatch affects
+      requestingUserId: 7,       // the trainer driving the chat
+      actions: [expect.objectContaining({ event: 'AI_ADD_EXERCISE' })],
+    }));
+    const callArgs = filterEligibleFrontendActions.mock.calls[0][0];
+    expect(typeof callArgs.loadRegistry).toBe('function');
+    expect(typeof callArgs.loadClientContext).toBe('function');
   });
 
   it('strips non-draft fields from safe frontend dispatch payloads', async () => {
