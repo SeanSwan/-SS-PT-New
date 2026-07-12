@@ -451,6 +451,7 @@ async function fetchSessionMetrics() {
     const result = await query(`
       SELECT
         COUNT(*) as total_sessions,
+        COUNT(CASE WHEN status IN ('completed', 'cancelled', 'scheduled') THEN 1 END) as utilization_sessions,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions,
         COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_sessions,
         COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_sessions
@@ -460,6 +461,7 @@ async function fetchSessionMetrics() {
 
     const row = result.rows[0];
     const total = parseInt(row.total_sessions) || 1;
+    const utilizationTotal = parseInt(row.utilization_sessions) || 0;
     const completed = parseInt(row.completed_sessions) || 0;
     const cancelled = parseInt(row.cancelled_sessions) || 0;
 
@@ -496,7 +498,7 @@ async function fetchSessionMetrics() {
       completedSessions: completed,
       cancelledSessions: cancelled,
       scheduledSessions: parseInt(row.scheduled_sessions) || 0,
-      utilizationRate: Math.round((completed / total) * 100),
+      utilizationRate: utilizationTotal > 0 ? Math.round((completed / utilizationTotal) * 100) : 0,
       trainerProductivity: Math.min(trainerProductivity, 100),
       trends: trendsResult.rows.map(r => ({ month: r.month, total: parseInt(r.total), completed: parseInt(r.completed) }))
     };

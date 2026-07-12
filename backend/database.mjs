@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 // Get directory name equivalent in ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRootDir = path.resolve(__dirname, '..');
+const isTest = process.env.NODE_ENV === 'test';
 
 // IMPORTANT: Load the .env file from the project root directory
 // This is crucial to ensure process.env.PG_PASSWORD is available before Sequelize initialization
@@ -21,7 +22,7 @@ const envPath = path.resolve(projectRootDir, '.env');
 if (fs.existsSync(envPath)) {
   console.log(`Loading environment variables from: ${envPath}`);
   dotenv.config({ path: envPath });
-} else {
+} else if (!isTest) {
   console.warn(`Warning: .env file not found at ${envPath}. This is normal in production environments.`);
   // In production, environment variables are set through the platform (e.g., Render)
   // and don't require a .env file
@@ -35,7 +36,7 @@ console.log(`Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 let sequelize;
 
 // Create a logging function that can be disabled in production
-const dbLogger = isProduction 
+const dbLogger = isProduction || isTest
   ? false // Disable logging in production for performance and security
   : (msg) => console.log(`[DB]: ${msg}`);
 
@@ -204,7 +205,9 @@ export const testConnection = async () => {
   }
 };
 
-// Test connection when this module is imported
-testConnection();
+// Test connection on runtime startup, never as a side effect of unit-test imports.
+if (!isTest) {
+  testConnection();
+}
 
 export default sequelize;

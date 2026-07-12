@@ -10,6 +10,8 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import logger from '../../utils/logger.mjs';
+import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
+import { calculateChallengeProgressAward } from '../../services/gamification/challengeProgressAwardService.mjs';
 
 const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 
@@ -555,22 +557,44 @@ router.post('/:challengeId/progress', async (req, res) => {
         return { error: true, status: 404, message: 'Challenge not found' };
       }
 
-      // Calculate new progress (capped at goal)
-      const newProgress = overwrite
-        ? Math.min(parseFloat(progress), challenge.goal)
-        : Math.min(participation.progress + parseFloat(progress), challenge.goal);
-
-      // Determine if this update triggers completion
-      const justCompleted = participation.status === 'active' && newProgress >= challenge.goal;
-
-      // Single, consistent points calculation (no double-bonus)
-      const pointsFromProgress = Math.floor(newProgress * challenge.pointsPerUnit);
-      const totalPoints = pointsFromProgress + (justCompleted ? challenge.bonusPoints : 0);
+      const {
+        newProgress,
+        cumulativePoints,
+        pointsToAward,
+        justCompleted,
+      } = calculateChallengeProgressAward({
+        currentProgress: participation.progress,
+        priorPointsEarned: participation.pointsEarned,
+        requestedProgress: progress,
+        overwrite,
+        challenge,
+      });
 
       participation.progress = newProgress;
-      participation.pointsEarned = totalPoints;
+      participation.pointsEarned = cumulativePoints;
       if (justCompleted) {
         participation.status = 'completed';
+        participation.isCompleted = true;
+        participation.completedAt = new Date();
+      }
+
+      if (pointsToAward > 0) {
+        await GamificationPointsService.recordLedgerEntry({
+          userId: req.user.id,
+          points: pointsToAward,
+          transactionType: 'earn',
+          source: 'challenge_completion',
+          sourceId: Number(challengeId),
+          description: 'Challenge progress: ' + challenge.name,
+          metadata: {
+            challengeId: Number(challengeId),
+            participantId: participation.id,
+            cumulativePoints,
+            progress: newProgress,
+          },
+          idempotencyKey: 'challenge-progress:' + participation.id + ':' + cumulativePoints,
+          maxPoints: 500,
+        }, t);
       }
 
       await participation.save({ transaction: t });
@@ -596,6 +620,9 @@ router.post('/:challengeId/progress', async (req, res) => {
       ...result
     });
   } catch (error) {
+    if (error.message === 'Progress must be a finite non-negative number') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     logger.error('Error updating challenge progress:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
