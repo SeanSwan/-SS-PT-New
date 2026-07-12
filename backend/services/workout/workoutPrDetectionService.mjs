@@ -114,7 +114,12 @@ export async function detectAndRecordPersonalRecords({
 
       if (!prior) {
         // First-ever recorded best for this metric: quiet "first", no points.
-        await PersonalRecord.create({
+        // Celebrate ONLY when the row actually persisted — same contract the UPDATE path
+        // below already enforces (`if (!updated) continue;`). The old code swallowed EVERY
+        // create error (not just the benign unique-index race) and pushed `first: true`
+        // regardless, so a transient DB failure announced "New lift unlocked" while nothing
+        // was written — and the next workout, still first-ever, celebrated it AGAIN.
+        const created = await PersonalRecord.create({
           userId: numericUserId,
           exerciseName: candidate.exerciseName,
           metric,
@@ -124,10 +129,16 @@ export async function detectAndRecordPersonalRecords({
           sessionId,
           formId: formId ? String(formId) : null,
           achievedAt: achievedAt ? new Date(achievedAt) : new Date(),
-        }).catch((err) => {
-          // Unique-index race (double submit): safe to ignore — the row exists.
-          logger.warn('[PrDetection] create raced/failed', { userId: numericUserId, key, error: err?.message });
-        });
+        })
+          .then(() => true)
+          .catch((err) => {
+            // Unique-index race (double submit) OR a real failure — either way we did not
+            // write this row on THIS pass, so we must not celebrate it.
+            logger.warn('[PrDetection] create raced/failed', { userId: numericUserId, key, error: err?.message });
+            return false;
+          });
+        if (!created) continue;
+
         if (metric === 'weight') {
           prEvents.push({
             exerciseName: candidate.exerciseName,

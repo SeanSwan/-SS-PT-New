@@ -344,7 +344,12 @@ export const getClientDataOverview = async (req, res) => {
  */
 export const getAdminOnboardingList = async (req, res) => {
   try {
-    const { User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = await getAllModels();
+    const {
+      User,
+      ClientOnboardingQuestionnaire,
+      ClientBaselineMeasurements,
+      ClientTrainerAssignment,
+    } = await getAllModels();
 
     // Parse query params
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -362,6 +367,38 @@ export const getAdminOnboardingList = async (req, res) => {
         { lastName: { [Op.iLike]: `%${searchQuery}%` } },
         { email: { [Op.iLike]: `%${searchQuery}%` } },
       ];
+    }
+
+    // IDOR fix: this route admits trainers (authorize(['admin','trainer'])), but the
+    // list previously filtered on `search` ONLY — so ANY trainer could read EVERY
+    // client's onboarding row, including questionnaire + baseline body measurements
+    // (health PII). Every sibling handler in this controller already scopes through
+    // ensureClientAccess; the list forgot. Trainers are now narrowed to their actively
+    // assigned clients. FAILS CLOSED: no assignments (or model missing) => empty list,
+    // never the full roster.
+    if (req.user?.role === 'trainer') {
+      if (!ClientTrainerAssignment) {
+        return res.status(200).json({
+          success: true,
+          clients: [],
+          pagination: { page, limit, totalPages: 0, totalCount: 0 },
+        });
+      }
+      const assignments = await ClientTrainerAssignment.findAll({
+        where: { trainerId: req.user.id, status: 'active' },
+        attributes: ['clientId'],
+      });
+      const assignedClientIds = [...new Set(
+        assignments.map((a) => a.clientId).filter((id) => id !== null && id !== undefined),
+      )];
+      if (assignedClientIds.length === 0) {
+        return res.status(200).json({
+          success: true,
+          clients: [],
+          pagination: { page, limit, totalPages: 0, totalCount: 0 },
+        });
+      }
+      userWhere.id = { [Op.in]: assignedClientIds };
     }
 
     // Fetch users with their onboarding data

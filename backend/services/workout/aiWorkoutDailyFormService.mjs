@@ -262,28 +262,40 @@ export async function submitAiWorkoutLogAsDailyForm({
     });
 
     // Launch charter 4a: PR detection = third post-commit step, same never-fail
-    // contract as the XP step. Historical imports (plaud_merge etc.) still
+    // contract as the XP step. REAL historical imports (plaud_merge etc.) still
     // record baselines/records; celebration is a caller concern.
+    //
+    // SYNTHETIC backfill is excluded entirely: its sets are fabricated (MAX weight paired
+    // with an unrelated MAX reps), so they can out-score a client's real PR, overwrite it,
+    // and repoint it at a filler session — which the backfill's own undo then DESTROYS,
+    // erasing the client's real best for good. No PR may reference generated filler.
     let prEvents = [];
-    try {
-      const prResult = await detectAndRecordPersonalRecords({
+    if (sourcePolicy.suppressPersonalRecords) {
+      logger.info('[aiWorkoutDailyForm] PR detection skipped for synthetic source', {
         userId: parsedClientId,
-        formId: dailyForm.id,
-        sessionId: workoutSession.id,
-        exercises: normalizedExercises,
-        date: workoutDateIso,
-        // Charter v3 H rails: historical/backfilled sources record baselines
-        // at the WORKOUT date but never earn points or celebration.
-        awardPoints: !sourcePolicy.suppressEngagementSideEffects,
-        achievedAt: workoutDateIso,
+        source: sourcePolicy.source,
       });
-      prEvents = prResult.prEvents || [];
-    } catch (prErr) {
-      logger.warn('[aiWorkoutDailyForm] PR detection failed (non-critical)', {
-        userId: parsedClientId,
-        formId: dailyForm.id,
-        error: prErr?.message,
-      });
+    } else {
+      try {
+        const prResult = await detectAndRecordPersonalRecords({
+          userId: parsedClientId,
+          formId: dailyForm.id,
+          sessionId: workoutSession.id,
+          exercises: normalizedExercises,
+          date: workoutDateIso,
+          // Charter v3 H rails: historical sources record baselines at the WORKOUT
+          // date but never earn points or celebration.
+          awardPoints: !sourcePolicy.suppressEngagementSideEffects,
+          achievedAt: workoutDateIso,
+        });
+        prEvents = prResult.prEvents || [];
+      } catch (prErr) {
+        logger.warn('[aiWorkoutDailyForm] PR detection failed (non-critical)', {
+          userId: parsedClientId,
+          formId: dailyForm.id,
+          error: prErr?.message,
+        });
+      }
     }
 
     return {

@@ -71,8 +71,15 @@ export function estimateBrzycki1RM(weight, reps) {
   if (denominator <= 0.01) return null;
   const estimate = Math.round(weight / denominator);
   if (estimate > MAX_REASONABLE_1RM) {
-    logger.warn('Brzycki 1RM exceeds human ceiling', { weight, reps, estimate, cap: MAX_REASONABLE_1RM });
-    return MAX_REASONABLE_1RM;
+    // An estimate past the human ceiling means the INPUT is bad (typo / unit mix-up), so
+    // reject it like any other invalid input rather than clamping. Returning the cap used
+    // to (a) record a fabricated 1500 est-1RM PR from garbage data and (b) FREEZE est-1RM
+    // PRs forever after — the PR check is a strict `>`, so nothing can ever beat a stored
+    // 1500. Both callers already handle null (`?? 0`, and a truthy guard).
+    logger.warn('Brzycki 1RM exceeds human ceiling — rejecting as invalid input', {
+      weight, reps, estimate, cap: MAX_REASONABLE_1RM,
+    });
+    return null;
   }
   return estimate;
 }

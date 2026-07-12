@@ -918,10 +918,23 @@ router.post('/events/:id/presign-upload', async (req, res) => {
 });
 
 /**
+ * Infrastructure endpoints below are ADMIN-ONLY. The router-level gate admits trainers
+ * (they legitimately manage gallery events/photos), but bucket CORS configuration is
+ * infrastructure with no trainer use case: /r2-cors-check leaks the bucket's CORS policy
+ * and /setup-r2-cors mutates it. Privilege separation — trainers don't touch infra.
+ */
+const galleryAdminOnly = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required' });
+  }
+  next();
+};
+
+/**
  * GET /api/admin/gallery/r2-cors-check
  * Diagnostic: tests R2 CORS configuration by checking bucket CORS rules.
  */
-router.get('/r2-cors-check', async (req, res) => {
+router.get('/r2-cors-check', galleryAdminOnly, async (req, res) => {
   try {
     const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
     if (!r2Configured) {
@@ -941,7 +954,7 @@ router.get('/r2-cors-check', async (req, res) => {
  * POST /api/admin/gallery/setup-r2-cors
  * Apply CORS rules to R2 bucket so browser can upload directly via presigned URLs.
  */
-router.post('/setup-r2-cors', async (req, res) => {
+router.post('/setup-r2-cors', galleryAdminOnly, async (req, res) => {
   try {
     const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
     if (!r2Configured) {
