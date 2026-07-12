@@ -420,6 +420,11 @@ router.post('/:id/items', async (req, res) => {
 
     res.status(201).json({ success: true, item });
   } catch (err) {
+    // Race backstop: concurrent add can beat the pre-check; the partial unique
+    // index rejects it — surface as a duplicate, not a server error (P0.3b).
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Add item error:', err);
     res.status(500).json({ success: false, error: 'Failed to add item' });
   }
@@ -446,9 +451,26 @@ router.put('/:id/items/:itemId', async (req, res) => {
       updates.resistanceType = resistanceType;
     }
 
+    // Rename duplicate pre-check — ACTIVE siblings only, matching the partial
+    // unique index (P0.3b). Same-name renames skip the lookup (no self-409).
+    if (updates.name && updates.name !== item.name) {
+      const EquipmentItem = getEquipmentItem();
+      const duplicate = await EquipmentItem.findOne({
+        where: { profileId: item.profileId, name: updates.name, isActive: true, id: { [Op.ne]: item.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+      }
+    }
+
     await item.update(updates);
     res.json({ success: true, item });
   } catch (err) {
+    // Race backstop: a concurrent write can beat the pre-check; the partial
+    // unique index rejects it — surface as a duplicate, not a server error.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Update item error:', err);
     res.status(500).json({ success: false, error: 'Failed to update item' });
   }

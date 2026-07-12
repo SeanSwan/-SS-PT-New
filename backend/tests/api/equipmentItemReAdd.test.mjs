@@ -94,6 +94,17 @@ describe('equipmentRoutes POST /:id/items soft-deleted re-add (P0.3)', () => {
     );
   });
 
+  it('maps a lost unique-index race on create (SequelizeUniqueConstraintError) to 409, not 500', async () => {
+    const raceErr = new Error('duplicate key value violates unique constraint');
+    raceErr.name = 'SequelizeUniqueConstraintError';
+    mocks.equipmentItem.create.mockRejectedValue(raceErr);
+
+    const res = await postItem('Barbell');
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+  });
+
   it('still rejects an ACTIVE duplicate with 409', async () => {
     const res = await postItem('Bench');
 
