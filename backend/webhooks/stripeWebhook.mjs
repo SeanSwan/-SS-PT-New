@@ -45,7 +45,7 @@ if (isStripeEnabled()) {
  * Stripe webhook handler
  * Mounted at:
  *   POST /webhook   (legacy: /webhooks/stripe/webhook)
- *   POST /          (alias:  /api/webhook/stripe â€” matches Stripe dashboard config)
+ *   POST /          (alias:  /api/webhook/stripe — matches Stripe dashboard config)
  */
 const stripeWebhookHandler = async (req, res) => {
   // Verify webhook signature
@@ -83,7 +83,7 @@ const stripeWebhookHandler = async (req, res) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
 
-        // â”€â”€ Gallery Credit / VIP Fulfillment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Gallery Credit / VIP Fulfillment ──────────────────────────
         if (session.metadata?.type === 'gallery_credits') {
           await fulfillGalleryCredits(session);
           break;
@@ -97,7 +97,7 @@ const stripeWebhookHandler = async (req, res) => {
           break;
         }
 
-        // â”€â”€ Cart / Store Fulfillment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Cart / Store Fulfillment ──────────────────────────────────
         if (session.metadata?.type === 'vip_pt_session') {
           await fulfillGalleryVipSession({
             sessionId: session.id,
@@ -112,7 +112,7 @@ const stripeWebhookHandler = async (req, res) => {
         const cartId = session.metadata?.cartId;
 
         if (!cartId) {
-          logger.warn('[Webhook] checkout.session.completed with no cartId or gallery_credits â€” ignoring');
+          logger.warn('[Webhook] checkout.session.completed with no cartId or gallery_credits — ignoring');
           break;
         }
 
@@ -196,7 +196,7 @@ const stripeWebhookHandler = async (req, res) => {
         }
         break;
       }
-      // â”€â”€ ACH / PaymentIntent Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── ACH / PaymentIntent Events ──────────────────────────────────
       case 'payment_intent.processing': {
         // ACH payments go through a 'processing' state (1-3 business days)
         const pi = event.data.object;
@@ -325,7 +325,7 @@ async function processCompletedOrder(cartId, { grantResult = null, stripeSession
     let totalSessionsAdded = 0;
     const packageNames = [];
     
-    // Process each item â€” collect totals first, then batch DB operations
+    // Process each item — collect totals first, then batch DB operations
     const subscriptionItems = [];
     for (const item of cart.cartItems) {
       const storefrontItem = item.storefrontItem;
@@ -573,7 +573,7 @@ async function fulfillGalleryCredits(session) {
     await visitor.update({ isVip: true });
     logger.info(`[Gallery Webhook] VIP activated for visitor ${visitorId}`);
   } else if (credits > 0) {
-    // Atomic increment â€” safe against concurrent webhooks
+    // Atomic increment — safe against concurrent webhooks
     await GalleryVisitor.increment('enhancementCredits', {
       by: credits,
       where: { id: visitorId },
@@ -676,21 +676,21 @@ async function fulfillGalleryDonation(session) {
 }
 
 /**
- * Fulfill a paid gallery PRINT order (Slice 3b â€” the money loop).
+ * Fulfill a paid gallery PRINT order (Slice 3b — the money loop).
  * Called from checkout.session.completed when metadata.type === 'print_order'.
  *
- * Design (plan Â§3):
+ * Design (plan §3):
  *  - Signature is already verified by the outer handler (constructEvent).
- *  - ATOMIC replay guard: processed_stripe_sessions INSERT â€¦ ON CONFLICT â€” the
+ *  - ATOMIC replay guard: processed_stripe_sessions INSERT … ON CONFLICT — the
  *    first delivery of a session wins; Stripe's at-least-once redelivery no-ops.
  *  - Map the PrintOrder from the SESSION'S OWN id (server-set on the order at
- *    checkout), falling back to the server-set metadata.orderId â€” never client
+ *    checkout), falling back to the server-set metadata.orderId — never client
  *    input.
- *  - Fail-closed: capture (pending â†’ paid) FIRST. The print-lab submission is
+ *  - Fail-closed: capture (pending → paid) FIRST. The print-lab submission is
  *    Slice 3c (a separate step); if it later fails the order stays 'paid' and
- *    surfaces in the admin view â€” a captured order is never left invisible.
+ *    surfaces in the admin view — a captured order is never left invisible.
  *  - Idempotent by construction: the flip is `WHERE status = 'pending'`, and the
- *    replay-guard INSERT + the flip share ONE transaction â€” a fulfillment failure
+ *    replay-guard INSERT + the flip share ONE transaction — a fulfillment failure
  *    rolls back the 'processed' marker so Stripe's retry re-processes (no
  *    stuck-in-pending-after-payment hole).
  */
@@ -754,14 +754,14 @@ async function fulfillPrintOrder(session) {
       // A PAID session with no local order = money captured, no record. This
       // should never happen (the order is created before the session), but if it
       // does, the plan's "never leave a captured order invisible" rule applies:
-      // don't silently drop it â€” alert an admin to reconcile in Stripe. Ack 200
+      // don't silently drop it — alert an admin to reconcile in Stripe. Ack 200
       // (a retry cannot conjure a deleted order); the alert is the safety net.
-      logger.error(`[Print Webhook] PAID session ${session.id} has NO matching PrintOrder (metadata.orderId=${meta.orderId}) â€” alerting admin`);
+      logger.error(`[Print Webhook] PAID session ${session.id} has NO matching PrintOrder (metadata.orderId=${meta.orderId}) — alerting admin`);
       try {
         await sendNotification({
           type: 'ADMIN_NOTIFICATION',
           title: 'Print Payment Needs Attention',
-          message: `A print payment completed (session ${session.id}) but no matching order was found. Verify in Stripe â€” money may be captured with no local order.`,
+          message: `A print payment completed (session ${session.id}) but no matching order was found. Verify in Stripe — money may be captured with no local order.`,
           data: {
             type: 'print_order_orphan',
             stripeSessionId: session.id,
@@ -777,7 +777,7 @@ async function fulfillPrintOrder(session) {
       return;
     }
 
-    // Fail-closed capture: pending â†’ paid. No-op if already advanced.
+    // Fail-closed capture: pending → paid. No-op if already advanced.
     const [flipped] = await sequelize.query(
       `UPDATE print_orders SET status = 'paid', paid_at = NOW(),
               shipping_address = :shipping::jsonb, updated_at = NOW()
@@ -796,7 +796,7 @@ async function fulfillPrintOrder(session) {
   } catch (err) {
     try { await t.rollback(); } catch { /* already settled */ }
     logger.error(`[Print Webhook] fulfillPrintOrder failed for session ${session.id}: ${err.message}`);
-    throw err; // 500 â†’ Stripe retries; the rolled-back processed marker lets the retry re-process.
+    throw err; // 500 → Stripe retries; the rolled-back processed marker lets the retry re-process.
   }
 
   if (!flippedOrder) {
@@ -804,9 +804,9 @@ async function fulfillPrintOrder(session) {
     return;
   }
 
-  logger.info(`[Print Webhook] PrintOrder ${flippedOrder.id} â†’ paid (session ${session.id})`);
+  logger.info(`[Print Webhook] PrintOrder ${flippedOrder.id} → paid (session ${session.id})`);
 
-  // Best-effort admin notification (outside the txn â€” a notify failure must not
+  // Best-effort admin notification (outside the txn — a notify failure must not
   // un-capture the payment). Slice 3c will hang print-lab submission off 'paid'.
   try {
     await sendNotification({
@@ -831,7 +831,7 @@ async function fulfillPrintOrder(session) {
   // Slice 3c: hand the captured order off to the print lab as a SEPARATE, flag-gated step.
   // The flip is already committed, so a provider failure keeps the order 'paid' (visible +
   // retryable). Inline flag check + LAZY import so this LIVE payment webhook never
-  // hard-depends on the print modules at load â€” a print-module fault can't crash payments.
+  // hard-depends on the print modules at load — a print-module fault can't crash payments.
   if (process.env.PRINT_FULFILLMENT_PRODIGI_ENABLED === 'true') {
     try {
       const { submitToProvider } = await import('../services/print/printFulfillmentService.mjs');

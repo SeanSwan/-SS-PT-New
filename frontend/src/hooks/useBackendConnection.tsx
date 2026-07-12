@@ -199,7 +199,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       logger.log(`Checking backend health at: ${fullConfig.apiUrl}${HEALTH_CHECK_PATH}`);
       const response = await apiInstance.get(HEALTH_CHECK_PATH);
       if (response.status === 200) {
-        logger.log('âœ… Backend health check SUCCESS - server is running');
+        logger.log('✅ Backend health check SUCCESS - server is running');
         setConnectionState(CONNECTION_STATES.CONNECTED);
         updateRetryCount(0);
         consecutiveHealthFailuresRef.current = 0;
@@ -334,7 +334,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       if (isHealthy) {
         // SUCCESS - Connection established, reset circuit breaker
-        logger.log('âœ… Connection successful, resetting retry count');
+        logger.log('✅ Connection successful, resetting retry count');
         circuitBreaker.attempts = 0; // Reset circuit breaker on success
         if (isMountedRef.current) {
           updateRetryCount(0);

@@ -292,7 +292,7 @@ const DevLogin: React.FC = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('tokenTimestamp', Date.now().toString());
 
-        setSuccess(`âœ… Successfully logged in as ${data.user.role} user (${data.user.username})`);
+        setSuccess(`✅ Successfully logged in as ${data.user.role} user (${data.user.username})`);
 
         // Reload to apply the new authentication state
         setTimeout(() => {
