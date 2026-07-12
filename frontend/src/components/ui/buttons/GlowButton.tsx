@@ -690,6 +690,13 @@ const GlowButton: React.FC<GlowButtonProps> = ({
           $isGhost={canonicalVariant === 'ghost'}
           $pulse={pulseProp}
           $haptic={haptic}
+          data-swan-button-tone={
+            canonicalVariant === 'primary'
+              ? 'blue'
+              : canonicalVariant === 'accent'
+                ? 'purple'
+                : undefined
+          }
           {...props}
           aria-busy={isLoading}
           aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}

@@ -1,10 +1,19 @@
 /**
- * Workout Design Lab v4
- * 25 workout Worlds × 25 promoted Style Lenses with one shared, prototype-only session.
+ * ============================================================================
+ * WORKOUT DESIGN LAB v5 — the transforming vision, made visible
+ * ============================================================================
+ * BLUEPRINT: 25 Worlds × 25 Style Lenses with one shared prototype session.
+ * v5 makes the lens axis REAL: the stage below is always wrapped in a
+ * ScopedLensFrame wearing the currently browsed lens (instant preview on
+ * click — no Apply needed to SEE), Compare renders two live stages side by
+ * side, and a JWST-nebula atmosphere sits under translucent surfaces so a
+ * committed lens visibly recolors the whole Lab. Apply remains the only
+ * write path (validation → transition → persist, unchanged).
+ * ============================================================================
  */
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { useStyleLensAppearance } from "../../../../core/style-lens-os";
+import { ScopedLensFrame } from "../../../../core/style-lens-os";
 import {
   CONCEPT_REGISTRY,
   DEFAULT_CONCEPT_ID,
@@ -18,6 +27,7 @@ import WorkoutDesignRolodex from "./WorkoutDesignRolodex";
 import WorkoutDesignLabModes, {
   type WorkoutDesignLabMode,
 } from "./WorkoutDesignLabModes";
+import WorkoutDesignWorldExplorer from "./WorkoutDesignWorldExplorer";
 import WorkoutDesignStyleExplorer from "./WorkoutDesignStyleExplorer";
 import WorkoutDesignComparePanel from "./WorkoutDesignComparePanel";
 import {
@@ -26,25 +36,31 @@ import {
 } from "./workoutDesignStyleCatalog";
 import { CombinedStageLabel } from "./WorkoutDesignLabModes.styles";
 import {
+  NebulaField,
+  StageFrame,
+} from "./WorkoutDesignLabAtmosphere.styles";
+import {
   HeaderTop,
   Lab,
   LabHeader,
   LiveReceipt,
-  Pick,
-  Picker,
   SafetyCard,
   Stage,
-  Toolbar,
 } from "./WorkoutDesignLabShell.styles";
+
+const findLens = (id: string) =>
+  WORKOUT_DESIGN_STYLE_LENSES.find((lens) => lens.id === id);
+
 const WorkoutDesignLabPage: React.FC = () => {
   const { state, beginPreview, cancelPreview, commitPreview } =
     useStyleLensAppearance();
-  const committedLens = WORKOUT_DESIGN_STYLE_LENSES.find(
-    ({ id }) => id === state.committed.styleLensId,
-  );
+  const committedLens = findLens(state.committed.styleLensId);
   const [mode, setMode] = useState<WorkoutDesignLabMode>("world");
   const [activeId, setActiveId] = useState(DEFAULT_CONCEPT_ID);
   const [activeLensId, setActiveLensId] = useState(
+    committedLens?.id ?? WORKOUT_DESIGN_STYLE_LENSES[0].id,
+  );
+  const [compareLensAId, setCompareLensAId] = useState(
     committedLens?.id ?? WORKOUT_DESIGN_STYLE_LENSES[0].id,
   );
   const [query, setQuery] = useState("");
@@ -55,9 +71,8 @@ const WorkoutDesignLabPage: React.FC = () => {
   const [rolodexOpen, setRolodexOpen] = useState(false);
   const activeIndex = CONCEPT_REGISTRY.findIndex(({ id }) => id === activeId);
   const active = CONCEPT_REGISTRY[activeIndex] ?? CONCEPT_REGISTRY[24];
-  const activeLens =
-    WORKOUT_DESIGN_STYLE_LENSES.find(({ id }) => id === activeLensId) ??
-    WORKOUT_DESIGN_STYLE_LENSES[0];
+  const activeLens = findLens(activeLensId) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
+  const compareLensA = findLens(compareLensAId) ?? activeLens;
   const ActiveConcept = active.component;
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -80,7 +95,7 @@ const WorkoutDesignLabPage: React.FC = () => {
     if (index >= 0) selectAt(index);
   };
   const selectLens = (id: string) => {
-    const lens = WORKOUT_DESIGN_STYLE_LENSES.find((item) => item.id === id);
+    const lens = findLens(id);
     if (!lens) return;
     setActiveLensId(id);
     beginPreview({
@@ -89,7 +104,7 @@ const WorkoutDesignLabPage: React.FC = () => {
       updatedAt: new Date().toISOString(),
     });
     setReceipt(
-      `${lens.name} staged for preview · Apply is required to save it.`,
+      `${lens.name} is live on the stage below · Apply to keep it everywhere.`,
     );
   };
   const applyLens = async () => {
@@ -103,9 +118,7 @@ const WorkoutDesignLabPage: React.FC = () => {
   const cancelLens = () => {
     cancelPreview();
     const fallback =
-      WORKOUT_DESIGN_STYLE_LENSES.find(
-        ({ id }) => id === state.committed.styleLensId,
-      ) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
+      findLens(state.committed.styleLensId) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
     setActiveLensId(fallback.id);
     setReceipt(`Style preview canceled · ${fallback.name} remains active.`);
   };
@@ -115,12 +128,13 @@ const WorkoutDesignLabPage: React.FC = () => {
       nextMode === "world"
         ? "World mode · compare complete workout environments."
         : nextMode === "style"
-          ? "Style mode · preview structural systems before applying."
-          : "Compare mode · one World plus one Style, bounded to two panels.",
+          ? "Style mode · click a lens and watch the stage transform."
+          : "Compare mode · two live stages, two lenses, one shared session.",
     );
   };
   return (
     <Lab>
+      <NebulaField aria-hidden="true" />
       <LabHeader>
         <HeaderTop>
           <div>
@@ -146,86 +160,22 @@ const WorkoutDesignLabPage: React.FC = () => {
         <WorkoutDesignLabModes mode={mode} onChange={changeMode} />
 
         {mode === "world" ? (
-          <>
-            <Toolbar>
-              <label>
-                <span className="sr-only">Filter workout worlds</span>
-                <Search aria-hidden="true" size={18} />
-                <input
-                  type="search"
-                  aria-label="Filter workout worlds"
-                  placeholder="Search worlds or environments"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <div>
-                <button
-                  type="button"
-                  aria-label="Previous workout world"
-                  onClick={() => selectAt(activeIndex - 1)}
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next workout world"
-                  onClick={() => selectAt(activeIndex + 1)}
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Reset to recommended world"
-                  onClick={() => {
-                    setActiveId(DEFAULT_CONCEPT_ID);
-                    setReceipt(
-                      "Reset to Crystalline Swan World · recommended direction",
-                    );
-                  }}
-                >
-                  <RotateCcw size={17} /> Reset to recommended
-                </button>
-              </div>
-            </Toolbar>
-            <Picker role="listbox" aria-label="Choose a workout world">
-              {filtered.map((concept) => (
-                <Pick
-                  key={concept.id}
-                  type="button"
-                  role="option"
-                  aria-label={concept.name}
-                  aria-selected={concept.id === activeId}
-                  $active={concept.id === activeId}
-                  onClick={() => selectWorld(concept.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "ArrowRight") {
-                      event.preventDefault();
-                      selectAt(activeIndex + 1);
-                    }
-                    if (event.key === "ArrowLeft") {
-                      event.preventDefault();
-                      selectAt(activeIndex - 1);
-                    }
-                    if (event.key === "Home") {
-                      event.preventDefault();
-                      selectAt(0);
-                    }
-                    if (event.key === "End") {
-                      event.preventDefault();
-                      selectAt(CONCEPT_REGISTRY.length - 1);
-                    }
-                  }}
-                >
-                  <span>
-                    {concept.number} · {concept.environmentFamily}
-                  </span>
-                  {concept.name}
-                  {concept.recommended ? <em>Recommended</em> : null}
-                </Pick>
-              ))}
-            </Picker>
-          </>
+          <WorkoutDesignWorldExplorer
+            concepts={CONCEPT_REGISTRY}
+            filtered={filtered}
+            activeId={activeId}
+            activeIndex={activeIndex}
+            query={query}
+            onQueryChange={setQuery}
+            onSelectAt={selectAt}
+            onSelectWorld={selectWorld}
+            onReset={() => {
+              setActiveId(DEFAULT_CONCEPT_ID);
+              setReceipt(
+                "Reset to Crystalline Swan World · recommended direction",
+              );
+            }}
+          />
         ) : null}
 
         {mode === "style" ? (
@@ -239,39 +189,56 @@ const WorkoutDesignLabPage: React.FC = () => {
             onCancel={cancelLens}
           />
         ) : null}
-
-        {mode === "compare" ? (
-          <WorkoutDesignComparePanel
-            worlds={CONCEPT_REGISTRY}
-            lenses={WORKOUT_DESIGN_STYLE_LENSES}
-            world={active}
-            lens={activeLens}
-            model={model}
-            onWorldChange={selectWorld}
-            onLensChange={selectLens}
-          />
-        ) : null}
       </LabHeader>
 
-      {mode !== "world" ? (
-        <CombinedStageLabel>
-          Combined live stage · <strong>{active.name}</strong> +{" "}
-          <strong>{activeLens.name}</strong>
-        </CombinedStageLabel>
-      ) : null}
-      <Stage>
-        <ActiveConcept
+      {mode === "compare" ? (
+        <WorkoutDesignComparePanel
+          worlds={CONCEPT_REGISTRY}
+          lenses={WORKOUT_DESIGN_STYLE_LENSES}
+          world={active}
+          lensA={compareLensA}
+          lensB={activeLens}
           model={model}
-          conceptName={active.name}
-          primaryActionLabel={active.primaryActionLabel}
-          onAction={() =>
+          onWorldChange={selectWorld}
+          onLensAChange={setCompareLensAId}
+          onLensBChange={setActiveLensId}
+          onAction={(paneLabel) =>
             setReceipt(
-              `${active.name}: ${active.primaryActionLabel} staged · prototype only`,
+              `${active.name}: ${active.primaryActionLabel} staged in ${paneLabel} · prototype only`,
             )
           }
           onOpenRolodex={() => setRolodexOpen(true)}
         />
-      </Stage>
+      ) : (
+        <>
+          {mode === "style" ? (
+            <CombinedStageLabel>
+              Live stage · <strong>{active.name}</strong> wearing{" "}
+              <strong>{activeLens.name}</strong>
+            </CombinedStageLabel>
+          ) : null}
+          <StageFrame>
+            <ScopedLensFrame
+              styleLensId={activeLens.id}
+              aria-label={`${active.name} rendered in ${activeLens.name}`}
+            >
+              <Stage>
+                <ActiveConcept
+                  model={model}
+                  conceptName={active.name}
+                  primaryActionLabel={active.primaryActionLabel}
+                  onAction={() =>
+                    setReceipt(
+                      `${active.name}: ${active.primaryActionLabel} staged · prototype only`,
+                    )
+                  }
+                  onOpenRolodex={() => setRolodexOpen(true)}
+                />
+              </Stage>
+            </ScopedLensFrame>
+          </StageFrame>
+        </>
+      )}
       <WorkoutDesignRolodex
         isOpen={rolodexOpen}
         onClose={() => setRolodexOpen(false)}

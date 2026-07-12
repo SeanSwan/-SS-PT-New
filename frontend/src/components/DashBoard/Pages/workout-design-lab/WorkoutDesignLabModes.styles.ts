@@ -76,7 +76,7 @@ export const StylePick = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => $active ? "var(--ice-wing, #60c0f0)" : "color-mix(in srgb, var(--frost-white, #e0ecf4) 14%, transparent)"};
   border-radius: 14px; background: ${({ $active }) => $active ? "var(--midnight-sapphire, #002060)" : "var(--carbon, #141419)"};
   color: var(--frost-white, #e0ecf4); font: 720 13px/1.3 "Sora", sans-serif;
-  span { display: block; margin-bottom: 4px; color: var(--ice-wing, #60c0f0); font: 600 9px/1 "Fira Code", monospace; }
+  span { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--ice-wing, #60c0f0); font: 600 9px/1 "Fira Code", monospace; }
   &:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); outline-offset: 2px; }
 `;
 
@@ -91,15 +91,8 @@ export const StyleDetail = styled.article`
   dl div { padding: 11px 12px; border-radius: 12px; background: color-mix(in srgb, var(--obsidian-black, #0a0a0f) 48%, transparent); }
   dt { color: var(--ice-wing, #60c0f0); font: 650 9px/1 "Fira Code", monospace; text-transform: uppercase; }
   dd { margin: 6px 0 0; font: 700 13px/1.35 "Sora", sans-serif; }
+  .stage-hint { position: relative; margin: 16px 0 0; max-width: 52ch; color: var(--ice-wing, #60c0f0); font: italic 600 13px/1.5 "Cormorant Garamond", serif; font-size: 15px; }
   @media (max-width: 430px) { dl { grid-template-columns: 1fr; } }
-`;
-
-export const LensGlyph = styled.div`
-  position: absolute; width: 230px; height: 230px; right: -70px; top: -70px; border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--ice-wing, #60c0f0) 44%, transparent);
-  box-shadow: inset 0 0 55px color-mix(in srgb, var(--wing-purple, #8b5cf6) 24%, transparent), 0 0 70px color-mix(in srgb, var(--ice-wing, #60c0f0) 18%, transparent);
-  &::before, &::after { content: ""; position: absolute; inset: 28px; border: 1px solid color-mix(in srgb, var(--gilded-fern, #c6a84b) 38%, transparent); transform: rotate(45deg); }
-  &::after { inset: 63px; border-color: var(--ice-wing, #60c0f0); border-radius: 50%; }
 `;
 
 export const StyleActions = styled.div`
@@ -111,26 +104,14 @@ export const StyleActions = styled.div`
 `;
 
 export const CompareSelectors = styled.div`
-  max-width: 1880px; margin: 0 auto 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  max-width: 1880px; margin: 0 auto 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px;
   label { color: var(--text-secondary, #b8c8d8); font: 650 11px/1.4 "Sora", sans-serif; }
   select { display: block; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 12px; border: 1px solid color-mix(in srgb, var(--ice-wing, #60c0f0) 35%, transparent); border-radius: 13px; background: var(--graphite, #1a1a24); color: var(--frost-white, #e0ecf4); font-size: 16px; }
   select:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); outline-offset: 2px; }
   @media (max-width: 620px) { grid-template-columns: 1fr; }
 `;
 
-export const CompareGrid = styled.section`
-  max-width: 1880px; margin: 0 auto 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
-  @media (max-width: 760px) { grid-template-columns: 1fr; }
-`;
 
-export const ComparePanel = styled.article`
-  min-height: 230px; padding: clamp(18px, 2.5vw, 28px); border: 1px solid color-mix(in srgb, var(--ice-wing, #60c0f0) 30%, transparent); border-radius: 20px; background: linear-gradient(145deg, var(--carbon, #141419), var(--graphite, #1a1a24));
-  > span { color: var(--gilded-fern, #c6a84b); font: 650 10px/1 "Fira Code", monospace; text-transform: uppercase; }
-  h2 { margin: 10px 0 8px; font: 800 clamp(24px, 3vw, 38px)/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.035em; }
-  p { color: var(--text-secondary, #b8c8d8); line-height: 1.55; }
-  ul { margin: 18px 0 0; padding: 0; display: grid; gap: 8px; list-style: none; }
-  li { padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--frost-white, #e0ecf4) 12%, transparent); font: 650 12px/1.4 "Sora", sans-serif; }
-`;
 
 export const CombinedStageLabel = styled.div`
   max-width: 1880px; margin: 0 auto; padding: 12px clamp(16px, 2.4vw, 34px); background: var(--midnight-sapphire, #002060); color: var(--frost-white, #e0ecf4); font: 700 12px/1.4 "Sora", sans-serif;

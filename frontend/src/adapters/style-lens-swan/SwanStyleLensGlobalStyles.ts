@@ -16,14 +16,14 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
         color-mix(in srgb, var(--bg-surface, #141419) 86%, var(--midnight-sapphire, #002060)));
   }
 
-  :root[data-style-lens='swan-flagship'] {
+  [data-style-lens='swan-flagship'] {
     --lens-sidebar-width: 292px;
     --lens-main-padding: clamp(24px, 2vw, 40px);
     --lens-panel-radius: 18px;
     --lens-navigation-edge: var(--wing-purple, #8b5cf6);
   }
 
-  :root[data-style-lens='quiet-meridian'] {
+  [data-style-lens='quiet-meridian'] {
     --lens-sidebar-width: 228px;
     --lens-main-padding: clamp(28px, 3vw, 56px);
     --lens-panel-radius: 8px;
@@ -35,7 +35,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
         var(--bg-base, #0a0a0f) 100%);
   }
 
-  :root[data-style-lens='blueprint-fold'] {
+  [data-style-lens='blueprint-fold'] {
     --lens-sidebar-width: 252px;
     --lens-main-padding: clamp(20px, 2.2vw, 44px);
     --lens-panel-radius: 2px;
@@ -50,7 +50,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
       var(--midnight-sapphire, #002060);
   }
 
-  :root[data-style-lens='kintsugi-circuit'] {
+  [data-style-lens='kintsugi-circuit'] {
     --lens-sidebar-width: 266px;
     --lens-main-padding: clamp(24px, 2.6vw, 48px);
     --lens-panel-radius: 6px 22px 8px 28px;
@@ -63,7 +63,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
       linear-gradient(155deg, var(--bg-base, #0a0a0f), var(--royal-depth, #003080));
   }
 
-  :root[data-style-lens='analog-flight-recorder'] {
+  [data-style-lens='analog-flight-recorder'] {
     --lens-sidebar-width: 312px;
     --lens-main-padding: clamp(18px, 2vw, 36px);
     --lens-panel-radius: 3px;
@@ -74,7 +74,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
         var(--obsidian-black, #0a0a0f) 36px 100%);
   }
 
-  :root[data-style-lens='candy-glass-arcade'] {
+  [data-style-lens='candy-glass-arcade'] {
     --lens-sidebar-width: 248px;
     --lens-main-padding: clamp(20px, 2.4vw, 46px);
     --lens-panel-radius: 26px;
@@ -89,7 +89,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
       var(--bg-base, #0a0a0f);
   }
 
-  :root[data-style-lens='recovery-cloister'] {
+  [data-style-lens='recovery-cloister'] {
     --lens-sidebar-width: 220px;
     --lens-main-padding: clamp(32px, 4vw, 72px);
     --lens-panel-radius: 30px 8px 30px 8px;
@@ -98,7 +98,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-canvas: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ice-wing, #60c0f0) 18%, transparent), transparent 38%), #08243a;
   }
 
-  :root[data-style-lens='tempo-forge'] {
+  [data-style-lens='tempo-forge'] {
     --lens-sidebar-width: 296px;
     --lens-main-padding: clamp(18px, 1.8vw, 34px);
     --lens-panel-radius: 4px 18px 4px 18px;
@@ -106,7 +106,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-canvas: repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 10%, transparent) 32px 33px), #141419;
   }
 
-  :root[data-style-lens='coach-ledger'] {
+  [data-style-lens='coach-ledger'] {
     --lens-sidebar-width: 324px;
     --lens-main-padding: clamp(20px, 2vw, 40px);
     --lens-panel-radius: 2px;
@@ -115,7 +115,7 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-canvas: linear-gradient(90deg, color-mix(in srgb, var(--gilded-fern, #c6a84b) 7%, transparent) 0 1px, transparent 1px 100%), #1a1a24;
   }
 
-  :root[data-style-lens='signal-garden'] {
+  [data-style-lens='signal-garden'] {
     --lens-sidebar-width: 244px;
     --lens-main-padding: clamp(24px, 3vw, 58px);
     --lens-panel-radius: 28px 28px 8px 28px;
@@ -124,90 +124,90 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-canvas: radial-gradient(ellipse at 8% 50%, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, transparent), transparent 34%), linear-gradient(145deg, #062e3a, var(--bg-base, #0a0a0f));
   }
 
-  :root[data-style-lens='split-horizon'] {
+  [data-style-lens='split-horizon'] {
     --lens-sidebar-width: 264px;
     --lens-main-padding: clamp(22px, 2.5vw, 50px);
     --lens-panel-radius: 18px 3px 18px 3px;
     --lens-navigation-edge: var(--wing-purple, #8b5cf6);
     --lens-canvas: linear-gradient(180deg, #101d46 0 49.75%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent) 50%, var(--bg-base, #0a0a0f) 50.25% 100%);
   }
-  :root[data-style-lens='prism-terminal'] {
+  [data-style-lens='prism-terminal'] {
     --lens-sidebar-width: 256px; --lens-main-padding: clamp(22px, 2.8vw, 52px);
     --lens-panel-radius: 5px 24px 5px 24px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: conic-gradient(from 210deg at 82% 16%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, transparent), transparent 28%, color-mix(in srgb, var(--ice-wing, #60c0f0) 12%, transparent) 48%, transparent 68%), #10203a;
   }
 
-  :root[data-style-lens='tidal-columns'] {
+  [data-style-lens='tidal-columns'] {
     --lens-sidebar-width: 238px; --lens-main-padding: clamp(26px, 3.4vw, 64px);
     --lens-panel-radius: 38px 10px 38px 10px; --lens-shell-gap: 18px;
     --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: linear-gradient(100deg, #062a42 0 30%, color-mix(in srgb, var(--royal-depth, #003080) 72%, #062a42) 30% 68%, var(--bg-base, #0a0a0f) 68%);
   }
 
-  :root[data-style-lens='monastic-grid'] {
+  [data-style-lens='monastic-grid'] {
     --lens-sidebar-width: 208px; --lens-main-padding: clamp(36px, 5vw, 84px);
     --lens-panel-radius: 0; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: linear-gradient(color-mix(in srgb, var(--frost-white, #e0ecf4) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--frost-white, #e0ecf4) 5%, transparent) 1px, transparent 1px), #181a20;
     background-size: 72px 72px;
   }
 
-  :root[data-style-lens='orbit-atlas'] {
+  [data-style-lens='orbit-atlas'] {
     --lens-sidebar-width: 278px; --lens-main-padding: clamp(24px, 2.5vw, 48px);
     --lens-panel-radius: 50% 18px 18px 18px; --lens-navigation-edge: var(--wing-purple, #8b5cf6);
     --lens-canvas: radial-gradient(circle at 78% 24%, transparent 0 90px, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, transparent) 91px 93px, transparent 94px 150px, color-mix(in srgb, var(--wing-purple, #8b5cf6) 14%, transparent) 151px 153px, transparent 154px), #0e1638;
   }
 
-  :root[data-style-lens='carbon-atelier'] {
+  [data-style-lens='carbon-atelier'] {
     --lens-sidebar-width: 340px; --lens-main-padding: clamp(16px, 1.6vw, 30px);
     --lens-panel-radius: 12px 2px 12px 2px; --lens-shell-gap: 4px;
     --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: linear-gradient(120deg, #17171b 0 64%, color-mix(in srgb, var(--royal-depth, #003080) 36%, #17171b) 64% 100%);
   }
-  :root[data-style-lens='kinetic-kanban'] {
+  [data-style-lens='kinetic-kanban'] {
     --lens-sidebar-width: 286px; --lens-main-padding: clamp(18px, 2vw, 38px); --lens-panel-radius: 14px 28px 14px 6px; --lens-shell-gap: 14px; --lens-navigation-edge: var(--wing-purple, #8b5cf6);
     --lens-canvas: repeating-linear-gradient(90deg, #131b33 0 31%, color-mix(in srgb, var(--ice-wing, #60c0f0) 8%, #131b33) 31% 32%, #131b33 32% 65%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 8%, #131b33) 65% 66%, #131b33 66% 100%);
   }
 
-  :root[data-style-lens='aurora-index'] {
+  [data-style-lens='aurora-index'] {
     --lens-sidebar-width: 232px; --lens-main-padding: clamp(28px, 3.5vw, 68px); --lens-panel-radius: 32px 4px 32px 4px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: linear-gradient(120deg, #0a2340, color-mix(in srgb, var(--wing-purple, #8b5cf6) 22%, #0a2340) 48%, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, #0a2340));
   }
 
-  :root[data-style-lens='modular-harbor'] {
+  [data-style-lens='modular-harbor'] {
     --lens-sidebar-width: 304px; --lens-main-padding: clamp(20px, 2.2vw, 42px); --lens-panel-radius: 6px 6px 30px 30px; --lens-shell-gap: 20px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: linear-gradient(180deg, #0b2738 0 78%, color-mix(in srgb, var(--gilded-fern, #c6a84b) 12%, #0b2738) 78% 80%, var(--bg-base, #0a0a0f) 80%);
   }
 
-  :root[data-style-lens='terrain-console'] {
+  [data-style-lens='terrain-console'] {
     --lens-sidebar-width: 260px; --lens-main-padding: clamp(24px, 2.7vw, 52px); --lens-panel-radius: 22px 22px 4px 22px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: repeating-radial-gradient(ellipse at 70% 30%, transparent 0 54px, color-mix(in srgb, var(--ice-wing, #60c0f0) 9%, transparent) 55px 56px), #182018;
   }
 
-  :root[data-style-lens='chronograph-board'] {
+  [data-style-lens='chronograph-board'] {
     --lens-sidebar-width: 318px; --lens-main-padding: clamp(18px, 1.9vw, 36px); --lens-panel-radius: 50% 8px 8px 8px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: radial-gradient(circle at 86% 18%, transparent 0 70px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 18%, transparent) 71px 73px, transparent 74px), #1c1a22;
   }
-  :root[data-style-lens='glass-rail'] {
+  [data-style-lens='glass-rail'] {
     --lens-sidebar-width: 196px; --lens-main-padding: clamp(26px, 3vw, 58px); --lens-panel-radius: 24px; --lens-shell-gap: 24px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: linear-gradient(90deg, color-mix(in srgb, var(--frost-white, #e0ecf4) 9%, transparent) 0 2px, transparent 2px 100%), #10243a;
   }
-  :root[data-style-lens='meridian-magazine'] {
+  [data-style-lens='meridian-magazine'] {
     --lens-sidebar-width: 272px; --lens-main-padding: clamp(30px, 4vw, 76px); --lens-panel-radius: 2px 22px 2px 2px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: linear-gradient(106deg, #1a1a24 0 38%, color-mix(in srgb, var(--royal-depth, #003080) 35%, #1a1a24) 38% 72%, #1a1a24 72%);
   }
-  :root[data-style-lens='lunar-stack'] {
+  [data-style-lens='lunar-stack'] {
     --lens-sidebar-width: 290px; --lens-main-padding: clamp(20px, 2.3vw, 44px); --lens-panel-radius: 32px 32px 6px 6px; --lens-shell-gap: 10px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
     --lens-canvas: linear-gradient(135deg, transparent 0 28%, color-mix(in srgb, var(--frost-white, #e0ecf4) 7%, transparent) 28% 29%, transparent 29% 58%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 10%, transparent) 58% 59%, transparent 59%), #12182c;
   }
-  :root[data-style-lens='cedar-workshop'] {
+  [data-style-lens='cedar-workshop'] {
     --lens-sidebar-width: 332px; --lens-main-padding: clamp(18px, 2vw, 38px); --lens-panel-radius: 10px 3px 10px 3px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: repeating-linear-gradient(0deg, transparent 0 44px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 8%, transparent) 45px 46px), #1d241c;
   }
-  :root[data-style-lens='crystalline-cathedral'] {
+  [data-style-lens='crystalline-cathedral'] {
     --lens-sidebar-width: 300px; --lens-main-padding: clamp(28px, 3.2vw, 64px); --lens-panel-radius: 44px 44px 10px 10px; --lens-shell-gap: 16px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent), transparent 46%), linear-gradient(120deg, #071b3a, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, #071b3a) 55%, #071b3a);
   }
-  :root[data-density='compact'] {
+  [data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;
   }
@@ -240,17 +240,17 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     }
   }
 
-  :root[data-style-lens='analog-flight-recorder'] [data-style-lens-shell] {
+  [data-style-lens='analog-flight-recorder'] [data-style-lens-shell] {
     font-family: 'Fira Code', monospace;
     box-shadow: inset 0 36px 0 color-mix(in srgb, var(--gilded-fern, #c6a84b) 12%, transparent);
   }
 
-  :root[data-style-lens='quiet-meridian'] [data-dashboard-scroll-root] > * {
+  [data-style-lens='quiet-meridian'] [data-dashboard-scroll-root] > * {
     max-width: 1680px;
     margin-inline: auto;
   }
 
-  :root[data-style-lens='candy-glass-arcade'] [data-dashboard-scroll-root] {
+  [data-style-lens='candy-glass-arcade'] [data-dashboard-scroll-root] {
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, var(--frost-white, #e0ecf4) 18%, transparent),
       0 0 42px color-mix(in srgb, var(--wing-purple, #8b5cf6) 14%, transparent);

@@ -1,9 +1,13 @@
 import styled from "styled-components";
 
 export const Lab = styled.main`
+  position: relative;
+  isolation: isolate;
   min-height: 100%;
   overflow-x: clip;
-  background: var(--bg-base, #030712);
+  /* translucent: the fixed NebulaField (z-0) and the lens canvas glow
+     through — this is what makes an applied lens VISIBLE on this page */
+  background: transparent;
   color: var(--frost-white, #e0ecf4);
 `;
 export const LabHeader = styled.header`
@@ -12,9 +16,10 @@ export const LabHeader = styled.header`
   padding: clamp(16px, 2.4vw, 34px);
   background: linear-gradient(
     145deg,
-    var(--obsidian-black, #0a0a0f),
-    var(--midnight-sapphire, #002060)
+    color-mix(in srgb, var(--obsidian-black, #0a0a0f) 82%, transparent),
+    color-mix(in srgb, var(--midnight-sapphire, #002060) 72%, transparent)
   );
+  backdrop-filter: blur(18px) saturate(130%);
   border-bottom: 1px solid
     color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent);
 `;
@@ -160,6 +165,8 @@ export const Pick = styled.button<{ $active: boolean }>`
   }
 `;
 export const Stage = styled.section`
+  position: relative;
+  z-index: 1;
   min-height: 720px;
 `;
 export const LiveReceipt = styled.div`

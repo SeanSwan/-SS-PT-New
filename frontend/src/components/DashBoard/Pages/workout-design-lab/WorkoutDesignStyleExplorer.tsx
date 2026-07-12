@@ -1,13 +1,20 @@
 /**
- * Workout Design Lab Style explorer.
- * Selection only stages a validated preview; persistence requires explicit Apply.
+ * ============================================================================
+ * WORKOUT DESIGN LAB — STYLE EXPLORER (live-identity catalog)
+ * ============================================================================
+ * BLUEPRINT: selection stages a validated preview AND repaints the live
+ * stage below instantly (the Lab wraps its Stage in a ScopedLensFrame fed
+ * by this selection). Every catalog row carries the lens's real canvas
+ * swatch; the detail card renders a per-lens identity glyph — no two of
+ * the 25 lenses present the same face. Persistence still requires the
+ * explicit Apply (commit) — browsing never writes.
+ * ============================================================================
  */
 import React, { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { AppearancePhase, StyleLensManifest } from "../../../../core/style-lens-os";
 import { SWAN_STYLE_LENS_VISUALS } from "../../../../adapters/style-lens-swan";
 import {
-  LensGlyph,
   StyleActions,
   StyleCatalog,
   StyleDetail,
@@ -15,6 +22,7 @@ import {
   StylePick,
   StylePicker,
 } from "./WorkoutDesignLabModes.styles";
+import { LensDot, LensIdentityGlyph } from "./WorkoutDesignLabAtmosphere.styles";
 
 interface WorkoutDesignStyleExplorerProps {
   lenses: readonly StyleLensManifest[];
@@ -64,24 +72,38 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
           />
         </label>
         <StylePicker role="listbox" aria-label="Choose a Style Lens">
-          {filtered.map((lens, index) => (
-            <StylePick
-              key={lens.id}
-              type="button"
-              role="option"
-              aria-label={`${lens.name} style lens`}
-              aria-selected={lens.id === selected.id}
-              $active={lens.id === selected.id}
-              onClick={() => onSelect(lens.id)}
-            >
-              <span>{String(index + 1).padStart(2, "0")} | {lens.emotionalJob}</span>
-              {lens.name}
-            </StylePick>
-          ))}
+          {filtered.map((lens, index) => {
+            const rowVisual = SWAN_STYLE_LENS_VISUALS[lens.id];
+            return (
+              <StylePick
+                key={lens.id}
+                type="button"
+                role="option"
+                aria-label={`${lens.name} style lens`}
+                aria-selected={lens.id === selected.id}
+                $active={lens.id === selected.id}
+                onClick={() => onSelect(lens.id)}
+              >
+                <span>
+                  <LensDot
+                    aria-hidden="true"
+                    $canvas={rowVisual?.backgroundFallback ?? "#0a0a0f"}
+                    $accent={rowVisual?.accentFallback ?? "#60c0f0"}
+                  />
+                  {String(index + 1).padStart(2, "0")} | {lens.emotionalJob}
+                </span>
+                {lens.name}
+              </StylePick>
+            );
+          })}
         </StylePicker>
       </StyleCatalog>
       <StyleDetail aria-label={`${selected.name} Style Lens details`}>
-        <LensGlyph aria-hidden="true" />
+        <LensIdentityGlyph
+          aria-hidden="true"
+          $canvas={visual?.backgroundFallback ?? "#0a0a0f"}
+          $accent={visual?.accentFallback ?? "#60c0f0"}
+        />
         <h2>{selected.name}</h2>
         <p>{selected.description}</p>
         <dl>
@@ -101,6 +123,10 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
           </button>
           <button type="button" disabled={busy} onClick={onCancel}>Cancel preview</button>
         </StyleActions>
+        <p aria-live="polite" className="stage-hint">
+          The stage below is already wearing {selected.name} — scroll to judge
+          it live, then Apply to keep it across the dashboard.
+        </p>
       </StyleDetail>
     </StyleExplorer>
   );

@@ -88,4 +88,51 @@ describe("Workout Design Lab Style axis", () => {
     });
     expect(commitPreview).toHaveBeenCalledTimes(1);
   });
+
+  it("dresses the live stage in the browsed lens instantly — before any Apply", () => {
+    const { container } = render(<WorkoutDesignLabPage />);
+    const stageFrame = () =>
+      container.querySelector("[data-scoped-lens-frame]") as HTMLElement;
+
+    expect(stageFrame().getAttribute("data-style-lens")).toBe("quiet-meridian");
+
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+
+    expect(stageFrame().getAttribute("data-style-lens")).toBe(
+      "candy-glass-arcade",
+    );
+    expect(commitPreview).not.toHaveBeenCalled();
+  });
+
+  it("compare renders two REAL scoped stages with independent lenses", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "blueprint-fold" },
+    });
+
+    const comparison = screen.getByRole("region", {
+      name: /world and style comparison/i,
+    });
+    const panes = within(comparison).getAllByTestId("comparison-panel");
+    expect(panes).toHaveLength(2);
+
+    const frames = panes.map((pane) =>
+      pane.querySelector("[data-scoped-lens-frame]") as HTMLElement,
+    );
+    expect(frames[0]).not.toBeNull();
+    expect(frames[1]).not.toBeNull();
+    expect(frames[0].getAttribute("data-style-lens")).toBe("quiet-meridian");
+    expect(frames[1].getAttribute("data-style-lens")).toBe("blueprint-fold");
+
+    for (const frame of frames) {
+      const scrollRoot = frame.querySelector("[data-dashboard-scroll-root]");
+      expect(scrollRoot).not.toBeNull();
+      expect(scrollRoot!.childElementCount).toBeGreaterThan(0);
+    }
+  });
 });
