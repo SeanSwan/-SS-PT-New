@@ -17,6 +17,7 @@ import { sendNotification } from '../services/notificationService.mjs';
 import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { getStorefrontSessionCredits, grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import { isPhysicalCartItem } from '../services/cartCheckoutFulfillmentService.mjs';
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
@@ -294,7 +295,7 @@ router.post('/', rawBodyMiddleware, stripeWebhookHandler);
 /**
  * Process actions needed after an order is completed
  */
-async function processCompletedOrder(cartId, { grantResult = null, stripeSessionId = null } = {}) {
+export async function processCompletedOrder(cartId, { grantResult = null, stripeSessionId = null } = {}) {
   try {
     // Retrieve the completed cart with its items
     const cart = await ShoppingCart.findByPk(cartId, {
@@ -340,7 +341,14 @@ async function processCompletedOrder(cartId, { grantResult = null, stripeSession
       }
     }
 
-    if (cart.cartItems.length > 0 && totalSessionsAdded <= 0) {
+    // A cart may legitimately contain ONLY physical products (merch), which carry zero
+    // session credits. Throwing on that shape 500'd this webhook FOREVER: the grant has
+    // already committed, so every Stripe retry re-threw here, and sustained failures make
+    // Stripe disable the endpoint outright — which would kill server-side fulfillment for
+    // ALL sales, including training packages. Only a cart with neither session credits nor
+    // physical items is a genuine anomaly worth retrying.
+    const hasPhysicalItems = cart.cartItems.some(isPhysicalCartItem);
+    if (cart.cartItems.length > 0 && totalSessionsAdded <= 0 && !hasPhysicalItems) {
       throw new Error(`No session credits found for completed cart ${cartId}`);
     }
 
@@ -485,7 +493,37 @@ async function createOrderRecord(cart, { stripeSessionId = null } = {}) {
     const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const idempotencyKey = `stripe-webhook-cart:${cart.id}`;
     const orderNumber = `SWAN-CART-${cart.id}`;
+    const paymentReference = stripeSessionId || cart.checkoutSessionId || null;
 
+    // The session grant already wrote THE order for this cart (createCartOrderIfPossible,
+    // inside its transaction) under a DIFFERENT idempotency key ('cart-fulfillment:<id>'
+    // vs 'stripe-webhook-cart:<id>'). Claiming by our own key therefore never saw it and
+    // created a SECOND status:'completed' row with the same cartId and totalAmount — so
+    // every cart sale was counted twice by Order.sum('totalAmount', {status:'completed'})
+    // in the revenue/admin dashboards. Reuse the grant's row instead.
+    //
+    // 'created' still has to mean "this delivery is the first to fulfil this cart", since
+    // it gates the one-time side effects (commission, admin notification, gamification).
+    // Claim that right atomically on the existing row via paymentAppliedAt, which the
+    // grant leaves NULL: exactly one concurrent delivery can flip NULL -> now. This is
+    // also path-independent — it works when verify-session created the order first.
+    const existingOrder = await Order.findOne({ where: { cartId: cart.id } });
+    if (existingOrder) {
+      const [claimedCount] = await Order.update(
+        { paymentAppliedAt: new Date(), paymentReference },
+        { where: { id: existingOrder.id, paymentAppliedAt: null } },
+      );
+      const claimed = Number(claimedCount) === 1;
+      logger.info(
+        claimed
+          ? `Claimed fulfillment side effects for cart ${cart.id} (order ${existingOrder.id})`
+          : `Fulfillment side effects already applied for cart ${cart.id}`,
+      );
+      return { order: existingOrder, created: claimed };
+    }
+
+    // Fallback: no grant-created order (e.g. the optional Order model was unavailable
+    // during the grant). Keep the legacy writer so fulfillment history is never lost.
     const { record, created } = await claimIdempotentRecord({
       model: Order,
       lookupWhere: { idempotencyKey },

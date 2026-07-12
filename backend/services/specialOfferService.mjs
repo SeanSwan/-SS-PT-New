@@ -40,6 +40,15 @@ export const RATE_NO_GATE = 120;        // >= this: "standard"
 export const RATE_FLOOR = 100;          // 100-120: "discounted"
 export const RATE_ABSOLUTE_MIN = 60;    // 60-100: "deep deal"; < 60: "custom deal"
 
+// Data-integrity ceiling on the DERIVED session count — NOT a pricing gate.
+// Sean is the final decider on rates (no floor), but a one-keystroke typo like
+// targetEffectiveRate=$1 on the 12-month package computes round(36400/1)=36,400
+// sessions (~$6.4M at sticker) and would grant them with no confirmation. His
+// deepest real deal ($60 effective on the largest package) lands near ~600 total
+// sessions, so 2000 is ~3x above any plausible deal and only ever trips on a
+// fat-finger. Same category as the paid<1 / rate>0 throws — integrity, not policy.
+export const MAX_TOTAL_SESSIONS = 2000;
+
 
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -61,6 +70,12 @@ export function computeSpecialPricing({ paidSessions, bonusSessions = 0, pricePe
     throw new SpecialOfferError('pricePerSession must be > 0', { code: 'INVALID_RATE' });
   }
   const totalSessions = paid + bonus;
+  if (totalSessions > MAX_TOTAL_SESSIONS) {
+    throw new SpecialOfferError(
+      `Total sessions (${totalSessions}) exceeds the ${MAX_TOTAL_SESSIONS} data-integrity ceiling — check the effective rate for a typo.`,
+      { code: 'TOTAL_SESSIONS_TOO_HIGH', details: { totalSessions, max: MAX_TOTAL_SESSIONS } },
+    );
+  }
   const totalPrice = round2(paid * rate);
   const effectiveHourlyRate = round2(totalPrice / totalSessions);
   return { paidSessions: paid, bonusSessions: bonus, totalSessions, pricePerSession: rate, totalPrice, effectiveHourlyRate };

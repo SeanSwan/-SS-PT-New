@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => {
     mockCreateCommissionForPurchase: vi.fn(),
     mockRecordLedgerEntry: vi.fn(),
     mockOrderFindOrCreate: vi.fn(),
+    mockOrderFindOne: vi.fn(),
+    mockOrderUpdate: vi.fn(),
   };
 });
 
@@ -97,6 +99,8 @@ vi.mock('../models/LeadActivity.mjs', () => ({
 vi.mock('../models/Order.mjs', () => ({
   default: {
     findOrCreate: mocks.mockOrderFindOrCreate,
+    findOne: mocks.mockOrderFindOne,
+    update: mocks.mockOrderUpdate,
   },
 }));
 
@@ -209,6 +213,11 @@ describe('canonical Stripe webhook session grants', () => {
     mocks.mockCreateCommissionForPurchase.mockResolvedValue(true);
     mocks.mockRecordLedgerEntry.mockResolvedValue(true);
     mocks.mockOrderFindOrCreate.mockResolvedValue([{ id: 99 }, true]);
+    // Production reality: the session grant (createCartOrderIfPossible) already wrote
+    // THE order for this cart inside its transaction, with paymentAppliedAt still NULL.
+    // The webhook must reuse that row and claim the one-time side effects on it.
+    mocks.mockOrderFindOne.mockResolvedValue({ id: 99 });
+    mocks.mockOrderUpdate.mockResolvedValue([1]);
   });
 
   it('delegates completed cart fulfillment to SessionGrantService', async () => {
@@ -237,8 +246,77 @@ describe('canonical Stripe webhook session grants', () => {
     expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook', { checkoutSessionId: 'cs_test_cart_42' });
   });
 
-  it('returns 500 when the order idempotency record cannot be claimed', async () => {
-    mocks.mockOrderFindOrCreate.mockRejectedValueOnce(new Error('order claim timeout'));
+  it('reuses the grant-created order instead of writing a SECOND completed order', async () => {
+    // Regression: the grant writes the order under 'cart-fulfillment:<id>' while this
+    // webhook used to claim under 'stripe-webhook-cart:<id>'. The keys never matched, so
+    // a second status:'completed' row was created for the same cart with the same
+    // totalAmount, and Order.sum(totalAmount where status='completed') double-counted
+    // EVERY cart sale in the revenue + admin dashboards (live since 2026-06-13).
+    const response = await request(buildApp())
+      .post('/api/webhook/stripe')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(Buffer.from('{}'));
+
+    expect(response.status).toBe(200);
+    // The duplicate writer must NOT run when the grant already made the order.
+    expect(mocks.mockOrderFindOrCreate).not.toHaveBeenCalled();
+    // ...and the side effects still fire exactly once, claimed atomically on that row.
+    expect(mocks.mockOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentAppliedAt: expect.any(Date) }),
+      expect.objectContaining({ where: { id: 99, paymentAppliedAt: null } }),
+    );
+    expect(mocks.mockCreateCommissionForPurchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('fulfils a merch-only cart (0 session credits) instead of 500-looping forever', async () => {
+    // Regression: a cart of ONLY physical products carries zero session credits. The old
+    // `totalSessionsAdded <= 0` throw fired on that legitimate shape — and because the
+    // grant had already committed, every Stripe retry re-threw, 500-looping the event.
+    // Sustained failures make Stripe DISABLE the endpoint, which would kill server-side
+    // fulfillment for ALL sales (training packages included).
+    mocks.mockShoppingCart.findByPk.mockResolvedValue(makeCart({
+      cartItems: [{
+        id: 1,
+        quantity: 1,
+        price: 40,
+        storefrontItemId: 77,
+        storefrontItem: { id: 77, name: 'Swan Tee', itemKind: 'physical_product' },
+      }],
+    }));
+    mocks.mockGrantSessionsForCart.mockResolvedValueOnce({
+      granted: true,
+      sessionsAdded: 0,
+      alreadyProcessed: false,
+    });
+
+    const response = await request(buildApp())
+      .post('/api/webhook/stripe')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(Buffer.from('{}'));
+
+    expect(response.status).toBe(200);
+    // No sessions sold -> no commission, but the order/fulfillment must still complete.
+    expect(mocks.mockCreateCommissionForPurchase).not.toHaveBeenCalled();
+  });
+
+  it('falls back to creating an order when the grant did not write one', async () => {
+    mocks.mockOrderFindOne.mockResolvedValueOnce(null);
+
+    const response = await request(buildApp())
+      .post('/api/webhook/stripe')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(Buffer.from('{}'));
+
+    expect(response.status).toBe(200);
+    expect(mocks.mockOrderFindOrCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.mockCreateCommissionForPurchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 500 when the order side-effect claim cannot be made', async () => {
+    mocks.mockOrderUpdate.mockRejectedValueOnce(new Error('order claim timeout'));
 
     const response = await request(buildApp())
       .post('/api/webhook/stripe')
@@ -259,7 +337,9 @@ describe('canonical Stripe webhook session grants', () => {
       sessionsAdded: 0,
       alreadyProcessed: true,
     });
-    mocks.mockOrderFindOrCreate.mockResolvedValueOnce([{ id: 99 }, false]);
+    // A prior delivery already claimed the side effects: the conditional update
+    // (paymentAppliedAt: null -> now) matches 0 rows, so this delivery must not replay.
+    mocks.mockOrderUpdate.mockResolvedValueOnce([0]);
 
     const response = await request(buildApp())
       .post('/api/webhook/stripe')

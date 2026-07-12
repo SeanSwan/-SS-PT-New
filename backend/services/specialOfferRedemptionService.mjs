@@ -7,6 +7,34 @@
  * the same remaining count and makes missing backing rows fail closed.
  */
 import { SpecialOfferError } from './specialOfferErrors.mjs';
+import logger from '../utils/logger.mjs';
+
+/**
+ * The paid boundary CANNOT throw on a cancelled/expired special: by the time this
+ * runs, Stripe has already charged the client, so throwing would (a) strand a paying
+ * customer with zero sessions and (b) roll back the grant transaction, 500-looping the
+ * webhook forever (Stripe then disables the endpoint). Prevention — stopping the payment
+ * — belongs at cancel time (expire the in-flight Stripe session) and at checkout (cap the
+ * session expiry). Here we HONOR the payment but make the anomaly LOUD and never silently
+ * overwrite a terminal 'cancelled' status, so an admin can review/refund.
+ * @returns {boolean} true when the special was cancelled/expired at redemption time
+ */
+function flagIfNotRedeemableAtPayment(customPackage, { now = new Date() } = {}) {
+  const status = customPackage?.status;
+  const expiresAt = customPackage?.expiresAt;
+  const isCancelledOrTerminal = status && status !== 'active' && status !== 'redeemed';
+  const isExpired = expiresAt && new Date(expiresAt).getTime() <= now.getTime();
+  if (isCancelledOrTerminal || isExpired) {
+    logger.error(
+      `[SpecialRedemption] ANOMALY: paid redemption of a non-active special `
+      + `(id=${customPackage?.id}, client=${customPackage?.clientId}, status=${status}, `
+      + `expiresAt=${expiresAt || 'none'}). Payment already captured — grant HONORED. `
+      + `Review for refund. code=PAID_AFTER_REVOKE_OR_EXPIRY`,
+    );
+    return true;
+  }
+  return false;
+}
 
 function assertPaidSpecialOwner(customPackage, userId) {
   if (!customPackage) {
@@ -86,7 +114,13 @@ export async function assertCartSpecialsRedeemable({
   return true;
 }
 
-export async function recordSpecialRedemption(customPackage, { transaction } = {}) {
+export async function recordSpecialRedemption(customPackage, { transaction, now = new Date() } = {}) {
+  // Honor the already-paid checkout (throwing here would strand a charged customer and
+  // 500-loop the webhook — see the header note), but make a cancelled/expired redemption
+  // LOUD so an admin can review/refund. The redemption still resolves to a terminal
+  // 'redeemed' state (locked by specialOfferPaidBoundary.test.mjs); the audit fact that
+  // it was revoked/expired at payment time is preserved in the error log.
+  flagIfNotRedeemableAtPayment(customPackage, { now });
   const updates = {};
   const remaining = customPackage.remainingRedemptions;
 

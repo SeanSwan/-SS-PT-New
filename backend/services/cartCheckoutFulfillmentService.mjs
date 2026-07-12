@@ -48,7 +48,7 @@ function itemKind(cartItem) {
   return cartItem?.storefrontItem?.itemKind || cartItem?.storefrontItem?.type || 'training_package';
 }
 
-function isPhysicalCartItem(cartItem) {
+export function isPhysicalCartItem(cartItem) {
   return itemKind(cartItem) === 'physical_product';
 }
 

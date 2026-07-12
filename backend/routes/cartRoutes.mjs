@@ -139,6 +139,14 @@ const resolveCartItemSnapshot = async ({
     return { status: 404, message: 'Storefront item not found' };
   }
 
+  // A deactivated item must not be purchasable. Without this, a caller could POST a
+  // retired package id (still carrying its old totalCost/sessions) and check out at the
+  // stale price. It ALSO makes the special-cancel defense real: DELETE /custom-packages
+  // flips the hidden item to isActive:false precisely so a revoked deal can't be bought.
+  if (storeFrontItem.isActive === false) {
+    return { status: 409, message: 'This item is no longer available' };
+  }
+
   let variant = null;
   if (productVariantId) {
     if (!ProductVariant) {
@@ -990,6 +998,18 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
                 userId: normalizedUserId
               });
             }
+
+            // Parity with the canonical /api/webhook/stripe handler. This legacy mount
+            // used to STOP after granting — so if Stripe were ever pointed here, a sale
+            // would credit sessions but create no order, no trainer commission, and no
+            // admin notification (trainers silently unpaid). processCompletedOrder is
+            // idempotent (claims side effects once via Order.paymentAppliedAt), so running
+            // it here is safe whether this endpoint is canonical, legacy, or both are hit.
+            const { processCompletedOrder } = await import('../webhooks/stripeWebhook.mjs');
+            await processCompletedOrder(normalizedCartId, {
+              grantResult: result,
+              stripeSessionId: session.id,
+            });
           }
         }
         break;

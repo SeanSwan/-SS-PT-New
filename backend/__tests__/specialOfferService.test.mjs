@@ -56,6 +56,20 @@ describe('computeBonusForTargetRate (admin "type effective $/session")', () => {
     const r = computeBonusForTargetRate({ paidSessions: 10, targetEffectiveRate: 250 });
     expect(r.bonusSessions).toBe(0);
   });
+
+  it("honors Sean's deepest real deal ($60 effective on a large package)", () => {
+    // 208-session 12-month package at $60 effective — must pass, well under the ceiling.
+    const r = computeBonusForTargetRate({ paidSessions: 208, targetEffectiveRate: 60 });
+    expect(r.totalSessions).toBeLessThan(700);
+    expect(r.effectiveHourlyRate).toBeLessThanOrEqual(61);
+  });
+
+  it('THROWS on a fat-finger rate that would mint an implausible session count', () => {
+    // $1 instead of $100 on the 12-month package => round(36400/1) = 36,400 sessions.
+    // Data-integrity ceiling must reject it rather than silently create a ~$6.4M grant.
+    expect(() => computeBonusForTargetRate({ paidSessions: 208, targetEffectiveRate: 1 }))
+      .toThrowError(/TOTAL_SESSIONS_TOO_HIGH|exceeds the .* data-integrity ceiling/);
+  });
 });
 
 describe('evaluateRateGate + assertRateFloor (informational only — no floor, admin is final decider)', () => {
