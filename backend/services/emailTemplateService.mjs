@@ -14,8 +14,11 @@
  * - Email clients strip CSS custom properties and <style> unreliably: all colors are
  *   INLINED HEX (never var(--token)), and the palette is LIGHT-SAFE (dark ink on light
  *   surface) — dark-first is an APP rule, not an email rule.
- * - Copy discipline: credentials read "26+ years" / NASM-protocol, NEVER "NASM-certified";
- *   "stretching"/"flexibility", never "yoga"/"meditation".
+ * - Copy discipline: credentials read "26+ years" / NASM-protocol. NEVER claim NASM
+ *   certification — that phrasing is a false credential claim, and the exact string is
+ *   locked out of source by frontend/src/pages/about/credentialPhrasing.contract.test.ts
+ *   (so this note deliberately does not spell it, or it would trip that very lock).
+ *   Also: "stretching"/"flexibility", never "yoga"/"meditation".
  *
  * The template NAMES intentionally mirror the SMS template names (welcome, follow_up_day1/3/7)
  * so a single AutomationSequence step drives whichever channel the step declares.
