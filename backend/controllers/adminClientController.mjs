@@ -1633,6 +1633,8 @@ class AdminClientController {
         category = 'full_body',
         exerciseCount = 6,
         equipmentProfileId = null,
+        planningReviewAcknowledged,
+        planningReviewReason,
       } = req.body;
 
       // Validate client exists
@@ -1657,6 +1659,8 @@ class AdminClientController {
           sessionsPerWeek,
           primaryGoal,
           equipmentProfileId,
+          planningReviewAcknowledged: planningReviewAcknowledged === true,
+          planningReviewReason,
         });
 
         return res.status(200).json({
@@ -1672,6 +1676,8 @@ class AdminClientController {
           category,
           exerciseCount,
           equipmentProfileId,
+          planningReviewAcknowledged: planningReviewAcknowledged === true,
+          planningReviewReason,
         });
 
         return res.status(200).json({
@@ -1681,6 +1687,16 @@ class AdminClientController {
         });
       }
     } catch (error) {
+      // Cortex P0 (§5.3): surface the acknowledged-review contract to the UI.
+      if (error.name === 'SwanCoachPlanningReviewError') {
+        return res.status(error.status).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          reviewRequiredSignals: error.reviewRequiredSignals,
+          missingCriticalData: error.missingCriticalData,
+        });
+      }
       console.error('Error generating workout plan:', error);
       return sendInternalError(res, 'Error generating workout plan');
     }

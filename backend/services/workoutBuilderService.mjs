@@ -56,7 +56,11 @@ import {
   trainingStyleExplanation,
   trainingStyleRecommendationDetail,
 } from './workoutBuilderTrainingStyle.mjs';
-import { buildSwanCoachPlanningFingerprint } from './swanCoachPlanningContextService.mjs';
+import {
+  buildSwanCoachPlanningFingerprint,
+  buildSwanCoachPlanningSafetyGateFromContext,
+} from './swanCoachPlanningContextService.mjs';
+import { enforceSwanCoachPlanningReview } from './swanCoachPlanningReviewEnforcementService.mjs';
 import {
   applySwanCoachReadinessToExercises,
   buildSwanCoachReadinessContext,
@@ -477,6 +481,8 @@ export async function generateWorkout(options) {
     trainingIntensityMode,
     hardcoreMethod,
     readinessCheck = null,
+    planningReviewAcknowledged = false,
+    planningReviewReason = null,
   } = options;
 
   if (!clientId) throw new Error('clientId is required');
@@ -504,6 +510,19 @@ export async function generateWorkout(options) {
       clientId, failures: context.criticalFailures,
     });
   }
+
+  // Step 1c (Cortex P0 §5.3): the deterministic safety gate BLOCKS here.
+  // review_required without an acknowledged trainer review throws 409
+  // SWAN_COACH_REVIEW_REQUIRED — the gate is no longer fingerprint decoration.
+  const planningCoverageContext = buildPlanningCoverageContext(context);
+  const earlySafetyGate = buildSwanCoachPlanningSafetyGateFromContext(planningCoverageContext);
+  const planningReview = enforceSwanCoachPlanningReview({
+    safetyGate: earlySafetyGate,
+    planningReviewAcknowledged,
+    planningReviewReason,
+    actorUserId: trainerId,
+    clientId,
+  });
 
   // Step 2: Determine rotation (BUILD or SWITCH)
   const sessionType = resolveSingleWorkoutSessionType(context, rotationPattern);
@@ -710,12 +729,16 @@ export async function generateWorkout(options) {
   const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
   const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
   const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
-    context: buildPlanningCoverageContext(context),
+    context: planningCoverageContext,
     horizonWeeks: 1,
     sessionsPerWeek: 1,
     nasmPhase,
     primaryGoal,
   });
+  if (planningReview.acknowledgement) {
+    // Persist the override audit with the generated artifact (§5.3 / eval test 9).
+    swanCoachPlanning.safetyGate.acknowledgement = planningReview.acknowledgement;
+  }
 
   // Step 8: Build explanations
   const explanations = [];
@@ -947,6 +970,8 @@ export async function generatePlan(options) {
     hardcoreMethod,
     readinessCheck = null,
     registryOverride = null,
+    planningReviewAcknowledged = false,
+    planningReviewReason = null,
   } = options;
 
   // L6 FIX: Validate inputs
@@ -954,6 +979,18 @@ export async function generatePlan(options) {
   if (!trainerId) throw new Error('trainerId is required');
 
   const context = await getClientContext(clientId, trainerId);
+
+  // Cortex P0 (§5.3): deterministic safety gate BLOCKS plan generation too —
+  // same acknowledged-review contract as generateWorkout.
+  const planningCoverageContext = buildPlanningCoverageContext(context);
+  const earlySafetyGate = buildSwanCoachPlanningSafetyGateFromContext(planningCoverageContext);
+  const planningReview = enforceSwanCoachPlanningReview({
+    safetyGate: earlySafetyGate,
+    planningReviewAcknowledged,
+    planningReviewReason,
+    actorUserId: trainerId,
+    clientId,
+  });
 
   // Phase A: goal+phase plumbing.
   // - Goal normalized via the helper allowlist; unknown -> general_fitness.
@@ -1293,12 +1330,16 @@ export async function generatePlan(options) {
     return details;
   };
   const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
-    context: buildPlanningCoverageContext(context),
+    context: planningCoverageContext,
     horizonWeeks: durationWeeks,
     sessionsPerWeek,
     nasmPhase: startingPhase,
     primaryGoal,
   });
+  if (planningReview.acknowledgement) {
+    // Persist the override audit with the generated artifact (§5.3 / eval test 9).
+    swanCoachPlanning.safetyGate.acknowledgement = planningReview.acknowledgement;
+  }
 
   return {
     clientId,

@@ -53,6 +53,15 @@ function labelsByState(inputs, expected) {
     .map(([key]) => dataLabel(key));
 }
 
+/**
+ * Cortex P0 (§5.3): compute JUST the deterministic safety gate for a context,
+ * using the same planning-input derivation the fingerprint uses — so the early
+ * blocking decision and the persisted fingerprint can never disagree.
+ */
+export function buildSwanCoachPlanningSafetyGateFromContext(context = {}) {
+  return buildSwanCoachPlanningSafetyGate(context, buildPlanningInputs(context));
+}
+
 export function buildSwanCoachPlanningFingerprint({
   context = {},
   horizonWeeks = null,

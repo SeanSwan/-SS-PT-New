@@ -111,6 +111,9 @@ describe('workoutBuilderService Swan Coach Cortex runtime integration', () => {
       category: 'arms',
       exerciseCount: 1,
       primaryGoal: 'strength',
+      // Cortex P0 §5.3: elbow pain warning makes this context review_required
+      planningReviewAcknowledged: true,
+      planningReviewReason: 'Elbow warning reviewed; load modified for test',
       trainingIntensityMode: 'hardcore',
       hardcoreMethod: 'density',
       readinessCheck: {
@@ -140,6 +143,8 @@ describe('workoutBuilderService Swan Coach Cortex runtime integration', () => {
     const { generatePlan } = await loadWorkoutBuilder();
 
     const plan = await generatePlan({
+      planningReviewAcknowledged: true,
+      planningReviewReason: 'Elbow warning reviewed; load modified for test',
       clientId: 42,
       trainerId: 7,
       durationWeeks: 1,

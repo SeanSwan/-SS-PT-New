@@ -168,6 +168,7 @@ router.post('/generate', async (req, res) => {
     const {
       clientId, category, equipmentProfileId, exerciseCount, rotationPattern,
       primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod, readinessCheck,
+      planningReviewAcknowledged, planningReviewReason,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -204,10 +205,23 @@ router.post('/generate', async (req, res) => {
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
       readinessCheck,
+      planningReviewAcknowledged: planningReviewAcknowledged === true,
+      planningReviewReason,
     });
 
     return res.json({ success: true, workout });
   } catch (err) {
+    // Cortex P0 (§5.3): deterministic safety gate — surface the acknowledged-
+    // review contract (409 review-required / 400 reason-required) to the UI.
+    if (err.name === 'SwanCoachPlanningReviewError') {
+      return res.status(err.status).json({
+        success: false,
+        code: err.code,
+        error: err.message,
+        reviewRequiredSignals: err.reviewRequiredSignals,
+        missingCriticalData: err.missingCriticalData,
+      });
+    }
     logger.error('[WorkoutBuilder] Generate failed:', err.message);
     // 2026-05-01 W1A-3: route err.message through safe-message dictionary
     // before surfacing to UI. Prevents leaking internal error strings,
@@ -229,6 +243,7 @@ router.post('/plan', async (req, res) => {
     const {
       clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
       startingPhaseOverride, trainingIntensityMode, hardcoreMethod, readinessCheck,
+      planningReviewAcknowledged, planningReviewReason,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -260,10 +275,22 @@ router.post('/plan', async (req, res) => {
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
       readinessCheck,
+      planningReviewAcknowledged: planningReviewAcknowledged === true,
+      planningReviewReason,
     });
 
     return res.json({ success: true, plan });
   } catch (err) {
+    // Cortex P0 (§5.3): surface the acknowledged-review contract to the UI.
+    if (err.name === 'SwanCoachPlanningReviewError') {
+      return res.status(err.status).json({
+        success: false,
+        code: err.code,
+        error: err.message,
+        reviewRequiredSignals: err.reviewRequiredSignals,
+        missingCriticalData: err.missingCriticalData,
+      });
+    }
     logger.error('[WorkoutBuilder] Plan generation failed:', err.message);
     return res.status(500).json({
       success: false,
