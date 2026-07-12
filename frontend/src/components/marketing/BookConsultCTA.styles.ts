@@ -19,15 +19,15 @@ export const TriggerButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 50px;
   min-width: 44px;
-  padding: 12px 26px;
-  border: 1px solid var(--accent-border, rgba(96, 192, 240, 0.35));
+  padding: 14px 30px;
+  border: 1px solid var(--accent-border, rgba(96, 192, 240, 0.45));
   border-radius: 12px;
-  background: var(--accent-primary-bg, #002060);
+  background: linear-gradient(135deg, var(--accent-primary-bg, #002060) 0%, var(--surface-elevated, #003080) 100%);
   color: var(--text-primary, #E0ECF4);
   font-family: var(--font-heading, 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.4px;
   cursor: pointer;
@@ -44,7 +44,7 @@ export const TriggerButton = styled.button`
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 2000; /* portaled to <body>; must clear the sticky site header */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -56,6 +56,7 @@ export const Overlay = styled.div`
 `;
 
 export const Modal = styled.div`
+  position: relative; /* anchors the absolute CloseButton */
   width: 100%;
   max-width: 460px;
   max-height: 92dvh;

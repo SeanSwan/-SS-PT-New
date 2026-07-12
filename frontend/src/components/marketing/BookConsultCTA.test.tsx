@@ -77,11 +77,52 @@ describe('BookConsultCTA', () => {
   });
 
   it('includes the honeypot field (hidden from humans)', () => {
-    const { container } = render(<BookConsultCTA />);
+    render(<BookConsultCTA />);
     openModal();
-    const honeypot = container.querySelector('input[name="website"]');
+    // The modal is portaled to <body>, so query the document — not the render container.
+    const honeypot = document.querySelector('input[name="website"]');
     expect(honeypot).toBeTruthy();
     expect(honeypot?.getAttribute('aria-hidden')).toBe('true');
     expect(honeypot?.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('portals the dialog to <body> so transformed ancestors cannot clip it', () => {
+    const { container } = render(
+      <div style={{ transform: 'translateZ(0)', overflow: 'hidden' }}>
+        <BookConsultCTA />
+      </div>
+    );
+    openModal();
+    const dialog = screen.getByRole('dialog');
+    // Regression for the 2026-07-12 prod finding: dialog rendered inline under a
+    // transformed ancestor, so position:fixed clipped into the contact column.
+    expect(container.contains(dialog)).toBe(false);
+    expect(document.body.contains(dialog)).toBe(true);
+  });
+
+  it('locks body scroll while open and restores it on close', () => {
+    render(<BookConsultCTA />);
+    openModal();
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('returns focus to the trigger button when the modal closes', () => {
+    render(<BookConsultCTA />);
+    const trigger = screen.getByRole('button', { name: /book a free consult/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('renders the required asterisk inline with the Email label (not on its own row)', () => {
+    render(<BookConsultCTA />);
+    openModal();
+    const star = screen.getByText('*');
+    // Regression for the orphaned-asterisk finding: the star must live inside the
+    // same inline wrapper as the "Email" text, not as a separate flex row.
+    expect(star.parentElement?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Email *');
   });
 });
