@@ -5,6 +5,7 @@
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistryFromDB } from './variationEngine.mjs';
 import { getGoalOptBias, normalizeGoal } from './workoutBuilderGoalConfig.mjs';
+import { phaseCandidateDefaults } from './training-cortex/policy/nasmOptPolicy.mjs';
 import {
   applySwanCoachReadinessToExercises,
   buildSwanCoachReadinessContext,
@@ -96,12 +97,10 @@ function exerciseDifficulty(exercise = {}) {
   return Math.max(100, Math.min(1000, Number(exercise.nasmLevel || 2) * 200));
 }
 
-function phaseDefaults(phase) {
-  if (phase <= 1) return { sets: 2, reps: 15, tempo: '4/2/1', restSeconds: 45, intensityPercent: 60 };
-  if (phase === 3) return { sets: 4, reps: 10, tempo: '2/0/2', restSeconds: 60, intensityPercent: 75 };
-  if (phase >= 4) return { sets: 4, reps: 5, tempo: 'X/0/X', restSeconds: 120, intensityPercent: 85 };
-  return { sets: 3, reps: 10, tempo: '2/0/2', restSeconds: 60, intensityPercent: 70 };
-}
+// Cortex Phase 2A: candidate-card defaults now live beside the canonical
+// acute-variable table (training-cortex/policy/nasmOptPolicy.mjs) — same
+// values, single home, containment test-locked.
+const phaseDefaults = phaseCandidateDefaults;
 
 function exerciseSlimFromCandidate(exercise) {
   const media = mediaFromExercise(exercise);

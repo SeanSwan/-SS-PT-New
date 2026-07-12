@@ -60,6 +60,10 @@ import {
   buildSwanCoachPlanningFingerprint,
   buildSwanCoachPlanningSafetyGateFromContext,
 } from './swanCoachPlanningContextService.mjs';
+import {
+  buildLegacyOptPhaseParams,
+  phaseIntensityRange,
+} from './training-cortex/policy/nasmOptPolicy.mjs';
 import { enforceSwanCoachPlanningReview } from './swanCoachPlanningReviewEnforcementService.mjs';
 import {
   applySwanCoachReadinessToExercises,
@@ -109,58 +113,10 @@ const CATEGORY_MOVEMENT_MAP = {
 
 // ── NASM OPT Phase Parameter Tables ──────────────────────────────────
 
-const OPT_PHASE_PARAMS = {
-  1: {
-    name: 'Stabilization Endurance',
-    sets: [1, 3],
-    reps: [12, 20],
-    intensity: '50-70%',
-    tempo: '4-2-1',
-    rest: [0, 90],
-    exerciseTypes: ['stability', 'core', 'balance', 'corrective'],
-    focus: 'Muscular endurance, proprioception, core stability',
-  },
-  2: {
-    name: 'Strength Endurance',
-    sets: [2, 4],
-    reps: [8, 12],
-    intensity: '70-80%',
-    tempo: '2-0-2',
-    rest: [0, 60],
-    exerciseTypes: ['compound', 'isolation', 'stability'],
-    focus: 'Superset stabilization + strength exercises',
-  },
-  3: {
-    name: 'Muscular Development (Hypertrophy)',
-    sets: [3, 5],
-    reps: [6, 12],
-    intensity: '75-85%',
-    tempo: '2-0-2',
-    rest: [0, 60],
-    exerciseTypes: ['compound', 'isolation'],
-    focus: 'Maximal muscle growth, progressive overload',
-  },
-  4: {
-    name: 'Maximal Strength',
-    sets: [4, 6],
-    reps: [1, 5],
-    intensity: '85-100%',
-    tempo: 'Explosive/controlled',
-    rest: [120, 300],
-    exerciseTypes: ['compound'],
-    focus: 'Maximal force production, neural adaptations',
-  },
-  5: {
-    name: 'Power',
-    sets: [3, 5],
-    reps: [1, 5],
-    intensity: '30-45% (speed) / 85-100% (strength)',
-    tempo: 'Explosive',
-    rest: [120, 300],
-    exerciseTypes: ['compound', 'plyometric'],
-    focus: 'Rate of force development, superset strength + power',
-  },
-};
+// Cortex Phase 2A: derived from THE single acute-variable source
+// (training-cortex/policy/nasmOptPolicy.mjs) — byte-identical shape to the
+// table this replaced, locked by nasmOptPolicySingleSource.test.mjs.
+const OPT_PHASE_PARAMS = buildLegacyOptPhaseParams();
 
 // ── Default Warmup Templates ─────────────────────────────────────────
 
@@ -729,8 +685,9 @@ export async function generateWorkout(options) {
 
   // Step 7b: Calculate recommended weights from 1RM data via OneRepMaxService
   if (context.constraints.estimated1RMs) {
-    const phaseIntensityMap = { 1: [0.50, 0.70], 2: [0.70, 0.80], 3: [0.75, 0.85], 4: [0.85, 1.00], 5: [0.30, 0.45] };
-    const [minPct, maxPct] = phaseIntensityMap[nasmPhase] || [0.70, 0.80];
+    // Cortex Phase 2A: intensity range now comes from the same canonical table
+    // as OPT_PHASE_PARAMS (was a second inline copy of the same numbers).
+    const [minPct, maxPct] = phaseIntensityRange(nasmPhase);
 
     for (const ex of workoutExercises) {
       const rec = getRecommendedWeight({
