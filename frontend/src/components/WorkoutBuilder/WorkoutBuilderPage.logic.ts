@@ -37,6 +37,8 @@ interface WorkoutBuilderGenerationOptions {
   planWeeks: string;
   sessionsPerWeek: string;
   primaryGoal: string;
+  /** Cortex §5.3 acknowledged-review retry (Phase 2D) */
+  review?: { planningReviewAcknowledged: true; planningReviewReason: string };
 }
 
 interface WorkoutBuilderGenerationResult {
@@ -73,6 +75,7 @@ export const runWorkoutBuilderGeneration = async ({
   planWeeks,
   sessionsPerWeek,
   primaryGoal,
+  review,
 }: WorkoutBuilderGenerationOptions): Promise<WorkoutBuilderGenerationResult> => {
   const selectedEquipmentProfileId = parseOptionalEquipmentProfileId(equipmentProfileId);
 
@@ -83,6 +86,7 @@ export const runWorkoutBuilderGeneration = async ({
       exerciseCount: parsePositiveInputNumber(exerciseCount, 6),
       rotationPattern,
       equipmentProfileId: selectedEquipmentProfileId,
+      ...(review ?? {}),
     });
     return { workout, plan: null };
   }
@@ -93,6 +97,7 @@ export const runWorkoutBuilderGeneration = async ({
     sessionsPerWeek: parsePositiveInputNumber(sessionsPerWeek, 3),
     primaryGoal,
     equipmentProfileId: selectedEquipmentProfileId,
+    ...(review ?? {}),
   });
   return { workout: null, plan };
 };

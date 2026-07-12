@@ -68,12 +68,16 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await apiService.get<T>(url);
     return response.data;
   } catch (error: any) {
-    throw new Error(
+    const wrapped = new Error(
       error.response?.data?.error ||
       error.response?.data?.message ||
       error.message ||
       'Request failed'
     );
+    // Cortex Phase 2D: preserve the response so the acknowledged-review
+    // contract (409 SWAN_COACH_REVIEW_REQUIRED) survives the wrapping.
+    (wrapped as Error & { response?: unknown }).response = error.response;
+    throw wrapped;
   }
 }
 
@@ -100,6 +104,8 @@ export function useWorkoutBuilderAPI() {
     equipmentProfileId?: number;
     exerciseCount?: number;
     rotationPattern?: string;
+    planningReviewAcknowledged?: boolean;
+    planningReviewReason?: string;
   }): Promise<GeneratedWorkout> => {
     const data = await apiFetch<{ success: boolean; workout: GeneratedWorkout }>(
       '/api/workout-builder/generate',
@@ -114,6 +120,8 @@ export function useWorkoutBuilderAPI() {
     sessionsPerWeek?: number;
     primaryGoal?: string;
     equipmentProfileId?: number;
+    planningReviewAcknowledged?: boolean;
+    planningReviewReason?: string;
   }): Promise<GeneratedPlan> => {
     const data = await apiFetch<{ success: boolean; plan: GeneratedPlan }>(
       '/api/workout-builder/plan',

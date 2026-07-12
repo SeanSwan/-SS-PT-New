@@ -7,6 +7,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import { parseSafetyGateReviewError, useSafetyGateReview } from '../cortex/useSafetyGateReview';
+import type { PlanningReviewAck } from '../cortex/useSafetyGateReview';
 import {
   useWorkoutMcp,
   type Exercise,
@@ -85,7 +87,22 @@ export const useWorkoutPlanBuilderController = ({
     setPlan(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleGenerateWorkout = async () => {
+  const {
+    review: safetyGateReview,
+    acknowledging: acknowledgingSafetyGate,
+    requestSafetyGateReview,
+    cancelSafetyGateReview,
+    confirmSafetyGateReview,
+  } = useSafetyGateReview();
+
+  const handleGenerateWorkout = async (reviewAck?: PlanningReviewAck) => {
+    // Guard: this handler is also used as a bare onClick, where React passes
+    // the MouseEvent — only a REAL acknowledgement shape may flow onward.
+    const ack = reviewAck
+      && reviewAck.planningReviewAcknowledged === true
+      && typeof reviewAck.planningReviewReason === 'string'
+      ? reviewAck
+      : undefined;
     try {
       const response = await generateWorkoutPlan({
         trainerId: 'current-trainer',
@@ -99,6 +116,7 @@ export const useWorkoutPlanBuilderController = ({
         focusAreas: generationParams.focusAreas,
         difficulty: generationParams.difficulty,
         equipment: generationParams.equipment,
+        ...(ack ?? {}),
       });
       if (response?.plan) {
         setPlan(response.plan);
@@ -106,6 +124,12 @@ export const useWorkoutPlanBuilderController = ({
         setActiveStep(2);
       }
     } catch (err) {
+      // Cortex Phase 2D: same acknowledged-review contract as the Planner.
+      const gate = parseSafetyGateReviewError(err);
+      if (gate) {
+        requestSafetyGateReview(gate, async (ack) => { await handleGenerateWorkout(ack); });
+        return;
+      }
       console.error('Failed to generate workout plan:', err);
     }
   };
@@ -188,6 +212,10 @@ export const useWorkoutPlanBuilderController = ({
   };
 
   return {
+    safetyGateReview,
+    acknowledgingSafetyGate,
+    confirmSafetyGateReview,
+    cancelSafetyGateReview,
     activeStep,
     addExerciseToDay,
     addWorkoutDay,

@@ -19,6 +19,9 @@ import {
 } from './useWorkoutMcp.planGenerationData';
 
 export interface WorkoutPlanGenerationParams {
+  /** Cortex §5.3 acknowledged-review retry (Phase 2D) */
+  planningReviewAcknowledged?: boolean;
+  planningReviewReason?: string;
   trainerId: string;
   clientId: string;
   name: string;
@@ -34,6 +37,8 @@ export interface WorkoutPlanGenerationParams {
 }
 
 export interface SwanCoachPlanRequest {
+  planningReviewAcknowledged?: true;
+  planningReviewReason?: string;
   clientId: number;
   durationWeeks: number;
   sessionsPerWeek: number;
@@ -251,6 +256,10 @@ export const buildSwanCoachPlanRequest = (params: WorkoutPlanGenerationParams): 
   };
   const phase = parsePhase(params.optPhase);
   if (phase) request.startingPhaseOverride = phase;
+  if (params.planningReviewAcknowledged === true && params.planningReviewReason) {
+    request.planningReviewAcknowledged = true;
+    request.planningReviewReason = params.planningReviewReason;
+  }
   return { ...request, ...trainingStyleFromDifficulty(params.difficulty) };
 };
 
