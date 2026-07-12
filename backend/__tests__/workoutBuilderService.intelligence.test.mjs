@@ -170,7 +170,8 @@ describe('workoutBuilderService intelligence upgrades', () => {
       },
     }));
 
-    const workout = await generate({ planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' });
+    const workout = await generate({ planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer', planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)' });
 
     const goblet = workout.exercises.find((ex) => ex.exerciseKey === 'goblet_squat');
     expect(goblet.progression.action).toBe('hold');

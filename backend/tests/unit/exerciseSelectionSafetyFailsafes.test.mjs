@@ -133,6 +133,7 @@ describe('workoutBuilderService untagged-muscle fail-safe (Cortex P0 §5.6)', ()
       category: 'full_body',
       exerciseCount: 6,
       planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer',
       planningReviewReason: 'Shoulder exclusion reviewed; pull/lower-body focus',
     });
 

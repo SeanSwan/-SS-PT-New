@@ -220,7 +220,8 @@ describe('generatePlan - goal-driven phase progression', () => {
       },
     }));
     const plan = await generatePlan({
-      clientId: 1, trainerId: 99, durationWeeks: 24, sessionsPerWeek: 4, primaryGoal: 'strength', planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
+      clientId: 1, trainerId: 99, durationWeeks: 24, sessionsPerWeek: 4, primaryGoal: 'strength', planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer', planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
     });
 
     expect(plan.planningSystem).toBe('swan_coach_planning');
@@ -257,7 +258,8 @@ describe('generatePlan - goal-driven phase progression', () => {
       criticalFailures: ['pain_entries'],
     }));
     const plan = await generatePlan({
-      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness', planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
+      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness', planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer', planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
     });
 
     expect(plan.recommendations).toContain(
@@ -280,7 +282,8 @@ describe('generatePlan - goal-driven phase progression', () => {
       health: { specialPopulationFlags: ['older_adult'] },
     }));
     const plan = await generatePlan({
-      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness', planningReviewAcknowledged: true, planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
+      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness', planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer', planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
     });
 
     expect(plan.swanCoachPlanning.safetyGate).toEqual(expect.objectContaining({

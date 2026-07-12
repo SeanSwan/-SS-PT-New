@@ -86,13 +86,13 @@ const CoachDispatchRefusalNotice: React.FC<CoachDispatchRefusalNoticeProps> = ({
             Held for safety
           </NoticeHeader>
           <NoticeBody>{refusalCopy(refusal)}</NoticeBody>
-          {refusal.alternatives.length > 0 && (
+          {(refusal.alternatives ?? []).length > 0 && (
             <>
               <NoticeBody as="span" style={{ fontSize: 13, opacity: 0.8 }}>
                 Good swaps instead:
               </NoticeBody>
               <AlternativeRow>
-                {refusal.alternatives.map(name => (
+                {(refusal.alternatives ?? []).map(name => (
                   <AlternativeChip key={name}>{name}</AlternativeChip>
                 ))}
               </AlternativeRow>

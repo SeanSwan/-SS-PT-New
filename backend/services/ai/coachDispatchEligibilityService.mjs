@@ -26,6 +26,7 @@
  */
 
 import logger from '../../utils/logger.mjs';
+import { buildSwanCoachPlanningSafetyGateFromContext } from '../swanCoachPlanningFingerprintService.mjs';
 
 const normalize = (value) => String(value || '')
   .toLowerCase()
@@ -53,7 +54,13 @@ export function resolveExerciseFromRegistry(exerciseName, registry = []) {
   return partial.length === 1 ? partial[0] : null;
 }
 
-function painVerdictForExercise(exercise, excludedMuscles) {
+/**
+ * Shared pain-safety verdict for one exercise against a client's excluded
+ * muscles — includes the untagged-muscle fail-safe (§5.6): under active
+ * exclusions, an exercise with no muscle tags never passes as safe.
+ * Consumers: this chat gate + the guided-candidates surface.
+ */
+export function painVerdictForExercise(exercise, excludedMuscles) {
   const excludedSet = new Set(excludedMuscles || []);
   if (excludedSet.size === 0) return { eligible: true };
   const muscles = Array.isArray(exercise.muscles) ? exercise.muscles : [];
@@ -98,6 +105,7 @@ export async function filterEligibleFrontendActions({
 
   let registry = [];
   let excludedMuscles = null; // null = unknown (fail-closed), [] = known-clear
+  let blockingGateSignals = null; // non-null = the deterministic gate BLOCKS this client
   try {
     registry = await loadRegistry();
   } catch (err) {
@@ -112,6 +120,17 @@ export async function filterEligibleFrontendActions({
       excludedMuscles = context?.pain?.excludedMuscles
         || context?.constraints?.excludedMuscles
         || [];
+    }
+    // Blocking-tier PARITY with the workout builder (review-queue REVISE item,
+    // 2026-07-12): a client whose deterministic gate is review_required 409s
+    // in the builder — chat must not be a side door around that review, even
+    // when no muscles are excluded yet (e.g. a severe entry outside the 72h
+    // auto-exclusion window). Same gate function the builder uses.
+    const safetyGate = buildSwanCoachPlanningSafetyGateFromContext(context ?? {});
+    if (safetyGate?.status === 'review_required') {
+      blockingGateSignals = Array.isArray(safetyGate.reviewRequiredSignals)
+        ? safetyGate.reviewRequiredSignals
+        : [];
     }
   } catch (err) {
     logger.warn('[CoachDispatchEligibility] Client safety context unavailable:', err?.message);
@@ -158,6 +177,21 @@ export async function filterEligibleFrontendActions({
         code: 'PAIN_EXCLUDED',
         reason: verdict.reason,
         alternatives: suggestAlternatives(resolved, registry, excludedMuscles),
+      });
+      continue;
+    }
+
+    if (blockingGateSignals !== null) {
+      // Passed the specific pain filter, but the client's gate is blocking —
+      // the trainer must complete the safety review in the workout builder
+      // before chat can stage new exercises.
+      refusals.push({
+        event: action.event,
+        exerciseName,
+        code: 'SAFETY_REVIEW_REQUIRED',
+        reason: 'this client’s safety review is pending — complete the review in the workout builder before adding exercises from chat',
+        reviewRequiredSignals: blockingGateSignals,
+        alternatives: [],
       });
       continue;
     }

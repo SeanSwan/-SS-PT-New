@@ -106,6 +106,49 @@ describe('useWorkoutPlannerGenerationActions safety gate (Cortex P0 §5.3)', () 
     expect(post).toHaveBeenCalledTimes(1);
   });
 
+  it('a re-blocked acknowledged retry keeps the modal OPEN with fresh signals and surfaces a message (never a silent close)', async () => {
+    // Review-queue REVISE item (2026-07-12): the retry's 409 was previously
+    // discarded — the modal closed, no message appeared, and the trainer's
+    // written reason was lost while nothing had been generated.
+    const secondBlock = {
+      response: {
+        status: 409,
+        data: {
+          success: false,
+          code: 'SWAN_COACH_REVIEW_REQUIRED',
+          reviewRequiredSignals: ['active_pain_review_required', 'medical_clearance_required'],
+          missingCriticalData: ['medical clearance'],
+        },
+      },
+    };
+    const post = vi.fn()
+      .mockRejectedValueOnce(reviewRequired409())
+      .mockRejectedValueOnce(secondBlock);
+    const { hook, setters } = renderGenerationHook(post);
+
+    await act(async () => {
+      await hook.result.current.handleSwanCoachWorkoutGenerate(42);
+    });
+    await waitFor(() => expect(hook.result.current.safetyGateReview).not.toBeNull());
+
+    await act(async () => {
+      await hook.result.current.confirmSafetyGateReview('Reviewed with client');
+    });
+
+    // Modal state stays open, carrying the SECOND block's signals.
+    expect(hook.result.current.safetyGateReview).toEqual({
+      mode: 'workout',
+      clientId: 42,
+      signals: ['active_pain_review_required', 'medical_clearance_required'],
+      missingData: ['medical clearance'],
+    });
+    // And the re-block is surfaced, not silent.
+    const errorCalls = setters.setStatusMsg.mock.calls
+      .map(([msg]) => msg)
+      .filter((msg) => msg && msg.type === 'error');
+    expect(errorCalls.length).toBeGreaterThan(0);
+  });
+
   it('plan generation opens the review state in plan mode', async () => {
     const post = vi.fn().mockRejectedValue(reviewRequired409());
     const { hook } = renderGenerationHook(post);

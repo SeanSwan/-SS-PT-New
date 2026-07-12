@@ -114,3 +114,55 @@ describe('filterEligibleFrontendActions (Cortex P0 §5.4)', () => {
     expect(allowed).toEqual([toggle]);
   });
 });
+
+describe('blocking-tier parity (review-queue REVISE item, 2026-07-12)', () => {
+  // A client whose deterministic gate is BLOCKING (active pain under review,
+  // no excluded muscles yet — e.g. severity-8 entry outside the 72h auto-
+  // exclusion window) 409s in the workout builder. Chat must not be a side
+  // door: AI_ADD_EXERCISE is refused until the safety review happens in the
+  // builder. Pain-excluded exercises keep their more specific refusal.
+  const blockingNoExclusions = () => ({
+    criticalDataUnavailable: false,
+    pain: {
+      status: 'loaded_active_issue',
+      excludedMuscles: [],
+      warnings: [{ region: 'shoulder', severity: 8 }],
+    },
+    constraints: { excludedMuscles: [] },
+  });
+
+  it('refuses AI_ADD_EXERCISE when the safety gate is blocking even with no excluded muscles', async () => {
+    const { allowed, refusals } = await run(
+      [addExercise('Goblet Squat')],
+      { context: blockingNoExclusions() },
+    );
+    expect(allowed).toEqual([]);
+    expect(refusals[0]).toEqual(expect.objectContaining({
+      code: 'SAFETY_REVIEW_REQUIRED',
+      exerciseName: 'Goblet Squat',
+    }));
+    expect(refusals[0].reviewRequiredSignals).toContain('active_pain_review_required');
+  });
+
+  it('keeps the specific PAIN_EXCLUDED refusal for pain-excluded exercises', async () => {
+    const { refusals } = await run(
+      [addExercise('Barbell Bench Press')],
+      { excluded: ['chest', 'shoulders'] },
+    );
+    expect(refusals[0].code).toBe('PAIN_EXCLUDED');
+  });
+
+  it('leaves non-gated events untouched under a blocking gate (disclosed scope)', async () => {
+    const { allowed } = await run(
+      [{ event: 'AI_UPDATE_SET', payload: { index: 0, reps: 8 } }],
+      { context: blockingNoExclusions() },
+    );
+    expect(allowed).toHaveLength(1);
+  });
+
+  it('still allows a clean add when the gate is not blocking', async () => {
+    const { allowed, refusals } = await run([addExercise('Goblet Squat')], { excluded: [] });
+    expect(refusals).toEqual([]);
+    expect(allowed[0].payload.exerciseName).toBe('Goblet Squat');
+  });
+});

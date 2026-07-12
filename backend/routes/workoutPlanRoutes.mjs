@@ -281,6 +281,7 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
         equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
         planningReviewAcknowledged: planningReviewAcknowledged === true,
         planningReviewReason: typeof planningReviewReason === 'string' ? planningReviewReason : null,
+        planningReviewActorRole: req.user.role,
       });
       return res.status(result.refreshed ? 200 : 201).json({ success: true, ...result });
     } catch (err) {

@@ -1661,6 +1661,7 @@ class AdminClientController {
           equipmentProfileId,
           planningReviewAcknowledged: planningReviewAcknowledged === true,
           planningReviewReason,
+          planningReviewActorRole: req.user.role,
         });
 
         return res.status(200).json({
@@ -1678,6 +1679,7 @@ class AdminClientController {
           equipmentProfileId,
           planningReviewAcknowledged: planningReviewAcknowledged === true,
           planningReviewReason,
+          planningReviewActorRole: req.user.role,
         });
 
         return res.status(200).json({

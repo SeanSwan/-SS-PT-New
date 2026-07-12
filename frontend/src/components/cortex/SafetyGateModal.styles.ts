@@ -35,7 +35,7 @@ export const GateCard = styled(motion.div)`
   border-radius: 16px;
   padding: 28px 24px 24px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 8px 32px var(--shadow-heavy, rgba(0, 0, 0, 0.5)),
     0 0 12px 2px var(--glow-purple, rgba(139, 92, 246, 0.38));
 
   @media (max-width: 375px) {

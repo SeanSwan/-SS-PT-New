@@ -51,6 +51,7 @@ describe('buildSwanCoachPlanningApprovalGate', () => {
     const result = buildSwanCoachPlanningApprovalGate({
       swanCoachPlanning: REVIEW_REQUIRED_PLANNING,
       planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer',
       reviewerUserId: 10,
     });
 

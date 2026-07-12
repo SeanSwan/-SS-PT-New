@@ -4,6 +4,7 @@
  */
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistryFromDB } from './variationEngine.mjs';
+import { painVerdictForExercise } from './ai/coachDispatchEligibilityService.mjs';
 import { getGoalOptBias, normalizeGoal } from './workoutBuilderGoalConfig.mjs';
 import { phaseCandidateDefaults } from './training-cortex/policy/nasmOptPolicy.mjs';
 import {
@@ -190,11 +191,32 @@ function formatCandidate(exercise, index, context) {
   };
 }
 
-function slotInstruction({ hasCandidates, equipmentFilterActive }) {
+function slotInstruction({ hasCandidates, equipmentFilterActive, painFilterActive }) {
+  if (!hasCandidates && painFilterActive) {
+    return 'Every option in this category targets muscles excluded by this client’s active pain report. Pick another category, or review the pain report in the workout builder.';
+  }
   if (!hasCandidates && equipmentFilterActive) {
     return 'No options matched this category with the selected equipment profile. Adjust the equipment profile or category, then try again.';
   }
   return 'Pick one option for this workout slot, or switch back to Auto to generate the whole session.';
+}
+
+const SAFETY_HOLD_INSTRUCTION = 'This client’s pain/safety data could not be loaded, so exercise recommendations are held. Retry, or review the client’s intake before assigning work.';
+
+/**
+ * Resolve the client's pain exclusions for candidate filtering.
+ * Returns null when the pain state is UNKNOWN (source unavailable or
+ * critical data failed) — unknown never passes as "no pain" (fail-closed,
+ * same doctrine as the builder gate and the chat dispatch gate).
+ */
+function resolveCandidatePainExclusions(clientContext = {}) {
+  if (clientContext?.pain?.status === 'unavailable' || clientContext?.criticalDataUnavailable) {
+    return null;
+  }
+  const excluded = clientContext?.pain?.excludedMuscles
+    || clientContext?.constraints?.excludedMuscles
+    || [];
+  return Array.isArray(excluded) ? excluded : [];
 }
 
 export async function generateWorkoutCandidates({
@@ -230,10 +252,44 @@ export async function generateWorkoutCandidates({
   const equipmentItems = equipmentItemsForProfile(clientContext, safeEquipmentProfileId, clientId);
   const availableEquipmentCategories = equipmentCategoriesFromItems(equipmentItems);
   const equipmentFilterActive = availableEquipmentCategories.size > 0;
+
+  // Pain safety (Cortex fast-follow, 2026-07-12): candidates recommend work
+  // for a SPECIFIC client, so they inherit the client's pain exclusions and
+  // the untagged-muscle fail-safe — the same verdict the chat gate uses. An
+  // UNKNOWN pain state holds every recommendation fail-visibly.
+  const painExclusions = resolveCandidatePainExclusions(clientContext);
+  if (painExclusions === null) {
+    return {
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning: { createdBy: 'swan_coach_planning', identityMode: 'client_id_only' },
+      candidateSystem: 'swan_coach_guided_candidates',
+      clientId,
+      trainerId,
+      generatedAt: new Date().toISOString(),
+      generationMode: mode,
+      category: safeCategory,
+      primaryGoal: safeGoal,
+      nasmPhase: safePhase,
+      equipmentProfileId: safeEquipmentProfileId,
+      availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
+      swanCoachReadiness: readiness,
+      safetyHold: 'pain_data_unavailable',
+      painExclusionsApplied: [],
+      slots: [{
+        slotId: `${safeCategory}-primary`,
+        focus: displayCategory(safeCategory),
+        instruction: SAFETY_HOLD_INSTRUCTION,
+        candidates: [],
+      }],
+    };
+  }
+  const painFilterActive = painExclusions.length > 0;
+
   const registry = await getExerciseRegistryFromDB();
   const pool = registry.filter(exercise => (
     matchesCategory(exercise, safeCategory)
     && matchesEquipmentProfile(exercise, availableEquipmentCategories)
+    && painVerdictForExercise(exercise, painExclusions).eligible
   ));
   const ranked = pool
     .map(exercise => ({ exercise, score: scoreCandidate(exercise, {
@@ -266,10 +322,11 @@ export async function generateWorkoutCandidates({
     equipmentProfileId: safeEquipmentProfileId,
     availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
     swanCoachReadiness: readiness,
+    painExclusionsApplied: painExclusions,
     slots: [{
       slotId: `${safeCategory}-primary`,
       focus: displayCategory(safeCategory),
-      instruction: slotInstruction({ hasCandidates: ranked.length > 0, equipmentFilterActive }),
+      instruction: slotInstruction({ hasCandidates: ranked.length > 0, equipmentFilterActive, painFilterActive }),
       candidates: ranked,
     }],
   };
