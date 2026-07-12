@@ -9,6 +9,19 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
+rem Surface runtime truth: compare the pinned checkout with the remote main ref.
+rem A local origin/main ref can be stale, so never use it as release truth.
+set "PINNED_HEAD="
+set "REMOTE_HEAD="
+for /f "delims=" %%h in ('git -C "%RR%" rev-parse HEAD 2^>nul') do set "PINNED_HEAD=%%h"
+for /f "tokens=1" %%h in ('git -C "%RR%" ls-remote origin refs/heads/main 2^>nul') do set "REMOTE_HEAD=%%h"
+if not defined REMOTE_HEAD (
+  echo [!] RUNTIME VERSION UNKNOWN - GitHub main could not be checked. Rendering the pinned code.
+)
+if defined PINNED_HEAD if defined REMOTE_HEAD if /i not "%PINNED_HEAD%"=="%REMOTE_HEAD%" (
+  echo [!] RUNTIME DRIFT - pinned Hermes checkout differs from remote main.
+  echo     The page will render with the pinned code; refresh runner-repo before release verification.
+)
 rem Activated = the 6am task exists (not just the runtime folder - a half-finished
 rem activation must resume, caught live 2026-07-07).
 schtasks /Query /TN "HermesOS-Daily" >nul 2>nul

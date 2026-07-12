@@ -140,6 +140,18 @@ export const buildWorkoutSessionPdfFile = async (input: WorkoutSessionPdfInput):
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });
 };
 
+/**
+ * Approval Vault payload (A3): the exact bytes to preview AND download, plus the
+ * resolved brand wordmark for the vault's branding-safety chip. Preview == print.
+ */
+export const buildWorkoutSessionPdfPreview = async (
+  input: WorkoutSessionPdfInput,
+): Promise<{ blob: Blob; filename: string; brandWordmark: string } | null> => {
+  const file = await buildWorkoutSessionPdfFile(input);
+  if (!file) return null;
+  return { blob: file, filename: file.name, brandWordmark: resolveBrandIdentity(input.clientSource).wordmark };
+};
+
 export const downloadWorkoutSessionPdf = async (input: WorkoutSessionPdfInput): Promise<boolean> => {
   const file = await buildWorkoutSessionPdfFile(input);
   if (!file || typeof document === 'undefined') return false;

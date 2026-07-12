@@ -220,7 +220,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
     await user.update(buildUserPurchaseUpdate(user, sessionsToAdd), { transaction });
 
     // Burn down any per-client "SwanStudios Special" in this cart, atomically
-    // with the credit â€” so a one_time/n_times deal can't be re-purchased. Gated
+    // with the credit — so a one_time/n_times deal can't be re-purchased. Gated
     // on a cheap in-memory check of the already-loaded cart items, so ordinary
     // carts do ZERO extra work and have no dependency on the special feature.
     const cartHasSpecial = Array.isArray(cart.cartItems)
@@ -237,7 +237,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
         });
       } catch (specialErr) {
         // A special-redemption failure MUST abort the whole grant (don't credit
-        // sessions for a deal we couldn't record) â€” rethrow into the outer catch.
+        // sessions for a deal we couldn't record) — rethrow into the outer catch.
         logger.error(`[SessionGrant] special redemption recording failed for cart ${cartId}: ${specialErr.message}`);
         throw specialErr;
       }

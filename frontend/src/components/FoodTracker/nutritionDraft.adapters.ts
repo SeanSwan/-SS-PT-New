@@ -196,8 +196,11 @@ export function restaurantFoodToNutritionDraft(
   const description = brand && !rawName.toLowerCase().startsWith(brand.toLowerCase())
     ? `${brand} ${rawName}`
     : rawName;
+  const providerFoodId = compactText(food.id);
   const row: NutritionDraftFood = {
-    id: options.foodId || fallbackId('restaurant-food'),
+    // Mirror searchFoodToNutritionDraft: prefer a provider-derived row id so a
+    // re-review of the same restaurant food doesn't mint a fresh identity each time.
+    id: options.foodId || (providerFoodId ? `restaurant-${providerFoodId}` : fallbackId('restaurant-food')),
     description,
     displayName: rawName,
     mealType: normalizeMealType(options.mealType),
@@ -211,7 +214,7 @@ export function restaurantFoodToNutritionDraft(
   };
   return baseDraft('restaurant', `Review ${rawName}`, 'Restaurant & Brand Foods', 'provider', [row], options, {
     provider: 'FatSecret',
-    externalId: compactText((food as { id?: unknown }).id) || undefined,
+    externalId: providerFoodId || undefined,
   });
 }
 

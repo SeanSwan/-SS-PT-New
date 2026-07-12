@@ -12,9 +12,10 @@
  * STATES: loading skeleton / error note / empty note / grouped sessions.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Clock, FileDown, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import PdfApprovalVault from '../../../Shared/PdfApprovalVault';
 import {
   CloseButton,
   DayHeading,
@@ -92,8 +93,7 @@ const WorkoutDayDrilldown: React.FC<{
   const { authAxios, user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [days, setDays] = useState<DrillDay[]>([]);
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<Element | null>(null);
 
@@ -107,10 +107,12 @@ const WorkoutDayDrilldown: React.FC<{
   }, []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // While the PDF Approval Vault is stacked on top, Escape belongs to the
+    // vault — without this guard one keypress would close BOTH dialogs.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !pdfPreviewOpen) onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, pdfPreviewOpen]);
 
   useEffect(() => {
     // Lock background scroll while the dialog is open (mobile especially).
@@ -145,31 +147,25 @@ const WorkoutDayDrilldown: React.FC<{
   const title = mode === 'week' ? `Week of ${md}` : `Workout — ${md}`;
   const totalSessions = days.reduce((sum, d) => sum + d.sessions.length, 0);
 
-  const handleSessionPdf = async () => {
-    setPdfBusy(true);
-    setPdfError(false);
-    try {
-      const { downloadWorkoutSessionPdf } = await import('../../../../services/pdf/workoutSessionPdf');
-      const clientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
-      await downloadWorkoutSessionPdf({
-        clientName: clientName || 'Client',
-        clientSource: user?.clientSource,
-        title,
-        days: days.map((day) => ({
-          dateLabel: day.date ?? (mode === 'week' ? 'Training day' : md),
-          sessions: day.sessions,
-        })),
-      });
-    } catch {
-      // A jspdf chunk-load failure would otherwise reset the spinner with
-      // no feedback (unhandled rejection) — tell the member honestly.
-      setPdfError(true);
-    } finally {
-      setPdfBusy(false);
-    }
-  };
+  // A3 Approval Vault: build the exact session-log bytes for preview + download,
+  // white-labeled by the member's own source. Loading/error states (including a
+  // jspdf chunk-load failure) render inside the vault itself.
+  const buildSessionFile = useCallback(async () => {
+    const { buildWorkoutSessionPdfPreview } = await import('../../../../services/pdf/workoutSessionPdf');
+    const clientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+    return buildWorkoutSessionPdfPreview({
+      clientName: clientName || 'Client',
+      clientSource: user?.clientSource,
+      title,
+      days: days.map((day) => ({
+        dateLabel: day.date ?? (mode === 'week' ? 'Training day' : md),
+        sessions: day.sessions,
+      })),
+    });
+  }, [days, md, mode, title, user?.clientSource, user?.firstName, user?.lastName]);
 
   return (
+    <>
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <Panel role="dialog" aria-modal="true" aria-label={`Workout detail for ${md}`}>
         <PanelHeader>
@@ -184,8 +180,7 @@ const WorkoutDayDrilldown: React.FC<{
           {status === 'ready' && totalSessions > 0 && (
             <PdfExportButton
               type="button"
-              onClick={handleSessionPdf}
-              disabled={pdfBusy}
+              onClick={() => setPdfPreviewOpen(true)}
               aria-label="Download this workout as a PDF"
             >
               <FileDown size={16} aria-hidden="true" />
@@ -200,10 +195,6 @@ const WorkoutDayDrilldown: React.FC<{
 
         {status === 'error' && (
           <StateNote role="status">Could not load this workout right now.</StateNote>
-        )}
-
-        {pdfError && (
-          <StateNote role="status">The PDF download didn&apos;t start — check your connection and try again.</StateNote>
         )}
 
         {status === 'ready' && totalSessions === 0 && (
@@ -226,6 +217,15 @@ const WorkoutDayDrilldown: React.FC<{
         ))}
       </Panel>
     </Overlay>
+    {/* Sibling of the Overlay (not a child of Panel) so a backdrop-filter never
+        becomes the containing block for the vault's position: fixed overlay. */}
+    <PdfApprovalVault
+      open={pdfPreviewOpen}
+      onClose={() => setPdfPreviewOpen(false)}
+      documentLabel="session log"
+      buildFile={buildSessionFile}
+    />
+    </>
   );
 };
 
