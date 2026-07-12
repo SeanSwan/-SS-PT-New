@@ -65,20 +65,26 @@ export async function assertCartSpecialsRedeemable({
   now = new Date(),
 }) {
   const specials = await loadLockedSpecials(cartItems, { CustomPackage });
+  const seenSpecialIds = new Set();
+
   for (const item of cartItems) {
-    const special = specials.get(Number(item.storefrontItemId));
-    if (!special) continue;
+    const storefrontItemId = Number(item.storefrontItemId);
+    const special = specials.get(storefrontItemId);
+    const markedSpecial = item?.storefrontItem?.isSpecialOffer === true;
+
+    if (!special && !markedSpecial) continue;
     assertClientOwnsActiveSpecial({ customPackage: special, userId, now });
-    if (Number(item.quantity) > 1) {
+
+    if (seenSpecialIds.has(storefrontItemId) || Number(item.quantity) !== 1) {
       throw new SpecialOfferError('A special offer can only be purchased once per order.', {
         code: 'SPECIAL_QUANTITY',
         status: 409,
       });
     }
+    seenSpecialIds.add(storefrontItemId);
   }
   return true;
 }
-
 
 export async function recordSpecialRedemption(customPackage, { transaction } = {}) {
   const updates = {};
@@ -129,24 +135,30 @@ export async function recordCartSpecialRedemptions({
 }) {
   const markedItems = cartItems.filter((item) => item?.storefrontItem?.isSpecialOffer === true);
   const specials = await loadLockedSpecials(markedItems, { CustomPackage, transaction });
-  const recorded = [];
+  const seenSpecialIds = new Set();
 
   for (const item of markedItems) {
-    const special = specials.get(Number(item.storefrontItemId));
+    const storefrontItemId = Number(item.storefrontItemId);
+    const special = specials.get(storefrontItemId);
     assertPaidSpecialOwner(special, userId);
-    if (Number(item.quantity) !== 1) {
+    if (seenSpecialIds.has(storefrontItemId) || Number(item.quantity) !== 1) {
       throw new SpecialOfferError('A special offer can only be purchased once per order.', {
         code: 'SPECIAL_QUANTITY',
         status: 409,
       });
     }
+    seenSpecialIds.add(storefrontItemId);
+  }
+
+  const recorded = [];
+  for (const item of markedItems) {
+    const special = specials.get(Number(item.storefrontItemId));
     await recordSpecialRedemption(special, { transaction });
     recorded.push(special.id);
   }
 
   return [...new Set(recorded)];
 }
-
 export async function recordDirectSpecialRedemption({
   storefrontItemId,
   userId,

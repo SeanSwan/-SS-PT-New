@@ -10,6 +10,7 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
 import { resolveContactApiBase } from './contactApiBase';
+import BookConsultCTA from '../../components/marketing/BookConsultCTA';
 
 /* ================================================================
  * ContactV3 — Cinematic Upgrade of ContactV2
@@ -949,6 +950,15 @@ const ContactV3: React.FC = () => {
             {/* LEFT: Form */}
             <ScrollReveal direction="left" delay={0.1}>
               <FormCard>
+                {/* High-intent PRIMARY action, above the general message form. The lead-nurture
+                    emails' "book a free consult" link resolves to /contact, so the booking CTA MUST
+                    live on the ROUTED contact page — which is ContactV3 (routes/main-routes.tsx:84),
+                    NOT the orphaned EnhancedContactPage. Otherwise the drip's terminal action goes
+                    nowhere. POSTs to the live POST /api/consult-request. */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.75rem' }}>
+                  <BookConsultCTA />
+                </div>
+
                 <FormTitle>Send Us a Message</FormTitle>
                 <Form onSubmit={handleSubmit}>
                   <InputGroup>

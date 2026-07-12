@@ -253,7 +253,7 @@ describe('recordCartSpecialRedemptions (called inside the grant transaction)', (
   it('records a redemption for each special in the purchased cart', async () => {
     const applied = {};
     const row = {
-      id: 7, storefrontItemId: 500, clientId: 100, remainingRedemptions: 2, validityType: 'n_times',
+      id: 7, storefrontItemId: 500, clientId: 100, status: 'active', expiresAt: null, remainingRedemptions: 2, validityType: 'n_times',
       update: vi.fn(async (u) => Object.assign(applied, u)),
     };
     const CustomPackage = { findAll: vi.fn(async () => [row]) };
@@ -284,7 +284,7 @@ describe('recordCartSpecialRedemptions (called inside the grant transaction)', (
 
   it('rechecks ownership and quantity inside the paid grant transaction', async () => {
     const row = {
-      id: 7, storefrontItemId: 500, clientId: 100, remainingRedemptions: 1, validityType: 'one_time',
+      id: 7, storefrontItemId: 500, clientId: 100, status: 'active', expiresAt: null, remainingRedemptions: 1, validityType: 'one_time',
       update: vi.fn(),
     };
     const CustomPackage = { findAll: vi.fn(async () => [row]) };

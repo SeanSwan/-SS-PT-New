@@ -71,6 +71,59 @@ describe('cart schema recovery', () => {
     );
   });
 
+  it('reloads the winning active cart after a concurrent unique-index conflict', async () => {
+    const uniqueConflict = new Error('duplicate key value violates unique constraint');
+    uniqueConflict.parent = { code: '23505', constraint: 'shopping_carts_one_open_per_user' };
+    const winningCart = { id: 91, status: 'active', userId: 12 };
+    const ShoppingCart = {
+      findOrCreate: vi.fn().mockRejectedValue(uniqueConflict),
+      findOne: vi.fn().mockResolvedValue(winningCart),
+    };
+
+    const result = await safeFindOrCreateActiveCart(ShoppingCart, 12);
+
+    expect(result).toEqual([winningCart, false]);
+    expect(ShoppingCart.findOne).toHaveBeenCalledWith({
+      where: { userId: 12, status: ['active', 'pending_payment'] },
+      attributes: ['id', 'status', 'userId'],
+    });
+  });
+
+  it('returns the pending cart that blocked creation of a second open cart', async () => {
+    const uniqueConflict = new Error('duplicate open cart');
+    uniqueConflict.parent = { code: '23505', constraint: 'shopping_carts_one_open_per_user' };
+    const pendingCart = { id: 92, status: 'pending_payment', userId: 12 };
+    const ShoppingCart = {
+      findOrCreate: vi.fn().mockRejectedValue(uniqueConflict),
+      findOne: vi.fn().mockResolvedValue(pendingCart),
+    };
+
+    await expect(safeFindOrCreateActiveCart(ShoppingCart, 12)).resolves.toEqual([pendingCart, false]);
+  });
+
+  it('raw fallback reloads a pending cart after the open-cart index wins the race', async () => {
+    const modelError = new Error('column "sessionsGranted" does not exist');
+    modelError.parent = { code: '42703', message: modelError.message };
+    const uniqueConflict = new Error('duplicate open cart');
+    uniqueConflict.parent = { code: '23505', constraint: 'shopping_carts_one_open_per_user' };
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce([[{ column_name: 'userId', data_type: 'integer' }]])
+      .mockResolvedValueOnce([[]])
+      .mockRejectedValueOnce(uniqueConflict)
+      .mockResolvedValueOnce([[{ id: 93, status: 'pending_payment' }]]);
+    const ShoppingCart = {
+      findOrCreate: vi.fn().mockRejectedValue(modelError),
+      sequelize: { query },
+    };
+
+    await expect(safeFindOrCreateActiveCart(ShoppingCart, 12)).resolves.toEqual([
+      { id: 93, status: 'pending_payment', userId: 12 },
+      false,
+    ]);
+    expect(query.mock.calls[3][0]).toContain("status IN ('active', 'pending_payment')");
+  });
+
   it('falls back to raw cart-item query when include query fails from schema drift', async () => {
     const modelError = new Error('column "cartId" does not exist');
     modelError.parent = { code: '42703', message: modelError.message };

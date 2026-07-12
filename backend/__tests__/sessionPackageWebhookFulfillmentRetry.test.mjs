@@ -75,6 +75,7 @@ function makeEvent() {
       object: {
         id: 'cs_test_pkg123',
         client_reference_id: '3',
+        payment_status: 'paid',
         metadata: {
           packageId: 'starter',
           sessions: '5',

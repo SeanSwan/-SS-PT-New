@@ -1,18 +1,53 @@
+/**
+ * Shared low-motion primitives for 25 independent Workout Design Lab compositions.
+ */
 import React from 'react';
-import styled from 'styled-components';
+import { BookOpen, Check, Dumbbell, History, ShieldCheck } from 'lucide-react';
+import type { WorkoutDesignViewModel } from '../workoutDesignViewModel';
+import {
+  ActionBar, ContextList, ExerciseRow, ExerciseStack, Primary, Secondary,
+} from './conceptShared.styles';
 
-export interface ConceptProps { onAction: (message: string) => void; }
-export const workoutRows = [
-  { name: 'Goblet squat', meta: 'Stability · lower body', dose: '3 × 10' },
-  { name: 'Half-kneeling press', meta: 'Anti-rotation · push', dose: '3 × 8' },
-  { name: 'Stability-ball row', meta: 'Core · pull', dose: '3 × 12' },
-];
-export const clientSignals = ['Readiness 82', 'Left knee 2/10', 'Missed Tuesday'];
+export {
+  BodyCopy, Kicker, Panel, PrototypeNote, ReadinessDial, SignalRow, WorldTitle,
+} from './conceptShared.styles';
 
-const Note = styled.p`
-  margin: 0; font-size: 12px; line-height: 1.4; opacity: .72;
-`;
-export const PrototypeNote: React.FC = () => <Note>Prototype only · no client data is written</Note>;
-export const ActionReceipt: React.FC<{ message: string }> = ({ message }) => (
-  <span aria-live="polite">{message}</span>
+export interface ConceptProps {
+  model: WorkoutDesignViewModel;
+  conceptName: string;
+  primaryActionLabel: string;
+  onAction: () => void;
+  onOpenRolodex: () => void;
+}
+
+export const ExerciseList: React.FC<{ model: WorkoutDesignViewModel }> = ({ model }) => (
+  <ExerciseStack aria-label="Prototype workout exercises">
+    {model.exercises.map((exercise) => (
+      <ExerciseRow key={exercise.id}>
+        <div><h3>{exercise.name}</h3><p>{exercise.focus}</p></div>
+        <dl><dt>Sets × reps</dt><dd>{exercise.sets} × {exercise.reps}</dd></dl>
+        <dl><dt>Load</dt><dd>{exercise.load}</dd></dl>
+        <dl><dt>Tempo / rest</dt><dd>{exercise.tempo} · {exercise.restSeconds}s</dd></dl>
+        <dl><dt>RPE / pain</dt><dd>{exercise.rpe} · {exercise.pain}/10</dd></dl>
+      </ExerciseRow>
+    ))}
+  </ExerciseStack>
+);
+
+export const SessionContext: React.FC<{ model: WorkoutDesignViewModel }> = ({ model }) => (
+  <ContextList>
+    <p><Dumbbell size={18}/><span><strong>{model.planContext}</strong><br/>{model.workoutDate} · {model.dateContext}</span></p>
+    <p><History size={18}/><span>{model.historyContext}<br/>{model.missedDaySignal}</span></p>
+    <p><BookOpen size={18}/><span>{model.coachNotes}</span></p>
+    <p><ShieldCheck size={18}/><span>{model.approvalReceipt}</span></p>
+  </ContextList>
+);
+
+export const ConceptActions: React.FC<ConceptProps> = ({
+  primaryActionLabel, onAction, onOpenRolodex,
+}) => (
+  <ActionBar>
+    <Primary type="button" onClick={onAction}><Check size={17}/> {primaryActionLabel}</Primary>
+    <Secondary type="button" onClick={onOpenRolodex}><Dumbbell size={17}/> Open Exercise Rolodex</Secondary>
+  </ActionBar>
 );

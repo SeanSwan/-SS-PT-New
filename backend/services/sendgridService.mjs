@@ -29,7 +29,7 @@ try {
  * @param {string} options.html - HTML version of the email (optional).
  * @returns {Promise<Object>} - Result of the email sending operation.
  */
-export async function sendGridEmail({ to, subject, text, html }) {
+export async function sendGridEmail({ to, subject, text, html, headers, replyTo }) {
   // Check if SendGrid service is configured
   if (!sendgridServiceReady) {
     logger.error('Attempted to send email via SendGrid, but it is not configured.');
@@ -41,7 +41,7 @@ export async function sendGridEmail({ to, subject, text, html }) {
         text: text ? text.substring(0, 100) + '...' : 'No text content',
       });
     }
-    return { success: false, error: new Error('SendGrid service not configured') };
+    return { success: false, error: new Error('SendGrid service not configured'), retryable: true }; // env-fixable → caller defers
   }
 
   // Validate parameters
@@ -54,15 +54,17 @@ export async function sendGridEmail({ to, subject, text, html }) {
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
   if (!fromEmail || !fromEmail.includes('@')) {
     logger.error(`Invalid 'from' address: ${fromEmail}`);
-    return { success: false, error: new Error('Invalid sender email address configured') };
+    return { success: false, error: new Error('Invalid sender email address configured'), retryable: true }; // env-fixable → caller defers
   }
 
   const msg = {
-    to,
+    to, // string OR array — @sendgrid/mail accepts multiple recipients as an array
     from: fromEmail,
     subject,
     text,
     ...(html && { html }), // Add HTML if provided
+    ...(headers && typeof headers === 'object' && { headers }), // e.g. List-Unsubscribe (RFC 8058)
+    ...(replyTo && { replyTo }), // route replies to a monitored inbox (not a noreply from-address)
   };
 
   try {
@@ -71,7 +73,11 @@ export async function sendGridEmail({ to, subject, text, html }) {
     return { success: true };
   } catch (error) {
     logger.error("Error sending email via SendGrid:", error);
-    return { success: false, error };
+    // Transient (rate-limit / server / network) errors are retryable so the caller can DEFER
+    // rather than permanently drop the message; a 4xx (e.g. bad recipient) stays terminal.
+    const status = error?.code || error?.response?.statusCode;
+    const retryable = !status || status === 429 || Number(status) >= 500;
+    return { success: false, error, retryable };
   }
 }
 

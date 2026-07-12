@@ -28,6 +28,10 @@ import {
   loadOptionalFulfillmentModels,
 } from './cartCheckoutFulfillmentService.mjs';
 import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
+import {
+  hydrateCartCheckoutItems,
+  readCartCheckoutSnapshot,
+} from './cartCheckoutSnapshotService.mjs';
 
 export function getStorefrontSessionCredits(storefrontItem) {
   const directSessions = Number(storefrontItem?.sessions || 0);
@@ -129,6 +133,7 @@ function buildUserPurchaseUpdate(user, sessionsToAdd) {
 }
 
 async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, transaction }) {
+  const checkoutSnapshot = readCartCheckoutSnapshot(cart);
   await cart.update({
     status: 'completed',
     paymentStatus: 'paid',
@@ -141,6 +146,7 @@ async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, 
       productItemsFulfilled: fulfillment.productItemsFulfilled,
       orderId: fulfillment.orderId,
       previousCartStatus: cart.status,
+      ...(checkoutSnapshot && { checkoutSnapshot }),
     }),
   }, { transaction });
 }
@@ -155,7 +161,7 @@ async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, 
  * @param {string} grantedBy - 'verify-session' | 'webhook' | 'reconciliation'
  * @returns {Promise<{granted: boolean, sessionsAdded: number, alreadyProcessed: boolean}>}
  */
-export async function grantSessionsForCart(cartId, userId, grantedBy) {
+export async function grantSessionsForCart(cartId, userId, grantedBy, { checkoutSessionId } = {}) {
   const transaction = await sequelize.transaction();
 
   try {
@@ -181,6 +187,10 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       throw new Error(`Cart ${cartId} not found for user ${userId}`);
     }
 
+    if (checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
+      throw new Error(`Stripe session does not own cart ${cartId}`);
+    }
+
     // IDEMPOTENCY CHECK: Only check sessionsGranted flag
     // Do NOT check status === 'completed' (webhook sets this before verify-session)
     if (cart.sessionsGranted === true) {
@@ -189,6 +199,12 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       return { granted: false, sessionsAdded: 0, alreadyProcessed: true };
     }
 
+    cart.cartItems = await hydrateCartCheckoutItems({
+      cart,
+      StorefrontItem,
+      ProductVariant,
+      transaction,
+    });
     const sessionsToAdd = calculateCartSessionCredits(cart.cartItems);
 
     const user = await findLockedUser(User, cart, userId, transaction);
@@ -204,7 +220,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     await user.update(buildUserPurchaseUpdate(user, sessionsToAdd), { transaction });
 
     // Burn down any per-client "SwanStudios Special" in this cart, atomically
-    // with the credit — so a one_time/n_times deal can't be re-purchased. Gated
+    // with the credit â€” so a one_time/n_times deal can't be re-purchased. Gated
     // on a cheap in-memory check of the already-loaded cart items, so ordinary
     // carts do ZERO extra work and have no dependency on the special feature.
     const cartHasSpecial = Array.isArray(cart.cartItems)
@@ -221,7 +237,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
         });
       } catch (specialErr) {
         // A special-redemption failure MUST abort the whole grant (don't credit
-        // sessions for a deal we couldn't record) — rethrow into the outer catch.
+        // sessions for a deal we couldn't record) â€” rethrow into the outer catch.
         logger.error(`[SessionGrant] special redemption recording failed for cart ${cartId}: ${specialErr.message}`);
         throw specialErr;
       }

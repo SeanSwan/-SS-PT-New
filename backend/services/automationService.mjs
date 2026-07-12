@@ -8,6 +8,34 @@ import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
 import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
+import { sendTemplatedEmail, buildNurtureEmailVars } from './emailTemplateService.mjs';
+
+// Consent gate is CHANNEL-SCOPED: an EMAIL send is gated only by email opt-out (Subscriber
+// unsubscribe); it must NOT be blocked by SMS-consent state (a contact-form lead defaults
+// smsConsentStatus:'unknown' and can never SMS-opt-in — that would cancel every email nurture).
+// SMS keeps the full email+phone+lead consent check.
+const resolveChannelSuppression = (log, target) => resolveMarketingSuppression(
+  log?.channel === 'email'
+    ? { email: target?.email }
+    : { email: target?.email, phone: target?.phone, leadId: target?.leadId }
+);
+
+// Channel-agnostic reason → human message, so a cancelled/failed EMAIL log is never mislabeled
+// with SMS/phone-specific copy (covers email_disabled, no_email, and the lead-consent reasons).
+const REASON_MESSAGES = {
+  unsubscribed: 'Recipient unsubscribed (marketing-suppressed)',
+  marketing_suppressed: 'Recipient unsubscribed (marketing-suppressed)',
+  sms_opt_out: 'Recipient opted out of SMS',
+  lead_sms_opt_out: 'Recipient opted out of SMS',
+  lead_sms_consent_missing: 'Lead SMS consent missing',
+  sms_disabled: 'SMS disabled for recipient',
+  email_disabled: 'Email disabled for recipient',
+  channel_not_implemented: 'Channel not implemented',
+  suppression_unverified: 'Suppression status could not be verified',
+  no_phone: 'Recipient missing phone number',
+  no_email: 'Recipient missing email address',
+};
+const reasonMessage = (reason, fallback) => REASON_MESSAGES[reason] || fallback;
 import { evaluateScheduledMessage } from './automationDecisionService.mjs';
 import { resolveMarketingSuppression } from './marketingSuppressionService.mjs';
 import { isAutomationArmed } from './automationArmState.mjs';
@@ -39,17 +67,19 @@ const DEFAULT_SEQUENCES = [
   },
   {
     // Triggered when a prospect Lead is captured (contact form / confirmed newsletter).
-    // Seeded OFF on purpose: nurture delivers via SMS, which only reaches phone-bearing
-    // leads — email-only prospects need an email-channel sender (not yet built). Until
-    // that lands this stays inactive so capture creates NO undeliverable logs. Sean flips
-    // isActive=true (and arms SWAN_AUTOMATION_CRON_ENABLED) when the channel is deliverable.
+    // EMAIL channel: reaches the email-only prospects that make up most contact-form
+    // traffic (the email-channel sender now exists — emailTemplateService.mjs). Still
+    // seeded isActive:false ON PURPOSE so capture creates ZERO sends until Sean explicitly
+    // ARMS it — flip isActive=true on the seeded row AND set SWAN_AUTOMATION_CRON_ENABLED —
+    // AFTER the deliverability proof (SPF/DKIM/DMARC + inbox test) passes. Day 0/1/3/7.
     name: 'lead_nurture',
     triggerEvent: 'lead_captured',
     isActive: false,
     steps: [
-      { dayOffset: 0, templateName: 'welcome', channel: 'sms' },
-      { dayOffset: 3, templateName: 'follow_up_day3', channel: 'sms' },
-      { dayOffset: 7, templateName: 'follow_up_day7', channel: 'sms' }
+      { dayOffset: 0, templateName: 'welcome', channel: 'email' },
+      { dayOffset: 1, templateName: 'follow_up_day1', channel: 'email' },
+      { dayOffset: 3, templateName: 'follow_up_day3', channel: 'email' },
+      { dayOffset: 7, templateName: 'follow_up_day7', channel: 'email' }
     ]
   }
 ];
@@ -92,12 +122,21 @@ const resolveAutomationTarget = async (log, { User }) => {
 // and a typo/NaN/negative falls back to the conservative default rather than silently
 // becoming it or passing through unguarded.
 const envNonNegInt = (name, fallback) => {
-  const parsed = Number(process.env[name]);
+  const raw = process.env[name];
+  if (raw == null || String(raw).trim() === '') return fallback; // blank/unset → fallback (Number('')===0 would slip through)
+  const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 };
-const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3);
-const FREQ_WINDOW_DAYS = envNonNegInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
-const FREQ_COOLDOWN_HOURS = envNonNegInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
+// WINDOW/COOLDOWN must be > 0: a 0 window disables the sent-based cap (sentAt>=now matches nothing);
+// a 0 cooldown makes a defer reschedule to `now` → re-selected every tick (busy-loop). CAP keeps 0
+// as a deliberate halt.
+const envPosInt = (name, fallback) => {
+  const v = envNonNegInt(name, fallback);
+  return v > 0 ? v : fallback;
+};
+const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3); // 0 = deliberate halt (allowed)
+const FREQ_WINDOW_DAYS = envPosInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
+const FREQ_COOLDOWN_HOURS = envPosInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A log claimed ('processing') but never resolved this long ago was stranded by a crashed
 // mid-send; it becomes reclaimable so it isn't stuck forever (and stops permanently
@@ -166,7 +205,8 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
     return { success: false, message: 'No active sequences for event', created: 0 };
   }
 
-  const leadId = data.leadId != null ? Number(data.leadId) : null;
+  const parsedLeadId = Number(data.leadId);
+  const leadId = Number.isInteger(parsedLeadId) && parsedLeadId > 0 ? parsedLeadId : null;
   const user = userId ? await User.findByPk(userId) : null;
 
   // Lead-nurture path: when there is no User, resolve the recipient from a captured Lead.
@@ -271,15 +311,13 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       const target = await resolveAutomationTarget(log, { User });
-      const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
+      const suppression = await resolveChannelSuppression(log, target);
       const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
       const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
 
       if (decision.action === 'cancel') {
         log.status = 'cancelled';
-        log.error = decision.reason === 'unsubscribed' || decision.reason === 'marketing_suppressed'
-          ? 'Recipient unsubscribed (marketing-suppressed)'
-          : 'SMS disabled for recipient';
+        log.error = reasonMessage(decision.reason, 'Message cancelled');
         await log.save();
         results.push({ id: log.id, status: 'cancelled' });
         continue;
@@ -291,53 +329,90 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
           log.changed('status', true);
         }
         log.scheduledFor = decision.nextAttempt;
+        log.error = null; // clear any stale error (e.g. a prior suppression_unverified defer)
         await log.save();
         results.push({ id: log.id, status: 'deferred' });
         continue;
       }
 
       if (decision.action === 'fail') {
+        // A transient consent-lookup failure (suppression_unverified) is INFRA, not structural —
+        // DEFER + retry rather than permanently drop a valid message ("defer, never drop"). The
+        // fail-closed safety holds: nothing is sent while consent is unverified.
+        if (decision.reason === 'suppression_unverified') {
+          log.status = 'pending';
+          if (typeof log.changed === 'function') log.changed('status', true);
+          log.scheduledFor = new Date(now.getTime() + FREQ_COOLDOWN_HOURS * 60 * 60 * 1000);
+          log.error = 'deferred: suppression_unverified';
+          await log.save();
+          results.push({ id: log.id, status: 'deferred' });
+          continue;
+        }
         log.status = 'failed';
-        log.error =
-          decision.reason === 'channel_not_implemented' ? 'Channel not implemented'
-          : decision.reason === 'suppression_unverified' ? 'Suppression status could not be verified'
-          : 'Recipient missing phone number';
+        log.error = reasonMessage(decision.reason, 'Send failed');
         await log.save();
         results.push({ id: log.id, status: 'failed' });
         continue;
       }
 
       const variables = log.payloadJson?.variables || {};
+      const isEmail = decision.channel === 'email';
+      const address = isEmail ? target.email : target.phone;
 
       let sendResult;
-      if (log.templateName) {
-        sendResult = await sendTemplatedSMS({
-          to: target.phone,
-          templateName: log.templateName,
-          variables
-        });
-        if (sendResult?.body) {
-          log.message = sendResult.body;
-        }
+      if (isEmail) {
+        // Email channel: templated nurture email to an (often phone-less) email lead.
+        // Merge in per-lead CAN-SPAM vars (signed unsubscribe URL + consult CTA + address);
+        // a missing unsubscribe URL makes sendTemplatedEmail fail CLOSED (never sends).
+        sendResult = log.templateName
+          ? await sendTemplatedEmail({
+              to: address,
+              templateName: log.templateName,
+              variables: { ...variables, ...buildNurtureEmailVars({ leadId: log.leadId, clientName: variables.clientName }) },
+            })
+          : { success: false, error: 'No template provided for email channel' };
+        if (sendResult?.body) log.message = sendResult.body;
+      } else if (log.templateName) {
+        sendResult = await sendTemplatedSMS({ to: address, templateName: log.templateName, variables });
+        if (sendResult?.body) log.message = sendResult.body;
       } else if (log.message) {
-        sendResult = await sendSmsMessage({ to: target.phone, body: log.message });
+        sendResult = await sendSmsMessage({ to: address, body: log.message });
       } else {
         sendResult = { success: false, error: 'No template or message provided' };
       }
 
+      // Config/compliance errors are ENV-FIXABLE (Sean sets SWAN_BUSINESS_ADDRESS / unsubscribe
+      // secret) so they DEFER instead of permanently burning the matured log. A missing unsubscribe
+      // URL is env-fixable only for a LEAD (has an id to sign); for a USER email log it is structural
+      // (no lead token possible) and stays terminal.
+      const configRetryable = isEmail && !sendResult.success && (
+        sendResult.error === 'missing_business_address'
+        || (sendResult.error === 'missing_unsubscribe_url' && log.leadId)
+        || sendResult.retryable === true // transient SendGrid 429/5xx/network — defer, never drop
+      );
+
       if (sendResult.success) {
         log.status = 'sent';
         log.sentAt = new Date();
-        log.recipient = target.phone;
+        log.recipient = address;
         log.error = null;
+      } else if (configRetryable) {
+        log.status = 'pending';
+        if (typeof log.changed === 'function') log.changed('status', true);
+        log.scheduledFor = new Date(now.getTime() + FREQ_COOLDOWN_HOURS * 60 * 60 * 1000);
+        log.error = `deferred: ${sendResult.error}`;
+        log.recipient = address;
       } else {
         log.status = 'failed';
-        log.error = sendResult.error || 'SMS send failed';
-        log.recipient = target.phone;
+        // SMS (twilio) may return a raw Error object; coerce to a string so the TEXT column
+        // never stores "[object Object]".
+        log.error = (typeof sendResult.error === 'string' ? sendResult.error : sendResult.error?.message)
+          || (isEmail ? 'Email send failed' : 'SMS send failed');
+        log.recipient = address;
       }
 
       await log.save();
-      results.push({ id: log.id, status: log.status });
+      results.push({ id: log.id, status: log.status === 'pending' ? 'deferred' : log.status });
     } catch (error) {
       logger.error('Error processing automation log:', error);
       // Guard the recovery save: if persisting the failure status itself rejects (likely
@@ -359,9 +434,11 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
 
 /**
  * Dry-run: what WOULD processScheduledMessages do right now? NO sends, NO DB
- * mutation — runs the SAME decision logic (evaluateScheduledMessage) so the preview
- * cannot diverge from reality. PII-safe: reports phone PRESENCE only, never the
- * number. This is the surface to inspect BEFORE arming SWAN_AUTOMATION_CRON_ENABLED.
+ * mutation — runs the SAME send/suppress decision logic (evaluateScheduledMessage).
+ * NOTE: candidate selection differs slightly — the preview lists status:'pending' only,
+ * while a live tick ALSO reclaims stale 'processing' logs after a crash, so the preview can
+ * under-report those. PII-safe: reports phone PRESENCE only, never the number. Inspect
+ * BEFORE arming SWAN_AUTOMATION_CRON_ENABLED.
  */
 export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   const { AutomationLog, User } = getModels();
@@ -382,7 +459,7 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
 
   for (const log of pendingLogs) {
     const target = await resolveAutomationTarget(log, { User });
-    const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
+    const suppression = await resolveChannelSuppression(log, target);
     const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
     const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
     summary[bucketFor[decision.action]] += 1;

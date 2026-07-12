@@ -174,6 +174,7 @@ describe('direct session-package purchase catalog truth', () => {
       where: {
         id: 10,
         isActive: true,
+        isSpecialOffer: false,
       },
     }));
     expect(mocks.checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({

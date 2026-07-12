@@ -77,11 +77,13 @@ function orderItemPayload(orderId, cartItem, getCartItemSessionCredits) {
   const price = toFiniteMoney(cartItem?.price);
   const kind = itemKind(cartItem);
   const productVariant = cartItem?.productVariant || null;
+  const originalStorefrontItemId = cartItem.storefrontItemId || cartItem?.storefrontItem?.id;
+  const originalProductVariantId = cartItem.productVariantId || productVariant?.id || null;
 
   return {
     orderId,
-    storefrontItemId: cartItem.storefrontItemId || cartItem?.storefrontItem?.id,
-    productVariantId: cartItem.productVariantId || productVariant?.id || null,
+    storefrontItemId: cartItem?.storefrontItem?.catalogRecordMissing ? null : originalStorefrontItemId,
+    productVariantId: productVariant?.catalogRecordMissing ? null : originalProductVariantId,
     name: cartItemName(cartItem),
     description: cartItem?.storefrontItem?.description || null,
     quantity,
@@ -99,6 +101,10 @@ function orderItemPayload(orderId, cartItem, getCartItemSessionCredits) {
       sessionsGranted: getCartItemSessionCredits(cartItem),
       productVariantLabel: productVariant?.label || null,
       productVariantSku: productVariant?.sku || null,
+      storefrontRecordMissing: cartItem?.storefrontItem?.catalogRecordMissing === true,
+      productVariantRecordMissing: productVariant?.catalogRecordMissing === true,
+      originalStorefrontItemId,
+      originalProductVariantId,
     },
   };
 }

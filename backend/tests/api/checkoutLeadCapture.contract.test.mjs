@@ -22,9 +22,9 @@ describe('checkout Lead capture route contract', () => {
     expect(source).toContain('acquisitionAttribution: { channel: checkoutAttribution.channel }');
     expect(source).toMatch(/const leadCaptureResult = await captureLeadFromCheckout\(\{[\s\S]*user,[\s\S]*session,[\s\S]*cart,[\s\S]*sessionsAdded,[\s\S]*\}\);/);
     expect(source).toMatch(/const result = await fulfillSessionPackageCheckoutSession\(session\);[\s\S]*await captureVerifiedCheckoutLead\(\{[\s\S]*user: req\.user,[\s\S]*session,[\s\S]*sessionsAdded: result\.sessionsAdded,[\s\S]*\}\);/);
-    expect(source).toMatch(/const result = await grantSessionsForCart\(cart\.id, userId, 'verify-session'\);[\s\S]*await captureVerifiedCheckoutLead\(\{[\s\S]*cart,[\s\S]*user: req\.user,[\s\S]*session,[\s\S]*sessionsAdded: result\.sessionsAdded,[\s\S]*\}\);/);
+    expect(source).toMatch(/const result = await grantSessionsForCart\(cart\.id, userId, 'verify-session', \{ checkoutSessionId: session\.id \}\);[\s\S]*await captureVerifiedCheckoutLead\(\{[\s\S]*cart,[\s\S]*user: req\.user,[\s\S]*session,[\s\S]*sessionsAdded: result\.sessionsAdded,[\s\S]*\}\);/);
     expect(normalizedSource.indexOf('await captureVerifiedCheckoutLead({\n      cart,'))
-      .toBeGreaterThan(normalizedSource.indexOf("const result = await grantSessionsForCart(cart.id, userId, 'verify-session');"));
+      .toBeGreaterThan(normalizedSource.indexOf("const result = await grantSessionsForCart(cart.id, userId, 'verify-session', { checkoutSessionId: session.id });"));
     expect(normalizedSource.indexOf('await captureVerifiedCheckoutLead({\n      cart,'))
       .toBeLessThan(normalizedSource.indexOf('if (result.alreadyProcessed)'));
     expect(source).toContain("logger.warn('[v2 Payment] Checkout lead capture failed'");

@@ -17,7 +17,7 @@ OrderItem.init(
     },
     storefrontItemId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     productVariantId: {
       type: DataTypes.INTEGER,

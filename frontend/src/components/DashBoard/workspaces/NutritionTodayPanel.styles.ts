@@ -140,7 +140,9 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   background: ${({ $primary }) => ($primary
     ? 'var(--button-primary-bg, #002060)'
     : 'color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent)')};
-  color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #E0ECF4)' : 'var(--text-primary, #E0ECF4)')};
+  /* Filled ($primary) control: --button-primary-text resolves DARK against the light
+     Ice Wing primary bg (getReadableAccentText), so its fallback must be dark too. */
+  color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #030712)' : 'var(--text-primary, #E0ECF4)')};
   font: 900 0.8rem/1.15 var(--font-ui, 'Sora', sans-serif);
   cursor: pointer;
   white-space: normal;

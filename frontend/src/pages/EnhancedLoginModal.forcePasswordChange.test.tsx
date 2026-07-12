@@ -119,7 +119,11 @@ describe('EnhancedLoginModal force-password-change flow', () => {
     await user.type(screen.getByPlaceholderText(/^password$/i), 'OldTemporary123!');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-    expect(loginMock).toHaveBeenCalledWith('client@example.test', 'OldTemporary123!');
+    // login() is invoked from an async submit handler: a bare sync assertion here
+    // false-fails under test-worker contention (green in isolation, red in the full
+    // suite). waitFor retries until the call lands. (2026-07-11 flake fix.)
+    await waitFor(() =>
+      expect(loginMock).toHaveBeenCalledWith('client@example.test', 'OldTemporary123!'));
     expect(await screen.findByRole('heading', { name: /set your new password/i })).toBeInTheDocument();
     expect(screen.getByText(PASSWORD_POLICY_COPY)).toBeInTheDocument();
 

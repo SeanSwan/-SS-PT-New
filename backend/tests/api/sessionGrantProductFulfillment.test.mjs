@@ -217,6 +217,31 @@ describe('SessionGrantService product fulfillment', () => {
     });
   });
 
+  it('persists a paid deleted-catalog item with nullable FKs and historical audit IDs', async () => {
+    const cart = makeMixedCart();
+    const deletedItem = cart.cartItems[1];
+    deletedItem.storefrontItem.catalogRecordMissing = true;
+    deletedItem.productVariant.catalogRecordMissing = true;
+    deletedItem.storefrontItem.reload = undefined;
+    deletedItem.storefrontItem.decrement = undefined;
+    deletedItem.productVariant.reload = undefined;
+    deletedItem.productVariant.decrement = undefined;
+    mocks.shoppingCart.findOne.mockResolvedValue(cart);
+    mocks.userModel.findByPk.mockResolvedValue(makeUser());
+
+    await grantSessionsForCart(cart.id, cart.userId, 'webhook');
+
+    const orderItems = mocks.orderItemModel.bulkCreate.mock.calls[0][0];
+    const persisted = orderItems.find((item) => item.name.includes('Recovery Drink'));
+    expect(persisted).toMatchObject({ storefrontItemId: null, productVariantId: null });
+    expect(persisted.metadata).toMatchObject({
+      storefrontRecordMissing: true,
+      productVariantRecordMissing: true,
+      originalStorefrontItemId: 20,
+      originalProductVariantId: 7,
+    });
+  });
+
   it('does not create duplicate order items or decrement stock for an already-processed cart', async () => {
     const cart = makeMixedCart();
     cart.sessionsGranted = true;

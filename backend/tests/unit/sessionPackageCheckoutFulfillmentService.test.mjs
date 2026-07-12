@@ -60,6 +60,7 @@ function makeSession(overrides = {}) {
     amount_total: 40000,
     client_reference_id: '3',
     payment_intent: 'pi_test_pkg_123',
+    payment_status: 'paid',
     metadata: {
       source: SESSION_PACKAGE_CHECKOUT_SOURCE,
       packageId: '10',
@@ -108,6 +109,12 @@ describe('session package checkout fulfillment service', () => {
     }))).toBe(false);
   });
 
+  it('rejects fulfillment when Stripe has not confirmed payment', async () => {
+    await expect(fulfillSessionPackageCheckoutSession(makeSession({
+      payment_status: 'unpaid',
+    }))).rejects.toMatchObject({ code: 'SESSION_PACKAGE_PAYMENT_NOT_PAID' });
+    expect(mocks.mockUserModel.findByPk).not.toHaveBeenCalled();
+  });
   it('creates one fulfillment order and unlocks client-ready account state', async () => {
     const user = makeUser();
     mocks.mockUserModel.findByPk.mockResolvedValue(user);
@@ -171,7 +178,7 @@ describe('session package checkout fulfillment service', () => {
     const user = makeUser();
     const applied = {};
     const special = {
-      id: 77, storefrontItemId: 10, clientId: 3, remainingRedemptions: 1, validityType: 'one_time',
+      id: 77, storefrontItemId: 10, clientId: 3, status: 'active', expiresAt: null, remainingRedemptions: 1, validityType: 'one_time',
       update: vi.fn(async (updates) => Object.assign(applied, updates)),
     };
     mocks.mockUserModel.findByPk.mockResolvedValue(user);
@@ -204,6 +211,8 @@ describe('session package checkout fulfillment service', () => {
       id: 77,
       storefrontItemId: 10,
       clientId: 3,
+      status: 'active',
+      expiresAt: null,
       remainingRedemptions: 0,
       validityType: 'one_time',
       update: vi.fn(),

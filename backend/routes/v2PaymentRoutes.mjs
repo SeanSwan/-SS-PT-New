@@ -13,13 +13,13 @@
  * - Zero breaking changes
  * 
  * Features:
- * ✅ Single Stripe Checkout Session creation
- * ✅ Customer data storage for admin dashboard
- * ✅ Session management integration
- * ✅ Financial analytics data flow
- * ✅ Error handling & logging
- * ✅ Production-ready security
- * ✅ PostgreSQL integration
+ * âœ… Single Stripe Checkout Session creation
+ * âœ… Customer data storage for admin dashboard
+ * âœ… Session management integration
+ * âœ… Financial analytics data flow
+ * âœ… Error handling & logging
+ * âœ… Production-ready security
+ * âœ… PostgreSQL integration
  * 
  * Admin Dashboard Integration:
  * - Populates financial analytics
@@ -32,7 +32,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
-// 🎯 P0 FIX: Use coordinated model getters to prevent race condition
+// ðŸŽ¯ P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import {
@@ -63,6 +63,7 @@ import {
   SessionPackageFulfillmentError,
 } from '../services/sessionPackageCheckoutFulfillmentService.mjs';
 import { CheckoutInventoryError } from '../services/cartCheckoutFulfillmentService.mjs';
+import { buildCartCheckoutSnapshot } from '../services/cartCheckoutSnapshotService.mjs';
 import {
   FULFILLMENT_DETAILS_REQUIRED_CODE,
   normalizeCheckoutFulfillmentIntent,
@@ -85,7 +86,12 @@ function buildCheckoutSessionIdempotencyKey(userId, cart) {
     (item) => getStorefrontSessionCredits(item?.storefrontItem),
   );
 
-  return buildStripeIdempotencyKey(`checkout:${userId}:${cart?.id}`, itemFingerprint);
+  return buildStripeIdempotencyKey(`checkout:${userId}:${cart?.id}`, {
+    itemFingerprint,
+    priorCheckoutAttempt: cart?.lastCheckoutAttempt
+      ? new Date(cart.lastCheckoutAttempt).toISOString()
+      : null,
+  });
 }
 
 const toMoneyNumber = (value) => {
@@ -294,7 +300,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       cartId: normalizedCartId
     });
 
-    // 🎯 P0 FIX: Get fully associated models from coordinated cache
+    // ðŸŽ¯ P0 FIX: Get fully associated models from coordinated cache
     let ShoppingCart, CartItem, StorefrontItem, ProductVariant, User;
     try {
       ShoppingCart = getShoppingCart();
@@ -418,10 +424,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       }
     }
 
-    const cartContainsOnlySpecialOffers = (cartItems) => cartItems.length > 0
-      && cartItems.every((item) => item.storefrontItem?.isSpecialOffer === true);
+    const cartContainsSpecialOffers = cart.cartItems
+      .some((item) => item.storefrontItem?.isSpecialOffer === true);
+    const cartContainsOnlySpecialOffers = cartContainsSpecialOffers
+      && cart.cartItems.every((item) => item.storefrontItem?.isSpecialOffer === true);
     const checkoutInvited = await isPriceAccessGranted(req.user)
-      || cartContainsOnlySpecialOffers(cart.cartItems);
+      || cartContainsOnlySpecialOffers;
     if (!checkoutInvited) {
       return res.status(403).json({
         success: false,
@@ -518,60 +526,113 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     const lineItems = checkoutLines.map((item) => item.lineItem);
 
     const checkoutIdempotencyKey = buildCheckoutSessionIdempotencyKey(userId, cart);
-
-    // Step 5: Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      customer: stripeCustomer.id,
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: lineItems,
-      success_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/cancel?session_id={CHECKOUT_SESSION_ID}`,
-      metadata: {
-        userId: userId.toString(),
-        cartId: cart.id.toString(),
-        totalSessions: totalSessions.toString(),
-        fulfillmentIntent: normalizedFulfillmentIntent.mode,
-        physicalProductCount: normalizedFulfillmentIntent.itemCount.toString(),
-        acquisitionChannel: checkoutAttribution.channel,
-        source: 'genesis_checkout'
-      },
-      customer_update: {
-        address: 'auto',
-        name: 'auto'
-      },
-      billing_address_collection: 'auto',
-      // shipping_address_collection removed - not needed for digital services
-      allow_promotion_codes: true,
-      automatic_tax: {
-        enabled: usesStripeTax
-      }
-    }, {
-      idempotencyKey: checkoutIdempotencyKey
-    });
-
-    // Step 6: Update cart with session information for admin dashboard tracking
-    await cart.update({
-      checkoutSessionId: session.id,
-      paymentIntentId: session.payment_intent,
-      total: total,
-      subtotal: subtotal,
-      tax: usesStripeTax ? 0 : tax,
-      paymentStatus: 'pending',
+    const checkoutAttemptedAt = new Date();
+    const [claimedCartCount] = await ShoppingCart.update({
       status: 'pending_payment',
-      checkoutSessionExpired: false,
-      customerInfo: JSON.stringify({
-        name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        email: customerInfo?.email || user.email,
-        phone: customerInfo?.phone || user.phone,
-        fulfillmentIntent: normalizedFulfillmentIntent,
-        acquisitionAttribution: { channel: checkoutAttribution.channel },
-        taxMode: usesStripeTax ? 'stripe_automatic_tax' : 'not_applicable',
-        stripeCustomerId: stripeCustomer.id
-      }),
-      lastCheckoutAttempt: new Date()
+      paymentStatus: 'initializing',
+      checkoutSessionId: null,
+      lastCheckoutAttempt: checkoutAttemptedAt,
+    }, {
+      where: { id: normalizedCartId, userId, status: 'active' },
     });
+    if (claimedCartCount !== 1) {
+      return res.status(409).json({
+        success: false,
+        message: 'Checkout is already in progress for this cart.',
+        error: { code: 'CART_CHECKOUT_IN_PROGRESS' },
+      });
+    }
 
+    let session;
+    let checkoutFinalized = false;
+    try {
+      session = await stripe.checkout.sessions.create({
+        customer: stripeCustomer.id,
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items: lineItems,
+        success_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/cancel?session_id={CHECKOUT_SESSION_ID}`,
+        metadata: {
+          userId: userId.toString(),
+          cartId: cart.id.toString(),
+          totalSessions: totalSessions.toString(),
+          fulfillmentIntent: normalizedFulfillmentIntent.mode,
+          physicalProductCount: normalizedFulfillmentIntent.itemCount.toString(),
+          acquisitionChannel: checkoutAttribution.channel,
+          source: 'genesis_checkout'
+        },
+        customer_update: {
+          address: 'auto',
+          name: 'auto'
+        },
+        billing_address_collection: 'auto',
+        allow_promotion_codes: !cartContainsSpecialOffers,
+        automatic_tax: { enabled: usesStripeTax }
+      }, { idempotencyKey: checkoutIdempotencyKey });
+
+      const checkoutSnapshot = buildCartCheckoutSnapshot(cart.cartItems, session.id);
+      const [finalizedCartCount] = await ShoppingCart.update({
+        checkoutSessionId: session.id,
+        paymentIntentId: session.payment_intent,
+        total,
+        subtotal,
+        tax: usesStripeTax ? 0 : tax,
+        paymentStatus: 'pending',
+        checkoutSessionExpired: false,
+        stripeSessionData: JSON.stringify({ checkoutSnapshot }),
+        customerInfo: JSON.stringify({
+          name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          email: customerInfo?.email || user.email,
+          phone: customerInfo?.phone || user.phone,
+          fulfillmentIntent: normalizedFulfillmentIntent,
+          acquisitionAttribution: { channel: checkoutAttribution.channel },
+          taxMode: usesStripeTax ? 'stripe_automatic_tax' : 'not_applicable',
+          stripeCustomerId: stripeCustomer.id
+        }),
+      }, {
+        where: {
+          id: normalizedCartId,
+          userId,
+          status: 'pending_payment',
+          paymentStatus: 'initializing',
+          checkoutSessionId: null,
+        },
+      });
+      if (finalizedCartCount !== 1) {
+        throw new Error('Failed to attach Stripe session to the claimed cart');
+      }
+      checkoutFinalized = true;
+    } catch (checkoutError) {
+      let stripeSessionClosed = !session?.id;
+      if (session?.id) {
+        try {
+          await stripe.checkout.sessions.expire(session.id);
+          stripeSessionClosed = true;
+        } catch (expireError) {
+          logger.error('[v2 Payment] Failed to expire an untracked Stripe session', {
+            cartId: normalizedCartId,
+            errorCode: expireError.code || 'STRIPE_SESSION_EXPIRE_FAILED',
+          });
+        }
+      }
+      if (!checkoutFinalized && stripeSessionClosed) {
+        await ShoppingCart.update({
+          status: 'active',
+          paymentStatus: 'cancelled',
+          checkoutSessionExpired: true,
+        }, {
+          where: {
+            id: normalizedCartId,
+            userId,
+            status: 'pending_payment',
+            paymentStatus: 'initializing',
+            checkoutSessionId: null,
+          },
+        });
+      }
+      throw checkoutError;
+    }
     logger.info('[v2 Payment] Stripe checkout session created and cart updated', {
       userId,
       cartId: normalizedCartId,
@@ -660,7 +721,7 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     }
 
     const { sessionId } = sessionValidation;
-    const userId = req.user.id;
+    const userId = Number(req.user.id);
 
     logger.info('[v2 Payment] Verifying checkout session for user', {
       userId,
@@ -739,7 +800,7 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     }
 
     // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
-    const result = await grantSessionsForCart(cart.id, userId, 'verify-session');
+    const result = await grantSessionsForCart(cart.id, userId, 'verify-session', { checkoutSessionId: session.id });
     const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });
     await captureVerifiedCheckoutLead({
       cart,

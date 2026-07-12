@@ -4,8 +4,9 @@
  * long-horizon weeks, and AI recommendations outside the planner page shell.
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { AlertTriangle, Calendar, Download, MessageSquareText } from 'lucide-react';
+import PdfApprovalVault from '../../../Shared/PdfApprovalVault';
 import LongHorizonScheduleView from './LongHorizonScheduleView';
 import type { GeneratedPlan, PlannerClient } from './WorkoutPlannerTypes';
 import { workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
@@ -61,6 +62,21 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
   onSelectedMesoDayChange,
   onPhaseNumberChange,
 }) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Build the plan PDF as a blob for the Approval Vault: the SAME bytes are
+  // previewed and then downloaded, and the brand is resolved from the client's
+  // source so Sean can confirm branding before the doc reaches the client.
+  const buildPlanFile = useCallback(async () => {
+    if (!generatedPlan) return null;
+    const { buildPopulatedPlanPdfBlob } = await import('../../../../services/pdfExportService');
+    return buildPopulatedPlanPdfBlob(
+      withDisplayExerciseNamesForExport(generatedPlan) as unknown as Parameters<typeof buildPopulatedPlanPdfBlob>[0],
+      selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined,
+      selectedClient?.clientSource,
+    );
+  }, [generatedPlan, selectedClient]);
+
   if (!generatedPlan) return null;
 
   const activeDay = generatedPlan.weeklySchedule.find(day => day.dayNumber === selectedMesoDay);
@@ -71,6 +87,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
     : `Equipment profile ${equipmentContext?.profileId ?? 'selected'} constrained this plan`;
 
   return (
+    <>
     <MesocycleSection>
       <MesocycleSectionTitle>
         <Calendar size={18} />
@@ -79,20 +96,11 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
         {generatedPlan.planSummary.totalSessions} Total Sessions
         <ExportPdfBtn
           type="button"
-          onClick={async () => {
-            const { exportPopulatedPlanPDF } = await import('../../../../services/pdfExportService');
-            exportPopulatedPlanPDF(
-              withDisplayExerciseNamesForExport(generatedPlan) as unknown as Parameters<typeof exportPopulatedPlanPDF>[0],
-              selectedClient
-                ? `${selectedClient.firstName} ${selectedClient.lastName}`
-                : undefined,
-              selectedClient?.clientSource,
-            );
-          }}
-          aria-label="Download a branded PDF preview of this generated plan"
+          onClick={() => setPreviewOpen(true)}
+          aria-label="Preview and download a branded PDF of this generated plan"
         >
           <Download size={14} />
-          Download PDF Preview
+          Preview &amp; Download
         </ExportPdfBtn>
         {coachReviewRoute && (
           <PlannerHandoffActions>
@@ -228,6 +236,13 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
         </>
       )}
     </MesocycleSection>
+    <PdfApprovalVault
+      open={previewOpen}
+      onClose={() => setPreviewOpen(false)}
+      documentLabel="training plan"
+      buildFile={buildPlanFile}
+    />
+    </>
   );
 };
 

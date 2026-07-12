@@ -34,6 +34,10 @@ const isWithinQuietHours = (quietHours, now = new Date()) => {
   const startMinutes = start.hours * 60 + start.minutes;
   const endMinutes = end.hours * 60 + end.minutes;
 
+  // Equal start/end is a zero-width window (NOT an all-day blackout) — otherwise the overnight
+  // branch below would return true for every minute and defer the message forever.
+  if (startMinutes === endMinutes) return false;
+
   if (startMinutes < endMinutes) {
     return currentMinutes >= startMinutes && currentMinutes < endMinutes;
   }
@@ -83,20 +87,38 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
  */
 export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppression = null, frequency = null) => {
   const channel = log?.channel || 'sms';
-  if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
+  // Implemented channels: sms + email. Email is what reaches the phone-less, email-only
+  // prospects that make up most contact-form leads. push/other remain unimplemented.
+  if (channel !== 'sms' && channel !== 'email') return { action: 'fail', reason: 'channel_not_implemented', channel };
 
-  // Marketing consent gate — checked FIRST, fails CLOSED.
+  // Marketing consent gate — checked FIRST, fails CLOSED (shared by every channel).
   if (suppression) {
     if (suppression.suppressed) return { action: 'cancel', reason: suppression.reason || 'marketing_suppressed', channel };
     if (suppression.checked === false) return { action: 'fail', reason: 'suppression_unverified', channel };
   }
 
   const prefs = normalizePreferences(recipient?.notificationPreferences);
-  if (prefs.sms === false) return { action: 'cancel', reason: 'sms_disabled', channel };
+
+  // Per-channel preference gate.
+  if (channel === 'email') {
+    if (prefs.email === false) return { action: 'cancel', reason: 'email_disabled', channel };
+  } else if (prefs.sms === false) {
+    return { action: 'cancel', reason: 'sms_disabled', channel };
+  }
+
+  // Deliverable-address gate FIRST: a permanently-undeliverable message must fail immediately,
+  // not defer on quiet-hours every tick until the window ends (terminal wins, like the freq cap).
+  if (channel === 'email') {
+    if (!recipient?.email) return { action: 'fail', reason: 'no_email', channel };
+  } else if (!recipient?.phone) {
+    return { action: 'fail', reason: 'no_phone', channel };
+  }
+
+  // Quiet hours apply to every channel (only for otherwise-deliverable messages).
   if (isWithinQuietHours(prefs.quietHours, now)) {
     return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
   }
-  if (!recipient?.phone) return { action: 'fail', reason: 'no_phone', channel };
+
   // Rolling per-recipient frequency cap — defer (space out), never drop.
   if (frequency?.capped) {
     return { action: 'defer', reason: 'frequency_capped', channel, nextAttempt: frequency.nextAttempt || now };

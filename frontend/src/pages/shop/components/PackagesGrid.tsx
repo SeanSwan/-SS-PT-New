@@ -40,6 +40,7 @@ interface PackagesGridProps {
   isAddingToCart: number | null;
   onTogglePrice?: (packageId: number) => void;
   onAddToCart: (pkg: StoreItem, productVariant?: ProductVariant | null) => void;
+  onInquire?: (pkg: StoreItem) => void;
 }
 
 interface StorefrontSectionConfig {
@@ -136,7 +137,8 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
   canViewPrices,
   canPurchase,
   isAddingToCart,
-  onAddToCart
+  onAddToCart,
+  onInquire
 }) => {
   const fixedPackages = React.useMemo(() =>
     packages.filter(pkg => !isPhysicalProduct(pkg) && pkg.packageType === 'fixed'),
@@ -163,9 +165,10 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
         canPurchase={canPurchase}
         isAdding={isAddingToCart === pkg.id}
         onAddToCart={onAddToCart}
+        onInquire={onInquire}
       />
     ));
-  }, [canViewPrices, canPurchase, isAddingToCart, onAddToCart]);
+  }, [canViewPrices, canPurchase, isAddingToCart, onAddToCart, onInquire]);
 
   const renderProductCards = React.useCallback((productList: StoreItem[]) => {
     return productList.map(product => (

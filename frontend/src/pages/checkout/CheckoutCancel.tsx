@@ -1,7 +1,7 @@
 /**
  * COMPONENT: CheckoutCancel
  * PURPOSE: Recover cancelled paid checkouts while preserving cart and next actions.
- * OWNER: Codex | LAST VALIDATED: 2026-06-09
+ * OWNER: Codex | LAST VALIDATED: 2026-07-11
  *
  * WIREFRAME:
  * [brand mark]
@@ -12,13 +12,13 @@
  * DATA FLOW:
  * Props In: none; URL params session_id, reason, step.
  * State: none.
- * API Calls: none.
+ * API Calls: POST /api/cart/cancel-checkout, then refreshes GET /api/cart.
  * Events: local abandonment log, navigate to store/contact/home/help.
  * Children: OrderReviewStep and styled recovery controls.
  *
  * ARCHITECTURE: CheckoutCancel -> CheckoutCancel.styles + OrderReviewStep.
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CreditCard, HelpCircle, MessageCircle, RefreshCw, ShoppingCart } from 'lucide-react';
 import { OrderReviewStep } from '../../components/NewCheckout';
@@ -28,6 +28,7 @@ import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
 import logoImg from '../../assets/Logo.png';
 import { logger } from '@/utils/logger';
+import apiService from '../../services/api.service';
 import {
   ActionButton,
   ActionCard,
@@ -55,7 +56,8 @@ const CheckoutCancel: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { cart } = useCart();
+  const { cart, fetchCart } = useCart();
+  const releaseStartedRef = useRef(false);
   const { toast } = useToast();
 
   const searchParams = new URLSearchParams(location.search);
@@ -82,6 +84,33 @@ const CheckoutCancel: React.FC = () => {
     });
   }, [sessionId, reason, step, user, cart]);
 
+  useEffect(() => {
+    if (!sessionId || releaseStartedRef.current) return;
+    releaseStartedRef.current = true;
+    let active = true;
+
+    const releaseCancelledCheckout = async () => {
+      try {
+        await apiService.post('/api/cart/cancel-checkout', { sessionId });
+        if (active) await fetchCart();
+      } catch (error) {
+        logger.error('[CheckoutCancel] Failed to restore cancelled cart', error);
+        if (active) {
+          toast({
+            title: 'Cart restoration needs attention',
+            description: 'Your payment was not completed. Refresh or contact support if your items do not return.',
+            variant: 'destructive',
+            duration: 7000,
+          });
+        }
+      }
+    };
+
+    void releaseCancelledCheckout();
+    return () => {
+      active = false;
+    };
+  }, [fetchCart, sessionId, toast]);
   const handleReturnToCart = useCallback(() => {
     if (cart && cart.items && cart.items.length > 0) {
       navigate('/store?openCart=true');

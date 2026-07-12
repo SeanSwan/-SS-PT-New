@@ -1113,7 +1113,7 @@ const EnhancedContactPage = () => {
             variants={sectionVariants}
           >
             <FormTitle variants={titleVariants}>Send Us a Message</FormTitle>
-            
+
             <ContactForm onSubmit={handleSubmit}>
               {renderInputField("name", "Full Name", "text", name, setName, true)}
               {renderInputField("email", "Email", "email", email, setEmail, true)}
