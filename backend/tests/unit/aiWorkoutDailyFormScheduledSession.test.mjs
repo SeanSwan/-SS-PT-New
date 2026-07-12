@@ -116,6 +116,17 @@ async function loadService({
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => models,
   }));
+  // Isolate the XP step (same as aiWorkoutDailyFormService.test.mjs). Without this
+  // the REAL runWorkoutXpAwardStep -> awardWorkoutXP runs and calls User.findByPk on
+  // an unconnected Sequelize, which rejects AFTER the test completes as an unhandled
+  // rejection ("Cannot read properties of undefined (reading 'query')"). These tests
+  // assert scheduled-session/billing behavior, not XP, so stubbing the step keeps the
+  // unit isolated and stops the floating promise Vitest flags as a false-positive risk.
+  vi.doMock('../../services/workout/workoutXpAwardStep.mjs', () => ({
+    runWorkoutXpAwardStep: vi.fn(async ({ suppress }) => (suppress
+      ? null
+      : { pointsAwarded: 50, newBalance: 150, streakDays: 3, milestones: [] })),
+  }));
   const service = await import('../../services/workout/aiWorkoutDailyFormService.mjs');
   return {
     ...service,

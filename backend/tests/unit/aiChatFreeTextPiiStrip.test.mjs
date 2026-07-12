@@ -135,7 +135,15 @@ describe('aiChatService enrichWithUserData — free-text clinical field PII stri
     expect(context).not.toContain('Jackie Smith');
     expect(context).not.toMatch(/\bJackie\b/);
     expect(context).not.toMatch(/\bSmith\b/);
-    expect(context).toContain('breakfast: [Client #42] had Greek yogurt with berries');
+
+    // The meal description is FREE TEXT the client typed, so it is dropped entirely
+    // rather than name-masked: enrichWithUserData does not even SELECT
+    // daily_macro_logs.description, and the renderer substitutes a fixed
+    // 'Meal entry' label. That is strictly safer than substituting the name out of
+    // the original sentence (which would still leak whatever else they typed).
+    expect(context).not.toContain('Greek yogurt');
+    // ...while the macros the coach AI actually needs still survive.
+    expect(context).toContain('breakfast: Meal entry (280cal 26P 32C 5F)');
   });
 
   it('PRESERVES the clinical language the coach AI needs (body-aware, identity-blind)', async () => {
