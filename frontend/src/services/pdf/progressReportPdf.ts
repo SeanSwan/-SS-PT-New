@@ -104,6 +104,18 @@ export const buildProgressReportPdfFile = async (input: ProgressReportInput): Pr
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });
 };
 
+/**
+ * Approval Vault payload (A3): the exact bytes to preview AND download, plus the
+ * resolved brand wordmark for the vault's branding-safety chip. Preview == print.
+ */
+export const buildProgressReportPdfPreview = async (
+  input: ProgressReportInput,
+): Promise<{ blob: Blob; filename: string; brandWordmark: string } | null> => {
+  const file = await buildProgressReportPdfFile(input);
+  if (!file) return null;
+  return { blob: file, filename: file.name, brandWordmark: resolveBrandIdentity(input.clientSource).wordmark };
+};
+
 export const downloadProgressReportPdf = async (input: ProgressReportInput): Promise<boolean> => {
   const file = await buildProgressReportPdfFile(input);
   if (!file || typeof document === 'undefined') return false;
