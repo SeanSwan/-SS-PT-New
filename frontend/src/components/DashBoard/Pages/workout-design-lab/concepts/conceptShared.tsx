@@ -21,9 +21,9 @@ export interface ConceptProps {
 }
 
 export const ExerciseList: React.FC<{ model: WorkoutDesignViewModel }> = ({ model }) => (
-  <ExerciseStack aria-label="Prototype workout exercises">
+  <ExerciseStack className="lens2-collection" aria-label="Prototype workout exercises">
     {model.exercises.map((exercise) => (
-      <ExerciseRow key={exercise.id}>
+      <ExerciseRow className="lens2-row" key={exercise.id}>
         <div><h3>{exercise.name}</h3><p>{exercise.focus}</p></div>
         <dl><dt>Sets × reps</dt><dd>{exercise.sets} × {exercise.reps}</dd></dl>
         <dl><dt>Load</dt><dd>{exercise.load}</dd></dl>
@@ -46,7 +46,7 @@ export const SessionContext: React.FC<{ model: WorkoutDesignViewModel }> = ({ mo
 export const ConceptActions: React.FC<ConceptProps> = ({
   primaryActionLabel, onAction, onOpenRolodex,
 }) => (
-  <ActionBar>
+  <ActionBar className="lens2-actions">
     <Primary type="button" onClick={onAction}><Check size={17}/> {primaryActionLabel}</Primary>
     <Secondary type="button" onClick={onOpenRolodex}><Dumbbell size={17}/> Open Exercise Rolodex</Secondary>
   </ActionBar>

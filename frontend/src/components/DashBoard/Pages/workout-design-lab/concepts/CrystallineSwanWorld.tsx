@@ -91,10 +91,10 @@ export const CrystallineSwanWorld: React.FC<ConceptProps> = (props) => {
   const { model, conceptName } = props;
   return (
     <Scene aria-label={conceptName} data-composition="signature">
-      <Composition>
+      <Composition className="lens2-composition">
         <Panel className="hero">
           <Kicker>SWAN / SIGNATURE WORLD</Kicker>
-          <WorldTitle>Train inside the world only Swan can own.</WorldTitle>
+          <WorldTitle className="lens2-display">Train inside the world only Swan can own.</WorldTitle>
           <BodyCopy>
             Glacier, evergreen, deep ocean, and nebula light converge in the
             flagship direction.
