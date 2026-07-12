@@ -32,6 +32,8 @@ export interface AssignmentView {
   rows: Array<{ label: string; meta: string; complete: boolean }>;
   actionPath: string;
   actionLabel: string;
+  /** Today's session is already logged — drives the done state on the Program Shelf. */
+  complete: boolean;
   empty: boolean;
   loading: boolean;
   error: boolean;
@@ -163,6 +165,7 @@ export function buildAssignmentView({
     rows,
     actionPath: assignmentPath(workout),
     actionLabel,
+    complete,
     empty: !loading && !error && !workout,
     loading: !!loading,
     error: !!error,

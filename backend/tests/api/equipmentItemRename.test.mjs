@@ -75,16 +75,21 @@ describe('equipmentRoutes PUT /:id/items/:itemId rename duplicates (P0.3b)', () 
       { id: 103, profileId: 5, name: 'Rope', isActive: false },
     ];
     // Behave like the real table for both getOwnedItem ({id, profileId}) and
-    // the dup pre-check ({profileId, name, isActive, id: {[Op.ne]}}).
-    mocks.equipmentItem.findOne.mockImplementation(async ({ where }) =>
-      TABLE.find(r =>
+    // the dup pre-check ({profileId, name(iLike), isActive, id: {[Op.ne]}}).
+    mocks.equipmentItem.findOne.mockImplementation(async ({ where }) => {
+      const nameMatch = (r) =>
+        where.name === undefined ? true :
+        typeof where.name === 'object'
+          ? r.name.toLowerCase() === String(where.name[Op.iLike]).replace(/\\([\\%_])/g, '$1').toLowerCase()
+          : r.name === where.name;
+      return TABLE.find(r =>
         (where.id === undefined ||
           (typeof where.id === 'object' ? r.id !== where.id[Op.ne] : r.id === where.id)) &&
         (where.profileId === undefined || r.profileId === where.profileId) &&
-        (where.name === undefined || r.name === where.name) &&
+        nameMatch(r) &&
         (where.isActive === undefined || r.isActive === where.isActive)
-      ) || null
-    );
+      ) || null;
+    });
     mocks.itemUpdate.mockResolvedValue({});
   });
 
@@ -108,6 +113,20 @@ describe('equipmentRoutes PUT /:id/items/:itemId rename duplicates (P0.3b)', () 
 
     expect(res.status).toBe(200);
     expect(mocks.itemUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a CASE-VARIANT rename onto an active sibling with 409', async () => {
+    const res = await renameItem({ name: 'bench' });
+
+    expect(res.status).toBe(409);
+    expect(mocks.itemUpdate).not.toHaveBeenCalled();
+  });
+
+  it('allows a case-only rename of the item ITSELF (Barbell -> BARBELL, 200)', async () => {
+    const res = await renameItem({ name: 'BARBELL' });
+
+    expect(res.status).toBe(200);
+    expect(mocks.itemUpdate).toHaveBeenCalledWith(expect.objectContaining({ name: 'BARBELL' }));
   });
 
   it('maps a lost unique-index race (SequelizeUniqueConstraintError) to 409, not 500', async () => {

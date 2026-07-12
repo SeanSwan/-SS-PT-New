@@ -17,6 +17,9 @@
 export const EQUIPMENT_CATEGORIES = [
   'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
   'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
+  // 4B.1 completion (P0.3e): lacrosse_ball is in the MODEL validate list but
+  // was missing here — AI-scanned lacrosse balls coerced to 'other'.
+  'lacrosse_ball',
   'stability_ball', 'medicine_ball', 'pull_up_bar', 'trx', 'other'
 ];
 

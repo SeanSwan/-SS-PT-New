@@ -663,6 +663,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   rack: 'Rack',
   cardio: 'Cardio',
   foam_roller: 'Foam Roller',
+  lacrosse_ball: 'Lacrosse Ball',
   stability_ball: 'Stability Ball',
   medicine_ball: 'Medicine Ball',
   pull_up_bar: 'Pull-Up Bar',

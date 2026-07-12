@@ -12,6 +12,7 @@
 import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Op } from 'sequelize';
 
 const mocks = vi.hoisted(() => ({
   equipmentProfile: { findByPk: vi.fn() },
@@ -71,14 +72,20 @@ describe('equipmentRoutes POST /:id/items soft-deleted re-add (P0.3)', () => {
       id: 5, trainerId: 10, isActive: true, update: vi.fn(),
     });
     mocks.equipmentItem.count.mockResolvedValue(2);
-    // Behave like the real table: honor whatever `where` the route sends.
-    mocks.equipmentItem.findOne.mockImplementation(async ({ where }) =>
-      TABLE.find(r =>
+    // Behave like the real table: honor whatever `where` the route sends,
+    // including a case-insensitive { name: { [Op.iLike]: 'x' } } pre-check.
+    mocks.equipmentItem.findOne.mockImplementation(async ({ where }) => {
+      const nameMatch = (r) =>
+        where.name === undefined ? true :
+        typeof where.name === 'object'
+          ? r.name.toLowerCase() === String(where.name[Op.iLike]).replace(/\\([\\%_])/g, '$1').toLowerCase()
+          : r.name === where.name;
+      return TABLE.find(r =>
         r.profileId === where.profileId &&
-        r.name === where.name &&
+        nameMatch(r) &&
         (where.isActive === undefined || r.isActive === where.isActive)
-      ) || null
-    );
+      ) || null;
+    });
     mocks.equipmentItem.create.mockImplementation(async (v) => ({ id: 999, ...v }));
   });
 
@@ -110,5 +117,18 @@ describe('equipmentRoutes POST /:id/items soft-deleted re-add (P0.3)', () => {
 
     expect(res.status).toBe(409);
     expect(mocks.equipmentItem.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a CASE-VARIANT active duplicate with 409 (matches scan-dedup + CI index)', async () => {
+    const res = await postItem('BENCH');
+
+    expect(res.status).toBe(409);
+    expect(mocks.equipmentItem.create).not.toHaveBeenCalled();
+  });
+
+  it('re-adds a case-variant of a name that only exists soft-deleted (201)', async () => {
+    const res = await postItem('BARBELL');
+
+    expect(res.status).toBe(201);
   });
 });

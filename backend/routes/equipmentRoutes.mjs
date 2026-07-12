@@ -49,9 +49,21 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 // Shared validation constants (DRY)
+/**
+ * Escape LIKE wildcards so an Op.iLike duplicate pre-check is an exact
+ * case-insensitive match, never a pattern match ("100% Band" must not match
+ * "100x Band"). Postgres default escape char is backslash.
+ */
+function escapeLikeLiteral(value) {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 const VALID_CATEGORIES = [
   'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
   'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
+  // 4B.1 completion (P0.3e): lacrosse_ball is in the MODEL validate list but
+  // was missing here — manual add/update silently coerced it to 'other'.
+  'lacrosse_ball',
   'stability_ball', 'medicine_ball', 'pull_up_bar', 'trx', 'other'
 ];
 const VALID_RESISTANCE_TYPES = [
@@ -253,11 +265,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Profile name must be 100 characters or less' });
     }
 
+    // P0.3e input hardening: both fields feed .slice — non-string must be a
+    // 400, not a TypeError 500.
+    if (description !== undefined && description !== null && typeof description !== 'string') {
+      return res.status(400).json({ success: false, error: 'description must be a string or null' });
+    }
+    if (address !== undefined && address !== null && typeof address !== 'string') {
+      return res.status(400).json({ success: false, error: 'address must be a string or null' });
+    }
+
     const EquipmentProfile = getEquipmentProfile();
 
-    // Check for duplicate name
+    // Check for duplicate name — ACTIVE profiles only (archived names must be
+    // re-creatable), CASE-INSENSITIVE to match the partial lower(name) index.
     const existing = await EquipmentProfile.findOne({
-      where: { trainerId: req.user.id, name: name.trim() },
+      where: { trainerId: req.user.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
@@ -275,6 +297,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, profile });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+    }
     logger.error('[EquipmentRoutes] Create profile error:', err);
     res.status(500).json({ success: false, error: 'Failed to create profile' });
   }
@@ -331,9 +357,25 @@ router.put('/:id', async (req, res) => {
       updates.address = address?.slice(0, 255) || null;
     }
 
+    // Rename duplicate pre-check — ACTIVE siblings only, CASE-INSENSITIVE,
+    // matching the partial lower(name) index (P0.3e). Self-rename exempt.
+    if (updates.name && updates.name !== profile.name) {
+      const EquipmentProfile = getEquipmentProfile();
+      const duplicate = await EquipmentProfile.findOne({
+        where: { trainerId: profile.trainerId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: profile.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+      }
+    }
+
     await profile.update(updates);
     res.json({ success: true, profile });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'A profile with this name already exists' });
+    }
     logger.error('[EquipmentRoutes] Update profile error:', err);
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
@@ -410,10 +452,10 @@ router.post('/:id/items', async (req, res) => {
 
     const EquipmentItem = getEquipmentItem();
 
-    // Check duplicate within profile — ACTIVE rows only, matching the partial
-    // unique index (soft-deleted names must not block a re-add, P0.3).
+    // Check duplicate within profile — ACTIVE rows only, CASE-INSENSITIVE to
+    // match the scan dedup + the lower(name) partial unique index (P0.3d).
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: name.trim(), isActive: true },
+      where: { profileId: profile.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -485,12 +527,13 @@ router.put('/:id/items/:itemId', async (req, res) => {
       updates.resistanceType = resistanceType;
     }
 
-    // Rename duplicate pre-check — ACTIVE siblings only, matching the partial
-    // unique index (P0.3b). Same-name renames skip the lookup (no self-409).
+    // Rename duplicate pre-check — ACTIVE siblings only, CASE-INSENSITIVE to
+    // match the lower(name) partial unique index (P0.3b/P0.3d). Same-name
+    // renames skip the lookup; case-only self-renames pass via the Op.ne guard.
     if (updates.name && updates.name !== item.name) {
       const EquipmentItem = getEquipmentItem();
       const duplicate = await EquipmentItem.findOne({
-        where: { profileId: item.profileId, name: updates.name, isActive: true, id: { [Op.ne]: item.id } },
+        where: { profileId: item.profileId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: item.id } },
       });
       if (duplicate) {
         return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -803,11 +846,29 @@ router.put('/:id/items/:itemId/approve', async (req, res) => {
       approvalStatus: 'approved',
       approvedAt: new Date(),
     };
+    // P0.3e input hardening: overrides feed string methods — non-string → 400.
+    if (name !== undefined && name !== null && typeof name !== 'string') {
+      return res.status(400).json({ success: false, error: 'name must be a string' });
+    }
+    if (trainerLabel !== undefined && trainerLabel !== null && typeof trainerLabel !== 'string') {
+      return res.status(400).json({ success: false, error: 'trainerLabel must be a string' });
+    }
     if (name) updates.name = name.trim().slice(0, 150);
     if (trainerLabel) updates.trainerLabel = trainerLabel.trim().slice(0, 150);
 
     if (category && VALID_CATEGORIES.includes(category)) updates.category = category;
     if (resistanceType && VALID_RESISTANCE_TYPES.includes(resistanceType)) updates.resistanceType = resistanceType;
+
+    // Name override duplicate pre-check — ACTIVE siblings, case-insensitive,
+    // matching the partial lower(name) index (P0.3e). Same-name exempt.
+    if (updates.name && updates.name !== item.name) {
+      const duplicate = await getEquipmentItem().findOne({
+        where: { profileId: item.profileId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: item.id } },
+      });
+      if (duplicate) {
+        return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+      }
+    }
 
     await item.update(updates);
 
@@ -831,6 +892,10 @@ router.put('/:id/items/:itemId/approve', async (req, res) => {
 
     res.json({ success: true, item });
   } catch (err) {
+    // Race backstop: the partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
+    }
     logger.error('[EquipmentRoutes] Approve error:', err);
     res.status(500).json({ success: false, error: 'Failed to approve item' });
   }
@@ -862,6 +927,11 @@ router.put('/:id/items/:itemId/reject', async (req, res) => {
     await EquipmentExerciseMap.destroy({
       where: { equipmentItemId: item.id, isAiSuggested: true, confirmed: false },
     });
+
+    // Refresh cached count — reject soft-deletes an active item (P0.3e; the
+    // add/delete/approve paths already refresh, reject was the stale one).
+    const count = await getEquipmentItem().count({ where: { profileId: profile.id, isActive: true } });
+    await profile.update({ equipmentCount: count });
 
     res.json({ success: true, message: 'Scan rejected and item archived' });
   } catch (err) {
@@ -898,8 +968,9 @@ router.post('/:id/items/:itemId/exercises', async (req, res) => {
     if (!result) return;
 
     const { exerciseKey, exerciseName, isCustomExercise, customExerciseId, isPrimary } = req.body;
-    if (!exerciseKey || !exerciseName) {
-      return res.status(400).json({ success: false, error: 'exerciseKey and exerciseName are required' });
+    // P0.3e input hardening: both feed .slice — require non-empty strings.
+    if (!exerciseKey || typeof exerciseKey !== 'string' || !exerciseName || typeof exerciseName !== 'string') {
+      return res.status(400).json({ success: false, error: 'exerciseKey and exerciseName are required strings' });
     }
 
     const EquipmentExerciseMap = getEquipmentExerciseMap();
@@ -936,9 +1007,13 @@ router.delete('/:id/items/:itemId/exercises/:mapId', async (req, res) => {
     const result = await getOwnedItem(req, res);
     if (!result) return;
 
+    const mapId = parseInt(req.params.mapId, 10);
+    if (isNaN(mapId)) {
+      return res.status(400).json({ success: false, error: 'Invalid mapping ID' });
+    }
     const EquipmentExerciseMap = getEquipmentExerciseMap();
     const mapping = await EquipmentExerciseMap.findOne({
-      where: { id: req.params.mapId, equipmentItemId: result.item.id },
+      where: { id: mapId, equipmentItemId: result.item.id },
     });
     if (!mapping) {
       return res.status(404).json({ success: false, error: 'Mapping not found' });
@@ -958,9 +1033,13 @@ router.put('/:id/items/:itemId/exercises/:mapId/confirm', async (req, res) => {
     const result = await getOwnedItem(req, res);
     if (!result) return;
 
+    const mapId = parseInt(req.params.mapId, 10);
+    if (isNaN(mapId)) {
+      return res.status(400).json({ success: false, error: 'Invalid mapping ID' });
+    }
     const EquipmentExerciseMap = getEquipmentExerciseMap();
     const mapping = await EquipmentExerciseMap.findOne({
-      where: { id: req.params.mapId, equipmentItemId: result.item.id },
+      where: { id: mapId, equipmentItemId: result.item.id },
     });
     if (!mapping) {
       return res.status(404).json({ success: false, error: 'Mapping not found' });
