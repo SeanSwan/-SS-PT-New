@@ -44,6 +44,14 @@ export interface ClientDashboardAction {
 export interface ClientDashboardHomeProps {
   embedded?: boolean;
   backgroundSettings?: ReactNode;
+  /**
+   * The member's active plan + their other plans (ClientProgramShelf), injected
+   * by the mounting tab so this grid stays free of data-fetching. Sean 2026-07-11:
+   * the plan must be on the home page "always, no matter what" — so this slot is
+   * rendered whenever provided and the shelf itself holds its own empty/loading/
+   * error states rather than disappearing.
+   */
+  programShelf?: ReactNode;
   logoSrc: string;
   swanHeroSrc: string;
   featureImageSrc: string;
