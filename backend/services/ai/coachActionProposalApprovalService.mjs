@@ -4,6 +4,7 @@
  * Deterministic approval executor for Swan Coach action proposals.
  */
 import sequelize from '../../database.mjs';
+import { applyPlanEditProposal } from './coachPlanEditApprovalService.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import {
@@ -160,6 +161,33 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       proposalNotPending,
       updateProposalStatus,
     });
+  }
+
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.PLAN_EDIT) {
+    // Per-item apply: only the trainer-approved subset (req.body.approvedItemIds)
+    // is written; everything else is recorded as skipped. Validation failures
+    // (missing/unknown ids, foreign plan) release the claim back to PENDING so
+    // the trainer can correct and re-approve.
+    if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
+    try {
+      const applyResult = await applyPlanEditProposal({ proposal, req, models: db.models });
+      if (!applyResult.ok) {
+        await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.PENDING, db });
+        return { status: applyResult.code === 'PLAN_EDIT_PLAN_NOT_FOUND' ? 404 : 400,
+          body: { success: false, code: applyResult.code } };
+      }
+      const updated = await updateProposalStatus({
+        id,
+        status: COACH_PROPOSAL_STATUS.APPLIED,
+        result: applyResult.result,
+        db,
+      });
+      return { status: 200, body: { success: true, proposal: updated, applied: applyResult.result } };
+    } catch (err) {
+      const code = err.code || 'PLAN_EDIT_APPLY_FAILED';
+      await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
+      return { status: 500, body: { success: false, code } };
+    }
   }
 
   if (row.proposal_type !== COACH_PROPOSAL_TYPE.WORKOUT_LOG) {

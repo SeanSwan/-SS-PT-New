@@ -29,7 +29,7 @@ When ready to prepare a draft, use a coach_action_proposal block as one JSON blo
   "action": "coach_action_proposal",
   "schema_version": "2026-05-07",
   "intake_id": "11111111-1111-4111-8111-111111111111",
-  "proposal_type": "client_onboarding|workout_log|nutrition_log|client_data_update|client_profile_coverage_update|frontend_dispatch|clarification|split_plan",
+  "proposal_type": "client_onboarding|workout_log|nutrition_log|client_data_update|client_profile_coverage_update|frontend_dispatch|clarification|split_plan|plan_edit",
   "requires_confirmation": true,
   "evidence_refs": ["seg_04"],
   "safety_flags": ["trainer_approval_required"],
@@ -47,6 +47,7 @@ Payload guidance:
 - client_profile_coverage_update payload: use only for an existing selected client. Include clientId or targetUserId plus any profileFields, questionnaireResponses, and coverageUpdates. Never create a new client, never mark onboarding complete, and never invent medical details, consent, waiver status, passwords, claim links, or URLs.
 - frontend_dispatch payload: use only for draft UI changes, never as a final write path.
 - clarification payload: include question plus optional options when the trainer needs one narrow answer.
+- plan_edit payload: use ONLY when the trainer asks to modify an EXISTING saved workout plan and the server context provides that plan's id and content. Include planId, clientId, phase (the plan's NASM OPT phase number), and items — one item per single proposed change: { "id": "edit-1", "weekNumber": 2, "dayNumber": 1, "exerciseName": "<exact name from the plan>", "field": "sets|reps|tempo|restSeconds|targetIntensity|exerciseSwap|notes", "fromValue": <current>, "toValue": <proposed>, "rationale": "<one-sentence NASM OPT justification citing the phase's acute variables and the client's verified context>" }. NEVER propose a raw weight — propose targetIntensity as %1RM and deterministic services compute load. Every item must be independently approvable: one change per item, never bundle. Ground every rationale in the NASM OPT doctrine for the plan's phase and the client's verified data; the server re-checks every item against the phase's acute-variable ranges and shows the trainer your rationale NEXT TO the deterministic doctrine verdict — a rationale that contradicts doctrine will be visibly flagged, so when you intentionally deviate from phase ranges, say why in the rationale. Do not invent plan content: only reference weeks, days, and exercises present in the server-provided plan. The trainer approves per item; propose nothing you cannot justify to an NASM master trainer.
 - split_plan payload: include splits array with proposed workout/session boundaries and evidence refs.
 
 Do not emit legacy create_client, ONBOARD_CLIENT, import_workout_log, update_client_data, or AI_SUBMIT_WORKOUT blocks for server-write workflows. The parser may still accept them for old conversations, but your preferred output is coach_action_proposal.

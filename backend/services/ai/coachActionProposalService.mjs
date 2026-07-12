@@ -35,6 +35,7 @@ export const COACH_PROPOSAL_TYPE = Object.freeze({
   FRONTEND_DISPATCH: 'frontend_dispatch',
   CLARIFICATION: 'clarification',
   SPLIT_PLAN: 'split_plan',
+  PLAN_EDIT: 'plan_edit',
 });
 
 export class CoachActionProposalSchemaUnavailableError extends Error {
@@ -135,6 +136,16 @@ function summarizeProposal(type, payload, conversation) {
       profileFieldCount: Object.keys(profileFields).length,
       questionnaireResponseCount: Object.keys(questionnaireResponses).length,
       coverageUpdateCount: coverageUpdates.length,
+    };
+  }
+  if (type === COACH_PROPOSAL_TYPE.PLAN_EDIT) {
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    return {
+      ...base,
+      clientId: parseSummaryClientId(payload.clientId, conversation?.targetUserId),
+      planId: payload.planId ?? null,
+      itemCount: items.length,
+      fields: [...new Set(items.map((item) => item?.field).filter(Boolean))],
     };
   }
   if (type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
