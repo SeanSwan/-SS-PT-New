@@ -12,7 +12,11 @@ export const coachCommandCrystallineFocusStyles = css`
   --coach-focus-elevated: var(--bg-elevated, #1A1A24);
   --coach-focus-interactive: var(--surface-soft, color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, var(--text-primary, #E0ECF4) 8%));
   --coach-focus-text: var(--text-primary, #E0ECF4);
-  --coach-focus-muted: var(--text-muted, #8794a8);
+  --coach-focus-muted: color-mix(
+    in srgb,
+    var(--text-muted, #8794a8) 42%,
+    var(--text-secondary, #c3d2e4) 58%
+  );
   --coach-focus-soft: var(--text-secondary, #a9b6c8);
   --coach-focus-line: var(--border-subtle, rgba(184, 207, 232, 0.13));
   --coach-focus-line-active: var(--border-active, var(--border-focus, rgba(96, 192, 240, 0.34)));
@@ -158,7 +162,7 @@ export const coachCommandCrystallineFocusStyles = css`
     border-radius: 999px;
     color: var(--coach-focus-soft);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
     min-height: 44px;
     padding: 8px 12px;
@@ -183,7 +187,7 @@ export const coachCommandCrystallineFocusStyles = css`
     field-sizing: content;
     line-height: 1.5;
   }
-  .dock-trust-line { color: var(--coach-focus-muted); font-size: 12px; line-height: 1.4; }
+  .dock-trust-line { color: var(--coach-focus-muted); font-size: 13px; line-height: 1.4; }
   .dock-send { box-shadow: 0 10px 26px color-mix(in srgb, var(--coach-focus-accent) 22%, transparent); }
 
   @media (min-width: 1280px) {

@@ -16,7 +16,7 @@ export const coachCommandNotebookStyles = css`
   .main-client-picker > span {
     color: var(--coach-muted, #9aa9ba);
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 760;
     letter-spacing: 0.07em;
     text-transform: uppercase;

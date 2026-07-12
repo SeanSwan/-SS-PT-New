@@ -26,9 +26,16 @@ const fixedIntent = (intent, params = {}, clientRef = null) => ({
 });
 
 const idParams = (value) => (value ? { intakeId: value } : {});
+// The greedy CLIENT_REF_PATTERN class includes the apostrophe, so a
+// possessive ("show Ava's profile") is eaten INTO the name group and the
+// rules' trailing (?:'s)? can never fire. Strip a trailing 's / bare '
+// here instead — internal apostrophes (O'Brien) survive untouched.
 const cleanClientRef = (value) => String(value || '')
   .replace(/\s+/g, ' ')
   .replace(/[?.!,]+$/g, '')
+  .trim()
+  .replace(/'s$/i, '')
+  .replace(/'$/, '')
   .trim();
 
 const clientIntent = (intent, value, params = {}) => fixedIntent(intent, params, cleanClientRef(value));

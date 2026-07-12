@@ -53,7 +53,7 @@ export const coachCommandOwnerControlsStyles = css`
 
   .account-controls-toggle small {
     color: var(--coach-muted);
-    font-size: 11px;
+    font-size: 13px;
     margin-top: 3px;
   }
 

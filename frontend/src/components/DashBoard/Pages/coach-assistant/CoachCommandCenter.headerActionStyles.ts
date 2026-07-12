@@ -18,7 +18,7 @@ export const coachCommandHeaderActionStyles = css`
   .client-action-scope {
     color: var(--coach-muted);
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: 13px;
     grid-column: 1 / -1;
     letter-spacing: 0.08em;
     overflow: hidden;
@@ -82,7 +82,7 @@ export const coachCommandHeaderActionStyles = css`
 
   .client-action-button small {
     color: var(--coach-muted);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.15;
   }
 

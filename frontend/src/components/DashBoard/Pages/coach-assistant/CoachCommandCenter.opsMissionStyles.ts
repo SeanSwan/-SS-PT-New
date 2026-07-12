@@ -26,7 +26,7 @@ export const coachCommandOpsMissionStyles = css`
   .workout-command-brief-item small {
     color: var(--coach-muted);
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -46,7 +46,7 @@ export const coachCommandOpsMissionStyles = css`
   .workout-command-next small,
   .workout-command-brief-item span {
     color: var(--coach-muted);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.34;
   }
 
