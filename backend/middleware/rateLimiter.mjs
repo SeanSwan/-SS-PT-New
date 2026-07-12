@@ -91,10 +91,38 @@ export const waiverLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Public contact / pricing-inquiry rate limiter (5 req / 15 min per IP).
+ *
+ * POST /api/contact is PUBLIC (prospects aren't logged in) and each accepted
+ * submission fans out to SendGrid email + Twilio SMS — real per-message cost,
+ * delivered to the owner AND owner's second recipient — plus a CRM lead row.
+ * The storefront "Ask About Pricing" button makes this endpoint trivially
+ * reachable, so an unthrottled flood would burn Twilio spend, blow up the
+ * owners' phones, and poison the lead pipeline. Stricter than waiverLimiter
+ * for that reason. 5 leaves room for a genuine prospect asking about several
+ * packages; it kills automated abuse.
+ *
+ * Per-IP keying is correct here: core/app.mjs sets `trust proxy` to 1, so
+ * req.ip resolves to the real client, not Render's proxy.
+ */
+export const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    error: 'Too many inquiries from this IP. Please try again in a few minutes.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
   adminLimiter,
   uploadLimiter,
   waiverLimiter,
+  contactLimiter,
 };
