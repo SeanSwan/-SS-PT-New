@@ -142,9 +142,14 @@ export const getDashboardMetrics = async (req, res) => {
     };
 
     if (userRole === 'admin') {
-      const [activeUsers, revenueTotal] = await Promise.all([
+      const monthlyStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const [activeUsers, revenueTotal, prevRevenueTotal, monthlyRevenueTotal] = await Promise.all([
         User.count({ where: { updatedAt: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
         Order ? Order.sum('totalAmount', { where: { status: 'completed', createdAt: { [Op.gte]: startDate } } }) : 0,
+        // Revenue's OWN prior-period total, so growth reflects money — not session count.
+        Order ? Order.sum('totalAmount', { where: { status: 'completed', createdAt: { [Op.between]: [prevStart, prevEnd] } } }) : 0,
+        // A real trailing-30-day figure for the "monthly" tile.
+        Order ? Order.sum('totalAmount', { where: { status: 'completed', createdAt: { [Op.gte]: monthlyStart } } }) : 0,
       ]);
       metrics.systemHealth = {
         serverUptimeSeconds: Math.round(process.uptime()),
@@ -152,10 +157,14 @@ export const getDashboardMetrics = async (req, res) => {
         errorRate: 0,
         activeUsers,
       };
+      // `growth` used to be the SESSION-count growth stamped onto revenue, and `monthly`
+      // was a copy of the full-timeframe `total` (a year's revenue under timeframe=1y).
+      // Both are now real money figures: growth = this-period vs prior-period REVENUE,
+      // monthly = trailing 30 days of completed-order revenue.
       metrics.revenue = {
         total: Number(revenueTotal || 0),
-        monthly: Number(revenueTotal || 0),
-        growth: Number(growthRate.toFixed(1)),
+        monthly: Number(monthlyRevenueTotal || 0),
+        growth: Number(calculateChangePercent(Number(revenueTotal || 0), Number(prevRevenueTotal || 0)).toFixed(1)),
       };
     }
 

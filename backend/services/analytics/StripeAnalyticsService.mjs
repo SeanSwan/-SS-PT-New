@@ -305,12 +305,26 @@ class StripeAnalyticsService {
    * Fetch active Stripe subscriptions
    */
   async fetchStripeSubscriptions() {
-    const subscriptions = await stripeClient.subscriptions.list({
-      status: 'active',
-      limit: 100
-    });
-
-    return subscriptions.data;
+    // Auto-paginate, exactly like fetchStripeCharges/fetchStripeCustomers. The old
+    // single list({limit:100}) silently dropped every active subscription past #100, so
+    // MRR (a reduce over this array) and activeSubscriptions (its .length) were both
+    // understated once the business crossed 100 active subs.
+    const all = [];
+    let hasMore = true;
+    let startingAfter;
+    while (hasMore) {
+      const params = { status: 'active', limit: 100 };
+      if (startingAfter) params.starting_after = startingAfter;
+      const response = await stripeClient.subscriptions.list(params);
+      all.push(...response.data);
+      hasMore = response.has_more;
+      if (hasMore && response.data.length > 0) {
+        startingAfter = response.data[response.data.length - 1].id;
+      } else {
+        hasMore = false;
+      }
+    }
+    return all;
   }
 
   /**
@@ -367,9 +381,16 @@ class StripeAnalyticsService {
   async calculateFinancialMetrics({ charges, customers, subscriptions, localTransactions, localUsers, timeRange, startDate, endDate }) {
     logger.info(`🧮 Calculating financial metrics for ${charges.length} charges, ${customers.length} customers, ${localTransactions.length} local transactions`);
 
-    // Calculate total revenue from successful charges
+    // Calculate NET revenue from successful charges. A charge that was later refunded
+    // (fully or partially) still has status:'succeeded' and a positive charge.amount —
+    // Stripe records the refunded portion in charge.amount_refunded. Summing amount alone
+    // reported gross, so a $10k window with $2k refunded showed $10k instead of the true
+    // $8k net on /api/admin/verify/stripe-comparison. Subtract the refunded portion.
     const successfulCharges = charges.filter(charge => charge.status === 'succeeded');
-    const totalRevenue = successfulCharges.reduce((sum, charge) => sum + charge.amount, 0) / 100; // Convert from cents
+    const totalRevenue = successfulCharges.reduce(
+      (sum, charge) => sum + (charge.amount - (charge.amount_refunded || 0)),
+      0,
+    ) / 100; // Convert from cents
 
     // Calculate transaction count
     const transactionCount = successfulCharges.length;

@@ -943,13 +943,15 @@ class BadgeService {
       await this.addPointsToUser(userId, rewardPoints, BADGE_REWARD_REASON, badge.id);
     }
 
-    // Apply title reward
-    if (badge.rewards.title) {
+    // Apply title reward. Optional-chained to match the points read above — a badge row
+    // with rewards === null (or missing) would otherwise throw here on .title, aborting
+    // reward application even though the badge INSERT already committed.
+    if (badge?.rewards?.title) {
       await this.updateUserTitle(userId, badge.rewards.title);
     }
 
     // Apply customizations
-    if (badge.rewards.customizations) {
+    if (badge?.rewards?.customizations) {
       await this.applyProfileCustomizations(userId, badge.rewards.customizations);
     }
   }

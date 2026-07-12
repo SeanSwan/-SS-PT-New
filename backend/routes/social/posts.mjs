@@ -124,9 +124,16 @@ const SOCIAL_POINT_RULES = {
   comment_received: 3
 };
 
-function buildSocialPointKey(userId, action, metadata = {}) {
+export function buildSocialPointKey(userId, action, metadata = {}) {
   const parts = ['social', action, `user:${userId}`];
-  for (const key of ['postId', 'commentId', 'reactionType', 'likedByUserId', 'commentedByUserId']) {
+  // NOTE: reactionType is deliberately NOT part of the point idempotency key. Reactions
+  // allow 3 types (swan/heart/thumbs_up) and each is a distinct SocialLike row, but the
+  // point rules are flat per relationship (post_like_given:1, post_like_received:2). When
+  // reactionType was in the key, one user cycling all three reactions on a post minted the
+  // award THREE times — 3 pts to the reactor and 6 to the post owner, and removeReaction
+  // never clawed it back — a repeatable, permanent leaderboard/balance farm. Keying per
+  // (user, action, post) makes the same user earn exactly once per post.
+  for (const key of ['postId', 'commentId', 'likedByUserId', 'commentedByUserId']) {
     if (metadata[key] !== undefined && metadata[key] !== null && metadata[key] !== '') {
       parts.push(`${key}:${metadata[key]}`);
     }
@@ -919,10 +926,16 @@ router.get('/:postId', async (req, res) => {
       }
     }
     
-    // Get comments for the post
+    // Get comments for the post. BOUNDED: SocialComment grows without limit with
+    // engagement, and this handler loaded EVERY row (+ a User join each) into one response.
+    // A user could comment-bomb a post to force a linear heap/latency blow-up on every
+    // subsequent view. Cap to the most recent N (house style: min(query, 100), default 50),
+    // matching the bounded feed/list queries elsewhere in this file.
+    const commentLimit = Math.min(parseInt(req.query.commentLimit, 10) || 50, 100);
     const comments = await SocialComment.findAll({
       where: { postId },
-      order: [['createdAt', 'ASC']],
+      order: [['createdAt', 'DESC']],
+      limit: commentLimit,
       include: [
         {
           model: getUser(),
@@ -931,6 +944,8 @@ router.get('/:postId', async (req, res) => {
         }
       ]
     });
+    // Present oldest-first (the prior contract) within the bounded, most-recent window.
+    comments.reverse();
     
     // Check if user has liked this post
     const userLike = await SocialLike.findOne({

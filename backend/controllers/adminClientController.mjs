@@ -605,7 +605,10 @@ class AdminClientController {
               'userId',
               [sequelize.fn('COUNT', sequelize.col('id')), 'total']
             ],
-            where: { userId: { [Op.in]: clientIds } },
+            // Only COMPLETED orders count as purchases — the sibling workout count above
+            // already scopes to status:'completed'. Without this, a client's abandoned
+            // pending/failed/refunded orders inflated their "totalOrders" purchase metric.
+            where: { userId: { [Op.in]: clientIds }, status: 'completed' },
             group: ['userId'],
             raw: true
           });
