@@ -240,32 +240,104 @@ creep and will be rejected in review.
 
 ---
 
-## §5. ⭐ THE CHART CHARTER — "fresh and spicy, never confusing" (Sean's directive, elevated to a named system)
+## §5. ⭐ THE CHART CHARTER v1.1 — "fresh and spicy, never confusing"
+*(v1.1 2026-07-12: hostile-reviewed against the REAL 15-card deck; "Big
+Three" replaced by THE VITALS after the review killed both the name and
+the number. Findings log in 5.8; changelog in §18.)*
 
 Charts are progress PROOF — the emotional core of the product. They are
-also the easiest place to destroy trust. So charts get their own charter
-with a two-sided guarantee: **lenses can dramatically re-dress them; they
-can never re-write them.**
+also the easiest place to destroy trust. Two-sided guarantee: **lenses can
+dramatically re-dress them; they can never re-write them.**
 
-### 5.1 The Big Three — identity-anchored, lens-dressed
-The three charts members live by (the canonical progress-proof set):
-1. **Strength Trend** (est-1RM / top-lift progression)
-2. **Body Trend** (weight / body-comp trajectory)
-3. **Consistency** (workout frequency / heatmap / streak)
+### 5.1 THE VITALS — goal-aware anchor SLOTS (supersedes "Big Three")
 
-Each of the Big Three carries a host-fixed **Identity Anchor**: stable
-title text, stable signature glyph, stable position of the headline value,
-stable series meaning. A member switching from Candy Glass Arcade to
-Prism Terminal must recognize "my strength chart" in under one second.
-Anchors are lens-STYLED but never lens-MOVED or lens-RENAMED.
+**Hostile-review verdicts that forced this redesign:**
+- *Name kill:* "Big Three" already means squat/bench/deadlift in every
+  gym on earth — members WILL look for SBD numbers. Renamed **The
+  Vitals** (vital-signs resonance: the numbers that tell you your
+  training is alive). "Constellation" is reserved for the
+  celebration/share visual layer (PR Constellation).
+- *Number kill:* a fixed strength/body/consistency trio assumes one
+  client archetype. Sean trains golfers, seniors, rehab and
+  pain-management clients — est-1RM is meaningless for a mobility-first
+  senior, and a permanent weight anchor is actively hostile to the Gentle
+  Mode sensitivity posture the app already ships for nutrition
+  (`nutritionGentleModePreference.ts`). Anchors must attach to
+  **semantic SLOTS**; the member's goal profile fills each slot with the
+  right concrete chart.
 
-### 5.2 Data-truth invariants (lens-immutable, compiler-enforced)
+**The five Vitals slots (+ one opt-in), mapped to the REAL deck**
+(registry: `useClientProgressCharts.types.ts` CANONICAL_CHART_IDS, 15
+cards, full client AND admin parity 15/15):
+
+| Slot | Question it answers | Default chart | Goal-profile variants |
+|---|---|---|---|
+| **1 Consistency** | "Am I showing up?" | workoutFrequency (free-tier teaser ✓ — the funnel chart) | heatmap env, attendanceReliability |
+| **2 Load** | "Am I doing enough work?" | weeklyVolume (free teaser ✓) | setsRepsTrend, durationTrend |
+| **3 Capability** | "Am I getting better at the thing?" | estOneRm (strength) | movementPatternBalance / exerciseFrequency (skill·mobility·golf), durationTrend (endurance — NOTE: cardio endpoint is a deprecated stub, real endpoint needed before this variant ships) |
+| **4 Recovery** | "Am I absorbing the work?" | recoverySignal (pain flags + high-RPE) | enrich with recovery_completions + client_pain_entries + BodyMap insights |
+| **5 Trajectory** | "Am I on track for MY goal?" | **NET-NEW CARD** — Goal.targetValue/currentValue/deadline + GoalMilestone markers. The Goal family is rich and currently consumed by ZERO charts — the one genuinely new Vitals build | program-completion % when no explicit goal |
+| **(6) Body — OPT-IN only** | "Is my body changing?" | weightTrend / bodyFatTrend | consent-gated + Gentle-Mode aware + never default for minors (5.8 finding: currently UNGATED + zero sensitivity logic — Sean decision required) |
+
+**Slot rules:**
+- Identity Anchors attach to SLOTS, not charts: stable position, slot
+  glyph, title pattern, headline-value placement. Recognition survives a
+  goal change swapping the underlying chart; the card shows a one-line
+  continuity note ("Capability now tracks mobility — changed with Coach,
+  Jul 12").
+- Trainer may re-map a client's slot variants — that is a coaching
+  prescription (§6.3 flow): suggested, member-visible, revertible,
+  logged to the coaching record.
+- Slots 1–5 always present for members; slot 6 never appears without
+  explicit member opt-in.
+
+### 5.2 Three-layer progressive disclosure — "lots of data, never cluttered"
+Sean's directive: comprehensive + beautiful + click-in breakdown that
+explains *what is what, why is what* — usable one-handed on phones.
+Resolution: density lives DEEPER, never WIDER.
+
+- **L1 · Card (glance):** headline value + delta + sparkline/chart + slot
+  glyph. Answers its slot question in <1 second. Nothing else.
+- **L2 · Expand (data): ALREADY BUILT — keep and credit.**
+  `ChartExpandModal` (portal'd to body, z-2200, full-screen ≤767px,
+  scroll-locked, reduced-motion aware) with the pulse momentum strip,
+  facts rail (Latest/Best/Avg/Logged), semantic data table, and the two
+  drill-downs (WorkoutDayDrilldown → set-level truth; 
+  ExerciseTimelineDrilldown → per-exercise rolodex history).
+- **L3 · Explain ("why is what"): THE CONFIRMED GAP — the build target.**
+  Recon receipt: NO metric education exists anywhere in the dashboard
+  tree — subtitles describe axes ("Minutes per session, last 90 days"),
+  pulse strings nudge ("Beat X to set the next proof mark"), but nothing
+  explains meaning. L3 is a **[Data | Meaning] segmented layer inside the
+  existing expand modal** (no fourth surface), per chart:
+  1. **WHAT** — method note with formula honesty ("Est. 1RM estimates
+     your one-rep max from sets you actually logged, using the Brzycki
+     formula — it never guesses beyond your data").
+  2. **WHY IT MATTERS FOR YOU** — goal-profile-keyed copy (strength vs
+     mobility vs endurance vs recovery framing).
+  3. **WHAT MOVES IT** — 2-3 actionable levers, next-best-action framed.
+  4. **WHAT THIS READING MEANS** — rule-based interpretation bands from
+     the member's own numbers ("3+ sessions/week for 6 weeks — this is
+     building-phase consistency"), deterministic, never speculative.
+  5. **COACH NOTE** — optional trainer-authored line per client per
+     vital (this is coaching surface, not copy).
+  All deterministic templates — zero LLM cost, Rule 62-truthful,
+  localizable. "Ask Swan Coach about this chart" is the LATER
+  conversational hook (never labeled AI, Rule branding).
+  Phone: full-screen sheet, one scroll owner, 44px segmented tabs,
+  safe-area padding.
+
+### 5.3 Data-truth invariants (lens-immutable, compiler-enforced)
 - scale type, axis ranges/direction, units, data transforms, sort order
 - series visibility defaults, legend semantics, annotation truth
 - the numbers, the deltas, the PR markers — the TRUTH LAYER
 - empty/error/loading states remain honest (styled, never faked)
+- **freshness stamp on every Vitals card** ("through today · local
+  days") + declared bucketing — user-LOCAL training day per Sean's
+  heatmap ruling (3d9b4d9ef); UTC/local ambiguity is a resolved question,
+  never re-litigated per-chart
 
-### 5.3 What a lens MAY restyle (the spice)
+### 5.4 What a lens MAY restyle (the spice)
 - full dataviz palette (from Colorway dataviz tokens)
 - stroke/fill/gradient treatment, point markers, grid/frame material
 - label/axis typography (from lens type roles)
@@ -274,7 +346,7 @@ Anchors are lens-STYLED but never lens-MOVED or lens-RENAMED.
 - draw-in/emphasis motion within the motion budget
 - **representation variant within the familiarity budget** (5.4)
 
-### 5.4 The Familiarity Budget (the "not crazy" control)
+### 5.5 The Familiarity Budget (the "not crazy" control)
 Every chart component declares its allowed representation distance:
 - **`conservative`** (DEFAULT for all client-facing charts): same chart
   family only — a bar chart may become rounded-bar / crystal-column /
@@ -285,7 +357,7 @@ Every chart component declares its allowed representation distance:
 - Familiarity is a USER setting and a HOST cap, never a lens decision:
   `min(user_preference, host_cap, lens_request)`.
 
-### 5.5 The Victory bridge (mechanism)
+### 5.6 The Victory bridge (mechanism)
 - Compiler emits a **`VictoryTheme` object per resolved lens** from the
   dataviz tokens (style-dictionary transform), delivered through the
   existing `chartTheme` seam and SafeChart wrapper.
@@ -296,7 +368,7 @@ Every chart component declares its allowed representation distance:
   data-ink tokens are separate namespaces; the validator rejects a recipe
   that leaks either direction (Fable idea B1).
 
-### 5.6 Chart receipts (new, nobody else has this)
+### 5.7 Chart receipts (new, nobody else has this)
 Per published lens, the render receipt includes:
 - **data-distinctness verified** — categorical dataviz palette passes
   pairwise deltaE + color-vision-deficiency simulation thresholds
@@ -305,11 +377,44 @@ Per published lens, the render receipt includes:
 - **anchor integrity** — Big Three identity anchors present and unmoved
 - golden-pair chart screenshots at P1 (414) and 1440
 
-### 5.7 Seasonal chart freshness without chaos (Sean's "keep it fresh")
+### 5.8 Seasonal chart freshness without chaos (Sean's "keep it fresh")
 Moment/seasonal packs may re-dress chart ATMOSPHERE (environment, palette
 accents, celebration overlays on PR markers) on a schedule — auto-expiring
 per precedence rule 7 — while `conservative` familiarity keeps the
 representation stable. Fresh quarterly, familiar always.
+
+### 5.9 HOSTILE-REVIEW FINDINGS LOG (2026-07-12, recon-verified receipts)
+Verified against the live deck; these carry into Phase 3's work list:
+1. **[SEAN DECISION] Body routes ungated + zero sensitivity logic** —
+   `clientAnalyticsRoutes.mjs:247,250`: weightTrend/bodyFatTrend have no
+   tier middleware AND no Gentle-Mode/consent gate; raw `body_measurements`
+   straight through. The grid's lock seam expects 402s that never come
+   (dead lock path, `useCanonicalProgressChartsFetch.ts:77-79`). Known
+   route-documented divergence — the Vitals opt-in design (slot 6) is the
+   doctrine home; the gating flip is Sean's call (§16 Q8).
+2. **Goals consumed by zero charts** — rich Goal/GoalMilestone family
+   exists; no target-line overlay anywhere. Trajectory (slot 5) is the
+   one net-new Vitals card; everything else maps to existing cards.
+3. **L3 Explain is a confirmed gap** — no metric education anywhere in
+   the dashboard tree (axis-subtitles + pulse nudges only).
+4. **5 deprecated stub endpoints** return empty-not-404
+   (`chartDataController.mjs:863-883` incl. cardioEndurance) — dead
+   surface debt; the endurance Capability variant needs a real endpoint.
+5. **Portal inconsistency** — ChartExpandModal portals to body;
+   WorkoutDayDrilldown + ExerciseTimelineDrilldown render inline
+   (translateZ stacking-context risk class). Align in Phase 3.
+6. **Charter self-correction** — admin parity is FULL 15/15 (not ~9 as
+   v1.0 assumed); admin reuses CANONICAL_CHART_IDS via
+   `/api/analytics/:userId/*` with ownership gates.
+7. **Victory bridge target confirmed** — ONE `victoryTheme` object
+   (`chartTheme.ts:66-142`) + SafeChart wrap on every card: the §5.6
+   bridge lands in exactly one seam.
+
+**Phase 3 build list (updated):** Vitals row assembly (slot registry +
+identity anchors + goal-profile mapping) · Trajectory card (goals) · L3
+Explain module ([Data|Meaning] tabs in the existing expand modal) ·
+Victory theme bridge · drill-down portal alignment · freshness stamps ·
+body-chart consent/Gentle gating per Sean's §16 ruling.
 
 ---
 
@@ -706,10 +811,20 @@ without Sean's explicit go**.
 1. Forge access tiers: Sean-only → trainers → which member tier?
 2. Pricing/rarity mapping for lens acquisition (and what's free-forever).
 3. Trainer-prescription policy defaults (opt-out vs opt-in per client).
-4. Big Three confirmation: strength / body / consistency — right trio?
+4. ~~Big Three trio confirmation~~ → superseded by v1.1: confirm **The
+   Vitals** — five slots (Consistency/Load/Capability/Recovery/Trajectory)
+   + opt-in Body. Right set? Right names?
 5. Familiarity default for admin/trainer surfaces (`expressive` ok?).
 6. Naming ratification: Smart Lens OS · Lens Scan · Forge · Atelier ·
-   Comfort Lock.
+   Comfort Lock · **The Vitals**.
+7. L3 Explain interpretation bands: how bold may deterministic
+   "what this reading means" copy be (e.g. "building-phase consistency")
+   before it needs trainer review?
+8. **Body-chart gating flip** (finding 5.9-1): gate weightTrend/
+   bodyFatTrend behind consent + Gentle Mode (+ Guardian tier?) — this
+   changes what current users see; your call before Phase 3 executes it.
+9. Minors: Body slot hard-excluded entirely, or trainer-enable with
+   guardian consent?
 
 ---
 
@@ -723,4 +838,21 @@ without Sean's explicit go**.
 4. This doc is versioned by git; material changes append a CHANGELOG
    section, never silent edits.
 
-*— End of Ultra Mega Prompt v1.0 —*
+---
+
+## §18. CHANGELOG
+
+- **v1.1 (2026-07-12)** — Chart Charter hostile review (Sean-directed).
+  "Big Three" killed on two counts (name collides with squat/bench/
+  deadlift; fixed trio assumes one client archetype) → **THE VITALS**:
+  five goal-aware anchor SLOTS + opt-in Body, mapped to the real 15-card
+  deck. Added §5.2 three-layer progressive disclosure (L2 expand modal
+  credited as built; L3 "why is what" Explain layer specced as the gap).
+  Added §5.9 recon-verified findings log (ungated body routes, goals
+  unconsumed, portal inconsistency, stub endpoints, 15/15 admin parity
+  self-correction, single victoryTheme seam). §16 questions 4/6 updated,
+  7–9 added. Phase 3 build list updated.
+- **v1.0 (2026-07-12)** — initial synthesis (Codex REVISE + GPT Pro
+  deep-research + Fable corrections).
+
+*— End of Ultra Mega Prompt v1.1 —*
