@@ -124,6 +124,7 @@ describe('workoutBuilder training style policy', () => {
       sessionsPerWeek: 4,
       primaryGoal: 'general_fitness',
       planningReviewAcknowledged: true,
+      planningReviewActorRole: 'trainer',
       planningReviewReason: 'Test fixture reviewed (Cortex P0 gate)',
       registryOverride: registry,
       trainingIntensityMode: 'base',
