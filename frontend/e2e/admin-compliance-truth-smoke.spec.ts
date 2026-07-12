@@ -18,7 +18,10 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
   // (AdminOverviewPanel renders ClientComplianceDashboard unconditionally).
 
   await expect(page.getByText(/Compliance data could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: /Compliance data could not be loaded/i })
+      .getByRole('button', { name: /^Retry$/i }),
+  ).toBeVisible();
   await expect(page.getByText(/Marcus Johnson|Alicia Chen|Priya Patel|No workouts in 14 days/i)).toHaveCount(0);
 
   const overflowX = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
@@ -43,7 +46,13 @@ test('admin business KPI widget shows unavailable state instead of demo revenue 
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Business KPI data could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  // Scoped to this widget's alert: the always-mounted compliance widget (its
+  // at-risk endpoint is unconditionally 500'd by the mock) renders its OWN
+  // "Retry" — a bare page-level locator matches both and trips strict mode.
+  await expect(
+    page.getByRole('alert').filter({ hasText: /Business KPI data could not be loaded/i })
+      .getByRole('button', { name: /^Retry$/i }),
+  ).toBeVisible();
   await expect(page.getByText(/^Monthly Revenue$/i)).toHaveCount(0);
   await expect(page.getByText(/^Avg Client LTV$/i)).toHaveCount(0);
 
@@ -68,7 +77,10 @@ test('admin revenue chart shows unavailable state instead of demo revenue trend'
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Revenue data could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: /Revenue data could not be loaded/i })
+      .getByRole('button', { name: /^Retry$/i }),
+  ).toBeVisible();
   await expect(page.getByText(/MRR:\s*\$8,750/i)).toHaveCount(0);
   await expect(page.getByText(/Avg:\s*\$186/i)).toHaveCount(0);
 
@@ -93,7 +105,10 @@ test('admin user growth chart shows unavailable state instead of demo growth tre
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/User growth data could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: /User growth data could not be loaded/i })
+      .getByRole('button', { name: /^Retry$/i }),
+  ).toBeVisible();
   await expect(page.getByText(/47 active/i)).toHaveCount(0);
   await expect(page.getByText(/\+3 this week/i)).toHaveCount(0);
 
@@ -118,7 +133,10 @@ test('admin session tracking widget shows unavailable state instead of demo sess
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Session tracking data could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: /Session tracking data could not be loaded/i })
+      .getByRole('button', { name: /^Retry$/i }),
+  ).toBeVisible();
   await expect(page.getByText(/^(Client A|Client B|Client C)$/i)).toHaveCount(0);
   await expect(page.getByText(/Avg session:\s*52 min/i)).toHaveCount(0);
 

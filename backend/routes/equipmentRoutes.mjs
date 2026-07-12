@@ -816,6 +816,15 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
         error: 'A scanned item duplicates equipment that was just added. Re-run the scan to pick up the current inventory.',
       });
     }
+    // Two concurrent scans inserting overlapping names in opposite order can
+    // deadlock on the unique index (PG 40P01). The tx rolled back cleanly —
+    // it's a retry situation, not a server failure.
+    if (err?.original?.code === '40P01' || err?.parent?.code === '40P01') {
+      return res.status(409).json({
+        success: false,
+        error: 'Another scan on this profile finished at the same moment. Re-run the scan.',
+      });
+    }
     const msg = err.message || 'Equipment scan failed';
     // Map service errors to appropriate HTTP status codes
     if (msg.includes('GOOGLE_API_KEY') || msg.includes('GEMINI_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {

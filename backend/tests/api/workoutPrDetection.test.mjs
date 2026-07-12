@@ -22,6 +22,7 @@ const ROUTE = read('../../routes/dailyWorkoutFormRoutes.mjs');
 const ADAPTER = read('../../services/workout/aiWorkoutDailyFormService.mjs');
 const MODEL = read('../../models/PersonalRecord.mjs');
 const MIGRATION = read('../../migrations/20260707010000-create-personal-records.cjs');
+const LOWER_MIGRATION = read('../../migrations/20260712030000-personal-records-lower-unique.cjs');
 
 describe('buildPrCandidates', () => {
   const exercise = (name, sets) => ({ exerciseName: name, sets });
@@ -125,11 +126,26 @@ describe('wiring + safety contracts', () => {
   });
 
   it('model + migration agree on the unique (user, exercise, metric) identity', () => {
-    expect(MODEL).toMatch(/personal_records_user_exercise_metric_unique/);
     expect(MIGRATION).toMatch(/personal_records_user_exercise_metric_unique/);
     expect(MODEL).toMatch(/references: \{ model: 'Users', key: 'id' \}/);
     expect(MIGRATION).toMatch(/references: \{ model: 'Users', key: 'id' \}/);
     // Idempotent migration guard (§4.3 contract).
     expect(MIGRATION).toMatch(/to_regclass/);
+  });
+
+  it('DB uniqueness is case-insensitive: lower() index migration + model mirror agree', () => {
+    // The raw-name index allowed concurrent mixed-case first-evers to mint
+    // duplicate baseline rows (2026-07-12 hostile-review finding). The swap
+    // migration must dedupe FIRST (keep max value, then lowest id), then
+    // replace the index; the model mirrors the new name/shape docs-only.
+    expect(LOWER_MIGRATION).toMatch(/DELETE FROM personal_records/);
+    expect(LOWER_MIGRATION).toMatch(/keeper\.value > pr\.value/);
+    expect(LOWER_MIGRATION).toMatch(/OLD_INDEX = 'personal_records_user_exercise_metric_unique'/);
+    expect(LOWER_MIGRATION).toMatch(/NEW_INDEX = 'personal_records_user_lower_exercise_metric_unique'/);
+    expect(LOWER_MIGRATION).toMatch(/DROP INDEX IF EXISTS "\$\{OLD_INDEX\}"/);
+    expect(LOWER_MIGRATION).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS "\$\{NEW_INDEX\}"/);
+    expect(LOWER_MIGRATION).toMatch(/lower\("exerciseName"\)/);
+    expect(MODEL).toMatch(/personal_records_user_lower_exercise_metric_unique/);
+    expect(MODEL).toMatch(/sequelize\.fn\('lower', sequelize\.col\('exerciseName'\)\)/);
   });
 });
