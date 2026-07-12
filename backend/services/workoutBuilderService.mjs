@@ -215,7 +215,7 @@ const CATEGORY_TO_WARMUP = {
 
 // ── Helper: Filter exercises by constraints ──────────────────────────
 
-function filterExercises(exercises, constraints, equipmentItems) {
+function filterExercises(exercises, constraints, equipmentItems, painRejections = null) {
   const { excludedMuscles, compensationTypes, recentlyUsedExercises } = constraints;
   const excludedSet = new Set(excludedMuscles);
   const recentSet = new Set(recentlyUsedExercises);
@@ -230,10 +230,30 @@ function filterExercises(exercises, constraints, equipmentItems) {
   }
 
   return exercises.filter(ex => {
-    // Exclude if targets pain-affected muscles
-    // Issue #4 FIX: null-safe muscles array (custom exercises may have undefined)
-    const hasPainConflict = ex.muscles?.some(m => excludedSet.has(m)) ?? false;
-    if (hasPainConflict) return false;
+    // Exclude if targets pain-affected muscles.
+    // Cortex P0 §5.6 fail-safe: when pain exclusions are ACTIVE, an exercise
+    // with no muscle tags cannot be proven safe — exclude it rather than let
+    // it silently bypass the pain filter (untagged custom exercises were
+    // slipping through the old `?? false`).
+    const muscles = Array.isArray(ex.muscles) ? ex.muscles : [];
+    if (excludedSet.size > 0) {
+      if (muscles.length === 0) {
+        painRejections?.push({
+          key: ex.key || ex.name || 'unknown',
+          reason: 'untagged muscles under active pain exclusions (fail-safe)',
+          class: 'safety',
+        });
+        return false;
+      }
+      if (muscles.some(m => excludedSet.has(m))) {
+        painRejections?.push({
+          key: ex.key || ex.name || 'unknown',
+          reason: 'targets pain-excluded muscles',
+          class: 'safety',
+        });
+        return false;
+      }
+    }
 
     // Check equipment availability (if equipment list provided)
     if (availableCategories.size > 0 && ex.equipment && ex.equipment.length > 0) {
@@ -331,25 +351,47 @@ function expandScheduleCategoryToMovementCategories(category) {
   }
 }
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null) {
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null, gateReport = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
   const categoryExercises = registry
     .filter(ex => movementCats === null || movementCats.includes(ex.category));
 
-  // Apply constraints
-  const filtered = filterExercises(categoryExercises, constraints, equipmentItems);
+  // Apply constraints (pain rejections collected for the trainer-facing report)
+  const painRejections = [];
+  const filtered = filterExercises(categoryExercises, constraints, equipmentItems, painRejections);
 
   // Quality gate: low-impact is the default — high-impact plyo (jumps/hops/
   // bounds) never enters general strength selection unless the trainer asks
-  // for hardcore/athletic work or the client is in a power phase. Fail-open:
-  // an all-rejected pool falls back untouched so selection never empties.
+  // for hardcore/athletic work or the client is in a power phase. Style
+  // rejections fail-open (never empty the pool); SAFETY rejections never
+  // stand down (Cortex P0 §5.7) — the pain guard here is belt-and-braces on
+  // top of filterExercises, so a gate stand-down can never resurrect a
+  // pain-excluded or untagged exercise.
+  const excludedSet = new Set(constraints.excludedMuscles || []);
   const qualityResult = applyExerciseQualityGate(filtered, {
     nasmPhase,
     trainingStyleMode: qualityContext?.trainingStyleMode,
     primaryGoal: qualityContext?.primaryGoal,
+    safetyRejector: excludedSet.size > 0
+      ? (ex) => {
+        const muscles = Array.isArray(ex.muscles) ? ex.muscles : [];
+        if (muscles.length === 0) return 'untagged muscles under active pain exclusions (fail-safe)';
+        return muscles.some(m => excludedSet.has(m)) ? 'targets pain-excluded muscles' : null;
+      }
+      : undefined,
   });
+  const allRejected = [...painRejections, ...qualityResult.rejected];
+  if (gateReport && (allRejected.length > 0 || qualityResult.gateStoodDown)) {
+    // Surface WHY exercises were excluded (§5.7 — this audit existed
+    // internally but was dropped from trainer-facing output).
+    gateReport.push({
+      category,
+      rejected: allRejected,
+      gateStoodDown: qualityResult.gateStoodDown,
+    });
+  }
   const available = qualityResult.allowed;
 
   // CEO Directive: Monitor Phase 2 stabilization pairing availability
@@ -559,12 +601,14 @@ export async function generateWorkout(options) {
 
   const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
   let selectedExercises = [];
+  const qualityGateReport = [];
 
   for (const moveCat of movementCategories) {
     const catExercises = selectExercises(
       registry, moveCat, exercisesPerCategory,
       context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
-      { trainingStyleMode: trainingStyle.mode, primaryGoal }
+      { trainingStyleMode: trainingStyle.mode, primaryGoal },
+      qualityGateReport
     );
     selectedExercises.push(...catExercises);
   }
@@ -765,6 +809,22 @@ export async function generateWorkout(options) {
       type: 'pain_warning',
       message: `${context.pain.warnings.length} area(s) with moderate pain -- load/ROM modifications recommended`,
       details: context.pain.warnings.map(e => `${e.bodyRegion} (${e.painLevel}/10)`),
+    });
+  }
+
+  // Cortex P0 §5.7: surface WHY exercises were excluded — this audit existed
+  // internally (gate rejected[]) but was dropped from trainer-facing output.
+  if (qualityGateReport.length > 0) {
+    const rejectedCount = qualityGateReport.reduce((sum, r) => sum + r.rejected.length, 0);
+    const safetyCount = qualityGateReport.reduce(
+      (sum, r) => sum + r.rejected.filter(x => x.class === 'safety').length, 0,
+    );
+    explanations.push({
+      type: 'quality_gate',
+      message: `${rejectedCount} exercise(s) excluded during selection${safetyCount > 0 ? ` — ${safetyCount} for safety (pain-excluded or untagged muscles)` : ''}${qualityGateReport.some(r => r.gateStoodDown) ? '; low-impact style gate stood down for one or more categories to avoid an empty pool' : ''}.`,
+      details: qualityGateReport
+        .flatMap(r => r.rejected.map(x => `${r.category}: ${x.key} -- ${x.reason}`))
+        .slice(0, 20),
     });
   }
 

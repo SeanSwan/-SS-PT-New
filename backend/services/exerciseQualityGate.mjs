@@ -9,9 +9,13 @@
  * enter a session when the trainer explicitly asks for an athletic/hardcore
  * style or the client sits in a power phase (NASM 5).
  *
- * Fail-open contract: the gate must NEVER empty a selection pool. If every
- * candidate would be rejected, the caller receives the original pool plus
- * the rejection notes so a trainer can see why the gate stood down.
+ * Rejection classes (Cortex P0 §5.7, 2026-07-12):
+ * - STYLE rejections (high-impact vs low-impact default) keep the fail-open
+ *   contract: the gate must never empty a selection pool; an all-rejected
+ *   pool falls back untouched with `gateStoodDown: true`.
+ * - SAFETY rejections (via `context.safetyRejector`) NEVER stand down. A
+ *   pain-excluded exercise stays excluded even when that empties the pool —
+ *   an empty pool is a safer failure than a contraindicated exercise.
  */
 
 const HIGH_IMPACT_NAME_PATTERN = /\b(jumps?|jumping|hops?|hopping|bounds?|bounding|plyo\w*|sprints?|leaps?|slams?|explosive)\b/i;
@@ -31,29 +35,53 @@ export const allowsHighImpact = ({ nasmPhase, trainingStyleMode, primaryGoal } =
 /**
  * Filter a candidate pool for session quality.
  *
- * @returns {{ allowed: Array, rejected: Array<{key: string, reason: string}>, gateStoodDown: boolean }}
+ * @param {Array} candidates
+ * @param {object} context - { nasmPhase, trainingStyleMode, primaryGoal,
+ *   safetyRejector?: (exercise) => string|null } — safetyRejector returns a
+ *   human-readable reason when the exercise must be excluded for SAFETY.
+ * @returns {{ allowed: Array, rejected: Array<{key: string, reason: string, class: 'safety'|'style'}>, gateStoodDown: boolean }}
  */
 export function applyExerciseQualityGate(candidates = [], context = {}) {
+  const safetyRejector = typeof context.safetyRejector === 'function' ? context.safetyRejector : null;
+  const safetyRejected = [];
+
+  // Safety-class pass runs FIRST and its exclusions are never restored.
+  const safePool = safetyRejector
+    ? candidates.filter((exercise) => {
+      const reason = safetyRejector(exercise);
+      if (reason) {
+        safetyRejected.push({
+          key: exercise?.key || exercise?.name || 'unknown',
+          reason,
+          class: 'safety',
+        });
+        return false;
+      }
+      return true;
+    })
+    : candidates;
+
   if (allowsHighImpact(context)) {
-    return { allowed: candidates, rejected: [], gateStoodDown: false };
+    return { allowed: safePool, rejected: safetyRejected, gateStoodDown: false };
   }
 
-  const rejected = [];
-  const allowed = candidates.filter((exercise) => {
+  const styleRejected = [];
+  const allowed = safePool.filter((exercise) => {
     if (isHighImpactExercise(exercise)) {
-      rejected.push({
+      styleRejected.push({
         key: exercise?.key || exercise?.name || 'unknown',
         reason: 'high-impact move excluded from low-impact strength selection',
+        class: 'style',
       });
       return false;
     }
     return true;
   });
 
-  if (allowed.length === 0 && candidates.length > 0) {
-    // Fail-open: never hand back an empty pool — surface the stand-down.
-    return { allowed: candidates, rejected: [], gateStoodDown: true };
+  if (allowed.length === 0 && safePool.length > 0) {
+    // Fail-open restores ONLY the style rejections — never the safety ones.
+    return { allowed: safePool, rejected: safetyRejected, gateStoodDown: true };
   }
 
-  return { allowed, rejected, gateStoodDown: false };
+  return { allowed, rejected: [...safetyRejected, ...styleRejected], gateStoodDown: false };
 }
