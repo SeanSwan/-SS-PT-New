@@ -26,6 +26,7 @@ const LIVE_FRAGMENTS = [
   'coachCommandOpsMissionStyles',
   'coachCommandCrystallineFocusStyles',
   'coachCommandBridgeMobileDockStyles',
+  'coachCommandPresenceStyles',
 ] as const;
 
 const RETIRED_FILES = [

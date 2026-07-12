@@ -15,6 +15,7 @@ import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
+import { resolveCoachPresenceState } from './coachPresenceState';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
@@ -150,7 +151,10 @@ const CoachCommandCenterPage: React.FC = () => {
   };
 
   return (
-    <CommandBridgeShell ref={commandCenter.shellRef}>
+    <CommandBridgeShell
+      ref={commandCenter.shellRef}
+      data-voice-state={resolveCoachPresenceState(commandCenter)}
+    >
       <div className={`bridge-shell ${activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
@@ -162,6 +166,7 @@ const CoachCommandCenterPage: React.FC = () => {
           onNewConversation={commandCenter.handleNewThread}
           onOpenOps={(event) => commandCenter.openDrawer('right', event)}
         />
+        <div className="coach-presence-line" aria-hidden="true" />
 
         <CoachCommandTabBar
           activeTab={activeTab}
