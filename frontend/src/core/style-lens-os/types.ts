@@ -54,7 +54,12 @@ export type ShellRendererId =
   | 'aurora-index-shell'
   | 'modular-harbor-shell'
   | 'terrain-console-shell'
-  | 'chronograph-board-shell';
+  | 'chronograph-board-shell'
+  | 'glass-rail-shell'
+  | 'meridian-magazine-shell'
+  | 'lunar-stack-shell'
+  | 'cedar-workshop-shell'
+  | 'crystalline-cathedral-shell';
 export type NavigationRendererId =
   | 'default-navigation'
   | 'flagship-navigation'
@@ -77,7 +82,12 @@ export type NavigationRendererId =
   | 'aurora-index-navigation'
   | 'harbor-berth-navigation'
   | 'contour-map-navigation'
-  | 'chrono-dial-navigation';
+  | 'chrono-dial-navigation'
+  | 'glass-spine-navigation'
+  | 'magazine-folio-navigation'
+  | 'lunar-beacon-navigation'
+  | 'workshop-parts-navigation'
+  | 'cathedral-apse-navigation';
 export type ComponentRecipeId =
   | 'default-recipe'
   | 'flagship-recipe'
@@ -100,7 +110,12 @@ export type ComponentRecipeId =
   | 'aurora-index-recipe'
   | 'modular-harbor-recipe'
   | 'terrain-console-recipe'
-  | 'chronograph-board-recipe';
+  | 'chronograph-board-recipe'
+  | 'glass-rail-recipe'
+  | 'meridian-magazine-recipe'
+  | 'lunar-stack-recipe'
+  | 'cedar-workshop-recipe'
+  | 'crystalline-cathedral-recipe';
 
 export interface RendererAllowlist {
   shell: readonly string[];

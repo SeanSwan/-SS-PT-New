@@ -10,4 +10,7 @@ export const PROMOTED_LENSES = [
   ["Carbon Atelier", "carbon-atelier"], ["Kinetic Kanban", "kinetic-kanban"],
   ["Aurora Index", "aurora-index"], ["Modular Harbor", "modular-harbor"],
   ["Terrain Console", "terrain-console"], ["Chronograph Board", "chronograph-board"],
+  ["Glass Rail", "glass-rail"], ["Meridian Magazine", "meridian-magazine"],
+  ["Lunar Stack", "lunar-stack"], ["Cedar Workshop", "cedar-workshop"],
+  ["Crystalline Cathedral", "crystalline-cathedral"],
 ] as const;

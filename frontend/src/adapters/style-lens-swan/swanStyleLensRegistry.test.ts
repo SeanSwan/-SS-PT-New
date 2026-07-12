@@ -32,6 +32,11 @@ const expectedExpansion = [
   ['modular-harbor', 'Modular Harbor'],
   ['terrain-console', 'Terrain Console'],
   ['chronograph-board', 'Chronograph Board'],
+  ['glass-rail', 'Glass Rail'],
+  ['meridian-magazine', 'Meridian Magazine'],
+  ['lunar-stack', 'Lunar Stack'],
+  ['cedar-workshop', 'Cedar Workshop'],
+  ['crystalline-cathedral', 'Crystalline Cathedral'],
 ];
 
 const luminance = (hex: string) => {
@@ -63,13 +68,13 @@ describe('Swan Style Lens adapter', () => {
 
   it('keeps Default and Swan flagship separate from the sentinel gate', () => {
     expect(SWAN_FLAGSHIP_MANIFEST.id).toBe('swan-flagship');
-    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(22);
+    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(27);
     expect(SWAN_STYLE_LENS_REGISTRY.resolve('not-a-lens').id).toBe(
       'default-safety',
     );
   });
 
-  it('publishes expansion batches 6-20 with pairwise structural differentiation', () => {
+  it('publishes expansion batches 6-25 with pairwise structural differentiation', () => {
     expect(SWAN_EXPANSION_MANIFESTS.map(({ id, name }) => [id, name])).toEqual(expectedExpansion);
     const promoted = [...SWAN_SENTINEL_MANIFESTS, ...SWAN_EXPANSION_MANIFESTS];
     const dimensions = ['layoutSignature', 'navigationRenderer', 'shellRenderer'] as const;
@@ -107,7 +112,7 @@ describe('Swan Style Lens adapter', () => {
     );
     expect(new Set(
       Object.values(SWAN_STYLE_LENS_VISUALS).map(({ signatureMoment }) => signatureMoment),
-    ).size).toBe(20);
+    ).size).toBe(25);
     Object.values(SWAN_STYLE_LENS_VISUALS).forEach((visual) => {
       expect(visual.assetTier).toBe('static-css');
       expect(visual.primaryActionMinHeight).toBeGreaterThanOrEqual(44);

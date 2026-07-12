@@ -32,6 +32,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'modular-harbor-shell',
     'terrain-console-shell',
     'chronograph-board-shell',
+    'glass-rail-shell',
+    'meridian-magazine-shell',
+    'lunar-stack-shell',
+    'cedar-workshop-shell',
+    'crystalline-cathedral-shell',
   ]),
   navigation: Object.freeze([
     'default-navigation',
@@ -56,6 +61,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'harbor-berth-navigation',
     'contour-map-navigation',
     'chrono-dial-navigation',
+    'glass-spine-navigation',
+    'magazine-folio-navigation',
+    'lunar-beacon-navigation',
+    'workshop-parts-navigation',
+    'cathedral-apse-navigation',
   ]),
   recipes: Object.freeze([
     'default-recipe',
@@ -80,6 +90,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'modular-harbor-recipe',
     'terrain-console-recipe',
     'chronograph-board-recipe',
+    'glass-rail-recipe',
+    'meridian-magazine-recipe',
+    'lunar-stack-recipe',
+    'cedar-workshop-recipe',
+    'crystalline-cathedral-recipe',
   ]),
 });
 

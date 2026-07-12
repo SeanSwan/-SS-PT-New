@@ -26,6 +26,11 @@ const promotedLensIds = [
   'modular-harbor',
   'terrain-console',
   'chronograph-board',
+  'glass-rail',
+  'meridian-magazine',
+  'lunar-stack',
+  'cedar-workshop',
+  'crystalline-cathedral',
 ];
 
 describe('Swan Style Lens runtime binding', () => {

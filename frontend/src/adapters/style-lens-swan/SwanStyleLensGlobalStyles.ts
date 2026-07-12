@@ -187,6 +187,26 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-sidebar-width: 318px; --lens-main-padding: clamp(18px, 1.9vw, 36px); --lens-panel-radius: 50% 8px 8px 8px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: radial-gradient(circle at 86% 18%, transparent 0 70px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 18%, transparent) 71px 73px, transparent 74px), #1c1a22;
   }
+  :root[data-style-lens='glass-rail'] {
+    --lens-sidebar-width: 196px; --lens-main-padding: clamp(26px, 3vw, 58px); --lens-panel-radius: 24px; --lens-shell-gap: 24px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: linear-gradient(90deg, color-mix(in srgb, var(--frost-white, #e0ecf4) 9%, transparent) 0 2px, transparent 2px 100%), #10243a;
+  }
+  :root[data-style-lens='meridian-magazine'] {
+    --lens-sidebar-width: 272px; --lens-main-padding: clamp(30px, 4vw, 76px); --lens-panel-radius: 2px 22px 2px 2px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: linear-gradient(106deg, #1a1a24 0 38%, color-mix(in srgb, var(--royal-depth, #003080) 35%, #1a1a24) 38% 72%, #1a1a24 72%);
+  }
+  :root[data-style-lens='lunar-stack'] {
+    --lens-sidebar-width: 290px; --lens-main-padding: clamp(20px, 2.3vw, 44px); --lens-panel-radius: 32px 32px 6px 6px; --lens-shell-gap: 10px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: linear-gradient(135deg, transparent 0 28%, color-mix(in srgb, var(--frost-white, #e0ecf4) 7%, transparent) 28% 29%, transparent 29% 58%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 10%, transparent) 58% 59%, transparent 59%), #12182c;
+  }
+  :root[data-style-lens='cedar-workshop'] {
+    --lens-sidebar-width: 332px; --lens-main-padding: clamp(18px, 2vw, 38px); --lens-panel-radius: 10px 3px 10px 3px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: repeating-linear-gradient(0deg, transparent 0 44px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 8%, transparent) 45px 46px), #1d241c;
+  }
+  :root[data-style-lens='crystalline-cathedral'] {
+    --lens-sidebar-width: 300px; --lens-main-padding: clamp(28px, 3.2vw, 64px); --lens-panel-radius: 44px 44px 10px 10px; --lens-shell-gap: 16px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent), transparent 46%), linear-gradient(120deg, #071b3a, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, #071b3a) 55%, #071b3a);
+  }
   :root[data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;
