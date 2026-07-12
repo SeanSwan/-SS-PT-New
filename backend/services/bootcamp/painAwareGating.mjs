@@ -27,21 +27,16 @@ import { Op } from 'sequelize';
 import { getClientPainEntry, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 import { deriveJointFriendlyAlternative } from './classStyleModifiers.mjs';
+import { bootcampTargetsForRegion } from '../training-cortex/ontology/regionMuscleMap.mjs';
 
 // Severity at which flagged Board-1 exercises are swapped, not just annotated.
 const PAIN_SWAP_SEVERITY = 7;
 // Minimum severity worth surfacing to a class board at all.
 const PAIN_FLAG_SEVERITY = 5;
 
-// Bootcamp-local region map (bridging to the shared Cortex ontology map is a
-// Phase 2 consolidation item in the directive — §1.3).
-const REGION_MUSCLE_MAP = {
-  left_knee: ['quadriceps', 'hamstrings'], right_knee: ['quadriceps', 'hamstrings'],
-  lower_back: ['erector_spinae', 'core', 'glutes'], upper_back: ['trapezius', 'rhomboids', 'lats'],
-  left_shoulder: ['shoulders', 'chest'], right_shoulder: ['shoulders', 'chest'],
-  left_hip: ['glutes', 'hip_flexors', 'adductors'], right_hip: ['glutes', 'hip_flexors', 'adductors'],
-  left_ankle: ['calves', 'tibialis'], right_ankle: ['calves', 'tibialis'],
-};
+// Cortex Phase 2C: the bootcamp region->target mapping moved to THE single
+// home (training-cortex/ontology/regionMuscleMap.mjs); vocabulary difference
+// vs the registry map is explicit there.
 
 async function loadRosterClientIds(trainerId) {
   const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
@@ -88,7 +83,7 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
 
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
-      const relatedMuscles = REGION_MUSCLE_MAP[region] || [];
+      const relatedMuscles = bootcampTargetsForRegion(region);
       if (relatedMuscles.length === 0) continue;
       const severity = Math.max(
         ...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel || 0),

@@ -47,6 +47,7 @@ import {
 } from './sessionBillingPolicy.mjs';
 import { buildRecentExercisePerformance } from './workoutProgressionService.mjs';
 import { getCesStrategy } from './training-cortex/policy/nasmCesPolicy.mjs';
+import { registryMusclesForRegion } from './training-cortex/ontology/regionMuscleMap.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -288,59 +289,9 @@ export function buildClientWorkoutSummary(recentWorkouts = []) {
   return workoutSummary;
 }
 
-const REGION_TO_MUSCLE_MAP = {
-  // Head / Neck
-  neck: ['sternocleidomastoid', 'upper_trapezius', 'levator_scapulae'],
-  head: ['sternocleidomastoid'],
-
-  // Shoulders
-  left_shoulder: ['anterior_deltoid', 'medial_deltoid', 'posterior_deltoid', 'rotator_cuff'],
-  right_shoulder: ['anterior_deltoid', 'medial_deltoid', 'posterior_deltoid', 'rotator_cuff'],
-  shoulder: ['anterior_deltoid', 'medial_deltoid', 'posterior_deltoid', 'rotator_cuff'],
-
-  // Arms
-  left_elbow: ['biceps', 'triceps', 'brachialis'],
-  right_elbow: ['biceps', 'triceps', 'brachialis'],
-  left_wrist: ['wrist_flexors', 'wrist_extensors'],
-  right_wrist: ['wrist_flexors', 'wrist_extensors'],
-
-  // Chest / Upper Back
-  chest: ['pectoralis_major', 'pectoralis_minor'],
-  upper_back: ['rhomboids', 'middle_trapezius', 'lower_trapezius'],
-
-  // Spine
-  lower_back: ['erector_spinae', 'multifidus', 'quadratus_lumborum'],
-  mid_back: ['latissimus_dorsi', 'erector_spinae'],
-  thoracic_spine: ['erector_spinae', 'rhomboids'],
-
-  // Core
-  abdominals: ['rectus_abdominis', 'transverse_abdominis', 'internal_oblique', 'external_oblique'],
-  core: ['rectus_abdominis', 'transverse_abdominis', 'internal_oblique', 'external_oblique'],
-
-  // Hip / Pelvis
-  left_hip: ['hip_flexors', 'gluteus_medius', 'gluteus_maximus', 'piriformis', 'adductors'],
-  right_hip: ['hip_flexors', 'gluteus_medius', 'gluteus_maximus', 'piriformis', 'adductors'],
-  hip: ['hip_flexors', 'gluteus_medius', 'gluteus_maximus', 'piriformis', 'adductors'],
-  glutes: ['gluteus_maximus', 'gluteus_medius', 'gluteus_minimus'],
-
-  // Legs
-  left_quad: ['quadriceps', 'vastus_medialis', 'vastus_lateralis', 'rectus_femoris'],
-  right_quad: ['quadriceps', 'vastus_medialis', 'vastus_lateralis', 'rectus_femoris'],
-  left_hamstring: ['hamstrings', 'biceps_femoris', 'semitendinosus'],
-  right_hamstring: ['hamstrings', 'biceps_femoris', 'semitendinosus'],
-  left_knee: ['quadriceps', 'hamstrings', 'popliteus'],
-  right_knee: ['quadriceps', 'hamstrings', 'popliteus'],
-  left_calf: ['gastrocnemius', 'soleus', 'tibialis_anterior'],
-  right_calf: ['gastrocnemius', 'soleus', 'tibialis_anterior'],
-  left_shin: ['tibialis_anterior', 'tibialis_posterior'],
-  right_shin: ['tibialis_anterior', 'tibialis_posterior'],
-
-  // Ankles / Feet
-  left_ankle: ['gastrocnemius', 'soleus', 'peroneals', 'tibialis_anterior'],
-  right_ankle: ['gastrocnemius', 'soleus', 'peroneals', 'tibialis_anterior'],
-  left_foot: ['peroneals', 'tibialis_posterior', 'intrinsic_foot'],
-  right_foot: ['peroneals', 'tibialis_posterior', 'intrinsic_foot'],
-};
+// Cortex Phase 2C: the region->muscle mapping moved to THE single home
+// (training-cortex/ontology/regionMuscleMap.mjs); registryMusclesForRegion()
+// is byte-identical to the table this replaced.
 
 // ── NASM CES Corrective Strategy Map ─────────────────────────────────
 
@@ -716,7 +667,7 @@ export async function getClientContext(clientId, trainerId) {
   let lastPainTouchMs = null;
 
   for (const entry of safePainEntries) {
-    const muscles = REGION_TO_MUSCLE_MAP[entry.bodyRegion] || [];
+    const muscles = registryMusclesForRegion(entry.bodyRegion);
     const isRecent = entry.createdAt >= seventyTwoHoursAgo;
     const severity = entry.painLevel || 0;
     const lastTouched = entry.updatedAt || entry.createdAt;
