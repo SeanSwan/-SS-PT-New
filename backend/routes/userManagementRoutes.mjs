@@ -292,7 +292,8 @@
  * - logger: Winston-based structured logging
  *
  * Testing:
- * - Unit tests: backend/tests/userManagementRoutes.test.mjs
+ * - Unit tests: backend/tests/api/userManagementClientSourceBoundary.test.mjs
+ *   + backend/tests/api/promoteRoleCanonicalSurface.test.mjs
  * - Test cases:
  *   - ✅ GET /users without token → 401 Unauthorized
  *   - ✅ GET /users as non-admin → 403 Forbidden
