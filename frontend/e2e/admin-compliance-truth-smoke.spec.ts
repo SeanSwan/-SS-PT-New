@@ -13,7 +13,9 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
-  await page.getByText(/Access Deep Telemetry/i).click();
+  // The compliance widget is a directly-visible overview section now — the
+  // old "Access Deep Telemetry" reveal button no longer exists
+  // (AdminOverviewPanel renders ClientComplianceDashboard unconditionally).
 
   await expect(page.getByText(/Compliance data could not be loaded\./i)).toBeVisible();
   await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();

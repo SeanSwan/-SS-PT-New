@@ -70,7 +70,10 @@ async function openDashboard(page: Page) {
   });
   await expect(
     page.getByRole("heading", {
-      name: /Worlds × 25 Styles. One session./,
+      // Count interpolated from the promoted-lens roster: the page heading
+      // renders the live catalog length, so a hard-coded "25" would silently
+      // go stale the day a lens is added.
+      name: new RegExp(`Worlds × ${PROMOTED_LENSES.length} Styles\\. One session\\.`),
     }),
   ).toBeVisible({ timeout: 20_000 });
   await expect(
