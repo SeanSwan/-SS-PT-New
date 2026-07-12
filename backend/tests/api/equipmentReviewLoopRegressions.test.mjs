@@ -145,5 +145,8 @@ describe('R4 — scan route duplicate hardening (source contract)', () => {
     );
     expect(scanCatch).toMatch(/SequelizeUniqueConstraintError/);
     expect(scanCatch).toMatch(/409/);
+    // Concurrent opposite-order scans can deadlock on the unique index —
+    // PG 40P01 is a clean retry, not a server failure.
+    expect(scanCatch).toMatch(/40P01/);
   });
 });
