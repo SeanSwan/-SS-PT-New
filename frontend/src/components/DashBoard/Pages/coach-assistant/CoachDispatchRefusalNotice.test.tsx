@@ -44,3 +44,17 @@ describe('CoachDispatchRefusalNotice', () => {
     expect(container.firstChild).toBeNull();
   });
 });
+
+it('renders safely when a refusal payload omits alternatives (shape hardening)', () => {
+  const { container } = render(
+    <CoachDispatchRefusalNotice
+      refusals={[{
+        event: 'AI_ADD_EXERCISE',
+        exerciseName: 'Mystery Move',
+        code: 'SAFETY_REVIEW_REQUIRED',
+        reason: 'safety review pending',
+      } as never]}
+    />,
+  );
+  expect(container.textContent).toContain('Held for safety');
+});

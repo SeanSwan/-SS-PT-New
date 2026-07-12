@@ -1,6 +1,14 @@
 import type { SwanCoachPlanningFingerprint } from '../../../../../services/aiWorkoutService';
 
 const SIGNAL_LABELS: Record<string, string> = {
+  // Cortex P0 blocking-tier signal names (2026-07-12)
+  pain_data_unavailable: 'Pain data could not be loaded',
+  pain_exclusions_active: 'Active pain auto-excluded muscle groups',
+  active_pain_review_required: 'Active pain reported — review required',
+  pain_intake_not_collected: 'Pain intake never collected',
+  minor_active_pain_noted: 'Minor active pain noted',
+  stale_active_pain_reassessment_due: 'Active pain report is stale — reassessment due',
+  // Retained legacy/advisory names still emitted elsewhere
   missing_pain_or_injury_context: 'Missing pain or injury context',
   missing_baseline_or_readiness_context: 'Missing baseline or readiness context',
   low_training_history: 'Limited recent workout history',

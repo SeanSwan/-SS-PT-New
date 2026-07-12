@@ -72,7 +72,17 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     const painWhere = { isActive: true, painLevel: { [Op.gte]: PAIN_FLAG_SEVERITY } };
     let aggregationScope;
     if (Array.isArray(rosterClientIds)) {
-      if (rosterClientIds.length === 0) return painAlerts;
+      if (rosterClientIds.length === 0) {
+        // Fail-VISIBLE: an empty active roster means drop-ins, pending
+        // assignments, and other trainers' clients are invisible to this
+        // gate — the trainer must know the check ran against nobody, not
+        // read the absence of annotations as "no pain in the room".
+        explanations.push({
+          type: 'pain_gate_roster_empty',
+          message: 'Pain-aware gating found no ACTIVE client assignments for this trainer — the class was not checked against any participant\'s pain report. Review Board 1 manually if drop-ins or unassigned clients are attending.',
+        });
+        return painAlerts;
+      }
       painWhere.userId = { [Op.in]: rosterClientIds };
       aggregationScope = `across ${rosterClientIds.length} active client(s)`;
     } else {
@@ -108,6 +118,16 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         // exercises to a joint-friendly alternative in place (station
         // structure and timing preserved); no alternative → loud CAUTION mark.
         for (const ex of flagged) {
+          // Already routed for an earlier region: the muscleTargets that
+          // matched here belong to the ORIGINAL exercise, so a re-derived
+          // swap would overwrite painSwap.from with the first alternative's
+          // name (audit-trail corruption). Keep the original swap and add a
+          // loud caution for this region instead.
+          if (ex.painSwap) {
+            ex.painCaution = { region, severity };
+            cautionExercises.push(ex.exerciseName);
+            continue;
+          }
           const alternative = deriveJointFriendlyAlternative(ex, region);
           if (alternative && alternative !== ex.exerciseName) {
             ex.painSwap = { from: ex.exerciseName, region, severity };

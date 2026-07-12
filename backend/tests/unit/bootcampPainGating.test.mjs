@@ -144,3 +144,48 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     expect(explanations[0].message).toMatch(/roster unavailable/i);
   });
 });
+
+describe('LOW-sweep repairs (review-queue 2026-07-12)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getModel.mockReturnValue({ findAll: mocks.assignmentFindAll });
+    mocks.painFindAll.mockResolvedValue([]);
+  });
+
+  it('an EMPTY active roster is fail-visible, not a silent no-gate', async () => {
+    // Drop-ins, pending assignments, and other trainers' clients are invisible
+    // to the gate; a class can render with zero pain annotations. The trainer
+    // must be told the check ran against an empty roster.
+    mocks.assignmentFindAll.mockResolvedValue([]);
+    const explanations = [];
+
+    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+
+    expect(alerts).toEqual([]);
+    expect(mocks.painFindAll).not.toHaveBeenCalled();
+    expect(explanations).toEqual([
+      expect.objectContaining({ type: 'pain_gate_roster_empty' }),
+    ]);
+  });
+
+  it('a second severe region never re-swaps an already-swapped exercise (audit trail stays truthful)', async () => {
+    // The swapped exercise keeps its ORIGINAL muscleTargets, so a second
+    // region iteration could re-flag it and overwrite painSwap.from with the
+    // FIRST ALTERNATIVE's name. It must keep the original from-name and get a
+    // caution for the second region instead.
+    mocks.assignmentFindAll.mockResolvedValue([{ clientId: 101 }]);
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_knee', side: 'left', painLevel: 8, painType: 'sharp', userId: 101 },
+      { bodyRegion: 'left_hip', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+    ]);
+    // Hits knee (quads) AND hip (glutes); each region derives a DIFFERENT
+    // alternative, so the second severe region would re-swap pre-fix.
+    const ex = mainExercise({ muscleTargets: 'Quadriceps, Glutes', hipMod: 'Glute Bridge March' });
+    const explanations = [];
+
+    await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations });
+
+    expect(ex.painSwap.from).toBe('Jump Squat'); // never the first alternative's name
+    expect(ex.painCaution).toEqual(expect.objectContaining({ region: expect.any(String) }));
+  });
+});
