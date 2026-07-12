@@ -226,11 +226,24 @@ export const useWorkoutPlannerGenerationActions = ({
     }
   }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
-  const onAcknowledged = useCallback(async (review: SafetyGateReviewState, reason: string) => {
+  const onAcknowledged = useCallback(async (
+    review: SafetyGateReviewState,
+    reason: string,
+  ): Promise<SafetyGateReviewState | null> => {
     const ack: PlanningReviewAck = { planningReviewAcknowledged: true, planningReviewReason: reason };
-    if (review.mode === 'workout') await postWorkoutGeneration(review.clientId, ack);
-    else await postPlanGeneration(review.clientId, ack);
-  }, [postWorkoutGeneration, postPlanGeneration]);
+    const reblocked = review.mode === 'workout'
+      ? await postWorkoutGeneration(review.clientId, ack)
+      : await postPlanGeneration(review.clientId, ack);
+    if (!reblocked) return null;
+    // The acknowledged retry was 409'd AGAIN (gate state changed between
+    // attempts, or a second gate shares the contract). Never close silently —
+    // surface it and hand the fresh review state back so the modal stays open.
+    setStatusMsg({
+      type: 'error',
+      text: 'The safety review is still required — the gate held the acknowledged retry. Review the updated items and try again.',
+    });
+    return { mode: review.mode, clientId: review.clientId, ...reblocked };
+  }, [postWorkoutGeneration, postPlanGeneration, setStatusMsg]);
 
   const {
     safetyGateReview,

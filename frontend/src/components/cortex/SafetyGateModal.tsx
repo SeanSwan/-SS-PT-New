@@ -59,6 +59,7 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
   const [reason, setReason] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
   const reasonRef = useRef<HTMLTextAreaElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const reducedMotion = useReducedMotion();
 
   const items = useMemo(() => {
@@ -71,10 +72,19 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
 
   useEffect(() => {
     if (open) {
+      // Remember the trigger (usually the Generate button) so keyboard/SR
+      // users return there on close instead of dropping to <body> (WCAG 2.4.3).
+      returnFocusRef.current = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
       setReason('');
       // Focus lands on the reason field — the required next step.
       const id = window.setTimeout(() => reasonRef.current?.focus(), 50);
-      return () => window.clearTimeout(id);
+      return () => {
+        window.clearTimeout(id);
+        returnFocusRef.current?.focus();
+        returnFocusRef.current = null;
+      };
     }
     return undefined;
   }, [open]);
@@ -82,13 +92,15 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.stopPropagation();
-      onCancel();
+      // While the acknowledged retry is in flight, dismissal would hide a
+      // running generation with no in-flight indicator — hold the dialog.
+      if (!confirming) onCancel();
       return;
     }
     if (event.key !== 'Tab' || !cardRef.current) return;
     // Minimal focus trap: keep Tab cycling inside the dialog.
     const focusables = cardRef.current.querySelectorAll<HTMLElement>(
-      'textarea, button:not([disabled])',
+      'textarea:not([disabled]), button:not([disabled])',
     );
     if (focusables.length === 0) return;
     const first = focusables[0];
@@ -100,7 +112,7 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
       event.preventDefault();
       first.focus();
     }
-  }, [onCancel]);
+  }, [confirming, onCancel]);
 
   const trimmedReason = reason.trim();
 
@@ -112,7 +124,7 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reducedMotion ? 0 : 0.2 }}
-          onClick={onCancel}
+          onClick={confirming ? undefined : onCancel}
           data-testid="safety-gate-overlay"
         >
           <GateCard
