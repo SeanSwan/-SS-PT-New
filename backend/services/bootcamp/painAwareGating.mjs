@@ -136,7 +136,9 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
           // name (audit-trail corruption). Keep the original swap and add a
           // loud caution for this region instead.
           if (ex.painSwap) {
-            ex.painCaution = { region, severity };
+            // Keep the FIRST region's caution if one exists (no last-writer-
+            // wins overwrite); the alert list still names this exercise.
+            if (!ex.painCaution) ex.painCaution = { region, severity };
             cautionExercises.push(ex.exerciseName);
             continue;
           }
@@ -146,7 +148,7 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
             ex.exerciseName = alternative;
             swappedExercises.push(alternative);
           } else {
-            ex.painCaution = { region, severity };
+            if (!ex.painCaution) ex.painCaution = { region, severity };
             cautionExercises.push(ex.exerciseName);
           }
         }

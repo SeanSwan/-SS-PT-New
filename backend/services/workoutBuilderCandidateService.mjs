@@ -210,8 +210,12 @@ const SAFETY_HOLD_INSTRUCTION = 'This client’s pain/safety data could not be l
  * critical data failed) — unknown never passes as "no pain" (fail-closed,
  * same doctrine as the builder gate and the chat dispatch gate).
  */
+const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
+
 function resolveCandidatePainExclusions(clientContext = {}) {
-  if (clientContext?.pain?.status === 'unavailable' || clientContext?.criticalDataUnavailable) {
+  // Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED pain source
+  // state (unavailable, future 'stale', missing) fails CLOSED.
+  if (!KNOWN_PAIN_STATES.includes(clientContext?.pain?.status) || clientContext?.criticalDataUnavailable) {
     return null;
   }
   const excluded = clientContext?.pain?.excludedMuscles

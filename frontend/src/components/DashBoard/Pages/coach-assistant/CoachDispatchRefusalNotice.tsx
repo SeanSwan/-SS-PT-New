@@ -80,7 +80,7 @@ const CoachDispatchRefusalNotice: React.FC<CoachDispatchRefusalNoticeProps> = ({
   return (
     <>
       {refusals.map((refusal, index) => (
-        <NoticeCard key={`${refusal.code}-${refusal.exerciseName ?? index}`} role="note">
+        <NoticeCard key={`${index}-${refusal.code}-${refusal.exerciseName ?? ''}`} role="note">
           <NoticeHeader>
             <ShieldCheck size={16} aria-hidden="true" />
             Held for safety
@@ -92,8 +92,8 @@ const CoachDispatchRefusalNotice: React.FC<CoachDispatchRefusalNoticeProps> = ({
                 Good swaps instead:
               </NoticeBody>
               <AlternativeRow>
-                {(refusal.alternatives ?? []).map(name => (
-                  <AlternativeChip key={name}>{name}</AlternativeChip>
+                {(refusal.alternatives ?? []).map((name, altIndex) => (
+                  <AlternativeChip key={`${altIndex}-${name}`}>{name}</AlternativeChip>
                 ))}
               </AlternativeRow>
             </>

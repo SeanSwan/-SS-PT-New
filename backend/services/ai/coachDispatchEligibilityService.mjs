@@ -114,7 +114,10 @@ export async function filterEligibleFrontendActions({
   }
   try {
     const context = await loadClientContext(targetUserId, requestingUserId);
-    if (context?.pain?.status === 'unavailable' || context?.criticalDataUnavailable) {
+    const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
+    if (!KNOWN_PAIN_STATES.includes(context?.pain?.status) || context?.criticalDataUnavailable) {
+      // Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED source
+      // state (unavailable, future 'stale', missing) fails CLOSED.
       excludedMuscles = null;
     } else {
       excludedMuscles = context?.pain?.excludedMuscles
@@ -176,7 +179,11 @@ export async function filterEligibleFrontendActions({
         exerciseName,
         code: 'PAIN_EXCLUDED',
         reason: verdict.reason,
-        alternatives: suggestAlternatives(resolved, registry, excludedMuscles),
+        // No alternative chips while the gate blocks — re-proposing one would
+        // just be refused with SAFETY_REVIEW_REQUIRED (confusing loop).
+        alternatives: blockingGateSignals !== null
+          ? []
+          : suggestAlternatives(resolved, registry, excludedMuscles),
       });
       continue;
     }

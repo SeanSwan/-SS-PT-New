@@ -461,7 +461,10 @@ export const promoteToClient = async (req, res) => {
       }
     });
   } catch (error) {
-    await transaction.rollback();
+    // Guard: anything throwing AFTER commit (e.g. response serialization on a
+    // destroyed socket) must not trigger rollback-on-finished, which rejects
+    // and escapes as an unhandled rejection.
+    if (!transaction.finished) await transaction.rollback();
     logUserManagementControllerError('Error promoting user to client', error);
     res.status(500).json({
       success: false,
@@ -546,7 +549,10 @@ export const promoteToAdmin = async (req, res) => {
       }
     });
   } catch (error) {
-    await transaction.rollback();
+    // Guard: anything throwing AFTER commit (e.g. response serialization on a
+    // destroyed socket) must not trigger rollback-on-finished, which rejects
+    // and escapes as an unhandled rejection.
+    if (!transaction.finished) await transaction.rollback();
     logUserManagementControllerError('Error promoting user to admin', error);
     res.status(500).json({
       success: false,
@@ -666,7 +672,10 @@ export const updateUser = async (req, res) => {
       }
     });
   } catch (error) {
-    await transaction.rollback();
+    // Guard: anything throwing AFTER commit (e.g. response serialization on a
+    // destroyed socket) must not trigger rollback-on-finished, which rejects
+    // and escapes as an unhandled rejection.
+    if (!transaction.finished) await transaction.rollback();
     logUserManagementControllerError('Error updating user', error);
     res.status(500).json({
       success: false,
