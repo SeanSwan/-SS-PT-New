@@ -120,6 +120,7 @@ router.post('/purchase', protect, async (req, res) => {
       where: {
         id: normalizedPackageId,
         isActive: true,
+        isSpecialOffer: false,
       },
     });
 
@@ -130,34 +131,14 @@ router.post('/purchase', protect, async (req, res) => {
       });
     }
 
-    // HR-007-F4: a hidden per-client special can be purchased ONLY by the
-    // client it belongs to. Confirm ownership + active/unexpired/redeemable
-    // before this route lets anyone check it out.
-    let isOwnedSpecial = false;
-    if (selectedPackage.isSpecialOffer) {
-      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
-      const { assertClientOwnsActiveSpecial, findSpecialByStorefrontItemId, SpecialOfferError } =
-        await import('../services/specialOfferService.mjs');
-      try {
-        const special = await findSpecialByStorefrontItemId(selectedPackage.id, { CustomPackage });
-        assertClientOwnsActiveSpecial({ customPackage: special, userId: req.user.id });
-        isOwnedSpecial = true;
-      } catch (e) {
-        if (e instanceof SpecialOfferError) {
-          return res.status(e.status || 403).json({ success: false, message: e.message, code: e.code });
-        }
-        throw e;
-      }
-    }
 
-    if (!isOwnedSpecial && !(await isPriceAccessGranted(req.user))) {
+    if (!(await isPriceAccessGranted(req.user))) {
       return res.status(403).json({
         success: false,
         message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
         code: 'PRICE_ACCESS_REQUIRED'
       });
     }
-
     const packageSessions = getStorefrontSessionCredits(selectedPackage);
     const packagePrice = getStorefrontPackagePrice(selectedPackage);
 
@@ -175,8 +156,8 @@ router.post('/purchase', protect, async (req, res) => {
       {
         packageId: normalizedPackageId,
         sessions: packageSessions,
-        price: packagePrice
-      }
+        price: packagePrice,
+      },
     );
     
     // Create the Stripe checkout session
@@ -203,8 +184,7 @@ router.post('/purchase', protect, async (req, res) => {
       metadata: {
         source: SESSION_PACKAGE_CHECKOUT_SOURCE,
         packageId: String(normalizedPackageId),
-        sessions: String(packageSessions),
-        ...(selectedPackage.isSpecialOffer ? { specialOfferId: String(selectedPackage.id) } : {})
+        sessions: String(packageSessions)
       }
     }, {
       idempotencyKey
@@ -263,6 +243,10 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     try {
       // Check if this is a session package purchase
       if (isSessionPackageCheckoutSession(session)) {
+        if (session.payment_status !== 'paid') {
+          logger.warn('Ignoring session-package completion without paid status.');
+          return res.send();
+        }
         await fulfillSessionPackageCheckoutSession(session);
       }
     } catch (error) {

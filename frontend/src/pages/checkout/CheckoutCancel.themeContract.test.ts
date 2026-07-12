@@ -25,3 +25,11 @@ describe('CheckoutCancel theme contract', () => {
     expect(source).toContain('calculateCheckoutTotals');
   });
 });
+
+describe('CheckoutCancel cart recovery contract', () => {
+  it('releases the Stripe session server-side and refreshes the preserved cart', () => {
+    expect(source).toContain("apiService.post('/api/cart/cancel-checkout', { sessionId })");
+    expect(source).toContain('await fetchCart()');
+    expect(source).toContain('releaseStartedRef');
+  });
+});

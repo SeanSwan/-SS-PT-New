@@ -78,6 +78,12 @@ function normalizeCheckoutSessionId(session) {
 }
 
 export async function fulfillSessionPackageCheckoutSession(session) {
+  if (session?.payment_status !== 'paid') {
+    throw new SessionPackageFulfillmentError('Stripe has not confirmed payment for this session.', {
+      statusCode: 409,
+      code: 'SESSION_PACKAGE_PAYMENT_NOT_PAID',
+    });
+  }
   const sessionId = normalizeCheckoutSessionId(session);
   const userId = parsePositiveInteger(
     session?.client_reference_id,

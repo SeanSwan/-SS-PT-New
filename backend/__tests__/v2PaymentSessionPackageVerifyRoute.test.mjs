@@ -28,7 +28,7 @@ vi.mock('stripe', () => ({
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
     req.user = {
-      id: Number(req.get('x-test-user-id') || 3),
+      id: String(req.get('x-test-user-id') || 3),
       role: req.get('x-test-role') || 'client',
     };
     next();

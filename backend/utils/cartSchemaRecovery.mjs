@@ -59,6 +59,12 @@ export function normalizeAuthenticatedUserId(userId) {
 /**
  * Detect recoverable cart-related schema/type drift errors from Sequelize/PG.
  */
+function isActiveCartUniqueConflict(error) {
+  const code = error?.parent?.code || error?.original?.code || error?.code;
+  const constraint = error?.parent?.constraint || error?.original?.constraint || error?.constraint;
+  return code === '23505' && constraint === 'shopping_carts_one_open_per_user';
+}
+
 function isRecoverableCartDbError(error) {
   if (!error) return false;
 
@@ -231,14 +237,30 @@ async function findOrCreateActiveCartRaw(sequelize, userId) {
     }, false];
   }
 
-  const [insertedRows] = await sequelize.query(`
-    INSERT INTO shopping_carts (${userColumn}, status, "createdAt", "updatedAt")
-    VALUES (${isUuidColumn ? ':userUuid' : ':userId'}, 'active', NOW(), NOW())
-    RETURNING id, status;
-  `, {
-    replacements: { userId, userUuid }
-  });
+  let insertedRows;
+  try {
+    [insertedRows] = await sequelize.query(`
+      INSERT INTO shopping_carts (${userColumn}, status, "createdAt", "updatedAt")
+      VALUES (${isUuidColumn ? ':userUuid' : ':userId'}, 'active', NOW(), NOW())
+      RETURNING id, status;
+    `, {
+      replacements: { userId, userUuid }
+    });
+  } catch (error) {
+    if (!isActiveCartUniqueConflict(error)) throw error;
 
+    const [winningRows] = await sequelize.query(`
+      SELECT id, status
+      FROM shopping_carts
+      WHERE (${userColumn})::text = :userLookupValue
+        AND status IN ('active', 'pending_payment')
+      ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, id DESC
+      LIMIT 1;
+    `, { replacements: { userLookupValue } });
+    const winner = winningRows?.[0];
+    if (!winner?.id) throw error;
+    return [{ id: winner.id, status: winner.status || 'active', userId }, false];
+  }
   const inserted = insertedRows?.[0];
   if (!inserted?.id) {
     throw new Error('Failed to create fallback active shopping cart');
@@ -422,6 +444,14 @@ export async function safeFindOrCreateActiveCart(ShoppingCart, userId, logger = 
       fields: ['userId', 'status']
     });
   } catch (error) {
+    if (isActiveCartUniqueConflict(error)) {
+      const winningCart = await ShoppingCart.findOne({
+        where: { userId: normalizedUserId, status: ['active', 'pending_payment'] },
+        attributes: ['id', 'status', 'userId'],
+      });
+      if (winningCart) return [winningCart, false];
+    }
+
     if (!isRecoverableCartSchemaError(error)) {
       throw error;
     }

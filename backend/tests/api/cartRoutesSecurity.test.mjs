@@ -96,7 +96,7 @@ describe('cart routes security hardening', () => {
 
     expect(webhookRoute).toContain('const normalizedCartId = parsePositiveInteger(cartId);');
     expect(webhookRoute).toContain('const normalizedUserId = parsePositiveInteger(userId);');
-    expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook')");
+    expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', { checkoutSessionId: session.id })");
     expect(webhookRoute).not.toContain('parseInt(cartId)');
     expect(webhookRoute).not.toContain('parseInt(userId)');
   });

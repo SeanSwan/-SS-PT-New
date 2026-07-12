@@ -14,6 +14,7 @@
  */
 
 import express from 'express';
+import { Op } from 'sequelize';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
@@ -245,6 +246,10 @@ router.get('/my', protect, async (req, res) => {
       where: {
         clientId: req.user.id,
         status: 'active',
+        [Op.and]: [
+          { [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }] },
+          { [Op.or]: [{ remainingRedemptions: null }, { remainingRedemptions: { [Op.gt]: 0 } }] },
+        ],
       },
       order: [['createdAt', 'DESC']],
     });
@@ -281,11 +286,25 @@ router.patch('/:id', protect, adminOnly, async (req, res) => {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
 
+    assertValidityRules({
+      validityType: pkg.validityType,
+      expiresAt: Object.prototype.hasOwnProperty.call(updates, 'expiresAt')
+        ? updates.expiresAt
+        : pkg.expiresAt,
+    });
+
     await pkg.update(updates);
     res.json({ success: true, package: pkg });
   } catch (error) {
     logger.error('Error updating custom package:', error);
-    res.status(500).json({ success: false, message: 'Failed to update custom package' });
+    if (error instanceof SpecialOfferError) {
+      return res.status(error.status || 400).json({
+        success: false,
+        message: error.message,
+        code: error.code,
+      });
+    }
+    return res.status(500).json({ success: false, message: 'Failed to update custom package' });
   }
 });
 

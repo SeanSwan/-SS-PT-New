@@ -4,7 +4,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
-// 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
+// ðŸš€ ENHANCED P0 FIX: Coordinated model imports with associations
 import { 
   getShoppingCart,
   getCartItem, 
@@ -13,7 +13,7 @@ import {
   getUser
 } from '../models/index.mjs';
 
-// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// ðŸŽ¯ ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
 // Models will be retrieved via getter functions inside each route handler when needed
 
 import Stripe from 'stripe';
@@ -240,7 +240,7 @@ const checkUserRoleUpgrade = async (user, cartItems) => {
     });
     
     if (hasTrainingPackages) {
-      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
+      const User = getUser(); // ðŸŽ¯ ENHANCED: Lazy load User model
       await User.update({ role: 'client' }, { where: { id: user.id } });
       logger.info('[Cart] User role upgraded after training package detection', {
         userId: user.id
@@ -277,13 +277,13 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, ensureNumericCartUser, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     const ProductVariant = getOptionalProductVariant();
     
-    // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
+    // ðŸš€ ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
     logger.debug('[Cart] Storefront association status', {
       hasStorefrontAssociation: hasAssociation
@@ -340,7 +340,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
  */
 router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -374,7 +374,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
-    // Resolve the item FIRST — we need to know whether it's the client's own
+    // Resolve the item FIRST â€” we need to know whether it's the client's own
     // per-client special before applying the invitation gate below.
     const snapshot = await resolveCartItemSnapshot({
       StorefrontItem,
@@ -414,7 +414,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       }
     }
 
-    // Launch P1-1: store purchasing is invitation-only — requires the
+    // Launch P1-1: store purchasing is invitation-only â€” requires the
     // admin-granted store-prices flag (admins always pass). EXCEPTION: a
     // client's OWN active special is itself the invitation (its price is shown
     // to them on the store), so it bypasses the global flag requirement.
@@ -434,6 +434,13 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
 
     // Find or create the user's active cart with schema-drift recovery.
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
+    if (cart.status !== 'active') {
+      return res.status(409).json({
+        success: false,
+        message: 'Checkout is already in progress for this cart.',
+        code: 'CART_CHECKOUT_IN_PROGRESS',
+      });
+    }
 
     // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
@@ -548,7 +555,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
  */
 router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -672,7 +679,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
  */
 router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -763,7 +770,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
  */
 router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     
@@ -838,6 +845,83 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
 });
 
 /**
+ * Release a user-cancelled Stripe Checkout session back to an editable cart.
+ * The Stripe session, JWT user, cart metadata, and current pending cart must all
+ * agree before state is reopened.
+ */
+router.post('/cancel-checkout', protect, ensureNumericCartUser, async (req, res) => {
+  if (!stripeClient) {
+    return res.status(503).json({ success: false, message: 'Payment processing is not configured.' });
+  }
+
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : '';
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+    return res.status(400).json({ success: false, message: 'Valid checkout session ID is required.' });
+  }
+
+  try {
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+    const normalizedCartId = parsePositiveInteger(session.metadata?.cartId);
+    const normalizedSessionUserId = parsePositiveInteger(session.metadata?.userId);
+
+    if (!normalizedCartId || normalizedSessionUserId !== req.authUserId) {
+      return res.status(404).json({ success: false, message: 'Checkout session not found.' });
+    }
+    if (session.payment_status === 'paid' || session.status === 'complete') {
+      return res.status(409).json({ success: false, message: 'A completed checkout cannot be cancelled.' });
+    }
+
+    if (session.status === 'open') {
+      await stripeClient.checkout.sessions.expire(sessionId);
+    } else if (session.status !== 'expired') {
+      return res.status(409).json({ success: false, message: 'Checkout session cannot be released.' });
+    }
+
+    const ShoppingCart = getShoppingCart();
+    const [updated] = await ShoppingCart.update(
+      {
+        status: 'active',
+        paymentStatus: 'cancelled',
+        checkoutSessionExpired: true,
+        checkoutSessionId: null,
+        paymentIntentId: null,
+      },
+      {
+        where: {
+          id: normalizedCartId,
+          userId: req.authUserId,
+          status: 'pending_payment',
+          checkoutSessionId: sessionId,
+        },
+      },
+    );
+
+    if (updated !== 1) {
+      const currentCart = await ShoppingCart.findOne({
+        where: { id: normalizedCartId, userId: req.authUserId },
+        attributes: ['id', 'status', 'checkoutSessionId'],
+      });
+      if (currentCart?.status === 'active' && !currentCart.checkoutSessionId) {
+        return res.json({
+          success: true,
+          cartId: normalizedCartId,
+          status: 'active',
+          alreadyReleased: true,
+        });
+      }
+      return res.status(409).json({
+        success: false,
+        message: 'This checkout is no longer the active pending session.',
+      });
+    }
+
+    return res.json({ success: true, cartId: normalizedCartId, status: 'active' });
+  } catch (error) {
+    logCartError('[Cart] Failed to cancel checkout session', error, req);
+    return sendInternalError(res, 'Failed to cancel checkout session');
+  }
+});
+/**
  * Webhook handler for Stripe events
  * POST /api/cart/webhook
  * Processes async events from Stripe (payment confirmations, etc.)
@@ -892,7 +976,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
             // Grant sessions via shared service (transaction + row lock + atomic increment)
             // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
-            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook');
+            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', { checkoutSessionId: session.id });
 
             if (result.granted) {
               logger.info('[Webhook] Sessions granted for cart', {
