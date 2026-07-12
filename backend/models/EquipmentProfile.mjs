@@ -80,7 +80,11 @@ EquipmentProfile.init({
   paranoid: false,
   indexes: [
     { fields: ['trainerId'], name: 'idx_equipment_profile_trainer' },
-    { fields: ['trainerId', 'name'], unique: true, name: 'idx_equipment_profile_trainer_name' },
+    // Partial + case-insensitive: only ACTIVE profiles are unique per trainer
+    // on ("trainerId", lower("name")) — archived (soft-deleted) profile names
+    // must be re-creatable. Managed by migration 20260712010000; expressed via
+    // fn for documentation — the migration owns the schema.
+    { fields: ['trainerId', sequelize.fn('lower', sequelize.col('name'))], unique: true, where: { isActive: true }, name: 'idx_equipment_profile_trainer_lower_name_active' },
     { fields: ['isActive'], name: 'idx_equipment_profile_active' },
     { fields: ['locationType'], name: 'idx_equipment_profile_type' },
   ],
