@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { contactLimiter } from '../../middleware/rateLimiter.mjs';
+import { contactLimiter, orientationLimiter } from '../../middleware/rateLimiter.mjs';
 
 /**
  * POST /api/contact is PUBLIC and the storefront "Ask About Pricing" button
@@ -54,5 +54,28 @@ describe('public contact/inquiry rate limiting', () => {
     expect(limiterSource).toContain('export const contactLimiter');
     // waiver = 10/15min; contact costs money per submission, so it is tighter
     expect(limiterSource).toMatch(/contactLimiter = rateLimit\(\{[\s\S]*?max: 5,/);
+  });
+});
+
+describe('public orientation/consultation rate limiting', () => {
+  it('throttles a flood of consultation submissions', async () => {
+    const app = express();
+    app.use(express.json());
+    app.post('/api/orientation/submit', orientationLimiter, (_req, res) => res.status(200).json({ ok: true }));
+    const agent = request(app);
+
+    for (let i = 0; i < 5; i += 1) {
+      const ok = await agent.post('/api/orientation/submit').send({ fullName: 'A' });
+      expect(ok.status, `request ${i + 1} should be allowed`).toBe(200);
+    }
+    const blocked = await agent.post('/api/orientation/submit').send({ fullName: 'A' });
+    expect(blocked.status).toBe(429);
+    expect(String(blocked.body.error)).toMatch(/too many consultation requests/i);
+  });
+
+  it('mounts the limiter on the public submit route', () => {
+    const orientationSource = readFileSync(resolve(__dirname, '../../routes/orientationRoutes.mjs'), 'utf8');
+    expect(orientationSource).toContain("import { orientationLimiter } from '../middleware/rateLimiter.mjs'");
+    expect(orientationSource).toMatch(/router\.post\(\s*'\/submit',[\s\S]*?orientationLimiter,/);
   });
 });
