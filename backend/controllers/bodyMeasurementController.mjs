@@ -4,7 +4,21 @@ import { calculateComparisons } from '../services/measurementComparisonService.m
 import { detectMilestones } from '../services/measurementMilestoneService.mjs';
 import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import { signPhotoUrls, stripPhotoSignatures } from '../services/photoUrlSigner.mjs';
 import { Op } from 'sequelize';
+
+/**
+ * Response presenter: measurement photo paths go out SIGNED (short-TTL HMAC)
+ * because the public serve-photo proxy refuses bare `measurements` URLs —
+ * body/health photos must not be permanently fetchable from a leaked link.
+ * The DB keeps bare paths; writes strip signatures (stripPhotoSignatures).
+ */
+const presentMeasurement = (measurement) => {
+  if (!measurement) return measurement;
+  const plain = typeof measurement.toJSON === 'function' ? measurement.toJSON() : { ...measurement };
+  if (Array.isArray(plain.photoUrls)) plain.photoUrls = signPhotoUrls(plain.photoUrls);
+  return plain;
+};
 
 const INTERNAL_ERROR = 'Internal server error';
 const safeError = () => INTERNAL_ERROR;
@@ -128,7 +142,8 @@ export async function createMeasurement(req, res) {
       leftCalf,
       notes,
       measurementMethod: measurementMethod || 'manual_tape',
-      photoUrls: photoUrls || [],
+      // Bare paths only in storage — a persisted signed URL would expire.
+      photoUrls: stripPhotoSignatures(photoUrls || []),
       isVerified: req.user.role === 'admin' || req.user.role === 'trainer'
     }, { transaction });
 
@@ -179,7 +194,7 @@ export async function createMeasurement(req, res) {
     res.status(201).json({
       success: true,
       data: {
-        measurement,
+        measurement: presentMeasurement(measurement),
         milestones,
         comparisonSummary: {
           hasProgress: comparisonResult.hasProgress,
@@ -247,7 +262,7 @@ export async function getUserMeasurements(req, res) {
     res.json({
       success: true,
       data: {
-        measurements,
+        measurements: measurements.map(presentMeasurement),
         pagination: {
           total,
           limit: normalizedLimit,
@@ -308,7 +323,7 @@ export async function getMeasurementById(req, res) {
 
     res.json({
       success: true,
-      data: measurement
+      data: presentMeasurement(measurement)
     });
 
   } catch (error) {
@@ -362,6 +377,10 @@ export async function updateMeasurement(req, res) {
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) sanitizedUpdate[key] = req.body[key];
     }
+    // Bare paths only in storage — a persisted signed URL would expire.
+    if (Array.isArray(sanitizedUpdate.photoUrls)) {
+      sanitizedUpdate.photoUrls = stripPhotoSignatures(sanitizedUpdate.photoUrls);
+    }
     await measurement.update(sanitizedUpdate, { transaction });
 
     // Recalculate comparisons if measurement data changed
@@ -381,7 +400,7 @@ export async function updateMeasurement(req, res) {
     res.json({
       success: true,
       data: {
-        measurement,
+        measurement: presentMeasurement(measurement),
         milestones
       }
     });
@@ -482,7 +501,7 @@ export async function getLatestMeasurement(req, res) {
 
     res.json({
       success: true,
-      data: measurement
+      data: presentMeasurement(measurement)
     });
 
   } catch (error) {
@@ -503,6 +522,9 @@ export async function uploadProgressPhotos(req, res) {
   try {
     const { id } = req.params;
     const { photoUrls } = req.body;
+    if (!Array.isArray(photoUrls)) {
+      return res.status(400).json({ success: false, message: 'photoUrls must be an array' });
+    }
 
     const BodyMeasurement = getBodyMeasurement();
     const measurement = await BodyMeasurement.findByPk(id);
@@ -519,9 +541,9 @@ export async function uploadProgressPhotos(req, res) {
       return res.status(404).json({ success: false, message: 'Measurement not found' });
     }
 
-    // Merge new photos with existing
+    // Merge new photos with existing — bare paths only in storage.
     const existingPhotos = measurement.photoUrls || [];
-    const updatedPhotos = [...existingPhotos, ...photoUrls];
+    const updatedPhotos = [...existingPhotos, ...stripPhotoSignatures(photoUrls)];
 
     await measurement.update({
       photoUrls: updatedPhotos
@@ -529,7 +551,7 @@ export async function uploadProgressPhotos(req, res) {
 
     res.json({
       success: true,
-      data: measurement
+      data: presentMeasurement(measurement)
     });
 
   } catch (error) {

@@ -69,7 +69,11 @@ export async function uploadPhoto(buffer, { userId, category, originalFilename, 
       // Build the public URL
       // When R2_PUBLIC_URL is set, build full URL; otherwise route through our
       // API proxy so Render's static-site layer doesn't intercept the request.
-      const url = R2_PUBLIC_URL
+      // SENSITIVE categories (body/health photos) ALWAYS go through the proxy
+      // regardless of R2_PUBLIC_URL — the proxy enforces short-TTL signed
+      // URLs; a public bucket URL would be permanently fetchable.
+      const { SENSITIVE_PHOTO_CATEGORIES } = await import('./photoUrlSigner.mjs');
+      const url = (R2_PUBLIC_URL && !SENSITIVE_PHOTO_CATEGORIES.has(category))
         ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${objectKey}`
         : `/api/serve-photo/${objectKey}`;
 
