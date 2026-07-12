@@ -263,6 +263,12 @@ const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
 const PUBLIC_REGISTRATION_CLIENT_SOURCES = CLIENT_SOURCES;
 const PUBLIC_NON_CLIENT_SOURCE = 'external';
+// Sean's ruling 2026-07-12: 'admin' is REMOVED from public self-registration
+// entirely. Admin accounts are provisioned via CLI/seed only
+// (backend/scripts/create-admin-user.mjs, adminSeeder.mjs) — no anonymous
+// path to the crown-jewel role exists anymore, access-code-gated or not.
+// (ADMIN_ACCESS_CODE remains in use by userManagementController's
+// authenticated promotion path; it no longer guards public registration.)
 const PUBLIC_SELF_REGISTRATION_ROLES = new Set(['user', 'client']);
 
 const resolvePublicRegistrationClientSource = ({ role, clientSource }) => {
@@ -507,7 +513,6 @@ export const register = async (req, res) => {
       });
     }
 
-    // Extract the public account type and client source
     const { clientSource } = req.body;
     const requestedRole = typeof req.body.role === 'string' ? req.body.role.trim() : 'user';
     const role = requestedRole || 'user';
@@ -518,6 +523,18 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Trainer accounts are created by SwanStudios staff.'
+      });
+    }
+
+    if (role === 'admin') {
+      await transaction.rollback();
+      // Loud + attributable: an anonymous attempt at the crown-jewel role.
+      logger.error('[Auth] SECURITY: public admin self-registration attempt blocked (admin accounts are provisioned via CLI/seed only)', {
+        ip: getClientIp(req),
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Admin accounts are created by SwanStudios staff.'
       });
     }
 

@@ -260,16 +260,18 @@ describe('Phase 14 — chart-duration-trend', () => {
     assertNoForbiddenTables(executedSql);
   });
 
-  it('emits a YYYY-MM-DD iso field alongside MM/DD so day-bucketing consumers share the SQL UTC day', async () => {
+  it('ships the raw timestamp alongside MM/DD so the heatmap can bucket the user-LOCAL day', async () => {
+    // Sean's 2026-07-12 ruling: user-local bucketing wins — the client needs
+    // the real instant, not a server-rendered calendar-day string.
     const { req, res, sql } = makeReqRes({
-      rows: [{ date: '07/06', iso_date: '2026-07-06', duration: 45 }],
+      rows: [{ date: '07/06', ts: '2026-07-06T05:00:00.000Z', duration: 45 }],
     });
     await getDurationTrendChart(req, res);
-    expect(sql[0]).toMatch(/TO_CHAR\(ws\.date,\s*'YYYY-MM-DD'\)/i);
+    expect(sql[0]).toMatch(/ws\.date\s+AS\s+ts/i);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         success: true,
-        data: [{ x: '07/06', iso: '2026-07-06', y: 45 }],
+        data: [{ x: '07/06', y: 45, ts: '2026-07-06T05:00:00.000Z' }],
       }),
     );
   });
