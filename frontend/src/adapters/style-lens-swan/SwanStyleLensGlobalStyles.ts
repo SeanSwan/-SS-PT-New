@@ -163,6 +163,30 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: linear-gradient(120deg, #17171b 0 64%, color-mix(in srgb, var(--royal-depth, #003080) 36%, #17171b) 64% 100%);
   }
+  :root[data-style-lens='kinetic-kanban'] {
+    --lens-sidebar-width: 286px; --lens-main-padding: clamp(18px, 2vw, 38px); --lens-panel-radius: 14px 28px 14px 6px; --lens-shell-gap: 14px; --lens-navigation-edge: var(--wing-purple, #8b5cf6);
+    --lens-canvas: repeating-linear-gradient(90deg, #131b33 0 31%, color-mix(in srgb, var(--ice-wing, #60c0f0) 8%, #131b33) 31% 32%, #131b33 32% 65%, color-mix(in srgb, var(--wing-purple, #8b5cf6) 8%, #131b33) 65% 66%, #131b33 66% 100%);
+  }
+
+  :root[data-style-lens='aurora-index'] {
+    --lens-sidebar-width: 232px; --lens-main-padding: clamp(28px, 3.5vw, 68px); --lens-panel-radius: 32px 4px 32px 4px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: linear-gradient(120deg, #0a2340, color-mix(in srgb, var(--wing-purple, #8b5cf6) 22%, #0a2340) 48%, color-mix(in srgb, var(--ice-wing, #60c0f0) 16%, #0a2340));
+  }
+
+  :root[data-style-lens='modular-harbor'] {
+    --lens-sidebar-width: 304px; --lens-main-padding: clamp(20px, 2.2vw, 42px); --lens-panel-radius: 6px 6px 30px 30px; --lens-shell-gap: 20px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: linear-gradient(180deg, #0b2738 0 78%, color-mix(in srgb, var(--gilded-fern, #c6a84b) 12%, #0b2738) 78% 80%, var(--bg-base, #0a0a0f) 80%);
+  }
+
+  :root[data-style-lens='terrain-console'] {
+    --lens-sidebar-width: 260px; --lens-main-padding: clamp(24px, 2.7vw, 52px); --lens-panel-radius: 22px 22px 4px 22px; --lens-navigation-edge: var(--ice-wing, #60c0f0);
+    --lens-canvas: repeating-radial-gradient(ellipse at 70% 30%, transparent 0 54px, color-mix(in srgb, var(--ice-wing, #60c0f0) 9%, transparent) 55px 56px), #182018;
+  }
+
+  :root[data-style-lens='chronograph-board'] {
+    --lens-sidebar-width: 318px; --lens-main-padding: clamp(18px, 1.9vw, 36px); --lens-panel-radius: 50% 8px 8px 8px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
+    --lens-canvas: radial-gradient(circle at 86% 18%, transparent 0 70px, color-mix(in srgb, var(--gilded-fern, #c6a84b) 18%, transparent) 71px 73px, transparent 74px), #1c1a22;
+  }
   :root[data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;

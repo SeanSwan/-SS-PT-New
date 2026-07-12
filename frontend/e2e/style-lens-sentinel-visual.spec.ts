@@ -1,6 +1,7 @@
 /** Promoted Style Lens Appearance Studio browser and responsive gate. */
 import { createRequire } from "node:module";
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { PROMOTED_LENSES } from "./style-lens-promoted";
 const AXE_PATH = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 
 
@@ -13,24 +14,6 @@ const ADMIN = {
   role: "admin",
   isActive: true,
 };
-
-const PROMOTED_LENSES = [
-  ["Quiet Meridian", "quiet-meridian"],
-  ["Blueprint Fold", "blueprint-fold"],
-  ["Kintsugi Circuit", "kintsugi-circuit"],
-  ["Analog Flight Recorder", "analog-flight-recorder"],
-  ["Candy Glass Arcade", "candy-glass-arcade"],
-  ["Recovery Cloister", "recovery-cloister"],
-  ["Tempo Forge", "tempo-forge"],
-  ["Coach Ledger", "coach-ledger"],
-  ["Signal Garden", "signal-garden"],
-  ["Split Horizon", "split-horizon"],
-  ["Prism Terminal", "prism-terminal"],
-  ["Tidal Columns", "tidal-columns"],
-  ["Monastic Grid", "monastic-grid"],
-  ["Orbit Atlas", "orbit-atlas"],
-  ["Carbon Atelier", "carbon-atelier"],
-] as const;
 
 const VIEWPORTS = [
   [320, 780],

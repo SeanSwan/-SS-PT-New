@@ -18,6 +18,11 @@ import { TIDAL_COLUMNS_MANIFEST } from './manifests/tidalColumns';
 import { MONASTIC_GRID_MANIFEST } from './manifests/monasticGrid';
 import { ORBIT_ATLAS_MANIFEST } from './manifests/orbitAtlas';
 import { CARBON_ATELIER_MANIFEST } from './manifests/carbonAtelier';
+import { KINETIC_KANBAN_MANIFEST } from './manifests/kineticKanban';
+import { AURORA_INDEX_MANIFEST } from './manifests/auroraIndex';
+import { MODULAR_HARBOR_MANIFEST } from './manifests/modularHarbor';
+import { TERRAIN_CONSOLE_MANIFEST } from './manifests/terrainConsole';
+import { CHRONOGRAPH_BOARD_MANIFEST } from './manifests/chronographBoard';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -43,6 +48,11 @@ export const SWAN_EXPANSION_MANIFESTS = Object.freeze([
   MONASTIC_GRID_MANIFEST,
   ORBIT_ATLAS_MANIFEST,
   CARBON_ATELIER_MANIFEST,
+  KINETIC_KANBAN_MANIFEST,
+  AURORA_INDEX_MANIFEST,
+  MODULAR_HARBOR_MANIFEST,
+  TERRAIN_CONSOLE_MANIFEST,
+  CHRONOGRAPH_BOARD_MANIFEST,
 ]);
 
 export const SWAN_STYLE_LENS_REGISTRY = createStyleLensRegistry([

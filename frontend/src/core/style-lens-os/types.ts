@@ -49,7 +49,12 @@ export type ShellRendererId =
   | 'tidal-columns-shell'
   | 'monastic-grid-shell'
   | 'orbit-atlas-shell'
-  | 'carbon-atelier-shell';
+  | 'carbon-atelier-shell'
+  | 'kinetic-kanban-shell'
+  | 'aurora-index-shell'
+  | 'modular-harbor-shell'
+  | 'terrain-console-shell'
+  | 'chronograph-board-shell';
 export type NavigationRendererId =
   | 'default-navigation'
   | 'flagship-navigation'
@@ -67,7 +72,12 @@ export type NavigationRendererId =
   | 'tidal-ribbon-navigation'
   | 'monastic-index-navigation'
   | 'orbital-map-navigation'
-  | 'atelier-toolrail-navigation';
+  | 'atelier-toolrail-navigation'
+  | 'swimlane-pulse-navigation'
+  | 'aurora-index-navigation'
+  | 'harbor-berth-navigation'
+  | 'contour-map-navigation'
+  | 'chrono-dial-navigation';
 export type ComponentRecipeId =
   | 'default-recipe'
   | 'flagship-recipe'
@@ -85,7 +95,12 @@ export type ComponentRecipeId =
   | 'tidal-columns-recipe'
   | 'monastic-grid-recipe'
   | 'orbit-atlas-recipe'
-  | 'carbon-atelier-recipe';
+  | 'carbon-atelier-recipe'
+  | 'kinetic-kanban-recipe'
+  | 'aurora-index-recipe'
+  | 'modular-harbor-recipe'
+  | 'terrain-console-recipe'
+  | 'chronograph-board-recipe';
 
 export interface RendererAllowlist {
   shell: readonly string[];

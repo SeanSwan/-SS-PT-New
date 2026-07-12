@@ -21,6 +21,11 @@ const promotedLensIds = [
   'monastic-grid',
   'orbit-atlas',
   'carbon-atelier',
+  'kinetic-kanban',
+  'aurora-index',
+  'modular-harbor',
+  'terrain-console',
+  'chronograph-board',
 ];
 
 describe('Swan Style Lens runtime binding', () => {

@@ -27,6 +27,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'monastic-grid-shell',
     'orbit-atlas-shell',
     'carbon-atelier-shell',
+    'kinetic-kanban-shell',
+    'aurora-index-shell',
+    'modular-harbor-shell',
+    'terrain-console-shell',
+    'chronograph-board-shell',
   ]),
   navigation: Object.freeze([
     'default-navigation',
@@ -46,6 +51,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'monastic-index-navigation',
     'orbital-map-navigation',
     'atelier-toolrail-navigation',
+    'swimlane-pulse-navigation',
+    'aurora-index-navigation',
+    'harbor-berth-navigation',
+    'contour-map-navigation',
+    'chrono-dial-navigation',
   ]),
   recipes: Object.freeze([
     'default-recipe',
@@ -65,6 +75,11 @@ export const CORE_RENDERER_ALLOWLIST: RendererAllowlist = Object.freeze({
     'monastic-grid-recipe',
     'orbit-atlas-recipe',
     'carbon-atelier-recipe',
+    'kinetic-kanban-recipe',
+    'aurora-index-recipe',
+    'modular-harbor-recipe',
+    'terrain-console-recipe',
+    'chronograph-board-recipe',
   ]),
 });
 
