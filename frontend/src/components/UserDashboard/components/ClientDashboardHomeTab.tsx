@@ -39,6 +39,7 @@ import {
   sumUnreadConversations,
 } from './HomeTabViewModel';
 import ClientDashboardHome from './ClientDashboardHome';
+import ClientProgramShelf from '../../DashBoard/Pages/client-dashboard/plan/ClientProgramShelf';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
   buildAssignmentView,
@@ -186,6 +187,16 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
       <ClientDashboardHome
         embedded={embedded}
         backgroundSettings={backgroundSettings}
+        programShelf={(
+          <ClientProgramShelf
+            userId={user?.id}
+            workout={currentWorkoutState.workout}
+            planVault={currentWorkoutState.planVault}
+            loading={currentWorkoutState.loading}
+            error={currentWorkoutState.error}
+            onLogToday={() => navigate('/dashboard/client/log-workout?loadPlan=today')}
+          />
+        )}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}
         featureImageSrc={featureWorkoutImage}

@@ -13,7 +13,7 @@ import logger from '../utils/logger.mjs';
 // route and workoutPlanRoutes share one transformation layer (REV 3 §C2).
 // L1 REV 2 (2026-05-02, Codex follow-up): plan shape stays in the shared
 // service. The history-row mapper lives in a shared service for route/tests.
-import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
+import { planDataToAllWeeks, toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingAssignmentPickerService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
@@ -155,6 +155,83 @@ router.get('/:userId/current', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);
+    return sendInternalError(res, 'Server error fetching workout plan');
+  }
+});
+
+/**
+ * GET /api/workouts/:userId/plans/:planId
+ * Full structure of ONE plan the client owns — EVERY week -> day -> exercise.
+ *
+ * Why this exists: `/current` deliberately returns only the CURRENT week
+ * (planDataToWorkoutDays(planData, currentWeek)), so the client-facing Plan
+ * Detail modal would otherwise render one week and call it "your plan".
+ *
+ * READ-ONLY BY DESIGN. Trainer-indispensability doctrine (Sean 2026-07-11):
+ * the client may SEE every plan, but only a trainer/admin may switch which one
+ * is active. There is deliberately NO client-scoped activate/edit here — plan
+ * activation stays trainerOrAdminOnly in workoutPlanRoutes.mjs. Do not "helpfully"
+ * add a write path to this router.
+ *
+ * IDOR: two distinct checks, both required.
+ *   1. ensureClientAccess — may the caller read THIS :userId at all?
+ *      (self, or their trainer/admin.)
+ *   2. plan.userId === clientId — does the requested :planId actually BELONG to
+ *      that client? Without (2), an authenticated client could pass their OWN
+ *      userId with SOMEONE ELSE'S planId and read a stranger's program.
+ *      A 404 (not 403) is returned on mismatch so the endpoint never confirms
+ *      that a foreign plan id exists.
+ */
+router.get('/:userId/plans/:planId', protect, async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+
+    const { clientId, models } = access;
+    const { WorkoutPlan } = models;
+    if (!WorkoutPlan) {
+      return sendInternalError(res, 'Server error fetching workout plan');
+    }
+
+    const planId = String(req.params.planId ?? '').trim();
+    if (!/^\d+$/.test(planId)) {
+      return res.status(400).json({ success: false, message: 'Invalid plan id.' });
+    }
+
+    // Ownership is enforced in the QUERY (userId is part of the where clause),
+    // so a foreign plan can never be loaded in the first place.
+    const plan = await WorkoutPlan.findOne({
+      where: { id: Number.parseInt(planId, 10), userId: clientId },
+    });
+
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Plan not found.' });
+    }
+
+    const formatted = toCurrentWorkoutPlanResponse(plan);
+    const planRecord = plan.toJSON ? plan.toJSON() : plan;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: formatted.id,
+        title: formatted.title,
+        description: formatted.description,
+        status: planRecord.status,
+        durationWeeks: formatted.durationWeeks,
+        difficulty: formatted.difficulty,
+        currentWeek: formatted.currentWeek,
+        currentDay: formatted.currentDay,
+        createdAt: formatted.createdAt,
+        // The whole program — this is what /current cannot give us.
+        weeks: planDataToAllWeeks(planRecord.planData || planRecord.plan_data),
+        currentSession: formatted.currentSession,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching client plan detail:', error);
     return sendInternalError(res, 'Server error fetching workout plan');
   }
 });

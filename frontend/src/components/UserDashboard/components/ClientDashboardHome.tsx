@@ -47,6 +47,10 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
             <PrimaryStack>
               <ClientProfileHero {...props} />
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
+              {/* The plan the member is paying for — above the fold, always present.
+                  The shelf owns its own loading/empty/error states, so this slot is
+                  never conditionally removed. */}
+              {props.programShelf}
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
                 <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
