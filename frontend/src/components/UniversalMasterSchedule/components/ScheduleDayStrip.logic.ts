@@ -46,12 +46,27 @@ const atMidnight = (date: Date): Date => {
 };
 
 /**
- * Rolling window anchored on TODAY (not the selected date) so the ribbon
- * is stable while the user browses days — selection moves, rails don't.
+ * Rolling window anchored on TODAY while the selection lives inside it
+ * (stable rails while browsing nearby days). When the selected date
+ * leaves the -7/+21 window — month/year navigation, deep planning —
+ * the window RE-ANCHORS around the selection so the ribbon never loses
+ * selected-date truth (Codex REVISE finding 4). `isToday` is always
+ * computed against the real today, regardless of anchor.
  */
-export const buildDayWindow = (today: Date = new Date()): DayChip[] => {
-  const anchor = atMidnight(today);
-  const todayKey = localDayKey(anchor);
+export const buildDayWindow = (
+  today: Date = new Date(),
+  selected: Date = today,
+): DayChip[] => {
+  const todayAnchor = atMidnight(today);
+  const todayKey = localDayKey(todayAnchor);
+  const selectedMidnight = atMidnight(selected);
+  const offsetFromToday = Math.round(
+    (selectedMidnight.getTime() - todayAnchor.getTime()) / 86_400_000,
+  );
+  const inWindow =
+    offsetFromToday >= -DAY_STRIP_LOOKBACK &&
+    offsetFromToday <= DAY_STRIP_LOOKAHEAD;
+  const anchor = inWindow ? todayAnchor : selectedMidnight;
   const chips: DayChip[] = [];
 
   for (let offset = -DAY_STRIP_LOOKBACK; offset <= DAY_STRIP_LOOKAHEAD; offset += 1) {
