@@ -115,31 +115,56 @@ export const ProgressFill = styled.div<{ $pct: number }>`
   );
 `;
 
-/** Next-up strip: the single most actionable fact on the whole card. */
-export const NextUp = styled.div`
+/** Wraps the today strip + its CTA into ONE addressable surface (the card that
+ *  absorbed TodaysAssignmentCard) — so the action always travels with the fact. */
+export const TodayCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`;
+
+/**
+ * TODAY strip — the single most actionable fact on the card, and the surface that
+ * absorbed the retired TodaysAssignmentCard. Turns Ice-Wing-green-lit when the
+ * member has already logged today, so "am I done?" is answerable at a glance.
+ */
+export const NextUp = styled.div<{ $done?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.45rem;
   margin-top: 0.7rem;
   padding: 0.5rem 0.6rem;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent);
+  border: 1px solid ${({ $done }) => ($done
+    ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)'
+    : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)')};
+  background: ${({ $done }) => ($done
+    ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'
+    : 'color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent)')};
   font-size: 0.78rem;
   color: var(--text-primary, #E0ECF4);
   min-width: 0;
 
+  > svg { flex: 0 0 auto; }
+
   span {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
+  strong { font-weight: 800; }
+
   small {
     margin-left: auto;
-    color: var(--text-secondary, #9FB6C8);
+    padding-left: 0.4rem;
+    color: ${({ $done }) => ($done
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--text-secondary, #9FB6C8)')};
     font-family: 'Fira Code', monospace;
     font-size: 0.7rem;
+    font-weight: 700;
     white-space: nowrap;
   }
 `;

@@ -194,7 +194,11 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
             planVault={currentWorkoutState.planVault}
             loading={currentWorkoutState.loading}
             error={currentWorkoutState.error}
-            onLogToday={() => navigate('/dashboard/client/log-workout?loadPlan=today')}
+            /* Today's session (absorbed from TodaysAssignmentCard). It resolves its
+               own actionPath, so the logger gets assignmentKey/assignmentType and a
+               completed session routes to history instead of re-logging. */
+            assignment={assignment}
+            onNavigate={navigate}
           />
         )}
         logoSrc={brandLogo}

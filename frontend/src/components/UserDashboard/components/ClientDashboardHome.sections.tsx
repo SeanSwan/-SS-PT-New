@@ -265,22 +265,6 @@ export function TodaySnapshotCard({ todaySnapshot }: Pick<ClientDashboardHomePro
   );
 }
 
-export function TodaysAssignmentCard({ assignment, onNavigate }: Pick<ClientDashboardHomeProps, 'assignment' | 'onNavigate'>) {
-  return (
-    <PanelCard data-testid="current-workout-card" aria-label="Today's training priority">
-      <PanelHeader><div><Kicker>{assignment.kicker}</Kicker><CardTitle>{assignment.title}</CardTitle><MutedText>{assignment.meta}</MutedText></div></PanelHeader>
-      <CardBody>
-        <ListStack>
-          {(assignment.rows.length ? assignment.rows : [{ label: 'No live assignment', meta: 'Open workouts to review your plan.', complete: false }]).map((row) => (
-            <RowItem key={row.label}><StatusDot $complete={row.complete}>{row.complete && <Check size={13} />}</StatusDot><span>{row.label}</span><TinyText>{row.meta}</TinyText></RowItem>
-          ))}
-        </ListStack>
-        <ActionButton type="button" onClick={() => onNavigate(assignment.actionPath)}>{assignment.actionLabel}</ActionButton>
-      </CardBody>
-    </PanelCard>
-  );
-}
-
 export function NextSessionCard({ sessionPreview, onNavigate }: Pick<ClientDashboardHomeProps, 'sessionPreview' | 'onNavigate'>) {
   const actionLabel = sessionPreview.empty ? 'Book Session' : 'View Details';
   const actionAriaLabel = sessionPreview.empty ? 'Book a session' : 'View session details';

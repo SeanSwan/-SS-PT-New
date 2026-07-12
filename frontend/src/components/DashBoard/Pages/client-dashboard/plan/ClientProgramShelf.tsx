@@ -13,12 +13,13 @@
  * switches which plan is active. Do not add a switch/activate/edit affordance here.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { CalendarRange, ChevronRight, Dumbbell, Layers3, Sparkles } from 'lucide-react';
+import { CalendarRange, Check, ChevronRight, Dumbbell, Layers3, Sparkles } from 'lucide-react';
 import type {
   ClientTrainingPlanSlot,
   ClientTrainingPlanVault,
   CurrentClientWorkout,
 } from '../observatory/useCurrentClientWorkout';
+import type { AssignmentView } from '../../../../UserDashboard/components/ClientDashboardHome.viewModel';
 import ClientPlanDetailModal from './ClientPlanDetailModal';
 import {
   EmptyCard,
@@ -41,6 +42,7 @@ import {
   ShelfSection,
   ShelfTrack,
   SkeletonCard,
+  TodayCard,
 } from './ClientProgramShelf.styles';
 
 export interface ClientProgramShelfProps {
@@ -49,8 +51,16 @@ export interface ClientProgramShelfProps {
   planVault?: ClientTrainingPlanVault | null;
   loading?: boolean;
   error?: boolean;
-  /** Navigate to the logger for today's session. */
-  onLogToday?: () => void;
+  /**
+   * Today's session view (absorbed from the retired TodaysAssignmentCard,
+   * Sean 2026-07-11 — two cards both narrating "today" was pure clutter).
+   * Carries the done/not-done state AND the correct route: `actionPath` passes
+   * assignmentKey/assignmentType to the logger, routes a completed session to
+   * history, and a non-loggable trainer session to the schedule.
+   */
+  assignment?: AssignmentView | null;
+  /** Router navigate — used for the assignment's own resolved actionPath. */
+  onNavigate?: (path: string) => void;
 }
 
 const pillTone = (status?: string): 'paused' | 'ready' | 'done' => {
@@ -81,7 +91,8 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
   planVault,
   loading = false,
   error = false,
-  onLogToday,
+  assignment,
+  onNavigate,
 }) => {
   const [openPlanId, setOpenPlanId] = useState<string | number | null>(null);
   const [openPlanTitle, setOpenPlanTitle] = useState<string | undefined>(undefined);
@@ -155,16 +166,6 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
           </ProgressRow>
         )}
 
-        {nextExercise && (
-          <NextUp>
-            <Dumbbell size={14} aria-hidden="true" />
-            <span>{nextExercise}</span>
-            {exerciseCount > 0 && (
-              <small>{exerciseCount} exercise{exerciseCount === 1 ? '' : 's'}</small>
-            )}
-          </NextUp>
-        )}
-
         <HeroActions>
           <SecondaryAction
             type="button"
@@ -174,20 +175,66 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
             <Layers3 size={15} aria-hidden="true" />
             View plan
           </SecondaryAction>
-          {onLogToday && (
-            <PrimaryAction type="button" onClick={onLogToday} aria-label="Log today's workout">
-              <Dumbbell size={15} aria-hidden="true" />
-              Log today
-            </PrimaryAction>
-          )}
         </HeroActions>
       </HeroCard>
+    );
+  };
+
+  /**
+   * TODAY — absorbed from the retired TodaysAssignmentCard (Sean 2026-07-11: two
+   * cards both narrating "today" was clutter).
+   *
+   * Rendered as a SIBLING of the hero, never nested inside it: a member can have a
+   * live assignment while their plan vault has no populated slot, and burying this
+   * in the hero made today's session vanish in exactly that case — worse than the
+   * clutter it replaced. Today's session is its own fact and stands on its own.
+   */
+  const todayStrip = () => {
+    if (!assignment) return null;
+    const proofCue = assignment.complete ? 'Logged today' : 'Save after training';
+    return (
+      <TodayCard data-testid="current-workout-card">
+        <NextUp $done={assignment.complete}>
+          {assignment.complete
+            ? <Check size={14} aria-hidden="true" />
+            : <Dumbbell size={14} aria-hidden="true" />}
+          <span>
+            <strong>{assignment.kicker}</strong>
+            {' — '}
+            {assignment.title}
+            {/* Plan / week / day — the same truth the retired card carried. */}
+            {assignment.meta ? ` · ${assignment.meta}` : ''}
+            {assignment.empty || assignment.loading
+              ? ''
+              : ` · ${nextExercise || 'Open assigned plan'}`}
+            {exerciseCount > 0 ? ` · ${exerciseCount} exercise${exerciseCount === 1 ? '' : 's'}` : ''}
+          </span>
+          {!assignment.empty && !assignment.loading && <small>{proofCue}</small>}
+        </NextUp>
+        {onNavigate && (
+          /* The assignment resolves its OWN route: the logger (carrying assignmentKey
+             + assignmentType), history if it's already logged, or the schedule for a
+             non-loggable trainer session. A hardcoded ?loadPlan=today would drop those
+             params and load the wrong session. */
+          <HeroActions>
+            <PrimaryAction
+              type="button"
+              onClick={() => onNavigate(assignment.actionPath)}
+              aria-label={assignment.actionLabel}
+            >
+              <Dumbbell size={15} aria-hidden="true" />
+              {assignment.actionLabel}
+            </PrimaryAction>
+          </HeroActions>
+        )}
+      </TodayCard>
     );
   };
 
   return (
     <ShelfSection aria-label="Your training programs" data-testid="client-program-shelf">
       {heroBody()}
+      {todayStrip()}
 
       {others.length > 0 && (
         <>
@@ -228,7 +275,12 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
         userId={userId}
         planId={openPlanId}
         fallbackTitle={openPlanTitle}
-        onLogToday={onLogToday}
+        /* Same resolved route as the hero CTA — never a hardcoded ?loadPlan=today. */
+        onLogToday={
+          assignment && onNavigate && !assignment.empty && !assignment.complete
+            ? () => onNavigate(assignment.actionPath)
+            : undefined
+        }
       />
     </ShelfSection>
   );

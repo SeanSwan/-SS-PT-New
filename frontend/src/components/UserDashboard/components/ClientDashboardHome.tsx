@@ -19,7 +19,6 @@ import {
   ClientTopNavigation,
   NextSessionCard,
   TodaySnapshotCard,
-  TodaysAssignmentCard,
 } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
 import {
@@ -53,7 +52,6 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
               {props.programShelf}
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
-                <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
                 <TrainingFocusCard {...props} />
                 {props.canBookSessions && <NextSessionCard sessionPreview={props.sessionPreview} onNavigate={props.onNavigate} />}
               </ThreeColumnGrid>

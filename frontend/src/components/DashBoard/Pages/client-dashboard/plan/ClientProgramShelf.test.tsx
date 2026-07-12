@@ -46,20 +46,35 @@ const workout = {
   primaryPlanLabel: '12-Week Strength Base',
 };
 
+/** Today's session — absorbed from the retired TodaysAssignmentCard. */
+const assignment = (over: Record<string, unknown> = {}) => ({
+  kicker: "Today's assignment",
+  title: 'Coach Homework Lower Strength',
+  meta: '12-Week Strength Base / Week 2 / Day 1',
+  rows: [],
+  actionPath: '/dashboard/client/log-workout?loadPlan=today&assignmentKey=k1&assignmentType=homework',
+  actionLabel: 'Open Workout',
+  complete: false,
+  empty: false,
+  loading: false,
+  error: false,
+  ...over,
+});
+
 beforeEach(() => {
   mocks.get.mockReset();
   mocks.get.mockResolvedValue({ data: { success: true, data: { id: 7, title: '12-Week Strength Base', status: 'active', weeks: [] } } });
 });
 
 describe('ClientProgramShelf', () => {
-  it('leads with the ACTIVE plan: where they are, what is next, and how far in', () => {
+  it('leads with the ACTIVE plan: which program, and how far in', () => {
+    // The hero answers "what program am I on". Today's SESSION lives in the absorbed
+    // today-strip (see the ABSORBED tests) — one fact per surface, no duplication.
     render(<ClientProgramShelf userId={42} workout={workout as never} planVault={vault as never} />);
 
     expect(screen.getByTestId('program-shelf-hero')).toBeInTheDocument();
     expect(screen.getByText('12-Week Strength Base')).toBeInTheDocument();
     expect(screen.getByText(/week 2 of 12/i)).toBeInTheDocument();
-    expect(screen.getByText('Deadlift')).toBeInTheDocument();       // next up
-    expect(screen.getByText('5 exercises')).toBeInTheDocument();
 
     // Progress is real, not decorative: week 2 of 12 ~= 17%.
     const bar = screen.getByRole('progressbar', { name: /week 2 of 12/i });
@@ -128,13 +143,69 @@ describe('ClientProgramShelf', () => {
     expect(screen.getByText('Completed').tagName).not.toBe('BUTTON');
   });
 
-  it('hides Log today when the member has no logger action wired', () => {
-    render(<ClientProgramShelf userId={42} workout={workout as never} planVault={vault as never} />);
-    expect(screen.queryByRole('button', { name: /log today/i })).not.toBeInTheDocument();
+  it("ABSORBED: today's session lives on the hero — name, next exercise, and the RIGHT route", () => {
+    const onNavigate = vi.fn();
+    render(
+      <ClientProgramShelf
+        userId={42}
+        workout={workout as never}
+        planVault={vault as never}
+        assignment={assignment() as never}
+        onNavigate={onNavigate}
+      />,
+    );
 
-    const onLogToday = vi.fn();
-    render(<ClientProgramShelf userId={42} workout={workout as never} planVault={vault as never} onLogToday={onLogToday} />);
-    fireEvent.click(screen.getAllByRole('button', { name: /log today's workout/i })[0]);
-    expect(onLogToday).toHaveBeenCalledTimes(1);
+    // The retired TodaysAssignmentCard's truth now lives here (same testid, so the
+    // existing home truth-guards keep protecting this surface).
+    const today = screen.getByTestId('current-workout-card');
+    expect(today).toHaveTextContent(/today's assignment/i);
+    expect(today).toHaveTextContent(/coach homework lower strength/i);
+    expect(today).toHaveTextContent(/deadlift/i);
+    expect(today).toHaveTextContent('5 exercises');
+
+    // The CTA uses the assignment's OWN resolved path (carries assignmentKey +
+    // assignmentType) — a hardcoded ?loadPlan=today would load the wrong session.
+    fireEvent.click(screen.getByRole('button', { name: 'Open Workout' }));
+    expect(onNavigate).toHaveBeenCalledWith(
+      '/dashboard/client/log-workout?loadPlan=today&assignmentKey=k1&assignmentType=homework',
+    );
   });
+
+  it("ABSORBED: shows the done state once today's session is logged", () => {
+    const onNavigate = vi.fn();
+    render(
+      <ClientProgramShelf
+        userId={42}
+        workout={workout as never}
+        planVault={vault as never}
+        assignment={assignment({ complete: true, actionLabel: 'Review Workout History', actionPath: '/dashboard/client/workouts' }) as never}
+        onNavigate={onNavigate}
+      />,
+    );
+
+    expect(screen.getByTestId('current-workout-card')).toHaveTextContent(/logged today/i);
+    // A completed session routes to history, not back into the logger.
+    fireEvent.click(screen.getByRole('button', { name: 'Review Workout History' }));
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
+  });
+
+  it('stays honest when there is no live assignment (keeps the pending truth, drops the proof cue)', () => {
+    // The retired card rendered even with nothing assigned, and that honesty is
+    // worth keeping: the member should never be left guessing. What we DON'T show
+    // is a "save after training" cue for work that does not exist.
+    render(
+      <ClientProgramShelf
+        userId={42}
+        workout={workout as never}
+        planVault={vault as never}
+        assignment={assignment({ empty: true, title: 'Plan pending', actionLabel: 'View Workouts' }) as never}
+        onNavigate={vi.fn()}
+      />,
+    );
+    const today = screen.getByTestId('current-workout-card');
+    expect(today).toHaveTextContent(/plan pending/i);
+    expect(today).not.toHaveTextContent(/save after training/i);
+    expect(today).not.toHaveTextContent(/logged today/i);
+  });
+
 });
