@@ -66,6 +66,11 @@ const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
   const [reviewDraft, setReviewDraft] = useState<NutritionEntryDraft | null>(null);
+  // Bumped on every successful meal save. The macro-error diary branch keys
+  // its refetch on this — a constant key there meant the diary NEVER
+  // refetched after a save while the summary endpoint was down; only a full
+  // reload recovered.
+  const [diarySaveTick, setDiarySaveTick] = useState(0);
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
@@ -75,7 +80,10 @@ const NutritionWorkspace: React.FC = () => {
   const activeMoreTab = isMoreNutritionTab(activeTab);
 
   const handleMealLogResult = useCallback((success: boolean) => {
-    if (success) refetchMacroSummary();
+    if (success) {
+      refetchMacroSummary();
+      setDiarySaveTick((tick) => tick + 1);
+    }
   }, [refetchMacroSummary]);
 
   const toggleGentleMode = useCallback(() => {
@@ -175,7 +183,7 @@ const NutritionWorkspace: React.FC = () => {
                   <section aria-label="Nutrition Today diary">
                     <NutritionDiaryTimeline
                       gentleMode={gentleMode}
-                      refreshKey="summary-unavailable"
+                      refreshKey={`summary-unavailable:${diarySaveTick}`}
                       onReviewDraft={setReviewDraft}
                     />
                   </section>
