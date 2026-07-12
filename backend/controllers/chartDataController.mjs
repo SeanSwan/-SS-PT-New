@@ -983,3 +983,56 @@ export async function getExerciseTimelineChart(req, res) {
     return sendChartError(res);
   }
 }
+// ─────────────────────────────────────────────────────────────
+// SECTION: 15. Weekly Ring Source — per-session facts for the Apex
+// Ascension Rings (weekly workouts + weekly volume).
+//
+// CANONICAL SOURCE: workout_sessions LEFT JOIN workout_logs — a completed
+// session with no set logs still counts toward the workouts ring.
+//
+// TZ TRUTH (Sean's 2026-07-12 ruling, same as the heatmap): the server
+// ships the RAW session timestamp and never renders a calendar day or
+// truncates a week — the client buckets "this week" in the USER'S local
+// time, so a Sunday 22:00 PT workout lands on the user's Sunday, not
+// UTC Monday. 28 days always covers the current + prior full local week.
+// ─────────────────────────────────────────────────────────────
+
+const RING_SOURCE_WINDOW_DAYS = 28;
+
+export async function getWeeklyRingSourceChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         ws.date AS ts,
+         COALESCE(ws.duration, 0)::int AS duration_minutes,
+         COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
+         COUNT(wl.id)::int AS sets
+       FROM workout_sessions ws
+       LEFT JOIN workout_logs wl ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '28 days'
+       GROUP BY ws.id, ws.date, ws.duration
+       ORDER BY ws.date`,
+      { userId }, 'getWeeklyRingSourceChart');
+
+    res.json({
+      success: true,
+      data: {
+        windowDays: RING_SOURCE_WINDOW_DAYS,
+        sessions: rows.map(r => ({
+          ts: r.ts,
+          durationMinutes: r.duration_minutes,
+          volume: Math.round(r.volume),
+          sets: r.sets,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('Error getting weekly ring source:', error);
+    return sendChartError(res);
+  }
+}

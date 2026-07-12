@@ -44,6 +44,7 @@ import {
   getRecoverySignalChart,
   getEstOneRmTrendChart,
   getExerciseTimelineChart,
+  getWeeklyRingSourceChart,
   // Legacy-but-truthful body-composition endpoints (other consumers)
   getWeightProgressionChart,
   getBodyFatTrendChart,
@@ -235,6 +236,12 @@ router.get('/chart-est-one-rm', requireGuardianAnalytics, getEstOneRmTrendChart)
  * Workout Rolodex drill (charter v3 4d): per-day heaviest set + set count
  * for one exercise across the client's full logged history. */
 router.get('/exercise-timeline', requireGuardianAnalytics, getExerciseTimelineChart);
+
+/** @route GET /api/client/analytics/ring-weekly-source — per-session facts
+ * (raw ts + volume + duration) for the Apex Ascension Rings; the client
+ * buckets the user-LOCAL week. Same tier gate as chart-weekly-volume so
+ * this cannot bypass the gated weekly-volume data class. */
+router.get('/ring-weekly-source', requireTeaserAnalytics, getWeeklyRingSourceChart);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Legacy body-composition chart endpoints (truthful)

@@ -42,6 +42,7 @@ import {
   getRecoverySignalChart,
   getEstOneRmTrendChart,
   getExerciseTimelineChart,
+  getWeeklyRingSourceChart,
   // Legacy-but-truthful body-composition endpoints
   getWeightProgressionChart,
   getBodyFatTrendChart,
@@ -179,6 +180,7 @@ router.get('/:userId/chart-muscle-group-balance',     requireTier('pro', 'charts
 router.get('/:userId/chart-recovery-signal',          requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getRecoverySignalChart);
 router.get('/:userId/chart-est-one-rm',               requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getEstOneRmTrendChart);
 router.get('/:userId/exercise-timeline',              requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getExerciseTimelineChart);
+router.get('/:userId/ring-weekly-source',             requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeeklyRingSourceChart);
 
 // Legacy body-composition (truthful, unchanged)
 router.get('/:userId/chart-weight-progression', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeightProgressionChart);

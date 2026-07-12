@@ -50,10 +50,10 @@
  * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
  * │ METHOD                  ENDPOINT                        PURPOSE                          │
  * ├──────────────────────────────────────────────────────────────────────────────────────────┤
- * │ getAllUsers             GET /api/auth/users             List all users (exclude PII)     │
- * │ promoteToClient         POST /api/auth/promote-client   Promote user to client role      │
- * │ promoteToAdmin          POST /api/auth/promote-admin    Promote user to admin (w/ code)  │
- * │ updateUser              PUT /api/auth/users/:id         Update user details              │
+ * │ getAllUsers             GET /api/admin/users            List all users (exclude PII)     │
+ * │ promoteToClient         POST /api/admin/promote-client   Promote user to client role      │
+ * │ promoteToAdmin          POST /api/admin/promote-admin    Promote user to admin (w/ code)  │
+ * │ updateUser              PUT /api/admin/users/:id         Update user details              │
  * │ getRecentSignups        GET /api/admin/recent-signups   Last N hours signups + stats     │
  * │ getDashboardStats       GET /api/admin/dashboard-stats  Comprehensive dashboard metrics  │
  * │ getDatabaseHealth       GET /api/admin/database-health  Database connectivity test       │
@@ -67,7 +67,7 @@
  *     participant T as Sequelize Transaction
  *     participant DB as PostgreSQL
  *
- *     A->>C: POST /api/auth/promote-admin {userId, adminCode}
+ *     A->>C: POST /api/admin/promote-admin {userId, adminCode}
  *     C->>T: Begin transaction
  *     C->>C: Validate adminCode === ADMIN_ACCESS_CODE
  *
@@ -249,19 +249,19 @@
  * Usage Examples:
  *
  * // List all users (paginated in route handler)
- * GET /api/auth/users
+ * GET /api/admin/users
  * Response: { success: true, users: [...] }
  *
  * // Promote user to client with 10 sessions
- * POST /api/auth/promote-client
+ * POST /api/admin/promote-client
  * Body: { userId: "abc-123", availableSessions: 10 }
  *
  * // Promote user to admin (requires access code)
- * POST /api/auth/promote-admin
+ * POST /api/admin/promote-admin
  * Body: { userId: "abc-123", adminCode: "secret-code-here" }
  *
  * // Update user details
- * PUT /api/auth/users/abc-123
+ * PUT /api/admin/users/abc-123
  * Body: { firstName: "John", lastName: "Doe", isActive: false }
  *
  * // Get recent signups (last 48 hours, max 100 results)
@@ -354,7 +354,7 @@ const logUserManagementControllerError = (eventName, error) => {
 
 /**
  * @desc    Get all users (admin only)
- * @route   GET /api/auth/users
+ * @route   GET /api/admin/users
  * @access  Private (Admin Only)
  */
 export const getAllUsers = async (req, res) => {
@@ -383,7 +383,7 @@ export const getAllUsers = async (req, res) => {
 
 /**
  * @desc    Promote user to client role
- * @route   POST /api/auth/promote-client
+ * @route   POST /api/admin/promote-client
  * @access  Private (Admin Only)
  */
 export const promoteToClient = async (req, res) => {
@@ -466,7 +466,7 @@ export const promoteToClient = async (req, res) => {
 
 /**
  * @desc    Promote user to admin role with access code verification
- * @route   POST /api/auth/promote-admin
+ * @route   POST /api/admin/promote-admin
  * @access  Private (Admin Only)
  */
 export const promoteToAdmin = async (req, res) => {
@@ -537,7 +537,7 @@ export const promoteToAdmin = async (req, res) => {
 
 /**
  * @desc    Update user details (admin only)
- * @route   PUT /api/auth/users/:id
+ * @route   PUT /api/admin/users/:id
  * @access  Private (Admin Only)
  */
 export const updateUser = async (req, res) => {
