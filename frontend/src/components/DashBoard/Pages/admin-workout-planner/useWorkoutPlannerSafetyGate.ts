@@ -40,7 +40,15 @@ export function parseSafetyGateReviewError(err: unknown): { signals: string[]; m
 }
 
 interface UseWorkoutPlannerSafetyGateInput {
-  onAcknowledged: (review: SafetyGateReviewState, reason: string) => Promise<void> | void;
+  /**
+   * Runs the acknowledged retry. Returns the NEW review state when the gate
+   * blocked the retry AGAIN (modal must stay open with fresh signals — a
+   * silent close would read as success), or null/void when it went through.
+   */
+  onAcknowledged: (
+    review: SafetyGateReviewState,
+    reason: string,
+  ) => Promise<SafetyGateReviewState | null | void> | SafetyGateReviewState | null | void;
 }
 
 export const useWorkoutPlannerSafetyGate = ({ onAcknowledged }: UseWorkoutPlannerSafetyGateInput) => {
@@ -59,8 +67,10 @@ export const useWorkoutPlannerSafetyGate = ({ onAcknowledged }: UseWorkoutPlanne
     if (!safetyGateReview || !reason.trim()) return;
     setAcknowledging(true);
     try {
-      await onAcknowledged(safetyGateReview, reason.trim());
-      setSafetyGateReview(null);
+      const reblocked = await onAcknowledged(safetyGateReview, reason.trim());
+      // Re-blocked retry keeps the modal open with the fresh review state;
+      // only a successful pass closes it.
+      setSafetyGateReview(reblocked ?? null);
     } finally {
       setAcknowledging(false);
     }

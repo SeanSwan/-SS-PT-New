@@ -525,6 +525,7 @@ export async function generateWorkout(options) {
     readinessCheck = null,
     planningReviewAcknowledged = false,
     planningReviewReason = null,
+    planningReviewActorRole = null,
   } = options;
 
   if (!clientId) throw new Error('clientId is required');
@@ -562,6 +563,7 @@ export async function generateWorkout(options) {
     safetyGate: earlySafetyGate,
     planningReviewAcknowledged,
     planningReviewReason,
+    actorRole: planningReviewActorRole,
     actorUserId: trainerId,
     clientId,
   });
@@ -1032,6 +1034,7 @@ export async function generatePlan(options) {
     registryOverride = null,
     planningReviewAcknowledged = false,
     planningReviewReason = null,
+    planningReviewActorRole = null,
   } = options;
 
   // L6 FIX: Validate inputs
@@ -1048,6 +1051,7 @@ export async function generatePlan(options) {
     safetyGate: earlySafetyGate,
     planningReviewAcknowledged,
     planningReviewReason,
+    actorRole: planningReviewActorRole,
     actorUserId: trainerId,
     clientId,
   });

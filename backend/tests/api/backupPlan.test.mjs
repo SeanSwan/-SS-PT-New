@@ -98,3 +98,23 @@ describe('promotion + generation contracts', () => {
     expect(backupBlock).toMatch(/trainerOrAdminOnly/);
   });
 });
+
+describe('Cortex P0 safety gate coverage (post-ship hostile-review lock, 2026-07-12)', () => {
+  it('backup generation forwards the acknowledged-review contract into generatePlan', () => {
+    expect(SERVICE).toContain('planningReviewAcknowledged');
+    expect(SERVICE).toContain('planningReviewReason');
+    // The forward must reach the gated pipeline call, not just the signature.
+    const callBlock = SERVICE.slice(SERVICE.indexOf('const generated = await generatePlan({'));
+    expect(callBlock.slice(0, 400)).toContain('planningReviewAcknowledged');
+  });
+
+  it('the backup route surfaces 409 SWAN_COACH_REVIEW_REQUIRED instead of a generic 500', () => {
+    const backupBlock = ROUTES.slice(
+      ROUTES.indexOf("router.post('/backup/:userId/generate'"),
+      ROUTES.indexOf("router.post('/blend'"),
+    );
+    expect(backupBlock).toMatch(/err(or)?\.name === 'SwanCoachPlanningReviewError'/);
+    expect(backupBlock).toContain('reviewRequiredSignals');
+    expect(backupBlock).toContain('planningReviewAcknowledged: planningReviewAcknowledged === true');
+  });
+});

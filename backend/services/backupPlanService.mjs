@@ -109,6 +109,7 @@ export async function generateBackupPlan({
   equipmentProfileId = null,
   planningReviewAcknowledged = false,
   planningReviewReason = null,
+  planningReviewActorRole = null,
 }) {
   // Cortex P0 caller sweep: generatePlan now BLOCKS behind the deterministic
   // safety gate (409 acknowledged-review contract). Forward the trainer's
@@ -123,6 +124,7 @@ export async function generateBackupPlan({
     equipmentProfileId,
     planningReviewAcknowledged: planningReviewAcknowledged === true,
     planningReviewReason,
+    planningReviewActorRole,
   });
 
   const planData = buildBackupPlanData(generated);

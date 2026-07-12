@@ -61,4 +61,38 @@ describe('SafetyGateModal', () => {
     );
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
+
+  it('ignores Escape and backdrop clicks while the acknowledged retry is in flight', () => {
+    const { onCancel } = renderModal({ confirming: true });
+    fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' });
+    fireEvent.click(screen.getByTestId('safety-gate-overlay'));
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('returns focus to the triggering element on close (WCAG 2.4.3)', () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Generate';
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const { rerender } = render(
+      <SafetyGateModal
+        open
+        signals={['active_pain_review_required']}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    rerender(
+      <SafetyGateModal
+        open={false}
+        signals={['active_pain_review_required']}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
 });
