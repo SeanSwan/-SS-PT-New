@@ -44,7 +44,7 @@ export interface PdfPreviewPayload {
 
 type VaultState = 'loading' | 'ready' | 'error';
 
-export interface PdfApprovalVaultProps {
+interface PdfApprovalVaultProps {
   open: boolean;
   onClose: () => void;
   /** Builds the exact bytes to preview + download; called once per open. */

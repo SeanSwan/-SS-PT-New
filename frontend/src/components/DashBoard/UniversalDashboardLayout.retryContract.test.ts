@@ -23,6 +23,19 @@ const sourceByFile = Object.fromEntries(
 
 const source = Object.values(sourceByFile).join('\n');
 
+/**
+ * The cast guards below are about CODE, not copy. Strip string/template literals
+ * first so PROSE can't trip them: the /account-access route's description reads
+ * "Log in as any client or trainer (audited)...", whose literal " as any" reddened
+ * this suite even though the shell contains zero `as any` casts (2026-07-11).
+ */
+const stripLiterals = (src: string): string => src
+  .replace(/'(?:[^'\\\n]|\\.)*'/g, "''")
+  .replace(/"(?:[^"\\\n]|\\.)*"/g, '""')
+  .replace(/`(?:[^`\\]|\\.)*`/g, '``');
+
+const codeOnly = stripLiterals(source);
+
 describe('UniversalDashboardLayout retry contract', () => {
   it('retries dashboard initialization without a hard page reload', () => {
     expect(source).not.toContain('window.location.reload()');
@@ -44,8 +57,9 @@ describe('UniversalDashboardLayout retry contract', () => {
   });
 
   it('keeps the extracted route shell typed without any casts', () => {
-    expect(source).not.toContain('React.ComponentType<any>');
-    expect(source).not.toContain(' as any');
+    // codeOnly: literals stripped, so route/description copy can't false-positive.
+    expect(codeOnly).not.toContain('React.ComponentType<any>');
+    expect(codeOnly).not.toContain(' as any');
     expect(source).toContain('createUniversalDashboardTheme');
     expect(source).toContain('DefaultTheme');
     expect(source).toContain('component: React.ElementType;');

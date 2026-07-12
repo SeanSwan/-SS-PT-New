@@ -912,6 +912,16 @@ const buildPopulatedPlanDoc = (
   return { doc, filename: buildPopulatedPlanFilename(horizon.token, clientName, brand), brand };
 };
 
+/**
+ * Direct download (no preview). RETAINED INTENTIONALLY: the plan surface now
+ * routes through the A3 Approval Vault (buildPopulatedPlanPdfBlob), so this has
+ * no runtime caller today and static analysis flags it as an unused export. It
+ * stays because (a) it is the symmetric direct-download primitive alongside the
+ * logger/bootcamp/long-horizon exporters, and (b) it is the vehicle for the
+ * populated-plan branding regression suite that guards the Move Fitness
+ * white-label. Delete only together with a migration of those tests to the blob
+ * builder — both share buildPopulatedPlanDoc, so branding stays covered either way.
+ */
 export function exportPopulatedPlanPDF(
   plan: PDFPopulatedPlan,
   clientName?: string,
