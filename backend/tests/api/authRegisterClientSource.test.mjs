@@ -239,6 +239,25 @@ describe('auth register clientSource contract', () => {
     expect(res.body.user.clientSource).toBe('external');
   });
 
+  it('rejects public admin self-registration even when the legacy access code is supplied', async () => {
+    process.env.ADMIN_ACCESS_CODE = 'legacy-admin-code';
+    const req = {
+      body: validRegistration({
+        role: 'admin',
+        clientSource: undefined,
+        adminCode: 'legacy-admin-code',
+      }),
+    };
+    delete req.body.clientSource;
+    const res = createResponse();
+
+    await register(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.body.message).toMatch(/valid account type/i);
+    expect(mocks.userModel.create).not.toHaveBeenCalled();
+    expect(mocks.transaction.rollback).toHaveBeenCalled();
+  });
   it('rejects public trainer self-registration before any privileged account is created', async () => {
     const req = { body: validRegistration({ role: 'trainer', clientSource: undefined }) };
     delete req.body.clientSource;

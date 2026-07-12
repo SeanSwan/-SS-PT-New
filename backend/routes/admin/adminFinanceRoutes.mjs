@@ -375,6 +375,7 @@ router.get('/transactions', validateTransactionsQuery, async (req, res) => {
     // Fetch transactions with enhanced data
     const { count, rows: transactions } = await ShoppingCart.findAndCountAll({
       where: whereConditions,
+      distinct: true,
       include: [
         {
           model: User,
@@ -394,6 +395,17 @@ router.get('/transactions', validateTransactionsQuery, async (req, res) => {
       order: [[sortBy, sortOrder.toUpperCase()]],
       limit: limitNumber,
       offset: offset
+    });
+
+    const transactionSummary = await ShoppingCart.findOne({
+      attributes: [
+        [fn('COUNT', col('id')), 'totalTransactions'],
+        [fn('COUNT', literal("CASE WHEN \"paymentStatus\" = 'pending_manual_payment' THEN 1 END")), 'pendingPayments'],
+        [fn('COUNT', literal("CASE WHEN \"paymentStatus\" = 'paid' THEN 1 END")), 'completedPayments'],
+        [fn('SUM', literal("CASE WHEN \"paymentStatus\" = 'pending_manual_payment' THEN total ELSE 0 END")), 'totalPendingValue']
+      ],
+      where: whereConditions,
+      raw: true
     });
     
     console.log(`📊 [Admin Finance] Found ${transactions.length} transactions (${count} total)`);
@@ -453,12 +465,10 @@ router.get('/transactions', validateTransactionsQuery, async (req, res) => {
           pages: Math.ceil(count / limitNumber)
         },
         summary: {
-          totalTransactions: count,
-          pendingPayments: transactions.filter(t => t.paymentStatus === 'pending_manual_payment').length,
-          completedPayments: transactions.filter(t => t.paymentStatus === 'paid').length,
-          totalPendingValue: transactions
-            .filter(t => t.paymentStatus === 'pending_manual_payment')
-            .reduce((sum, t) => sum + (t.total || 0), 0)
+          totalTransactions: Number(transactionSummary?.totalTransactions || 0),
+          pendingPayments: Number(transactionSummary?.pendingPayments || 0),
+          completedPayments: Number(transactionSummary?.completedPayments || 0),
+          totalPendingValue: Number(transactionSummary?.totalPendingValue || 0)
         }
       }
     });
@@ -571,6 +581,8 @@ router.get('/metrics', validateTimeRangeQuery, async (req, res) => {
     });
     
     const activeCustomers = await User.count({
+      distinct: true,
+      col: 'User.id',
       include: [{
         model: ShoppingCart,
         as: 'shoppingCarts',
