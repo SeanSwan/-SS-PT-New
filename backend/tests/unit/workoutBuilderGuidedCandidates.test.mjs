@@ -12,8 +12,15 @@ const mockContext = {
   },
   equipment: [],
   pain: {
+    // Mechanics fixture: truly pain-free. ANY warning/exclusion is
+    // blocking-tier (pain_or_injury_context_present) — the builder 409s such
+    // a context and candidates now HOLD it identically (blocking-tier
+    // parity, 2026-07-13). Readiness notes in these tests come from the
+    // explicit readinessCheck param, not from pain warnings.
+    status: 'loaded_no_active_issue',
+    excludedMuscles: [],
     exclusions: [],
-    warnings: [{ bodyRegion: 'elbow', painLevel: 4, muscles: ['forearms'] }],
+    warnings: [],
   },
   movement: { compensations: [] },
   variation: { lastSessionType: null, currentPattern: 'standard' },

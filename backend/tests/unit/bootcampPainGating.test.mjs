@@ -189,3 +189,34 @@ describe('LOW-sweep repairs (review-queue 2026-07-12)', () => {
     expect(ex.painCaution).toEqual(expect.objectContaining({ region: expect.any(String) }));
   });
 });
+
+describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getModel.mockReturnValue({ findAll: mocks.assignmentFindAll });
+    mocks.assignmentFindAll.mockResolvedValue([{ clientId: 101 }]);
+  });
+
+  it('severe pain in a region the bootcamp map cannot reach produces a visible alert, never silence', async () => {
+    // The intake vocabulary is granular (left_achilles, left_hip_flexor, ...)
+    // while the bootcamp map speaks coarse keys — unmapped regions used to
+    // `continue` silently, so a severity-9 achilles report left jump/calf
+    // work on Board 1 with zero annotation. Full vocabulary reconciliation is
+    // the Cortex Phase 2E+ arc; until then the gate must SAY it cannot map.
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_achilles', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+    ]);
+    const explanations = [];
+
+    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+
+    expect(alerts).toEqual([
+      expect.objectContaining({
+        region: 'left_achilles',
+        severity: 9,
+        unmappedRegion: true,
+      }),
+    ]);
+    expect(alerts[0].recommendation).toMatch(/manual/i);
+  });
+});

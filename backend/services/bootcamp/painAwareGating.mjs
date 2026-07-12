@@ -94,10 +94,27 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
       const relatedMuscles = bootcampTargetsForRegion(region);
-      if (relatedMuscles.length === 0) continue;
       const severity = Math.max(
         ...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel || 0),
       );
+      if (relatedMuscles.length === 0) {
+        // Fail-VISIBLE (hostile-review HIGH-2, 2026-07-13): the intake
+        // vocabulary is more granular than the bootcamp map (left_achilles,
+        // left_hip_flexor, upper_traps_* ...) — an unmapped region used to
+        // `continue` silently, so severe pain there gated NOTHING with no
+        // note. Full vocabulary reconciliation is the Cortex Phase 2E+ arc;
+        // until then the gate says plainly that it could not map the region.
+        painAlerts.push({
+          region,
+          severity,
+          unmappedRegion: true,
+          flaggedExercises: [],
+          swappedExercises: [],
+          cautionExercises: [],
+          recommendation: `${region.replace(/_/g, ' ')} pain (severity ${severity}) reported ${aggregationScope}, but this region is not yet mapped to bootcamp exercise targets — review Board 1 manually for movements loading this area.`,
+        });
+        continue;
+      }
 
       const flagged = allExercises.filter(ex => {
         if (ex.board && ex.board !== 'main') return false;
