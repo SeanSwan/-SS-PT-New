@@ -54,7 +54,13 @@ export function resolveExerciseFromRegistry(exerciseName, registry = []) {
   return partial.length === 1 ? partial[0] : null;
 }
 
-function painVerdictForExercise(exercise, excludedMuscles) {
+/**
+ * Shared pain-safety verdict for one exercise against a client's excluded
+ * muscles — includes the untagged-muscle fail-safe (§5.6): under active
+ * exclusions, an exercise with no muscle tags never passes as safe.
+ * Consumers: this chat gate + the guided-candidates surface.
+ */
+export function painVerdictForExercise(exercise, excludedMuscles) {
   const excludedSet = new Set(excludedMuscles || []);
   if (excludedSet.size === 0) return { eligible: true };
   const muscles = Array.isArray(exercise.muscles) ? exercise.muscles : [];
