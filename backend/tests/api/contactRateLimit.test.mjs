@@ -41,6 +41,9 @@ describe('public contact/inquiry rate limiting', () => {
     expect(blocked.status).toBe(429);
     expect(blocked.body.success).toBe(false);
     expect(String(blocked.body.error)).toMatch(/too many inquiries/i);
+    // A throttled PROSPECT must get a recoverable message, not a generic failure.
+    // The public forms read `data.message`, so the 429 body must carry it too.
+    expect(String(blocked.body.message)).toMatch(/try again in a few minutes/i);
   });
 
   it('mounts the limiter on the public POST (and leaves the admin GET protected)', () => {
@@ -71,6 +74,8 @@ describe('public orientation/consultation rate limiting', () => {
     const blocked = await agent.post('/api/orientation/submit').send({ fullName: 'A' });
     expect(blocked.status).toBe(429);
     expect(String(blocked.body.error)).toMatch(/too many consultation requests/i);
+    // OrientationForm reads errorData.message — must not degrade to a generic error
+    expect(String(blocked.body.message)).toMatch(/try again in a few minutes/i);
   });
 
   it('mounts the limiter on the public submit route', () => {
