@@ -2,6 +2,7 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { orientationLimiter } from '../middleware/rateLimiter.mjs';
 import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   orientationSignup,
@@ -50,6 +51,9 @@ router.post(
  */
 router.post(
   '/submit',
+  // PUBLIC. orientationLimiter caps abuse: each submission raises an admin
+  // notification and intakes sensitive health data. See middleware/rateLimiter.mjs.
+  orientationLimiter,
   [
     // Express-validator middleware to validate input fields.
     body('fullName').notEmpty().withMessage('Full name is required.'),

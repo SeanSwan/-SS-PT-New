@@ -118,6 +118,29 @@ export const contactLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Public orientation / "Schedule Your Free Consultation" rate limiter
+ * (5 req / 15 min per IP).
+ *
+ * POST /api/orientation/submit is explicitly public. Each submission writes an
+ * Orientation row, raises an admin notification, and intakes SENSITIVE data
+ * (healthInfo + waiver initials). Unthrottled it can be used to flood the
+ * owner's notifications, poison the consultation pipeline that acquisition
+ * depends on, and mass-inject junk health records. A real prospect books a
+ * consultation once, so 5 is generous.
+ */
+export const orientationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    error: 'Too many consultation requests from this IP. Please try again in a few minutes.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
@@ -125,4 +148,5 @@ export default {
   uploadLimiter,
   waiverLimiter,
   contactLimiter,
+  orientationLimiter,
 };
