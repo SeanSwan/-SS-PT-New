@@ -27,21 +27,16 @@ import { Op } from 'sequelize';
 import { getClientPainEntry, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 import { deriveJointFriendlyAlternative } from './classStyleModifiers.mjs';
+import { bootcampTargetsForRegion } from '../training-cortex/ontology/regionMuscleMap.mjs';
 
 // Severity at which flagged Board-1 exercises are swapped, not just annotated.
 const PAIN_SWAP_SEVERITY = 7;
 // Minimum severity worth surfacing to a class board at all.
 const PAIN_FLAG_SEVERITY = 5;
 
-// Bootcamp-local region map (bridging to the shared Cortex ontology map is a
-// Phase 2 consolidation item in the directive — §1.3).
-const REGION_MUSCLE_MAP = {
-  left_knee: ['quadriceps', 'hamstrings'], right_knee: ['quadriceps', 'hamstrings'],
-  lower_back: ['erector_spinae', 'core', 'glutes'], upper_back: ['trapezius', 'rhomboids', 'lats'],
-  left_shoulder: ['shoulders', 'chest'], right_shoulder: ['shoulders', 'chest'],
-  left_hip: ['glutes', 'hip_flexors', 'adductors'], right_hip: ['glutes', 'hip_flexors', 'adductors'],
-  left_ankle: ['calves', 'tibialis'], right_ankle: ['calves', 'tibialis'],
-};
+// Cortex Phase 2C: the bootcamp region->target mapping moved to THE single
+// home (training-cortex/ontology/regionMuscleMap.mjs); vocabulary difference
+// vs the registry map is explicit there.
 
 async function loadRosterClientIds(trainerId) {
   const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
@@ -72,7 +67,17 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     const painWhere = { isActive: true, painLevel: { [Op.gte]: PAIN_FLAG_SEVERITY } };
     let aggregationScope;
     if (Array.isArray(rosterClientIds)) {
-      if (rosterClientIds.length === 0) return painAlerts;
+      if (rosterClientIds.length === 0) {
+        // Fail-VISIBLE: an empty active roster means drop-ins, pending
+        // assignments, and other trainers' clients are invisible to this
+        // gate — the trainer must know the check ran against nobody, not
+        // read the absence of annotations as "no pain in the room".
+        explanations.push({
+          type: 'pain_gate_roster_empty',
+          message: 'Pain-aware gating found no ACTIVE client assignments for this trainer — the class was not checked against any participant\'s pain report. Review Board 1 manually if drop-ins or unassigned clients are attending.',
+        });
+        return painAlerts;
+      }
       painWhere.userId = { [Op.in]: rosterClientIds };
       aggregationScope = `across ${rosterClientIds.length} active client(s)`;
     } else {
@@ -88,7 +93,7 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
 
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
-      const relatedMuscles = REGION_MUSCLE_MAP[region] || [];
+      const relatedMuscles = bootcampTargetsForRegion(region);
       if (relatedMuscles.length === 0) continue;
       const severity = Math.max(
         ...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel || 0),
@@ -108,6 +113,16 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         // exercises to a joint-friendly alternative in place (station
         // structure and timing preserved); no alternative → loud CAUTION mark.
         for (const ex of flagged) {
+          // Already routed for an earlier region: the muscleTargets that
+          // matched here belong to the ORIGINAL exercise, so a re-derived
+          // swap would overwrite painSwap.from with the first alternative's
+          // name (audit-trail corruption). Keep the original swap and add a
+          // loud caution for this region instead.
+          if (ex.painSwap) {
+            ex.painCaution = { region, severity };
+            cautionExercises.push(ex.exerciseName);
+            continue;
+          }
           const alternative = deriveJointFriendlyAlternative(ex, region);
           if (alternative && alternative !== ex.exerciseName) {
             ex.painSwap = { from: ex.exerciseName, region, severity };

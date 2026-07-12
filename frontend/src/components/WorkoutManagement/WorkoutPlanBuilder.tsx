@@ -59,6 +59,7 @@
  */
 
 import React from 'react';
+import SafetyGateModal from '../cortex/SafetyGateModal';
 import { Save } from 'lucide-react';
 import WorkoutPlanBuilderExerciseModal from './WorkoutPlanBuilderExerciseModal';
 import WorkoutPlanBuilderStepContent from './WorkoutPlanBuilderStepContent';
@@ -119,6 +120,10 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     toggleAccordion,
     addExerciseToDay,
     savePlan,
+    safetyGateReview,
+    acknowledgingSafetyGate,
+    confirmSafetyGateReview,
+    cancelSafetyGateReview,
   } = useWorkoutPlanBuilderController({
     clientId,
     clientName,
@@ -212,6 +217,15 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
         workoutDays={workoutDays}
         setExerciseLibraryOpen={setExerciseLibraryOpen}
         addExerciseToDay={addExerciseToDay}
+      />
+
+      <SafetyGateModal
+        open={Boolean(safetyGateReview)}
+        signals={safetyGateReview?.signals ?? []}
+        missingData={safetyGateReview?.missingData ?? []}
+        confirming={acknowledgingSafetyGate}
+        onConfirm={confirmSafetyGateReview}
+        onCancel={cancelSafetyGateReview}
       />
     </PageWrapper>
   );

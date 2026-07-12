@@ -12,6 +12,9 @@ import type {
   GeneratedWorkout,
   WorkoutBuilderPlanAssignmentDefault,
 } from '../../hooks/useWorkoutBuilderAPI';
+import SafetyGateModal from '../cortex/SafetyGateModal';
+import { parseSafetyGateReviewError, useSafetyGateReview } from '../cortex/useSafetyGateReview';
+import type { PlanningReviewAck } from '../cortex/useSafetyGateReview';
 import WorkoutBuilderContextPanel from './WorkoutBuilderContextPanel';
 import WorkoutBuilderControlsPanel from './WorkoutBuilderControlsPanel';
 import WorkoutBuilderErrorBoundary from './WorkoutBuilderErrorBoundary';
@@ -63,7 +66,15 @@ const WorkoutBuilderPage: React.FC = () => {
       .catch(() => setContext(null));
   }, [api, parsedClientId]);
 
-  const handleGenerate = useCallback(async () => {
+  const {
+    review: safetyGateReview,
+    acknowledging: acknowledgingSafetyGate,
+    requestSafetyGateReview,
+    cancelSafetyGateReview,
+    confirmSafetyGateReview,
+  } = useSafetyGateReview();
+
+  const runGeneration = useCallback(async (review?: PlanningReviewAck) => {
     if (!parsedClientId) {
       setError('Select a valid client before generating.');
       return;
@@ -87,10 +98,18 @@ const WorkoutBuilderPage: React.FC = () => {
         planWeeks,
         sessionsPerWeek,
         primaryGoal,
+        review,
       });
       setWorkout(result.workout);
       setPlan(result.plan);
     } catch (err) {
+      // Cortex Phase 2D: the safety gate opens the acknowledge dialog here
+      // too — same contract as the Workout Planner.
+      const gate = parseSafetyGateReviewError(err);
+      if (gate) {
+        requestSafetyGateReview(gate, async (ack) => { await runGeneration(ack); });
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
       setLoading(false);
@@ -106,7 +125,10 @@ const WorkoutBuilderPage: React.FC = () => {
     planWeeks,
     sessionsPerWeek,
     primaryGoal,
+    requestSafetyGateReview,
   ]);
+
+  const handleGenerate = useCallback(() => { void runGeneration(); }, [runGeneration]);
 
   const saveGeneratedPlan = useCallback(async (activate: boolean) => {
     if (!plan) return;
@@ -197,6 +219,14 @@ const WorkoutBuilderPage: React.FC = () => {
 
         <WorkoutBuilderInsightsPanel workout={workout} plan={plan} />
       </ThreePane>
+      <SafetyGateModal
+        open={Boolean(safetyGateReview)}
+        signals={safetyGateReview?.signals ?? []}
+        missingData={safetyGateReview?.missingData ?? []}
+        confirming={acknowledgingSafetyGate}
+        onConfirm={confirmSafetyGateReview}
+        onCancel={cancelSafetyGateReview}
+      />
     </PageWrapper>
   );
 };
