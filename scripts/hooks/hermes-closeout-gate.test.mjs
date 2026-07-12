@@ -58,6 +58,16 @@ test('git commit/push alone is a substantial signal', () => {
   assert.match(decide({}, raw) ?? '', /hermes-inbox/);
 });
 
+test('git -C worktree commit/push is also a substantial signal', () => {
+  for (const command of [
+    'git -C C:/tmp/review-worktree commit -m "fix: x"',
+    'git -C "C:/tmp/review worktree" push origin HEAD:review',
+  ]) {
+    const raw = [userText('finish it'), toolUse('Bash', { command })].join('\n');
+    assert.match(decide({}, raw) ?? '', /hermes-inbox/, command);
+  }
+});
+
 test('memo emission this turn passes (write path and cited path)', () => {
   const viaWrite = [
     userText('build'),

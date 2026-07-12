@@ -143,6 +143,14 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
     expect(mockWorkoutPlanFindOne).not.toHaveBeenCalled();
   });
 
+  it.each(['0', '-1', '9007199254740992'])('rejects unsafe or out-of-range plan id %s before access or database work', async (planId) => {
+    const res = await request(buildApp()).get(`/api/workouts/42/plans/${planId}`);
+
+    expect(res.status).toBe(400);
+    expect(mockEnsureClientAccess).not.toHaveBeenCalled();
+    expect(mockWorkoutPlanFindOne).not.toHaveBeenCalled();
+  });
+
   it('is READ-ONLY: the router exposes no client-side write path for plans', async () => {
     // Trainer-indispensability doctrine: only a trainer/admin may switch or edit
     // a plan. If someone adds a client-scoped activate/edit route, this fails.

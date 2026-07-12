@@ -101,16 +101,6 @@ const REPEAT_DRAFT_SOURCE: Record<string, NutritionDraftSource> = {
   voice: 'voice',
 };
 
-const REPEAT_SOURCE_CONFIDENCE: Record<NutritionDraftSource, NutritionSourceConfidence> = {
-  manual: 'community',
-  voice: 'ai_estimate',
-  photo: 'ai_estimate',
-  search: 'provider',
-  restaurant: 'provider',
-  barcode: 'provider',
-  'meal-plan': 'ai_estimate',
-};
-
 const REPEAT_SOURCE_LABEL: Record<NutritionDraftSource, string> = {
   manual: 'Manual diary entry',
   voice: 'Voice estimate',
@@ -147,7 +137,7 @@ export const repeatMacroEntryToNutritionDraft = (
   if (!macro) return null;
 
   const source = repeatDraftSource(entry?.source);
-  const sourceConfidence = REPEAT_SOURCE_CONFIDENCE[source];
+  const sourceConfidence: NutritionSourceConfidence = 'community';
   const sourceLabel = REPEAT_SOURCE_LABEL[source];
   const externalId = typeof entry?.id === 'number' || typeof entry?.id === 'string'
     ? String(entry.id)
@@ -176,7 +166,7 @@ export const repeatMacroEntryToNutritionDraft = (
       provider: 'Swan diary',
       externalId: externalId || undefined,
     },
-    reviewReason: sourceConfidence === 'provider' ? 'provider_estimate' : 'unverified_estimate',
+    reviewReason: 'unverified_estimate',
     reviewNotes: ['Confirm the serving still matches what you ate today.'],
     verified: false,
     foods: [{
@@ -199,7 +189,7 @@ export const repeatMacroEntryToNutritionDraft = (
         sugar: macro.sugar,
         sodium: macro.sodium,
       },
-      confidence: sourceConfidence === 'provider' ? 0.8 : sourceConfidence === 'ai_estimate' ? 0.5 : 0.6,
+      confidence: 0.6,
       provider: sourceLabel,
       sourceLabel,
       verified: false,

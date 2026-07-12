@@ -81,6 +81,21 @@ describe('ClientProgramShelf', () => {
     expect(bar).toHaveAttribute('aria-valuenow', '17');
   });
 
+  it.each([
+    ['past the plan end', 99, 100],
+    ['before the plan start', -3, 0],
+  ])('clamps %s progress and ARIA values to the 0-100 contract', (_case, currentWeek, expected) => {
+    const driftedVault = {
+      ...vault,
+      slots: vault.slots.map((plan, index) => index === 0 ? { ...plan, currentWeek } : plan),
+    };
+
+    render(<ClientProgramShelf userId={42} workout={workout as never} planVault={driftedVault as never} />);
+
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(expected));
+    expect(screen.getByText(`${expected}%`)).toBeInTheDocument();
+  });
+
   it('shelves the OTHER plans (and never an unfilled horizon slot)', () => {
     render(<ClientProgramShelf userId={42} workout={workout as never} planVault={vault as never} />);
 

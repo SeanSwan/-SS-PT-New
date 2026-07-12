@@ -26,7 +26,7 @@ describe('NutritionTodayPanel repeat review draft', () => {
       contractVersion: '1.0',
       id: 'repeat-draft-77',
       source: 'photo',
-      sourceConfidence: 'ai_estimate',
+      sourceConfidence: 'community',
       reviewReason: 'unverified_estimate',
       rawPayloadRef: { provider: 'Swan diary', externalId: '77' },
       foods: [{
@@ -40,8 +40,8 @@ describe('NutritionTodayPanel repeat review draft', () => {
   });
 
   it.each([
-    ['food-scanner', 'photo', 'ai_estimate'],
-    ['ai-chat', 'meal-plan', 'ai_estimate'],
+    ['food-scanner', 'photo', 'community'],
+    ['ai-chat', 'meal-plan', 'community'],
   ] as const)('preserves the %s source alias in repeat review', (storedSource, draftSource, confidence) => {
     const repeatDraft = repeatMacroEntryToNutritionDraft({
       id: 88,
@@ -55,6 +55,26 @@ describe('NutritionTodayPanel repeat review draft', () => {
     expect(repeatDraft).toMatchObject({
       source: draftSource,
       sourceConfidence: confidence,
+    });
+  });
+
+  it('treats a Swan diary repeat as community provenance that still requires review', () => {
+    const repeatDraft = repeatMacroEntryToNutritionDraft({
+      id: 91,
+      mealType: 'snack',
+      description: 'Saved barcode meal',
+      source: 'barcode',
+      servingQuantity: 1,
+      servingUnit: 'serving',
+    }, { draftId: 'repeat-internal-provider' });
+
+    expect(repeatDraft).toMatchObject({
+      source: 'barcode',
+      sourceConfidence: 'community',
+      reviewReason: 'unverified_estimate',
+      rawPayloadRef: { provider: 'Swan diary', externalId: '91' },
+      verified: false,
+      foods: [{ confidence: 0.6, verified: false }],
     });
   });
 });

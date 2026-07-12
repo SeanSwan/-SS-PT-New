@@ -4,7 +4,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
-// ðŸš€ ENHANCED P0 FIX: Coordinated model imports with associations
+// 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
 import { 
   getShoppingCart,
   getCartItem, 
@@ -13,7 +13,7 @@ import {
   getUser
 } from '../models/index.mjs';
 
-// ðŸŽ¯ ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
 // Models will be retrieved via getter functions inside each route handler when needed
 
 import Stripe from 'stripe';
@@ -248,7 +248,7 @@ const checkUserRoleUpgrade = async (user, cartItems) => {
     });
     
     if (hasTrainingPackages) {
-      const User = getUser(); // ðŸŽ¯ ENHANCED: Lazy load User model
+      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       await User.update({ role: 'client' }, { where: { id: user.id } });
       logger.info('[Cart] User role upgraded after training package detection', {
         userId: user.id
@@ -285,13 +285,13 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, ensureNumericCartUser, async (req, res) => {
   try {
-    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     const ProductVariant = getOptionalProductVariant();
     
-    // ðŸš€ ENHANCED P0 VERIFICATION: Coordinated association status
+    // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
     logger.debug('[Cart] Storefront association status', {
       hasStorefrontAssociation: hasAssociation
@@ -348,7 +348,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
  */
 router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -563,7 +563,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
  */
 router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -687,7 +687,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
  */
 router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
@@ -778,7 +778,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
  */
 router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
-    // ðŸŽ¯ ENHANCED P0 FIX: Lazy load models to prevent race condition
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     
