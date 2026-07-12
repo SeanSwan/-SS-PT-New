@@ -55,6 +55,9 @@ export function useGeminiTranscription(): UseGeminiTranscriptionReturn {
       const { data } = await apiService.post<{ text?: string; transcript?: string }>(
         '/api/ai-chat/transcribe',
         formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
       );
       const transcript = data.text || data.transcript || '';
       setText(transcript);
