@@ -251,4 +251,21 @@ describe('auth register clientSource contract', () => {
     expect(mocks.userModel.create).not.toHaveBeenCalled();
     expect(mocks.transaction.rollback).toHaveBeenCalled();
   });
+
+  it('rejects public admin self-registration even with an adminCode (Sean 2026-07-12: CLI/seed provisioning only)', async () => {
+    // The access-code path is GONE from public registration — the crown-jewel
+    // role must hard-block regardless of any code the caller supplies.
+    const req = {
+      body: validRegistration({ role: 'admin', adminCode: 'any-code-at-all', clientSource: undefined }),
+    };
+    delete req.body.clientSource;
+    const res = createResponse();
+
+    await register(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.body.message).toMatch(/admin accounts are created by swanstudios staff/i);
+    expect(mocks.userModel.create).not.toHaveBeenCalled();
+    expect(mocks.transaction.rollback).toHaveBeenCalled();
+  });
 });
