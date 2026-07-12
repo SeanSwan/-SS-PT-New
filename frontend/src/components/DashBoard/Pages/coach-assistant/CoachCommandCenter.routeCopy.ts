@@ -110,13 +110,13 @@ function selfWorkoutRouteContext(
 function planReviewRouteContext(routeClientLabel: string | null): RouteContextCopy {
   return {
     prompt: prompt([
-      'Build Plan review.',
-      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this Build Plan route.',
+      'Workout Planner review.',
+      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this Workout Planner route.',
       'Review the selected day before it is saved, assigned, or logged.',
       'Name safety issues, missing warmup/cooldown detail, pain-risk edits, and the simplest logger-ready version.',
       'Do not claim the workout was logged until it is saved in the Workout Logger.',
     ]),
-    status: 'Build Plan review context loaded',
+    status: 'Workout Planner review context loaded',
   };
 }
 
@@ -159,7 +159,7 @@ export function buildTeachPromptRouteContext(
     status: routeIntent === 'trainer_daily_command'
       ? 'Trainer day command context loaded'
       : routeIntent === 'plan_review'
-        ? 'Build Plan review context loaded'
+        ? 'Workout Planner review context loaded'
         : 'Coach route prompt loaded',
   };
 }

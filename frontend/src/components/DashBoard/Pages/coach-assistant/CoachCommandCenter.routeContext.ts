@@ -5,6 +5,7 @@
  * outside the main controller/logic module.
  */
 import { normalizeIsoDateOnly } from '../../../../utils/isoDateOnly';
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 import type {
   CoachChatRouteRequestContext,
   CoachCommandRouteContext,
@@ -121,13 +122,14 @@ const RETURN_LABELS: Record<string, string> = {
   'admin-overview': 'Back to Admin Overview', 'clients-team': 'Back to Client Hub', 'master-schedule': 'Back to Schedule',
   'trainer-overview': 'Back to Trainer Home', 'client-dashboard': 'Back to Client Dashboard',
   'admin-workout-logger': 'Back to Workout Logger', 'trainer-workout-logger': 'Back to Workout Logger', 'client-workout-logger': 'Back to Workout Logger',
-  'admin-workout-planner': 'Back to Build Plan', 'trainer-workout-planner': 'Back to Build Plan', 'client-workout-planner': 'Back to Build Plan',
+  'admin-workout-planner': `Back to ${CANONICAL_SURFACES.workoutPlanner.name}`, 'trainer-workout-planner': `Back to ${CANONICAL_SURFACES.workoutPlanner.name}`, 'client-workout-planner': 'Back to My Workouts',
 };
 
 function commandCenterReturnPathLabel(returnTo: string): string {
   const pathname = returnTo.split(/[?#]/, 1)[0];
   if (pathname === '/dashboard/admin/log-my-workout' || /^\/dashboard\/(?:trainer|client)\/log-workout\/?$/.test(pathname)) return 'Back to Workout Logger';
-  if (/^\/dashboard\/(?:admin|trainer)\/workout-planner\/?$/.test(pathname) || pathname === '/dashboard/client/workouts') return 'Back to Build Plan';
+  if (/^\/dashboard\/(?:admin|trainer)\/workout-planner\/?$/.test(pathname)) return `Back to ${CANONICAL_SURFACES.workoutPlanner.name}`;
+  if (pathname === '/dashboard/client/workouts') return 'Back to My Workouts';
   if (pathname.startsWith('/dashboard/admin/client-management')) return 'Back to Client Hub';
   if (/^\/dashboard\/(?:admin|trainer)\/schedule\/?$/.test(pathname)) return 'Back to Schedule';
   if (pathname === '/dashboard/trainer/overview') return 'Back to Trainer Home';

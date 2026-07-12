@@ -56,7 +56,7 @@ describe('CoachCommandCenterPage shell', () => {
     expect(within(menu).queryByRole('menuitem', { name: /^Readback help$/i })).not.toBeInTheDocument();
     expect(within(menu).getByRole('menuitemcheckbox', { name: /Read replies aloud/i })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Open workout logger/i })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /Open Build Plan/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /Open Workout Planner/i })).toBeInTheDocument();
   });
   it('turns empty transcript suggestions into composer drafts without submitting', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
@@ -80,7 +80,7 @@ describe('CoachCommandCenterPage shell', () => {
     const menu = openCommandTools();
     const reviewIntake = within(menu).getByRole('menuitem', { name: /^Review intake$/i });
     const importAudio = within(menu).getByRole('menuitem', { name: /^Import audio$/i });
-    const buildPlan = within(menu).getByRole('menuitem', { name: /Open Build Plan/i });
+    const buildPlan = within(menu).getByRole('menuitem', { name: /Open Workout Planner/i });
     await waitFor(() => expect(reviewIntake).toHaveFocus());
     fireEvent.keyDown(reviewIntake, { key: 'ArrowDown' });
     expect(importAudio).toHaveFocus();

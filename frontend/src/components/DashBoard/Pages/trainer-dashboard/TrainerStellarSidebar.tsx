@@ -45,6 +45,7 @@ import {
   FooterVersion,
 } from './TrainerStellarSidebar.styles';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -69,9 +70,9 @@ export const trainerNavConfig = [
   {
     section: 'BUILD',
     items: [
-      { label: 'Build Plan', path: '/dashboard/trainer/build-plan', icon: Zap },
+      { label: CANONICAL_SURFACES.buildPlan.name, path: CANONICAL_SURFACES.buildPlan.routes.trainer, icon: Zap },
       { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
-      { label: 'Plan Library', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
+      { label: CANONICAL_SURFACES.workoutPlanner.name, path: CANONICAL_SURFACES.workoutPlanner.routes.trainer, icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
       { label: 'Equipment', path: '/dashboard/trainer/equipment', icon: Wrench },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },

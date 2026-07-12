@@ -1,3 +1,5 @@
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
+
 interface CoachCommandTitleInput {
   activeThreadTitle: string;
   commandText: string;
@@ -21,7 +23,8 @@ export function buildCoachCommandTitle({
     return routeClientLabel ? `${routeClientLabel} profile coverage update` : 'Client profile coverage update';
   }
   if (routeIntent === 'plan_review') {
-    return routeClientLabel ? `${routeClientLabel} Build Plan review` : 'Build Plan review';
+    const planReviewTitle = `${CANONICAL_SURFACES.workoutPlanner.name} review`;
+    return routeClientLabel ? `${routeClientLabel} ${planReviewTitle}` : planReviewTitle;
   }
   if (routeClientLabel) return `${routeClientLabel} daily workout log`;
   return commandText.slice(0, 60);

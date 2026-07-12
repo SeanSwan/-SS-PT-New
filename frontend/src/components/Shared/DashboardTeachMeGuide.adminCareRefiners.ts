@@ -31,7 +31,7 @@ export const adminClientHubCommand = (
   actions: [
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Log Client Workout', to: '/dashboard/admin/client-management?intent=log_workout' },
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
     { label: 'Client Progress', to: '/dashboard/admin/client-progress-tracking' },
   ],

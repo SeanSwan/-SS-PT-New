@@ -106,7 +106,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   return (
     <DegradedPanel $degraded={degradedIntelligence}>
       <PanelHeader>
-        <PanelTitle><Zap size={16} /> Workout Builder</PanelTitle>
+        <PanelTitle><Zap size={16} /> Plan Builder</PanelTitle>
         <BuilderActionMatrix
           saving={saving}
           hasExercises={hasExercises}

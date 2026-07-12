@@ -11,7 +11,7 @@
  * slow breathing Ice Wing shimmer to make locked features feel like frozen
  * artifacts waiting to be awakened — not cheap paywalls.
  *
- * HOW IT FITS IN THE APP: Used across Content Studio tabs, Plan Library Pro,
+ * HOW IT FITS IN THE APP: Used across Content Studio tabs, Workout Planner Pro,
  * and any future premium feature that requires API keys or subscription.
  *
  * KEY DECISIONS: CSS keyframes for dormant shimmer (perf), Framer Motion for

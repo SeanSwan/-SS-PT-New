@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ArrowRight } from 'lucide-react';
 import { isPlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 
 const ActionWrap = styled.div`
   margin-top: 12px;
@@ -106,7 +107,7 @@ function labelForCommand(command: string, route: string): string {
   if (isAdminPlaudCommandCenter) return 'Open PLAUD Workspace';
   if (path.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
   if (path.includes('/coach-assistant') && /[?&]proposal=/.test(route)) return 'Open Prepared Draft';
-  if (path.includes('/workout-planner')) return 'Open Build Plan';
+  if (path.includes('/workout-planner')) return CANONICAL_SURFACES.workoutPlanner.ariaLabel;
   if (path.includes('/coach-assistant')) return 'Open Coach Intake';
   if (path.includes('/plaud')) return 'Open PLAUD Workspace';
   if (command.includes('coach_intake')) return 'Open Coach Intake';

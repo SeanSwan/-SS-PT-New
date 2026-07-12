@@ -5,6 +5,8 @@
  * This ensures consistency between admin, trainer, and client dashboards.
  */
 
+import { CANONICAL_SURFACES } from './canonical-surface-names';
+
 export type TabStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
 
 export type DashboardTab = {
@@ -534,7 +536,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
 
   // ── TRAINING — fitness programming and health ──
-  { id: 'workouts', section: 'training', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Program lab for plans, templates, rolodex, and AI generation' },
+  { id: 'workouts', section: 'training', label: CANONICAL_SURFACES.workoutPlanner.name, icon: 'Dumbbell', prefix: CANONICAL_SURFACES.workoutPlanner.routes.admin, description: CANONICAL_SURFACES.workoutPlanner.subtitles.admin },
   { id: 'bootcamp', section: 'training', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
   { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
   { id: 'pain-charts', section: 'training', label: 'Pain Charts', icon: 'Heart', prefix: '/dashboard/admin/body-map', description: 'Client pain and injury tracking (body map)' },

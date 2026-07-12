@@ -33,9 +33,9 @@ describe('DashboardTeachMeGuide admin self planner routes', () => {
       pathname: '/dashboard/admin/workout-planner',
     });
 
-    expect(guide.title).toBe('Admin Plan Library');
+    expect(guide.title).toBe('Admin Workout Planner');
     expect(guide.primaryAction).toEqual({
-      label: 'Open Plan Library',
+      label: 'Open Workout Planner',
       to: '/dashboard/admin/workout-planner',
     });
   });

@@ -1,6 +1,6 @@
 /**
  * COMPONENT: TrainerWorkoutForgeNextActions
- * PURPOSE: Post-save command panel that moves a trainer draft into logging or Plan Library review.
+ * PURPOSE: Post-save command panel that moves a trainer draft into logging or Workout Planner review.
  */
 import { ClipboardCheck, Dumbbell, ListChecks } from 'lucide-react';
 import {
@@ -35,11 +35,11 @@ const TrainerWorkoutForgeNextActions = ({
         <Dumbbell size={18} /> Log Today
       </ActionBtn>
       <ActionBtn type="button" $variant="secondary" onClick={onOpenPlanner}>
-        <ListChecks size={18} /> Open Plan Library
+        <ListChecks size={18} /> Open Workout Planner
       </ActionBtn>
     </ButtonRow>
     <HelperCopy>
-      Logger opens with today's plan loaded. Plan Library keeps the draft in the review lane.
+      Logger opens with today's plan loaded. Workout Planner keeps the draft in the review lane.
     </HelperCopy>
   </Card>
 );

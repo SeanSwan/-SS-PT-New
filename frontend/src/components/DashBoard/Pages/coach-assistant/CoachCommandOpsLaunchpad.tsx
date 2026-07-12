@@ -91,7 +91,7 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   const showClientPicker = hasLoggerRoute && scopeLabel === 'My workout log';
   const targetNote = hasLoggerRoute
     ? workoutPlannerRoute
-      ? 'Coach, Build Plan, and Logger point here.'
+      ? 'Coach, Workout Planner, and Logger point here.'
       : 'Coach and Logger point here.'
     : 'Pick a client so workout actions route correctly.';
   const safetyNote = hasLoggerRoute ? 'Save happens in Logger.' : 'No workout writes until a target is chosen.';
@@ -147,8 +147,8 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         ) : null}
 
         {workoutPlannerRoute ? (
-          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open Build Plan from Operations">
-            <ActionBody icon={<ClipboardList size={18} aria-hidden="true" />} title="Build plan" note="Create plan" />
+          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open Workout Planner from Operations">
+            <ActionBody icon={<ClipboardList size={18} aria-hidden="true" />} title="Workout Planner" note="Create plan" />
           </Link>
         ) : null}
 

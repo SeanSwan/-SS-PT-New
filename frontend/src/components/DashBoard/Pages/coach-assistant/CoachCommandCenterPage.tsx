@@ -20,6 +20,7 @@ import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawe
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 import {
   CLIENT_NEXT_ACTION_LABEL,
   CLIENT_WORKOUTS_ROUTE,
@@ -246,8 +247,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
-            workoutPlannerLabel={isClientMode ? 'My Workouts' : 'Build Plan'}
-            workoutPlannerAriaLabel={isClientMode ? 'Open workouts' : 'Open Build Plan'}
+            workoutPlannerLabel={isClientMode ? 'My Workouts' : CANONICAL_SURFACES.workoutPlanner.name}
+            workoutPlannerAriaLabel={isClientMode ? 'Open workouts' : CANONICAL_SURFACES.workoutPlanner.ariaLabel}
             showPlaudAction={!isClientMode}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}

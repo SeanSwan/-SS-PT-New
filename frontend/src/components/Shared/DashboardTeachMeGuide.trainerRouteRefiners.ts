@@ -133,11 +133,11 @@ const trainerSprintPlanning = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   fastPath: [
     'Pick the sprint outcome.',
     'Connect it to client progress.',
-    'Move the next action into Plan Library, schedule, or Coach.',
+    'Move the next action into Workout Planner, schedule, or Coach.',
   ],
   actions: [
     { label: 'Sprint Planner', to: '/dashboard/trainer/sprint-planner' },
-    { label: 'Plan Library', to: '/dashboard/trainer/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
     { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],

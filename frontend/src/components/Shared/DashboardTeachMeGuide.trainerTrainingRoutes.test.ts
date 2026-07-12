@@ -2,38 +2,38 @@ import { describe, expect, it } from 'vitest';
 import { getDashboardTeachMeGuide } from './DashboardTeachMeGuide.logic';
 
 describe('DashboardTeachMeGuide trainer training routes', () => {
-  it('teaches Build Plan as a save-to-logger and Plan Library handoff', () => {
+  it('teaches Build Plan as a save-to-logger and Workout Planner handoff', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/build-plan',
     });
 
     expect(guide.title).toBe('Trainer Build Plan flow');
-    expect(guide.summary).toMatch(/Log Today|Open Plan Library/i);
-    expect(guide.focus).toMatch(/Log Today|Open Plan Library/i);
-    expect(guide.fastPath.join(' ')).toMatch(/Log Today|Open Plan Library/i);
+    expect(guide.summary).toMatch(/Log Today|Open Workout Planner/i);
+    expect(guide.focus).toMatch(/Log Today|Open Workout Planner/i);
+    expect(guide.fastPath.join(' ')).toMatch(/Log Today|Open Workout Planner/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Build Plan', to: '/dashboard/trainer/build-plan' }),
       expect.objectContaining({ label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' }),
-      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/trainer/workout-planner' }),
+      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
     ]));
     expect(guide.primaryPrompt).toContain('logger');
   });
 
-  it('keeps trainer Plan Library, equipment, and bootcamp on the exact tool they opened', () => {
+  it('keeps trainer Workout Planner, equipment, and bootcamp on the exact tool they opened', () => {
     const planner = getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/workout-planner',
     });
 
-    expect(planner.title).toBe('Trainer Plan Library');
+    expect(planner.title).toBe('Trainer Workout Planner');
     expect(planner.primaryAction).toEqual({
-      label: 'Open Plan Library',
+      label: 'Open Workout Planner',
       to: '/dashboard/trainer/workout-planner',
     });
-    expect(planner.primaryPrompt).toContain('Plan Library');
+    expect(planner.primaryPrompt).toContain('Workout Planner');
     expect(planner.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/trainer/workout-planner' }),
+      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
       expect.objectContaining({ label: 'My Clients', to: '/dashboard/trainer/clients' }),
       expect.objectContaining({ label: 'Equipment', to: '/dashboard/trainer/equipment' }),
     ]));

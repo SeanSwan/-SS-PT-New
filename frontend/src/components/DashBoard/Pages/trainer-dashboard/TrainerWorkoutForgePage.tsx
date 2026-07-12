@@ -4,7 +4,7 @@
  * creation with the existing Swan Coach workout copilot.
  *
  * CANONICAL ROUTE:
- * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/build-plan.
+ * UniversalDashboardLayout.routes.tsx mounts this page at /dashboard/trainer/build-plan (canonical) and /dashboard/trainer/workout-forge (alias).
  *
  * DATA CONTRACTS:
  * - GET role-aware clients for trainer/admin client selector parity.

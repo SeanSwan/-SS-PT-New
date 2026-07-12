@@ -1,5 +1,6 @@
 import React from 'react';
 import { EXERCISE_LIBRARY_CLAIM } from '../../content/marketingStats';
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import {
   AdminClientDetailsRedirect,
   AdminLogWorkoutRedirect,
@@ -109,7 +110,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
       { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Create and update client nutrition plans' },
       { path: '/admin-specials', component: AdminCreateSpecialManager, title: 'Client Deals', description: 'Create per-client custom session deals (bonus-session pricing)' },
-      { path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
+      { path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect, title: CANONICAL_SURFACES.workoutPlanner.name, description: 'Redirects legacy admin workouts links into the Workout Planner' },
       { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
       { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
       { path: '/gallery', component: AdminGalleryStudio, title: 'Photo Gallery Studio', description: 'Passcode photoshoot galleries — create events and batch-upload client shoots' },
@@ -136,7 +137,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/log-workout', component: AdminLogWorkoutRedirect, title: 'Log Client Workout', description: 'Redirects to the Client Hub workout logger' },
       { path: '/log-my-workout', component: AdminPersonalWorkoutLogger, title: 'Log My Workout', description: 'Owner personal workout logger' },
       { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: CANONICAL_SURFACES.workoutPlanner.name, description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' },
       { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'Campaign approvals, publishing cadence, lead follow-up, and performance signals' },
@@ -161,10 +162,11 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
-      { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'Swan Coach workout generation' },
+      { path: '/build-plan', component: TrainerWorkoutForgePage, title: CANONICAL_SURFACES.buildPlan.name, description: 'Draft a client workout with the Swan Coach copilot' },
+      { path: '/workout-forge', component: TrainerWorkoutForgePage, title: CANONICAL_SURFACES.buildPlan.name, description: 'Alias route for Build Plan draft creation' },
       { path: '/challenges', component: ChallengeCommandWorkspace, title: 'Challenges', description: 'Create and monitor client challenge campaigns' },
       { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: CANONICAL_SURFACES.workoutPlanner.name, description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Set client nutrition targets (assignment-checked server-side)' },
       { path: '/schedule', component: UniversalSchedule, title: 'My Schedule', description: 'Personal appointment calendar' },

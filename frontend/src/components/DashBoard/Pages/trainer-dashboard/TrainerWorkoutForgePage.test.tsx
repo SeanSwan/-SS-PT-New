@@ -196,7 +196,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
     });
   });
 
-  it('turns a saved draft into one-click logger and Plan Library next actions', async () => {
+  it('turns a saved draft into one-click logger and Workout Planner next actions', async () => {
     const user = userEvent.setup();
     render(<TrainerWorkoutForgePage />);
 
@@ -215,7 +215,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
       '/dashboard/trainer/log-workout?clientId=424242&loadPlan=today&source=build-plan',
     );
 
-    await user.click(screen.getByRole('button', { name: /open plan library/i }));
+    await user.click(screen.getByRole('button', { name: /open workout planner/i }));
     expect(mockNavigate).toHaveBeenCalledWith(
       '/dashboard/trainer/workout-planner?clientId=424242&source=build-plan',
     );

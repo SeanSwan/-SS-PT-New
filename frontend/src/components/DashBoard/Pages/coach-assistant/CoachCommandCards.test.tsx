@@ -256,7 +256,7 @@ describe('ExecutionResultCard route actions', () => {
       </MemoryRouter>,
     );
 
-    const link = screen.getByRole('link', { name: /open build plan/i });
+    const link = screen.getByRole('link', { name: /open workout planner/i });
     expect(link).toHaveAttribute('href', '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans');
     expect(screen.queryByText('targetRoute')).toBeNull();
   });
@@ -273,7 +273,7 @@ describe('ExecutionResultCard route actions', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('link', { name: /open build plan/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /open workout planner/i })).toBeNull();
   });
   it('labels unified Coach intake routes as Coach intake actions', () => {
     render(

@@ -47,7 +47,7 @@ describe('CoachCommandCenter selected thread target routes', () => {
       'href',
       '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
     );
-    expect(within(opsRail).getByRole('link', { name: /open build plan/i })).toHaveAttribute(
+    expect(within(opsRail).getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?clientId=424242&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242%26tab%3Dtraining%26trainingSection%3Dplans',
     );

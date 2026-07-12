@@ -81,7 +81,7 @@ const adminClientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatc
   actions: [
     { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
     { label: 'Client Hub Logger', to: '/dashboard/admin/client-management?tab=training&trainingSection=logger&loadPlan=today' },
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
   primaryPrompt: 'teach me the admin client workout logging workflow',

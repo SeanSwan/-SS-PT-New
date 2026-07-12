@@ -1,7 +1,7 @@
 /**
- * SHARED LOGIC: Admin self Build Plan Teach Me refiner.
+ * SHARED LOGIC: Admin self Workout Planner Teach Me refiner.
  * PURPOSE: Keeps Sean's owner-plan workflow distinct from client workout
- * programming when the admin Plan Library opens with self mode enabled.
+ * programming when the admin Workout Planner opens with self mode enabled.
  */
 
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
@@ -24,7 +24,7 @@ export const adminSelfWorkoutPlanning = (base: DashboardTeachMeGuideCopy) => app
     'Save it or send it to Log My Workout.',
   ],
   steps: [
-    'Confirm the Plan Library is in self mode before adding exercises so client programming and owner training do not mix.',
+    'Confirm the Workout Planner is in self mode before adding exercises so client programming and owner training do not mix.',
     'Build from the same constraints you would use for a client: goal, equipment, pain signals, schedule, and training phase.',
     'Use Swan Coach when you need a cleaner draft, then review the plan before saving it.',
     'Open Log My Workout after planning so sets, reps, load, and notes become real progress proof.',
@@ -33,7 +33,7 @@ export const adminSelfWorkoutPlanning = (base: DashboardTeachMeGuideCopy) => app
     { label: 'Build My Plan', to: '/dashboard/admin/workout-planner?self=1' },
     { label: 'Log My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
   ],
   primaryPrompt: 'teach me the admin self workout planning workflow',
 });

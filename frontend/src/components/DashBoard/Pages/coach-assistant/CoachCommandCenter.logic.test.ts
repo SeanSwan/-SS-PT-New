@@ -74,7 +74,7 @@ describe('CoachCommandCenter return route normalization', () => {
     expect(buildWorkflowReturnLabel('/dashboard/trainer/log-workout?clientId=42', null))
       .toBe('Back to Workout Logger');
     expect(buildWorkflowReturnLabel('/dashboard/admin/workout-planner?clientId=42', 'swan-coach'))
-      .toBe('Back to Build Plan');
+      .toBe('Back to Workout Planner');
     expect(buildWorkflowReturnLabel('/dashboard/admin/client-management?clientId=42', 'unknown-source'))
       .toBe('Back to Client Hub');
     expect(buildWorkflowReturnLabel('/dashboard/admin/schedule?date=2026-06-30', null))

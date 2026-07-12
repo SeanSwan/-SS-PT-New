@@ -12,14 +12,14 @@ describe('buildCoachCommandTitle', () => {
     })).toBe('Ava thread');
   });
 
-  it('labels Build Plan review routes as plan review, not workout logs', () => {
+  it('labels Workout Planner review routes as plan review, not workout logs', () => {
     expect(buildCoachCommandTitle({
       activeThreadTitle: 'Unused',
       commandText: 'Check Day 2',
       hasActiveThread: false,
       routeClientLabel: 'Client #42',
       routeIntent: 'plan_review',
-    })).toBe('Client #42 Build Plan review');
+    })).toBe('Client #42 Workout Planner review');
   });
 
   it('keeps existing onboarding, coverage, and daily log titles', () => {

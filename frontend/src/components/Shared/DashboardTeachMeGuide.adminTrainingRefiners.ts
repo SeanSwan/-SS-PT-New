@@ -1,6 +1,6 @@
 /**
  * SHARED LOGIC: Admin training Teach Me route refiners.
- * PURPOSE: Makes Plan Library, equipment, and bootcamp routes teach the right first
+ * PURPOSE: Makes Workout Planner, equipment, and bootcamp routes teach the right first
  * click without implying hidden workout writes.
  */
 
@@ -24,17 +24,17 @@ const adminEquipmentCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   fastPath: [
     'Check available equipment.',
     'Flag missing or limited tools.',
-    'Return to Plan Library with constraints clear.',
+    'Return to Workout Planner with constraints clear.',
   ],
   steps: [
     'Start here when the workout depends on tools, substitutions, or facility setup.',
     'Treat equipment truth as a constraint, not decoration.',
-    'Return to Plan Library or Client Hub only after the available setup is clear.',
+    'Return to Workout Planner or Client Hub only after the available setup is clear.',
     'Use Coach to ask for substitutions, but review the plan before saving it.',
   ],
   actions: [
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
@@ -56,11 +56,11 @@ const adminBootcampBuilder = (base: DashboardTeachMeGuideCopy) => applyPatch(bas
     'Use Bootcamp for group-class flow, not one-client programming.',
     'Check equipment and station timing before accepting the plan.',
     'Use Schedule once the class plan is ready so delivery has a real time slot.',
-    'Keep one-client plans in Plan Library or Client Hub Training.',
+    'Keep one-client plans in Workout Planner or Client Hub Training.',
   ],
   actions: [
     { label: 'Bootcamp', to: '/dashboard/admin/bootcamp' },
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Schedule', to: '/dashboard/admin/master-schedule' },
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
   ],
@@ -69,28 +69,28 @@ const adminBootcampBuilder = (base: DashboardTeachMeGuideCopy) => applyPatch(bas
 
 const adminWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   eyebrow: 'Teach the training builder',
-  title: 'Admin Plan Library',
-  summary: 'Use Plan Library and Client Hub Training to turn client goals, equipment, pain signals, and training phase into a usable plan.',
+  title: 'Admin Workout Planner',
+  summary: 'Use Workout Planner and Client Hub Training to turn client goals, equipment, pain signals, and training phase into a usable plan.',
   focus: 'Build from client context first: goal, equipment, pain, schedule, then generate or save the plan where the trainer can use it.',
-  primaryAction: { label: 'Open Plan Library', to: '/dashboard/admin/workout-planner' },
+  primaryAction: { label: 'Open Workout Planner', to: '/dashboard/admin/workout-planner' },
   fastPath: [
     'Choose client context.',
     'Generate or assemble the plan.',
     'Save it where logging can use it.',
   ],
   steps: [
-    'Start in Client Hub when the plan belongs to one client; use Plan Library when the plan structure is the main task.',
+    'Start in Client Hub when the plan belongs to one client; use Workout Planner when the plan structure is the main task.',
     'Confirm equipment and pain constraints before accepting generated work.',
     'Use Bootcamp only for group-class flow; do not mix it with one-client programming unless that is intentional.',
     'Save the plan before leaving so it can feed future logging and progress proof.',
   ],
   actions: [
-    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
     { label: 'Bootcamp', to: '/dashboard/admin/bootcamp' },
   ],
-  primaryPrompt: 'teach me the admin Plan Library workflow',
+  primaryPrompt: 'teach me the admin Workout Planner workflow',
 });
 
 export const adminTrainingSystems = (

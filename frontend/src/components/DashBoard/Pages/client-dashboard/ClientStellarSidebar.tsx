@@ -43,6 +43,7 @@ import {
   FooterVersion,
 } from './ClientStellarSidebar.styles';
 import { isNonDeductingClientSource } from '../../workspaces/clients-team/clientSessionSignal';
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -54,7 +55,7 @@ export const clientNavConfig = [
     items: [
       { label: 'Home', path: '/dashboard/client/overview', icon: Home },
       { label: 'My Progress', path: '/dashboard/client/progress', icon: TrendingUp },
-      { label: 'Log Workout', path: '/dashboard/client/log-workout?loadPlan=today', icon: ClipboardCheck },
+      { label: CANONICAL_SURFACES.logWorkout.name, path: `${CANONICAL_SURFACES.logWorkout.routes.client}?loadPlan=today`, icon: ClipboardCheck },
     ],
   },
   {

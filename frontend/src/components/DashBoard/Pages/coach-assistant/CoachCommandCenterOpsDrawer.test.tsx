@@ -176,7 +176,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(within(operationsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
     expect(within(operationsRail).getAllByText('My workout log').length).toBeGreaterThan(0);
     expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
-    expect(within(priorityActions).getByRole('link', { name: /Open Build Plan/i })).toHaveAttribute(
+    expect(within(priorityActions).getByRole('link', { name: /Open Workout Planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
     );
@@ -188,7 +188,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
     const logNow = within(priorityActions).getByRole('link', { name: /Log workout now/i });
-    const builder = within(priorityActions).getByRole('link', { name: /Open Build Plan/i });
+    const builder = within(priorityActions).getByRole('link', { name: /Open Workout Planner/i });
 
     expect(logNow).toHaveAttribute(
       'href',

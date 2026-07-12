@@ -25,7 +25,7 @@ export const adminEngagementSystems = (
       ],
       actions: [
         { label: 'Sprint Planner', to: '/dashboard/admin/sprint-planner' },
-        { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
+        { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
         { label: 'Marketing', to: '/dashboard/admin/marketing' },
         { label: 'Client Progress', to: '/dashboard/admin/client-progress-tracking' },
       ],

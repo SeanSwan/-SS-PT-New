@@ -24,11 +24,11 @@ describe('CoachCommandCenterPage workout route actions', () => {
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveTextContent('Build Plan');
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveTextContent('Workout Planner');
   });
 
   it('links route clients to the canonical client training logger and planner surfaces inside More', () => {
@@ -39,7 +39,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
@@ -56,7 +56,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
       'href',
       '/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
     );
@@ -107,7 +107,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
 
     const menu = openCommandTools();
-    expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
     );
@@ -120,7 +120,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
 
     const menu = openCommandTools();
-    expect(within(menu).getByRole('menuitem', { name: /^open build plan$/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /^open workout planner$/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule&sessionId=88&sessionDate=2026-05-31T16%3A00%3A00.000Z&sessionCredits=2',
     );
