@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Workout Design Lab 25-view contract
  * Locks registry completeness, route copy, prototype safety, and composition ownership.
  */
@@ -111,9 +111,10 @@ describe("Workout Design Lab 25-view contract", () => {
     const tabs = read("../../../../config/dashboard-tabs.ts");
     const page = read("./WorkoutDesignLabPage.tsx");
 
-    expect(routes).toContain("25 read-only workout worlds");
-    expect(tabs).toContain("Compare 25 unified workout interface worlds");
-    expect(page).toContain("{WORKOUT_DESIGN_CONCEPT_COUNT} workout worlds");
+    expect(routes).toContain("25 workout Worlds plus 25 Style Lenses");
+    expect(tabs).toContain("Explore 25 workout Worlds and 25 Style Lenses");
+    expect(page).toContain("{WORKOUT_DESIGN_CONCEPT_COUNT} Worlds");
+    expect(page).toContain("{WORKOUT_DESIGN_STYLE_COUNT} Styles");
     expect(page).toContain("WORKOUT_DESIGN_CONCEPT_COUNT");
   });
 
