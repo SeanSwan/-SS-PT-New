@@ -268,11 +268,15 @@ describe('swanCoachPlanningContextService', () => {
       },
     });
 
+    // Cortex P0 §5.2-§5.3 tiered contract: unknown pain source BLOCKS
+    // (pain_data_unavailable); baseline/history hygiene gaps are ADVISORY.
     expect(fingerprint.safetyGate).toEqual(expect.objectContaining({
       mode: 'deterministic_review_gate',
       status: 'review_required',
       reviewRequiredSignals: expect.arrayContaining([
-        'missing_pain_or_injury_context',
+        'pain_data_unavailable',
+      ]),
+      advisorySignals: expect.arrayContaining([
         'missing_baseline_or_readiness_context',
         'low_training_history',
       ]),
@@ -296,7 +300,9 @@ describe('swanCoachPlanningContextService', () => {
     });
 
     expect(fingerprint.safetyGate.status).toBe('review_required');
-    expect(fingerprint.safetyGate.reviewRequiredSignals).toContain('missing_pain_or_injury_context');
+    // §5.2: an empty pain object without a source status is UNKNOWN, and
+    // unknown fails closed as unavailable — never as "loaded".
+    expect(fingerprint.safetyGate.reviewRequiredSignals).toContain('pain_data_unavailable');
     expect(fingerprint.safetyGate.missingCriticalData).toContain('pain/injury context');
   });
 
@@ -317,7 +323,7 @@ describe('swanCoachPlanningContextService', () => {
 
     expect(fingerprint.safetyGate.status).toBe('review_required');
     expect(fingerprint.safetyGate.reviewRequiredSignals).toEqual(expect.arrayContaining([
-      'pain_or_injury_context_present',
+      'active_pain_review_required',
       'medical_clearance_required',
       'special_population_review_required',
       'referral_review_recommended',
@@ -329,7 +335,9 @@ describe('swanCoachPlanningContextService', () => {
     const fingerprint = buildSwanCoachPlanningFingerprint({
       context: {
         workouts: { sessionsLast2Weeks: 4 },
-        pain: { exclusions: [], warnings: [] },
+        // §5.2: "complete" safety context now includes the pain source status —
+        // loaded-with-no-active-issue, not just empty arrays.
+        pain: { status: 'loaded_no_active_issue', exclusions: [], warnings: [] },
         movement: { compensations: [] },
         goals: { primaryGoal: 'hypertrophy' },
         baseline: { nasmAssessmentScore: 72 },
