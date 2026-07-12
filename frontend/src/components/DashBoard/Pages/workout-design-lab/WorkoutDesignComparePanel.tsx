@@ -10,7 +10,7 @@
  * shown. Shared workout model flows into both stages (one session truth).
  * ============================================================================
  */
-import React from "react";
+import React, { useMemo, useState } from "react";
 import type { StyleLensManifest } from "../../../../core/style-lens-os";
 import { ScopedLensFrame } from "../../../../core/style-lens-os";
 import { SWAN_STYLE_LENS_VISUALS } from "../../../../adapters/style-lens-swan";
@@ -23,6 +23,17 @@ import {
   CompareStageGrid,
   LensDot,
 } from "./WorkoutDesignLabAtmosphere.styles";
+import LensPlanFrame from "./LensPlanFrame";
+import { compileRecipe } from "../../../../core/style-lens-os/v2/compileRecipe";
+import {
+  changedAxisCount,
+  whatChanged,
+} from "../../../../core/style-lens-os/v2/whatChanged";
+import {
+  CANDY_GLASS_ARCADE_RECIPE,
+  LAB_HOST_MANIFEST,
+  PRISM_TERMINAL_RECIPE,
+} from "../../../../adapters/style-lens-swan/v2/labRecipes";
 
 interface WorkoutDesignComparePanelProps {
   worlds: readonly ConceptRegistryItem[];
@@ -54,6 +65,14 @@ const WorkoutDesignComparePanel: React.FC<WorkoutDesignComparePanelProps> = ({
   onOpenRolodex,
 }) => {
   const World = world.component;
+  const [engine, setEngine] = useState<"v1" | "v2">("v1");
+  const goldenPair = useMemo(() => {
+    const a = compileRecipe(CANDY_GLASS_ARCADE_RECIPE, LAB_HOST_MANIFEST);
+    const b = compileRecipe(PRISM_TERMINAL_RECIPE, LAB_HOST_MANIFEST);
+    if (!a.ok || !b.ok) return null;
+    const changes = whatChanged(a.plan, b.plan);
+    return { changes, axes: changedAxisCount(changes) };
+  }, []);
   const panes: Array<{
     key: "A" | "B";
     lens: StyleLensManifest;
@@ -61,6 +80,10 @@ const WorkoutDesignComparePanel: React.FC<WorkoutDesignComparePanelProps> = ({
   }> = [
     { key: "A", lens: lensA, onChange: onLensAChange },
     { key: "B", lens: lensB, onChange: onLensBChange },
+  ];
+  const v2Panes = [
+    { key: "A" as const, recipe: CANDY_GLASS_ARCADE_RECIPE, name: "Candy Glass Arcade v2" },
+    { key: "B" as const, recipe: PRISM_TERMINAL_RECIPE, name: "Prism Terminal v2" },
   ];
 
   return (
@@ -80,25 +103,65 @@ const WorkoutDesignComparePanel: React.FC<WorkoutDesignComparePanelProps> = ({
             ))}
           </select>
         </label>
-        {panes.map(({ key, lens, onChange }) => (
-          <label key={key}>
-            Style Lens {key}
-            <select
-              aria-label={`Compare Style Lens ${key}`}
-              value={lens.id}
-              onChange={(event) => onChange(event.target.value)}
-            >
-              {lenses.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+        <label>
+          Engine
+          <select
+            aria-label="Compare engine"
+            value={engine}
+            onChange={(event) => setEngine(event.target.value as "v1" | "v2")}
+          >
+            <option value="v1">v1 lenses (25 chrome systems)</option>
+            <option value="v2">v2 Golden Pair (repaints the World)</option>
+          </select>
+        </label>
+        {engine === "v1"
+          ? panes.map(({ key, lens, onChange }) => (
+              <label key={key}>
+                Style Lens {key}
+                <select
+                  aria-label={`Compare Style Lens ${key}`}
+                  value={lens.id}
+                  onChange={(event) => onChange(event.target.value)}
+                >
+                  {lenses.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))
+          : null}
       </CompareSelectors>
       <CompareStageGrid role="region" aria-label="Live World and Style comparison">
-        {panes.map(({ key, lens }) => {
+        {engine === "v2"
+          ? v2Panes.map(({ key, recipe, name }) => (
+              <ComparePane key={key} data-testid="comparison-panel">
+                <ComparePaneCaption>
+                  <LensDot aria-hidden="true" $canvas="#10203a" $accent="#60c0f0" />
+                  <strong>
+                    {key} · {name}
+                  </strong>
+                  <span>
+                    Recipe v2 — {goldenPair ? `${goldenPair.axes} axes differ` : "compile failed"}
+                  </span>
+                </ComparePaneCaption>
+                <LensPlanFrame
+                  recipe={recipe}
+                  aria-label={`${world.name} rendered by ${name}`}
+                >
+                  <World
+                    model={model}
+                    conceptName={world.name}
+                    primaryActionLabel={world.primaryActionLabel}
+                    onAction={() => onAction(`${name} (${key})`)}
+                    onOpenRolodex={onOpenRolodex}
+                  />
+                </LensPlanFrame>
+              </ComparePane>
+            ))
+          : null}
+        {engine === "v1" && panes.map(({ key, lens }) => {
           const visual = lensVisual(lens.id);
           return (
             <ComparePane key={key} data-testid="comparison-panel">
