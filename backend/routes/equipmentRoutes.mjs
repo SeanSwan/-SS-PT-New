@@ -49,6 +49,15 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 // Shared validation constants (DRY)
+/**
+ * Escape LIKE wildcards so an Op.iLike duplicate pre-check is an exact
+ * case-insensitive match, never a pattern match ("100% Band" must not match
+ * "100x Band"). Postgres default escape char is backslash.
+ */
+function escapeLikeLiteral(value) {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 const VALID_CATEGORIES = [
   'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
   'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
@@ -410,10 +419,10 @@ router.post('/:id/items', async (req, res) => {
 
     const EquipmentItem = getEquipmentItem();
 
-    // Check duplicate within profile — ACTIVE rows only, matching the partial
-    // unique index (soft-deleted names must not block a re-add, P0.3).
+    // Check duplicate within profile — ACTIVE rows only, CASE-INSENSITIVE to
+    // match the scan dedup + the lower(name) partial unique index (P0.3d).
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: name.trim(), isActive: true },
+      where: { profileId: profile.id, name: { [Op.iLike]: escapeLikeLiteral(name.trim()) }, isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
@@ -485,12 +494,13 @@ router.put('/:id/items/:itemId', async (req, res) => {
       updates.resistanceType = resistanceType;
     }
 
-    // Rename duplicate pre-check — ACTIVE siblings only, matching the partial
-    // unique index (P0.3b). Same-name renames skip the lookup (no self-409).
+    // Rename duplicate pre-check — ACTIVE siblings only, CASE-INSENSITIVE to
+    // match the lower(name) partial unique index (P0.3b/P0.3d). Same-name
+    // renames skip the lookup; case-only self-renames pass via the Op.ne guard.
     if (updates.name && updates.name !== item.name) {
       const EquipmentItem = getEquipmentItem();
       const duplicate = await EquipmentItem.findOne({
-        where: { profileId: item.profileId, name: updates.name, isActive: true, id: { [Op.ne]: item.id } },
+        where: { profileId: item.profileId, name: { [Op.iLike]: escapeLikeLiteral(updates.name) }, isActive: true, id: { [Op.ne]: item.id } },
       });
       if (duplicate) {
         return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
