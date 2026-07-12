@@ -46,6 +46,7 @@ import {
   normalizeClientSource,
 } from './sessionBillingPolicy.mjs';
 import { buildRecentExercisePerformance } from './workoutProgressionService.mjs';
+import { getCesStrategy } from './training-cortex/policy/nasmCesPolicy.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -343,56 +344,9 @@ const REGION_TO_MUSCLE_MAP = {
 
 // ── NASM CES Corrective Strategy Map ─────────────────────────────────
 
-const CES_MAP = {
-  knee_valgus: {
-    inhibit: ['adductors', 'tfl', 'vastus_lateralis'],
-    lengthen: ['adductors', 'tfl', 'biceps_femoris_short_head'],
-    activate: ['gluteus_medius', 'vastus_medialis', 'gluteus_maximus'],
-    integrate: ['single_leg_squat', 'lateral_band_walk', 'step_up'],
-  },
-  excessive_forward_lean: {
-    inhibit: ['hip_flexors', 'gastrocnemius', 'soleus'],
-    lengthen: ['hip_flexors', 'gastrocnemius', 'soleus'],
-    activate: ['gluteus_maximus', 'erector_spinae', 'anterior_tibialis'],
-    integrate: ['ball_squat', 'squat_to_row', 'step_up_to_balance'],
-  },
-  arms_fall_forward: {
-    inhibit: ['latissimus_dorsi', 'pectoralis_major', 'pectoralis_minor'],
-    lengthen: ['latissimus_dorsi', 'pectoralis_major', 'pectoralis_minor'],
-    activate: ['middle_trapezius', 'lower_trapezius', 'rotator_cuff'],
-    integrate: ['ball_combo_1', 'squat_to_row', 'overhead_squat'],
-  },
-  low_back_arch: {
-    inhibit: ['hip_flexors', 'erector_spinae'],
-    lengthen: ['hip_flexors', 'erector_spinae', 'latissimus_dorsi'],
-    activate: ['gluteus_maximus', 'transverse_abdominis', 'internal_oblique'],
-    integrate: ['ball_squat', 'squat_to_row', 'plank_variations'],
-  },
-  head_protrusion: {
-    inhibit: ['upper_trapezius', 'levator_scapulae', 'sternocleidomastoid'],
-    lengthen: ['upper_trapezius', 'levator_scapulae', 'sternocleidomastoid'],
-    activate: ['deep_cervical_flexors', 'lower_trapezius'],
-    integrate: ['chin_tucks', 'prone_cobra', 'wall_angels'],
-  },
-  shoulder_elevation: {
-    inhibit: ['upper_trapezius', 'levator_scapulae'],
-    lengthen: ['upper_trapezius', 'levator_scapulae', 'sternocleidomastoid'],
-    activate: ['lower_trapezius', 'serratus_anterior'],
-    integrate: ['wall_slides', 'prone_y_raises', 'band_pull_aparts'],
-  },
-  hip_drop: {
-    inhibit: ['tfl', 'adductors'],
-    lengthen: ['tfl', 'adductors', 'piriformis'],
-    activate: ['gluteus_medius', 'gluteus_minimus', 'quadratus_lumborum'],
-    integrate: ['single_leg_deadlift', 'lateral_band_walk', 'clamshells'],
-  },
-  foot_pronation: {
-    inhibit: ['peroneals', 'lateral_gastrocnemius', 'biceps_femoris'],
-    lengthen: ['peroneals', 'lateral_gastrocnemius', 'soleus'],
-    activate: ['tibialis_posterior', 'tibialis_anterior', 'gluteus_medius'],
-    integrate: ['single_leg_balance', 'calf_raises_inverted', 'step_up'],
-  },
-};
+// Cortex Phase 2B: the CES Inhibit->Lengthen->Activate->Integrate strategies
+// moved to THE single CES catalog (training-cortex/policy/nasmCesPolicy.mjs);
+// getCesStrategy() is byte-identical to the lookups this replaced.
 
 // ── Pain Severity Thresholds ─────────────────────────────────────────
 
@@ -416,7 +370,7 @@ function analyzeCompensationTrend(compensations) {
       avgSeverity: comp.avgSeverity || 0,
       trend,
       lastDetected: comp.lastDetected ?? null,
-      cesStrategy: CES_MAP[comp.type] ?? null,
+      cesStrategy: getCesStrategy(comp.type),
     };
   });
 }

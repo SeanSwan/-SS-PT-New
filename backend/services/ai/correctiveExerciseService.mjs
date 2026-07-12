@@ -46,6 +46,8 @@
  *     phase exercises tagged with multi-pattern syndromes.
  */
 
+import { buildCompensationTagBridge } from '../training-cortex/policy/nasmCesPolicy.mjs';
+
 // Mapping: clientIntelligenceService compensation type → V3b.3 nasmCorrectiveCategory tag(s)
 //
 // Multiple V3b.3 tags per compensation is intentional — a row tagged with
@@ -53,18 +55,10 @@
 // client showing `head_protrusion` benefits from exercises tagged
 // `forward_head` AND from exercises tagged `upper_crossed_syndrome`
 // (which is the broader pattern that head_protrusion belongs to).
-const COMPENSATION_TO_V3B3_TAGS = {
-  knee_valgus:           ['knees_cave', 'pronation_distortion_syndrome'],
-  knee_varus:            ['knees_bow'],
-  excessive_forward_lean:['excessive_forward_lean', 'lower_crossed_syndrome'],
-  arms_fall_forward:     ['arms_fall_forward', 'upper_crossed_syndrome'],
-  low_back_arch:         ['low_back_arch', 'lower_crossed_syndrome'],
-  head_protrusion:       ['forward_head', 'upper_crossed_syndrome'],
-  shoulder_elevation:    ['upper_crossed_syndrome'],
-  hip_drop:              ['asymmetric_shift'],
-  foot_pronation:        ['pronation_distortion_syndrome'],
-  heels_rise:            ['heels_rise'],
-};
+// Cortex Phase 2B: derived from THE single CES catalog
+// (training-cortex/policy/nasmCesPolicy.mjs) — byte-identical to the
+// table this replaced. Do not edit compensation->tag data here.
+const COMPENSATION_TO_V3B3_TAGS = buildCompensationTagBridge();
 
 const VALID_PROTOCOL_STEPS = ['inhibit', 'lengthen', 'activate', 'integrate'];
 
