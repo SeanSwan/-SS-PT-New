@@ -30,7 +30,8 @@ export const Card = styled.div<{ $loaded: boolean; $isCurrent: boolean }>`
       : $loaded
         ? 'var(--accent-primary, #60C0F0)'
         : 'var(--border-soft, rgba(96, 192, 240, 0.18))'};
-  border-radius: 12px;
+  /* Lens token seam: recipes may retune the card radius; host value is the fallback. */
+  border-radius: var(--world-row-radius, 12px);
   cursor: pointer;
   transition: border-color 150ms ease, box-shadow 150ms ease;
   outline: none;

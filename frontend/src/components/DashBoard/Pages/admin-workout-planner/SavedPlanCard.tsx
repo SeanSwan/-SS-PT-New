@@ -155,6 +155,7 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
 
   return (
     <Card
+      className="lens2-row"
       $loaded={loaded}
       $isCurrent={isCurrent}
       role="button"

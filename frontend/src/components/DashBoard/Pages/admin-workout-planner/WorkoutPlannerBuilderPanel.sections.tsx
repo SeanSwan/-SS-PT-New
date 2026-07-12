@@ -146,7 +146,7 @@ export const BuilderActionMatrix: React.FC<BuilderActionMatrixProps> = ({
   showCreatePdf = true,
   ...props
 }) => (
-  <ActionWrap>
+  <ActionWrap className="lens2-actions">
     {showCreatePdf && (
       <BuilderCreatePdfAction
         saving={props.saving}

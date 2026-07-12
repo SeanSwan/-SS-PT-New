@@ -111,7 +111,7 @@ export const WorkoutPlannerHeaderSection: React.FC<HeaderSectionProps> = ({
     <HeaderLeft>
       <HeaderIcon><Dumbbell size={22} /></HeaderIcon>
       <div>
-        <Title>Workout Planner</Title>
+        <Title className="lens2-display">Workout Planner</Title>
         <Subtitle>Build intelligent, periodized training programs with 880+ exercises</Subtitle>
       </div>
     </HeaderLeft>

@@ -13,6 +13,7 @@ import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip from './WorkoutPlannerStatusAssistantStrip';
+import WorkoutPlannerLensFrame from './WorkoutPlannerLensFrame';
 import SafetyGateModal from '../../../cortex/SafetyGateModal';
 import type { SafetyGateReviewState } from './useWorkoutPlannerSafetyGate';
 import { Page, ThreePanel } from './WorkoutPlannerStyles';
@@ -76,6 +77,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   }), [generatedPlan, location.pathname, location.search, selectedClientId]);
 
   return (
+    <WorkoutPlannerLensFrame>
     <Page>
       <WorkoutPlannerCommandPanel
         plannerReturnTo={plannerReturnTo}
@@ -220,6 +222,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onCancel={onCancelSafetyGate}
       />
     </Page>
+    </WorkoutPlannerLensFrame>
   );
 };
 

@@ -164,7 +164,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                 </PlannerHandoffLink>
               )}
             </PlanModeBar>
-            <MesocycleGrid>
+            <MesocycleGrid className="lens2-collection">
               {savedPlans.map((plan, index) => (
                 <SavedPlanCard
                   key={plan.id}
