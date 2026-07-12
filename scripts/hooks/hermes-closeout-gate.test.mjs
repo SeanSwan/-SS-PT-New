@@ -88,6 +88,15 @@ test('scopes analysis to the current turn only', () => {
   assert.equal(signals.fileWrites, 0);
 });
 
+test('counts a memo citation in string-form assistant content (no false re-block)', () => {
+  const stringAssistant = line({
+    type: 'assistant',
+    message: { content: 'Memo written to .ai-workflow/hermes-inbox/pending/20260712T000000Z-vs-claude-x.md' },
+  });
+  const raw = [userText('build'), toolUse('Bash', { command: 'git commit -m x' }), stringAssistant].join('\n');
+  assert.equal(decide({}, raw), null);
+});
+
 test('tolerates malformed transcript lines (fail-open per line)', () => {
   const raw = ['not-json{{{', userText('hi'), 'also-bad', assistantText('hello')].join('\n');
   assert.equal(decide({}, raw), null);

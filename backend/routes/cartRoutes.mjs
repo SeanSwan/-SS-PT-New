@@ -374,7 +374,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
-    // Resolve the item FIRST â€” we need to know whether it's the client's own
+    // Resolve the item FIRST — we need to know whether it's the client's own
     // per-client special before applying the invitation gate below.
     const snapshot = await resolveCartItemSnapshot({
       StorefrontItem,
@@ -414,7 +414,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       }
     }
 
-    // Launch P1-1: store purchasing is invitation-only â€” requires the
+    // Launch P1-1: store purchasing is invitation-only — requires the
     // admin-granted store-prices flag (admins always pass). EXCEPTION: a
     // client's OWN active special is itself the invitation (its price is shown
     // to them on the store), so it bypasses the global flag requirement.

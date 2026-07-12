@@ -100,7 +100,7 @@ const goalController = {
         });
       }
 
-      // Build where clause â€” exclude soft-deleted goals by default
+      // Build where clause — exclude soft-deleted goals by default
       const whereClause = { userId, status: { [Op.ne]: 'deleted' } };
 
       if (status && status !== 'all') whereClause.status = status;
@@ -197,7 +197,7 @@ const goalController = {
         });
       }
 
-      // Authorization check â€” owner, trainer (assigned), admin, or public goal
+      // Authorization check — owner, trainer (assigned), admin, or public goal
       await assertGoalAccess(goal, req.user, { allowPublic: true });
 
       // Calculate additional metrics
@@ -440,7 +440,7 @@ const goalController = {
         });
       }
 
-      // Check authorization â€” owner, admin, or assigned trainer
+      // Check authorization — owner, admin, or assigned trainer
       await assertGoalAccess(goal, req.user, { transaction });
 
       if (goal.status !== 'active') {
@@ -458,7 +458,7 @@ const goalController = {
       const progressPercentage = Math.min(100, (newValue / safeTargetValue) * 100);
       const wasCompleted = progressPercentage >= 100 && goal.status === 'active';
 
-      // Update progress history â€” cap at 100 entries to prevent unbounded growth
+      // Update progress history — cap at 100 entries to prevent unbounded growth
       const MAX_HISTORY = 100;
       const existingHistory = goal.progressHistory || [];
       const progressHistory = [...existingHistory.slice(-(MAX_HISTORY - 1)), {
@@ -577,7 +577,7 @@ const goalController = {
       transaction = await db.transaction();
 
       const { id } = req.params;
-      // Whitelist allowed fields â€” never allow userId injection
+      // Whitelist allowed fields — never allow userId injection
       const allowedGoalFields = [
         'title', 'description', 'goal', 'targetValue', 'currentValue',
         'category', 'deadline', 'status', 'priority', 'notes',
@@ -594,7 +594,7 @@ const goalController = {
         return res.status(404).json({ success: false, message: 'Goal not found' });
       }
 
-      // Check authorization â€” owner or admin only (trainers cannot edit goals)
+      // Check authorization — owner or admin only (trainers cannot edit goals)
       if (goal.userId !== req.user.id && req.user.role !== 'admin') {
         await transaction.rollback();
         return res.status(403).json({ success: false, message: 'Not authorized to update this goal' });
@@ -678,7 +678,7 @@ const goalController = {
         });
       }
 
-      // Void related point transactions (preserve audit trail â€” never hard-delete)
+      // Void related point transactions (preserve audit trail — never hard-delete)
       const numericGoalId = parsePositiveInteger(id);
       const goalLedgerMatchers = [
         { source: 'goal_milestone', metadata: { [Op.contains]: { goalId: id } } },
@@ -749,7 +749,7 @@ const goalController = {
         });
       }
 
-      // Authorization check â€” owner, assigned trainer, or admin
+      // Authorization check — owner, assigned trainer, or admin
       await assertGoalAccess(goal, req.user);
 
       // Generate comprehensive analytics
@@ -837,10 +837,10 @@ const goalController = {
   generateGoalRecommendations: (goal) => generateGoalRecommendations(goal)
 };
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────
 // STANDALONE HELPER FUNCTIONS
 // Extracted from object literal to avoid fragile `this` binding in ESM
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────
 
 function calculateEstimatedCompletion(goal, daysElapsed) {
   if (goal.progressPercentage === 0) return null;

@@ -23,7 +23,7 @@ async function login(username, password) {
       return null;
     }
 
-    console.log(`âœ… Login successful for ${username}`);
+    console.log(`✅ Login successful for ${username}`);
     return data.token;
   } catch (error) {
     console.error(`âŒ Network error during login for ${username}:`, error.message);
@@ -41,7 +41,7 @@ async function testScheduleFlow() {
   });
   const trainersData = await trainersResponse.json();
   if (trainersResponse.ok) {
-    console.log('âœ… Trainers found:', JSON.stringify(trainersData.trainers, null, 2));
+    console.log('✅ Trainers found:', JSON.stringify(trainersData.trainers, null, 2));
   }
 
   const clientPassword = `Schedule-${Date.now()}-${Math.random().toString(36).slice(2)}!Aa1`;
@@ -105,7 +105,7 @@ async function testScheduleFlow() {
 
     const createData = await createResponse.json();
     if (createResponse.ok && createData.success) {
-      console.log('âœ… Session created successfully');
+      console.log('✅ Session created successfully');
       const sessionId = createData.sessions[0].id;
 
       console.log('\nðŸ“… Testing Client: Book Session...');
@@ -120,7 +120,7 @@ async function testScheduleFlow() {
         });
         const bookData = await bookResponse.json();
         if (bookResponse.ok && bookData.success) {
-          console.log('âœ… Session booked successfully by client');
+          console.log('✅ Session booked successfully by client');
         } else {
           console.error('âŒ Session booking failed:', bookData.message);
         }

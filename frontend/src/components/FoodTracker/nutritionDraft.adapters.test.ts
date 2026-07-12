@@ -56,6 +56,29 @@ describe('nutrition draft adapters', () => {
     });
   });
 
+  it('preserves the provider food id as externalId + a stable provider-derived row id', () => {
+    const draft = restaurantFoodToNutritionDraft(
+      { ...restaurantFood, id: 'food-1' },
+      { draftId: 'draft-restaurant-2', mealType: 'lunch' },
+    );
+
+    // Provider linkage must survive the draft (parity with searchFoodToNutritionDraft),
+    // and the row id derives from the provider id so re-reviewing the same food
+    // doesn't mint a fresh identity each time.
+    expect(draft.rawPayloadRef).toMatchObject({ provider: 'FatSecret', externalId: 'food-1' });
+    expect(draft.foods[0].id).toBe('restaurant-food-1');
+  });
+
+  it('still mints a fallback row id when the provider id is absent', () => {
+    const draft = restaurantFoodToNutritionDraft(restaurantFood, {
+      draftId: 'draft-restaurant-3',
+      mealType: 'lunch',
+    });
+
+    expect(draft.rawPayloadRef?.externalId).toBeUndefined();
+    expect(draft.foods[0].id).toMatch(/^restaurant-food/);
+  });
+
   it('builds /api/macros payloads without silently verifying provider estimates', () => {
     const draft = restaurantFoodToNutritionDraft(restaurantFood, {
       draftId: 'draft-restaurant-1',

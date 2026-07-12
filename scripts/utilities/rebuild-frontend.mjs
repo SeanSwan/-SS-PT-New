@@ -25,11 +25,11 @@ async function checkConfig() {
   // Check .env.production
   const envProdPath = './frontend/.env.production';
   if (fs.existsSync(envProdPath)) {
-    console.log('âœ… .env.production found');
+    console.log('✅ .env.production found');
     const envContent = fs.readFileSync(envProdPath, 'utf8');
 
     if (envContent.includes('swan-studios-api.onrender.com')) {
-      console.log('âœ… .env.production has correct backend URL');
+      console.log('✅ .env.production has correct backend URL');
     } else {
       console.log('âŒ .env.production has wrong backend URL');
       console.log('ðŸ’¡ Fixing .env.production...');
@@ -40,7 +40,7 @@ VITE_BACKEND_URL=https://swan-studios-api.onrender.com
 VITE_NODE_ENV=production`;
 
       fs.writeFileSync(envProdPath, correctedEnv);
-      console.log('âœ… .env.production updated');
+      console.log('✅ .env.production updated');
     }
   } else {
     console.log('âŒ .env.production not found, creating...');
@@ -50,17 +50,17 @@ VITE_BACKEND_URL=https://swan-studios-api.onrender.com
 VITE_NODE_ENV=production`;
 
     fs.writeFileSync(envProdPath, envContent);
-    console.log('âœ… .env.production created');
+    console.log('✅ .env.production created');
   }
 
   // Check vite.config.js
   const viteConfigPath = './frontend/vite.config.js';
   if (fs.existsSync(viteConfigPath)) {
-    console.log('âœ… vite.config.js found');
+    console.log('✅ vite.config.js found');
     const viteContent = fs.readFileSync(viteConfigPath, 'utf8');
 
     if (viteContent.includes('swan-studios-api.onrender.com')) {
-      console.log('âœ… vite.config.js has correct backend URL');
+      console.log('✅ vite.config.js has correct backend URL');
     } else {
       console.log('âš ï¸  vite.config.js may need manual verification');
     }
@@ -76,7 +76,7 @@ async function buildFrontend() {
   try {
     console.log('ðŸ“¦ Installing dependencies...');
     await execAsync('npm install', { cwd: './frontend' });
-    console.log('âœ… Dependencies installed\n');
+    console.log('✅ Dependencies installed\n');
 
     console.log('ðŸ—ï¸  Building production frontend...');
     console.log('This may take a few minutes...\n');
@@ -94,18 +94,18 @@ async function buildFrontend() {
       throw new Error('Build failed');
     }
 
-    console.log('âœ… Frontend built successfully!\n');
+    console.log('✅ Frontend built successfully!\n');
 
     // Verify build
     const distPath = './frontend/dist';
     if (fs.existsSync(distPath)) {
-      console.log('âœ… dist/ folder created');
+      console.log('✅ dist/ folder created');
 
       const distFiles = fs.readdirSync(distPath);
       console.log(`ðŸ“ Built files: ${distFiles.length} items`);
 
       if (distFiles.includes('index.html')) {
-        console.log('âœ… index.html found in build');
+        console.log('✅ index.html found in build');
       }
     } else {
       throw new Error('dist/ folder not created');
@@ -153,7 +153,7 @@ async function deployInstructions() {
   console.log('2. Upload to your hosting provider');
   console.log('3. Extract and replace existing files\n');
 
-  console.log('âœ… VERIFICATION AFTER DEPLOY:');
+  console.log('✅ VERIFICATION AFTER DEPLOY:');
   console.log('=============================');
   console.log('1. Go to https://sswanstudios.com');
   console.log('2. Open browser dev tools (F12)');

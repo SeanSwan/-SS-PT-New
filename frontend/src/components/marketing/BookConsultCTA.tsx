@@ -21,6 +21,7 @@
  * └──────────────────────────────────────────────────────────────────────────┘
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { resolveContactApiBase } from '../../pages/contactpage/contactApiBase';
 import {
@@ -53,19 +54,45 @@ const BookConsultCTA: React.FC<BookConsultCTAProps> = ({ label = 'Book a Free Co
   const [error, setError] = useState('');
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const close = useCallback(() => {
     setOpen(false);
     setError('');
   }, []);
 
-  // Escape closes the modal (a11y).
+  // While open: lock body scroll, trap Tab inside the dialog, close on Escape,
+  // and return focus to the trigger on close (a11y). The modal itself renders
+  // through a portal, so ancestor transforms/overflow can never clip it.
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      const root = modalRef.current;
+      if (!root) return;
+      const focusables = root.querySelectorAll<HTMLElement>(
+        'button, [href], input:not([tabindex="-1"]), textarea, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !root.contains(active))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
     firstFieldRef.current?.focus();
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      returnFocusRef.current?.focus?.();
+    };
   }, [open, close]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,12 +143,12 @@ const BookConsultCTA: React.FC<BookConsultCTAProps> = ({ label = 'Book a Free Co
         {label}
       </TriggerButton>
 
-      {open && (
+      {open && createPortal(
         <Overlay
           role="presentation"
           onClick={(e) => { if (e.target === e.currentTarget) close(); }}
         >
-          <Modal role="dialog" aria-modal="true" aria-labelledby="book-consult-title" style={{ position: 'relative' }}>
+          <Modal ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="book-consult-title">
             <CloseButton type="button" aria-label="Close" onClick={close}>×</CloseButton>
 
             {success ? (
@@ -155,7 +182,7 @@ const BookConsultCTA: React.FC<BookConsultCTAProps> = ({ label = 'Book a Free Co
                   </Field>
 
                   <Field>
-                    Email <span aria-hidden="true">*</span>
+                    <span>Email <span aria-hidden="true">*</span></span>
                     <Input
                       type="email"
                       required
@@ -220,7 +247,8 @@ const BookConsultCTA: React.FC<BookConsultCTAProps> = ({ label = 'Book a Free Co
               </>
             )}
           </Modal>
-        </Overlay>
+        </Overlay>,
+        document.body
       )}
     </>
   );

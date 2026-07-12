@@ -39,7 +39,7 @@ test('renders the full brain: clusters, core, HUD, thought stream, sparkline, au
   const out = renderBrainView(root, swFile, DAY, { now: NOW });
   const html = fs.readFileSync(out.path, 'utf8');
   for (const s of ['HERMES', 'APPLICATIONS · C2', 'ROUTINES · C4', 'MEMORY · C1', 'SKILLS · C3', 'class="glegend"',
-    'Thought stream', 'Next best action', 'class="aurora"', 'class="sparkline"', 'core-spin', 'prefers-reduced-motion']) {
+    'Thought stream', 'Next best action', 'class="aurora"', 'class="skyline sparkline"', 'core-spin', 'prefers-reduced-motion']) {
     assert.ok(html.includes(s), s);
   }
   assert.ok(out.skills >= 20, 'real .claude/skills inventory rendered');
@@ -136,7 +136,7 @@ test('Slice-2 camera: client JS is view-only, reduced-motion gated, and transfor
   assert.ok(js.includes("g.setAttribute('transform'"), 'SVG camera group transformed');
   assert.ok(js.includes('layer.style.transform'), 'label layer transformed');
   assert.ok(js.includes("layer.style.transformOrigin='0 0'"), 'origin 0 0 — required for the parity math');
-  assert.ok(/reduce=matchMedia/.test(js) && /if\(reduce\)\{cam\.tx=to\.tx/.test(js), 'reduced-motion gates the rAF tween at init');
+  assert.ok(/reduce=typeof matchMedia/.test(js) && /if\(reduce\)\{cam\.tx=to\.tx/.test(js), 'reduced-motion gates the rAF tween at init');
   assert.ok(!js.includes('innerHTML') && !/fetch\(|XMLHttpRequest|WebSocket\(|sendBeacon/.test(js), 'no innerHTML, no network');
 });
 
@@ -189,4 +189,76 @@ test('degrades honestly: no receipts, missing repo stores -> renders, never cras
   ensureLanes(root);
   const html = fs.readFileSync(renderBrainView(root, path.join(root, 'never.json'), DAY, { now: NOW }).path, 'utf8');
   assert.match(html, /switches UNREADABLE|fail closed/);
+});
+
+test('V1 truth: stale snapshots expose age, force an amber health floor, and render a warning', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const staleNow = '2026-07-04T08:00:00Z';
+  const data = gatherBrainData(root, swFile, DAY, { now: staleNow });
+  assert.equal(data.dataAgeDays, 3);
+  assert.equal(data.today, '2026-07-04');
+  assert.notEqual(data.health, 'green');
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: staleNow }).path, 'utf8');
+  assert.match(html, /DATA IS 3 DAYS OLD/);
+  assert.match(html, /generated 2026-07-04T08:00:00Z; today is 2026-07-04/);
+});
+
+test('V1 truth: current-day snapshots omit the stale-data banner', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.dataAgeDays, 0);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  assert.ok(!html.includes('DATA IS 0 DAYS OLD'));
+});
+
+test('V1 repair shell: phone tabs, 30-day strip, atmosphere layers, and lit node gradients ship together', () => {
+  const { root, swFile } = fresh();
+  receipt(root);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  for (const id of ['tab-overview', 'tab-graph', 'tab-detail']) assert.ok(html.includes(`id="${id}"`), id);
+  assert.equal((html.match(/class="heat-cell /g) || []).length, 30);
+  for (const layer of ['stars-near', 'stars-mid', 'stars-far']) assert.ok(html.includes(`class="${layer}"`), layer);
+  assert.match(html, /radialGradient id="node-live"/);
+  assert.match(html, /radialGradient id="node-idle"/);
+  assert.ok(!/class="node[^"]*"[^>]*fill="none"/.test(html), 'live/idle node bulbs never render unlit');
+  assert.match(html, /@media\(prefers-reduced-motion:reduce\)[\s\S]*animation:none!important/);
+});
+
+test('V1 launcher warns when pinned runtime differs from the release marker', () => {
+  const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  const cmd = fs.readFileSync(path.join(here, 'Hermes-Command-Center.cmd'), 'utf8');
+  assert.match(cmd, /git -C "%RR%" rev-parse HEAD/);
+  assert.match(cmd, /ls-remote origin refs\/heads\/main/);
+  assert.match(cmd, /RUNTIME DRIFT/);
+});
+
+test('V2 data density passes digest analytics once into graph, rail, history, skills, and trends', () => {
+  const { root, swFile } = fresh();
+  receipt(root, { who: 'broker/telegram', what: 'switch-flip (T2)', outcome: 'refused - flood cap' });
+  for (let i = 0; i < 5; i += 1) receipt(root, { who: 'broker/telegram', what: 'switch-flip (T2)', outcome: `refused - flood cap ${i}`, when: `${DAY}T0${i}:10:00Z` });
+  receipt(root, { who: 'hermes/runner', what: 'tierless-command', outcome: 'partial - malformed tier marker' });
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.digest.counts.T2 >= 6, true);
+  assert.equal(data.healthHistory.length, 30);
+  assert.equal(data.thoughts.length <= 10, true);
+  assert.match(data.thoughts[0].outcome, /refused|partial|failed/);
+  assert.equal(data.skillNodes.length <= 13, true);
+  assert.ok(data.skillStats.every((s) => Number.isInteger(s.count)));
+  assert.equal(data.hourlyTier2.length, 24);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  for (const marker of ['data-tier="T4"', 'refusal-thorn', 'integrity-crack', 'class="skyline sparkline"', 'BROKERS', 'ROUTINES', 'SAFETY', 'class="skill-grid"']) assert.ok(html.includes(marker), marker);
+  assert.equal((html.match(/class="heat-cell /g) || []).length, 30);
+  assert.equal((html.match(/class="skybar/g) || []).length, 24);
+});
+
+test('V2 silence state keeps a zero-receipt day truthful', () => {
+  const { root, swFile } = fresh();
+  const data = gatherBrainData(root, swFile, DAY, { now: NOW });
+  assert.equal(data.receiptCount, 0);
+  assert.equal(data.silentDay, true);
+  const html = fs.readFileSync(renderBrainView(root, swFile, DAY, { now: NOW }).path, 'utf8');
+  assert.match(html, /silent day/i);
+  assert.equal((html.match(/class="skybar zero/g) || []).length, 24);
 });
