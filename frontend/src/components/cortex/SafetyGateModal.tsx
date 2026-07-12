@@ -1,0 +1,177 @@
+/**
+ * COMPONENT: SafetyGateModal
+ * PARENT: WorkoutPlannerPage (admin/trainer generation surfaces)
+ * PURPOSE: The Cortex deterministic safety gate's acknowledged-review contract
+ * (409 SWAN_COACH_REVIEW_REQUIRED). Calm and authoritative — impossible to
+ * ignore, never alarming. Override requires a written reason (audited
+ * server-side). Directive §5.3 + §13.5.9; a11y: alertdialog, focus trap,
+ * Escape = hold, reduced-motion honored.
+ */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ShieldCheck } from 'lucide-react';
+import {
+  GateActions,
+  GateCard,
+  GateIconRing,
+  GateLede,
+  GateOverlay,
+  GateTitle,
+  HoldButton,
+  OverrideButton,
+  ReasonLabel,
+  ReasonTextArea,
+  SignalItem,
+  SignalList,
+} from './SafetyGateModal.styles';
+
+const SIGNAL_LABELS: Record<string, string> = {
+  pain_exclusions_active: 'Active pain is severe enough to auto-exclude muscle groups',
+  active_pain_review_required: 'Active pain reported — review load and range before assigning',
+  pain_or_injury_context_present: 'Pain or injury context is present for this client',
+  pain_data_unavailable: 'Pain data could not be loaded — safety cannot be confirmed',
+  source_data_unavailable: 'A safety-critical data source failed to load',
+  medical_clearance_required: 'Medical clearance is required before training',
+  special_population_review_required: 'Special-population considerations need review',
+  referral_review_recommended: 'A referral recommendation is on file',
+};
+
+const humanizeSignal = (signal: string): string =>
+  SIGNAL_LABELS[signal] ?? signal.replace(/_/g, ' ');
+
+export interface SafetyGateModalProps {
+  open: boolean;
+  signals: string[];
+  missingData?: string[];
+  confirming?: boolean;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+}
+
+const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
+  open,
+  signals,
+  missingData = [],
+  confirming = false,
+  onConfirm,
+  onCancel,
+}) => {
+  const [reason, setReason] = useState('');
+  const cardRef = useRef<HTMLDivElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
+  const reducedMotion = useReducedMotion();
+
+  const items = useMemo(() => {
+    const labeled = signals.map(humanizeSignal);
+    const missing = missingData
+      .filter(item => !labeled.some(label => label.toLowerCase().includes(item.toLowerCase())))
+      .map(item => `Missing: ${item}`);
+    return [...labeled, ...missing];
+  }, [signals, missingData]);
+
+  useEffect(() => {
+    if (open) {
+      setReason('');
+      // Focus lands on the reason field — the required next step.
+      const id = window.setTimeout(() => reasonRef.current?.focus(), 50);
+      return () => window.clearTimeout(id);
+    }
+    return undefined;
+  }, [open]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onCancel();
+      return;
+    }
+    if (event.key !== 'Tab' || !cardRef.current) return;
+    // Minimal focus trap: keep Tab cycling inside the dialog.
+    const focusables = cardRef.current.querySelectorAll<HTMLElement>(
+      'textarea, button:not([disabled])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }, [onCancel]);
+
+  const trimmedReason = reason.trim();
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <GateOverlay
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.2 }}
+          onClick={onCancel}
+          data-testid="safety-gate-overlay"
+        >
+          <GateCard
+            ref={cardRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="safety-gate-title"
+            aria-describedby="safety-gate-lede"
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97 }}
+            transition={{ duration: reducedMotion ? 0 : 0.3, ease: [0.4, 0, 0.2, 1] }}
+            onClick={event => event.stopPropagation()}
+            onKeyDown={handleKeyDown}
+          >
+            <GateIconRing aria-hidden="true">
+              <ShieldCheck size={30} />
+            </GateIconRing>
+            <GateTitle id="safety-gate-title">Review Required</GateTitle>
+            <GateLede id="safety-gate-lede">
+              Swan Coach held this generation so you can look first. Acknowledge
+              the items below to proceed — your reason is recorded with the plan.
+            </GateLede>
+
+            <SignalList aria-label="Safety review items">
+              {items.map(item => (
+                <SignalItem key={item}>{item}</SignalItem>
+              ))}
+            </SignalList>
+
+            <ReasonLabel htmlFor="safety-gate-reason">
+              Why is it safe to proceed?
+            </ReasonLabel>
+            <ReasonTextArea
+              id="safety-gate-reason"
+              ref={reasonRef}
+              value={reason}
+              onChange={event => setReason(event.target.value)}
+              placeholder="e.g. Shoulder flare reviewed with client today — pressing removed, lower-body focus."
+              disabled={confirming}
+            />
+
+            <GateActions>
+              <HoldButton type="button" onClick={onCancel} disabled={confirming}>
+                Hold &amp; Review
+              </HoldButton>
+              <OverrideButton
+                type="button"
+                onClick={() => onConfirm(trimmedReason)}
+                disabled={!trimmedReason || confirming}
+              >
+                {confirming ? 'Generating…' : 'Acknowledge & Generate'}
+              </OverrideButton>
+            </GateActions>
+          </GateCard>
+        </GateOverlay>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default SafetyGateModal;
