@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion } from "framer-motion";
 import GlowButton from "../../components/ui/GlowButton";
-import BookConsultCTA from "../../components/marketing/BookConsultCTA";
 import {
   MapPin,
   Phone,
@@ -1113,13 +1112,6 @@ const EnhancedContactPage = () => {
             animate="visible"
             variants={sectionVariants}
           >
-            {/* High-intent PRIMARY action, above the general message form. The lead-nurture emails'
-                "book a free consult" link lands on /contact, so the booking CTA must live here —
-                otherwise the drip's terminal action goes nowhere. Posts to POST /api/consult-request. */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.75rem" }}>
-              <BookConsultCTA />
-            </div>
-
             <FormTitle variants={titleVariants}>Send Us a Message</FormTitle>
 
             <ContactForm onSubmit={handleSubmit}>
