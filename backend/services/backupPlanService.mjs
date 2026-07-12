@@ -107,7 +107,12 @@ export async function generateBackupPlan({
   sessionsPerWeek = 3,
   primaryGoal = 'general_fitness',
   equipmentProfileId = null,
+  planningReviewAcknowledged = false,
+  planningReviewReason = null,
 }) {
+  // Cortex P0 §5.3: backup plans run the SAME deterministic safety gate as
+  // primary generation — a pain-flagged client 409s here too unless the
+  // trainer acknowledges with a written reason (post-ship hostile-review fix).
   const generated = await generatePlan({
     clientId: userId,
     trainerId,
@@ -115,6 +120,8 @@ export async function generateBackupPlan({
     sessionsPerWeek,
     primaryGoal,
     equipmentProfileId,
+    planningReviewAcknowledged,
+    planningReviewReason,
   });
 
   const planData = buildBackupPlanData(generated);

@@ -268,7 +268,10 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
   async (req, res) => {
     try {
       const { generateBackupPlan } = await import('../services/backupPlanService.mjs');
-      const { durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId } = req.body || {};
+      const {
+        durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
+        planningReviewAcknowledged, planningReviewReason,
+      } = req.body || {};
       const result = await generateBackupPlan({
         userId: parseInt(req.params.userId, 10),
         trainerId: req.user.id,
@@ -276,9 +279,22 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
         sessionsPerWeek: Math.min(Math.max(parseInt(sessionsPerWeek, 10) || 3, 1), 7),
         primaryGoal,
         equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
+        planningReviewAcknowledged: planningReviewAcknowledged === true,
+        planningReviewReason,
       });
       return res.status(result.refreshed ? 200 : 201).json({ success: true, ...result });
     } catch (error) {
+      // Cortex P0 §5.3: surface the acknowledged-review contract (409/400)
+      // instead of collapsing it into a generic 500.
+      if (error.name === 'SwanCoachPlanningReviewError') {
+        return res.status(error.status).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          reviewRequiredSignals: error.reviewRequiredSignals,
+          missingCriticalData: error.missingCriticalData,
+        });
+      }
       logger.error('[WorkoutPlan] backup generate error: %s', error.message);
       return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
     }
