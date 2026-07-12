@@ -1,23 +1,85 @@
 {
   "note": "Static half of the Hermes Brain view (F-2/SB-2): the ARMS/Four-C map. LIVE halves (switches, schedule, queue, receipts, inbox, skills count) are gathered at render time by brain-view.mjs. Versioned data, not code.",
-  "brain": { "label": "HERMES", "sub": "Qwen3-30B local · fail-closed · desktop 5090" },
+  "brain": {
+    "label": "HERMES",
+    "sub": "Qwen3-30B local · fail-closed · desktop 5090"
+  },
   "applications": [
-    { "label": "SwanStudios API", "state": "live" },
-    { "label": "Render Postgres", "state": "live" },
-    { "label": "Cloudflare R2", "state": "live" },
-    { "label": "Telegram lane", "state": "live" },
-    { "label": "Gemini consult", "state": "live" },
-    { "label": "Web search (ddgs)", "state": "live" },
-    { "label": "Discord broker", "state": "dark" },
-    { "label": "Stripe read", "state": "planned" },
-    { "label": "R2 anchor witness", "state": "planned" }
+    {
+      "label": "SwanStudios API",
+      "state": "live"
+    },
+    {
+      "label": "Render Postgres",
+      "state": "live"
+    },
+    {
+      "label": "Cloudflare R2",
+      "state": "live"
+    },
+    {
+      "label": "Telegram lane",
+      "state": "live"
+    },
+    {
+      "label": "Gemini consult",
+      "state": "live"
+    },
+    {
+      "label": "Web search (ddgs)",
+      "state": "live"
+    },
+    {
+      "label": "Discord broker",
+      "state": "dark"
+    },
+    {
+      "label": "Stripe read",
+      "state": "planned"
+    },
+    {
+      "label": "R2 anchor witness",
+      "state": "planned"
+    }
   ],
   "memory": [
-    { "label": "Operator vault", "kind": "receipts + queue + digests" },
-    { "label": "Hermes inbox", "kind": "pending memos", "live": "inbox" },
-    { "label": "Learning packets", "kind": "Fable-tier lessons", "live": "packets" },
-    { "label": "Brain-vault corpus", "kind": "13.5 GiB · 818 PDFs" },
-    { "label": "Continuity log", "kind": "session closeouts" },
-    { "label": "Brainstorms", "kind": "grill-me docs", "live": "brainstorms" }
-  ]
+    {
+      "label": "Operator vault",
+      "kind": "receipts + queue + digests"
+    },
+    {
+      "label": "Hermes inbox",
+      "kind": "pending memos",
+      "live": "inbox"
+    },
+    {
+      "label": "Learning packets",
+      "kind": "Fable-tier lessons",
+      "live": "packets"
+    },
+    {
+      "label": "Brain-vault corpus",
+      "kind": "13.5 GiB · 818 PDFs"
+    },
+    {
+      "label": "Continuity log",
+      "kind": "session closeouts"
+    },
+    {
+      "label": "Brainstorms",
+      "kind": "grill-me docs",
+      "live": "brainstorms"
+    }
+  ],
+  "switchExplain": {
+    "SWITCH_MASTER": "Global fail-closed authority gate",
+    "SWITCH_HEADLESS_RUNNER": "Scheduled local command runner",
+    "SWITCH_TELEGRAM_BROKER": "Telegram operator message broker",
+    "SWITCH_DISCORD_BROKER": "Discord operator message broker",
+    "SWITCH_BROWSER_HARNESS": "Supervised browser observation harness",
+    "SWITCH_HEALTH_SWEEP": "SwanStudios health probe routine",
+    "SWITCH_MORNING_BRIEFING": "Daily operator briefing draft",
+    "SWITCH_STALE_CLIENT": "Stale-client signal routine",
+    "SWITCH_RECEIPT_DIGEST": "Daily receipt analytics renderer"
+  }
 }
