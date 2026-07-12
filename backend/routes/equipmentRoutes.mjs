@@ -393,9 +393,10 @@ router.post('/:id/items', async (req, res) => {
 
     const EquipmentItem = getEquipmentItem();
 
-    // Check duplicate within profile
+    // Check duplicate within profile — ACTIVE rows only, matching the partial
+    // unique index (soft-deleted names must not block a re-add, P0.3).
     const existing = await EquipmentItem.findOne({
-      where: { profileId: profile.id, name: name.trim() },
+      where: { profileId: profile.id, name: name.trim(), isActive: true },
     });
     if (existing) {
       return res.status(409).json({ success: false, error: 'Equipment with this name already exists in this profile' });
