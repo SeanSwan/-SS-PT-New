@@ -48,6 +48,7 @@ describe('enforceSwanCoachPlanningReview (unit)', () => {
         safetyGate: { status: 'review_required', reviewRequiredSignals: ['pain_exclusions_active'] },
         planningReviewAcknowledged: true,
         planningReviewReason: '   ',
+        actorRole: 'trainer',
       });
     } catch (err) { caught = err; }
     expect(caught.status).toBe(400);
@@ -60,6 +61,7 @@ describe('enforceSwanCoachPlanningReview (unit)', () => {
       planningReviewAcknowledged: true,
       planningReviewReason: 'Reviewed shoulder exclusion; substituting lower-body focus',
       actorUserId: 7,
+      actorRole: 'trainer',
       clientId: 42,
     });
     expect(result.required).toBe(true);
@@ -213,6 +215,7 @@ describe('workoutBuilderService deterministic blocking gate (Cortex P0 §5.3)', 
       exerciseCount: 2,
       planningReviewAcknowledged: true,
       planningReviewReason: 'Elbow pain reviewed; pressing volume reduced',
+      planningReviewActorRole: 'trainer',
     });
     expect(workout.swanCoachPlanning.safetyGate.acknowledgement).toEqual(expect.objectContaining({
       acknowledged: true,

@@ -207,6 +207,7 @@ router.post('/generate', async (req, res) => {
       readinessCheck,
       planningReviewAcknowledged: planningReviewAcknowledged === true,
       planningReviewReason,
+      planningReviewActorRole: req.user.role,
     });
 
     return res.json({ success: true, workout });
@@ -277,6 +278,7 @@ router.post('/plan', async (req, res) => {
       readinessCheck,
       planningReviewAcknowledged: planningReviewAcknowledged === true,
       planningReviewReason,
+      planningReviewActorRole: req.user.role,
     });
 
     return res.json({ success: true, plan });

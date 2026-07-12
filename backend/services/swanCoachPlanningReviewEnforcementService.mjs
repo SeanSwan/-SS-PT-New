@@ -34,11 +34,18 @@ export class SwanCoachPlanningReviewError extends Error {
  * @throws {SwanCoachPlanningReviewError} 409 when review is required and not
  *   acknowledged; 400 when acknowledged without a written reason.
  */
+// Only coaching staff may acknowledge a safety review. A client must never
+// be able to acknowledge their OWN review (the generation allowlist includes
+// client/user behind ENABLE_CLIENT_PLAN_SELFGEN), and a caller that does not
+// thread the actor's role fails CLOSED — the 409 still throws.
+const ACK_ELIGIBLE_ROLES = new Set(['trainer', 'admin']);
+
 export function enforceSwanCoachPlanningReview({
   safetyGate,
   planningReviewAcknowledged,
   planningReviewReason,
   actorUserId = null,
+  actorRole = null,
   clientId = null,
   now = new Date(),
 } = {}) {
@@ -49,7 +56,19 @@ export function enforceSwanCoachPlanningReview({
   const signals = Array.isArray(safetyGate.reviewRequiredSignals) ? safetyGate.reviewRequiredSignals : [];
   const missing = Array.isArray(safetyGate.missingCriticalData) ? safetyGate.missingCriticalData : [];
 
-  if (planningReviewAcknowledged !== true) {
+  const acknowledgedByEligibleRole = planningReviewAcknowledged === true
+    && ACK_ELIGIBLE_ROLES.has(actorRole);
+
+  if (planningReviewAcknowledged === true && !acknowledgedByEligibleRole) {
+    // De-identified audit of the refused acknowledgement (IDs/roles only).
+    logger.warn('[SwanCoachSafetyGate] review acknowledgement refused — ineligible actor role', {
+      clientId,
+      actorUserId,
+      actorRole: actorRole || 'unthreaded',
+    });
+  }
+
+  if (!acknowledgedByEligibleRole) {
     throw new SwanCoachPlanningReviewError(
       'Swan Coach deterministic safety review is required before this workout can be generated.',
       {
@@ -78,6 +97,7 @@ export function enforceSwanCoachPlanningReview({
     acknowledged: true,
     reason,
     acknowledgedByUserId: actorUserId,
+    acknowledgedByRole: actorRole,
     acknowledgedAt: now.toISOString(),
     reviewRequiredSignals: signals,
   };
