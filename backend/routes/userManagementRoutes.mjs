@@ -70,7 +70,7 @@
  *         ▼
  *   200 OK + data
  *
- * API Endpoints (8 total):
+ * API Endpoints (6 total):
  *
  * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
  * │ METHOD  ENDPOINT                    MIDDLEWARE          PURPOSE                          │
@@ -80,8 +80,6 @@
  * │ GET     /trainers                   protect, adminOnly  List trainers with credentials   │
  * │ POST    /user                       protect, adminOnly  Create new user (any role)       │
  * │ PUT     /user/:id                   protect, adminOnly  Update user details              │
- * │ POST    /promote-admin              protect, adminOnly  Promote user to admin (w/ code)  │
- * │ POST    /promote-client             protect, adminOnly  Promote user to client           │
  * │ DELETE  /user/:id                   protect, adminOnly  Soft delete user                 │
  * └──────────────────────────────────────────────────────────────────────────────────────────┘
  *
@@ -97,9 +95,9 @@
  *    - PUT /user/:id - Update user (optional password reset)
  *    - DELETE /user/:id - Soft delete (paranoid mode)
  *
- * 3. Role Promotion (2 routes):
- *    - POST /promote-admin - Requires ADMIN_PROMOTION_CODE
- *    - POST /promote-client - Sets availableSessions
+ * NOTE: Role promotion (promote-admin / promote-client) is served ONLY by
+ * /api/admin routes (adminRoutes.mjs → userManagementController). The inline
+ * duplicates were removed 2026-07-12.
  *
  * Request/Response Flow (Mermaid - Create User):
  * ```mermaid
@@ -179,12 +177,6 @@
  *   message: "You cannot deactivate your own account"
  * }
  *
- * 401 Unauthorized - Invalid admin code (promote-admin)
- * {
- *   success: false,
- *   message: "Invalid admin code"
- * }
- *
  * 404 Not Found - User not found
  * {
  *   success: false,
@@ -209,17 +201,12 @@
  *    - Passwords never returned in responses
  *    - Optional password update in PUT /user/:id
  *
- * 3. Admin Promotion Security:
- *    - Requires ADMIN_PROMOTION_CODE environment variable
- *    - Invalid attempts logged as warnings
- *    - Additional security layer beyond authentication
- *
- * 4. Soft Delete:
+ * 3. Soft Delete:
  *    - DELETE uses user.destroy() (paranoid mode)
  *    - Sets deletedAt timestamp instead of hard delete
  *    - Prevents self-deactivation (cannot delete own account)
  *
- * 5. Duplicate Prevention:
+ * 4. Duplicate Prevention:
  *    - Checks email + username uniqueness before creation
  *    - Uses Sequelize.Op.or for efficient query
  *
@@ -286,10 +273,6 @@
  * PUT /api/auth/user/abc-123
  * Body: { firstName: "Jane", password: "NewPass456!" }
  *
- * // Promote user to admin (requires code)
- * POST /api/auth/promote-admin
- * Body: { userId: "abc-123", adminCode: "secret-code" }
- *
  * // Soft delete user
  * DELETE /api/auth/user/abc-123
  * Response: { success: true, message: "User deactivated successfully" }
@@ -308,9 +291,6 @@
  * - bcryptjs: Password hashing library (10 rounds)
  * - logger: Winston-based structured logging
  *
- * Environment Variables:
- * - ADMIN_PROMOTION_CODE: Secret code for admin role promotion (required; no default)
- *
  * Testing:
  * - Unit tests: backend/tests/userManagementRoutes.test.mjs
  * - Test cases:
@@ -320,7 +300,6 @@
  *   - ✅ POST /user creates new user with hashed password
  *   - ✅ POST /user with existing email → 400 Bad Request
  *   - ✅ PUT /user/:id updates fields correctly
- *   - ✅ POST /promote-admin with invalid code → 401 Unauthorized
  *   - ✅ DELETE /user/:id soft deletes user
  *   - ✅ DELETE own account → 400 Bad Request
  *
@@ -698,117 +677,11 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
-/**
- * @route   POST /api/auth/promote-admin
- * @desc    Admin: Promote user to admin role
- * @access  Private (Admin Only)
- */
-router.post('/promote-admin', protect, adminOnly, async (req, res) => {
-  try {
-    const { userId, adminCode } = req.body;
-    
-    // Validate admin code. Fail closed if not configured.
-    const expectedAdminCode = process.env.ADMIN_PROMOTION_CODE;
-    if (!expectedAdminCode) {
-      logger.error('ADMIN_PROMOTION_CODE is not configured; refusing admin promotion');
-      return res.status(503).json({
-        success: false,
-        message: 'Admin promotion is not configured'
-      });
-    }
-    
-    if (adminCode !== expectedAdminCode) {
-      logger.warn(`Invalid admin code attempt by ${req.user.id}`);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid admin code'
-      });
-    }
-    
-    // Find the user
-    const user = await User.findByPk(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    // Update role to admin
-    user.role = 'admin';
-    await user.save();
-    
-    logger.info(`User ${userId} promoted to admin by ${req.user.id}`);
-    
-    res.status(200).json({
-      success: true,
-      message: 'User promoted to admin successfully'
-    });
-    
-  } catch (error) {
-    logUserManagementRouteError('Error promoting user to admin', error, req, { action: 'promote_admin' });
-    res.status(500).json({
-      success: false,
-      message: 'Server error promoting user to admin'
-    });
-  }
-});
-
-/**
- * @route   POST /api/auth/promote-client
- * @desc    Admin: Promote user to client role
- * @access  Private (Admin Only)
- */
-router.post('/promote-client', protect, adminOnly, async (req, res) => {
-  try {
-    const { userId, availableSessions } = req.body;
-    
-    // Find the user
-    const user = await User.findByPk(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    const requestedAvailableSessions = parseAdminSessionCreditInput(availableSessions);
-    if (requestedAvailableSessions === null) {
-      return res.status(400).json({
-        success: false,
-        message: 'Available sessions must be a non-negative integer'
-      });
-    }
-
-    if (requestedAvailableSessions > 0 && isNonDeductingClient(user)) {
-      return res.status(409).json({
-        success: false,
-        message: PAID_CREDIT_FREE_TRACKING_MESSAGE
-      });
-    }
-    
-    // Update role to client and set available sessions
-    user.role = 'client';
-    user.availableSessions = requestedAvailableSessions;
-    await user.save();
-    
-    logger.info(`User ${userId} promoted to client by ${req.user.id}`);
-    
-    res.status(200).json({
-      success: true,
-      message: 'User promoted to client successfully'
-    });
-    
-  } catch (error) {
-    logUserManagementRouteError('Error promoting user to client', error, req, { action: 'promote_client' });
-    res.status(500).json({
-      success: false,
-      message: 'Server error promoting user to client'
-    });
-  }
-});
+// Role promotion (promote-admin / promote-client) lives ONLY at
+// /api/admin via userManagementController — the surface the admin
+// dashboard calls. The legacy inline handlers that duplicated it here
+// (validating a drifted, unguarded env var) were removed 2026-07-12;
+// see tests/api/promoteRoleCanonicalSurface.test.mjs.
 
 /**
  * @route   DELETE /api/auth/user/:id
