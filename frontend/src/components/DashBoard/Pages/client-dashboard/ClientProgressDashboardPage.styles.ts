@@ -52,7 +52,7 @@ export const StatsStrip = styled.div<{ $bottom?: string }>`
 export const StatCard = styled.div<{ $accent?: string; $delay?: number }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
-  border-radius: 12px;
+  border-radius: var(--world-panel-radius, 12px);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -161,7 +161,7 @@ export const SplitRow = styled.div`
 export const Card = styled.div<{ $bottom?: string }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
-  border-radius: 12px;
+  border-radius: var(--world-panel-radius, 12px);
   padding: 1.25rem;
   margin-bottom: ${({ $bottom }) => $bottom ?? 0};
 `;

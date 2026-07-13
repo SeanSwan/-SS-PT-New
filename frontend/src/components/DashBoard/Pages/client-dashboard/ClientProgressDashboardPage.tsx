@@ -45,6 +45,7 @@ import {
 } from './ClientProgressDashboardPage.records';
 import { loadClientWeeklyRecap } from './ClientProgressDashboardPage.recap';
 import { FirstWorkoutCta, PersonalRecordsCard, WeeklyRecapCard } from './ClientProgressDashboardPage.cards';
+import ClientProgressLensFrame from './ClientProgressLensFrame';
 import ProgressPulsePanel from './ProgressPulsePanel';
 // Do not re-introduce ProfileChartsGrid on /dashboard/client/progress.
 // The canonical chart registry is owned by CanonicalProgressChartsGrid + useClientProgressCharts.
@@ -126,9 +127,10 @@ const ClientProgressDashboardPage: React.FC = () => {
   } = getClientProgressDashboardMetrics(p, weeklyRecap);
 
   return (
+    <ClientProgressLensFrame>
     <PageWrap>
       <PageHeader>
-        <PageTitle><TrendingUp size={22} /> My Progress</PageTitle>
+        <PageTitle className="lens2-display"><TrendingUp size={22} /> My Progress</PageTitle>
       </PageHeader>
 
       <StatsStrip>
@@ -253,6 +255,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         </DetailedLink>
       </CrystallineLockOverlay>
     </PageWrap>
+    </ClientProgressLensFrame>
   );
 };
 

@@ -34,6 +34,37 @@ export const CHART_COLORS = {
 export const hexAlpha = (hex: string, alpha: number) =>
   `${hex}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
 
+// ── Lens v2 chart palette bridge ──
+// Victory receives RESOLVED color strings (SVG presentation attrs cannot
+// carry CSS var()), so lens tokens are read via getComputedStyle from a
+// host INSIDE the lens frame and fall back to Swan defaults — zero visual
+// delta until a v2 recipe is worn. Chart chrome (axes, tooltips, labels)
+// deliberately stays Swan-fixed for readability; only the data-series
+// accent pair follows the lens.
+export interface LensChartPalette {
+  /** Primary data series (Swan default: Ice Wing). */
+  primary: string;
+  /** Secondary data series (Swan default: Wing Purple). */
+  secondary: string;
+}
+
+export const SWAN_CHART_PALETTE: LensChartPalette = {
+  primary: CHART_COLORS.iceWing,
+  secondary: CHART_COLORS.wingPurple,
+};
+
+/** Resolve the lens chart palette from a host element (SSR/hostless-safe). */
+export const resolveLensChartPalette = (host?: HTMLElement | null): LensChartPalette => {
+  if (typeof window === 'undefined' || !host) return SWAN_CHART_PALETTE;
+  const styles = getComputedStyle(host);
+  const read = (token: string, fallback: string) =>
+    styles.getPropertyValue(token).trim() || fallback;
+  return {
+    primary: read('--world-accent', SWAN_CHART_PALETTE.primary),
+    secondary: read('--world-action', SWAN_CHART_PALETTE.secondary),
+  };
+};
+
 // ── Palette Arrays ──
 export const FULL_PALETTE = [
   CHART_COLORS.iceWing,

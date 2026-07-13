@@ -43,8 +43,8 @@ import {
   repsBarProps,
   setsBarProps,
   setsRepsLegendProps,
-  weeklyVolumeAreaProps,
 } from './CanonicalProgressChartsGrid.victoryProps';
+import { useSeamedVictoryProps } from './CanonicalProgressChartsGrid.lensPalette';
 import {
   CardHeader,
   CardIcon,
@@ -156,6 +156,7 @@ const SetsRepsChartBody: React.FC<{
 export const WeeklyVolumeCard: React.FC<{
   data: CanonicalProgressCharts['weeklyVolume'];
 }> = ({ data }) => {
+  const { weeklyVolumeAreaProps } = useSeamedVictoryProps();
   const [range, setRange] = useState<ProgressChartTimeRange>('quarter');
   const visibleData = useMemo(() => sliceChartPointsByRange(data, range), [data, range]);
   const pulse = useMemo(() => buildProgressChartPulse(visibleData, {

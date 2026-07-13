@@ -31,12 +31,7 @@ import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBa
 import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
 import { buildWorkoutFrequencyRows, buildAttendanceRows, buildUnitSeriesRows } from './CanonicalProgressChartsGrid.expandRows';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
-import {
-  durationLineProps,
-  durationScatterProps,
-  intensityLineProps,
-  workoutFrequencyBarProps,
-} from './CanonicalProgressChartsGrid.victoryProps';
+import { useSeamedVictoryProps } from './CanonicalProgressChartsGrid.lensPalette';
 import {
   CardHeader,
   CardIcon,
@@ -56,6 +51,7 @@ import {
 } from './CanonicalProgressChartsGrid.styles';
 
 export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => {
+  const { workoutFrequencyBarProps } = useSeamedVictoryProps();
   // Slice 9: tap a week bar (or the button) to open that training week.
   const [tappedWeek, setTappedWeek] = React.useState<string | null>(null);
   const latestWeek = data.length > 0 ? String(data[data.length - 1].x) : null;
@@ -187,6 +183,7 @@ export const AttendanceReliabilityCard: React.FC<{
 );
 
 export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => {
+  const { durationLineProps, durationScatterProps } = useSeamedVictoryProps();
   // Slice 8.4: tap a session point (or the always-visible button — the
   // keyboard/touch-reliable path) to open the exact workout behind it.
   const [drillMd, setDrillMd] = React.useState<string | null>(null);

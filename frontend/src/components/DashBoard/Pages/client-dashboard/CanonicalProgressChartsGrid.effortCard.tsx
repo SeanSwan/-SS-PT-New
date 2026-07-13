@@ -24,7 +24,7 @@ import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBa
 import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
 import { buildUnitSeriesRows } from './CanonicalProgressChartsGrid.expandRows';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
-import { intensityLineProps } from './CanonicalProgressChartsGrid.victoryProps';
+import { useSeamedVictoryProps } from './CanonicalProgressChartsGrid.lensPalette';
 import {
   CardHeader,
   CardIcon,
@@ -37,6 +37,7 @@ import {
 export const IntensityRpeCard: React.FC<{
   data: CanonicalProgressCharts['intensityRpeTrend'];
 }> = ({ data }) => {
+  const { intensityLineProps } = useSeamedVictoryProps();
   const renderIntensityChart = (width?: number, height = 200) => (
     <VictoryChart
       theme={victoryTheme as any}

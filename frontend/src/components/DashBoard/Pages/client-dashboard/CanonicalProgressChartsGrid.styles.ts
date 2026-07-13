@@ -26,7 +26,7 @@ export const ChartCard = styled.div`
   padding: 1rem 1.25rem 1.25rem;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
-  border-radius: 12px;
+  border-radius: var(--world-panel-radius, 12px);
   transition: border-color 0.2s ease;
 
   &:hover {

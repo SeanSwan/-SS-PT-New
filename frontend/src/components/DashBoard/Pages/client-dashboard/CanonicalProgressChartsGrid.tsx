@@ -18,6 +18,7 @@ import ProgressChartWarRoomBoard from '../../progress/ProgressChartWarRoomBoard'
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
 import ProgressReportPdfButton from '../../progress-proof/ProgressReportPdfButton';
 import LockedChartCard from './CanonicalProgressChartsGrid.lockedCard';
+import { LensChartPaletteProvider } from './CanonicalProgressChartsGrid.lensPalette';
 import SafeChart from '../../../Charts/SafeChart';
 import {
   isProgressChartVisible,
@@ -74,6 +75,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
   }
 
   return (
+    <LensChartPaletteProvider>
     <div data-testid="canonical-progress-charts-grid">
       <ProgressProofCockpit
         activeLensId={activeLensId}
@@ -96,7 +98,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
       </SectionHeader>
       <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
-      <GridWrap>
+      <GridWrap className="lens2-collection">
         {isProgressChartVisible(activeLensId, 'workoutFrequency') && <SafeChart chartName="Workout Frequency"><WorkoutFrequencyCard data={charts.workoutFrequency} /></SafeChart>}
         {isProgressChartVisible(activeLensId, 'attendanceReliability') && <SafeChart chartName="Attendance Reliability">{lockedChartIds.includes('attendanceReliability') ? <LockedChartCard title="Attendance Reliability" /> : <AttendanceReliabilityCard bundle={charts.attendanceReliability} />}</SafeChart>}
         {isProgressChartVisible(activeLensId, 'weeklyVolume') && <SafeChart chartName="Weekly Volume"><WeeklyVolumeCard data={charts.weeklyVolume} /></SafeChart>}
@@ -114,6 +116,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
         {isProgressChartVisible(activeLensId, 'estOneRm') && <SafeChart chartName="Est. 1RM Trend">{lockedChartIds.includes('estOneRm') ? <LockedChartCard title="Est. 1RM Trend" /> : <EstOneRmTrendCard bundle={charts.estOneRm} />}</SafeChart>}
       </GridWrap>
     </div>
+    </LensChartPaletteProvider>
   );
 };
 
