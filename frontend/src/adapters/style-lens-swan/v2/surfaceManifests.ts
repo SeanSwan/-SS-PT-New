@@ -50,3 +50,50 @@ export const WORKOUT_PLANNER_MANIFEST: SurfaceCapabilityManifest = {
   slots: SWAN_SURFACE_SLOTS,
   templates: SWAN_SURFACE_TEMPLATES,
 };
+
+/** Universal Master Schedule (admin master-schedule + trainer/client schedule mounts). */
+export const MASTER_SCHEDULE_MANIFEST: SurfaceCapabilityManifest = {
+  surfaceId: 'master-schedule',
+  hostId: 'universal-master-schedule',
+  version: '1.0.0',
+  profiles: CONTAINER_PROFILES,
+  slots: SWAN_SURFACE_SLOTS,
+  templates: SWAN_SURFACE_TEMPLATES,
+};
+
+/** Clients & Team hub (admin client-management + trainer clients mounts). */
+export const CLIENTS_WORKSPACE_MANIFEST: SurfaceCapabilityManifest = {
+  surfaceId: 'clients-team',
+  hostId: 'clients-workspace',
+  version: '1.0.0',
+  profiles: CONTAINER_PROFILES,
+  slots: SWAN_SURFACE_SLOTS,
+  templates: SWAN_SURFACE_TEMPLATES,
+};
+
+/** Bootcamp Creator (admin + trainer bootcamp mounts). */
+export const BOOTCAMP_BUILDER_MANIFEST: SurfaceCapabilityManifest = {
+  surfaceId: 'bootcamp-creator',
+  hostId: 'bootcamp-builder',
+  version: '1.0.0',
+  profiles: CONTAINER_PROFILES,
+  slots: SWAN_SURFACE_SLOTS,
+  templates: SWAN_SURFACE_TEMPLATES,
+};
+
+/**
+ * Client progress dashboard (/dashboard/client/progress). Adds the
+ * chart.progress slot — the Golden Pair's chart variants become REAL here
+ * (the canonical grid is the first chart-bearing host).
+ */
+export const CLIENT_PROGRESS_MANIFEST: SurfaceCapabilityManifest = {
+  surfaceId: 'client-progress',
+  hostId: 'client-progress-dashboard',
+  version: '1.0.0',
+  profiles: CONTAINER_PROFILES,
+  slots: {
+    ...SWAN_SURFACE_SLOTS,
+    'chart.progress': { required: false, supportedVariants: ['arcade-meter', 'telemetry-columns'] },
+  },
+  templates: SWAN_SURFACE_TEMPLATES,
+};
