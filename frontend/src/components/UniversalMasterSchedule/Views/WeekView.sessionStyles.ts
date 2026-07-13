@@ -75,6 +75,71 @@ export const WeekSessionCard = styled.div<{
   }
 `;
 
+/**
+ * Ghost card — a recent booking (up to a month back) echoed into this week's
+ * empty slot. Deliberately quiet: dashed edge, no motion. Older ghosts fade so
+ * last week reads louder than three weeks ago. Clickable to rebook the same
+ * slot, keyboard-operable, never obscures real sessions.
+ *
+ * The fade floor (0.72) is a WCAG constraint, not a taste call: ghost text is
+ * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but
+ * drops under 4.5:1 if faded much further. Do not lower it.
+ */
+export const GHOST_FADE_FLOOR = 0.72;
+
+export const ghostFade = (weeksAgo: number) =>
+  Math.max(1 - (weeksAgo - 1) * 0.09, GHOST_FADE_FLOOR);
+
+export const GhostSessionCard = styled.div<{
+  $top: number;
+  $height: number;
+  $weeksAgo: number;
+}>`
+  position: absolute;
+  top: ${({ $top }) => $top}px;
+  height: ${({ $height }) => Math.max($height, 24)}px;
+  left: 2px;
+  right: 2px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 0;
+  min-height: 24px;
+  opacity: ${({ $weeksAgo }) => ghostFade($weeksAgo)};
+  background: color-mix(in srgb, var(--text-muted, #94A3B8) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
+  border-left: 3px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent);
+  color: ${WEEK_VIEW_THEME.textSoft};
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+    color: ${WEEK_VIEW_THEME.textSoft};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${WEEK_VIEW_THEME.primary};
+    outline-offset: 1px;
+    z-index: 3;
+  }
+`;
+
+export const GhostTag = styled.span`
+  display: block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent-primary, #60C0F0) 70%, transparent);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 export const SessionTime = styled.span`
   display: block;
   font-size: 0.65rem;

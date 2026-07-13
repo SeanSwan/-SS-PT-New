@@ -7,8 +7,8 @@ import {
   formatDayHeader,
   formatHour,
   formatVisibleDaysLabel,
+  buildSessionsByDay,
   getDayKey,
-  getSessionsForDay,
   getWeekDays,
   getWeekSessionDisplay,
   isKeyboardActivationKey,
@@ -44,6 +44,8 @@ import {
   WeekSessionsBadge,
 } from './WeekView.sessionStyles';
 import { getScheduleSlotMinuteFromOffset } from '../utils/scheduleTimeSlots';
+import { buildGhostsByDay } from './WeekView.ghostLogic';
+import WeekViewGhostLayer from './WeekViewGhostLayer';
 
 const WeekViewComponent: React.FC<WeekViewProps> = ({
   date,
@@ -98,20 +100,16 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
   const canGoBack = mobileOffset > 0;
   const canGoForward = mobileOffset + visibleCount < 7;
 
-  const sessionsByDay = useMemo(() => {
-    const map = new Map<string, any[]>();
-    weekDays.forEach((day) => {
-      map.set(
-        getDayKey(day),
-        getSessionsForDay(sessions, day).filter((session) => session.status !== 'cancelled')
-      );
-    });
-    return map;
-  }, [sessions, weekDays]);
+  const sessionsByDay = useMemo(() => buildSessionsByDay(sessions, weekDays), [sessions, weekDays]);
 
   const getDaySessions = useCallback(
     (day: Date) => sessionsByDay.get(getDayKey(day)) || [],
     [sessionsByDay]
+  );
+
+  const ghostsByDay = useMemo(
+    () => buildGhostsByDay(sessions, weekDays, sessionsByDay),
+    [sessions, weekDays, sessionsByDay]
   );
 
   const handlePrev = useCallback(() => {
@@ -236,6 +234,11 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                     />
                   ))}
 
+                  <WeekViewGhostLayer
+                    day={day}
+                    ghosts={ghostsByDay.get(getDayKey(day)) || []}
+                    onSlotClick={handleSlotClick}
+                  />
                   {daySessions.map((session) => {
                     const display = getWeekSessionDisplay(session);
                     if (!display) return null;

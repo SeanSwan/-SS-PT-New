@@ -108,6 +108,17 @@ export function formatVisibleDaysLabel(visibleDays: Date[]): string {
   return `${start} - ${end}`;
 }
 
+export function buildSessionsByDay(sessions: any[], weekDays: Date[]): Map<string, any[]> {
+  const map = new Map<string, any[]>();
+  weekDays.forEach((day) => {
+    map.set(
+      getDayKey(day),
+      getSessionsForDay(sessions, day).filter((session) => session.status !== 'cancelled')
+    );
+  });
+  return map;
+}
+
 export function getWeekSessionDisplay(session: any) {
   const sessionDate = new Date(session.sessionDate);
   const hour = sessionDate.getHours();
