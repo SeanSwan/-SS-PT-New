@@ -34,6 +34,21 @@ export const InputBarWrap = styled.div`
   flex-direction: column;
 `;
 
+/* Live dictation preview: interim speech renders HERE, never inside the
+   editable textarea value (typing would bake it in; the final would then
+   append again = duplicated words). */
+export const DictationHint = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 0;
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.85;
+`;
+
 export const InputError = styled.div`
   margin: 6px 8px 0;
   padding: 8px 10px;

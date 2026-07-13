@@ -35,8 +35,6 @@ async function renderSpeechProbe(onRuntimeUnavailable: (failure: RuntimeFailure)
 
   function SpeechProbe() {
     const speech = useCoachBrowserSpeechInput({
-      maxChars: 2000,
-      onSend: vi.fn(),
       onRuntimeUnavailable,
       setInputError: vi.fn(),
       setText: vi.fn(),

@@ -13,9 +13,7 @@ const confirmCommandMock = vi.hoisted(() => vi.fn());
 const cancelCommandMock = vi.hoisted(() => vi.fn());
 const speechHookParams = vi.hoisted(() => ({ current: null as any }));
 const speechMock = vi.hoisted(() => ({
-  cancelPillVisible: false,
   clearInterim: vi.fn(),
-  handleCancelSend: vi.fn(),
   interim: '',
   listening: false,
   speechSupported: true,
@@ -138,9 +136,7 @@ describe('CoachCommandCenter voice input', () => {
     confirmCommandMock.mockReset();
     cancelCommandMock.mockReset();
     speechMock.clearInterim.mockReset();
-    speechMock.handleCancelSend.mockReset();
     speechMock.toggleListening.mockReset();
-    speechMock.cancelPillVisible = false;
     speechMock.interim = '';
     speechMock.listening = false;
     speechMock.speechSupported = true;

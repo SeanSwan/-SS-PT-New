@@ -4,7 +4,8 @@
  * PURPOSE: Full-screen voice workflow: record, transcribe, preview, then send or edit.
  */
 
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Mic, X, Send, RefreshCw } from 'lucide-react';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useGeminiTranscription } from './hooks/useGeminiTranscription';
@@ -13,6 +14,7 @@ import {
   ActionBtn,
   ButtonRow,
   DurationText,
+  LevelRing,
   OrbContainer,
   Overlay,
   PulseRing,
@@ -43,6 +45,8 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
   const recorder = useVoiceRecorder();
   const transcription = useGeminiTranscription();
   const [previewReady, setPreviewReady] = useState(false);
+  const levelRingRef = useRef<HTMLSpanElement | null>(null);
+  const orbRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -98,6 +102,12 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
     recorder.stop();
   }, [recorder]);
 
+  // Initial focus lands on the orb so keyboard/AT users are inside the
+  // dialog the moment it opens.
+  useEffect(() => {
+    if (isOpen) orbRef.current?.focus();
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -114,7 +124,33 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
   const isRecording = recorder.state === 'recording';
   const isTranscribing = transcription.state === 'transcribing';
 
-  return (
+  // Level-reactive ring: imperative transform on a ref (no per-frame React
+  // state), skipped entirely under prefers-reduced-motion.
+  useEffect(() => {
+    if (!isRecording) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let frame = 0;
+    const paint = () => {
+      const ring = levelRingRef.current;
+      if (ring) {
+        const level = recorder.getAudioLevel();
+        ring.style.transform = `scale(${(1 + level * 0.7).toFixed(3)})`;
+        ring.style.opacity = (0.2 + level * 0.6).toFixed(3);
+      }
+      frame = requestAnimationFrame(paint);
+    };
+    frame = requestAnimationFrame(paint);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
+
+  // Closed = fully unmounted: an opacity-0 aria-modal dialog parked in
+  // document.body still hits the accessibility tree.
+  if (!isOpen) return null;
+
+  // Portaled: rendered inline, the fixed overlay was trapped under the same
+  // page's ops drawer (z 10040+) and any transformed ancestor (cube bug class).
+  return createPortal(
     <Overlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Voice recording">
       {previewReady ? (
         <VoiceTranscriptPreview
@@ -127,7 +163,9 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
         <>
           <OrbContainer>
             {isRecording && <PulseRing />}
+            {isRecording && <LevelRing ref={levelRingRef} aria-hidden="true" />}
             <RecordingOrb
+              ref={orbRef}
               type="button"
               $recording={isRecording}
               onClick={isRecording
@@ -170,7 +208,8 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
           </ButtonRow>
         </>
       )}
-    </Overlay>
+    </Overlay>,
+    document.body,
   );
 });
 

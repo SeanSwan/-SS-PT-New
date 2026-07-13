@@ -22,7 +22,10 @@ const spin = keyframes`
 export const Overlay = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  /* Portaled to document.body: an active dictation session outranks all
+     page chrome incl. the coach ops drawer band (10040-10050). Inline
+     z-index 1000 was buried under it (cube bug class). */
+  z-index: 10060;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -87,6 +90,24 @@ export const PulseRing = styled.span`
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     opacity: 0;
+  }
+`;
+
+/* Live mic-level halo: transform/opacity driven imperatively per frame
+   from the recorder's analyser (GPU-safe; no per-frame React state).
+   Stays invisible until speech is detected — proof the mic hears you. */
+export const LevelRing = styled.span`
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-secondary, #8B5CF6);
+  opacity: 0;
+  will-change: transform, opacity;
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
   }
 `;
 

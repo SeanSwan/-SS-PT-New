@@ -15,9 +15,7 @@ const commandMock = vi.hoisted(() => ({
 }));
 
 const speechMock = vi.hoisted(() => ({
-  cancelPillVisible: false,
   clearInterim: vi.fn(),
-  handleCancelSend: vi.fn(),
   interim: '',
   listening: false,
   speechSupported: true,
@@ -68,9 +66,7 @@ describe('ClientTrainingCommandBar voice dictation', () => {
     commandMock.confirmCommand.mockReset();
     commandMock.executeCommand.mockReset();
     speechMock.clearInterim.mockReset();
-    speechMock.handleCancelSend.mockReset();
     speechMock.toggleListening.mockReset();
-    speechMock.cancelPillVisible = false;
     speechMock.interim = '';
     speechMock.listening = false;
     speechMock.speechSupported = true;

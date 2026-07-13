@@ -31,6 +31,8 @@ export interface UseVoiceRecorderReturn {
   start: () => Promise<void>;
   stop: () => void;
   reset: () => void;
+  /** Live mic RMS 0..1 for level-reactive UI; 0 when unavailable. */
+  getAudioLevel: () => number;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -69,6 +71,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -79,6 +84,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    levelBufferRef.current = null;
     recorderRef.current = null;
     chunksRef.current = [];
   }, []);
@@ -92,6 +103,23 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+
+      // Optional level meter — recording works fine without it.
+      try {
+        const AudioContextCtor = window.AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextCtor) {
+          const audioContext = new AudioContextCtor();
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          audioContext.createMediaStreamSource(stream).connect(analyser);
+          audioContextRef.current = audioContext;
+          analyserRef.current = analyser;
+          levelBufferRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+        }
+      } catch {
+        analyserRef.current = null;
+      }
 
       const mimeType = getSupportedMime();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -136,6 +164,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     }
   }, []);
 
+  const getAudioLevel = useCallback((): number => {
+    const analyser = analyserRef.current;
+    const buffer = levelBufferRef.current;
+    if (!analyser || !buffer) return 0;
+    analyser.getByteTimeDomainData(buffer);
+    let sumOfSquares = 0;
+    for (let i = 0; i < buffer.length; i += 1) {
+      const centered = (buffer[i] - 128) / 128;
+      sumOfSquares += centered * centered;
+    }
+    // RMS of speech peaks well under 1.0 — scale up, clamp for UI use.
+    return Math.min(1, Math.sqrt(sumOfSquares / buffer.length) * 3);
+  }, []);
+
   const reset = useCallback(() => {
     cleanup();
     setState('idle');
@@ -144,5 +186,5 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setError(null);
   }, [cleanup]);
 
-  return { state, audioBlob, duration, error, start, stop, reset };
+  return { state, audioBlob, duration, error, start, stop, reset, getAudioLevel };
 }

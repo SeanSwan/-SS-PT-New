@@ -4,7 +4,6 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
 import {
   useCoachBrowserSpeechInput,
@@ -22,7 +21,6 @@ type VoiceOverlayProps = {
 
 type VoiceCaptureParams = {
   commandTextRef: RefObject<HTMLTextAreaElement>;
-  maxChars?: number;
   setCommandText: Dispatch<SetStateAction<string>>;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
@@ -30,11 +28,11 @@ type VoiceCaptureParams = {
 function buildVoiceStatus(
   voiceInputError: string | null,
   interim: string | null,
-  cancelPillVisible: boolean,
+  listening: boolean,
 ): string | null {
   if (voiceInputError) return voiceInputError;
   if (interim) return `Listening: ${interim}`;
-  return cancelPillVisible ? 'Voice command captured - tap Mic to cancel before it lands in the composer' : null;
+  return listening ? 'Listening - tap the mic when you finish' : null;
 }
 
 function isCoachVoiceRecorderSupported(): boolean {
@@ -45,8 +43,7 @@ function isCoachVoiceRecorderSupported(): boolean {
 
 function runCoachVoiceCommand(
   speech: {
-    cancelPillVisible: boolean;
-    handleCancelSend: () => void;
+    listening: boolean;
     openRecorder: () => void;
     recorderSupported: boolean;
     speechSupported: boolean;
@@ -54,13 +51,11 @@ function runCoachVoiceCommand(
   },
   setSelectedStatus: (status: string) => void,
 ) {
-  if (speech.cancelPillVisible) {
-    speech.handleCancelSend();
-    setSelectedStatus('Voice command cancelled');
-    return;
-  }
   if (speech.speechSupported) {
     speech.toggleListening();
+    setSelectedStatus(speech.listening
+      ? 'Dictation finished - review the composer, then press Send'
+      : 'Listening - tap the mic when you finish');
     return;
   }
   if (speech.recorderSupported) {
@@ -73,7 +68,6 @@ function runCoachVoiceCommand(
 
 export function useCoachCommandVoiceCapture({
   commandTextRef,
-  maxChars = AI_CHAT_MESSAGE_MAX_CHARS,
   setCommandText,
   setSelectedStatus,
 }: VoiceCaptureParams) {
@@ -116,8 +110,6 @@ export function useCoachCommandVoiceCapture({
   }, [recorderSupported, setSelectedStatus]);
 
   const speech = useCoachBrowserSpeechInput({
-    maxChars,
-    onSend: handleVoiceCaptured,
     onRuntimeUnavailable: handleBrowserSpeechUnavailable,
     setInputError: setVoiceInputError,
     setText: setVoiceCommandText,
@@ -125,8 +117,7 @@ export function useCoachCommandVoiceCapture({
 
   const handleVoice = useCallback(() => {
     runCoachVoiceCommand({
-      cancelPillVisible: speech.cancelPillVisible,
-      handleCancelSend: speech.handleCancelSend,
+      listening: speech.listening,
       openRecorder: () => setVoiceOverlayOpen(true),
       recorderSupported,
       speechSupported: speech.speechSupported,
@@ -147,7 +138,7 @@ export function useCoachCommandVoiceCapture({
     voiceActive: speech.listening || voiceOverlayOpen,
     voiceCaptureMode,
     voiceOverlay,
-    voiceStatus: buildVoiceStatus(voiceInputError, speech.interim, speech.cancelPillVisible),
+    voiceStatus: buildVoiceStatus(voiceInputError, speech.interim, speech.listening),
     voiceSupported: speech.speechSupported || recorderSupported,
   };
 }

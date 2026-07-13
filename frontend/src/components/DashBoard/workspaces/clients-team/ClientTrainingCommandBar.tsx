@@ -14,7 +14,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic2, Send, Sparkles } from 'lucide-react';
-import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import {
@@ -169,9 +168,9 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
     ]
   );
 
+  // Dictation streams into the command input; the trainer reviews and
+  // presses Send (no silence-triggered auto-submit — 2026-07-13 rework).
   const speech = useCoachBrowserSpeechInput({
-    maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
-    onSend: submitCommandText,
     setInputError,
     setText: setCommand,
   });
@@ -216,19 +215,17 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
 
   const speechStatus = speech.interim
     ? `Listening: ${speech.interim}`
-    : speech.cancelPillVisible
-      ? 'Voice command captured. Sending unless cancelled.'
+    : speech.listening
+      ? 'Listening - tap the mic when you finish'
       : null;
   const displayedStatus = error || inputError || speechStatus || status;
   const displayedTone = error || inputError ? 'error' : statusTone;
   const voiceLabel = !speech.speechSupported
     ? 'Voice dictation unavailable'
-    : speech.cancelPillVisible
-      ? 'Cancel voice send'
-      : speech.listening
-        ? 'Stop voice dictation'
-        : 'Start voice dictation';
-  const handleVoiceClick = speech.cancelPillVisible ? speech.handleCancelSend : speech.toggleListening;
+    : speech.listening
+      ? 'Stop voice dictation'
+      : 'Start voice dictation';
+  const handleVoiceClick = speech.toggleListening;
 
   return (
     <Shell aria-label={`${clientName} Swan Coach training command`}>

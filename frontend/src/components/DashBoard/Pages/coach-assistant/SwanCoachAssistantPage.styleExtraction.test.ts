@@ -50,7 +50,7 @@ describe('SwanCoachAssistantPage style extraction', () => {
     expect(messageStyles).toContain('@media (max-width: 520px)');
     expect(messageStyles).toContain('font-size: 14px;');
     expect(messageStyles).toContain('max-width: 100%;');
-    expect(inputBarSource).toContain("placeholder={listening ? 'Listening...' : 'Ask Swan Coach...'}");
+    expect(inputBarSource).toContain("placeholder={listening ? 'Listening - tap the mic when you finish' : 'Ask Swan Coach...'}");
     expect(hookSource).toContain("messages.length === 1 && messages[0]?.id === 'welcome'");
   });
 });

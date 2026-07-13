@@ -8,11 +8,11 @@ import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
 import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoachStyles';
 import { ORB_ICON_SIZE_MAP, ORB_SIZE_MAP } from './SwanCoachConstants';
-import CoachInputCancelPill from './CoachInputCancelPill';
 import type { OrbSize } from './SwanCoachTypes';
-import { useCoachBrowserSpeechInput, CANCEL_WINDOW_MS } from './hooks/useCoachBrowserSpeechInput';
+import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
 import {
   CharCount,
+  DictationHint,
   InputBarWrap,
   InputError,
   InputErrorAction,
@@ -60,16 +60,17 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   const {
     listening,
     interim,
-    cancelPillVisible,
     clearInterim,
-    handleCancelSend,
     speechSupported,
     toggleListening,
   } = useCoachBrowserSpeechInput({
-    maxChars: MAX_CHARS,
-    onSend,
     setText,
     setInputError,
+    // Dictation runtime failure (e.g. a dead browser speech service) fails
+    // over to the server-transcription recorder when the host offers one.
+    onRuntimeUnavailable: (failure) => {
+      if (failure.canTryRecorder && onVoiceOverlay) onVoiceOverlay();
+    },
   });
 
   const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768
@@ -154,23 +155,22 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   }, [clearInterim, intakeDraftSaving, onCreateIntakeDraft, text]);
 
   const handleVoiceClick = useCallback(() => {
-    if (onVoiceOverlay) onVoiceOverlay();
-    else toggleListening();
-  }, [onVoiceOverlay, toggleListening]);
+    // Prefer live streaming dictation (tap-to-stop, review, send); the
+    // recorder overlay is the fallback for browsers without a working
+    // speech service (plus the runtime-failure failover above).
+    if (speechSupported) toggleListening();
+    else if (onVoiceOverlay) onVoiceOverlay();
+  }, [onVoiceOverlay, speechSupported, toggleListening]);
 
-  const displayText = text || interim;
+  // Interim speech NEVER enters the editable value (typing would bake it
+  // in and the final would append again = duplicated words); it renders as
+  // a live hint under the input instead.
+  const displayText = text;
   const hasVoice = speechSupported || !!onVoiceOverlay;
   const overLimit = text.length > MAX_CHARS;
 
   return (
     <InputBarWrap>
-      {cancelPillVisible && (
-        <CoachInputCancelPill
-          duration={CANCEL_WINDOW_MS}
-          onCancel={handleCancelSend}
-        />
-      )}
-
       <InputBar>
         {ttsSupported && onTtsToggle && (
           <TtsToggle
@@ -192,7 +192,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
             value={displayText}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={listening ? 'Listening...' : 'Ask Swan Coach...'}
+            placeholder={listening ? 'Listening - tap the mic when you finish' : 'Ask Swan Coach...'}
             disabled={sending}
             aria-label="Message input"
             rows={1}
@@ -230,6 +230,10 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
           <Send size={20} />
         </SendBtn>
       </InputBar>
+
+      {listening && interim && (
+        <DictationHint aria-live="polite">{interim}&hellip;</DictationHint>
+      )}
 
       {inputError && (
         <InputError id="coach-input-error" role="alert">
