@@ -19,12 +19,14 @@ describe('WorkoutLogger shell extraction', () => {
     // Save bar). Net shell growth was held to +26 lines by extracting THREE
     // helpers out of the shell in the same slice: WorkoutLogger.preferences.ts,
     // repeatLastSessionIntoLogger (in WorkoutLogger.repeatLastSession.ts), and
-    // WorkoutLoggerModeBar.tsx. The next real reduction (handleSubmit /
-    // executeLoadClientData → hooks) is a dedicated refactor pass (Rule 37),
-    // not bundled with feature work, and is partly gated by the source-text
-    // locks in WorkoutLogger.protocolSections.test.tsx that require certain
-    // handlers to remain inline in this file.
+    // WorkoutLoggerModeBar.tsx.
+    // 2026-07-13 (Slice D1): ratchet tightened 1270 → 1110 — the AI-events
+    // cluster (plan-transfer listener, AI_* command bridge, voice import,
+    // pending-plan drain, ~170 lines) moved verbatim to useWorkoutAiEvents.ts;
+    // the source-text locks in protocolSections/clientRoute/writerDefaults now
+    // read logger + hook as one contract surface. Next reductions:
+    // handleSubmit cluster, then executeLoadClientData/plan-load wiring.
     const lineCount = source.split(/\r?\n/).length;
-    expect(lineCount).toBeLessThan(1270);
+    expect(lineCount).toBeLessThan(1110);
   });
 });

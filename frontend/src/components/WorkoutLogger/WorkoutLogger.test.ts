@@ -28,8 +28,12 @@ import { describe, expect, it } from 'vitest';
  * the component and catches any TDZ that would trip on mount.
  */
 describe('WorkoutLogger initialization order', () => {
+  // Slice D1 decomposition: AI-events cluster lives in useWorkoutAiEvents.ts.
   const source = fs.readFileSync(
     path.resolve(__dirname, 'WorkoutLogger.tsx'),
+    'utf8',
+  ) + fs.readFileSync(
+    path.resolve(__dirname, 'useWorkoutAiEvents.ts'),
     'utf8',
   );
 

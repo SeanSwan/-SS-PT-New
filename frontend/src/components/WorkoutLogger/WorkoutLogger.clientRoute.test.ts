@@ -36,8 +36,13 @@ import { dirname, resolve } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Slice D1 decomposition: the AI-events cluster now lives in useWorkoutAiEvents.ts;
+// these locks cover the logger + that hook as one contract surface.
 const RAW_SOURCE = readFileSync(
   resolve(__dirname, './WorkoutLogger.tsx'),
+  'utf8',
+) + readFileSync(
+  resolve(__dirname, './useWorkoutAiEvents.ts'),
   'utf8',
 );
 const LOCAL_TYPES_SOURCE = readFileSync(
