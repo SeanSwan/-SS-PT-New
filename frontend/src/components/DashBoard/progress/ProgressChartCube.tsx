@@ -5,6 +5,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Activity, BarChart3, Grid3X3, ShieldCheck, Trophy, X } from 'lucide-react';
 import type { CanonicalProgressCharts, ChartPoint } from '../../../hooks/analytics/useClientProgressCharts.types';
 import {
@@ -183,7 +184,7 @@ const ProgressChartCube: React.FC<ProgressChartCubeProps> = ({
         </CubeButton>
       </CubeStage>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <ModalBackdrop role="presentation">
           <ModalPanel role="dialog" aria-modal="true" aria-label="Progress command cube details">
             <ModalHeader>
@@ -217,7 +218,8 @@ const ProgressChartCube: React.FC<ProgressChartCubeProps> = ({
               ))}
             </ModalGrid>
           </ModalPanel>
-        </ModalBackdrop>
+        </ModalBackdrop>,
+        document.body,
       )}
     </CubeBoard>
   );

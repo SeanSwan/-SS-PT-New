@@ -215,7 +215,10 @@ export const DetailPill = styled.span`
 export const ModalBackdrop = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  /* Portaled to document.body: must clear the app's top chrome band
+     (headers/drawers cluster at 9999); 1300 inline was trapped inside the
+     transformed card's stacking context and rendered BEHIND siblings. */
+  z-index: 10000;
   display: grid;
   place-items: center;
   padding: 1rem;

@@ -31,7 +31,27 @@ import { applyPainAwareGating } from './painAwareGating.mjs';
 
 // ── Exercise Selection Algorithms ─────────────────────────────────────
 
-function selectStationExercises(available, stationMuscles, count, usedNames) {
+/**
+ * Sample `take` items from the TOP of `pool` without replacement.
+ * The window (3× the ask, floor 9) keeps picks inside the best-ranked
+ * candidates — protocol ordering (intensity rank / difficulty) still gates
+ * quality; the RNG only varies WHICH qualified pick lands, so repeated
+ * Generate presses produce fresh-but-sound classes instead of one frozen
+ * answer. rng is injectable for deterministic tests.
+ */
+function sampleFromWindow(pool, take, rng = Math.random) {
+  if (take <= 0 || pool.length === 0) return [];
+  const windowSize = Math.min(pool.length, Math.max(take * 3, 9));
+  const window = pool.slice(0, windowSize);
+  // Partial Fisher-Yates: shuffle only the first `take` slots.
+  for (let i = 0; i < Math.min(take, window.length - 1); i++) {
+    const j = i + Math.floor(rng() * (window.length - i));
+    [window[i], window[j]] = [window[j], window[i]];
+  }
+  return window.slice(0, take);
+}
+
+function selectStationExercises(available, stationMuscles, count, usedNames, rng = Math.random) {
   const primaryMuscle = stationMuscles[0];
 
   const primaryMatches = available
@@ -60,27 +80,30 @@ function selectStationExercises(available, stationMuscles, count, usedNames) {
         .filter(ex => !primaryMatches.some(p => p.key === ex.key) && !secondaryMatches.some(s => s.key === ex.key))
     : [];
 
-  const matching = [...primaryMatches, ...secondaryMatches, ...tertiaryMatches];
   const needed = Math.max(1, count - 1);
 
-  if (matching.length >= needed) return matching.slice(0, needed);
+  // Tier precedence is protocol (primary muscle first, then assisting,
+  // then station-secondary muscles); the sample varies picks WITHIN a tier.
+  const selected = [];
+  for (const tier of [primaryMatches, secondaryMatches, tertiaryMatches]) {
+    if (selected.length >= needed) break;
+    selected.push(...sampleFromWindow(tier, needed - selected.length, rng));
+  }
+  if (selected.length >= needed) return selected;
 
-  const selected = [...matching];
   const remainingPool = available
     .filter(ex => !usedNames.has(ex.key) && !selected.some(s => s.key === ex.key));
-
-  for (const ex of remainingPool) {
-    if (selected.length >= needed) break;
-    selected.push(ex);
-  }
+  selected.push(...sampleFromWindow(remainingPool, needed - selected.length, rng));
 
   return selected;
 }
 
-function selectFullGroupExercises(available) {
-  const compound = available
-    .filter(ex => (ex.muscles ?? []).length >= 2)
-    .slice(0, 5);
+function selectFullGroupExercises(available, rng = Math.random) {
+  const compound = sampleFromWindow(
+    available.filter(ex => (ex.muscles ?? []).length >= 2),
+    5,
+    rng,
+  );
 
   const cardio = CARDIO_FINISHERS.slice(0, 5).map(cf => ({
     ...cf,
@@ -90,9 +113,11 @@ function selectFullGroupExercises(available) {
   }));
 
   const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
-  const accessory = available
-    .filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2)
-    .slice(0, 5);
+  const accessory = sampleFromWindow(
+    available.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
+    5,
+    rng,
+  );
 
   const result = [];
   const maxLen = Math.max(compound.length, cardio.length, accessory.length);
@@ -567,8 +592,8 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations) {
-  const selected = selectFullGroupExercises(available);
+function buildFullGroupWorkout(available, format, allExercises, explanations, rng = Math.random) {
+  const selected = selectFullGroupExercises(available, rng);
   for (let i = 0; i < selected.length; i++) {
     allExercises.push(buildExerciseRecord(selected[i], {
       durationSec: format.durationSec,
@@ -582,12 +607,14 @@ function buildFullGroupWorkout(available, format, allExercises, explanations) {
   });
 }
 
-function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations) {
+function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations, rng = Math.random) {
   const muscleGroups = distributeMuscleGroups(targetMuscles, stationCount);
+  // Random offset so the finisher rotation also varies press-to-press.
+  const finisherOffset = Math.floor(rng() * CARDIO_FINISHERS.length);
 
   for (let s = 0; s < stationCount; s++) {
     const stationMuscles = muscleGroups[s];
-    const stationExes = selectStationExercises(available, stationMuscles, format.exercisesPerStation, usedNames);
+    const stationExes = selectStationExercises(available, stationMuscles, format.exercisesPerStation, usedNames, rng);
 
     stations.push({
       stationNumber: s + 1,
@@ -610,7 +637,7 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
       usedNames.add(stationExes[e].key);
     }
 
-    const finisher = CARDIO_FINISHERS[s % CARDIO_FINISHERS.length];
+    const finisher = CARDIO_FINISHERS[(s + finisherOffset) % CARDIO_FINISHERS.length];
     allExercises.push(buildExerciseRecord(finisher, {
       stationIndex: s,
       durationSec: format.durationSec,
@@ -635,4 +662,7 @@ export const __testing__ = {
   normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
   resolveBootcampStructure,
+  sampleFromWindow,
+  selectFullGroupExercises,
+  selectStationExercises,
 };

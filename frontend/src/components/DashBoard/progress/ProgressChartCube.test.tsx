@@ -38,4 +38,16 @@ describe('ProgressChartCube', () => {
     fireEvent.click(screen.getByRole('button', { name: /close progress command cube details/i }));
     expect(screen.queryByRole('dialog', { name: /progress command cube details/i })).not.toBeInTheDocument();
   });
+
+  it('portals the dialog to document.body so card stacking contexts cannot bury it (z-index bug lock)', () => {
+    render(<ProgressChartCube charts={charts} nonEmptyChartCount={8} unavailableChartCount={4} />);
+    fireEvent.click(screen.getByRole('button', { name: /open progress command cube details/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /progress command cube details/i });
+    const board = screen.getByRole('region', { name: /3d progress chart carousel/i });
+    // Inline rendering trapped the fixed backdrop inside the transformed
+    // card shell (overflow:hidden + stacking context) — behind siblings.
+    expect(board.contains(dialog)).toBe(false);
+    expect(dialog.closest('body')).toBe(document.body);
+  });
 });
