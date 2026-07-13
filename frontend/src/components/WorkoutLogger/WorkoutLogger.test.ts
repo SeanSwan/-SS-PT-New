@@ -35,6 +35,9 @@ describe('WorkoutLogger initialization order', () => {
   ) + fs.readFileSync(
     path.resolve(__dirname, 'useWorkoutAiEvents.ts'),
     'utf8',
+  ) + fs.readFileSync(
+    path.resolve(__dirname, 'useWorkoutPlanLoading.ts'),
+    'utf8',
   );
 
   it('does NOT re-introduce the deleted loadClientData wrapper', () => {

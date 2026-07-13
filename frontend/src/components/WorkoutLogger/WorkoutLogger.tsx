@@ -9,7 +9,6 @@ import {
   ExerciseSet,
 } from '../../services/nasmApiService';
 import type { DailyWorkoutForm } from '../../services/nasmApiService';
-import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import {
   AI_SUBMIT_WORKOUT,
@@ -18,7 +17,7 @@ import {
 import { dispatchWorkoutLogged } from '../../utils/workoutLoggedEvent';
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
-import { getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION } from './WorkoutLoggerCS';
+import { MINUTES_PER_SET, MAX_WORKOUT_DURATION } from './WorkoutLoggerCS';
 import {
   AddExerciseButton,
   BalanceProtocolIcon,
@@ -69,11 +68,7 @@ import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLog
 import { useWorkoutDraft, WorkoutDraftRestoreBanner } from './useWorkoutDraft';
 import { toggleSupersetLink, isLinkedToPrevious, renumberSupersetGroups } from './WorkoutLogger.supersets';
 import FloatingRestTimer from './FloatingRestTimer';
-import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
-  PlanAssignmentPickerItem,
-  PlannedAssignment,
-  WorkoutLoggerClient,
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
 } from './WorkoutLogger.localTypes';
@@ -84,14 +79,9 @@ import {
   getExerciseEntryRowKey,
   hasIncompleteWorkoutSets,
   normalizeWorkoutDate,
-  planAssignmentPickerItemToContext,
-  planAssignmentPickerItemToEntries,
-  planAssignmentPickerItemToSubmitAssignment,
   isSelfLoggingDashboardRole,
   isWorkoutSubmitCanceled,
 } from './WorkoutLogger.helpers';
-import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
-import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -105,6 +95,7 @@ import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger
 import { useRestTimer } from './useRestTimer';
 import { useWorkoutAiEvents } from './useWorkoutAiEvents';
 import { useWorkoutSubmit } from './useWorkoutSubmit';
+import { useWorkoutPlanLoading } from './useWorkoutPlanLoading';
 
 const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   clientId,
@@ -166,7 +157,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   /* Phase 16: null overallIntensity means not rated; save omits untouched ratings. */
   const [overallIntensity, setOverallIntensity] = useState<number | null>(null);
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
-  const [client, setClient] = useState<WorkoutLoggerClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const autoLoadTodayPlanRef = useRef<string | null>(null);
@@ -184,18 +174,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [routeExercise]);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
-  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
-  const [isRepeatingSession, setIsRepeatingSession] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
   // Phase 2.1a: saved form powers SaveSuccessPanel; onComplete deferred to Done.
   const [lastSaveResponse, setLastSaveResponse] = useState<DailyWorkoutForm | null>(null);
-  const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(readQuickLogPreference);
-  const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
-  const [loadedPlanContext, setLoadedPlanContext] = useState<PlannedAssignment | null>(null);
 
   const hookClientId = effectiveClientId ?? 0;
   const ghostPreFill = useGhostPreFill(hookClientId, { skip: isClientSelfMode });
@@ -322,120 +307,30 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     pendingAiPlanPrefillLoadedRef,
   });
 
-  const executeLoadClientData = useCallback(async () => {
-    setIsLoadingClient(true);
-    try {
-      if (typeof effectiveClientId !== 'number') {
-        setClient(null);
-        return;
-      }
-
-      const api = new ApiService();
-      const infoUrl = isClientSelfMode
-        ? '/api/workout-forms/my/info'
-        : `/api/workout-forms/client/${effectiveClientId}/info`;
-      const axiosResponse = await api.get(infoUrl);
-      const data = axiosResponse?.data ?? axiosResponse;
-
-      if (data.success && data.client) {
-        setClient({
-          id: data.client.id,
-          firstName: data.client.firstName,
-          lastName: data.client.lastName,
-          email: data.client.email,
-          availableSessions: data.client.availableSessions,
-          clientSource: data.client.clientSource,
-          phone: data.client.phone
-        });
-        if (data.client.hasWorkoutToday) {
-          toast.warning(`${data.client.firstName} already has a workout logged for today`);
-        }
-        if (!isNonDeductingClientSource(data.client.clientSource) && data.client.availableSessions <= 1) {
-          toast.warning(`${data.client.firstName} has only ${data.client.availableSessions} session(s) remaining`);
-        }
-      } else {
-        throw new Error(data.message || 'Failed to load client data');
-      }
-    } catch (error: unknown) {
-      console.error('Failed to load client data:', error);
-      setClient({
-        id: effectiveClientId ?? 0,
-        firstName: 'Client',
-        lastName: typeof effectiveClientId === 'number' ? `#${effectiveClientId}` : '',
-        email: '',
-        availableSessions: 0,
-        clientSource: null,
-        phone: ''
-      });
-      toast.error(getErrorMessage(error, 'Failed to load client information'));
-    } finally {
-      setIsLoadingClient(false);
-    }
-  }, [effectiveClientId, isClientSelfMode]);
-
-  useEffect(() => {
-    executeLoadClientData();
-  }, [executeLoadClientData]);
-
-  const loadTodaysPlan = useCallback(async () => {
-    setLoadedPlanContext(null);
-    await loadTodaysPlanIntoLogger({
-      effectiveClientId,
-      createWorkoutLoggerLocalId,
-      routeAssignmentKey,
-      routeAssignmentType,
-      scheduledSessionId,
-      setExercises,
-      setIsLoadingPlan,
-      setLoadedPlanContext,
-      setPlannedAssignment,
-    });
-  }, [effectiveClientId, createWorkoutLoggerLocalId, routeAssignmentKey, routeAssignmentType, scheduledSessionId]);
-
-  useEffect(() => {
-    const todayPlanLoadSignal = loadTodayPlanSignal > 0
-      ? `embedded:${loadTodayPlanSignal}`
-      : autoLoadTodayPlan
-        ? `route:${searchParams.toString()}`
-        : null;
-
-    if (!todayPlanLoadSignal || autoLoadTodayPlanRef.current === todayPlanLoadSignal || hasInitialExercises) return;
-    if (pendingAiPlanPrefillLoadedRef.current && autoLoadTodayPlan && loadTodayPlanSignal <= 0) {
-      autoLoadTodayPlanRef.current = todayPlanLoadSignal;
-      pendingAiPlanPrefillLoadedRef.current = false;
-      return;
-    }
-    if (typeof effectiveClientId !== 'number') return;
-
-    autoLoadTodayPlanRef.current = todayPlanLoadSignal;
-    void loadTodaysPlan();
-  }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
-
-  const handleApplyGeneratedPlanDay = useCallback((assignment: PlanAssignmentPickerItem) => {
-    const prefilled = planAssignmentPickerItemToEntries(assignment, createWorkoutLoggerLocalId);
-    if (prefilled.length === 0) {
-      toast.info('That generated plan day has no exercises to load.');
-      return;
-    }
-
-    setExercises((prev) => [...prev, ...prefilled]);
-    const submitAssignment = planAssignmentPickerItemToSubmitAssignment(assignment);
-    setPlannedAssignment(submitAssignment);
-    setLoadedPlanContext(planAssignmentPickerItemToContext(assignment));
-    const label = assignment.title || assignment.dayLabel || 'generated plan day';
-    toast.success(`Loaded ${prefilled.length} exercise${prefilled.length === 1 ? '' : 's'} from ${label}${submitAssignment ? '' : ' as a draft'}.`);
-  }, [createWorkoutLoggerLocalId]);
-
-  const handleRepeatLastSession = useCallback(
-    () => repeatLastSessionIntoLogger({
-      effectiveClientId,
-      isClientSelfMode,
-      createWorkoutLoggerLocalId,
-      setExercises,
-      setIsRepeatingSession,
-    }),
-    [effectiveClientId, isClientSelfMode, createWorkoutLoggerLocalId],
-  );
+  const {
+    client,
+    handleApplyGeneratedPlanDay,
+    handleRepeatLastSession,
+    isLoadingPlan,
+    isRepeatingSession,
+    loadTodaysPlan,
+    loadedPlanContext,
+    plannedAssignment,
+  } = useWorkoutPlanLoading({
+    autoLoadTodayPlan,
+    autoLoadTodayPlanRef,
+    createWorkoutLoggerLocalId,
+    effectiveClientId,
+    hasInitialExercises,
+    isClientSelfMode,
+    loadTodayPlanSignal,
+    pendingAiPlanPrefillLoadedRef,
+    routeAssignmentKey,
+    routeAssignmentType,
+    scheduledSessionId,
+    searchParams,
+    setExercises,
+  });
 
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {
     const loggerExerciseId = createWorkoutLoggerLocalId('exercise');

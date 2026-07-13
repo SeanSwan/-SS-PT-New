@@ -29,8 +29,14 @@ describe('WorkoutLogger shell extraction', () => {
     // cluster (guarded save, AI_SUBMIT_WORKOUT bridge, summary generation,
     // ~165 lines) moved verbatim to useWorkoutSubmit.ts; submit-result
     // state stays in the component (useWorkoutDraft + the success panel
-    // read it). Next reduction: executeLoadClientData/plan-load wiring.
+    // read it).
+    // 2026-07-14 (Slice D3): ratchet tightened 970 → 875 — the plan-load
+    // cluster (client-info fetch, today's-plan auto-load, generated-day
+    // apply, repeat-last, ~115 lines + six owned states) moved verbatim to
+    // useWorkoutPlanLoading.ts. The decomposition arc's hook trilogy is
+    // complete (AI events / submit / plan load); what remains in the shell
+    // is exercise-row state management and JSX composition.
     const lineCount = source.split(/\r?\n/).length;
-    expect(lineCount).toBeLessThan(970);
+    expect(lineCount).toBeLessThan(875);
   });
 });
