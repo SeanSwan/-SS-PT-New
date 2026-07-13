@@ -88,7 +88,9 @@ describe('NutritionTodayPanel review-first repeat flow', () => {
     expect(mocks.apiPost).not.toHaveBeenCalled();
     expect(onReviewDraft).toHaveBeenCalledWith(expect.objectContaining({
       source: 'photo',
-      sourceConfidence: 'ai_estimate',
+      // Deliberate downgrade per FIVE-DAY-HOSTILE-REVIEW-REPAIR-EVIDENCE-2026-07-12:
+      // Swan diary repeats never retain the original provenance confidence.
+      sourceConfidence: 'community',
       foods: [expect.objectContaining({
         mealType: 'lunch',
         description: 'Chicken bowl',
