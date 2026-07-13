@@ -59,7 +59,7 @@ const ClientHubGridSection: React.FC<ClientHubGridSectionProps> = ({
           No clients match this filter right now.
         </FilterEmptyNote>
       ) : (
-        <CardGrid>
+        <CardGrid className="lens2-collection">
           {visibleClients.map((client) => (
             <ClientHubGridCard
               key={client.id}

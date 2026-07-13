@@ -206,7 +206,7 @@ const ClientHubGridCard = forwardRef<HTMLElement, ClientHubGridCardProps>(functi
   const relativeClientDate = relativeClientDateLabelFor(client);
   const photo = client.photo?.trim();
   return (
-    <CardShell ref={ref} data-swan-client-card="admin">
+    <CardShell ref={ref} className="lens2-row" data-swan-client-card="admin">
       <CardButton
         type="button"
         onClick={() => onSelect(client)}

@@ -38,7 +38,9 @@ import {
   DetailScrollWrap,
   HubContainer,
   LoadingPulse,
+  RosterErrorNote,
 } from './ClientsWorkspace.styles';
+import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
 import ClientNutritionEstimateReviewPanel from './clients-team/ClientNutritionEstimateReviewPanel';
@@ -79,6 +81,8 @@ interface ClientsWorkspaceViewProps {
   detailTab: ClientDetailTab;
   clientHubIntent: ClientHubIntent;
   loading: boolean;
+  /** Honest-state: true when the roster fetch failed (never shown as "no clients"). */
+  loadError?: boolean;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
   creationHandoff: ManualClientCreationHandoff | null;
@@ -259,7 +263,13 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
   const audienceConfig = getClientHubAudienceConfig(props.audience ?? 'admin');
 
   return (
+    <ClientsWorkspaceLensFrame>
     <HubContainer>
+      {props.loadError && !props.loading && (
+        <RosterErrorNote role="alert">
+          Couldn&apos;t load your client roster. Check your connection and reload the page.
+        </RosterErrorNote>
+      )}
       <ClientsWorkspaceTopBar
         clients={props.clients}
         selectedClient={props.selectedClient}
@@ -306,6 +316,7 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
         <ClientsWorkspaceContent {...props} />
       </ContentArea>
     </HubContainer>
+    </ClientsWorkspaceLensFrame>
   );
 };
 

@@ -75,7 +75,7 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
   const [detailTab, setDetailTab] = useState<ClientDetailTab>(() => getClientDetailTabFromSearchParams(searchParams) ?? 'training');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(false);
 
   const urlClientId = getClientIdFromSearchParams(searchParams);
   const clientHubIntent = getClientHubIntent(searchParams);
@@ -122,8 +122,9 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
     try {
       const mapped = await fetchClientHubClients(authAxios, audience, user?.id);
       setClients(mapped);
+      setLoadError(false);
       return mapped;
-    } finally {
+    } catch { setLoadError(true); return []; } finally { /* honest-state: failure ≠ "no clients" */
       setLoading(false);
     }
   }, [audience, authAxios, user?.id]);
@@ -253,6 +254,7 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
       audience={audience}
       authAxios={authAxios}
       clients={clients}
+      loadError={loadError}
       selectedClient={selectedClient}
       detailClient={detailClient}
       detailTab={detailTab}

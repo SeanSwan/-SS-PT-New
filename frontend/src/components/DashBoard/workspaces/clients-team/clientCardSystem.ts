@@ -26,7 +26,7 @@ export const swanDataCardShell = css`
   isolation: isolate;
   overflow: hidden;
   padding: var(--swan-card-padding, 18px);
-  border-radius: var(--swan-card-radius, 18px);
+  border-radius: var(--world-row-radius, var(--swan-card-radius, 18px));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
   background:
     linear-gradient(160deg,
