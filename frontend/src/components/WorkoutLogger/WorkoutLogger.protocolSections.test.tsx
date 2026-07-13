@@ -46,6 +46,9 @@ const RAW_SOURCE = readFileSync(
 ) + readFileSync(
   resolve(__dirname, './useWorkoutAiEvents.ts'),
   'utf8',
+) + readFileSync(
+  resolve(__dirname, './useWorkoutSubmit.ts'),
+  'utf8',
 );
 
 function stripComments(src: string): string {

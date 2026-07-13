@@ -10,7 +10,10 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-const source = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8');
+// Slice D1/D2 decomposition: AI-events + submit clusters live in hooks.
+const source = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8')
+  + readFileSync(resolve(__dirname, './useWorkoutAiEvents.ts'), 'utf8')
+  + readFileSync(resolve(__dirname, './useWorkoutSubmit.ts'), 'utf8');
 
 describe('WorkoutLogger draft autosave contract', () => {
   it('mounts useWorkoutDraft with the live form state', () => {

@@ -24,9 +24,13 @@ describe('WorkoutLogger shell extraction', () => {
     // cluster (plan-transfer listener, AI_* command bridge, voice import,
     // pending-plan drain, ~170 lines) moved verbatim to useWorkoutAiEvents.ts;
     // the source-text locks in protocolSections/clientRoute/writerDefaults now
-    // read logger + hook as one contract surface. Next reductions:
-    // handleSubmit cluster, then executeLoadClientData/plan-load wiring.
+    // read logger + hook as one contract surface.
+    // 2026-07-13 (Slice D2): ratchet tightened 1110 → 970 — the submit
+    // cluster (guarded save, AI_SUBMIT_WORKOUT bridge, summary generation,
+    // ~165 lines) moved verbatim to useWorkoutSubmit.ts; submit-result
+    // state stays in the component (useWorkoutDraft + the success panel
+    // read it). Next reduction: executeLoadClientData/plan-load wiring.
     const lineCount = source.split(/\r?\n/).length;
-    expect(lineCount).toBeLessThan(1110);
+    expect(lineCount).toBeLessThan(970);
   });
 });

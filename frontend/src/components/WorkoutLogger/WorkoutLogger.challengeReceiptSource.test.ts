@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
-const loggerSource = read('src/components/WorkoutLogger/WorkoutLogger.tsx');
+// Slice D2: the submit cluster (challenge-progress wiring) lives in the hook.
+const loggerSource = read('src/components/WorkoutLogger/WorkoutLogger.tsx')
+  + read('src/components/WorkoutLogger/useWorkoutSubmit.ts');
 const workoutsPageSource = read('src/components/DashBoard/Pages/client-dashboard/ClientMyWorkoutsPage.tsx');
 
 describe('WorkoutLogger challenge receipt source wiring', () => {

@@ -44,6 +44,9 @@ const RAW_SOURCE = readFileSync(
 ) + readFileSync(
   resolve(__dirname, './useWorkoutAiEvents.ts'),
   'utf8',
+) + readFileSync(
+  resolve(__dirname, './useWorkoutSubmit.ts'),
+  'utf8',
 );
 const LOCAL_TYPES_SOURCE = readFileSync(
   resolve(__dirname, './WorkoutLogger.localTypes.ts'),
