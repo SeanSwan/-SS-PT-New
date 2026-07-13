@@ -23,7 +23,8 @@ export const Wrapper = styled.div`
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${withAlpha(CS.glow, 0.15)};
-  border-radius: 1rem;
+  /* Lens token seam: panel radius follows the active recipe (host fallback). */
+  border-radius: var(--world-panel-radius, 1rem);
   padding: 12px;
   max-height: min(760px, calc(100dvh - 168px));
   overflow-y: auto; overscroll-behavior: contain;
@@ -228,7 +229,8 @@ export const ExerciseRow = styled.div<{ $highlighted: boolean }>`
   cursor: pointer;
   transition: background 0.12s;
   background: ${({ $highlighted }) => $highlighted ? withAlpha(CS.glow, 0.12) : 'transparent'};
-  border-left: 3px solid ${({ $highlighted }) => $highlighted ? CS.glow : 'transparent'};
+  /* Lens token seam: highlight accent follows the active recipe. */
+  border-left: 3px solid ${({ $highlighted }) => $highlighted ? `var(--world-accent, ${CS.glow})` : 'transparent'};
   &:hover {
     background: ${withAlpha(CS.glow, 0.08)};
     border-left-color: ${withAlpha(CS.glow, 0.4)};

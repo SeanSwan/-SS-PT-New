@@ -26,7 +26,8 @@ export const BuilderRow = styled.div`
   gap: 12px;
   padding: 12px 16px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  border-radius: 12px;
+  /* Lens token seam: builder-row radius follows the active recipe. */
+  border-radius: var(--world-row-radius, 12px);
   margin-bottom: 8px;
   background: var(--bg-base, #030712);
   transition: border-color 0.2s ease;

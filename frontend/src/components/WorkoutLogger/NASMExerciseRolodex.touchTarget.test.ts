@@ -41,4 +41,9 @@ describe('NASMExerciseRolodex touch target and extraction contract', () => {
     expect(stylesSource).not.toMatch(/rgba\((20, 20, 25|0, 0, 0|224, 236, 244)/);
     expect(stylesSource).not.toMatch(/color:\s*white;/);
   });
+
+  it('keeps the Lens v2 token seams live (panel radius + highlight accent)', () => {
+    expect(stylesSource).toContain('var(--world-panel-radius, 1rem)');
+    expect(stylesSource).toContain('var(--world-accent,');
+  });
 });
