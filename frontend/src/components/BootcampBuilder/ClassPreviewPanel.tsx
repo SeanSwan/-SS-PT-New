@@ -70,7 +70,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   const bottleneckCount = flowData.filter((flow) => flow.bottleneck).length;
 
   return (
-    <Panel>
+    <Panel className="lens2-collection">
       <PanelTitle>Class Preview</PanelTitle>
       <AnimatePresence>
         {bootcamp && (

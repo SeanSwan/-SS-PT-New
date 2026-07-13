@@ -32,7 +32,7 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
   <>
     <TopBar>
       <div>
-        <Title>Boot Camp Class Builder</Title>
+        <Title className="lens2-display">Boot Camp Class Builder</Title>
         <Subtitle>Swan Coach + manual class creation with {EXERCISE_LIBRARY_CLAIM} exercises and inline regressions</Subtitle>
       </div>
       <HeaderActions>

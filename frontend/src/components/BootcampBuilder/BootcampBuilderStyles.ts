@@ -86,7 +86,8 @@ export const ThreePane = styled.div`
 export const Panel = styled.div`
   background: var(--bg-elevated, rgba(20, 20, 25, 0.6));
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
-  border-radius: 12px;
+  /* Lens token seam: panel radius follows the active recipe. */
+  border-radius: var(--world-panel-radius, 12px);
   padding: 16px;
 
   @media (max-width: 430px) {
@@ -99,7 +100,7 @@ export const PanelTitle = styled.h2`
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 12px 0;
-  color: var(--accent-primary, #60c0f0);
+  color: var(--world-accent, var(--accent-primary, #60c0f0));
 `;
 
 export const FormGroup = styled.div`
@@ -184,7 +185,7 @@ export const SectionDivider = styled.div`
 export const StationCard = styled.div`
   background: var(--bg-surface, rgba(20, 20, 25, 0.7));
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.2));
-  border-radius: 8px;
+  border-radius: var(--world-row-radius, 8px);
   padding: 12px;
   margin-bottom: 8px;
 `;

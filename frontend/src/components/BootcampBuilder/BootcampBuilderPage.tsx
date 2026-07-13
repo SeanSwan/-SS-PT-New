@@ -6,7 +6,7 @@ import { CUSTOM_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_EXERCISES_PER_STATION, DEFAULT
 import { PageWrapper } from './BootcampBuilderStyles';
 import { FourPane } from './BootcampModeStyles';
 import BootcampBuilderChrome from './BootcampBuilderChrome';
-import BootcampBuilderErrorBoundary from './BootcampBuilderErrorBoundary';
+import BootcampBuilderErrorBoundary from './BootcampBuilderErrorBoundary'; import BootcampBuilderLensFrame from './BootcampBuilderLensFrame';
 import BootcampFloorPresentation from './BootcampFloorPresentation';
 import type { BuildMode } from './BootcampBuilderPage.constants';
 import { BootcampLeftPanel, BootcampRightPanel } from './BootcampBuilderSidePanels';
@@ -295,5 +295,5 @@ const BootcampBuilderPage: React.FC = () => {
     </PageWrapper>
   );
 };
-const BootcampBuilderPageWithBoundary: React.FC = () => <BootcampBuilderErrorBoundary><BootcampBuilderPage /></BootcampBuilderErrorBoundary>;
+const BootcampBuilderPageWithBoundary: React.FC = () => <BootcampBuilderErrorBoundary><BootcampBuilderLensFrame><BootcampBuilderPage /></BootcampBuilderLensFrame></BootcampBuilderErrorBoundary>;
 export default BootcampBuilderPageWithBoundary;
