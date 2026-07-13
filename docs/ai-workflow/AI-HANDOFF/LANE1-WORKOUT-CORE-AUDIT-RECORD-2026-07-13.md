@@ -68,3 +68,50 @@ Docs-plus-frontend batch, no migrations, no env flags. Rollback = `git revert ac
 ## 12. Sign-off
 - Shipped by the goal loop Sean initiated 2026-07-13 ("we will not move on to the next slice until all hostile reviews are fixed... only then... push"). Commits `9069a3d8c`, `e275411cf`, `0cf8fa05f`, `cf63a1bb8`, merge `ac9942a53` (+ this record) → main. Deploy verification appended to the review queue after Render flip.
 - **Next action:** Lane 1 continues — B-pack P0 item 3 (Exercise/Workout Rolodex conversion) or the two §11 Sean decisions (redemption boundary, serve-photo) if answered first.
+
+---
+
+## 13. BATCH 2 ADDENDUM — Lane 1 P0 items 3-7 + §7b promoted (SHIPPED 2026-07-13, main `bf4ed031d..51938cc82`)
+
+**Phase:** Lane 1 Batch 2 (same goal loop, Sean's /loop "next slices nonstop"). Verdict: SHIPPED + deploy-verified. Reviewed by: per-slice self-hostile passes + FINAL 3-agent combined-angle review (correctness/removed-behavior/cross-file + reuse/simplification/efficiency + altitude/conventions), Fable arbitrating. Codex post-ship REQ in the review queue (defense-in-depth).
+
+### 13.1 Commits (8)
+- `3225fd5f2` **Rolodex conversion (P0 #3)** — lens token seams (panel radius, highlight accent) on logger + planner rolodexes; seam locks in source-contract tests.
+- `ebc1e170b` **Universal Master Schedule (P0 #4)** — ScheduleLensFrame + day-strip collection/row seams. `Views/WeekView*` deliberately UNTOUCHED (parallel GHOST-SLOTS unpushed WIP — Rule 67 lock honored).
+- `aad061bc5` **Clients & Team conversion (P0 #5)** — ClientsWorkspaceLensFrame, card-grid/card-shell seams, radius token with Swan fallback.
+- `abf686a43` **Onboarding ruling (§7b #1)** — receipts-first audit: opt-in wizard structure stands; the "gate holds" claim CORRECTED to "holds once the liability waiver is linked"; wizard field-culling deferred to a grill-me (Sean-taste decision, not built blind).
+- `dfcffae42` **Bootcamp Creator conversion (P0 #7)** — frame composed at the error-boundary line; panel/station/title seams.
+- `563ec50c9` **Victory chart bridge (P0 #6)** — `LensChartPalette` + `resolveLensChartPalette` (getComputedStyle from a host INSIDE the frame; CSS `var()` strings are unsafe in SVG presentation attrs) + `buildSeamedVictoryProps` (5 seamed groups; static exports = Swan build by construction) + `LensChartPaletteProvider`/`useSeamedVictoryProps`; sets/reps stay DATA-ONLY palette.
+- `140cb404d` **FTC 2-tap cancel (§7b #2)** — ClientMembershipCard arm→confirm (8s disarm), `cancel_at_period_end` semantics, honest failure alert with retry.
+- `51938cc82` **Final-review fix batch** — 11 findings fixed (see 13.3).
+
+### 13.2 Security & data-truth posture (delta)
+- **Billing surface touched (first time this lane):** `backend/routes/subscriptionRoutes.mjs` status payload adds `cancelledAt` (real model column, `models/Subscription.mjs:116` — Rule 58 checked). Read-only field exposure; no new write endpoint, no authz change. WHAT it enables: cancellation truth survives remounts (no phantom "renews" on a cancelled sub). HOW it breaks if misused: a consumer treating `cancelledAt` presence as "inactive NOW" would cut access early — the UI reads it only as "will not renew".
+- **Cancel affordance scope:** `active/trial/past_due/paused` only; staff synthetic entitlements (`isAdmin`) render nothing — a fake card with a live cancel button against a non-existent Stripe sub was killed in review.
+- **Fail-closed lens chain unchanged**, now spanning 6 surfaces via ONE `makeLensFrame` factory (a clone that skips runtime manifest validation can no longer drift in — hook §10.8 satisfied for this batch).
+- Rule 42 both checks clean at every commit; secret scans 0 (Grep pattern sweep on the exported diff + pre-commit hook CLEAN).
+
+### 13.3 Final-review scoreboard (11 fixed, 1 accepted residual)
+Fixed: dead roster error banner (legacy fetcher swallowed → NEW `fetchClientHubClientsStrict` + `useClientHubRoster`; legacy preserved for `CoachOnboardingWorkbench.tsx:245` .then-no-catch) · missing `cancelledAt` remount truth (backend) · past_due/paused escape hatch · Victory secondary de-seamed from `--world-action` (button token, 1.3:1 hazard under Prism — secondary is Swan-FIXED by design) · palette identity bail-out (double-render kill) · isAdmin synthetic card · manifest test 2/6 → ALL `*_MANIFEST` exports + Golden Pair chart.progress lock · 6 frame clones → factory · 3 error one-offs → shared `ui/ErrorNote` (role=alert, 44px retry) · line-cap gaming → honest `useClientHubRoster` extraction (workspace 288 lines) · plan-doc waiver-gate claim honesty. Accepted residual: BootcampBuilder line-9 import cram (file pre-crams at line 24; queued for the decomposition slice).
+
+### 13.4 Gates at ship
+tsc 0 (×3 incl. post-fix) · vite build ✓ (14.51s final) · batch folders (workspaces, client-dashboard, adapters, BootcampBuilder, UniversalMasterSchedule, ui) **1245/1246** — sole fail = `NutritionTodayPanel.reviewRepeat.test.tsx`, PRE-EXISTING on merged main (parallel comms lane, zero file overlap — flagged to owner in review-queue). Baseline disclosure (Rule 56): slice-clean verified; full-repo baseline additionally carries the §8 pre-existing gamification fails, untouched.
+Test-harness lessons locked into the suites: jsdom does not resolve inline custom props via getComputedStyle (resolver test stubs it); a hook effect keyed on a stable callback does not re-run on rerender (retry tests click an in-harness button on the SAME instance).
+
+### 13.5 Deploy verification (Render, post-flip)
+- `UniversalMasterSchedule.CVF2HyMc.js` live: contains batch-unique "Schedule may be out of date" (1 hit).
+- `ClientProfilePage.DvjOr3QU.js` live: contains "Tap again to confirm cancel" + "cancelled and will not renew" (1 hit each).
+- Backend `/health` 200 post-deploy (no boot crash from the subscriptionRoutes change; frontend chunk flip proves the same deploy cycle carried it).
+
+### 13.6 Rollback (batch 2 only)
+No migrations, no env flags. `git revert 51938cc82 140cb404d 563ec50c9 dfcffae42 abf686a43 aad061bc5 ebc1e170b 3225fd5f2` + push. The `cancelledAt` payload field is additive — reverting the frontend alone is also safe. Lens machinery remains inert in production (null resolution).
+
+### 13.7 Future review hooks (batch-2 additions)
+1. When ANY consumer starts treating `cancelledAt` as an access gate, re-audit against Stripe's `cancel_at_period_end` semantics (access runs to period end).
+2. Re-challenge the Swan-fixed chart secondary when a lens legitimately wants to restyle series 2 — the fix would be a NEW dedicated chart token (`--world-chart-secondary`), never `--world-action`.
+3. Migrate remaining `fetchClientHubClients` (swallowing) consumers to the strict variant once `CoachOnboardingWorkbench` gains a catch path; then delete the legacy fetcher.
+4. `/progress/detailed` (NASM 14-chart page) is still un-bridged hard-coded rgba — separate slice.
+5. WorkoutLogger (1268 lines) + BootcampBuilder page decompositions remain the standing structural debt.
+
+### 13.8 Sign-off
+Shipped under Sean's /loop directive 2026-07-13 ("do next slices nonstop... then we push to render"). Push `bf4ed031d..51938cc82`, deploy live-verified above. Sean-gated items NOT built (SUPER-PROMPT §11 unanswered): redemption honor-vs-refund, serve-photo signed URLs. **Next action:** Sean's §11 answers, Lane 1 P1 items, or the waiver-flow streamlining — batch 3 starts on his word.
