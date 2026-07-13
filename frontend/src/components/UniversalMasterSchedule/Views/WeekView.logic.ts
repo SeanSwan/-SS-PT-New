@@ -119,60 +119,6 @@ export function buildSessionsByDay(sessions: any[], weekDays: Date[]): Map<strin
   return map;
 }
 
-export function buildGhostsByDay(
-  sessions: any[],
-  weekDays: Date[],
-  sessionsByDay: Map<string, any[]>
-): Map<string, any[]> {
-  const map = new Map<string, any[]>();
-  weekDays.forEach((day) => {
-    map.set(
-      getDayKey(day),
-      getGhostSessionsForDay(sessions, day, sessionsByDay.get(getDayKey(day)) || [])
-    );
-  });
-  return map;
-}
-
-/**
- * Ghost layer (last-week echo): statuses that represent a real client booking
- * worth echoing forward. Available/blocked/cancelled slots are not memory-worthy.
- */
-const GHOST_ELIGIBLE_STATUSES = new Set(['scheduled', 'confirmed', 'completed']);
-
-export function getGhostClientName(session: any): string {
-  return (
-    session.clientName ||
-    (session.client
-      ? `${session.client.firstName || ''} ${session.client.lastName || ''}`.trim()
-      : '')
-  );
-}
-
-/**
- * Returns last week's booked sessions that land on `day` (i.e. sessions dated
- * exactly 7 days before), excluding any whose time range is already occupied
- * by a session on `day` itself — those slots don't need a memory aid.
- */
-export function getGhostSessionsForDay(sessions: any[], day: Date, daySessions: any[]): any[] {
-  const priorDay = new Date(day);
-  priorDay.setDate(priorDay.getDate() - 7);
-
-  const occupied = daySessions
-    .map((session) => getWeekSessionDisplay(session))
-    .filter(Boolean)
-    .map((display) => ({ top: display!.top, bottom: display!.top + display!.height }));
-
-  return getSessionsForDay(sessions, priorDay).filter((session) => {
-    if (!GHOST_ELIGIBLE_STATUSES.has(session.status)) return false;
-    if (!getGhostClientName(session) && !session.userId) return false;
-    const display = getWeekSessionDisplay(session);
-    if (!display) return false;
-    const bottom = display.top + display.height;
-    return !occupied.some((range) => display.top < range.bottom && bottom > range.top);
-  });
-}
-
 export function getWeekSessionDisplay(session: any) {
   const sessionDate = new Date(session.sessionDate);
   const hour = sessionDate.getHours();

@@ -76,13 +76,24 @@ export const WeekSessionCard = styled.div<{
 `;
 
 /**
- * Ghost card — last week's booking echoed into this week's empty slot.
- * Deliberately quiet: dashed edge, muted text, no motion. Clickable to
- * rebook the same slot, keyboard-operable, never obscures real sessions.
+ * Ghost card — a recent booking (up to a month back) echoed into this week's
+ * empty slot. Deliberately quiet: dashed edge, no motion. Older ghosts fade so
+ * last week reads louder than three weeks ago. Clickable to rebook the same
+ * slot, keyboard-operable, never obscures real sessions.
+ *
+ * The fade floor (0.72) is a WCAG constraint, not a taste call: ghost text is
+ * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but
+ * drops under 4.5:1 if faded much further. Do not lower it.
  */
+export const GHOST_FADE_FLOOR = 0.72;
+
+export const ghostFade = (weeksAgo: number) =>
+  Math.max(1 - (weeksAgo - 1) * 0.09, GHOST_FADE_FLOOR);
+
 export const GhostSessionCard = styled.div<{
   $top: number;
   $height: number;
+  $weeksAgo: number;
 }>`
   position: absolute;
   top: ${({ $top }) => $top}px;
@@ -96,12 +107,15 @@ export const GhostSessionCard = styled.div<{
   cursor: pointer;
   z-index: 0;
   min-height: 24px;
+  opacity: ${({ $weeksAgo }) => ghostFade($weeksAgo)};
   background: color-mix(in srgb, var(--text-muted, #94A3B8) 7%, transparent);
   border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
   border-left: 3px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent);
-  color: ${WEEK_VIEW_THEME.textMuted};
+  color: ${WEEK_VIEW_THEME.textSoft};
 
-  &:hover {
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
     color: ${WEEK_VIEW_THEME.textSoft};
   }

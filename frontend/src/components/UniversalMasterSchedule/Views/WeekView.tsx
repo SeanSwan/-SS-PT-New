@@ -7,7 +7,6 @@ import {
   formatDayHeader,
   formatHour,
   formatVisibleDaysLabel,
-  buildGhostsByDay,
   buildSessionsByDay,
   getDayKey,
   getWeekDays,
@@ -45,6 +44,7 @@ import {
   WeekSessionsBadge,
 } from './WeekView.sessionStyles';
 import { getScheduleSlotMinuteFromOffset } from '../utils/scheduleTimeSlots';
+import { buildGhostsByDay } from './WeekView.ghostLogic';
 import WeekViewGhostLayer from './WeekViewGhostLayer';
 
 const WeekViewComponent: React.FC<WeekViewProps> = ({

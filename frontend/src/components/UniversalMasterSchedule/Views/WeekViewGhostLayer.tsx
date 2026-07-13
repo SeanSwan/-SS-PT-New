@@ -1,19 +1,22 @@
 /**
- * WeekViewGhostLayer — last-week echo cards for one day column.
+ * WeekViewGhostLayer — recent-history echo cards for one day column.
  *
- * Renders a faded, dashed "ghost" of each booking that occupied this
- * day's slots exactly one week ago, but only where this week's slot is
- * still empty (selection rules live in getGhostSessionsForDay). Gives
- * trainers instant recall of the weekly rhythm so recurring clients
- * aren't forgotten and slots aren't double-booked away. Tapping a ghost
- * opens the booking flow pre-aimed at the same time.
+ * Renders a faded, dashed "ghost" of the most recent client who occupied each
+ * of this day's slots within the last month, but only where the slot is still
+ * empty this week (selection rules live in WeekView.ghostLogic). Older ghosts
+ * fade further back, so last week reads louder than three weeks ago. Gives
+ * trainers instant recall of the training rhythm — weekly regulars, every-
+ * other-week clients, and anyone who has drifted — so slots aren't double-
+ * booked and clients aren't forgotten. Tapping a ghost opens the booking flow
+ * pre-aimed at the same time.
  */
 import React from 'react';
+import { getWeekSessionDisplay, isKeyboardActivationKey } from './WeekView.logic';
 import {
+  formatGhostAge,
   getGhostClientName,
-  getWeekSessionDisplay,
-  isKeyboardActivationKey,
-} from './WeekView.logic';
+  type GhostEntry,
+} from './WeekView.ghostLogic';
 import {
   GhostSessionCard,
   GhostTag,
@@ -23,24 +26,26 @@ import {
 
 interface WeekViewGhostLayerProps {
   day: Date;
-  ghosts: any[];
+  ghosts: GhostEntry[];
   onSlotClick: (day: Date, hour: number, minute?: number) => void;
 }
 
 const WeekViewGhostLayer: React.FC<WeekViewGhostLayerProps> = ({ day, ghosts, onSlotClick }) => (
   <>
-    {ghosts.map((ghost) => {
-      const display = getWeekSessionDisplay(ghost);
+    {ghosts.map(({ session, weeksAgo }) => {
+      const display = getWeekSessionDisplay(session);
       if (!display) return null;
-      const ghostDate = new Date(ghost.sessionDate);
-      const clientName = getGhostClientName(ghost) || 'Booked client';
+      const ghostDate = new Date(session.sessionDate);
+      const clientName = getGhostClientName(session) || 'Booked client';
+      const age = formatGhostAge(weeksAgo);
       const book = () => onSlotClick(day, ghostDate.getHours(), ghostDate.getMinutes());
 
       return (
         <GhostSessionCard
-          key={`ghost-${ghost.id}`}
+          key={`ghost-${session.id}`}
           $top={display.top}
           $height={display.height}
+          $weeksAgo={weeksAgo}
           onClick={(event) => {
             event.stopPropagation();
             book();
@@ -51,12 +56,12 @@ const WeekViewGhostLayer: React.FC<WeekViewGhostLayerProps> = ({ day, ghosts, on
             event.stopPropagation();
             book();
           }}
-          title={`Last week: ${display.timeStr} - ${clientName}${display.trainerName ? ` / ${display.trainerName}` : ''}. Tap to book this slot.`}
+          title={`${age}: ${display.timeStr} - ${clientName}${display.trainerName ? ` / ${display.trainerName}` : ''}. Tap to book this slot.`}
           role="button"
           tabIndex={0}
-          aria-label={`Last week ${display.timeStr} ${clientName}. Book this slot.`}
+          aria-label={`${age} ${display.timeStr} ${clientName}. Book this slot.`}
         >
-          <GhostTag>Last wk</GhostTag>
+          <GhostTag>{age}</GhostTag>
           <SessionTime>{display.timeStr}</SessionTime>
           {clientName && <SessionClient>{clientName}</SessionClient>}
         </GhostSessionCard>
