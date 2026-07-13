@@ -158,6 +158,9 @@ router.get('/status', protect, async (req, res) => {
         paymentMethod: subscription.paymentMethod,
         cumulativeDonationAmount: cumDonation,
         crystallinePromoEligible,
+        // Cancellation truth: set by POST /cancel (cancel_at_period_end);
+        // lets the client surface say "will not renew" across remounts.
+        cancelledAt: subscription.cancelledAt ?? null,
       },
       usage: {
         aiMessagesUsed: user?.aiMessagesUsedThisMonth || 0,

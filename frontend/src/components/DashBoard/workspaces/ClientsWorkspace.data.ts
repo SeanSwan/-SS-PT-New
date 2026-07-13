@@ -142,6 +142,26 @@ export const fetchClientHubClients = (
 );
 
 /**
+ * THROWING roster fetch for callers with a real error UI (useClientHubRoster).
+ * The legacy fetchers above swallow failures into [] for fire-and-forget
+ * consumers — which silently renders outages as "no clients"; this variant
+ * lets the Client Hub banner tell the truth.
+ */
+export const fetchClientHubClientsStrict = async (
+  authAxios: ClientHubAxios | null | undefined,
+  audience: ClientHubAudience,
+  trainerUserId?: number | string | null
+): Promise<ClientOption[]> => {
+  if (!authAxios || (audience === 'trainer' && !trainerUserId)) return [];
+  if (audience === 'trainer') {
+    const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${trainerUserId}`);
+    return mapTrainerAssignmentsResponse(response.data);
+  }
+  const response = await authAxios.get('/api/admin/clients', { params: { limit: 100 } });
+  return mapAdminClientsListResponse(response.data);
+};
+
+/**
  * Trainer URL-selection loader: resolves ONLY within the assigned roster so a
  * deep link to an unassigned clientId lands nowhere instead of leaking data.
  */

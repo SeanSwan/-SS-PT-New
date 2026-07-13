@@ -186,15 +186,6 @@ export const DetailScrollWrap = styled.div`
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 `;
 
-/** Honest-state banner: roster fetch failure (never rendered as an empty roster). */
-export const RosterErrorNote = styled.div`
-  margin: 12px clamp(16px, 1.4vw, 32px) 0;
-  padding: 10px 14px;
-  border: 1px solid var(--danger, #ef4444);
-  border-radius: 10px;
-  color: var(--danger-text, #f87171);
-  font-size: 0.85rem;
-`;
 
 export const CardGrid = styled.div`
   --client-card-desktop-row: 520px;

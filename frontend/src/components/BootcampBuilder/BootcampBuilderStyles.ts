@@ -86,7 +86,6 @@ export const ThreePane = styled.div`
 export const Panel = styled.div`
   background: var(--bg-elevated, rgba(20, 20, 25, 0.6));
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
-  /* Lens token seam: panel radius follows the active recipe. */
   border-radius: var(--world-panel-radius, 12px);
   padding: 16px;
 

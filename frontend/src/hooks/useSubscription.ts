@@ -51,6 +51,8 @@ export interface SubscriptionStatus {
   trialDaysRemaining: number;
   trialEndDate: string | null;
   currentPeriodEnd: string | null;
+  /** Set when a cancel is scheduled (cancel_at_period_end) — will not renew. */
+  cancelledAt?: string | null;
   amount: number | null;
   paymentMethod: string | null;
   cumulativeDonationAmount?: number;
@@ -70,7 +72,8 @@ export interface UsageStatus {
 // SECTION: Hook
 // ─────────────────────────────────────────────────────────────
 
-export function useSubscription() {
+export function useSubscription(options: { withTiers?: boolean } = {}) {
+  const { withTiers = true } = options;
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [usage, setUsage] = useState<UsageStatus | null>(null);
   const [tiers, setTiers] = useState<TierDefinition[]>([]);
@@ -180,9 +183,9 @@ export function useSubscription() {
     if (!fetchedRef.current) {
       fetchedRef.current = true;
       fetchStatus();
-      fetchTiers();
+      if (withTiers) fetchTiers();
     }
-  }, [fetchStatus, fetchTiers]);
+  }, [fetchStatus, fetchTiers, withTiers]);
 
   return {
     subscription,

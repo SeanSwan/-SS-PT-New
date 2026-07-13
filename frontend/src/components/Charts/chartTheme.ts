@@ -53,7 +53,13 @@ export const SWAN_CHART_PALETTE: LensChartPalette = {
   secondary: CHART_COLORS.wingPurple,
 };
 
-/** Resolve the lens chart palette from a host element (SSR/hostless-safe). */
+/**
+ * Resolve the lens chart palette from a host element (SSR/hostless-safe).
+ * Only the PRIMARY series follows --world-accent today: --world-action is
+ * a button-background token (Prism maps it to Midnight Sapphire, ~1.3:1 on
+ * chart cards) — the secondary series stays Swan-fixed until the Chart
+ * Charter ships a real dataviz token pair.
+ */
 export const resolveLensChartPalette = (host?: HTMLElement | null): LensChartPalette => {
   if (typeof window === 'undefined' || !host) return SWAN_CHART_PALETTE;
   const styles = getComputedStyle(host);
@@ -61,7 +67,7 @@ export const resolveLensChartPalette = (host?: HTMLElement | null): LensChartPal
     styles.getPropertyValue(token).trim() || fallback;
   return {
     primary: read('--world-accent', SWAN_CHART_PALETTE.primary),
-    secondary: read('--world-action', SWAN_CHART_PALETTE.secondary),
+    secondary: SWAN_CHART_PALETTE.secondary,
   };
 };
 

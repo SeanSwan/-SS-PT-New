@@ -11,7 +11,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import styled from 'styled-components';
+import SharedErrorNote from '../../../ui/ErrorNote';
 import { useSubscription } from '../../../../hooks/useSubscription';
+
+const CancelError = styled(SharedErrorNote)`
+  margin: 10px 0 0;
+`;
 
 const Card = styled.div`
   background: var(--bg-elevated, #141419);
@@ -65,12 +70,6 @@ const Note = styled.p`
   color: var(--text-muted, #94a3b8);
 `;
 
-const ErrorNote = styled.p`
-  margin: 10px 0 0;
-  font-size: 0.85rem;
-  color: var(--danger-text, #f87171);
-`;
-
 const formatDate = (iso: string | null): string | null => {
   if (!iso) return null;
   const parsed = new Date(iso);
@@ -78,7 +77,7 @@ const formatDate = (iso: string | null): string | null => {
 };
 
 const ClientMembershipCard: React.FC = () => {
-  const { subscription, loading, cancel } = useSubscription();
+  const { subscription, loading, cancel } = useSubscription({ withTiers: false });
   const [armed, setArmed] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -87,12 +86,15 @@ const ClientMembershipCard: React.FC = () => {
 
   useEffect(() => () => { if (disarmTimer.current) clearTimeout(disarmTimer.current); }, []);
 
-  if (loading || !subscription) return null;
+  // Staff get a synthetic entitlement payload with no billing facts — no card.
+  if (loading || !subscription || subscription.isAdmin) return null;
 
   const periodEnd = formatDate(subscription.currentPeriodEnd);
-  const paidAndLive = subscription.tier !== 'free'
-    && (subscription.status === 'active' || subscription.status === 'trial');
-  const showCancel = paidAndLive && !cancelDone;
+  // Cancellation truth survives remounts via the status payload's cancelledAt.
+  const cancelPending = cancelDone || Boolean(subscription.cancelledAt);
+  // past_due/paused subs still bill or retry — the escape hatch stays visible.
+  const cancellableStatus = ['active', 'trial', 'past_due', 'paused'].includes(subscription.status);
+  const showCancel = subscription.tier !== 'free' && cancellableStatus && !cancelPending;
 
   const handleCancelTap = async () => {
     if (!armed) {
@@ -120,7 +122,7 @@ const ClientMembershipCard: React.FC = () => {
         <Facts>
           <span><strong>{subscription.tierName}</strong>{subscription.amount ? ` — $${subscription.amount}/mo` : ''}</span>
           <span>Status: {subscription.status}{subscription.isInTrial ? ` (trial, ${subscription.trialDaysRemaining} days left)` : ''}</span>
-          {periodEnd && <span>{cancelDone ? `Access until ${periodEnd}` : `Renews ${periodEnd}`}</span>}
+          {periodEnd && <span>{cancelPending ? `Access until ${periodEnd}` : `Renews ${periodEnd}`}</span>}
         </Facts>
         {showCancel && (
           <CancelButton
@@ -135,13 +137,13 @@ const ClientMembershipCard: React.FC = () => {
         )}
       </Row>
       <div aria-live="polite">
-        {cancelDone && (
+        {cancelPending && (
           <Note>
             Your membership is cancelled and will not renew.
             {periodEnd ? ` You keep full access until ${periodEnd}.` : ''}
           </Note>
         )}
-        {cancelError && <ErrorNote role="alert">{cancelError}</ErrorNote>}
+        {cancelError && <CancelError>{cancelError}</CancelError>}
       </div>
       {showCancel && !armed && (
         <Note>Cancelling stops future charges at the end of the current period — two taps, no hoops.</Note>

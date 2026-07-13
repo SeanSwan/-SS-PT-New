@@ -74,6 +74,27 @@ describe('ClientMembershipCard', () => {
     expect(screen.queryByRole('button', { name: /cancel/i })).toBeNull();
   });
 
+  it('keeps cancellation truth across remounts via the payload cancelledAt', () => {
+    state.subscription = { ...eliteSub, cancelledAt: '2026-07-14T00:00:00.000Z' };
+    render(<ClientMembershipCard />);
+    expect(screen.getByText(/cancelled and will not renew/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/access until/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/renews/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /cancel/i })).toBeNull();
+  });
+
+  it('keeps the escape hatch visible for past_due subs (dunning)', () => {
+    state.subscription = { ...eliteSub, status: 'past_due' };
+    render(<ClientMembershipCard />);
+    expect(screen.getByRole('button', { name: /cancel membership/i })).toBeInTheDocument();
+  });
+
+  it('renders nothing for staff synthetic entitlements', () => {
+    state.subscription = { ...eliteSub, isAdmin: true };
+    const { container } = render(<ClientMembershipCard />);
+    expect(container.firstChild).toBeNull();
+  });
+
   it('renders an honest error when the cancel call fails', async () => {
     state.subscription = eliteSub;
     cancelMock.mockResolvedValue({ success: false, message: 'Stripe unavailable' });

@@ -5,7 +5,7 @@
  * from a host element and falls back to Swan without one; (3) sets/reps
  * stay on the DATA-ONLY palette (deliberately unseamed).
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CHART_COLORS,
   hexAlpha,
@@ -72,13 +72,14 @@ describe('resolveLensChartPalette', () => {
     expect(resolveLensChartPalette(undefined)).toEqual(SWAN_CHART_PALETTE);
   });
 
-  it('reads --world tokens from a host element', () => {
+  it('reads --world-accent from the host; secondary stays Swan-fixed (world-action is a button token)', () => {
+    // jsdom's getComputedStyle does not resolve inline custom properties — stub it.
     const host = document.createElement('div');
-    host.style.setProperty('--world-accent', '#ff7a45');
-    host.style.setProperty('--world-action', '#112233');
-    document.body.appendChild(host);
-    expect(resolveLensChartPalette(host)).toEqual({ primary: '#ff7a45', secondary: '#112233' });
-    host.remove();
+    const spy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+      getPropertyValue: (token: string) => (token === '--world-accent' ? '#ff7a45' : ''),
+    } as unknown as CSSStyleDeclaration);
+    expect(resolveLensChartPalette(host)).toEqual({ primary: '#ff7a45', secondary: SWAN_CHART_PALETTE.secondary });
+    spy.mockRestore();
   });
 
   it('falls back per-token when the host defines none', () => {

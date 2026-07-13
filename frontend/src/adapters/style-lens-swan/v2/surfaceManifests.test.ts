@@ -10,12 +10,23 @@ import { validateSurfaceCapabilityManifest } from '../../../core/style-lens-os/v
 import { changedAxisCount, whatChanged } from '../../../core/style-lens-os/v2/whatChanged';
 import { CANDY_GLASS_ARCADE_RECIPE, PRISM_TERMINAL_RECIPE } from './labRecipes';
 import { resolveRecipeForStyleLens } from './recipeResolution';
-import { WORKOUT_LOGGER_MANIFEST, WORKOUT_PLANNER_MANIFEST } from './surfaceManifests';
+import * as manifests from './surfaceManifests';
+import {
+  CLIENT_PROGRESS_MANIFEST,
+  WORKOUT_LOGGER_MANIFEST,
+  WORKOUT_PLANNER_MANIFEST,
+} from './surfaceManifests';
 
 describe('Lane-1 surface capability manifests', () => {
-  it('both rollout manifests validate clean', () => {
-    expect(validateSurfaceCapabilityManifest(WORKOUT_LOGGER_MANIFEST)).toEqual([]);
-    expect(validateSurfaceCapabilityManifest(WORKOUT_PLANNER_MANIFEST)).toEqual([]);
+  it('EVERY exported manifest validates clean (SurfaceLensGate is fail-closed-silent)', () => {
+    const exported = Object.entries(manifests).filter(([name]) => name.endsWith('_MANIFEST'));
+    expect(exported.length).toBeGreaterThanOrEqual(6);
+    for (const [name, manifest] of exported) {
+      expect(
+        validateSurfaceCapabilityManifest(manifest as typeof WORKOUT_LOGGER_MANIFEST),
+        `${name} must validate clean or its surface silently loses lensing`,
+      ).toEqual([]);
+    }
   });
 
   it('compiles the Golden Pair against the Workout Logger as a second host, degrading the chart slot', () => {
@@ -24,6 +35,17 @@ describe('Lane-1 surface capability manifests', () => {
       expect(result.ok, `${recipe.id} must compile against the logger manifest`).toBe(true);
       if (result.ok) {
         expect(result.degradations.some(d => d.includes('chart.progress'))).toBe(true);
+      }
+    }
+  });
+
+  it('compiles the Golden Pair against the progress host WITH a real chart slot (no degradation)', () => {
+    for (const recipe of [CANDY_GLASS_ARCADE_RECIPE, PRISM_TERMINAL_RECIPE]) {
+      const result = compileRecipe(recipe, CLIENT_PROGRESS_MANIFEST);
+      expect(result.ok, `${recipe.id} must compile against the progress manifest`).toBe(true);
+      if (result.ok) {
+        expect(result.degradations.some(d => d.includes('chart.progress'))).toBe(false);
+        expect(result.plan.variants['chart.progress']).toBeTruthy();
       }
     }
   });

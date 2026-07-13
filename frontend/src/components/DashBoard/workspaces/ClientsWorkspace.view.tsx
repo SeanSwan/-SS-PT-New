@@ -38,8 +38,8 @@ import {
   DetailScrollWrap,
   HubContainer,
   LoadingPulse,
-  RosterErrorNote,
 } from './ClientsWorkspace.styles';
+import ErrorNote from '../../ui/ErrorNote';
 import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
@@ -266,9 +266,9 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
     <ClientsWorkspaceLensFrame>
     <HubContainer>
       {props.loadError && !props.loading && (
-        <RosterErrorNote role="alert">
+        <ErrorNote>
           Couldn&apos;t load your client roster. Check your connection and reload the page.
-        </RosterErrorNote>
+        </ErrorNote>
       )}
       <ClientsWorkspaceTopBar
         clients={props.clients}

@@ -46,11 +46,11 @@ import {
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
 import {
-  fetchClientHubClients,
   fetchAdminClientById,
   fetchTrainerClientById,
   resolveInitialClientSelection,
 } from './ClientsWorkspace.data';
+import { useClientHubRoster } from './useClientHubRoster';
 import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
 import { useClientHubAdminNav } from './useClientHubAdminNav';
 import { buildClientCoachDailyRoute, buildClientWorkoutPlannerRoute } from './clients-team/clientDailyTrainingRoutes';
@@ -72,10 +72,9 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [clients, setClients] = useState<ClientOption[]>([]);
+  const { clients, setClients, loading, loadError, loadClients } = useClientHubRoster(authAxios, audience, user?.id);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
   const [detailTab, setDetailTab] = useState<ClientDetailTab>(() => getClientDetailTabFromSearchParams(searchParams) ?? 'training');
-  const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(false);
 
   const urlClientId = getClientIdFromSearchParams(searchParams);
   const clientHubIntent = getClientHubIntent(searchParams);
@@ -117,17 +116,7 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
     return false;
   }, [audience, navigateClientDailyRoute, showClientDetailTab]);
 
-  const loadClients = useCallback(async (): Promise<ClientOption[]> => {
-    setLoading(true);
-    try {
-      const mapped = await fetchClientHubClients(authAxios, audience, user?.id);
-      setClients(mapped);
-      setLoadError(false);
-      return mapped;
-    } catch { setLoadError(true); return []; } finally { /* honest-state: failure ≠ "no clients" */
-      setLoading(false);
-    }
-  }, [audience, authAxios, user?.id]);
+  // Roster state + honest failure contract live in useClientHubRoster.
 
   const loadClientById = useCallback((clientId: number): Promise<ClientOption | null> => (
     audience === 'trainer'

@@ -34,7 +34,14 @@ export const LensChartPaletteProvider: React.FC<LensChartPaletteProviderProps> =
   const committedLensId = appearance?.state.committed.styleLensId;
 
   useLayoutEffect(() => {
-    setPalette(resolveLensChartPalette(hostRef.current));
+    const next = resolveLensChartPalette(hostRef.current);
+    // Identity bail-out: no pre-paint re-render of 12 chart cards when the
+    // resolved palette equals the current one (the no-lens common case).
+    setPalette(previous => (
+      previous.primary === next.primary && previous.secondary === next.secondary
+        ? previous
+        : next
+    ));
   }, [committedLensId]);
 
   return (

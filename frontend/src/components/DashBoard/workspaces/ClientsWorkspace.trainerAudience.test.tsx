@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const dataMock = vi.hoisted(() => ({
   fetchClientHubClients: vi.fn(),
+  fetchClientHubClientsStrict: vi.fn(),
   fetchClientHubAdminClients: vi.fn(),
   fetchClientHubTrainerClients: vi.fn(),
   fetchAdminClientById: vi.fn(),
@@ -76,7 +77,7 @@ const trainerRoster = [
 describe('ClientsWorkspace trainer audience', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dataMock.fetchClientHubClients.mockResolvedValue(trainerRoster);
+    dataMock.fetchClientHubClientsStrict.mockResolvedValue(trainerRoster);
     dataMock.resolveInitialClientSelection.mockResolvedValue(null);
   });
 
@@ -87,8 +88,8 @@ describe('ClientsWorkspace trainer audience', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(dataMock.fetchClientHubClients).toHaveBeenCalled());
-    expect(dataMock.fetchClientHubClients).toHaveBeenCalledWith(expect.anything(), 'trainer', 777);
+    await waitFor(() => expect(dataMock.fetchClientHubClientsStrict).toHaveBeenCalled());
+    expect(dataMock.fetchClientHubClientsStrict).toHaveBeenCalledWith(expect.anything(), 'trainer', 777);
     expect((await screen.findAllByText(/assigned client/i)).length).toBeGreaterThan(0);
   });
 
@@ -109,7 +110,7 @@ describe('ClientsWorkspace trainer audience', () => {
   });
 
   it('shows the trainer empty state without admin create actions', async () => {
-    dataMock.fetchClientHubClients.mockResolvedValue([]);
+    dataMock.fetchClientHubClientsStrict.mockResolvedValue([]);
     render(
       <MemoryRouter initialEntries={['/dashboard/trainer/clients']}>
         <ClientsWorkspace audience="trainer" />

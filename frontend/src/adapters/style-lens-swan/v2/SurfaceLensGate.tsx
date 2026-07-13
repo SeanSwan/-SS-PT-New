@@ -46,3 +46,22 @@ const SurfaceLensGate: React.FC<SurfaceLensGateProps> = ({ manifest, ariaLabel, 
 
 SurfaceLensGate.displayName = 'SurfaceLensGate';
 export default SurfaceLensGate;
+
+/**
+ * Frame-binding factory: a per-surface LensFrame is DATA (manifest +
+ * label), not a hand-written component — bindings stay one line each and
+ * every future gate improvement lands here once.
+ */
+export const makeLensFrame = (
+  manifest: SurfaceCapabilityManifest,
+  ariaLabel: string,
+  displayName: string,
+): React.FC<{ children: React.ReactNode }> => {
+  const Frame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <SurfaceLensGate manifest={manifest} ariaLabel={ariaLabel}>
+      {children}
+    </SurfaceLensGate>
+  );
+  Frame.displayName = displayName;
+  return Frame;
+};

@@ -18,6 +18,7 @@ import { universalMasterScheduleService } from '../../services/universal-master-
 import ScheduleHeader from './components/ScheduleHeader';
 import ScheduleDayStrip from './components/ScheduleDayStrip';
 import ScheduleLensFrame from './ScheduleLensFrame';
+import ErrorNote from '../ui/ErrorNote';
 import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
@@ -752,12 +753,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     <ErrorBoundary>
     <ScheduleLensFrame>
     <ScheduleContainer role="application" aria-label="Universal Master Schedule">
-      {/* Honest-state: schedule fetch failures must never masquerade as an empty calendar. */}
-      {scheduleError && sessions.length === 0 && (
-        <ScheduleErrorStrip role="alert">
-          Couldn&apos;t load the schedule: {scheduleError}{' '}
-          <button type="button" onClick={() => refreshData(true)}>Try again</button>
-        </ScheduleErrorStrip>
+      {/* Honest-state: fetch failures never masquerade as an empty OR fresh calendar. */}
+      {scheduleError && (
+        <ErrorNote onRetry={() => refreshData(true)}>
+          {sessions.length === 0
+            ? `Couldn't load the schedule: ${scheduleError}`
+            : 'Schedule may be out of date — the last refresh failed. Showing last-loaded sessions.'}
+        </ErrorNote>
       )}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -984,25 +986,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
 export default UniversalMasterSchedule;
 
-/** Honest-state banner: schedule fetch failure with a 44px retry. */
-const ScheduleErrorStrip = styled.div`
-  margin: 12px 16px 0;
-  padding: 10px 14px;
-  border: 1px solid var(--danger, #ef4444);
-  border-radius: 10px;
-  color: var(--danger-text, #f87171);
-  font-size: 0.85rem;
-  button {
-    min-height: 44px;
-    margin-left: 8px;
-    padding: 4px 14px;
-    border: 1px solid var(--danger, #ef4444);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--danger-text, #f87171);
-    cursor: pointer;
-  }
-`;
 
 const ScheduleContainer = styled.div`
   --shell-chrome: 80px;
