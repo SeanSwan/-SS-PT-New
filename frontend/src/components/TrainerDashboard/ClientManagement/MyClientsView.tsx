@@ -142,7 +142,7 @@ const MyClientsView: React.FC = () => {
     if (parsedClientId === null) {
       toast({
         title: 'Client identity unavailable',
-        description: 'Refresh your client list before launching Workout Intelligence.',
+        description: 'Refresh your client list before opening the workout copilot.',
       });
       return;
     }

@@ -1,3 +1,9 @@
+/**
+ * TEST: Lane-1 surface capability manifests — schema soundness, Golden Pair
+ * compatibility as second/third hosts (chart slot degrades, never fails),
+ * measurable ≥5-axis divergence, and the fail-closed appearance-profile
+ * recipe resolution (v1 lens ids → host defaults).
+ */
 import { describe, expect, it } from 'vitest';
 import { compileRecipe } from '../../../core/style-lens-os/v2/compileRecipe';
 import { validateSurfaceCapabilityManifest } from '../../../core/style-lens-os/v2/capability-manifest.schema';

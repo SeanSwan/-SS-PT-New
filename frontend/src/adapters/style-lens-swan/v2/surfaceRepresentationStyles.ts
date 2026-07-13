@@ -22,9 +22,13 @@ export const surfaceRepresentationStyles = css`
     border-radius: var(--world-row-radius, 22px);
   }
 
-  /* Display typography — logger title only */
+  /* Display typography — surface titles keep the recipe's typeface character
+     but at HOST scale: the world-title-font tokens are authored for the Lab
+     hero (clamp up to 76px) and must never blow out a working h2. */
   &[data-lens2-display] .lens2-display {
     font: var(--world-title-font, inherit);
+    font-size: min(1.6rem, 6vw);
+    line-height: 1.25;
     letter-spacing: var(--world-letter-spacing, normal);
   }
 

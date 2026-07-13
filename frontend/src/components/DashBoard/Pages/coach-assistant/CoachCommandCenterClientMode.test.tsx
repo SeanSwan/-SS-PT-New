@@ -42,7 +42,7 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(within(tools).queryByRole('menuitem', { name: /^Import audio$/i })).not.toBeInTheDocument();
     expect(within(tools).getByRole('menuitem', { name: /^Open workout logger$/i }))
       .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
-    expect(within(tools).getByRole('menuitem', { name: /^Open workouts$/i }))
+    expect(within(tools).getByRole('menuitem', { name: /^Open My Workouts$/i }))
       .toHaveAttribute('href', '/dashboard/client/workouts');
     expect(within(tools).getByRole('menuitemcheckbox', { name: /Read replies aloud/i })).toBeInTheDocument();
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();

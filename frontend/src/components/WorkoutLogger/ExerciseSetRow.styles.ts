@@ -6,7 +6,10 @@ export const SetsTable = styled.div`
   background: ${withAlpha(CS.bgDeep, 0.6)};
   /* Lens token seam: row-surface radius follows the active recipe. */
   border-radius: var(--world-row-radius, 1rem);
-  overflow: hidden;
+  /* Honest overflow: narrow desktop bands (sidebar open ~1181-1320px) scroll
+     horizontally instead of silently clipping the Log/Remove columns. */
+  overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 1.5rem;
   border: 1px solid ${withAlpha(CS.text, 0.04)};
 `;
@@ -224,7 +227,7 @@ export const AddSetButton = styled(motion.button)`
   }
 `;
 
-export { LogSetButton, SetDetailsToggle } from './ExerciseSetRowControls.styles';
+export { SetLogCheckButton, SetDetailsToggle } from './ExerciseSetRowControls.styles';
 
 export const RemoveSetButton = styled.button`
   background: ${withAlpha(CS.error, 0.1)};

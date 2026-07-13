@@ -6,6 +6,8 @@
  * where an unregistered sidebar target fell through the dashboard
  * catch-all and silently opened the scheduling calendar.
  */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   CANONICAL_SURFACES,
@@ -72,5 +74,41 @@ describe('canonical surface naming registry', () => {
       expect(entry).toBeDefined();
       expect(entry!.title).toBe(surfaceName('workoutPlanner'));
     }
+  });
+});
+
+describe('retired-name tripwire (structural enforcement of the one-name law)', () => {
+  // 'Plan Library' remains the honest name of the Client Hub per-client
+  // saved-plans SECTION (a different surface) — allow it only there.
+  const PLAN_LIBRARY_ALLOWLIST = 'components/DashBoard/workspaces/clients-team/';
+  // Historical slice-receipt comment, not a user-facing string.
+  const HISTORICAL_ALLOWLIST = ['components/DashBoard/Pages/admin-workout-planner/SavedPlanCard.test.tsx'];
+
+  const srcRoot = join(__dirname, '..');
+  const offenders: Record<string, string[]> = { planLibrary: [], swanStudiosPlanner: [] };
+
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(entry) || full === __filename) continue;
+      const rel = relative(srcRoot, full).replace(/\\/g, '/');
+      const source = readFileSync(full, 'utf8');
+      if (source.includes('Plan Library')
+        && !rel.startsWith(PLAN_LIBRARY_ALLOWLIST)
+        && !HISTORICAL_ALLOWLIST.includes(rel)) {
+        offenders.planLibrary.push(rel);
+      }
+      if (source.includes('Swan Studios Workout Planner')) offenders.swanStudiosPlanner.push(rel);
+    }
+  };
+
+  it('keeps retired planner names out of the source tree', () => {
+    walk(srcRoot);
+    expect(offenders.planLibrary, 'retired "Plan Library" leaked outside the Client Hub section').toEqual([]);
+    expect(offenders.swanStudiosPlanner, 'retired "Swan Studios Workout Planner" must not return').toEqual([]);
   });
 });

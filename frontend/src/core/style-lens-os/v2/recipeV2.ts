@@ -59,12 +59,14 @@ export interface RecipeV2 {
 }
 
 const ID_PATTERN = /^[a-z][a-z0-9-]{1,64}(\.[a-z][a-z0-9-]{1,64})*$/;
-const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+/** Exported so sibling validators (capability manifests) enforce the SAME
+ *  rules — two fail-closed validators must never disagree on validity. */
+export const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 /** No url(), semicolons, braces, backslashes, angle brackets. Quotes are
  *  allowed for multi-word font family names only — they cannot terminate
  *  a declaration without ; or }. */
 const TOKEN_VALUE_PATTERN = /^[a-zA-Z0-9 #%().,+*/'\"_-]{1,240}$/;
-const NAME_PATTERN = /^[a-z][a-z0-9-]{1,64}$/;
+export const NAME_PATTERN = /^[a-z][a-z0-9-]{1,64}$/;
 
 export interface RecipeIssue {
   path: string;

@@ -79,6 +79,14 @@ export const CANONICAL_SURFACES = {
     testId: 'surface-log-my-workout',
     ariaLabel: 'Open Log My Workout',
   },
+  myWorkouts: {
+    id: 'my-workouts',
+    name: 'My Workouts',
+    routes: { client: '/dashboard/client/workouts' },
+    subtitles: { client: 'Workout history with per-set detail' },
+    testId: 'surface-my-workouts',
+    ariaLabel: 'Open My Workouts',
+  },
 } as const satisfies Record<string, CanonicalSurface>;
 
 export type CanonicalSurfaceKey = keyof typeof CANONICAL_SURFACES;
@@ -89,7 +97,3 @@ export const surfaceName = (key: CanonicalSurfaceKey): string => CANONICAL_SURFA
 /** Role route for a surface (undefined when the role has no mount). */
 export const surfaceRoute = (key: CanonicalSurfaceKey, role: SurfaceRole): string | undefined =>
   CANONICAL_SURFACES[key].routes[role];
-
-/** Role subtitle for a surface (undefined when the role has no mount). */
-export const surfaceSubtitle = (key: CanonicalSurfaceKey, role: SurfaceRole): string | undefined =>
-  CANONICAL_SURFACES[key].subtitles[role];

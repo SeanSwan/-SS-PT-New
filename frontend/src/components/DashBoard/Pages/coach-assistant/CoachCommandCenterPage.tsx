@@ -90,7 +90,6 @@ const CoachCommandCenterPage: React.FC = () => {
   const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
 
   const requestReviewWorkspaceFocus = () => { pendingReviewFocusRef.current = true; };
-
   const handleSuggestedPrompt = (prompt: string) => {
     commandCenter.setCommandText(prompt);
     commandCenter.commandTextRef.current?.focus({ preventScroll: true });
@@ -247,8 +246,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
-            workoutPlannerLabel={isClientMode ? 'My Workouts' : CANONICAL_SURFACES.workoutPlanner.name}
-            workoutPlannerAriaLabel={isClientMode ? 'Open workouts' : CANONICAL_SURFACES.workoutPlanner.ariaLabel}
+            workoutPlannerLabel={isClientMode ? CANONICAL_SURFACES.myWorkouts.name : CANONICAL_SURFACES.workoutPlanner.name}
+            workoutPlannerAriaLabel={isClientMode ? CANONICAL_SURFACES.myWorkouts.ariaLabel : CANONICAL_SURFACES.workoutPlanner.ariaLabel}
             showPlaudAction={!isClientMode}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}

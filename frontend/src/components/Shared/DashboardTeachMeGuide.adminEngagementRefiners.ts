@@ -4,6 +4,7 @@
  * truthful training proof instead of generic admin navigation.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
@@ -25,7 +26,7 @@ export const adminEngagementSystems = (
       ],
       actions: [
         { label: 'Sprint Planner', to: '/dashboard/admin/sprint-planner' },
-        { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+        { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
         { label: 'Marketing', to: '/dashboard/admin/marketing' },
         { label: 'Client Progress', to: '/dashboard/admin/client-progress-tracking' },
       ],

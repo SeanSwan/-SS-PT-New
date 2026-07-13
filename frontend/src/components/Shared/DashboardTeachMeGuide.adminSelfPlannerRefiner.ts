@@ -4,6 +4,7 @@
  * programming when the admin Workout Planner opens with self mode enabled.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
@@ -33,7 +34,7 @@ export const adminSelfWorkoutPlanning = (base: DashboardTeachMeGuideCopy) => app
     { label: 'Build My Plan', to: '/dashboard/admin/workout-planner?self=1' },
     { label: 'Log My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
   ],
   primaryPrompt: 'teach me the admin self workout planning workflow',
 });

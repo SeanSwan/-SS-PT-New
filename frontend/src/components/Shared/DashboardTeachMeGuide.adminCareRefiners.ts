@@ -4,6 +4,7 @@
  * main admin route router so new dashboard lessons remain maintainable.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
@@ -31,7 +32,7 @@ export const adminClientHubCommand = (
   actions: [
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Log Client Workout', to: '/dashboard/admin/client-management?intent=log_workout' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
     { label: 'Client Progress', to: '/dashboard/admin/client-progress-tracking' },
   ],

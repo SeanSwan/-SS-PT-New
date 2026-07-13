@@ -12,6 +12,7 @@ import RolodexRecentRow from './RolodexRecentRow';
 import RolodexFilterRows from './RolodexFilterRows';
 import useRolodexDeepLink from './useRolodexDeepLink';
 import { readRecentExercises, recordRecentExercise } from './recentExercises';
+import { RetryButton } from './ExerciseSetRowControls.styles';
 import {
   EmptyState,
   ExMeta,
@@ -263,10 +264,10 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
             <EmptyState>
               {loadError ? (
                 <>
-                  {loadError} Check your connection, then{' '}
-                  <FilterToggle type="button" onClick={refresh}>
+                  {loadError} Check your connection.{' '}
+                  <RetryButton type="button" onClick={refresh}>
                     Try again
-                  </FilterToggle>
+                  </RetryButton>
                 </>
               ) : query.length >= 1 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
             </EmptyState>

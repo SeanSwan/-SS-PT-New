@@ -4,6 +4,7 @@
  * click without implying hidden workout writes.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
@@ -34,7 +35,7 @@ const adminEquipmentCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   ],
   actions: [
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
@@ -60,7 +61,7 @@ const adminBootcampBuilder = (base: DashboardTeachMeGuideCopy) => applyPatch(bas
   ],
   actions: [
     { label: 'Bootcamp', to: '/dashboard/admin/bootcamp' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
     { label: 'Schedule', to: '/dashboard/admin/master-schedule' },
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
   ],
@@ -72,7 +73,7 @@ const adminWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(base
   title: 'Admin Workout Planner',
   summary: 'Use Workout Planner and Client Hub Training to turn client goals, equipment, pain signals, and training phase into a usable plan.',
   focus: 'Build from client context first: goal, equipment, pain, schedule, then generate or save the plan where the trainer can use it.',
-  primaryAction: { label: 'Open Workout Planner', to: '/dashboard/admin/workout-planner' },
+  primaryAction: { label: CANONICAL_SURFACES.workoutPlanner.ariaLabel, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
   fastPath: [
     'Choose client context.',
     'Generate or assemble the plan.',
@@ -85,7 +86,7 @@ const adminWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(base
     'Save the plan before leaving so it can feed future logging and progress proof.',
   ],
   actions: [
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
     { label: 'Equipment', to: '/dashboard/admin/equipment' },
     { label: 'Bootcamp', to: '/dashboard/admin/bootcamp' },

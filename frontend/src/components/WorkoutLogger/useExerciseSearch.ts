@@ -181,6 +181,10 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
         if (!query) {
           setResults(exercises);
         }
+      } else if (exerciseCacheRef.current.length === 0) {
+        // Honest-state contract: a 200 with success:false / malformed body
+        // must not masquerade as "no exercises found".
+        setLoadError('The exercise library failed to load.');
       }
     } catch (err) {
       console.error('Failed to load exercise list:', err);

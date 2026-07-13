@@ -70,11 +70,11 @@ describe('CoachCommandCenterPage workout route actions', () => {
       'href',
       '/dashboard/client/log-workout?loadPlan=today',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open workouts/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open my workouts/i })).toHaveAttribute(
       'href',
       '/dashboard/client/workouts',
     );
-    expect(within(menu).getByRole('menuitem', { name: /open workouts/i })).toHaveTextContent('My Workouts');
+    expect(within(menu).getByRole('menuitem', { name: /open my workouts/i })).toHaveTextContent('My Workouts');
   });
 
   it('offers a client logger draft handoff for generated workout answers', async () => {

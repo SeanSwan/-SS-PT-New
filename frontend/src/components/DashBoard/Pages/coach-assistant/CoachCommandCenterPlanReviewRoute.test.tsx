@@ -11,7 +11,7 @@ const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Co
 describe('CoachCommandCenterPage plan review route', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('hydrates a Workout Planner review prompt and returns to Build Plan', async () => {
+  it('hydrates a Workout Planner review prompt and returns to Workout Planner', async () => {
     const prompt = [
       'Build Plan generated day review.',
       'Client #42.',

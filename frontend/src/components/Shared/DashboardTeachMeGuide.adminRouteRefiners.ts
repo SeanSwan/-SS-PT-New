@@ -4,6 +4,7 @@
  * growth, onboarding, and trust routes without performing hidden writes.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import {
   adminClientHubCommand,
@@ -81,7 +82,7 @@ const adminClientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatc
   actions: [
     { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
     { label: 'Client Hub Logger', to: '/dashboard/admin/client-management?tab=training&trainingSection=logger&loadPlan=today' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.admin },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
   primaryPrompt: 'teach me the admin client workout logging workflow',

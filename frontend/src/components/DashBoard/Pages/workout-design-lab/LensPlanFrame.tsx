@@ -36,7 +36,12 @@ const CompileReceipt = styled.p`
 `;
 
 interface LensPlanFrameProps {
-  recipe: RecipeV2;
+  /**
+   * null = "no lens worn": the frame stays MOUNTED and paints nothing, so
+   * committing/clearing a lens never remounts the host surface (rest
+   * timers, logged marks, and input state survive the switch).
+   */
+  recipe: RecipeV2 | null;
   children: ReactNode;
   /** Host/surface manifest to compile against. Defaults to the Lab host. */
   manifest?: HostCapabilityManifest;
@@ -58,9 +63,17 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
   "aria-label": ariaLabel,
 }) => {
   const result = useMemo(
-    () => compileRecipe(recipe, manifest),
+    () => (recipe ? compileRecipe(recipe, manifest) : null),
     [recipe, manifest],
   );
+
+  if (!recipe || !result) {
+    return (
+      <FrameRoot aria-label={ariaLabel} $representation={representationStyles}>
+        {children}
+      </FrameRoot>
+    );
+  }
 
   if (!result.ok) {
     return (

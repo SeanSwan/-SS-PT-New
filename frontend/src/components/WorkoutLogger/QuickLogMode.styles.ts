@@ -155,7 +155,8 @@ export const LogSetButton = styled.button`
   width: 100%;
   min-height: 56px;
   padding: 1rem;
-  background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
+  /* Dual-Button Glow law: Blue background -> Purple glow. */
+  background: linear-gradient(135deg, ${CS.primaryDeep}, ${CS.tertiary});
   border: none;
   border-radius: 0.75rem;
   color: ${CS.text};
@@ -164,11 +165,11 @@ export const LogSetButton = styled.button`
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 16px ${withAlpha(CS.glow, 0.25)};
+  box-shadow: 0 4px 16px ${withAlpha(CS.secondary, 0.25)};
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${withAlpha(CS.glow, 0.35)};
+    box-shadow: 0 8px 24px ${withAlpha(CS.secondary, 0.35)};
   }
 
   &:active:not(:disabled) {

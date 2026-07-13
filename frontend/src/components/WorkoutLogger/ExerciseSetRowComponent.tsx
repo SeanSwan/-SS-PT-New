@@ -10,10 +10,11 @@
  */
 import React from 'react';
 import { Check, Minus, Star } from 'lucide-react';
-import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
+import { ExerciseSet } from '../../services/nasmApiService';
 import OverloadSuggestion from './OverloadSuggestion';
 import RestTimer from './RestTimer';
 import TempoInput from './TempoInput';
+import { getExerciseSetRowKey } from './WorkoutLogger.helpers';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 import {
   RatingControlRow,
@@ -23,10 +24,10 @@ import {
   StarRatingContainer,
 } from './ExerciseCardComponent.styles';
 import {
-  LogSetButton,
   NumberInput,
   RemoveSetButton,
   SetCell,
+  SetLogCheckButton,
   SetNumber,
   SetRow,
   TextInput,
@@ -34,21 +35,22 @@ import {
 } from './ExerciseSetRow.styles';
 
 interface ExerciseSetRowComponentProps {
-  exercise: ExerciseEntry;
+  /** Primitive on purpose: keeps React.memo effective across sibling-set edits. */
+  exerciseName: string;
   exerciseIndex: number;
   set: ExerciseSet;
   setIndex: number;
   showDetails: boolean;
   isLogged: boolean;
   canRemove: boolean;
-  onToggleLogged: (setIndex: number) => void;
+  onToggleLogged: (setKey: string, setIndex: number) => void;
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => void;
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   getOverload?: (exerciseName: string, setIndex: number) => OverloadSuggestionType | null;
 }
 
 const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
-  exercise,
+  exerciseName,
   exerciseIndex,
   set,
   setIndex,
@@ -76,9 +78,9 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
         />
         {getOverload && (
           <OverloadSuggestion
-            suggestion={getOverload(exercise.exerciseName, setIndex)}
+            suggestion={getOverload(exerciseName, setIndex)}
             onApply={() => {
-              const suggestion = getOverload(exercise.exerciseName, setIndex);
+              const suggestion = getOverload(exerciseName, setIndex);
               if (suggestion) onUpdateSet(exerciseIndex, setIndex, 'weight', suggestion.suggested);
             }}
           />
@@ -144,16 +146,16 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
       />
     </SetCell>
     <SetCell data-label="Log" data-essential="log">
-      <LogSetButton
+      <SetLogCheckButton
         type="button"
-        onClick={() => onToggleLogged(setIndex)}
+        onClick={() => onToggleLogged(getExerciseSetRowKey(set), setIndex)}
         aria-pressed={isLogged}
         aria-label={isLogged
           ? `Set ${set.setNumber} logged — tap to unmark`
           : `Log set ${set.setNumber} and start rest timer`}
       >
         <Check aria-hidden="true" />
-      </LogSetButton>
+      </SetLogCheckButton>
     </SetCell>
     <SetCell data-label="">
       <RemoveSetButton

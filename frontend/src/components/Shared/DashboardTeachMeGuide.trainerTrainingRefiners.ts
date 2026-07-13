@@ -4,6 +4,7 @@
  * collapsing into one generic builder lesson.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
@@ -11,16 +12,16 @@ const trainerBuilderFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base,
   title: 'Trainer Build Plan flow',
   summary: 'Use Build Plan to create the client workout, save it, then continue through Log Today or Open Workout Planner while the session context is fresh.',
   focus: 'Pick the client first, build with the real constraints, then use the saved-workout handoff: Log Today for the floor, Open Workout Planner for review.',
-  primaryAction: { label: 'Build Plan', to: '/dashboard/trainer/build-plan' },
+  primaryAction: { label: CANONICAL_SURFACES.buildPlan.name, to: CANONICAL_SURFACES.buildPlan.routes.trainer },
   fastPath: [
     'Confirm client, goal, and constraints.',
     'Build manually or with Swan Coach.',
     'Save, then choose Log Today or Open Workout Planner.',
   ],
   actions: [
-    { label: 'Build Plan', to: '/dashboard/trainer/build-plan' },
+    { label: CANONICAL_SURFACES.buildPlan.name, to: CANONICAL_SURFACES.buildPlan.routes.trainer },
     { label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
     { label: 'Equipment', to: '/dashboard/trainer/equipment' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
@@ -31,14 +32,14 @@ const trainerWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   title: 'Trainer Workout Planner',
   summary: 'Use Workout Planner to place the next client workout where logging and progress review can actually use it.',
   focus: 'Pick the client and day first, then save the plan into the trainer-to-client logging loop.',
-  primaryAction: { label: 'Open Workout Planner', to: '/dashboard/trainer/workout-planner' },
+  primaryAction: { label: CANONICAL_SURFACES.workoutPlanner.ariaLabel, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
   fastPath: [
     'Choose the client and target day.',
     'Review equipment, goals, and pain constraints.',
     'Save the workout for logging.',
   ],
   actions: [
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
     { label: 'My Clients', to: '/dashboard/trainer/clients' },
     { label: 'Equipment', to: '/dashboard/trainer/equipment' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
@@ -58,7 +59,7 @@ const trainerEquipmentSetup = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   ],
   actions: [
     { label: 'Equipment', to: '/dashboard/trainer/equipment' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
     { label: 'My Clients', to: '/dashboard/trainer/clients' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
@@ -79,7 +80,7 @@ const trainerBootcampDelivery = (base: DashboardTeachMeGuideCopy) => applyPatch(
     { label: 'Bootcamp', to: '/dashboard/trainer/bootcamp' },
     { label: 'Schedule', to: '/dashboard/trainer/schedule' },
     { label: 'Equipment', to: '/dashboard/trainer/equipment' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
   ],
   primaryPrompt: 'teach me the trainer bootcamp workflow',
 });

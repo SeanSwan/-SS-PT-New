@@ -17,7 +17,7 @@ import { surfaceRepresentationStyles } from '../../../../adapters/style-lens-swa
 import WorkoutPlannerLensFrame from './WorkoutPlannerLensFrame';
 
 describe('WorkoutPlannerLensFrame gate', () => {
-  it('is a pure pass-through when no StyleLensProvider is mounted (host defaults)', () => {
+  it('paints nothing without a provider but keeps the frame MOUNTED (no remount on lens switch)', () => {
     const { container } = render(
       <WorkoutPlannerLensFrame>
         <p>planner content</p>
@@ -25,7 +25,7 @@ describe('WorkoutPlannerLensFrame gate', () => {
     );
     expect(screen.getByText('planner content')).toBeInTheDocument();
     expect(container.querySelector('[data-lens2-plan]')).toBeNull();
-    expect(screen.queryByLabelText('Workout Planner style frame')).toBeNull();
+    expect(screen.getByLabelText('Workout Planner style frame')).toBeInTheDocument();
   });
 });
 

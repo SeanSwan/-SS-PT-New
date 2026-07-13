@@ -17,7 +17,7 @@ import WorkoutLoggerLensFrame from './WorkoutLoggerLensFrame';
 import { surfaceRepresentationStyles } from '../../adapters/style-lens-swan/v2/surfaceRepresentationStyles';
 
 describe('WorkoutLoggerLensFrame gate', () => {
-  it('is a pure pass-through when no StyleLensProvider is mounted (host defaults)', () => {
+  it('paints nothing without a provider but keeps the frame MOUNTED (no remount on lens switch)', () => {
     const { container } = render(
       <WorkoutLoggerLensFrame>
         <p>logger content</p>
@@ -25,7 +25,7 @@ describe('WorkoutLoggerLensFrame gate', () => {
     );
     expect(screen.getByText('logger content')).toBeInTheDocument();
     expect(container.querySelector('[data-lens2-plan]')).toBeNull();
-    expect(screen.queryByLabelText('Workout Logger style frame')).toBeNull();
+    expect(screen.getByLabelText('Workout Logger style frame')).toBeInTheDocument();
   });
 });
 

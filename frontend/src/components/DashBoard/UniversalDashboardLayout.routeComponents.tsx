@@ -163,6 +163,11 @@ export const AdminClientDetailsRedirect: React.FC = () => {
   return <Navigate to={`/dashboard/admin/client-management${location.search}`} replace />;
 };
 
+export const TrainerBuildPlanRedirect: React.FC = () => {
+  const location = useLocation();
+  return <Navigate to={`/dashboard/trainer/build-plan${location.search}`} replace />;
+};
+
 export const AdminLogWorkoutRedirect: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);

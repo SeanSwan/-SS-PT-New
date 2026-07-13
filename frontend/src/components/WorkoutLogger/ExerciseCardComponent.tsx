@@ -34,6 +34,9 @@ interface ExerciseCardComponentProps {
   supersetGroup?: number;
   /** Phase 3c.2: link/unlink this exercise with its predecessor (superset pair/group). */
   linkedToPrevious?: boolean;
+  /** Lifted logger-level detail mode (one toggle affects every card — least clicks). */
+  showSetDetails: boolean;
+  onToggleSetDetails: () => void;
   onToggleSupersetLink?: () => void;
   onUpdateExercise: (exerciseIndex: number, field: keyof ExerciseEntry, value: any) => void;
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => void;
@@ -51,6 +54,8 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   clientId,
   supersetGroup,
   linkedToPrevious = false,
+  showSetDetails,
+  onToggleSetDetails,
   onToggleSupersetLink,
   onUpdateExercise,
   onUpdateSet,
@@ -61,26 +66,24 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onSetLogged,
   ghostSkip = false,
 }) => {
-  // Phone disclosure for secondary set fields (Phase-2C law grid).
-  const [showSetDetails, setShowSetDetails] = useState(false);
   // Session-local logged marks; logging a set starts the rest timer upstream.
   const [loggedSetKeys, setLoggedSetKeys] = useState<ReadonlySet<string>>(() => new Set());
 
-  const toggleLogged = useCallback((setIndex: number) => {
-    const set = exercise.sets[setIndex];
-    if (!set) return;
-    const key = getExerciseSetRowKey(set);
+  // State updaters must stay PURE (React 18 StrictMode double-invokes them):
+  // the onSetLogged side effect fires exactly once, outside the updater.
+  const toggleLogged = useCallback((setKey: string, setIndex: number) => {
+    const wasLogged = loggedSetKeys.has(setKey);
+    if (!wasLogged) onSetLogged?.(exerciseIndex, setIndex);
     setLoggedSetKeys(previous => {
       const next = new Set(previous);
-      if (next.has(key)) {
-        next.delete(key);
+      if (wasLogged) {
+        next.delete(setKey);
       } else {
-        next.add(key);
-        onSetLogged?.(exerciseIndex, setIndex);
+        next.add(setKey);
       }
       return next;
     });
-  }, [exercise.sets, exerciseIndex, onSetLogged]);
+  }, [exerciseIndex, loggedSetKeys, onSetLogged]);
 
   return (
     <CardContainer
@@ -182,7 +185,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               />
             )}
             <ExerciseSetRowComponent
-              exercise={exercise}
+              exerciseName={exercise.exerciseName}
               exerciseIndex={exerciseIndex}
               set={set}
               setIndex={setIndex}
@@ -199,9 +202,9 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
         <SetDetailsToggle
           type="button"
           aria-expanded={showSetDetails}
-          onClick={() => setShowSetDetails(previous => !previous)}
+          onClick={onToggleSetDetails}
         >
-          {showSetDetails ? 'Hide set details' : 'Show set details (tempo, RPE, form, rest, notes)'}
+          {showSetDetails ? 'Hide set details' : 'Show set details (tempo, RPE, form, rest, notes, remove)'}
         </SetDetailsToggle>
       </SetsTable>
 

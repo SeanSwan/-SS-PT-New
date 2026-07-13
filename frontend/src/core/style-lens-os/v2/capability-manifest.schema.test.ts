@@ -1,3 +1,8 @@
+/**
+ * TEST: SurfaceCapabilityManifest fail-closed validation — accepts sound
+ * manifests and rejects the forbidden classes (free-form versions, layout
+ * fields, raw colors in variant names, non-kebab ids, empty profiles).
+ */
 import { describe, expect, it } from 'vitest';
 import {
   validateSurfaceCapabilityManifest,

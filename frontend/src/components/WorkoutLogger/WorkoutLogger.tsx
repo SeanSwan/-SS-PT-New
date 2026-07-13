@@ -666,13 +666,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [createWorkoutLoggerLocalId, ghostPreFill]);
 
   /** Phase 6: When a set is logged/confirmed, auto-start rest timer */
+  // Reads through exercisesRef so the callback identity survives keystrokes (keeps card memos alive).
   const handleSetLogged = useCallback((exerciseIndex: number, setIndex: number) => {
-    const exercise = exercises[exerciseIndex];
-    if (!exercise) return;
-    const set = exercise.sets[setIndex];
-    const restSeconds = set?.restTime || 60;
-    restTimer.start(restSeconds);
-  }, [exercises, restTimer]);
+    restTimer.start(exercisesRef.current[exerciseIndex]?.sets[setIndex]?.restTime || 60);
+  }, [restTimer]);
+  const [showSetDetails, setShowSetDetails] = useState(false);
+  const handleToggleSetDetails = useCallback(() => setShowSetDetails(previous => !previous), []);
 
   const removeSet = useCallback((exerciseIndex: number, setIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
@@ -1140,6 +1139,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                   clientId={effectiveClientId}
                   supersetGroup={exercise.supersetGroup ?? undefined}
                   linkedToPrevious={isLinkedToPrevious(exercises, exerciseIndex)}
+                  showSetDetails={showSetDetails}
+                  onToggleSetDetails={handleToggleSetDetails}
                   onToggleSupersetLink={exerciseIndex > 0 ? () => toggleSuperset(exerciseIndex) : undefined}
                   onUpdateExercise={updateExercise}
                   onUpdateSet={updateSet}

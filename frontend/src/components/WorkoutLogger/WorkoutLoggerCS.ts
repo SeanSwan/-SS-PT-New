@@ -39,6 +39,7 @@ export const CS = {
   secondary: 'var(--accent-secondary, #8B5CF6)',
   secondaryLight: 'var(--accent-secondary-light, #A78BFA)',
   tertiary: 'var(--accent-tertiary, #4070C0)',
+  primaryDeep: 'var(--accent-primary-deep, #002060)',
   text: 'var(--text-primary, #E0ECF4)',
   textSecondary: 'var(--text-secondary, #c8d6e5)',
   textMuted: 'var(--text-muted, #94a3b8)',

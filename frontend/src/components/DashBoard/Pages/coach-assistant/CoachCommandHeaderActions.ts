@@ -4,8 +4,10 @@
  *
  * These actions reduce the common workout flow by one click: Log, Build, Intake,
  * and Audio are visible before the Ops drawer opens. They only navigate or switch
- * local tabs; Logger and Build Plan keep save ownership clear.
+ * local tabs; Logger and Workout Planner keep save ownership clear.
  */
+import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
+
 export type CoachHeaderQuickActionIcon = 'log' | 'builder' | 'client' | 'intake' | 'plaud';
 
 export type CoachHeaderQuickAction = {
@@ -61,11 +63,11 @@ export function buildCoachHeaderQuickActions({
 
   if (workoutPlannerRoute) {
     actions.push({
-      ariaLabel: `${isClientMode ? 'Open workouts' : 'Build plan'} for ${scopeLabel}`,
+      ariaLabel: `${isClientMode ? `Open ${CANONICAL_SURFACES.myWorkouts.name}` : CANONICAL_SURFACES.workoutPlanner.ariaLabel} for ${scopeLabel}`,
       detail: scopeLabel,
       href: workoutPlannerRoute,
       icon: 'builder',
-      label: isClientMode ? 'Workouts' : 'Build Plan',
+      label: isClientMode ? CANONICAL_SURFACES.myWorkouts.name : CANONICAL_SURFACES.workoutPlanner.name,
     });
   }
 

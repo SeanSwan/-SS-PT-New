@@ -7,6 +7,7 @@
  * (colors travel only as recipe tokens), and free-form version strings.
  */
 import type { HostCapabilityManifest } from './hostCapabilityManifest';
+import { NAME_PATTERN, VERSION_PATTERN } from './recipeV2';
 
 export interface SurfaceCapabilityManifest extends HostCapabilityManifest {
   /** Stable kebab-case product-surface id (see config/canonical-surface-names.ts). */
@@ -20,8 +21,10 @@ export interface SurfaceManifestIssue {
   message: string;
 }
 
-const KEBAB_PATTERN = /^[a-z][a-z0-9-]*$/;
-const EXACT_SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+// Shared with recipeV2 so both fail-closed validators agree on validity
+// (NAME_PATTERN carries the 1-64 char bound the first draft here lacked).
+const KEBAB_PATTERN = NAME_PATTERN;
+const EXACT_SEMVER_PATTERN = VERSION_PATTERN;
 const RAW_COLOR_PATTERN = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|oklch\(|color-mix\(/i;
 
 const issue = (path: string, message: string): SurfaceManifestIssue => ({ path, message });

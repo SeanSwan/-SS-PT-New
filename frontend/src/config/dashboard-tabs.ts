@@ -233,7 +233,7 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
   },
   {
     key: 'workout-planner',
-    label: 'Swan Studios Workout Planner',
+    label: CANONICAL_SURFACES.workoutPlanner.name,
     icon: 'Dumbbell',
     order: 9.25,
     status: 'real',
@@ -453,7 +453,7 @@ export const TRAINER_DASHBOARD_TABS: DashboardTab[] = [
   },
   {
     key: 'workout-planner',
-    label: 'Swan Studios Workout Planner',
+    label: CANONICAL_SURFACES.workoutPlanner.name,
     icon: 'Dumbbell',
     order: 9.25,
     status: 'real',

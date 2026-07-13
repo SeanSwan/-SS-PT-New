@@ -4,6 +4,7 @@
  * intake, and communication jobs that make the floor workflow teachable.
  */
 
+import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 import { trainerSupportRoutes } from './DashboardTeachMeGuide.trainerSupportRefiners';
@@ -137,7 +138,7 @@ const trainerSprintPlanning = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   ],
   actions: [
     { label: 'Sprint Planner', to: '/dashboard/trainer/sprint-planner' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
     { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
