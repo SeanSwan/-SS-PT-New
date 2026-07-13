@@ -36,6 +36,7 @@ import styled from 'styled-components';
 import { User as UserIcon, Target, Bell, Palette, Save } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import apiService from '../../../../services/api.service';
+import ClientMembershipCard from './ClientMembershipCard';
 import EditProfileChartToggles, {
   DEFAULT_CHART_VISIBILITY,
   type ProfileChartVisibility,
@@ -274,6 +275,9 @@ const ClientProfilePage: React.FC = () => {
           <InfoItem><InfoLabel>Member Since</InfoLabel><InfoValue>{memberSince}</InfoValue></InfoItem>
         </InfoGrid>
       </Card>
+
+      {/* Membership truth + FTC two-tap cancel (§7b promoted item 2) */}
+      <ClientMembershipCard />
 
       {/* Companion Pet (compact preview) */}
       {user?.id && (
