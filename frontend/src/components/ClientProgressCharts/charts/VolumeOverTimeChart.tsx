@@ -29,6 +29,12 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import { VolumeChartProps, VolumeDataPoint } from '../types/ClientProgressTypes';
+import {
+  buildVolumeAreaProps,
+  DETAILED_AXIS_STYLE as AXIS_STYLE,
+  DETAILED_TOOLTIP_PROPS as TOOLTIP_PROPS,
+} from './detailedChartTheme';
+import { useLensChartPalette } from '../../Charts/lensChartPalette';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -63,32 +69,6 @@ const NoDataCopy = styled.p`
 
 // ==================== CONSTANTS ====================
 
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-  grid: {
-    stroke: 'rgba(96, 192, 240, 0.08)',
-    strokeDasharray: '4,4',
-  },
-};
-
-const TOOLTIP_PROPS = {
-  flyoutStyle: {
-    fill: '#141419',
-    stroke: 'rgba(139, 92, 246, 0.3)',
-    strokeWidth: 1,
-  },
-  style: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-};
-
 const Y_AXIS_PROPS = {
   style: {
     ...AXIS_STYLE,
@@ -97,16 +77,6 @@ const Y_AXIS_PROPS = {
       fontSize: 12,
       fontFamily: "'Fira Code', monospace",
       padding: 40,
-    },
-  },
-};
-
-const AREA_PROPS = {
-  style: {
-    data: {
-      fill: 'url(#victoryVolumeGradient)',
-      stroke: '#60C0F0',
-      strokeWidth: 2,
     },
   },
 };
@@ -132,6 +102,9 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   showTrendLine = false,
   className
 }) => {
+  const palette = useLensChartPalette();
+  const areaProps = useMemo(() => buildVolumeAreaProps(palette.primary), [palette.primary]);
+
   // ==================== COMPUTED VALUES ====================
 
   const chartData = useMemo(() => {
@@ -213,7 +186,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
           {/* Gradient defs */}
           <defs>
             <linearGradient id="victoryVolumeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8} />
+              <stop offset="5%" stopColor={palette.primary} stopOpacity={0.8} />
               <stop offset="50%" stopColor="#50A0F0" stopOpacity={0.4} />
               <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.1} />
             </linearGradient>
@@ -237,7 +210,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
           <VictoryArea
             data={chartData}
             interpolation="monotoneX"
-            {...AREA_PROPS}
+            {...areaProps}
           />
 
           {/* Trend Line (average) */}

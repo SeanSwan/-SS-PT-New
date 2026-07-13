@@ -11,6 +11,8 @@ import {
 } from './UniversalDashboardLayout.styles';
 import { UniversalButton } from './UniversalDashboardLayout.controls';
 import UniversalSchedule from '../Schedule/UniversalSchedule';
+import ClientProgressLensFrame from './Pages/client-dashboard/ClientProgressLensFrame';
+import { LensChartPaletteProvider } from '../Charts/lensChartPalette';
 
 export { UniversalSchedule };
 
@@ -132,7 +134,15 @@ export const ClientProgressWrapper: React.FC = () => {
     );
   }
 
-  return <NASMProgressCharts clientId={clientId} />;
+  // Lens frame + palette provider: same fail-closed bridge the canonical
+  // /progress grid wears — zero visual delta until a v2 recipe is worn.
+  return (
+    <ClientProgressLensFrame>
+      <LensChartPaletteProvider>
+        <NASMProgressCharts clientId={clientId} />
+      </LensChartPaletteProvider>
+    </ClientProgressLensFrame>
+  );
 };
 
 const ADMIN_PLAUD_COMMAND_CENTER_PATH = '/dashboard/admin/coach-assistant?workspace=plaud';

@@ -24,6 +24,12 @@ import {
   VictoryScatter,
 } from 'victory';
 import { BodyCompositionChartProps, BodyCompositionDataPoint } from '../types/ClientProgressTypes';
+import {
+  buildWeightSeriesTheme,
+  DETAILED_AXIS_STYLE as AXIS_STYLE,
+  DETAILED_TOOLTIP_PROPS as TOOLTIP_PROPS,
+} from './detailedChartTheme';
+import { useLensChartPalette } from '../../Charts/lensChartPalette';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -58,45 +64,6 @@ const NoDataCopy = styled.p`
 
 // ==================== CONSTANTS ====================
 
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-  grid: {
-    stroke: 'rgba(96, 192, 240, 0.08)',
-    strokeDasharray: '4,4',
-  },
-};
-
-const TOOLTIP_PROPS = {
-  flyoutStyle: {
-    fill: '#141419',
-    stroke: 'rgba(139, 92, 246, 0.3)',
-    strokeWidth: 1,
-  },
-  style: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-};
-
-const WEIGHT_AXIS_PROPS = {
-  style: {
-    ...AXIS_STYLE,
-    tickLabels: { ...AXIS_STYLE.tickLabels, fill: '#60C0F0' },
-    axisLabel: {
-      fill: '#60C0F0',
-      fontSize: 12,
-      fontFamily: "'Fira Code', monospace",
-      padding: 40,
-    },
-  },
-};
-
 const BODY_FAT_AXIS_PROPS = {
   style: {
     axis: { stroke: 'rgba(139, 92, 246, 0.3)' },
@@ -111,16 +78,6 @@ const BODY_FAT_AXIS_PROPS = {
       fontSize: 12,
       fontFamily: "'Fira Code', monospace",
       padding: 50,
-    },
-  },
-};
-
-const WEIGHT_AREA_PROPS = {
-  style: {
-    data: {
-      fill: 'url(#victoryBodyWeightGradient)',
-      stroke: '#60C0F0',
-      strokeWidth: 2,
     },
   },
 };
@@ -154,6 +111,11 @@ type BodyCompositionDatum = BodyCompositionDataPoint & {
 // ==================== MAIN COMPONENT ====================
 
 const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => {
+  const palette = useLensChartPalette();
+  const { weightAxisProps, weightAreaProps } = useMemo(
+    () => buildWeightSeriesTheme(palette.primary),
+    [palette.primary],
+  );
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -248,9 +210,9 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           {/* Gradient defs via SVG */}
           <defs>
             <linearGradient id="victoryBodyWeightGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.6} />
-              <stop offset="50%" stopColor="#60C0F0" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#60C0F0" stopOpacity={0.05} />
+              <stop offset="5%" stopColor={palette.primary} stopOpacity={0.6} />
+              <stop offset="50%" stopColor={palette.primary} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={palette.primary} stopOpacity={0.05} />
             </linearGradient>
           </defs>
 
@@ -264,7 +226,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           {/* Left Y Axis — Weight */}
           <VictoryAxis
             dependentAxis
-            {...WEIGHT_AXIS_PROPS}
+            {...weightAxisProps}
             label="Weight (lbs)"
           />
 
@@ -287,7 +249,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           <VictoryArea
             data={chartData.map(d => ({ ...d, x: d.x, y: d.weight }))}
             interpolation="monotoneX"
-            {...WEIGHT_AREA_PROPS}
+            {...weightAreaProps}
           />
 
           {/* Body Fat Line — normalized to weight scale */}
@@ -320,7 +282,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
             gutter={20}
             {...LEGEND_PROPS}
             data={[
-              { name: 'Weight (lbs)', symbol: { fill: '#60C0F0' } },
+              { name: 'Weight (lbs)', symbol: { fill: palette.primary } },
               { name: 'Body Fat %', symbol: { fill: '#8B5CF6' } },
             ]}
           />

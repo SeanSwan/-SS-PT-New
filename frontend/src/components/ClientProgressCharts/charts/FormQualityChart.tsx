@@ -31,6 +31,7 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProgressTypes';
+import { DETAILED_TOOLTIP_PROPS as TOOLTIP_PROPS } from './detailedChartTheme';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -87,19 +88,6 @@ const LegendDot = styled.div<{ color: string }>`
 `;
 
 // ==================== VICTORY STYLE PROPS ====================
-
-const TOOLTIP_PROPS = {
-  flyoutStyle: {
-    fill: '#141419',
-    stroke: 'rgba(139, 92, 246, 0.3)',
-    strokeWidth: 1,
-  },
-  style: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-};
 
 const X_AXIS_PROPS = {
   style: {

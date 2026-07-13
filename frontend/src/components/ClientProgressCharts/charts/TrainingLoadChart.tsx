@@ -20,6 +20,7 @@ import {
   VictoryTooltip, VictoryVoronoiContainer, VictoryScatter,
 } from 'victory';
 import { TrainingLoadChartProps } from '../types/ClientProgressTypes';
+import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -40,12 +41,6 @@ const NoData = styled.div`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
 // ─────────────────────────────────────────────────────────────
-
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-};
 
 const formatIntensityLabel = (value: number | null): string => (
   typeof value === 'number' && value > 0 ? `${value}/10` : 'not logged'

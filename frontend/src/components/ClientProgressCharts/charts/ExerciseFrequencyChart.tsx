@@ -20,6 +20,14 @@ import {
   VictoryTooltip,
 } from 'victory';
 import { ExerciseFrequencyChartProps } from '../types/ClientProgressTypes';
+import { DETAILED_AXIS_STYLE } from './detailedChartTheme';
+
+const AXIS_STYLE = {
+  ...DETAILED_AXIS_STYLE,
+  // Sole divergence from the shared chrome: denser ticks on this chart.
+  tickLabels: { ...DETAILED_AXIS_STYLE.tickLabels, fontSize: 10 },
+};
+
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -36,12 +44,6 @@ const NoData = styled.div`
   height: 300px; color: #b8c9db; text-align: center;
   font-family: 'Sora', sans-serif; font-size: 0.875rem;
 `;
-
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" },
-  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Color scale by rank

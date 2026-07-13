@@ -22,25 +22,13 @@ import {
   VictoryScatter,
 } from 'victory';
 import { StrengthProgressionChartProps } from '../types/ClientProgressTypes';
+import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
 
 // ==================== CONSTANTS ====================
 
 const LINE_COLORS = ['#50A0F0', '#8B5CF6', '#4ECDC4', '#C6A84B'];
 
 // Shared Victory theme tokens for Crystalline Swan
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-  grid: {
-    stroke: 'rgba(96, 192, 240, 0.08)',
-    strokeDasharray: '4,4',
-  },
-};
-
 const TOOLTIP_STYLE = {
   flyoutStyle: {
     fill: '#141419',

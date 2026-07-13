@@ -64,7 +64,22 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
     expect(source).toContain('if (subscriptionLoading && !isStaffRole) {');
     expect(source).toContain('if (!hasDetailedProgressAccess) {');
     expect(source).toContain('<h2>Guardian analytics required</h2>');
-    expect(source).toContain('return <NASMProgressCharts clientId={clientId} />;');
+    // The charts now mount inside the lens frame + palette provider; the
+    // gate order is unchanged — access checks return before this render.
+    // Exact-shape lock: exactly ONE mount, wearing frame > provider, so a
+    // second ungated mount (or a comment ghost) trips this test red.
+    const mounts = source.match(/<NASMProgressCharts clientId=\{clientId\} \/>/g) ?? [];
+    expect(mounts).toHaveLength(1);
+    expect(source).toContain(
+      '<ClientProgressLensFrame>\n'
+      + '      <LensChartPaletteProvider>\n'
+      + '        <NASMProgressCharts clientId={clientId} />\n'
+      + '      </LensChartPaletteProvider>\n'
+      + '    </ClientProgressLensFrame>',
+    );
+    const gateAt = source.indexOf('if (!hasDetailedProgressAccess) {');
+    const chartsAt = source.indexOf('<NASMProgressCharts clientId={clientId} />');
+    expect(chartsAt).toBeGreaterThan(gateAt);
   });
 
   it('keeps the client progress CTA gate aligned with backend charts.full Pro tier', () => {

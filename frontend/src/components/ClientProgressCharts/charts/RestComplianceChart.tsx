@@ -20,6 +20,8 @@ import {
   VictoryTooltip, VictoryLegend,
 } from 'victory';
 import { RestComplianceChartProps } from '../types/ClientProgressTypes';
+import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
+import { useLensChartPalette } from '../../Charts/lensChartPalette';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -37,12 +39,6 @@ const NoData = styled.div`
   font-family: 'Sora', sans-serif; font-size: 0.875rem;
 `;
 
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-};
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -50,6 +46,7 @@ const AXIS_STYLE = {
 const RestComplianceChart: React.FC<RestComplianceChartProps> = ({
   data, animate = true, className,
 }) => {
+  const palette = useLensChartPalette();
   const { prescribedData, actualData, categories } = useMemo(() => {
     if (!data || data.length === 0) return { prescribedData: [], actualData: [], categories: [] };
     const cats = data.map(d => d.phase);
@@ -82,7 +79,7 @@ const RestComplianceChart: React.FC<RestComplianceChartProps> = ({
             gutter={20}
             style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
             data={[
-              { name: 'Prescribed', symbol: { fill: '#60C0F0' } },
+              { name: 'Prescribed', symbol: { fill: palette.primary } },
               { name: 'Actual', symbol: { fill: '#8B5CF6' } },
             ]}
           />
@@ -98,7 +95,7 @@ const RestComplianceChart: React.FC<RestComplianceChartProps> = ({
 
           <VictoryGroup offset={20}>
             <VictoryBar data={prescribedData}
-              style={{ data: { fill: '#60C0F0', width: 18, opacity: 0.8 } }}
+              style={{ data: { fill: palette.primary, width: 18, opacity: 0.8 } }}
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(96, 192, 240, 0.3)' }}

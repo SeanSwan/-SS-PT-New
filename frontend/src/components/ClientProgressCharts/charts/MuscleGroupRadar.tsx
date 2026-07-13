@@ -21,6 +21,8 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import { MuscleGroupRadarProps } from '../types/ClientProgressTypes';
+import { buildCurrentAreaProps, DETAILED_TOOLTIP_PROPS as TOOLTIP_PROPS } from './detailedChartTheme';
+import { useLensChartPalette } from '../../Charts/lensChartPalette';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -52,19 +54,6 @@ const NoDataCopy = styled.p`
   margin: 0;
   font-size: 0.875rem;
 `;
-
-const TOOLTIP_PROPS = {
-  flyoutStyle: {
-    fill: '#141419',
-    stroke: 'rgba(139, 92, 246, 0.3)',
-    strokeWidth: 1,
-  },
-  style: {
-    fill: '#E0ECF4',
-    fontSize: 11,
-    fontFamily: "'Fira Code', monospace",
-  },
-};
 
 const ANGULAR_AXIS_PROPS = {
   style: {
@@ -109,17 +98,6 @@ const PREVIOUS_AREA_PROPS = {
   },
 };
 
-const CURRENT_AREA_PROPS = {
-  style: {
-    data: {
-      fill: '#60C0F0',
-      fillOpacity: 0.25,
-      stroke: '#60C0F0',
-      strokeWidth: 2,
-    },
-  },
-};
-
 const LEGEND_PROPS = {
   style: {
     labels: {
@@ -138,6 +116,8 @@ type MuscleGroupDatum = {
 // ==================== MAIN COMPONENT ====================
 
 const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
+  const palette = useLensChartPalette();
+  const currentAreaProps = useMemo(() => buildCurrentAreaProps(palette.primary), [palette.primary]);
   const hasPrevious = data?.some(d => d.previousVolume !== undefined);
 
   // Compute max value for the radial domain
@@ -238,7 +218,7 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
           {/* Current period area */}
           <VictoryArea
             data={currentData}
-            {...CURRENT_AREA_PROPS}
+            {...currentAreaProps}
           />
 
           {/* Legend */}
@@ -249,7 +229,7 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
             gutter={16}
             {...LEGEND_PROPS}
             data={[
-              { name: 'Current Period', symbol: { fill: '#60C0F0' } },
+              { name: 'Current Period', symbol: { fill: palette.primary } },
               ...(hasPrevious
                 ? [{ name: 'Previous Period', symbol: { fill: '#8B5CF6' } }]
                 : []),

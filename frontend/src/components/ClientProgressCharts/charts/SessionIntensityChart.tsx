@@ -20,6 +20,7 @@ import {
   VictoryTooltip, VictoryVoronoiContainer,
 } from 'victory';
 import { SessionIntensityChartProps } from '../types/ClientProgressTypes';
+import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -36,12 +37,6 @@ const NoData = styled.div`
   height: 300px; color: #b8c9db; text-align: center;
   font-family: 'Sora', sans-serif; font-size: 0.875rem;
 `;
-
-const AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-  tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
