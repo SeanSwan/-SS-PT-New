@@ -83,12 +83,12 @@ const ScheduleDayStrip: React.FC<ScheduleDayStripProps> = ({
       >
         <ChevronLeft size={18} />
       </EdgeButton>
-      <StripScroller ref={scrollerRef}>
+      <StripScroller ref={scrollerRef} className="lens2-collection">
         {chips.map((chip) => {
           const count = counts.get(chip.key) ?? 0;
           const isSelected = chip.key === selectedKey;
           return (
-            <ChipShell key={chip.key}>
+            <ChipShell key={chip.key} className="lens2-row">
               <DayChipButton
                 type="button"
                 $active={isSelected}

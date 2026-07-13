@@ -68,11 +68,12 @@ export const DayChipButton = styled.button<{ $active: boolean; $today: boolean }
   gap: 1px;
   padding: 5px 8px;
   cursor: pointer;
-  border-radius: 14px;
+  /* Lens token seam: chip radius + active accent follow the active recipe. */
+  border-radius: var(--world-row-radius, 14px);
   border: 1px solid
     ${({ $active, $today }) =>
       $active
-        ? 'var(--ice-wing, #60c0f0)'
+        ? 'var(--world-accent, var(--ice-wing, #60c0f0))'
         : $today
           ? 'color-mix(in srgb, var(--gilded-fern, #c6a84b) 55%, transparent)'
           : 'color-mix(in srgb, var(--frost-white, #e0ecf4) 10%, transparent)'};
@@ -154,7 +155,7 @@ export const EdgeButton = styled.button`
   display: grid;
   place-items: center;
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--world-row-radius, 12px);
   border: 1px solid color-mix(in srgb, var(--ice-wing, #60c0f0) 32%, transparent);
   background: color-mix(in srgb, var(--carbon, #141419) 80%, transparent);
   color: var(--frost-white, #e0ecf4);

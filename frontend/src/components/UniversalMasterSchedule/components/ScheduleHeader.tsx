@@ -82,7 +82,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             <Calendar size={32} color="var(--accent-primary, #60C0F0)" />
           )}
           <Box>
-            <PageTitle>{headerTitle}</PageTitle>
+            <PageTitle className="lens2-display">{headerTitle}</PageTitle>
             <HeaderSubtitleText secondary>
               {headerSub}
             </HeaderSubtitleText>
