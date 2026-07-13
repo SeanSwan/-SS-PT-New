@@ -49,6 +49,7 @@ const StructuredCoachProposalSchema = z.object({
     'frontend_dispatch',
     'clarification',
     'split_plan',
+    'plan_edit',
   ]),
   payload: z.record(z.unknown()).optional().default({}),
   evidence_refs: z.array(z.string().trim().min(1)).max(20).optional().default([]),

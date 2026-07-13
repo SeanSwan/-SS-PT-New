@@ -130,3 +130,25 @@ describe('guided candidates × pain safety', () => {
     expect(result.painExclusionsApplied).toEqual([]);
   });
 });
+
+describe('guided candidates × blocking review gate (hostile-review HIGH-1, 2026-07-13)', () => {
+  it('holds ALL candidates when the client\'s deterministic gate is review_required — even with no excluded muscles', async () => {
+    // Severity-8 entry outside the 72h auto-exclusion window: excludedMuscles
+    // is empty but the gate blocks. Builder 409s, chat refuses — candidates
+    // must not be the remaining side door.
+    contextForTest = cleanContext({
+      pain: {
+        status: 'loaded_active_issue',
+        excludedMuscles: [],
+        exclusions: [],
+        warnings: [{ region: 'left_shoulder', severity: 8 }],
+      },
+    });
+
+    const result = await run();
+    expect(result.slots[0].candidates).toEqual([]);
+    expect(result.safetyHold).toBe('safety_review_required');
+    expect(result.reviewRequiredSignals).toContain('active_pain_review_required');
+    expect(result.slots[0].instruction).toMatch(/review/i);
+  });
+});

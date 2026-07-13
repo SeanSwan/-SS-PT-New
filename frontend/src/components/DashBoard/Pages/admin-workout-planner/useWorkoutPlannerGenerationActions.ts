@@ -256,8 +256,11 @@ export const useWorkoutPlannerGenerationActions = ({
   const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
     if (isGuidedGenerationMode(generationMode)) {
       setGenerating(true);
-      await handleGuidedCandidateGenerate(selectedClientId);
-      setGenerating(false);
+      try {
+        await handleGuidedCandidateGenerate(selectedClientId);
+      } finally {
+        setGenerating(false);
+      }
       return;
     }
     if (!selectedClientId) return;

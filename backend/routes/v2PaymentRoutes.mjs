@@ -32,7 +32,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
-// ðŸŽ¯ P0 FIX: Use coordinated model getters to prevent race condition
+// 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import {
@@ -300,7 +300,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       cartId: normalizedCartId
     });
 
-    // ðŸŽ¯ P0 FIX: Get fully associated models from coordinated cache
+    // 🎯 P0 FIX: Get fully associated models from coordinated cache
     let ShoppingCart, CartItem, StorefrontItem, ProductVariant, User;
     try {
       ShoppingCart = getShoppingCart();

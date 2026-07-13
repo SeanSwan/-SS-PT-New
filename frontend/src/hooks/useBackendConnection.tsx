@@ -218,7 +218,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // Special handling for blocked by client - immediately give up
       if (errorObj.blockedByClient) {
-        logger.warn('ðŸš« Health check BLOCKED by browser/ad blocker - marking backend unavailable immediately');
+        logger.warn('🚫 Health check BLOCKED by browser/ad blocker - marking backend unavailable immediately');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.UNAVAILABLE);
           updateRetryCount(fullConfig.maxRetries); // Force max retries to stop further attempts
@@ -227,7 +227,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // Only log warnings if not silenced
       if (!errorObj.silenced && !errorObj.blockedByClient) {
-        logger.warn('âŒ Backend health check failed:', errorObj.message);
+        logger.warn('❌ Backend health check failed:', errorObj.message);
       }
 
       setLastError(errorObj);
@@ -243,7 +243,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
     // Check if circuit breaker is in cooldown period
     if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) < CIRCUIT_BREAKER_COOLDOWN) {
-      logger.log(`ðŸ›‘ CIRCUIT BREAKER: In cooldown period, ${Math.ceil((CIRCUIT_BREAKER_COOLDOWN - (now - circuitBreaker.lastAttempt)) / 1000)}s remaining`);
+      logger.log(`🛑 CIRCUIT BREAKER: In cooldown period, ${Math.ceil((CIRCUIT_BREAKER_COOLDOWN - (now - circuitBreaker.lastAttempt)) / 1000)}s remaining`);
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.UNAVAILABLE);
         setIsRetrying(false);
@@ -253,7 +253,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
     // Reset circuit breaker if cooldown expired
     if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) >= CIRCUIT_BREAKER_COOLDOWN) {
-      logger.log('ðŸ”„ CIRCUIT BREAKER: Cooldown expired, resetting');
+      logger.log('🔄 CIRCUIT BREAKER: Cooldown expired, resetting');
       circuitBreaker.attempts = 0;
       circuitBreaker.isBlocked = false;
     }
@@ -266,7 +266,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
     // Check circuit breaker limit
     if (circuitBreaker.attempts >= CIRCUIT_BREAKER_LIMIT) {
-      console.error(`ðŸ›‘ CIRCUIT BREAKER: Too many connection attempts (${circuitBreaker.attempts}), entering cooldown`);
+      console.error(`🛑 CIRCUIT BREAKER: Too many connection attempts (${circuitBreaker.attempts}), entering cooldown`);
       circuitBreaker.isBlocked = true;
       circuitBreaker.lastAttempt = now;
       if (isMountedRef.current) {
@@ -346,7 +346,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // FAILED - Increment retry count and schedule next attempt
       const newRetryCount = currentRetryCount + 1;
-      logger.log(`âŒ Health check failed, incrementing retry count to ${newRetryCount}/${fullConfig.maxRetries}`);
+      logger.log(`❌ Health check failed, incrementing retry count to ${newRetryCount}/${fullConfig.maxRetries}`);
 
       // UPDATE RETRY COUNT IMMEDIATELY
       if (isMountedRef.current) {
@@ -355,7 +355,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // Check if we've hit max retries after incrementing
       if (newRetryCount >= fullConfig.maxRetries) {
-        logger.log('ðŸ›‘ Max retries reached after increment, marking backend unavailable');
+        logger.log('🛑 Max retries reached after increment, marking backend unavailable');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.UNAVAILABLE);
           setIsRetrying(false);
@@ -365,7 +365,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // Schedule next attempt with exponential backoff
       const delay = calculateRetryDelay(newRetryCount - 1);
-      logger.log(`â° Scheduling retry ${newRetryCount} in ${delay}ms`);
+      logger.log(`⏰ Scheduling retry ${newRetryCount} in ${delay}ms`);
 
       // CRITICAL: Use a separate timeout for each retry attempt
       const timeoutId = setTimeout(() => {
@@ -410,7 +410,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
     updateRetryCount(0);
     consecutiveHealthFailuresRef.current = 0;
     setLastError(null);
-    logger.log('ðŸ”„ Manual retry initiated, resetting all counters');
+    logger.log('🔄 Manual retry initiated, resetting all counters');
     attemptReconnection();
   }, [attemptReconnection, updateRetryCount]);
 
@@ -647,35 +647,35 @@ export const ConnectionStatusBanner = ({ connection }: { connection: ReturnType<
       case CONNECTION_STATES.CONNECTING:
         return {
           color: 'bg-blue-500',
-          icon: 'ðŸ”„',
+          icon: '🔄',
           title: 'Connecting to Server',
           message: isRetrying ? `Retrying... (${retryCount}/${maxRetries})` : 'Attempting to connect...'
         };
       case CONNECTION_STATES.DISCONNECTED:
         return {
           color: 'bg-orange-500',
-          icon: 'âš ï¸',
+          icon: '⚠️',
           title: 'Connection Lost',
           message: 'Attempting to reconnect...'
         };
       case CONNECTION_STATES.ERROR:
         return {
           color: 'bg-red-500',
-          icon: 'âŒ',
+          icon: '❌',
           title: 'Connection Error',
           message: typeof lastError === 'string' ? lastError : lastError?.message || 'Unable to connect to server'
         };
       case CONNECTION_STATES.UNAVAILABLE:
         return {
           color: 'bg-purple-500',
-          icon: 'ðŸ”§',
+          icon: '🔧',
           title: 'Backend Unavailable',
           message: window.location.hostname === 'localhost' ? 'Start the backend on port 10000, then retry.' : 'Backend unavailable. Retry when the API is back online.'
         };
       default:
         return {
           color: 'bg-gray-500',
-          icon: 'â“',
+          icon: '❓',
           title: 'Unknown State',
           message: 'Connection status unknown'
         };

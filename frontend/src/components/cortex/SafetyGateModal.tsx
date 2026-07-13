@@ -34,6 +34,9 @@ const SIGNAL_LABELS: Record<string, string> = {
   medical_clearance_required: 'Medical clearance is required before training',
   special_population_review_required: 'Special-population considerations need review',
   referral_review_recommended: 'A referral recommendation is on file',
+  pain_intake_not_collected: 'Pain intake has never been collected for this client',
+  minor_active_pain_noted: 'Minor active pain is noted for this client',
+  stale_active_pain_reassessment_due: 'The active pain report is stale — reassessment due',
 };
 
 const humanizeSignal = (signal: string): string =>
@@ -65,7 +68,9 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
   const items = useMemo(() => {
     const labeled = signals.map(humanizeSignal);
     const missing = missingData
-      .filter(item => !labeled.some(label => label.toLowerCase().includes(item.toLowerCase())))
+      // Exact-equality dedupe only — substring matching let a broad item
+      // like 'pain' be swallowed by any label containing the word.
+      .filter(item => !labeled.some(label => label.toLowerCase() === item.toLowerCase()))
       .map(item => `Missing: ${item}`);
     return [...labeled, ...missing];
   }, [signals, missingData]);
@@ -88,6 +93,18 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
     }
     return undefined;
   }, [open]);
+
+  // Re-block focus retention: while confirming, every control is disabled and
+  // focus drops to <body>. If the retry is RE-BLOCKED the dialog stays open
+  // (open never toggles), so the open-effect can't restore focus — do it here
+  // when confirming ends with the dialog still up (WCAG 2.4.3 companion).
+  const wasConfirming = useRef(false);
+  useEffect(() => {
+    if (open && wasConfirming.current && !confirming) {
+      reasonRef.current?.focus();
+    }
+    wasConfirming.current = confirming;
+  }, [confirming, open]);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
@@ -150,8 +167,8 @@ const SafetyGateModal: React.FC<SafetyGateModalProps> = ({
             </GateLede>
 
             <SignalList aria-label="Safety review items">
-              {items.map(item => (
-                <SignalItem key={item}>{item}</SignalItem>
+              {items.map((item, index) => (
+                <SignalItem key={`${index}-${item}`}>{item}</SignalItem>
               ))}
             </SignalList>
 

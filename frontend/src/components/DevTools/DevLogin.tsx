@@ -303,7 +303,7 @@ const DevLogin: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Dev login error:', err);
-      setError(`âŒ Failed to login: ${err.message}`);
+      setError(`❌ Failed to login: ${err.message}`);
     } finally {
       setLoading(false);
     }

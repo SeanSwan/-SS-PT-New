@@ -3,6 +3,7 @@
  * ====================================
  * Sanitizes Coach proposal review details before they reach the UI.
  */
+import { stampDoctrineVerdicts } from './planEditDoctrineService.mjs';
 import { decryptPayload } from '../plaudCipherService.mjs';
 import { summarizeOnboardingDraftForReview } from '../coachClientOnboardingApprovalService.mjs';
 import { COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
@@ -108,6 +109,19 @@ export function sanitizeProposalDetail({ row, proposal }) {
           payload.responses,
         ),
         coverageUpdates: Array.isArray(coverageUpdates) ? coverageUpdates.slice(0, 80) : [],
+      },
+    });
+  }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.PLAN_EDIT) {
+    // Doctrine verdicts are RECOMPUTED here, server-side, on every detail read —
+    // a stored (or model-authored) verdict can never reach the trainer's screen.
+    const phase = Number(payload.phase) || undefined;
+    return withApprovalGate(proposal, {
+      planEdit: {
+        clientId: parseDetailClientId(payload.clientId, proposal.targetUserId),
+        planId: payload.planId ?? null,
+        phase: phase ?? null,
+        items: stampDoctrineVerdicts(Array.isArray(payload.items) ? payload.items : [], phase),
       },
     });
   }

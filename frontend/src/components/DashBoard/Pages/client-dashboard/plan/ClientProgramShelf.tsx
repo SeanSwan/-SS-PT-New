@@ -111,7 +111,9 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
   // CurrentClientWorkout exposes weekNumber / primaryPlanLabel (NOT currentWeek /
   // planTitle) — the plan slot is the primary source, the workout the fallback.
   const currentWeek = active?.currentWeek ?? workout?.weekNumber ?? 1;
-  const pct = durationWeeks > 0 ? Math.round((currentWeek / durationWeeks) * 100) : 0;
+  const pct = durationWeeks > 0
+    ? Math.min(100, Math.max(0, Math.round((currentWeek / durationWeeks) * 100)))
+    : 0;
   const activeTitle =
     active?.planTitle || active?.label || workout?.primaryPlanLabel || 'Your training plan';
   const nextExercise = workout?.firstExercise;

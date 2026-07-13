@@ -27,7 +27,7 @@ import { readFileSync } from 'node:fs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]pending[\\/]|hermes-learning-packets[\\/]/;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
-const GIT_ACTIVITY_RE = /git\s+(commit|push)\b/;
+const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 
 const BLOCK_REASON =
   'Before stopping, run the Hermes closeout gate. This turn shows substantial completed work ' +

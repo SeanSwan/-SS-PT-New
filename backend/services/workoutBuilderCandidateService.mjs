@@ -5,6 +5,7 @@
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistryFromDB } from './variationEngine.mjs';
 import { painVerdictForExercise } from './ai/coachDispatchEligibilityService.mjs';
+import { buildSwanCoachPlanningSafetyGateFromContext } from './swanCoachPlanningFingerprintService.mjs';
 import { getGoalOptBias, normalizeGoal } from './workoutBuilderGoalConfig.mjs';
 import { phaseCandidateDefaults } from './training-cortex/policy/nasmOptPolicy.mjs';
 import {
@@ -209,8 +210,12 @@ const SAFETY_HOLD_INSTRUCTION = 'This client’s pain/safety data could not be l
  * critical data failed) — unknown never passes as "no pain" (fail-closed,
  * same doctrine as the builder gate and the chat dispatch gate).
  */
+const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
+
 function resolveCandidatePainExclusions(clientContext = {}) {
-  if (clientContext?.pain?.status === 'unavailable' || clientContext?.criticalDataUnavailable) {
+  // Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED pain source
+  // state (unavailable, future 'stale', missing) fails CLOSED.
+  if (!KNOWN_PAIN_STATES.includes(clientContext?.pain?.status) || clientContext?.criticalDataUnavailable) {
     return null;
   }
   const excluded = clientContext?.pain?.excludedMuscles
@@ -257,31 +262,51 @@ export async function generateWorkoutCandidates({
   // for a SPECIFIC client, so they inherit the client's pain exclusions and
   // the untagged-muscle fail-safe — the same verdict the chat gate uses. An
   // UNKNOWN pain state holds every recommendation fail-visibly.
+  const heldResponse = (safetyHold, instruction, extra = {}) => ({
+    planningSystem: 'swan_coach_planning',
+    swanCoachPlanning: { createdBy: 'swan_coach_planning', identityMode: 'client_id_only' },
+    candidateSystem: 'swan_coach_guided_candidates',
+    clientId,
+    trainerId,
+    generatedAt: new Date().toISOString(),
+    generationMode: mode,
+    category: safeCategory,
+    primaryGoal: safeGoal,
+    nasmPhase: safePhase,
+    equipmentProfileId: safeEquipmentProfileId,
+    availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
+    swanCoachReadiness: readiness,
+    safetyHold,
+    painExclusionsApplied: [],
+    ...extra,
+    slots: [{
+      slotId: `${safeCategory}-primary`,
+      focus: displayCategory(safeCategory),
+      instruction,
+      candidates: [],
+    }],
+  });
+
   const painExclusions = resolveCandidatePainExclusions(clientContext);
   if (painExclusions === null) {
-    return {
-      planningSystem: 'swan_coach_planning',
-      swanCoachPlanning: { createdBy: 'swan_coach_planning', identityMode: 'client_id_only' },
-      candidateSystem: 'swan_coach_guided_candidates',
-      clientId,
-      trainerId,
-      generatedAt: new Date().toISOString(),
-      generationMode: mode,
-      category: safeCategory,
-      primaryGoal: safeGoal,
-      nasmPhase: safePhase,
-      equipmentProfileId: safeEquipmentProfileId,
-      availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
-      swanCoachReadiness: readiness,
-      safetyHold: 'pain_data_unavailable',
-      painExclusionsApplied: [],
-      slots: [{
-        slotId: `${safeCategory}-primary`,
-        focus: displayCategory(safeCategory),
-        instruction: SAFETY_HOLD_INSTRUCTION,
-        candidates: [],
-      }],
-    };
+    return heldResponse('pain_data_unavailable', SAFETY_HOLD_INSTRUCTION);
+  }
+
+  // Blocking-tier parity (hostile-review HIGH-1, 2026-07-13): a client whose
+  // deterministic gate is review_required 409s in the builder and is refused
+  // in chat — "Guide Me" must not be the remaining side door around that
+  // review, even when no muscles are excluded yet. Same gate the builder uses.
+  const safetyGate = buildSwanCoachPlanningSafetyGateFromContext(clientContext ?? {});
+  if (safetyGate?.status === 'review_required') {
+    return heldResponse(
+      'safety_review_required',
+      'This client’s safety review is pending — complete the review in the workout builder before browsing candidate exercises.',
+      {
+        reviewRequiredSignals: Array.isArray(safetyGate.reviewRequiredSignals)
+          ? safetyGate.reviewRequiredSignals
+          : [],
+      },
+    );
   }
   const painFilterActive = painExclusions.length > 0;
 

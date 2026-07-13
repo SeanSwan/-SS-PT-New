@@ -184,6 +184,12 @@ router.get('/:userId/current', protect, async (req, res) => {
  */
 router.get('/:userId/plans/:planId', protect, async (req, res) => {
   try {
+    const planId = String(req.params.planId ?? '').trim();
+    const numericPlanId = Number(planId);
+    if (!/^\d+$/.test(planId) || !Number.isSafeInteger(numericPlanId) || numericPlanId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid plan id.' });
+    }
+
     const access = await ensureClientAccess(req, req.params.userId);
     if (!access.allowed) {
       return res.status(access.status).json({ success: false, message: access.message });
@@ -195,15 +201,10 @@ router.get('/:userId/plans/:planId', protect, async (req, res) => {
       return sendInternalError(res, 'Server error fetching workout plan');
     }
 
-    const planId = String(req.params.planId ?? '').trim();
-    if (!/^\d+$/.test(planId)) {
-      return res.status(400).json({ success: false, message: 'Invalid plan id.' });
-    }
-
     // Ownership is enforced in the QUERY (userId is part of the where clause),
     // so a foreign plan can never be loaded in the first place.
     const plan = await WorkoutPlan.findOne({
-      where: { id: Number.parseInt(planId, 10), userId: clientId },
+      where: { id: numericPlanId, userId: clientId },
     });
 
     if (!plan) {

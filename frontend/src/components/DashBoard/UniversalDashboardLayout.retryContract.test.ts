@@ -29,10 +29,41 @@ const source = Object.values(sourceByFile).join('\n');
  * "Log in as any client or trainer (audited)...", whose literal " as any" reddened
  * this suite even though the shell contains zero `as any` casts (2026-07-11).
  */
-const stripLiterals = (src: string): string => src
-  .replace(/'(?:[^'\\\n]|\\.)*'/g, "''")
-  .replace(/"(?:[^"\\\n]|\\.)*"/g, '""')
-  .replace(/`(?:[^`\\]|\\.)*`/g, '``');
+const stripLiterals = (src: string): string => {
+  let result = '';
+  let index = 0;
+  while (index < src.length) {
+    const quote = src[index];
+    if (quote !== "'" && quote !== '"' && quote !== '`') {
+      result += quote;
+      index += 1;
+      continue;
+    }
+    result += quote + quote;
+    index += 1;
+    while (index < src.length) {
+      if (src[index] === '\\') {
+        index += 2;
+      } else if (quote === '`' && src[index] === '$' && src[index + 1] === '{') {
+        const interpolationStart = index + 2;
+        let depth = 1;
+        index = interpolationStart;
+        while (index < src.length && depth > 0) {
+          if (src[index] === '{') depth += 1;
+          else if (src[index] === '}') depth -= 1;
+          index += 1;
+        }
+        result += src.slice(interpolationStart, index - 1);
+      } else if (src[index] === quote) {
+        index += 1;
+        break;
+      } else {
+        index += 1;
+      }
+    }
+  }
+  return result;
+};
 
 const codeOnly = stripLiterals(source);
 
@@ -63,6 +94,15 @@ describe('UniversalDashboardLayout retry contract', () => {
     expect(source).toContain('createUniversalDashboardTheme');
     expect(source).toContain('DefaultTheme');
     expect(source).toContain('component: React.ElementType;');
+  });
+
+  it('strips template copy but preserves interpolation code for cast scanning', () => {
+    const template = '`visible copy ${value as any} and ${format(other)} end`';
+    const stripped = stripLiterals(template);
+
+    expect(stripped).not.toContain('visible copy');
+    expect(stripped).toContain('value as any');
+    expect(stripped).toContain('format(other)');
   });
 
   it('keeps extracted dashboard shell files under the section line cap', () => {
