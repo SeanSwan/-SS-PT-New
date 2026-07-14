@@ -150,7 +150,9 @@ const AdminTrainerPayoutsPanel: React.FC = () => {
     // NOT recorded on the skipped rows. Say so instead of silent success.
     setSettleNotice(
       updatedCount === 0
-        ? `None were settled — all ${requestedCount} had already been paid by someone else, so this payout method/reference was not recorded.`
+        ? requestedCount === 1
+          ? 'Nothing was settled — that commission was already paid by someone else, so this payout method/reference was not recorded.'
+          : `None were settled — all ${requestedCount} had already been paid by someone else, so this payout method/reference was not recorded.`
         : updatedCount < requestedCount
           ? `Settled ${updatedCount} of ${requestedCount} — the rest were already paid by someone else, so this payout method/reference was not recorded on them.`
           : null,
