@@ -43,7 +43,7 @@ const mixedChromeCopy = (paneKey: string, lensName: string) =>
 
 /** A chrome pane wears host defaults; diffing a lone v2 plan against this
  *  keeps the MIXED-state axes-diff caption honest to what is on screen. */
-const HOST_DEFAULT_PLAN = {
+const HOST_DEFAULT_PLAN: ResolvedLensPlan = {
   lensId: "host-default",
   lensVersion: "0.0.0",
   hostId: LAB_HOST_MANIFEST.hostId,
@@ -52,7 +52,7 @@ const HOST_DEFAULT_PLAN = {
   variants: {},
   chartFamiliarity: "conservative",
   degradations: [],
-} as unknown as ResolvedLensPlan;
+};
 
 interface WorkoutDesignComparePanelProps {
   worlds: readonly ConceptRegistryItem[];

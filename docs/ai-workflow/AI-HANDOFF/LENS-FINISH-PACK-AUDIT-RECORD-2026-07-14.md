@@ -62,5 +62,16 @@ No push has occurred. To discard: delete branch `claude/lens-finish-20260714` + 
 ## 11. Review log
 Per-slice hostile reviews (Rule 61): A1 found the chip/toast lane overlap (fixed in-slice) and the duplicate-typography key in What-Changes (fixed); A2 found Explorer over budget (compressed to 259) ; A3 found the badge exact-copy testability issue (nested span) and the memoized-compile need; A4 found the ROW_ORDER "sixth entry" problem (solved with the prefix law + end-of-family sort so the pipeline stays five entries). Known commit-message erratum: the A4 message says "Explorer 262/260, flagged" — the file is actually 259/260 (verified post-commit; no amend per Rule 45).
 
+## 11b. Post-push fresh-eyes hostile review (Rule 46 fold, 2026-07-14)
+Independent hostile agent returned REVISE with 8 findings; all verified and dispositioned in the fix batch that followed the first push:
+1. **CONFIRMED HIGH:** the A4 registry derived-count amendments were LOST — the dry-run cleanup `git checkout` reverted them while uncommitted (the dry-run itself ran WITH them, so its 136/136 receipt was honest). Re-applied; the ADD-A-STYLE doc's "no count literals to touch" claim is now true.
+2. **CONFIRMED HIGH:** §4.2 "search pinned and always visible" was missing on phones — added `PinnedSearch` sticky wrapper + phone-offset family headers + test.
+3. **CONFIRMED MED:** §4.4 exact string `aria-label="Search styles"` — was left as shipped "Filter Style Lenses"; corrected + test-pinned.
+4. **RATIFIED (Fable ruling):** mixed-Compare comparand = host-default plan stands (honest to what the chrome pane wears); the `as unknown as` cast removed — the literal now typechecks as `ResolvedLensPlan` directly.
+5. **CONFIRMED MED (latent):** chip lane could overlap a 3-line receipt at ~500-640px once a chrome-less style ships — lane raised 84px → 114px.
+6. **CONFIRMED LOW:** apply-beat state stuck under reduced motion — 250ms timeout fallback added.
+7. **RULED (Fable):** stable catalog-position chip numbering stands (identity across grouped/search views; wireframe silent).
+8. **NOTED LOW:** phone sticky headers stick to the viewport — visually verified in phase screenshots; header offset added under the pinned search.
+
 ## 12. Sign-off
 PENDING — Sean/Fable gate the ONE batch push (Rule 70). Commits local: `8a1a1850e` (A1) · `9f1878d2f` (A2) · `ca32b76f9` (A3) · `ee94fc57f` (A4) · `422f25405` (A5) + this audit record. Next action: Fable-gate review → push → deploy-verify.

@@ -27,8 +27,10 @@ const ChipLane = styled.div`
   position: fixed;
   left: 50%;
   /* Clears the bottom-right LiveReceipt toast lane (fixed, bottom 18px),
-     which fires on the same Apply — the lanes must never overlap (§4.1). */
-  bottom: 84px;
+     which fires on the same Apply — the lanes must never overlap (§4.1).
+     114px clears a THREE-line receipt (long chrome-less honesty copy at
+     ~500-640px viewports), not just the common one-liner. */
+  bottom: 114px;
   transform: translate(-50%, 0);
   z-index: 95;
   max-width: min(440px, calc(100vw - 32px));

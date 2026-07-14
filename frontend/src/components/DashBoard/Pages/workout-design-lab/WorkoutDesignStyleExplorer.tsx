@@ -2,11 +2,10 @@
  * WORKOUT DESIGN LAB — STYLE EXPLORER (live-identity catalog, Lab v6)
  * BLUEPRINT: selection stages a validated preview AND repaints the live
  * stage instantly. Catalog v6 (A-PACK §4.2): mood-family groups INSIDE the
- * listbox (listbox -> group -> option), pinned CURRENT duplicate, search
- * replaces groups with a flat list. Engine honesty (§4.3): badge + chip
- * mini-tag derive from V2_RECIPE_BY_CATALOG_ID presence; the What-Changes
- * axis list renders only when selected AND committed are both v2-capable.
- * Persistence still requires the explicit Apply — browsing never writes.
+ * listbox (listbox -> group -> option), pinned CURRENT duplicate, pinned
+ * search, search-query flat list. Engine honesty (§4.3): badge + mini-tag
+ * from V2_RECIPE_BY_CATALOG_ID; What-Changes list only when selected AND
+ * committed are both v2-capable. Apply is still the only write path.
  */
 import React, { useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -29,32 +28,35 @@ const FamilyHeader = styled.p`
   margin: 0 0 8px; padding: 6px 2px;
   background: var(--bg-base, #030712); color: var(--accent-primary, #60c0f0);
   font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.12em; text-transform: uppercase;
+  @media (max-width: 460px) { top: 62px; } /* page is the scrollport — sit below the pinned search */
 `;
 
 const FamilyChipGrid = styled.div`
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px;
-  @media (max-width: 460px) { grid-template-columns: 1fr; }
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  margin-bottom: 12px; @media (max-width: 460px) { grid-template-columns: 1fr; }
 `;
 
 const NeutralCurrentLine = styled.p`
   grid-column: 1 / -1; margin: 0 0 10px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
-  font: 650 12px/1.4 "Sora", sans-serif;
+  color: var(--text-muted, rgba(224, 236, 244, 0.4)); font: 650 12px/1.4 "Sora", sans-serif;
 `;
 
 /** §4.2: the last chips must never hide behind notched-device insets. */
 const CatalogList = styled(StylePicker)`padding-bottom: env(safe-area-inset-bottom, 16px);`;
 
+/** §4.2: search stays PINNED and always visible while the catalog scrolls. */
+const PinnedSearch = styled.div`
+  position: sticky; top: 0; z-index: 2; padding-bottom: 2px; background: var(--bg-base, #030712);
+`;
+
 /** §4.3 engine honesty: v2 gold, v1 muted; exact copy, never reworded. */
 const EngineBadge = styled.span<{ $v2: boolean }>`
   color: ${({ $v2 }) => ($v2 ? "var(--accent-gold, #C6A84B)" : "var(--text-muted, rgba(224, 236, 244, 0.4))")};
-  font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.1em; text-transform: uppercase;
-  align-self: center; margin-right: auto;
+  font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.1em; text-transform: uppercase; align-self: center; margin-right: auto;
 `;
 
 const V2MiniTag = styled.i`
-  margin-left: auto; font: 800 9px/1 "Fira Code", monospace; font-style: normal;
-  color: var(--accent-gold, #C6A84B);
+  margin-left: auto; font: 800 9px/1 "Fira Code", monospace; font-style: normal; color: var(--accent-gold, #C6A84B);
 `;
 
 const WhatChangesList = styled.div`
@@ -64,16 +66,14 @@ const WhatChangesList = styled.div`
 `;
 
 const AXIS_LABELS: Record<AxisChange["axis"], string> = {
-  typography: "Type", composition: "Layout", surface: "Cards",
-  collection: "Exercises", action: "Action", chart: "Charts",
+  typography: "Type", composition: "Layout", surface: "Cards", collection: "Exercises", action: "Action", chart: "Charts",
 };
 
 /** §4.1 glyph fix: 8px minimum inset from the panel edge at EVERY width. */
 const DetailGlyph = styled(LensIdentityGlyph)`
   width: clamp(110px, 18vw, 190px); height: clamp(110px, 18vw, 190px);
   right: clamp(8px, 3vw, 28px); top: clamp(8px, 3vw, 28px);
-  &::before { inset: 12%; }
-  &::after { inset: 27%; }
+  &::before { inset: 12%; } &::after { inset: 27%; }
 `;
 
 /** §3.4 Apply beat: scale 1 -> 0.95 -> 1; inert under reduced motion. */
@@ -88,8 +88,7 @@ const ApplyBeatButton = styled.button`
 
 /** §4.1 footer strip: fills the dead space below the detail list. */
 const DetailFooterStrip = styled.footer`
-  position: relative; margin-top: 18px; padding-top: 14px;
-  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 22%, transparent);
+  position: relative; margin-top: 18px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 22%, transparent);
 `;
 
 interface WorkoutDesignStyleExplorerProps {
@@ -118,8 +117,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
   const isSearching = query.trim().length > 0;
   const committedLens = lenses.find(({ id }) => id === committedId) ?? null;
   const selectedEntry = V2_RECIPE_BY_CATALOG_ID[selected.id];
-  // §4.1 ruling: the axis list needs TWO compiled plans — selected AND
-  // committed both v2-capable; every other state keeps the shipped dl.
+  // §4.1 ruling: needs TWO compiled plans (selected + committed both v2); else the shipped dl stays.
   const whatChanges = useMemo(() => {
     const committedEntry = V2_RECIPE_BY_CATALOG_ID[committedId];
     const selEntry = V2_RECIPE_BY_CATALOG_ID[selected.id];
@@ -164,17 +162,19 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
   return (
     <StyleExplorer aria-label="Style Lens explorer">
       <StyleCatalog>
-        <label>
-          <span className="sr-only">Filter Style Lenses</span>
-          <Search aria-hidden="true" size={18} />
-          <input
-            type="search"
-            aria-label="Filter Style Lenses"
-            placeholder="Search mood, layout, or lens"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
+        <PinnedSearch>
+          <label>
+            <span className="sr-only">Search styles</span>
+            <Search aria-hidden="true" size={18} />
+            <input
+              type="search"
+              aria-label="Search styles"
+              placeholder="Search mood, layout, or lens"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        </PinnedSearch>
         <CatalogList role="listbox" aria-label="Choose a Style Lens">
           {isSearching ? (
             /* Search law: an active query REPLACES groups — flat list, no pin. */
@@ -243,6 +243,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
               onAnimationEnd={() => setBeating(false)}
               onClick={() => {
                 setBeating(true);
+                window.setTimeout(() => setBeating(false), 250); // reduced motion never fires animationend
                 void onApply();
               }}
             >

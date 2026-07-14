@@ -226,7 +226,7 @@ describe("Workout Design Lab Style axis", () => {
   it("an active search REPLACES groups with a flat list; clearing restores groups and the pin", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
-    const input = screen.getByRole("searchbox", { name: /filter style lenses/i });
+    const input = screen.getByRole("searchbox", { name: "Search styles" });
     fireEvent.change(input, { target: { value: "prism" } });
     expect(screen.queryAllByRole("group")).toHaveLength(0);
     expect(screen.queryByRole("option", { name: /^Current style:/ })).toBeNull();
@@ -247,6 +247,10 @@ describe("Workout Design Lab Style axis", () => {
     expect(explorer).toMatch(/aria-hidden="true"[\s\S]{0,120}family/i);
     expect(explorer).toMatch(/position:\s*sticky/);
     expect(explorer).toContain("env(safe-area-inset-bottom, 16px)");
+    // §4.2 search law: pinned + always visible while the catalog scrolls,
+    // with the exact §4.4 accessible name.
+    expect(explorer).toMatch(/PinnedSearch = styled\.div`\s*\n?\s*position:\s*sticky/);
+    expect(explorer).toContain('aria-label="Search styles"');
     // The lens->family mapping is data (visuals receipt), never component-local.
     expect(explorer).not.toMatch(/'playful'\s*:/);
   });
