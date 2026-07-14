@@ -6,7 +6,7 @@
  */
 
 import { css } from 'styled-components';
-import { media, safeArea } from '../../../../styles/device-matrix';
+import { media, PHONE_MAX_WIDTH, safeArea } from '../../../../styles/device-matrix';
 
 export const coachCommandBridgeMobileDockStyles = css`
   @media (max-width: 720px) {
@@ -205,13 +205,45 @@ export const coachCommandBridgeMobileDockStyles = css`
       width: 52px;
     }
   }
+  /* The matrix phone tier owns usable floor-mode geometry. The dashboard shell
+     starts below the 56px site header, so 132px reserves the remaining mobile
+     controls + breathing room without double-counting that header. */
+  ${media.phone} {
+    .bridge-shell {
+      gap: 6px;
+    }
+
+    .client-bar {
+      padding: 10px;
+    }
+
+    .bridge-shell.is-chat-tab {
+      height: max(480px, calc(100dvh - 132px - env(safe-area-inset-bottom)));
+    }
+
+    .dock-safety-stack {
+      align-items: center;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      width: 100%;
+    }
+
+    .dock-next-pill {
+      min-width: 0;
+    }
+
+    .dock-status {
+      flex-basis: auto;
+      grid-column: 1 / -1;
+    }
+  }
 
   /* Short phones (SE class 667px tall, P10/P12 buckets, landscape): a
      480px minimum chat column + ~200px chrome overflows the viewport —
      let the transcript own the remaining height instead. */
-  ${media.shortViewport(700)} and (pointer: coarse) {
+  ${media.shortViewport(700)} and (max-width: ${PHONE_MAX_WIDTH}px) and (pointer: coarse) {
     .bridge-shell.is-chat-tab {
-      height: calc(100dvh - 160px - env(safe-area-inset-bottom));
+      height: calc(100dvh - 104px - env(safe-area-inset-bottom));
       min-height: 320px;
     }
   }
