@@ -249,6 +249,127 @@ describe("Workout Design Lab Style axis", () => {
     expect(explorer).not.toMatch(/'playful'\s*:/);
   });
 
+  it("A3: engine badge derives from map presence with the exact copy", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    // quiet-meridian (committed default selection) is chrome-only.
+    expect(screen.getByText("v1 · chrome system")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(screen.getByText("v2 · full restyle")).toBeTruthy();
+  });
+
+  it("A3: the Lab default selection is v2-capable when nothing catalog is committed", () => {
+    mockAppearance.committedId = "swan-flagship";
+    const { container } = render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const frame = container.querySelector("[data-scoped-lens-frame]") as HTMLElement;
+    expect(frame.getAttribute("data-style-lens")).toBe("candy-glass-arcade");
+  });
+
+  it("A3: a committed catalog lens ALWAYS wins over the fallback", () => {
+    const { container } = render(<WorkoutDesignLabPage />);
+    const frame = container.querySelector("[data-scoped-lens-frame]") as HTMLElement;
+    expect(frame.getAttribute("data-style-lens")).toBe("quiet-meridian");
+  });
+
+  it("A3: Apply commits the V1 catalog id — never a v2 recipe id (commit-scope law)", async () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(beginPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ styleLensId: "candy-glass-arcade" }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply candy glass arcade/i }));
+    });
+    expect(commitPreview).toHaveBeenCalledTimes(1);
+    const staged = beginPreview.mock.calls.at(-1)?.[0]?.styleLensId as string;
+    expect(staged.startsWith("swan.")).toBe(false);
+  });
+
+  it("A3: What-Changes list renders ONLY when both selected AND committed are v2-capable", () => {
+    mockAppearance.committedId = "prism-terminal";
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(screen.getByText(/WHAT CHANGES vs current:/i)).toBeTruthy();
+    // Any other state keeps the shipped definition list.
+    fireEvent.click(
+      screen.getByRole("option", { name: /Quiet Meridian style lens/i }),
+    );
+    expect(screen.queryByText(/WHAT CHANGES vs current:/i)).toBeNull();
+    expect(screen.getByText("Signature")).toBeTruthy();
+  });
+
+  it("A3: Compare drops the Engine dropdown; panes resolve per-chip through the map", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+    expect(screen.queryByRole("combobox", { name: /compare engine/i })).toBeNull();
+
+    // MIXED: A = candy (v2) · B = blueprint-fold (chrome).
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: "candy-glass-arcade" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "blueprint-fold" },
+    });
+    const comparison = screen.getByRole("region", { name: /world and style comparison/i });
+    const panes = within(comparison).getAllByTestId("comparison-panel");
+    expect(panes).toHaveLength(2);
+    expect(panes[0].querySelector("[data-lens2-collection]")).not.toBeNull();
+    expect(panes[1].querySelector("[data-scoped-lens-frame]")).not.toBeNull();
+    expect(panes[0].textContent).toMatch(/axes differ/);
+    expect(panes[1].textContent).toContain(
+      "B · Blueprint Fold is a chrome system — trim only.",
+    );
+  });
+
+  it("A3: BOTH chrome-only panes carry the exact chrome copy; BOTH v2 keep axes-diff captions", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "blueprint-fold" },
+    });
+    const comparison = screen.getByRole("region", { name: /world and style comparison/i });
+    let panes = within(comparison).getAllByTestId("comparison-panel");
+    for (const pane of panes) {
+      expect(pane.textContent).toContain(
+        "Chrome systems restyle trim, not structure — try a v2 style for a full restyle.",
+      );
+    }
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: "candy-glass-arcade" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "prism-terminal" },
+    });
+    panes = within(comparison).getAllByTestId("comparison-panel");
+    expect(panes[0].textContent).toMatch(/axes differ/);
+    expect(panes[1].textContent).toMatch(/axes differ/);
+  });
+
+  it("A3: production resolveRecipeForStyleLens stays untouched and inert (source contract)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const resolution = readFileSync(
+      resolve(__dirname, "../../../../adapters/style-lens-swan/v2/recipeResolution.ts"),
+      "utf8",
+    );
+    expect(resolution).not.toContain("catalogV2Map");
+    expect(resolution).toContain("V2_RECIPES_BY_STYLE_LENS_ID[styleLensId] ?? null");
+    // Apply-honesty copy for chrome-less styles exists on the success path.
+    const page = readFileSync(resolve(__dirname, "./WorkoutDesignLabPage.tsx"), "utf8");
+    expect(page).toContain("dashboard-wide wear arrives with the v2 rollout.");
+    const explorer = readFileSync(resolve(__dirname, "./WorkoutDesignStyleExplorer.tsx"), "utf8");
+    expect(explorer).toContain("Lab preview today — dashboard rollout pending.");
+  });
+
   it("compare renders two REAL scoped stages with independent lenses", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));

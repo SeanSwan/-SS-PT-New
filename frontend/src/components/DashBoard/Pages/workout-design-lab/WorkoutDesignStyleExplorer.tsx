@@ -1,92 +1,83 @@
 /**
- * ============================================================================
- * WORKOUT DESIGN LAB — STYLE EXPLORER (live-identity catalog)
- * ============================================================================
+ * WORKOUT DESIGN LAB — STYLE EXPLORER (live-identity catalog, Lab v6)
  * BLUEPRINT: selection stages a validated preview AND repaints the live
- * stage below instantly (the Lab wraps its Stage in a ScopedLensFrame fed
- * by this selection). Every catalog row carries the lens's real canvas
- * swatch; the detail card renders a per-lens identity glyph — no two of
- * the 25 lenses present the same face. Persistence still requires the
- * explicit Apply (commit) — browsing never writes.
- * ============================================================================
+ * stage instantly. Catalog v6 (A-PACK §4.2): mood-family groups INSIDE the
+ * listbox (listbox -> group -> option), pinned CURRENT duplicate, search
+ * replaces groups with a flat list. Engine honesty (§4.3): badge + chip
+ * mini-tag derive from V2_RECIPE_BY_CATALOG_ID presence; the What-Changes
+ * axis list renders only when selected AND committed are both v2-capable.
+ * Persistence still requires the explicit Apply — browsing never writes.
  */
 import React, { useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { Search } from "lucide-react";
 import type { AppearancePhase, StyleLensManifest } from "../../../../core/style-lens-os";
 import { SWAN_STYLE_LENS_VISUALS } from "../../../../adapters/style-lens-swan";
-import {
-  StyleActions,
-  StyleCatalog,
-  StyleDetail,
-  StyleExplorer,
-  StylePick,
-  StylePicker,
-} from "./WorkoutDesignLabModes.styles";
+import { V2_RECIPE_BY_CATALOG_ID } from "../../../../adapters/style-lens-swan/v2/catalogV2Map";
+import { LAB_HOST_MANIFEST } from "../../../../adapters/style-lens-swan/v2/labRecipes";
+import { compileRecipe } from "../../../../core/style-lens-os/v2/compileRecipe";
+import { whatChanged, type AxisChange } from "../../../../core/style-lens-os/v2/whatChanged";
+import { StyleActions, StyleCatalog, StyleDetail, StyleExplorer, StylePick, StylePicker } from "./WorkoutDesignLabModes.styles";
 import { LensDot, LensIdentityGlyph } from "./WorkoutDesignLabAtmosphere.styles";
-import {
-  WORKOUT_DESIGN_MOOD_FAMILY_ORDER,
-  WORKOUT_DESIGN_STYLE_ROW_ORDER,
-} from "./workoutDesignStyleCatalog";
+import { WORKOUT_DESIGN_MOOD_FAMILY_ORDER, WORKOUT_DESIGN_STYLE_ROW_ORDER } from "./workoutDesignStyleCatalog";
 
-/** Catalog v6 (A-PACK §4.2): family groups INSIDE the listbox; the visible
- *  header is aria-hidden — the group's aria-label carries the semantics. */
-const FamilyGroup = styled.div`
-  grid-column: 1 / -1;
-`;
+/** §4.2: visible headers are aria-hidden — group aria-label carries semantics. */
+const FamilyGroup = styled.div`grid-column: 1 / -1;`;
 
 const FamilyHeader = styled.p`
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  margin: 0 0 8px;
-  padding: 6px 2px;
-  background: var(--bg-base, #030712);
-  color: var(--accent-primary, #60c0f0);
-  font: 800 0.68rem/1.2 "Fira Code", monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  position: sticky; top: 0; z-index: 1;
+  margin: 0 0 8px; padding: 6px 2px;
+  background: var(--bg-base, #030712); color: var(--accent-primary, #60c0f0);
+  font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.12em; text-transform: uppercase;
 `;
 
 const FamilyChipGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px;
   @media (max-width: 460px) { grid-template-columns: 1fr; }
 `;
 
 const NeutralCurrentLine = styled.p`
-  grid-column: 1 / -1;
-  margin: 0 0 10px;
+  grid-column: 1 / -1; margin: 0 0 10px;
   color: var(--text-muted, rgba(224, 236, 244, 0.4));
   font: 650 12px/1.4 "Sora", sans-serif;
 `;
 
-/** The last chips must never hide behind notched-device insets (§4.2). */
-const CatalogList = styled(StylePicker)`
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+/** §4.2: the last chips must never hide behind notched-device insets. */
+const CatalogList = styled(StylePicker)`padding-bottom: env(safe-area-inset-bottom, 16px);`;
+
+/** §4.3 engine honesty: v2 gold, v1 muted; exact copy, never reworded. */
+const EngineBadge = styled.span<{ $v2: boolean }>`
+  color: ${({ $v2 }) => ($v2 ? "var(--accent-gold, #C6A84B)" : "var(--text-muted, rgba(224, 236, 244, 0.4))")};
+  font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.1em; text-transform: uppercase;
+  align-self: center; margin-right: auto;
 `;
 
-/** Glyph collision fix (A-PACK §4.1): the sigil keeps an 8px minimum inset
- *  from the panel edge at EVERY width and scales down so it never collides
- *  with the lens title on narrow cards. */
+const V2MiniTag = styled.i`
+  margin-left: auto; font: 800 9px/1 "Fira Code", monospace; font-style: normal;
+  color: var(--accent-gold, #C6A84B);
+`;
+
+const WhatChangesList = styled.div`
+  position: relative; margin: 22px 0; color: var(--text-primary, #e0ecf4);
+  p { margin: 0 0 6px; color: var(--accent-primary, #60c0f0); font: 650 9px/1 "Fira Code", monospace; text-transform: uppercase; }
+  ul { margin: 0; padding-left: 18px; font: 600 13px/1.7 "Sora", sans-serif; }
+`;
+
+const AXIS_LABELS: Record<AxisChange["axis"], string> = {
+  typography: "Type", composition: "Layout", surface: "Cards",
+  collection: "Exercises", action: "Action", chart: "Charts",
+};
+
+/** §4.1 glyph fix: 8px minimum inset from the panel edge at EVERY width. */
 const DetailGlyph = styled(LensIdentityGlyph)`
-  width: clamp(110px, 18vw, 190px);
-  height: clamp(110px, 18vw, 190px);
-  right: clamp(8px, 3vw, 28px);
-  top: clamp(8px, 3vw, 28px);
+  width: clamp(110px, 18vw, 190px); height: clamp(110px, 18vw, 190px);
+  right: clamp(8px, 3vw, 28px); top: clamp(8px, 3vw, 28px);
   &::before { inset: 12%; }
   &::after { inset: 27%; }
 `;
 
-/** Apply beat (A-PACK §3.4): 200ms scale 1 -> 0.95 -> 1 on tap; inert under
- *  reduced motion (no substitute animation). */
-const applyBeat = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-`;
+/** §3.4 Apply beat: scale 1 -> 0.95 -> 1; inert under reduced motion. */
+const applyBeat = keyframes`0% { transform: scale(1); } 50% { transform: scale(0.95); } 100% { transform: scale(1); }`;
 
 const ApplyBeatButton = styled.button`
   &[data-beat="true"] { animation: ${applyBeat} 200ms ease-out; }
@@ -95,15 +86,10 @@ const ApplyBeatButton = styled.button`
   }
 `;
 
-/** Footer strip (A-PACK §4.1): fills the dead space below the detail list —
- *  divider-topped row that carries the Apply/Cancel actions (the engine badge
- *  + honesty label join it in Phase A3). */
+/** §4.1 footer strip: fills the dead space below the detail list. */
 const DetailFooterStrip = styled.footer`
-  position: relative;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid
-    color-mix(in srgb, var(--accent-primary, #60c0f0) 22%, transparent);
+  position: relative; margin-top: 18px; padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 22%, transparent);
 `;
 
 interface WorkoutDesignStyleExplorerProps {
@@ -117,13 +103,7 @@ interface WorkoutDesignStyleExplorerProps {
 }
 
 const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
-  lenses,
-  selectedId,
-  committedId,
-  phase,
-  onSelect,
-  onApply,
-  onCancel,
+  lenses, selectedId, committedId, phase, onSelect, onApply, onCancel,
 }) => {
   const [query, setQuery] = useState("");
   const selected = lenses.find(({ id }) => id === selectedId) ?? lenses[0];
@@ -141,6 +121,17 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
   const [beating, setBeating] = useState(false);
   const isSearching = query.trim().length > 0;
   const committedLens = lenses.find(({ id }) => id === committedId) ?? null;
+  const selectedEntry = V2_RECIPE_BY_CATALOG_ID[selected.id];
+  // §4.1 ruling: the axis list needs TWO compiled plans — selected AND
+  // committed both v2-capable; every other state keeps the shipped dl.
+  const whatChanges = useMemo(() => {
+    const committedEntry = V2_RECIPE_BY_CATALOG_ID[committedId];
+    const selEntry = V2_RECIPE_BY_CATALOG_ID[selected.id];
+    if (!committedEntry || !selEntry || committedId === selected.id) return null;
+    const from = compileRecipe(committedEntry.recipe, LAB_HOST_MANIFEST);
+    const to = compileRecipe(selEntry.recipe, LAB_HOST_MANIFEST);
+    return from.ok && to.ok ? whatChanged(from.plan, to.plan) : null;
+  }, [committedId, selected.id]);
   const renderChip = (lens: StyleLensManifest, pinned = false) => {
     const rowVisual = SWAN_STYLE_LENS_VISUALS[lens.id];
     const catalogIndex = lenses.findIndex(({ id }) => id === lens.id);
@@ -155,17 +146,19 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
         onClick={() => onSelect(lens.id)}
       >
         <span>
-          <LensDot
-            aria-hidden="true"
-            $canvas={rowVisual?.backgroundFallback ?? "#0a0a0f"}
-            $accent={rowVisual?.accentFallback ?? "#60c0f0"}
-          />
+          <LensDot aria-hidden="true" $canvas={rowVisual?.backgroundFallback ?? "#0a0a0f"} $accent={rowVisual?.accentFallback ?? "#60c0f0"} />
           {String(catalogIndex + 1).padStart(2, "0")} | {lens.emotionalJob}
+          {V2_RECIPE_BY_CATALOG_ID[lens.id] ? <V2MiniTag>v2</V2MiniTag> : null}
         </span>
         {lens.name}
       </StylePick>
     );
   };
+  const familyChips = (family: string) =>
+    lenses
+      .filter(({ id }) => SWAN_STYLE_LENS_VISUALS[id]?.moodFamily === family)
+      .sort((a, b) => WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(a.id) - WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(b.id))
+      .map((lens) => renderChip(lens));
 
   return (
     <StyleExplorer aria-label="Style Lens explorer">
@@ -199,16 +192,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
               {WORKOUT_DESIGN_MOOD_FAMILY_ORDER.map((family) => (
                 <FamilyGroup key={family} role="group" aria-label={family.toUpperCase()}>
                   <FamilyHeader aria-hidden="true">{family}</FamilyHeader>
-                  <FamilyChipGrid>
-                    {lenses
-                      .filter(({ id }) => SWAN_STYLE_LENS_VISUALS[id]?.moodFamily === family)
-                      .sort(
-                        (a, b) =>
-                          WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(a.id) -
-                          WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(b.id),
-                      )
-                      .map((lens) => renderChip(lens))}
-                  </FamilyChipGrid>
+                  <FamilyChipGrid>{familyChips(family)}</FamilyChipGrid>
                 </FamilyGroup>
               ))}
             </>
@@ -216,25 +200,40 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
         </CatalogList>
       </StyleCatalog>
       <StyleDetail aria-label={`${selected.name} Style Lens details`}>
-        <DetailGlyph
-          aria-hidden="true"
-          $canvas={visual?.backgroundFallback ?? "#0a0a0f"}
-          $accent={visual?.accentFallback ?? "#60c0f0"}
-        />
+        <DetailGlyph aria-hidden="true" $canvas={visual?.backgroundFallback ?? "#0a0a0f"} $accent={visual?.accentFallback ?? "#60c0f0"} />
         <h2>{selected.name}</h2>
         <p>{selected.description}</p>
-        <dl>
-          <div><dt>Signature</dt><dd>{visual?.signatureMoment ?? selected.layoutSignature}</dd></div>
-          <div><dt>Layout</dt><dd>{selected.layoutSignature.replace(/-/g, " ")}</dd></div>
-          <div><dt>Motion budget</dt><dd>{selected.motionBudget.mobileMs}ms mobile | {selected.motionBudget.desktopMs}ms desktop</dd></div>
-          <div><dt>Accessibility</dt><dd>{selected.accessibilityReceipt.minimumTouchTargetPx}px targets | AA contrast</dd></div>
-        </dl>
+        {whatChanges ? (
+          <WhatChangesList>
+            <p>WHAT CHANGES vs current:</p>
+            <ul>
+              {whatChanges.map(({ axis, from, to }) => (
+                <li key={`${axis}:${from}:${to}`}>
+                  {AXIS_LABELS[axis]}: {from.replace(/-/g, " ")} → {to.replace(/-/g, " ")}
+                </li>
+              ))}
+            </ul>
+          </WhatChangesList>
+        ) : (
+          <dl>
+            <div><dt>Signature</dt><dd>{visual?.signatureMoment ?? selected.layoutSignature}</dd></div>
+            <div><dt>Layout</dt><dd>{selected.layoutSignature.replace(/-/g, " ")}</dd></div>
+            <div><dt>Motion budget</dt><dd>{selected.motionBudget.mobileMs}ms mobile | {selected.motionBudget.desktopMs}ms desktop</dd></div>
+            <div><dt>Accessibility</dt><dd>{selected.accessibilityReceipt.minimumTouchTargetPx}px targets | AA contrast</dd></div>
+          </dl>
+        )}
         <p aria-live="polite" className="stage-hint">
           The stage below is already wearing {selected.name} — scroll to judge
           it live, then Apply to keep it across the dashboard.
         </p>
         <DetailFooterStrip>
+          {selectedEntry && !selectedEntry.dashboardChrome ? (
+            <NeutralCurrentLine as="p">Lab preview today — dashboard rollout pending.</NeutralCurrentLine>
+          ) : null}
           <StyleActions>
+            <EngineBadge $v2={Boolean(selectedEntry)}>
+              ENGINE: <span>{selectedEntry ? "v2 · full restyle" : "v1 · chrome system"}</span>
+            </EngineBadge>
             <ApplyBeatButton
               type="button"
               aria-label={`Apply ${selected.name}`}

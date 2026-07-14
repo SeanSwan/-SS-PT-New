@@ -31,6 +31,7 @@ import WorkoutDesignWorldExplorer from "./WorkoutDesignWorldExplorer";
 import WorkoutDesignStyleExplorer from "./WorkoutDesignStyleExplorer";
 import WorkoutDesignComparePanel from "./WorkoutDesignComparePanel";
 import LabConfirmationChip from "./LabConfirmationChip";
+import { V2_RECIPE_BY_CATALOG_ID } from "../../../../adapters/style-lens-swan/v2/catalogV2Map";
 import {
   WORKOUT_DESIGN_STYLE_COUNT,
   WORKOUT_DESIGN_STYLE_LENSES,
@@ -52,6 +53,12 @@ import {
 const findLens = (id: string) =>
   WORKOUT_DESIGN_STYLE_LENSES.find((lens) => lens.id === id);
 
+/** §4.3: the FALLBACK initial selection is the v2-capable flagship — a
+ *  committed catalog lens ALWAYS wins over this, exactly as before. */
+const LAB_DEFAULT_LENS_ID = "candy-glass-arcade";
+const LAB_DEFAULT_LENS =
+  findLens(LAB_DEFAULT_LENS_ID) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
+
 const WorkoutDesignLabPage: React.FC = () => {
   const { state, beginPreview, cancelPreview, commitPreview } =
     useStyleLensAppearance();
@@ -59,10 +66,10 @@ const WorkoutDesignLabPage: React.FC = () => {
   const [mode, setMode] = useState<WorkoutDesignLabMode>("world");
   const [activeId, setActiveId] = useState(DEFAULT_CONCEPT_ID);
   const [activeLensId, setActiveLensId] = useState(
-    committedLens?.id ?? WORKOUT_DESIGN_STYLE_LENSES[0].id,
+    committedLens?.id ?? LAB_DEFAULT_LENS.id,
   );
   const [compareLensAId, setCompareLensAId] = useState(
-    committedLens?.id ?? WORKOUT_DESIGN_STYLE_LENSES[0].id,
+    committedLens?.id ?? LAB_DEFAULT_LENS.id,
   );
   const [query, setQuery] = useState("");
   const [receipt, setReceipt] = useState(
@@ -76,7 +83,7 @@ const WorkoutDesignLabPage: React.FC = () => {
   const [rolodexOpen, setRolodexOpen] = useState(false);
   const activeIndex = CONCEPT_REGISTRY.findIndex(({ id }) => id === activeId);
   const active = CONCEPT_REGISTRY[activeIndex] ?? CONCEPT_REGISTRY[24];
-  const activeLens = findLens(activeLensId) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
+  const activeLens = findLens(activeLensId) ?? LAB_DEFAULT_LENS;
   const compareLensA = findLens(compareLensAId) ?? activeLens;
   const ActiveConcept = active.component;
   const filtered = useMemo(() => {
@@ -114,7 +121,13 @@ const WorkoutDesignLabPage: React.FC = () => {
   };
   const applyLens = async () => {
     const applied = await commitPreview();
-    const appliedCopy = `${activeLens.name} applied across the dashboard.`;
+    // §4.3 Apply honesty: a chrome-less v2 style must not claim dashboard-wide
+    // wear today (dashboardChrome=false); the two originals keep shipped copy.
+    const mapEntry = V2_RECIPE_BY_CATALOG_ID[activeLens.id];
+    const appliedCopy =
+      mapEntry && !mapEntry.dashboardChrome
+        ? `${activeLens.name} applied — full restyle shows in the Lab; dashboard-wide wear arrives with the v2 rollout.`
+        : `${activeLens.name} applied across the dashboard.`;
     setReceipt(
       applied
         ? appliedCopy
@@ -130,7 +143,7 @@ const WorkoutDesignLabPage: React.FC = () => {
   const cancelLens = () => {
     cancelPreview();
     const fallback =
-      findLens(state.committed.styleLensId) ?? WORKOUT_DESIGN_STYLE_LENSES[0];
+      findLens(state.committed.styleLensId) ?? LAB_DEFAULT_LENS;
     setActiveLensId(fallback.id);
     setReceipt(`Style preview canceled · ${fallback.name} remains active.`);
   };
