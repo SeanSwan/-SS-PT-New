@@ -21,6 +21,7 @@
 import { getModel, getUser } from '../models/index.mjs';
 import { calculateCommissionSplit, isEligibleForLoyaltyBump } from '../utils/commissionCalculator.mjs';
 import { countCompletedPaidTrainingSessions } from './creditGrantLoyaltyService.mjs';
+import { raiseMoneyWriteAlert } from './adminAlertService.mjs';
 import logger from '../utils/logger.mjs';
 
 // ─────────────────────────────────────────────────────────────
@@ -147,12 +148,19 @@ export async function createCommissionForPurchase({
 
     return record;
   } catch (error) {
-    // Non-fatal: don't let commission creation block the purchase flow
+    // Non-fatal: don't let commission creation block the purchase flow —
+    // but raise a CRITICAL admin alert so silent non-payment (the
+    // 2026-07-14 zero-rows incident class) can never recur unnoticed.
     logger.error('[CommissionService] Failed to create commission record', {
       error: error.message,
       userId,
       orderId,
       grossAmount,
+    });
+    await raiseMoneyWriteAlert({
+      lane: 'purchase_commission',
+      error,
+      context: { orderId, clientId: userId },
     });
     return null;
   }

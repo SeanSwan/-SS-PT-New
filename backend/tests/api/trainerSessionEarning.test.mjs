@@ -26,6 +26,11 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+const { mockRaiseAlert } = vi.hoisted(() => ({ mockRaiseAlert: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../services/adminAlertService.mjs', () => ({
+  raiseMoneyWriteAlert: mockRaiseAlert,
+}));
+
 const { accrueFlatSessionEarning } = await import('../../services/trainerSessionEarningService.mjs');
 
 const flatAssignment = (rate = '50.00') => ({
@@ -129,6 +134,40 @@ describe('accrueFlatSessionEarning', () => {
     mockAssignmentModel.findOne.mockRejectedValue(new Error('db down'));
 
     await expect(accrueFlatSessionEarning({ session })).resolves.toBeNull();
+  });
+
+  it('raises a CRITICAL admin alert when the accrual write fails (silent-failure alarm)', async () => {
+    mockAssignmentModel.findOne.mockResolvedValue(flatAssignment());
+    mockCommissionModel.create.mockRejectedValue(new Error('insert exploded'));
+
+    await accrueFlatSessionEarning({ session });
+
+    expect(mockRaiseAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ lane: 'session_flat_accrual' })
+    );
+  });
+
+  it('raises the alarm on a misconfigured rate too (pay silently not accruing)', async () => {
+    mockRaiseAlert.mockClear();
+    mockAssignmentModel.findOne.mockResolvedValue(flatAssignment(null));
+
+    await accrueFlatSessionEarning({ session });
+
+    expect(mockRaiseAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ lane: 'session_flat_accrual' })
+    );
+  });
+
+  it('does NOT raise the alarm on a benign unique-race skip', async () => {
+    mockRaiseAlert.mockClear();
+    mockAssignmentModel.findOne.mockResolvedValue(flatAssignment());
+    const err = new Error('duplicate');
+    err.name = 'SequelizeUniqueConstraintError';
+    mockCommissionModel.create.mockRejectedValue(err);
+
+    await accrueFlatSessionEarning({ session });
+
+    expect(mockRaiseAlert).not.toHaveBeenCalled();
   });
 
   it('returns null on incomplete session identity (no silent misattribution)', async () => {

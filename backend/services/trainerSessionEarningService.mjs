@@ -29,6 +29,7 @@
 
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { raiseMoneyWriteAlert } from './adminAlertService.mjs';
 
 export const FLAT_EARNING_TYPE = 'session_flat';
 export const FLAT_COMPENSATION_MODE = 'per_session_flat';
@@ -82,6 +83,11 @@ export async function accrueFlatSessionEarning({ session, transaction = null } =
         clientId,
         sessionId,
         flatSessionRate: assignment.flatSessionRate ?? null,
+      });
+      await raiseMoneyWriteAlert({
+        lane: 'session_flat_accrual',
+        error: new Error('per_session_flat assignment has an invalid flatSessionRate'),
+        context: { assignmentId: assignment.id, trainerId, clientId, sessionId },
       });
       return null;
     }
@@ -137,12 +143,17 @@ export async function accrueFlatSessionEarning({ session, transaction = null } =
       return null;
     }
     // Non-fatal by contract: pay accrual must never block or poison the
-    // session-completion flow. The unique index + this log make missed
-    // accruals detectable and backfillable.
+    // session-completion flow. The unique index + this log + the CRITICAL
+    // admin alert make missed accruals impossible to miss and backfillable.
     logger.error('[TrainerSessionEarning] accrual failed (non-fatal)', {
       error: error.message,
       sessionId: session?.id ?? null,
       trainerId: session?.trainerId ?? null,
+    });
+    await raiseMoneyWriteAlert({
+      lane: 'session_flat_accrual',
+      error,
+      context: { sessionId: session?.id ?? null, trainerId: session?.trainerId ?? null },
     });
     return null;
   }
