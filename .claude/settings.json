@@ -1,8 +1,9 @@
 {
   "_note": "SwanStudios Claude Code base permissions (tracked). Per-user overrides stay in .claude/settings.local.json (gitignored). Created 2026-04-19 per v3 Patches 4, 6. Pattern semantics verified in docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md",
-  "_version": "1.1.0",
-  "_updated": "2026-06-10",
+  "_version": "1.2.0",
+  "_updated": "2026-07-13",
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "Read",
       "Grep",
@@ -135,12 +136,42 @@
       "Bash(node scripts/consult-gemini.mjs:*)",
       "Bash(node scripts/consult-codex.mjs:*)",
       "Bash(jq:*)",
-      "Bash(curl -s -o /dev/null:*)"
+      "Bash(curl -s -o /dev/null:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git stash push:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git stash apply:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm update:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(tee:*)",
+      "Bash(node -e:*)",
+      "Bash(python -c:*)",
+      "Bash(python3 -c:*)",
+      "Bash(sed -i:*)",
+      "Bash(awk -i:*)",
+      "Bash(perl -pe:*)",
+      "Bash(NODE_OPTIONS=*:*)",
+      "Bash(xargs sed:*)",
+      "Bash(xargs awk:*)",
+      "Bash(xargs cp:*)",
+      "Bash(curl:*)",
+      "Bash(curl.exe:*)",
+      "Bash(taskkill:*)",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_drag"
     ],
     "ask": [
-      "Write",
-      "Edit",
-      "NotebookEdit",
       "Write(CLAUDE.md)",
       "Write(.gitignore)",
       "Write(.claude/settings.json)",
@@ -149,48 +180,23 @@
       "Edit(.gitignore)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)",
       "Bash(git rm:*)",
       "Bash(git mv:*)",
       "Bash(git checkout:*)",
       "Bash(git restore:*)",
-      "Bash(git stash push:*)",
-      "Bash(git stash pop:*)",
-      "Bash(git stash apply:*)",
       "Bash(git stash drop:*)",
       "Bash(git config --local:*)",
       "Bash(git filter-repo:*)",
-      "Bash(npm install:*)",
-      "Bash(npm i:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(npm update:*)",
-      "Bash(mv:*)",
       "Bash(rm:*)",
       "Bash(rmdir:*)",
       "Bash(chmod:*)",
       "Bash(chown:*)",
-      "Bash(node -e:*)",
-      "Bash(python -c:*)",
-      "Bash(python3 -c:*)",
       "Bash(python:*)",
       "Bash(python3:*)",
-      "Bash(tee:*)",
-      "Bash(touch:*)",
-      "Bash(cp:*)",
-      "Bash(sed -i:*)",
-      "Bash(awk -i:*)",
-      "Bash(perl -pe:*)",
       "Bash(perl -i:*)",
-      "Bash(NODE_OPTIONS=*:*)",
-      "Bash(xargs sed:*)",
-      "Bash(xargs awk:*)",
-      "Bash(xargs cp:*)",
       "Bash(xargs mv:*)",
       "Bash(xargs rm:*)",
-      "Bash(node scripts/consult-gemini.mjs:*)",
       "Bash(node scripts/validation-orchestrator.mjs:*)",
       "Bash(node scripts/hermes-village.mjs:*)",
       "Bash(node scripts/cleanup-test-users.mjs:*)",
@@ -201,13 +207,10 @@
       "Bash(psql:*)",
       "Bash(PGPASSWORD=* psql:*)",
       "Bash(pg_dump:*)",
-      "Bash(curl:*)",
-      "Bash(curl.exe:*)",
       "Bash(wget:*)",
       "Bash(pip install:*)",
       "Bash(python -m pip install:*)",
       "Bash(python3 -m pip install:*)",
-      "Bash(taskkill:*)",
       "Bash(powershell:*)",
       "Bash(cmd:*)",
       "Bash(start:*)",
@@ -215,12 +218,7 @@
       "Bash(systemctl:*)",
       "Bash(sudo:*)",
       "mcp__playwright__browser_run_code",
-      "mcp__playwright__browser_evaluate",
-      "mcp__playwright__browser_file_upload",
-      "mcp__playwright__browser_select_option",
-      "mcp__playwright__browser_handle_dialog",
-      "mcp__playwright__browser_hover",
-      "mcp__playwright__browser_drag"
+      "mcp__playwright__browser_file_upload"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -303,12 +301,25 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/hermes-closeout-gate.mjs",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
   "_guidance": {
     "overriding_deny": "Deny rules are absolute and cannot be approved interactively, even with Sean's chat approval. .env files, lock files, .secretignore, .git/, and audit/hook dirs are hard-denied. CLAUDE.md, .gitignore, and .claude/settings*.json moved to 'ask' (2026-06-10) so Claude must get Sean's per-edit approval but is not locked out.",
     "adding_new_allow": "Run the command once via 'ask' bucket. If it becomes routine, add to allow list. Review new scripts monthly per v3 Patch 4.",
     "pattern_syntax": "See docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md. Patterns are GLOB not regex.",
-    "secret_prevention": "Bash denies are coarse advisory filters. Real enforcement is scripts/scan-secrets.sh on Write/Edit + pre-commit hook (CLAUDE.md Rule 44)."
+    "secret_prevention": "Bash denies are coarse advisory filters. Real enforcement is scripts/scan-secrets.sh on Write/Edit + pre-commit hook (CLAUDE.md Rule 44).",
+    "prompt_prune_2026_07_13": "Sean-approved prune to kill permission-prompt fatigue: defaultMode=acceptEdits; moved routine ops (git add/commit/pull/checkout -b/stash push-pop-apply, npm install/uninstall/update, mv/cp/touch/tee, node -e, python -c, sed -i, curl, taskkill, benign playwright actions) from ask to allow. STILL GATED in ask: git push (prod deploy), git checkout/restore (can discard work), rm/rmdir/git rm, chmod/chown, bare python, psql/pg_dump/DB seed+migration scripts, powershell/cmd/sudo/docker/systemctl, validation-orchestrator (paid). Deny list unchanged.",
+    "auto_mode_edits": "2026-07-05: bare Write/Edit/NotebookEdit removed from 'ask' so routine in-repo file edits auto-approve under acceptEdits/auto permission modes (fewer prompts). Governance-file edits (CLAUDE.md, .gitignore, .claude/settings*.json) still ask via their scoped entries, and deny rules + protected paths (.env, lock files, .git, .claude) still hard-block. To restore per-edit prompts, re-add \"Write\",\"Edit\",\"NotebookEdit\" to the ask array."
   }
 }
