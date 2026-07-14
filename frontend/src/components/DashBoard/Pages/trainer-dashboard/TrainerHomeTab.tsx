@@ -24,6 +24,7 @@ import {
   useTrainerTodaySessions,
 } from '../../../../hooks/useTrainerTodaySessions';
 import TrainerHomeNextActionCard from './TrainerHomeNextActionCard';
+import TrainerMyBookCard from './TrainerMyBookCard';
 import TrainerHomeObservatoryHero from './TrainerHomeObservatoryHero';
 import TrainerHomeObservatoryWidgets from './TrainerHomeObservatoryWidgets';
 import TrainerInterventionQueue from './TrainerInterventionQueue';
@@ -222,6 +223,7 @@ const TrainerHomeTab: React.FC = () => {
         </TrainerHomePrimaryColumn>
 
         <TrainerHomeSideColumn>
+          <TrainerMyBookCard />
           <TrainerInterventionQueue />
           <TrainerHomeObservatoryWidgets
             stats={stats}
