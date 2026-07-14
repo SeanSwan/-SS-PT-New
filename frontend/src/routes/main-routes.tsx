@@ -716,9 +716,11 @@ const MainRoutes: RouteObject = {
     {
       path: 'emergency-admin',
       element: (
-        <Suspense fallback={<PageLoader />}>
-          <EmergencyDashboard />
-        </Suspense>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <EmergencyDashboard />
+          </Suspense>
+        </ProtectedRoute>
       )
     },
     

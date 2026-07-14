@@ -40,8 +40,7 @@ if (false) {
         errorMsg.includes('useEffect is not defined') || 
         errorMsg.includes('useState is not defined') ||
         errorMsg.includes('Rendered fewer hooks than expected') ||
-        errorMsg.includes('React Hook') ||
-        errorStack.includes('admin-route.tsx')
+        errorMsg.includes('React Hook')
       );
       
       if (isHooksError) {
