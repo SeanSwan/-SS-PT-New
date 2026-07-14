@@ -74,6 +74,7 @@ export const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboa
 export const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
 export const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));
 export const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
+export const TrainerEarningsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerEarningsPage'));
 export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
 export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));

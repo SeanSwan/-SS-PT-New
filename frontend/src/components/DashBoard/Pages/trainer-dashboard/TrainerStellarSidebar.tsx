@@ -23,7 +23,7 @@ import {
   Users, ClipboardCheck, BarChart3,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame,
-  Zap, Home, Wrench,
+  Zap, Home, Wrench, Wallet,
 } from 'lucide-react';
 import {
   Overlay,
@@ -82,6 +82,12 @@ export const trainerNavConfig = [
     section: 'SCHEDULE',
     items: [
       { label: 'My Schedule', path: '/dashboard/trainer/schedule', icon: Calendar },
+    ],
+  },
+  {
+    section: 'BUSINESS',
+    items: [
+      { label: 'My Earnings', path: '/dashboard/trainer/earnings', icon: Wallet },
     ],
   },
   {
