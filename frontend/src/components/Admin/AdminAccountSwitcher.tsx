@@ -3,6 +3,7 @@ import { ArrowRight, Clock3, LogIn, Search, ShieldCheck, ShieldOff, UserRound, X
 import apiService from '../../services/api.service';
 import { useAuth } from '../../context/AuthContext';
 import AdminAccountCommandPanel, { type AdminCommandTarget } from './AdminAccountCommandPanel';
+import AdminPasswordSetupLinkPanel from './AdminPasswordSetupLinkPanel';
 import {
   getDashboardPathForImpersonatedRole,
   isAdminImpersonationActive,
@@ -283,6 +284,7 @@ const AdminAccountSwitcher: React.FC = () => {
         )}
       </TargetPreview>
 
+      <AdminPasswordSetupLinkPanel target={selectedTarget} disabled={!controlsAvailable || loading} />
       <AdminAccountCommandPanel
         target={selectedTarget}
         disabled={!controlsAvailable || loading}

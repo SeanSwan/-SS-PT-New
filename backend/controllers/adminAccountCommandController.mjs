@@ -11,6 +11,10 @@ import {
   reactivateAccount,
 } from '../services/admin/adminAccountCommandService.mjs';
 import { AdminOwnerGateError, getOwnerAdminAccess } from '../services/admin/adminOwnerGate.mjs';
+import {
+  AdminPasswordSetupLinkError,
+  createPasswordSetupLink,
+} from '../services/admin/adminPasswordSetupLinkService.mjs';
 import logger from '../utils/logger.mjs';
 
 const COMMANDS = {
@@ -110,8 +114,36 @@ export const runAdminAccountCommand = async (req, res) => {
   }
 };
 
+export const createAdminPasswordSetupLink = async (req, res) => {
+  try {
+    const result = await createPasswordSetupLink({
+      actor: req.user,
+      targetUserId: req.body?.userId,
+    });
+    // SECURITY: never log the link/token — response-only.
+    logger.info('[adminPasswordSetupLink] issued', {
+      actorId: req.user?.id,
+      targetUserId: req.body?.userId,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    const isKnown = error instanceof AdminPasswordSetupLinkError || error instanceof AdminOwnerGateError;
+    logger.warn('[adminPasswordSetupLink] failed', {
+      actorId: req.user?.id,
+      targetUserId: req.body?.userId,
+      code: isKnown ? error.code : 'PASSWORD_SETUP_SERVER_ERROR',
+    });
+    return res.status(isKnown ? error.statusCode || 400 : 500).json({
+      success: false,
+      code: isKnown ? error.code : 'PASSWORD_SETUP_SERVER_ERROR',
+      message: isKnown ? error.message : 'Unable to generate password setup link.',
+    });
+  }
+};
+
 export default {
   getAdminAccountCommandAccess,
   getAdminAccountCommandTargets,
   runAdminAccountCommand,
+  createAdminPasswordSetupLink,
 };

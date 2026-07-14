@@ -327,7 +327,8 @@ import {
 import {
   getAdminAccountCommandAccess,
   getAdminAccountCommandTargets,
-  runAdminAccountCommand
+  runAdminAccountCommand,
+  createAdminPasswordSetupLink
 } from '../controllers/adminAccountCommandController.mjs';
 import { 
   protect, 
@@ -451,6 +452,21 @@ router.post(
   adminOnly,
   adminAccountCommandLimiter,
   runAdminAccountCommand
+);
+
+/**
+ * @route   POST /api/auth/admin/password-setup-link
+ * @desc    Owner-gated one-time password setup/reset link for a chosen client
+ *          (copy + text to the client; no email required). Response-only —
+ *          the raw link is never logged or stored.
+ * @access  Private (Admin + owner allowlist)
+ */
+router.post(
+  '/admin/password-setup-link',
+  protect,
+  adminOnly,
+  adminAccountCommandLimiter,
+  createAdminPasswordSetupLink
 );
 
 /**
