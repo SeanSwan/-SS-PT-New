@@ -123,6 +123,15 @@ export async function requireLinkedWaiver(req, res, next) {
     return next();
   }
 
+  // Admin impersonation bypass (Sean 2026-07-14): an owner-admin reviewing a
+  // client's account must not be blocked by the client's unsigned waiver.
+  // req.impersonation is derived from signed JWT claims (authMiddleware sets
+  // it before this gate runs), so a normal client cannot forge it. The real
+  // client's own login still hits the gate.
+  if (req.impersonation?.actorId) {
+    return next();
+  }
+
   try {
     const status = await getWaiverAccessStatus(req.user);
 

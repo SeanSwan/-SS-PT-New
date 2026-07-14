@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { isAdminImpersonationActive } from '../utils/adminImpersonationSession';
 
 // ===================== Styled Components =====================
 
@@ -139,6 +140,10 @@ function isWaiverGatedRoute(pathname: string) {
 function requiresWaiverRedirect(auth: ReturnType<typeof useAuth>, pathname: string) {
   if (!auth.user || !WAIVER_GATED_ROLES.has(auth.user.role)) return false;
   if (!isWaiverGatedRoute(pathname)) return false;
+  // Admin impersonation (Account Access) reviews the client's dashboard
+  // without triggering their first-login waiver flow; the client's own
+  // real login never has the impersonation flag and stays gated.
+  if (isAdminImpersonationActive()) return false;
   if (auth.user.hasLinkedWaiver === true) return false;
   return auth.user.hasLinkedWaiver === false && auth.user.waiverStatus !== undefined;
 }
