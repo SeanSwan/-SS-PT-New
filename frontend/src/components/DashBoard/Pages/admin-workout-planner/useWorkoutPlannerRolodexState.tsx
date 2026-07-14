@@ -9,36 +9,47 @@ import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { getJointImpact, parseEquipment } from './WorkoutPlannerFilters';
 import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';
-import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
+import type { GeneratedPlan, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
+import {
+  applyHorizonSwap,
+  isDuplicateInHorizonDay,
+  isHorizonSwapTargetValid,
+  removeHorizonExercise,
+  type HorizonSwapTarget,
+  type PlannerSwapTarget,
+} from './workoutPlannerHorizonSwap.helpers';
 
 interface UseWorkoutPlannerRolodexStateArgs {
   phase: OPTPhaseParams;
   planExercises: PlanExercise[];
   setPlanExercises: React.Dispatch<React.SetStateAction<PlanExercise[]>>;
+  generatedPlan: GeneratedPlan | null;
+  setGeneratedPlan: React.Dispatch<React.SetStateAction<GeneratedPlan | null>>;
   onSwapBlocked?: (message: string) => void;
 }
 
-export interface RolodexSwapTarget {
-  rowId: string;
-  exerciseName: string;
-}
+export type RolodexSwapTarget = PlannerSwapTarget;
 
 export function useWorkoutPlannerRolodexState({
   phase,
   planExercises,
   setPlanExercises,
+  generatedPlan,
+  setGeneratedPlan,
   onSwapBlocked,
 }: UseWorkoutPlannerRolodexStateArgs) {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseSlim | null>(null);
   const [swapTarget, setSwapTarget] = useState<RolodexSwapTarget | null>(null);
 
-  // Swap mode only survives while its target row still exists — a regenerate,
+  // Swap mode only survives while its target still exists — a regenerate,
   // plan load, or client change that rebuilds the list clears the banner.
   React.useEffect(() => {
-    if (swapTarget && !planExercises.some(planExercise => planExercise.id === swapTarget.rowId)) {
-      setSwapTarget(null);
-    }
-  }, [planExercises, swapTarget]);
+    if (!swapTarget) return;
+    const stale = swapTarget.kind === 'builder'
+      ? !planExercises.some(planExercise => planExercise.id === swapTarget.rowId)
+      : !isHorizonSwapTargetValid(generatedPlan, swapTarget);
+    if (stale) setSwapTarget(null);
+  }, [planExercises, generatedPlan, swapTarget]);
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [impactFilter, setImpactFilter] = useState<string | null>(null);
@@ -110,14 +121,36 @@ export function useWorkoutPlannerRolodexState({
   ]);
 
   const beginSwap = useCallback((rowId: string, exerciseName: string) => {
-    setSwapTarget({ rowId, exerciseName });
+    setSwapTarget({ kind: 'builder', rowId, exerciseName });
   }, []);
+
+  const beginHorizonSwap = useCallback((target: HorizonSwapTarget) => {
+    setSwapTarget(target);
+  }, []);
+
+  const removeHorizonExerciseAt = useCallback((target: HorizonSwapTarget) => {
+    setGeneratedPlan(prev => (prev ? removeHorizonExercise(prev, target) : prev));
+    setSwapTarget(current => (current?.kind === 'horizon' ? null : current));
+  }, [setGeneratedPlan]);
 
   const cancelSwap = useCallback(() => setSwapTarget(null), []);
 
   const addExercise = useCallback((exercise: ExerciseSlim) => {
-    // Swap mode: the next Rolodex pick replaces the targeted builder row's
-    // movement while keeping its programming (sets/reps/tempo/rest/intensity).
+    // Horizon swap mode: replace the targeted day-slot inside the generated
+    // multi-week plan, keeping the slot's programming.
+    if (swapTarget?.kind === 'horizon') {
+      if (isDuplicateInHorizonDay(generatedPlan, swapTarget, exercise)) {
+        onSwapBlocked?.(`${exercise.name} is already in that day — pick a different replacement.`);
+        return;
+      }
+      setGeneratedPlan(prev => (prev ? applyHorizonSwap(prev, swapTarget, exercise) : prev));
+      setSwapTarget(null);
+      setSelectedExercise(exercise);
+      return;
+    }
+
+    // Builder swap mode: the next Rolodex pick replaces the targeted builder
+    // row's movement while keeping its programming (sets/reps/tempo/rest/intensity).
     if (swapTarget) {
       let blocked = false;
       let targetMissing = false;
@@ -172,7 +205,7 @@ export function useWorkoutPlannerRolodexState({
       }];
     });
     setSelectedExercise(exercise);
-  }, [phase, setPlanExercises, swapTarget, onSwapBlocked]);
+  }, [phase, setPlanExercises, swapTarget, onSwapBlocked, generatedPlan, setGeneratedPlan]);
 
   const exerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const exercise = filteredExercises[index];
@@ -212,6 +245,8 @@ export function useWorkoutPlannerRolodexState({
     setSelectedExercise,
     swapTarget,
     beginSwap,
+    beginHorizonSwap,
+    removeHorizonExerciseAt,
     cancelSwap,
     filteredExerciseCount: filteredExercises.length,
     activeFilterCount,

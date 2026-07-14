@@ -56,7 +56,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations, onSaveDraft,
   onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onCreatePdf, onSelectExercise,
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onSelectGuidedCandidate, onClearGuidedCandidates, onToggleExplanations, teachModeProps,
-  swapTarget, onBeginSwap, onCancelSwap,
+  swapTarget, onBeginSwap, onCancelSwap, onBeginHorizonSwap, onRemoveHorizonExercise,
   generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
   pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose, onPlansChanged,
@@ -182,6 +182,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           onRemoveExercise={onRemoveExercise}
           onBeginSwap={onBeginSwap}
           onCancelSwap={onCancelSwap}
+          onBeginHorizonSwap={onBeginHorizonSwap}
+          onRemoveHorizonExercise={onRemoveHorizonExercise}
           onBrowseAddExercise={onBrowseAddExercise}
           onSelectGuidedCandidate={onSelectGuidedCandidate}
           onClearGuidedCandidates={onClearGuidedCandidates}

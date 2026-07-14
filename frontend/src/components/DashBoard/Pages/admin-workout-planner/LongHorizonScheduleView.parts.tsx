@@ -6,8 +6,10 @@
  */
 
 import React from 'react';
-import { CalendarDays, ChevronRight } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, ChevronRight, X } from 'lucide-react';
 import type { GeneratedPlanWeek, GeneratedPlanWeekDay } from './WorkoutPlannerTypes';
+import type { PlannerSwapTarget } from './workoutPlannerHorizonSwap.helpers';
+import { RemoveBtn, SwapBtn, SwapCancelBtn, SwapModeBanner } from './WorkoutPlannerStyles';
 import {
   BreadcrumbDim,
   DayChip,
@@ -62,8 +64,18 @@ interface DayTabProps {
   onDayChange: (dayNumber: number) => void;
 }
 
+export interface DayExerciseEditHandlers {
+  /** begin swap mode for the exercise at this index (name for the banner) */
+  onBeginSwapExercise: (exerciseIndex: number, exerciseName: string) => void;
+  onRemoveExercise: (exerciseIndex: number, exerciseName: string) => void;
+}
+
 interface DayDetailProps {
   day: GeneratedPlanWeekDay | null;
+  editHandlers?: DayExerciseEditHandlers | null;
+  swapTarget?: PlannerSwapTarget | null;
+  swapActiveIndex?: number | null;
+  onCancelSwap?: () => void;
 }
 
 const exerciseName = (ex: GeneratedPlanWeekDay['exercises'][number]): string => {
@@ -244,15 +256,41 @@ export const DayTabs: React.FC<DayTabsProps> = ({
   );
 };
 
-const DayExercises: React.FC<{ day: GeneratedPlanWeekDay }> = ({ day }) => {
+interface DayExercisesProps {
+  day: GeneratedPlanWeekDay;
+  editHandlers?: DayExerciseEditHandlers | null;
+  swapActiveIndex?: number | null;
+}
+
+const DayExercises: React.FC<DayExercisesProps> = ({ day, editHandlers, swapActiveIndex }) => {
   if (day.exercises.length === 0) return <Empty>No exercises populated for this day.</Empty>;
   return (
     <ExerciseList>
       {day.exercises.map((ex, index) => (
-        <ExerciseRow key={exerciseRowKey(ex, index)}>
+        <ExerciseRow key={exerciseRowKey(ex, index)} aria-current={swapActiveIndex === index ? 'true' : undefined}>
           <span>{formatExerciseLine(ex)}</span>
           {ex.rotationFallback ? (
             <FallbackBadge title="Rotation fallback - see L1 receipt">fallback</FallbackBadge>
+          ) : null}
+          {editHandlers ? (
+            <>
+              <SwapBtn
+                type="button"
+                onClick={() => editHandlers.onBeginSwapExercise(index, exerciseName(ex))}
+                aria-label={`Swap ${exerciseName(ex)} for another exercise`}
+                aria-pressed={swapActiveIndex === index}
+                title="Swap this exercise"
+              >
+                <ArrowLeftRight size={13} />
+              </SwapBtn>
+              <RemoveBtn
+                type="button"
+                onClick={() => editHandlers.onRemoveExercise(index, exerciseName(ex))}
+                aria-label={`Remove ${exerciseName(ex)} from this day`}
+              >
+                <X size={13} />
+              </RemoveBtn>
+            </>
           ) : null}
         </ExerciseRow>
       ))}
@@ -260,7 +298,13 @@ const DayExercises: React.FC<{ day: GeneratedPlanWeekDay }> = ({ day }) => {
   );
 };
 
-export const DayDetail: React.FC<DayDetailProps> = ({ day }) => {
+export const DayDetail: React.FC<DayDetailProps> = ({
+  day,
+  editHandlers,
+  swapTarget,
+  swapActiveIndex,
+  onCancelSwap,
+}) => {
   if (!day) {
     return (
       <Detail>
@@ -275,7 +319,15 @@ export const DayDetail: React.FC<DayDetailProps> = ({ day }) => {
         {dayTitle(day)}
         {day.focus ? <DetailFocus>{day.focus}</DetailFocus> : null}
       </DetailTitle>
-      <DayExercises day={day} />
+      {swapTarget?.kind === 'horizon' && onCancelSwap ? (
+        <SwapModeBanner role="status" aria-live="polite">
+          <span>
+            Swapping <strong>{swapTarget.exerciseName}</strong> — pick its replacement from the Exercise Rolodex.
+          </span>
+          <SwapCancelBtn type="button" onClick={onCancelSwap}>Cancel swap</SwapCancelBtn>
+        </SwapModeBanner>
+      ) : null}
+      <DayExercises day={day} editHandlers={editHandlers} swapActiveIndex={swapActiveIndex} />
     </Detail>
   );
 };

@@ -9,6 +9,7 @@ import { AlertTriangle, Calendar, Download, MessageSquareText } from 'lucide-rea
 import PdfApprovalVault from '../../../Shared/PdfApprovalVault';
 import LongHorizonScheduleView from './LongHorizonScheduleView';
 import type { GeneratedPlan, PlannerClient } from './WorkoutPlannerTypes';
+import type { HorizonSwapTarget, PlannerSwapTarget } from './workoutPlannerHorizonSwap.helpers';
 import { workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
 import { getGeneratedPlanQualityWarnings } from './workoutPlannerQualityWarnings';
 import { withDisplayExerciseNamesForExport } from './workoutPlannerExerciseDisplay';
@@ -51,6 +52,10 @@ interface WorkoutPlannerGeneratedPlanSectionProps {
   coachReviewRoute?: string | null;
   onSelectedMesoDayChange: (dayNumber: number) => void;
   onPhaseNumberChange: (phaseNumber: number) => void;
+  planSwapTarget?: PlannerSwapTarget | null;
+  onBeginHorizonSwap?: (target: HorizonSwapTarget) => void;
+  onRemoveHorizonExercise?: (target: HorizonSwapTarget) => void;
+  onCancelPlanSwap?: () => void;
 }
 
 const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSectionProps> = ({
@@ -61,6 +66,10 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
   coachReviewRoute,
   onSelectedMesoDayChange,
   onPhaseNumberChange,
+  planSwapTarget,
+  onBeginHorizonSwap,
+  onRemoveHorizonExercise,
+  onCancelPlanSwap,
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -196,7 +205,13 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
       </MesocycleGrid>
 
       {Array.isArray(generatedPlan.weeks) && generatedPlan.weeks.length > 0 && (
-        <LongHorizonScheduleView weeks={generatedPlan.weeks} />
+        <LongHorizonScheduleView
+          weeks={generatedPlan.weeks}
+          swapTarget={planSwapTarget}
+          onBeginHorizonSwap={onBeginHorizonSwap}
+          onRemoveHorizonExercise={onRemoveHorizonExercise}
+          onCancelSwap={onCancelPlanSwap}
+        />
       )}
 
       {equipmentContext && (

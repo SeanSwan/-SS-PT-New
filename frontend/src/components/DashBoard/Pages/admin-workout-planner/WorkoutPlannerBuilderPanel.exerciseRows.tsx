@@ -195,7 +195,7 @@ export const BuilderWorkoutContent: React.FC<BuilderWorkoutContentProps> = ({
           key={planExercise.id}
           planExercise={planExercise}
           index={index}
-          isSwapTarget={swapTarget?.rowId === planExercise.id}
+          isSwapTarget={swapTarget?.kind === 'builder' && swapTarget.rowId === planExercise.id}
           onSelectExercise={onSelectExercise}
           onUpdateExercise={onUpdateExercise}
           onRemoveExercise={onRemoveExercise}

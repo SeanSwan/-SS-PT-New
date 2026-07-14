@@ -97,6 +97,8 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onRemoveExercise,
   onBeginSwap,
   onCancelSwap,
+  onBeginHorizonSwap,
+  onRemoveHorizonExercise,
   onBrowseAddExercise,
   onSelectGuidedCandidate,
   onClearGuidedCandidates,
@@ -141,6 +143,10 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
             coachReviewRoute={coachReviewRoute}
             onSelectedMesoDayChange={onSelectedMesoDayChange}
             onPhaseNumberChange={onPhaseNumberChange}
+            planSwapTarget={swapTarget}
+            onBeginHorizonSwap={onBeginHorizonSwap}
+            onRemoveHorizonExercise={onRemoveHorizonExercise}
+            onCancelPlanSwap={onCancelSwap}
           />
         ) : (
           <>

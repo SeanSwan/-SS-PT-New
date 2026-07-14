@@ -60,7 +60,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const handleSwapBlocked = useCallback((text: string) => setStatusMsg({ type: 'error', text }), []);
   const {
     selectedExercise,
-    setSelectedExercise, swapTarget, beginSwap, cancelSwap,
+    setSelectedExercise, swapTarget, beginSwap, cancelSwap, beginHorizonSwap, removeHorizonExerciseAt,
     filteredExerciseCount,
     activeFilterCount,
     exercisesLoading,
@@ -78,7 +78,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setEquipmentFilter,
     setImpactFilter,
     clearSearchForBrowse, clearRolodexFilters,
-  } = useWorkoutPlannerRolodexState({ phase, planExercises, setPlanExercises, onSwapBlocked: handleSwapBlocked });
+  } = useWorkoutPlannerRolodexState({ phase, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, onSwapBlocked: handleSwapBlocked });
 
   const {
     loadedPlanId,
@@ -287,7 +287,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
     onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onCreatePdf: handleCreateBuilderPdf, onSelectExercise: setSelectedExercise,
-    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise, swapTarget, onBeginSwap: beginSwap, onCancelSwap: cancelSwap,
+    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise, swapTarget, onBeginSwap: beginSwap, onCancelSwap: cancelSwap, onBeginHorizonSwap: beginHorizonSwap, onRemoveHorizonExercise: removeHorizonExerciseAt,
     onToggleExplanations: handleToggleExplanations, onSelectGuidedCandidate: handleSelectGuidedCandidate,
     onClearGuidedCandidates: clearGuidedCandidates, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename, onPlansChanged: () => { void fetchSavedPlans(selectedClientId); },

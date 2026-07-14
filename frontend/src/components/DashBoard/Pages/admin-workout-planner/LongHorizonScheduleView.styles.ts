@@ -175,6 +175,8 @@ export const ExerciseRow = styled.li`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  /* Name takes the row; swap/remove controls hug the right edge. */
+  & > span:first-child { flex: 1; min-width: 0; }
   padding: 6px 0;
   font-family: 'Sora', sans-serif;
   font-size: 0.78rem;
