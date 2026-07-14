@@ -1253,19 +1253,22 @@ footer {
 <!-- ═══════════ §17 MOTION NOTES ═══════════ -->
 <section id="motion" aria-labelledby="motion-h">
   <p class="kicker">Section 17</p>
-  <h2 id="motion-h">Motion — Three Tiers, One Policy</h2>
+  <h2 id="motion-h">Motion — Runtime Quality + Accessibility</h2>
   <p class="rule-caption">
-    <strong>Demonstrates:</strong> the performance-tier contract. Every cinematic surface ships all three tiers in the
-    same file. Motion always has a job — reveal, hierarchy, state, or reward. Decorative motion is noise and gets cut.
+    <strong>Demonstrates:</strong> every cinematic surface ships Full, Lean, and Still runtime-quality modes together.
+    Reduced Motion is a separate accessibility override across all three. Motion always has a job — reveal, hierarchy,
+    state, or reward. Decorative motion is noise and gets cut.
   </p>
 
   <div class="motion-tiers">
-    <div class="tier-card"><b>Tier 1 — Full cinema</b>
-      <ul><li>Video headers, parallax, R3F accents</li><li>Framer layout tweens</li><li>Desktop + capable mobile</li></ul></div>
-    <div class="tier-card"><b>Tier 2 — Lean cinema</b>
-      <ul><li>Still hero instead of video</li><li>CSS-only parallax, no Three.js</li><li>Low-power / save-data devices</li></ul></div>
-    <div class="tier-card"><b>Tier 3 — Reduced motion</b>
-      <ul><li><code>prefers-reduced-motion: reduce</code></li><li>All motion disabled, static composition</li><li>Tokens and hierarchy fully preserved</li></ul></div>
+    <div class="tier-card"><b>Full cinema</b>
+      <ul><li>Licensed video, parallax, spatial accents</li><li>Framer layout tweens</li><li>Capable device and normal network</li></ul></div>
+    <div class="tier-card"><b>Lean cinema</b>
+      <ul><li>Poster/encoded media instead of optional spatial work</li><li>CSS-only depth where safe</li><li>Low-power / save-data devices</li></ul></div>
+    <div class="tier-card"><b>Still</b>
+      <ul><li>Authored semantic poster</li><li>No continuous runtime required</li><li>Copy, proof, navigation, and action preserved</li></ul></div>
+    <div class="tier-card"><b>Accessibility override — Reduced Motion</b>
+      <ul><li><code>prefers-reduced-motion: reduce</code></li><li>Nonessential and scroll-linked motion removed</li><li>Applies across Full, Lean, and Still</li></ul></div>
   </div>
 
   <div class="shimmer-demo">

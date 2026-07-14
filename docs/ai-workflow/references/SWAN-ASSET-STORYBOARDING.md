@@ -46,8 +46,9 @@ loaded_by: .claude/skills/swan-design-router/SKILL.md
 
 ### A6. Short 3D moment (React Three Fiber)
 - Use for: clustered/orbiting media nodes (C8), product showcase rotations, hero accent geodes
-- Maximum one R3F moment per page — never two
+- Maximum one R3F moment per M0–M3 page — never two
 - Always with a 2D `<Suspense>` fallback
+- Licensed M4 exception: `docs/ai-workflow/design-brain/experience-mode.md` may let the one canvas scaffold an eligible non-product/approved-marketing experience. Product and Hermes/operator surfaces never receive live M4; every M4 scene still ships B1 media and B0 still fallbacks.
 
 ### A7. Letterform-embedded media
 - The letterform itself is the frame (C4)

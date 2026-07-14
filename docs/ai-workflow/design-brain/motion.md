@@ -1,7 +1,7 @@
 # motion.md — Swan Motion Doctrine (Design Brain core)
 
 - **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (within its scope)
-- **Extends:** `design.md` §25 · **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §A (motion tools, performance tiers), §B (motion bans), §C1–C12 (per-pattern fallbacks). That doc wins conflicts.
+- **Extends:** `design.md` §25 · **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §A (motion tools, Full/Lean/Still runtime quality, Reduced Motion override), §B (motion bans), §C1–C12 (per-pattern fallbacks). That doc wins conflicts.
 
 ---
 
@@ -20,6 +20,8 @@ Rules across tiers:
 - Ambient loops never demand attention: ≤5% opacity for texture layers, no hard cuts, no flashing (never >3 flashes/sec — seizure threshold).
 - Narrative motion fires **once** per visit (IntersectionObserver `once`), never re-triggers on every scroll pass.
 
+**Licensed M4 pointer.** `experience-mode.md` defines an M4 Experience budget for eligible non-product/approved-marketing surfaces. It changes none of this file's M0–M3, product, calm-zone, reduced-motion, or earned-motion rules. Full/Lean/Still remain runtime quality modes; M4 still ships all three.
+
 ## 2. GPU-safe properties only
 
 Animate **`transform` and `opacity`. Nothing else** without an explicit exception in review.
@@ -33,12 +35,12 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 
 **One gate is a half-fix. Every animated component ships BOTH:**
 
-1. **CSS gate** — `@media (prefers-reduced-motion: reduce)` inside the styled-component: kill keyframes, transitions, scroll effects; keep the static composition intact (tier-3 per source §A).
+1. **CSS gate** — `@media (prefers-reduced-motion: reduce)` inside the styled-component: kill nonessential keyframes, transitions, and scroll effects; keep the complete authored Still composition intact per source §A.
 2. **JS gate** — framer-motion `useReducedMotion()` (or `<MotionConfig reducedMotion="user">` at the surface root) disabling variants, springs, `useMotionValue` count-ups, and rAF loops.
 
 **The CSS media query does NOT govern JS-driven entrances.** Lesson of 2026-06-20: a surface shipped with the CSS query in place and framer springs still animating for reduced-motion users — CSS `@media` cannot stop what framer applies as inline styles from JS. Reviewers reject any slice that gates only one layer (see `adapters/builders.md` §"Reduced motion, both layers", `adapters/reviewers.md` §4).
 
-- Reduced motion means **reduced, not gutted**: content, layout, and tokens all remain (source §A tier-3). A blank hero is a failure, a static poster is the spec.
+- Reduced Motion means **reduced, not gutted**: content, layout, and tokens all remain through the authored Still composition (source §A). A blank hero is a failure; a static poster is the spec.
 - Video/canvas under reduced motion: show the poster frame; do not autoplay.
 - Count-up numbers: render the final value immediately.
 
@@ -90,7 +92,7 @@ Before shipping any animation, it must pass all four — otherwise delete it:
 
 - **Rule 43 (CLAUDE.md):** any shared animation/mixin fragment containing `${}` interpolation that composes into a styled component **MUST** be wrapped in the `` css`` `` tagged helper. A plain JS template string calls `toString()` on `keyframes` objects and crashes at mount with styled-components error #12 — build passes, types pass, prod dies (2026-04-12 `AdminOverviewPanel` incident). If a template literal interpolates a styled-components primitive, it is `` css`` ``.
 - `keyframes` defined once at module scope, composed via `` css`` `` fragments — never re-declared per render.
-- Framer for enter/exit/hover/layout; GSAP only for genuinely long pinned timelines; R3F only when 3D is the point (source §A). All three sit behind the §3 dual gate and the source §A three-tier fallback (full / lean / reduced) in the same file.
+- Framer for enter/exit/hover/layout; GSAP only for genuinely long pinned timelines; R3F only when 3D is the point (source §A). All three sit behind the §3 dual gate and ship Full/Lean/Still modes in the same surface; Reduced Motion overrides nonessential movement across all three.
 
 ## 10. Motion QA hooks
 

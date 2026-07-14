@@ -8,7 +8,6 @@ description: The only default-exposed design brain for SwanStudios. Routes all U
 **Role:** strict-model single default design brain for SS-PT. This is the ONLY skill that should auto-steer design work. All other design skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are explicit-invocation-only.
 
 ## Strict-model architecture (Phase 3 landed 2026-04-12)
-
 **Default-exposed design surface = `swan-design-router` ONLY.**
 
 As of Phase 3:
@@ -18,20 +17,20 @@ As of Phase 3:
 - If either reference-library path is not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
 
 ## Load order (authoritative)
-
 1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
 2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
 3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts), 40-41 (design + closeout routing)
-4. **`docs/ai-workflow/design-brain/index.md`** — the Design Brain (rule 40, added 2026-07-03). `design.md` is canonical; `design.html` is its visual mirror and design.md wins on any conflict. Load `design.md` plus only the topic files the task needs (`motion.md`, `components.md`, `anti-patterns.md`, `qa-gates.md`, `website-archetypes.md`, `cinematic-pages.md`, the matching `adapters/` file). The Design Brain is **subordinate** to SWAN-CINEMATIC-DESIGN-SYSTEM.md — on any conflict, item 1 wins. Adapters never coin tokens; semantic colors are success=Ice Wing / warn=Gilded Fern / info=Swan Lavender / danger=#E5484D.
+4. **`docs/ai-workflow/design-brain/index.md`** — the Design Brain (rule 40, added 2026-07-03). `design.md` is canonical; `design.html` is its visual mirror and design.md wins on any conflict. Load `design.md` plus only the topic files the task needs (`motion.md`, `components.md`, `anti-patterns.md`, `qa-gates.md`, `website-archetypes.md`, `cinematic-pages.md`, `external-reference-mcp.md`, the matching `adapters/` file). Query the World Engine progressively: read `worlds.md` metadata first; load full world entries only after suitability filtering; load `techniques.md`, `psychology.md`, and `experience-mode.md` only when the selected licence or WFX IDs require them. The Design Brain is **subordinate** to SWAN-CINEMATIC-DESIGN-SYSTEM.md — on any conflict, item 1 wins. Adapters never coin tokens; semantic colors are success=Ice Wing / warn=Gilded Fern / info=Swan Lavender / danger=#E5484D.
 5. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
 6. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
 
 If `docs/ai-workflow/design-brain/` is missing at runtime, fall back to items 1-3 and report the missing Design Brain explicitly in the task thread rather than silently degrading (same policy as the reference libraries).
 
+For net-new pages, major redesigns, Fable/Village design implementation, or Sean-requested reference-backed work, complete the receipt in `external-reference-mcp.md` before proposing directions. If no connector is callable, record `[MOBBIN UNAVAILABLE]` and proceed from Swan's canonical docs. Small polish, bugfix, and backend-only work may mark the gate not applicable.
+
 If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
 
 ## Ideation gate — 2-3 concept directions before coding (MANDATORY for net-new surfaces and major redesigns)
-
 Before writing any styled-components for a **net-new page, new surface, or major redesign**, produce 2-3 distinct concept directions in the task thread. Sean steers which one becomes the implementation. This is the ideation gate — Sean's first look at the design, before any file is touched.
 
 ### When the ideation gate applies
@@ -50,13 +49,21 @@ Before writing any styled-components for a **net-new page, new surface, or major
 If in doubt, run the gate. The cost of running it is one paragraph per concept. The cost of skipping it on something that needed it is a redesigned page Sean did not ask for.
 
 ### Mandatory output for the ideation gate
-
 Produce 2-3 concept directions, each with this exact structure:
 
 ```
 === CONCEPT DIRECTION [N] ===
 
 NAME: [short evocative name — e.g. "Glacier Cathedral" or "Rainforest Ledger"]
+
+WORLD ID: [stable ID from worlds.md, or NONE for M0-M3 product work]
+WORLD CATALOG VERSION: [version/date from worlds.md]
+SELECTION SEED: [recorded deterministic seed, or MANUAL]
+PALETTE LAW: [A Swan-native | B world-native non-Swan]
+EXPERIENCE LICENCE: [M0 | M1 | M2 | M3 | M4]
+WFX SET: [WFX-01...WFX-13 IDs actually proposed]
+PSYCHOLOGY HYPOTHESES: [PSY IDs, evidence signals, and falsifiers]
+RENDER BACKENDS: [B0 semantic/poster | B1 CSS/media | B2 WebGL2 | B3 WebGPU experimental]
 
 PAGE STORY ARC: [from SWAN-CINEMATIC-DESIGN-SYSTEM.md B2]
   - Act 1: [what act 1 feels like in this direction]
@@ -83,23 +90,34 @@ ASSET TYPE NEEDED:
   [A1 video loop / A2 scroll-scrubbed sequence / A3 hero still / A4 carousel / A5 illustration / A6 3D / A7 letterform-embedded / A8 chart-as-narrative]
   per act or per section as appropriate
 
-MOTION TIER: [tier-1 full cinema / tier-2 lean / tier-3 reduced — pick baseline expectation]
+MOTION BUDGET: [M0 restrained | M1 expressive | M2 cinematic-section | M3 launch-cinema | M4 experience]
+RUNTIME QUALITY: [Full | Lean | Still; Reduced Motion is an accessibility override, not a quality tier]
 
 WHY IT FITS THE PAGE STORY: [2-3 sentences naming what this direction does that the other directions do not]
 
-WHY IT COULD BE WRONG: [one explicit tradeoff or risk — "heavier on motion, may not land on tier-3", "asset-heavy, requires Seedance run first", etc.]
+WHY IT COULD BE WRONG: [one explicit tradeoff or risk — "heavier on motion, may not preserve the Lean/Still story", "asset-heavy, requires Seedance run first", etc.]
 ```
 
 ### Rules for the 2-3 directions
-
 1. **They must be meaningfully different.** Three variations of the same hero pattern with different palettes is not three directions. Three directions must disagree about the *story structure*, *pattern stack*, or *signature moment*.
 2. **At least one must be on the more restrained side.** Do not present three maximalist directions. One of the 2-3 must be lower-motion, lower-asset-weight, faster-to-ship — so Sean has a real tradeoff space.
 3. **At least one must use Act 1's emotional target of "awe"** (for marketing) or "orientation clarity" (for dashboards). The opening beat is where Swan wins or loses the user.
 4. **No direction may violate CLAUDE.md rules 1-11, 22-25, or the Dual-Button Glow rule.** All three must be valid Swan directions.
 5. **Each direction must be implementable end-to-end.** Do not present an exploratory fragment as a concept direction. If it cannot be built with the existing pattern library (C1-C12), name the new pattern it would require.
 
-### After Sean picks a direction
+### World roulette and M4 routing
+World selection is suitability-filtered before it is random. Filter by surface licence, audience, content density, emotional job, proof/action needs, asset availability, and runtime budget. Then run the exact `world-roulette.v1` algorithm in `worlds.md` with its NFC/UTF-8 seed, SHA-256 rejection sampling, ASCII sorting, recent-use rules, family balancing, tie-break, and replay receipt. Substituting a platform PRNG or merely recording a different algorithm is rejected.
 
+- **M0-M3 product surfaces:** `WORLD ID: NONE` unless a world contributes only a static, pausable, prerecorded M2 preview that obeys the host product licence. Live M4 runtimes are refused.
+- **M4-eligible non-product surfaces:** marketing pages, launch campaigns, brand films, editorial experiments, and approved showcase galleries may promote M4 to the host licence after explicit Sean approval.
+- **Palette Law A:** Swan-native; canonical Crystalline Swan tokens remain authoritative.
+- **Palette Law B:** world-native non-Swan; the output must not be branded or represented as a Swan product surface.
+- **Accessibility:** B0 is always present. Still mode, Pause Effects, semantic navigation, and the primary action cannot depend on canvas meaning.
+- **Evidence:** record the world catalog version, selection seed, WFX set, render backends, PSY hypotheses, and outcome signals in the direction receipt.
+
+If no world survives the filters, use no world. The catalog is a creative option space, not a requirement to force spectacle into every surface.
+
+### After Sean picks a direction
 Once Sean responds with "go with direction 2" (or similar):
 - Echo back which direction he picked and which he rejected
 - Produce the mandatory pre-task receipt (below) for the chosen direction only
@@ -108,13 +126,11 @@ Once Sean responds with "go with direction 2" (or similar):
 If Sean asks for a hybrid ("take the shelf pattern from direction 1 but the dashboard arc from direction 3"), produce a fourth combined direction and wait for explicit sign-off on that one before coding.
 
 ### Do not skip the gate under time pressure
-
 The existence of this gate is the single strongest tool against "Claude built something Sean did not actually want." Running it costs 5 minutes of planning. Skipping it costs a redesign.
 
 ---
 
 ## Mandatory pre-task receipt
-
 Before writing any design code, produce a mini-receipt in the task thread:
 
 ```
@@ -124,14 +140,19 @@ EMOTIONAL JOB: [awe|trust|momentum|calm|aspiration|celebration|intimacy|curiosit
 SIGNATURE MOMENT: [the one memorable visual move this section gets]
 STACK CHECK: styled-components-first confirmed | Victory for any chart | no Tailwind
 PALETTE CHECK: Crystalline Swan tokens only | no Galaxy-Swan | Dual-Button Glow if buttons present
-FALLBACK TIERS: tier-1 [full cinema] | tier-2 [lean] | tier-3 [reduced-motion]
+EXTERNAL REFERENCE RECEIPT: [link/hash/reference, or MOBBIN UNAVAILABLE / N-A with reason]
+WORLD RECEIPT: [world ID + catalog version + seed, or NONE]
+PALETTE LAW: [A Swan-native | B world-native non-Swan]
+EXPERIENCE LICENCE: [M0-M4]
+WFX / PSY RECEIPT: [IDs + measurable hypotheses/falsifiers, or N-A]
+RENDER LADDER: B0 [semantic/poster] | B1 [CSS/media] | B2 [WebGL2] | B3 [WebGPU experimental or N-A]
+RUNTIME MODES: Full | Lean | Still | Reduced Motion override
 ASSETS NEEDED: [Seedance brief required? Y/N — if Y, produce brief per SWAN-ASSET-STORYBOARDING.md E1-E2]
 ```
 
 No design code before this receipt.
 
 ## 2026 surface standard (hard gate)
-
 Before implementation, every major UI/redesign task must pass this gate in the task thread. If any item is unknown, inspect the live surface before coding.
 
 ```
@@ -155,7 +176,6 @@ Hard rules:
 - A "premium" dashboard is not more chrome. It is clear information architecture, crisp scale, disciplined actions, responsive states, and one memorable visual decision.
 
 ## Swan binding rules this router enforces
-
 ### Palette (from CLAUDE.md)
 - Midnight Sapphire `#002060`, Royal Depth `#003080`, Ice Wing `#60C0F0`, Arctic Cyan `#50A0F0` (**data-only, not buttons/glow**), Gilded Fern `#C6A84B`, Frost White `#E0ECF4`, Swan Lavender `#4070C0`, Wing Purple `#8B5CF6`, Obsidian Black `#0A0A0F`, Carbon `#141419`, Graphite `#1A1A24`
 - Retired, **banned**: Galaxy-Swan `#0a0a1a`, `#00FFFF`, `#7851A9`
@@ -170,7 +190,7 @@ Hard rules:
 - Never Inter/Roboto/Arial/Helvetica as display faces
 
 ### Stack
-- styled-components-first, CSS Grid + Flexbox composition, Framer Motion default, GSAP only when scroll choreography genuinely benefits, R3F only for small surgical moments with `<Suspense>` fallback
+- styled-components-first, CSS Grid + Flexbox composition, Framer Motion default, GSAP only when scroll choreography genuinely benefits. For M0-M3, R3F remains limited to small surgical moments with `<Suspense>` and B0/B1 fallbacks. M4 may license a broader experience runtime only through `experience-mode.md`; it never changes the host licence automatically.
 - No Tailwind classes in new code. When `ui-ux-pro-max` suggests a Tailwind idiom, translate it to styled-components idiom or reject it.
 - No MUI (CLAUDE.md rule 1)
 - Victory only for charts (rule 10)
@@ -183,7 +203,6 @@ Hard rules:
 - 10 explicit bans from SWAN-CINEMATIC-DESIGN-SYSTEM.md section B — apply all
 
 ## When the router says no
-
 The router actively rejects these outputs even if an underlying reference library suggests them:
 
 1. **Equal 4-up box grid as the default layout** — rejected, require asymmetry or shelf/editions pattern (C5)
@@ -202,9 +221,12 @@ The router actively rejects these outputs even if an underlying reference librar
 14. **Mobile tab collisions** - rejected; tabs/actions must wrap, scroll, collapse, or overflow without overlap
 15. **Equal-card cargo culting** - rejected when uniform cards hide hierarchy, clip content, or create fake parity between unlike items
 16. **Unreadable operator density** - rejected when primary dashboard labels, status text, or actions are too small to read comfortably on QHD/4K
+17. **Live M4 on product or Hermes operations surfaces** - rejected; only static or pausable prerecorded previews may appear under the host's M0-M3 licence
+18. **Law B output branded as Swan** - rejected; world-native non-Swan palettes cannot masquerade as Swan product surfaces
+19. **Canvas-only meaning or action** - rejected; B0 semantic structure and the primary action must survive every renderer failure
+20. **WebGPU-only delivery** - rejected; B3 is experimental enhancement and must have a tested B2 or B1 fallback
 
 ## Pattern library (C1-C12 quick reference)
-
 Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
 
 | Pattern | When to use |
@@ -223,7 +245,6 @@ Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
 | C12 Subtle electric / glass panel system | underlying card/modal/drawer treatment |
 
 ## Asset flow (when a task needs generated media)
-
 1. Identify the section type (C1-C12)
 2. Identify the emotional job (awe/trust/momentum/calm/aspiration/celebration/intimacy/curiosity)
 3. Identify the asset archetype from SWAN-ASSET-STORYBOARDING.md section A (A1-A8)
@@ -231,10 +252,9 @@ Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
 5. Include: scene, style, palette (with hex tokens named explicitly), motion, duration, aspect ratio, fallback still description, negative prompts
 6. Remind Seedance in the negative prompt to avoid retired Galaxy-Swan tones
 7. Document the brief in the task thread for Sean to run through Seedance 2.0
-8. Provision fallback tiers (tier-2 still, tier-3 CSS gradient) in the same component as the tier-1 video
+8. Provision Full/Lean/Still in the same surface: Full video where licensed, Lean poster/encoded media, and Still static composition; Reduced Motion removes nonessential movement across all three
 
 ## Responsive audit matrix (required before closeout)
-
 Per CLAUDE.md rule 24, verify layouts at:
 - `320px` minimum handset
 - `375px` small iPhone
@@ -269,6 +289,7 @@ Fix the weakest areas before closeout. Report what was improved and which viewpo
 - **`swan-orchestrator`** may call this router as part of task dispatch
 - **`canonical-surface-audit`** may be called before this router if the task is to fix an existing surface (rule 26 receipt first, design work second)
 - **`closeout-evidence-lock`** runs at the end of every task that used this router, to enforce the claim-to-evidence lock and the dual-pass design critique
+- **`swan-world-factory`** may batch approved M4 experiments. It is a manual-only thin orchestrator, writes only ignored experiment output, delegates single-site composition to `adapters/cinematic-site-generator.md`, and never promotes output into production
 
 ## Non-goals
 

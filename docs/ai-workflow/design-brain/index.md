@@ -27,6 +27,17 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `components.md` | Component pattern index — purpose / anatomy / states / do–don't / C1–C12 mapping for every canonical pattern |
 | `anti-patterns.md` | The banned list with WHY per item |
 | `qa-gates.md` | Consolidated responsive + accessibility + visual QA gates with self-applicable pass/fail checks and the QA receipt format |
+| `external-reference-mcp.md` | Mobbin/Mobbin-like shipped-product reference gate; principles-only intake, never a source-of-truth override |
+| `worlds.md` | World Engine catalog: 18 immutable World DNA recipes, family manifest, palette laws, suitability-filtered seeded roulette |
+| `techniques.md` | WFX-01–WFX-13 visual-effect contracts, render ladder, maturity/dependency truth, performance/recovery/fallback law |
+| `psychology.md` | PSY-01–PSY-10 ethical `[HYPOTHESIS]` contracts, evidence posture, psychology + experiment receipts |
+| `experience-mode.md` | M4 license, inheritance, product/Hermes firewall, gate ritual, adaptive-quality and backend-loss rules |
+
+### Callable World Engine skill (manual-only)
+
+| Skill | Purpose |
+|---|---|
+| `.claude/skills/swan-world-factory/SKILL.md` | Registered T1→T2 thin batch orchestrator over `adapters/cinematic-site-generator.md`; Sean-initiated ignored experiments only, never production promotion |
 
 ### Page generators (parallel agents — CANONICAL when landed)
 

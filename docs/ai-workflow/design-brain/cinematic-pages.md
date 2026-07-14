@@ -177,8 +177,11 @@ Supervised, read-only (Operator Bridge §6: navigate/scroll/read/screenshot/cons
 | LCP | ≤2.5s (poster/first-frame path) | §11 |
 | R3F canvases | ≤1, DPR ≤2, <3ms/frame | §7 |
 | Text-over-media contrast | 4.5:1 at brightest frame | §12 |
+| M4 extended caps + product prohibition | `experience-mode.md` §§2–5; live M4 never embeds on product/Hermes surfaces | licensed exception |
 
 A build that exceeds any cap either cuts scope in the scene ledger or gets Sean's explicit written exception in the task thread — never a silent overage.
+
+**M4 loss-matrix pointer:** an eligible M4 experience must also prove B3 failure → B2, B2 failure → B1/B0, context/device loss, Full/Lean/Still, and JavaScript-disabled semantic poster behavior per `experience-mode.md`. Canvas/video may not own unique copy, navigation, CTA, legal text, or form state.
 
 ## 16. Handoff prompt templates
 

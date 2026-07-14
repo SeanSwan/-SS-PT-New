@@ -233,6 +233,6 @@ No MUI/Tailwind, no Galaxy-Swan, no equal 4-up grids, no centered-everything, no
 - **React 18 + TypeScript + styled-components.** NO MUI (rule 1), NO Tailwind for new Swan UI (source §A bans).
 - **Rule 43:** any shared style fragment with `${}` interpolation composed into a styled component MUST use the `` css`` `` tagged helper — plain template strings crash styled-components at mount (error #12).
 - **300-line file cap (rule 4):** extract styles/hooks/types when approaching. Blueprint header on components >100 lines (rule 5).
-- Grid via styled-components; tokens via `var(--token, #fallback)`; performance tiers (full/lean/reduced) per source §A in the same file.
+- Grid via styled-components; tokens via `var(--token, #fallback)`; Full/Lean/Still runtime-quality modes ship together per source §A; Reduced Motion is a separate accessibility override.
 - Charts: Victory + `chartTheme.ts`; lazy + SafeChart. Sockets/feeds: cursor pagination (gotchas).
 - `translateZ(0)` creates stacking contexts — give parents `position: relative; z-index` (gotchas).

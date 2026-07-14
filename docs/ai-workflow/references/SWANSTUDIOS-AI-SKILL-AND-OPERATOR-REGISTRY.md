@@ -37,7 +37,8 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | grill-me (rule 64) | Claude Code | T1 | repo | KEEP | Checkpoint doc must exist in `brainstorms/` per grill |
 | chromie (rule 65) | Claude Code | T1 | repo | KEEP | Only for unproven bets; output = spec + 3 failure modes + gap ranking |
 | swan-orchestrator | Claude Code | T1 | repo | KEEP | Pre-task gate artifacts (rules 15/17/26/32) present before build |
-| swan-design-router (rule 40) | Claude Code | T1 | repo | KEEP | Now loads Design Brain (`docs/ai-workflow/design-brain/`) alongside its two source docs |
+| swan-design-router (rule 40) | Claude Code | T1 | repo | KEEP | Loads Design Brain and suitability-filtered World Engine context; refuses unlicensed M4 |
+| swan-world-factory | Codex/Claude builders | T1 plan → T2 bounded ignored writes | repo/public | KEEP MANUAL ONLY | Sean supplies N/purpose/seed/budget; delegates each site to the canonical cinematic generator; worker pool ≤3; ignored experiments + receipts only; no production promotion |
 | closeout-evidence-lock (rule 41) | Claude Code | T1 | repo | KEEP | Claim-to-evidence lock; forbidden-language filter |
 | canonical-surface-audit | Claude Code | T0 | repo | KEEP | Produces rule 26–31 receipts |
 | repo-hygiene-scan | Claude Code | T0 | repo | KEEP | Non-destructive only |
@@ -88,7 +89,8 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | Design Brain bundle | Fable authors · all builders consume | T1 | CREATE → done | `docs/ai-workflow/design-brain/` — adapts, never replaces, SWAN-CINEMATIC-DESIGN-SYSTEM.md |
 | design.md / design.html enforcement | Claude Code/Codex | T1 gate | CREATE → done | design.md canonical; design.html mirrors it; update together |
 | Fable Design Brain adapter | Fable | T1 | CREATE → done | `adapters/fable.md` |
-| Website archetype codex | Fable authors | T1 | CREATE → done | 20 archetypes, one dense doc |
+| Website archetype codex | Fable authors | T1 | CREATE → done | 21 archetypes, one dense doc; #21 is the licensed Experience/World Showcase archetype |
+| World Engine catalog + M4 license | Fable authors · Codex/Claude execute | T1 doctrine / T2 ignored proof | CREATE → done | 18 World DNA recipes, WFX/PSY contracts, product/Hermes firewall, deterministic proof receipts |
 | Browser Harness visual QA | Browser Harness | T0–T1 | CREATE → done | `adapters/browser-harness-visual-qa.md` checklist + receipt |
 
 ## 9. AI Village section

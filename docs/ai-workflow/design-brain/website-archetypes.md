@@ -21,8 +21,9 @@
 | **M1** | working-surface | scroll-in reveals, hover states, state transitions; no parallax, no pinning, no video heroes |
 | **M2** | marketing | M1 + one C1 video hero OR C2 parallax + count-ups + one signature moment per page |
 | **M3** | cinematic | M2 + pinned C3 scenes, scroll-scrubbed sequences, surgical R3F accent — governed by `cinematic-pages.md` |
+| **M4** | licensed experience | Eligible non-product/approved-marketing pages only; one spatial canvas may scaffold, with B0–B3 fallbacks and `experience-mode.md` gate. Never live on product or Hermes/operator surfaces |
 
-All budgets ship the three performance tiers from the design system §A (full / lean / reduced). Chains inherit the max: one M3 section makes it an M3 page and pulls in the full `cinematic-pages.md` doctrine.
+All budgets ship Full / Lean / Still runtime-quality modes from design-system §A. Reduced Motion is a separate accessibility override that applies across all three. Chains inherit the max: one M3 section makes it an M3 page and pulls in the full `cinematic-pages.md` doctrine.
 
 ### Comparison matrix
 
@@ -48,6 +49,7 @@ All budgets ship the three performance tiers from the design system §A (full / 
 | 18 | Hermes command center (Sean-only) | operator decision speed | Dash 4-phase, Cyberforest mode | status-horizon band | M1 |
 | 19 | Coach Command Center | client logged/reviewed in fewest taps | Dash 4-phase | roster + next-best-action | M1 |
 | 20 | Swan Coach surface | proposal approved / action logged | Dash 4-phase, conversational | chat + proposal cards | M1 |
+| 21 | Experience / World Showcase | brand awe → one unique CTA | Mkt 4-act stretched | world-native semantic poster → licensed enhancement | M4 |
 
 ---
 
@@ -535,11 +537,43 @@ All budgets ship the three performance tiers from the design system §A (full / 
   - Does the tier boundary feel like a door or a wall?
   - What happens on a hallucinated/unregistered command (must render as "can't do that", never a fake success)?
 
+## 21. Experience / World Showcase site
+
+- **Use when:** the page itself must become a memorable place: a world-factory showcase, non-Swan campaign microsite, client/agency experience demo, or Sean-approved Swan brand statement. It is never a dashboard, checkout, onboarding flow, Coach surface, or Hermes Operations Center.
+- **Feel:** selected from one immutable World DNA recipe in `worlds.md`; spectacle with a proof spine. The visitor remembers the place, understands the offer, and can still act if every effect fails.
+- **Arc:** Mkt 4-act stretched up to the justified M4 ceiling. **Hero:** B0 world-native poster with live B1/B2/B3 progressive enhancement. **Motion:** M4 only after the full `experience-mode.md` ritual.
+- **Selection:** suitability-filtered seeded roulette: surface/license → audience/content fit → capability fit → recent-use diversity → family-balanced draw. The receipt records catalog version, seed, eligible/rejected worlds, chosen World ID, palette law, WFX/PSY set, and restrained comparison.
+- **Sections in order:** Act 1 threshold (world declaration + one page-level crescendo) → Act 2 proof expedition (C3/C9/C11 as appropriate; spectacle never replaces real evidence) → Act 3 transformation/participation (one optional WFX-10 moment that is always skippable) → Act 4 calm invitation (one unique conversion action, repeated at the peak and page end).
+- **Inheritance law:** live M4 on an eligible non-product host promotes the entire host to M4 for licensing, performance, accessibility, approval, and QA. A product or Hermes/operator host rejects the live module; it may display only an inert B0 poster or pausable prerecorded M2 preview. There is no “embed it to avoid the gate” loophole.
+- **Palette:** Swan-branded work always Law A. Law B is external/non-Swan only. M4 approval never grants a palette exception.
+- **Conversion goal:** one unique action (inquire, register, view collection, request demo). The same action may appear at Act 3→4 and the page end; no competing CTA wall.
+- **Trust/proof:** one hard proof spine in Act 2—real product capture, sourced metrics, accurate credentials, documented process, or consented case evidence. Psychology entries are `[HYPOTHESIS]`, never conversion guarantees.
+- **Runtime contract:** B0 semantic DOM + still is unconditional; B1 media broad path; B2 WebGL2 production spatial after dependency approval; B3 WebGPU research enhancement. A failed rung falls without reload, blank canvas, lost copy, or changed CTA. Canvas never owns unique navigation, form state, pricing, legal text, or meaning.
+- **Performance:** §M4 targets in `experience-mode.md`; visible Full/Lean/Still override; Pause Effects and Skip-to-Content/scene; offscreen/hidden pause; bounded drawing pixels/draw calls/memory; deterministic seed/time/backend in QA.
+- **Mobile:** below 768px defaults to the art-directed B0/B1 storyboard unless a real device trace proves the higher rung. CTA, pause, skip, mute, and any playable control remain 44px+, one-thumb, and outside canvas hit-testing.
+- **A11y:** reduced-motion tells the full four-act story; qualifying continuous motion has Pause/Stop; no >3 flashes in one second; keyboard never trapped in a pin/scene; informative visuals have DOM equivalents; audio begins intentionally and is never required.
+- **Components:** standard semantic DOM, `GlowButton`, `GlassPanel`, `NarrativeDivider`; optional graphics sit behind the render ladder. Product charts remain Victory-backed even if WFX-13 adds supplemental art.
+- **Anti-patterns:** WebGPU-only blankness; “every section is a signature”; 20vh scroll for a 5vh story; purple-pink cyber wallpaper; protected brand/film/game cloning; M4 as a product-surface Trojan horse; psychology used as a dark-pattern excuse.
+- **Fable brief:** "Experience site. Target/audience/action: [X]. Eligible worlds from seeded receipt: [IDs]. Deliver 2–3 directions from different families, including one restrained option. Each: World DNA, Law, 4-act scene ledger, proof spine, one crescendo, WFX maturity, PSY hypotheses, B0–B3, performance cut list, why it could be wrong."
+- **Builder brief:** "Implement Sean-approved direction [name]. Load only the chosen world/WFX/PSY sections plus experience-mode. Build B0 first, then B1, then approved B2/B3. No new dependency without its spike. Verify failure downgrade, Full/Lean/Still, reduced motion, Pause/Skip, provenance, and one unique action."
+- **Harness QA:**
+  - [ ] scroll=0 and all act-boundary captures at required viewports; first frame sells with JS disabled
+  - [ ] forced B3 failure, forced B2, B2 unavailable, B1/B0, context/device loss where simulatable
+  - [ ] 375/414/768/1440/2560×1440 smoke; finalists full Gate 1–3 matrix
+  - [ ] brightest-frame contrast, keyboard/focus, pause/skip/mute, no canvas-owned meaning
+  - [ ] frame/pixel/draw-call/memory/lazy-load/offscreen/disposal evidence
+  - [ ] manifest records catalog/seed/world/WFX/PSY/provenance/hashes/browser versions/verdict
+- **Village questions:**
+  - Does the proof spine survive if every effect is removed?
+  - Is the page one coherent world or a demo reel of unrelated tricks?
+  - What does Lean cut first, and does Lean remain a beautiful M2 page?
+  - Is any product/operator surface receiving live M4? If yes, REJECT.
+
 ---
 
 ## Closing rules
 
 1. **Arc before pixels.** No archetype ships without its B2 arc (acts or phases) written in the task thread first — `swan-design-router` enforces it.
-2. **Composition inherits.** Embedded archetypes take the host's arc position and motion budget; chains inherit the max budget AND the max command tier.
+2. **Composition inherits.** Embedded archetypes take the host's arc position and motion budget; chains inherit the max budget AND the max command tier. Live M4 on an eligible non-product host promotes the whole host to M4; product/Hermes hosts reject it and may show only flattened B0/M2 previews.
 3. **This codex applies the system.** Any conflict with `SWAN-CINEMATIC-DESIGN-SYSTEM.md` or `design.md` is a bug in THIS file — fix here, not there.
 4. **Maintenance:** a new page type that doesn't map to these 20 → propose a new entry (matrix row + section) rather than freelancing; a repeated deviation inside an archetype → update that section in the same pass as the work that revealed it.

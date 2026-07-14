@@ -32,17 +32,22 @@ companions: SWAN-ASSET-STORYBOARDING.md
 - **requestAnimationFrame** for scroll-tied parallax and scroll-scrubbed video.
 - **GSAP** allowed only when scroll choreography genuinely benefits — long scrollTrigger sequences, pinned sections with multi-step timelines, text scramble effects. Do not pull GSAP for a simple fade-in.
 - **Three.js / React Three Fiber** only for small surgical moments: hero accent, product showcase cube, geode rotation, nebula field. Never as default page scaffolding. Always behind `<Suspense>` with a graceful 2D fallback.
+- **Licensed M4 delegation (narrow):** `docs/ai-workflow/design-brain/experience-mode.md` may license one spatial canvas as scaffolding only for eligible non-product experiences or Sean-approved Swan marketing/brand work. It never applies to product, checkout, onboarding, Coach, or Hermes/operator surfaces; Swan-branded M4 remains Crystalline Swan/Law A. All M0–M3 rules in this document stay unchanged.
 
 ### Performance tiers
-Every cinematic surface ships with three tiers:
+Every cinematic surface ships with three manually selectable runtime-quality modes plus a separate accessibility override:
 
-| Tier | Conditions | What you get |
+| Mode | Conditions | What you get |
 |---|---|---|
-| **Full cinema** | desktop, normal mobile (>=4GB RAM, not `prefers-reduced-motion`), network >= 3G | video headers, parallax, Three.js accents, Framer layout tweens, full motion |
-| **Lean cinema** | low-power mobile, slow network, `save-data: on` | still hero image instead of video, CSS parallax only, no Three.js, reduced motion duration |
-| **Reduced motion** | `prefers-reduced-motion: reduce` | all motion disabled, no scroll-linked effects, static composition, tokens preserved |
+| **Full cinema** | capable device, normal network, `save-data: off` | video headers, parallax, approved spatial accents, Framer layout tweens, full licensed motion |
+| **Lean cinema** | low-power device, slow network, `save-data: on`, or adaptive downgrade | still hero image instead of video, CSS-only depth where safe, no optional 3D, shorter motion |
+| **Still** | user selection, renderer loss, or emergency fallback | semantic poster, complete copy/navigation/action/proof, no ambient runtime required |
 
-Use `useMediaQuery('(prefers-reduced-motion: reduce)')` or the styled-components `@media (prefers-reduced-motion: reduce)` query. Never ship a tier-1 experience without a tier-2 and tier-3 fallback in the same file.
+**Reduced Motion is an accessibility override, not a quality tier.** `prefers-reduced-motion: reduce` removes non-essential and scroll-linked motion at every runtime mode; it must not remove content, proof, controls, or state. Use `useMediaQuery('(prefers-reduced-motion: reduce)')` or the styled-components `@media (prefers-reduced-motion: reduce)` query.
+
+Never ship Full without Lean and Still in the same surface. For long-running or M4 effects, provide a visible persistent Full / Lean / Still control plus Pause Effects.
+
+**Naming boundary:** Full/Lean/Still are runtime-quality modes. Reduced Motion is the accessibility override. `M0–M4` in the Design Brain are motion/experience budgets, not device tiers. Any M4 page still ships all three modes and a complete semantic poster.
 
 ### Stack bans (repeat from CLAUDE.md for local clarity)
 - No Material-UI (rule 1)
