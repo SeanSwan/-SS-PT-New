@@ -21,7 +21,7 @@ import express from 'express';
 import { protect, authorize } from '../../middleware/authMiddleware.mjs';
 import { query, validationResult } from 'express-validator';
 import { Op, literal, fn, col } from 'sequelize';
-import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../../models/index.mjs';
+import { getShoppingCart, getCartItem, getStorefrontItem, getUser, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
@@ -57,6 +57,66 @@ function splitCsvList(value) {
   return value
     ? String(value).split(',').map(item => item.trim()).filter(Boolean)
     : [];
+}
+
+/**
+ * Aggregate live per-trainer stats (Dashboard batch 2026-07-13, P1-2).
+ * Replaces the hardcoded `not_tracked` null stub with real numbers from
+ * ClientTrainerAssignment (active clients), Session (completed count + avg
+ * rating), and TrainerCommission (current-month attributed gross).
+ * JS-side aggregation on purpose — grouped SQL over these mixed
+ * camelCase/snake_case models is exactly the schema-drift class Rule 58
+ * flags, and the sibling commissionRoutes.mjs already aggregates in JS.
+ * Throws on failure; the caller falls back to the legacy null stats.
+ */
+async function aggregateTrainerStats(trainerIds) {
+  const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
+  const Session = getModel('Session');
+  const TrainerCommission = getModel('TrainerCommission');
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [assignments, sessions, commissions] = await Promise.all([
+    ClientTrainerAssignment.findAll({
+      where: { trainerId: trainerIds, status: 'active' },
+      attributes: ['trainerId'],
+    }),
+    Session.findAll({
+      where: { trainerId: trainerIds, status: 'completed' },
+      attributes: ['trainerId', 'rating'],
+    }),
+    TrainerCommission.findAll({
+      // created_at key matches the sibling where-clause usage in commissionRoutes.mjs
+      where: { trainerId: trainerIds, created_at: { [Op.gte]: monthStart } },
+      attributes: ['trainerId', 'grossAmount'],
+    }),
+  ]);
+
+  const statsByTrainer = new Map();
+  const entry = (id) => {
+    if (!statsByTrainer.has(id)) {
+      statsByTrainer.set(id, { activeClients: 0, totalSessions: 0, ratingSum: 0, ratingCount: 0, monthlyRevenue: 0 });
+    }
+    return statsByTrainer.get(id);
+  };
+
+  for (const a of assignments) entry(a.trainerId).activeClients += 1;
+  for (const s of sessions) {
+    const e = entry(s.trainerId);
+    e.totalSessions += 1;
+    const rating = Number(s.rating);
+    if (Number.isFinite(rating) && rating > 0) {
+      e.ratingSum += rating;
+      e.ratingCount += 1;
+    }
+  }
+  for (const c of commissions) {
+    entry(c.trainerId).monthlyRevenue += Number(c.grossAmount) || 0;
+  }
+
+  return statsByTrainer;
 }
 
 function validateRequest(message) {
@@ -839,9 +899,23 @@ router.get('/trainers', async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // Live per-trainer stats — fail open to the legacy null stub so a
+    // missing table/column can never take down the trainer roster.
+    let statsByTrainer = null;
+    try {
+      statsByTrainer = await aggregateTrainerStats(trainers.map(t => t.id));
+    } catch (statsError) {
+      logger.warn('Trainer stats aggregation unavailable, serving not_tracked stub:', statsError.message);
+    }
+
     // Format trainers data for admin dashboard
     const formattedTrainers = trainers.map(trainer => {
       const certifications = splitCsvList(trainer.certifications);
+      const live = statsByTrainer?.get(trainer.id) ?? null;
+      const rating = live && live.ratingCount > 0
+        ? Number((live.ratingSum / live.ratingCount).toFixed(2))
+        : null;
+      const monthlyRevenue = live ? Number(live.monthlyRevenue.toFixed(2)) : null;
 
       return {
         id: trainer.id,
@@ -861,13 +935,19 @@ router.get('/trainers', async (req, res) => {
         lastActive: trainer.lastLoginAt || trainer.updatedAt,
         hourlyRate: trainer.hourlyRate,
         trainerType: trainer.trainerType,
+        // Top-level aliases: EnhancedTrainerDataManagement.tsx reads
+        // t.clientCount / t.monthlyRevenue / t.averageRating directly.
+        clientCount: live ? live.activeClients : null,
+        totalSessions: live ? live.totalSessions : null,
+        monthlyRevenue,
+        averageRating: rating,
         stats: {
-          activeClients: null,
-          totalSessions: null,
-          monthlyRevenue: null,
-          rating: null,
+          activeClients: live ? live.activeClients : null,
+          totalSessions: live ? live.totalSessions : null,
+          monthlyRevenue,
+          rating,
           completedCertifications: certifications.length,
-          source: 'not_tracked'
+          source: live ? 'live_aggregate' : 'not_tracked'
         },
         location: null,
         bio: trainer.bio || ''

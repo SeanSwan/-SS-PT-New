@@ -26,6 +26,7 @@ export const AdminAccountAccessPage = React.lazy(() => import('./Pages/admin-acc
 export const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
 export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
 export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
+export const AdminTrainerPayoutsPanel = React.lazy(() => import('./Pages/admin-payouts/AdminTrainerPayoutsPanel'));
 export const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'));
 export const ClientOnboardingWizard = React.lazy(() => import('./Pages/admin-clients/components/ClientOnboardingWizard'));
 export const ClientSelfOnboardingWizard = React.lazy(() => import('../../pages/onboarding/ClientOnboardingWizard'));
