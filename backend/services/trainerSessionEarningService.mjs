@@ -103,7 +103,9 @@ export async function accrueFlatSessionEarning({ session, transaction = null } =
         earningType: FLAT_EARNING_TYPE,
         trainerId,
         clientId,
-        packageId: 0,
+        // null, not a 0-sentinel: package_id has an FK to storefront_items
+        // and no id-0 row exists (hostile-review R3 finding 1).
+        packageId: null,
         leadSource: 'platform',
         isLoyaltyBump: false,
         sessionsGranted: 1,

@@ -361,11 +361,22 @@ router.put('/:id/complete', protect, async (req, res) => {
       });
     }
 
-    // If user is a trainer, they can only complete their own assigned sessions
-    if (userRole === 'trainer' && session.trainerId !== req.user.id) {
+    // If user is a trainer, they can only complete their own assigned sessions.
+    // Number() both sides: req.user.id arrives as a string from the JWT
+    // middleware, so strict inequality 403'd every trainer.
+    if (userRole === 'trainer' && Number(session.trainerId) !== Number(req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You can only complete sessions assigned to you'
+      });
+    }
+
+    // Re-completing an already-completed session must be a no-op: it would
+    // re-run pay accrual at the CURRENT assignment rate/mode (retro-pay).
+    if (session.status === 'completed') {
+      return res.status(409).json({
+        success: false,
+        message: 'Session is already completed'
       });
     }
 

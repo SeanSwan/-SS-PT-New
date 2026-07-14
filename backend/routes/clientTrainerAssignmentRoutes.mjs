@@ -717,7 +717,11 @@ export function parseCompensationInput({ compensationMode, flatSessionRate }, ex
 
   let rate;
   if (flatSessionRate !== undefined && flatSessionRate !== null && flatSessionRate !== '') {
-    const parsed = Number(flatSessionRate);
+    // Only accept a number or a numeric string — Number(true)===1 and
+    // Number([50])===50 would otherwise slip through.
+    const isNumericInput = typeof flatSessionRate === 'number'
+      || (typeof flatSessionRate === 'string' && flatSessionRate.trim() !== '');
+    const parsed = isNumericInput ? Number(flatSessionRate) : NaN;
     if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 10000) {
       return { error: 'flatSessionRate must be a positive dollar amount (max 10000)' };
     }
@@ -731,6 +735,33 @@ export function parseCompensationInput({ compensationMode, flatSessionRate }, ex
   }
 
   return { mode, rate };
+}
+
+/**
+ * Resolve the compensation a NEW assignment should be created with:
+ * explicit admin input wins; otherwise inherit the trainer's default.
+ * A flat default without a valid rate falls back to revenue_share so a
+ * misconfigured default can never block drag-drop assignment.
+ */
+export function resolveInheritedCompensation(compensation, trainer) {
+  if (compensation?.mode !== undefined) {
+    return { mode: compensation.mode, rate: compensation.rate ?? null };
+  }
+  const defaultRate = trainer?.defaultFlatSessionRate != null
+    ? Number(trainer.defaultFlatSessionRate)
+    : null;
+  if (
+    trainer?.defaultCompensationMode === 'per_session_flat'
+    && Number.isFinite(compensation?.rate ?? defaultRate)
+    && (compensation?.rate ?? defaultRate) > 0
+  ) {
+    return {
+      mode: 'per_session_flat',
+      rate: Math.round((compensation?.rate ?? defaultRate) * 100) / 100,
+      inherited: true,
+    };
+  }
+  return { mode: 'revenue_share', rate: compensation?.rate ?? null };
 }
 
 router.post('/', protect, adminOnly, async (req, res) => {
@@ -866,14 +897,25 @@ router.post('/', protect, adminOnly, async (req, res) => {
          VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', :compensationMode, :flatSessionRate, NOW(), NOW())
          RETURNING *`,
         {
-          replacements: {
-            clientId: parsedClientId,
-            trainerId: parsedTrainerId,
-            assignedBy,
-            notes: notes || null,
-            compensationMode: compensation.mode ?? 'revenue_share',
-            flatSessionRate: compensation.rate ?? null
-          }
+          replacements: (() => {
+            // Inherit the trainer's default when the admin didn't specify.
+            const resolved = resolveInheritedCompensation(compensation, trainer);
+            if (resolved.inherited) {
+              logger.info('[ASSIGN] Inherited trainer default compensation', {
+                trainerId: parsedTrainerId,
+                mode: resolved.mode,
+                rate: resolved.rate,
+              });
+            }
+            return {
+              clientId: parsedClientId,
+              trainerId: parsedTrainerId,
+              assignedBy,
+              notes: notes || null,
+              compensationMode: resolved.mode,
+              flatSessionRate: resolved.rate
+            };
+          })()
         }
       );
       if (!rows || rows.length === 0) {
@@ -934,6 +976,64 @@ router.post('/', protect, adminOnly, async (req, res) => {
   } catch (error) {
     logger.error('Error creating assignment:', error);
     sendInternalError(res, 'Failed to create assignment');
+  }
+});
+
+/**
+ * @route   PUT /api/assignments/trainer/:trainerId/compensation-default
+ * @desc    Set a trainer's DEFAULT compensation (inherited by new assignments)
+ * @access  Admin Only
+ * @body    { compensationMode?, flatSessionRate? }
+ */
+router.put('/trainer/:trainerId/compensation-default', protect, adminOnly, async (req, res) => {
+  try {
+    const parsedTrainerId = parsePositiveInteger(req.params.trainerId);
+    if (!parsedTrainerId) {
+      return res.status(400).json({ success: false, message: 'Trainer ID must be a positive integer' });
+    }
+
+    const User = getUser();
+    const trainer = await User.findOne({
+      where: { id: parsedTrainerId, role: { [Op.in]: ['trainer', 'admin'] } }
+    });
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: 'Trainer not found' });
+    }
+
+    const { compensationMode, flatSessionRate } = req.body;
+    // Validate against the trainer's EXISTING defaults so re-enabling flat
+    // mode with a stored rate doesn't require re-typing the rate.
+    const compensation = parseCompensationInput(
+      { compensationMode, flatSessionRate },
+      { compensationMode: trainer.defaultCompensationMode, flatSessionRate: trainer.defaultFlatSessionRate }
+    );
+    if (compensation.error) {
+      return res.status(400).json({ success: false, message: compensation.error });
+    }
+    if (compensation.mode === undefined && compensation.rate === undefined) {
+      return res.status(400).json({ success: false, message: 'Provide compensationMode and/or flatSessionRate' });
+    }
+
+    const updateData = {};
+    if (compensation.mode !== undefined) updateData.defaultCompensationMode = compensation.mode;
+    if (compensation.rate !== undefined) updateData.defaultFlatSessionRate = compensation.rate;
+    // Flat-mode-needs-a-rate is enforced by parseCompensationInput above
+    // (existing-aware), so updateData is safe to apply as-is.
+
+    await trainer.update(updateData);
+
+    logger.info(`Admin ${req.user.id} set default compensation for trainer ${parsedTrainerId}`, updateData);
+
+    res.json({
+      success: true,
+      trainerId: parsedTrainerId,
+      defaultCompensationMode: trainer.defaultCompensationMode,
+      defaultFlatSessionRate: trainer.defaultFlatSessionRate != null ? Number(trainer.defaultFlatSessionRate) : null,
+      message: 'Trainer default compensation updated'
+    });
+  } catch (error) {
+    logger.error('Error updating trainer default compensation:', error);
+    sendInternalError(res, 'Failed to update trainer default compensation');
   }
 });
 

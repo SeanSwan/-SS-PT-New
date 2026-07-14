@@ -43,8 +43,9 @@ TrainerCommission.init(
     },
     packageId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       field: 'package_id',
+      comment: 'Storefront package for purchase_share earnings; null for session_flat',
     },
     leadSource: {
       type: DataTypes.ENUM('platform', 'trainer_brought', 'resign'),

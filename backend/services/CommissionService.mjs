@@ -117,7 +117,10 @@ export async function createCommissionForPurchase({
       orderId,
       trainerId,
       clientId: userId,
-      packageId: storefrontItemId || 0,
+      // null, not a 0-sentinel: package_id has an FK to storefront_items
+      // and no id-0 row exists (a 0 insert violates the FK and the error
+      // is swallowed by the catch below — silent non-payment).
+      packageId: storefrontItemId || null,
       leadSource,
       isLoyaltyBump: commission.loyaltyBump,
       sessionsGranted,

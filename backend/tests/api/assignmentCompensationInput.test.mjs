@@ -52,6 +52,12 @@ describe('parseCompensationInput', () => {
     }
   });
 
+  it('rejects non-numeric types that Number() would coerce (true, arrays, objects)', () => {
+    for (const bad of [true, [50], { valueOf: () => 50 }]) {
+      expect(parseCompensationInput({ flatSessionRate: bad }).error).toMatch(/positive dollar amount/);
+    }
+  });
+
   it('rejects a rate update to nothing on an existing per_session_flat assignment only via mode rules', () => {
     // rate omitted + existing flat assignment keeps its rate: valid
     const r = parseCompensationInput({}, { compensationMode: 'per_session_flat', flatSessionRate: '50.00' });

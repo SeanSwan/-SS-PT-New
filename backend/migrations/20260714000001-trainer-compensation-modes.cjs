@@ -66,10 +66,18 @@ module.exports = {
     await queryInterface.removeIndex('trainer_commissions', 'idx_trainer_commissions_session_id_unique');
     await queryInterface.removeColumn('trainer_commissions', 'earning_type');
     await queryInterface.removeColumn('trainer_commissions', 'session_id');
-    await queryInterface.changeColumn('trainer_commissions', 'order_id', {
-      type: Sequelize.INTEGER,
-      allowNull: false
-    });
+    // Restore NOT NULL only when no null rows exist — otherwise down() would
+    // be permanently un-runnable once session_flat earnings accumulate.
+    await queryInterface.sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM trainer_commissions WHERE order_id IS NULL) THEN
+          ALTER TABLE trainer_commissions ALTER COLUMN order_id SET NOT NULL;
+        ELSE
+          RAISE NOTICE 'order_id has NULL rows - skipping SET NOT NULL';
+        END IF;
+      END $$;
+    `);
     await queryInterface.removeColumn('client_trainer_assignments', 'flat_session_rate');
     await queryInterface.removeColumn('client_trainer_assignments', 'compensation_mode');
     console.log('✅ Reverted trainer compensation modes');

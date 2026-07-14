@@ -545,7 +545,15 @@ const setupAssociations = async () => {
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
         PlaudClip, PlaudMergeRequest, PlaudClipMirrorJob, PlaudMergeLock,
         // Phase 5 PLAUD Auto-Ingestion via Applaud webhook (Slice 5.1)
-        PlaudWebhookNonce
+        PlaudWebhookNonce,
+        // 2026-07-14 drift repair: models below existed only in the FULL
+        // return literal; this early-return would have served a cache
+        // missing them. Keep BOTH literals in sync when adding models.
+        ChallengeSubmission, WearableData, ClientPainEntry, PainEntryCorrectiveExercise,
+        BootcampStretch, PhotoVote, Lead, LeadActivity, AiConversation,
+        ...(DailyMacroLog ? { DailyMacroLog } : {}),
+        ...(DailyHydration ? { DailyHydration } : {}),
+        ...(Subscription ? { Subscription } : {})
       };
       } // end: if (allCriticalExist) return early
     } // end: if (hasUserAssociations || ...)
@@ -1441,7 +1449,12 @@ const setupAssociations = async () => {
       FinancialTransaction,
       BusinessMetrics,
       AdminNotification,
-      
+      // Trainer pay ledger — was missing from THIS (full-setup) return while
+      // present in the early-return literal above; the omission made
+      // getModel('TrainerCommission') throw at runtime, silently disabling
+      // BOTH purchase-share commission creation and session-flat accrual.
+      TrainerCommission,
+
       // NASM Workout Tracking Models
       ClientTrainerAssignment,
       TrainerPermissions,

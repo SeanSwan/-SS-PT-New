@@ -56,6 +56,7 @@ describe('accrueFlatSessionEarning', () => {
     const row = mockCommissionModel.create.mock.calls[0][0];
     expect(row).toMatchObject({
       orderId: null,
+      packageId: null,
       sessionId: 555,
       earningType: 'session_flat',
       trainerId: 202,
