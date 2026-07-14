@@ -66,6 +66,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
   Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote,
+  UsersRound, UserCircle,
 };
 
 const getIcon = (name: string, size = 20) => {

@@ -21,7 +21,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, Dumbbell, TrendingUp, UtensilsCrossed, Shield, ClipboardCheck,
   Calendar, Users, MessageSquare, User, Award, HeartPulse,
-  ChevronRight, ChevronLeft, Menu, X, Star,
+  ChevronRight, ChevronLeft, Menu, X, Star, Brain, Trophy,
 } from 'lucide-react';
 import {
   Overlay,
@@ -63,6 +63,7 @@ export const clientNavConfig = [
     items: [
       { label: 'My Workouts', path: '/dashboard/client/workouts', icon: Dumbbell },
       { label: 'Book Session', path: '/dashboard/client/schedule', icon: Calendar },
+      { label: 'Swan Coach', path: '/dashboard/client/coach-assistant', icon: Brain },
     ],
   },
   {
@@ -76,6 +77,7 @@ export const clientNavConfig = [
     section: 'COMMUNITY',
     items: [
       { label: 'Community & Challenges', path: '/dashboard/client/community', icon: Users },
+      { label: 'Challenge Campaigns', path: '/dashboard/client/challenges', icon: Trophy },
       { label: 'Messages', path: '/dashboard/client/messages', icon: MessageSquare },
     ],
   },

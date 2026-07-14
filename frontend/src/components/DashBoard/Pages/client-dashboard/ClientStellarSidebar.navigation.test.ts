@@ -30,7 +30,9 @@ describe('ClientStellarSidebar navigation priority', () => {
       .find((group) => group.section === 'TRAIN')
       ?.items.map((item) => item.label);
 
-    expect(trainingLabels).toEqual(['My Workouts', 'Book Session']);
+    // Contract intent: workout history leads the cluster. Swan Coach was
+    // appended 2026-07-13 (dashboard audit — routable but invisible in nav).
+    expect(trainingLabels).toEqual(['My Workouts', 'Book Session', 'Swan Coach']);
   });
 
   it('keeps active client nav chrome connected to dashboard theme tokens', () => {

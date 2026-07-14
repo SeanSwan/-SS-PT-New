@@ -24,6 +24,7 @@ import {
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame,
   Zap, Home, Wrench, Wallet,
+  ScanFace, HeartPulse, Camera, Trophy, CalendarRange,
 } from 'lucide-react';
 import {
   Overlay,
@@ -74,8 +75,20 @@ export const trainerNavConfig = [
       { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
       { label: CANONICAL_SURFACES.workoutPlanner.name, path: CANONICAL_SURFACES.workoutPlanner.routes.trainer, icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
+      { label: 'Sprint Planner', path: '/dashboard/trainer/sprint-planner', icon: CalendarRange },
       { label: 'Equipment', path: '/dashboard/trainer/equipment', icon: Wrench },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
+    ],
+  },
+  {
+    // Coaching tools that were registered routes but invisible in the nav
+    // (dashboard audit 2026-07-13 — URL-only pages are dead ends).
+    section: 'TOOLKIT',
+    items: [
+      { label: 'Form Assessments', path: '/dashboard/trainer/assessments', icon: ScanFace },
+      { label: 'Pain Charts', path: '/dashboard/trainer/body-map', icon: HeartPulse },
+      { label: 'Video Assessment', path: '/dashboard/trainer/video-call', icon: Camera },
+      { label: 'Challenges', path: '/dashboard/trainer/challenges', icon: Trophy },
     ],
   },
   {

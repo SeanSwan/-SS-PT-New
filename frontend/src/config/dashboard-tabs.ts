@@ -534,6 +534,11 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'people', section: 'clients', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client hub for profiles, team actions, workout logging, plans, progress, and nutrition' },
   { id: 'waivers', section: 'clients', label: 'Waivers', icon: 'FileSignature', prefix: '/dashboard/admin/waivers', description: 'Waiver records, match approval, and manual linking' },
   { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
+  // Trainer-ops tools below were registered routes with no nav entry
+  // (dashboard audit 2026-07-13) — invisible day-to-day as the team scales.
+  { id: 'trainers', section: 'clients', label: 'Trainers', icon: 'UsersRound', prefix: '/dashboard/admin/trainer-management', description: 'Trainer roster, performance stats, and profile management' },
+  { id: 'assignments', section: 'clients', label: 'Assignments', icon: 'UserCircle', prefix: '/dashboard/admin/client-trainer-assignments', description: 'Assign clients to trainers and manage active pairings' },
+  { id: 'session-allocation', section: 'clients', label: 'Session Allocation', icon: 'CreditCard', prefix: '/dashboard/admin/session-allocation', description: 'Grant and track client session credits' },
 
   // ── TRAINING — fitness programming and health ──
   { id: 'workouts', section: 'training', label: CANONICAL_SURFACES.workoutPlanner.name, icon: 'Dumbbell', prefix: CANONICAL_SURFACES.workoutPlanner.routes.admin, description: CANONICAL_SURFACES.workoutPlanner.subtitles.admin },
@@ -556,6 +561,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
   { id: 'account-access', section: 'system', label: 'Account Access', icon: 'KeyRound', prefix: '/dashboard/admin/account-access', description: 'Log in as any client or trainer (audited); block, deactivate, reactivate, force-logout' },
   { id: 'feature-access', section: 'system', label: 'Feature Access', icon: 'Unlock', prefix: '/dashboard/admin/feature-access', description: 'Grant per-user feature flags — incl. store-prices to reveal catalog pricing for a specific client' },
+  { id: 'trainer-permissions', section: 'system', label: 'Trainer Permissions', icon: 'ShieldCheck', prefix: '/dashboard/admin/trainer-permissions', description: 'Grant/revoke granular trainer capabilities (edit workouts, schedules, analytics)' },
   { id: 'system', section: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
   { id: 'workout-design-lab', section: 'system', label: 'Workout Design Lab', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-design-lab', description: 'Explore 25 workout Worlds and 25 Style Lenses' },
   { id: 'badge-creator', section: 'system', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
