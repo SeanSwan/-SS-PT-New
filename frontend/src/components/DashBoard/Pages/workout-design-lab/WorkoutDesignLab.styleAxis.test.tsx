@@ -56,10 +56,9 @@ describe("Workout Design Lab Style axis", () => {
     mockAppearance.committedId = "quiet-meridian";
   });
 
-  it("exposes exactly 25 promoted, unique Style Lenses", () => {
-    expect(WORKOUT_DESIGN_STYLE_COUNT).toBe(25);
-    expect(WORKOUT_DESIGN_STYLE_LENSES).toHaveLength(25);
-    expect(new Set(WORKOUT_DESIGN_STYLE_LENSES.map(({ id }) => id))).toHaveLength(25);
+  it("exposes at least the 25 promoted Style Lenses, all unique (A4 count-law: floor, not pin)", () => {
+    expect(WORKOUT_DESIGN_STYLE_COUNT).toBeGreaterThanOrEqual(25);
+    expect(new Set(WORKOUT_DESIGN_STYLE_LENSES.map(({ id }) => id))).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
   });
 
   it("switches between World, Style, and Compare without duplicating the catalog", () => {
@@ -68,7 +67,7 @@ describe("Workout Design Lab Style axis", () => {
     expect(within(modes).getAllByRole("tab")).toHaveLength(3);
 
     fireEvent.click(within(modes).getByRole("tab", { name: /^style$/i }));
-    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(25);
+    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
 
     fireEvent.click(within(modes).getByRole("tab", { name: /^compare$/i }));
     const comparison = screen.getByRole("region", { name: /world and style comparison/i });
@@ -170,12 +169,15 @@ describe("Workout Design Lab Style axis", () => {
         expect(SWAN_STYLE_LENS_VISUALS[id]?.moodFamily, id).toBe(family);
       }
     }
-    // The display-order export mirrors the same table verbatim.
+    // The display-order export carries the table verbatim as row PREFIXES —
+    // A4 pipeline styles append after the original 25 within their family.
     const catalog = await import("./workoutDesignStyleCatalog");
     expect(catalog.WORKOUT_DESIGN_MOOD_FAMILY_ORDER).toEqual([
       "playful", "calm", "technical", "luxe", "atmospheric",
     ]);
-    expect(catalog.WORKOUT_DESIGN_STYLE_ROW_ORDER).toEqual(FAMILY_TABLE);
+    for (const [family, ids] of Object.entries(FAMILY_TABLE)) {
+      expect(catalog.WORKOUT_DESIGN_STYLE_ROW_ORDER[family].slice(0, ids.length)).toEqual(ids);
+    }
   });
 
   it("groups the catalog by mood family in table order, chips in row order", () => {
@@ -203,8 +205,8 @@ describe("Workout Design Lab Style axis", () => {
     fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
     const pinned = screen.getByRole("option", { name: "Current style: Quiet Meridian" });
     expect(pinned.getAttribute("aria-selected")).not.toBe("true");
-    // 25 family options exactly — the pinned duplicate never matches /style lens/i.
-    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(25);
+    // Family options exactly — the pinned duplicate never matches /style lens/i.
+    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
     // Activating the pinned instance behaves like the family instance.
     fireEvent.click(pinned);
     expect(beginPreview).toHaveBeenCalledWith(

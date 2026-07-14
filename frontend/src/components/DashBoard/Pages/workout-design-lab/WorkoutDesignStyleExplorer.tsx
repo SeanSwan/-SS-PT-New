@@ -94,12 +94,8 @@ const DetailFooterStrip = styled.footer`
 
 interface WorkoutDesignStyleExplorerProps {
   lenses: readonly StyleLensManifest[];
-  selectedId: string;
-  committedId: string;
-  phase: AppearancePhase;
-  onSelect: (id: string) => void;
-  onApply: () => Promise<void>;
-  onCancel: () => void;
+  selectedId: string; committedId: string; phase: AppearancePhase;
+  onSelect: (id: string) => void; onApply: () => Promise<void>; onCancel: () => void;
 }
 
 const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
@@ -154,10 +150,15 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
       </StylePick>
     );
   };
+  // §4.2 row order; A4 pipeline additions append at their family's end.
+  const rowIndex = (family: string, id: string) => {
+    const index = WORKOUT_DESIGN_STYLE_ROW_ORDER[family]?.indexOf(id) ?? -1;
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
   const familyChips = (family: string) =>
     lenses
       .filter(({ id }) => SWAN_STYLE_LENS_VISUALS[id]?.moodFamily === family)
-      .sort((a, b) => WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(a.id) - WORKOUT_DESIGN_STYLE_ROW_ORDER[family].indexOf(b.id))
+      .sort((a, b) => rowIndex(family, a.id) - rowIndex(family, b.id))
       .map((lens) => renderChip(lens));
 
   return (
