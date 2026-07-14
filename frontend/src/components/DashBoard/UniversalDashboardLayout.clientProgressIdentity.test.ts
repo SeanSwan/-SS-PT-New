@@ -52,7 +52,10 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
   });
 
   it('gates direct client detailed analytics links before paid charts mount', () => {
-    const source = readFileSync(routeComponentsSourcePath, 'utf8');
+    // Normalize CRLF: on autocrlf=true checkouts (fresh Windows worktrees)
+    // the file reads back with \r\n and the exact-shape lock below would
+    // false-fail. Line endings are not part of the contract.
+    const source = readFileSync(routeComponentsSourcePath, 'utf8').replace(/\r\n/g, '\n');
 
     // Tier consolidation: the Guardian gate replaced the isPro/isElite pair;
     // the intent (server-tier truth, no trial creep) is unchanged.

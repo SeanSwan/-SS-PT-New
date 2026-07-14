@@ -91,6 +91,10 @@ const EarningsLink = styled.button`
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
+/* The roster fetcher takes a structural axios shape (config?: unknown) that
+   AxiosInstance doesn't satisfy nominally — derive it, as useClientHubRoster does. */
+type HubAxios = Parameters<typeof fetchClientHubClientsStrict>[0];
+
 const TrainerMyBookCard: React.FC = () => {
   const { user, authAxios } = useAuth();
   const navigate = useNavigate();
@@ -106,7 +110,7 @@ const TrainerMyBookCard: React.FC = () => {
       return undefined;
     }
     let mounted = true;
-    const roster = fetchClientHubClientsStrict(authAxios, 'trainer', trainerId)
+    const roster = fetchClientHubClientsStrict(authAxios as unknown as HubAxios, 'trainer', trainerId)
       .then((clients) => { if (mounted) setClientCount(clients.length); })
       .catch(() => {});
     const earnings = Promise.resolve()
