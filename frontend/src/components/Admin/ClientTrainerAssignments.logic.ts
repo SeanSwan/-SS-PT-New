@@ -31,6 +31,10 @@ export const parseTrainers = (payload: any): TrainerRow[] => {
     photo: trainer.photo || null,
     maxClients: Number(trainer.maxClients || 15),
     isActive: trainer.isActive !== false,
+    defaultCompensationMode: trainer.defaultCompensationMode === 'per_session_flat' ? 'per_session_flat' : 'revenue_share',
+    defaultFlatSessionRate: trainer.defaultFlatSessionRate != null && Number.isFinite(Number(trainer.defaultFlatSessionRate))
+      ? Number(trainer.defaultFlatSessionRate)
+      : null,
   }));
 };
 

@@ -157,6 +157,10 @@ interface TrainerZonesPanelProps {
     assignmentId: number,
     changes: { compensationMode: CompensationMode; flatSessionRate?: number }
   ) => Promise<void>;
+  onTrainerDefaultSave: (
+    trainerId: number,
+    changes: { compensationMode: CompensationMode; flatSessionRate?: number }
+  ) => Promise<void>;
   onDropToTrainer: (trainerId: number, dropEvent?: DragEvent<HTMLDivElement>) => Promise<void>;
   saving: boolean;
   setDropTrainer: (trainerId: number | null) => void;
@@ -171,6 +175,7 @@ export const TrainerZonesPanel = ({
   dropTrainerId,
   handleUnassign,
   onCompensationSave,
+  onTrainerDefaultSave,
   onDropToTrainer,
   saving,
   setDropTrainer,
@@ -215,6 +220,17 @@ export const TrainerZonesPanel = ({
                 <div>
                   <div className="title">{trainer.firstName} {trainer.lastName}</div>
                   <div className="sub">{trainer.email}</div>
+                  <CompensationControl
+                    controlId={`trainer-default-${trainer.id}`}
+                    value={{
+                      compensationMode: trainer.defaultCompensationMode,
+                      flatSessionRate: trainer.defaultFlatSessionRate,
+                    }}
+                    labelPrefix="Default: "
+                    title="Default pay for NEW assignments to this trainer (existing assignments unchanged)"
+                    disabled={saving}
+                    onSave={(changes) => onTrainerDefaultSave(trainer.id, changes)}
+                  />
                 </div>
                 <Capacity $full={isFull}>{trainerAssignments.length}/{capacity}</Capacity>
               </TrainerHead>
@@ -245,9 +261,14 @@ export const TrainerZonesPanel = ({
                         {assignedClientSessionSignal.label}
                       </div>
                       <CompensationControl
-                        assignment={assignment}
+                        controlId={assignment.id}
+                        value={{
+                          compensationMode: assignment.compensationMode,
+                          flatSessionRate: assignment.flatSessionRate,
+                        }}
+                        title="Change how this trainer is paid for this client"
                         disabled={saving}
-                        onSave={onCompensationSave}
+                        onSave={(changes) => onCompensationSave(assignment.id, changes)}
                       />
                     </AssignmentItem>
                   );

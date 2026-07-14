@@ -67,7 +67,7 @@ Rules 15 (plan from audit §7.3), 17/61 (hostile pass found + fixed the in-memor
 
 ## 6. Known limitations / non-goals
 - Unlinked workout logs (no scheduled Session row) don't accrue — no sessionId anchor exists. Follow-up if employed trainers log without booking.
-- No UI yet to bulk-set a trainer-wide default rate; per-assignment only (audit suggested per-trainer fallback — deferred).
+- ~~No UI yet to bulk-set a trainer-wide default rate~~ — SHIPPED same day (see §10c): per-trainer defaults on "Users" (`defaultCompensationMode`/`defaultFlatSessionRate`, migration 20260714000003), inherited by NEW assignments only; "Default:" pill on each trainer zone header; `PUT /api/assignments/trainer/:trainerId/compensation-default`. A flat default without a valid rate falls back to revenue_share so drag-drop assignment can never 400. Existing assignments are never retro-changed by a default edit.
 - No admin alert on accrual failure (warn-log only) — audit §7.3's "alert admin" deferred.
 - `leadSource` via Stripe metadata (audit item) — not in this slice.
 - Switching a flat assignment back to rev-share keeps the stored rate (harmless; documented in code).
@@ -94,6 +94,29 @@ Rules 15 (plan from audit §7.3), 17/61 (hostile pass found + fixed the in-memor
 - Audit `packageId: 0` sentinel: if any consumer joins commissions→storefront items, 0 must not resolve to a real package.
 - Revisit deferred: admin alert on accrual failure, per-trainer default rate, unlinked-log accrual, Stripe leadSource.
 - If TrainerCommission gains new NOT NULL columns, the accrual create() must be updated (it enumerates all columns explicitly).
+
+## 10b. Post-ship recursive hostile review (2026-07-14, Sean-directed "review until zero")
+- **R1 (runtime probe):** CRITICAL — `associations.mjs` full-setup return literal omitted `TrainerCommission`; `getModel('TrainerCommission')` threw at runtime, silently disabling ALL commission creation (prod probe: **0 trainer_commissions rows ever written**). Fixed + synced the early-return literal (12 models missing there incl. Subscription/Lead/WearableData) + `associationsModelRegistryParity.test.mjs` lock.
+- **R2 (self, fresh lens):** zero findings.
+- **R3 (independent agent):** 10 findings. CONFIRMED & FIXED:
+  - F1 CRITICAL `packageId: 0` violates the NOT NULL FK to storefront_items (prod-probed) → migration `20260714000002` drops NOT NULL; service + CommissionService pass `null`; model relaxed.
+  - F6 MED-as-CRITICAL FKs referenced stale lowercase `users` — prod probe: Users ids 35/84/89/108 missing from `users`, their commissions could never insert → migration 002 repoints client_id/trainer_id FKs to `"Users"` (guarded DO-blocks so safe-migrate can't half-stamp; addresses F2's class for the new migration).
+  - F3 MED `down()` un-runnable once null order_id rows exist → conditional SET NOT NULL in 001 down + 002 down.
+  - F7 LOW trainer `!==` string/int compare 403'd every trainer on legacy /complete → Number() both sides.
+  - F10 LOW re-completing a completed session could retro-accrue at today's rate → 409 already-completed guard.
+  - F8 LOW validator accepted `true`/arrays via Number coercion → type-checked; tests added.
+  - F9 LOW earnings subtitle said "package sale" only → copy now covers per-session pay.
+- **R3 items DEFERRED as Sean-gated design calls (not defects):**
+  - F4: sweep accrues flat pay for sessions completed with NO client credits (trainer worked → gets paid was the design intent; the session row's `sessionDeducted=false` is the audit marker). Sean may prefer to withhold pay on unbilled sessions — flag to decide.
+  - F5: no reversal/void path for an earning once accrued (append-only ledger; admin can only mark paid). Needs a gated "void earning" slice if mistaken completions occur in practice.
+- **R4:** re-ran probes + full gates after fixes; zero remaining findings above the two Sean-gated design calls.
+
+## 10c. Per-trainer default compensation (same-day follow-on slice)
+- Migration `20260714000003`: `"Users"."defaultCompensationMode"` (NOT NULL, 'revenue_share') + `"defaultFlatSessionRate"` (nullable), each step existence-guarded.
+- `resolveInheritedCompensation()` (exported, 5 unit tests): explicit admin input wins → else inherit flat default when its rate is valid → else revenue_share (a misconfigured default can never 400 a drag-drop assignment).
+- `PUT /api/assignments/trainer/:trainerId/compensation-default` (adminOnly) — validates against the trainer's EXISTING defaults (re-enabling flat mode doesn't require re-typing the rate).
+- `/api/admin/finance/trainers` returns both defaults; assignment board shows a "Default:" pill per trainer zone (generalized CompensationControl; quiet trainer-only refresh after save, no board spinner).
+- Semantics: defaults affect NEW assignments only; existing assignments keep their stored mode/rate.
 
 ## 11. Review log
 - R1 (self, hostile): found (a) in-memory-status accrual defect in the settlement batch → `savedCompletedSessions`; (b) only 2 of 6 completion lanes hooked → all 6 wired; (c) TrainerCommission.orderId NOT NULL latent bug for webhook flow → relaxed in the same migration.

@@ -261,6 +261,22 @@ User.init(
       allowNull: true,
       comment: 'Trainer hourly rate'
     },
+    // Per-trainer default compensation (migration 20260714000003) — new
+    // client-trainer assignments inherit these when the admin doesn't
+    // specify compensation explicitly.
+    defaultCompensationMode: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'revenue_share',
+      validate: { isIn: [['revenue_share', 'per_session_flat']] },
+      comment: 'Compensation mode new assignments inherit for this trainer'
+    },
+    defaultFlatSessionRate: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      validate: { min: 0 },
+      comment: 'Flat $/completed-session rate inherited when mode is per_session_flat'
+    },
     trainerType: {
       type: DataTypes.STRING(20),
       allowNull: true,

@@ -57,6 +57,8 @@ export interface TrainerRow {
   photo?: string | null;
   maxClients?: number;
   isActive?: boolean;
+  defaultCompensationMode: CompensationMode;
+  defaultFlatSessionRate: number | null;
 }
 
 export interface AssignmentStats {

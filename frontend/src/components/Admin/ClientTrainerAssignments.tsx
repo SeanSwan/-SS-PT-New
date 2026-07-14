@@ -159,6 +159,20 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
     [authAxios, onAssignmentChange, refreshAssignmentsOnly]
   );
 
+  const handleTrainerDefaultSave = useCallback(
+    async (
+      trainerId: number,
+      changes: { compensationMode: 'revenue_share' | 'per_session_flat'; flatSessionRate?: number }
+    ) => {
+      // Errors propagate: CompensationControl shows them inline. Refresh
+      // trainers quietly — loadAll() would flash the full-board spinner.
+      await authAxios.put(`/api/assignments/trainer/${trainerId}/compensation-default`, changes);
+      const response = await authAxios.get('/api/admin/finance/trainers');
+      setTrainers(parseTrainers(response.data));
+    },
+    [authAxios]
+  );
+
   const handleUnassign = useCallback(
     async (assignmentId: number) => {
       if (saving) return;
@@ -264,6 +278,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
             dropTrainerId={dropTrainerId}
             handleUnassign={handleUnassign}
             onCompensationSave={handleCompensationSave}
+            onTrainerDefaultSave={handleTrainerDefaultSave}
             onDropToTrainer={onDropToTrainer}
             saving={saving}
             setDropTrainer={setDropTrainer}

@@ -905,9 +905,10 @@ router.get('/trainers', async (req, res) => {
         role: { [Op.in]: ['trainer', 'admin'] }
       },
       attributes: [
-        'id', 'firstName', 'lastName', 'email', 'phone', 'photo', 
+        'id', 'firstName', 'lastName', 'email', 'phone', 'photo',
         'specialties', 'certifications', 'bio', 'isActive', 'hourlyRate',
-        'trainerType', 'createdAt', 'updatedAt', 'lastLoginAt'
+        'trainerType', 'defaultCompensationMode', 'defaultFlatSessionRate',
+        'createdAt', 'updatedAt', 'lastLoginAt'
       ],
       order: [['createdAt', 'DESC']]
     });
@@ -948,6 +949,8 @@ router.get('/trainers', async (req, res) => {
         lastActive: trainer.lastLoginAt || trainer.updatedAt,
         hourlyRate: trainer.hourlyRate,
         trainerType: trainer.trainerType,
+        defaultCompensationMode: trainer.defaultCompensationMode === 'per_session_flat' ? 'per_session_flat' : 'revenue_share',
+        defaultFlatSessionRate: trainer.defaultFlatSessionRate != null ? Number(trainer.defaultFlatSessionRate) : null,
         // Top-level aliases: EnhancedTrainerDataManagement.tsx reads
         // t.clientCount / t.monthlyRevenue / t.averageRating directly.
         clientCount: live ? live.activeClients : null,

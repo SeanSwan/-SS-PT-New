@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { BadgeDollarSign, Check, X } from 'lucide-react';
-import type { AssignmentRow, CompensationMode } from './ClientTrainerAssignments.types';
+import type { CompensationMode } from './ClientTrainerAssignments.types';
 
 const Wrap = styled.div`
   display: flex;
@@ -103,32 +103,39 @@ const ErrorNote = styled.span`
   color: var(--danger, #f87171);
 `;
 
-export interface CompensationControlProps {
-  assignment: AssignmentRow;
-  disabled?: boolean;
-  onSave: (
-    assignmentId: number,
-    changes: { compensationMode: CompensationMode; flatSessionRate?: number }
-  ) => Promise<void>;
+export interface CompensationValue {
+  compensationMode: CompensationMode;
+  flatSessionRate: number | null;
 }
 
-export const compensationLabel = (assignment: Pick<AssignmentRow, 'compensationMode' | 'flatSessionRate'>) =>
-  assignment.compensationMode === 'per_session_flat'
-    ? `$${(assignment.flatSessionRate ?? 0).toFixed(2)}/session`
+export interface CompensationControlProps {
+  /** Unique id for testids: assignment id or `trainer-default-<id>` */
+  controlId: string | number;
+  value: CompensationValue;
+  /** Optional label prefix, e.g. "Default: " for trainer-level defaults */
+  labelPrefix?: string;
+  title?: string;
+  disabled?: boolean;
+  onSave: (changes: { compensationMode: CompensationMode; flatSessionRate?: number }) => Promise<void>;
+}
+
+export const compensationLabel = (value: CompensationValue) =>
+  value.compensationMode === 'per_session_flat'
+    ? `$${(value.flatSessionRate ?? 0).toFixed(2)}/session`
     : 'Rev-share';
 
-export const CompensationControl = ({ assignment, disabled, onSave }: CompensationControlProps) => {
+export const CompensationControl = ({ controlId, value, labelPrefix = '', title, disabled, onSave }: CompensationControlProps) => {
   const [editing, setEditing] = useState(false);
-  const [mode, setMode] = useState<CompensationMode>(assignment.compensationMode);
+  const [mode, setMode] = useState<CompensationMode>(value.compensationMode);
   const [rate, setRate] = useState(
-    assignment.flatSessionRate != null ? String(assignment.flatSessionRate) : '50'
+    value.flatSessionRate != null ? String(value.flatSessionRate) : '50'
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const openEditor = () => {
-    setMode(assignment.compensationMode);
-    setRate(assignment.flatSessionRate != null ? String(assignment.flatSessionRate) : '50');
+    setMode(value.compensationMode);
+    setRate(value.flatSessionRate != null ? String(value.flatSessionRate) : '50');
     setError(null);
     setEditing(true);
   };
@@ -142,7 +149,7 @@ export const CompensationControl = ({ assignment, disabled, onSave }: Compensati
     setSaving(true);
     setError(null);
     try {
-      await onSave(assignment.id, {
+      await onSave({
         compensationMode: mode,
         ...(mode === 'per_session_flat' ? { flatSessionRate: Math.round(parsedRate * 100) / 100 } : {}),
       });
@@ -159,21 +166,22 @@ export const CompensationControl = ({ assignment, disabled, onSave }: Compensati
       <Wrap>
         <Pill
           type="button"
-          $flat={assignment.compensationMode === 'per_session_flat'}
+          $flat={value.compensationMode === 'per_session_flat'}
           onClick={openEditor}
           disabled={disabled}
-          data-testid={`compensation-pill-${assignment.id}`}
-          title="Change how this trainer is paid for this client"
+          data-testid={`compensation-pill-${controlId}`}
+          title={title || 'Change how this trainer is paid'}
         >
           <BadgeDollarSign size={13} aria-hidden />
-          {compensationLabel(assignment)}
+          {labelPrefix}
+          {compensationLabel(value)}
         </Pill>
       </Wrap>
     );
   }
 
   return (
-    <Wrap data-testid={`compensation-editor-${assignment.id}`}>
+    <Wrap data-testid={`compensation-editor-${controlId}`}>
       <ModeButton type="button" $active={mode === 'revenue_share'} onClick={() => setMode('revenue_share')}>
         Rev-share
       </ModeButton>
@@ -197,7 +205,7 @@ export const CompensationControl = ({ assignment, disabled, onSave }: Compensati
         onClick={save}
         disabled={saving}
         aria-label="Save compensation"
-        data-testid={`compensation-save-${assignment.id}`}
+        data-testid={`compensation-save-${controlId}`}
       >
         <Check size={15} />
       </InlineIconButton>
