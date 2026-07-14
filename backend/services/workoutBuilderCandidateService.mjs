@@ -14,6 +14,10 @@ import {
   scoreExerciseForSwanCoachReadiness,
 } from './swanCoachCortexService.mjs';
 import {
+  buildExerciseFamiliarity,
+  scoreExerciseFamiliarity,
+} from './exerciseFamiliarityService.mjs';
+import {
   equipmentCategoriesFromItems,
   equipmentItemsForProfile,
   matchesEquipmentProfile,
@@ -148,12 +152,16 @@ function mediaScore(exercise) {
   return 0;
 }
 
-function scoreCandidate(exercise, { category, primaryGoal, nasmPhase, readiness }) {
+function scoreCandidate(exercise, { category, primaryGoal, nasmPhase, readiness, familiarity = null }) {
   const phase = Number.isInteger(nasmPhase) ? nasmPhase : 2;
   const phaseFit = Math.max(0, 5 - Math.abs(Number(exercise.nasmLevel || 2) - phase));
   return phaseFit
     + goalBiasScore(exercise, primaryGoal, phase)
     + scoreExerciseForSwanCoachReadiness(exercise, readiness)
+    // Familiarity-aware ranking (2026-07-14): logged-history exercises rank
+    // first; novel barbell/high-difficulty picks are penalized. 0 when the
+    // client has no history or the history lookup failed (fail-open).
+    + scoreExerciseFamiliarity(exercise, familiarity)
     + mediaScore(exercise)
     + (matchesCategory(exercise, category) ? 3 : 0);
 }
@@ -311,6 +319,8 @@ export async function generateWorkoutCandidates({
   const painFilterActive = painExclusions.length > 0;
 
   const registry = await getExerciseRegistryFromDB();
+  // Familiarity signal from real logged history (fail-open: null on error).
+  const familiarity = await buildExerciseFamiliarity(clientId, registry);
   const pool = registry.filter(exercise => (
     matchesCategory(exercise, safeCategory)
     && matchesEquipmentProfile(exercise, availableEquipmentCategories)
@@ -322,6 +332,7 @@ export async function generateWorkoutCandidates({
       primaryGoal: safeGoal,
       nasmPhase: safePhase,
       readiness,
+      familiarity,
     }) }))
     .sort((a, b) => b.score - a.score || String(a.exercise.name).localeCompare(String(b.exercise.name)))
     .slice(0, count)
@@ -330,6 +341,7 @@ export async function generateWorkoutCandidates({
       primaryGoal: safeGoal,
       nasmPhase: safePhase,
       readiness,
+      familiarity,
       equipmentFilterActive,
     }));
 

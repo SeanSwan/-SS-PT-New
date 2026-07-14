@@ -73,6 +73,12 @@ import {
   buildSwanCoachReadinessRecommendationDetail,
   scoreExerciseForSwanCoachReadiness,
 } from './swanCoachCortexService.mjs';
+import {
+  buildExerciseFamiliarity,
+  createNoveltyBudget,
+  scoreExerciseFamiliarity,
+  selectWithNoveltyCap,
+} from './exerciseFamiliarityService.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
@@ -307,7 +313,7 @@ function expandScheduleCategoryToMovementCategories(category) {
   }
 }
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null, gateReport = null) {
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null, gateReport = null, familiarity = null, noveltyBudget = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
@@ -382,12 +388,21 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
     const bReadinessScore = scoreExerciseForSwanCoachReadiness(b, swanCoachReadiness);
     if (aReadinessScore !== bReadinessScore) return bReadinessScore - aReadinessScore;
 
+    // Familiarity-aware ranking (2026-07-14): exercises the client has
+    // actually logged rank first; novel picks prefer progressions of known
+    // work and non-barbell equipment. No-history clients contribute 0-0.
+    const aFamiliarityScore = scoreExerciseFamiliarity(a, familiarity);
+    const bFamiliarityScore = scoreExerciseFamiliarity(b, familiarity);
+    if (aFamiliarityScore !== bFamiliarityScore) return bFamiliarityScore - aFamiliarityScore;
+
     const aLevelDiff = Math.abs((a.nasmLevel || 2) - targetLevel);
     const bLevelDiff = Math.abs((b.nasmLevel || 2) - targetLevel);
     return aLevelDiff - bLevelDiff;
   });
 
-  return available.slice(0, count);
+  // Soft novel-cap: familiar picks are unconstrained; novel picks consume
+  // the shared per-day budget (backfills rather than shorting the day).
+  return selectWithNoveltyCap(available, count, familiarity, noveltyBudget);
 }
 
 // ── Helper: Apply OPT parameters to exercise ─────────────────────────
@@ -561,12 +576,17 @@ export async function generateWorkout(options) {
   let selectedExercises = [];
   const qualityGateReport = [];
 
+  // Familiarity signal from real logged history (fail-open: null on error).
+  // ONE novelty budget for this generated day, shared across categories.
+  const familiarity = await buildExerciseFamiliarity(clientId, registry);
+  const noveltyBudget = createNoveltyBudget(familiarity);
+
   for (const moveCat of movementCategories) {
     const catExercises = selectExercises(
       registry, moveCat, exercisesPerCategory,
       context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
       { trainingStyleMode: trainingStyle.mode, primaryGoal },
-      qualityGateReport
+      qualityGateReport, familiarity, noveltyBudget
     );
     selectedExercises.push(...catExercises);
   }
@@ -1127,6 +1147,10 @@ export async function generatePlan(options) {
   const registry = registryOverride || (await getExerciseRegistryFromDB());
   const recentExerciseKeys = [];               // sliding window of last 7 sessions' exercises (flattened)
 
+  // Familiarity signal (2026-07-14) — built ONCE for the horizon; a fresh
+  // novelty budget is created per generated day. Fail-open: null on error.
+  const planFamiliarity = await buildExerciseFamiliarity(clientId, registry);
+
   // V3a (2026-05-03): per-day category now phase-aware. Each week's
   // mesocycle phase determines the day-type layout — Phase 1 forces
   // full-body stabilization; Phase 2-5 use the hybrid frequency rules
@@ -1198,10 +1222,12 @@ export async function generatePlan(options) {
       // contradicts the day-type's stated mobility/SMR/flexibility intent.
       const recoveryOverride = recoveryDayPrescriptionOverride(cat);
       const exerciseCount = recoveryOverride?.exerciseCount ?? 6;
+      const dayNoveltyBudget = createNoveltyBudget(planFamiliarity);
       const selected = selectExercises(
         registry, cat, exerciseCount,
         constraintsForDay, equipmentItems, phase, goalBias, swanCoachReadiness,
-        { trainingStyleMode: trainingStyle.mode, primaryGoal }
+        { trainingStyleMode: trainingStyle.mode, primaryGoal },
+        null, planFamiliarity, dayNoveltyBudget
       );
 
       // Detect rotation fallback: if pool size < 7 distinct AND any selected
