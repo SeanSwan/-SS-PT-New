@@ -151,7 +151,7 @@ export const Pill = styled.span<{ $tone: 'paid' | 'unpaid' | 'source' }>`
   color: var(--text-primary, #e0ecf4);
   background: ${({ $tone }) =>
     $tone === 'paid'
-      ? 'color-mix(in srgb, #3fae6a 30%, transparent)'
+      ? 'color-mix(in srgb, var(--success, #3fae6a) 30%, transparent)'
       : $tone === 'unpaid'
         ? 'color-mix(in srgb, var(--luxury-accent, #c6a84b) 30%, transparent)'
         : 'color-mix(in srgb, var(--accent-glow, #8b5cf6) 28%, transparent)'};

@@ -148,6 +148,25 @@ describe('AdminTrainerPayoutsPanel', () => {
     expect(screen.getByText(/was not recorded/i)).toBeInTheDocument();
   });
 
+  it('uses the none-settled wording when every selected row was already paid, and clears the notice on the next ledger open', async () => {
+    mockGet.mockImplementation((url: string) =>
+      url === '/api/commissions/summary'
+        ? Promise.resolve(summaryResponse)
+        : Promise.resolve(ledgerResponse));
+    mockPost.mockResolvedValue({ data: { success: true, updatedCount: 0 } });
+    render(<AdminTrainerPayoutsPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /toggle ledger for big owed/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /mark 2 paid · \$2,000\.00/i }));
+
+    const notice = await screen.findByRole('alert');
+    expect(notice).toHaveTextContent(/none were settled — all 2 had already been paid/i);
+
+    // Opening a ledger again is a new action — the stale notice must retire.
+    fireEvent.click(await screen.findByRole('button', { name: /toggle ledger for low owed/i }));
+    expect(screen.queryByText(/none were settled/i)).toBeNull();
+  });
+
   it('shows the honest empty state when no commissions exist', async () => {
     mockGet.mockResolvedValue({
       data: {

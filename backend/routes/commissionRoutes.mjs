@@ -202,6 +202,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
       TrainerCommission.findAll({
         where: { trainerId: parsedTrainerId },
         attributes: ['trainerCut', 'paidToTrainerAt'],
+        raw: true,
       }),
     ]);
 

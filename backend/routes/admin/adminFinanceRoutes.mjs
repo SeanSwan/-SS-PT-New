@@ -64,9 +64,11 @@ function splitCsvList(value) {
  * Replaces the hardcoded `not_tracked` null stub with real numbers from
  * ClientTrainerAssignment (active clients), Session (completed count + avg
  * rating), and TrainerCommission (current-month attributed gross).
- * JS-side aggregation on purpose — grouped SQL over these mixed
- * camelCase/snake_case models is exactly the schema-drift class Rule 58
- * flags, and the sibling commissionRoutes.mjs already aggregates in JS.
+ * Aggregation strategy: JS-side for assignments/commissions (small row
+ * counts), grouped SQL for Session (full history would hydrate thousands
+ * of rows per roster view). The grouped query stays drift-safe because
+ * Session is camelCase with NO field mappings — its attribute names ARE
+ * its column names (verified in models/Session.mjs; Rule 58).
  * Throws on failure; the caller falls back to the legacy null stats.
  */
 async function aggregateTrainerStats(trainerIds) {

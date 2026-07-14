@@ -149,13 +149,21 @@ const AdminTrainerPayoutsPanel: React.FC = () => {
     // admin means updatedCount < requestedCount, and OUR method/reference was
     // NOT recorded on the skipped rows. Say so instead of silent success.
     setSettleNotice(
-      updatedCount < requestedCount
-        ? `Settled ${updatedCount} of ${requestedCount} — the rest were already paid by someone else, so this payout method/reference was not recorded on them.`
-        : null,
+      updatedCount === 0
+        ? `None were settled — all ${requestedCount} had already been paid by someone else, so this payout method/reference was not recorded.`
+        : updatedCount < requestedCount
+          ? `Settled ${updatedCount} of ${requestedCount} — the rest were already paid by someone else, so this payout method/reference was not recorded on them.`
+          : null,
     );
     setOpenTrainerId(null);
     refetch();
   }, [refetch]);
+
+  const handleToggleTrainer = useCallback((trainerId: number) => {
+    // Opening/closing a ledger starts a new action — retire the stale notice.
+    setSettleNotice(null);
+    setOpenTrainerId((cur) => (cur === trainerId ? null : trainerId));
+  }, []);
 
   return (
     <PageWrap>
@@ -180,7 +188,7 @@ const AdminTrainerPayoutsPanel: React.FC = () => {
 
       {!loading && !error && totals && (
         <>
-          {settleNotice && <StateNote role="status">{settleNotice}</StateNote>}
+          {settleNotice && <StateNote role="alert">{settleNotice}</StateNote>}
           <TotalsGrid>
             <TotalCard $tone="unpaid">
               <TotalLabel>Unpaid to trainers</TotalLabel>
@@ -212,7 +220,7 @@ const AdminTrainerPayoutsPanel: React.FC = () => {
               <TrainerCard key={t.trainerId}>
                 <TrainerHeaderRow
                   type="button"
-                  onClick={() => setOpenTrainerId((cur) => (cur === t.trainerId ? null : t.trainerId))}
+                  onClick={() => handleToggleTrainer(t.trainerId)}
                   aria-expanded={openTrainerId === t.trainerId}
                   aria-label={`Toggle ledger for ${trainerDisplayName(t)}`}
                 >
