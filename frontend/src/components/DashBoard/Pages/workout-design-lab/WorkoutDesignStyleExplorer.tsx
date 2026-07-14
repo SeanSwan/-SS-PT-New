@@ -175,6 +175,8 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
             />
           </label>
         </PinnedSearch>
+        {/* Pinning law; outside the listbox (ARIA: option/group children only) */}
+        {!isSearching && !committedLens && <NeutralCurrentLine>Current: Swan Flagship (system)</NeutralCurrentLine>}
         <CatalogList role="listbox" aria-label="Choose a Style Lens">
           {isSearching ? (
             /* Search law: an active query REPLACES groups — flat list, no pin. */
@@ -186,10 +188,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
                   <FamilyHeader aria-hidden="true">Current</FamilyHeader>
                   <FamilyChipGrid>{renderChip(committedLens, true)}</FamilyChipGrid>
                 </FamilyGroup>
-              ) : (
-                /* Pinning law: non-catalog committed lens pins NOTHING. */
-                <NeutralCurrentLine>Current: Swan Flagship (system)</NeutralCurrentLine>
-              )}
+              ) : null}
               {WORKOUT_DESIGN_MOOD_FAMILY_ORDER.map((family) => (
                 <FamilyGroup key={family} role="group" aria-label={family.toUpperCase()}>
                   <FamilyHeader aria-hidden="true">{family}</FamilyHeader>

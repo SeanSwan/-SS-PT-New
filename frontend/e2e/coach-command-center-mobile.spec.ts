@@ -53,7 +53,7 @@ const adminUser = {
 };
 const conversation = {
   id: 301,
-  title: 'Jessee M daily workout log',
+  title: 'QA Clientone M daily workout log',
   context: 'coach_assistant',
   role: 'admin',
   status: 'active',
@@ -104,7 +104,7 @@ async function mockCoachApi(page: Page) {
       return fulfillJson(route, {
         success: true,
         data: { clients: [
-          { id: 41, firstName: 'Jessee', lastName: 'M', email: 'client@swanstudios.local', role: 'client' },
+          { id: 41, firstName: 'QA Clientone', lastName: 'M', email: 'client@swanstudios.local', role: 'client' },
           { id: 42, firstName: 'Alexandria', lastName: 'Montgomery-Swanington', email: 'long-client@swanstudios.local', role: 'client' },
         ] },
       });
@@ -150,7 +150,7 @@ test('@xr iPhone XR keeps the Talk surface and every primary control inside the 
   await expect(tabList).toBeVisible();
   await expect(page.getByRole('tab', { name: 'History' })).toBeVisible();
   await expect(page.getByLabel('Main client')).toHaveValue('41');
-  await expect(page.getByText('Jessee M daily workout log').first()).toBeVisible();
+  await expect(page.getByText('QA Clientone M daily workout log').first()).toBeVisible();
   await expect(page.getByRole('status', { name: 'Recommended coach action', exact: true })).toBeVisible();
 
   const layout = await page.evaluate(() => {
