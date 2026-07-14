@@ -30,11 +30,18 @@ const trainerDisplayName = (t: TrainerCommissionSummary): string => {
   return name || `Trainer #${t.trainerId}`;
 };
 
+const formatDate = (iso: string): string => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 interface TrainerLedgerProps {
   trainer: TrainerCommissionSummary;
   fetchLedger: (trainerId: number) => Promise<TrainerCommissionRow[]>;
   markPaid: (ids: number[], method: PayoutMethod, reference?: string) => Promise<number>;
-  onSettled: () => void;
+  onSettled: (updatedCount: number, requestedCount: number) => void;
 }
 
 const TrainerLedger: React.FC<TrainerLedgerProps> = ({ trainer, fetchLedger, markPaid, onSettled }) => {
@@ -77,8 +84,8 @@ const TrainerLedger: React.FC<TrainerLedgerProps> = ({ trainer, fetchLedger, mar
     setSettling(true);
     setSettleError(false);
     try {
-      await markPaid(Array.from(selected), method, reference.trim() || undefined);
-      onSettled();
+      const updatedCount = await markPaid(Array.from(selected), method, reference.trim() || undefined);
+      onSettled(updatedCount, selected.size);
     } catch {
       setSettleError(true);
       setSettling(false);
@@ -102,7 +109,7 @@ const TrainerLedger: React.FC<TrainerLedgerProps> = ({ trainer, fetchLedger, mar
             />
             <LedgerText>
               <strong>{row.clientName}</strong>
-              {new Date(row.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {formatDate(row.createdAt)}
               {row.sessionsGranted > 0 ? ` · ${row.sessionsGranted} sessions` : ''}
             </LedgerText>
             <LedgerMoney>{usd.format(row.trainerCut)}</LedgerMoney>
@@ -135,8 +142,17 @@ const TrainerLedger: React.FC<TrainerLedgerProps> = ({ trainer, fetchLedger, mar
 const AdminTrainerPayoutsPanel: React.FC = () => {
   const { loading, error, totals, trainers, refetch, fetchTrainerLedger, markPaid } = useAdminCommissions();
   const [openTrainerId, setOpenTrainerId] = useState<number | null>(null);
+  const [settleNotice, setSettleNotice] = useState<string | null>(null);
 
-  const handleSettled = useCallback(() => {
+  const handleSettled = useCallback((updatedCount: number, requestedCount: number) => {
+    // Backend only stamps rows still unpaid — a concurrent settle by another
+    // admin means updatedCount < requestedCount, and OUR method/reference was
+    // NOT recorded on the skipped rows. Say so instead of silent success.
+    setSettleNotice(
+      updatedCount < requestedCount
+        ? `Settled ${updatedCount} of ${requestedCount} — the rest were already paid by someone else, so this payout method/reference was not recorded on them.`
+        : null,
+    );
     setOpenTrainerId(null);
     refetch();
   }, [refetch]);
@@ -164,6 +180,7 @@ const AdminTrainerPayoutsPanel: React.FC = () => {
 
       {!loading && !error && totals && (
         <>
+          {settleNotice && <StateNote role="status">{settleNotice}</StateNote>}
           <TotalsGrid>
             <TotalCard $tone="unpaid">
               <TotalLabel>Unpaid to trainers</TotalLabel>

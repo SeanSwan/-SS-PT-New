@@ -183,11 +183,36 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const commissions = await TrainerCommission.findAll({
-      where: { trainerId: parsedTrainerId },
-      order: [['created_at', 'DESC']],
-      limit: 100,
-    });
+    // Three windows on purpose (batch 2026-07-13 hostile-review fix):
+    // - newest 100 for display history,
+    // - ALL unpaid rows (small by nature — they get settled) so an old unpaid
+    //   commission can never age out of the mark-paid ledger,
+    // - full attribute-limited set for totals so "total earned"/"unpaid"
+    //   never silently truncate at the display window.
+    const [recentRows, unpaidAllRows, totalRows] = await Promise.all([
+      TrainerCommission.findAll({
+        where: { trainerId: parsedTrainerId },
+        order: [['created_at', 'DESC']],
+        limit: 100,
+      }),
+      TrainerCommission.findAll({
+        where: { trainerId: parsedTrainerId, paidToTrainerAt: null },
+        order: [['created_at', 'DESC']],
+      }),
+      TrainerCommission.findAll({
+        where: { trainerId: parsedTrainerId },
+        attributes: ['trainerCut', 'paidToTrainerAt'],
+      }),
+    ]);
+
+    const seenIds = new Set();
+    const commissions = [...unpaidAllRows, ...recentRows]
+      .filter((c) => {
+        if (seenIds.has(c.id)) return false;
+        seenIds.add(c.id);
+        return true;
+      })
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     // Enrich with client names
     const clientIds = [...new Set(commissions.map(c => c.clientId))];
@@ -217,12 +242,16 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
       paidToTrainerAt: c.paidToTrainerAt,
       payoutMethod: c.payoutMethod,
       payoutReference: c.payoutReference,
-      createdAt: c.createdAt,
+      // Model option `createdAt: 'created_at'` RENAMES the attribute —
+      // c.createdAt is undefined; the timestamp lives on c.created_at.
+      createdAt: c.created_at,
     }));
 
-    // Calculate totals
-    const totalEarned = enriched.reduce((sum, c) => sum + c.trainerCut, 0);
-    const unpaid = enriched.filter(c => !c.paidToTrainerAt).reduce((sum, c) => sum + c.trainerCut, 0);
+    // Totals over the FULL ledger (not the display window)
+    const totalEarned = totalRows.reduce((sum, c) => sum + (parseFloat(c.trainerCut) || 0), 0);
+    const unpaid = totalRows
+      .filter(c => !c.paidToTrainerAt)
+      .reduce((sum, c) => sum + (parseFloat(c.trainerCut) || 0), 0);
 
     res.json({
       success: true,
@@ -362,7 +391,8 @@ router.get('/payout-report', protect, adminOnly, async (req, res) => {
         trainerCut: tCut,
         leadSource: c.leadSource,
         paid: !!c.paidToTrainerAt,
-        createdAt: c.createdAt,
+        // Attribute renamed by the model's `createdAt: 'created_at'` option.
+        createdAt: c.created_at,
       });
     }
 

@@ -24,7 +24,7 @@ import {
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame,
   Zap, Home, Wrench, Wallet,
-  ScanFace, HeartPulse, Camera, Trophy, CalendarRange,
+  ScanFace, HeartPulse, Camera, CalendarRange,
 } from 'lucide-react';
 import {
   Overlay,
@@ -83,12 +83,14 @@ export const trainerNavConfig = [
   {
     // Coaching tools that were registered routes but invisible in the nav
     // (dashboard audit 2026-07-13 — URL-only pages are dead ends).
+    // NOT surfaced: /challenges — its moderation queue endpoint is not
+    // assignment-scoped (returns all clients' submissions to any trainer);
+    // needs Sean's scoping ruling before it becomes a one-click surface.
     section: 'TOOLKIT',
     items: [
       { label: 'Form Assessments', path: '/dashboard/trainer/assessments', icon: ScanFace },
       { label: 'Pain Charts', path: '/dashboard/trainer/body-map', icon: HeartPulse },
       { label: 'Video Assessment', path: '/dashboard/trainer/video-call', icon: Camera },
-      { label: 'Challenges', path: '/dashboard/trainer/challenges', icon: Trophy },
     ],
   },
   {

@@ -39,7 +39,14 @@ describe('admin trainer stats truth contract', () => {
   });
 
   it('never fabricates a rating when no rated sessions exist', () => {
-    expect(source).toContain('live.ratingCount > 0');
+    expect(source).toContain('live.ratedCount > 0');
     expect(source).not.toContain('rating: 4.5');
+  });
+
+  it('aggregates sessions with a grouped query instead of hydrating full history', () => {
+    expect(source).toContain("[fn('COUNT', col('id')), 'sessionCount']");
+    expect(source).toContain("[fn('AVG', col('rating')), 'avgRating']");
+    expect(source).toContain("group: ['trainerId']");
+    expect(source).toContain('raw: true');
   });
 });

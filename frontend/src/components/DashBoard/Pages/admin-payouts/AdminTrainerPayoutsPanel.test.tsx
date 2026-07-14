@@ -47,19 +47,19 @@ const ledgerResponse = {
       {
         id: 11, orderId: 111, clientId: 7, clientName: 'Client Seven', leadSource: 'trainer_brought',
         isLoyaltyBump: false, sessionsGranted: 12, sessionsConsumed: 0, grossAmount: 2100,
-        trainerCut: 1200, businessCut: 900, commissionRateTrainer: 0.85, commissionRateBusiness: 0.15,
+        trainerCut: 1200, businessCut: 900, commissionRateTrainer: 85, commissionRateBusiness: 15,
         paidToTrainerAt: null, payoutMethod: null, payoutReference: null, createdAt: '2026-07-01T12:00:00.000Z',
       },
       {
         id: 12, orderId: 112, clientId: 8, clientName: 'Client Eight', leadSource: 'platform',
         isLoyaltyBump: false, sessionsGranted: 4, sessionsConsumed: 0, grossAmount: 1000,
-        trainerCut: 800, businessCut: 200, commissionRateTrainer: 0.65, commissionRateBusiness: 0.35,
+        trainerCut: 800, businessCut: 200, commissionRateTrainer: 65, commissionRateBusiness: 35,
         paidToTrainerAt: null, payoutMethod: null, payoutReference: null, createdAt: '2026-07-02T12:00:00.000Z',
       },
       {
         id: 13, orderId: 113, clientId: 8, clientName: 'Client Eight', leadSource: 'platform',
         isLoyaltyBump: false, sessionsGranted: 4, sessionsConsumed: 0, grossAmount: 2000,
-        trainerCut: 1600, businessCut: 400, commissionRateTrainer: 0.65, commissionRateBusiness: 0.35,
+        trainerCut: 1600, businessCut: 400, commissionRateTrainer: 65, commissionRateBusiness: 35,
         paidToTrainerAt: '2026-07-03T12:00:00.000Z', payoutMethod: 'zelle', payoutReference: null, createdAt: '2026-07-02T12:00:00.000Z',
       },
     ],
@@ -130,6 +130,22 @@ describe('AdminTrainerPayoutsPanel', () => {
       const summaryCallsAfter = mockGet.mock.calls.filter(([url]) => url === '/api/commissions/summary').length;
       expect(summaryCallsAfter).toBe(summaryCallsBefore + 1);
     });
+  });
+
+  it('reports a partial settle instead of silent success when rows were already paid', async () => {
+    mockGet.mockImplementation((url: string) =>
+      url === '/api/commissions/summary'
+        ? Promise.resolve(summaryResponse)
+        : Promise.resolve(ledgerResponse));
+    // Concurrent admin already settled one of the two selected rows.
+    mockPost.mockResolvedValue({ data: { success: true, updatedCount: 1 } });
+    render(<AdminTrainerPayoutsPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /toggle ledger for big owed/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /mark 2 paid · \$2,000\.00/i }));
+
+    expect(await screen.findByText(/settled 1 of 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/was not recorded/i)).toBeInTheDocument();
   });
 
   it('shows the honest empty state when no commissions exist', async () => {

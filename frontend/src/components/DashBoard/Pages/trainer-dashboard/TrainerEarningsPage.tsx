@@ -39,7 +39,8 @@ const formatDate = (iso: string): string => {
 };
 
 const CommissionLedgerRow: React.FC<{ row: TrainerCommissionRow }> = ({ row }) => {
-  const ratePct = Math.round((Number(row.commissionRateTrainer) || 0) * 100);
+  // commissionCalculator.mjs stores whole percentages (85, 65) — not fractions.
+  const ratePct = Math.round(Number(row.commissionRateTrainer) || 0);
   const sourceLabel = row.leadSource ? (LEAD_SOURCE_LABELS[row.leadSource] ?? row.leadSource) : null;
   return (
     <CommissionRow aria-label={`Commission for ${row.clientName}`}>

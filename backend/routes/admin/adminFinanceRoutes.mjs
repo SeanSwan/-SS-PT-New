@@ -74,18 +74,31 @@ async function aggregateTrainerStats(trainerIds) {
   const Session = getModel('Session');
   const TrainerCommission = getModel('TrainerCommission');
 
+  // Server-local (UTC on Render) month boundary — display-stat drift of a few
+  // hours vs the studio timezone is accepted; no money movement hangs off it.
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  const [assignments, sessions, commissions] = await Promise.all([
+  const [assignments, sessionStats, commissions] = await Promise.all([
     ClientTrainerAssignment.findAll({
       where: { trainerId: trainerIds, status: 'active' },
       attributes: ['trainerId'],
     }),
+    // Grouped aggregate instead of hydrating every completed session ever —
+    // the roster endpoint runs this on each load. Attribute/column names come
+    // from the model (Session is camelCase, non-underscored), so the Rule 58
+    // drift exposure is unchanged. COUNT/AVG over `rating` ignore NULLs.
     Session.findAll({
       where: { trainerId: trainerIds, status: 'completed' },
-      attributes: ['trainerId', 'rating'],
+      attributes: [
+        'trainerId',
+        [fn('COUNT', col('id')), 'sessionCount'],
+        [fn('AVG', col('rating')), 'avgRating'],
+        [fn('COUNT', col('rating')), 'ratedCount'],
+      ],
+      group: ['trainerId'],
+      raw: true,
     }),
     TrainerCommission.findAll({
       // created_at key matches the sibling where-clause usage in commissionRoutes.mjs
@@ -97,20 +110,18 @@ async function aggregateTrainerStats(trainerIds) {
   const statsByTrainer = new Map();
   const entry = (id) => {
     if (!statsByTrainer.has(id)) {
-      statsByTrainer.set(id, { activeClients: 0, totalSessions: 0, ratingSum: 0, ratingCount: 0, monthlyRevenue: 0 });
+      statsByTrainer.set(id, { activeClients: 0, totalSessions: 0, avgRating: null, ratedCount: 0, monthlyRevenue: 0 });
     }
     return statsByTrainer.get(id);
   };
 
   for (const a of assignments) entry(a.trainerId).activeClients += 1;
-  for (const s of sessions) {
+  for (const s of sessionStats) {
     const e = entry(s.trainerId);
-    e.totalSessions += 1;
-    const rating = Number(s.rating);
-    if (Number.isFinite(rating) && rating > 0) {
-      e.ratingSum += rating;
-      e.ratingCount += 1;
-    }
+    e.totalSessions = Number(s.sessionCount) || 0;
+    e.ratedCount = Number(s.ratedCount) || 0;
+    const avg = Number(s.avgRating);
+    e.avgRating = e.ratedCount > 0 && Number.isFinite(avg) ? avg : null;
   }
   for (const c of commissions) {
     entry(c.trainerId).monthlyRevenue += Number(c.grossAmount) || 0;
@@ -912,8 +923,8 @@ router.get('/trainers', async (req, res) => {
     const formattedTrainers = trainers.map(trainer => {
       const certifications = splitCsvList(trainer.certifications);
       const live = statsByTrainer?.get(trainer.id) ?? null;
-      const rating = live && live.ratingCount > 0
-        ? Number((live.ratingSum / live.ratingCount).toFixed(2))
+      const rating = live && live.ratedCount > 0 && live.avgRating !== null
+        ? Number(live.avgRating.toFixed(2))
         : null;
       const monthlyRevenue = live ? Number(live.monthlyRevenue.toFixed(2)) : null;
 

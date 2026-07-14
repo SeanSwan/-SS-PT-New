@@ -44,8 +44,11 @@ describe('sidebar route parity', () => {
     expect(labels).toContain('Form Assessments');
     expect(labels).toContain('Pain Charts');
     expect(labels).toContain('Video Assessment');
-    expect(labels).toContain('Challenges');
     expect(labels).toContain('Sprint Planner');
+    // Deliberately NOT surfaced: trainer Challenges — its moderation queue
+    // endpoint is not assignment-scoped (security review 2026-07-13);
+    // Sean's scoping ruling gates re-adding it.
+    expect(labels).not.toContain('Challenges');
   });
 
   it('surfaces the audit-flagged admin trainer-ops tools with registered routes', () => {
