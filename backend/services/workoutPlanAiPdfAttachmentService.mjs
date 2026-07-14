@@ -11,6 +11,18 @@ import logger from '../utils/logger.mjs';
 import { storeWorkoutPlanPdf } from './workoutPlanPdfStorageService.mjs';
 import { buildWorkoutPlanPdfFile } from './workoutPlanServerPdfService.mjs';
 import { sanitizeWorkoutPlanMetadataForPersistence } from './workoutPlanDataPrivacyService.mjs';
+import {
+  buildWorkoutPlanExerciseGuideLines,
+  resolveWorkoutPlanPdfBrandForClient,
+} from './workoutPlanExerciseGuideService.mjs';
+
+const buildBrandedPlanPdfFile = async ({ title, description, durationWeeks, nasmPhase, planData, clientId }) => {
+  const [brand, appendixLines] = await Promise.all([
+    resolveWorkoutPlanPdfBrandForClient(clientId),
+    buildWorkoutPlanExerciseGuideLines(planData),
+  ]);
+  return buildWorkoutPlanPdfFile({ title, description, durationWeeks, nasmPhase, planData, brand, appendixLines });
+};
 
 const firstRowId = (value) => {
   const row = Array.isArray(value) ? value.find((item) => item?.id) : value;
@@ -72,8 +84,45 @@ export async function attachGeneratedWorkoutPlanPdf({
     return sanitizeWorkoutPlanMetadataForPersistence(metadata);
   }
 
-  const file = buildWorkoutPlanPdfFile({ title, description, durationWeeks, nasmPhase, planData });
+  const file = await buildBrandedPlanPdfFile({ title, description, durationWeeks, nasmPhase, planData, clientId });
   if (!file) return sanitizeWorkoutPlanMetadataForPersistence(metadata);
 
   return persistPlanPdf({ sequelize, file, planId, clientId, trainerId, metadata });
+}
+
+/**
+ * Regenerate + replace the attached plan PDF from a WorkoutPlan model
+ * instance's CURRENT planData (planner save/update path). Non-fatal by
+ * design: a PDF failure never fails the save that triggered it.
+ */
+export async function refreshWorkoutPlanPdfAttachment({ plan, uploadedBy }) {
+  if (!plan?.id) return false;
+  try {
+    const file = await buildBrandedPlanPdfFile({
+      title: plan.title,
+      description: plan.description,
+      durationWeeks: plan.durationWeeks,
+      nasmPhase: plan.nasmPhase,
+      planData: plan.planData,
+      clientId: plan.userId,
+    });
+    if (!file) return false;
+
+    const planPdf = await storeWorkoutPlanPdf({
+      file,
+      planId: plan.id,
+      clientId: plan.userId,
+      uploadedBy: uploadedBy || plan.trainerId,
+    });
+    const nextMetadata = sanitizeWorkoutPlanMetadataForPersistence({
+      ...(plan.metadata && typeof plan.metadata === 'object' ? plan.metadata : {}),
+      planPdf,
+    });
+    await plan.update({ metadata: nextMetadata });
+    logger.info('[WorkoutPlanPdf] Refreshed attached PDF for plan %s', plan.id);
+    return true;
+  } catch (error) {
+    logger.warn('[WorkoutPlanPdf] PDF refresh failed for plan %s: %s', plan?.id, error.message);
+    return false;
+  }
 }

@@ -67,11 +67,11 @@ describe('workout planner PDF source adapter', () => {
       },
     });
 
-    expect(file?.name).toBe('SwanStudios-6mo-Plan-Client-FortyTwo.pdf');
+    expect(file?.name).toBe('MoveFitness-6mo-Plan-Client-FortyTwo.pdf');
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
       'Duration: 26 weeks',
       'Total sessions: 78',
-      'IN PARTNERSHIP WITH MOVE FITNESS',
+      'Sean Swan at Move Fitness',
       '- Progress only when tempo is consistent.',
       'Split Squat - Sets: 3 | Reps: 8-12 | Tempo: - | Rest: - | Notes: -',
     ]));
@@ -99,7 +99,7 @@ describe('workout planner PDF source adapter', () => {
       },
     });
 
-    expect(file?.name).toBe('SwanStudios-1d-Plan-Client-FortyTwo.pdf');
+    expect(file?.name).toBe('MoveFitness-1d-Plan-Client-FortyTwo.pdf');
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
       'Duration: 1 weeks',
       'Primary goal: fat_loss',

@@ -57,9 +57,10 @@ const WorkoutPlannerPage: React.FC = () => {
   const phase = useMemo(() => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1], [phaseNumber]);
   const { trainingIntensityMode, hardcoreMethod, setHardcoreMethod, handleTrainingIntensityModeChange } = useWorkoutPlannerTrainingStyleState();
 
+  const handleSwapBlocked = useCallback((text: string) => setStatusMsg({ type: 'error', text }), []);
   const {
     selectedExercise,
-    setSelectedExercise,
+    setSelectedExercise, swapTarget, beginSwap, cancelSwap,
     filteredExerciseCount,
     activeFilterCount,
     exercisesLoading,
@@ -77,7 +78,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setEquipmentFilter,
     setImpactFilter,
     clearSearchForBrowse, clearRolodexFilters,
-  } = useWorkoutPlannerRolodexState({ phase, setPlanExercises });
+  } = useWorkoutPlannerRolodexState({ phase, planExercises, setPlanExercises, onSwapBlocked: handleSwapBlocked });
 
   const {
     loadedPlanId,
@@ -286,7 +287,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
     onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onCreatePdf: handleCreateBuilderPdf, onSelectExercise: setSelectedExercise,
-    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
+    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise, swapTarget, onBeginSwap: beginSwap, onCancelSwap: cancelSwap,
     onToggleExplanations: handleToggleExplanations, onSelectGuidedCandidate: handleSelectGuidedCandidate,
     onClearGuidedCandidates: clearGuidedCandidates, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename, onPlansChanged: () => { void fetchSavedPlans(selectedClientId); },

@@ -42,6 +42,7 @@ import { buildClientTrainingOverview } from '../services/clientTrainingReadModel
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
+import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAttachmentService.mjs';
 import {
   normalizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
@@ -420,6 +421,10 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
     logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
       plan.id, userId, req.user.id);
 
+    // Keep the attached client-facing PDF in lockstep with planData
+    // (brand-aware + exercise-guide appendix). Non-fatal on failure.
+    await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
+
     res.status(201).json({ success: true, plan });
   } catch (error) {
     logger.error('[WorkoutPlan] POST / error: %s', error.message);
@@ -475,6 +480,12 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     await plan.update(updates);
 
     logger.info('[WorkoutPlan] Updated plan #%d by user %d', plan.id, req.user.id);
+
+    // Content changed → regenerate the attached PDF so it always mirrors the
+    // latest applied plan (swaps included). Non-fatal on failure.
+    if (updates.planData !== undefined || updates.title !== undefined) {
+      await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
+    }
 
     res.json({ success: true, plan });
   } catch (error) {

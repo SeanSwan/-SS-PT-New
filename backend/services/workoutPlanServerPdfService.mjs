@@ -21,12 +21,17 @@ export function buildWorkoutPlanPdfFile({
   durationWeeks = 4,
   nasmPhase = null,
   planData = null,
+  brand = null,
+  appendixLines = null,
 } = {}) {
-  const lines = buildWorkoutPlanPdfLines({ title, description, durationWeeks, nasmPhase, planData });
+  const lines = buildWorkoutPlanPdfLines({
+    title, description, durationWeeks, nasmPhase, planData,
+    brandWordmark: brand?.wordmark, appendixLines,
+  });
   if (!lines) return null;
 
-  const buffer = buildWorkoutPlanPdfBuffer(lines);
-  const originalname = `SwanStudios-Workout-Plan-${safeWorkoutPlanPdfFilenamePart(title)}.pdf`;
+  const buffer = brand ? buildWorkoutPlanPdfBuffer(lines, brand) : buildWorkoutPlanPdfBuffer(lines);
+  const originalname = `${brand?.filenamePrefix || 'SwanStudios'}-Workout-Plan-${safeWorkoutPlanPdfFilenamePart(title)}.pdf`;
   return {
     originalname,
     mimetype: PDF_CONTENT_TYPE,

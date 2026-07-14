@@ -7,6 +7,7 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
+import type { RolodexSwapTarget } from './useWorkoutPlannerRolodexState';
 import type {
   SwanCoachGenerationMode,
   WorkoutGuidedCandidateExercise,
@@ -52,9 +53,12 @@ interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   onUpdateAndActivate: () => void;
   onDuplicateLoadedPlan: () => void;
   onCreatePdf: () => void;
+  swapTarget: RolodexSwapTarget | null;
   onSelectExercise: (exercise: ExerciseSlim) => void;
   onUpdateExercise: (id: string, field: keyof PlanExercise, value: unknown) => void;
   onRemoveExercise: (id: string) => void;
+  onBeginSwap: (rowId: string, exerciseName: string) => void;
+  onCancelSwap: () => void;
   onBrowseAddExercise: () => void;
   onSelectGuidedCandidate: (candidate: WorkoutGuidedCandidateExercise) => void;
   onClearGuidedCandidates: () => void;
@@ -87,9 +91,12 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onUpdateAndActivate,
   onDuplicateLoadedPlan,
   onCreatePdf,
+  swapTarget,
   onSelectExercise,
   onUpdateExercise,
   onRemoveExercise,
+  onBeginSwap,
+  onCancelSwap,
   onBrowseAddExercise,
   onSelectGuidedCandidate,
   onClearGuidedCandidates,
@@ -147,9 +154,12 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
             <BuilderWorkoutContent
               generating={generating}
               planExercises={planExercises}
+              swapTarget={swapTarget}
               onSelectExercise={onSelectExercise}
               onUpdateExercise={onUpdateExercise}
               onRemoveExercise={onRemoveExercise}
+              onBeginSwap={onBeginSwap}
+              onCancelSwap={onCancelSwap}
             />
             <BuilderAddExerciseAction
               planExercises={planExercises}

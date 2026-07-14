@@ -118,10 +118,10 @@ const planSummary = ({ planData, durationWeeks, nasmPhase }) => {
   };
 };
 
-const addSummaryLines = (lines, { title, description, summary }) => {
-  lines.push({ text: 'SwanStudios Workout Plan', kind: 'title' });
+const addSummaryLines = (lines, { title, description, summary, brandWordmark }) => {
+  lines.push({ text: `${brandWordmark || 'SwanStudios'} Workout Plan`, kind: 'title' });
   lines.push({ text: clientSafeText(title, 'Training Plan', 255) || 'Training Plan', kind: 'subtitle' });
-  lines.push({ text: 'Generated from the saved Swan Coach workout-plan payload.', kind: 'meta' });
+  lines.push({ text: 'Generated from the saved coach workout-plan payload.', kind: 'meta' });
   lines.push({ text: 'Plan Summary', kind: 'section' });
   lines.push({ text: `Duration: ${summary.durationWeeks} weeks`, kind: 'metric' });
   lines.push({ text: `Sessions per week: ${summary.sessionsPerWeek}`, kind: 'metric' });
@@ -162,14 +162,15 @@ const addWeek = (lines, week, weekIndex) => {
   weekTrainingDays(rawWeek).forEach((day, dayIndex) => addDay(lines, day, dayIndex));
 };
 
-export const buildWorkoutPlanPdfLines = ({ title, description, durationWeeks, nasmPhase, planData }) => {
+export const buildWorkoutPlanPdfLines = ({ title, description, durationWeeks, nasmPhase, planData, brandWordmark, appendixLines }) => {
   const summary = planSummary({ planData, durationWeeks, nasmPhase });
   if (summary.weeks.length === 0) return null;
 
   const lines = [];
-  addSummaryLines(lines, { title, description, summary });
+  addSummaryLines(lines, { title, description, summary, brandWordmark });
   addRecommendations(lines, summary.recommendations);
   lines.push({ text: 'Weekly Plan', kind: 'section' });
   summary.weeks.forEach((week, weekIndex) => addWeek(lines, week, weekIndex));
+  if (Array.isArray(appendixLines) && appendixLines.length) lines.push(...appendixLines);
   return lines;
 };

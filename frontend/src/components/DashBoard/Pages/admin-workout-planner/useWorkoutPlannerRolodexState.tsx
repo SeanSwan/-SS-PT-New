@@ -13,14 +13,32 @@ import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 
 interface UseWorkoutPlannerRolodexStateArgs {
   phase: OPTPhaseParams;
+  planExercises: PlanExercise[];
   setPlanExercises: React.Dispatch<React.SetStateAction<PlanExercise[]>>;
+  onSwapBlocked?: (message: string) => void;
+}
+
+export interface RolodexSwapTarget {
+  rowId: string;
+  exerciseName: string;
 }
 
 export function useWorkoutPlannerRolodexState({
   phase,
+  planExercises,
   setPlanExercises,
+  onSwapBlocked,
 }: UseWorkoutPlannerRolodexStateArgs) {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseSlim | null>(null);
+  const [swapTarget, setSwapTarget] = useState<RolodexSwapTarget | null>(null);
+
+  // Swap mode only survives while its target row still exists — a regenerate,
+  // plan load, or client change that rebuilds the list clears the banner.
+  React.useEffect(() => {
+    if (swapTarget && !planExercises.some(planExercise => planExercise.id === swapTarget.rowId)) {
+      setSwapTarget(null);
+    }
+  }, [planExercises, swapTarget]);
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [impactFilter, setImpactFilter] = useState<string | null>(null);
@@ -91,7 +109,49 @@ export function useWorkoutPlannerRolodexState({
     impactFilter,
   ]);
 
+  const beginSwap = useCallback((rowId: string, exerciseName: string) => {
+    setSwapTarget({ rowId, exerciseName });
+  }, []);
+
+  const cancelSwap = useCallback(() => setSwapTarget(null), []);
+
   const addExercise = useCallback((exercise: ExerciseSlim) => {
+    // Swap mode: the next Rolodex pick replaces the targeted builder row's
+    // movement while keeping its programming (sets/reps/tempo/rest/intensity).
+    if (swapTarget) {
+      let blocked = false;
+      let targetMissing = false;
+      setPlanExercises(prev => {
+        if (!prev.some(planExercise => planExercise.id === swapTarget.rowId)) {
+          // Target row was removed while swap mode was active — fall through
+          // to a normal add outside this updater.
+          targetMissing = true;
+          return prev;
+        }
+        const duplicate = prev.some(planExercise =>
+          planExercise.exerciseSlim.id === exercise.id && planExercise.id !== swapTarget.rowId);
+        if (duplicate) {
+          blocked = true;
+          return prev;
+        }
+        return prev.map(planExercise => (
+          planExercise.id === swapTarget.rowId
+            ? { ...planExercise, exerciseSlim: exercise }
+            : planExercise
+        ));
+      });
+      if (blocked) {
+        onSwapBlocked?.(`${exercise.name} is already in this workout — pick a different replacement.`);
+        return;
+      }
+      setSwapTarget(null);
+      if (!targetMissing) {
+        setSelectedExercise(exercise);
+        return;
+      }
+      // targetMissing: fall through to a normal append below.
+    }
+
     setPlanExercises(prev => {
       if (prev.some(planExercise => planExercise.exerciseSlim.id === exercise.id)) return prev;
       const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
@@ -112,7 +172,7 @@ export function useWorkoutPlannerRolodexState({
       }];
     });
     setSelectedExercise(exercise);
-  }, [phase, setPlanExercises]);
+  }, [phase, setPlanExercises, swapTarget, onSwapBlocked]);
 
   const exerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const exercise = filteredExercises[index];
@@ -150,6 +210,9 @@ export function useWorkoutPlannerRolodexState({
   return {
     selectedExercise,
     setSelectedExercise,
+    swapTarget,
+    beginSwap,
+    cancelSwap,
     filteredExerciseCount: filteredExercises.length,
     activeFilterCount,
     exercisesLoading,

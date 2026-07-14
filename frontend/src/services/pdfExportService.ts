@@ -82,7 +82,7 @@ function addFooter(doc: jsPDF, pageNum: number, totalPages: number, brand: Brand
   doc.setTextColor(...BRAND.textMuted);
   doc.text(brand.footerCredit, 14, pageH - 5);
   doc.text(`Page ${pageNum} of ${totalPages}`, pageW - 14, pageH - 5, { align: 'right' });
-  doc.text(format(new Date(), 'MMM d, yyyy h:mm a'), pageW / 2, pageH - 5, { align: 'center' });
+  // Sean 2026-07-14: no date/time stamp on client-facing docs.
 }
 
 function addSectionTitle(doc: jsPDF, y: number, title: string): number {
@@ -880,6 +880,44 @@ const addPopulatedPlanWeeks = (doc: jsPDF, y: number, plan: PDFPopulatedPlan): n
   );
 };
 
+// Exercise Guide appendix (Sean 2026-07-14): every unique movement in the
+// plan with the best YouTube search phrase to learn it, until the Swan
+// video library covers them all. The server-attached PDF adds full how-to
+// steps + cues from the Exercise DB; this client-side render carries the
+// name + search line so preview and download always include the guide.
+const addPopulatedPlanExerciseGuide = (doc: jsPDF, y: number, plan: PDFPopulatedPlan): number => {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  (plan.weeks || []).forEach((week) => {
+    pickFirstNonEmpty(week.days, week.sessions).forEach((day) => {
+      (Array.isArray(day.exercises) ? day.exercises : []).forEach((exercise) => {
+        const name = (exercise.exerciseName || exercise.name || '').trim();
+        const key = name.toLowerCase();
+        if (!name || seen.has(key)) return;
+        seen.add(key);
+        names.push(name);
+      });
+    });
+  });
+  if (names.length === 0) return y;
+
+  let nextY = checkPageBreak(doc, y, 16);
+  nextY = addSectionTitle(doc, nextY, 'Exercise Guide - Learn Each Movement');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...BRAND.textDark);
+  names.slice(0, 60).forEach((name) => {
+    nextY = checkPageBreak(doc, nextY, 6);
+    const lines = doc.splitTextToSize(
+      `${name} - YouTube search: "${name} exercise proper form tutorial"`,
+      doc.internal.pageSize.getWidth() - 36,
+    );
+    doc.text(lines, 18, nextY);
+    nextY += lines.length * 4 + 1;
+  });
+  return nextY;
+};
+
 const buildPopulatedPlanFilename = (
   horizonToken: string,
   clientName?: string,
@@ -908,7 +946,8 @@ const buildPopulatedPlanDoc = (
   y = addPopulatedPlanSummary(doc, y, plan, horizon);
   y = addPopulatedPlanMesocycles(doc, y, plan);
   y = addPopulatedPlanRecommendations(doc, y, plan, brand);
-  addPopulatedPlanWeeks(doc, y, plan);
+  y = addPopulatedPlanWeeks(doc, y, plan);
+  addPopulatedPlanExerciseGuide(doc, y, plan);
   return { doc, filename: buildPopulatedPlanFilename(horizon.token, clientName, brand), brand };
 };
 

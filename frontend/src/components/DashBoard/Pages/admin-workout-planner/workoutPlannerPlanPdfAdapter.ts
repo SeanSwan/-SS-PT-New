@@ -6,8 +6,8 @@
  * stale UI preview snapshot.
  */
 import type { jsPDF as PdfDoc } from 'jspdf';
-import { normalizeClientSource } from '../../../../utils/clientSource';
 import { workoutPlanHorizonForKey } from '../../../../utils/workoutPlanHorizonTokens';
+import { resolveBrandIdentity, type BrandIdentity } from '../../../../services/pdf/brandIdentity';
 import {
   SWAN_PDF_BRAND as BRAND,
   addBrandFooter,
@@ -27,15 +27,14 @@ import {
 } from './workoutPlannerPlanPdfData';
 import { renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
 
-const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string, clientSource?: string) => {
+const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string, brand: BrandIdentity) => {
   const pageW = doc.internal.pageSize.getWidth();
+  // Brand-resolved header/footer: Move Fitness clients see "Sean Swan at
+  // Move Fitness" and zero SwanStudios marks (white-label, Sean 2026-07-14).
   let y = addBrandHeader(doc, {
     docLabel: 'WORKOUT PLAN PDF',
     metaLine: clientName,
-    accentLine: normalizeClientSource(clientSource) === 'move_fitness'
-      ? 'IN PARTNERSHIP WITH MOVE FITNESS'
-      : undefined,
-  });
+  }, brand);
 
   y = addSectionTitle(doc, 'Plan Summary', y);
   doc.setFont('helvetica', 'normal');
@@ -103,7 +102,36 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
     });
   });
 
-  addBrandFooter(doc);
+  // Exercise Guide appendix: every unique movement + the best YouTube search
+  // to learn it, until the SwanStudios video library covers them all. The
+  // richer per-exercise how-to (steps + cues + hosted video) rides the
+  // server-generated attached PDF, which has Exercise-DB access.
+  const uniqueNames: string[] = [];
+  const seen = new Set<string>();
+  plan.weeks.forEach((week) => {
+    ((week.days?.length ? week.days : week.sessions) || []).forEach((day) => {
+      (Array.isArray(day.exercises) ? day.exercises : []).forEach((exercise) => {
+        const name = getExerciseName(exercise);
+        const key = name.toLowerCase();
+        if (!name || seen.has(key)) return;
+        seen.add(key);
+        uniqueNames.push(name);
+      });
+    });
+  });
+  if (uniqueNames.length > 0) {
+    y += 2;
+    y = addSectionTitle(doc, 'Exercise Guide - Learn Each Movement', y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...BRAND.ink);
+    uniqueNames.slice(0, 60).forEach((name) => {
+      y = addPageIfNeeded(doc, y, 9);
+      y = addWrappedText(doc, `${name} - YouTube search: "${name} exercise proper form tutorial"`, 18, y, pageW - 36, 4.5);
+    });
+  }
+
+  addBrandFooter(doc, brand);
   return doc.output('blob');
 };
 
@@ -123,9 +151,10 @@ export const buildPlanPdfFileFromPlanData = async ({
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const clientName = getClientDisplayName(selectedClient);
-  const blob = renderPlanPdfBlob(doc, pdfPlan, clientName, selectedClient?.clientSource);
+  const brand = resolveBrandIdentity(selectedClient?.clientSource);
+  const blob = renderPlanPdfBlob(doc, pdfPlan, clientName, brand);
   const horizonToken = workoutPlanHorizonForKey(horizonKey, pdfPlan.planSummary.durationWeeks).token;
-  const filename = `SwanStudios-${horizonToken}-Plan-${safeFilenamePart(clientName)}.pdf`;
+  const filename = `${brand.filenamePrefix}-${horizonToken}-Plan-${safeFilenamePart(clientName)}.pdf`;
 
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });
 };

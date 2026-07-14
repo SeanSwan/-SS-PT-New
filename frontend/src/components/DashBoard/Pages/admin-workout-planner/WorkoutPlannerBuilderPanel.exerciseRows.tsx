@@ -6,9 +6,10 @@
  */
 
 import React from 'react';
-import { Plus, X } from 'lucide-react';
+import { ArrowLeftRight, Plus, X } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import type { PlanExercise } from './WorkoutPlannerTypes';
+import type { RolodexSwapTarget } from './useWorkoutPlannerRolodexState';
 import {
   ActionBtn,
   BuilderRow,
@@ -22,6 +23,9 @@ import {
   RemoveBtn,
   SkeletonBar,
   SkeletonCircle,
+  SwapBtn,
+  SwapCancelBtn,
+  SwapModeBanner,
 } from './WorkoutPlannerStyles';
 import {
   BuilderActionRow,
@@ -60,9 +64,11 @@ type ExerciseUpdateHandler = (id: string, field: keyof PlanExercise, value: unkn
 interface BuilderExerciseRowProps {
   planExercise: PlanExercise;
   index: number;
+  isSwapTarget: boolean;
   onSelectExercise: (exercise: ExerciseSlim) => void;
   onUpdateExercise: ExerciseUpdateHandler;
   onRemoveExercise: (id: string) => void;
+  onBeginSwap: (rowId: string, exerciseName: string) => void;
 }
 
 const exerciseMeta = (planExercise: PlanExercise) => (
@@ -73,14 +79,16 @@ const exerciseMeta = (planExercise: PlanExercise) => (
 const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
   planExercise,
   index,
+  isSwapTarget,
   onSelectExercise,
   onUpdateExercise,
   onRemoveExercise,
+  onBeginSwap,
 }) => {
   const exerciseDisplayName = formatWorkoutPlannerExerciseName(planExercise.exerciseSlim.name);
 
   return (
-    <BuilderRow key={planExercise.id}>
+    <BuilderRow key={planExercise.id} aria-current={isSwapTarget ? 'true' : undefined}>
       <BuilderRowNumber>{index + 1}</BuilderRowNumber>
       <BuilderRowInfo>
         <ClickableExerciseName onClick={() => onSelectExercise(planExercise.exerciseSlim)}>
@@ -124,6 +132,14 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
           />
         </ParamField>
       </BuilderParamGroup>
+      <SwapBtn
+        onClick={() => onBeginSwap(planExercise.id, exerciseDisplayName)}
+        aria-label={`Swap ${exerciseDisplayName} for another exercise`}
+        aria-pressed={isSwapTarget}
+        title="Swap this exercise"
+      >
+        <ArrowLeftRight size={14} />
+      </SwapBtn>
       <RemoveBtn
         onClick={() => onRemoveExercise(planExercise.id)}
         aria-label={`Remove ${exerciseDisplayName}`}
@@ -137,17 +153,23 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
 interface BuilderWorkoutContentProps {
   generating: boolean;
   planExercises: PlanExercise[];
+  swapTarget: RolodexSwapTarget | null;
   onSelectExercise: (exercise: ExerciseSlim) => void;
   onUpdateExercise: ExerciseUpdateHandler;
   onRemoveExercise: (id: string) => void;
+  onBeginSwap: (rowId: string, exerciseName: string) => void;
+  onCancelSwap: () => void;
 }
 
 export const BuilderWorkoutContent: React.FC<BuilderWorkoutContentProps> = ({
   generating,
   planExercises,
+  swapTarget,
   onSelectExercise,
   onUpdateExercise,
   onRemoveExercise,
+  onBeginSwap,
+  onCancelSwap,
 }) => {
   if (generating) return <GeneratingWorkoutState />;
   if (planExercises.length === 0) {
@@ -160,14 +182,24 @@ export const BuilderWorkoutContent: React.FC<BuilderWorkoutContentProps> = ({
 
   return (
     <>
+      {swapTarget && (
+        <SwapModeBanner role="status" aria-live="polite">
+          <span>
+            Swapping <strong>{swapTarget.exerciseName}</strong> — pick its replacement from the Exercise Rolodex.
+          </span>
+          <SwapCancelBtn onClick={onCancelSwap}>Cancel swap</SwapCancelBtn>
+        </SwapModeBanner>
+      )}
       {planExercises.map((planExercise, index) => (
         <BuilderExerciseRow
           key={planExercise.id}
           planExercise={planExercise}
           index={index}
+          isSwapTarget={swapTarget?.rowId === planExercise.id}
           onSelectExercise={onSelectExercise}
           onUpdateExercise={onUpdateExercise}
           onRemoveExercise={onRemoveExercise}
+          onBeginSwap={onBeginSwap}
         />
       ))}
     </>

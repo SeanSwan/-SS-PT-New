@@ -94,6 +94,49 @@ export const RemoveBtn = styled.button`
   }
 `;
 
+export const SwapBtn = styled(RemoveBtn)`
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  color: var(--accent-primary, #60C0F0);
+
+  &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent); }
+  &[aria-pressed='true'] {
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
+    color: var(--accent-secondary, #8B5CF6);
+  }
+`;
+
+export const SwapModeBanner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.8rem;
+`;
+
+export const SwapCancelBtn = styled.button`
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
+  background: var(--bg-elevated, #141419);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover { border-color: var(--accent-primary, #60C0F0); }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: OPT Phase Badge
 // ─────────────────────────────────────────────────────────────
