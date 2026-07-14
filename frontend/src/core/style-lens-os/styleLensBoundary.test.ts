@@ -25,8 +25,10 @@ describe('Style Lens OS dependency boundary', () => {
       expect(source, label).not.toMatch(
         /SwanStudios|Crystalline Swan|Dual-Button|components\/DashBoard|style-lenses\/swanstudios|routes\//,
       );
+      // A-PACK A5 (boundary law 2): core imports NOTHING from adapters/ —
+      // this pattern was the gap; the walker itself already visits every file.
       expect(source, label).not.toMatch(
-        /from ['"][^'"]*(?:components|routes|style-lenses\/swanstudios)/,
+        /from ['"][^'"]*(?:components|routes|adapters|style-lenses\/swanstudios)/,
       );
     }
   });

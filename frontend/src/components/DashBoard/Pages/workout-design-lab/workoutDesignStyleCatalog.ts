@@ -16,3 +16,22 @@ export const WORKOUT_DESIGN_STYLE_LENSES: readonly StyleLensManifest[] =
 
 export const WORKOUT_DESIGN_STYLE_COUNT =
   WORKOUT_DESIGN_STYLE_LENSES.length;
+
+/**
+ * Lab v6 catalog DISPLAY order (A-PACK §4.2, verbatim — never re-decide).
+ * Ordering data only; the lens->family mapping lives on the visuals receipt
+ * (moodFamily). Manifest order above stays untouched.
+ */
+export const WORKOUT_DESIGN_MOOD_FAMILY_ORDER = Object.freeze([
+  "playful", "calm", "technical", "luxe", "atmospheric",
+] as const);
+
+export const WORKOUT_DESIGN_STYLE_ROW_ORDER: Readonly<
+  Record<string, readonly string[]>
+> = Object.freeze({
+  playful: ["candy-glass-arcade", "kinetic-kanban", "signal-garden", "tempo-forge", "orbit-atlas", "modular-harbor", "kintsugi-circuit"],
+  calm: ["quiet-meridian", "recovery-cloister", "monastic-grid", "lunar-stack"],
+  technical: ["prism-terminal", "blueprint-fold", "analog-flight-recorder", "chronograph-board", "terrain-console", "coach-ledger"],
+  luxe: ["crystalline-cathedral", "carbon-atelier", "meridian-magazine", "glass-rail"],
+  atmospheric: ["aurora-index", "tidal-columns", "split-horizon", "cedar-workshop"],
+});

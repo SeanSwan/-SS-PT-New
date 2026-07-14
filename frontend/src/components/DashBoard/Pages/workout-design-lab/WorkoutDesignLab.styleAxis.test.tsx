@@ -13,6 +13,7 @@ import {
 const beginPreview = vi.fn();
 const cancelPreview = vi.fn();
 const commitPreview = vi.fn(async () => true);
+const mockAppearance = vi.hoisted(() => ({ committedId: "quiet-meridian" }));
 
 vi.mock("../../../../core/style-lens-os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../../core/style-lens-os")>();
@@ -24,7 +25,7 @@ vi.mock("../../../../core/style-lens-os", async (importOriginal) => {
         committed: {
           profileSchemaVersion: 1,
           paletteThemeId: "crystalline-dark",
-          styleLensId: "quiet-meridian",
+          styleLensId: mockAppearance.committedId,
           motionMode: "auto",
           density: "comfortable",
           updatedAt: "2026-07-11T00:00:00.000Z",
@@ -52,12 +53,12 @@ describe("Workout Design Lab Style axis", () => {
     beginPreview.mockClear();
     cancelPreview.mockClear();
     commitPreview.mockClear();
+    mockAppearance.committedId = "quiet-meridian";
   });
 
-  it("exposes exactly 25 promoted, unique Style Lenses", () => {
-    expect(WORKOUT_DESIGN_STYLE_COUNT).toBe(25);
-    expect(WORKOUT_DESIGN_STYLE_LENSES).toHaveLength(25);
-    expect(new Set(WORKOUT_DESIGN_STYLE_LENSES.map(({ id }) => id))).toHaveLength(25);
+  it("exposes at least the 25 promoted Style Lenses, all unique (A4 count-law: floor, not pin)", () => {
+    expect(WORKOUT_DESIGN_STYLE_COUNT).toBeGreaterThanOrEqual(25);
+    expect(new Set(WORKOUT_DESIGN_STYLE_LENSES.map(({ id }) => id))).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
   });
 
   it("switches between World, Style, and Compare without duplicating the catalog", () => {
@@ -66,7 +67,7 @@ describe("Workout Design Lab Style axis", () => {
     expect(within(modes).getAllByRole("tab")).toHaveLength(3);
 
     fireEvent.click(within(modes).getByRole("tab", { name: /^style$/i }));
-    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(25);
+    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
 
     fireEvent.click(within(modes).getByRole("tab", { name: /^compare$/i }));
     const comparison = screen.getByRole("region", { name: /world and style comparison/i });
@@ -105,6 +106,274 @@ describe("Workout Design Lab Style axis", () => {
       "candy-glass-arcade",
     );
     expect(commitPreview).not.toHaveBeenCalled();
+  });
+
+  it("fires the confirmation chip only on the successful apply path", async () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Blueprint Fold style lens/i }),
+    );
+
+    const lane = screen.getByTestId("lab-confirmation-chip-lane");
+    expect(lane.getAttribute("aria-live")).toBe("assertive");
+    expect(lane.textContent).toBe("");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply blueprint fold/i }));
+    });
+    expect(lane.textContent).toMatch(/Blueprint Fold applied/);
+  });
+
+  it("a failed apply never fires the chip (nothing lies)", async () => {
+    commitPreview.mockResolvedValueOnce(false);
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Blueprint Fold style lens/i }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply blueprint fold/i }));
+    });
+    expect(screen.getByTestId("lab-confirmation-chip-lane").textContent).toBe("");
+  });
+
+  it("the Lab root suppresses concept-level prototype notes via the page-level attr", () => {
+    const { container } = render(<WorkoutDesignLabPage />);
+    const root = container.querySelector("[data-lab-safety='page']");
+    expect(root).not.toBeNull();
+    expect(root!.tagName.toLowerCase()).toBe("main");
+  });
+
+  it("every catalog lens carries the verbatim §4.2 moodFamily", async () => {
+    const { SWAN_STYLE_LENS_VISUALS } = await import(
+      "../../../../adapters/style-lens-swan"
+    );
+    const FAMILY_TABLE: Record<string, readonly string[]> = {
+      playful: [
+        "candy-glass-arcade", "kinetic-kanban", "signal-garden", "tempo-forge",
+        "orbit-atlas", "modular-harbor", "kintsugi-circuit",
+      ],
+      calm: ["quiet-meridian", "recovery-cloister", "monastic-grid", "lunar-stack"],
+      technical: [
+        "prism-terminal", "blueprint-fold", "analog-flight-recorder",
+        "chronograph-board", "terrain-console", "coach-ledger",
+      ],
+      luxe: ["crystalline-cathedral", "carbon-atelier", "meridian-magazine", "glass-rail"],
+      atmospheric: ["aurora-index", "tidal-columns", "split-horizon", "cedar-workshop"],
+    };
+    const allIds = Object.values(FAMILY_TABLE).flat();
+    expect(allIds).toHaveLength(25);
+    for (const [family, ids] of Object.entries(FAMILY_TABLE)) {
+      for (const id of ids) {
+        expect(SWAN_STYLE_LENS_VISUALS[id]?.moodFamily, id).toBe(family);
+      }
+    }
+    // The display-order export carries the table verbatim as row PREFIXES —
+    // A4 pipeline styles append after the original 25 within their family.
+    const catalog = await import("./workoutDesignStyleCatalog");
+    expect(catalog.WORKOUT_DESIGN_MOOD_FAMILY_ORDER).toEqual([
+      "playful", "calm", "technical", "luxe", "atmospheric",
+    ]);
+    for (const [family, ids] of Object.entries(FAMILY_TABLE)) {
+      expect(catalog.WORKOUT_DESIGN_STYLE_ROW_ORDER[family].slice(0, ids.length)).toEqual(ids);
+    }
+  });
+
+  it("groups the catalog by mood family in table order, chips in row order", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const listbox = screen.getByRole("listbox", { name: /choose a style lens/i });
+    const groups = within(listbox).getAllByRole("group");
+    expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual([
+      "Current", "PLAYFUL", "CALM", "TECHNICAL", "LUXE", "ATMOSPHERIC",
+    ]);
+    const playful = groups[1];
+    const names = within(playful)
+      .getAllByRole("option")
+      .map((o) => o.getAttribute("aria-label"));
+    expect(names).toEqual([
+      "Candy Glass Arcade style lens", "Kinetic Kanban style lens",
+      "Signal Garden style lens", "Tempo Forge style lens",
+      "Orbit Atlas style lens", "Modular Harbor style lens",
+      "Kintsugi Circuit style lens",
+    ]);
+  });
+
+  it("pins the committed catalog lens first WITHOUT selection state; family instance keeps it", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const pinned = screen.getByRole("option", { name: "Current style: Quiet Meridian" });
+    expect(pinned.getAttribute("aria-selected")).not.toBe("true");
+    // Family options exactly — the pinned duplicate never matches /style lens/i.
+    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(WORKOUT_DESIGN_STYLE_COUNT);
+    // Activating the pinned instance behaves like the family instance.
+    fireEvent.click(pinned);
+    expect(beginPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ styleLensId: "quiet-meridian" }),
+    );
+  });
+
+  it("pins NOTHING for a non-catalog committed lens and renders the neutral line", () => {
+    mockAppearance.committedId = "swan-flagship";
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    expect(screen.queryByRole("option", { name: /^Current style:/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Current" })).toBeNull();
+    expect(screen.getByText("Current: Swan Flagship (system)")).toBeTruthy();
+  });
+
+  it("an active search REPLACES groups with a flat list; clearing restores groups and the pin", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const input = screen.getByRole("searchbox", { name: "Search styles" });
+    fireEvent.change(input, { target: { value: "prism" } });
+    expect(screen.queryAllByRole("group")).toHaveLength(0);
+    expect(screen.queryByRole("option", { name: /^Current style:/ })).toBeNull();
+    expect(screen.getAllByRole("option", { name: /style lens/i })).toHaveLength(1);
+    fireEvent.change(input, { target: { value: "" } });
+    expect(screen.getAllByRole("group").length).toBeGreaterThanOrEqual(6);
+    expect(screen.getByRole("option", { name: "Current style: Quiet Meridian" })).toBeTruthy();
+  });
+
+  it("catalog a11y + layout source contract: hidden headers, sticky families, safe-area padding, receipt-driven grouping", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const explorer = readFileSync(
+      resolve(__dirname, "./WorkoutDesignStyleExplorer.tsx"),
+      "utf8",
+    );
+    expect(explorer).toContain("moodFamily");
+    expect(explorer).toMatch(/aria-hidden="true"[\s\S]{0,120}family/i);
+    expect(explorer).toMatch(/position:\s*sticky/);
+    expect(explorer).toContain("env(safe-area-inset-bottom, 16px)");
+    // §4.2 search law: pinned + always visible while the catalog scrolls,
+    // with the exact §4.4 accessible name.
+    expect(explorer).toMatch(/PinnedSearch = styled\.div`\s*\n?\s*position:\s*sticky/);
+    expect(explorer).toContain('aria-label="Search styles"');
+    // The lens->family mapping is data (visuals receipt), never component-local.
+    expect(explorer).not.toMatch(/'playful'\s*:/);
+  });
+
+  it("A3: engine badge derives from map presence with the exact copy", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    // quiet-meridian (committed default selection) is chrome-only.
+    expect(screen.getByText("v1 · chrome system")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(screen.getByText("v2 · full restyle")).toBeTruthy();
+  });
+
+  it("A3: the Lab default selection is v2-capable when nothing catalog is committed", () => {
+    mockAppearance.committedId = "swan-flagship";
+    const { container } = render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const frame = container.querySelector("[data-scoped-lens-frame]") as HTMLElement;
+    expect(frame.getAttribute("data-style-lens")).toBe("candy-glass-arcade");
+  });
+
+  it("A3: a committed catalog lens ALWAYS wins over the fallback", () => {
+    const { container } = render(<WorkoutDesignLabPage />);
+    const frame = container.querySelector("[data-scoped-lens-frame]") as HTMLElement;
+    expect(frame.getAttribute("data-style-lens")).toBe("quiet-meridian");
+  });
+
+  it("A3: Apply commits the V1 catalog id — never a v2 recipe id (commit-scope law)", async () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(beginPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ styleLensId: "candy-glass-arcade" }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply candy glass arcade/i }));
+    });
+    expect(commitPreview).toHaveBeenCalledTimes(1);
+    const staged = beginPreview.mock.calls.at(-1)?.[0]?.styleLensId as string;
+    expect(staged.startsWith("swan.")).toBe(false);
+  });
+
+  it("A3: What-Changes list renders ONLY when both selected AND committed are v2-capable", () => {
+    mockAppearance.committedId = "prism-terminal";
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
+    );
+    expect(screen.getByText(/WHAT CHANGES vs current:/i)).toBeTruthy();
+    // Any other state keeps the shipped definition list.
+    fireEvent.click(
+      screen.getByRole("option", { name: /Quiet Meridian style lens/i }),
+    );
+    expect(screen.queryByText(/WHAT CHANGES vs current:/i)).toBeNull();
+    expect(screen.getByText("Signature")).toBeTruthy();
+  });
+
+  it("A3: Compare drops the Engine dropdown; panes resolve per-chip through the map", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+    expect(screen.queryByRole("combobox", { name: /compare engine/i })).toBeNull();
+
+    // MIXED: A = candy (v2) · B = blueprint-fold (chrome).
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: "candy-glass-arcade" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "blueprint-fold" },
+    });
+    const comparison = screen.getByRole("region", { name: /world and style comparison/i });
+    const panes = within(comparison).getAllByTestId("comparison-panel");
+    expect(panes).toHaveLength(2);
+    expect(panes[0].querySelector("[data-lens2-collection]")).not.toBeNull();
+    expect(panes[1].querySelector("[data-scoped-lens-frame]")).not.toBeNull();
+    expect(panes[0].textContent).toMatch(/axes differ/);
+    expect(panes[1].textContent).toContain(
+      "B · Blueprint Fold is a chrome system — trim only.",
+    );
+  });
+
+  it("A3: BOTH chrome-only panes carry the exact chrome copy; BOTH v2 keep axes-diff captions", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "blueprint-fold" },
+    });
+    const comparison = screen.getByRole("region", { name: /world and style comparison/i });
+    let panes = within(comparison).getAllByTestId("comparison-panel");
+    for (const pane of panes) {
+      expect(pane.textContent).toContain(
+        "Chrome systems restyle trim, not structure — try a v2 style for a full restyle.",
+      );
+    }
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: "candy-glass-arcade" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
+      target: { value: "prism-terminal" },
+    });
+    panes = within(comparison).getAllByTestId("comparison-panel");
+    expect(panes[0].textContent).toMatch(/axes differ/);
+    expect(panes[1].textContent).toMatch(/axes differ/);
+  });
+
+  it("A3: production resolveRecipeForStyleLens stays untouched and inert (source contract)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const resolution = readFileSync(
+      resolve(__dirname, "../../../../adapters/style-lens-swan/v2/recipeResolution.ts"),
+      "utf8",
+    );
+    expect(resolution).not.toContain("catalogV2Map");
+    expect(resolution).toContain("V2_RECIPES_BY_STYLE_LENS_ID[styleLensId] ?? null");
+    // Apply-honesty copy for chrome-less styles exists on the success path.
+    const page = readFileSync(resolve(__dirname, "./WorkoutDesignLabPage.tsx"), "utf8");
+    expect(page).toContain("dashboard-wide wear arrives with the v2 rollout.");
+    const explorer = readFileSync(resolve(__dirname, "./WorkoutDesignStyleExplorer.tsx"), "utf8");
+    expect(explorer).toContain("Lab preview today — dashboard rollout pending.");
   });
 
   it("compare renders two REAL scoped stages with independent lenses", () => {

@@ -68,7 +68,10 @@ describe('Swan Style Lens adapter', () => {
 
   it('keeps Default and Swan flagship separate from the sentinel gate', () => {
     expect(SWAN_FLAGSHIP_MANIFEST.id).toBe('swan-flagship');
-    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(27);
+    // A4 count-law: derived from the enumerations (+2 = default-safety + swan-flagship).
+    expect(SWAN_STYLE_LENS_REGISTRY.available()).toHaveLength(
+      expectedSentinels.length + expectedExpansion.length + 2,
+    );
     expect(SWAN_STYLE_LENS_REGISTRY.resolve('not-a-lens').id).toBe(
       'default-safety',
     );
@@ -112,7 +115,7 @@ describe('Swan Style Lens adapter', () => {
     );
     expect(new Set(
       Object.values(SWAN_STYLE_LENS_VISUALS).map(({ signatureMoment }) => signatureMoment),
-    ).size).toBe(25);
+    ).size).toBe(expectedSentinels.length + expectedExpansion.length);
     Object.values(SWAN_STYLE_LENS_VISUALS).forEach((visual) => {
       expect(visual.assetTier).toBe('static-css');
       expect(visual.primaryActionMinHeight).toBeGreaterThanOrEqual(44);

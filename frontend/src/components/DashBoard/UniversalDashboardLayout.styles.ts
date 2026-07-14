@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import styled, { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle, css } from 'styled-components';
+
+import { media, PHONE_MAX_WIDTH } from '../../styles/device-matrix';
 
 export const universalTheme = {
   admin: {
@@ -130,7 +132,7 @@ export const UniversalLayoutContainer = styled.div`
   overflow-x: hidden;
 `;
 
-export const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
+export const UniversalMainContent = styled(motion.main)<{ $compactMobileTop?: boolean; $sidebarCollapsed?: boolean }>`
   flex: 1;
   margin-left: ${({ $sidebarCollapsed }) =>
     $sidebarCollapsed
@@ -176,6 +178,16 @@ export const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: bo
     padding: 56px;
     padding-top: 112px;
   }
+
+  ${({ $compactMobileTop }) => $compactMobileTop && css`
+    ${media.phone} {
+      padding-top: 72px;
+    }
+
+    ${media.shortViewport(700)} and (max-width: ${PHONE_MAX_WIDTH}px) and (pointer: coarse) {
+      padding-top: 44px;
+    }
+  `}
 `;
 
 export const UniversalPageContainer = styled(motion.div)`

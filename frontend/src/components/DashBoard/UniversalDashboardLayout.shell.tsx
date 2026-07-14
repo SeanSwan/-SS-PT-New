@@ -112,6 +112,7 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
             ref={mainContentRef}
             data-dashboard-scroll-root
             $sidebarCollapsed={sidebarCollapsed}
+            $compactMobileTop={isCoachAssistantRoute}
             initial={prefersReducedMotion ? false : { opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, ease: 'easeOut' }}
