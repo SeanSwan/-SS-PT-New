@@ -4,8 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = resolve(__dirname, '../../..');
 
+// Normalize CRLF: on autocrlf=true checkouts (fresh Windows worktrees) files
+// read back with \r\n and multi-line contains-locks false-fail. Line endings
+// are not part of the contract.
 const readSource = (relativePath: string) =>
-  readFileSync(resolve(repoRoot, relativePath), 'utf8');
+  readFileSync(resolve(repoRoot, relativePath), 'utf8').replace(/\r\n/g, '\n');
 
 describe('useSubscription auth pipeline', () => {
   it('is consumed by mounted client/paywall surfaces backed by mounted subscription APIs', () => {
@@ -27,7 +30,9 @@ describe('useSubscription auth pipeline', () => {
     expect(subscriptionRoutesSource).toContain("router.post('/start-trial'");
     expect(subscriptionRoutesSource).toContain("router.post('/checkout'");
     expect(subscriptionRoutesSource).toContain("router.post('/cancel'");
-    expect(hookSource).toContain('export function useSubscription()');
+    // Signature gained an options param in the 2026-07-12 lane-1 batch
+    // (51938cc82, withTiers); the lock is on the export existing, not arity.
+    expect(hookSource).toContain('export function useSubscription(');
   });
 
   it('keeps subscription reads and mutations on the shared API service', () => {
