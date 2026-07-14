@@ -135,3 +135,37 @@ describe("Workout Design Lab 25-view contract", () => {
     expect(labSources).toContain("Prototype only");
   });
 });
+
+describe("Lab A1 polish contract (safety-note dedup + apply moment)", () => {
+  it("LabPage root carries the suppression attr and PrototypeNote carries the matching rule", () => {
+    const page = read("./WorkoutDesignLabPage.tsx");
+    expect(page).toContain('data-lab-safety="page"');
+
+    const shared = read("./concepts/conceptShared.styles.ts");
+    expect(shared).toMatch(/\[data-lab-safety='page'\]\s*&\s*\{\s*display:\s*none;/);
+  });
+
+  it("confirmation chip: bottom-center fixed lane, assertive announcement, 300ms slide-up killed under reduced motion", () => {
+    const chip = read("./LabConfirmationChip.tsx");
+    expect(chip).toContain('aria-live="assertive"');
+    expect(chip).toMatch(/position:\s*fixed/);
+    expect(chip).toMatch(/left:\s*50%/);
+    expect(chip).toMatch(/translate\(-50%/);
+    expect(chip).toMatch(/300ms\s+ease-out/);
+    expect(chip).toMatch(/prefers-reduced-motion:\s*reduce/);
+    expect(chip).toMatch(/animation:\s*none/);
+    // The chip is fired by LabPage's applyLens success path — never by Explorer.
+    const page = read("./WorkoutDesignLabPage.tsx");
+    expect(page).toContain("LabConfirmationChip");
+    const explorer = read("./WorkoutDesignStyleExplorer.tsx");
+    expect(explorer).not.toContain("LabConfirmationChip");
+  });
+
+  it("apply beat: 200ms scale 1 -> 0.95 -> 1 on the Apply control, inert under reduced motion", () => {
+    const explorer = read("./WorkoutDesignStyleExplorer.tsx");
+    expect(explorer).toMatch(/scale\(0\.95\)/);
+    expect(explorer).toMatch(/200ms\s+ease-out/);
+    expect(explorer).toMatch(/prefers-reduced-motion:\s*reduce/);
+    expect(explorer).toMatch(/animation:\s*none/);
+  });
+});

@@ -230,4 +230,9 @@ export const PrototypeNote = styled.p`
   font:
     650 12px/1.45 "Sora",
     sans-serif;
+  /* The Lab owns ONE page-level SafetyCard; inside it (World, Style, AND
+     Compare modes) concept-level notes hide. Outside the Lab they render. */
+  [data-lab-safety='page'] & {
+    display: none;
+  }
 `;

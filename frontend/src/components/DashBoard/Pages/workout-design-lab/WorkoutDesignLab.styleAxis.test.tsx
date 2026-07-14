@@ -107,6 +107,43 @@ describe("Workout Design Lab Style axis", () => {
     expect(commitPreview).not.toHaveBeenCalled();
   });
 
+  it("fires the confirmation chip only on the successful apply path", async () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Blueprint Fold style lens/i }),
+    );
+
+    const lane = screen.getByTestId("lab-confirmation-chip-lane");
+    expect(lane.getAttribute("aria-live")).toBe("assertive");
+    expect(lane.textContent).toBe("");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply blueprint fold/i }));
+    });
+    expect(lane.textContent).toMatch(/Blueprint Fold applied/);
+  });
+
+  it("a failed apply never fires the chip (nothing lies)", async () => {
+    commitPreview.mockResolvedValueOnce(false);
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    fireEvent.click(
+      screen.getByRole("option", { name: /Blueprint Fold style lens/i }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /apply blueprint fold/i }));
+    });
+    expect(screen.getByTestId("lab-confirmation-chip-lane").textContent).toBe("");
+  });
+
+  it("the Lab root suppresses concept-level prototype notes via the page-level attr", () => {
+    const { container } = render(<WorkoutDesignLabPage />);
+    const root = container.querySelector("[data-lab-safety='page']");
+    expect(root).not.toBeNull();
+    expect(root!.tagName.toLowerCase()).toBe("main");
+  });
+
   it("compare renders two REAL scoped stages with independent lenses", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));

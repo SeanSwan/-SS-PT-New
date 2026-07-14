@@ -30,6 +30,7 @@ import WorkoutDesignLabModes, {
 import WorkoutDesignWorldExplorer from "./WorkoutDesignWorldExplorer";
 import WorkoutDesignStyleExplorer from "./WorkoutDesignStyleExplorer";
 import WorkoutDesignComparePanel from "./WorkoutDesignComparePanel";
+import LabConfirmationChip from "./LabConfirmationChip";
 import {
   WORKOUT_DESIGN_STYLE_COUNT,
   WORKOUT_DESIGN_STYLE_LENSES,
@@ -68,6 +69,10 @@ const WorkoutDesignLabPage: React.FC = () => {
     "Choose a World or Style, then try its prototype action.",
   );
   const [model, setModel] = useState(DEFAULT_WORKOUT_VIEW_MODEL);
+  const [confirmation, setConfirmation] = useState<{
+    message: string;
+    token: number;
+  } | null>(null);
   const [rolodexOpen, setRolodexOpen] = useState(false);
   const activeIndex = CONCEPT_REGISTRY.findIndex(({ id }) => id === activeId);
   const active = CONCEPT_REGISTRY[activeIndex] ?? CONCEPT_REGISTRY[24];
@@ -109,11 +114,18 @@ const WorkoutDesignLabPage: React.FC = () => {
   };
   const applyLens = async () => {
     const applied = await commitPreview();
+    const appliedCopy = `${activeLens.name} applied across the dashboard.`;
     setReceipt(
       applied
-        ? `${activeLens.name} applied across the dashboard.`
+        ? appliedCopy
         : `${activeLens.name} was not applied. Your previous appearance is preserved.`,
     );
+    if (applied) {
+      setConfirmation((current) => ({
+        message: appliedCopy,
+        token: (current?.token ?? 0) + 1,
+      }));
+    }
   };
   const cancelLens = () => {
     cancelPreview();
@@ -133,7 +145,7 @@ const WorkoutDesignLabPage: React.FC = () => {
     );
   };
   return (
-    <Lab>
+    <Lab data-lab-safety="page">
       <NebulaField aria-hidden="true" />
       <LabHeader>
         <HeaderTop>
@@ -249,6 +261,7 @@ const WorkoutDesignLabPage: React.FC = () => {
           );
         }}
       />
+      <LabConfirmationChip confirmation={confirmation} />
       <LiveReceipt
         role="status"
         aria-label="Workout design action receipt"
