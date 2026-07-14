@@ -81,6 +81,14 @@ const WorkoutDesignLabPage: React.FC = () => {
     token: number;
   } | null>(null);
   const [rolodexOpen, setRolodexOpen] = useState(false);
+  // Chip auto-dismiss (Fable ratification of the builder's open flag): the
+  // applied chip clears after 5s — aria-live has already announced it, and a
+  // permanent floating pill contradicts the pack's calm/precise feel.
+  useEffect(() => {
+    if (!confirmation) return;
+    const timer = setTimeout(() => setConfirmation(null), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmation]);
   const activeIndex = CONCEPT_REGISTRY.findIndex(({ id }) => id === activeId);
   const active = CONCEPT_REGISTRY[activeIndex] ?? CONCEPT_REGISTRY[24];
   const activeLens = findLens(activeLensId) ?? LAB_DEFAULT_LENS;
