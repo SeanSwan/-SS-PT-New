@@ -13,8 +13,23 @@ TrainerCommission.init(
     },
     orderId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       field: 'order_id',
+      comment: 'Order for purchase_share earnings; null for session_flat earnings',
+    },
+    sessionId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      unique: true,
+      field: 'session_id',
+      comment: 'Completed session for session_flat earnings (idempotency anchor)',
+    },
+    earningType: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'purchase_share',
+      field: 'earning_type',
+      comment: 'purchase_share (rev-share at purchase) | session_flat (employed per-session)',
     },
     trainerId: {
       type: DataTypes.INTEGER,

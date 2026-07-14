@@ -23,6 +23,8 @@ export interface AssignmentTrainer {
 
 export type AssignmentStatus = 'active' | 'inactive' | 'pending';
 
+export type CompensationMode = 'revenue_share' | 'per_session_flat';
+
 export interface AssignmentRow {
   id: number;
   clientId: number;
@@ -32,6 +34,8 @@ export interface AssignmentRow {
   createdAt?: string;
   client?: AssignmentClient;
   trainer?: AssignmentTrainer;
+  compensationMode: CompensationMode;
+  flatSessionRate: number | null;
 }
 
 export interface ClientRow {

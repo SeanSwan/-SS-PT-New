@@ -700,9 +700,42 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
  * @access  Admin Only
  * @body    { clientId, trainerId, notes? }
  */
+/**
+ * Validate compensation input for create/update (mode b: employed trainers).
+ * Returns { error } on bad input, else { mode, rate } where undefined means
+ * "not provided" (leave unchanged / use default).
+ */
+export function parseCompensationInput({ compensationMode, flatSessionRate }, existing = {}) {
+  const VALID_MODES = ['revenue_share', 'per_session_flat'];
+  let mode;
+  if (compensationMode !== undefined) {
+    if (!VALID_MODES.includes(compensationMode)) {
+      return { error: `Invalid compensationMode. Must be one of: ${VALID_MODES.join(', ')}` };
+    }
+    mode = compensationMode;
+  }
+
+  let rate;
+  if (flatSessionRate !== undefined && flatSessionRate !== null && flatSessionRate !== '') {
+    const parsed = Number(flatSessionRate);
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 10000) {
+      return { error: 'flatSessionRate must be a positive dollar amount (max 10000)' };
+    }
+    rate = Math.round(parsed * 100) / 100;
+  }
+
+  const effectiveMode = mode ?? existing.compensationMode ?? 'revenue_share';
+  const effectiveRate = rate ?? (existing.flatSessionRate != null ? Number(existing.flatSessionRate) : null);
+  if (effectiveMode === 'per_session_flat' && (!Number.isFinite(effectiveRate) || effectiveRate <= 0)) {
+    return { error: 'flatSessionRate is required (positive) when compensationMode is per_session_flat' };
+  }
+
+  return { mode, rate };
+}
+
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { clientId, trainerId, notes } = req.body;
+    const { clientId, trainerId, notes, compensationMode, flatSessionRate } = req.body;
     const assignedBy = parsePositiveInteger(req.user.id);
     const parsedClientId = parsePositiveInteger(clientId);
     const parsedTrainerId = parsePositiveInteger(trainerId);
@@ -728,6 +761,11 @@ router.post('/', protect, adminOnly, async (req, res) => {
         success: false,
         message: 'Client and trainer cannot be the same user'
       });
+    }
+
+    const compensation = parseCompensationInput({ compensationMode, flatSessionRate });
+    if (compensation.error) {
+      return res.status(400).json({ success: false, message: compensation.error });
     }
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
@@ -824,15 +862,17 @@ router.post('/', protect, adminOnly, async (req, res) => {
     let assignment;
     try {
       const [rows] = await sequelize.query(
-        `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
-         VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', NOW(), NOW())
+        `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, compensation_mode, flat_session_rate, "createdAt", "updatedAt")
+         VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', :compensationMode, :flatSessionRate, NOW(), NOW())
          RETURNING *`,
         {
           replacements: {
             clientId: parsedClientId,
             trainerId: parsedTrainerId,
             assignedBy,
-            notes: notes || null
+            notes: notes || null,
+            compensationMode: compensation.mode ?? 'revenue_share',
+            flatSessionRate: compensation.rate ?? null
           }
         }
       );
@@ -907,7 +947,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const parsedAssignmentId = parsePositiveInteger(id);
-    const { status, notes } = req.body;
+    const { status, notes, compensationMode, flatSessionRate } = req.body;
     const updatedBy = req.user.id;
 
     if (!parsedAssignmentId) {
@@ -938,10 +978,19 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       });
     }
 
+    const compensation = parseCompensationInput({ compensationMode, flatSessionRate }, assignment);
+    if (compensation.error) {
+      return res.status(400).json({ success: false, message: compensation.error });
+    }
+
     // Update assignment
     const updateData = {};
     if (status !== undefined) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
+    if (compensation.mode !== undefined) updateData.compensationMode = compensation.mode;
+    if (compensation.rate !== undefined) updateData.flatSessionRate = compensation.rate;
+    // Switching back to revenue_share keeps the stored rate for history; the
+    // accrual service only reads it in per_session_flat mode.
 
     await assignment.update(updateData);
 

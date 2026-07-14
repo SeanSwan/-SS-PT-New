@@ -41,15 +41,22 @@ const formatDate = (iso: string): string => {
 const CommissionLedgerRow: React.FC<{ row: TrainerCommissionRow }> = ({ row }) => {
   // commissionCalculator.mjs stores whole percentages (85, 65) — not fractions.
   const ratePct = Math.round(Number(row.commissionRateTrainer) || 0);
-  const sourceLabel = row.leadSource ? (LEAD_SOURCE_LABELS[row.leadSource] ?? row.leadSource) : null;
+  // Employed-trainer lane (mode b): one flat-rate row per completed session.
+  const isSessionPay = row.earningType === 'session_flat';
+  const sourceLabel = isSessionPay
+    ? 'Session pay'
+    : row.leadSource
+      ? (LEAD_SOURCE_LABELS[row.leadSource] ?? row.leadSource)
+      : null;
   return (
-    <CommissionRow aria-label={`Commission for ${row.clientName}`}>
+    <CommissionRow aria-label={`${isSessionPay ? 'Session pay' : 'Commission'} for ${row.clientName}`}>
       <RowMain>
         <RowClient>{row.clientName}</RowClient>
         <RowMeta>
           {formatDate(row.createdAt)}
-          {row.sessionsGranted > 0 ? ` · ${row.sessionsGranted} sessions` : ''}
-          {ratePct > 0 ? ` · ${ratePct}% rate` : ''}
+          {isSessionPay
+            ? ' · 1 completed session'
+            : `${row.sessionsGranted > 0 ? ` · ${row.sessionsGranted} sessions` : ''}${ratePct > 0 ? ` · ${ratePct}% rate` : ''}`}
         </RowMeta>
       </RowMain>
       {sourceLabel && <Pill $tone="source">{sourceLabel}</Pill>}
@@ -58,7 +65,7 @@ const CommissionLedgerRow: React.FC<{ row: TrainerCommissionRow }> = ({ row }) =
       </Pill>
       <RowMoney>
         <RowCut>{usd.format(row.trainerCut)}</RowCut>
-        <RowGross>of {usd.format(row.grossAmount)} gross</RowGross>
+        <RowGross>{isSessionPay ? 'flat session rate' : `of ${usd.format(row.grossAmount)} gross`}</RowGross>
       </RowMoney>
     </CommissionRow>
   );

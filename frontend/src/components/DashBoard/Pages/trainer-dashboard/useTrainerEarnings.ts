@@ -17,7 +17,9 @@ import { useAuth } from '../../../../context/AuthContext';
 
 export interface TrainerCommissionRow {
   id: number;
-  orderId: number;
+  orderId: number | null;
+  sessionId?: number | null;
+  earningType?: 'purchase_share' | 'session_flat';
   clientId: number;
   clientName: string;
   leadSource: 'platform' | 'trainer_brought' | 'resign' | null;

@@ -42,6 +42,7 @@ import {
 } from './aiWorkoutScheduledSessionService.mjs';
 import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
 import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
+import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -237,6 +238,14 @@ export async function submitAiWorkoutLogAsDailyForm({
       availableSessionsBeforeSave,
     });
     await transaction.commit();
+
+    // Employed-trainer pay (mode b): the AI workout log just completed the
+    // linked scheduled session — accrue post-commit (self-filtering +
+    // idempotent per session; revenue_share assignments accrue nothing).
+    if (linkedScheduledSession?.trainerId) {
+      await accrueFlatSessionEarning({ session: linkedScheduledSession });
+    }
+
     // Charter v3 H rail: historical/backfilled sessions never move live
     // challenges — their events would stamp submittedAt (today), not the
     // backdated workout date, so a 60-session backfill would instantly

@@ -107,6 +107,26 @@ ClientTrainerAssignment.init(
       allowNull: true,
       field: 'deactivated_at',
       comment: 'Timestamp when assignment was deactivated'
+    },
+    // ── Compensation lane (migration 20260714000001) ──
+    compensationMode: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'revenue_share',
+      field: 'compensation_mode',
+      validate: {
+        isIn: [['revenue_share', 'per_session_flat']]
+      },
+      comment: 'revenue_share (percentage at purchase) | per_session_flat (employed, $/completed session)'
+    },
+    flatSessionRate: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      field: 'flat_session_rate',
+      validate: {
+        min: 0
+      },
+      comment: 'Flat $ paid to trainer per completed session when compensation_mode=per_session_flat'
     }
   },
   {

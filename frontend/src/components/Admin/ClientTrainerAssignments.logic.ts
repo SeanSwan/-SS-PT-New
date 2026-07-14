@@ -51,6 +51,10 @@ export const parseAssignments = (payload: any): AssignmentRow[] => {
       createdAt: row.createdAt,
       client: row.client,
       trainer: row.trainer,
+      compensationMode: row.compensationMode === 'per_session_flat' ? 'per_session_flat' : 'revenue_share',
+      flatSessionRate: row.flatSessionRate != null && Number.isFinite(Number(row.flatSessionRate))
+        ? Number(row.flatSessionRate)
+        : null,
     }))
     .filter((row: AssignmentRow) => row.status === 'active');
 };

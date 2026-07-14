@@ -229,6 +229,8 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     const enriched = commissions.map(c => ({
       id: c.id,
       orderId: c.orderId,
+      sessionId: c.sessionId ?? null,
+      earningType: c.earningType || 'purchase_share',
       clientId: c.clientId,
       clientName: clientMap[c.clientId] || 'Unknown',
       leadSource: c.leadSource,

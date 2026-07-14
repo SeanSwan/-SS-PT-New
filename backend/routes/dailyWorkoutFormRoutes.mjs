@@ -58,6 +58,7 @@ import {
 import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
 import { estimateBrzycki1RM } from '../services/oneRepMaxService.mjs';
 import { detectAndRecordPersonalRecords } from '../services/workout/workoutPrDetectionService.mjs';
+import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -1124,6 +1125,13 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     }
 
     await transaction.commit();
+
+    // Employed-trainer pay (mode b): the workout log just completed the
+    // linked scheduled session — accrue post-commit (self-filtering +
+    // idempotent per session; revenue_share assignments accrue nothing).
+    if (linkedScheduledSession?.trainerId) {
+      await accrueFlatSessionEarning({ session: linkedScheduledSession });
+    }
 
     // Rotation write-through confirmation (fail-soft, post-commit): a logged
     // workout confirms the day's delivered generation, so flip the newest

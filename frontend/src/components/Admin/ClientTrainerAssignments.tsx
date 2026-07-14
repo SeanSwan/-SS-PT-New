@@ -146,6 +146,19 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
     [assignmentMapByClient, assignmentsByTrainer, authAxios, onAssignmentChange, refreshAssignmentsOnly, saving, trainers]
   );
 
+  const handleCompensationSave = useCallback(
+    async (
+      assignmentId: number,
+      changes: { compensationMode: 'revenue_share' | 'per_session_flat'; flatSessionRate?: number }
+    ) => {
+      // Errors intentionally propagate: CompensationControl shows them inline.
+      await authAxios.put(`/api/assignments/${assignmentId}`, changes);
+      await refreshAssignmentsOnly();
+      onAssignmentChange?.();
+    },
+    [authAxios, onAssignmentChange, refreshAssignmentsOnly]
+  );
+
   const handleUnassign = useCallback(
     async (assignmentId: number) => {
       if (saving) return;
@@ -250,6 +263,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
             draggedClientIdRef={draggedClientIdRef}
             dropTrainerId={dropTrainerId}
             handleUnassign={handleUnassign}
+            onCompensationSave={handleCompensationSave}
             onDropToTrainer={onDropToTrainer}
             saving={saving}
             setDropTrainer={setDropTrainer}

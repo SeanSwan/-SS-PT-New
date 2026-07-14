@@ -10,6 +10,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateRecoveryOrderNumber } from '../utils/orderNumber.mjs';
 import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { accrueFlatSessionEarning } from './trainerSessionEarningService.mjs';
 import { getSessionSettlementDecision } from './sessions/sessionSettlementPolicy.mjs';
 import {
   VALID_PAYMENT_METHODS,
@@ -115,6 +116,11 @@ export async function processSessionDeductions() {
       }
     }
 
+    // Sessions whose completed status was actually SAVED — the only ones
+    // eligible for post-commit pay accrual (an in-memory status mutation
+    // whose save() threw must never accrue).
+    const savedCompletedSessions = [];
+
     // Group sessions by client to avoid Sequelize duplicate-object bug
     const sessionsByClient = {};
     for (const session of sessionsDueForSettlement) {
@@ -124,6 +130,7 @@ export async function processSessionDeductions() {
         session.status = 'completed';
         session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No client found');
         await session.save({ transaction });
+        savedCompletedSessions.push(session);
         continue;
       }
       const cid = session.client.id;
@@ -161,6 +168,7 @@ export async function processSessionDeductions() {
               '[Auto] No paid session credit required for this client account'
             );
             await session.save({ transaction });
+            savedCompletedSessions.push(session);
           }
           continue;
         }
@@ -177,6 +185,7 @@ export async function processSessionDeductions() {
           session.deductionDate = new Date();
           session.notes = appendNoteOnce(session.notes, '[Auto] Session credit deducted automatically');
           await session.save({ transaction });
+          savedCompletedSessions.push(session);
           results.deducted++;
         }
 
@@ -195,6 +204,7 @@ export async function processSessionDeductions() {
           session.status = 'completed';
           session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No credits to deduct');
           await session.save({ transaction });
+          savedCompletedSessions.push(session);
         }
       } catch (error) {
         for (const session of group.sessions) {
@@ -207,6 +217,17 @@ export async function processSessionDeductions() {
     }
 
     await transaction.commit();
+
+    // Employed-trainer pay (mode b): accrue flat per-session earnings AFTER
+    // commit so a failed accrual can never poison the settlement transaction.
+    // Only sessions whose completed status was successfully SAVED accrue.
+    // Self-filtering (revenue_share assignments accrue nothing) and
+    // idempotent per session (unique session_id index).
+    for (const session of savedCompletedSessions) {
+      if (session.trainerId) {
+        await accrueFlatSessionEarning({ session });
+      }
+    }
 
     logger.info('Session deductions processed', {
       domain: 'payment_recovery',

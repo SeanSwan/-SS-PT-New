@@ -31,6 +31,7 @@ import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
 
 const router = express.Router();
 
@@ -3023,6 +3024,12 @@ router.patch("/:sessionId/attendance", protect, async (req, res) => {
     }
 
     await session.save();
+
+    // Employed-trainer pay (mode b): attendance-marking can complete the
+    // session — accrue post-save (self-filtering + idempotent per session).
+    if (session.status === 'completed' && session.trainerId) {
+      await accrueFlatSessionEarning({ session });
+    }
 
     // Broadcast real-time update
     try {

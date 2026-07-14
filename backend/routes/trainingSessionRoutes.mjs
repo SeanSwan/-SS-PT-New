@@ -11,6 +11,7 @@ import TrainingSessionService from '../services/TrainingSessionService.mjs';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
+import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
 
 const router = express.Router();
 
@@ -380,6 +381,12 @@ router.put('/:id/complete', protect, async (req, res) => {
     }
 
     await session.save();
+
+    // Employed-trainer pay (mode b): post-save accrual; self-filtering
+    // (revenue_share accrues nothing) + idempotent per session.
+    if (session.trainerId) {
+      await accrueFlatSessionEarning({ session });
+    }
 
     return res.status(200).json({
       success: true,

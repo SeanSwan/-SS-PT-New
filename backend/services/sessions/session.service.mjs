@@ -47,6 +47,7 @@ import {
 } from './sessionCompletionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
+import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -2060,6 +2061,13 @@ class UnifiedSessionService {
 
       await session.save({ transaction });
       await transaction.commit();
+
+      // Employed-trainer pay (mode b): accrue AFTER commit so a failed
+      // accrual can never poison the completion transaction. Self-filtering
+      // (revenue_share accrues nothing) + idempotent per session.
+      if (session.trainerId) {
+        await accrueFlatSessionEarning({ session });
+      }
 
       // Send completion notifications (async)
       this.sendCompletionNotifications(session);

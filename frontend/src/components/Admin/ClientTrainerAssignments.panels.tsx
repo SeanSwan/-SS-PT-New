@@ -24,7 +24,8 @@ import {
   TrainerHead,
   TrainerZone,
 } from './ClientTrainerAssignments.styles.tail';
-import type { AssignmentRow, AssignmentStats, ClientRow, TrainerRow } from './ClientTrainerAssignments.types';
+import type { AssignmentRow, AssignmentStats, ClientRow, CompensationMode, TrainerRow } from './ClientTrainerAssignments.types';
+import { CompensationControl } from './ClientTrainerAssignments.compensation';
 
 export const AssignmentMetrics = ({ stats }: { stats: AssignmentStats }) => (
   <MetricsGrid>
@@ -152,6 +153,10 @@ interface TrainerZonesPanelProps {
   draggedClientIdRef: MutableRefObject<number | null>;
   dropTrainerId: number | null;
   handleUnassign: (assignmentId: number) => void;
+  onCompensationSave: (
+    assignmentId: number,
+    changes: { compensationMode: CompensationMode; flatSessionRate?: number }
+  ) => Promise<void>;
   onDropToTrainer: (trainerId: number, dropEvent?: DragEvent<HTMLDivElement>) => Promise<void>;
   saving: boolean;
   setDropTrainer: (trainerId: number | null) => void;
@@ -165,6 +170,7 @@ export const TrainerZonesPanel = ({
   draggedClientIdRef,
   dropTrainerId,
   handleUnassign,
+  onCompensationSave,
   onDropToTrainer,
   saving,
   setDropTrainer,
@@ -238,6 +244,11 @@ export const TrainerZonesPanel = ({
                       <div className="meta" title={assignedClientSessionSignal.note}>
                         {assignedClientSessionSignal.label}
                       </div>
+                      <CompensationControl
+                        assignment={assignment}
+                        disabled={saving}
+                        onSave={onCompensationSave}
+                      />
                     </AssignmentItem>
                   );
                 })
