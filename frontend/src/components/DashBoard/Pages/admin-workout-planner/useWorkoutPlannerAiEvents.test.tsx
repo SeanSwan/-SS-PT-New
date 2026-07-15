@@ -172,6 +172,19 @@ describe('useWorkoutPlannerAiEvents (blueprint S3)', () => {
     expect(receipts).toContainEqual({ ok: true, text: 'Added Goblet Squat — 3×12' });
   });
 
+  it('matches dictated plurals against singular IN-PLAN rows too (swap/remove/update)', async () => {
+    const { receipts, state } = setupHarness({
+      planExercises: [builderRow('r1', slim('gs1', 'Goblet Squat'))],
+      library: [slim('bs1', 'Box Squat')],
+    });
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_SWAP_EXERCISE', { fromExerciseName: 'goblet squats', toExerciseName: 'box squat' });
+    });
+    await flush();
+    expect(state.planExercises[0]?.exerciseSlim.name).toBe('Box Squat');
+    expect(receipts).toContainEqual({ ok: true, text: 'Swapped Goblet Squat → Box Squat' });
+  });
+
   it('never mangles double-s words when singularizing ("leg press" stays intact)', async () => {
     const { state } = setupHarness({ library: [slim('lp1', 'Leg Press')] });
     await act(async () => {
