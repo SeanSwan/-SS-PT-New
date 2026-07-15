@@ -89,6 +89,8 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
+      /** Active surface for intent disambiguation (planner vs logger command family). */
+      surface?: 'workout-planner' | 'workout-logger';
     },
   ): Promise<CommandResponse> => {
     setExecutingCommand(true);
@@ -98,6 +100,7 @@ export function useCoachCommand() {
         selectedClientId: opts?.selectedClientId ?? undefined,
         previousContext: opts?.previousContext ?? undefined,
         routeContext: opts?.routeContext ?? undefined,
+        context: opts?.surface ? { surface: opts.surface } : undefined,
       });
       const data = res.data;
 

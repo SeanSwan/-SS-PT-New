@@ -8,6 +8,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
+import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
@@ -33,6 +34,7 @@ type ConfirmDialogProps = React.ComponentProps<typeof WorkoutPlannerConfirmDialo
 type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
   SavedPlansProps & ConfirmDialogProps & {
     teachModeProps: TeachModeProps;
+    coachDock: Omit<React.ComponentProps<typeof WorkoutPlannerCoachDock>, 'clientName'>;
     // Cortex P0 §5.3: acknowledged-review contract surface
     safetyGateReview: SafetyGateReviewState | null;
     acknowledgingSafetyGate: boolean;
@@ -60,7 +62,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
   pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose, onPlansChanged,
-  safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate, onCancelSafetyGate,
+  safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate, onCancelSafetyGate, coachDock,
 }) => {
   const location = useLocation();
   const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
@@ -193,6 +195,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         />
         {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
       </ThreePanel>
+
+      <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />
 
       <WorkoutPlannerSavedPlansSection
         selectedClientId={selectedClientId}

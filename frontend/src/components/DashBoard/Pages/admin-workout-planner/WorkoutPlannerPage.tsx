@@ -16,6 +16,7 @@ import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGeneratio
 import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerCoachDock, pushWorkoutPlannerCoachReceipt } from './useWorkoutPlannerCoachDock';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerPdfActions } from './useWorkoutPlannerPdfActions';
@@ -166,10 +167,9 @@ const WorkoutPlannerPage: React.FC = () => {
 
   useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState });
 
-  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => {
-    void handleSwanCoachWorkoutGenerate(selectedClientId);
-  }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
+  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => { void handleSwanCoachWorkoutGenerate(selectedClientId); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
+  const coachDock = useWorkoutPlannerCoachDock({ selectedClientId, pushReceipt: pushWorkoutPlannerCoachReceipt });
 
   const {
     savedPlans, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,
@@ -272,7 +272,7 @@ const WorkoutPlannerPage: React.FC = () => {
     hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
     generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
     safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate: confirmSafetyGateReview, onCancelSafetyGate: cancelSafetyGateReview,
-    teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber },
+    teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber }, coachDock,
     onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
     onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
