@@ -166,23 +166,32 @@ describe('workoutPlanRoutes planData privacy', () => {
     const res = await auth(request(app).post('/api/workout-plans/plan-1/duplicate')).send({});
 
     expect(res.status).toBe(201);
-    expectSanitizedPlanData(mockWorkoutPlanCreate.mock.calls[0][0].planData);
+    const [payload, options] = mockWorkoutPlanCreate.mock.calls[0];
+    expectSanitizedPlanData(payload.planData);
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
   });
 
-  it('sanitizes advanced planData when trainerNotes include contact details', async () => {
+  it('sanitizes advanced planData without changing its prescribed-content revision', async () => {
     const update = vi.fn().mockResolvedValue(undefined);
+    const planData = {
+      weeks: [{
+        weekNumber: 1,
+        days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Cable Row' }] }],
+      }],
+    };
     mockWorkoutPlanFindByPk.mockResolvedValue({
       id: 'plan-1',
       userId: 42,
       status: 'active',
       currentWeek: 1,
       currentDay: 1,
-      planData: {
-        weeks: [{
-          weekNumber: 1,
-          days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Cable Row' }] }],
-        }],
-      },
+      planData,
+      contentRevision: 4,
+      contentHash: hashWorkoutPlanContent(planData),
       update,
     });
 
@@ -191,6 +200,12 @@ describe('workoutPlanRoutes planData privacy', () => {
     });
 
     expect(res.status).toBe(200);
-    expectSanitizedPlanData(update.mock.calls[0][0].planData);
+    const [payload, options] = update.mock.calls[0];
+    expectSanitizedPlanData(payload.planData);
+    expect(payload).toMatchObject({
+      contentRevision: 4,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
   });
 });

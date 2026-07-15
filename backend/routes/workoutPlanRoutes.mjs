@@ -46,6 +46,7 @@ import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAtt
 import {
   createWorkoutPlanRecord,
   mutateWorkoutPlanRecord,
+  WorkoutPlanMutationError,
 } from '../services/workoutPlanMutationService.mjs';
 import {
   normalizeWorkoutPlanDataForPersistence,
@@ -844,22 +845,26 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
       // re-copy contact details into new saved drafts.
       const clonedPlanData = normalizeWorkoutPlanDataForPersistence(original.planData);
 
-      const copy = await WorkoutPlan.create({
-        userId: original.userId,
-        trainerId: req.user.id,
-        title: (typeof title === 'string' && title.trim().length > 0)
-          ? title.trim()
-          : `${original.title} (copy)`,
-        description: original.description,
-        nasmPhase: original.nasmPhase,
-        durationWeeks: original.durationWeeks,
-        status: 'draft', // ALWAYS draft per product rule
-        currentWeek: 1,
-        currentDay: 1,
-        planData: clonedPlanData,
-        progressNotes: [],
-        createdBy: 'trainer',
-        metadata: buildDuplicatePlanMetadata(original),
+      const copy = await createWorkoutPlanRecord({
+        sequelize,
+        WorkoutPlan,
+        values: {
+          userId: original.userId,
+          trainerId: req.user.id,
+          title: (typeof title === 'string' && title.trim().length > 0)
+            ? title.trim()
+            : `${original.title} (copy)`,
+          description: original.description,
+          nasmPhase: original.nasmPhase,
+          durationWeeks: original.durationWeeks,
+          status: 'draft', // ALWAYS draft per product rule
+          currentWeek: 1,
+          currentDay: 1,
+          planData: clonedPlanData,
+          progressNotes: [],
+          createdBy: 'trainer',
+          metadata: buildDuplicatePlanMetadata(original),
+        },
       });
 
       logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',
@@ -891,65 +896,80 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
 // fallow-ignore-next-line complexity
 router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
+    const authorizedPlan = req.workoutPlan;
+    let cursorAdvance;
+    let currentWeek;
+    let currentDay;
+    let appliedUpdates;
 
-    if (plan.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot advance a ${plan.status} plan. Only active plans can be advanced.`
-      });
-    }
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan: getWorkoutPlan(),
+      planId: authorizedPlan.id,
+      updates: (lockedPlan) => {
+        if (lockedPlan.status !== 'active') {
+          throw new WorkoutPlanMutationError(
+            `Cannot advance a ${lockedPlan.status} plan. Only active plans can be advanced.`,
+            { code: 'WORKOUT_PLAN_NOT_ACTIVE', statusCode: 400 },
+          );
+        }
 
-    const { currentWeek, currentDay } = plan;
-    const { trainerNotes } = req.body;
+        currentWeek = lockedPlan.currentWeek;
+        currentDay = lockedPlan.currentDay;
+        cursorAdvance = advancePlanDataCursor({
+          planData: lockedPlan.planData || { weeks: [] },
+          weekNumber: currentWeek,
+          dayNumber: currentDay,
+          completedAt: new Date().toISOString(),
+          trainerNotes: req.body.trainerNotes,
+        });
+        if (!cursorAdvance.advanced) {
+          throw new WorkoutPlanMutationError('Current plan session not found', {
+            code: 'WORKOUT_PLAN_SESSION_NOT_FOUND',
+            statusCode: 400,
+          });
+        }
 
-    const cursorAdvance = advancePlanDataCursor({
-      planData: plan.planData || { weeks: [] },
-      weekNumber: currentWeek,
-      dayNumber: currentDay,
-      completedAt: new Date().toISOString(),
-      trainerNotes,
+        appliedUpdates = {
+          planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),
+          currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
+          currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
+          status: cursorAdvance.planCompleted ? 'completed' : 'active',
+        };
+        return appliedUpdates;
+      },
     });
-    if (!cursorAdvance.advanced) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current plan session not found',
-      });
-    }
-
-    // Apply updates
-    const updates = {
-      planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),
-      currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
-      currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
-      status: cursorAdvance.planCompleted ? 'completed' : 'active'
-    };
-
-    await plan.update(updates);
-
-    // Extract the new current session (or null if completed)
+    const responsePlan = { ...toPlainObject(mutation.plan), ...appliedUpdates };
     const nextSession = cursorAdvance.planCompleted
       ? null
-      : extractCurrentSession({ ...toPlainObject(plan), ...updates });
+      : extractCurrentSession(responsePlan);
 
     logger.info('[WorkoutPlan] Advanced plan #%d: week %d day %d → %s',
-      plan.id, currentWeek, currentDay,
+      mutation.plan.id, currentWeek, currentDay,
       cursorAdvance.planCompleted
         ? 'COMPLETED'
         : `week ${cursorAdvance.next.week} day ${cursorAdvance.next.day}`);
 
-    res.json({
+    return res.json({
       success: true,
-      plan,
+      plan: responsePlan,
       advanced: true,
       planCompleted: cursorAdvance.planCompleted,
       previousSession: cursorAdvance.previous,
-      nextSession
+      nextSession,
     });
   } catch (error) {
+    const status = Number(error?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logger.error('[WorkoutPlan] PUT /:id/advance error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to advance workout plan' });
+    return res.status(500).json({ success: false, message: 'Failed to advance workout plan' });
   }
 });
 
@@ -966,17 +986,27 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlan
  */
 router.delete('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan: getWorkoutPlan(),
+      planId: req.workoutPlan.id,
+      updates: { status: 'completed' },
+    });
 
-    await plan.update({ status: 'completed' });
-
-    logger.info('[WorkoutPlan] Soft-deleted plan #%d by user %d', plan.id, req.user.id);
-
-    res.json({ success: true, message: 'Workout plan archived' });
+    logger.info('[WorkoutPlan] Soft-deleted plan #%d by user %d', mutation.plan.id, req.user.id);
+    return res.json({ success: true, message: 'Workout plan archived' });
   } catch (error) {
+    const status = Number(error?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logger.error('[WorkoutPlan] DELETE /:id error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to delete workout plan' });
+    return res.status(500).json({ success: false, message: 'Failed to delete workout plan' });
   }
 });
 

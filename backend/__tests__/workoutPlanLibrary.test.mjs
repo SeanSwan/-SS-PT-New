@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // Plan Library slice (REV 2 receipt) regression tests.
@@ -23,6 +24,7 @@ const mockUpdate = vi.fn();
 const mockBulkUpdate = vi.fn();
 const mockCreate = vi.fn();
 const mockUserUpdate = vi.fn();
+let defaultTransaction;
 
 const makePlan = (overrides = {}) => ({
   id: 50,
@@ -91,7 +93,10 @@ vi.mock('../models/index.mjs', () => ({
 
 vi.mock('../database.mjs', () => ({
   default: {
-    transaction: () => mockTransaction(),
+    transaction: async (callback) => {
+      const transaction = await mockTransaction();
+      return typeof callback === 'function' ? callback(transaction) : transaction;
+    },
   },
 }));
 
@@ -105,12 +110,12 @@ beforeEach(async () => {
   vi.clearAllMocks();
 
   // Default transaction mock — commit/rollback resolve cleanly.
-  const tx = {
+  defaultTransaction = {
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined),
     LOCK: { UPDATE: 'UPDATE' },
   };
-  mockTransaction.mockResolvedValue(tx);
+  mockTransaction.mockResolvedValue(defaultTransaction);
 
   // Default happy-path mocks — individual tests override as needed.
   mockFindAll.mockResolvedValue([]);
@@ -377,6 +382,13 @@ describe('POST /api/workout-plans/:id/duplicate', () => {
       weeks: [{ days: [{ exercises: [{ name: 'Squat', sets: 3 }] }] }],
     });
     expect(res.body.plan.metadata.duplicatedFrom).toBe(50);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentRevision: 1,
+        contentHash: hashWorkoutPlanContent(res.body.plan.planData),
+      }),
+      { transaction: defaultTransaction },
+    );
   });
 
   it('honors custom title from body', async () => {

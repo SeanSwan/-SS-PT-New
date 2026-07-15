@@ -735,11 +735,20 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .send({ trainerNotes: 'Clean tempo' });
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith(expect.objectContaining({
-        currentWeek: 2,
-        currentDay: 5,
-        status: 'active',
-      }));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentWeek: 2,
+          currentDay: 5,
+          status: 'active',
+          contentRevision: 1,
+          contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+        { transaction: mockTransactionInstance },
+      );
+      expect(mockWorkoutPlanFindByPk).toHaveBeenLastCalledWith('plan-1', {
+        transaction: mockTransactionInstance,
+        lock: 'UPDATE',
+      });
       const updatePayload = update.mock.calls[0][0];
       expect(updatePayload.planData.weeks[0].days[0]).toMatchObject({
         completed: true,
@@ -754,6 +763,32 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       });
     });
 
+    it('trainer + assigned plan PUT /:id/advance rechecks active status after locking', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      const authorizedPlan = {
+        id: 'plan-1',
+        userId: 42,
+        status: 'active',
+        currentWeek: 1,
+        currentDay: 1,
+        planData: { weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [] }] }] },
+        update,
+      };
+      const lockedPlan = { ...authorizedPlan, status: 'paused' };
+      mockWorkoutPlanFindByPk
+        .mockResolvedValueOnce(authorizedPlan)
+        .mockResolvedValueOnce(lockedPlan);
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/advance')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ code: 'WORKOUT_PLAN_NOT_ACTIVE' });
+      expect(update).not.toHaveBeenCalled();
+    });
     it('trainer + assigned plan PUT /:id/advance supports top-level planData.days', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
@@ -795,6 +830,58 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       });
     });
 
+    it('trainer + assigned plan DELETE /:id archives through the locked mutation boundary', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Archive Me',
+        status: 'draft',
+        planData: { weeks: [] },
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .delete('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith({
+        status: 'completed',
+        contentRevision: 1,
+        contentHash: hashWorkoutPlanContent({ weeks: [] }),
+      }, { transaction: mockTransactionInstance });
+      expect(mockWorkoutPlanFindByPk).toHaveBeenLastCalledWith('plan-1', {
+        transaction: mockTransactionInstance,
+        lock: 'UPDATE',
+      });
+    });
+    it('trainer + assigned plan DELETE /:id returns 404 when the authorized row disappears', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      const authorizedPlan = {
+        id: 'plan-1',
+        userId: 42,
+        status: 'draft',
+        planData: { weeks: [] },
+        update,
+      };
+      mockWorkoutPlanFindByPk
+        .mockResolvedValueOnce(authorizedPlan)
+        .mockResolvedValueOnce(null);
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .delete('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ code: 'WORKOUT_PLAN_NOT_FOUND' });
+      expect(update).not.toHaveBeenCalled();
+    });
     it('trainer + assigned plan PUT /:id/pdf renames an existing protected PDF without replacing existing metadata', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
@@ -1113,23 +1200,28 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .send({});
 
       expect(res.status).toBe(201);
-      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 42,
-        trainerId: 7,
-        status: 'draft',
-        currentWeek: 1,
-        currentDay: 1,
-        progressNotes: [],
-        metadata: {
-          planHorizon: 'six_month',
-          assignmentDefault: 'trainer_session',
-          billingIntent: 'trainer_led_scheduled_flow',
-          defaultShouldDeductSession: false,
-          isPrimaryPlan: false,
-          primary: false,
-          duplicatedFrom: 'plan-1',
-        },
-      }));
+      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          trainerId: 7,
+          status: 'draft',
+          currentWeek: 1,
+          currentDay: 1,
+          progressNotes: [],
+          contentRevision: 1,
+          contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+          metadata: {
+            planHorizon: 'six_month',
+            assignmentDefault: 'trainer_session',
+            billingIntent: 'trainer_led_scheduled_flow',
+            defaultShouldDeductSession: false,
+            isPrimaryPlan: false,
+            primary: false,
+            duplicatedFrom: 'plan-1',
+          },
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
   });
 
