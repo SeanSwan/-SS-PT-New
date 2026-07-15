@@ -305,6 +305,21 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
           missingCriticalData: err.missingCriticalData,
         });
       }
+      const status = Number(err.statusCode);
+      if (
+        Number.isInteger(status)
+        && status >= 400
+        && status < 500
+        && typeof err.code === 'string'
+        && err.code.startsWith('WORKOUT_PLAN_')
+      ) {
+        return res.status(status).json({
+          success: false,
+          code: err.code || 'WORKOUT_PLAN_MUTATION_FAILED',
+          message: err.message,
+          ...(err.currentRevision ? { currentRevision: err.currentRevision } : {}),
+        });
+      }
       logger.error('[WorkoutPlan] backup generate error: %s', err.message);
       return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
     }

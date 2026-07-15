@@ -243,6 +243,7 @@ vi.mock('../../database.mjs', async () => {
       transaction: vi.fn().mockResolvedValue({
         commit: vi.fn(),
         rollback: vi.fn(),
+        LOCK: { UPDATE: 'UPDATE' },
       }),
     },
   };
@@ -269,7 +270,11 @@ const makeMockModels = (overrides = {}) => ({
   Exercise: {
     findOne: vi.fn().mockResolvedValue(null),
   },
-  WorkoutPlan: { create: vi.fn(), update: vi.fn().mockResolvedValue([0]) },
+  WorkoutPlan: {
+    create: vi.fn(),
+    findAll: vi.fn().mockResolvedValue([]),
+    findByPk: vi.fn(),
+  },
   WorkoutPlanDay: { create: vi.fn() },
   WorkoutPlanDayExercise: { create: vi.fn() },
   AiInteractionLog: null,
@@ -623,6 +628,7 @@ describe('approveDraftPlan — successful persistence shape', () => {
         findOne: vi.fn().mockResolvedValue(null),
       },
       WorkoutPlan: {
+        findAll: vi.fn().mockResolvedValue([]),
         create: vi.fn().mockResolvedValue({ id: 'approved-plan-1' }),
       },
       WorkoutPlanDay: {
@@ -696,6 +702,9 @@ describe('approveDraftPlan — successful persistence shape', () => {
       userId: 1,
       status: 'active',
       metadata: { planHorizon: 'three_month', isPrimaryPlan: true, primary: true, retainedFlag: true },
+      planData: {},
+      contentRevision: null,
+      contentHash: null,
       update: vi.fn().mockResolvedValue(undefined),
     };
     const models = makeMockModels({
@@ -709,8 +718,8 @@ describe('approveDraftPlan — successful persistence shape', () => {
       },
       WorkoutPlan: {
         findAll: vi.fn().mockResolvedValue([existingActivePlan]),
+        findByPk: vi.fn().mockResolvedValue(existingActivePlan),
         create: vi.fn().mockResolvedValue({ id: 'approved-plan-2' }),
-        update: vi.fn().mockResolvedValue([0]),
       },
       WorkoutPlanDay: {
         create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
@@ -734,7 +743,7 @@ describe('approveDraftPlan — successful persistence shape', () => {
       where: { userId: 1, status: 'active' },
       transaction: expect.any(Object),
     }));
-    expect(existingActivePlan.update).toHaveBeenCalledWith({
+    expect(existingActivePlan.update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'paused',
       metadata: expect.objectContaining({
         planHorizon: 'three_month',
@@ -742,7 +751,9 @@ describe('approveDraftPlan — successful persistence shape', () => {
         isPrimaryPlan: false,
         primary: false,
       }),
-    }, expect.objectContaining({ transaction: expect.any(Object) }));
+      contentRevision: 1,
+      contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    }), expect.objectContaining({ transaction: expect.any(Object) }));
     expect(existingActivePlan.update.mock.invocationCallOrder[0])
       .toBeLessThan(models.WorkoutPlan.create.mock.invocationCallOrder[0]);
   });
@@ -756,6 +767,7 @@ describe('approveDraftPlan — successful persistence shape', () => {
         findOne: vi.fn().mockResolvedValue(null),
       },
       WorkoutPlan: {
+        findAll: vi.fn().mockResolvedValue([]),
         create: vi.fn().mockResolvedValue({ id: 'approved-plan-privacy' }),
       },
       WorkoutPlanDay: {

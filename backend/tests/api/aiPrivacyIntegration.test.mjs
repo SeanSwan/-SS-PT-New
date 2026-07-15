@@ -21,7 +21,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const { mockRouteAiGeneration, mockTransaction, mockEvaluateWaiverVersionEligibility } = vi.hoisted(() => {
   return {
     mockRouteAiGeneration: vi.fn(),
-    mockTransaction: { commit: vi.fn(), rollback: vi.fn() },
+    mockTransaction: {
+      commit: vi.fn(),
+      rollback: vi.fn(),
+      LOCK: { UPDATE: 'UPDATE' },
+    },
     mockEvaluateWaiverVersionEligibility: vi.fn(),
   };
 });
@@ -59,7 +63,10 @@ const { mockModels } = vi.hoisted(() => ({
   mockModels: {
     User: { findByPk: vi.fn() },
     Exercise: { findOne: vi.fn() },
-    WorkoutPlan: { create: vi.fn() },
+    WorkoutPlan: {
+      create: vi.fn(),
+      findAll: vi.fn().mockResolvedValue([]),
+    },
     WorkoutPlanDay: { create: vi.fn() },
     WorkoutPlanDayExercise: { create: vi.fn() },
     ClientTrainerAssignment: { findOne: vi.fn() },

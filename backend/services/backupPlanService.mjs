@@ -24,6 +24,10 @@
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { getWorkoutPlan, getWorkoutSession } from '../models/index.mjs';
+import {
+  createWorkoutPlanRecord,
+  mutateWorkoutPlanRecord,
+} from './workoutPlanMutationService.mjs';
 import { generatePlan } from './workoutBuilderService.mjs';
 import {
   sanitizeWorkoutPlanDataForPersistence,
@@ -139,32 +143,42 @@ export async function generateBackupPlan({
   const WorkoutPlan = getWorkoutPlan();
   const existing = await WorkoutPlan.findOne({ where: backupWhere(userId) });
   if (existing) {
-    await existing.update({
+    const { plan: refreshed } = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: existing.id,
+      expectedRevision: existing.contentRevision,
+      updates: {
+        title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
+        durationWeeks,
+        planData,
+        metadata,
+        status: 'draft',
+        currentWeek: 1,
+        currentDay: 1,
+        createdBy: 'ai',
+      },
+    });
+    logger.info('[BackupPlan] refreshed backup #%d for client %d', refreshed.id, userId);
+    return { backup: refreshed, refreshed: true };
+  }
+
+  const backup = await createWorkoutPlanRecord({
+    sequelize,
+    WorkoutPlan,
+    values: {
+      userId,
+      trainerId,
       title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
+      description: 'Data-grounded backup program generated from real training history. Trainer-activated only.',
       durationWeeks,
-      planData,
-      metadata,
       status: 'draft',
       currentWeek: 1,
       currentDay: 1,
+      planData,
       createdBy: 'ai',
-    });
-    logger.info('[BackupPlan] refreshed backup #%d for client %d', existing.id, userId);
-    return { backup: existing, refreshed: true };
-  }
-
-  const backup = await WorkoutPlan.create({
-    userId,
-    trainerId,
-    title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
-    description: 'Data-grounded backup program generated from real training history. Trainer-activated only.',
-    durationWeeks,
-    status: 'draft',
-    currentWeek: 1,
-    currentDay: 1,
-    planData,
-    createdBy: 'ai',
-    metadata,
+      metadata,
+    },
   });
   logger.info('[BackupPlan] created backup #%d for client %d', backup.id, userId);
   return { backup, refreshed: false };

@@ -7,6 +7,10 @@
  */
 import { PLAN_HORIZONS } from '../services/clientTrainingPlanHorizonService.mjs';
 import {
+  mutateWorkoutPlanRecord,
+  WorkoutPlanMutationError,
+} from '../services/workoutPlanMutationService.mjs';
+import {
   normalizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
 } from '../services/workoutPlanDataPrivacyService.mjs';
@@ -175,30 +179,36 @@ const activePlanMetadata = (plan) => {
 };
 
 export async function demoteActiveWorkoutPlansForUser(WorkoutPlan, userId, transaction) {
-  if (typeof WorkoutPlan?.findAll === 'function') {
-    const activePlans = await WorkoutPlan.findAll({
-      where: { userId, status: 'active' },
-      transaction,
+  if (typeof WorkoutPlan?.findAll !== 'function') {
+    throw new WorkoutPlanMutationError('WorkoutPlan model cannot list active plans', {
+      code: 'WORKOUT_PLAN_MODEL_UNAVAILABLE',
+      statusCode: 500,
     });
-
-    if (Array.isArray(activePlans) && activePlans.length > 0) {
-      let demotedWithInstances = false;
-      for (const activePlan of activePlans) {
-        if (typeof activePlan?.update !== 'function') continue;
-        await activePlan.update({
-          status: 'paused',
-          metadata: activePlanMetadata(activePlan),
-        }, { transaction });
-        demotedWithInstances = true;
-      }
-      if (demotedWithInstances) return;
-    }
+  }
+  const lock = transaction?.LOCK?.UPDATE;
+  if (!lock) {
+    throw new WorkoutPlanMutationError('Workout plan demotion lock is unavailable', {
+      code: 'WORKOUT_PLAN_LOCK_UNAVAILABLE',
+      statusCode: 500,
+    });
   }
 
-  if (typeof WorkoutPlan?.update === 'function') {
-    await WorkoutPlan.update({ status: 'paused' }, {
-      where: { userId, status: 'active' },
+  const activePlans = await WorkoutPlan.findAll({
+    where: { userId, status: 'active' },
+    transaction,
+    lock,
+  });
+
+  for (const activePlan of activePlans || []) {
+    await mutateWorkoutPlanRecord({
+      WorkoutPlan,
+      planId: activePlan.id,
+      expectedRevision: activePlan.contentRevision,
       transaction,
+      updates: (lockedPlan) => ({
+        status: 'paused',
+        metadata: activePlanMetadata(lockedPlan),
+      }),
     });
   }
 }

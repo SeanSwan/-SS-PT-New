@@ -11,6 +11,7 @@
  *   4. Returns created plan metadata + unmatched exercises list
  */
 import logger from './logger.mjs';
+import { createWorkoutPlanRecord } from '../services/workoutPlanMutationService.mjs';
 import { buildExerciseLookupMap, findExerciseByName } from './exerciseLookup.mjs';
 import {
   buildWorkoutPlanData,
@@ -119,28 +120,32 @@ export async function persistWorkoutPlan({ plan, userId, models, transaction, ta
 
   // Create the plan record. Keep planData populated because current-plan and
   // logger handoff routes read the JSONB shape, not the normalized child rows.
-  const workoutPlan = await WorkoutPlan.create({
-    userId,
-    title: plan.planName || 'AI Workout Plan',
-    description: plan.summary || 'AI-generated workout plan',
-    durationWeeks,
-    status: 'active',
-    currentWeek: 1,
-    currentDay: 1,
-    planData,
-    createdBy: 'swan_coach_planning',
-    metadata: {
-      planSource: 'swan_coach_planning',
-      sourceType,
-      planHorizon: horizonKey,
-      horizonKey,
-      planDurationKey: horizonKey,
-      ...TRAINER_LED_WORKOUT_PLAN_METADATA,
-      isPrimaryPlan: true,
-      primary: true,
+  const workoutPlan = await createWorkoutPlanRecord({
+    WorkoutPlan,
+    transaction,
+    values: {
+      userId,
+      title: plan.planName || 'AI Workout Plan',
+      description: plan.summary || 'AI-generated workout plan',
+      durationWeeks,
+      status: 'active',
+      currentWeek: 1,
+      currentDay: 1,
+      planData,
+      createdBy: 'swan_coach_planning',
+      metadata: {
+        planSource: 'swan_coach_planning',
+        sourceType,
+        planHorizon: horizonKey,
+        horizonKey,
+        planDurationKey: horizonKey,
+        ...TRAINER_LED_WORKOUT_PLAN_METADATA,
+        isPrimaryPlan: true,
+        primary: true,
+      },
+      tags,
     },
-    tags,
-  }, { transaction });
+  });
 
   const days = Array.isArray(plan.days) ? plan.days : [];
 

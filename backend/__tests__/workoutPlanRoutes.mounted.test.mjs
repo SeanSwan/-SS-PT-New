@@ -66,6 +66,7 @@ const mockWorkoutPlanUpdate = vi.fn();
 const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
+const mockGenerateBackupPlan = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
@@ -93,6 +94,10 @@ vi.mock('../database.mjs', () => ({
   default: {
     transaction: (...args) => mockSequelizeTransaction(...args),
   },
+}));
+
+vi.mock('../services/backupPlanService.mjs', () => ({
+  generateBackupPlan: (...args) => mockGenerateBackupPlan(...args),
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
@@ -140,6 +145,51 @@ afterEach(async () => {
 });
 
 describe('workoutPlanRoutes — mounted route stack', () => {
+  describe('backup refresh error contract', () => {
+    it('returns a prescription revision conflict as a reloadable 409', async () => {
+      mockGenerateBackupPlan.mockRejectedValueOnce(Object.assign(
+        new Error('Workout plan changed after it was loaded. Reload before saving.'),
+        {
+          statusCode: 409,
+          code: 'WORKOUT_PLAN_REVISION_CONFLICT',
+          currentRevision: 7,
+        },
+      ));
+
+      const res = await request(app)
+        .post('/api/workout-plans/backup/42/generate')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin')
+        .send({ durationWeeks: 4 });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: 'WORKOUT_PLAN_REVISION_CONFLICT',
+        currentRevision: 7,
+      });
+    });
+
+    it('does not expose arbitrary status-bearing service errors', async () => {
+      mockGenerateBackupPlan.mockRejectedValueOnce(Object.assign(
+        new Error('private internal detail'),
+        { statusCode: 400, code: 'UNTRUSTED_SERVICE_ERROR' },
+      ));
+
+      const res = await request(app)
+        .post('/api/workout-plans/backup/42/generate')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin')
+        .send({ durationWeeks: 4 });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        success: false,
+        message: 'Failed to generate backup plan',
+      });
+    });
+  });
+
   describe('list filters', () => {
     it('admin GET /?clientId=42junk -> 400 and never queries plans', async () => {
       const res = await request(app)

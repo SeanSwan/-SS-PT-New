@@ -96,4 +96,16 @@ describe('backup route review-contract mapping (source contract)', () => {
     expect(slice).toContain('reviewRequiredSignals');
     expect(slice).toContain('planningReviewAcknowledged');
   });
+
+  it('returns revision conflicts as reloadable 409 responses', () => {
+    const start = routeSource.indexOf("router.post('/backup/:userId/generate'");
+    const end = routeSource.indexOf("router.post('/blend'", start);
+    const slice = routeSource.slice(start, end);
+
+    expect(slice).toContain('err.statusCode');
+    expect(slice).toContain('err.code');
+    expect(slice).toContain("startsWith('WORKOUT_PLAN_')");
+    expect(slice).toContain('err.currentRevision');
+    expect(slice).toContain('res.status(status)');
+  });
 });
