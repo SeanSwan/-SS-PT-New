@@ -1,18 +1,35 @@
 /**
- * Workout Plan Revision Contract
- * ==============================
+ * ============================================================================
+ * FILE: workoutPlanRevisionService.test.mjs
+ * PURPOSE: Lock deterministic prescription identity and optimistic concurrency.
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-15
+ * AI VILLAGE VALIDATED: 2026-07-15
+ * ============================================================================
  *
- * RED-first contract for deterministic prescribed-content identity. Mutable
- * completion/cursor evidence must not rewrite the prescription revision, while
- * a real exercise prescription change must produce a new hash and revision.
+ * WHAT THIS FILE DOES: Exercises stable hashing, mutable-progress exclusions,
+ * prototype-pollution defense, revision increments, and stale-write conflicts.
+ * HOW IT FITS IN THE APP: Revision service -> contract tests -> writer safety.
+ * KEY DECISIONS: Tests use realistic nested planData and assert domain outcomes.
+ * NASM PROTOCOL CONTEXT: Prescription changes must remain distinguishable from
+ * completion evidence so historical training receipts keep the correct meaning.
  */
 import { describe, expect, it } from 'vitest';
+
+// SECTION: Contract fixtures and module loading
+// PURPOSE: Build representative plan data and keep RED explicit if the module is absent.
+// WHY: Import failure must never turn a missing contract into a false-positive test.
 
 const loadRevisionService = async () => {
   try {
     return await import('../services/workoutPlanRevisionService.mjs');
-  } catch {
-    return null;
+  } catch (error) {
+    if (
+      error?.code === 'ERR_MODULE_NOT_FOUND'
+      && String(error.message).includes('workoutPlanRevisionService.mjs')
+    ) {
+      return null;
+    }
+    throw error;
   }
 };
 
@@ -35,6 +52,9 @@ const basePlan = () => ({
   },
 });
 
+// SECTION: Deterministic identity and concurrency behavior
+// PURPOSE: Lock every public invariant used by canonical plan writers.
+// WHY: A regression here would corrupt revisions, receipts, or stale-write handling.
 describe('workoutPlanRevisionService', () => {
   it('exports the deterministic revision contract', async () => {
     const service = await loadRevisionService();

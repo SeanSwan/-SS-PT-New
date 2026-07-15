@@ -1,13 +1,26 @@
 /**
- * Workout Plan Revision Service
- * =============================
+ * ============================================================================
+ * FILE: workoutPlanRevisionService.mjs
+ * PURPOSE: Produce deterministic revisions and hashes for prescribed plan content.
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-15
+ * AI VILLAGE VALIDATED: 2026-07-15
+ * ============================================================================
  *
- * Creates a deterministic identity for prescribed plan content. Runtime cursor
- * and completion evidence are excluded so logging a completed workout does not
- * rewrite the prescription that the completion receipt points to.
+ * WHAT THIS FILE DOES: Canonicalizes the prescription portion of planData,
+ * hashes it with SHA-256, and resolves optimistic revision changes. Runtime
+ * completion and cursor evidence is intentionally excluded from the identity.
+ * HOW IT FITS IN THE APP: Plan writers -> revision service -> WorkoutPlan identity.
+ * KEY DECISIONS: Stable key sorting makes hashes deterministic; null-prototype
+ * objects keep hostile keys inert; stale material writes fail with HTTP 409.
+ * NASM PROTOCOL CONTEXT: Preserves the exact phase/exercise prescription that
+ * completed-workout receipts and progress projections must reference.
  */
 
 import { createHash } from 'node:crypto';
+
+// SECTION: Canonical prescription normalization
+// PURPOSE: Remove mutable progress evidence and stabilize object key order.
+// WHY: The same prescription must hash identically across writers and runtimes.
 const MUTABLE_PROGRESS_KEYS = new Set([
   'completed',
   'completedAt',
@@ -37,10 +50,20 @@ const normalizeCanonicalValue = (value) => {
     }, Object.create(null));
 };
 
+/**
+ * Canonicalizes prescribed workout-plan data for deterministic serialization.
+ * @param {unknown} planData Raw JSON-compatible workout-plan content.
+ * @returns {unknown} Stable content with mutable progress evidence removed.
+ */
 export const canonicalizeWorkoutPlanContent = (planData) => (
   normalizeCanonicalValue(planData && typeof planData === 'object' ? planData : {})
 );
 
+/**
+ * Computes the lowercase SHA-256 identity of prescribed workout-plan content.
+ * @param {unknown} planData Raw JSON-compatible workout-plan content.
+ * @returns {string} A 64-character lowercase hexadecimal digest.
+ */
 export const hashWorkoutPlanContent = (planData) => (
   createHash('sha256')
     .update(JSON.stringify(canonicalizeWorkoutPlanContent(planData)))
@@ -51,6 +74,10 @@ const positiveRevision = (value) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
 };
+
+/**
+ * Domain error returned when a material plan write targets a stale revision.
+ */
 export class WorkoutPlanRevisionConflictError extends Error {
   constructor(currentRevision) {
     super('Workout plan changed after it was loaded. Reload before saving.');
@@ -66,6 +93,9 @@ export class WorkoutPlanRevisionConflictError extends Error {
  *
  * A stale no-op is accepted because it writes no prescribed content. A stale
  * material mutation fails with a 409-safe domain error.
+ * @param {object} input Current identity, next plan data, and expected revision.
+ * @returns {{changed: boolean, revision: number, hash: string}} Resolved identity.
+ * @throws {WorkoutPlanRevisionConflictError} For stale or missing mutation intent.
  */
 export const resolveWorkoutPlanContentRevision = ({
   currentRevision,
