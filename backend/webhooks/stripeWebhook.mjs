@@ -18,7 +18,7 @@ import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { getStorefrontSessionCredits, grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import { isPhysicalCartItem } from '../services/cartCheckoutFulfillmentService.mjs';
-import sessionAllocationService from '../services/SessionAllocationService.mjs';
+import unifiedSessionService from '../services/sessions/session.service.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
 import sequelize from '../database.mjs';
@@ -234,7 +234,13 @@ const stripeWebhookHandler = async (req, res) => {
                 });
               }
 
-              const sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(order.id, order.userId);
+              // Use the UNIFIED allocator: transactional + order-row-locked +
+              // FinancialTransaction-keyed idempotent. The old SessionAllocation
+              // Service had no internal idempotency, so a Stripe retry / crash
+              // between allocate and the paymentAppliedAt write double-granted
+              // sessions and double-counted revenue. (Matches orderRoutes.mjs:138
+              // and routes/sessions.mjs.)
+              const sessionCreationResult = await unifiedSessionService.allocateSessionsFromOrder(order.id, order.userId);
               await order.update({
                 paymentAppliedAt: new Date(),
                 paymentReference: pi.id,

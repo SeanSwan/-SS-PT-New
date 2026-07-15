@@ -142,9 +142,14 @@ describe('ACH payment order item truth', () => {
     }));
   });
 
-  it('keeps ACH webhook completion tied to session allocation', () => {
+  it('keeps ACH webhook completion tied to session allocation (via the idempotent allocator)', () => {
     expect(webhookSource).toContain("case 'payment_intent.succeeded'");
-    expect(webhookSource).toContain('sessionAllocationService.allocateSessionsFromOrder(order.id, order.userId)');
+    // 2026-07-15 money sweep: migrated off the legacy non-idempotent
+    // SessionAllocationService onto the unified (transactional, row-locked,
+    // FinancialTransaction-keyed idempotent) allocator so a Stripe retry can't
+    // double-grant sessions / double-count revenue.
+    expect(webhookSource).toContain('unifiedSessionService.allocateSessionsFromOrder(order.id, order.userId)');
+    expect(webhookSource).not.toContain('sessionAllocationService.allocateSessionsFromOrder');
   });
 
   it('refuses callers without the store-prices grant (P1-1, fail closed)', async () => {

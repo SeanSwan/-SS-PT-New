@@ -49,4 +49,20 @@ describe('F2 — allocateSessionsFromOrder is idempotent for ALL callers', () =>
     const body = unified.slice(start, start + 900);
     expect(body).toMatch(/lock:\s*\{[\s\S]*of:\s*this\.Order/);
   });
+
+  // 2026-07-15 money sweep: the "ALL callers" claim above was NOT true — the
+  // ACH webhook and the admin applyOrderPayment still used the LEGACY, non-
+  // idempotent SessionAllocationService. Both now route through the unified
+  // (idempotent) service so a Stripe retry / admin double-submit can't double-grant.
+  it('the ACH webhook uses the unified idempotent allocator, not the legacy service', () => {
+    const achWebhook = readFileSync(resolve(__dirname, '../../webhooks/stripeWebhook.mjs'), 'utf8');
+    expect(achWebhook).toMatch(/unifiedSessionService\.allocateSessionsFromOrder/);
+    expect(achWebhook).not.toMatch(/import sessionAllocationService from/);
+  });
+
+  it('admin applyOrderPayment uses the unified idempotent allocator', () => {
+    const orderCtrl = readFileSync(resolve(__dirname, '../../controllers/orderController.mjs'), 'utf8');
+    expect(orderCtrl).toMatch(/unifiedSessionService\.allocateSessionsFromOrder/);
+    expect(orderCtrl).not.toMatch(/import sessionAllocationService from/);
+  });
 });

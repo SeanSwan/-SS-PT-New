@@ -471,21 +471,23 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
   const hasRawBody = Buffer.isBuffer(req.body) || typeof req.body === 'string';
 
+  // Fail closed in ALL environments — a signed event is required. The prior
+  // code accepted UNSIGNED events when NODE_ENV !== 'production', which let a
+  // forged checkout.session.completed grant a free 'elite' subscription on any
+  // non-prod instance reachable against the (shared) DB. The primary + cart +
+  // session-package webhooks already require the secret; this now matches.
+  if (!webhookSecret) {
+    logger.error('[Subscription Webhook] STRIPE_SUBSCRIPTION_WEBHOOK_SECRET missing — refusing unsigned event');
+    return res.status(503).send('Subscription webhook is not configured');
+  }
+  if (!hasRawBody) {
+    logger.error('[Subscription Webhook] Raw request body missing for signed webhook verification');
+    return res.status(400).send('Webhook Error: raw body required');
+  }
+
   let event;
   try {
-    if (webhookSecret) {
-      if (!hasRawBody) {
-        logger.error('[Subscription Webhook] Raw request body missing for signed webhook verification');
-        return res.status(400).send('Webhook Error: raw body required');
-      }
-      event = s.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } else if (process.env.NODE_ENV === 'production') {
-      logger.error('[Subscription Webhook] STRIPE_SUBSCRIPTION_WEBHOOK_SECRET missing in production');
-      return res.status(503).send('Subscription webhook is not configured');
-    } else {
-      event = hasRawBody ? JSON.parse(req.body.toString()) : req.body;
-      logger.warn('[Subscription Webhook] No webhook secret configured; accepting unsigned development event');
-    }
+    event = s.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     logger.error('[Subscription Webhook] Signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
