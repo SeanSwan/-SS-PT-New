@@ -138,10 +138,22 @@ export function getAllCommandTypes() {
  * @param {string} [role] - Optional role filter
  * @returns {string}
  */
+/** Param key names from a command's zod object schema (null for unions/none). */
+function commandParamKeys(cmd) {
+  const shape = cmd.inputSchema?.shape;
+  if (!shape || typeof shape !== 'object') return null;
+  const keys = Object.keys(shape);
+  return keys.length ? keys : null;
+}
+
 export function buildCommandSummaryForClassifier(role) {
   const commands = role ? getCommandsForRole(role) : getAllCommands();
-  const lines = commands.map(cmd =>
-    `${cmd.type}: ${cmd.description} (e.g., "${cmd.naturalLanguagePatterns[0]}")`
-  );
+  // The params list is load-bearing: without the exact key names the model
+  // invents keys from the pattern placeholders ("{exercise}" → params.exercise)
+  // and zod rejects the intent (prod incident 2026-07-15, round 3).
+  const lines = commands.map(cmd => {
+    const keys = commandParamKeys(cmd);
+    return `${cmd.type}: ${cmd.description} (e.g., "${cmd.naturalLanguagePatterns[0]}")${keys ? ` [params: ${keys.join(', ')}]` : ''}`;
+  });
   return lines.join('\n');
 }

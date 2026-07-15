@@ -37,7 +37,7 @@ vi.mock('../../services/ai/commandDispatcher.mjs', () => ({
 }));
 
 const aiCommandRoutes = (await import('../../routes/aiCommandRoutes.mjs')).default;
-const { getCommand } = await import('../../services/ai/commandRegistry/index.mjs');
+const { getCommand, buildCommandSummaryForClassifier } = await import('../../services/ai/commandRegistry/index.mjs');
 const { applySurfaceIntentRemap } = await import('../../services/ai/surfaceIntentRemap.mjs');
 
 function makeApp() {
@@ -119,6 +119,16 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
       });
     });
   }
+
+  it('teaches the classifier the EXACT param keys — the summary lists schema keys per command (prod incident 2026-07-15 round 3)', () => {
+    // Without this, the model copies pattern placeholders ("{exercise}") as
+    // param keys and zod rejects every intent with "exerciseName: Required".
+    const summary = buildCommandSummaryForClassifier('admin');
+    expect(summary).toContain('planner_add_exercise:');
+    expect(summary).toMatch(/planner_add_exercise:.*\[params: exerciseName, sets, reps, tempo, restSeconds, dayNumber, weekNumber\]/);
+    expect(summary).toMatch(/planner_swap_exercise:.*\[params: fromExerciseName, toExerciseName, dayNumber, weekNumber\]/);
+    expect(summary).toMatch(/add_exercise_to_form:.*\[params: exerciseName/);
+  });
 
   it('coerces LLM string numerics — "sets":"3" reaches the payload as the number 3 (prod incident 2026-07-15)', async () => {
     // Live-prod QA caught Gemini emitting {"sets":"3","reps":"12"} as strings;
