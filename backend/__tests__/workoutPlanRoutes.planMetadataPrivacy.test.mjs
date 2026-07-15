@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -106,7 +107,11 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
       rollback: vi.fn().mockResolvedValue(undefined),
       LOCK: { UPDATE: 'UPDATE' },
     };
-    mockSequelizeTransaction.mockResolvedValue(mockTransactionInstance);
+    mockSequelizeTransaction.mockImplementation(async (callback) => (
+      typeof callback === 'function'
+        ? callback(mockTransactionInstance)
+        : mockTransactionInstance
+    ));
   });
 
   it('sanitizes progressNotes and metadata on POST /api/workout-plans', async () => {
@@ -118,7 +123,12 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     });
 
     expect(res.status).toBe(201);
-    const payload = mockWorkoutPlanCreate.mock.calls[0][0];
+    const [payload, options] = mockWorkoutPlanCreate.mock.calls[0];
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
     expectSanitizedJson(payload.progressNotes);
     expectSanitizedJson(payload.metadata);
     expect(payload.metadata).toMatchObject({
@@ -143,7 +153,12 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     });
 
     expect(res.status).toBe(200);
-    const payload = update.mock.calls[0][0];
+    const [payload, options] = update.mock.calls[0];
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent({}),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
     expectSanitizedJson(payload.progressNotes);
     expectSanitizedJson(payload.metadata);
     expect(payload.metadata).toMatchObject({

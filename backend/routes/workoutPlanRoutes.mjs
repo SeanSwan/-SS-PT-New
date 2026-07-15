@@ -2,7 +2,7 @@
  * ============================================================================
  * FILE: workoutPlanRoutes.mjs
  * PURPOSE: REST API for multi-week workout plan CRUD + session advancement
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-29
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-15
  * AI VILLAGE VALIDATED: 2026-03-29
  * ============================================================================
  *
@@ -43,6 +43,10 @@ import { readAssignmentCompletionContext } from '../services/clientTrainingAssig
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAttachmentService.mjs';
+import {
+  createWorkoutPlanRecord,
+  mutateWorkoutPlanRecord,
+} from '../services/workoutPlanMutationService.mjs';
 import {
   normalizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
@@ -400,22 +404,26 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
     const safeProgressNotes = sanitizeWorkoutPlanProgressNotesForPersistence(progressNotes);
     const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(metadata);
 
-    const plan = await WorkoutPlan.create({
-      userId: parseInt(userId, 10),
-      trainerId: req.user.id,
-      title,
-      description: description || null,
-      nasmPhase: nasmPhase || null,
-      startDate: startDate || null,
-      endDate: endDate || null,
-      durationWeeks: durationWeeks || 4,
-      status: 'draft',
-      currentWeek: 1,
-      currentDay: 1,
-      planData: safePlanData,
-      progressNotes: safeProgressNotes,
-      createdBy: createdBy || 'trainer',
-      metadata: safeMetadata
+    const plan = await createWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      values: {
+        userId: parseInt(userId, 10),
+        trainerId: req.user.id,
+        title,
+        description: description || null,
+        nasmPhase: nasmPhase || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        durationWeeks: durationWeeks || 4,
+        status: 'draft',
+        currentWeek: 1,
+        currentDay: 1,
+        planData: safePlanData,
+        progressNotes: safeProgressNotes,
+        createdBy: createdBy || 'trainer',
+        metadata: safeMetadata
+      },
     });
 
     logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
@@ -445,8 +453,9 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
 // fallow-ignore-next-line complexity
 router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
+    // Middleware proves access; the mutation boundary then refetches and locks
+    // the authoritative row before deriving metadata or content identity.
+    const authorizedPlan = req.workoutPlan;
 
     if (req.body.status === 'active') {
       return res.status(400).json({
@@ -455,42 +464,60 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
       });
     }
 
-    // Whitelist updatable fields to prevent mass-assignment
+    // Whitelist updatable fields to prevent mass-assignment.
     const allowedFields = [
       'title', 'description', 'nasmPhase', 'startDate', 'endDate',
       'durationWeeks', 'status', 'currentWeek', 'currentDay',
       'planData', 'progressNotes', 'metadata'
     ];
 
-    const updates = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        if (field === 'metadata') {
-          updates[field] = mergePlanMetadata(plan, req.body[field]);
-        } else if (field === 'planData') {
-          updates[field] = normalizeWorkoutPlanDataForPersistence(req.body[field]);
-        } else if (field === 'progressNotes') {
-          updates[field] = sanitizeWorkoutPlanProgressNotesForPersistence(req.body[field]);
-        } else {
-          updates[field] = req.body[field];
+    let appliedUpdates = {};
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan: getWorkoutPlan(),
+      planId: authorizedPlan.id,
+      expectedRevision: req.body.expectedRevision,
+      updates: (lockedPlan) => {
+        const updates = {};
+        for (const field of allowedFields) {
+          if (req.body[field] === undefined) continue;
+          if (field === 'metadata') {
+            updates[field] = mergePlanMetadata(lockedPlan, req.body[field]);
+          } else if (field === 'planData') {
+            updates[field] = normalizeWorkoutPlanDataForPersistence(req.body[field]);
+          } else if (field === 'progressNotes') {
+            updates[field] = sanitizeWorkoutPlanProgressNotesForPersistence(req.body[field]);
+          } else {
+            updates[field] = req.body[field];
+          }
         }
-      }
-    }
-
-    await plan.update(updates);
+        appliedUpdates = updates;
+        return updates;
+      },
+    });
+    const plan = mutation.plan;
 
     logger.info('[WorkoutPlan] Updated plan #%d by user %d', plan.id, req.user.id);
 
     // Content changed → regenerate the attached PDF so it always mirrors the
     // latest applied plan (swaps included). Non-fatal on failure.
-    if (updates.planData !== undefined || updates.title !== undefined) {
+    if (mutation.contentChanged || appliedUpdates.title !== undefined) {
       await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
     }
 
     res.json({ success: true, plan });
   } catch (error) {
+    const status = Number(error?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logger.error('[WorkoutPlan] PUT /:id error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to update workout plan' });
+    return res.status(500).json({ success: false, message: 'Failed to update workout plan' });
   }
 });
 

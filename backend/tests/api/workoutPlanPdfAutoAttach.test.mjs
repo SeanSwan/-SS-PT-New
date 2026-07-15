@@ -10,16 +10,24 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCreate, mockStorePdf } = vi.hoisted(() => ({
+const { mockCreate, mockStorePdf, mockTransaction, transactionInstance } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockStorePdf: vi.fn(),
+  mockTransaction: vi.fn(),
+  transactionInstance: { LOCK: { UPDATE: 'UPDATE' } },
 }));
 
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = { id: 7, role: 'admin' }; next(); },
   trainerOrAdminOnly: (_req, _res, next) => next(),
 }));
-vi.mock('../../database.mjs', () => ({ default: { query: vi.fn(), QueryTypes: {} } }));
+vi.mock('../../database.mjs', () => ({
+  default: {
+    query: vi.fn(),
+    QueryTypes: {},
+    transaction: (...args) => mockTransaction(...args),
+  },
+}));
 vi.mock('../../models/index.mjs', () => ({
   getModel: vi.fn((name) => (name === 'WorkoutPlan'
     ? { create: mockCreate, findOne: vi.fn() }
@@ -60,6 +68,8 @@ describe('POST /api/workout-plans PDF auto-attach pin (blueprint S6)', () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockStorePdf.mockReset();
+    mockTransaction.mockReset();
+    mockTransaction.mockImplementation(async (callback) => callback(transactionInstance));
   });
 
   it('returns the created plan with metadata.planPdf attached', async () => {
@@ -87,6 +97,13 @@ describe('POST /api/workout-plans PDF auto-attach pin (blueprint S6)', () => {
       .expect(201);
 
     expect(response.body.success).toBe(true);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentRevision: 1,
+        contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+      { transaction: transactionInstance },
+    );
     expect(response.body.plan.metadata.planPdf).toMatchObject({
       url: '/uploads/workout-plans/plan-501.pdf',
       fileName: 'plan-501.pdf',

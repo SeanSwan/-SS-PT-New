@@ -29,6 +29,7 @@ import os from 'node:os';
 import path from 'node:path';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // Module mocks (must precede SUT import).
@@ -123,7 +124,11 @@ beforeEach(async () => {
     rollback: vi.fn().mockResolvedValue(undefined),
     LOCK: { UPDATE: 'UPDATE' },
   };
-  mockSequelizeTransaction.mockResolvedValue(mockTransactionInstance);
+  mockSequelizeTransaction.mockImplementation(async (callback) => (
+    typeof callback === 'function'
+      ? callback(mockTransactionInstance)
+      : mockTransactionInstance
+  ));
 });
 
 afterEach(async () => {
@@ -205,13 +210,18 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(201);
-      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 42,
-        trainerId: 7,
-        title: 'Coach Review Draft',
-        durationWeeks: 4,
-        status: 'draft',
-      }));
+      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          trainerId: 7,
+          title: 'Coach Review Draft',
+          durationWeeks: 4,
+          status: 'draft',
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({ weeks: [] }),
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
 
     it('trainer + assigned client POST / cannot bypass activation by sending active status', async () => {
@@ -230,13 +240,18 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(201);
-      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 42,
-        trainerId: 7,
-        title: 'Direct Active Bypass Attempt',
-        durationWeeks: 4,
-        status: 'draft',
-      }));
+      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 42,
+          trainerId: 7,
+          title: 'Direct Active Bypass Attempt',
+          durationWeeks: 4,
+          status: 'draft',
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({ weeks: [] }),
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
 
     it('trainer + assigned client GET /client/:userId -> reaches handler (assignment lookup fired with status=active)', async () => {
@@ -472,6 +487,112 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.status).toBe(200);
     });
 
+    it('trainer + assigned plan PUT /:id requires expectedRevision for material planData changes', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Revision-locked plan',
+        status: 'draft',
+        planData: {
+          weeks: [{
+            weekNumber: 1,
+            days: [{
+              dayNumber: 1,
+              exercises: [{ exerciseName: 'Goblet Squat', sets: 3 }],
+            }],
+          }],
+        },
+        contentRevision: 4,
+        contentHash: 'a'.repeat(64),
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          planData: {
+            weeks: [{
+              weekNumber: 1,
+              days: [{
+                dayNumber: 1,
+                exercises: [{ exerciseName: 'Goblet Squat', sets: 4 }],
+              }],
+            }],
+          },
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: 'WORKOUT_PLAN_REVISION_CONFLICT',
+        currentRevision: 4,
+      });
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('trainer + assigned plan PUT /:id applies a material edit at the expected revision', async () => {
+      const originalPlanData = {
+        weeks: [{
+          weekNumber: 1,
+          days: [{
+            dayNumber: 1,
+            exercises: [{ exerciseName: 'Goblet Squat', sets: 3 }],
+          }],
+        }],
+      };
+      const changedPlanData = {
+        weeks: [{
+          weekNumber: 1,
+          days: [{
+            dayNumber: 1,
+            exercises: [{ exerciseName: 'Goblet Squat', sets: 4 }],
+          }],
+        }],
+      };
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Revision-locked plan',
+        status: 'draft',
+        planData: originalPlanData,
+        contentRevision: 4,
+        contentHash: hashWorkoutPlanContent(originalPlanData),
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          expectedRevision: 4,
+          planData: changedPlanData,
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockWorkoutPlanFindByPk).toHaveBeenLastCalledWith('plan-1', {
+        transaction: mockTransactionInstance,
+        lock: 'UPDATE',
+      });
+      expect(update.mock.calls[0]).toEqual([
+        expect.objectContaining({
+          planData: changedPlanData,
+          contentRevision: 5,
+          contentHash: hashWorkoutPlanContent(changedPlanData),
+        }),
+        { transaction: mockTransactionInstance },
+      ]);
+      expect(update.mock.calls[0][0]).not.toHaveProperty('expectedRevision');
+    });
+
     it('trainer + assigned plan PUT /:id merges plan-use metadata without dropping existing PDF or flags', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
@@ -506,20 +627,25 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith(expect.objectContaining({
-        durationWeeks: 26,
-        metadata: {
-          planHorizon: 'six_month',
-          painAware: true,
-          planPdf: {
-            url: '/api/workout-plans/plan-1/pdf/content.pdf',
-            fileName: 'Legacy Plan.pdf',
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          durationWeeks: 26,
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({}),
+          metadata: {
+            planHorizon: 'six_month',
+            painAware: true,
+            planPdf: {
+              url: '/api/workout-plans/plan-1/pdf/content.pdf',
+              fileName: 'Legacy Plan.pdf',
+            },
+            assignmentDefault: 'trainer_session',
+            billingIntent: 'trainer_led_scheduled_flow',
+            defaultShouldDeductSession: false,
           },
-          assignmentDefault: 'trainer_session',
-          billingIntent: 'trainer_led_scheduled_flow',
-          defaultShouldDeductSession: false,
-        },
-      }));
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
 
     it('trainer + assigned plan PUT /:id cannot activate without the transaction-safe activate route', async () => {
@@ -570,9 +696,14 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith(expect.objectContaining({
-        metadata: { planHorizon: 'six_month', painAware: true },
-      }));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({}),
+          metadata: { planHorizon: 'six_month', painAware: true },
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
 
     it('trainer + assigned plan PUT /:id/advance follows explicit numbered week/day cursors', async () => {

@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -30,6 +31,7 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
+let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
   getModel: (name) => {
@@ -99,11 +101,16 @@ describe('workoutPlanRoutes planData privacy', () => {
     mockWorkoutPlanFindOne.mockResolvedValue(null);
     mockWorkoutPlanCreate.mockResolvedValue({ id: 'plan-created' });
     mockDailyWorkoutFormFindAll.mockResolvedValue([]);
-    mockSequelizeTransaction.mockResolvedValue({
+    mockTransactionInstance = {
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
       LOCK: { UPDATE: 'UPDATE' },
-    });
+    };
+    mockSequelizeTransaction.mockImplementation(async (callback) => (
+      typeof callback === 'function'
+        ? callback(mockTransactionInstance)
+        : mockTransactionInstance
+    ));
   });
 
   it('sanitizes planData on POST /api/workout-plans', async () => {
@@ -114,7 +121,13 @@ describe('workoutPlanRoutes planData privacy', () => {
     });
 
     expect(res.status).toBe(201);
-    expectSanitizedPlanData(mockWorkoutPlanCreate.mock.calls[0][0].planData);
+    const [payload, options] = mockWorkoutPlanCreate.mock.calls[0];
+    expectSanitizedPlanData(payload.planData);
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
   });
 
   it('sanitizes planData on PUT /api/workout-plans/:id', async () => {
@@ -131,7 +144,13 @@ describe('workoutPlanRoutes planData privacy', () => {
     });
 
     expect(res.status).toBe(200);
-    expectSanitizedPlanData(update.mock.calls[0][0].planData);
+    const [payload, options] = update.mock.calls[0];
+    expectSanitizedPlanData(payload.planData);
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
   });
 
   it('sanitizes cloned planData on POST /api/workout-plans/:id/duplicate', async () => {
