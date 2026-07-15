@@ -10,9 +10,11 @@
 import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { transcribeAudio, extractText, isAudioFile } from '../services/voiceTranscriptionService.mjs';
 import { parseWorkoutTranscript } from '../services/workoutLogParserService.mjs';
 import { previewHistoricalWorkoutImport } from '../services/historicalWorkoutImportService.mjs';
+import { getLastLoggedWeights, MAX_REQUESTED_NAMES } from '../services/workoutLastWeightService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -126,6 +128,31 @@ async function extractTranscriptFromFile(file) {
 
 // All routes require authentication; per-route role scopes below.
 router.use(protect);
+
+/**
+ * GET /last-weights?clientId=84&names=Leg%20Press,Chest%20Press
+ * Last logged weight per exercise for set-row suggestions (blueprint S5).
+ * RBAC: same client-access contract as other client reads — admin any,
+ * trainer needs an active assignment, client/user self only (403 otherwise).
+ * Empty `weights:{}` is a SUCCESS (no history is not an error).
+ */
+router.get('/last-weights', authorize(['admin', 'trainer', 'client', 'user']), async (req, res) => {
+  const clientId = parseStrictPositiveInteger(req.query.clientId);
+  const names = (typeof req.query.names === 'string' ? req.query.names : '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .slice(0, MAX_REQUESTED_NAMES);
+  if (!clientId || names.length === 0) {
+    return res.status(400).json({ success: false, error: 'clientId and names are required.' });
+  }
+  const allowed = await assertAssignmentOrAdmin(req.user?.id, req.user?.role, clientId);
+  if (!allowed) {
+    return res.status(403).json({ success: false, error: 'You do not have access to this client.' });
+  }
+  const { weights } = await getLastLoggedWeights(clientId, names);
+  return res.json({ success: true, weights });
+});
 
 const SELF_VOICE_UPLOAD_ROLES = new Set(['client', 'user']);
 

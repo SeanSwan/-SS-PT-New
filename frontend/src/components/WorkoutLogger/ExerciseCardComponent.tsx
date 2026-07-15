@@ -44,6 +44,7 @@ interface ExerciseCardComponentProps {
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   onRemoveExercise: (exerciseIndex: number) => void;
   getOverload?: (exerciseName: string, setIndex: number) => OverloadSuggestionType | null;
+  getLastWeight?: React.ComponentProps<typeof ExerciseSetRowComponent>['getLastWeight'];
   onSetLogged?: (exerciseIndex: number, setIndex: number) => void;
   ghostSkip?: boolean;
 }
@@ -63,6 +64,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onRemoveSet,
   onRemoveExercise,
   getOverload,
+  getLastWeight,
   onSetLogged,
   ghostSkip = false,
 }) => {
@@ -196,6 +198,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               onUpdateSet={onUpdateSet}
               onRemoveSet={onRemoveSet}
               getOverload={getOverload}
+              getLastWeight={getLastWeight}
             />
           </React.Fragment>
         ))}

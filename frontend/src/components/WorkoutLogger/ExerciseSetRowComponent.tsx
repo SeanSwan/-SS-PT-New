@@ -16,6 +16,7 @@ import RestTimer from './RestTimer';
 import TempoInput from './TempoInput';
 import { getExerciseSetRowKey } from './WorkoutLogger.helpers';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
+import type { LastWeightSuggestion } from './useLastWeightSuggestions';
 import {
   RatingControlRow,
   SliderInput,
@@ -24,6 +25,7 @@ import {
   StarRatingContainer,
 } from './ExerciseCardComponent.styles';
 import {
+  LastWeightChip,
   NumberInput,
   RemoveSetButton,
   SetCell,
@@ -33,6 +35,15 @@ import {
   TextInput,
   WeightInputWrapper,
 } from './ExerciseSetRow.styles';
+
+/** "2026-07-10" → "Jul 10" for the last-weight chip (02 §E copy). */
+const chipDate = (iso: string | null): string => {
+  if (!iso) return '';
+  const date = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
 interface ExerciseSetRowComponentProps {
   /** Primitive on purpose: keeps React.memo effective across sibling-set edits. */
@@ -47,6 +58,7 @@ interface ExerciseSetRowComponentProps {
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => void;
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   getOverload?: (exerciseName: string, setIndex: number) => OverloadSuggestionType | null;
+  getLastWeight?: (exerciseName: string) => LastWeightSuggestion | null;
 }
 
 const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
@@ -61,7 +73,14 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
   onUpdateSet,
   onRemoveSet,
   getOverload,
-}) => (
+  getLastWeight,
+}) => {
+  // Last-weight suggestion (blueprint 02 §E): placeholder + tap-to-fill chip
+  // while the weight is untouched (0). Never auto-commits — an untouched
+  // field still submits 0 unless the trainer taps the chip or types.
+  const lastWeight = getLastWeight?.(exerciseName) ?? null;
+  const weightUntouched = !set.weight;
+  return (
   <SetRow data-details={showDetails ? 'open' : 'closed'}>
     <SetCell data-label="Set" data-essential="cell">
       <SetNumber>{set.setNumber}</SetNumber>
@@ -71,9 +90,9 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
         <NumberInput
           type="number"
           inputMode="decimal"
-          value={set.weight ?? ''}
+          value={lastWeight && weightUntouched ? '' : set.weight ?? ''}
           onChange={event => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(event.target.value) || 0)}
-          placeholder="0"
+          placeholder={lastWeight && weightUntouched ? String(lastWeight.weight) : '0'}
           aria-label={`Set ${set.setNumber} weight in lbs`}
         />
         {getOverload && (
@@ -84,6 +103,15 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
               if (suggestion) onUpdateSet(exerciseIndex, setIndex, 'weight', suggestion.suggested);
             }}
           />
+        )}
+        {lastWeight && weightUntouched && (
+          <LastWeightChip
+            type="button"
+            onClick={() => onUpdateSet(exerciseIndex, setIndex, 'weight', lastWeight.weight)}
+            aria-label={`Use last weight ${lastWeight.weight} pounds`}
+          >
+            ⟲ last: {lastWeight.weight} lbs{lastWeight.at ? ` · ${chipDate(lastWeight.at)}` : ''}
+          </LastWeightChip>
         )}
       </WeightInputWrapper>
     </SetCell>
@@ -168,7 +196,8 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
       </RemoveSetButton>
     </SetCell>
   </SetRow>
-);
+  );
+};
 
 ExerciseSetRowComponent.displayName = 'ExerciseSetRowComponent';
 export default React.memo(ExerciseSetRowComponent);

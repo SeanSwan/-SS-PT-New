@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Plus, Download, Timer, History, UploadCloud, Mic } from 'lucide-react';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
+import { useLastWeightSuggestions } from './useLastWeightSuggestions';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -156,6 +157,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return [];
   });
   const exercisesRef = useRef<ExerciseEntry[]>(exercises);
+  const { getLastWeight } = useLastWeightSuggestions({ clientId: effectiveClientId ?? null, exercises });
   const [sessionNotes, setSessionNotes] = useState('');
   /* Phase 16: null overallIntensity means not rated; save omits untouched ratings. */
   const [overallIntensity, setOverallIntensity] = useState<number | null>(null);
@@ -740,6 +742,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                   onRemoveSet={removeSet}
                   onRemoveExercise={removeExercise}
                   getOverload={ghostPreFill.getOverload}
+                  getLastWeight={getLastWeight}
                   onSetLogged={handleSetLogged}
                   ghostSkip={isClientSelfMode}
                 />
