@@ -128,7 +128,7 @@ const MAX_STRIP_GROUPS = 6;
 
 const HomeGroupsStrip: React.FC = () => {
   const navigate = useNavigate();
-  const { groups, isLoading } = useGroups('mine');
+  const { groups, isLoading, error, refresh } = useGroups('mine');
 
   const openGroup = (groupId: number) => navigate(`/user-dashboard/groups?g=${groupId}`);
   const browseGroups = () => navigate('/user-dashboard/groups');
@@ -149,6 +149,12 @@ const HomeGroupsStrip: React.FC = () => {
       {isLoading ? (
         <EmptyCopy type="button" onClick={browseGroups} aria-label="Loading your groups">
           Loading your groups…
+        </EmptyCopy>
+      ) : error ? (
+        // Don't imply "no groups" on a transient failure — offer a retry.
+        <EmptyCopy type="button" onClick={() => void refresh()} aria-label="Retry loading your groups">
+          <Users size={16} aria-hidden="true" />
+          Couldn't load your groups — tap to retry.
         </EmptyCopy>
       ) : groups.length === 0 ? (
         <EmptyCopy type="button" onClick={browseGroups}>
