@@ -64,8 +64,10 @@ Accept when ALL of:
    default), NOT "kill switch" (M1).
 3. Chrome-only committed ids still resolve null; and resolution now goes through
    `V2_RECIPE_BY_CATALOG_ID` (M2) — a source-contract assert that the recipe-id map is retired.
-4. Full frontend suite for the six surface folders green (re-count; no stale target); the ONE
-   contract-test change (`surfaceManifests.test.ts` v1→null, L5) enumerated.
+4. Full frontend suite for the six surface folders green (re-count; no stale target). The THREE
+   sanctioned F3 contract-test changes (N1) applied and enumerated in the receipt: the two rewritten
+   asserts in `WorkoutDesignLab.styleAxis.test.tsx` A3 (+rename) and the two catalog-id lookups in
+   `surfaceManifests.test.ts`. If any OTHER test goes RED, STOP — do not edit it to pass.
 5. Viewport spot: logger + progress at 375/1440 wearing Candy Glass — no clipped/overlapped
    critical controls (screenshots).
 STOP — this slice flips live UX; Fable checkpoint + Sean ping before push.

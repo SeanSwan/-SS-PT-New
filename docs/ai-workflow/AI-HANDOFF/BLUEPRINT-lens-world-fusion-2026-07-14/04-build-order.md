@@ -50,10 +50,26 @@ recipe-id `V2_RECIPES_BY_STYLE_LENS_ID`), added BEHIND `isLensV2RolloutEnabled()
 override**, NOT a fleet incident kill — do not call it one. The production rollback for a
 misbehaving v2 rollout is a `git revert` + redeploy; if a real fleet kill is wanted, make the
 default an env/build value like the existing server-side `TIER_GATING_ENABLED` pattern
-(requireTier.mjs) — flag that as a Sean decision at the F3 checkpoint. Document all of this in the
-file header. Zero-delta suites: update the source-contract test that pins v1→null — it is
-`frontend/src/adapters/style-lens-swan/v2/surfaceManifests.test.ts` (the v1→null assertion; L5) —
-to pin the new flag-gated behavior instead (the ONE sanctioned contract change; enumerate it).
+(requireTier.mjs) — flag that as a Sean decision at the F3 checkpoint. Document all of this in the file header.
+**Sanctioned F3 source-contract test changes (N1 — the M2 map switch breaks THREE assertions across
+TWO files; the pre-rollout "stays inert" intent is exactly what this Sean-approved successor slice
+reverses, so these are authorized, not accidental):**
+1. `frontend/src/components/DashBoard/Pages/workout-design-lab/WorkoutDesignLab.styleAxis.test.tsx`
+   — the test **"A3: production resolveRecipeForStyleLens stays untouched and inert (source
+   contract)"**: `expect(resolution).not.toContain("catalogV2Map")` and
+   `expect(resolution).toContain("V2_RECIPES_BY_STYLE_LENS_ID[styleLensId] ?? null")` both become
+   false. REWRITE those two lines to assert the NEW contract (recipeResolution imports
+   `catalogV2Map`; resolves via `V2_RECIPE_BY_CATALOG_ID`; recipe-id map retired) and RENAME the
+   test ("stays untouched and inert" is no longer true — call it e.g. "resolves committed catalog
+   ids via the catalog map behind the rollout flag"). The Apply-honesty asserts lower in the same
+   test are untouched by M2 — keep them green.
+2. `frontend/src/adapters/style-lens-swan/v2/surfaceManifests.test.ts` — the test "resolves recipes
+   ONLY for exact v2 ids": it calls `resolveRecipeForStyleLens(CANDY_GLASS_ARCADE_RECIPE.id)` (the
+   RECIPE id `swan.candy-glass-arcade.v2`). After M2 keys by CATALOG id, flip those two lookups to
+   catalog ids (`'candy-glass-arcade'`, `'prism-terminal'`); the `null`/`undefined`/unknown-id
+   fall-through lines stay.
+These are the FULL enumerated set of F3 contract changes — there is no other. Do NOT edit any other
+test to make F3 pass; if a fourth breaks, STOP and checkpoint.
 
 ## F4 — Style Studio (6 files)
 `components/UserDashboard/StyleStudio/StyleStudio.tsx` ≤260 (sheet/drawer, rows, tier locks) ·
