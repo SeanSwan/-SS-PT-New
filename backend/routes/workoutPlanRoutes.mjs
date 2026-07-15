@@ -377,11 +377,24 @@ router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
       });
       return res.json({ success: true, promotedPlanId: result.promoted.id, archivedPlanIds: result.archived });
     } catch (error) {
-      const status = Number(error?.statusCode) || 500;
-      if (status >= 500) logger.error('[WorkoutPlan] promote-backup error: %s', error.message);
-      return res.status(status).json({
+      const status = Number(error?.statusCode);
+      const isClientSafe = Number.isInteger(status)
+        && status >= 400
+        && status < 500
+        && typeof error?.code === 'string'
+        && error.code.startsWith('WORKOUT_PLAN_');
+      if (isClientSafe) {
+        return res.status(status).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+        });
+      }
+      logger.error('[WorkoutPlan] promote-backup error: %s', error.message);
+      return res.status(500).json({
         success: false,
-        message: status >= 500 ? 'Failed to promote backup plan' : error.message,
+        message: 'Failed to promote backup plan',
       });
     }
   });

@@ -67,6 +67,7 @@ const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
 const mockGenerateBackupPlan = vi.fn();
+const mockPromoteBackupPlan = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
@@ -98,6 +99,7 @@ vi.mock('../database.mjs', () => ({
 
 vi.mock('../services/backupPlanService.mjs', () => ({
   generateBackupPlan: (...args) => mockGenerateBackupPlan(...args),
+  promoteBackupPlan: (...args) => mockPromoteBackupPlan(...args),
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
@@ -167,6 +169,49 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         success: false,
         code: 'WORKOUT_PLAN_REVISION_CONFLICT',
         currentRevision: 7,
+      });
+    });
+
+    it('returns trusted promotion conflicts with their current revision', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({ id: 42, userId: 7 });
+      mockPromoteBackupPlan.mockRejectedValueOnce(Object.assign(
+        new Error('Workout plan changed after it was loaded. Reload before saving.'),
+        {
+          statusCode: 409,
+          code: 'WORKOUT_PLAN_REVISION_CONFLICT',
+          currentRevision: 8,
+        },
+      ));
+
+      const res = await request(app)
+        .post('/api/workout-plans/42/promote-backup')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin');
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: 'WORKOUT_PLAN_REVISION_CONFLICT',
+        currentRevision: 8,
+      });
+    });
+
+    it('does not expose arbitrary status-bearing promotion errors', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({ id: 42, userId: 7 });
+      mockPromoteBackupPlan.mockRejectedValueOnce(Object.assign(
+        new Error('private promotion detail'),
+        { statusCode: 400, code: 'UNTRUSTED_SERVICE_ERROR' },
+      ));
+
+      const res = await request(app)
+        .post('/api/workout-plans/42/promote-backup')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin');
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        success: false,
+        message: 'Failed to promote backup plan',
       });
     });
 

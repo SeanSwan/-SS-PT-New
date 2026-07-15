@@ -27,6 +27,7 @@ import { getWorkoutPlan, getWorkoutSession } from '../models/index.mjs';
 import {
   createWorkoutPlanRecord,
   mutateWorkoutPlanRecord,
+  WorkoutPlanMutationError,
 } from './workoutPlanMutationService.mjs';
 import { generatePlan } from './workoutBuilderService.mjs';
 import {
@@ -191,54 +192,87 @@ export async function generateBackupPlan({
 export async function promoteBackupPlan({ planId, trainerId }) {
   const WorkoutPlan = getWorkoutPlan();
   return sequelize.transaction(async (transaction) => {
-    const backup = await WorkoutPlan.findByPk(planId, { transaction, lock: transaction.LOCK.UPDATE });
-    if (!backup) {
-      const err = new Error('Plan not found');
-      err.statusCode = 404;
-      throw err;
-    }
-    if (backup.metadata?.planRole !== 'ai_backup') {
-      const err = new Error('Not an AI backup plan — only a backup can be promoted');
-      err.statusCode = 400;
-      throw err;
+    const candidate = await WorkoutPlan.findByPk(planId, { transaction });
+    if (!candidate) {
+      throw new WorkoutPlanMutationError('Plan not found', {
+        code: 'WORKOUT_PLAN_NOT_FOUND',
+        statusCode: 404,
+      });
     }
 
-    const priorActive = await WorkoutPlan.findAll({
-      where: { userId: backup.userId, status: 'active' },
+    // Match the canonical activation lock order: lock every plan for the
+    // client before mutating any participant in the primary-plan transition.
+    const lockedPlans = await WorkoutPlan.findAll({
+      where: { userId: candidate.userId },
+      order: [['id', 'ASC']],
       transaction,
       lock: transaction.LOCK.UPDATE,
     });
-    for (const plan of priorActive) {
-      await plan.update(
+    const backup = lockedPlans.find((plan) => String(plan.id) === String(planId));
+    if (!backup) {
+      throw new WorkoutPlanMutationError('Plan not found', {
+        code: 'WORKOUT_PLAN_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    if (backup.metadata?.planRole !== 'ai_backup') {
+      throw new WorkoutPlanMutationError(
+        'Not an AI backup plan — only a backup can be promoted',
         {
-          status: 'paused',
-          metadata: sanitizeWorkoutPlanMetadataForPersistence({
-            ...(plan.metadata ?? {}),
-            archivedReason: 'replaced_by_backup_promotion',
-            archivedAt: new Date().toISOString(),
-          }),
+          code: 'WORKOUT_PLAN_NOT_BACKUP',
+          statusCode: 400,
         },
-        { transaction }
       );
     }
 
-    await backup.update(
-      {
+    const priorActive = lockedPlans.filter((plan) => (
+      String(plan.id) !== String(backup.id) && plan.status === 'active'
+    ));
+    const archived = [];
+    for (const plan of priorActive) {
+      const mutation = await mutateWorkoutPlanRecord({
+        sequelize,
+        WorkoutPlan,
+        planId: plan.id,
+        expectedRevision: plan.contentRevision,
+        transaction,
+        updates: (lockedPlan) => ({
+          status: 'paused',
+          metadata: sanitizeWorkoutPlanMetadataForPersistence({
+            ...(lockedPlan.metadata ?? {}),
+            isPrimaryPlan: false,
+            primary: false,
+            archivedReason: 'replaced_by_backup_promotion',
+            archivedAt: new Date().toISOString(),
+          }),
+        }),
+      });
+      archived.push(mutation.plan.id);
+    }
+
+    const promotion = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: backup.id,
+      expectedRevision: backup.contentRevision,
+      transaction,
+      updates: (lockedBackup) => ({
         status: 'active',
         currentWeek: 1,
         currentDay: 1,
         metadata: sanitizeWorkoutPlanMetadataForPersistence({
-          ...(backup.metadata ?? {}),
+          ...(lockedBackup.metadata ?? {}),
           planRole: 'primary',
+          isPrimaryPlan: true,
+          primary: true,
           promotedFrom: 'ai_backup',
           promotedAt: new Date().toISOString(),
           promotedBy: trainerId,
         }),
-      },
-      { transaction }
-    );
+      }),
+    });
 
-    logger.info('[BackupPlan] promoted #%d to primary for client %d (archived %d prior)', backup.id, backup.userId, priorActive.length);
-    return { promoted: backup, archived: priorActive.map((p) => p.id) };
+    logger.info('[BackupPlan] promoted #%d to primary for client %d (archived %d prior)', promotion.plan.id, promotion.plan.userId, archived.length);
+    return { promoted: promotion.plan, archived };
   });
 }
