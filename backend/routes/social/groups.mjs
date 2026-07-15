@@ -30,10 +30,12 @@ import {
   canPostInGroup,
   canViewGroupContent,
   getGroupWithMembership,
+  isGroupOwner,
 } from '../../services/social/groupAccessService.mjs';
 import { decoratePostsForFeed } from '../../services/social/postFeedFormatter.mjs';
 import { attachWorkoutDataToPost } from './socialWorkoutData.mjs';
 import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
+import { serializeGroup, toPositiveInt } from './groupRouteHelpers.mjs';
 import { ensureGroupConversation } from '../../services/social/groupChatLinkService.mjs';
 import groupMembershipRoutes from './groupMembership.mjs';
 
@@ -41,19 +43,6 @@ const router = express.Router();
 router.use(protect);
 
 const USER_PREVIEW_ATTRS = ['id', 'firstName', 'lastName', 'username', 'photo', 'role'];
-
-const toPositiveInt = (value) => {
-  const next = Number(value);
-  return Number.isInteger(next) && next > 0 ? next : null;
-};
-
-function serializeGroup(group, membership = null) {
-  const json = typeof group.toJSON === 'function' ? group.toJSON() : { ...group };
-  return {
-    ...json,
-    myMembership: membership ? { role: membership.role, status: membership.status } : null,
-  };
-}
 
 /** GET / — discovery + my groups. Query: mine=true | search | category */
 router.get('/', async (req, res) => {
@@ -215,6 +204,29 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating group:', error);
     return sendSocialRouteError(res, 500, 'Failed to update group');
+  }
+});
+
+/** DELETE /:id — archive the group (owner or admin). Soft delete: isArchived
+    hides it from discovery/feed/join everywhere. Resolves the sole-owner
+    dead-end (owner who can't leave/transfer can now retire the group). */
+router.delete('/:id', async (req, res) => {
+  try {
+    const groupId = toPositiveInt(req.params.id);
+    if (!groupId) return res.status(400).json({ success: false, message: 'Valid group id required' });
+
+    const { group, membership } = await getGroupWithMembership(groupId, req.user.id);
+    if (!group || group.isArchived) return res.status(404).json({ success: false, message: 'Group not found' });
+    // Only the owner (or a platform admin) may retire a group.
+    if (!isGroupOwner(membership, req.user)) {
+      return res.status(403).json({ success: false, message: 'Only the group owner can archive this group' });
+    }
+
+    await group.update({ isArchived: true });
+    return res.json({ success: true, message: 'Group archived' });
+  } catch (error) {
+    console.error('Error archiving group:', error);
+    return sendSocialRouteError(res, 500, 'Failed to archive group');
   }
 });
 

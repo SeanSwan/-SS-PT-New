@@ -87,7 +87,10 @@ describe('adminPasswordSetupLinkService', () => {
     expect(target.resetPasswordToken).toBe(hashPasswordResetToken(rawToken, RESET_SECRET));
     expect(target.resetPasswordToken).not.toBe(rawToken);
     expect(target.resetPasswordExpires.getTime()).toBe(now + PASSWORD_SETUP_LINK_TTL_MS);
-    expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    // Compare against the INJECTED clock, not real Date.now() — the service
+    // derives expiresAt from the injected `now`, so asserting against the wall
+    // clock made this a time-bomb that fails once real time passes now+TTL.
+    expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(now);
   });
 
   it('rejects missing target (404), admin target (403), and inactive target (409)', async () => {
