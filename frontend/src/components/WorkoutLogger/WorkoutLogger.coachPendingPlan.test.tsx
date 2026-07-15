@@ -2,6 +2,10 @@ import { render, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Full WorkoutLogger mounts are heavy (~3s isolated); under a loaded parallel
+// pool they can exceed vitest's 5s default. Latency headroom, not behavior.
+vi.setConfig({ testTimeout: 15000 });
+
 import WorkoutLogger from './WorkoutLogger';
 import { APPLY_WORKOUT_EVENT, appendPendingWorkoutPlan, PENDING_WORKOUT_QUEUE_KEY } from '../../utils/parseAIWorkoutPlan';
 

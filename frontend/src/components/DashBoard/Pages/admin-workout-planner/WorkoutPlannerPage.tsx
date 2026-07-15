@@ -16,6 +16,9 @@ import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGeneratio
 import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerCoachDock, pushWorkoutPlannerCoachReceipt } from './useWorkoutPlannerCoachDock';
+import { useWorkoutPlannerAiEvents } from './useWorkoutPlannerAiEvents';
+import { type PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerPdfActions } from './useWorkoutPlannerPdfActions';
@@ -43,17 +46,14 @@ const WorkoutPlannerPage: React.FC = () => {
     [searchParams, user?.role],
   );
 
-  const [phaseNumber, setPhaseNumber] = useState(2);
-  const [category, setCategory] = useState<WorkoutCategory>('full_body');
-  const [goal, setGoal] = useState<PlanGoal>('general_fitness');
-  const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
-  const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>('auto');
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
+  const [phaseNumber, setPhaseNumber] = useState(2); const [category, setCategory] = useState<WorkoutCategory>('full_body');
+  const [goal, setGoal] = useState<PlanGoal>('general_fitness'); const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
+  const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>('auto'); const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
-  const [selectedMesoDay, setSelectedMesoDay] = useState(1);
-  const [teachModeOpen, setTeachModeOpen] = useState(false);
+  const [selectedMesoDay, setSelectedMesoDay] = useState(1); const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
+  const [selectedHorizonTarget, setSelectedHorizonTarget] = useState<PlannerHorizonSelection | null>(null);
   const phase = useMemo(() => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1], [phaseNumber]);
   const { trainingIntensityMode, hardcoreMethod, setHardcoreMethod, handleTrainingIntensityModeChange } = useWorkoutPlannerTrainingStyleState();
 
@@ -70,7 +70,7 @@ const WorkoutPlannerPage: React.FC = () => {
     exerciseTypeFilter,
     equipmentFilter,
     impactFilter,
-    exerciseRowRenderer,
+    exerciseRowRenderer, searchExercises,
     setSearchQuery,
     setFilterCategory,
     setSourceFilter,
@@ -166,10 +166,10 @@ const WorkoutPlannerPage: React.FC = () => {
 
   useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState });
 
-  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => {
-    void handleSwanCoachWorkoutGenerate(selectedClientId);
-  }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
+  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => { void handleSwanCoachWorkoutGenerate(selectedClientId); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
+  const coachDock = useWorkoutPlannerCoachDock({ selectedClientId, pushReceipt: pushWorkoutPlannerCoachReceipt });
+  useWorkoutPlannerAiEvents({ planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, pushReceipt: pushWorkoutPlannerCoachReceipt, phase });
 
   const {
     savedPlans, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,
@@ -272,7 +272,7 @@ const WorkoutPlannerPage: React.FC = () => {
     hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
     generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
     safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate: confirmSafetyGateReview, onCancelSafetyGate: cancelSafetyGateReview,
-    teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber },
+    teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber }, coachDock,
     onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
     onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
@@ -287,7 +287,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
     onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onCreatePdf: handleCreateBuilderPdf, onSelectExercise: setSelectedExercise,
-    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise, swapTarget, onBeginSwap: beginSwap, onCancelSwap: cancelSwap, onBeginHorizonSwap: beginHorizonSwap, onRemoveHorizonExercise: removeHorizonExerciseAt,
+    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise, swapTarget, onBeginSwap: beginSwap, onCancelSwap: cancelSwap, onBeginHorizonSwap: beginHorizonSwap, onRemoveHorizonExercise: removeHorizonExerciseAt, onHorizonSelectionChange: setSelectedHorizonTarget,
     onToggleExplanations: handleToggleExplanations, onSelectGuidedCandidate: handleSelectGuidedCandidate,
     onClearGuidedCandidates: clearGuidedCandidates, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename, onPlansChanged: () => { void fetchSavedPlans(selectedClientId); },

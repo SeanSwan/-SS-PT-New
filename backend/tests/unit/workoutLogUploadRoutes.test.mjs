@@ -263,15 +263,17 @@ describe('workoutLogUploadRoutes — route mount + middleware chain', () => {
   });
 
   it('does not expose any other HTTP methods on the router', () => {
-    // Lock the router's public surface: POST /upload and POST /history-preview.
+    // Lock the router's public surface: GET /last-weights (blueprint S5
+    // suggestions read), POST /upload, and POST /history-preview.
     // A future addition would need to extend this test.
     const routeLayers = workoutLogUploadRoutes.stack.filter((l) => l.route);
-    expect(routeLayers).toHaveLength(2);
+    expect(routeLayers).toHaveLength(3);
     const routes = routeLayers.map((layer) => ({
       path: layer.route.path,
       methods: Object.keys(layer.route.methods),
     }));
     expect(routes).toEqual([
+      { path: '/last-weights', methods: ['get'] },
       { path: '/upload', methods: ['post'] },
       { path: '/history-preview', methods: ['post'] },
     ]);

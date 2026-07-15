@@ -25,4 +25,8 @@ describe('WorkoutPlanner page layout extraction', () => {
     expect(pageSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(layoutSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
+
+  it('mounts the Coach dock behind the client-viewer gate (planner_* is admin/trainer only)', () => {
+    expect(layoutSource).toContain('{!isViewerClient && <WorkoutPlannerCoachDock');
+  });
 });

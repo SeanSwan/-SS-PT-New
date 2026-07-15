@@ -65,9 +65,21 @@ export interface ConfirmResult {
   dispatched?: boolean;
 }
 
+/** Catch-path fallback — the only error text that means "the lane itself is down". */
+export const COMMAND_TRANSPORT_FAILED = 'Command request failed. Please check your connection and try again.';
+
+/** Honest error receipt: server errors (RBAC denials, validation) pass through
+ *  verbatim; only a transport failure reads as "unreachable". */
+export const commandErrorReceiptText = (error?: string | null): string => (
+  error && error !== COMMAND_TRANSPORT_FAILED
+    ? error
+    : 'Swan Coach is unreachable — try again.'
+);
+
 const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: string): string => {
   if (dispatched) return fallback || 'Sent to the active workout surface.';
   if (event === 'AI_SUBMIT_WORKOUT') return 'No active Workout Logger was open. No workout was submitted.';
+  if (event.startsWith('AI_PLANNER_')) return 'No Workout Planner is open. The plan was not changed.';
   return 'No active workout surface was open. No form was changed.';
 };
 
@@ -89,6 +101,8 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
+      /** Active surface for intent disambiguation (planner vs logger command family). */
+      surface?: 'workout-planner' | 'workout-logger';
     },
   ): Promise<CommandResponse> => {
     setExecutingCommand(true);
@@ -97,7 +111,11 @@ export function useCoachCommand() {
         message,
         selectedClientId: opts?.selectedClientId ?? undefined,
         previousContext: opts?.previousContext ?? undefined,
-        routeContext: opts?.routeContext ?? undefined,
+        // Surface rides the existing allowlisted routeContext token channel
+        // (aiCommandRoutes normalizeRouteContext → intent surface remap).
+        routeContext: opts?.surface
+          ? { ...(opts?.routeContext ?? {}), surface: opts.surface }
+          : opts?.routeContext ?? undefined,
       });
       const data = res.data;
 
@@ -155,10 +173,7 @@ export function useCoachCommand() {
     } catch (error) {
       return {
         type: 'error',
-        error: commandRequestErrorReceipt(
-          error,
-          'Command request failed. Please check your connection and try again.'
-        ),
+        error: commandRequestErrorReceipt(error, COMMAND_TRANSPORT_FAILED),
       };
     } finally {
       setExecutingCommand(false);

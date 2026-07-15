@@ -16,6 +16,7 @@ import logger from '../../utils/logger.mjs';
 import { sanitizeInput } from './inputSanitizer.mjs';
 import { scanForPHI, stripPHI } from './phiScanner.mjs';
 import { classifyIntent } from './intentClassifier.mjs';
+import { applySurfaceIntentRemap } from './surfaceIntentRemap.mjs';
 import { getCommand } from './commandRegistry/index.mjs';
 import { resolveClient } from './clientResolver.mjs';
 import { rehydrateResponse } from './deIdentifier.mjs';
@@ -261,6 +262,9 @@ async function stepClassify(ctx) {
     routeContext: ctx.options.routeContext,
     selectedClientName: ctx.options.selectedClientName,
   });
+  // Deterministic guarantee: ambiguous verbs resolve to the command family of
+  // the ACTIVE surface (planner dock vs logger), whatever the LLM picked.
+  ctx.intent = applySurfaceIntentRemap(ctx.intent, ctx.options.routeContext);
   return ctx;
 }
 

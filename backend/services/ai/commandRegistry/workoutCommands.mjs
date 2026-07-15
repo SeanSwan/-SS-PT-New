@@ -312,6 +312,111 @@ const commands = [
     requiresClientRef: false, category: 'B',
     frontendEvent: 'AI_SUBMIT_WORKOUT',
   },
+
+  // ─── Planner AI-as-Operator Commands (dispatch to the open Workout Planner) ───
+  // FRONTEND_DISPATCH only: the server NEVER writes workout_plans for these —
+  // edits land in the open planner via browser events, and persistence stays
+  // behind the human Save/Update buttons (trainer-indispensability doctrine).
+  // Admin + trainer only; clients keep request_plan_adjustment.
+  {
+    type: 'planner_add_exercise',
+    description: 'Add an exercise to the open Workout Planner',
+    naturalLanguagePatterns: [
+      'add {exercise} to the plan', 'give me {exercise} on day {day}',
+      'put {exercise} in the plan', 'add {sets} sets of {exercise} to the plan',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_ADD_EXERCISE',
+    inputSchema: z.object({
+      exerciseName: z.string().min(1),
+      sets: z.number().int().min(1).max(20).optional(),
+      reps: z.union([z.number().int().min(1).max(100), z.string().max(20)]).optional(),
+      tempo: z.string().max(10).optional(),
+      restSeconds: z.number().int().min(0).max(600).optional(),
+      dayNumber: z.number().int().min(1).max(7).optional(),
+      weekNumber: z.number().int().min(1).max(52).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_PLANNER_ADD_EXERCISE',
+  },
+  {
+    type: 'planner_swap_exercise',
+    description: 'Swap one exercise for another in the open Workout Planner',
+    naturalLanguagePatterns: [
+      'swap {exercise} for {replacement}', 'replace {exercise} with {replacement}',
+      'switch {exercise} to {replacement} in the plan',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_SWAP_EXERCISE',
+    inputSchema: z.object({
+      fromExerciseName: z.string().min(1),
+      toExerciseName: z.string().min(1),
+      dayNumber: z.number().int().min(1).max(7).optional(),
+      weekNumber: z.number().int().min(1).max(52).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_PLANNER_SWAP_EXERCISE',
+  },
+  {
+    type: 'planner_remove_exercise',
+    description: 'Remove an exercise from the open Workout Planner',
+    naturalLanguagePatterns: [
+      'remove {exercise} from the plan', 'take {exercise} out of the plan',
+      'drop {exercise} from day {day}',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_REMOVE_EXERCISE',
+    inputSchema: z.object({
+      exerciseName: z.string().min(1),
+      dayNumber: z.number().int().min(1).max(7).optional(),
+      weekNumber: z.number().int().min(1).max(52).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_PLANNER_REMOVE_EXERCISE',
+  },
+  {
+    type: 'planner_update_exercise',
+    description: 'Update sets, reps, tempo, or rest for an exercise in the open Workout Planner',
+    naturalLanguagePatterns: [
+      'make {exercise} {sets} sets', 'change {exercise} to {reps} reps',
+      'set {exercise} rest to {seconds} seconds', 'make {exercise} two sets each',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_UPDATE_EXERCISE',
+    inputSchema: z.object({
+      exerciseName: z.string().min(1),
+      sets: z.number().int().min(1).max(20).optional(),
+      reps: z.union([z.number().int().min(1).max(100), z.string().max(20)]).optional(),
+      tempo: z.string().max(10).optional(),
+      restSeconds: z.number().int().min(0).max(600).optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_PLANNER_UPDATE_EXERCISE',
+  },
+  {
+    type: 'planner_generate_workout',
+    description: 'Generate a fresh workout in the open Workout Planner',
+    // Planner-flavored phrasings only — bare "generate a workout" stays with
+    // build_workout_plan so Command Center flows are not hijacked (R1 fix).
+    naturalLanguagePatterns: [
+      'generate a workout in the planner', 'give me a leg day for this client',
+      'build a fresh workout in the planner', 'make a new {category} workout in the planner',
+    ],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_GENERATE',
+    inputSchema: z.object({
+      category: z.string().max(40).optional(),
+      goal: z.string().max(40).optional(),
+      phase: NASMPhaseSchema.optional(),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_PLANNER_GENERATE',
+  },
 ];
 
 export function register() {

@@ -169,7 +169,30 @@ export const WeightInputWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  flex-wrap: wrap;
   @media (max-width: 1180px) { flex: 1; }
+`;
+
+/** Tap-to-fill last-weight chip (blueprint S5, 02 §E) — suggestion only,
+ *  never auto-commits; mirrors the OverloadSuggestion pill discipline. */
+export const LastWeightChip = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  min-height: 44px;
+  border: 1px solid ${withAlpha(CS.gaming, 0.25)};
+  border-radius: 999px;
+  background: ${withAlpha(CS.gaming, 0.08)};
+  color: ${CS.textMuted};
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: ${withAlpha(CS.gaming, 0.18)}; color: ${CS.text}; }
+  &:focus-visible { outline: 2px solid ${CS.gaming}; outline-offset: 2px; }
 `;
 
 export const TextInput = styled.input`

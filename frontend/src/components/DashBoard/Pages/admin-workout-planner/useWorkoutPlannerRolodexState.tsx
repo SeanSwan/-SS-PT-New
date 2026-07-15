@@ -6,7 +6,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
-import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
+import { searchExercisesSync, type ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { getJointImpact, parseEquipment } from './WorkoutPlannerFilters';
 import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';
 import type { GeneratedPlan, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
@@ -57,12 +57,20 @@ export function useWorkoutPlannerRolodexState({
 
   const {
     results: exerciseResults,
+    allExercises,
     isLoading: exercisesLoading,
     setQuery: setSearchQuery,
     setCategory: setFilterCategory,
     query: searchQuery,
     category: filterCategory,
   } = useExerciseSearch();
+
+  // Headless library search for dictated planner edits (AI events hook) —
+  // does NOT touch the visible rolodex query/results state.
+  const searchExercises = useCallback(
+    async (query: string) => searchExercisesSync(allExercises, query, null),
+    [allExercises],
+  );
 
   const filteredExercises = useMemo(() => {
     let pool = exerciseResults;
@@ -258,6 +266,7 @@ export function useWorkoutPlannerRolodexState({
     equipmentFilter,
     impactFilter,
     exerciseRowRenderer,
+    searchExercises,
     setSearchQuery,
     setFilterCategory,
     setSourceFilter,

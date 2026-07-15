@@ -117,3 +117,49 @@ export const removeHorizonExercise = (
 ): GeneratedPlan => mapTargetExercises(plan, target, exercises => (
   exercises.filter((_, index) => index !== target.exerciseIndex)
 ));
+
+/** Fields a dictated planner_update_exercise may change on a day slot. */
+export interface HorizonExerciseFieldUpdates {
+  sets?: number;
+  reps?: string | number;
+  tempo?: string;
+  restSeconds?: number;
+}
+
+/** Update only the provided programming fields on the targeted day slot. */
+export const updateHorizonExerciseFields = (
+  plan: GeneratedPlan,
+  target: HorizonSwapTarget,
+  updates: HorizonExerciseFieldUpdates,
+): GeneratedPlan => mapTargetExercises(plan, target, exercises => exercises.map((exercise, index) => (
+  index === target.exerciseIndex
+    ? {
+      ...exercise,
+      ...(updates.sets !== undefined ? { sets: updates.sets } : {}),
+      ...(updates.reps !== undefined ? { reps: updates.reps } : {}),
+      ...(updates.tempo !== undefined ? { tempo: updates.tempo } : {}),
+      ...(updates.restSeconds !== undefined ? { restSeconds: updates.restSeconds } : {}),
+    }
+    : exercise
+)));
+
+/** Append a dictated exercise to the targeted day (Week/Day addressed like swaps). */
+export const addHorizonExercise = (
+  plan: GeneratedPlan,
+  target: Pick<HorizonSwapTarget, 'weekNumber' | 'dayIndex'>,
+  exercise: ExerciseSlim,
+  programming: HorizonExerciseFieldUpdates,
+): GeneratedPlan => mapTargetExercises(
+  plan,
+  { kind: 'horizon', exerciseIndex: -1, exerciseName: exercise.name, ...target },
+  exercises => [...exercises, {
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    name: exercise.name,
+    sets: programming.sets,
+    reps: programming.reps,
+    tempo: programming.tempo,
+    restSeconds: programming.restSeconds,
+    rotationFallback: false,
+  }],
+);

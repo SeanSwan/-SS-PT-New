@@ -19,6 +19,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Full WorkoutLogger mounts are heavy (~3s isolated); under a loaded parallel
+// pool they can exceed vitest's 5s default. Latency headroom, not behavior.
+vi.setConfig({ testTimeout: 15000 });
+
 // ─────────────────────────────────────────────────────────────
 // Mocks — registered before the SUT import
 // ─────────────────────────────────────────────────────────────

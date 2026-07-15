@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History, UploadCloud } from 'lucide-react';
+import { Plus, Download, Timer, History, UploadCloud, Mic } from 'lucide-react';
+import LoggerDictationStrip from './LoggerDictationStrip';
+import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
+import { useLastWeightSuggestions } from './useLastWeightSuggestions';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -126,6 +129,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
       : (allowSelfMode ? userNumericId : undefined);
+  // AI_* logger commands are admin/trainer only — no Dictate surface for client/user roles (R1).
+  const canDictate = user?.role === 'admin' || user?.role === 'trainer';
+  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null });
   const isClientSelfMode: boolean =
     allowSelfMode &&
     typeof effectiveClientId === 'number' &&
@@ -153,6 +159,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return [];
   });
   const exercisesRef = useRef<ExerciseEntry[]>(exercises);
+  const { getLastWeight } = useLastWeightSuggestions({ clientId: effectiveClientId ?? null, exercises });
   const [sessionNotes, setSessionNotes] = useState('');
   /* Phase 16: null overallIntensity means not rated; save omits untouched ratings. */
   const [overallIntensity, setOverallIntensity] = useState<number | null>(null);
@@ -673,6 +680,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
+            {canDictate && (
+              <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
+                <Mic size={18} />
+                Dictate
+              </RolodexTrigger>
+            )}
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               initialQuery={deepLinkExercise}
@@ -694,6 +707,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
+          {canDictate && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
             <AddExerciseButton
@@ -732,6 +746,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                   onRemoveSet={removeSet}
                   onRemoveExercise={removeExercise}
                   getOverload={ghostPreFill.getOverload}
+                  getLastWeight={getLastWeight}
                   onSetLogged={handleSetLogged}
                   ghostSkip={isClientSelfMode}
                 />

@@ -44,6 +44,11 @@ describe('command registry execution coverage', () => {
       frontend_event: [
         'add_exercise_to_form',
         'load_phase_template',
+        'planner_add_exercise',
+        'planner_generate_workout',
+        'planner_remove_exercise',
+        'planner_swap_exercise',
+        'planner_update_exercise',
         'submit_workout_form',
         'toggle_nasm_item',
         'update_set_data',
