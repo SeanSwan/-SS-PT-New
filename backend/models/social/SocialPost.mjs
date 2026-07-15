@@ -148,6 +148,16 @@ const SocialPost = db.define('SocialPost', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  // Group-scoped post: NULL = main community feed; set = the group's own feed.
+  // Feed/trending/user-profile queries must filter groupId IS NULL.
+  groupId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'SocialGroups',
+      key: 'id'
+    }
+  },
   // For attaching photos/videos to posts
   mediaUrl: {
     type: DataTypes.STRING,

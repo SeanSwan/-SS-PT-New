@@ -14,6 +14,8 @@ import Faction from './Faction.mjs';
 import FactionMembership from './FactionMembership.mjs';
 import Party from './Party.mjs';
 import PartyMember from './PartyMember.mjs';
+import SocialGroup from './SocialGroup.mjs';
+import SocialGroupMember from './SocialGroupMember.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hashtag Associations
@@ -48,6 +50,15 @@ FactionMembership.belongsTo(Faction, { foreignKey: 'factionId', as: 'faction', c
 Party.hasMany(PartyMember, { foreignKey: 'partyId', as: 'members', constraints: false });
 PartyMember.belongsTo(Party, { foreignKey: 'partyId', as: 'party', constraints: false });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Social Group Associations
+// PURPOSE: First-class community groups with their own post feed
+// ─────────────────────────────────────────────────────────────
+SocialGroup.hasMany(SocialGroupMember, { foreignKey: 'groupId', as: 'members', constraints: false });
+SocialGroupMember.belongsTo(SocialGroup, { foreignKey: 'groupId', as: 'group', constraints: false });
+SocialGroup.hasMany(SocialPost, { foreignKey: 'groupId', as: 'posts', constraints: false });
+SocialPost.belongsTo(SocialGroup, { foreignKey: 'groupId', as: 'group', constraints: false });
+
 // Export all models individually
 export {
   Friendship,
@@ -65,7 +76,9 @@ export {
   Faction,
   FactionMembership,
   Party,
-  PartyMember
+  PartyMember,
+  SocialGroup,
+  SocialGroupMember
 };
 
 // Export as default
@@ -85,5 +98,7 @@ export default {
   Faction,
   FactionMembership,
   Party,
-  PartyMember
+  PartyMember,
+  SocialGroup,
+  SocialGroupMember
 };

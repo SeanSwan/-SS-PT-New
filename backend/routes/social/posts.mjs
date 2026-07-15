@@ -18,6 +18,7 @@ import { getIO } from '../../socket/socketManager.mjs';
 import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
 import { buildFeedVisibilityWhere, normalizePostType } from './feedPolicy.mjs';
+import { canPostInGroup, canViewGroupContent, getGroupWithMembership } from '../../services/social/groupAccessService.mjs';
 
 const router = express.Router();
 
@@ -322,7 +323,9 @@ router.get('/feed', async (req, res) => {
     const feedWhere = {
       [Op.and]: [
         buildFeedVisibilityWhere(req.user.id, friendIds),
-        { moderationStatus: { [Op.or]: ['approved', null] } }
+        { moderationStatus: { [Op.or]: ['approved', null] } },
+        // Group posts live in their group's own feed, never the main feed.
+        { groupId: null }
       ]
     };
 
@@ -456,7 +459,7 @@ router.get('/trending', async (req, res) => {
 
     // Try legacy SocialPost table first
     try {
-      const where = { visibility: 'public' };
+      const where = { visibility: 'public', groupId: null };
       if (dateCutoff) where.createdAt = { [Op.gte]: dateCutoff };
 
       const posts = await SocialPost.findAndCountAll({
@@ -601,9 +604,10 @@ router.get('/user/:userId', async (req, res) => {
       isFriend = true;
     }
     
-    // Determine which posts to show based on friendship status
-    const whereClause = { userId };
-    
+    // Determine which posts to show based on friendship status.
+    // Group posts stay inside their group's feed — never on the profile wall.
+    const whereClause = { userId, groupId: null };
+
     if (!isFriend) {
       // If not friends, only show public posts
       whereClause.visibility = 'public';
@@ -710,7 +714,25 @@ router.post('/', upload.single('media'), async (req, res) => {
         message: 'Post content is required'
       });
     }
-    
+
+    // Group-scoped post? Validate membership BEFORE any write or upload.
+    let groupPost = null;
+    const groupIdRaw = req.body.groupId;
+    if (groupIdRaw !== undefined && groupIdRaw !== null && String(groupIdRaw).trim() !== '') {
+      const groupId = Number(groupIdRaw);
+      if (!Number.isInteger(groupId) || groupId <= 0) {
+        return res.status(400).json({ success: false, message: 'Valid group id required' });
+      }
+      const { group, membership } = await getGroupWithMembership(groupId, req.user.id);
+      if (!group || group.isArchived) {
+        return res.status(404).json({ success: false, message: 'Group not found' });
+      }
+      if (!canPostInGroup(group, membership)) {
+        return res.status(403).json({ success: false, message: 'Join this group to post in it' });
+      }
+      groupPost = group;
+    }
+
     // Create post data. Type is normalized against the model enum — unknown
     // or composer-alias types (e.g. 'transformation') used to reach the ENUM
     // raw and 500 the live Home composer.
@@ -720,7 +742,14 @@ router.post('/', upload.single('media'), async (req, res) => {
       type: normalizePostType(type, SocialPost.rawAttributes.type.values),
       visibility
     };
-    
+
+    // Group posts are scoped by the group's own privacy gates, not by the
+    // author's friend graph — store them 'public' within that boundary.
+    if (groupPost) {
+      postData.groupId = groupPost.id;
+      postData.visibility = 'public';
+    }
+
     // Upload media to R2 BEFORE transaction (external service, not rollback-safe)
     let uploadedMediaKey = null;
     if (req.file) {
@@ -802,6 +831,11 @@ router.post('/', upload.single('media'), async (req, res) => {
       }
     } catch (hashtagErr) {
       console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
+    }
+
+    // Group activity pulse — best-effort, post already committed.
+    if (groupPost) {
+      try { await groupPost.update({ lastActivityAt: new Date() }); } catch { /* non-fatal */ }
     }
 
     // Award points AFTER commit (non-transactional, fire-and-forget safe)
@@ -899,6 +933,17 @@ router.get('/:postId', async (req, res) => {
       });
     }
     
+    // Group posts are gated by their group's privacy, not the friend graph.
+    if (post.groupId) {
+      const { group, membership } = await getGroupWithMembership(post.groupId, req.user.id);
+      if (!group || !canViewGroupContent(group, membership, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Join this group to view this post'
+        });
+      }
+    }
+
     // Check if current user can view this post
     if (post.visibility === 'private' && post.userId !== req.user.id) {
       return res.status(403).json({
