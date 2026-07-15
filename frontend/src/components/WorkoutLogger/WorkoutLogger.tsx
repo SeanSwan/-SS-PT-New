@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History, UploadCloud } from 'lucide-react';
+import { Plus, Download, Timer, History, UploadCloud, Mic } from 'lucide-react';
+import LoggerDictationStrip from './LoggerDictationStrip';
+import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -126,6 +128,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
       : (allowSelfMode ? userNumericId : undefined);
+  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null });
   const isClientSelfMode: boolean =
     allowSelfMode &&
     typeof effectiveClientId === 'number' &&
@@ -673,6 +676,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
+            <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
+              <Mic size={18} />
+              Dictate
+            </RolodexTrigger>
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               initialQuery={deepLinkExercise}
@@ -694,6 +701,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
+          <LoggerDictationStrip {...dictation} />
 
           {exercises.length === 0 ? (
             <AddExerciseButton
