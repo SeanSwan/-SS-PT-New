@@ -400,9 +400,11 @@ const commands = [
   {
     type: 'planner_generate_workout',
     description: 'Generate a fresh workout in the open Workout Planner',
+    // Planner-flavored phrasings only — bare "generate a workout" stays with
+    // build_workout_plan so Command Center flows are not hijacked (R1 fix).
     naturalLanguagePatterns: [
-      'generate a workout', 'give me a leg day', 'build a fresh workout for this client',
-      'make a new {category} workout',
+      'generate a workout in the planner', 'give me a leg day for this client',
+      'build a fresh workout in the planner', 'make a new {category} workout in the planner',
     ],
     method: 'FRONTEND_DISPATCH', endpoint: 'AI_PLANNER_GENERATE',
     inputSchema: z.object({

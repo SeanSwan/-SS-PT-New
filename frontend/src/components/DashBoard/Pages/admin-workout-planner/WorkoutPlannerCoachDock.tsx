@@ -74,7 +74,7 @@ const WorkoutPlannerCoachDock: React.FC<WorkoutPlannerCoachDockProps> = ({
 
   return (
     <DockWrap>
-      <DockBar as="div">
+      <DockBar>
         <DockTitle>
           <Speech size={18} aria-hidden="true" />
           Swan Coach

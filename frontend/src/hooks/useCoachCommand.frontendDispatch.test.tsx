@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCoachCommand } from './useCoachCommand';
+import { COMMAND_TRANSPORT_FAILED, commandErrorReceiptText, useCoachCommand } from './useCoachCommand';
 import apiService from '../services/api.service';
 import { dispatchAIWorkoutEvent } from '../utils/aiWorkoutEvents';
 
@@ -13,6 +13,18 @@ vi.mock('../services/api.service', () => ({
 vi.mock('../utils/aiWorkoutEvents', () => ({
   dispatchAIWorkoutEvent: vi.fn(() => true),
 }));
+
+describe('commandErrorReceiptText (R1 honesty fix)', () => {
+  it('passes server error text through verbatim', () => {
+    expect(commandErrorReceiptText('You don\'t have permission to do that. This requires admin or trainer role.'))
+      .toMatch(/requires admin or trainer role/);
+  });
+  it('maps transport failure and empty errors to the unreachable copy', () => {
+    expect(commandErrorReceiptText(COMMAND_TRANSPORT_FAILED)).toBe('Swan Coach is unreachable — try again.');
+    expect(commandErrorReceiptText('')).toBe('Swan Coach is unreachable — try again.');
+    expect(commandErrorReceiptText(undefined)).toBe('Swan Coach is unreachable — try again.');
+  });
+});
 
 describe('useCoachCommand frontend dispatch bridge', () => {
   beforeEach(() => {

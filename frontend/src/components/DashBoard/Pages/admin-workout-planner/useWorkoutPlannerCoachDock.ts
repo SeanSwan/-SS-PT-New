@@ -14,7 +14,7 @@
  */
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useCoachCommand } from '../../../../hooks/useCoachCommand';
+import { commandErrorReceiptText, useCoachCommand } from '../../../../hooks/useCoachCommand';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import VoiceRecordingOverlay from '../coach-assistant/VoiceRecordingOverlay';
 import {
@@ -116,7 +116,9 @@ export function useWorkoutPlannerCoachDock({ selectedClientId, pushReceipt }: Us
     try {
       const result = await executeCommand(trimmed, { selectedClientId, surface: 'workout-planner' });
       if (result.type === 'error') {
-        pushReceipt({ ok: false, text: COACH_UNREACHABLE });
+        // Server errors (RBAC, validation) pass through verbatim — only a
+        // transport failure reads as "unreachable" (R1 honesty fix).
+        pushReceipt({ ok: false, text: commandErrorReceiptText(result.error) });
         return;
       }
       if (result.type === 'frontend_dispatch') {

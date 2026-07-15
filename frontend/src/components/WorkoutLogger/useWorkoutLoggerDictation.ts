@@ -9,15 +9,13 @@
  * (06-bans §8); non-commands return the exact 02 §D receipt sentence.
  */
 import { useCallback, useState } from 'react';
-import { useCoachCommand } from '../../hooks/useCoachCommand';
+import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
 import {
   useCoachBrowserSpeechInput,
   type CoachSpeechRuntimeFailure,
 } from '../DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput';
 
 export interface LoggerDictationReceipt { ok: boolean; text: string }
-
-const LANE_DOWN = 'Swan Coach is unreachable — try again.';
 
 export function useWorkoutLoggerDictation({ clientId }: { clientId: number | null }): {
   active: boolean; toggle: () => void; interim: string;
@@ -75,7 +73,9 @@ export function useWorkoutLoggerDictation({ clientId }: { clientId: number | nul
         surface: 'workout-logger',
       });
       if (result.type === 'error') {
-        setReceipt({ ok: false, text: LANE_DOWN });
+        // Server errors (RBAC, validation) pass through verbatim — only a
+        // transport failure reads as "unreachable" (R1 honesty fix).
+        setReceipt({ ok: false, text: commandErrorReceiptText(result.error) });
         return;
       }
       if (result.type === 'fallback_to_chat') {

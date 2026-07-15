@@ -108,14 +108,17 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
         dayIndex: payload.dayNumber ? payload.dayNumber - 1 : fallback.dayIndex,
       };
     };
-    const matchInScope = (e: Event, name: string, scope: DayScope | null): NameMatch => {
+    /** Match a spoken name in the target scope. Pass the event to ack sync
+     *  failures; pass null when re-matching after an await (R1 race fix) —
+     *  receipts still report honestly, the ack already happened. */
+    const matchInScope = (e: Event | null, name: string, scope: DayScope | null): NameMatch => {
       const s = stateRef.current;
       const names = scope
         ? dayExercisesAt(s.generatedPlan as GeneratedPlan, scope).map(display)
         : s.planExercises.map((p) => p.exerciseSlim.name);
       const match = matchByName(names, name);
-      if (match.kind === 'none') { ack(e, false); s.pushReceipt({ ok: false, text: COPY.notFound(name) }); }
-      if (match.kind === 'many') { ack(e, false); s.pushReceipt({ ok: false, text: COPY.ambiguous(name) }); }
+      if (match.kind === 'none') { if (e) ack(e, false); s.pushReceipt({ ok: false, text: COPY.notFound(name) }); }
+      if (match.kind === 'many') { if (e) ack(e, false); s.pushReceipt({ ok: false, text: COPY.ambiguous(name) }); }
       return match;
     };
 
@@ -124,8 +127,8 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
       if (!d?.exerciseName) { ack(e, false); return; }
       ack(e, true); // event accepted by the open planner; outcome lands as a receipt
       void (async () => {
-        const s = stateRef.current;
         const slim = await resolveSlim(d.exerciseName);
+        const s = stateRef.current; // fresh state post-await (R1 race fix)
         if (!slim) { s.pushReceipt({ ok: false, text: COPY.noLibraryMatch(d.exerciseName) }); return; }
         const defs = phaseDefaults(s.phase);
         const sets = d.sets ?? defs.sets;
@@ -158,14 +161,16 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
     const onSwap = (e: Event) => {
       const d = (e as CustomEvent<PlannerSwapExercisePayload>).detail;
       if (!d?.fromExerciseName || !d?.toExerciseName) { ack(e, false); return; }
-      const s = stateRef.current;
       const scope = horizonScope(d);
-      const match = matchInScope(e, d.fromExerciseName, scope);
-      if (match.kind !== 'one') return;
+      if (matchInScope(e, d.fromExerciseName, scope).kind !== 'one') return;
       ack(e, true);
       void (async () => {
         const slim = await resolveSlim(d.toExerciseName);
+        const s = stateRef.current; // fresh state post-await (R1 race fix)
         if (!slim) { s.pushReceipt({ ok: false, text: COPY.noLibraryMatch(d.toExerciseName) }); return; }
+        // Re-match against fresh state — the plan may have changed mid-search.
+        const match = matchInScope(null, d.fromExerciseName, scope);
+        if (match.kind !== 'one') return;
         if (scope) {
           const fromRaw = display(dayExercisesAt(s.generatedPlan as GeneratedPlan, scope)[match.index]);
           const target: HorizonSwapTarget = { kind: 'horizon', ...scope, exerciseIndex: match.index, exerciseName: fromRaw };

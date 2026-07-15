@@ -163,4 +163,23 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
     await act(async () => { await apiOut.current?.send(); });
     expect(apiOut.current?.receipt).toEqual({ ok: false, text: 'Swan Coach is unreachable — try again.' });
   });
+
+  it('passes server error text (e.g. an RBAC denial) through verbatim — never mislabels it as an outage', async () => {
+    const denial = "You don't have permission to update weight, reps, or rpe for a specific set in the workout logger. This requires admin or trainer role.";
+    mockPost.mockResolvedValue({ data: { success: false, error: denial } });
+    const { apiOut } = setup();
+    await act(async () => { apiOut.current?.toggle(); });
+    await act(async () => { apiOut.current?.setText('leg press set two ninety'); });
+    await act(async () => { await apiOut.current?.send(); });
+    expect(apiOut.current?.receipt).toEqual({ ok: false, text: denial });
+  });
+
+  it('source contract: the logger mounts Dictate + strip behind the admin/trainer gate', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'WorkoutLogger.tsx'), 'utf8');
+    expect(source).toContain("const canDictate = user?.role === 'admin' || user?.role === 'trainer';");
+    expect(source).toContain('{canDictate && (');
+    expect(source).toContain('{canDictate && <LoggerDictationStrip {...dictation} />}');
+  });
 });

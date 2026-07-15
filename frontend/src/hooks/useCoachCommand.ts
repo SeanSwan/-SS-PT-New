@@ -65,6 +65,17 @@ export interface ConfirmResult {
   dispatched?: boolean;
 }
 
+/** Catch-path fallback — the only error text that means "the lane itself is down". */
+export const COMMAND_TRANSPORT_FAILED = 'Command request failed. Please check your connection and try again.';
+
+/** Honest error receipt: server errors (RBAC denials, validation) pass through
+ *  verbatim; only a transport failure reads as "unreachable". */
+export const commandErrorReceiptText = (error?: string | null): string => (
+  error && error !== COMMAND_TRANSPORT_FAILED
+    ? error
+    : 'Swan Coach is unreachable — try again.'
+);
+
 const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: string): string => {
   if (dispatched) return fallback || 'Sent to the active workout surface.';
   if (event === 'AI_SUBMIT_WORKOUT') return 'No active Workout Logger was open. No workout was submitted.';
@@ -162,10 +173,7 @@ export function useCoachCommand() {
     } catch (error) {
       return {
         type: 'error',
-        error: commandRequestErrorReceipt(
-          error,
-          'Command request failed. Please check your connection and try again.'
-        ),
+        error: commandRequestErrorReceipt(error, COMMAND_TRANSPORT_FAILED),
       };
     } finally {
       setExecutingCommand(false);

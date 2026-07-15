@@ -49,13 +49,14 @@ function setupHarness(opts: {
   generatedPlan?: GeneratedPlan | null;
   selection?: PlannerHorizonSelection | null;
   library?: ExerciseSlim[];
+  searchImpl?: (query: string) => Promise<ExerciseSlim[]>;
 }) {
   const receipts: Array<{ ok: boolean; text: string }> = [];
   const onGenerate = vi.fn();
-  const searchExercises = vi.fn(async (query: string) => {
+  const searchExercises = vi.fn(opts.searchImpl ?? (async (query: string) => {
     const q = query.toLowerCase().trim();
     return (opts.library ?? []).filter((x) => x.name.toLowerCase().includes(q));
-  });
+  }));
   const state: HarnessState = { planExercises: opts.planExercises ?? [], generatedPlan: opts.generatedPlan ?? null };
 
   const Harness: React.FC = () => {
@@ -241,6 +242,26 @@ describe('useWorkoutPlannerAiEvents (blueprint S3)', () => {
     });
     await flush();
     expect(sigOf(state.generatedPlan as GeneratedPlan)).not.toBe(before);
+  });
+
+  it('re-matches after the async search — a swap never hits a slot that changed mid-flight', async () => {
+    let resolveSearch: (results: ExerciseSlim[]) => void = () => {};
+    const { receipts, state } = setupHarness({
+      planExercises: [builderRow('r1', slim('lp1', 'Leg Press'))],
+      searchImpl: () => new Promise<ExerciseSlim[]>((resolve) => { resolveSearch = resolve; }),
+    });
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_SWAP_EXERCISE', { fromExerciseName: 'leg press', toExerciseName: 'box squat' });
+    });
+    // The row disappears while the library search is still in flight.
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_REMOVE_EXERCISE', { exerciseName: 'leg press' });
+    });
+    await act(async () => { resolveSearch([slim('bs1', 'Box Squat')]); });
+    await flush();
+    expect(state.planExercises).toHaveLength(0); // nothing resurrected or mis-swapped
+    expect(receipts).toContainEqual({ ok: true, text: 'Removed Leg Press' });
+    expect(receipts).toContainEqual({ ok: false, text: 'Couldn\'t find "leg press" — say the exercise name again?' });
   });
 
   it('events with missing required params acknowledge handled=false', async () => {

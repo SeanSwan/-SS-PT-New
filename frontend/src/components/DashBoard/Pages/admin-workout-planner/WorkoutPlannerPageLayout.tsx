@@ -197,7 +197,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
       </ThreePanel>
 
-      <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />
+      {/* planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1). */}
+      {!isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />}
 
       <WorkoutPlannerSavedPlansSection
         selectedClientId={selectedClientId}

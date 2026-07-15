@@ -129,6 +129,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
       : (allowSelfMode ? userNumericId : undefined);
+  // AI_* logger commands are admin/trainer only — no Dictate surface for client/user roles (R1).
+  const canDictate = user?.role === 'admin' || user?.role === 'trainer';
   const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null });
   const isClientSelfMode: boolean =
     allowSelfMode &&
@@ -678,10 +680,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
-            <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
-              <Mic size={18} />
-              Dictate
-            </RolodexTrigger>
+            {canDictate && (
+              <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
+                <Mic size={18} />
+                Dictate
+              </RolodexTrigger>
+            )}
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               initialQuery={deepLinkExercise}
@@ -703,7 +707,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
-          <LoggerDictationStrip {...dictation} />
+          {canDictate && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
             <AddExerciseButton
