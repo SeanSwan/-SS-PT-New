@@ -68,6 +68,7 @@ export interface ConfirmResult {
 const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: string): string => {
   if (dispatched) return fallback || 'Sent to the active workout surface.';
   if (event === 'AI_SUBMIT_WORKOUT') return 'No active Workout Logger was open. No workout was submitted.';
+  if (event.startsWith('AI_PLANNER_')) return 'No Workout Planner is open. The plan was not changed.';
   return 'No active workout surface was open. No form was changed.';
 };
 

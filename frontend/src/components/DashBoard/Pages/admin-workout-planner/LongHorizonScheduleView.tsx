@@ -6,8 +6,9 @@
  * Renders Month -> Week -> Day tabs from generated plan data without DB access.
  */
 
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import type { GeneratedPlanWeek, GeneratedPlanWeekDay } from './WorkoutPlannerTypes';
+import type { PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
 import type { HorizonSwapTarget, PlannerSwapTarget } from './workoutPlannerHorizonSwap.helpers';
 import {
   DayDetail,
@@ -28,6 +29,8 @@ interface LongHorizonScheduleViewProps {
   onBeginHorizonSwap?: (target: HorizonSwapTarget) => void;
   onRemoveHorizonExercise?: (target: HorizonSwapTarget) => void;
   onCancelSwap?: () => void;
+  /** Surfaces the selected week/day upward so dictated edits target it. */
+  onSelectionChange?: (selection: PlannerHorizonSelection) => void;
 }
 
 const getDaysOfWeek = (week: GeneratedPlanWeek): GeneratedPlanWeekDay[] => {
@@ -55,6 +58,7 @@ const LongHorizonScheduleViewBase: React.FC<LongHorizonScheduleViewProps> = ({
   onBeginHorizonSwap,
   onRemoveHorizonExercise,
   onCancelSwap,
+  onSelectionChange,
 }) => {
   const months = useMemo(() => groupWeeksByMonth(weeks), [weeks]);
   const [selectedMonth, setSelectedMonth] = useState(1);
@@ -65,6 +69,14 @@ const LongHorizonScheduleViewBase: React.FC<LongHorizonScheduleViewProps> = ({
   const week = selectedItem(monthBlock, selectedWeek);
   const days = week ? getDaysOfWeek(week) : [];
   const day = selectedItem(days, selectedDay);
+
+  // Day-slot edit wiring: targets address week by weekNumber and the day by
+  // its POSITION in the days/sessions array (matches this view's selection).
+  const dayIndex = Math.min(selectedDay - 1, Math.max(days.length - 1, 0));
+  const activeWeekNumber = week?.weekNumber ?? selectedWeek;
+  useEffect(() => {
+    if (months.length > 0) onSelectionChange?.({ weekNumber: activeWeekNumber, dayIndex });
+  }, [activeWeekNumber, dayIndex, months.length, onSelectionChange]);
 
   if (months.length === 0) return null;
 
@@ -78,10 +90,6 @@ const LongHorizonScheduleViewBase: React.FC<LongHorizonScheduleViewProps> = ({
     setSelectedWeek(weekNumber);
     setSelectedDay(1);
   };
-
-  // Day-slot edit wiring: targets address week by weekNumber and the day by
-  // its POSITION in the days/sessions array (matches this view's selection).
-  const dayIndex = Math.min(selectedDay - 1, Math.max(days.length - 1, 0));
   const buildTarget = (exerciseIndex: number, exerciseName: string): HorizonSwapTarget => ({
     kind: 'horizon',
     weekNumber: week?.weekNumber ?? selectedWeek,

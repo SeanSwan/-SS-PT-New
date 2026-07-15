@@ -22,6 +22,23 @@ export const AI_UPDATE_SET = 'AI_UPDATE_SET';
 export const AI_TOGGLE_NASM_ITEM = 'AI_TOGGLE_NASM_ITEM';
 export const AI_SUBMIT_WORKOUT = 'AI_SUBMIT_WORKOUT';
 
+// Additive AI_PLANNER_* family (Workout Planner surface) — the logger AI_*
+// events above are untouched; payload types live in
+// admin-workout-planner/workoutPlannerAiEvents.types.ts.
+export const AI_PLANNER_ADD_EXERCISE = 'AI_PLANNER_ADD_EXERCISE';
+export const AI_PLANNER_SWAP_EXERCISE = 'AI_PLANNER_SWAP_EXERCISE';
+export const AI_PLANNER_REMOVE_EXERCISE = 'AI_PLANNER_REMOVE_EXERCISE';
+export const AI_PLANNER_UPDATE_EXERCISE = 'AI_PLANNER_UPDATE_EXERCISE';
+export const AI_PLANNER_GENERATE = 'AI_PLANNER_GENERATE';
+
+export const AI_PLANNER_EVENTS = [
+  AI_PLANNER_ADD_EXERCISE,
+  AI_PLANNER_SWAP_EXERCISE,
+  AI_PLANNER_REMOVE_EXERCISE,
+  AI_PLANNER_UPDATE_EXERCISE,
+  AI_PLANNER_GENERATE,
+] as const;
+
 // ─── Event Payloads ──────────────────────────────────────────
 
 export interface AILoadTemplatePayload {
@@ -116,6 +133,12 @@ const dispatchers: Record<string, (payload: AIEventPayload) => boolean> = {
   [AI_TOGGLE_NASM_ITEM]: (p) => dispatchAIToggleNASMItem(p as AIToggleNASMItemPayload),
   [AI_SUBMIT_WORKOUT]: (p) => dispatchAISubmitWorkout(p as AISubmitWorkoutPayload),
 };
+
+// Planner events share the acknowledge contract; payloads are validated by the
+// backend command schema and re-checked by the planner hook's handlers.
+for (const plannerEvent of AI_PLANNER_EVENTS) {
+  dispatchers[plannerEvent] = (p) => dispatchWithAcknowledgement(plannerEvent, p as object);
+}
 
 /**
  * Dispatch an AI workout event by name. Used by the AI terminal

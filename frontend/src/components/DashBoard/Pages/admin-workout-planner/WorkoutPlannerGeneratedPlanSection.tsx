@@ -56,6 +56,7 @@ interface WorkoutPlannerGeneratedPlanSectionProps {
   onBeginHorizonSwap?: (target: HorizonSwapTarget) => void;
   onRemoveHorizonExercise?: (target: HorizonSwapTarget) => void;
   onCancelPlanSwap?: () => void;
+  onHorizonSelectionChange?: React.ComponentProps<typeof LongHorizonScheduleView>['onSelectionChange'];
 }
 
 const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSectionProps> = ({
@@ -70,6 +71,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
   onBeginHorizonSwap,
   onRemoveHorizonExercise,
   onCancelPlanSwap,
+  onHorizonSelectionChange,
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -211,6 +213,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
           onBeginHorizonSwap={onBeginHorizonSwap}
           onRemoveHorizonExercise={onRemoveHorizonExercise}
           onCancelSwap={onCancelPlanSwap}
+          onSelectionChange={onHorizonSelectionChange}
         />
       )}
 
