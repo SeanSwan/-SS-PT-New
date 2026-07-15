@@ -282,6 +282,7 @@ import {
 import { INACTIVE_PASSWORD_RESET_MESSAGE, sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
+import { CLIENT_EXPORT_FIELDS, serializeClientsToCsv } from '../utils/clientExportCsv.mjs';
 import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
 import { buildClientOnboardingProgressSnapshot } from '../services/clientOnboardingCoverageLedgerService.mjs';
 
@@ -398,31 +399,6 @@ const createClientTrainerAssignmentIfRequested = ({
     notes: `Assigned during admin client creation (${clientSource || 'unknown_source'})`
   }, { transaction });
 };
-
-const CLIENT_EXPORT_FIELDS = [
-  'id',
-  'firstName',
-  'lastName',
-  'email',
-  'phone',
-  'clientSource',
-  'sessionBillingMode',
-  'availableSessions',
-  'fitnessGoal',
-  'isActive',
-  'createdAt',
-  'updatedAt',
-];
-
-const escapeCsvValue = (value) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-const serializeClientsToCsv = (rows) => [
-  CLIENT_EXPORT_FIELDS.join(','),
-  ...rows.map((row) => CLIENT_EXPORT_FIELDS.map((field) => escapeCsvValue(row[field])).join(',')),
-].join('\n');
 
 const buildOnboardingProgressMap = (questionnaires) => {
   const progressMap = {};
