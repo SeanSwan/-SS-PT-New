@@ -81,9 +81,24 @@ describe('membership hardening (hostile-review fixes)', () => {
     expect(membershipSrc).toContain('findOrCreate');
     expect(membershipSrc).toMatch(/wasCreated \? 201 : 200/);
   });
-  it('ownership transfer endpoint exists (resolves the transfer-before-leave dead end)', () => {
-    expect(groupsSrc).toMatch(/transfer-ownership/);
-    expect(groupsSrc).toMatch(/ownerId: targetUserId/);
+  it('ownership transfer endpoint exists + is race-safe (row-locked in a service tx)', () => {
+    expect(membershipSrc).toMatch(/transfer-ownership/);
+    expect(membershipSrc).toContain('transferGroupOwnership');
+    const svcSrc = read('../../services/social/groupAccessService.mjs');
+    expect(svcSrc).toContain('lock: t.LOCK.UPDATE');
+    expect(svcSrc).toMatch(/ownerId: targetUserId/);
+  });
+});
+
+describe('model/migration index parity (single source of truth)', () => {
+  it('SocialGroup + SocialGroupMember + SocialPost declare the migration index names', () => {
+    const groupModel = read('../../models/social/SocialGroup.mjs');
+    const memberModel = read('../../models/social/SocialGroupMember.mjs');
+    const postModel = read('../../models/social/SocialPost.mjs');
+    expect(groupModel).toContain('social_groups_privacy_activity_idx');
+    expect(memberModel).toContain('social_group_members_unique');
+    expect(memberModel).toContain('social_group_members_user_idx');
+    expect(postModel).toContain('social_posts_group_created_idx');
   });
 });
 

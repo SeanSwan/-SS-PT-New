@@ -47,9 +47,11 @@ const SocialGroupMember = db.define('SocialGroupMember', {
 }, {
   tableName: 'SocialGroupMembers',
   timestamps: true,
+  // Explicit index names match migration 20260715000001 so a repair-sync
+  // never creates duplicate auto-named indexes on the same columns.
   indexes: [
-    { unique: true, fields: ['groupId', 'userId'] },
-    { fields: ['userId'] },
+    { name: 'social_group_members_unique', unique: true, fields: ['groupId', 'userId'] },
+    { name: 'social_group_members_user_idx', fields: ['userId'] },
   ],
 });
 

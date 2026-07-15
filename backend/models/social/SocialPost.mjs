@@ -221,6 +221,13 @@ const SocialPost = db.define('SocialPost', {
     {
       fields: ['lastModeratedAt'],
       name: 'socialpost_last_moderated_idx'
+    },
+    // Group feed lookup — partial index matches migration 20260715000001
+    // (WHERE "groupId" IS NOT NULL) so a model-only sync recreates it.
+    {
+      fields: ['groupId', 'createdAt'],
+      name: 'social_posts_group_created_idx',
+      where: { groupId: { [db.Sequelize.Op.ne]: null } }
     }
   ]
 });
@@ -463,7 +470,11 @@ SocialPost.getFeedForUser = async function(userId, options = {}) {
         },
         {
           moderationStatus: 'approved' // Only show approved content in feeds
-        }
+        },
+        // Group posts live only in their group's feed — never a main feed.
+        // (This helper is currently dormant; the filter keeps it leak-safe if
+        // ever wired up. The live feed in routes/social/posts.mjs already does this.)
+        { groupId: null }
       ]
     },
     limit,

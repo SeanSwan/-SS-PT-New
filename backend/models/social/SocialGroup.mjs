@@ -88,6 +88,11 @@ const SocialGroup = db.define('SocialGroup', {
 }, {
   tableName: 'SocialGroups',
   timestamps: true,
+  // Matches migration 20260715000001 (discovery ORDER BY privacy/archived/
+  // activity) so the index survives a model-only sync on a fresh DB.
+  indexes: [
+    { name: 'social_groups_privacy_activity_idx', fields: ['privacy', 'isArchived', 'lastActivityAt'] },
+  ],
 });
 
 export default SocialGroup;

@@ -259,42 +259,7 @@ router.get('/:id/feed', async (req, res) => {
   }
 });
 
-/** POST /:id/transfer-ownership — hand the group to another active member.
-    Resolves the "transfer before leaving" instruction the API gives owners. */
-router.post('/:id/transfer-ownership', async (req, res) => {
-  try {
-    const groupId = toPositiveInt(req.params.id);
-    const targetUserId = toPositiveInt(req.body.userId);
-    if (!groupId || !targetUserId) {
-      return res.status(400).json({ success: false, message: 'Valid group id and userId required' });
-    }
-
-    const { group, membership } = await getGroupWithMembership(groupId, req.user.id);
-    if (!group || group.isArchived) return res.status(404).json({ success: false, message: 'Group not found' });
-    // Only the actual owner may transfer (admins can't seize ownership).
-    if (!membership || membership.role !== 'owner' || membership.status !== 'active') {
-      return res.status(403).json({ success: false, message: 'Only the group owner can transfer ownership' });
-    }
-    if (targetUserId === req.user.id) {
-      return res.status(400).json({ success: false, message: 'You already own this group' });
-    }
-
-    const target = await SocialGroupMember.findOne({ where: { groupId, userId: targetUserId, status: 'active' } });
-    if (!target) return res.status(404).json({ success: false, message: 'Target must be an active member' });
-
-    await sequelize.transaction(async (t) => {
-      await target.update({ role: 'owner' }, { transaction: t });
-      await membership.update({ role: 'moderator' }, { transaction: t });
-      await group.update({ ownerId: targetUserId }, { transaction: t });
-    });
-    return res.json({ success: true, message: 'Ownership transferred' });
-  } catch (error) {
-    console.error('Error transferring ownership:', error);
-    return sendSocialRouteError(res, 500, 'Failed to transfer ownership');
-  }
-});
-
-// Membership endpoints (join/leave/members/approve/role/remove).
+// Membership endpoints (join/leave/members/approve/role/remove/transfer).
 router.use('/', groupMembershipRoutes);
 
 export default router;
