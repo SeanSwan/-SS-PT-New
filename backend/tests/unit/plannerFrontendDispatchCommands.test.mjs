@@ -120,6 +120,24 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
     });
   }
 
+  it('coerces LLM string numerics — "sets":"3" reaches the payload as the number 3 (prod incident 2026-07-15)', async () => {
+    // Live-prod QA caught Gemini emitting {"sets":"3","reps":"12"} as strings;
+    // bare z.number() rejected them with "Expected number, received string".
+    mockClassifyIntent.mockResolvedValue(intent('planner_add_exercise', { exerciseName: 'Goblet Squat', sets: '3', reps: '12' }));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'add goblet squats, three sets of twelve', routeContext: { surface: 'workout-planner' } })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'frontend_dispatch',
+      command: 'planner_add_exercise',
+      payload: { exerciseName: 'Goblet Squat', sets: 3 },
+    });
+  });
+
   it('disambiguates "add goblet squat" to the PLANNER family when the planner surface is active', async () => {
     // The LLM classifier picks the logger command; the surface remap must win.
     mockClassifyIntent.mockResolvedValue(intent('add_exercise_to_form', { exerciseName: 'Goblet Squat' }));
