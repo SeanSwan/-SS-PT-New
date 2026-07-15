@@ -93,10 +93,18 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
       (e as CustomEvent<AIWorkoutEventAck>).detail?.acknowledgeAIWorkoutEvent?.(handled);
     };
     const resolveSlim = async (name: string): Promise<ExerciseSlim | null> => {
-      const results = await stateRef.current.searchExercises(name);
+      let results = await stateRef.current.searchExercises(name);
+      // Dictated speech uses plurals ("goblet squats") but the library stores
+      // singular names, and a longer query can't fuzzy-match a shorter target.
+      // Fallback: singularize each word (never bare double-s words like "press").
+      const singular = name.replace(/([a-rt-z])s\b/gi, '$1');
+      if (!results.length && singular !== name) {
+        results = await stateRef.current.searchExercises(singular);
+      }
       if (!results.length) return null;
       const q = norm(name);
-      return results.find((r) => norm(r.name) === q) ?? results[0];
+      const qs = norm(singular);
+      return results.find((r) => norm(r.name) === q || norm(r.name) === qs) ?? results[0];
     };
     /** Selected Detailed-Schedule day (or explicit week/day) — null = builder list. */
     const horizonScope = (payload: { dayNumber?: number; weekNumber?: number }): DayScope | null => {

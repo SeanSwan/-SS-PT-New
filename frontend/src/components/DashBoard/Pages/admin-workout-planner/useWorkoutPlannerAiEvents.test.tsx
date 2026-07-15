@@ -158,6 +158,29 @@ describe('useWorkoutPlannerAiEvents (blueprint S3)', () => {
     expect(receipts).toContainEqual({ ok: false, text: 'Multiple matches for "press" — say more of the exercise name.' });
   });
 
+  it('resolves dictated plurals against singular library names ("goblet squats" → "Goblet Squat")', async () => {
+    const { receipts, state, searchExercises } = setupHarness({
+      searchImpl: async (query: string) => (query.toLowerCase().includes('squats') ? [] : [slim('gs1', 'Goblet Squat')]),
+    });
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_ADD_EXERCISE', { exerciseName: 'goblet squats', sets: 3, reps: 12 });
+    });
+    await flush();
+    expect(searchExercises).toHaveBeenCalledWith('goblet squats');
+    expect(searchExercises).toHaveBeenCalledWith('goblet squat');
+    expect(state.planExercises[0]?.exerciseSlim.name).toBe('Goblet Squat');
+    expect(receipts).toContainEqual({ ok: true, text: 'Added Goblet Squat — 3×12' });
+  });
+
+  it('never mangles double-s words when singularizing ("leg press" stays intact)', async () => {
+    const { state } = setupHarness({ library: [slim('lp1', 'Leg Press')] });
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_ADD_EXERCISE', { exerciseName: 'leg press' });
+    });
+    await flush();
+    expect(state.planExercises[0]?.exerciseSlim.name).toBe('Leg Press');
+  });
+
   it('unresolvable library name → exact library-miss receipt', async () => {
     const { receipts, state } = setupHarness({ library: [] });
     await act(async () => {
