@@ -17,6 +17,7 @@ import {
   Home,
   Trophy,
   UserPlus,
+  Users,
   Utensils,
   Video,
   type LucideIcon,
@@ -34,6 +35,7 @@ interface UserDashboardTabBarV3Props {
 const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon; matches?: readonly TabId[] }> = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'progress', label: 'Progress', Icon: Dumbbell },
+  { id: 'groups', label: 'Groups', Icon: Users },
   { id: 'reels', label: 'Reels', Icon: Video },
   { id: 'friends', label: 'Friends', Icon: UserPlus },
   { id: 'challenges', label: 'Challenges', Icon: Trophy },

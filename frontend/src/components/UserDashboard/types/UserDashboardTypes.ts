@@ -81,6 +81,7 @@ export interface TabConfig {
 export type TabId =
   | 'home'
   | 'feed'
+  | 'groups'
   | 'reels'
   | 'friends'
   | 'challenges'
@@ -112,6 +113,7 @@ export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'about', 'activity'
  */
 export const USER_DASHBOARD_TAB_IDS: readonly TabId[] = [
   'home',
+  'groups',
   'reels',
   'friends',
   'challenges',

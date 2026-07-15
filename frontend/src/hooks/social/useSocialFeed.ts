@@ -76,10 +76,19 @@ interface PointResult {
   pointMessage?: string;
 }
 
+export interface SocialFeedOptions {
+  /** Scope the feed (and created posts) to one community group's own feed. */
+  groupId?: number;
+}
+
 /**
- * Hook for managing social feed functionality
+ * Hook for managing social feed functionality.
+ * With `options.groupId` the same API drives a GROUP feed: posts come from
+ * /api/social/groups/:id/feed and created posts carry the groupId, so the
+ * whole PostCard interaction surface (react/comment/edit/report) is reused.
  */
-export const useSocialFeed = () => {
+export const useSocialFeed = (options: SocialFeedOptions = {}) => {
+  const { groupId } = options;
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
   const { profile, invalidateProfile } = useGamificationData();
@@ -113,7 +122,10 @@ export const useSocialFeed = () => {
     
     try {
       const currentOffset = resetPagination ? 0 : offset;
-      const response = await authAxios.get(`/api/social/posts/feed?limit=${limit}&offset=${currentOffset}`);
+      const feedUrl = groupId
+        ? `/api/social/groups/${groupId}/feed?limit=${limit}&offset=${currentOffset}`
+        : `/api/social/posts/feed?limit=${limit}&offset=${currentOffset}`;
+      const response = await authAxios.get(feedUrl);
       
       const newPosts = response.data.posts || [];
       
@@ -141,8 +153,8 @@ export const useSocialFeed = () => {
         setIsLoadingMore(false);
       }
     }
-  }, [authAxios, user, toast, offset, limit]);
-  
+  }, [authAxios, user, toast, offset, limit, groupId]);
+
   // Load more posts
   const loadMore = useCallback(() => {
     if (isLoadingMore || !hasMore) return;
@@ -165,7 +177,12 @@ export const useSocialFeed = () => {
       if (postData.media) {
         formData.append('media', postData.media);
       }
-      
+
+      // Group-scoped feed instance → the post lands in the group's own feed.
+      if (groupId) {
+        formData.append('groupId', String(groupId));
+      }
+
       // Add optional fields if provided
       if (postData.workoutSessionId) {
         formData.append('workoutSessionId', postData.workoutSessionId);
@@ -242,8 +259,8 @@ export const useSocialFeed = () => {
     } finally {
       setIsCreatingPost(false);
     }
-  }, [authAxios, user, toast]);
-  
+  }, [authAxios, user, toast, groupId]);
+
   // React to a post (thumbs_up, heart, or swan)
   const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {
     if (!user) return false;

@@ -42,6 +42,13 @@ export const sectionMeta: Record<Exclude<TabId, 'home'>, SectionMetaEntry> = {
     tone: 'cyan',
     Icon: MessageCircle,
   },
+  groups: {
+    eyebrow: 'Your Circles',
+    title: 'Groups',
+    copy: 'Communities with their own feed and chat — train, share, and hold each other accountable.',
+    tone: 'violet',
+    Icon: Users,
+  },
   reels: {
     eyebrow: 'Short-Form Creative',
     title: 'Reels',

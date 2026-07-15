@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 
 import { useAuth } from '../../context/AuthContext';
+import { useCelebrationOptional } from '../../context/CelebrationContext';
 import { ProductionTokenManager } from '../../services/api.service';
 import {
   resolveRealtimeSocketTransportOptions,
@@ -21,6 +22,8 @@ type GamificationRealtimePayload = {
   userId?: string | number;
   points?: unknown;
   xpEarned?: unknown;
+  newLevel?: unknown;
+  previousLevel?: unknown;
 };
 
 const GAMIFICATION_EVENTS: GamificationRealtimeEvent[] = [
@@ -61,6 +64,7 @@ export const useGamificationRealtime = () => {
   const { token: authToken, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const celebration = useCelebrationOptional();
   const [isConnected, setIsConnected] = useState(false);
 
   const handleGamificationEvent = useCallback((
@@ -71,6 +75,17 @@ export const useGamificationRealtime = () => {
 
     void queryClient.invalidateQueries({ queryKey: ['gamification'] });
 
+    // A level-up gets the FULL celebration (CelebrationPortal fireworks +
+    // gold takeover) instead of a plain toast — the overlay owns the moment.
+    // Malformed payloads (no usable newLevel) fall through to the toast.
+    if (event === 'gamification:level_up' && celebration) {
+      const newLevel = normalizeRealtimeXp(data.newLevel);
+      if (newLevel > 0) {
+        celebration.triggerLevelUp(newLevel);
+        return;
+      }
+    }
+
     const points = normalizeRealtimeXp(data.points ?? data.xpEarned);
     toast({
       title: eventTitle(event),
@@ -79,7 +94,7 @@ export const useGamificationRealtime = () => {
         : 'Your rewards profile has fresh progress.',
       variant: 'default',
     });
-  }, [queryClient, toast, user?.id]);
+  }, [queryClient, toast, user?.id, celebration]);
 
   useEffect(() => {
     if (!user?.id) {

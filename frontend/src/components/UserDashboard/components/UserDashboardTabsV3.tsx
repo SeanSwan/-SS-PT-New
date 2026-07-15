@@ -30,6 +30,7 @@ import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 
 const HomeTab = lazy(() => import('./HomeTab'));
+const GroupsTab = lazy(() => import('./groups/GroupsTab'));
 const StudioLenses = lazy(() => import('./UserDashboardStudioLenses'));
 const VerticalReels = lazy(() => import('../../Social/Reels/VerticalReels'));
 const FriendsList = lazy(() => import('../../Social/Friends/FriendsList'));
@@ -156,6 +157,13 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           trending, coach dock); its one unique widget (Faction War) moved to
           the Home right rail. The feed panel component file stays on disk
           per rule 34 pending the cleanup pass; its URL falls back to home. */}
+      {/* Groups upgrade 2026-07-14: first-class communities with their own
+          feed + chat, promoted out of Messages onto the main social surface. */}
+      <TabPanel id="groups" activeTab={activeTab}>
+        <SectionChrome id="groups">
+          <GroupsTab />
+        </SectionChrome>
+      </TabPanel>
       <TabPanel id="reels" activeTab={activeTab}>
         <SectionChrome id="reels">
           <VerticalReels frame="dashboard" />
