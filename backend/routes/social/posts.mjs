@@ -18,6 +18,7 @@ import { getIO } from '../../socket/socketManager.mjs';
 import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
 import { buildFeedVisibilityWhere, normalizePostType } from './feedPolicy.mjs';
+import { assertGroupPostAccess, canPostInGroup, canViewGroupContent, getGroupWithMembership } from '../../services/social/groupAccessService.mjs';
 
 const router = express.Router();
 
@@ -322,7 +323,9 @@ router.get('/feed', async (req, res) => {
     const feedWhere = {
       [Op.and]: [
         buildFeedVisibilityWhere(req.user.id, friendIds),
-        { moderationStatus: { [Op.or]: ['approved', null] } }
+        { moderationStatus: { [Op.or]: ['approved', null] } },
+        // Group posts live in their group's own feed, never the main feed.
+        { groupId: null }
       ]
     };
 
@@ -456,7 +459,7 @@ router.get('/trending', async (req, res) => {
 
     // Try legacy SocialPost table first
     try {
-      const where = { visibility: 'public' };
+      const where = { visibility: 'public', groupId: null };
       if (dateCutoff) where.createdAt = { [Op.gte]: dateCutoff };
 
       const posts = await SocialPost.findAndCountAll({
@@ -601,9 +604,10 @@ router.get('/user/:userId', async (req, res) => {
       isFriend = true;
     }
     
-    // Determine which posts to show based on friendship status
-    const whereClause = { userId };
-    
+    // Determine which posts to show based on friendship status.
+    // Group posts stay inside their group's feed — never on the profile wall.
+    const whereClause = { userId, groupId: null };
+
     if (!isFriend) {
       // If not friends, only show public posts
       whereClause.visibility = 'public';
@@ -710,7 +714,25 @@ router.post('/', upload.single('media'), async (req, res) => {
         message: 'Post content is required'
       });
     }
-    
+
+    // Group-scoped post? Validate membership BEFORE any write or upload.
+    let groupPost = null;
+    const groupIdRaw = req.body.groupId;
+    if (groupIdRaw !== undefined && groupIdRaw !== null && String(groupIdRaw).trim() !== '') {
+      const groupId = Number(groupIdRaw);
+      if (!Number.isInteger(groupId) || groupId <= 0) {
+        return res.status(400).json({ success: false, message: 'Valid group id required' });
+      }
+      const { group, membership } = await getGroupWithMembership(groupId, req.user.id);
+      if (!group || group.isArchived) {
+        return res.status(404).json({ success: false, message: 'Group not found' });
+      }
+      if (!canPostInGroup(group, membership)) {
+        return res.status(403).json({ success: false, message: 'Join this group to post in it' });
+      }
+      groupPost = group;
+    }
+
     // Create post data. Type is normalized against the model enum — unknown
     // or composer-alias types (e.g. 'transformation') used to reach the ENUM
     // raw and 500 the live Home composer.
@@ -720,7 +742,14 @@ router.post('/', upload.single('media'), async (req, res) => {
       type: normalizePostType(type, SocialPost.rawAttributes.type.values),
       visibility
     };
-    
+
+    // Group posts are scoped by the group's own privacy gates, not by the
+    // author's friend graph — store them 'public' within that boundary.
+    if (groupPost) {
+      postData.groupId = groupPost.id;
+      postData.visibility = 'public';
+    }
+
     // Upload media to R2 BEFORE transaction (external service, not rollback-safe)
     let uploadedMediaKey = null;
     if (req.file) {
@@ -804,6 +833,11 @@ router.post('/', upload.single('media'), async (req, res) => {
       console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
     }
 
+    // Group activity pulse — best-effort, post already committed.
+    if (groupPost) {
+      try { await groupPost.update({ lastActivityAt: new Date() }); } catch { /* non-fatal */ }
+    }
+
     // Award points AFTER commit (non-transactional, fire-and-forget safe)
     const pointAction = `post_create_${type}`;
     const pointResult = await awardSocialPoints(req.user.id, pointAction, {
@@ -846,24 +880,28 @@ router.post('/', upload.single('media'), async (req, res) => {
       responseData.pointMessage = `You earned ${pointResult.pointsAwarded} points for creating a ${type} post!`;
     }
 
-    // Broadcast to all connected clients for live activity ticker
-    try {
-      const io = getIO();
-      if (io) {
-        io.emit('social:activity', {
-          type: 'post_created',
-          userId: req.user.id,
-          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
-          userPhoto: req.user.photo,
-          postType: type,
-          postId: fullPost.id,
-          preview: content.substring(0, 80),
-          timestamp: new Date().toISOString(),
-        });
+    // Broadcast to all connected clients for live activity ticker.
+    // Group posts are NEVER broadcast globally — the preview would leak
+    // private-group content to every connected client.
+    if (!groupPost) {
+      try {
+        const io = getIO();
+        if (io) {
+          io.emit('social:activity', {
+            type: 'post_created',
+            userId: req.user.id,
+            userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+            userPhoto: req.user.photo,
+            postType: type,
+            postId: fullPost.id,
+            preview: content.substring(0, 80),
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (socketErr) {
+        // Non-fatal: don't fail the response if socket broadcast fails
+        console.warn('Socket broadcast failed:', socketErr.message);
       }
-    } catch (socketErr) {
-      // Non-fatal: don't fail the response if socket broadcast fails
-      console.warn('Socket broadcast failed:', socketErr.message);
     }
 
     return res.status(201).json(responseData);
@@ -899,6 +937,17 @@ router.get('/:postId', async (req, res) => {
       });
     }
     
+    // Group posts are gated by their group's privacy, not the friend graph.
+    if (post.groupId) {
+      const { group, membership } = await getGroupWithMembership(post.groupId, req.user.id);
+      if (!group || !canViewGroupContent(group, membership, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Join this group to view this post'
+        });
+      }
+    }
+
     // Check if current user can view this post
     if (post.visibility === 'private' && post.userId !== req.user.id) {
       return res.status(403).json({
@@ -1102,6 +1151,10 @@ router.post('/:postId/report', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
+    // Non-members can't report (or oracle the existence of) private group posts.
+    const reportGate = await assertGroupPostAccess(post, req.user);
+    if (!reportGate.ok) return res.status(reportGate.status).json({ success: false, message: reportGate.message });
+
     // Cannot report your own post
     if (post.userId === req.user.id) {
       return res.status(400).json({ success: false, message: 'You cannot report your own post' });
@@ -1153,6 +1206,12 @@ router.post('/:postId/repost', async (req, res) => {
     const original = await SocialPost.findByPk(req.params.postId);
     if (!original) return res.status(404).json({ error: 'Post not found' });
 
+    // Group posts stay inside their group boundary — reposting would copy the
+    // content into a public, group-less post (private-content exfiltration).
+    if (original.groupId) {
+      return res.status(400).json({ error: 'Group posts cannot be reposted outside the group' });
+    }
+
     // Don't repost your own post
     if (original.userId === req.user.id) {
       return res.status(400).json({ error: 'Cannot repost your own post' });
@@ -1162,6 +1221,16 @@ router.post('/:postId/repost', async (req, res) => {
     const sourceId = original.isRepost && original.originalPostId
       ? original.originalPostId
       : original.id;
+
+    // Defense-in-depth: if the resolved source is itself a group post (e.g. a
+    // legacy repost row created before the group guard), block it too so the
+    // group boundary can't be laundered through the repost chain.
+    if (sourceId !== original.id) {
+      const source = await SocialPost.findByPk(sourceId, { attributes: ['id', 'groupId'] });
+      if (source?.groupId) {
+        return res.status(400).json({ error: 'Group posts cannot be reposted outside the group' });
+      }
+    }
 
     // Check if already reposted
     const existing = await SocialPost.findOne({
@@ -1224,6 +1293,10 @@ router.post('/:postId/like', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
+    // Non-members must not react to (or point-farm on) private group posts.
+    const reactGate = await assertGroupPostAccess(post, req.user);
+    if (!reactGate.ok) return res.status(reactGate.status).json({ success: false, message: reactGate.message });
+
     // Use reactToPost which handles dedup
     const { reaction, alreadyExists } = await SocialLike.reactToPost(req.user.id, postId, reactionType);
 
@@ -1264,20 +1337,22 @@ router.post('/:postId/like', async (req, res) => {
       responseData.ownerPointsAwarded = likeReceivedResult.pointsAwarded;
     }
 
-    // Broadcast reaction to live activity ticker
-    try {
-      const io = getIO();
-      if (io) {
-        io.emit('social:activity', {
-          type: 'reaction_added',
-          userId: req.user.id,
-          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
-          postId: parseInt(postId),
-          reactionType,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+    // Broadcast reaction to live activity ticker (never for group posts).
+    if (!post.groupId) {
+      try {
+        const io = getIO();
+        if (io) {
+          io.emit('social:activity', {
+            type: 'reaction_added',
+            userId: req.user.id,
+            userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+            postId: parseInt(postId),
+            reactionType,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+    }
 
     return res.status(200).json(responseData);
   } catch (error) {
@@ -1298,6 +1373,9 @@ router.delete('/:postId/like', async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
+
+    const unreactGate = await assertGroupPostAccess(post, req.user);
+    if (!unreactGate.ok) return res.status(unreactGate.status).json({ success: false, message: unreactGate.message });
 
     const result = await SocialLike.removeReaction(req.user.id, postId, reactionType);
 
@@ -1336,14 +1414,18 @@ router.post('/:postId/comments', async (req, res) => {
     
     // Find the post
     const post = await SocialPost.findByPk(postId);
-    
+
     if (!post) {
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
-    
+
+    // Non-members must not comment into a private group's feed.
+    const commentGate = await assertGroupPostAccess(post, req.user);
+    if (!commentGate.ok) return res.status(commentGate.status).json({ success: false, message: commentGate.message });
+
     // Create the comment
     const comment = await SocialComment.create({
       postId,
@@ -1400,20 +1482,22 @@ router.post('/:postId/comments', async (req, res) => {
       responseData.ownerPointsAwarded = commentReceivedResult.pointsAwarded;
     }
     
-    // Broadcast comment to live activity ticker
-    try {
-      const io = getIO();
-      if (io) {
-        io.emit('social:activity', {
-          type: 'comment_added',
-          userId: req.user.id,
-          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
-          postId: parseInt(postId),
-          preview: content.substring(0, 60),
-          timestamp: new Date().toISOString(),
-        });
-      }
-    } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+    // Broadcast comment to live activity ticker (never for group posts).
+    if (!post.groupId) {
+      try {
+        const io = getIO();
+        if (io) {
+          io.emit('social:activity', {
+            type: 'comment_added',
+            userId: req.user.id,
+            userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+            postId: parseInt(postId),
+            preview: content.substring(0, 60),
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+    }
 
     return res.status(201).json(responseData);
   } catch (error) {

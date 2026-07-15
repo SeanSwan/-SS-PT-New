@@ -47,6 +47,8 @@ import {
   CoverNameBlock,
   CoverScrim,
   CoverRankTag,
+  RankDivider,
+  RankGoldSegment,
 } from './ObservatoryCoverHero.styles';
 
 interface ObservatoryCoverHeroProps {
@@ -84,6 +86,20 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
   const { bannerLayer, coverEditorSlot, toggleCoverEditor, bannerFrameHeight } = useHomeCoverBanner(dashboardBackgroundControls);
   const safePhoto = sanitizeImageUrl(profilePhoto ?? undefined);
   const visibleRankTitle = rankTitleLabel || `Level ${level} | ${tierName}`;
+  const rankSegments = visibleRankTitle.split('|').map((part) => part.trim()).filter(Boolean);
+
+  // Level-up pill beat: when the live level climbs mid-session, the gold
+  // pill pops + rings in sync with the full-screen celebration overlay.
+  const prevLevelRef = React.useRef(level);
+  const [isCelebrating, setIsCelebrating] = React.useState(false);
+  React.useEffect(() => {
+    const climbed = level > prevLevelRef.current;
+    prevLevelRef.current = level;
+    if (!climbed) return undefined;
+    setIsCelebrating(true);
+    const timer = window.setTimeout(() => setIsCelebrating(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [level]);
 
   return (
     <>
@@ -118,7 +134,16 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
             </CoverAvatarButton>
             <CoverNameBlock>
               <CoverName>{displayName}</CoverName>
-              <CoverRankTag>{visibleRankTitle}</CoverRankTag>
+              <CoverRankTag $celebrating={isCelebrating}>
+                {rankSegments.map((segment, index) => (
+                  <React.Fragment key={`${segment}-${index}`}>
+                    {index > 0 && <RankDivider aria-hidden="true">|</RankDivider>}
+                    {/* Visible gold text IS the accessible name — no aria-hidden,
+                        so AT announces the full "Level X | Rank Y | Title". */}
+                    <RankGoldSegment>{segment}</RankGoldSegment>
+                  </React.Fragment>
+                ))}
+              </CoverRankTag>
               <CoverMeta>
                 <span>@{username}</span>
               </CoverMeta>

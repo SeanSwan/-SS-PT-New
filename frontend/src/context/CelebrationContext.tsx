@@ -295,4 +295,10 @@ export function useCelebration(): CelebrationAPI {
   return ctx;
 }
 
+/** Non-throwing variant for hooks that may render outside the provider
+    (tests, isolated mounts). Returns null instead of throwing. */
+export function useCelebrationOptional(): CelebrationAPI | null {
+  return useContext(CelebrationCtx);
+}
+
 export default CelebrationProvider;

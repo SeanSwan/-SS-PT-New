@@ -34,6 +34,7 @@ import { buildSidebarQuickStats } from './UserDashboardSidebarV3';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
+import HomeGroupsStrip from './groups/HomeGroupsStrip';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
@@ -137,6 +138,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   const supportPanels = (
     <>
+      <Panel>
+        <HomeGroupsStrip />
+      </Panel>
       <Panel>
         <HomeTabTrainingProof
           proof={trainingProof}

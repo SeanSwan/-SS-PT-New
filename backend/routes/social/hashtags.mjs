@@ -218,13 +218,28 @@ router.get('/:slug', async (req, res) => {
       where: { userId: req.user.id, hashtagId: hashtag.id }
     });
 
-    // Get post IDs tagged with this hashtag
-    const postIds = (await PostHashtag.findAll({
+    // Candidate post ids tagged with this hashtag. Group posts must be
+    // excluded BEFORE pagination + related-tags derivation, otherwise a
+    // private group's co-occurring hashtag names leak onto the public tag
+    // page and pagination.total is inflated. We resolve the candidate set to
+    // non-group ids first, then paginate/relate on the clean list.
+    const candidateIds = (await PostHashtag.findAll({
       where: { hashtagId: hashtag.id },
       attributes: ['postId'],
       order: [['createdAt', 'DESC']],
-      limit: limit + offset
+      limit: 500
     })).map(ph => ph.postId);
+
+    // Keep only non-group posts, preserving the candidate ordering.
+    const nonGroupRows = candidateIds.length > 0
+      ? await SocialPost.findAll({
+          where: { id: { [Op.in]: candidateIds }, groupId: null },
+          attributes: ['id'],
+          raw: true
+        })
+      : [];
+    const nonGroupSet = new Set(nonGroupRows.map(r => r.id));
+    const postIds = candidateIds.filter(id => nonGroupSet.has(id));
 
     const paginatedIds = postIds.slice(offset, offset + limit);
 
@@ -232,7 +247,9 @@ router.get('/:slug', async (req, res) => {
       ? await SocialPost.findAll({
           where: {
             id: { [Op.in]: paginatedIds },
-            moderationStatus: { [Op.or]: ['approved', null] }
+            moderationStatus: { [Op.or]: ['approved', null] },
+            // Belt-and-suspenders: postIds is already group-filtered above.
+            groupId: null
           },
           order: sort === 'popular'
             ? [['likesCount', 'DESC'], ['createdAt', 'DESC']]

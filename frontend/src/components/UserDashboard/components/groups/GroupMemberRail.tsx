@@ -1,0 +1,126 @@
+/**
+ * ============================================================================
+ * FILE: GroupMemberRail.tsx
+ * PURPOSE: Member list + moderator controls for a group (approve/deny pending
+ *          requests, promote/demote, remove, transfer ownership).
+ * HOW IT FITS: Rendered by GroupDetail; moderation actions come from
+ *          useGroupModeration via the parent so this stays presentational-ish.
+ * ============================================================================
+ */
+import React from 'react';
+import { Check, Crown, Shield, Users, X } from 'lucide-react';
+import type { GroupMemberEntry } from '../../../../hooks/social/useGroups';
+import { MemberChip, MemberRail, MemberRailTitle, MemberActionRow } from './GroupDetail.styles';
+import { QuietGroupButton, StatusPill } from './GroupsShared.styles';
+
+interface GroupMemberRailProps {
+  members: GroupMemberEntry[];
+  ownerId?: number;
+  canModerate: boolean;
+  isOwner: boolean;
+  isBusy: boolean;
+  onApprove: (userId: number) => void;
+  onDeny: (userId: number) => void;
+  onSetRole: (userId: number, role: 'member' | 'moderator') => void;
+  onRemove: (userId: number) => void;
+  onTransfer: (userId: number) => void;
+}
+
+const displayName = (entry: GroupMemberEntry) => {
+  if (!entry.user) return 'Member';
+  const full = `${entry.user.firstName ?? ''} ${entry.user.lastName ?? ''}`.trim();
+  return full || entry.user.username || 'Member';
+};
+
+const GroupMemberRail: React.FC<GroupMemberRailProps> = ({
+  members, ownerId, canModerate, isOwner, isBusy,
+  onApprove, onDeny, onSetRole, onRemove, onTransfer,
+}) => {
+  const pending = members.filter((m) => m.status === 'pending');
+  const active = members.filter((m) => m.status === 'active');
+
+  return (
+    <MemberRail aria-label="Group members">
+      <MemberRailTitle>
+        <Users size={14} aria-hidden="true" />
+        Members
+      </MemberRailTitle>
+
+      {canModerate && pending.length > 0 && (
+        <>
+          <MemberRailTitle as="h4">Requests ({pending.length})</MemberRailTitle>
+          {pending.map((entry) => (
+            <MemberChip key={`p-${entry.userId}`} $pending>
+              {displayName(entry)}
+              <MemberActionRow>
+                <QuietGroupButton
+                  type="button"
+                  onClick={() => onApprove(entry.userId)}
+                  disabled={isBusy}
+                  aria-label={`Approve ${displayName(entry)}`}
+                >
+                  <Check size={15} aria-hidden="true" /> Approve
+                </QuietGroupButton>
+                <QuietGroupButton
+                  type="button"
+                  onClick={() => onDeny(entry.userId)}
+                  disabled={isBusy}
+                  aria-label={`Deny ${displayName(entry)}`}
+                >
+                  <X size={15} aria-hidden="true" /> Deny
+                </QuietGroupButton>
+              </MemberActionRow>
+            </MemberChip>
+          ))}
+        </>
+      )}
+
+      {active.length === 0 ? (
+        <MemberChip>No visible members yet</MemberChip>
+      ) : (
+        active.map((entry) => {
+          const isGroupOwnerRow = entry.userId === ownerId || entry.role === 'owner';
+          return (
+            <MemberChip key={entry.userId}>
+              {displayName(entry)}
+              {entry.role !== 'member' && (
+                <StatusPill $tone="gold">
+                  {entry.role === 'owner' ? <Crown size={11} aria-hidden="true" /> : <Shield size={11} aria-hidden="true" />}
+                  {entry.role}
+                </StatusPill>
+              )}
+              {canModerate && !isGroupOwnerRow && (
+                <MemberActionRow>
+                  {isOwner && (
+                    <QuietGroupButton
+                      type="button"
+                      onClick={() => onSetRole(entry.userId, entry.role === 'moderator' ? 'member' : 'moderator')}
+                      disabled={isBusy}
+                    >
+                      {entry.role === 'moderator' ? 'Demote' : 'Make mod'}
+                    </QuietGroupButton>
+                  )}
+                  {isOwner && (
+                    <QuietGroupButton type="button" onClick={() => onTransfer(entry.userId)} disabled={isBusy}>
+                      <Crown size={14} aria-hidden="true" /> Make owner
+                    </QuietGroupButton>
+                  )}
+                  <QuietGroupButton
+                    type="button"
+                    onClick={() => onRemove(entry.userId)}
+                    disabled={isBusy}
+                    aria-label={`Remove ${displayName(entry)}`}
+                  >
+                    Remove
+                  </QuietGroupButton>
+                </MemberActionRow>
+              )}
+            </MemberChip>
+          );
+        })
+      )}
+    </MemberRail>
+  );
+};
+
+export default GroupMemberRail;

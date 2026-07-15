@@ -197,24 +197,10 @@ export const CoverMeta = styled.div`
   }
 `;
 
-export const CoverRankTag = styled.span`
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  max-width: min(100%, 34rem);
-  min-height: 30px;
-  margin-top: 0.38rem;
-  padding: 0.32rem 0.68rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 46%, transparent);
-  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 16%, transparent);
-  color: var(--text-primary, #E0ECF4);
-  font: 800 0.68rem/1.15 var(--font-data, 'Fira Code', monospace);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: normal;
-  overflow-wrap: anywhere;
-`;
+/* Rank pill gold upgrade (2026-07-14) lives in ObservatoryRankPill.styles.ts
+   (rule 4 file-size extraction). CoverRankTag/RankGoldSegment/RankDivider are
+   re-exported below so existing imports from this module keep working. */
+export { CoverRankTag, RankGoldSegment, RankDivider } from './ObservatoryRankPill.styles';
 
 export const CoverActions = styled.div`
   display: flex;

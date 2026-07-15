@@ -76,10 +76,22 @@ interface PointResult {
   pointMessage?: string;
 }
 
+export interface SocialFeedOptions {
+  /** Scope the feed (and created posts) to one community group's own feed. */
+  groupId?: number;
+  /** When false, the hook holds off the initial fetch (e.g. a private group
+   *  whose content the viewer can't see yet — avoids a 403 error toast). */
+  enabled?: boolean;
+}
+
 /**
- * Hook for managing social feed functionality
+ * Hook for managing social feed functionality.
+ * With `options.groupId` the same API drives a GROUP feed: posts come from
+ * /api/social/groups/:id/feed and created posts carry the groupId, so the
+ * whole PostCard interaction surface (react/comment/edit/report) is reused.
  */
-export const useSocialFeed = () => {
+export const useSocialFeed = (options: SocialFeedOptions = {}) => {
+  const { groupId, enabled = true } = options;
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
   const { profile, invalidateProfile } = useGamificationData();
@@ -100,8 +112,11 @@ export const useSocialFeed = () => {
   
   // Fetch feed posts
   const fetchPosts = useCallback(async (resetPagination = false) => {
-    if (!user) return;
-    
+    if (!user || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
     if (resetPagination) {
       setOffset(0);
       setIsLoading(true);
@@ -113,7 +128,10 @@ export const useSocialFeed = () => {
     
     try {
       const currentOffset = resetPagination ? 0 : offset;
-      const response = await authAxios.get(`/api/social/posts/feed?limit=${limit}&offset=${currentOffset}`);
+      const feedUrl = groupId
+        ? `/api/social/groups/${groupId}/feed?limit=${limit}&offset=${currentOffset}`
+        : `/api/social/posts/feed?limit=${limit}&offset=${currentOffset}`;
+      const response = await authAxios.get(feedUrl);
       
       const newPosts = response.data.posts || [];
       
@@ -129,11 +147,17 @@ export const useSocialFeed = () => {
     } catch (err) {
       setError(err as Error);
       console.error('Error fetching social feed:', err);
-      toast({
-        title: 'Error fetching feed',
-        description: 'Unable to load social feed. Please try again later.',
-        variant: 'destructive'
-      });
+      // A 403 on a group feed is the EXPECTED locked-private-group state —
+      // the LockedPanel already explains it; a red error toast would be noise.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const isExpectedGroupLock = Boolean(groupId) && status === 403;
+      if (!isExpectedGroupLock) {
+        toast({
+          title: 'Error fetching feed',
+          description: 'Unable to load social feed. Please try again later.',
+          variant: 'destructive'
+        });
+      }
     } finally {
       if (resetPagination) {
         setIsLoading(false);
@@ -141,8 +165,8 @@ export const useSocialFeed = () => {
         setIsLoadingMore(false);
       }
     }
-  }, [authAxios, user, toast, offset, limit]);
-  
+  }, [authAxios, user, toast, offset, limit, groupId, enabled]);
+
   // Load more posts
   const loadMore = useCallback(() => {
     if (isLoadingMore || !hasMore) return;
@@ -165,7 +189,12 @@ export const useSocialFeed = () => {
       if (postData.media) {
         formData.append('media', postData.media);
       }
-      
+
+      // Group-scoped feed instance → the post lands in the group's own feed.
+      if (groupId) {
+        formData.append('groupId', String(groupId));
+      }
+
       // Add optional fields if provided
       if (postData.workoutSessionId) {
         formData.append('workoutSessionId', postData.workoutSessionId);
@@ -242,8 +271,8 @@ export const useSocialFeed = () => {
     } finally {
       setIsCreatingPost(false);
     }
-  }, [authAxios, user, toast]);
-  
+  }, [authAxios, user, toast, groupId]);
+
   // React to a post (thumbs_up, heart, or swan)
   const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {
     if (!user) return false;
@@ -496,14 +525,17 @@ export const useSocialFeed = () => {
     );
   }, [getPostDetails]);
   
-  // Initial data fetch — depend only on user identity, not fetchPosts reference
-  // (fetchPosts changes on every offset/toast update which would cause infinite loops)
+  // Initial data fetch — depend only on user identity + gating flags, not the
+  // fetchPosts reference (it changes on every offset/toast update → infinite
+  // loop). `enabled` transitioning false→true (group content unlocks) and a
+  // `groupId` change both re-fetch. groupId change also relies on the caller's
+  // key= remount, but this keeps a single hook instance correct if reused.
   useEffect(() => {
-    if (user) {
+    if (user && enabled) {
       fetchPosts(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, enabled, groupId]);
 
   // Refresh when another surface publishes a post (e.g. the social Coach
   // dock's inline milestone share — separate hook instances share no state,
