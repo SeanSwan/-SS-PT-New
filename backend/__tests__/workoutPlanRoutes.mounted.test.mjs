@@ -1117,26 +1117,34 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.headers['x-content-type-options']).toBe('nosniff');
     });
 
-    it('trainer + assigned plan PUT /:id/primary marks only that plan as the primary client arc', async () => {
+    it('trainer + assigned plan PUT /:id/primary preserves locked-row content identities', async () => {
       const targetUpdate = vi.fn().mockResolvedValue(undefined);
       const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-      mockWorkoutPlanFindByPk.mockResolvedValue({
+      const targetPlan = {
         id: 'plan-9m',
         userId: 42,
         title: 'Nine Month Plan',
         status: 'active',
+        planData: { weeks: [] },
+        contentRevision: 5,
+        contentHash: hashWorkoutPlanContent({ weeks: [] }),
         metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, primary: false, painAware: true },
         update: targetUpdate,
-      });
-      mockWorkoutPlanFindAll.mockResolvedValue([
-        {
-          id: 'plan-6m',
-          userId: 42,
-          status: 'active',
-          metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
-          update: siblingUpdate,
-        },
-      ]);
+      };
+      const siblingPlan = {
+        id: 'plan-6m',
+        userId: 42,
+        status: 'active',
+        planData: { weeks: [] },
+        contentRevision: 3,
+        contentHash: hashWorkoutPlanContent({ weeks: [] }),
+        metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
+        update: siblingUpdate,
+      };
+      mockWorkoutPlanFindByPk.mockImplementation(async (id) => (
+        id === 'plan-6m' ? siblingPlan : targetPlan
+      ));
+      mockWorkoutPlanFindAll.mockResolvedValue([siblingPlan]);
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
 
       const res = await request(app)
@@ -1148,9 +1156,13 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(mockSequelizeTransaction).toHaveBeenCalledOnce();
       expect(targetUpdate).toHaveBeenCalledWith({
         metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, primary: true, painAware: true },
+        contentRevision: 5,
+        contentHash: targetPlan.contentHash,
       }, { transaction: mockTransactionInstance });
       expect(siblingUpdate).toHaveBeenCalledWith({
         metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
+        contentRevision: 3,
+        contentHash: siblingPlan.contentHash,
       }, { transaction: mockTransactionInstance });
       expect(mockTransactionInstance.commit).toHaveBeenCalledOnce();
       expect(mockTransactionInstance.rollback).not.toHaveBeenCalled();
@@ -1159,7 +1171,6 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         primaryHorizonKey: 'nine_month',
       });
     });
-
     it('trainer + assigned plan POST /:id/duplicate preserves plan-use metadata without copying stale PDF or primary state', async () => {
       mockWorkoutPlanFindByPk.mockResolvedValue({
         id: 'plan-1',

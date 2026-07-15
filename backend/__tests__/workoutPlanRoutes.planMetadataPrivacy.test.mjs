@@ -218,33 +218,53 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
       planPdf: { fileName: 'Six Month Plan.pdf' },
     });
   });
-  it('sanitizes target and sibling metadata on PUT /api/workout-plans/:id/primary', async () => {
+  it('sanitizes primary metadata without changing locked-row content identities', async () => {
     const targetUpdate = vi.fn().mockResolvedValue(undefined);
     const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-    mockWorkoutPlanFindByPk.mockResolvedValue({
+    const targetPlan = {
       id: 'plan-9m',
       userId: 42,
       title: 'Nine Month Plan',
       status: 'active',
+      planData: { weeks: [] },
+      contentRevision: 5,
+      contentHash: hashWorkoutPlanContent({ weeks: [] }),
       metadata: unsafeMetadata(),
       update: targetUpdate,
-    });
-    mockWorkoutPlanFindAll.mockResolvedValue([{
+    };
+    const siblingPlan = {
       id: 'plan-6m',
       userId: 42,
       status: 'active',
+      planData: { weeks: [] },
+      contentRevision: 3,
+      contentHash: hashWorkoutPlanContent({ weeks: [] }),
       metadata: unsafeMetadata(),
       update: siblingUpdate,
-    }]);
+    };
+    mockWorkoutPlanFindByPk.mockImplementation(async (id) => (
+      id === 'plan-6m' ? siblingPlan : targetPlan
+    ));
+    mockWorkoutPlanFindAll.mockResolvedValue([siblingPlan]);
 
     const res = await auth(request(app).put('/api/workout-plans/plan-9m/primary')).send({});
 
     expect(res.status).toBe(200);
-    const targetMetadata = targetUpdate.mock.calls[0][0].metadata;
-    const siblingMetadata = siblingUpdate.mock.calls[0][0].metadata;
-    expectSanitizedJson(targetMetadata);
-    expectSanitizedJson(siblingMetadata);
-    expect(targetMetadata).toMatchObject({ isPrimaryPlan: true, primary: true });
-    expect(siblingMetadata).toMatchObject({ isPrimaryPlan: false, primary: false });
+    const targetPayload = targetUpdate.mock.calls[0][0];
+    const siblingPayload = siblingUpdate.mock.calls[0][0];
+    expectSanitizedJson(targetPayload.metadata);
+    expectSanitizedJson(siblingPayload.metadata);
+    expect(targetPayload).toMatchObject({
+      contentRevision: 5,
+      contentHash: targetPlan.contentHash,
+      metadata: { isPrimaryPlan: true, primary: true },
+    });
+    expect(siblingPayload).toMatchObject({
+      contentRevision: 3,
+      contentHash: siblingPlan.contentHash,
+      metadata: { isPrimaryPlan: false, primary: false },
+    });
+    expect(targetUpdate.mock.calls[0][1]).toEqual({ transaction: mockTransactionInstance });
+    expect(siblingUpdate.mock.calls[0][1]).toEqual({ transaction: mockTransactionInstance });
   });
 });

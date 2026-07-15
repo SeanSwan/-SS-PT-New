@@ -166,11 +166,18 @@ describe('PUT /api/workout-plans/:id/activate', () => {
       metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
       update: siblingUpdate,
     });
+    targetPlan.contentRevision = 4;
+    targetPlan.contentHash = hashWorkoutPlanContent(targetPlan.planData);
+    stalePrimarySibling.contentRevision = 2;
+    stalePrimarySibling.contentHash = hashWorkoutPlanContent(stalePrimarySibling.planData);
 
     mockFindAll
       .mockResolvedValueOnce([targetPlan, stalePrimarySibling])
       .mockResolvedValueOnce([stalePrimarySibling]);
-    mockFindByPk.mockResolvedValueOnce(targetPlan);
+    mockFindByPk
+      .mockResolvedValueOnce(targetPlan)
+      .mockResolvedValueOnce(stalePrimarySibling)
+      .mockResolvedValueOnce(targetPlan);
 
     const res = await request(app)
       .put('/api/workout-plans/50/activate')
@@ -182,10 +189,14 @@ describe('PUT /api/workout-plans/:id/activate', () => {
     expect(siblingUpdate).toHaveBeenCalledWith({
       status: 'paused',
       metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
+      contentRevision: 2,
+      contentHash: stalePrimarySibling.contentHash,
     }, { transaction: tx });
     expect(targetUpdate).toHaveBeenCalledWith({
       status: 'active',
       metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true, primary: true },
+      contentRevision: 4,
+      contentHash: targetPlan.contentHash,
     }, { transaction: tx });
     expect(res.body.trainingPlanCatalog).toMatchObject({
       primaryPlanId: 50,
@@ -218,7 +229,9 @@ describe('PUT /api/workout-plans/:id/activate', () => {
     expect(mockUserUpdate).toHaveBeenCalledWith({
       status: 'active',
       metadata: { isPrimaryPlan: true, primary: true },
-    }, expect.any(Object));
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(makePlan().planData),
+    }, expect.objectContaining({ transaction: defaultTransaction }));
   });
 
   it('returns 404 when verifyClientAccessByPlanId denies (cross-trainer IDOR)', async () => {
@@ -334,11 +347,18 @@ describe('PUT /api/workout-plans/:id/primary', () => {
       metadata: { planHorizon: 'three_month', isPrimaryPlan: true },
       update: siblingUpdate,
     });
+    targetPlan.contentRevision = 7;
+    targetPlan.contentHash = hashWorkoutPlanContent(targetPlan.planData);
+    siblingPlan.contentRevision = 3;
+    siblingPlan.contentHash = hashWorkoutPlanContent(siblingPlan.planData);
 
     mockFindAll
       .mockResolvedValueOnce([targetPlan, siblingPlan])
       .mockResolvedValueOnce([siblingPlan]);
-    mockFindByPk.mockResolvedValueOnce(targetPlan);
+    mockFindByPk
+      .mockResolvedValueOnce(targetPlan)
+      .mockResolvedValueOnce(siblingPlan)
+      .mockResolvedValueOnce(targetPlan);
 
     const res = await request(app)
       .put('/api/workout-plans/50/primary')
@@ -353,12 +373,16 @@ describe('PUT /api/workout-plans/:id/primary', () => {
       lock: 'UPDATE',
       transaction: tx,
     }));
-    expect(mockFindByPk).toHaveBeenLastCalledWith(50, { transaction: tx });
+    expect(mockFindByPk).toHaveBeenLastCalledWith(50, { transaction: tx, lock: 'UPDATE' });
     expect(siblingUpdate).toHaveBeenCalledWith({
       metadata: { planHorizon: 'three_month', isPrimaryPlan: false, primary: false },
+      contentRevision: 3,
+      contentHash: siblingPlan.contentHash,
     }, { transaction: tx });
     expect(targetUpdate).toHaveBeenCalledWith({
       metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
+      contentRevision: 7,
+      contentHash: targetPlan.contentHash,
     }, { transaction: tx });
     expect(tx.commit).toHaveBeenCalledOnce();
     expect(tx.rollback).not.toHaveBeenCalled();

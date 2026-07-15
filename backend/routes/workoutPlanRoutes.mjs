@@ -641,12 +641,25 @@ router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlan
     const updatedSiblings = [];
     for (const sibling of siblings) {
       const nextSibling = markPlanPrimary(sibling, false);
-      await sibling.update({ metadata: nextSibling.metadata }, { transaction: t });
-      updatedSiblings.push(nextSibling);
+      const siblingMutation = await mutateWorkoutPlanRecord({
+        sequelize,
+        WorkoutPlan,
+        planId: sibling.id,
+        updates: { metadata: nextSibling.metadata },
+        transaction: t,
+      });
+      updatedSiblings.push({ ...toPlainObject(siblingMutation.plan), metadata: nextSibling.metadata });
     }
 
-    const updatedTarget = markPlanPrimary(freshTarget, true);
-    await freshTarget.update({ metadata: updatedTarget.metadata }, { transaction: t });
+    const nextTarget = markPlanPrimary(freshTarget, true);
+    const targetMutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: freshTarget.id,
+      updates: { metadata: nextTarget.metadata },
+      transaction: t,
+    });
+    const updatedTarget = { ...toPlainObject(targetMutation.plan), metadata: nextTarget.metadata };
 
     const overview = buildClientTrainingOverview({
       activePlan: updatedTarget,
@@ -692,33 +705,39 @@ const loadActivationSiblings = (WorkoutPlan, freshPlan, transaction) => (
   })
 );
 
-const updateActivationSiblings = async (siblings, transaction) => {
+const updateActivationSiblings = async (WorkoutPlan, siblings, transaction) => {
   const updatedSiblings = [];
 
   for (const sibling of siblings) {
     const demotedSibling = markPlanPrimary(sibling, false);
     const shouldPauseSibling = sibling.status === 'active';
-    const nextSibling = shouldPauseSibling
-      ? { ...demotedSibling, status: 'paused' }
-      : demotedSibling;
     const siblingUpdate = shouldPauseSibling
-      ? { status: 'paused', metadata: nextSibling.metadata }
-      : { metadata: nextSibling.metadata };
-
-    await sibling.update(siblingUpdate, { transaction });
-    updatedSiblings.push(nextSibling);
+      ? { status: 'paused', metadata: demotedSibling.metadata }
+      : { metadata: demotedSibling.metadata };
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: sibling.id,
+      updates: siblingUpdate,
+      transaction,
+    });
+    updatedSiblings.push({ ...toPlainObject(mutation.plan), ...siblingUpdate });
   }
 
   return updatedSiblings;
 };
 
-const activateFreshWorkoutPlan = async (freshPlan, transaction) => {
-  const updatedFresh = { ...markPlanPrimary(freshPlan, true), status: 'active' };
-  await freshPlan.update({
-    status: 'active',
-    metadata: updatedFresh.metadata,
-  }, { transaction });
-  return updatedFresh;
+const activateFreshWorkoutPlan = async (WorkoutPlan, freshPlan, transaction) => {
+  const nextFresh = { ...markPlanPrimary(freshPlan, true), status: 'active' };
+  const freshUpdate = { status: 'active', metadata: nextFresh.metadata };
+  const mutation = await mutateWorkoutPlanRecord({
+    sequelize,
+    WorkoutPlan,
+    planId: freshPlan.id,
+    updates: freshUpdate,
+    transaction,
+  });
+  return { ...toPlainObject(mutation.plan), ...freshUpdate };
 };
 
 const buildActivatedPlanResponse = (updatedFresh, updatedSiblings) => {
@@ -741,8 +760,8 @@ const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transac
   if (!fresh) return null;
 
   const siblings = await loadActivationSiblings(WorkoutPlan, fresh, transaction);
-  const updatedSiblings = await updateActivationSiblings(siblings, transaction);
-  const updatedFresh = await activateFreshWorkoutPlan(fresh, transaction);
+  const updatedSiblings = await updateActivationSiblings(WorkoutPlan, siblings, transaction);
+  const updatedFresh = await activateFreshWorkoutPlan(WorkoutPlan, fresh, transaction);
   return buildActivatedPlanResponse(updatedFresh, updatedSiblings);
 };
 
