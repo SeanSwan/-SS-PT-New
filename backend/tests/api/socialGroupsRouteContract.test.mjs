@@ -55,6 +55,38 @@ describe('create-post group gate', () => {
   });
 });
 
+describe('engagement routes respect the group boundary (hostile-review fixes)', () => {
+  it('repost blocks group posts (private-content exfiltration guard)', () => {
+    expect(postsSrc).toMatch(/if \(original\.groupId\) \{[\s\S]*?cannot be reposted/);
+  });
+  it('comments/reactions/unlike/report gate group posts via assertGroupPostAccess', () => {
+    expect(postsSrc).toContain("import { assertGroupPostAccess");
+    const gateCount = (postsSrc.match(/assertGroupPostAccess\(post, req\.user\)/g) || []).length;
+    // like + unlike + comment + report = 4 engagement gates
+    expect(gateCount).toBeGreaterThanOrEqual(4);
+  });
+  it('the three activity broadcasts are skipped for group posts', () => {
+    expect(postsSrc).toMatch(/if \(!groupPost\) \{[\s\S]*?post_created/);
+    expect(postsSrc).toMatch(/if \(!post\.groupId\) \{[\s\S]*?reaction_added/);
+    expect(postsSrc).toMatch(/if \(!post\.groupId\) \{[\s\S]*?comment_added/);
+  });
+  it('the hashtag detail page excludes group posts', () => {
+    const hashtagsSrc = read('../../routes/social/hashtags.mjs');
+    expect(hashtagsSrc).toMatch(/groupId: null/);
+  });
+});
+
+describe('membership hardening (hostile-review fixes)', () => {
+  it('join is idempotent via findOrCreate (no double-tap 500)', () => {
+    expect(membershipSrc).toContain('findOrCreate');
+    expect(membershipSrc).toMatch(/wasCreated \? 201 : 200/);
+  });
+  it('ownership transfer endpoint exists (resolves the transfer-before-leave dead end)', () => {
+    expect(groupsSrc).toMatch(/transfer-ownership/);
+    expect(groupsSrc).toMatch(/ownerId: targetUserId/);
+  });
+});
+
 describe('groups router mounting + auth', () => {
   it('groups routes are mounted under /groups in the social index', () => {
     expect(socialIndexSrc).toMatch(/router\.use\('\/groups', groupsRoutes\)/);

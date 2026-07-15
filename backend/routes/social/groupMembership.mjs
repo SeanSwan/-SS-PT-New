@@ -63,18 +63,26 @@ router.post('/:id/join', async (req, res) => {
     }
 
     const status = group.privacy === 'private' ? 'pending' : 'active';
-    const created = await SocialGroupMember.create({ groupId, userId: req.user.id, role: 'member', status });
-    if (status === 'active') {
+    // findOrCreate makes a concurrent double-tap idempotent instead of a
+    // 500: the second racer hits the UNIQUE(groupId,userId) and reuses the
+    // existing row rather than throwing SequelizeUniqueConstraintError.
+    const [created, wasCreated] = await SocialGroupMember.findOrCreate({
+      where: { groupId, userId: req.user.id },
+      defaults: { groupId, userId: req.user.id, role: 'member', status },
+    });
+    if (wasCreated && created.status === 'active') {
       await refreshMemberCount(groupId);
       if (group.conversationId) {
         try { await addUserToGroupChat(group.conversationId, req.user.id); } catch { /* best-effort */ }
       }
     }
     await group.reload();
-    return res.status(201).json({
+    return res.status(wasCreated ? 201 : 200).json({
       success: true,
       group: serializeGroup(group, created),
-      message: status === 'pending' ? 'Join request sent' : 'Welcome to the group!',
+      message: !wasCreated
+        ? (created.status === 'pending' ? 'Join request already pending' : 'Already a member')
+        : status === 'pending' ? 'Join request sent' : 'Welcome to the group!',
     });
   } catch (error) {
     console.error('Error joining group:', error);

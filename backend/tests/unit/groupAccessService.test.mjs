@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  assertGroupPostAccess,
   canModerateGroup,
   canPostInGroup,
   canViewGroupContent,
@@ -86,5 +87,13 @@ describe('canModerateGroup / isGroupOwner', () => {
   it('only the owner role is owner', () => {
     expect(isGroupOwner(moderator, user)).toBe(false);
     expect(isGroupOwner(owner, user)).toBe(true);
+  });
+});
+
+describe('assertGroupPostAccess — engagement-route gate', () => {
+  it('non-group posts always pass without a DB lookup', async () => {
+    expect(await assertGroupPostAccess({ id: 1, groupId: null }, user)).toEqual({ ok: true });
+    expect(await assertGroupPostAccess({ id: 1 }, user)).toEqual({ ok: true });
+    expect(await assertGroupPostAccess(null, user)).toEqual({ ok: true });
   });
 });

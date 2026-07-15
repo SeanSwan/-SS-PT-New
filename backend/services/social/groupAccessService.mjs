@@ -51,6 +51,22 @@ export function canPostInGroup(group, membership) {
   return isActiveMember(membership);
 }
 
+/**
+ * Guard any engagement action (view/comment/react/report/repost) on a post
+ * that MAY belong to a group. Returns { ok, status, message }:
+ *   - ok:true when the post is not group-scoped, or the viewer may view the
+ *     group's content (public group, active member, or admin).
+ *   - ok:false + 403 when it's a private group the viewer can't see.
+ * Used by the pre-existing posts.mjs engagement routes so group content
+ * never leaks through repost/comment/react/report/hashtag surfaces.
+ */
+export async function assertGroupPostAccess(post, user) {
+  if (!post || !post.groupId) return { ok: true };
+  const { group, membership } = await getGroupWithMembership(post.groupId, user?.id);
+  if (canViewGroupContent(group, membership, user)) return { ok: true };
+  return { ok: false, status: 403, message: 'Join this group to interact with its posts' };
+}
+
 /** Recount + persist memberCount after any membership mutation. */
 export async function refreshMemberCount(groupId, transaction = null) {
   const count = await SocialGroupMember.count({
