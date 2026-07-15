@@ -2712,7 +2712,12 @@ const gamificationController = {
       const targetUserId = userId || req.user?.id;
       const normalizedUserId = parsePositiveInteger(targetUserId);
       const normalizedDuration = duration === undefined ? 0 : parseBoundedNumber(duration, 0, 1440);
-      const normalizedExercisesCompleted = exercisesCompleted === undefined ? 0 : parseNonNegativeInteger(exercisesCompleted);
+      // Clamp exercisesCompleted to a sane max — it multiplies into the point
+      // award with no per-award cap, so an unbounded client value minted a huge
+      // award. Keep the non-negative-integer contract, then cap at 100.
+      const normalizedExercisesCompleted = exercisesCompleted === undefined
+        ? 0
+        : Math.min(parseNonNegativeInteger(exercisesCompleted, 0), 100);
       const normalizedCaloriesBurned = caloriesBurned === undefined ? undefined : parseNonNegativeInteger(caloriesBurned);
       const normalizedNotes = normalizeBoundedString(notes, 500);
 

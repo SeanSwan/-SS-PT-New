@@ -66,7 +66,11 @@ describe('gamification workout completion controller security hardening', () => 
   it('strictly normalizes user ownership and workout metrics before writes', () => {
     expect(recordWorkoutSource).toContain('const normalizedUserId = parsePositiveInteger(targetUserId);');
     expect(recordWorkoutSource).toContain('const normalizedDuration = duration === undefined ? 0 : parseBoundedNumber(duration, 0, 1440);');
-    expect(recordWorkoutSource).toContain('const normalizedExercisesCompleted = exercisesCompleted === undefined ? 0 : parseNonNegativeInteger(exercisesCompleted);');
+    // Hardened 2026-07-15: exercisesCompleted is now CLAMPED (0..100) — it
+    // multiplies into an uncapped point award, so an unbounded client value
+    // could mint a huge award.
+    expect(recordWorkoutSource).toContain('Math.min(parseNonNegativeInteger(exercisesCompleted, 0), 100)');
+    expect(recordWorkoutSource).not.toMatch(/normalizedExercisesCompleted = exercisesCompleted === undefined \? 0 : parseNonNegativeInteger\(exercisesCompleted\);/);
     expect(recordWorkoutSource).toContain('const normalizedCaloriesBurned = caloriesBurned === undefined ? undefined : parseNonNegativeInteger(caloriesBurned);');
     expect(recordWorkoutSource).toContain('const normalizedNotes = normalizeBoundedString(notes, 500);');
     expect(recordWorkoutSource).toContain('if (!normalizedUserId)');
