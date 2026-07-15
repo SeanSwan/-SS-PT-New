@@ -87,7 +87,9 @@ describe('adminPasswordSetupLinkService', () => {
     expect(target.resetPasswordToken).toBe(hashPasswordResetToken(rawToken, RESET_SECRET));
     expect(target.resetPasswordToken).not.toBe(rawToken);
     expect(target.resetPasswordExpires.getTime()).toBe(now + PASSWORD_SETUP_LINK_TTL_MS);
-    expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    // Relative to the MOCKED clock — comparing to the real Date.now() turned
+    // this into a time bomb that detonated 24h after the pinned date.
+    expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(now);
   });
 
   it('rejects missing target (404), admin target (403), and inactive target (409)', async () => {

@@ -17,8 +17,12 @@ export const USER_ROLES = ['admin', 'trainer', 'client'];
 
 export const ClassifiedIntentSchema = z.object({
   intent: z.string().min(1).max(100),
-  clientRef: z.string().max(200).optional(),
-  params: z.record(z.unknown()).optional(),
+  // The classifier prompt's OUTPUT FORMAT and examples tell the model
+  // "client name or null" — modern models faithfully emit the literal null,
+  // and .optional() alone rejected it, collapsing EVERY client-less command
+  // to the chat fallback (prod incident root-caused 2026-07-15).
+  clientRef: z.string().max(200).nullable().optional(),
+  params: z.record(z.unknown()).nullable().optional(),
   confidence: z.number().min(0).max(1),
 });
 
