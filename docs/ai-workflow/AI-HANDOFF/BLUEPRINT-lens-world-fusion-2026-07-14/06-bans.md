@@ -1,12 +1,17 @@
 # 06 — BANS (violating any = REVISE at checkpoint, no exceptions)
 
-## The firewall (from experience-mode.md §3 — restated verbatim in effect)
+## The firewall (derived from experience-mode.md §3 — that CANONICAL doc wins on any conflict)
 1. **LIVE M4 NEVER on product surfaces.** No canvas, WebGL/WebGPU, video autoplay, scroll-film,
    particle systems, shader surfaces, or audio in any dashboard/logger/progress/store/Coach/
-   onboarding/auth surface. Worlds enter product ONLY as the F0 atmosphere contract: CSS
-   gradients/SVG patterns/grain, ≤3 layers, ≤2 animated (transform/opacity only), poster-first,
-   Still under reduced-motion. A "small" live world module still promotes the host — so it is
-   banned at the boundary, not budgeted.
+   onboarding/auth surface. A "small" live world module still promotes the host — banned at the
+   boundary, not budgeted.
+   **Product atmosphere is INERT by default (H1):** §3 permits on product dashboards only an inert
+   B0 poster or a user-started/pausable M2 preview — NOT an always-on autoplay band. So the F0
+   atmosphere on product surfaces renders the STATIC `stillPoster` even under `motionMode:'auto'`.
+   `animated: true` layers are MARKETING-LANE ONLY. Shipping any autoplay animated atmosphere on a
+   product surface requires an explicit, logged `experience-mode.md` §3 amendment + Sean per-surface
+   approval. `prefers-reduced-motion` and `data-motion="off"` always force static. This blueprint
+   does not claim to restate §3 "verbatim" — §3 is the authority; this is its product projection.
 2. **Law A only in product.** All UI chrome stays on Crystalline Swan tokens; Law-B native
    palettes never ship under Swan chrome. Retired Galaxy-Swan hexes (`#0a0a1a`, `#00FFFF`,
    `#7851A9`) never appear as positive values.

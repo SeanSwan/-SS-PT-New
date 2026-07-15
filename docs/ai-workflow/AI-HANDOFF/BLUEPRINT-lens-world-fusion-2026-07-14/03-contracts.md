@@ -12,14 +12,19 @@ export interface AtmosphereLayer {
   kind: AtmosphereLayerKind;
   /** id into the ATMOSPHERE_ASSET_CATALOG (adapter-side, data-only). NEVER a URL. */
   assetId: string;
-  /** 0.01–0.12 — worlds.md WEATHER discipline; validator clamps/rejects outside. */
+  /** 0.01–0.12 — a deliberately RESTRAINED product envelope, LOOSER than the
+   *  worlds.md WEATHER values (which run ≤~0.04, e.g. spray ≤0.04, spindrift
+   *  ≤0.02). Product atmosphere sits behind chrome so it may go a touch higher,
+   *  but 0.12 is the hard ceiling; validator rejects outside [0.01, 0.12]. */
   opacity: number;
-  /** may this layer animate under motionMode 'auto'? (CSS transform/opacity only) */
+  /** MARKETING-LANE ONLY (H1): product surfaces render static regardless.
+   *  CSS transform/opacity only. */
   animated?: boolean;
 }
 export interface RecipeAtmosphere {
-  layers: readonly AtmosphereLayer[];        // max 3 total, max 2 animated (M2 caps)
-  /** REQUIRED: the zero-motion story — used under still/reduced-motion. */
+  layers: readonly AtmosphereLayer[];        // max 3 total, max 2 animated (M2 caps; product = 0 animated)
+  /** REQUIRED: the zero-motion story — the ONLY layer product surfaces render
+   *  by default, and the sole layer under reduced-motion / data-motion=off. */
   stillPoster: { assetId: string };
 }
 // RecipeV2 gains: atmosphere?: RecipeAtmosphere;
@@ -64,8 +69,9 @@ id INTEGER PK autoincrement
 userId INTEGER NOT NULL UNIQUE REFERENCES "Users"(id) ON DELETE CASCADE   // PascalCase table — house law
 profile JSONB NOT NULL
 overlay JSONB NULL
-profileSchemaVersion STRING NOT NULL DEFAULT '1'
 createdAt/updatedAt TIMESTAMPTZ
+// NO separate schemaVersion column — the version already lives INSIDE profile
+// as profileSchemaVersion (number 1, per core/style-lens-os/constants.ts:PROFILE_SCHEMA_VERSION).
 ```
 Migration: NEW `backend/migrations/*-create-user-appearance-profiles.cjs` (`.cjs` — Windows/house
 law). FK MUST reference `"Users"` (never lowercase `users` — dual-table production gotcha).
@@ -79,11 +85,15 @@ Routes — NEW `backend/routes/appearanceProfileRoutes.mjs`, mounted in the serv
 | GET | `/api/appearance/profile` | required (own user only) | — | `{ success: true, profile, overlay, updatedAt }` (404 → `{ success: true, profile: null, overlay: null }` — first visit is not an error) |
 | PUT | `/api/appearance/profile` | required (own user only) | `{ profile, overlay? }` | `{ success: true, profile, overlay, updatedAt }` |
 
-PUT validation (server-side, fail-closed 422 `{ success:false, error:'INVALID_PROFILE', details:[...] }`):
+PUT validation (server-side, fail-closed 422 `{ success:false, error:'INVALID_PROFILE', details:[...] }`).
+**The server MUST validate against the EXACT shipped `AppearanceProfile` shape** — mirror
+`core/style-lens-os/validation.ts` `validateAppearanceProfile` field-for-field so a value the client
+persists can never be rejected on the way to the server (the #1 drift trap):
 - `profile.styleLensId` matches `^[a-z][a-z0-9-]{1,64}$` (server does NOT need the catalog — an
   unknown id is safe: clients resolve unknown → null → host defaults).
-- `profile.motionMode` ∈ `auto|lean|still`; `density` ∈ `comfortable|compact`;
-  `paletteThemeId` = `crystalline-dark`; `profileSchemaVersion` = `1`.
+- `profile.motionMode` ∈ **`auto | reduced | off`** (the REAL enum — `types.ts:MotionMode`; NOT
+  `lean/still`). `density` ∈ `comfortable|compact`; `paletteThemeId` = `crystalline-dark`;
+  `profile.profileSchemaVersion` === **`1` (number, not string `'1'`)** — compare `=== 1`.
 - `overlay` validated per §4; unknown keys REJECTED (not stripped — reject, so drift surfaces).
 - Rate limit: reuse the standard authenticated limiter pattern in the routes folder.
 - ZERO PII: the payload is ids/enums only; never log payload values, log userId + outcome only.
@@ -111,9 +121,22 @@ pattern layer), font-pairing data-attr `data-swan-font-pairing`, density data-at
 touches: action/button backgrounds, chart series colors (accent flows to charts only via the
 existing `--world-accent` seam), text color, spacing scale beyond density, or any layout token.
 
-Tier gate (server + client, same table): FREE `{}` only · GUARDIAN `accent|pattern|density` ·
-CRYSTALLINE all keys. Server checks the user's tier on PUT and 403s locked keys with
-`{ success:false, error:'TIER_LOCKED', lockedKeys:[...] }`.
+**Tier gate — USE THE CANONICAL SHIPPED TIER SYSTEM. Do NOT invent one.** The real internal tier
+ids are **`free | pro | elite`** (`backend/config/tierCatalog.mjs`); "Swan Starter / Swan Guardian /
+Crystalline Swan" are their DISPLAY names — never comparison values. Mapping for this feature:
+`FREE = free` (`{}` only) · `GUARDIAN = pro` (`accent|pattern|density`) · `CRYSTALLINE = elite`
+(all keys incl. `fontPairing`).
+- **Server gate:** reuse `backend/middleware/requireTier.mjs` (or its `resolveCurrentEntitlement`
+  from the **Subscription table** — NOT the stale JWT `req.user.subscriptionTier`). On a locked key
+  it returns the app-wide **402 `TIER_REQUIRED`** shape (NOT a bespoke 403) so the existing
+  `PaywallProvider`/FrostedPaywall interceptor catches it; it honors the `TIER_GATING_ENABLED` env
+  kill switch and the admin/trainer bypass; upgradeUrl is **`/ascension`**. If a 403+`lockedKeys`
+  body is genuinely needed for the Studio UX, that is an explicit divergence the builder must flag
+  at checkpoint — do not silently diverge.
+- **Client gate:** read entitlement via **`useFeatureAccess`/`FeatureAccessContext`** (`hasFeature`)
+  — NOT `useAuth().user` (the AuthContext `User` has no tier field; see 04-build-order F4/H2).
+- Reconcile the divergent frontend gamification `'free'|'premium'|'pro'` vocabulary to
+  `free|pro|elite` wherever the Studio touches it.
 
 ## 5. Distillation seed (F5) — factory output contract
 
@@ -150,8 +173,19 @@ export interface ServerAppearanceSync {
   pushProfile(profile: AppearanceProfile, overlay?: UserStyleOverlay | null): Promise<boolean>;
 }
 ```
-Wire-up lives where `StyleLensProvider` is mounted (`frontend/src/App.tsx:244`): fetch on auth
-ready → if server `updatedAt` newer than local → `beginPreview + commitPreview` the server value
-(silent); every successful local commit → `pushProfile` fire-and-forget with the offline receipt
-on failure. Uses the app's existing authenticated api client (same one the dashboard services
-use — mimic an existing service file; do not hand-roll fetch/headers).
+**Wire-up seam (CORRECTED — B4):** `StyleLensProvider` is mounted at `App.tsx:244` but
+`AuthProvider` (App.tsx:248), `FeatureAccessProvider` (249) and `PaywallProvider` (250) are its
+DESCENDANTS. Code at line 244 is a PARENT of auth and CANNOT call `useAuth()` or read the
+authenticated api client. So the sync wire-up is NOT at line 244. Instead add a small bridge child
+component — `AppearanceSyncBridge` — mounted INSIDE `AuthProvider` (below line 248) that reads auth,
+uses `useStyleLensAppearance()` (the provider is an ancestor, so its context is available there),
+and drives `serverAppearanceSync`:
+- On auth ready: `fetchProfile()`; if server `updatedAt` is newer than local → apply it via
+  `beginPreview + commitPreview` **with `setPersistenceSuppressed(true)` around the apply** so the
+  sync-in commit does NOT bounce a redundant `pushProfile` back to the server (M3 — the provider
+  already exposes `setPersistenceSuppressed`, StyleLensProvider.tsx). Re-enable after.
+- On every USER-originated successful commit (not sync-in): `pushProfile` fire-and-forget; on
+  failure show the offline receipt. Last-write-wins on `updatedAt` is clock-skew-tolerant only
+  because the data is cosmetic — state that; do not use it for anything but appearance.
+- Uses the app's existing authenticated api client (mimic an existing service file; never
+  hand-roll fetch/headers).

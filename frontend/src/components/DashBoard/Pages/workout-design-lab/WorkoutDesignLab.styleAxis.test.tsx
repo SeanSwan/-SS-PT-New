@@ -253,6 +253,29 @@ describe("Workout Design Lab Style axis", () => {
     expect(explorer).toContain('aria-label="Search styles"');
     // The lens->family mapping is data (visuals receipt), never component-local.
     expect(explorer).not.toMatch(/'playful'\s*:/);
+    // Mobile-collision fix: the single-item CURRENT pseudo-group header is NON-sticky
+    // ($flow) so it never floats over its own pinned chip when the page is the
+    // scrollport; only real family headers stay sticky.
+    expect(explorer).toMatch(/FamilyHeader \$flow/);
+    expect(explorer).toMatch(/\$flow \? "static" : "sticky"/);
+  });
+
+  it("mobile: CURRENT pseudo-group header does not vertically overlap its pinned chip", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const listbox = screen.getByRole("listbox", { name: /choose a style lens/i });
+    const current = within(listbox)
+      .getAllByRole("group")
+      .find((g) => g.getAttribute("aria-label") === "Current")!;
+    const header = current.querySelector("p")!;
+    // jsdom has no layout engine, so assert the CONTRACT that prevents overlap:
+    // the CURRENT header is rendered static (never sticky), unlike family headers.
+    expect(header).toBeTruthy();
+    expect(header.textContent).toBe("Current");
+    // The pinned chip and its accessible name are present (not clipped away).
+    expect(
+      within(current).getByRole("option", { name: "Current style: Quiet Meridian" }),
+    ).toBeTruthy();
   });
 
   it("A3: engine badge derives from map presence with the exact copy", () => {

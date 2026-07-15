@@ -16,7 +16,9 @@ Accept when ALL of:
    (jsdom: assert the atmosphere el carries `data-atmo-mode="still"` under a mocked matchMedia).
 3. Golden Pair renders byte-identical plans when `atmosphere` is absent (zero-delta lock —
    assert `compileRecipe` output deep-equals a pre-change snapshot for both shipped recipes).
-4. Existing 187-test lens baseline still green. Explorer/LabPage budgets unchanged.
+4. Existing lens test suite still green — **re-count it first** (do NOT target the stale "187"
+   number, which drifted; run the folders and report the actual count). Explorer/LabPage budgets
+   unchanged.
 STOP.
 
 ## F1 — Server persistence
@@ -27,7 +29,9 @@ Accept when ALL of:
 2. Backend tests green incl.: GET unauthenticated → 401; GET other-user impossible by construction
    (route derives userId from auth token ONLY — no userId param exists; source-contract asserts
    the route file contains no `req.params.userId`/`req.query.userId`); first GET → `profile:null`
-   200; PUT roundtrip → GET returns same; PUT bad motionMode → 422 with details.
+   200; PUT roundtrip → GET returns same; PUT bad motionMode (e.g. `'lean'`) → 422; PUT VALID
+   `motionMode:'reduced'` and `profileSchemaVersion:1` (number) → 200 (the drift-trap: a real
+   shipped profile MUST pass — assert it explicitly).
 3. curl transcript pasted: PUT then GET as an authenticated test user showing the roundtrip JSON.
 4. Frontend: commit in the Lab → network PUT observed (paste devtools/network line or msw assert);
    PUT failure path shows the exact offline receipt copy; local commit NOT rolled back.
@@ -54,10 +58,16 @@ STOP.
 Accept when ALL of:
 1. With flag ON + committed `candy-glass-arcade`: the six production surfaces render
    `data-lens2-*` attrs (paste one DOM query per surface from the running app or targeted tests).
-2. With flag OFF (`localStorage['swan-lens-v2-rollout']='off'` + reload): all six surfaces render
-   host defaults — kill-switch proof screenshot/DOM paste.
-3. Chrome-only committed ids still resolve null (test).
-4. Full frontend suite for the six surface folders green; the ONE contract-test change enumerated.
+2. With the per-browser OVERRIDE OFF (`localStorage['swan-lens-v2-rollout']='off'` + reload): all
+   six surfaces render host defaults — override proof screenshot/DOM paste. State in the receipt
+   that this is a per-tester override, and name the real production rollback (git revert / env
+   default), NOT "kill switch" (M1).
+3. Chrome-only committed ids still resolve null; and resolution now goes through
+   `V2_RECIPE_BY_CATALOG_ID` (M2) — a source-contract assert that the recipe-id map is retired.
+4. Full frontend suite for the six surface folders green (re-count; no stale target). The THREE
+   sanctioned F3 contract-test changes (N1) applied and enumerated in the receipt: the two rewritten
+   asserts in `WorkoutDesignLab.styleAxis.test.tsx` A3 (+rename) and the two catalog-id lookups in
+   `surfaceManifests.test.ts`. If any OTHER test goes RED, STOP — do not edit it to pass.
 5. Viewport spot: logger + progress at 375/1440 wearing Candy Glass — no clipped/overlapped
    critical controls (screenshots).
 STOP — this slice flips live UX; Fable checkpoint + Sean ping before push.
@@ -65,10 +75,13 @@ STOP — this slice flips live UX; Fable checkpoint + Sean ping before push.
 ## F4 — Style Studio
 Accept when ALL of:
 1. Tests (RED-proven): overlay schema — unknown key REJECTED server-side (422 details paste) and
-   dropped client-side; FREE user PUT with `accent` → 403 `TIER_LOCKED` with `lockedKeys`;
-   GUARDIAN `fontPairing` → 403; CRYSTALLINE all keys → 200; locked rows render disabled+🔒 with
-   the exact upgrade copy; `Save my style` chip exact copy; Reset clears overlay (PUT
-   `overlay:null`) and the header reverts live.
+   dropped client-side; FREE(`free`) user PUT with `accent` → the canonical **402 `TIER_REQUIRED`**
+   (per requireTier.mjs; NOT a bespoke 403 unless the checkpoint approved a divergence);
+   GUARDIAN(`pro`) PUT with `fontPairing` → 402; CRYSTALLINE(`elite`) all keys → 200; the
+   `TIER_GATING_ENABLED=false` kill switch and admin/trainer bypass are honored (tests); locked
+   rows render disabled+🔒 with the EXACT per-tier string from the 02-wireframes §3 table (`free` →
+   "Fine-tuning is a Guardian perk…"; `pro` → "Font pairing is a Crystalline dial…"); `Save my
+   style` chip exact copy; Reset clears overlay (PUT `overlay:null`) and the header reverts live.
 2. Precedence probe: with Candy Glass + accent `gilded-fern`, computed `--world-accent` on a
    frame equals the gilded value while `--world-action` is UNCHANGED (paste computed-style dump).
 3. Chart truth: progress chart primary follows the overlay accent via the existing palette seam;
@@ -98,7 +111,8 @@ Accept when ALL of:
 4. Perf locks: CrownHeader/StyleStudio source-contract (no canvas/webgl/rAF/video) green;
    Lighthouse or web-vitals spot on Home with atmosphere ON: LCP ≤2.5s p75-equivalent local note,
    CLS ≤0.1 (paste numbers, label `[LOCAL-LAB]`).
-5. Full program regression: lens 187+ suite, six-surface folders, backend appearance tests — one
-   combined green run pasted. Rule 48 audit record for the program filed at
+5. Full program regression: the whole lens suite (re-count — do not target a fixed number),
+   six-surface folders, backend appearance tests — one combined green run pasted. Rule 48 audit
+   record for the program filed at
    `docs/ai-workflow/AI-HANDOFF/LENS-WORLD-FUSION-AUDIT-RECORD-<date>.md`.
 DONE — program closeout (Rule 41 + 57 + 60).

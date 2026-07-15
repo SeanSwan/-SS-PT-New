@@ -8,7 +8,7 @@
  * ============================================================================
  */
 import React from 'react';
-import { Check, Crown, Shield, Users, X } from 'lucide-react';
+import { Ban, Check, Crown, Shield, Users, X } from 'lucide-react';
 import type { GroupMemberEntry } from '../../../../hooks/social/useGroups';
 import { MemberChip, MemberRail, MemberRailTitle, MemberActionRow } from './GroupDetail.styles';
 import { QuietGroupButton, StatusPill } from './GroupsShared.styles';
@@ -23,6 +23,8 @@ interface GroupMemberRailProps {
   onDeny: (userId: number) => void;
   onSetRole: (userId: number, role: 'member' | 'moderator') => void;
   onRemove: (userId: number) => void;
+  onBan: (userId: number) => void;
+  onReinstate: (userId: number) => void;
   onTransfer: (userId: number) => void;
 }
 
@@ -34,10 +36,11 @@ const displayName = (entry: GroupMemberEntry) => {
 
 const GroupMemberRail: React.FC<GroupMemberRailProps> = ({
   members, ownerId, canModerate, isOwner, isBusy,
-  onApprove, onDeny, onSetRole, onRemove, onTransfer,
+  onApprove, onDeny, onSetRole, onRemove, onBan, onReinstate, onTransfer,
 }) => {
   const pending = members.filter((m) => m.status === 'pending');
   const active = members.filter((m) => m.status === 'active');
+  const banned = members.filter((m) => m.status === 'banned');
 
   return (
     <MemberRail aria-label="Group members">
@@ -113,11 +116,41 @@ const GroupMemberRail: React.FC<GroupMemberRailProps> = ({
                   >
                     Remove
                   </QuietGroupButton>
+                  <QuietGroupButton
+                    type="button"
+                    onClick={() => onBan(entry.userId)}
+                    disabled={isBusy}
+                    aria-label={`Ban ${displayName(entry)}`}
+                  >
+                    <Ban size={14} aria-hidden="true" /> Ban
+                  </QuietGroupButton>
                 </MemberActionRow>
               )}
             </MemberChip>
           );
         })
+      )}
+
+      {canModerate && banned.length > 0 && (
+        <>
+          <MemberRailTitle as="h4">Banned ({banned.length})</MemberRailTitle>
+          {banned.map((entry) => (
+            <MemberChip key={`b-${entry.userId}`} $pending>
+              {displayName(entry)}
+              <StatusPill $tone="violet">banned</StatusPill>
+              <MemberActionRow>
+                <QuietGroupButton
+                  type="button"
+                  onClick={() => onReinstate(entry.userId)}
+                  disabled={isBusy}
+                  aria-label={`Reinstate ${displayName(entry)}`}
+                >
+                  <Check size={15} aria-hidden="true" /> Reinstate
+                </QuietGroupButton>
+              </MemberActionRow>
+            </MemberChip>
+          ))}
+        </>
       )}
     </MemberRail>
   );
