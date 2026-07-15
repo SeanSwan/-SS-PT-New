@@ -74,7 +74,9 @@ describe("Workout Design Lab interactions", () => {
       );
       expect(screen.getByRole("status")).toHaveTextContent(concept.name);
     }
-  });
+    // Renders all 25 full concept components + asserts each — legitimately slow
+    // (~3.4s isolated); the default 5s times out under full parallel load.
+  }, 20000);
 
   it("defaults and resets to the recommended Crystalline Swan World", () => {
     renderLab();
