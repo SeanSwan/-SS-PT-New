@@ -127,9 +127,11 @@ Rules 1/2/3/6 (styled-components, 44px, dark-first, tokens+fallbacks), 4 (all ne
 | Round | Reviewer | Verdict | Notes |
 |---|---|---|---|
 | S1–S6 checkpoints | Fable 5 (architect, per 07-checkpoints.md protocol: "Fable, or the strongest available Claude") | 6× PASS | Full log with drift notes lives in `BLUEPRINT-dictation-planner-logger-sync-2026-07-14/07-checkpoints.md` |
+| R1 recursive hostile review (Sean-ordered) | Fable 5 | 5 fixes @ `3edc20fc9` | (1) server errors pass through dock/strip verbatim (`commandErrorReceiptText`); (2) dock hidden for client self-planner viewers + logger Dictate gated to admin/trainer; (3) swap/add re-match the plan post-await (deferred-search race regression test); (4) `planner_generate_workout` patterns planner-flavored so bare "generate a workout" stays with `build_workout_plan`; (5) dead as-prop cleanup. Gates: frontend 696/696, backend 5328/5328, tsc 0. |
+| R2 recursive hostile review | Fable 5 | 2 fixes | Audit-record sign-off placeholder filled; ESM test `require()` → static imports. Code re-read of R1 hunks: clean. |
 | Codex (rule 46) | — | not run | Isolated worktree session; Codex hostile review can be requested via review-queue before/after deploy. Gap recorded per rule 46 amendment (Fable is Final Decider; Codex input advisory). |
 
 ## 12. Sign-off
-- **Commits:** S1 `567818956` · S2 `ce00205e3` · S3 `05e566228` · S4 `b039e1172` · S5 `e8c339cd3` · S6 `<this commit>` — ONE push at batch end (Rule 70).
+- **Commits:** S1 `567818956` · S2 `ce00205e3` · S3 `05e566228` · S4 `b039e1172` · S5 `e8c339cd3` · S6 `08042a5e0` · R1 `3edc20fc9` + R2 doc/test fixes — batch-pushed per Rule 70; Sean authorized the main push after the recursive hostile review ran dry.
 - **Sean's sign-off:** PENDING — this record ships with the batch; Sean closes the phase after the §10.1 manual QA.
 - **Next action pointer:** push → Render deploy → Sean runs §10.1 → optionally queue Codex hostile review via `.ai-workflow/coordination/review-queue.md`.

@@ -6,6 +6,8 @@
  * exact no-command receipt copy, and strip hidden when inactive.
  */
 import React, { useRef, useState } from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExerciseEntry } from '../../services/nasmApiService';
@@ -175,9 +177,7 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
   });
 
   it('source contract: the logger mounts Dictate + strip behind the admin/trainer gate', () => {
-    const fs = require('node:fs') as typeof import('node:fs');
-    const path = require('node:path') as typeof import('node:path');
-    const source = fs.readFileSync(path.resolve(__dirname, 'WorkoutLogger.tsx'), 'utf8');
+    const source = readFileSync(resolve(__dirname, 'WorkoutLogger.tsx'), 'utf8');
     expect(source).toContain("const canDictate = user?.role === 'admin' || user?.role === 'trainer';");
     expect(source).toContain('{canDictate && (');
     expect(source).toContain('{canDictate && <LoggerDictationStrip {...dictation} />}');
