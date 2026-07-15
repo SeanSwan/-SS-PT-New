@@ -99,8 +99,11 @@ export function useCoachCommand() {
         message,
         selectedClientId: opts?.selectedClientId ?? undefined,
         previousContext: opts?.previousContext ?? undefined,
-        routeContext: opts?.routeContext ?? undefined,
-        context: opts?.surface ? { surface: opts.surface } : undefined,
+        // Surface rides the existing allowlisted routeContext token channel
+        // (aiCommandRoutes normalizeRouteContext → intent surface remap).
+        routeContext: opts?.surface
+          ? { ...(opts?.routeContext ?? {}), surface: opts.surface }
+          : opts?.routeContext ?? undefined,
       });
       const data = res.data;
 
