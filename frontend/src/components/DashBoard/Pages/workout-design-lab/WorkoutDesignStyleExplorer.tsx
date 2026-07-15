@@ -23,12 +23,13 @@ import { WORKOUT_DESIGN_MOOD_FAMILY_ORDER, WORKOUT_DESIGN_STYLE_ROW_ORDER } from
 /** §4.2: visible headers are aria-hidden — group aria-label carries semantics. */
 const FamilyGroup = styled.div`grid-column: 1 / -1;`;
 
-const FamilyHeader = styled.p`
-  position: sticky; top: 0; z-index: 1;
+/** $flow = single-item CURRENT group: non-sticky so its header never floats over its own pinned chip when the page is the scrollport (≤460px fix). */
+const FamilyHeader = styled.p<{ $flow?: boolean }>`
+  position: ${({ $flow }) => ($flow ? "static" : "sticky")}; top: 0; z-index: 1;
   margin: 0 0 8px; padding: 6px 2px;
   background: var(--bg-base, #030712); color: var(--accent-primary, #60c0f0);
   font: 800 0.68rem/1.2 "Fira Code", monospace; letter-spacing: 0.12em; text-transform: uppercase;
-  @media (max-width: 460px) { top: 62px; } /* page is the scrollport — sit below the pinned search */
+  ${({ $flow }) => ($flow ? "" : "@media (max-width: 460px) { top: 62px; }")} /* page scrollport — sit below pinned search */
 `;
 
 const FamilyChipGrid = styled.div`
@@ -185,7 +186,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
             <>
               {committedLens ? (
                 <FamilyGroup role="group" aria-label="Current">
-                  <FamilyHeader aria-hidden="true">Current</FamilyHeader>
+                  <FamilyHeader $flow aria-hidden="true">Current</FamilyHeader>
                   <FamilyChipGrid>{renderChip(committedLens, true)}</FamilyChipGrid>
                 </FamilyGroup>
               ) : null}

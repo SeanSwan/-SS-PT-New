@@ -2,6 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 
+vi.mock('../../../hooks/use-toast', () => ({
+  useToast: () => ({ toast: vi.fn() }),
+}));
+
 const baseProps = {
   clients: [],
   loading: false,
@@ -101,6 +105,7 @@ describe('ClientsWorkspaceTopBar', () => {
     expect(screen.getByRole('button', { name: /open swan coach/i })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', { name: /manual add/i })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', { name: /new client/i })).toHaveAttribute('type', 'button');
+    expect(screen.getByRole('button', { name: /export client directory as csv/i })).toHaveAttribute('type', 'button');
   });
 
   it('opens the onboarding workbench from selected and empty states', () => {
@@ -117,7 +122,6 @@ describe('ClientsWorkspaceTopBar', () => {
       <ClientsWorkspaceTopBar {...baseProps} onOpenOnboardingWorkbench={onOpenOnboardingWorkbench} selectedClient={null} />
     );
     screen.getByRole('button', { name: /^Open onboarding workbench$/i }).click();
-
     rerender(
       <ClientsWorkspaceTopBar {...baseProps} onOpenOnboardingWorkbench={onOpenOnboardingWorkbench} selectedClient={selectedClient} />
     );
@@ -125,6 +129,25 @@ describe('ClientsWorkspaceTopBar', () => {
 
     expect(onOpenOnboardingWorkbench).toHaveBeenCalledTimes(2);
   });
+  it('keeps the native directory export available across admin selection states and hides it from trainers', () => {
+    const selectedClient = {
+      id: 424242,
+      firstName: 'Ava',
+      lastName: 'Stone',
+      email: 'ava@example.test',
+      isActive: true,
+    };
+    const { rerender } = render(<ClientsWorkspaceTopBar {...baseProps} selectedClient={null} />);
+
+    expect(screen.getByRole('button', { name: /export client directory as csv/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /export client directory as csv/i })).toHaveAttribute('title', 'Export client directory to CSV');
+    rerender(<ClientsWorkspaceTopBar {...baseProps} selectedClient={selectedClient} />);
+    expect(screen.getByRole('button', { name: /export client directory as csv/i })).toBeEnabled();
+
+    rerender(<ClientsWorkspaceTopBar {...baseProps} selectedClient={selectedClient} canManageAccounts={false} />);
+    expect(screen.queryByRole('button', { name: /export client directory as csv/i })).not.toBeInTheDocument();
+  });
+
   it('prioritizes onboarding actions before support actions when no client is selected', () => {
     render(<ClientsWorkspaceTopBar {...baseProps} selectedClient={null} />);
 

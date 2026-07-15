@@ -17,8 +17,12 @@ export const USER_ROLES = ['admin', 'trainer', 'client'];
 
 export const ClassifiedIntentSchema = z.object({
   intent: z.string().min(1).max(100),
-  clientRef: z.string().max(200).optional(),
-  params: z.record(z.unknown()).optional(),
+  // The classifier prompt's OUTPUT FORMAT and examples tell the model
+  // "client name or null" — modern models faithfully emit the literal null,
+  // and .optional() alone rejected it, collapsing EVERY client-less command
+  // to the chat fallback (prod incident root-caused 2026-07-15).
+  clientRef: z.string().max(200).nullable().optional(),
+  params: z.record(z.unknown()).nullable().optional(),
   confidence: z.number().min(0).max(1),
 });
 
@@ -134,10 +138,22 @@ export function getAllCommandTypes() {
  * @param {string} [role] - Optional role filter
  * @returns {string}
  */
+/** Param key names from a command's zod object schema (null for unions/none). */
+function commandParamKeys(cmd) {
+  const shape = cmd.inputSchema?.shape;
+  if (!shape || typeof shape !== 'object') return null;
+  const keys = Object.keys(shape);
+  return keys.length ? keys : null;
+}
+
 export function buildCommandSummaryForClassifier(role) {
   const commands = role ? getCommandsForRole(role) : getAllCommands();
-  const lines = commands.map(cmd =>
-    `${cmd.type}: ${cmd.description} (e.g., "${cmd.naturalLanguagePatterns[0]}")`
-  );
+  // The params list is load-bearing: without the exact key names the model
+  // invents keys from the pattern placeholders ("{exercise}" → params.exercise)
+  // and zod rejects the intent (prod incident 2026-07-15, round 3).
+  const lines = commands.map(cmd => {
+    const keys = commandParamKeys(cmd);
+    return `${cmd.type}: ${cmd.description} (e.g., "${cmd.naturalLanguagePatterns[0]}")${keys ? ` [params: ${keys.join(', ')}]` : ''}`;
+  });
   return lines.join('\n');
 }

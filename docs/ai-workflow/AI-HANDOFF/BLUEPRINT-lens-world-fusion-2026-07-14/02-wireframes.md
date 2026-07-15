@@ -19,9 +19,10 @@ Frost White `#E0ECF4`, Midnight Sapphire `#002060`). Dual-Button Glow law everyw
 │  │ Candy   │ │ Terminal│ │ Cathedral│ │ Dominion│ │ Drift  │   (scroll-snap)│
 │  │ Glass   │ │  v2     │ │  v2 NEW │ │  v2 NEW │ │  v2 NEW│                 │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘                │
-│   Tap a card to preview it on this header · [Wear this] appears on preview   │
+│   Tap a look to preview it here · nothing changes until you wear it.         │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+(Caption is the single exact string in the "Copy under carousel" bullet below — L3.)
 
 - The BAND is the preview stage: tapping a card re-skins THE HEADER ITSELF (scoped frame — the
   dashboard below does not change until "Wear this"). Least-clicks: preview = 1 tap, wear = 2.
@@ -66,18 +67,27 @@ Frost White `#E0ECF4`, Midnight Sapphire `#002060`). Dual-Button Glow law everyw
 │ FONT PAIRING    ● Swan default  ○ Editorial  ○ Mono    │  <- 3 allowlisted pairings
 │ PATTERN         ○ None ● Frost weave ○ Orbit ○ Grain   │  <- atmosphere pattern catalog ids
 │ DENSITY         ○ Comfortable   ● Compact              │
-│ MOTION          ● Auto  ○ Lean  ○ Still                │  <- writes profile.motionMode
+│ MOTION          ● Auto  ○ Reduced  ○ Off               │  <- writes profile.motionMode (auto|reduced|off)
 │                                                        │
 │ ── PREVIEW updates live above (header band) ──         │
 │ [Save my style]                [Reset to look default] │
-│ 🔒 Crystalline members unlock every dial — Upgrade     │  <- only when tier-locked; exact copy
+│ 🔒 <per-row upgrade line, table below>                 │  <- only when tier-locked
 └────────────────────────────────────────────────────────┘
 ```
 
-- Tier gates (exact): FREE = carousel only, Studio locked (row copy: `Fine-tuning is a Guardian
-  perk — Upgrade to unlock`). GUARDIAN = ACCENT + PATTERN + DENSITY + MOTION. CRYSTALLINE = all
-  rows incl. FONT PAIRING. Locked rows render disabled with a 🔒 and the upgrade line — never
-  hidden (the locked state IS the ascension surface). Upgrade link routes to the store page.
+- **MOTION row writes the REAL enum `auto | reduced | off`** (NOT lean/still — B1).
+- Tier gates map to canonical ids (03-contracts §4): FREE=`free`, GUARDIAN=`pro`, CRYSTALLINE=`elite`.
+  FREE = carousel only, whole Studio locked. GUARDIAN(`pro`) = ACCENT + PATTERN + DENSITY + MOTION.
+  CRYSTALLINE(`elite`) = all rows incl. FONT PAIRING. Locked rows render disabled with a 🔒 and the
+  upgrade line — never hidden (the locked state IS the ascension surface). Upgrade routes to
+  **`/ascension`** (the canonical paywall route — not "the store page").
+- **Exact locked-row upgrade copy (M4 — one string per case, no ambiguity):**
+
+  | Viewer tier | What's locked | Exact 🔒 line |
+  |---|---|---|
+  | `free` | the whole Studio | `Fine-tuning is a Guardian perk — Upgrade to unlock` |
+  | `pro` (Guardian) | the FONT PAIRING row only | `Font pairing is a Crystalline dial — Upgrade to unlock` |
+  | `elite` (Crystalline) | nothing | (no 🔒 line rendered) |
 - `Save my style` = blue/purple glow; `Reset to look default` = ghost. Save chip copy, exact:
   `Your style is saved — it's yours on every device.`
 - Every control 44px; radios are real inputs; the sheet gets `padding-bottom:

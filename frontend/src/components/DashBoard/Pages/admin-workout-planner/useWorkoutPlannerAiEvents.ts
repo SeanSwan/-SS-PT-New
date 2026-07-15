@@ -42,6 +42,8 @@ type HorizonExercise = GeneratedPlanWeekDay['exercises'][number];
 type DayScope = Pick<HorizonSwapTarget, 'weekNumber' | 'dayIndex'>;
 
 const norm = (v: string) => v.toLowerCase().replace(/\s+/g, ' ').trim();
+/** Dictated plurals → singular per word; never bare double-s words ("press"). */
+const singularize = (v: string) => v.replace(/([a-rt-z])s\b/gi, '$1');
 const display = (x: HorizonExercise) => x.exerciseName || x.name || '';
 const daySuffix = (t: DayScope) => ` (Week ${t.weekNumber} · Day ${t.dayIndex + 1})`;
 const COPY = {
@@ -55,14 +57,20 @@ const dupCopy = (name: string, where: 'day' | 'workout') => (where === 'day'
 
 type NameMatch = { kind: 'one'; index: number } | { kind: 'none' } | { kind: 'many' };
 function matchByName(names: string[], query: string): NameMatch {
-  const q = norm(query);
-  const hits = names
-    .map((name, index) => ({ index, name: norm(formatWorkoutPlannerExerciseName(name)) }))
-    .filter((x) => x.name.includes(q));
-  if (hits.length === 1) return { kind: 'one', index: hits[0].index };
-  if (hits.length === 0) return { kind: 'none' };
-  const exact = hits.filter((x) => x.name === q);
-  return exact.length === 1 ? { kind: 'one', index: exact[0].index } : { kind: 'many' };
+  const attempt = (q: string): NameMatch => {
+    const hits = names
+      .map((name, index) => ({ index, name: norm(formatWorkoutPlannerExerciseName(name)) }))
+      .filter((x) => x.name.includes(q));
+    if (hits.length === 1) return { kind: 'one', index: hits[0].index };
+    if (hits.length === 0) return { kind: 'none' };
+    const exact = hits.filter((x) => x.name === q);
+    return exact.length === 1 ? { kind: 'one', index: exact[0].index } : { kind: 'many' };
+  };
+  const first = attempt(norm(query));
+  // Plural miss only — an ambiguous plural stays ambiguous (honest receipt).
+  if (first.kind !== 'none') return first;
+  const singular = norm(singularize(query));
+  return singular !== norm(query) ? attempt(singular) : first;
 }
 
 const phaseDefaults = (phase: OPTPhaseParams) => {
@@ -93,10 +101,17 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
       (e as CustomEvent<AIWorkoutEventAck>).detail?.acknowledgeAIWorkoutEvent?.(handled);
     };
     const resolveSlim = async (name: string): Promise<ExerciseSlim | null> => {
-      const results = await stateRef.current.searchExercises(name);
+      let results = await stateRef.current.searchExercises(name);
+      // Dictated speech uses plurals ("goblet squats") but the library stores
+      // singular names, and a longer query can't fuzzy-match a shorter target.
+      const singular = singularize(name);
+      if (!results.length && singular !== name) {
+        results = await stateRef.current.searchExercises(singular);
+      }
       if (!results.length) return null;
       const q = norm(name);
-      return results.find((r) => norm(r.name) === q) ?? results[0];
+      const qs = norm(singular);
+      return results.find((r) => norm(r.name) === q || norm(r.name) === qs) ?? results[0];
     };
     /** Selected Detailed-Schedule day (or explicit week/day) — null = builder list. */
     const horizonScope = (payload: { dayNumber?: number; weekNumber?: number }): DayScope | null => {

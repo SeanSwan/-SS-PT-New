@@ -3,15 +3,18 @@
 ## 1. Current-state weaknesses (verified 2026-07-14) that this program fixes
 
 1. **Device-local identity.** Appearance state persists in `localStorage` only
-   (`core/style-lens-os/StyleLensProvider.tsx:73` — `storage = window.localStorage`; no
+   (`core/style-lens-os/StyleLensProvider.tsx:74` — `storage = window.localStorage`; no
    `/api/appearance/*` route exists in `backend/routes/`). Your look does not follow you. → F1.
 2. **No user-facing surface.** The only lens surface is the admin Lab route
    (`/dashboard/admin/workout-design-lab`). Regular users never discover styles. → F2.
 3. **Thin v2 promise.** 2 of 25 catalog styles are full restyles; 23 are chrome trims. Honesty
    labels exist (Lens pack A3) but the wardrobe is thin. → F5 adds 6 world-distilled v2 styles.
-4. **Production inertness.** `adapters/style-lens-swan/v2/recipeResolution.ts` maps every catalog
-   id → null on the six production surfaces (deliberate; the "successor decision"). Sean has now
-   made that decision: roll out. → F3.
+4. **Production inertness.** `adapters/style-lens-swan/v2/recipeResolution.ts` never resolves a
+   committed style on the six production surfaces — and note the drift it fixes: today
+   `resolveRecipeForStyleLens` keys its map by RECIPE id (`swan.candy-glass-arcade.v2`) while the
+   committed `styleLensId` is the CATALOG/manifest id (`candy-glass-arcade`), so nothing matches by
+   construction. F3 makes it resolve via the single catalog-keyed map `V2_RECIPE_BY_CATALOG_ID`
+   (see M2 in 04-build-order). Sean has made the rollout decision. → F3.
 5. **No atmosphere axis.** Recipes restyle components but not the page's air — the thing that makes
    Worlds feel alive (BG/MID/WEATHER layers in `design-brain/worlds.md` atmosphere recipes). → F0.
 6. **Chart secondary is Swan-fixed** because `--world-action` failed contrast (~1.3:1). The
@@ -82,9 +85,8 @@ erDiagram
     user_appearance_profiles {
         integer id PK
         integer userId FK "REFERENCES Users(id) - PascalCase table, per house law"
-        jsonb profile "validated AppearanceProfile JSON"
+        jsonb profile "validated AppearanceProfile JSON (carries profileSchemaVersion: number 1 inside)"
         jsonb overlay "validated UserStyleOverlay JSON, nullable"
-        string profileSchemaVersion
         timestamptz createdAt
         timestamptz updatedAt
     }
@@ -116,19 +118,29 @@ sequenceDiagram
 Offline/failed PUT NEVER rolls back the local commit — the receipt copy tells the truth
 ("Saved on this device — will sync when you're back online.", exact copy in `02-wireframes.md`).
 
-## 6. Experience-mode mapping (F0 — product-side law)
+## 6. Experience-mode mapping (F0 — product-side law) — REAL enum `auto | reduced | off`
+
+The shipped `MotionMode` (`core/style-lens-os/types.ts`) is **`auto | reduced | off`** — NOT
+`lean/still`. There is also a global motion kill `data-motion="off"` set by the provider
+(StyleLensProvider.tsx) that the atmosphere layer MUST honor.
 
 | Profile `motionMode` | Meaning in product | Atmosphere behavior |
 |---|---|---|
-| `auto` (default) | Full unless signals say otherwise | animated layers allowed within M2 caps |
-| `lean` | low-power / user choice | static layers only, no continuous loops, grain ok |
-| `still` | user choice or `prefers-reduced-motion` | single static poster layer, zero motion |
+| `auto` (default) | animate only if the surface license allows AND not reduced | see FIREWALL note below |
+| `reduced` | user choice, or `prefers-reduced-motion: reduce` forces it | static poster layer only, zero motion |
+| `off` | global motion kill (`data-motion="off"`) | static poster layer only, zero motion |
 
-`prefers-reduced-motion: reduce` ALWAYS forces `still` regardless of profile (media query wins in
-CSS; runtime checks `matchMedia` before starting any loop). M2 caps for any animated atmosphere
-layer in product: CSS/transform-opacity only, ≤2 moving layers, no scroll-hijack, no canvas/WebGL,
-no autoplay video, poster-first. These are the World Engine's product-surface ceilings — the
-firewall (`experience-mode.md` §3) is restated verbatim in `06-bans.md`.
+**FIREWALL (H1 — this is the §3 law, not a relaxation):** `experience-mode.md` §3 permits, on
+product dashboards, ONLY an **inert B0 poster** or a **user-started, pausable** M2 gallery preview —
+NOT an always-on autoplay ambient band. Therefore on PRODUCT surfaces the atmosphere layer defaults
+to **STATIC (the `stillPoster`) even under `motionMode:'auto'`.** `animated: true` layers are for
+the **marketing/factory lane only**; shipping an autoplay animated atmosphere on any of the six
+product surfaces requires an explicit, logged `experience-mode.md` §3 amendment with Sean's
+per-surface approval. The blueprint does NOT claim "verbatim" — it defaults product atmosphere to
+inert and quarantines motion to marketing. `prefers-reduced-motion: reduce` and `data-motion="off"`
+always force static regardless. Non-negotiable product caps if motion is ever licensed:
+CSS/transform-opacity only, ≤2 moving layers, no scroll-hijack, no canvas/WebGL, no autoplay video,
+poster-first. Full firewall in `06-bans.md`.
 
 ## 7. What deliberately does NOT change
 

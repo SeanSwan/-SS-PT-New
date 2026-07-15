@@ -23,11 +23,14 @@ Pattern sources the builder MUST mimic (all verified on main @ f234197fb):
 | `core/style-lens-os/v2/*.test.ts` + `LensPlanFrame.test.tsx` | edit | — | RED-first per 05-slices |
 
 ## F1 — persistence (6 files)
-`backend/models/UserAppearanceProfile.mjs` NEW ≤90 · migration `.cjs` NEW ·
-`backend/routes/appearanceProfileRoutes.mjs` NEW ≤160 · route-index mount edit ·
-`adapters/style-lens-swan/serverAppearanceSync.ts` NEW ≤120 · `App.tsx` wire-up edit +25.
+`backend/models/UserAppearanceProfile.mjs` NEW ≤90 (no separate schemaVersion column — B2) ·
+migration `.cjs` NEW · `backend/routes/appearanceProfileRoutes.mjs` NEW ≤160 · route-index mount
+edit · `adapters/style-lens-swan/serverAppearanceSync.ts` NEW ≤120 · NEW
+`frontend/src/components/.../AppearanceSyncBridge.tsx` ≤70 mounted INSIDE `AuthProvider`
+(App.tsx below line 248 — NOT at 244; see 03-contracts §6 B4). `App.tsx` edit +8 (mount the bridge).
 Backend tests: NEW `backend/tests/.../appearanceProfile.test.mjs` mimicking the routes-folder test
-idiom (auth required, own-user only, validation 422 table, tier 403 comes in F4).
+idiom (auth required, own-user only, validation 422 table mirroring `validation.ts` EXACTLY —
+motionMode `auto|reduced|off`, schemaVersion number `1`; tier gate comes in F4).
 
 ## F2 — Crown Header (5 files, all NEW under `frontend/src/components/UserDashboard/CrownHeader/`)
 `CrownHeader.tsx` ≤240 (band + identity + mounts carousel; wrapped in its own `makeLensFrame`
@@ -38,22 +41,51 @@ route tree (Rule 26 receipt REQUIRED in the slice report: route file line + moun
 inserts `<CrownHeader/>` as the first child above existing content. DO NOT restructure Home.
 
 ## F3 — rollout (3 files)
-`adapters/style-lens-swan/v2/recipeResolution.ts` edit +15: catalog-id resolution added BEHIND
-`isLensV2RolloutEnabled()` from NEW `adapters/style-lens-swan/v2/rolloutFlag.ts` (≤40: reads
-`localStorage['swan-lens-v2-rollout']` override else default ON; kill switch = set `'off'` — a
-runtime flag, NOT a VITE_ build-time var — documented in the file header). Zero-delta suites:
-update the source-contract test that pins v1→null to pin the new flag-gated behavior instead
-(this is the ONE sanctioned contract change of the program; enumerate it in the receipt).
+`adapters/style-lens-swan/v2/recipeResolution.ts` edit: **make `resolveRecipeForStyleLens` resolve
+via the single catalog-keyed map `V2_RECIPE_BY_CATALOG_ID`** (M2 — today it keys by recipe id
+`swan.*.v2` while the committed `styleLensId` is the catalog id, so it can never match; retire the
+recipe-id `V2_RECIPES_BY_STYLE_LENS_ID`), added BEHIND `isLensV2RolloutEnabled()` from NEW
+`adapters/style-lens-swan/v2/rolloutFlag.ts` (≤40).
+**Kill-switch honesty (M1):** `localStorage['swan-lens-v2-rollout']='off'` is a **per-browser tester
+override**, NOT a fleet incident kill — do not call it one. The production rollback for a
+misbehaving v2 rollout is a `git revert` + redeploy; if a real fleet kill is wanted, make the
+default an env/build value like the existing server-side `TIER_GATING_ENABLED` pattern
+(requireTier.mjs) — flag that as a Sean decision at the F3 checkpoint. Document all of this in the file header.
+**Sanctioned F3 source-contract test changes (N1 — the M2 map switch breaks THREE assertions across
+TWO files; the pre-rollout "stays inert" intent is exactly what this Sean-approved successor slice
+reverses, so these are authorized, not accidental):**
+1. `frontend/src/components/DashBoard/Pages/workout-design-lab/WorkoutDesignLab.styleAxis.test.tsx`
+   — the test **"A3: production resolveRecipeForStyleLens stays untouched and inert (source
+   contract)"**: `expect(resolution).not.toContain("catalogV2Map")` and
+   `expect(resolution).toContain("V2_RECIPES_BY_STYLE_LENS_ID[styleLensId] ?? null")` both become
+   false. REWRITE those two lines to assert the NEW contract (recipeResolution imports
+   `catalogV2Map`; resolves via `V2_RECIPE_BY_CATALOG_ID`; recipe-id map retired) and RENAME the
+   test ("stays untouched and inert" is no longer true — call it e.g. "resolves committed catalog
+   ids via the catalog map behind the rollout flag"). The Apply-honesty asserts lower in the same
+   test are untouched by M2 — keep them green.
+2. `frontend/src/adapters/style-lens-swan/v2/surfaceManifests.test.ts` — the test "resolves recipes
+   ONLY for exact v2 ids": it calls `resolveRecipeForStyleLens(CANDY_GLASS_ARCADE_RECIPE.id)` (the
+   RECIPE id `swan.candy-glass-arcade.v2`). After M2 keys by CATALOG id, flip those two lookups to
+   catalog ids (`'candy-glass-arcade'`, `'prism-terminal'`); the `null`/`undefined`/unknown-id
+   fall-through lines stay.
+These are the FULL enumerated set of F3 contract changes — there is no other. Do NOT edit any other
+test to make F3 pass; if a fourth breaks, STOP and checkpoint.
 
 ## F4 — Style Studio (6 files)
 `components/UserDashboard/StyleStudio/StyleStudio.tsx` ≤260 (sheet/drawer, rows, tier locks) ·
 `StyleStudio.styles.ts` ≤200 · `overlaySchema.ts` in `core/style-lens-os/v2/` NEW ≤90 (§4 types +
 `validateOverlay`) · `adapters/style-lens-swan/v2/overlayChoices.ts` NEW ≤80 (ACCENT_CHOICES,
-FONT_PAIRINGS data) · backend route edit (+overlay validation + tier 403) · tests both sides.
-Overlay application: edit `LensPlanFrame.tsx` +20 — overlay tokens applied AFTER plan tokens on
-the same style attr (precedence law 01-§3). Tier source: the same user object the dashboard
-already has (builder cites the field with file:line in the receipt; if no tier field exists,
-STOP — checkpoint question, do not invent one).
+FONT_PAIRINGS data) · backend route edit (+overlay validation + the canonical tier gate) · tests
+both sides. Overlay application: edit `LensPlanFrame.tsx` +20 — overlay tokens applied AFTER plan
+tokens on the same style attr (precedence law 01-§3).
+**Tier source (B3/H2 — the canonical stack already exists; do NOT invent or STOP):**
+- **Server:** gate via `backend/middleware/requireTier.mjs` / `resolveCurrentEntitlement`
+  (Subscription-table truth), internal ids `free|pro|elite` (`tierCatalog.mjs` `meetsMinimumTier`),
+  402 `TIER_REQUIRED` shape, `TIER_GATING_ENABLED` kill switch + admin/trainer bypass, `/ascension`.
+- **Client:** read entitlement via `useFeatureAccess`/`FeatureAccessContext` (`hasFeature`) — the
+  AuthContext `User` has NO tier field, so the old "read the user object / STOP if absent"
+  instruction was wrong. Map FREE=`free`, GUARDIAN=`pro`, CRYSTALLINE=`elite`; display copy keeps
+  the Guardian/Crystalline names.
 
 ## F5 — distillation (2 files + 6 data entries + enumerations)
 `.claude/skills/swan-world-factory/SKILL.md` edit: add the `--distill` worker contract section ·
@@ -66,8 +98,10 @@ with Fable (taste pass is architect-side, NOT builder-side).
 `adapters/style-lens-swan/v2/labRecipes.test.ts` edit: atmosphere gates (layer caps, opacity
 range, assetId exists in catalog, stillPoster present, `world-chart-secondary` contrast ≥3:1 vs
 each recipe's panel token resolved fallback) + map-completeness assertion (every exported
-`*_RECIPE` in labRecipes.ts appears in `V2_RECIPE_BY_CATALOG_ID` — closes the known gate-bypass
-hook) · `CrownHeader.perf.test.tsx` NEW: source-contract — no canvas/video/webgl imports, no
+`*_RECIPE` in labRecipes.ts appears in `V2_RECIPE_BY_CATALOG_ID` — closes the gate-bypass hook;
+because F3 makes production resolution ALSO read this same map (M2), completeness here now covers
+both the gate AND production resolution, no second map to drift) · `CrownHeader.perf.test.tsx` NEW:
+source-contract — no canvas/video/webgl imports, no
 `requestAnimationFrame` in CrownHeader/StyleStudio, atmosphere el `aria-hidden` ·
 `styleLensBoundary.test.ts` edit: forbid factory imports (`world-factory|scripts/ai-workflow`) in
 core AND adapters (the bridge is data-only — enforce it).
