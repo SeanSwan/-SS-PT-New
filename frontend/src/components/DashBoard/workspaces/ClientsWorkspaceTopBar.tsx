@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { ClipboardCheck, ClipboardList, Eye, KeyRound, Link2, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Download, Eye, KeyRound, Link2, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
 import { ActionBtn, TopBar, TopBarActions } from './ClientsWorkspace.styles';
 import ClientSelectorDropdown, { type ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
+import { useClientDirectoryExport } from './useClientDirectoryExport';
 
 interface ClientsWorkspaceTopBarProps {
   clients: ClientOption[];
@@ -46,6 +47,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
 }) => {
   const selectedClientName = selectedClient ? getClientDisplayName(selectedClient) : '';
   const isClaimPending = selectedClient?.accountStatus === 'stub' || selectedClient?.accountStatus === 'invited';
+  const { isExporting, exportDirectory } = useClientDirectoryExport();
 
   return (
     <TopBar data-swan-client-workspace-topbar>
@@ -57,6 +59,19 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
         loading={loading}
       />
       <TopBarActions data-swan-client-workspace-actions>
+          {canManageAccounts && (
+            <ActionBtn
+              type="button"
+              onClick={() => void exportDirectory()}
+              disabled={isExporting}
+              aria-busy={isExporting}
+              aria-label={isExporting ? 'Exporting client directory as CSV' : 'Export client directory as CSV'}
+              title={isExporting ? 'Preparing client directory export' : 'Export client directory to CSV'}
+            >
+              <Download size={16} />
+              <span>{isExporting ? 'Exporting...' : 'Export CSV'}</span>
+            </ActionBtn>
+          )}
           {!selectedClient && (
             <>
               {canManageAccounts && (

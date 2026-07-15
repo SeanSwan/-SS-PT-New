@@ -14,6 +14,7 @@
  * - Banned members are treated as non-members everywhere except re-join (403).
  */
 
+import sequelize from '../../database.mjs';
 import { SocialGroup, SocialGroupMember } from '../../models/social/index.mjs';
 
 export async function getGroupWithMembership(groupId, userId) {
@@ -65,6 +66,37 @@ export async function assertGroupPostAccess(post, user) {
   const { group, membership } = await getGroupWithMembership(post.groupId, user?.id);
   if (canViewGroupContent(group, membership, user)) return { ok: true };
   return { ok: false, status: 403, message: 'Join this group to interact with its posts' };
+}
+
+/**
+ * Atomically transfer group ownership to another active member. Row-locks the
+ * caller's OWNER membership inside the transaction so two concurrent transfers
+ * can't both pass and mint two owners. Returns { ok } or { ok:false, status,
+ * message }. Caller pre-validates the group exists + is not archived.
+ */
+export async function transferGroupOwnership(groupId, currentOwnerId, targetUserId) {
+  return sequelize.transaction(async (t) => {
+    const lockedOwner = await SocialGroupMember.findOne({
+      where: { groupId, userId: currentOwnerId },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!lockedOwner || lockedOwner.role !== 'owner' || lockedOwner.status !== 'active') {
+      return { ok: false, status: 403, message: 'Only the current group owner can transfer ownership' };
+    }
+    const target = await SocialGroupMember.findOne({
+      where: { groupId, userId: targetUserId, status: 'active' },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!target) {
+      return { ok: false, status: 404, message: 'Target must be an active member' };
+    }
+    await target.update({ role: 'owner' }, { transaction: t });
+    await lockedOwner.update({ role: 'moderator' }, { transaction: t });
+    await SocialGroup.update({ ownerId: targetUserId }, { where: { id: groupId }, transaction: t });
+    return { ok: true };
+  });
 }
 
 /** Recount + persist memberCount after any membership mutation. */

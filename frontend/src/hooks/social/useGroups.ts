@@ -217,6 +217,38 @@ export const useGroupDetail = (groupId: number | null) => {
   return { group, members, isLoading, error, refresh: fetchDetail };
 };
 
+/** Join/leave for a single group WITHOUT the discovery/mine list fetch —
+    for the detail view, which only needs the two actions, not a list. */
+export const useGroupMembershipActions = () => {
+  const { authAxios } = useAuth();
+  const { toast } = useToast();
+
+  const joinGroup = useCallback(async (groupId: number): Promise<CommunityGroup | null> => {
+    try {
+      const response = await authAxios.post(`/api/social/groups/${groupId}/join`);
+      const group: CommunityGroup = response.data.group;
+      toast({ title: group.myMembership?.status === 'pending' ? 'Request sent' : 'Joined!', description: response.data.message });
+      return group;
+    } catch (err: any) {
+      toast({ title: 'Could not join group', description: err.response?.data?.message || 'Please try again.', variant: 'destructive' });
+      return null;
+    }
+  }, [authAxios, toast]);
+
+  const leaveGroup = useCallback(async (groupId: number): Promise<boolean> => {
+    try {
+      await authAxios.delete(`/api/social/groups/${groupId}/leave`);
+      toast({ title: 'Left group', description: 'You are no longer a member.' });
+      return true;
+    } catch (err: any) {
+      toast({ title: 'Could not leave group', description: err.response?.data?.message || 'Please try again.', variant: 'destructive' });
+      return false;
+    }
+  }, [authAxios, toast]);
+
+  return { joinGroup, leaveGroup };
+};
+
 /** Moderator/owner actions on a group's members. Separate from useGroups so
     a detail view doesn't also fetch the "mine" list it never reads. */
 export const useGroupModeration = (groupId: number) => {

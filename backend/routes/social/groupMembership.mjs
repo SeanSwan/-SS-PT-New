@@ -18,6 +18,7 @@ import {
   getGroupWithMembership,
   isGroupOwner,
   refreshMemberCount,
+  transferGroupOwnership,
 } from '../../services/social/groupAccessService.mjs';
 import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import {
@@ -251,6 +252,36 @@ router.delete('/:id/members/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error removing group member:', error);
     return sendSocialRouteError(res, 500, 'Failed to remove member');
+  }
+});
+
+/** POST /:id/transfer-ownership — hand the group to another active member.
+    Resolves the "transfer before leaving" instruction the API gives owners.
+    The atomic, race-safe swap lives in groupAccessService.transferGroupOwnership. */
+router.post('/:id/transfer-ownership', async (req, res) => {
+  try {
+    const groupId = toPositiveInt(req.params.id);
+    const targetUserId = toPositiveInt(req.body.userId);
+    if (!groupId || !targetUserId) {
+      return res.status(400).json({ success: false, message: 'Valid group id and userId required' });
+    }
+    if (targetUserId === req.user.id) {
+      return res.status(400).json({ success: false, message: 'You already own this group' });
+    }
+
+    // Reject transfers on a missing/archived group before the swap — the
+    // service assumes the caller has done this existence/archived check.
+    const { group } = await getGroupWithMembership(groupId, req.user.id);
+    if (!group || group.isArchived) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+
+    const result = await transferGroupOwnership(groupId, req.user.id, targetUserId);
+    if (!result.ok) return res.status(result.status).json({ success: false, message: result.message });
+    return res.json({ success: true, message: 'Ownership transferred' });
+  } catch (error) {
+    console.error('Error transferring ownership:', error);
+    return sendSocialRouteError(res, 500, 'Failed to transfer ownership');
   }
 });
 

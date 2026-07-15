@@ -116,7 +116,13 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
     min-width: 0;
   }
 
-  &:hover {
+  &:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    filter: saturate(0.65);
+  }
+
+  &:not(:disabled):hover {
     background: ${({ $variant }) =>
       $variant === 'primary'
         ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'

@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock3, Globe, Lock, MessageCircle, Users } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import { useGroupDetail, useGroupModeration, useGroups, type CommunityGroup } from '../../../../hooks/social/useGroups';
+import { useGroupDetail, useGroupMembershipActions, useGroupModeration, type CommunityGroup } from '../../../../hooks/social/useGroups';
 import { useSocialFeed } from '../../../../hooks/social/useSocialFeed';
 import PostCard from '../../../Social/Feed/PostCard';
 import { InfiniteScrollSentinel, Spinner } from '../../../Social/Feed/styles/SocialFeedStyles';
@@ -44,7 +44,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const detail = useGroupDetail(groupId);
-  const actions = useGroups('mine');
+  const actions = useGroupMembershipActions();
   const moderation = useGroupModeration(groupId);
   const group: CommunityGroup | null = detail.group;
   // Only fetch the feed once we know the viewer may see it — a private group's
@@ -184,8 +184,17 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
       {!group.canViewContent ? (
         <LockedPanel role="note">
           <Lock size={22} aria-hidden="true" />
-          <strong>This is a private group.</strong>
-          <span>Request to join — a group moderator will approve you, then the feed and chat unlock.</span>
+          {group.myMembership?.status === 'pending' ? (
+            <>
+              <strong>Request pending</strong>
+              <span>A group moderator will review your request. The feed and chat unlock once you're approved.</span>
+            </>
+          ) : (
+            <>
+              <strong>This is a private group.</strong>
+              <span>Request to join — a group moderator will approve you, then the feed and chat unlock.</span>
+            </>
+          )}
         </LockedPanel>
       ) : (
         <DetailLayout $split>
