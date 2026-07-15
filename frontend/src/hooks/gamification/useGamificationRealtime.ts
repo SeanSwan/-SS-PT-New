@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 
@@ -67,6 +67,11 @@ export const useGamificationRealtime = () => {
   const celebration = useCelebrationOptional();
   const [isConnected, setIsConnected] = useState(false);
 
+  // Hold celebration in a ref so the sound-mute/retro toggles (which change the
+  // memoized celebration API identity) don't churn the handler → socket reconnect.
+  const celebrationRef = useRef(celebration);
+  celebrationRef.current = celebration;
+
   const handleGamificationEvent = useCallback((
     event: GamificationRealtimeEvent,
     data: GamificationRealtimePayload,
@@ -78,10 +83,10 @@ export const useGamificationRealtime = () => {
     // A level-up gets the FULL celebration (CelebrationPortal fireworks +
     // gold takeover) instead of a plain toast — the overlay owns the moment.
     // Malformed payloads (no usable newLevel) fall through to the toast.
-    if (event === 'gamification:level_up' && celebration) {
+    if (event === 'gamification:level_up' && celebrationRef.current) {
       const newLevel = normalizeRealtimeXp(data.newLevel);
       if (newLevel > 0) {
-        celebration.triggerLevelUp(newLevel);
+        celebrationRef.current.triggerLevelUp(newLevel);
         return;
       }
     }
@@ -94,7 +99,7 @@ export const useGamificationRealtime = () => {
         : 'Your rewards profile has fresh progress.',
       variant: 'default',
     });
-  }, [queryClient, toast, user?.id, celebration]);
+  }, [queryClient, toast, user?.id]);
 
   useEffect(() => {
     if (!user?.id) {

@@ -23,11 +23,19 @@ const GroupsTab: React.FC = () => {
   }, [setSearchParams]);
 
   const backToHub = useCallback(() => {
-    setSearchParams({});
+    // Clear only ?g= — preserve any coexisting dashboard query params.
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('g');
+      return next;
+    });
   }, [setSearchParams]);
 
+  // key={selectedGroupId} forces a fresh GroupDetail (and fresh group-scoped
+  // feed state) whenever the ?g= target changes — otherwise a direct group→
+  // group URL jump would merge the previous group's posts into the new one.
   return selectedGroupId
-    ? <GroupDetail groupId={selectedGroupId} onBack={backToHub} />
+    ? <GroupDetail key={selectedGroupId} groupId={selectedGroupId} onBack={backToHub} />
     : <GroupsHub onOpenGroup={openGroup} />;
 };
 

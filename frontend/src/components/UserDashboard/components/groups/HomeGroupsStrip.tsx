@@ -90,6 +90,20 @@ const GroupChip = styled.button`
   }
 `;
 
+const MemberCountBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-gold, #C6A84B);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 16%, transparent);
+`;
+
 const EmptyCopy = styled.button`
   display: flex;
   align-items: center;
@@ -144,17 +158,18 @@ const HomeGroupsStrip: React.FC = () => {
       ) : (
         <ChipRow role="list">
           {groups.slice(0, MAX_STRIP_GROUPS).map((group) => (
-            <GroupChip
-              key={group.id}
-              role="listitem"
-              type="button"
-              onClick={() => openGroup(group.id)}
-              aria-label={`Open group ${group.name}`}
-            >
-              {group.emoji || '👥'}
-              <span>{group.name}</span>
-              {group.myMembership?.status === 'pending' && <span aria-hidden="true">⏳</span>}
-            </GroupChip>
+            <div role="listitem" key={group.id}>
+              <GroupChip
+                type="button"
+                onClick={() => openGroup(group.id)}
+                aria-label={`Open group ${group.name}${group.memberCount ? `, ${group.memberCount} members` : ''}`}
+              >
+                {group.emoji || '👥'}
+                <span>{group.name}</span>
+                {group.memberCount > 0 && <MemberCountBadge aria-hidden="true">{group.memberCount}</MemberCountBadge>}
+                {group.myMembership?.status === 'pending' && <span aria-hidden="true">⏳</span>}
+              </GroupChip>
+            </div>
           ))}
         </ChipRow>
       )}

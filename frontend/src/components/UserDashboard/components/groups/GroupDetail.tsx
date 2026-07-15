@@ -11,20 +11,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock3, Globe, Lock, MessageCircle, Users } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import { useGroupDetail, useGroups, type CommunityGroup } from '../../../../hooks/social/useGroups';
+import { useGroupDetail, useGroupModeration, useGroups, type CommunityGroup } from '../../../../hooks/social/useGroups';
 import { useSocialFeed } from '../../../../hooks/social/useSocialFeed';
 import PostCard from '../../../Social/Feed/PostCard';
 import { InfiniteScrollSentinel, Spinner } from '../../../Social/Feed/styles/SocialFeedStyles';
 import GroupComposer from './GroupComposer';
+import GroupMemberRail from './GroupMemberRail';
 import {
   DetailHeaderCard,
   DetailLayout,
   DetailTitleBlock,
   FeedColumn,
   LockedPanel,
-  MemberChip,
-  MemberRail,
-  MemberRailTitle,
 } from './GroupDetail.styles';
 import {
   EmptyStateCard,
@@ -42,22 +40,21 @@ interface GroupDetailProps {
   onBack: () => void;
 }
 
-const memberDisplayName = (entry: { user: { firstName?: string; lastName?: string; username?: string } | null }) => {
-  if (!entry.user) return 'Member';
-  const full = `${entry.user.firstName ?? ''} ${entry.user.lastName ?? ''}`.trim();
-  return full || entry.user.username || 'Member';
-};
-
 const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const detail = useGroupDetail(groupId);
   const actions = useGroups('mine');
-  const feed = useSocialFeed({ groupId });
+  const moderation = useGroupModeration(groupId);
+  const group: CommunityGroup | null = detail.group;
+  // Only fetch the feed once we know the viewer may see it — a private group's
+  // 403 would otherwise fire an error toast behind the LockedPanel.
+  const feed = useSocialFeed({ groupId, enabled: Boolean(group?.canViewContent) });
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isMutating, setIsMutating] = useState(false);
 
-  const group: CommunityGroup | null = detail.group;
+  const canModerate = Boolean(group?.canModerate);
+  const isOwner = group?.myMembership?.role === 'owner';
   const isActiveMember = group?.myMembership?.status === 'active';
   const canOpenChat = Boolean(
     group?.conversationId && isActiveMember && CHAT_DASHBOARD_ROLES.has(String(user?.role)),
@@ -96,9 +93,11 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
   const handleJoin = async () => {
     setIsMutating(true);
     try {
-      await actions.joinGroup(group.id);
+      const joined = await actions.joinGroup(group.id);
       await detail.refresh();
-      await feed.refreshPosts();
+      // Only refresh the feed if the join actually granted content access
+      // (public → active). A private join yields 'pending' → still locked.
+      if (joined?.myMembership?.status === 'active') await feed.refreshPosts();
     } finally {
       setIsMutating(false);
     }
@@ -112,6 +111,21 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
     } finally {
       setIsMutating(false);
     }
+  };
+
+  const runModeration = async (action: Promise<boolean>) => {
+    setIsMutating(true);
+    try {
+      const ok = await action;
+      if (ok) await detail.refresh();
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleTransfer = (userId: number) => {
+    if (!window.confirm('Transfer ownership of this group? You will become a moderator.')) return;
+    void runModeration(moderation.transferOwnership(userId));
   };
 
   return (
@@ -220,23 +234,18 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
             )}
           </FeedColumn>
 
-          <MemberRail aria-label="Group members">
-            <MemberRailTitle>
-              <Users size={14} aria-hidden="true" />
-              Members
-            </MemberRailTitle>
-            {detail.members.length === 0 ? (
-              <MemberChip>No visible members yet</MemberChip>
-            ) : (
-              detail.members.map((entry) => (
-                <MemberChip key={entry.userId} $pending={entry.status === 'pending'}>
-                  {memberDisplayName(entry)}
-                  {entry.role !== 'member' && <StatusPill $tone="gold">{entry.role}</StatusPill>}
-                  {entry.status === 'pending' && <StatusPill $tone="violet">pending</StatusPill>}
-                </MemberChip>
-              ))
-            )}
-          </MemberRail>
+          <GroupMemberRail
+            members={detail.members}
+            ownerId={group.ownerId}
+            canModerate={canModerate}
+            isOwner={isOwner}
+            isBusy={isMutating}
+            onApprove={(uid) => void runModeration(moderation.approveMember(uid))}
+            onDeny={(uid) => void runModeration(moderation.removeMember(uid))}
+            onSetRole={(uid, role) => void runModeration(moderation.setRole(uid, role))}
+            onRemove={(uid) => void runModeration(moderation.removeMember(uid))}
+            onTransfer={handleTransfer}
+          />
         </DetailLayout>
       )}
     </DetailLayout>

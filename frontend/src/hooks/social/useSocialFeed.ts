@@ -79,6 +79,9 @@ interface PointResult {
 export interface SocialFeedOptions {
   /** Scope the feed (and created posts) to one community group's own feed. */
   groupId?: number;
+  /** When false, the hook holds off the initial fetch (e.g. a private group
+   *  whose content the viewer can't see yet — avoids a 403 error toast). */
+  enabled?: boolean;
 }
 
 /**
@@ -88,7 +91,7 @@ export interface SocialFeedOptions {
  * whole PostCard interaction surface (react/comment/edit/report) is reused.
  */
 export const useSocialFeed = (options: SocialFeedOptions = {}) => {
-  const { groupId } = options;
+  const { groupId, enabled = true } = options;
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
   const { profile, invalidateProfile } = useGamificationData();
@@ -109,8 +112,11 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
   
   // Fetch feed posts
   const fetchPosts = useCallback(async (resetPagination = false) => {
-    if (!user) return;
-    
+    if (!user || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
     if (resetPagination) {
       setOffset(0);
       setIsLoading(true);
@@ -141,11 +147,17 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
     } catch (err) {
       setError(err as Error);
       console.error('Error fetching social feed:', err);
-      toast({
-        title: 'Error fetching feed',
-        description: 'Unable to load social feed. Please try again later.',
-        variant: 'destructive'
-      });
+      // A 403 on a group feed is the EXPECTED locked-private-group state —
+      // the LockedPanel already explains it; a red error toast would be noise.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const isExpectedGroupLock = Boolean(groupId) && status === 403;
+      if (!isExpectedGroupLock) {
+        toast({
+          title: 'Error fetching feed',
+          description: 'Unable to load social feed. Please try again later.',
+          variant: 'destructive'
+        });
+      }
     } finally {
       if (resetPagination) {
         setIsLoading(false);
@@ -153,7 +165,7 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
         setIsLoadingMore(false);
       }
     }
-  }, [authAxios, user, toast, offset, limit, groupId]);
+  }, [authAxios, user, toast, offset, limit, groupId, enabled]);
 
   // Load more posts
   const loadMore = useCallback(() => {
@@ -513,14 +525,17 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
     );
   }, [getPostDetails]);
   
-  // Initial data fetch — depend only on user identity, not fetchPosts reference
-  // (fetchPosts changes on every offset/toast update which would cause infinite loops)
+  // Initial data fetch — depend only on user identity + gating flags, not the
+  // fetchPosts reference (it changes on every offset/toast update → infinite
+  // loop). `enabled` transitioning false→true (group content unlocks) and a
+  // `groupId` change both re-fetch. groupId change also relies on the caller's
+  // key= remount, but this keeps a single hook instance correct if reused.
   useEffect(() => {
-    if (user) {
+    if (user && enabled) {
       fetchPosts(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, enabled, groupId]);
 
   // Refresh when another surface publishes a post (e.g. the social Coach
   // dock's inline milestone share — separate hook instances share no state,

@@ -217,4 +217,40 @@ export const useGroupDetail = (groupId: number | null) => {
   return { group, members, isLoading, error, refresh: fetchDetail };
 };
 
+/** Moderator/owner actions on a group's members. Separate from useGroups so
+    a detail view doesn't also fetch the "mine" list it never reads. */
+export const useGroupModeration = (groupId: number) => {
+  const { authAxios } = useAuth();
+  const { toast } = useToast();
+
+  const run = useCallback(async (
+    request: () => Promise<unknown>,
+    okTitle: string,
+  ): Promise<boolean> => {
+    try {
+      await request();
+      toast({ title: okTitle, description: 'Done.' });
+      return true;
+    } catch (err: any) {
+      toast({
+        title: 'Action failed',
+        description: err.response?.data?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast]);
+
+  return {
+    approveMember: (userId: number) =>
+      run(() => authAxios.post(`/api/social/groups/${groupId}/members/${userId}/approve`), 'Member approved'),
+    removeMember: (userId: number, ban = false) =>
+      run(() => authAxios.delete(`/api/social/groups/${groupId}/members/${userId}${ban ? '?ban=true' : ''}`), ban ? 'Member banned' : 'Member removed'),
+    setRole: (userId: number, role: 'member' | 'moderator') =>
+      run(() => authAxios.patch(`/api/social/groups/${groupId}/members/${userId}`, { role }), 'Role updated'),
+    transferOwnership: (userId: number) =>
+      run(() => authAxios.post(`/api/social/groups/${groupId}/transfer-ownership`, { userId }), 'Ownership transferred'),
+  };
+};
+
 export type GroupsApi = ReturnType<typeof useGroups>;

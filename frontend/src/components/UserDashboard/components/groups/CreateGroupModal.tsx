@@ -129,14 +129,37 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onCreate }
   const [privacy, setPrivacy] = useState<'public' | 'private'>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const restoreTo = document.activeElement as HTMLElement | null;
     nameRef.current?.focus();
+    // Lock background scroll while the modal owns the screen.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') { onClose(); return; }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      // Focus trap: keep Tab/Shift+Tab cycling inside the dialog.
+      // Exclude disabled controls (the submit button starts disabled when the
+      // name is empty) so forward-Tab wraps correctly from the last ENABLED one.
+      const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      restoreTo?.focus?.();
+    };
   }, [onClose]);
 
   const canSubmit = name.trim().length >= 3 && !isSubmitting;
@@ -160,7 +183,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onCreate }
 
   return createPortal(
     <Backdrop role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <Dialog role="dialog" aria-modal="true" aria-label="Create a group">
+      <Dialog ref={dialogRef} role="dialog" aria-modal="true" aria-label="Create a group">
         <DialogHeader>
           <h2>Create a group</h2>
           <CloseButton type="button" onClick={onClose} aria-label="Close">

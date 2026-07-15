@@ -40,7 +40,7 @@ describe('groups is a first-class dashboard surface', () => {
     expect(hookSource).toContain('groupId');
     expect(hookSource).toContain('/api/social/groups/${groupId}/feed');
     const detailSource = read('components/groups/GroupDetail.tsx');
-    expect(detailSource).toContain('useSocialFeed({ groupId })');
+    expect(detailSource).toMatch(/useSocialFeed\(\{ groupId/);
     expect(detailSource).toContain('onLoadComments={feed.loadComments}');
   });
 });
@@ -49,7 +49,7 @@ describe('level-up celebration wiring (2026-07-14)', () => {
   it('the realtime hook fires the CelebrationPortal instead of a toast on level_up', () => {
     const realtimeSource = read('../../hooks/gamification/useGamificationRealtime.ts');
     expect(realtimeSource).toContain('useCelebrationOptional');
-    expect(realtimeSource).toContain('celebration.triggerLevelUp(newLevel)');
+    expect(realtimeSource).toContain('celebrationRef.current.triggerLevelUp(newLevel)');
   });
 
   it('the dashboard shell mounts the realtime subscription', () => {
@@ -61,8 +61,38 @@ describe('level-up celebration wiring (2026-07-14)', () => {
     const heroSource = read('components/ObservatoryCoverHero.tsx');
     expect(heroSource).toContain('<RankGoldSegment');
     expect(heroSource).toContain('$celebrating={isCelebrating}');
-    const styleSource = read('components/ObservatoryCoverHero.styles.ts');
+    const styleSource = read('components/ObservatoryRankPill.styles.ts');
     expect(styleSource).toContain('--accent-gold');
     expect(styleSource).toMatch(/prefers-reduced-motion: no-preference/);
+    // Gold text must sit on an opaque dark surface (WCAG fix — no compositing
+    // against a bright user cover photo).
+    expect(styleSource).toMatch(/var\(--bg-base, #0A0A0F\) 92%, #000/);
+  });
+
+  it('celebration handler holds celebration in a ref (no socket churn on mute toggle)', () => {
+    const realtimeSource = read('../../hooks/gamification/useGamificationRealtime.ts');
+    expect(realtimeSource).toContain('celebrationRef.current');
+    expect(realtimeSource).not.toMatch(/\}, \[queryClient, toast, user\?\.id, celebration\]\)/);
+  });
+
+  it('group feed is gated by canViewContent (no 403 error toast behind LockedPanel)', () => {
+    const detailSource = read('components/groups/GroupDetail.tsx');
+    expect(detailSource).toContain('enabled: Boolean(group?.canViewContent)');
+    const hookSource = read('../../hooks/social/useSocialFeed.ts');
+    expect(hookSource).toContain('isExpectedGroupLock');
+  });
+
+  it('GroupDetail remounts on group switch via key (no stale cross-group feed)', () => {
+    const tabSource = read('components/groups/GroupsTab.tsx');
+    expect(tabSource).toMatch(/key=\{selectedGroupId\}/);
+  });
+
+  it('moderation UI wires the pending-approval + transfer endpoints', () => {
+    const railSource = read('components/groups/GroupMemberRail.tsx');
+    expect(railSource).toContain('onApprove');
+    expect(railSource).toContain('Make owner');
+    const hookSource = read('../../hooks/social/useGroups.ts');
+    expect(hookSource).toContain('transferOwnership');
+    expect(hookSource).toContain('approveMember');
   });
 });

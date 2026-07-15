@@ -134,11 +134,13 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
             </CoverAvatarButton>
             <CoverNameBlock>
               <CoverName>{displayName}</CoverName>
-              <CoverRankTag $celebrating={isCelebrating} aria-label={visibleRankTitle}>
+              <CoverRankTag $celebrating={isCelebrating}>
                 {rankSegments.map((segment, index) => (
                   <React.Fragment key={`${segment}-${index}`}>
                     {index > 0 && <RankDivider aria-hidden="true">|</RankDivider>}
-                    <RankGoldSegment aria-hidden="true">{segment}</RankGoldSegment>
+                    {/* Visible gold text IS the accessible name — no aria-hidden,
+                        so AT announces the full "Level X | Rank Y | Title". */}
+                    <RankGoldSegment>{segment}</RankGoldSegment>
                   </React.Fragment>
                 ))}
               </CoverRankTag>

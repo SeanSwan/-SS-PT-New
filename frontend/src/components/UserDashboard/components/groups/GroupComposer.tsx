@@ -70,11 +70,17 @@ const MediaChip = styled.span`
   button {
     display: grid;
     place-items: center;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     background: transparent;
     color: inherit;
     cursor: pointer;
-    padding: 0.2rem;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-secondary, #8B5CF6);
+      outline-offset: 2px;
+    }
   }
 `;
 

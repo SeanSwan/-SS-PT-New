@@ -108,6 +108,20 @@ export const MemberChip = styled.div<{ $pending?: boolean }>`
   overflow-wrap: anywhere;
 `;
 
+export const MemberActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: 0.3rem;
+
+  button {
+    min-height: 44px;
+    padding: 0 0.6rem;
+    font-size: 0.78rem;
+  }
+`;
+
 export const LockedPanel = styled.div`
   display: grid;
   gap: 0.5rem;
