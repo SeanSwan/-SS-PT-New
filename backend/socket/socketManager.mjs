@@ -262,17 +262,22 @@ export function closeSocketIO() {
 async function authenticateSocketUser(token) {
   try {
     // Decode and verify the token
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     const userId = decoded.userId ?? decoded.id;
     if (!decoded || !userId) {
       logger.warn('Invalid token structure - missing user id');
+      return null;
+    }
+    // Only access tokens may open a socket (refresh/temp tokens share the secret).
+    if (decoded.tokenType && decoded.tokenType !== 'access') {
+      logger.warn('Non-access token rejected for socket connection');
       return null;
     }
 
     // Fetch user from database to ensure current data
     const User = getUser();
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive']
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'isLocked']
     });
 
     if (!user) {
@@ -280,8 +285,8 @@ async function authenticateSocketUser(token) {
       return null;
     }
 
-    if (!user.isActive) {
-      logger.warn(`Inactive user attempted socket connection: ${user.id}`);
+    if (!user.isActive || user.isLocked) {
+      logger.warn(`Inactive/locked user attempted socket connection: ${user.id}`);
       return null;
     }
 

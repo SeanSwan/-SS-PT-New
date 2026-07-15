@@ -1433,14 +1433,16 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
  */
 router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
   try {
-    let { userId, userToken } = req.body;
+    const { userToken } = req.body;
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
 
-    // Extract userId from userToken if not provided directly
-    if (!userId && userToken) {
+    // Attribution comes ONLY from the verified token — never a raw body userId.
+    // Trusting body.userId let a caller bind a Stripe checkout to any user id.
+    let userId = null;
+    if (userToken) {
       try {
-        const decoded = jwt.verify(userToken, getJwtSecret());
+        const decoded = jwt.verify(userToken, getJwtSecret(), { algorithms: ['HS256'] });
         userId = decoded.id;
       } catch (tokenErr) {
         if (isJwtSecretConfigurationError(tokenErr)) {
@@ -1453,7 +1455,7 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
     }
 
     if (!userId) {
-      return res.status(400).json({ success: false, error: 'userId is required — please log in first' });
+      return res.status(400).json({ success: false, error: 'Please log in to continue to checkout' });
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
