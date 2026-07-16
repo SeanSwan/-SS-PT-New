@@ -24,7 +24,9 @@ describe('CoachCommandCenter theme bridge', () => {
 
     expect(headerActionsSource).toContain("import UniversalThemeToggle from '../../../context/ThemeContext/UniversalThemeToggle'");
     expect(headerActionsSource).toContain('<UniversalThemeToggle size="medium" />');
-    expect(themeUtilsSource).toContain('export const injectThemeVariables = (themeId: ThemeId): void => {');
+    expect(themeUtilsSource).toContain('export const injectThemeVariables = (');
+    expect(themeUtilsSource).toContain('themes: Readonly<Record<ThemeId, CrystallineTheme>>');
+    expect(themeUtilsSource).toContain('generateCSSVariables(themeId, themes)');
     expect(themeUtilsSource).toContain('--bg-base: ${theme.background.primary};');
     expect(themeUtilsSource).toContain('--accent-primary: ${theme.colors.primary};');
     expect(themeUtilsSource).toContain('--accent-sapphire: ${theme.colors.primaryDeep || theme.colors.primary};');
