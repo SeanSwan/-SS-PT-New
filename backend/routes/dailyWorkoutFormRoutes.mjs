@@ -1356,7 +1356,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     // Plan-advance / completion-receipt typed errors carry designed 4xx
     // semantics (409 evidence conflict, 409 stale revision, 400 invalid
     // evidence). Same fail-closed allowlist as workoutPlanRoutes: integer 4xx
-    // + WORKOUT_PLAN_ code with a static message; everything else stays 500.
+    // + WORKOUT_PLAN_ code. Response copy is STATIC per this route's
+    // no-raw-exception-echo contract (dailyWorkoutFormRoutesSecurity).
     const receiptStatus = Number(error?.statusCode);
     if (
       Number.isInteger(receiptStatus)
@@ -1367,7 +1368,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       return res.status(receiptStatus).json({
         success: false,
         code: error.code,
-        message: error.message,
+        message: receiptStatus === 409
+          ? 'The workout plan changed while this log was being saved. Refresh and try again.'
+          : 'This workout log could not be matched to the current workout plan.',
         ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
       });
     }
