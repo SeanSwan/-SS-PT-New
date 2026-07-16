@@ -9,7 +9,9 @@
  *   Mirrors canonical workout-plan route behavior for command-lane writes.
  */
 
+import sequelize from '../../../database.mjs';
 import { getAllModels } from '../../../models/index.mjs';
+import { mutateWorkoutPlanRecord } from '../../workoutPlanMutationService.mjs';
 
 /**
  * Dispatcher for delete_workout_plan.
@@ -23,9 +25,31 @@ import { getAllModels } from '../../../models/index.mjs';
 export async function dispatchDeleteWorkoutPlan(params = {}) {
   const { WorkoutPlan } = getAllModels();
   const planId = params.planId;
-  const plan = await WorkoutPlan.findByPk(planId);
+  let previousStatus = null;
 
-  if (!plan) {
+  try {
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId,
+      updates: (lockedPlan) => {
+        previousStatus = lockedPlan.status ?? null;
+        return { status: 'completed' };
+      },
+    });
+    const plan = mutation.plan;
+
+    return {
+      planId: plan.id ?? planId,
+      planFound: true,
+      archived: previousStatus !== 'completed',
+      previousStatus,
+      status: 'completed',
+      clientId: plan.userId ?? null,
+      trainerId: plan.trainerId ?? null,
+    };
+  } catch (error) {
+    if (error?.code !== 'WORKOUT_PLAN_NOT_FOUND') throw error;
     return {
       planId,
       planFound: false,
@@ -36,17 +60,4 @@ export async function dispatchDeleteWorkoutPlan(params = {}) {
       trainerId: null,
     };
   }
-
-  const previousStatus = plan.status ?? null;
-  await plan.update({ status: 'completed' });
-
-  return {
-    planId: plan.id ?? planId,
-    planFound: true,
-    archived: previousStatus !== 'completed',
-    previousStatus,
-    status: 'completed',
-    clientId: plan.userId ?? null,
-    trainerId: plan.trainerId ?? null,
-  };
 }

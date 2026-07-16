@@ -28,6 +28,7 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutLogDestroy = vi.fn();
 const mockWorkoutLogBulkCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
@@ -38,7 +39,10 @@ vi.mock('../models/index.mjs', () => ({
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
   getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
-  getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
+  getWorkoutPlan: () => ({
+    findOne: mockWorkoutPlanFindOne,
+    findByPk: mockWorkoutPlanFindByPk,
+  }),
   getSession: () => ({ findByPk: vi.fn() }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
   getTrainerPermissions: () => ({ findOne: vi.fn() }),
@@ -159,7 +163,9 @@ beforeEach(() => {
     update: vi.fn().mockResolvedValue(undefined),
   });
   mockWorkoutPlanUpdate.mockResolvedValue(undefined);
-  mockWorkoutPlanFindOne.mockResolvedValue(buildActivePlan());
+  const activePlan = buildActivePlan();
+  mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+  mockWorkoutPlanFindByPk.mockResolvedValue(activePlan);
 });
 
 describe('POST /api/workout-forms planned assignment logging', () => {

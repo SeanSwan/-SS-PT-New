@@ -1,3 +1,6 @@
+import sequelize from '../database.mjs';
+import { mutateWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
+
 /**
  * Client Training Plan Progress Service
  * =====================================
@@ -220,7 +223,14 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
     currentDay: cursorAdvance.planCompleted ? dayNumber : cursorAdvance.next.day,
     status: cursorAdvance.planCompleted ? 'completed' : 'active',
   };
-  await plan.update(updatePayload, { transaction });
+  await mutateWorkoutPlanRecord({
+    sequelize,
+    WorkoutPlan,
+    planId: plan.id,
+    updates: updatePayload,
+    expectedRevision: plan.contentRevision,
+    transaction,
+  });
 
   return {
     advanced: true,

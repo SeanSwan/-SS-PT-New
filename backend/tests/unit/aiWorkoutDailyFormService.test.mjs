@@ -106,6 +106,7 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     },
     WorkoutPlan: {
       findOne: vi.fn(async () => activePlan),
+      findByPk: vi.fn(async () => activePlan),
     },
     Challenge: { modelName: 'Challenge' },
     ChallengeParticipant: { modelName: 'ChallengeParticipant' },

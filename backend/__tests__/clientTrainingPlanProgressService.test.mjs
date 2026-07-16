@@ -39,15 +39,22 @@ const nonBillableAssignment = {
   dayNumber: 1,
 };
 
+const transaction = { LOCK: { UPDATE: 'UPDATE' } };
+const buildWorkoutPlanModel = (plan) => ({
+  findOne: vi.fn().mockResolvedValue(plan),
+  findByPk: vi.fn().mockResolvedValue(plan),
+});
+
 describe('advancePlanAfterPlannedAssignmentLog', () => {
   it('advances the active plan cursor after a verified non-billable homework log', async () => {
     const plan = buildPlan();
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
       assignment: nonBillableAssignment,
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-1',
       workoutSessionId: 'workout-session-1',
       completedAt: '2026-06-07T12:00:00.000Z',
@@ -63,7 +70,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 2,
       status: 'active',
-    }), { transaction: undefined });
+    }), { transaction });
     const updatePayload = plan.update.mock.calls[0][0];
     expect(updatePayload.planData.weeks[0].days[0]).toMatchObject({
       completed: true,
@@ -85,6 +92,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         shouldDeductSession: true,
       },
       clientId: 42,
+      transaction,
     });
 
     expect(result).toEqual({ advanced: false, reason: 'not_applicable' });
@@ -104,7 +112,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         ],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
@@ -115,6 +123,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         shouldDeductSession: true,
       },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-2',
       workoutSessionId: 'workout-session-2',
       allowScheduledTrainerSession: true,
@@ -129,7 +138,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 2,
       status: 'active',
-    }), { transaction: undefined });
+    }), { transaction });
   });
 
   it('advances sparse numbered week/day entries to the next explicit day number', async () => {
@@ -146,12 +155,13 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         }],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
       assignment: { ...nonBillableAssignment, weekNumber: 2, dayNumber: 3 },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-sparse',
       workoutSessionId: 'workout-session-sparse',
     });
@@ -182,12 +192,13 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         ],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
       assignment: { ...nonBillableAssignment, weekNumber: 1, dayNumber: 2 },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-top-level',
       workoutSessionId: 'workout-session-top-level',
     });
@@ -210,12 +221,13 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
     const plan = buildPlan({
       planData: { weeks: [{ days: [{ dayLabel: 'Final Homework', exercises: [] }] }] },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
       assignment: nonBillableAssignment,
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-final',
       workoutSessionId: 'workout-session-final',
     });
@@ -229,6 +241,6 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 1,
       status: 'completed',
-    }), { transaction: undefined });
+    }), { transaction });
   });
 });
