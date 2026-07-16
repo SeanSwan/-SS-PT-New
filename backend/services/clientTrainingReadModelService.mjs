@@ -68,24 +68,13 @@ const planUpdatedTime = (plan) => {
   const value = [raw.updatedAt, raw.createdAt, raw.startDate].find(Boolean);
   return value ? new Date(value).getTime() || 0 : 0;
 };
-const hasPrimaryMetadata = (plan) => {
-  const metadata = toPlainObject(plan.metadata) || {};
-  return metadata.isPrimaryPlan === true || metadata.primary === true;
-};
 const isActivePlan = (plan) => firstCompactString(toPlainObject(plan)?.status)?.toLowerCase() === 'active';
-const isActivePrimaryPlan = (plan) => isActivePlan(plan) && hasPrimaryMetadata(plan);
 const samePlanId = (plan, planId) => Boolean(planId) && String(plan.id) === String(planId);
-const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
-  const matchers = [
-    (plan) => samePlanId(plan, explicitPrimaryPlanId),
-    isActivePrimaryPlan,
-    isActivePlan,
-    hasPrimaryMetadata,
-    (plan) => inferPlanHorizonKey(plan) === DEFAULT_PLAN_HORIZON_KEY,
-    () => true,
-  ];
-  return matchers.map((matches) => planRows.find(matches)).find(Boolean) || null;
-};
+const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => (
+  planRows.find((plan) => isActivePlan(plan) && samePlanId(plan, explicitPrimaryPlanId))
+  || planRows.find(isActivePlan)
+  || null
+);
 const planSummary = (plan, horizonKey, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = toPlainObject(raw.metadata) || {};

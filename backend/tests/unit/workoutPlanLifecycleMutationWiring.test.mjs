@@ -25,6 +25,7 @@ const fixtures = vi.hoisted(() => ({
     findByPk: vi.fn(),
   },
   mutateWorkoutPlanRecord: vi.fn(),
+  transitionWorkoutPlanLifecycle: vi.fn(),
   WorkoutPlanCompletionReceipt: {
     findOrCreate: vi.fn(async ({ defaults }) => [{ id: 'receipt-lifecycle', ...defaults }, true]),
   },
@@ -47,6 +48,10 @@ vi.mock('../../models/index.mjs', () => ({
 vi.mock('../../services/workoutPlanMutationService.mjs', async (importOriginal) => ({
   ...(await importOriginal()),
   mutateWorkoutPlanRecord: (...args) => fixtures.mutateWorkoutPlanRecord(...args),
+}));
+
+vi.mock('../../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => fixtures.transitionWorkoutPlanLifecycle(...args),
 }));
 
 const { advancePlanAfterPlannedAssignmentLog } = await import(
@@ -144,68 +149,90 @@ describe('workout plan lifecycle mutation wiring', () => {
     expect(plan.update).not.toHaveBeenCalled();
   });
 
-  it('archives a Swan Coach plan through the managed mutation boundary', async () => {
-    const plan = buildPlan();
-    fixtures.mutateWorkoutPlanRecord.mockImplementation(async ({ updates }) => {
-      if (typeof updates === 'function') await updates(plan);
-      return { plan };
+  it('archives a Swan Coach plan through the audited lifecycle boundary', async () => {
+    const plan = buildPlan({ status: 'archived' });
+    fixtures.transitionWorkoutPlanLifecycle.mockResolvedValue({
+      plan,
+      lifecycleReceipt: {
+        id: 'lifecycle-receipt-1',
+        fromStatus: 'active',
+        toStatus: 'archived',
+      },
     });
 
-    const result = await dispatchDeleteWorkoutPlan({ planId: plan.id });
+    const result = await dispatchDeleteWorkoutPlan(
+      { planId: plan.id },
+      { user: { id: 9, role: 'admin' } },
+    );
 
-    expect(fixtures.mutateWorkoutPlanRecord).toHaveBeenCalledWith(expect.objectContaining({
+    expect(fixtures.transitionWorkoutPlanLifecycle).toHaveBeenCalledWith(expect.objectContaining({
       sequelize: fixtures.sequelize,
       WorkoutPlan: fixtures.WorkoutPlan,
       planId: plan.id,
-      updates: expect.any(Function),
+      action: 'archive',
+      actorId: 9,
     }));
-    expect(fixtures.WorkoutPlan.findByPk).not.toHaveBeenCalled();
+    expect(fixtures.mutateWorkoutPlanRecord).not.toHaveBeenCalled();
     expect(plan.update).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       planFound: true,
       archived: true,
       previousStatus: 'active',
-      status: 'completed',
+      status: 'archived',
+      lifecycleReceiptId: 'lifecycle-receipt-1',
       clientId: 42,
       trainerId: 3,
     });
   });
 
-  it('reports an already-completed plan as an idempotent archive', async () => {
-    const plan = buildPlan({ status: 'completed' });
-    fixtures.mutateWorkoutPlanRecord.mockImplementation(async ({ updates }) => {
-      if (typeof updates === 'function') await updates(plan);
-      return { plan };
+  it('reports an already-archived plan as an idempotent archive', async () => {
+    const plan = buildPlan({ status: 'archived' });
+    fixtures.transitionWorkoutPlanLifecycle.mockResolvedValue({
+      plan,
+      lifecycleReceipt: {
+        id: 'lifecycle-receipt-2',
+        fromStatus: 'archived',
+        toStatus: 'archived',
+      },
     });
 
-    const result = await dispatchDeleteWorkoutPlan({ planId: plan.id });
+    const result = await dispatchDeleteWorkoutPlan(
+      { planId: plan.id },
+      { user: { id: 9, role: 'admin' } },
+    );
 
     expect(result).toMatchObject({
       planFound: true,
       archived: false,
-      previousStatus: 'completed',
-      status: 'completed',
+      previousStatus: 'archived',
+      status: 'archived',
+      lifecycleReceiptId: 'lifecycle-receipt-2',
     });
   });
-
   it('propagates non-not-found mutation failures', async () => {
     const error = Object.assign(new Error('lock failed'), {
       code: 'WORKOUT_PLAN_LOCK_UNAVAILABLE',
       statusCode: 500,
     });
-    fixtures.mutateWorkoutPlanRecord.mockRejectedValue(error);
+    fixtures.transitionWorkoutPlanLifecycle.mockRejectedValue(error);
 
-    await expect(dispatchDeleteWorkoutPlan({ planId: 'plan-lifecycle' }))
+    await expect(dispatchDeleteWorkoutPlan(
+      { planId: 'plan-lifecycle' },
+      { user: { id: 9, role: 'admin' } },
+    ))
       .rejects.toBe(error);
   });
 
   it('preserves the command receipt when the plan does not exist', async () => {
-    fixtures.mutateWorkoutPlanRecord.mockRejectedValue(Object.assign(
+    fixtures.transitionWorkoutPlanLifecycle.mockRejectedValue(Object.assign(
       new Error('Workout plan not found'),
       { code: 'WORKOUT_PLAN_NOT_FOUND', statusCode: 404 },
     ));
 
-    const result = await dispatchDeleteWorkoutPlan({ planId: 'missing-plan' });
+    const result = await dispatchDeleteWorkoutPlan(
+      { planId: 'missing-plan' },
+      { user: { id: 9, role: 'admin' } },
+    );
 
     expect(result).toEqual({
       planId: 'missing-plan',

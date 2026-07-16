@@ -29,6 +29,7 @@ import {
   mutateWorkoutPlanRecord,
   WorkoutPlanMutationError,
 } from './workoutPlanMutationService.mjs';
+import { transitionWorkoutPlanLifecycle } from './workoutPlanLifecycleService.mjs';
 import { generatePlan } from './workoutBuilderService.mjs';
 import {
   sanitizeWorkoutPlanDataForPersistence,
@@ -185,99 +186,54 @@ export async function generateBackupPlan({
   return { backup, refreshed: false };
 }
 
-/**
- * THE SWAP (trainer-chosen, never automatic): backup → primary/active;
- * current active plan(s) → 'paused' archived variants. One transaction.
- */
+/** Builds role provenance without the retired metadata primary markers. */
+const buildPromotionMetadata = (plan, trainerId) => {
+  const metadata = sanitizeWorkoutPlanMetadataForPersistence({
+    ...(plan.metadata ?? {}),
+    planRole: 'promoted_backup',
+    promotedFrom: 'ai_backup',
+    promotedAt: new Date().toISOString(),
+    promotedBy: trainerId,
+  });
+  delete metadata.isPrimaryPlan;
+  delete metadata.primary;
+  return metadata;
+};
+
+const validateBackupTarget = (plan) => {
+  if (plan.metadata?.planRole !== 'ai_backup') {
+    throw new WorkoutPlanMutationError(
+      'Not an AI backup plan - only a backup can be promoted',
+      { code: 'WORKOUT_PLAN_NOT_BACKUP', statusCode: 400 },
+    );
+  }
+};
+
+/** Promotes one trainer-chosen backup through the audited activation boundary. */
 export async function promoteBackupPlan({ planId, trainerId }) {
   const WorkoutPlan = getWorkoutPlan();
-  return sequelize.transaction(async (transaction) => {
-    const candidate = await WorkoutPlan.findByPk(planId, { transaction });
-    if (!candidate) {
-      throw new WorkoutPlanMutationError('Plan not found', {
-        code: 'WORKOUT_PLAN_NOT_FOUND',
-        statusCode: 404,
-      });
-    }
-
-    // Match the canonical activation lock order: lock every plan for the
-    // client before mutating any participant in the primary-plan transition.
-    const lockedPlans = await WorkoutPlan.findAll({
-      where: { userId: candidate.userId },
-      order: [['id', 'ASC']],
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    const backup = lockedPlans.find((plan) => String(plan.id) === String(planId));
-    if (!backup) {
-      throw new WorkoutPlanMutationError('Plan not found', {
-        code: 'WORKOUT_PLAN_NOT_FOUND',
-        statusCode: 404,
-      });
-    }
-    if (backup.metadata?.planRole !== 'ai_backup') {
-      throw new WorkoutPlanMutationError(
-        'Not an AI backup plan — only a backup can be promoted',
-        {
-          code: 'WORKOUT_PLAN_NOT_BACKUP',
-          statusCode: 400,
-        },
-      );
-    }
-
-    const priorActive = lockedPlans.filter((plan) => (
-      String(plan.id) !== String(backup.id) && plan.status === 'active'
-    ));
-    const archived = [];
-    for (const plan of priorActive) {
-      const mutation = await mutateWorkoutPlanRecord({
-        sequelize,
-        WorkoutPlan,
-        planId: plan.id,
-        expectedRevision: plan.contentRevision,
-        transaction,
-        updates: (lockedPlan) => ({
-          status: 'paused',
-          metadata: sanitizeWorkoutPlanMetadataForPersistence({
-            ...(lockedPlan.metadata ?? {}),
-            isPrimaryPlan: false,
-            primary: false,
-            archivedReason: 'replaced_by_backup_promotion',
-            archivedAt: new Date().toISOString(),
-          }),
-        }),
-      });
-      archived.push(mutation.plan.id);
-    }
-
-    const promotion = await mutateWorkoutPlanRecord({
-      sequelize,
-      WorkoutPlan,
-      planId: backup.id,
-      expectedRevision: backup.contentRevision,
-      transaction,
-      pdfDerivativeIntent: {
-        requestedBy: trainerId,
-        reason: 'backup_promotion',
-        promoteGenerated: true,
-      },
-      updates: (lockedBackup) => ({
-        status: 'active',
-        currentWeek: 1,
-        currentDay: 1,
-        metadata: sanitizeWorkoutPlanMetadataForPersistence({
-          ...(lockedBackup.metadata ?? {}),
-          planRole: 'primary',
-          isPrimaryPlan: true,
-          primary: true,
-          promotedFrom: 'ai_backup',
-          promotedAt: new Date().toISOString(),
-          promotedBy: trainerId,
-        }),
-      }),
-    });
-
-    logger.info('[BackupPlan] promoted #%d to primary for client %d (archived %d prior)', promotion.plan.id, promotion.plan.userId, archived.length);
-    return { promoted: promotion.plan, archived };
+  const result = await transitionWorkoutPlanLifecycle({
+    sequelize,
+    WorkoutPlan,
+    planId,
+    action: 'activate',
+    actorId: trainerId,
+    derivativeReason: 'backup_promotion',
+    validateTarget: validateBackupTarget,
+    targetUpdates: (plan) => ({
+      currentWeek: 1,
+      currentDay: 1,
+      metadata: buildPromotionMetadata(plan, trainerId),
+    }),
   });
+  const archived = result.lifecycleReceipts
+    .filter((receipt) => receipt.action === 'activate_sibling_pause')
+    .map((receipt) => receipt.planId);
+  logger.info(
+    '[BackupPlan] promoted #%s for client %s (paused %d prior active plans)',
+    result.plan.id,
+    result.plan.userId,
+    archived.length,
+  );
+  return { promoted: result.plan, archived };
 }

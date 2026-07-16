@@ -3,20 +3,6 @@ import request from 'supertest';
 import express from 'express';
 import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
-// ─────────────────────────────────────────────────────────────
-// Plan Library slice (REV 2 receipt) regression tests.
-//
-// Covers:
-//   - PUT /api/workout-plans/:id/activate (sibling-deactivate, lock, retry)
-//   - POST /api/workout-plans/:id/duplicate (deep-clone, status='draft')
-//   - 23505 unique_violation retry path (partial index race)
-//   - 404-not-403 IDOR doctrine still holds
-//
-// Concurrency tests at this layer mock the model + transaction. End-to-end
-// concurrency proof requires a real DB and the partial unique index — that
-// is verified by the migration-applies test below + Sean's smoke.
-// ─────────────────────────────────────────────────────────────
-
 const mockTransaction = vi.fn();
 const mockFindAll = vi.fn();
 const mockFindByPk = vi.fn();
@@ -24,6 +10,7 @@ const mockUpdate = vi.fn();
 const mockBulkUpdate = vi.fn();
 const mockCreate = vi.fn();
 const mockUserUpdate = vi.fn();
+const mockTransitionLifecycle = vi.fn();
 let defaultTransaction;
 
 const makePlan = (overrides = {}) => ({
@@ -100,6 +87,10 @@ vi.mock('../database.mjs', () => ({
   },
 }));
 
+vi.mock('../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => mockTransitionLifecycle(...args),
+}));
+
 vi.mock('../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -122,6 +113,10 @@ beforeEach(async () => {
   mockBulkUpdate.mockResolvedValue([0]);
   mockUserUpdate.mockResolvedValue(undefined);
   mockFindByPk.mockResolvedValue(makePlan({ status: 'draft', update: mockUserUpdate }));
+  mockTransitionLifecycle.mockImplementation(async ({ planId, action }) => {
+    const plan = makePlan({ id: planId, status: action === 'archive' ? 'archived' : 'active' });
+    return { plan, plans: [plan], lifecycleReceipt: { planId, action } };
+  });
   mockCreate.mockImplementation(async (input) => ({ ...input, id: 999, createdAt: new Date(), updatedAt: new Date() }));
 
   const { default: workoutPlanRoutes } = await import('../routes/workoutPlanRoutes.mjs');
@@ -140,101 +135,23 @@ beforeEach(async () => {
   app.use('/api/workout-plans', workoutPlanRoutes);
 });
 
-// ──────────────────────────── ACTIVATE ────────────────────────────
+// ---------------------------- LIFECYCLE ----------------------------
 
-describe('PUT /api/workout-plans/:id/activate', () => {
-  it('makes the activated plan primary and clears stale primary flags on siblings', async () => {
-    const tx = {
-      commit: vi.fn().mockResolvedValue(undefined),
-      rollback: vi.fn().mockResolvedValue(undefined),
-      LOCK: { UPDATE: 'UPDATE' },
-    };
-    mockTransaction.mockResolvedValueOnce(tx);
-    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-    const targetUpdate = vi.fn().mockResolvedValue(undefined);
-    const targetPlan = makePlan({
-      id: 50,
-      userId: 99,
-      status: 'draft',
-      metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, painAware: true },
-      update: targetUpdate,
-    });
-    const stalePrimarySibling = makePlan({
-      id: 51,
-      userId: 99,
-      status: 'active',
-      metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
-      update: siblingUpdate,
-    });
-    targetPlan.contentRevision = 4;
-    targetPlan.contentHash = hashWorkoutPlanContent(targetPlan.planData);
-    stalePrimarySibling.contentRevision = 2;
-    stalePrimarySibling.contentHash = hashWorkoutPlanContent(stalePrimarySibling.planData);
-
-    mockFindAll
-      .mockResolvedValueOnce([targetPlan, stalePrimarySibling])
-      .mockResolvedValueOnce([stalePrimarySibling]);
-    mockFindByPk
-      .mockResolvedValueOnce(targetPlan)
-      .mockResolvedValueOnce(stalePrimarySibling)
-      .mockResolvedValueOnce(targetPlan);
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/activate')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer')
-      .set('x-test-plan', JSON.stringify(targetPlan));
-
-    expect(res.status).toBe(200);
-    expect(siblingUpdate).toHaveBeenCalledWith({
-      status: 'paused',
-      metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
-      contentRevision: 2,
-      contentHash: stalePrimarySibling.contentHash,
-    }, { transaction: tx });
-    expect(targetUpdate).toHaveBeenCalledWith({
-      status: 'active',
-      metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true, primary: true },
-      contentRevision: 4,
-      contentHash: targetPlan.contentHash,
-    }, { transaction: tx });
-    expect(res.body.trainingPlanCatalog).toMatchObject({
-      primaryPlanId: 50,
-      primaryHorizonKey: 'nine_month',
-    });
-    expect(res.body.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
-      isPrimary: false,
-      plan: { id: 51, status: 'paused' },
-    });
-    expect(tx.commit).toHaveBeenCalledOnce();
-    expect(tx.rollback).not.toHaveBeenCalled();
-  });
-
-  it('locks client plan rows and activates the target as primary (happy path)', async () => {
+describe('legacy lifecycle compatibility routes', () => {
+  it('PUT /:id/activate delegates to audited activation', async () => {
     const res = await request(app)
       .put('/api/workout-plans/50/activate')
       .set('x-test-user-id', '98')
       .set('x-test-user-role', 'trainer');
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-
-    // Lock query was issued for this user
-    expect(mockFindAll).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 99 },
-      lock: 'UPDATE',
+    expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      planId: '50', action: 'activate', actorId: '98',
     }));
-
-    expect(mockBulkUpdate).not.toHaveBeenCalled();
-    expect(mockUserUpdate).toHaveBeenCalledWith({
-      status: 'active',
-      metadata: { isPrimaryPlan: true, primary: true },
-      contentRevision: 1,
-      contentHash: hashWorkoutPlanContent(makePlan().planData),
-    }, expect.objectContaining({ transaction: defaultTransaction }));
+    expect(res.body.plan.status).toBe('active');
   });
 
-  it('returns 404 when verifyClientAccessByPlanId denies (cross-trainer IDOR)', async () => {
+  it('returns 404 when access middleware denies a cross-trainer plan id', async () => {
     const res = await request(app)
       .put('/api/workout-plans/50/activate')
       .set('x-test-user-id', '98')
@@ -242,153 +159,36 @@ describe('PUT /api/workout-plans/:id/activate', () => {
       .set('x-test-deny', '1');
 
     expect(res.status).toBe(404);
-    expect(mockFindAll).not.toHaveBeenCalled();
-    expect(mockBulkUpdate).not.toHaveBeenCalled();
+    expect(mockTransitionLifecycle).not.toHaveBeenCalled();
   });
 
-  it('returns 200 for admin regardless of assignment', async () => {
+  it('PUT /:id/primary is the same audited activation transition', async () => {
     const res = await request(app)
-      .put('/api/workout-plans/50/activate')
+      .put('/api/workout-plans/50/primary')
       .set('x-test-user-id', '1')
       .set('x-test-user-role', 'admin');
 
     expect(res.status).toBe(200);
-  });
-
-  it('retries on SQLSTATE 23505 unique_violation up to ACTIVATE_MAX_RETRIES', async () => {
-    let callCount = 0;
-    mockUserUpdate.mockImplementation(async () => {
-      callCount++;
-      if (callCount <= 2) {
-        const err = new Error('duplicate key value violates unique constraint');
-        err.original = { code: '23505' };
-        throw err;
-      }
-      return undefined; // success on attempt 3
-    });
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/activate')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer');
-
-    expect(res.status).toBe(200);
-    expect(mockUserUpdate).toHaveBeenCalledTimes(3); // 2 retries + final success
-  });
-
-  it('returns 500 after exhausting retries on persistent 23505', async () => {
-    mockUserUpdate.mockImplementation(async () => {
-      const err = new Error('duplicate key value violates unique constraint');
-      err.original = { code: '23505' };
-      throw err;
-    });
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/activate')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer');
-
-    expect(res.status).toBe(500);
-    // Total = 1 initial + ACTIVATE_MAX_RETRIES (2) = 3 attempts
-    expect(mockUserUpdate).toHaveBeenCalledTimes(3);
-  });
-
-  it('does NOT retry on non-23505 errors (e.g. connection drop)', async () => {
-    mockUserUpdate.mockImplementation(async () => {
-      const err = new Error('ECONNRESET');
-      err.code = 'ECONNRESET';
-      throw err;
-    });
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/activate')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer');
-
-    expect(res.status).toBe(500);
-    expect(mockUserUpdate).toHaveBeenCalledTimes(1); // no retry
-  });
-
-  it('returns 404 if plan disappeared between middleware and handler', async () => {
-    mockFindByPk.mockResolvedValue(null);
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/activate')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer');
-
-    expect(res.status).toBe(404);
-  });
-});
-
-// ──────────────────────────── DUPLICATE ────────────────────────────
-
-describe('PUT /api/workout-plans/:id/primary', () => {
-  it('switches primary plan flags inside a single client-plan transaction', async () => {
-    const tx = {
-      commit: vi.fn().mockResolvedValue(undefined),
-      rollback: vi.fn().mockResolvedValue(undefined),
-      LOCK: { UPDATE: 'UPDATE' },
-    };
-    mockTransaction.mockResolvedValueOnce(tx);
-    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-    const targetUpdate = vi.fn().mockResolvedValue(undefined);
-    const targetPlan = makePlan({
-      id: 50,
-      userId: 99,
-      status: 'active',
-      metadata: { planHorizon: 'six_month', isPrimaryPlan: false },
-      update: targetUpdate,
-    });
-    const siblingPlan = makePlan({
-      id: 51,
-      userId: 99,
-      status: 'paused',
-      metadata: { planHorizon: 'three_month', isPrimaryPlan: true },
-      update: siblingUpdate,
-    });
-    targetPlan.contentRevision = 7;
-    targetPlan.contentHash = hashWorkoutPlanContent(targetPlan.planData);
-    siblingPlan.contentRevision = 3;
-    siblingPlan.contentHash = hashWorkoutPlanContent(siblingPlan.planData);
-
-    mockFindAll
-      .mockResolvedValueOnce([targetPlan, siblingPlan])
-      .mockResolvedValueOnce([siblingPlan]);
-    mockFindByPk
-      .mockResolvedValueOnce(targetPlan)
-      .mockResolvedValueOnce(siblingPlan)
-      .mockResolvedValueOnce(targetPlan);
-
-    const res = await request(app)
-      .put('/api/workout-plans/50/primary')
-      .set('x-test-user-id', '98')
-      .set('x-test-user-role', 'trainer')
-      .set('x-test-plan', JSON.stringify(targetPlan));
-
-    expect(res.status).toBe(200);
-    expect(mockTransaction).toHaveBeenCalledOnce();
-    expect(mockFindAll).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      where: { userId: 99 },
-      lock: 'UPDATE',
-      transaction: tx,
+    expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      planId: '50', action: 'activate', actorId: '1',
     }));
-    expect(mockFindByPk).toHaveBeenLastCalledWith(50, { transaction: tx, lock: 'UPDATE' });
-    expect(siblingUpdate).toHaveBeenCalledWith({
-      metadata: { planHorizon: 'three_month', isPrimaryPlan: false, primary: false },
-      contentRevision: 3,
-      contentHash: siblingPlan.contentHash,
-    }, { transaction: tx });
-    expect(targetUpdate).toHaveBeenCalledWith({
-      metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
-      contentRevision: 7,
-      contentHash: targetPlan.contentHash,
-    }, { transaction: tx });
-    expect(tx.commit).toHaveBeenCalledOnce();
-    expect(tx.rollback).not.toHaveBeenCalled();
+  });
+
+  it('returns a bounded lifecycle conflict without retrying private writers', async () => {
+    mockTransitionLifecycle.mockRejectedValueOnce(Object.assign(new Error('conflict'), {
+      code: 'WORKOUT_PLAN_LIFECYCLE_CONFLICT', statusCode: 409,
+    }));
+
+    const res = await request(app)
+      .put('/api/workout-plans/50/activate')
+      .set('x-test-user-id', '98')
+      .set('x-test-user-role', 'trainer');
+
+    expect(res.status).toBe(409);
+    expect(mockTransitionLifecycle).toHaveBeenCalledOnce();
+    expect(res.body).toMatchObject({ code: 'WORKOUT_PLAN_LIFECYCLE_CONFLICT' });
   });
 });
-
 describe('POST /api/workout-plans/:id/duplicate', () => {
   it('clones original planData deeply and creates as status=draft', async () => {
     const res = await request(app)

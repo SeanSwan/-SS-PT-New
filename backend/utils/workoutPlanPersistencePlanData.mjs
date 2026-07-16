@@ -2,18 +2,12 @@
  * Workout Plan Persistence Plan Data Helpers
  * ==========================================
  * Normalizes approved AI workout drafts into the JSONB shape consumed by
- * current-plan, logger, and Coach handoff routes. Also owns the active-plan
- * demotion invariant required before inserting a new active WorkoutPlan row.
+ * current-plan, logger, and Coach handoff routes. Lifecycle activation remains
+ * owned by workoutPlanLifecycleService after all normalized child rows persist.
  */
 import { PLAN_HORIZONS } from '../services/clientTrainingPlanHorizonService.mjs';
-import {
-  mutateWorkoutPlanRecord,
-  WorkoutPlanMutationError,
-} from '../services/workoutPlanMutationService.mjs';
-import {
-  normalizeWorkoutPlanDataForPersistence,
-  sanitizeWorkoutPlanMetadataForPersistence,
-} from '../services/workoutPlanDataPrivacyService.mjs';
+import { normalizeWorkoutPlanDataForPersistence } from '../services/workoutPlanDataPrivacyService.mjs';
+
 
 export const ALLOWED_DAY_TYPES = new Set([
   'training',
@@ -164,51 +158,4 @@ export function buildWorkoutPlanData(plan, durationWeeks) {
     assignmentDefaults: { ...TRAINER_LED_WORKOUT_PLAN_ASSIGNMENT_DEFAULTS },
     recommendations: Array.isArray(plan?.recommendations) ? plan.recommendations : [],
   });
-}
-
-const DEMOTED_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: false, primary: false });
-
-const activePlanMetadata = (plan) => {
-  const metadata = plan?.metadata && typeof plan.metadata === 'object' && !Array.isArray(plan.metadata)
-    ? plan.metadata
-    : {};
-  return sanitizeWorkoutPlanMetadataForPersistence({
-    ...metadata,
-    ...DEMOTED_WORKOUT_PLAN_METADATA,
-  });
-};
-
-export async function demoteActiveWorkoutPlansForUser(WorkoutPlan, userId, transaction) {
-  if (typeof WorkoutPlan?.findAll !== 'function') {
-    throw new WorkoutPlanMutationError('WorkoutPlan model cannot list active plans', {
-      code: 'WORKOUT_PLAN_MODEL_UNAVAILABLE',
-      statusCode: 500,
-    });
-  }
-  const lock = transaction?.LOCK?.UPDATE;
-  if (!lock) {
-    throw new WorkoutPlanMutationError('Workout plan demotion lock is unavailable', {
-      code: 'WORKOUT_PLAN_LOCK_UNAVAILABLE',
-      statusCode: 500,
-    });
-  }
-
-  const activePlans = await WorkoutPlan.findAll({
-    where: { userId, status: 'active' },
-    transaction,
-    lock,
-  });
-
-  for (const activePlan of activePlans || []) {
-    await mutateWorkoutPlanRecord({
-      WorkoutPlan,
-      planId: activePlan.id,
-      expectedRevision: activePlan.contentRevision,
-      transaction,
-      updates: (lockedPlan) => ({
-        status: 'paused',
-        metadata: activePlanMetadata(lockedPlan),
-      }),
-    });
-  }
 }

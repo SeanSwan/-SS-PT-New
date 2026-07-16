@@ -18,12 +18,11 @@
  *
  * KEY DECISIONS:
  *   - All routes require protect + trainerOrAdminOnly (plans are trainer-managed)
- *   - Soft delete via status='completed' (no hard deletes)
+ *   - Archive via terminal status='archived' with immutable lifecycle receipts
  *   - /advance is atomic: marks session complete + advances cursor in one call
  */
 
 import express from 'express';
-import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
@@ -54,11 +53,9 @@ import {
   sanitizeWorkoutPlanProgressNotesForPersistence,
 } from '../services/workoutPlanDataPrivacyService.mjs';
 import {
-  ACTIVATE_MAX_RETRIES,
   buildDuplicatePlanMetadata,
-  isUniqueViolation,
-  markPlanPrimary,
   mergePlanMetadata,
+  normalizeWorkoutPlanId,
   parseStrictPositiveInteger,
   selectCurrentWorkoutPlan,
   toPlainObject,
@@ -73,13 +70,16 @@ import {
   handleWorkoutPlanPdfGenerate,
   handleWorkoutPlanPdfStatus,
 } from './workoutPlanPdfDerivativeHandlers.mjs';
+import {
+  workoutPlanActivateHandler,
+  workoutPlanArchiveHandler,
+  workoutPlanStatusHandler,
+} from './workoutPlanLifecycleHandlers.mjs';
 
 const router = express.Router();
 
-// Plan Library slice (REV 2 receipt §6.2). Activate handler retries on
-// SQLSTATE 23505 (Postgres unique_violation), which fires when the partial
-// unique index `workout_plans_one_active_per_user` catches a concurrent
-// activate that slipped past the row lock.
+// Lifecycle routes use a stable per-client row lock plus the existing partial
+// unique index workout_plans_one_active_per_user as a database backstop.
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
 // PURPOSE: Lazy-load from model cache to avoid circular imports
@@ -354,23 +354,25 @@ router.post('/blend', protect, trainerOrAdminOnly,
   // Shim: surface the A-side plan id as :id so the STANDARD access middleware
   // runs natively (service re-verifies both sources share one client).
   (req, res, next) => {
-    const parsedA = parseInt(req.body?.planAId, 10);
-    const parsedB = parseInt(req.body?.planBId, 10);
+    const parsedA = normalizeWorkoutPlanId(req.body?.planAId);
+    const parsedB = normalizeWorkoutPlanId(req.body?.planBId);
     if (!parsedA || !parsedB || parsedA === parsedB) {
       return res.status(400).json({ success: false, message: 'Two distinct source plan ids are required' });
     }
-    req.params.id = String(parsedA);
+    req.params.id = parsedA;
     return next();
   },
   verifyClientAccessByPlanId({ paramName: 'id' }),
   async (req, res) => {
     try {
-      const { planAId, planBId, picks, title } = req.body || {};
+      const { picks, title } = req.body || {};
+      const planAId = normalizeWorkoutPlanId(req.body?.planAId);
+      const planBId = normalizeWorkoutPlanId(req.body?.planBId);
       const { blendPlans } = await import('../services/planBlendService.mjs');
       const result = await blendPlans({
         trainerId: req.user.id,
-        planAId: parseInt(planAId, 10),
-        planBId: parseInt(planBId, 10),
+        planAId,
+        planBId,
         picks,
         title,
       });
@@ -392,7 +394,7 @@ router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
     try {
       const { promoteBackupPlan } = await import('../services/backupPlanService.mjs');
       const result = await promoteBackupPlan({
-        planId: parseInt(req.params.id, 10),
+        planId: req.workoutPlan.id,
         trainerId: req.user.id,
       });
       return res.json({ success: true, promotedPlanId: result.promoted.id, archivedPlanIds: result.archived });
@@ -492,7 +494,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: PUT /api/workout-plans/:id
-// PURPOSE: Update plan fields (title, planData, status, etc.)
+// PURPOSE: Update prescribed/descriptive fields; lifecycle uses /status.
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -507,17 +509,17 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     // the authoritative row before deriving metadata or content identity.
     const authorizedPlan = req.workoutPlan;
 
-    if (req.body.status === 'active') {
+    if (req.body.status !== undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Use the activate endpoint to make a workout plan active.',
+        message: 'Use the status endpoint for workout plan lifecycle changes.',
       });
     }
 
     // Whitelist updatable fields to prevent mass-assignment.
     const allowedFields = [
       'title', 'description', 'nasmPhase', 'startDate', 'endDate',
-      'durationWeeks', 'status', 'currentWeek', 'currentDay',
+      'durationWeeks', 'currentWeek', 'currentDay',
       'planData', 'progressNotes', 'metadata'
     ];
 
@@ -632,251 +634,39 @@ router.get(
 );
 
 /**
- * Mark a saved plan as the primary client-visible training arc.
- *
+ * Legacy primary path now means activate. Active status is the only primary
+ * truth; this compatibility route delegates to the audited lifecycle service.
  * @route PUT /api/workout-plans/:id/primary
  * @access Trainer (assigned client) / Admin
  */
-// fallow-ignore-next-line complexity
-router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  let t;
-  try {
-    t = await sequelize.transaction();
-    const WorkoutPlan = getWorkoutPlan();
-    const targetPlan = req.workoutPlan;
-
-    await WorkoutPlan.findAll({
-      where: { userId: targetPlan.userId },
-      lock: t.LOCK.UPDATE,
-      transaction: t,
-    });
-
-    const freshTarget = await WorkoutPlan.findByPk(targetPlan.id, { transaction: t });
-    if (!freshTarget) {
-      await t.rollback();
-      return res.status(404).json({ success: false, message: 'Plan not found' });
-    }
-
-    const primaryStatus = String(freshTarget.status || '').trim().toLowerCase();
-    if (primaryStatus !== 'active') {
-      await t.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Use the activate endpoint to make this workout plan current before selecting it as primary.',
-      });
-    }
-
-    const siblings = await WorkoutPlan.findAll({
-      where: {
-        userId: freshTarget.userId,
-        id: { [Op.ne]: freshTarget.id },
-        status: ['active', 'paused', 'draft'],
-      },
-      order: [['updatedAt', 'DESC']],
-      limit: 50,
-      transaction: t,
-    });
-
-    const updatedSiblings = [];
-    for (const sibling of siblings) {
-      const nextSibling = markPlanPrimary(sibling, false);
-      const siblingMutation = await mutateWorkoutPlanRecord({
-        sequelize,
-        WorkoutPlan,
-        planId: sibling.id,
-        updates: { metadata: nextSibling.metadata },
-        transaction: t,
-      });
-      updatedSiblings.push({ ...toPlainObject(siblingMutation.plan), metadata: nextSibling.metadata });
-    }
-
-    const nextTarget = markPlanPrimary(freshTarget, true);
-    const targetMutation = await mutateWorkoutPlanRecord({
-      sequelize,
-      WorkoutPlan,
-      planId: freshTarget.id,
-      updates: { metadata: nextTarget.metadata },
-      transaction: t,
-    });
-    const updatedTarget = { ...toPlainObject(targetMutation.plan), metadata: nextTarget.metadata };
-
-    const overview = buildClientTrainingOverview({
-      activePlan: updatedTarget,
-      plans: [updatedTarget, ...updatedSiblings],
-    });
-
-    await t.commit();
-    logger.info('[WorkoutPlan] Set primary training arc #%s for client %d by user %d',
-      freshTarget.id, freshTarget.userId, req.user.id);
-
-    return res.json({
-      success: true,
-      plan: updatedTarget,
-      trainingPlanCatalog: overview.trainingPlanCatalog,
-    });
-  } catch (error) {
-    if (t) {
-      await t.rollback();
-    }
-    logger.error('[WorkoutPlan] PUT /:id/primary error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to update primary training arc' });
-  }
-});
-
-const lockClientPlanRows = (WorkoutPlan, userId, transaction) => (
-  WorkoutPlan.findAll({
-    where: { userId },
-    lock: transaction.LOCK.UPDATE,
-    transaction,
-  })
+router.put(
+  '/:id/primary',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanActivateHandler,
 );
-
-const loadActivationSiblings = (WorkoutPlan, freshPlan, transaction) => (
-  WorkoutPlan.findAll({
-    where: {
-      userId: freshPlan.userId,
-      id: { [Op.ne]: freshPlan.id },
-      status: ['active', 'paused', 'draft'],
-    },
-    order: [['updatedAt', 'DESC']],
-    limit: 50,
-    transaction,
-  })
-);
-
-const updateActivationSiblings = async (WorkoutPlan, siblings, transaction) => {
-  const updatedSiblings = [];
-
-  for (const sibling of siblings) {
-    const demotedSibling = markPlanPrimary(sibling, false);
-    const shouldPauseSibling = sibling.status === 'active';
-    const siblingUpdate = shouldPauseSibling
-      ? { status: 'paused', metadata: demotedSibling.metadata }
-      : { metadata: demotedSibling.metadata };
-    const mutation = await mutateWorkoutPlanRecord({
-      sequelize,
-      WorkoutPlan,
-      planId: sibling.id,
-      updates: siblingUpdate,
-      transaction,
-    });
-    updatedSiblings.push({ ...toPlainObject(mutation.plan), ...siblingUpdate });
-  }
-
-  return updatedSiblings;
-};
-
-const activateFreshWorkoutPlan = async (WorkoutPlan, freshPlan, transaction, requestedBy) => {
-  const nextFresh = { ...markPlanPrimary(freshPlan, true), status: 'active' };
-  const freshUpdate = { status: 'active', metadata: nextFresh.metadata };
-  const mutation = await mutateWorkoutPlanRecord({
-    sequelize,
-    WorkoutPlan,
-    planId: freshPlan.id,
-    updates: freshUpdate,
-    transaction,
-    pdfDerivativeIntent: {
-      requestedBy,
-      reason: 'activation',
-      promoteGenerated: true,
-    },
-  });
-  return { ...toPlainObject(mutation.plan), ...freshUpdate, pdfDerivative: mutation.pdfDerivative };
-};
-
-const buildActivatedPlanResponse = (updatedFresh, updatedSiblings) => {
-  const overview = buildClientTrainingOverview({
-    activePlan: updatedFresh,
-    plans: [updatedFresh, ...updatedSiblings],
-  });
-
-  return {
-    success: true,
-    plan: updatedFresh,
-    pdfDerivative: updatedFresh.pdfDerivative,
-    trainingPlanCatalog: overview.trainingPlanCatalog,
-  };
-};
-
-const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transaction, requestedBy) => {
-  await lockClientPlanRows(WorkoutPlan, targetPlan.userId, transaction);
-
-  const fresh = await WorkoutPlan.findByPk(targetPlan.id, { transaction });
-  if (!fresh) return null;
-
-  const siblings = await loadActivationSiblings(WorkoutPlan, fresh, transaction);
-  const updatedSiblings = await updateActivationSiblings(WorkoutPlan, siblings, transaction);
-  const updatedFresh = await activateFreshWorkoutPlan(WorkoutPlan, fresh, transaction, requestedBy);
-  return buildActivatedPlanResponse(updatedFresh, updatedSiblings);
-};
-
-const runActivateWorkoutPlanAttempt = async (WorkoutPlan, targetPlan, userId) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const payload = await activateWorkoutPlanInTransaction(WorkoutPlan, targetPlan, transaction, userId);
-    if (!payload) {
-      await transaction.rollback();
-      return { status: 404, body: { success: false, message: 'Plan not found' } };
-    }
-
-    await transaction.commit();
-    logger.info('[WorkoutPlan] Activated plan #%d for client %d (trainer %d)',
-      payload.plan.id, payload.plan.userId, userId);
-    return { status: 200, body: payload };
-  } catch (error) {
-    await transaction.rollback();
-    return { error };
-  }
-};
-
-const resolveActivateWorkoutPlanAttempt = (result, attempt) => {
-  if (!result.error) return result;
-  if (isUniqueViolation(result.error) && attempt < ACTIVATE_MAX_RETRIES) {
-    logger.warn('[WorkoutPlan] Activate race caught by unique index, retrying (attempt %d)', attempt);
-    return { retry: true };
-  }
-
-  logger.error('[WorkoutPlan] Activate error: %s', result.error.message);
-  return { status: 500, body: { success: false, message: 'Failed to activate plan' } };
-};
-
-const sendActivateWorkoutPlanResult = (res, result) => (
-  res.status(result.status).json(result.body)
-);
-
-// SECTION: PUT /api/workout-plans/:id/activate    (Plan Library slice)
-// PURPOSE: Make this plan the canonical "active" plan for its client.
-//          Demotes any sibling active plan(s) to 'paused' atomically.
-// ─────────────────────────────────────────────────────────────
-
 /**
- * Activate a plan as the client's current. Atomically demotes sibling
- * active plans to 'paused'.
- *
- * Concurrency strategy:
- *   1) Per-user row lock via `SELECT ... FOR UPDATE` serializes concurrent
- *      activates for the same client. Different clients don't lock each other.
- *   2) Partial unique index `workout_plans_one_active_per_user` is the DB-level
- *      backstop — any race that escapes the row lock raises SQLSTATE 23505.
- *   3) On 23505, retry up to ACTIVATE_MAX_RETRIES times before failing.
- *
- * @route PUT /api/workout-plans/:id/activate
+ * Apply an explicit audited lifecycle transition.
+ * @route POST /api/workout-plans/:id/status
  * @access Trainer (assigned client) / Admin
  */
-router.put('/:id/activate', protect, trainerOrAdminOnly,
+router.post(
+  '/:id/status',
+  protect,
+  trainerOrAdminOnly,
   verifyClientAccessByPlanId({ paramName: 'id' }),
-  // fallow-ignore-next-line complexity
-  async (req, res) => {
-    const WorkoutPlan = getWorkoutPlan();
-    const targetPlan = req.workoutPlan; // attached by middleware
+  workoutPlanStatusHandler,
+);
 
-    for (let attempt = 0; attempt <= ACTIVATE_MAX_RETRIES; attempt++) {
-      const result = await runActivateWorkoutPlanAttempt(WorkoutPlan, targetPlan, req.user.id);
-      const resolvedResult = resolveActivateWorkoutPlanAttempt(result, attempt);
-      if (resolvedResult.retry) continue;
-      return sendActivateWorkoutPlanResult(res, resolvedResult);
-    }
-});
+/** Legacy activation path retained on the canonical lifecycle service. */
+router.put(
+  '/:id/activate',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanActivateHandler,
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: POST /api/workout-plans/:id/duplicate    (Plan Library slice)
@@ -1039,40 +829,21 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlan
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: DELETE /api/workout-plans/:id
-// PURPOSE: Soft-delete by setting status to 'completed'
-// WHY: Never hard-delete user workout data (audit trail)
+// PURPOSE: Preserve compatibility while applying a real audited archive state.
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Soft-delete a workout plan (sets status to 'completed').
+ * Archive a workout plan without deleting its history or last PDF derivative.
  * @route DELETE /api/workout-plans/:id
  * @access Trainer/Admin
  */
-router.delete('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  try {
-    const mutation = await mutateWorkoutPlanRecord({
-      sequelize,
-      WorkoutPlan: getWorkoutPlan(),
-      planId: req.workoutPlan.id,
-      updates: { status: 'completed' },
-    });
-
-    logger.info('[WorkoutPlan] Soft-deleted plan #%d by user %d', mutation.plan.id, req.user.id);
-    return res.json({ success: true, message: 'Workout plan archived' });
-  } catch (error) {
-    const status = Number(error?.statusCode);
-    if (Number.isInteger(status) && status >= 400 && status < 500) {
-      return res.status(status).json({
-        success: false,
-        message: error.message,
-        ...(error.code ? { code: error.code } : {}),
-        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
-      });
-    }
-    logger.error('[WorkoutPlan] DELETE /:id error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to delete workout plan' });
-  }
-});
+router.delete(
+  '/:id',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanArchiveHandler,
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper Functions

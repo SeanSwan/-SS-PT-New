@@ -101,10 +101,22 @@ WorkoutPlan.init({
     comment: 'Total duration of the program in weeks'
   },
   status: {
-    type: DataTypes.ENUM('active', 'paused', 'completed', 'draft'),
+    type: DataTypes.ENUM('active', 'paused', 'completed', 'draft', 'archived'),
     defaultValue: 'active',
     allowNull: false,
     comment: 'Current plan status'
+  },
+  archivedAt: {
+    type: DataTypes.DATE,
+    field: 'archived_at',
+    allowNull: true,
+    comment: 'When this plan entered its terminal archived state'
+  },
+  archivedBy: {
+    type: DataTypes.INTEGER,
+    field: 'archived_by',
+    allowNull: true,
+    comment: 'Authorized staff user who archived this plan'
   },
   currentWeek: {
     type: DataTypes.INTEGER,

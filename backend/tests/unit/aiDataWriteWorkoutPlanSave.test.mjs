@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const harness = vi.hoisted(() => ({
   create: vi.fn(),
   storePdf: vi.fn(),
+  transitionLifecycle: vi.fn(),
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
@@ -22,6 +23,9 @@ vi.mock('../../models/index.mjs', () => ({
 }));
 vi.mock('../../services/workoutPlanPdfStorageService.mjs', () => ({
   storeWorkoutPlanPdf: harness.storePdf,
+}));
+vi.mock('../../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => harness.transitionLifecycle(...args),
 }));
 
 const { processAIDataUpdates } = await import('../../services/aiDataWriteService.mjs');
@@ -80,6 +84,10 @@ describe('aiDataWriteService save_workout_plan', () => {
       capture.plan = plan;
       return plan;
     });
+    harness.transitionLifecycle.mockImplementation(async () => ({
+      plan: { ...capture.plan, status: 'active' },
+      lifecycleReceipts: [],
+    }));
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -100,6 +108,7 @@ describe('aiDataWriteService save_workout_plan', () => {
       nasmPhase: 2,
       durationWeeks: 24,
       createdBy: 'swan_coach_planning',
+      status: 'draft',
       contentRevision: 1,
       contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
@@ -195,22 +204,17 @@ describe('aiDataWriteService save_workout_plan', () => {
     expect(serialized).toContain('swan_coach_planning');
   });
 
-  it('queues one protected derivative in the plan transaction without inline rendering', async () => {
-    vi.stubEnv('TRAINING_PLAN_PDF_DERIVATIVES', 'true');
+  it('delegates protected derivative creation to lifecycle activation', async () => {
     await save({ title: 'Six Month Strength Arc', durationWeeks: 24, planData: makePlanData(24) });
 
-    expect(capture.outbox).toBeTruthy();
-    expect(capture.outbox.transaction).toBe(capture.transaction);
-    expect(capture.outbox.replacements).toMatchObject({
+    expect(harness.transitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      transaction: capture.transaction,
       planId: 'plan-ai-1',
-      sourceRevision: 1,
-      sourceHash: capture.createdValues.contentHash,
-      promoteGenerated: true,
-      reason: 'ai_plan_save',
-    });
-    expect(capture.plan.pdfDerivative).toMatchObject({
-      enabled: true, id: 'job-ai-1', state: 'pending', sourceType: 'generated',
-    });
+      action: 'activate',
+      actorId: 7,
+      derivativeReason: 'ai_plan_save',
+    }));
+    expect(capture.outbox).toBeNull();
     expect(harness.storePdf).not.toHaveBeenCalled();
   });
 });

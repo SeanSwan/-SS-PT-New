@@ -4,7 +4,7 @@
  * Complements the planData privacy tests by proving adjacent WorkoutPlan JSONB
  * fields do not persist direct contact details through route write paths.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
@@ -31,9 +31,16 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
+const mockTransitionLifecycle = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
+  getWorkoutPlan: () => ({
+    findByPk: mockWorkoutPlanFindByPk,
+    findAll: mockWorkoutPlanFindAll,
+    findOne: mockWorkoutPlanFindOne,
+    create: mockWorkoutPlanCreate,
+  }),
   getModel: (name) => {
     if (name === 'ClientTrainerAssignment') return { findOne: mockAssignmentFindOne };
     if (name === 'DailyWorkoutForm') return { findAll: mockDailyWorkoutFormFindAll };
@@ -51,6 +58,10 @@ vi.mock('../models/index.mjs', () => ({
 
 vi.mock('../database.mjs', () => ({
   default: { transaction: (...args) => mockSequelizeTransaction(...args) },
+}));
+
+vi.mock('../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => mockTransitionLifecycle(...args),
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
@@ -96,6 +107,7 @@ const expectSanitizedJson = (value) => {
 describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('TRAINING_PLAN_PDF_DERIVATIVES', 'false');
     mockAssignmentFindOne.mockResolvedValue({ id: 'assign-1', status: 'active' });
     mockWorkoutPlanFindByPk.mockResolvedValue(null);
     mockWorkoutPlanFindAll.mockResolvedValue([]);
@@ -112,7 +124,13 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
         ? callback(mockTransactionInstance)
         : mockTransactionInstance
     ));
+    mockTransitionLifecycle.mockImplementation(async ({ planId, action }) => {
+      const plan = { id: planId, userId: 42, status: 'active', durationWeeks: 26, metadata: {} };
+      return { plan, plans: [plan], lifecycleReceipt: { planId, action } };
+    });
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('sanitizes progressNotes and metadata on POST /api/workout-plans', async () => {
     const res = await auth(request(app).post('/api/workout-plans')).send({
@@ -186,8 +204,6 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     expect(metadata).toMatchObject({
       planHorizon: 'six_month',
       assignmentDefault: 'trainer_session',
-      isPrimaryPlan: false,
-      primary: false,
       duplicatedFrom: 'plan-1',
     });
     expect(metadata.planPdf).toBeUndefined();
@@ -218,53 +234,16 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
       planPdf: { fileName: 'Six Month Plan.pdf' },
     });
   });
-  it('sanitizes primary metadata without changing locked-row content identities', async () => {
-    const targetUpdate = vi.fn().mockResolvedValue(undefined);
-    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-    const targetPlan = {
-      id: 'plan-9m',
-      userId: 42,
-      title: 'Nine Month Plan',
-      status: 'active',
-      planData: { weeks: [] },
-      contentRevision: 5,
-      contentHash: hashWorkoutPlanContent({ weeks: [] }),
-      metadata: unsafeMetadata(),
-      update: targetUpdate,
-    };
-    const siblingPlan = {
-      id: 'plan-6m',
-      userId: 42,
-      status: 'active',
-      planData: { weeks: [] },
-      contentRevision: 3,
-      contentHash: hashWorkoutPlanContent({ weeks: [] }),
-      metadata: unsafeMetadata(),
-      update: siblingUpdate,
-    };
-    mockWorkoutPlanFindByPk.mockImplementation(async (id) => (
-      id === 'plan-6m' ? siblingPlan : targetPlan
-    ));
-    mockWorkoutPlanFindAll.mockResolvedValue([siblingPlan]);
+  it('delegates primary compatibility requests without rewriting plan metadata', async () => {
+    mockWorkoutPlanFindByPk.mockResolvedValue({
+      id: 'plan-9m', userId: 42, status: 'paused', metadata: unsafeMetadata(),
+    });
 
     const res = await auth(request(app).put('/api/workout-plans/plan-9m/primary')).send({});
 
     expect(res.status).toBe(200);
-    const targetPayload = targetUpdate.mock.calls[0][0];
-    const siblingPayload = siblingUpdate.mock.calls[0][0];
-    expectSanitizedJson(targetPayload.metadata);
-    expectSanitizedJson(siblingPayload.metadata);
-    expect(targetPayload).toMatchObject({
-      contentRevision: 5,
-      contentHash: targetPlan.contentHash,
-      metadata: { isPrimaryPlan: true, primary: true },
-    });
-    expect(siblingPayload).toMatchObject({
-      contentRevision: 3,
-      contentHash: siblingPlan.contentHash,
-      metadata: { isPrimaryPlan: false, primary: false },
-    });
-    expect(targetUpdate.mock.calls[0][1]).toEqual({ transaction: mockTransactionInstance });
-    expect(siblingUpdate.mock.calls[0][1]).toEqual({ transaction: mockTransactionInstance });
+    expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      planId: 'plan-9m', action: 'activate', actorId: 7,
+    }));
   });
 });

@@ -26,6 +26,7 @@ import {
 } from './workoutPlanDataPrivacyService.mjs';
 import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
 import { createWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
+import { transitionWorkoutPlanLifecycle } from './workoutPlanLifecycleService.mjs';
 
 const DURATION_HORIZONS = PLAN_HORIZONS.filter((slot) => slot.key !== 'one_day');
 const AI_DATA_WRITE_FAILED_CODE = 'AI_DATA_WRITE_FAILED';
@@ -113,36 +114,11 @@ function normalizePlanNasmPhase(value) {
   return Math.max(1, Math.min(5, parsed));
 }
 
-const PRIMARY_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: true, primary: true });
-const DEMOTED_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: false, primary: false });
-
-function withTransactionOption(options, transaction) {
-  return transaction ? { ...options, transaction } : options;
-}
-
 async function runWorkoutPlanWriteTransaction(sequelize, work) {
   if (typeof sequelize?.transaction === 'function') {
     return sequelize.transaction((transaction) => work(transaction));
   }
   return work(null);
-}
-
-async function demoteActiveWorkoutPlansForClient(clientId, sequelize, transaction) {
-  await sequelize.query(
-    `UPDATE workout_plans
-     SET status = 'paused',
-         metadata = COALESCE(metadata, '{}'::jsonb) || :demotionMetadata::jsonb,
-         "updatedAt" = NOW()
-     WHERE "userId" = :clientId
-       AND status = 'active'`,
-    withTransactionOption({
-      replacements: {
-        clientId,
-        demotionMetadata: JSON.stringify(DEMOTED_WORKOUT_PLAN_METADATA),
-      },
-      type: sequelize.QueryTypes?.UPDATE,
-    }, transaction),
-  );
 }
 
 function sanitizeAiMacroNumber(value, fallback = 0) {
@@ -591,8 +567,6 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
   metadata.assignmentDefault = metadata.assignmentDefault || 'trainer_session';
   metadata.billingIntent = metadata.billingIntent || 'trainer_led_scheduled_flow';
   metadata.defaultShouldDeductSession = false;
-  Object.assign(metadata, PRIMARY_WORKOUT_PLAN_METADATA);
-
   const assignmentDefaults = (
     planData.assignmentDefaults
     && typeof planData.assignmentDefaults === 'object'
@@ -606,8 +580,7 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
 
   const WorkoutPlan = getWorkoutPlan();
   const plan = await runWorkoutPlanWriteTransaction(sequelize, async (transaction) => {
-    await demoteActiveWorkoutPlansForClient(clientId, sequelize, transaction);
-    return createWorkoutPlanRecord({
+    const draft = await createWorkoutPlanRecord({
       sequelize,
       WorkoutPlan,
       transaction,
@@ -620,7 +593,7 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
         startDate,
         endDate,
         durationWeeks,
-        status: 'active',
+        status: 'draft',
         currentWeek: 1,
         currentDay: 1,
         planData,
@@ -628,12 +601,17 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
         createdBy: 'swan_coach_planning',
         metadata,
       },
-      pdfDerivativeIntent: {
-        requestedBy: trainerId,
-        reason: 'ai_plan_save',
-        promoteGenerated: true,
-      },
     });
+    const activation = await transitionWorkoutPlanLifecycle({
+      sequelize,
+      WorkoutPlan,
+      transaction,
+      planId: draft.id,
+      action: 'activate',
+      actorId: trainerId,
+      derivativeReason: 'ai_plan_save',
+    });
+    return activation.plan;
   });
 
   logger.info('[AIDataWrite] Workout plan created for client %d by trainer %d: %s (%d weeks, phase %s)',

@@ -18,7 +18,10 @@ import { buildClientTrainingOverview } from '../services/clientTrainingReadModel
 import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingAssignmentPickerService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { toClientWorkoutHistoryRow as mapClientWorkoutHistoryRow } from '../services/clientWorkoutHistoryRowService.mjs';
-import { selectCurrentWorkoutPlan } from '../services/workoutPlanRouteHelpers.mjs';
+import {
+  normalizeWorkoutPlanId,
+  selectCurrentWorkoutPlan,
+} from '../services/workoutPlanRouteHelpers.mjs';
 import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 
 const router = express.Router();
@@ -193,9 +196,8 @@ router.get('/:userId/current', protect, async (req, res) => {
  */
 router.get('/:userId/plans/:planId', protect, async (req, res) => {
   try {
-    const planId = String(req.params.planId ?? '').trim();
-    const numericPlanId = Number(planId);
-    if (!/^\d+$/.test(planId) || !Number.isSafeInteger(numericPlanId) || numericPlanId <= 0) {
+    const planId = normalizeWorkoutPlanId(req.params.planId);
+    if (!planId) {
       return res.status(400).json({ success: false, message: 'Invalid plan id.' });
     }
 
@@ -213,7 +215,7 @@ router.get('/:userId/plans/:planId', protect, async (req, res) => {
     // Ownership is enforced in the QUERY (userId is part of the where clause),
     // so a foreign plan can never be loaded in the first place.
     const plan = await WorkoutPlan.findOne({
-      where: { id: numericPlanId, userId: clientId },
+      where: { id: planId, userId: clientId },
     });
 
     if (!plan) {

@@ -70,6 +70,7 @@ const mockSequelizeTransaction = vi.fn();
 const mockSequelizeQuery = vi.fn();
 const mockGenerateBackupPlan = vi.fn();
 const mockPromoteBackupPlan = vi.fn();
+const mockTransitionLifecycle = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
@@ -115,6 +116,10 @@ vi.mock('../services/backupPlanService.mjs', () => ({
   promoteBackupPlan: (...args) => mockPromoteBackupPlan(...args),
 }));
 
+vi.mock('../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => mockTransitionLifecycle(...args),
+}));
+
 vi.mock('../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -141,6 +146,18 @@ beforeEach(async () => {
   mockWorkoutPlanCreate.mockResolvedValue({ id: 'plan-copy-1' });
   mockSequelizeQuery.mockResolvedValue([[], { rowCount: 0 }]);
   mockDailyWorkoutFormFindAll.mockResolvedValue([]);
+  mockTransitionLifecycle.mockImplementation(async ({ planId, action }) => {
+    const status = action === 'archive' ? 'archived' : 'active';
+    const plan = {
+      id: planId, userId: 42, status, durationWeeks: 26, metadata: { planHorizon: 'six_month' },
+    };
+    return {
+      plan,
+      plans: [plan],
+      pdfDerivative: null,
+      lifecycleReceipt: { planId, action, toStatus: status },
+    };
+  });
   mockUserFindByPk.mockResolvedValue({
     id: 42,
     timeZone: 'America/Los_Angeles',
@@ -453,8 +470,8 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         },
         trainingPlanCatalog: {
           defaultHorizonKey: 'six_month',
-          primaryPlanId: 'plan-8w-draft',
-          primaryHorizonKey: 'three_month',
+          primaryPlanId: null,
+          primaryHorizonKey: null,
           filledHorizonKeys: ['three_month'],
         },
       });
@@ -464,7 +481,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           expect.objectContaining({
             horizonKey: 'three_month',
             isFilled: true,
-            isPrimary: true,
+            isPrimary: false,
             plan: expect.objectContaining({
               id: 'plan-8w-draft',
               horizonKey: 'three_month',
@@ -532,7 +549,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         },
       }));
       expect(res.body.todayAssignment).toMatchObject({
-        assignmentKey: 'plan-1:w1:d1:homework',
+        assignmentKey: expect.stringMatching(/^plan-1:w1:d1:\d{4}-\d{2}-\d{2}:o1:r1$/),
         status: 'completed',
         isLoggable: false,
         ctaLabel: 'Review Workout',
@@ -783,7 +800,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .send({ status: 'active' });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/activate endpoint/i);
+      expect(res.body.message).toMatch(/status endpoint/i);
       expect(update).not.toHaveBeenCalled();
     });
 
@@ -946,16 +963,9 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       });
     });
 
-    it('trainer + assigned plan DELETE /:id archives through the locked mutation boundary', async () => {
-      const update = vi.fn().mockResolvedValue(undefined);
+    it('trainer + assigned plan DELETE /:id archives through the audited lifecycle boundary', async () => {
       mockWorkoutPlanFindByPk.mockResolvedValue({
-        id: 'plan-1',
-        userId: 42,
-        title: 'Archive Me',
-        status: 'draft',
-        planData: { weeks: [] },
-        metadata: {},
-        update,
+        id: 'plan-1', userId: 42, title: 'Archive Me', status: 'draft',
       });
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
 
@@ -965,29 +975,16 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .set('x-test-user-role', 'trainer');
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith({
-        status: 'completed',
-        contentRevision: 1,
-        contentHash: hashWorkoutPlanContent({ weeks: [] }),
-      }, { transaction: mockTransactionInstance });
-      expect(mockWorkoutPlanFindByPk).toHaveBeenLastCalledWith('plan-1', {
-        transaction: mockTransactionInstance,
-        lock: 'UPDATE',
-      });
-    });
-    it('trainer + assigned plan DELETE /:id returns 404 when the authorized row disappears', async () => {
-      const update = vi.fn().mockResolvedValue(undefined);
-      const authorizedPlan = {
-        id: 'plan-1',
-        userId: 42,
-        status: 'draft',
-        planData: { weeks: [] },
-        update,
-      };
-      mockWorkoutPlanFindByPk
-        .mockResolvedValueOnce(authorizedPlan)
-        .mockResolvedValueOnce(null);
+      expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+        planId: 'plan-1', action: 'archive', actorId: 7,
+      }));
+      expect(res.body.plan).toMatchObject({ id: 'plan-1', status: 'archived' });
+    });    it('trainer + assigned plan DELETE /:id returns a safe lifecycle 404', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({ id: 'plan-1', userId: 42, status: 'draft' });
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      mockTransitionLifecycle.mockRejectedValueOnce(Object.assign(new Error('gone'), {
+        code: 'WORKOUT_PLAN_NOT_FOUND', statusCode: 404,
+      }));
 
       const res = await request(app)
         .delete('/api/workout-plans/plan-1')
@@ -996,9 +993,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toMatchObject({ code: 'WORKOUT_PLAN_NOT_FOUND' });
-      expect(update).not.toHaveBeenCalled();
-    });
-    it('trainer + assigned plan PUT /:id/pdf renames an existing protected PDF without replacing existing metadata', async () => {
+    });    it('trainer + assigned plan PUT /:id/pdf renames an existing protected PDF without replacing existing metadata', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
         id: 'plan-1',
@@ -1371,35 +1366,23 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.headers['x-content-type-options']).toBe('nosniff');
     });
 
-    it('trainer + assigned plan PUT /:id/primary preserves locked-row content identities', async () => {
-      const targetUpdate = vi.fn().mockResolvedValue(undefined);
-      const siblingUpdate = vi.fn().mockResolvedValue(undefined);
-      const targetPlan = {
-        id: 'plan-9m',
-        userId: 42,
-        title: 'Nine Month Plan',
-        status: 'active',
-        planData: { weeks: [] },
-        contentRevision: 5,
-        contentHash: hashWorkoutPlanContent({ weeks: [] }),
-        metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, primary: false, painAware: true },
-        update: targetUpdate,
-      };
-      const siblingPlan = {
-        id: 'plan-6m',
-        userId: 42,
-        status: 'active',
-        planData: { weeks: [] },
-        contentRevision: 3,
-        contentHash: hashWorkoutPlanContent({ weeks: [] }),
-        metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
-        update: siblingUpdate,
-      };
-      mockWorkoutPlanFindByPk.mockImplementation(async (id) => (
-        id === 'plan-6m' ? siblingPlan : targetPlan
-      ));
-      mockWorkoutPlanFindAll.mockResolvedValue([siblingPlan]);
+    it('trainer + assigned plan PUT /:id/primary delegates to audited activation', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-9m', userId: 42, status: 'paused',
+      });
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      mockTransitionLifecycle.mockResolvedValueOnce({
+        plan: {
+          id: 'plan-9m', userId: 42, status: 'active', durationWeeks: 39,
+          metadata: { planHorizon: 'nine_month' },
+        },
+        plans: [{
+          id: 'plan-9m', userId: 42, status: 'active', durationWeeks: 39,
+          metadata: { planHorizon: 'nine_month' },
+        }],
+        pdfDerivative: null,
+        lifecycleReceipt: { planId: 'plan-9m', action: 'activate', toStatus: 'active' },
+      });
 
       const res = await request(app)
         .put('/api/workout-plans/plan-9m/primary')
@@ -1407,25 +1390,13 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .set('x-test-user-role', 'trainer');
 
       expect(res.status).toBe(200);
-      expect(mockSequelizeTransaction).toHaveBeenCalledOnce();
-      expect(targetUpdate).toHaveBeenCalledWith({
-        metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, primary: true, painAware: true },
-        contentRevision: 5,
-        contentHash: targetPlan.contentHash,
-      }, { transaction: mockTransactionInstance });
-      expect(siblingUpdate).toHaveBeenCalledWith({
-        metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
-        contentRevision: 3,
-        contentHash: siblingPlan.contentHash,
-      }, { transaction: mockTransactionInstance });
-      expect(mockTransactionInstance.commit).toHaveBeenCalledOnce();
-      expect(mockTransactionInstance.rollback).not.toHaveBeenCalled();
+      expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+        planId: 'plan-9m', action: 'activate', actorId: 7,
+      }));
       expect(res.body.trainingPlanCatalog).toMatchObject({
-        primaryPlanId: 'plan-9m',
-        primaryHorizonKey: 'nine_month',
+        primaryPlanId: 'plan-9m', primaryHorizonKey: 'nine_month',
       });
-    });
-    it('trainer + assigned plan POST /:id/duplicate preserves plan-use metadata without copying stale PDF or primary state', async () => {
+    });    it('trainer + assigned plan POST /:id/duplicate preserves plan-use metadata without copying stale PDF or primary state', async () => {
       mockWorkoutPlanFindByPk.mockResolvedValue({
         id: 'plan-1',
         userId: 42,
@@ -1480,8 +1451,6 @@ describe('workoutPlanRoutes — mounted route stack', () => {
             assignmentDefault: 'trainer_session',
             billingIntent: 'trainer_led_scheduled_flow',
             defaultShouldDeductSession: false,
-            isPrimaryPlan: false,
-            primary: false,
             duplicatedFrom: 'plan-1',
           },
         }),

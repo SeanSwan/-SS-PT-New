@@ -32,7 +32,7 @@ describe('clientTrainingReadModelService assignment context', () => {
     }).todayAssignment;
 
     expect(assignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentKey: 'plan-6m:w4:d2:2026-06-06:o1:r1',
       assignmentType: 'homework',
       sessionType: 'solo',
       status: 'planned',
@@ -77,7 +77,7 @@ describe('clientTrainingReadModelService assignment context', () => {
     });
 
     expect(overview.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-trainer-led:w4:d2:trainer_session',
+      assignmentKey: 'plan-trainer-led:w4:d2:2026-06-06:o1:r1',
       assignmentType: 'trainer_session',
       sessionType: 'trainer-led',
       isLoggable: false,
@@ -115,7 +115,7 @@ describe('clientTrainingReadModelService assignment context', () => {
     });
 
     expect(overview.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-legacy-training:w4:d2:trainer_session',
+      assignmentKey: 'plan-legacy-training:w4:d2:2026-06-06:o1:r1',
       assignmentType: 'trainer_session',
       sessionType: 'trainer-led',
       isLoggable: false,
@@ -170,7 +170,7 @@ describe('clientTrainingReadModelService assignment context', () => {
     });
 
     expect(overview.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentKey: 'plan-6m:w4:d2:2026-06-06:o1:r1',
       assignmentType: 'homework',
       status: 'completed',
       isLoggable: false,

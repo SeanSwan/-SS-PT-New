@@ -28,6 +28,7 @@ const fixtures = vi.hoisted(() => {
     createWorkoutPlanRecord: vi.fn(),
     mutateWorkoutPlanRecord: vi.fn(),
     generatePlan: vi.fn(),
+    transitionLifecycle: vi.fn(),
   };
 });
 
@@ -47,6 +48,9 @@ vi.mock('../../services/workoutBuilderService.mjs', () => ({
 vi.mock('../../services/workoutPlanMutationService.mjs', () => ({
   createWorkoutPlanRecord: (...args) => fixtures.createWorkoutPlanRecord(...args),
   mutateWorkoutPlanRecord: (...args) => fixtures.mutateWorkoutPlanRecord(...args),
+}));
+vi.mock('../../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => fixtures.transitionLifecycle(...args),
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
@@ -188,60 +192,70 @@ const persistenceFixture = () => {
   };
 };
 
-describe('AI persistence WorkoutPlan mutation wiring', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+describe('AI persistence WorkoutPlan lifecycle wiring', () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  it('creates the normalized parent row through the canonical boundary', async () => {
+  it('creates a draft parent then activates it through the audited boundary', async () => {
     const { transaction, plan, models } = persistenceFixture();
-    const created = { id: 'ai-plan-1' };
-    fixtures.WorkoutPlan.findAll.mockResolvedValue([]);
+    const created = { id: '6ea7806d-36c8-4307-bd5d-6b04b68be849' };
+    const activated = { ...created, status: 'active' };
+    const sequelize = { query: vi.fn() };
     fixtures.createWorkoutPlanRecord.mockResolvedValue(created);
+    fixtures.transitionLifecycle.mockResolvedValue({ plan: activated, lifecycleReceipts: [] });
 
     const result = await persistWorkoutPlan({
       plan,
       userId: 7,
+      actorId: 3,
+      sequelize,
       models,
       transaction,
     });
 
-    expect(fixtures.createWorkoutPlanRecord).toHaveBeenCalledWith(expect.objectContaining({
+    const createInput = fixtures.createWorkoutPlanRecord.mock.calls[0][0];
+    expect(createInput).toMatchObject({
       WorkoutPlan: fixtures.WorkoutPlan,
       transaction,
       values: expect.objectContaining({
         userId: 7,
-        status: 'active',
+        status: 'draft',
         planData: expect.objectContaining({ weeks: expect.any(Array) }),
       }),
-    }));
-    expect(result.workoutPlan).toBe(created);
-  });
-
-  it('locks and demotes an active parent through the canonical boundary', async () => {
-    const { transaction, plan, models } = persistenceFixture();
-    const active = {
-      id: 'active-plan',
-      contentRevision: 4,
-      metadata: { isPrimaryPlan: true, retained: true },
-    };
-    fixtures.WorkoutPlan.findAll.mockResolvedValue([active]);
-    fixtures.mutateWorkoutPlanRecord.mockResolvedValue({ plan: active });
-    fixtures.createWorkoutPlanRecord.mockResolvedValue({ id: 'ai-plan-2' });
-
-    await persistWorkoutPlan({ plan, userId: 7, models, transaction });
-
-    expect(fixtures.WorkoutPlan.findAll).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 7, status: 'active' },
-      transaction,
-      lock: 'UPDATE',
-    }));
-    expect(fixtures.mutateWorkoutPlanRecord).toHaveBeenCalledWith(expect.objectContaining({
+    });
+    expect(createInput.values.metadata).not.toHaveProperty('isPrimaryPlan');
+    expect(createInput.values.metadata).not.toHaveProperty('primary');
+    expect(fixtures.transitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      sequelize,
       WorkoutPlan: fixtures.WorkoutPlan,
       transaction,
-      planId: active.id,
-      expectedRevision: 4,
-      updates: expect.any(Function),
+      planId: created.id,
+      action: 'activate',
+      actorId: 3,
+      derivativeReason: 'ai_generated_plan_save',
     }));
+    expect(result.workoutPlan).toBe(activated);
+  });
+
+  it('uses coach-approved derivative provenance without a second demotion path', async () => {
+    const { transaction, plan, models } = persistenceFixture();
+    const created = { id: 'b9e0e94c-a081-4556-a81b-35977cf177a2' };
+    fixtures.createWorkoutPlanRecord.mockResolvedValue(created);
+    fixtures.transitionLifecycle.mockResolvedValue({ plan: { ...created, status: 'active' } });
+
+    await persistWorkoutPlan({
+      plan,
+      userId: 7,
+      actorId: 3,
+      sequelize: { query: vi.fn() },
+      models,
+      transaction,
+      tags: ['ai_generated', 'coach_approved'],
+    });
+
+    expect(fixtures.transitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      derivativeReason: 'coach_approved_plan_save',
+    }));
+    expect(fixtures.WorkoutPlan.findAll).not.toHaveBeenCalled();
+    expect(fixtures.mutateWorkoutPlanRecord).not.toHaveBeenCalled();
   });
 });

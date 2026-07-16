@@ -36,6 +36,8 @@ const { applyPlanEditProposal } = await import(
   '../../services/ai/coachPlanEditApprovalService.mjs'
 );
 
+const PLAN_ID = '6ea7806d-36c8-4307-bd5d-6b04b68be849';
+
 const item = {
   id: 'sets-1',
   weekNumber: 1,
@@ -47,7 +49,7 @@ const item = {
 };
 
 const buildPlan = () => ({
-  id: 71,
+  id: PLAN_ID,
   userId: 42,
   contentRevision: 6,
   contentHash: 'a'.repeat(64),
@@ -72,7 +74,7 @@ const buildInput = (plan) => {
     input: {
       proposal: {
         payload: {
-          planId: 71,
+          planId: PLAN_ID,
           clientId: 42,
           items: [item],
         },
@@ -97,15 +99,15 @@ describe('coach plan edit mutation wiring', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      result: { planId: 71, clientId: 42, appliedCount: 1 },
+      result: { planId: PLAN_ID, clientId: 42, appliedCount: 1 },
     });
     expect(WorkoutPlan.findOne).toHaveBeenCalledWith({
-      where: { id: 71, userId: 42 },
+      where: { id: PLAN_ID, userId: 42 },
     });
     expect(fixtures.mutateWorkoutPlanRecord).toHaveBeenCalledWith(expect.objectContaining({
       sequelize: fixtures.sequelize,
       WorkoutPlan,
-      planId: 71,
+      planId: PLAN_ID,
       expectedRevision: 6,
       updates: expect.objectContaining({
         planData: expect.any(Object),
