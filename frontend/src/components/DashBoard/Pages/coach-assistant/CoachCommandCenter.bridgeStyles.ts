@@ -21,6 +21,7 @@ import { coachCommandOwnerControlsStyles } from './CoachCommandCenter.ownerContr
 import { coachCommandPresenceStyles } from './CoachCommandCenter.presenceStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 import { coachCommandThreadHeaderStyles } from './CoachCommandCenter.threadHeaderStyles';
+import { coachCommandVoiceStripStyles } from './CoachCommandCenter.voiceStripStyles';
 
 export const coachCommandBridgeStyles = css`
   .bridge-shell {
@@ -293,5 +294,6 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandOpsMissionStyles}
   ${coachCommandCrystallineFocusStyles}
   ${coachCommandBridgeMobileDockStyles}
+  ${coachCommandVoiceStripStyles}
   ${coachCommandPresenceStyles}
 `;

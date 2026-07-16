@@ -1,8 +1,13 @@
 /**
  * FILE: CoachCommandCenter.bridgeMobileDockStyles.ts
- * PURPOSE: Mobile-first overrides that keep Floor Mode reachable and thumb-sized.
- * Device-matrix aware: notch-side safe areas + a short-viewport (iPhone SE
- * class, P10/P12 buckets) chat-height fix so the dock never overflows.
+ * PURPOSE: Mobile-first overrides — the chat thread owns the viewport.
+ *
+ * Codex-chat baseline (NEXT-CHAT W3): one compact header band, a single-line
+ * status strip, and a one-row composer, so the transcript keeps the majority
+ * of a phone screen. Device-matrix aware: notch-side safe areas, a
+ * short-viewport tier, and a visualViewport keyboard inset
+ * (--coach-kb-inset, set by useCoachKeyboardInset) so the dock is never
+ * hidden behind the iOS keyboard.
  */
 
 import { css } from 'styled-components';
@@ -18,7 +23,7 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .bridge-shell.is-chat-tab {
-      height: max(480px, calc(100dvh - 200px - env(safe-area-inset-bottom)));
+      height: max(420px, calc(100dvh - 200px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
     }
 
     .bridge-shell.is-workspace-tab {
@@ -34,13 +39,21 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .client-bar {
-      border-radius: 18px;
+      border-radius: 16px;
       grid-template-columns: minmax(0, 1fr) auto;
-      padding: 12px;
+      padding: 8px 10px;
     }
 
     .client-bar-tools {
       flex-wrap: nowrap;
+    }
+
+    .now-label {
+      font-size: 11px;
+    }
+
+    .client-name {
+      font-size: clamp(17px, 4.6vw, 20px);
     }
 
     .new-client-button span,
@@ -60,13 +73,13 @@ export const coachCommandBridgeMobileDockStyles = css`
       gap: 4px;
       grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       overflow: visible;
-      padding: 4px;
+      padding: 3px;
     }
 
     .tab-button {
-      font-size: 13px;
+      font-size: 12px;
       justify-content: center;
-      min-height: 48px;
+      min-height: 44px;
       min-width: 0;
       padding: 0 8px;
       white-space: normal;
@@ -74,7 +87,7 @@ export const coachCommandBridgeMobileDockStyles = css`
 
     .tab-scroll {
       padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
-      scroll-padding-bottom: max(120px, var(--mobile-dock-space, 160px));
+      scroll-padding-bottom: max(96px, var(--mobile-dock-space, 132px));
       scroll-padding-top: 96px;
     }
 
@@ -90,73 +103,50 @@ export const coachCommandBridgeMobileDockStyles = css`
         var(--coach-bg) 100%
       );
       bottom: 0;
-      gap: 8px;
+      gap: 6px;
       margin: 0 -2px;
-      padding: 8px 0 max(10px, env(safe-area-inset-bottom));
+      padding: 6px 0 max(8px, env(safe-area-inset-bottom));
       position: sticky;
       z-index: 24;
     }
 
     .next-action-chip {
-      min-height: 46px;
+      min-height: 44px;
       padding: 0 12px;
     }
 
     .dock-form {
-      border-radius: 20px;
+      border-radius: 18px;
       box-shadow: 0 18px 50px color-mix(in srgb, var(--coach-bg) 78%, transparent);
-      gap: 8px;
-      padding: 10px;
+      gap: 6px;
+      padding: 8px;
     }
 
     .dock-textarea {
       font-size: 16px;
       max-height: 112px;
-      min-height: 52px;
+      min-height: 48px;
       padding: 12px;
     }
 
-    .dock-primary-row {
-      gap: 8px;
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .dock-safety-stack {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .dock-trust-pill,
-    .dock-next-pill {
-      max-width: 100%;
-      min-height: 30px;
-    }
-
-    .dock-status {
-      flex-basis: auto;
-      font-size: 13px;
-      min-height: 16px;
-      max-width: 100%;
-    }
-
-    .dock-main-actions {
-      gap: 7px;
+    .dock-composer-row {
+      gap: 6px;
     }
 
     .dock-more,
     .dock-mic,
     .dock-send {
-      height: 54px;
-      min-height: 54px;
-      min-width: 54px;
-      width: 54px;
+      height: 48px;
+      min-height: 48px;
+      min-width: 48px;
+      width: 48px;
     }
 
     .dock-more-menu {
       bottom: calc(100% + 8px);
+      left: 0;
       min-width: min(244px, calc(100vw - 24px));
-      right: 0;
+      right: auto;
     }
   }
 
@@ -178,73 +168,29 @@ export const coachCommandBridgeMobileDockStyles = css`
       padding: 6px;
     }
 
-    .dock-more-menu {
-      left: 0;
-      right: auto;
-    }
-
-    .dock-next-pill,
-    .dock-status {
+    .dock-trust {
       display: none;
-    }
-
-    .dock-primary-row {
-      grid-template-columns: 1fr;
-    }
-
-    .dock-main-actions {
-      justify-content: flex-end;
-    }
-
-    .dock-more,
-    .dock-mic,
-    .dock-send {
-      height: 52px;
-      min-height: 52px;
-      min-width: 52px;
-      width: 52px;
     }
   }
   /* The matrix phone tier owns usable floor-mode geometry. The dashboard shell
-     starts below the 56px site header, so 132px reserves the remaining mobile
+     starts below the 56px site header, so ~120px reserves the remaining mobile
      controls + breathing room without double-counting that header. */
   ${media.phone} {
     .bridge-shell {
       gap: 6px;
     }
 
-    .client-bar {
-      padding: 10px;
-    }
-
     .bridge-shell.is-chat-tab {
-      height: max(480px, calc(100dvh - 132px - env(safe-area-inset-bottom)));
-    }
-
-    .dock-safety-stack {
-      align-items: center;
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      width: 100%;
-    }
-
-    .dock-next-pill {
-      min-width: 0;
-    }
-
-    .dock-status {
-      flex-basis: auto;
-      grid-column: 1 / -1;
+      height: max(420px, calc(100dvh - 124px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
     }
   }
 
-  /* Short phones (SE class 667px tall, P10/P12 buckets, landscape): a
-     480px minimum chat column + ~200px chrome overflows the viewport —
-     let the transcript own the remaining height instead. */
+  /* Short phones (SE class 667px tall, P10/P12 buckets, landscape): let the
+     transcript own the remaining height instead of a fixed floor. */
   ${media.shortViewport(700)} and (max-width: ${PHONE_MAX_WIDTH}px) and (pointer: coarse) {
     .bridge-shell.is-chat-tab {
-      height: calc(100dvh - 104px - env(safe-area-inset-bottom));
-      min-height: 320px;
+      height: calc(100dvh - 100px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px));
+      min-height: 300px;
     }
   }
 `;

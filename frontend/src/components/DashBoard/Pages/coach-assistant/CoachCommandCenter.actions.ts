@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, MouseEvent, MutableRefObject, RefObject, SetStateAction } from 'react';
 import type { ConversationSummary, useAIChat } from '../../../../hooks/useAIChat';
-import { createQuickCoachCommandClient, type CoachCommandClientSource } from '../../../../services/coachCommandClientService';
+import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
+import { createQuickClientSubmitAction } from './CoachCommandCenter.quickClientAction';
 import {
   commandCancelledBody,
   commandLaneErrorBody,
@@ -19,7 +20,6 @@ import {
 import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
-import { buildCommandLogAccessHandoff, commandLogAccessHandoffAttachment, commandLogAccessHandoffIntro } from './CoachCommandCenter.accessHandoff';
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
@@ -123,45 +123,17 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     focusComposer();
   };
 
-  const handleQuickClientSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    const fullName = props.quickClientName.trim();
-    if (!fullName) {
-      props.setQuickClientError('Client name is required.');
-      props.setQuickClientMessage(null);
-      return;
-    }
-
-    props.setQuickClientBusy(true);
-    props.setQuickClientError(null);
-    props.setQuickClientMessage(null);
-    try {
-      const result = await createQuickCoachCommandClient({ fullName, clientSource: props.quickClientSource });
-      const createdName = [result.client.firstName, result.client.lastName].filter(Boolean).join(' ') || fullName;
-      const accessHandoff = buildCommandLogAccessHandoff({ result, createdName, fallbackClientSource: props.quickClientSource });
-      const status = `${createdName} - client ready`;
-      props.setQuickClientName('');
-      props.setQuickClientMessage(`${createdName} is ready for review-gated follow-up. No workout log was written.`);
-      addLog({
-        actor: 'system',
-        label: 'client added',
-        body: `${createdName} is ready for staged audio/workout review. ${commandLogAccessHandoffIntro(accessHandoff)}No workout log was written and final writes still require operator approval.`,
-        attachments: [commandLogAccessHandoffAttachment(accessHandoff)],
-        accessHandoff,
-      });
-      props.setSelectedStatus(status);
-      void props.coachQueue.refresh();
-    } catch (error: any) {
-      props.setQuickClientError(error?.message || 'Client could not be added.');
-      addLog({
-        actor: 'system',
-        label: 'client add failed',
-        body: 'Quick client add failed. No client or workout write was completed from the command rail.',
-      });
-    } finally {
-      props.setQuickClientBusy(false);
-    }
-  };
+  const handleQuickClientSubmit = createQuickClientSubmitAction({
+    addLog,
+    coachQueue: props.coachQueue,
+    quickClientName: props.quickClientName,
+    quickClientSource: props.quickClientSource,
+    setQuickClientBusy: props.setQuickClientBusy,
+    setQuickClientError: props.setQuickClientError,
+    setQuickClientMessage: props.setQuickClientMessage,
+    setQuickClientName: props.setQuickClientName,
+    setSelectedStatus: props.setSelectedStatus,
+  });
 
   const submitCoachMessage = async (trimmed: string) => {
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });

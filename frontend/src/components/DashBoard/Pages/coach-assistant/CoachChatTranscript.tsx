@@ -18,6 +18,7 @@ type CoachChatTranscriptProps = {
   activeThread: ConversationSummary | null;
   clientFacing?: boolean;
   logs: CommandLogEntry[];
+  nextActionLabel?: string | null;
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
   onReset: () => void;
@@ -48,6 +49,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   activeThread,
   clientFacing = false,
   logs,
+  nextActionLabel,
   onCancelCommand,
   onConfirmCommand,
   onRetryMessage,
@@ -96,6 +98,11 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
             <strong>Talk to Swan Coach</strong>
             <p>Example: Log today's workout: bench 4x8 at 185.</p>
             <span className="transcript-empty-safe">Nothing saves until you confirm.</span>
+            {nextActionLabel ? (
+              <span className="transcript-empty-next" role="status" aria-label="Recommended coach action">
+                Next: {nextActionLabel}
+              </span>
+            ) : null}
             {onSuggestedPrompt ? (
               <div className="transcript-empty-actions" aria-label="Suggested coach prompts">
                 {suggestedPrompts.map(({ label, prompt }) => (

@@ -17,6 +17,7 @@ import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import { resolveCoachPresenceState } from './coachPresenceState';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
+import { useCoachKeyboardInset } from './hooks/useCoachKeyboardInset';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
@@ -62,6 +63,7 @@ const CoachCommandCenterPage: React.FC = () => {
     rightRailRef: commandCenter.rightRailRef,
     shellRef: commandCenter.shellRef,
   });
+  useCoachKeyboardInset(commandCenter.shellRef);
 
   const nextActionLabel = isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
@@ -140,15 +142,11 @@ const CoachCommandCenterPage: React.FC = () => {
   };
   const handleReviewIntakeFromDock = () => { openIntakeReview(); commandCenter.handleReviewIntake(); };
 
-  const handleAccountControlsToggle = () => {
-    setAccountControlsOpen((current) => !current);
-  };
+  const handleAccountControlsToggle = () => setAccountControlsOpen((current) => !current);
 
   const handleOpenIntakeFromOps = () => { openIntakeReview(); commandCenter.closeDrawer(false); };
 
-  const handleTabChange = (tab: CoachTab) => {
-    setActiveTab(coerceCoachTabForRole(tab, userRole));
-  };
+  const handleTabChange = (tab: CoachTab) => setActiveTab(coerceCoachTabForRole(tab, userRole));
 
   return (
     <CommandBridgeShell
@@ -184,6 +182,7 @@ const CoachCommandCenterPage: React.FC = () => {
                 activeThread={commandCenter.activeThread}
                 clientFacing={isClientMode}
                 logs={commandCenter.logs}
+                nextActionLabel={nextActionLabel}
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}
                 onReset={commandCenter.resetLogs}
@@ -234,7 +233,6 @@ const CoachCommandCenterPage: React.FC = () => {
             commandFormRef={commandCenter.commandFormRef}
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
-            nextActionLabel={nextActionLabel}
             notebook={commandCenter.notebook}
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}

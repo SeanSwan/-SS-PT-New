@@ -51,9 +51,8 @@ export const coachCommandNotebookStyles = css`
     border-color: color-mix(in srgb, var(--coach-gold) 44%, var(--coach-line-strong));
   }
 
-  .dock-form.is-notebook .dock-trust-pill {
-    background: color-mix(in srgb, var(--coach-gold) 18%, transparent);
-    border-color: color-mix(in srgb, var(--coach-gold) 44%, transparent);
+  .dock-form.is-notebook .dock-trust {
+    color: color-mix(in srgb, var(--coach-gold) 88%, var(--coach-text));
   }
 
   @media (max-width: 720px) {
