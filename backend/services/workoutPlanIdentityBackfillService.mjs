@@ -11,7 +11,7 @@
  * bounded parity scan.
  * HOW IT FITS IN THE APP: Nullable expand migration -> data backfill migration ->
  * later non-null contract migration after a live parity receipt.
- * KEY DECISIONS: An integer-primary-key cursor locks every historical row, including
+ * KEY DECISIONS: A UUID-primary-key cursor locks every historical row, including
  * well-formed stale hashes; a second full scan makes partial repairs fail closed.
  * NASM PROTOCOL CONTEXT: Every historical prescription receives a stable identity
  * before completion receipts and derivative provenance depend on it.
@@ -133,7 +133,7 @@ const repairNextBatch = ({ sequelize, batchSize, cursor, hashContent }) => (
     return {
       scanned: rows.length,
       repaired,
-      lastCursor: rows.length > 0 ? Number(rows.at(-1).id) : cursor,
+      lastCursor: rows.length > 0 ? rows.at(-1).id : cursor,
     };
   })
 );
@@ -167,7 +167,7 @@ const verifyAllRows = async ({ sequelize, batchSize, hashContent }) => {
 
     for (const row of rows) verifyStoredIdentity({ row, hashContent });
     verified += rows.length;
-    cursor = Number(rows.at(-1).id);
+    cursor = rows.at(-1).id;
   }
 };
 

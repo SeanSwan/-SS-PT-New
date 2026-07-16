@@ -70,13 +70,13 @@ describe('WorkoutPlan content identity backfill', () => {
   it('repairs every identity mismatch in bounded locks and verifies all hashes twice', async () => {
     const rows = [
       {
-        id: 1,
+        id: '11111111-1111-4111-8111-111111111111',
         planData,
         contentRevision: null,
         contentHash: null,
       },
       {
-        id: 2,
+        id: '22222222-2222-4222-8222-222222222222',
         planData: { ...planData, completedAt: 'volatile' },
         contentRevision: 4,
         contentHash: 'b'.repeat(64),
@@ -115,6 +115,8 @@ describe('WorkoutPlan content identity backfill', () => {
     expect(repairSql).not.toContain('id::text');
     expect(repairSql).not.toContain('content_hash !~');
     expect(repairSql).not.toContain('SKIP LOCKED');
+    const repairCalls = sequelize.query.mock.calls.filter(([sql]) => sql.includes('FOR UPDATE'));
+    expect(repairCalls[1][1].replacements.cursor).toBe(rows[1].id);
     expect(updateSql).not.toContain('"updatedAt" = "updatedAt"');
     expect(sequelize.transaction).toHaveBeenCalledTimes(2);
     expect(updates).toHaveLength(2);
@@ -132,7 +134,7 @@ describe('WorkoutPlan content identity backfill', () => {
 
   it('scans valid identities without issuing a redundant update', async () => {
     const row = {
-      id: 4,
+      id: '44444444-4444-4444-8444-444444444444',
       planData,
       contentRevision: 3,
       contentHash: hashWorkoutPlanContent(planData),
@@ -150,7 +152,7 @@ describe('WorkoutPlan content identity backfill', () => {
 
   it('fails verification when stored identity changes after the repair pass', async () => {
     const verificationRows = [{
-      id: 5,
+      id: '55555555-5555-4555-8555-555555555555',
       planData,
       contentRevision: 2,
       contentHash: 'c'.repeat(64),
@@ -163,7 +165,7 @@ describe('WorkoutPlan content identity backfill', () => {
 
   it('fails before writing when the hash function is not deterministic', async () => {
     const rows = [{
-      id: 3,
+      id: '33333333-3333-4333-8333-333333333333',
       planData,
       contentRevision: null,
       contentHash: null,

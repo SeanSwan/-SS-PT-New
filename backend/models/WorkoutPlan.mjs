@@ -17,7 +17,7 @@
  * KEY DECISIONS:
  *   - JSONB planData instead of normalized child tables: simpler for AI to
  *     read/write entire programs in one shot, avoids N+1 queries
- *   - INTEGER PK (not UUID) to match Users FK pattern across the codebase
+ *   - UUID PK matches the live original table and prevents sequential enumeration
  *   - underscored: true + explicit field mappings for snake_case DB columns
  *
  * NASM PROTOCOL CONTEXT:
