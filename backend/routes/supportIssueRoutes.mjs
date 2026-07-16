@@ -8,7 +8,7 @@
  */
 import express from "express";
 import { z } from "zod";
-import { protect } from "../middleware/authMiddleware.mjs";
+import { protect, rateLimiter } from "../middleware/authMiddleware.mjs";
 import {
   SUPPORT_ISSUE_CATEGORIES,
   SUPPORT_ISSUE_SEVERITIES,
@@ -31,6 +31,7 @@ const issueSelector = z
   .max(64)
   .regex(/^[A-Za-z0-9-]+$/);
 const createSchema = z.object({
+  clientRequestId: z.string().uuid(),
   category: z.enum(SUPPORT_ISSUE_CATEGORIES),
   severity: z.enum(SUPPORT_ISSUE_SEVERITIES).default("medium"),
   source: z.enum(SUPPORT_ISSUE_SOURCES).default("text"),
@@ -50,6 +51,16 @@ const listSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 const replySchema = z.object({ body: z.string().trim().min(1).max(8000) });
+const supportIssueCreateLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Too many support reports were sent. Please wait and try again.",
+});
+const supportIssueReplyLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: "Too many follow-up messages were sent. Please wait and try again.",
+});
 
 function validationFailure(res, error) {
   return res.status(422).json({
@@ -70,7 +81,7 @@ function serviceFailure(res, error) {
   });
 }
 
-router.post("/", async (req, res) => {
+router.post("/", supportIssueCreateLimiter, async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return validationFailure(res, parsed.error);
   try {
@@ -112,7 +123,7 @@ router.get("/:issueId", async (req, res) => {
   }
 });
 
-router.post("/:issueId/replies", async (req, res) => {
+router.post("/:issueId/replies", supportIssueReplyLimiter, async (req, res) => {
   const issueId = issueSelector.safeParse(req.params.issueId);
   const body = replySchema.safeParse(req.body);
   if (!issueId.success) return validationFailure(res, issueId.error);

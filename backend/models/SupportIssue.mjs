@@ -7,7 +7,7 @@
  * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
  * ============================================================================
  */
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Op } from "sequelize";
 import sequelize from "../database.mjs";
 import {
   SUPPORT_ISSUE_CATEGORIES,
@@ -32,6 +32,7 @@ SupportIssue.init(
       validate: { is: /^SWR-\d{8}-[A-F0-9]{8}$/ },
     },
     reporterUserId: { type: DataTypes.INTEGER, allowNull: false },
+    clientRequestId: { type: DataTypes.UUID, allowNull: false },
     assignedOwnerUserId: { type: DataTypes.INTEGER, allowNull: true },
     duplicateOfIssueId: { type: DataTypes.UUID, allowNull: true },
     category: {
@@ -67,8 +68,16 @@ SupportIssue.init(
       allowNull: false,
       validate: { len: [10, 8000] },
     },
-    expectedBehavior: { type: DataTypes.TEXT, allowNull: true },
-    impact: { type: DataTypes.TEXT, allowNull: true },
+    expectedBehavior: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: { len: [0, 4000] },
+    },
+    impact: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: { len: [0, 4000] },
+    },
     reproductionSteps: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -79,7 +88,11 @@ SupportIssue.init(
       allowNull: false,
       defaultValue: {},
     },
-    resolutionSummary: { type: DataTypes.TEXT, allowNull: true },
+    resolutionSummary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: { len: [0, 4000] },
+    },
     lastActivityAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -98,11 +111,28 @@ SupportIssue.init(
     indexes: [
       {
         name: "support_issues_reporter_created_idx",
-        fields: ["reporter_user_id", "created_at"],
+        fields: [
+          "reporter_user_id",
+          { name: "created_at", order: "DESC" },
+        ],
+      },
+      {
+        name: "support_issues_reporter_request_key",
+        unique: true,
+        fields: ["reporter_user_id", "client_request_id"],
       },
       {
         name: "support_issues_owner_queue_idx",
-        fields: ["status", "severity", "last_activity_at"],
+        fields: [
+          "status",
+          "severity",
+          { name: "last_activity_at", order: "DESC" },
+        ],
+        where: { status: { [Op.ne]: "closed" } },
+      },
+      {
+        name: "support_issues_assignee_status_idx",
+        fields: ["assigned_owner_user_id", "status"],
       },
     ],
   },

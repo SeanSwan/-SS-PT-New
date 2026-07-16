@@ -23,6 +23,7 @@ module.exports = {
           "  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),",
           "  reference_code TEXT NOT NULL CONSTRAINT support_issues_reference_code_key UNIQUE CHECK (reference_code ~ '^SWR-[0-9]{8}-[A-F0-9]{8}$'),",
           '  reporter_user_id INTEGER NOT NULL REFERENCES "Users"(id) ON DELETE RESTRICT,',
+          "  client_request_id UUID NOT NULL,",
           '  assigned_owner_user_id INTEGER REFERENCES "Users"(id) ON DELETE SET NULL,',
           "  duplicate_of_issue_id UUID REFERENCES support_issues(id) ON DELETE SET NULL,",
           "  category TEXT NOT NULL CHECK (category IN ('bug','error','access','billing','workout','account','performance','usability','content','other')),",
@@ -68,6 +69,10 @@ module.exports = {
         { transaction },
       );
       await queryInterface.sequelize.query(
+        "CREATE UNIQUE INDEX support_issues_reporter_request_key ON support_issues (reporter_user_id, client_request_id)",
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
         "CREATE INDEX support_issues_owner_queue_idx ON support_issues (status, severity, last_activity_at DESC) WHERE status NOT IN ('closed')",
         { transaction },
       );
@@ -83,6 +88,25 @@ module.exports = {
         "CREATE INDEX support_issue_events_actor_created_idx ON support_issue_events (actor_user_id, created_at)",
         { transaction },
       );
+      await queryInterface.sequelize.query(
+        [
+          "CREATE OR REPLACE FUNCTION prevent_support_issue_event_mutation()",
+          "RETURNS TRIGGER AS $$",
+          "BEGIN",
+          "  RAISE EXCEPTION 'support_issue_events is append-only' USING ERRCODE = '55000';",
+          "END;",
+          "$$ LANGUAGE plpgsql",
+        ].join("\n"),
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
+        [
+          "CREATE TRIGGER support_issue_events_append_only",
+          "BEFORE UPDATE OR DELETE ON support_issue_events",
+          "FOR EACH ROW EXECUTE FUNCTION prevent_support_issue_event_mutation()",
+        ].join("\n"),
+        { transaction },
+      );
     });
   },
 
@@ -94,6 +118,10 @@ module.exports = {
       );
       await queryInterface.sequelize.query(
         "DROP TABLE IF EXISTS support_issues",
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
+        "DROP FUNCTION IF EXISTS prevent_support_issue_event_mutation()",
         { transaction },
       );
     });

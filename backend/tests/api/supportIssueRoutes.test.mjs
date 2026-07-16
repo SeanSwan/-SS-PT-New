@@ -27,6 +27,7 @@ vi.mock("../../middleware/authMiddleware.mjs", () => ({
     req.user = { id: 42, role: "client", email: "reporter@example.com" };
     next();
   },
+  rateLimiter: () => (_req, _res, next) => next(),
 }));
 
 vi.mock("../../middleware/supportOwnerOnly.mjs", () => ({
@@ -36,7 +37,19 @@ vi.mock("../../middleware/supportOwnerOnly.mjs", () => ({
   },
 }));
 
-vi.mock("../../services/support/supportIssueService.mjs", () => service);
+vi.mock("../../services/support/supportIssueService.mjs", () => ({
+  createSupportIssue: service.createSupportIssue,
+  listReporterIssues: service.listReporterIssues,
+  getReporterIssue: service.getReporterIssue,
+  addReporterReply: service.addReporterReply,
+}));
+vi.mock("../../services/support/supportIssueOwnerService.mjs", () => ({
+  listOwnerIssues: service.listOwnerIssues,
+  getOwnerIssue: service.getOwnerIssue,
+  updateOwnerIssue: service.updateOwnerIssue,
+  addOwnerIssueEvent: service.addOwnerIssueEvent,
+  getIssueRepairPrompt: service.getIssueRepairPrompt,
+}));
 
 const { default: supportIssueRoutes } =
   await import("../../routes/supportIssueRoutes.mjs");
@@ -65,6 +78,7 @@ describe("reporter issue routes", () => {
       .post("/api/support/issues")
       .send({
         reporterUserId: 999,
+        clientRequestId: "11111111-1111-4111-8111-111111111111",
         category: "workout",
         severity: "high",
         source: "text",
@@ -182,6 +196,27 @@ describe("owner issue routes", () => {
       issueId: "issue-1",
       actorUserId: 7,
       changes: { status: "in_progress", severity: "critical" },
+    });
+  });
+
+  it("accepts a human-readable receipt when marking an issue duplicate", async () => {
+    service.updateOwnerIssue.mockResolvedValue({ id: "issue-1", status: "duplicate" });
+
+    await request(makeApp())
+      .patch("/api/admin/support/issues/issue-1")
+      .send({
+        status: "duplicate",
+        duplicateOfReferenceCode: "SWR-20260715-A1B2C3D4",
+      })
+      .expect(200);
+
+    expect(service.updateOwnerIssue).toHaveBeenCalledWith({
+      issueId: "issue-1",
+      actorUserId: 7,
+      changes: {
+        status: "duplicate",
+        duplicateOfReferenceCode: "SWR-20260715-A1B2C3D4",
+      },
     });
   });
 

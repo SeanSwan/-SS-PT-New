@@ -64,6 +64,22 @@ function eventType(previousStatus, nextStatus) {
   return "triage_updated";
 }
 
+export async function resolveDuplicateReference({
+  changes,
+  findIssueByReference,
+}) {
+  const { duplicateOfReferenceCode, ...persistedChanges } = changes;
+  if (duplicateOfReferenceCode === undefined) return persistedChanges;
+  const target = await findIssueByReference(duplicateOfReferenceCode);
+  if (!target) {
+    throw new SupportIssueWorkflowError(
+      "SUPPORT_DUPLICATE_REFERENCE_NOT_FOUND",
+      "The duplicate report receipt could not be found.",
+    );
+  }
+  return { ...persistedChanges, duplicateOfIssueId: target.id };
+}
+
 export function buildSupportTriageMutation({
   issue,
   changes,

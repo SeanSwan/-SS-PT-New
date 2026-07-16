@@ -22,7 +22,7 @@ import {
   getOwnerIssue,
   listOwnerIssues,
   updateOwnerIssue,
-} from "../services/support/supportIssueService.mjs";
+} from "../services/support/supportIssueOwnerService.mjs";
 
 const router = express.Router();
 router.use(protect, requireSupportOwner);
@@ -53,8 +53,17 @@ const updateSchema = z
     severity: optionalEnum(SUPPORT_ISSUE_SEVERITIES),
     assignedOwnerUserId: z.number().int().positive().nullable().optional(),
     duplicateOfIssueId: z.string().uuid().nullable().optional(),
+    duplicateOfReferenceCode: z
+      .string()
+      .trim()
+      .regex(/^SWR-\d{8}-[A-F0-9]{8}$/)
+      .optional(),
     resolutionSummary: z.string().trim().max(4000).nullable().optional(),
   })
+  .refine(
+    (value) => !(value.duplicateOfIssueId && value.duplicateOfReferenceCode),
+    { message: "Choose one duplicate target." },
+  )
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one triage change is required.",
   });
@@ -137,6 +146,24 @@ router.post("/:issueId/notes", async (req, res) => {
   }
 });
 
+router.post("/:issueId/replies", async (req, res) => {
+  const issueId = issueSelector.safeParse(req.params.issueId);
+  const reply = noteSchema.safeParse(req.body);
+  if (!issueId.success) return validationFailure(res, issueId.error);
+  if (!reply.success) return validationFailure(res, reply.error);
+  try {
+    const event = await addOwnerIssueEvent({
+      issueId: issueId.data,
+      actorUserId: req.user.id,
+      eventType: "owner_reply",
+      visibility: "reporter",
+      body: reply.data.body,
+    });
+    return res.status(201).json({ success: true, event });
+  } catch (error) {
+    return serviceFailure(res, error);
+  }
+});
 router.get("/:issueId/repair-prompt", async (req, res) => {
   const parsed = issueSelector.safeParse(req.params.issueId);
   if (!parsed.success) return validationFailure(res, parsed.error);

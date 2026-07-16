@@ -284,6 +284,10 @@ const UserDashboardV3 = lazyLoadWithErrorHandling(
   () => import('../components/UserDashboard/UserDashboard.V3'),
   'User Dashboard'
 );
+const SupportReportRoomPage = lazyLoadWithErrorHandling(
+  () => import('../pages/support/SupportReportRoomPage'),
+  'Report Room'
+);
 
 // Preserves the tab segment when redirecting /social/:tab -> /user-dashboard/:tab.
 // Workstream O: the feed tab folded into Home (its widgets were duplicates;
@@ -392,7 +396,7 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    
+
     // Account Claiming (Crystalline Link Protocol — public, no auth required)
     {
       path: 'claim/:token',
@@ -484,7 +488,7 @@ const MainRoutes: RouteObject = {
       path: 'theme-showcase',
       element: <Navigate to="/" replace />
     },
-    
+
     // 🏔️ ASCENSION — Tier comparison / pricing page
     {
       path: 'ascension',
@@ -520,7 +524,7 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    
+
     // Testing routes redirect to main production store
     {
       path: 'store-original',
@@ -534,7 +538,7 @@ const MainRoutes: RouteObject = {
       path: 'store-simple',
       element: <Navigate to="/store" replace />
     },
-    
+
     // Redirect old routes
     {
       path: 'galaxy-store',
@@ -552,7 +556,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/supplements',
       element: <Navigate to="/store" replace />
     },
-    
+
     // Keep product detail route
     {
       path: 'shop/product/:id',
@@ -562,7 +566,7 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    
+
 
     {
       path: 'food-scanner',
@@ -665,13 +669,13 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    
+
     // Debug store redirects to main production store
     {
       path: 'debug-store',
       element: <Navigate to="/store" replace />
     },
-    
+
     // GENESIS CHECKOUT SYSTEM ROUTES
     {
       path: 'checkout',
@@ -707,7 +711,7 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    
+
     // Protected Client Routes — redirect old routes to unified dashboard
     {
       path: 'client-dashboard',
@@ -727,13 +731,25 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    
+
     // Trainer Dashboard Routes — redirect old routes to unified dashboard
     {
       path: 'trainer-dashboard/*',
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
-    
+
+    // Canonical authenticated Report Room — shared across client, trainer, and admin roles.
+    {
+      path: 'support',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SupportReportRoomPage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
       // Workstream N (2026-06-11): /user-dashboard is the canonical home and
       // mounts the V3 Observatory directly. Its feed tab carries the absorbed
       // /social hub (cover studio + composer + full feed + coach dock + right
@@ -758,7 +774,7 @@ const MainRoutes: RouteObject = {
           </ProtectedRoute>
         )
       },
-    
+
     // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT
     {
       path: 'gamification',
@@ -782,7 +798,7 @@ const MainRoutes: RouteObject = {
       path: 'leaderboard',
       element: <Navigate to="/gamification" replace />
     },
-    
+
     // User Profile Route — resolves /profile/:userId for social navigation
     {
       path: 'profile/:userId',
@@ -831,7 +847,7 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    
+
     // Admin Style Guide Route
     {
       path: 'style-guide',
@@ -855,7 +871,7 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     }] : []),
-    
+
     // Phase 3 Slice 3.13: PLAUD multi-clip merge — admin/trainer only.
     // Mounted BEFORE the dashboard/* catch-all so React Router matches this
     // exact path first and routes to PlaudMergePage instead of falling through
@@ -893,12 +909,12 @@ const MainRoutes: RouteObject = {
           )
         }]
       : []),
-    
+
     {
       path: 'training-packages',
       element: <Navigate to="/store" replace />
     },
-    
+
     // Schedule Route - Primary UniversalMasterSchedule (switched from emergency 2026-02-14)
     // Falls back to EmergencyAdminScheduleIntegration if chunk fails to load
     {
@@ -911,7 +927,7 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    
+
     // Fallback Route (404) — a real page, not a silent redirect home.
     // The silent redirect made broken deep links indistinguishable from
     // "the app sent me home" and masked dead-route regressions.

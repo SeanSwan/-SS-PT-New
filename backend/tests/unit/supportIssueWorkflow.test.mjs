@@ -7,7 +7,10 @@
  * ============================================================================
  */
 import { describe, expect, it } from "vitest";
-import { buildSupportTriageMutation } from "../../services/support/supportIssueWorkflow.mjs";
+import {
+  buildSupportTriageMutation,
+  resolveDuplicateReference,
+} from "../../services/support/supportIssueWorkflow.mjs";
 
 const NOW = new Date("2026-07-16T18:00:00.000Z");
 const ISSUE_ID = "11111111-1111-4111-8111-111111111111";
@@ -23,6 +26,33 @@ function issue(overrides = {}) {
     ...overrides,
   };
 }
+
+describe("resolveDuplicateReference", () => {
+  it("resolves a human-readable receipt to its internal issue id", async () => {
+    const changes = await resolveDuplicateReference({
+      changes: {
+        status: "duplicate",
+        duplicateOfReferenceCode: "SWR-20260715-A1B2C3D4",
+      },
+      findIssueByReference: async () => ({ id: DUPLICATE_ID }),
+    });
+
+    expect(changes).toEqual({
+      status: "duplicate",
+      duplicateOfIssueId: DUPLICATE_ID,
+    });
+  });
+
+  it("rejects an unknown duplicate receipt with a stable 422 error", async () => {
+    await expect(resolveDuplicateReference({
+      changes: { duplicateOfReferenceCode: "SWR-20260715-A1B2C3D4" },
+      findIssueByReference: async () => null,
+    })).rejects.toMatchObject({
+      code: "SUPPORT_DUPLICATE_REFERENCE_NOT_FOUND",
+      statusCode: 422,
+    });
+  });
+});
 
 describe("buildSupportTriageMutation", () => {
   it("requires a resolution summary before resolving or closing an issue", () => {

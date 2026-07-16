@@ -64,6 +64,25 @@ describe("Report Room schema contract", () => {
     expect(migration).toMatch(/CHECK.*category|category.*CHECK/s);
   });
 
+  it("keeps model validators and named indexes aligned with the migration", () => {
+    const issueModel = readRequired(files.issueModel);
+    const eventModel = readRequired(files.eventModel);
+
+    expect(issueModel).toContain('support_issues_assignee_status_idx');
+    expect(issueModel).toContain('where: { status: { [Op.ne]: "closed" } }');
+    expect(issueModel).toContain('{ name: "last_activity_at", order: "DESC" }');
+    expect(issueModel.match(/validate: \{ len: \[0, 4000\] \}/g)).toHaveLength(3);
+    expect(eventModel).toContain('support_issue_events_actor_created_idx');
+    expect(eventModel).toContain('validate: { len: [0, 8000] }');
+  });
+
+  it("keeps reporter and owner service modules below the 300-line cap", () => {
+    const reporterService = readRequired(resolve(backendRoot, "services/support/supportIssueService.mjs"));
+    const ownerService = readRequired(resolve(backendRoot, "services/support/supportIssueOwnerService.mjs"));
+    expect(reporterService.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(ownerService.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
+
   it("defines append-only reporter-visible and owner-only issue history", () => {
     const model = readRequired(files.eventModel);
     const migration = readRequired(files.migration);
@@ -80,6 +99,9 @@ describe("Report Room schema contract", () => {
     expect(model).toContain("visibility");
     expect(model).toContain("eventType");
     expect(migration).toContain("support_issue_events_issue_created_idx");
+    expect(migration).toContain("support_issue_events_append_only");
+    expect(migration).toMatch(/BEFORE UPDATE OR DELETE ON support_issue_events/);
+    expect(migration).toContain("DROP FUNCTION IF EXISTS prevent_support_issue_event_mutation()");
   });
 
   it("registers both models in the centralized association cache", () => {

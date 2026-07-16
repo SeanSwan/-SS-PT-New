@@ -16,12 +16,12 @@ import device from '../../styles/breakpoints';
 // Styled components
 const CompactFooterContainer = styled.footer`
   width: 100%;
-  background: rgba(15, 12, 41, 0.8);
+  background: var(--surface-obsidian, rgba(20, 20, 25, 0.88));
   backdrop-filter: blur(10px);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, #B8C7D9);
   padding: 12px 24px;
   font-size: 0.8rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -43,7 +43,7 @@ const Copyright = styled.div`
   gap: 6px;
   
   svg {
-    color: #60C0F0;
+    color: var(--ice-wing, #60C0F0);
     font-size: 0.8rem;
   }
 `;
@@ -58,13 +58,21 @@ const FooterLinks = styled.div`
 `;
 
 const FooterLink = styled(Link)`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, #B8C7D9);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 200ms ease;
   font-size: 0.8rem;
   
   &:hover {
-    color: #60C0F0;
+    color: var(--ice-wing, #60C0F0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--wing-purple, #8B5CF6);
+    outline-offset: 2px;
   }
 `;
 
@@ -78,7 +86,7 @@ const CompactFooter: React.FC = () => {
       <FooterLinks>
         <FooterLink to="/privacy">Privacy</FooterLink>
         <FooterLink to="/terms">Terms</FooterLink>
-        <FooterLink to="/help">Help</FooterLink>
+        <FooterLink to="/support">Report a problem</FooterLink>
       </FooterLinks>
     </CompactFooterContainer>
   );

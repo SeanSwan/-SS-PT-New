@@ -28,6 +28,7 @@ export type ClientDashboardTarget =
   | 'coach'
   | 'sessions'
   | 'profile'
+  | 'support'
   | 'nutrition'
   | 'challenges'
   | 'notifications'

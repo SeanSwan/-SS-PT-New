@@ -36,7 +36,11 @@ SupportIssueEvent.init(
       allowNull: false,
       validate: { isIn: [SUPPORT_EVENT_VISIBILITIES] },
     },
-    body: { type: DataTypes.TEXT, allowNull: true },
+    body: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: { len: [0, 8000] },
+    },
     metadata: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
   },
   {
@@ -51,7 +55,10 @@ SupportIssueEvent.init(
         name: "support_issue_events_issue_created_idx",
         fields: ["issue_id", "created_at"],
       },
-      { fields: ["actor_user_id", "created_at"] },
+      {
+        name: "support_issue_events_actor_created_idx",
+        fields: ["actor_user_id", "created_at"],
+      },
     ],
     hooks: {
       beforeUpdate: rejectMutation,

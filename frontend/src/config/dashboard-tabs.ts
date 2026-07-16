@@ -515,6 +515,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'coach', section: 'command', label: 'Coach Command Center', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Review-gated Swan Coach intake, drafts, and operator approvals' },
   { id: 'home', section: 'command', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
   { id: 'messages', section: 'command', label: 'Messages', icon: 'Mail', prefix: '/dashboard/admin/messages', description: 'Client and trainer messaging hub' },
+  { id: 'report-room', section: 'command', label: 'Report Room', icon: 'MessageCircle', prefix: '/dashboard/admin/support', description: 'Private issue inbox, triage, replies, and repair prompts' },
 
   // ── CLIENTS & OPS — client lifecycle and scheduling ──
   // canonical-surface-audit 2026-04-13 (Phase 6 production hotfix),
