@@ -17,6 +17,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { hashWorkoutPlanContent } from '../../services/workoutPlanRevisionService.mjs';
 
 const fixtures = vi.hoisted(() => ({
   WorkoutPlan: {
@@ -24,6 +25,9 @@ const fixtures = vi.hoisted(() => ({
     findByPk: vi.fn(),
   },
   mutateWorkoutPlanRecord: vi.fn(),
+  WorkoutPlanCompletionReceipt: {
+    findOrCreate: vi.fn(async ({ defaults }) => [{ id: 'receipt-lifecycle', ...defaults }, true]),
+  },
   sequelize: {
     transaction: vi.fn(),
   },
@@ -34,7 +38,10 @@ vi.mock('../../database.mjs', () => ({
 }));
 
 vi.mock('../../models/index.mjs', () => ({
-  getAllModels: () => ({ WorkoutPlan: fixtures.WorkoutPlan }),
+  getAllModels: () => ({
+    WorkoutPlan: fixtures.WorkoutPlan,
+    WorkoutPlanCompletionReceipt: fixtures.WorkoutPlanCompletionReceipt,
+  }),
 }));
 
 vi.mock('../../services/workoutPlanMutationService.mjs', async (importOriginal) => ({
@@ -51,36 +58,44 @@ const { dispatchDeleteWorkoutPlan } = await import(
 
 const transaction = { LOCK: { UPDATE: 'UPDATE' } };
 
-const buildPlan = (overrides = {}) => ({
-  id: 'plan-lifecycle',
-  userId: 42,
-  trainerId: 3,
-  status: 'active',
-  currentWeek: 1,
-  currentDay: 1,
-  contentRevision: 4,
-  contentHash: 'a'.repeat(64),
-  planData: {
-    weeks: [{
-      weekNumber: 1,
-      days: [
-        { dayNumber: 1, exercises: [{ exerciseName: 'Goblet Squat' }] },
-        { dayNumber: 2, exercises: [] },
-      ],
-    }],
-  },
-  update: vi.fn(),
-  ...overrides,
-});
+const buildPlan = (overrides = {}) => {
+  const plan = {
+    id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
+    userId: 42,
+    trainerId: 3,
+    status: 'active',
+    currentWeek: 1,
+    currentDay: 1,
+    contentRevision: 4,
+    planData: {
+      weeks: [{
+        weekNumber: 1,
+        days: [
+          { dayNumber: 1, exercises: [{ exerciseName: 'Goblet Squat' }] },
+          { dayNumber: 2, exercises: [] },
+        ],
+      }],
+    },
+    update: vi.fn(),
+    ...overrides,
+  };
+  plan.contentHash = overrides.contentHash ?? hashWorkoutPlanContent(plan.planData);
+  return plan;
+};
 
 const assignment = {
   source: 'workout_plan',
   assignmentType: 'homework',
   isBillable: false,
   shouldDeductSession: false,
-  planId: 'plan-lifecycle',
+  planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
   weekNumber: 1,
   dayNumber: 1,
+  assignmentId: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w1:d1:2026-07-15:o1:r4',
+  assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w1:d1:2026-07-15:o1:r4',
+  scheduledDate: '2026-07-15',
+  occurrenceIndex: 1,
+  prescribedRevision: 4,
 };
 
 describe('workout plan lifecycle mutation wiring', () => {
@@ -95,6 +110,7 @@ describe('workout plan lifecycle mutation wiring', () => {
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan: fixtures.WorkoutPlan,
+      WorkoutPlanCompletionReceipt: fixtures.WorkoutPlanCompletionReceipt,
       assignment,
       clientId: 42,
       dailyWorkoutFormId: 'daily-form-1',

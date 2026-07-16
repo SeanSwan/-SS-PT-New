@@ -25,6 +25,7 @@ import {
   getWorkoutLog,
   getWorkoutSession,
   getWorkoutPlan,
+  getWorkoutPlanCompletionReceipt,
   getSession,
   getSessionType,
   getClientTrainerAssignment,
@@ -1096,6 +1097,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const planProgress = plannedAssignmentMetadata
       ? await advancePlanAfterPlannedAssignmentLog({
           WorkoutPlan: getWorkoutPlan(),
+          WorkoutPlanCompletionReceipt: getWorkoutPlanCompletionReceipt(),
           assignment: plannedAssignmentMetadata,
           clientId: parsedClientId,
           dailyWorkoutFormId: dailyForm.id,

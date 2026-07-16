@@ -214,6 +214,7 @@ export async function submitAiWorkoutLogAsDailyForm({
       ? null
       : await advanceAiPlannedAssignmentAfterLog({
         WorkoutPlan: models.WorkoutPlan,
+        WorkoutPlanCompletionReceipt: models.WorkoutPlanCompletionReceipt,
         assignment: plannedAssignmentMetadata,
         clientId: parsedClientId,
         dailyWorkoutFormId: dailyForm.id,

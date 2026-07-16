@@ -14,6 +14,7 @@ import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionS
 import { buildCompletedAssignmentFromLoggedCompletion } from './clientTrainingCompletedAssignmentReadService.mjs';
 import { buildHomeworkSummary } from './clientTrainingHomeworkSummaryService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
+import { buildWorkoutPlanAssignmentIdentity } from './workoutPlanAssignmentIdentityService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const toPositiveInteger = (value, fallback = null) => {
@@ -220,9 +221,6 @@ const isAssignmentLoggable = ({ exerciseCount, status, type }) => {
   return exerciseCount > 0 && status !== 'completed' && type !== 'rest';
 };
 
-const assignmentKeyFor = ({ planId, weekNumber, dayNumber, type }) => (
-  planId ? `${planId}:w${weekNumber || 1}:d${dayNumber || 1}:${type}` : null
-);
 
 const buildTodayAssignment = ({
   plan = null,
@@ -242,11 +240,15 @@ const buildTodayAssignment = ({
   const sessionType = type === 'trainer_session' ? 'trainer-led' : 'solo';
   const weekNumber = toPositiveInteger(currentSession?.weekNumber, rawPlan.currentWeek || null);
   const dayNumber = toPositiveInteger(currentSession?.dayNumber, rawPlan.currentDay || null);
-  const assignmentKey = assignmentKeyFor({ planId: rawPlan.id, weekNumber, dayNumber, type });
+  const assignmentIdentity = buildWorkoutPlanAssignmentIdentity({
+    planId: rawPlan.id, weekNumber, dayNumber, assignmentType: type,
+    scheduledDate: normalizeDateOnly(today),
+    occurrenceIndex: toPositiveInteger(currentSession?.occurrenceIndex, 1),
+    prescribedRevision: toPositiveInteger(rawPlan.contentRevision, 1),
+  });
 
   const assignment = {
-    assignmentId: assignmentKey,
-    assignmentKey,
+    ...assignmentIdentity,
     assignmentType: type,
     sessionType,
     status,
@@ -255,7 +257,6 @@ const buildTodayAssignment = ({
     isBillable: type === 'trainer_session',
     shouldDeductSession: type === 'trainer_session' && session.shouldDeductSession === true,
     title: assignmentTitle(rawPlan, currentSession, type),
-    scheduledDate: normalizeDateOnly(today),
     weekNumber,
     dayNumber,
     dayLabel: currentSession?.dayLabel || session.dayLabel || session.name || null,

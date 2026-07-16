@@ -9,6 +9,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -30,6 +31,10 @@ const mockWorkoutLogBulkCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockCompletionReceiptFindOrCreate = vi.fn(async ({ defaults }) => [
+  { id: 'receipt-route', ...defaults },
+  true,
+]);
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: vi.fn() }),
@@ -43,6 +48,7 @@ vi.mock('../models/index.mjs', () => ({
     findOne: mockWorkoutPlanFindOne,
     findByPk: mockWorkoutPlanFindByPk,
   }),
+  getWorkoutPlanCompletionReceipt: () => ({ findOrCreate: mockCompletionReceiptFindOrCreate }),
   getSession: () => ({ findByPk: vi.fn() }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
   getTrainerPermissions: () => ({ findOne: vi.fn() }),
@@ -100,8 +106,8 @@ const payload = {
   ],
   sessionNotes: 'Logged from homework assignment',
   plannedAssignment: {
-    assignmentKey: 'plan-6m:w4:d2:homework',
-    planId: 'plan-6m',
+    assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:homework',
+    planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
     assignmentType: 'homework',
     source: 'workout_plan',
     isBillable: false,
@@ -111,8 +117,9 @@ const payload = {
   },
 };
 
-const buildActivePlan = () => ({
-  id: 'plan-6m',
+const buildActivePlan = () => {
+  const plan = {
+  id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
   userId: 11,
   title: 'Six Month Foundation',
   status: 'active',
@@ -139,7 +146,11 @@ const buildActivePlan = () => ({
     ],
   },
   update: mockWorkoutPlanUpdate,
-});
+  };
+  plan.contentRevision = 4;
+  plan.contentHash = hashWorkoutPlanContent(plan.planData);
+  return plan;
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -175,7 +186,7 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(res.status).toBe(201);
     expect(mockUserDecrement).not.toHaveBeenCalled();
     expect(mockWorkoutPlanFindOne).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'plan-6m', userId: 11, status: 'active' },
+      where: { id: '6ea7806d-36c8-4307-bd5d-6b04b68be849', userId: 11, status: 'active' },
     }));
     const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
     expect(mockWorkoutLogDestroy).toHaveBeenCalledWith({
@@ -196,8 +207,11 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     }));
     expect(formCreate.sessionDeducted).toBe(false);
     expect(formCreate.formData.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
-      planId: 'plan-6m',
+      assignmentKey: `6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:${payload.date}:o1:r4`,
+      planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
+      scheduledDate: payload.date,
+      occurrenceIndex: 1,
+      prescribedRevision: 4,
       assignmentType: 'homework',
       source: 'workout_plan',
       isBillable: false,
@@ -276,7 +290,7 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       ...payload,
       plannedAssignment: {
         ...payload.plannedAssignment,
-        assignmentKey: 'plan-6m:w9:d9:homework',
+        assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w9:d9:homework',
       },
     });
 

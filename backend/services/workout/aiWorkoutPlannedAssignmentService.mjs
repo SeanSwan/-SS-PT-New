@@ -91,6 +91,7 @@ export async function resolveAiPlannedAssignmentForLog({
 
 export async function advanceAiPlannedAssignmentAfterLog({
   WorkoutPlan,
+  WorkoutPlanCompletionReceipt,
   assignment,
   clientId,
   dailyWorkoutFormId,
@@ -102,6 +103,7 @@ export async function advanceAiPlannedAssignmentAfterLog({
   if (!assignment) return null;
   return advancePlanAfterPlannedAssignmentLog({
     WorkoutPlan,
+    WorkoutPlanCompletionReceipt,
     assignment,
     clientId,
     dailyWorkoutFormId,

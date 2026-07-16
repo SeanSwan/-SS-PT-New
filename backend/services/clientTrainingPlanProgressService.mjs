@@ -1,5 +1,9 @@
 import sequelize from '../database.mjs';
 import { mutateWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
+import {
+  assertWorkoutPlanCompletionReceiptBoundary,
+  createWorkoutPlanCompletionReceipt,
+} from './workoutPlanCompletionReceiptService.mjs';
 
 /**
  * Client Training Plan Progress Service
@@ -174,6 +178,7 @@ export const advancePlanDataCursor = ({
   return {
     advanced: true,
     planData,
+    prescribedEntry: context.entry,
     planCompleted,
     previous: { week: weekNumber, day: dayNumber },
     next: planCompleted ? null : { week: nextWeek, day: nextDay },
@@ -182,6 +187,7 @@ export const advancePlanDataCursor = ({
 
 export const advancePlanAfterPlannedAssignmentLog = async ({
   WorkoutPlan,
+  WorkoutPlanCompletionReceipt,
   assignment,
   clientId,
   dailyWorkoutFormId,
@@ -201,6 +207,7 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
     return { advanced: false, reason: 'not_applicable' };
   }
 
+  assertWorkoutPlanCompletionReceiptBoundary({ WorkoutPlanCompletionReceipt, transaction });
   const plan = await WorkoutPlan.findOne(buildPlanLookupOptions({ assignment, clientId, transaction }));
   if (!plan || !sameId(plan.id, assignment.planId)) return { advanced: false, reason: 'plan_not_found' };
   if (Number(plan.currentWeek) !== weekNumber || Number(plan.currentDay) !== dayNumber) {
@@ -217,6 +224,12 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
   });
   if (!cursorAdvance.advanced) return cursorAdvance;
 
+  const receiptPlan = {
+    id: plan.id,
+    planData: clonePlanData(plan.planData),
+    contentRevision: plan.contentRevision,
+    contentHash: plan.contentHash,
+  };
   const updatePayload = {
     planData: cursorAdvance.planData,
     currentWeek: cursorAdvance.planCompleted ? weekNumber : cursorAdvance.next.week,
@@ -231,11 +244,24 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
     expectedRevision: plan.contentRevision,
     transaction,
   });
+  const completionReceipt = await createWorkoutPlanCompletionReceipt({
+    WorkoutPlanCompletionReceipt,
+    plan: receiptPlan,
+    assignment,
+    prescribedEntry: cursorAdvance.prescribedEntry,
+    clientId,
+    dailyWorkoutFormId,
+    workoutSessionId,
+    completedAt,
+    transaction,
+  });
 
   return {
     advanced: true,
     planCompleted: cursorAdvance.planCompleted,
     planId: plan.id,
+    completionReceiptId: completionReceipt.receipt?.id || null,
+    completionReceiptCreated: completionReceipt.created,
     previous: cursorAdvance.previous,
     next: cursorAdvance.next,
   };
