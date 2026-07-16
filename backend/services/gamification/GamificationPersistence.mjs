@@ -586,10 +586,13 @@ class GamificationPersistence {
         }
       }
 
-      // Award achievement points
+      // Award achievement points with a DETERMINISTIC idempotency key so a
+      // re-unlock (the pre-check is lockless check-then-act) or a concurrent
+      // call can't double-award — the ledger's partial unique index dedups it.
       await this.awardPoints(userId, achievement.points, `achievement_${achievementId}`, {
         achievementName: achievement.name,
-        category: achievement.category
+        category: achievement.category,
+        idempotencyKey: `achievement:${userId}:${achievementId}`
       });
 
       // Persist to database (always do this)

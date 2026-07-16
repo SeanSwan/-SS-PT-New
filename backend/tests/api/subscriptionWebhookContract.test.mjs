@@ -26,12 +26,16 @@ describe('subscription Stripe webhook contract', () => {
     );
   });
 
-  it('fails closed in production when STRIPE_SUBSCRIPTION_WEBHOOK_SECRET is missing', () => {
+  it('fails closed in ALL environments when STRIPE_SUBSCRIPTION_WEBHOOK_SECRET is missing', () => {
     expect(routeSource).toMatch(/STRIPE_SUBSCRIPTION_WEBHOOK_SECRET/);
-    expect(routeSource).toMatch(
-      /NODE_ENV\s*={2,3}\s*['"]production['"][\s\S]{0,800}STRIPE_SUBSCRIPTION_WEBHOOK_SECRET|STRIPE_SUBSCRIPTION_WEBHOOK_SECRET[\s\S]{0,800}NODE_ENV\s*={2,3}\s*['"]production['"]/,
-    );
+    // Hardened 2026-07-15: the unsigned-when-not-production branch is removed —
+    // a missing secret is a 503 regardless of NODE_ENV, and unsigned events are
+    // never JSON.parse'd and accepted.
+    expect(routeSource).toMatch(/if \(!webhookSecret\)[\s\S]{0,400}res\.status\(503\)/);
+    expect(routeSource).not.toMatch(/accepting unsigned development event/);
     expect(routeSource).not.toMatch(/accepting unverified event/);
+    // The old NODE_ENV-gated bypass must be gone from the webhook verification.
+    expect(routeSource).not.toMatch(/else if \(process\.env\.NODE_ENV === 'production'\)/);
   });
 
   it('returns 503 at runtime in production when the subscription webhook secret is absent', async () => {

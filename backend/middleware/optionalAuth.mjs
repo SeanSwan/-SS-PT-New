@@ -30,7 +30,7 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
 
     // Fetch user from DB (lazy loading pattern)
     const User = getUser();
