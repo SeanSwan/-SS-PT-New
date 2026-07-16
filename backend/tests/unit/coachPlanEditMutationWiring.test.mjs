@@ -124,6 +124,26 @@ describe('coach plan edit mutation wiring', () => {
     expect(plan.update).not.toHaveBeenCalled();
   });
 
+  it('reports the LOCKED recompute when the locked row diverges from the preview', async () => {
+    // Final-batch review pin: the response must reflect what was actually
+    // written under the lock, not the pre-read dry run. Here the target
+    // exercise vanished between pre-read and lock.
+    const plan = buildPlan();
+    const { input } = buildInput(plan);
+    fixtures.mutateWorkoutPlanRecord.mockImplementation(async ({ updates }) => {
+      const lockedPlan = buildPlan();
+      lockedPlan.planData.weeks[0].days[0].exercises = []; // target removed concurrently
+      return { plan: { ...lockedPlan, planData: updates(lockedPlan).planData } };
+    });
+
+    const result = await applyPlanEditProposal(input);
+
+    expect(result.ok).toBe(true);
+    expect(result.result.appliedCount).toBe(0);
+    expect(result.result.failedCount).toBe(1);
+    expect(result.result.itemOutcomes[0].outcome).toBe('failed_target_not_found');
+  });
+
   it('propagates a stale-revision conflict instead of reporting an applied proposal', async () => {
     const plan = buildPlan();
     const { input } = buildInput(plan);

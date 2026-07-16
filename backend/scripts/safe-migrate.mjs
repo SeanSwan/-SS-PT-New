@@ -135,6 +135,8 @@ export async function processPendingMigrations({ pending, runMigration, markComp
   };
 
   for (const [index, migration] of pending.entries()) {
+    // Log BEFORE running so a hanging migration is identifiable in deploy logs.
+    logger.log(`  ${migration} ... running`);
     const result = await runMigration(migration);
     const dataCritical = isDataCriticalMigration(migration);
 
@@ -260,12 +262,27 @@ async function main() {
 }
 
 // Import guard: tests import the helpers above without running the CLI.
+// realpathSync both sides — through a directory junction/symlink,
+// import.meta.url is realpath'd while argv[1] keeps the link path; without
+// normalization the guard is silently FALSE and all migrations no-op.
+const resolveRealHref = (p) => {
+  try {
+    return pathToFileURL(fs.realpathSync(path.resolve(p))).href;
+  } catch {
+    return pathToFileURL(path.resolve(p)).href;
+  }
+};
 const isMainModule = process.argv[1]
-  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+  && resolveRealHref(fileURLToPath(import.meta.url)) === resolveRealHref(process.argv[1]);
 
 if (isMainModule) {
   main().catch(err => {
     console.error('Safe migration runner failed:', err);
     process.exit(1);
   });
+} else if (process.argv[1] && /safe-migrate\.mjs$/i.test(process.argv[1])) {
+  // Someone invoked this file as a CLI but the guard didn't match — never
+  // fail silently (a no-op here means "migrations stopped running").
+  console.error('[safe-migrate] import-guard mismatch: CLI invocation did not match module URL — refusing to no-op silently.');
+  process.exit(1);
 }
