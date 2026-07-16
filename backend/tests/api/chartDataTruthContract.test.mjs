@@ -21,12 +21,21 @@ const read = (rel) => readFileSync(path.resolve(here, rel), 'utf8');
 const chart = read('../../controllers/chartDataController.mjs');
 
 describe('muscle-group balance no longer mislabels legs as arms', () => {
-  it('Arms curl/extension branches exclude leg/hamstring/quad names', () => {
-    expect(chart).toMatch(/ILIKE '%curl%' AND wl\."exerciseName" NOT ILIKE '%leg%' AND wl\."exerciseName" NOT ILIKE '%hamstring%'/);
-    expect(chart).toMatch(/ILIKE '%extension%' AND wl\."exerciseName" NOT ILIKE '%leg%' AND wl\."exerciseName" NOT ILIKE '%quad%'/);
+  // The muscle-group CASE moved to a SHARED classifier (muscleGroupSql.mjs)
+  // used by BOTH the balance chart and the strength-profile radar so they
+  // can't drift. Assert the chart consumes it + the classifier is correct.
+  it('the balance chart uses the shared MUSCLE_GROUP_CASE_SQL classifier', () => {
+    expect(chart).toContain("import { MUSCLE_GROUP_CASE_SQL, MUSCLE_GROUP_DISPLAY } from '../services/analytics/muscleGroupSql.mjs'");
+    expect(chart).toMatch(/\$\{MUSCLE_GROUP_CASE_SQL\} AS muscle_group/);
   });
-  it('Legs matches %leg% (catches Leg Curl / Leg Extension by name)', () => {
-    expect(chart).toMatch(/OR wl\."exerciseName" ILIKE '%leg%'/);
+  it('the shared classifier orders Legs BEFORE Arms so leg-curl/extension = legs', () => {
+    const classifier = read('../../services/analytics/muscleGroupSql.mjs');
+    const legsIdx = classifier.indexOf("THEN 'legs'");
+    const armsIdx = classifier.indexOf("THEN 'arms'");
+    expect(legsIdx).toBeGreaterThan(-1);
+    expect(armsIdx).toBeGreaterThan(legsIdx); // legs evaluated first
+    // and Back's greedy %lat% was tightened so 'Lateral Raise' != back
+    expect(classifier).toContain("ILIKE '%lat pull%'");
   });
 });
 

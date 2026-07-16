@@ -1,6 +1,11 @@
 import sequelize from '../database.mjs';
+import { MUSCLE_GROUP_CASE_SQL, RADAR_MUSCLE_GROUP_KEYS } from './analytics/muscleGroupSql.mjs';
 
-const CATEGORY_KEYS = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'cardio'];
+// Shared classifier (analytics/muscleGroupSql.mjs) is the single source of
+// truth — the radar and the muscle-group balance chart now agree. 'full_body'
+// (cleans/carries/kb-swings) is not a radar category, so it falls through the
+// CATEGORY_KEYS filter below like 'other' did before (same net behavior).
+const CATEGORY_KEYS = RADAR_MUSCLE_GROUP_KEYS;
 
 const emptyCategory = () => ({
   totalVolume: 0,
@@ -62,49 +67,7 @@ export async function calculateExerciseTotalsFromLogs(userId, options = {}) {
          wl."exerciseName" AS exercise_name,
          wl.reps::int AS reps,
          COALESCE(wl.weight * wl.reps, 0)::float AS volume,
-         CASE
-           WHEN wl."exerciseName" ILIKE '%bench%'
-             OR wl."exerciseName" ILIKE '%chest%'
-             OR wl."exerciseName" ILIKE '%pec%'
-             THEN 'chest'
-           WHEN wl."exerciseName" ILIKE '%row%'
-             OR wl."exerciseName" ILIKE '%pull%'
-             OR wl."exerciseName" ILIKE '%back%'
-             OR wl."exerciseName" ILIKE '%lat%'
-             OR wl."exerciseName" ILIKE '%deadlift%'
-             THEN 'back'
-           WHEN wl."exerciseName" ILIKE '%shoulder%'
-             OR wl."exerciseName" ILIKE '%overhead%'
-             OR wl."exerciseName" ILIKE '%military press%'
-             OR wl."exerciseName" ILIKE '%lateral%'
-             OR wl."exerciseName" ILIKE '%delt%'
-             THEN 'shoulders'
-           WHEN wl."exerciseName" ILIKE '%curl%'
-             OR wl."exerciseName" ILIKE '%tricep%'
-             OR wl."exerciseName" ILIKE '%bicep%'
-             OR wl."exerciseName" ILIKE '%arm%'
-             THEN 'arms'
-           WHEN wl."exerciseName" ILIKE '%squat%'
-             OR wl."exerciseName" ILIKE '%leg%'
-             OR wl."exerciseName" ILIKE '%lunge%'
-             OR wl."exerciseName" ILIKE '%calf%'
-             OR wl."exerciseName" ILIKE '%quad%'
-             OR wl."exerciseName" ILIKE '%hamstring%'
-             THEN 'legs'
-           WHEN wl."exerciseName" ILIKE '%crunch%'
-             OR wl."exerciseName" ILIKE '%plank%'
-             OR wl."exerciseName" ILIKE '%ab%'
-             OR wl."exerciseName" ILIKE '%core%'
-             OR wl."exerciseName" ILIKE '%sit-up%'
-             THEN 'core'
-           WHEN wl."exerciseName" ILIKE '%run%'
-             OR wl."exerciseName" ILIKE '%bike%'
-             OR wl."exerciseName" ILIKE '%cardio%'
-             OR wl."exerciseName" ILIKE '%treadmill%'
-             OR wl."exerciseName" ILIKE '%elliptical%'
-             THEN 'cardio'
-           ELSE 'other'
-         END AS category
+         ${MUSCLE_GROUP_CASE_SQL} AS category
        FROM workout_logs wl
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId
