@@ -25,6 +25,7 @@ import ScheduleModals from './components/ScheduleModals';
 import ClientTimeline from './components/ClientTimeline';
 import BookingDrawer from './components/BookingDrawer';
 import ScheduleAiOperatorDock from './ScheduleAiOperatorDock';
+import TrainingPlanProjectionLayer from './TrainingPlanProjectionLayer';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import SessionTypeManager from './Config/SessionTypeManager';
 
@@ -846,6 +847,19 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         sessions={displaySessions as Array<Record<string, unknown>>}
         selectedTrainerId={selectedTrainerId}
         adminViewScope={adminViewScope}
+      />
+      <TrainingPlanProjectionLayer
+        mode={mode}
+        activeView={activeView}
+        currentDate={currentDate}
+        clients={clients}
+        sessions={displaySessions}
+        clientRosterLoading={dataLoading.clients}
+        trainerFilterId={
+          mode === 'admin'
+            ? adminViewScope === 'my' ? resolvedUserId : selectedTrainerId
+            : null
+        }
       />
       {mode === 'client' ? (
         <ClientTimeline
