@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import SavedPlanCard, { SavedPlanSummary } from './SavedPlanCard';
-import React from 'react';
+
 
 // ─────────────────────────────────────────────────────────────
 // Plan Library slice (REV 2 receipt §7.2). Locks the stopPropagation

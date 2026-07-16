@@ -6,7 +6,7 @@ const routesDir = __dirname;
 const srcDir = resolve(routesDir, '..');
 
 const protectedRouteSource = readFileSync(resolve(routesDir, './protected-route.tsx'), 'utf8');
-const authContextSource = readFileSync(resolve(srcDir, './context/AuthContext.tsx'), 'utf8');
+const authContextSource = readFileSync(resolve(srcDir, './context/AuthContextProvider.tsx'), 'utf8');
 
 describe('ProtectedRoute access retry contract', () => {
   it('refreshes auth state in-app instead of reloading the whole page', () => {

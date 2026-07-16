@@ -1,8 +1,11 @@
 /**
- * Token Debug Tool
- * ================
- * Debug utility to check and fix token issues
- * Can be run from browser console: window.debugTokens()
+ * ============================================================================
+ * FILE: tokenDebugTool.ts
+ * PURPOSE: Development-only token diagnostics without exposing credentials.
+ * ============================================================================
+ *
+ * Browser helpers report token presence, length, validity, and expiry metadata.
+ * They never return or log raw storage values, JWT claims, or auth headers.
  */
 
 import tokenCleanup from './tokenCleanup';
@@ -10,12 +13,44 @@ import { logger } from '@/utils/logger';
 import apiService from '../services/api.service';
 
 type StorageKind = 'localStorage' | 'sessionStorage';
-type TokenMap = Record<string, string>;
+
+interface StoredTokenPresence {
+  present: true;
+  length: number;
+}
+
+type TokenPresenceMap = Record<string, StoredTokenPresence>;
+
+interface RawTokenInfo {
+  hasToken?: boolean;
+  isValid?: boolean;
+  expired?: boolean;
+  expiresAt?: string | number | Date | null;
+  userId?: string | number | null;
+  subject?: string | null;
+  [key: string]: unknown;
+}
+
+interface SafeTokenInfo {
+  hasToken: boolean;
+  isValid: boolean;
+  expired: boolean;
+  expiresAt: string | number | Date | null;
+  hasSubject: boolean;
+}
+
 const isDevBuild = import.meta.env.DEV;
+
+const redactTokenInfo = (info: RawTokenInfo): SafeTokenInfo => ({
+  hasToken: Boolean(info.hasToken),
+  isValid: Boolean(info.isValid),
+  expired: Boolean(info.expired),
+  expiresAt: info.expiresAt ?? null,
+  hasSubject: Boolean(info.subject ?? info.userId),
+});
 
 class TokenDebugTool {
   constructor() {
-    // Make it available globally for local debugging only.
     if (isDevBuild && typeof window !== 'undefined') {
       window.debugTokens = this.debugAllTokens.bind(this);
       window.cleanupTokens = this.cleanupTokens.bind(this);
@@ -23,170 +58,129 @@ class TokenDebugTool {
     }
   }
 
-  /**
-   * Debug all token-related information
-   */
+  /** Report safe token metadata from all supported stores. */
   debugAllTokens() {
-    console.group('🔍 Token Debug Information');
-    
-    // Get token info
-    const tokenInfo = tokenCleanup.getTokenInfo();
-    logger.log('📊 Token Info:', tokenInfo);
-    
-    // Check localStorage
+    logger.group('[TokenDebug] Token diagnostics');
+
+    const tokenInfo = redactTokenInfo(tokenCleanup.getTokenInfo());
     const localStorageTokens = this.getAllStorageTokens('localStorage');
-    logger.log('💾 localStorage tokens:', localStorageTokens);
-    
-    // Check sessionStorage
     const sessionStorageTokens = this.getAllStorageTokens('sessionStorage');
-    logger.log('🔒 sessionStorage tokens:', sessionStorageTokens);
-    
-    // Check if token is being sent in requests
-    logger.log('🌐 Token in axios headers:', this.checkAxiosHeaders());
-    
-    // Provide recommendations
-    logger.log('💡 Recommendations:', this.getRecommendations(tokenInfo));
-    
-    console.groupEnd();
-    
+    const axiosHeaders = this.checkAxiosHeaders();
+
+    logger.table(tokenInfo);
+    logger.debug('[TokenDebug] localStorage token presence', localStorageTokens);
+    logger.debug('[TokenDebug] sessionStorage token presence', sessionStorageTokens);
+    logger.debug('[TokenDebug] request auth state', axiosHeaders);
+    logger.debug('[TokenDebug] recommendations', this.getRecommendations(tokenInfo));
+    logger.groupEnd();
+
     return {
       tokenInfo,
       localStorage: localStorageTokens,
       sessionStorage: sessionStorageTokens,
-      axiosHeaders: this.checkAxiosHeaders()
+      axiosHeaders,
     };
   }
 
-  /**
-   * Get all token-related items from storage
-   */
-  getAllStorageTokens(storageType: StorageKind): TokenMap {
+  /** Return presence metadata only; never return a storage value. */
+  getAllStorageTokens(storageType: StorageKind): TokenPresenceMap {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
-    const tokens: TokenMap = {};
-    
-    // Common token key names
+    const tokens: TokenPresenceMap = {};
     const tokenKeys = [
-      'token', 'authToken', 'jwt', 'accessToken', 'refreshToken',
-      'user', 'tokenTimestamp', 'auth', 'session'
+      'token',
+      'authToken',
+      'jwt',
+      'accessToken',
+      'refreshToken',
+      'user',
+      'tokenTimestamp',
+      'auth',
+      'session',
     ];
-    
-    tokenKeys.forEach(key => {
+
+    tokenKeys.forEach((key) => {
       const value = storage.getItem(key);
       if (value) {
-        tokens[key] = value;
+        tokens[key] = { present: true, length: value.length };
       }
     });
-    
+
     return tokens;
   }
 
-  /**
-   * Check axios default headers for token
-   */
-  checkAxiosHeaders() {
+  /** Report whether an authorization header exists without exposing its value. */
+  checkAxiosHeaders(): { hasAuthorizationHeader: boolean; error?: string } {
     try {
-      const authHeader = apiService.getAuthorizationHeader();
-      logger.log('Authorization header:', authHeader);
-      return authHeader || 'No Authorization header found';
+      return {
+        hasAuthorizationHeader: Boolean(apiService.getAuthorizationHeader()),
+      };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return `Error checking headers: ${message}`;
+      const message = error instanceof Error ? error.message : 'Unknown header check error';
+      return { hasAuthorizationHeader: false, error: message };
     }
   }
 
-  /**
-   * Get recommendations based on token status
-   */
-  getRecommendations(tokenInfo: { hasToken?: boolean; isValid?: boolean; expired?: boolean }): string[] {
+  /** Build safe remediation hints from redacted token status. */
+  getRecommendations(tokenInfo: Pick<SafeTokenInfo, 'hasToken' | 'isValid' | 'expired'>): string[] {
     const recommendations: string[] = [];
-    
+
     if (!tokenInfo.hasToken) {
-      recommendations.push('❌ No token found - User needs to log in');
+      recommendations.push('No token found - user needs to log in');
     } else if (!tokenInfo.isValid) {
-      recommendations.push('⚠️ Token is malformed - Should be cleaned up');
+      recommendations.push('Token is malformed - clear authentication state');
     } else if (tokenInfo.expired) {
-      recommendations.push('⏰ Token is expired - Needs refresh or re-login');
+      recommendations.push('Token is expired - refresh or log in again');
     } else {
-      recommendations.push('✅ Token appears to be valid');
+      recommendations.push('Token structure and expiry metadata are valid');
     }
-    
-    // Check for multiple tokens
+
     const localTokens = this.getAllStorageTokens('localStorage');
     const sessionTokens = this.getAllStorageTokens('sessionStorage');
-    const totalTokens = Object.keys({...localTokens, ...sessionTokens}).length;
-    
+    const totalTokens = Object.keys({ ...localTokens, ...sessionTokens }).length;
+
     if (totalTokens > 3) {
-      recommendations.push(`🗂️ Found ${totalTokens} token-related items - Consider cleanup`);
+      recommendations.push(
+        'Found ' + totalTokens + ' token-related items - consider cleanup',
+      );
     }
-    
+
     return recommendations;
   }
 
-  /**
-   * Clean up all tokens
-   */
+  /** Clear token state through the canonical cleanup helper. */
   cleanupTokens() {
-    logger.log('🧹 Cleaning up all tokens...');
+    logger.debug('[TokenDebug] Cleaning token state');
     const result = tokenCleanup.cleanupAllTokens();
-    logger.log(result ? '✅ Cleanup successful' : '❌ Cleanup failed');
+    logger.debug('[TokenDebug] Cleanup ' + (result ? 'completed' : 'failed'));
     return result;
   }
 
-  /**
-   * Show detailed token information
-   */
-  showTokenInfo() {
-    const info = tokenCleanup.getTokenInfo();
-    console.table(info);
+  /** Show redacted token metadata only. */
+  showTokenInfo(): SafeTokenInfo {
+    const info = redactTokenInfo(tokenCleanup.getTokenInfo());
+    logger.table(info);
     return info;
   }
 
-  /**
-   * Test token validation
-   */
+  /** Validate token structure without logging or returning token contents. */
   testTokenValidation(testToken?: string | null): boolean {
-    if (!testToken) {
-      testToken = localStorage.getItem('token');
-    }
-    
-    if (!testToken) {
-      logger.log('❌ No token to test');
+    const token = testToken ?? localStorage.getItem('token');
+
+    if (!token) {
+      logger.debug('[TokenDebug] No token available for validation');
       return false;
     }
-    
-    console.group('🧪 Testing Token Validation');
-    
-    const isValid = tokenCleanup.isValidJWTStructure(testToken);
-    logger.log('Token:', testToken.substring(0, 50) + '...');
-    logger.log('Is valid JWT structure:', isValid);
-    
-    if (isValid) {
-      try {
-        const parts = testToken.split('.');
-        const header = JSON.parse(atob(parts[0]));
-        const payload = JSON.parse(atob(parts[1]));
-        
-        logger.log('Header:', header);
-        logger.log('Payload:', payload);
-        
-        if (payload.exp) {
-          const now = Date.now() / 1000;
-          const isExpired = now > payload.exp;
-          logger.log('Is expired:', isExpired);
-          logger.log('Expires at:', new Date(payload.exp * 1000));
-        }
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
-    }
-    
-    console.groupEnd();
+
+    const isValid = tokenCleanup.isValidJWTStructure(token);
+    logger.debug('[TokenDebug] Validation result', {
+      length: token.length,
+      isValid,
+      isExpired: isValid ? tokenCleanup.isTokenExpired(token) : null,
+    });
     return isValid;
   }
-
 }
 
-// Initialize the debug tool
 const tokenDebugTool = new TokenDebugTool();
 
 export default tokenDebugTool;

@@ -17,6 +17,7 @@ import { PLATFORMS } from './SocialPostGenerator.config';
 import type { ConnectedAccount } from './SocialPostGenerator.types';
 import SocialConnectPanel from './SocialConnectPanel';
 import apiService from '../../../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Styled Components ─────────────────────────────────────────
 const PlatformDot = styled.div<{ $color: string }>`
@@ -139,10 +140,10 @@ const SocialAnalyticsDashboard: React.FC = () => {
 
         <PillTabs>
           <PillTab $active={tab === 'accounts'} onClick={() => setTab('accounts')}>
-            <Link2 size={14} style={{ marginRight: 4 }} /> Accounts
+            <StyledBox as={Link2} size={14} $style={{ marginRight: 4 }} /> Accounts
           </PillTab>
           <PillTab $active={tab === 'history'} onClick={() => setTab('history')}>
-            <Clock size={14} style={{ marginRight: 4 }} /> Post History
+            <StyledBox as={Clock} size={14} $style={{ marginRight: 4 }} /> Post History
           </PillTab>
         </PillTabs>
 
@@ -158,7 +159,7 @@ const SocialAnalyticsDashboard: React.FC = () => {
           <PostList>
             {postHistory.length === 0 ? (
               <EmptyState>
-                <Send size={32} style={{ opacity: 0.4 }} />
+                <StyledBox as={Send} size={32} $style={{ opacity: 0.4 }} />
                 No posts published yet. Compose your first post above.
               </EmptyState>
             ) : (

@@ -5,6 +5,7 @@ import {
   InfoGrid, InfoItem, ConsentGrid, ConsentItem, ContractBadge,
   SignatureImage, MatchCard, MatchRow, ConfidenceBar, ActionButton, ButtonRow, CloseButton,
 } from './adminWaivers.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   record: WaiverRecordDetail | null;
@@ -110,14 +111,14 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
               <MatchCard key={vl.id}>
                 <MatchRow>
                   <div>
-                    <strong style={{ color: '#60C0F0' }}>{vl.waiverVersion.title}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                    <StyledBox as="strong" $style={{ color: '#60C0F0' }}>{vl.waiverVersion.title}</StyledBox>
+                    <StyledBox as="div" $style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
                       {vl.waiverVersion.waiverType}{vl.waiverVersion.activityType ? ` / ${vl.waiverVersion.activityType}` : ''} — v{vl.waiverVersion.version}
-                    </div>
+                    </StyledBox>
                   </div>
-                  <ConsentItem $accepted={vl.accepted} style={{ margin: 0, padding: '4px 10px' }}>
+                  <StyledBox as={ConsentItem} $accepted={vl.accepted} $style={{ margin: 0, padding: '4px 10px' }}>
                     {vl.accepted ? 'Accepted' : 'Not accepted'}
-                  </ConsentItem>
+                  </StyledBox>
                 </MatchRow>
               </MatchCard>
             ))}
@@ -128,32 +129,32 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
         <Section>
           <SectionLabel>Pending Matches ({pendingMatches.length})</SectionLabel>
           {pendingMatches.length === 0 ? (
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+            <StyledBox as="div" $style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
               No pending matches.
-            </div>
+            </StyledBox>
           ) : (
             pendingMatches.map((m: PendingMatch) => (
               <MatchCard key={m.id}>
                 <MatchRow>
                   <div>
-                    <div style={{ fontWeight: 600 }}>
+                    <StyledBox as="div" $style={{ fontWeight: 600 }}>
                       {m.candidateUser
                         ? `${m.candidateUser.firstName} ${m.candidateUser.lastName}`
                         : 'Unknown user'}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                    </StyledBox>
+                    <StyledBox as="div" $style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
                       {m.candidateUser?.email || ''}{m.matchMethod ? ` · ${m.matchMethod}` : ''}
-                    </div>
+                    </StyledBox>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {m.confidenceScore != null && (
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Confidence</div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                      <StyledBox as="div" $style={{ textAlign: 'center' }}>
+                        <StyledBox as="div" $style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Confidence</StyledBox>
+                        <StyledBox as="div" $style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                           {Math.round(m.confidenceScore * 100)}%
-                        </div>
+                        </StyledBox>
                         <ConfidenceBar $score={m.confidenceScore} />
-                      </div>
+                      </StyledBox>
                     )}
                     <ActionButton $variant="approve" onClick={() => onApproveMatch(m.id)} disabled={!canAct || !m.candidateUser}>
                       Approve
@@ -161,7 +162,7 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
                     <ActionButton $variant="reject" onClick={() => onRejectMatch(m.id)} disabled={!canAct}>
                       Reject
                     </ActionButton>
-                  </div>
+                  </StyledBox>
                 </MatchRow>
               </MatchCard>
             ))

@@ -9,14 +9,12 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
-import {
-  CalendarDays, Clock, Sparkles, Send, Copy, Check,
-  TrendingUp, Loader, Megaphone, FileText,
-} from 'lucide-react';
+import styled from 'styled-components';
+import { CalendarDays, Clock, Sparkles, Copy, Check, Loader, FileText } from 'lucide-react';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
 } from './marketing.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Styled Components ──
 const TabBar = styled.div`
@@ -326,7 +324,7 @@ const ContentCalendarPanel: React.FC = () => {
     return (
       <MarketingCard>
         <LoadingCenter>
-          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          <StyledBox as={Loader} size={18} $style={{ animation: 'spin 1s linear infinite' }} />
           Loading content intelligence...
         </LoadingCenter>
       </MarketingCard>
@@ -383,14 +381,14 @@ const ContentCalendarPanel: React.FC = () => {
                   <PeakBadge>Peak: {data.peakDay} {data.peakTime}</PeakBadge>
                 </PlatformName>
                 {data.best.map(day => (
-                  <div key={day.day} style={{ marginBottom: 4 }}>
-                    <span style={{ fontFamily: 'Sora, sans-serif', fontSize: 11, color: 'rgba(224, 236, 244, 0.6)', display: 'inline-block', width: 80 }}>
+                  <StyledBox as="div" key={day.day} $style={{ marginBottom: 4 }}>
+                    <StyledBox as="span" $style={{ fontFamily: 'Sora, sans-serif', fontSize: 11, color: 'rgba(224, 236, 244, 0.6)', display: 'inline-block', width: 80 }}>
                       {day.day}
-                    </span>
-                    <TimeGrid style={{ display: 'inline-flex' }}>
+                    </StyledBox>
+                    <StyledBox as={TimeGrid} $style={{ display: 'inline-flex' }}>
                       {day.times.map(t => <TimeSlot key={t}>{t}</TimeSlot>)}
-                    </TimeGrid>
-                  </div>
+                    </StyledBox>
+                  </StyledBox>
                 ))}
                 <PlatformNote>{data.note}</PlatformNote>
               </PlatformRow>

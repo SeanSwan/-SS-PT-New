@@ -26,7 +26,7 @@ const chartData = {
       },
       y: {
         title: {
-          formatter: (seriesName) => 'Ticket '
+          formatter: (_seriesName) => 'Ticket '
         }
       },
       marker: {

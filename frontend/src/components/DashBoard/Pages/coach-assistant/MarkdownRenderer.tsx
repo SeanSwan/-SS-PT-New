@@ -8,7 +8,7 @@
  */
 
 import React, { memo, useState, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
@@ -55,7 +55,7 @@ const CodeBlock: React.FC<{
 // ─────────────────────────────────────────────────────────────
 // SECTION: Custom Components
 // ─────────────────────────────────────────────────────────────
-const markdownComponents = {
+const markdownComponents: Components = {
   // Wrap tables in scrollable container for mobile
   table: ({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
     <TableWrap>
@@ -87,7 +87,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = memo(({ content }) => 
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
-        components={markdownComponents as any}
+        components={markdownComponents}
       >
         {content}
       </ReactMarkdown>

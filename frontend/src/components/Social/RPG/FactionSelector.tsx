@@ -19,7 +19,7 @@
 import React, { memo, useState } from 'react';
 import styled from 'styled-components';
 import { Shield, Zap, Star } from 'lucide-react';
-import { useFaction, type Faction } from '../../../hooks/social/useFaction';
+import { useFaction } from '../../../hooks/social/useFaction';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Icon Map

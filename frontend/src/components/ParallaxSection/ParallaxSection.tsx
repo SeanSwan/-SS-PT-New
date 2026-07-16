@@ -8,6 +8,7 @@ import GlowButton from "../../components/ui/buttons/GlowButton";
 import { VIDEO } from "../../config/videoAssets";
 const wavesVideo = VIDEO.smoke;
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Keyframe animations
 const glow = keyframes`
@@ -186,11 +187,11 @@ const ParallaxSection: React.FC = () => {
 
   return (
     <ParallaxSectionContainer>
-      <VideoBackground style={{ y: videoY }} className={videoReady ? 'video-ready' : ''}>
+      <StyledBox as={VideoBackground} $style={{ y: videoY }} className={videoReady ? 'video-ready' : ''}>
         <video autoPlay loop muted playsInline onCanPlayThrough={handleVideoReady}>
           <source src={wavesVideo} type="video/mp4" />
         </video>
-      </VideoBackground>
+      </StyledBox>
 
       <ParallaxContent
         ref={contentRef}

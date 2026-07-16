@@ -16,6 +16,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { VictoryPie, VictoryTooltip, VictoryLabel } from 'victory';
 import { RPEDistributionChartProps } from '../types/ClientProgressTypes';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -89,24 +90,24 @@ const RPEDistributionChart: React.FC<RPEDistributionChartProps> = ({
             labelComponent={
               <VictoryTooltip
                 flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)', strokeWidth: 1 }}
-                style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                 cornerRadius={8}
                 flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
               />
             }
-            style={{
+            {...victoryStyleProps({
               data: {
                 stroke: '#0A0A0F',
                 strokeWidth: 2,
               },
-            }}
+            })}
           />
           <VictoryLabel
             textAnchor="middle"
             verticalAnchor="middle"
             x={200}
             y={150}
-            style={{ fill: '#E0ECF4', fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}
+            {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 })}
             text="RPE"
           />
         </svg>

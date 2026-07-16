@@ -41,13 +41,10 @@ const LazyYouTubeEmbed: React.FC<LazyYouTubeEmbedProps> = ({
   }
 
   return (
-    <FacadeWrapper onClick={handlePlay}>
+    <FacadeWrapper type="button" onClick={handlePlay} aria-label={`Play video: ${title}`}>
       <ThumbnailImage src={thumb} alt={`Thumbnail for ${title}`} loading="lazy" />
       <Overlay />
-      <PlayButton
-        type="button"
-        aria-label={`Play video: ${title}`}
-      >
+      <PlayButton aria-hidden="true">
         <PlayIconCircle>
           <Play size={28} fill="white" strokeWidth={0} />
         </PlayIconCircle>
@@ -83,7 +80,7 @@ const StyledIframe = styled.iframe`
   border: none;
 `;
 
-const FacadeWrapper = styled.div`
+const FacadeWrapper = styled.button`
   position: relative;
   width: 100%;
   padding-top: 56.25%; /* 16:9 */
@@ -92,7 +89,7 @@ const FacadeWrapper = styled.div`
   overflow: hidden;
   cursor: pointer;
 
-  &:hover > button {
+  &:hover > span {
     transform: translate(-50%, -50%) scale(1.1);
   }
 `;
@@ -116,7 +113,7 @@ const Overlay = styled.div`
   );
 `;
 
-const PlayButton = styled.button`
+const PlayButton = styled.span`
   position: absolute;
   top: 50%;
   left: 50%;

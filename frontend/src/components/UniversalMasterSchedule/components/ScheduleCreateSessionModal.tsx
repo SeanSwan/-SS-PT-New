@@ -26,6 +26,7 @@ import {
 } from '../utils/sessionOptions';
 import ScheduleCreateClientField from './ScheduleCreateClientField';
 import { SCHEDULE_MODALS_THEME } from './ScheduleModals.theme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ScheduleCreateSessionModalProps {
   showCreateDialog: boolean;
@@ -56,6 +57,14 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
   const [sessionDateStr, setSessionDateStr] = useState('');
   const [sessionTimeStr, setSessionTimeStr] = useState('');
   const frozenNowRef = useRef(Date.now());
+  const customLocationInputRef = useRef<HTMLInputElement>(null);
+  const customLocationActive = Boolean(customLocation);
+
+  useEffect(() => {
+    if (!customLocationActive) return;
+    const frame = window.requestAnimationFrame(() => customLocationInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [customLocationActive]);
   const { sessionTypes, loading: sessionTypesLoading, error: sessionTypesError, fetchSessionTypes } = useSessionTypes();
 
   useEffect(() => {
@@ -150,7 +159,7 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
       <FlexBox direction="column" gap="1.5rem">
         <FormField>
           <Label htmlFor="sessionDate" required>Session Date & Time</Label>
-          <FlexBox gap="0.75rem" style={{ flexDirection: 'column' }}>
+          <StyledBox as={FlexBox} gap="0.75rem" $style={{ flexDirection: 'column' }}>
             <StyledInput id="sessionDate" type="date" value={sessionDateStr} onChange={(e) => handleDateChange(e.target.value)} />
             <TimeWheelPicker
               value={sessionTimeStr}
@@ -164,11 +173,11 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
             />
             {isSlotSelected && <HelperText>Slot prefilled from the calendar. Adjust date or time here before saving.</HelperText>}
             {computedMinTime === null && isToday && (
-              <HelperText style={{ color: SCHEDULE_MODALS_THEME.warning }}>
+              <StyledBox as={HelperText} $style={{ color: SCHEDULE_MODALS_THEME.warning }}>
                 No times available today. Select a future date.
-              </HelperText>
+              </StyledBox>
             )}
-          </FlexBox>
+          </StyledBox>
           {effectiveBlock && (
             <HelperText>
               Effective block: {effectiveBlock.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {effectiveBlock.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -224,7 +233,7 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
             ]}
             aria-label="Session type"
           />
-          {sessionTypesError && <HelperText style={{ color: SCHEDULE_MODALS_THEME.danger }}>{sessionTypesError}</HelperText>}
+          {sessionTypesError && <StyledBox as={HelperText} $style={{ color: SCHEDULE_MODALS_THEME.danger }}>{sessionTypesError}</StyledBox>}
           {selectedSessionType && (
             <HelperText>
               Duration: {selectedSessionType.duration} min | Buffer: {selectedSessionType.bufferBefore} min before, {selectedSessionType.bufferAfter} min after
@@ -258,8 +267,9 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
             options={[...SESSION_LOCATION_OPTIONS]}
             aria-label="Session location"
           />
-          {customLocation && (
-            <StyledInput
+          {customLocationActive && (
+            <StyledBox as={StyledInput}
+              ref={customLocationInputRef}
               id="customLocation"
               type="text"
               value={customLocation.trim()}
@@ -268,8 +278,7 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
                 setFormData({ ...formData, location: e.target.value.trim() });
               }}
               placeholder="Enter custom location..."
-              style={{ marginTop: '0.5rem' }}
-              autoFocus
+              $style={{ marginTop: '0.5rem' }}
             />
           )}
         </FormField>

@@ -10,6 +10,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
 import { ChartCard } from './CanonicalProgressChartsGrid.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const LockedChartCard: React.FC<{ title: string }> = ({ title }) => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const LockedChartCard: React.FC<{ title: string }> = ({ title }) => {
         badgeLabel="Guardian"
         onConfigure={() => navigate('/ascension')}
       >
-        <div style={{ minHeight: 180 }} />
+        <StyledBox as="div" $style={{ minHeight: 180 }} />
       </CrystallineLockOverlay>
     </ChartCard>
   );

@@ -31,6 +31,7 @@ import {
   PlannerMediaThumb,
 } from './WorkoutPlannerStyles';
 import { formatWorkoutPlannerExerciseName } from './workoutPlannerExerciseDisplay';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 function formatImpactLabel(impact: string): string {
   return impact.replace(' Impact', '');
@@ -88,7 +89,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
   const nasmSignal = formatNasmSignal(exercise);
 
   return (
-    <div style={style}>
+    <StyledBox as="div" $style={style}>
       <ExerciseItem
         role="group"
         aria-label={`${exerciseDisplayName} exercise`}
@@ -127,6 +128,6 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
           <Plus size={18} />
         </ExerciseAddBtn>
       </ExerciseItem>
-    </div>
+    </StyledBox>
   );
 };

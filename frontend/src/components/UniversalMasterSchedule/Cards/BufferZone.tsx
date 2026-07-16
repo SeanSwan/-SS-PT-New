@@ -12,7 +12,7 @@ const minutesToPixels = (minutes: number, pixelsPerHour: number) =>
   (minutes / 60) * pixelsPerHour;
 
 const BufferZone: React.FC<BufferZoneProps> = ({
-  startTime,
+  startTime: _startTime,
   durationMinutes,
   type,
   pixelsPerHour

@@ -158,17 +158,17 @@ const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
     }
   };
 
-  const handleOverlayClick = (event: React.MouseEvent) => {
+  const handleOverlayClick = (event: React.PointerEvent) => {
     if (event.target === event.currentTarget && !busy) onCancel();
   };
 
   return (
-    <Overlay onMouseDown={handleOverlayClick}>
+    <Overlay onPointerDown={handleOverlayClick}>
       <Dialog
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

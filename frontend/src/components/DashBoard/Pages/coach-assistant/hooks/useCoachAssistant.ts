@@ -83,7 +83,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.id === 'welcome') return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [messages, messages.length]);
 
   // ── Send message (command lane first, chat lane fallback) ──
   const sendMessage = useCallback(async (text: string) => {

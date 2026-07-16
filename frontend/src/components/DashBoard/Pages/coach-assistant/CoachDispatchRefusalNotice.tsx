@@ -11,6 +11,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ShieldCheck } from 'lucide-react';
 import type { CoachDispatchRefusal } from './SwanCoachTypes';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const NoticeCard = styled.div`
   margin-top: 10px;
@@ -88,9 +89,9 @@ const CoachDispatchRefusalNotice: React.FC<CoachDispatchRefusalNoticeProps> = ({
           <NoticeBody>{refusalCopy(refusal)}</NoticeBody>
           {(refusal.alternatives ?? []).length > 0 && (
             <>
-              <NoticeBody as="span" style={{ fontSize: 13, opacity: 0.8 }}>
+              <StyledBox as={NoticeBody} forwardedAs="span" $style={{ fontSize: 13, opacity: 0.8 }}>
                 Good swaps instead:
-              </NoticeBody>
+              </StyledBox>
               <AlternativeRow>
                 {(refusal.alternatives ?? []).map((name, altIndex) => (
                   <AlternativeChip key={`${altIndex}-${name}`}>{name}</AlternativeChip>

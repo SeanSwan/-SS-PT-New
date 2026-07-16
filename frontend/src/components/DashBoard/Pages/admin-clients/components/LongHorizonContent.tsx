@@ -64,21 +64,31 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     toast,
     onSuccess,
   });
+  const {
+    state,
+    editedPlan,
+    isSubmitting,
+    auditLogId,
+    swanCoachPlanning,
+    planningReviewAcknowledged,
+    setState,
+    handleApprove,
+  } = workflow;
 
   useEffect(() => {
-    if ((workflow.state === 'plan_review' || workflow.state === 'approving') && workflow.editedPlan) {
+    if ((state === 'plan_review' || state === 'approving') && editedPlan) {
       renderFooter(
         <LongHorizonReviewFooter
-          state={workflow.state}
-          isSubmitting={workflow.isSubmitting}
-          auditLogId={workflow.auditLogId}
+          state={state}
+          isSubmitting={isSubmitting}
+          auditLogId={auditLogId}
           approvalDisabled={
-            requiresSwanCoachPlanningReview(workflow.swanCoachPlanning)
-            && !workflow.planningReviewAcknowledged
+            requiresSwanCoachPlanningReview(swanCoachPlanning)
+            && !planningReviewAcknowledged
           }
-          onRegenerate={() => workflow.setState('configure_plan')}
+          onRegenerate={() => setState('configure_plan')}
           onApprove={() => {
-            void workflow.handleApprove();
+            void handleApprove();
           }}
         />,
       );
@@ -89,17 +99,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return () => {
       renderFooter(null);
     };
-  }, [
-    workflow.state,
-    workflow.isSubmitting,
-    workflow.editedPlan,
-    workflow.auditLogId,
-    workflow.handleApprove,
-    workflow.planningReviewAcknowledged,
-    workflow.swanCoachPlanning,
-    workflow.setState,
-    renderFooter,
-  ]);
+  }, [state, isSubmitting, editedPlan, auditLogId, handleApprove, planningReviewAcknowledged, swanCoachPlanning, setState, renderFooter]);
 
   if (workflow.state === 'idle') {
     return (

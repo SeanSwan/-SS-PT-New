@@ -29,6 +29,7 @@ import styled from 'styled-components';
 import { Flag, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
@@ -256,12 +257,12 @@ const PostReportsWidget: React.FC = () => {
 
       {loadError ? (
         <EmptyState role="alert">
-          <AlertTriangle size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <StyledBox as={AlertTriangle} size={24} $style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>Reports data unavailable</div>
         </EmptyState>
       ) : reports.length === 0 ? (
         <EmptyState>
-          <AlertTriangle size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <StyledBox as={AlertTriangle} size={24} $style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>No pending reports</div>
         </EmptyState>
       ) : (
@@ -283,7 +284,7 @@ const PostReportsWidget: React.FC = () => {
             </ReportHeader>
 
             {report.description && (
-              <Snippet>"{report.description}"</Snippet>
+              <Snippet>&quot;{report.description}&quot;</Snippet>
             )}
 
             {report.contentPreview && (

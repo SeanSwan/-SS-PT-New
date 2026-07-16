@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CreateClientModal from './CreateClientModal';

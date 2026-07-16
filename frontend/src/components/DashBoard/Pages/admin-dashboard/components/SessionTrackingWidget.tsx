@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, Dumbbell, Crown, Clock, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface TopClient { name: string; sessions: number; }
 
@@ -147,7 +148,7 @@ const SessionTrackingWidget: React.FC = () => {
               <Rank $isTop={i === 0}>{i + 1}</Rank>
               <ClientName>{c.name}</ClientName>
               <BarWrapper>
-                <Bar style={{ width: `${(c.sessions / maxSessions) * 100}%` }} $index={i} />
+                <StyledBox as={Bar} $style={{ width: `${(c.sessions / maxSessions) * 100}%` }} $index={i} />
               </BarWrapper>
               <SessionCount>{c.sessions}</SessionCount>
             </ClientRow>

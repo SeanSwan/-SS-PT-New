@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createBot } from '../services/groupme';
 
 const CreateBot = ({ groupId }) => {

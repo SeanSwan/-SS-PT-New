@@ -94,7 +94,7 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
   const { groupId, enabled = true } = options;
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
-  const { profile, invalidateProfile } = useGamificationData();
+  const { invalidateProfile } = useGamificationData();
   
   // State for posts data
   const [posts, setPosts] = useState<Post[]>([]);
@@ -271,7 +271,7 @@ export const useSocialFeed = (options: SocialFeedOptions = {}) => {
     } finally {
       setIsCreatingPost(false);
     }
-  }, [authAxios, user, toast, groupId]);
+  }, [user, groupId, authAxios, toast, invalidateProfile]);
 
   // React to a post (thumbs_up, heart, or swan)
   const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {

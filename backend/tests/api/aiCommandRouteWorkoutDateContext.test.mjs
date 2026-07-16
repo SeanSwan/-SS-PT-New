@@ -14,7 +14,7 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
   },
 }));
 
-vi.mock('../../database.mjs', () => ({ default: {} }));
+vi.mock('../../database.mjs', () => ({ default: { query: vi.fn(async () => []) } }));
 
 vi.mock('../../services/ai/commandExecutor.mjs', () => ({
   executeCommandPipeline: mockExecuteCommandPipeline,

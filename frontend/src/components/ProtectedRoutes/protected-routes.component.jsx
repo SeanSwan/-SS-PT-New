@@ -1,5 +1,5 @@
 // File: frontend/src/components/ProtectedRoutes/protected-routes.component.jsx
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import config from '../../../config';

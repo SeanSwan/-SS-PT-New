@@ -522,10 +522,9 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   // updated 2026-04-21 (Phase 19 dead-route cleanup):
   // The previous prefix `/dashboard/people` resolved to UnifiedAdminRoutes
   // which is no longer mounted in the active routing tree (only
-  // UniversalDashboardLayout is mounted at /dashboard/* per
-  // routes/DashboardRoutes.tsx:49-58). With no matching route, the inner
-  // catch-all at UniversalDashboardLayout.tsx:869/874 redirects admins
-  // to defaultPath (/dashboard/admin/overview), so any stray link to
+  // UniversalDashboardLayout is mounted at /dashboard/* (`main-routes.tsx:873-877`).
+  // Its role-aware catch-alls (`UniversalDashboardLayout.shellPieces.tsx:92-114`)
+  // redirect admins to the configured default path, so any stray link to
   // /dashboard/people silently navigates to the Command Center. The
   // working canonical path is /dashboard/admin/client-management which
   // mounts ClientsWorkspace via the admin role config at

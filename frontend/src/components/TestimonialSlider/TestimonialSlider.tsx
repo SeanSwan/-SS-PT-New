@@ -479,7 +479,7 @@ const QuoteIcon = styled(motion.div).withConfig({
 // --- Testimonial Slider Component ---
 const TestimonialSlider: React.FC = () => {
   const [[activeIndex, direction], setActiveIndex] = useState<[number, number]>([0, 0]);
-  const [autoplay, setAutoplay] = useState<boolean>(true);
+  const [autoplay] = useState<boolean>(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -653,7 +653,7 @@ const TestimonialSlider: React.FC = () => {
                   </ClientInfo>
                 </ProfileColumn>
                 <ReviewColumn>
-                  <TestimonialText>"{currentTestimonial.text}"</TestimonialText>
+                  <TestimonialText>&quot;{currentTestimonial.text}&quot;</TestimonialText>
                   <BeforeAfterStats>
                     {Object.entries(currentTestimonial.beforeAfterStats).map(([key, value]) => (
                       <StatItem key={key}>

@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface TextSplitterProps {
   text: string;
@@ -44,7 +45,7 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
   text,
   mode = 'chars',
   staggerDelay = 0.03,
-  duration = 0.5,
+  duration: _duration = 0.5,
   skipAnimation = false,
   className,
   as = 'span',
@@ -65,9 +66,9 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
     const words = text.split(' ');
     let charIndex = 0;
     return (
-      <MotionTag
+      <StyledBox as={MotionTag}
         className={className}
-        style={{ display: 'inline' }}
+        $style={{ display: 'inline' }}
         variants={containerVariants}
         custom={staggerDelay}
         initial="hidden"
@@ -76,29 +77,29 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
       >
         {words.map((word, w) => (
           <React.Fragment key={`${word}-${w}`}>
-            <span data-word style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+            <StyledBox as="span" data-word $style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
               {word.split('').map((ch) => {
                 const idx = charIndex;
                 charIndex += 1;
                 return (
-                  <motion.span key={idx} variants={charVariants} style={{ display: 'inline-block' }}>
+                  <StyledBox as={motion.span} key={idx} variants={charVariants} $style={{ display: 'inline-block' }}>
                     {ch}
-                  </motion.span>
+                  </StyledBox>
                 );
               })}
-            </span>
+            </StyledBox>
             {w < words.length - 1 ? ' ' : null}
           </React.Fragment>
         ))}
-      </MotionTag>
+      </StyledBox>
     );
   }
 
   const items = text.split(' ');
   return (
-    <MotionTag
+    <StyledBox as={MotionTag}
       className={className}
-      style={{ display: 'inline' }}
+      $style={{ display: 'inline' }}
       variants={containerVariants}
       custom={staggerDelay}
       initial="hidden"
@@ -106,15 +107,15 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
       viewport={{ once: true, amount: 0.5 }}
     >
       {items.map((item, i) => (
-        <motion.span
+        <StyledBox as={motion.span}
           key={i}
           variants={charVariants}
-          style={{ display: 'inline-block', whiteSpace: 'pre' }}
+          $style={{ display: 'inline-block', whiteSpace: 'pre' }}
         >
           {i > 0 ? ` ${item}` : item}
-        </motion.span>
+        </StyledBox>
       ))}
-    </MotionTag>
+    </StyledBox>
   );
 };
 

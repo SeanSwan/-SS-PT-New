@@ -22,6 +22,7 @@ import {
   DashboardBackgroundSurfaceContent,
   DashboardBackgroundSurfaceFrame,
 } from './DashboardBackgroundStudio.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type DashboardBackgroundState = ReturnType<typeof useUserDashboardBackgroundPreference>;
 
@@ -40,14 +41,14 @@ export const DashboardBackgroundSurface: React.FC<DashboardBackgroundSurfaceProp
 
   return (
     <DashboardBackgroundContext.Provider value={dashboardBackground}>
-      <DashboardBackgroundSurfaceFrame
+      <StyledBox as={DashboardBackgroundSurfaceFrame}
         data-testid="dashboard-background-surface"
-        style={dashboardBackground.backgroundStyle}
+        $style={dashboardBackground.backgroundStyle}
       >
         <DashboardBackgroundSurfaceContent>
           {children}
         </DashboardBackgroundSurfaceContent>
-      </DashboardBackgroundSurfaceFrame>
+      </StyledBox>
     </DashboardBackgroundContext.Provider>
   );
 };

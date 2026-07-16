@@ -41,7 +41,7 @@ const AboutSection: React.FC = () => {
   const { profile, achievements, isLoading, levelProgress } = useGamificationData();
   const { equipRankTitle, isEquippingRankTitle, equippingRankTitleKey } = useRankTitleSelection();
   const profileData = profile?.data;
-  const earnedAchievements = profileData?.achievements ?? [];
+  const earnedAchievements = useMemo(() => profileData?.achievements ?? [], [profileData?.achievements]);
 
   const personalInfo = useMemo(
     () => buildPersonalInfo(user, profileData, levelProgress),

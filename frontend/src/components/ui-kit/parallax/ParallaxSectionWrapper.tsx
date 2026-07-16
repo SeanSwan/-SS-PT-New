@@ -3,6 +3,7 @@
 import React, { ReactNode } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export interface ParallaxSectionWrapperProps {
   /**
@@ -128,24 +129,24 @@ export const ParallaxSectionWrapper: React.FC<ParallaxSectionWrapperProps> = ({
   if (shouldDisable) {
     // Render without parallax (static)
     return (
-      <div className={className} style={{ position: sticky ? 'sticky' : 'relative', top: 0 }}>
+      <StyledBox as="div" className={className} $style={{ position: sticky ? 'sticky' : 'relative', top: 0 }}>
         {children}
-      </div>
+      </StyledBox>
     );
   }
 
   // Render with parallax
   return (
-    <motion.div
+    <StyledBox as={motion.div}
       className={className}
-      style={{
+      $style={{
         y,
         position: sticky ? 'sticky' : 'relative',
         top: 0
       }}
     >
       {children}
-    </motion.div>
+    </StyledBox>
   );
 };
 

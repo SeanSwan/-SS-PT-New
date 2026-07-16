@@ -19,6 +19,7 @@ import ScheduleConfirmDialog, {
 import RecurringSeriesModalFields, {
   type RecurringTrainerOption,
 } from './RecurringSeriesModalFields';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface SessionSummary {
   sessionDate: string;
@@ -246,16 +247,16 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
       )}
     >
       {formError && (
-        <ErrorText style={{ marginBottom: '1rem' }}>
+        <StyledBox as={ErrorText} $style={{ marginBottom: '1rem' }}>
           {formError}
-        </ErrorText>
+        </StyledBox>
       )}
 
-      <SmallText secondary style={{ marginBottom: '1rem' }}>
+      <StyledBox as={SmallText} secondary $style={{ marginBottom: '1rem' }}>
         {seriesCount > 0
           ? `Series includes ${seriesCount} sessions from ${new Date(firstSession.sessionDate).toLocaleDateString()} to ${new Date(lastSession.sessionDate).toLocaleDateString()}.`
           : 'Series details unavailable. Update will apply to all future sessions.'}
-      </SmallText>
+      </StyledBox>
 
       <RecurringSeriesModalFields
         time={time}

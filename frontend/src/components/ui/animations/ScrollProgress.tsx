@@ -9,6 +9,7 @@
 import React from 'react';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import styled from 'styled-components';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 const ProgressBar = styled(motion.div)`
   position: fixed;
@@ -41,7 +42,7 @@ const ScrollProgress: React.FC<ScrollProgressProps> = ({ enabled = true }) => {
 
   if (!enabled) return null;
 
-  return <ProgressBar style={{ scaleX }} />;
+  return <ProgressBar {...motionStyleProps({ scaleX })} />;
 };
 
 export default ScrollProgress;

@@ -21,6 +21,7 @@ import {
 } from './MarketingCommandOverview.styles';
 import MarketingReadinessCockpit from './MarketingReadinessCockpit';
 import CampaignManager from './CampaignManager';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type CommandTarget = 'queue' | 'calendar' | 'leads' | 'analytics';
 
@@ -147,28 +148,28 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
               <MetricValue>{stats.total}</MetricValue>
               <MetricLabel>Total leads</MetricLabel>
             </MetricBlock>
-            <MetricBlock
+            <StyledBox as={MetricBlock}
               role="button"
               tabIndex={0}
-              style={{ cursor: 'pointer' }}
+              $style={{ cursor: 'pointer' }}
               aria-label={`${stats.hotLeads} hot leads — open filtered list`}
               onClick={() => onOpenLeads?.('hot')}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('hot'); } }}
             >
               <MetricValue $tone="purple">{stats.hotLeads}</MetricValue>
               <MetricLabel>Hot leads ›</MetricLabel>
-            </MetricBlock>
-            <MetricBlock
+            </StyledBox>
+            <StyledBox as={MetricBlock}
               role="button"
               tabIndex={0}
-              style={{ cursor: 'pointer' }}
+              $style={{ cursor: 'pointer' }}
               aria-label={`${stats.needsFollowUp} follow-ups due — open filtered list`}
               onClick={() => onOpenLeads?.('followups')}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('followups'); } }}
             >
               <MetricValue $tone="gold">{stats.needsFollowUp}</MetricValue>
               <MetricLabel>Follow-ups due ›</MetricLabel>
-            </MetricBlock>
+            </StyledBox>
             <MetricBlock>
               <MetricValue>{stats.conversionRate}%</MetricValue>
               <MetricLabel>Conversion rate</MetricLabel>

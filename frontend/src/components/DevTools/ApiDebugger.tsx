@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { 
+import {
   CheckCircle,
   AlertCircle,
   Construction,
@@ -83,14 +83,14 @@ const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: str
   align-items: center;
   gap: 6px;
   transition: all 0.3s ease;
-  
+
   ${({ $variant, $color }) => {
     if ($variant === 'contained') {
       return `
         background-color: ${$color === 'warning' ? '#ffc107' : '#60C0F0'};
         color: ${$color === 'warning' ? '#000' : '#000'};
         border-color: ${$color === 'warning' ? '#ffc107' : '#60C0F0'};
-        
+
         &:hover {
           background-color: ${$color === 'warning' ? '#e0a800' : '#00e6e6'};
         }
@@ -100,14 +100,14 @@ const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: str
         background-color: transparent;
         color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#8B5CF6' : '#60C0F0'};
         border-color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#8B5CF6' : '#60C0F0'};
-        
+
         &:hover {
           background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)'};
         }
       `;
     }
   }}
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -146,7 +146,7 @@ const Chip = styled.div<{ $color: 'success' | 'error' | 'info' | 'default' }>`
   font-size: 0.75rem;
   border: 1px solid;
   background-color: transparent;
-  
+
   ${({ $color }) => {
     switch ($color) {
       case 'success':
@@ -250,7 +250,7 @@ const ApiDebugger = () => {
     }))
   );
   const [checking, setChecking] = useState(false);
-  const [backendStatus, setBackendStatus] = useState('unknown');
+  useState('unknown');
   const [showDetails, setShowDetails] = useState(false);
   const [connectionStats, setConnectionStats] = useState({
     checked: false,
@@ -259,36 +259,22 @@ const ApiDebugger = () => {
   });
 
   // Check API connection health
-  const checkApiConnection = async () => {
-    setChecking(true);
-    setBackendStatus('checking');
-    
-    try {
-      // Attempt to request a small endpoint
-      await fetch('/api/health', { method: 'GET' });
-      setBackendStatus('online');
-    } catch (error) {
-      console.error('Backend connection error:', error);
-      setBackendStatus('offline');
-    }
-    
-    setChecking(false);
-  };
+
 
   // Check all endpoints
   const checkAllEndpoints = async () => {
     setChecking(true);
-    
+
     // Copy the current state
     const newStatus = [...endpointStatus];
-    
+
     // Reset connection stats
     const stats = {
       checked: true,
       successful: 0,
       failed: 0
     };
-    
+
     // Check each endpoint
     for (let i = 0; i < ENDPOINTS.length; i++) {
       const endpoint = ENDPOINTS[i];
@@ -298,13 +284,13 @@ const ApiDebugger = () => {
         error: null,
         data: null
       };
-      
+
       setEndpointStatus([...newStatus]);
-      
+
       try {
         // Try to fetch the data
         const data = await api.get(endpoint.url);
-        
+
         // Update the status
         newStatus[i] = {
           ...endpoint,
@@ -312,7 +298,7 @@ const ApiDebugger = () => {
           error: null,
           data
         };
-        
+
         stats.successful++;
       } catch (error) {
         // Update status with error
@@ -322,13 +308,13 @@ const ApiDebugger = () => {
           error: error instanceof Error ? error.message : 'Unknown error',
           data: null
         };
-        
+
         stats.failed++;
       }
-      
+
       setEndpointStatus([...newStatus]);
     }
-    
+
     setConnectionStats(stats);
     setChecking(false);
   };
@@ -372,7 +358,7 @@ const ApiDebugger = () => {
             </div>
           </AlertContent>
         </AlertBox>
-        
+
         {connectionStats.checked && (
           <StatsContainer>
             <StatsTitle>Connection Test Results:</StatsTitle>
@@ -403,7 +389,7 @@ const ApiDebugger = () => {
           ) : null}
           {checking ? 'Checking...' : 'Check Endpoints'}
         </Button>
-        
+
         <Button
           $variant="outlined"
           $size="small"
@@ -421,7 +407,7 @@ const ApiDebugger = () => {
             </>
           )}
         </Button>
-        
+
         <Button
           $variant="outlined"
           $size="small"
@@ -435,13 +421,13 @@ const ApiDebugger = () => {
       {/* Endpoint details */}
       <CollapseContainer $open={showDetails}>
         <Divider />
-        
+
         <SectionTitle>Endpoint Status:</SectionTitle>
-        
+
         <EndpointList>
           {endpointStatus.map((endpoint, index) => (
-            <EndpointItem 
-              key={endpoint.key} 
+            <EndpointItem
+              key={endpoint.key}
               $hasBottomBorder={index < endpointStatus.length - 1}
             >
               <EndpointIcon>
@@ -450,8 +436,8 @@ const ApiDebugger = () => {
               <EndpointContent>
                 <EndpointName>{endpoint.name}</EndpointName>
                 <EndpointUrl>
-                  {endpoint.status === 'error' 
-                    ? `Error: ${endpoint.error}` 
+                  {endpoint.status === 'error'
+                    ? `Error: ${endpoint.error}`
                     : `${endpoint.url}`}
                 </EndpointUrl>
               </EndpointContent>

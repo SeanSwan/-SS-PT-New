@@ -4,6 +4,7 @@ import type { StyleLensManifest } from '../../../core/style-lens-os';
 import { themes, type ThemeId } from '../UniversalThemeContext';
 type Theme = (typeof themes)[ThemeId];
 import { PreviewStage } from './AppearanceStudio.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export type PreviewRole = 'user' | 'client' | 'trainer' | 'admin';
 export type PreviewViewport = 'mobile' | 'tablet' | 'desktop';
@@ -75,12 +76,12 @@ const AppearanceStudioPreview: React.FC<AppearanceStudioPreviewProps> = ({
   viewport,
 }) => (
   <PreviewStage>
-    <Canvas
+    <StyledBox as={Canvas}
       data-testid='appearance-preview'
       data-preview-lens={lens.id}
       data-preview-role={role}
       data-preview-viewport={viewport}
-      style={{
+      $style={{
         '--preview-bg': theme.background.primary,
         '--preview-primary': theme.colors.primary,
         '--preview-text': theme.text.primary,
@@ -93,7 +94,7 @@ const AppearanceStudioPreview: React.FC<AppearanceStudioPreviewProps> = ({
         <div className='cards'><div className='card'>Current training state</div><div className='card'>Progress proof</div></div>
         <button type='button' data-swan-button-tone='blue'>Next best action</button>
       </Work>
-    </Canvas>
+    </StyledBox>
   </PreviewStage>
 );
 

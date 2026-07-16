@@ -34,6 +34,7 @@ import {
   matchesSectionContextForTesting as matchesSectionContext,
   type SectionContext,
 } from './NASMExerciseRolodex.sectionFilter';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 interface NASMExerciseRolodexProps {
   onSelectExercise: (exercise: ExerciseSlim) => void;
@@ -135,7 +136,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     if (query || allExercises.length === 0) return [];
     const byId = new Map(allExercises.map(ex => [String(ex.id), ex]));
     return readRecentExercises().map(r => byId.get(r.id)).filter((ex): ex is ExerciseSlim => Boolean(ex));
-  }, [query, allExercises, isOpen]);
+  }, [query, allExercises]);
 
   useRolodexDeepLink({
     isOpen, initialQuery, autoSelectExact,
@@ -179,7 +180,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     if (!ex) return null;
     return (
       <ExerciseRow
-        style={style}
+        {...reactWindowStyleProps(style)}
         $highlighted={index === highlightIndex}
         onClick={() => handlePreview(ex, index)}
         onDoubleClick={() => handleSelect(ex)}
@@ -254,7 +255,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
                 rowCount={filteredResults.length}
                 rowHeight={ROW_HEIGHT}
                 rowProps={{} as any}
-                style={{ height: listHeight || ROW_HEIGHT }}
+                {...reactWindowStyleProps({ height: listHeight || ROW_HEIGHT })}
                 id="exercise-rolodex-list"
                 role="listbox"
                 aria-label="Exercise search results"

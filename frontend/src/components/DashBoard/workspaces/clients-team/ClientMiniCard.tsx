@@ -30,6 +30,7 @@ import {
   EngagementTrack,
   EngagementFill,
 } from './MasterDetailStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -110,10 +111,10 @@ const ClientMiniCard: React.FC<ClientMiniCardProps> = React.memo(({
   }, [client.id]);
 
   return (
-    <ClientCardButton
+    <StyledBox as={ClientCardButton}
       $isSelected={isSelected}
       onClick={handleCardClick}
-      style={{ '--stagger-idx': index } as React.CSSProperties}
+      $style={{ '--stagger-idx': index } as React.CSSProperties}
       aria-label={`Select ${client.firstName} ${client.lastName}`}
       aria-pressed={isSelected}
     >
@@ -170,7 +171,7 @@ const ClientMiniCard: React.FC<ClientMiniCardProps> = React.memo(({
           </QuickActionBtn>
         )}
       </QuickActions>
-    </ClientCardButton>
+    </StyledBox>
   );
 });
 

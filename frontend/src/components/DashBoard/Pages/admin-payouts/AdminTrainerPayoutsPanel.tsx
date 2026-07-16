@@ -92,7 +92,7 @@ const TrainerLedger: React.FC<TrainerLedgerProps> = ({ trainer, fetchLedger, mar
     }
   };
 
-  if (ledgerError) return <StateNote role="alert">Could not load this trainer's unpaid ledger.</StateNote>;
+  if (ledgerError) return <StateNote role="alert">Could not load this trainer&apos;s unpaid ledger.</StateNote>;
   if (rows === null) return <StateNote role="status">Loading ledger…</StateNote>;
   if (rows.length === 0) return <StateNote>All settled — no unpaid commissions for this trainer.</StateNote>;
 

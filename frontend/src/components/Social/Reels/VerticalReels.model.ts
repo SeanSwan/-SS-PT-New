@@ -10,6 +10,7 @@ export type ReelPost = {
   type?: string;
   mediaUrl?: string | null;
   mediaType?: string | null;
+  captionsUrl?: string | null;
   likesCount?: number;
   commentsCount?: number;
   isLiked?: boolean;
@@ -46,6 +47,8 @@ export const isTextEntryTarget = (target: EventTarget | null) => {
   if (!element) return false;
   return element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName);
 };
+
+export const getReelCaptionsUrl = (post: ReelPost) => sanitizeImageUrl(post.captionsUrl);
 
 export const isVideoPost = (post: ReelPost, mediaUrl: string) => {
   const mediaType = post.mediaType?.toLowerCase();

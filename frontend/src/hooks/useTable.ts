@@ -164,7 +164,7 @@ export function useTable<T extends Record<string, any>>(
   // Reset to first page when data changes
   useMemo(() => {
     setCurrentPage(1);
-  }, [data, searchTerm, activeFilter, sortBy, sortOrder]);
+  }, []);
 
   // Filter data by search term
   const searchFilteredData = useMemo(() => {

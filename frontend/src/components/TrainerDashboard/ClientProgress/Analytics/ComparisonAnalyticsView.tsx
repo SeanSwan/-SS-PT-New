@@ -54,6 +54,7 @@ import {
   timeframeOptions,
   type ComparisonType,
 } from './ComparisonAnalytics.logic';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ComparisonAnalyticsViewProps {
   comparisonType: ComparisonType;
@@ -122,11 +123,11 @@ const MetricsComparison: React.FC<Pick<
     <GlassPanel>
       <FlexRow>
         <ArrowLeftRight color="var(--accent-primary, #60C0F0)" size={24} />
-        <SectionTitle style={{ margin: 0 }}>{comparisonAnalytics.title}</SectionTitle>
+        <StyledBox as={SectionTitle} $style={{ margin: 0 }}>{comparisonAnalytics.title}</StyledBox>
       </FlexRow>
       <Subtitle>{comparisonAnalytics.subtitle}</Subtitle>
 
-      <div style={{ overflowX: 'auto' }}>
+      <StyledBox as="div" $style={{ overflowX: 'auto' }}>
         <StyledTable>
           <StyledThead>
             <tr>
@@ -187,7 +188,7 @@ const MetricsComparison: React.FC<Pick<
             ))}
           </tbody>
         </StyledTable>
-      </div>
+      </StyledBox>
     </GlassPanel>
   );
 };

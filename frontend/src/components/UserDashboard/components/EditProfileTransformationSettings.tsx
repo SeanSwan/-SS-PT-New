@@ -26,6 +26,7 @@ import { Camera } from 'lucide-react';
 import { SectionHeading, Label } from './EditProfileModalStyles';
 import type { TransformationPhotoSettings, PhotoVisibility } from './TransformationPhotoTypes';
 import { VISIBILITY_LABELS } from './TransformationPhotoTypes';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -155,7 +156,7 @@ const EditProfileTransformationSettings: React.FC<EditProfileTransformationSetti
   return (
     <>
       <SectionHeading>
-        <Camera size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+        <StyledBox as={Camera} size={12} $style={{ marginRight: 6, verticalAlign: 'middle' }} />
         Transformation Photos
       </SectionHeading>
       <Subtitle>Control who sees your before &amp; after progress photos</Subtitle>

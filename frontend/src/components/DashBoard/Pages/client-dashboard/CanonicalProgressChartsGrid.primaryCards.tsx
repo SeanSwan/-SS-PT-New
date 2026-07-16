@@ -5,28 +5,17 @@
  */
 
 import React from 'react';
-import {
-  VictoryAxis,
-  VictoryBar,
-  VictoryChart,
-  VictoryLine,
-  VictoryScatter,
-  VictoryTooltip,
-  VictoryVoronoiContainer,
-} from 'victory';
+import { VictoryAxis, VictoryBar, VictoryChart, VictoryLine, VictoryScatter, VictoryTooltip } from 'victory';
 import WorkoutDayDrilldown from './WorkoutDayDrilldown';
 import ChartWeekDrillTrigger from './ChartWeekDrillTrigger';
-import { Activity, Calendar, Flame, Users } from 'lucide-react';
+import { Activity, Calendar, Users } from 'lucide-react';
 import {
   type CanonicalProgressCharts,
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import { CHART_COLORS, victoryTheme } from '../../../Charts/chartTheme';
 import { buildProgressChartPulse } from '../../progress-proof/progressChartActions';
-import {
-  buildSeriesFacts,
-  describeIntensitySource,
-} from '../../progress-proof/progressChartFacts';
+import { buildSeriesFacts } from '../../progress-proof/progressChartFacts';
 import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
 import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
 import { buildWorkoutFrequencyRows, buildAttendanceRows, buildUnitSeriesRows } from './CanonicalProgressChartsGrid.expandRows';

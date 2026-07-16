@@ -7,4 +7,6 @@
 import { makeLensFrame } from '../../adapters/style-lens-swan/v2/SurfaceLensGate';
 import { BOOTCAMP_BUILDER_MANIFEST } from '../../adapters/style-lens-swan/v2/surfaceManifests';
 
-export default makeLensFrame(BOOTCAMP_BUILDER_MANIFEST, 'Bootcamp Creator style frame', 'BootcampBuilderLensFrame');
+const BootcampBuilderLensFrame = makeLensFrame(BOOTCAMP_BUILDER_MANIFEST, 'Bootcamp Creator style frame', 'BootcampBuilderLensFrame');
+
+export default BootcampBuilderLensFrame;

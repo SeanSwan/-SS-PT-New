@@ -26,6 +26,7 @@ import { SpecialBadge } from './SpecialBadge';
 import { logger } from '@/utils/logger';
 import { VIDEO } from '../../../config/videoAssets';
 import type { StoreItem } from './storeCatalog.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
 const T = {
@@ -658,12 +659,12 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
               )}
             </PriceContent>
           ) : (
-            <motion.div
+            <StyledBox as={motion.div}
               key="login"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              style={{
+              $style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -671,7 +672,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
               }}
             >
               <LoginMessage>Pricing is by invitation — ask about this package below</LoginMessage>
-            </motion.div>
+            </StyledBox>
           )}
         </PriceBox>
 
@@ -685,7 +686,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
         )}
 
         <CardActions>
-          <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
+          <StyledBox as={motion.div} {...buttonMotionProps} $style={{ width: '100%'}}>
             {showInquiry ? (
               <GlowButton
                 text="Ask About Pricing"
@@ -706,7 +707,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
                 aria-label={`Add ${pkg.name} to cart`}
               />
             )}
-          </motion.div>
+          </StyledBox>
         </CardActions>
       </CardContent>
     </CardContainer>

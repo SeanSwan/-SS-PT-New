@@ -187,7 +187,7 @@ const BadgeAdminEditorPanel: React.FC<BadgeAdminEditorPanelProps> = ({ badge, on
     <AssignPanel>
       <AssignTitle>
         <Edit3 size={16} aria-hidden="true" />
-        Edit "{badge.name}"
+        Edit &quot;{badge.name}&quot;
         {badge.assignedTo && (
           <AssignTag>
             Currently: {badge.assignedTo} to {badge.assignedTarget}

@@ -22,12 +22,13 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useMediaPipe } from '../../hooks/useMediaPipe';
 import { useCamera } from '../../hooks/useCamera';
-import { useBiomechanics, type JointAngles } from '../../hooks/useBiomechanics';
+import { useBiomechanics } from '../../hooks/useBiomechanics';
 import VideoOverlay, { type VideoOverlayRefs } from './VideoOverlay';
 import RepCounter from './RepCounter';
 import FeedbackPanel, { type FormCue } from './FeedbackPanel';
 import { LANDMARK } from './constants';
 import { EXERCISES } from './exerciseList';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // --- Styled Components ---
 
@@ -180,7 +181,7 @@ const ErrorText = styled.p`
 
 const FormAnalyzer: React.FC = () => {
   const { initialize, detectFrame, isLoading, isReady, error: mpError } = useMediaPipe();
-  const { videoRef, start: startCamera, stop: stopCamera, toggleFacing, isActive: cameraActive, facingMode, error: camError, hasMultipleCameras } = useCamera();
+  const { videoRef, start: startCamera, stop: stopCamera, toggleFacing, facingMode, error: camError, hasMultipleCameras } = useCamera();
   const { processLandmarks, repState, resetReps, setTrackingJoint } = useBiomechanics();
 
   // UI state (low-frequency updates — max 10fps via useBiomechanics throttle)
@@ -373,10 +374,10 @@ const FormAnalyzer: React.FC = () => {
           >
             {isLoading ? (
               <>
-                <motion.div
+                <StyledBox as={motion.div}
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                  style={{
+                  $style={{
                     width: 48, height: 48, borderRadius: '50%',
                     border: '3px solid rgba(96, 192, 240, 0.2)',
                     borderTopColor: '#60C0F0',
@@ -481,26 +482,26 @@ class FormAnalyzerErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
+        <StyledBox as="div" $style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', minHeight: '100vh', background: '#002060',
           color: '#E0ECF4', padding: '24px', textAlign: 'center',
         }}>
-          <h2 style={{ marginBottom: 8 }}>Movement Analysis Unavailable</h2>
-          <p style={{ color: 'rgba(224, 236, 244, 0.6)', marginBottom: 16 }}>
+          <StyledBox as="h2" $style={{ marginBottom: 8 }}>Movement Analysis Unavailable</StyledBox>
+          <StyledBox as="p" $style={{ color: 'rgba(224, 236, 244, 0.6)', marginBottom: 16 }}>
             Real-time analysis failed to load. You can still upload a video for analysis.
-          </p>
-          <a
+          </StyledBox>
+          <StyledBox as="a"
             href="/form-analysis"
-            style={{
+            $style={{
               padding: '12px 24px', borderRadius: 22,
               border: '1px solid rgba(96, 192, 240, 0.3)',
               color: '#60C0F0', textDecoration: 'none',
             }}
           >
             Reload
-          </a>
-        </div>
+          </StyledBox>
+        </StyledBox>
       );
     }
     return this.props.children;

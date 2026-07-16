@@ -16,7 +16,7 @@
  */
 
 import productionApiService from './api.service';
-import { AxiosResponse } from 'axios';
+import 'axios';
 import { logger } from '@/utils/logger';
 
 // =====================================================

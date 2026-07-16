@@ -10,14 +10,14 @@
  * - Seamless theme switching with localStorage persistence
  * - WCAG AA accessibility compliance
  *
- * Master Palette — Preset F-Alt "Enchanted Apex: Crystalline Swan"
- * - Midnight Sapphire #002060 — Primary / logo deep navy
- * - Royal Depth #003080 — Surface / logo circle
- * - Ice Wing #60C0F0 — Gaming accent / wing highlight
- * - Arctic Cyan #50A0F0 — Secondary accent / feathers
- * - Gilded Fern #C6A84B — Luxury gold accent
- * - Frost White #E0ECF4 — Light background / head highlight
- * - Swan Lavender #4070C0 — Tertiary / mid-body purple-blue
+ * Master Palette â€” Preset F-Alt "Enchanted Apex: Crystalline Swan"
+ * - Midnight Sapphire #002060 â€” Primary / logo deep navy
+ * - Royal Depth #003080 â€” Surface / logo circle
+ * - Ice Wing #60C0F0 â€” Gaming accent / wing highlight
+ * - Arctic Cyan #50A0F0 â€” Secondary accent / feathers
+ * - Gilded Fern #C6A84B â€” Luxury gold accent
+ * - Frost White #E0ECF4 â€” Light background / head highlight
+ * - Swan Lavender #4070C0 â€” Tertiary / mid-body purple-blue
  */
 
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
@@ -38,11 +38,11 @@ const fonts = {
 // === THEME DEFINITIONS ===
 
 /**
- * CRYSTALLINE DEFAULT THEME — "Crystalline Swan"
+ * CRYSTALLINE DEFAULT THEME â€” "Crystalline Swan"
  * Enhanced Enchanted Navy with aurora-effect hero, glass cards, and Ice Wing glow halos.
  * Background: #001545 (deeper navy)
  * Primary accent: #60C0F0 (Ice Wing)
- * Gold accent: #C6A84B (Gilded Fern) — more prominent
+ * Gold accent: #C6A84B (Gilded Fern) â€” more prominent
  */
 const crystallineDefault = {
   id: 'crystalline-default' as const,
@@ -133,7 +133,7 @@ const crystallineDefault = {
 };
 
 /**
- * ARCTIC DAWN THEME — "Arctic Dawn"
+ * ARCTIC DAWN THEME â€” "Arctic Dawn"
  * Premium icy light theme with readable slate text and platinum glass.
  * Background: #E6EEF5 (blue-tinted platinum, not whiteout)
  * Primary accent: #0284C7 (controlled icy blue)
@@ -229,7 +229,7 @@ const crystallineLight = {
 };
 
 /**
- * VOID CRYSTAL THEME — "Void Crystal"
+ * VOID CRYSTAL THEME â€” "Void Crystal"
  * Sci-fi neon command center. Near-black backgrounds, aggressive neon glow,
  * vivid cyan primary, purple secondary. Maximum dramatic intensity.
  * Background: #030712 (near-black)
@@ -326,12 +326,12 @@ const crystallineDark = {
 };
 
 /**
- * MONOCHROME THEME — "Monochrome"
+ * MONOCHROME THEME â€” "Monochrome"
  * Minimalist black & white dark mode. Pure black backgrounds, white text,
  * NO color, NO glow, NO glassmorphism. Clean, editorial, typographic.
  * Background: #000000 (pure black)
  * Primary accent: #FFFFFF (pure white)
- * No color accents — grayscale only
+ * No color accents â€” grayscale only
  */
 const crystallineMono = {
   id: 'crystalline-mono' as const,
@@ -427,7 +427,7 @@ const crystallineMono = {
 };
 
 /**
- * CINEMATIC EMBER THEME — "Obsidian Ember"
+ * CINEMATIC EMBER THEME â€” "Obsidian Ember"
  * Warm cinematic dark theme. Charcoal blacks with amber/rose gold accents.
  * Inspired by luxury cinema lobbies and fireside lounges.
  * Background: #1A0F0A (deep warm black)
@@ -523,7 +523,7 @@ const cinematicEmber = {
 };
 
 /**
- * FROZEN AURORA THEME — "Frozen Aurora"
+ * FROZEN AURORA THEME â€” "Frozen Aurora"
  * Cool cinematic light theme. Icy whites with northern lights accents.
  * Inspired by Scandinavian design + aurora borealis.
  * Background: #F0F4F8 (ice mist)
@@ -619,14 +619,14 @@ const frozenAurora = {
 };
 
 /**
- * OBSIDIAN BLACK THEME — "Obsidian Black"
- * Pure black background with minimal accents. Workout logger dark aesthetic —
+ * OBSIDIAN BLACK THEME â€” "Obsidian Black"
+ * Pure black background with minimal accents. Workout logger dark aesthetic â€”
  * mostly black/dark with subtle Wing Purple accents and Ice Wing for data only.
  * Background: #0A0A0F (Obsidian Black from CLAUDE.md)
  * Card surface: #141419 (Carbon)
  * Elevated: #1A1A24 (Graphite)
- * Primary accent: #8B5CF6 (Wing Purple) — minimal usage
- * Data accent: #60C0F0 (Ice Wing) — charts/data only
+ * Primary accent: #8B5CF6 (Wing Purple) â€” minimal usage
+ * Data accent: #60C0F0 (Ice Wing) â€” charts/data only
  */
 const obsidianBlack = {
   id: 'obsidian-black' as const,
@@ -645,7 +645,7 @@ const obsidianBlack = {
 
     // Wing Purple as THE visible accent (this theme's own doc: "mostly black
     // with subtle Wing Purple accents"). colors.primary is the system-wide
-    // accent role — #002060 here was 1.29:1 on the black base (invisible).
+    // accent role â€” #002060 here was 1.29:1 on the black base (invisible).
     primary: '#8B5CF6',
     primaryBlue: '#7C3AED',
     primaryDeep: '#6D28D9',
@@ -727,9 +727,9 @@ const obsidianBlack = {
 };
 
 /**
- * CYBERPUNK EDGERUNNERS THEME — "Cyberpunk Edgerunners"
+ * CYBERPUNK EDGERUNNERS THEME â€” "Cyberpunk Edgerunners"
  * Aggressive neon dark theme. Near-black bg with neon yellow + hot pink.
- * Inspired by Night City aesthetics — sharp edges, glassmorphism, high contrast.
+ * Inspired by Night City aesthetics â€” sharp edges, glassmorphism, high contrast.
  * Background: #0D0D0D (near-black)
  * Primary accent: #F7FF00 (neon yellow)
  * Secondary: #FF2D6A (hot pink)
@@ -824,7 +824,7 @@ const cyberpunkEdgerunners = {
 };
 
 /**
- * OBSIDIAN BLOOM THEME — "Obsidian Bloom"
+ * OBSIDIAN BLOOM THEME â€” "Obsidian Bloom"
  * Dark Gothic Garden aesthetic. Deep violet-black backgrounds with hot pink
  * and purple accents. Inspired by midnight botanical gardens and dark florals.
  * Background: #0A0014 (deep violet-black)
@@ -921,7 +921,7 @@ const obsidianBloom = {
 };
 
 /**
- * FROZEN CANOPY THEME — "Frozen Canopy"
+ * FROZEN CANOPY THEME â€” "Frozen Canopy"
  * Arctic Enchanted Forest aesthetic. Deep navy-blue backgrounds with ice cyan
  * and emerald green accents. Inspired by frozen northern forests and starlight.
  * Background: #001030 (deep arctic navy)
@@ -1018,7 +1018,7 @@ const frozenCanopy = {
 };
 
 /**
- * EMBER REALM THEME — "Ember Realm"
+ * EMBER REALM THEME â€” "Ember Realm"
  * Warrior Forge aesthetic. Deep crimson-black backgrounds with orange fire
  * and red accents. Inspired by forges, volcanic landscapes, and battle arenas.
  * Background: #120808 (deep crimson-black)
@@ -1115,7 +1115,7 @@ const emberRealm = {
 };
 
 /**
- * TWILIGHT LAGOON THEME — "Twilight Lagoon"
+ * TWILIGHT LAGOON THEME â€” "Twilight Lagoon"
  * Bioluminescent Depths aesthetic. Ultra-deep navy backgrounds with aqua green
  * and electric blue accents. Inspired by deep-sea bioluminescence and underwater caves.
  * Background: #060618 (ultra-deep navy)
@@ -1212,7 +1212,7 @@ const twilightLagoon = {
 };
 
 /**
- * NEBULA CROWN THEME — "Nebula Crown"
+ * NEBULA CROWN THEME â€” "Nebula Crown"
  * Cosmic Throne aesthetic. Deep purple-black backgrounds with vivid purple,
  * pink, and indigo accents. Inspired by nebulae, crowns, and cosmic royalty.
  * Background: #0A0020 (deep cosmic purple)
@@ -1309,9 +1309,9 @@ const nebulaCrown = {
 };
 
 /**
- * ENCHANTED FOREST THEME — "Enchanted Forest"
+ * ENCHANTED FOREST THEME â€” "Enchanted Forest"
  * Deep forest greens with golden sunlight filtering through canopy.
- * Organic, earthy, natural — inspired by ancient enchanted woodlands.
+ * Organic, earthy, natural â€” inspired by ancient enchanted woodlands.
  * Background: #0A1A0A (deep forest black-green)
  * Primary accent: #4ADE80 (emerald glow)
  * Secondary: #A3E635 (lime canopy light)
@@ -1401,7 +1401,7 @@ const enchantedForest = {
 };
 
 /**
- * VOID CRYSTAL THEME — Pure black, maximum contrast, neon accents glow intensely
+ * VOID CRYSTAL THEME â€” Pure black, maximum contrast, neon accents glow intensely
  */
 const voidCrystal = {
   id: 'void-crystal' as const,
@@ -1444,7 +1444,7 @@ const voidCrystal = {
 };
 
 /**
- * DEEP OCEAN THEME — Navy-black with teal accents (developer portfolio inspired)
+ * DEEP OCEAN THEME â€” Navy-black with teal accents (developer portfolio inspired)
  */
 const deepOcean = {
   id: 'deep-ocean' as const,
@@ -1487,7 +1487,7 @@ const deepOcean = {
 };
 
 /**
- * OBSIDIAN AURORA THEME — Near-black with shifting aurora gradient accents
+ * OBSIDIAN AURORA THEME â€” Near-black with shifting aurora gradient accents
  */
 const obsidianAurora = {
   id: 'obsidian-aurora' as const,
@@ -1530,7 +1530,7 @@ const obsidianAurora = {
 };
 
 /**
- * CARBON FIBER THEME — Dark carbon with subtle texture feel and platinum controls.
+ * CARBON FIBER THEME â€” Dark carbon with subtle texture feel and platinum controls.
  */
 const carbonFiber = {
   id: 'carbon-fiber' as const,
@@ -1647,10 +1647,10 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     const savedTheme = localStorage.getItem('swanstudios-theme') as ThemeId;
     if (savedTheme && themes[savedTheme]) {
       setCurrentThemeState(savedTheme);
-      injectThemeVariables(savedTheme);
+      injectThemeVariables(savedTheme, themes);
     } else {
       // Inject default theme variables
-      injectThemeVariables(defaultTheme);
+      injectThemeVariables(defaultTheme, themes);
     }
   }, [defaultTheme]);
 
@@ -1660,7 +1660,7 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     localStorage.setItem('swanstudios-theme', themeId);
 
     // Inject CSS variables for the new theme
-    injectThemeVariables(themeId);
+    injectThemeVariables(themeId, themes);
 
     // Dispatch custom event for components that need to react to theme changes
     window.dispatchEvent(new CustomEvent('themeChanged', {
@@ -1723,36 +1723,18 @@ export const useUniversalTheme = () => {
 /**
  * Maps universal themes to GlowButton variants
  */
-export const getGlowButtonVariant = (themeId: ThemeId): string => {
-  switch (themeId) {
-    case 'crystalline-default':
-      return 'primary'; // Ice-wing blue glow
-    case 'crystalline-light':
-      return 'primary'; // Arctic cyan on frost
-    case 'crystalline-dark':
-      return 'cosmic'; // Deep ice glow
-    case 'crystalline-mono':
-      return 'ghost'; // Thin white border, no gradient
-    case 'obsidian-black':
-      return 'cosmic'; // Subtle purple glow
-    default:
-      return 'primary';
-  }
-};
+
 
 // === THEME UTILITY FUNCTIONS ===
-export const getThemeColors = (themeId: ThemeId) => themes[themeId].colors;
-export const getThemeGradients = (themeId: ThemeId) => themes[themeId].gradients;
-export const getThemeShadows = (themeId: ThemeId) => themes[themeId].shadows;
+
+
+
 
 // === STYLED COMPONENTS THEME HOOK ===
 /**
  * Hook for accessing theme in styled-components
  * Usage: const theme = useStyledTheme();
  */
-export const useStyledTheme = () => {
-  const { theme } = useUniversalTheme();
-  return theme;
-};
+
 
 export default UniversalThemeProvider;

@@ -2,7 +2,7 @@
  * ToastContext.jsx
  * Provides toast notification functionality throughout the application
  */
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 // Create Toast Context
 const ToastContext = createContext();

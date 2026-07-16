@@ -7,4 +7,6 @@
 import { makeLensFrame } from '../../adapters/style-lens-swan/v2/SurfaceLensGate';
 import { WORKOUT_LOGGER_MANIFEST } from '../../adapters/style-lens-swan/v2/surfaceManifests';
 
-export default makeLensFrame(WORKOUT_LOGGER_MANIFEST, 'Workout Logger style frame', 'WorkoutLoggerLensFrame');
+const WorkoutLoggerLensFrame = makeLensFrame(WORKOUT_LOGGER_MANIFEST, 'Workout Logger style frame', 'WorkoutLoggerLensFrame');
+
+export default WorkoutLoggerLensFrame;

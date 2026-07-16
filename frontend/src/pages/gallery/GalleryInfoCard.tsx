@@ -6,7 +6,7 @@
  * Design: Gemini 3.1 Pro directive — Crystalline Swan glassmorphism.
  */
 import React, { useState } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { Camera, Sparkles, Mail, Heart, ChevronDown, Info } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -384,11 +384,11 @@ const GalleryInfoCard: React.FC<GalleryInfoCardProps> = ({
                 converted to high-quality JPEG for easy viewing and downloading.
               </ModuleText>
               <ModuleText>
-                Want the original RAW files? Just send us a note — they're yours,
+                Want the original RAW files? Just send us a note — they&apos;re yours,
                 absolutely free.
               </ModuleText>
               <ModuleText>
-                Download as many photos as you'd like — they're all complimentary.
+                Download as many photos as you&apos;d like — they&apos;re all complimentary.
               </ModuleText>
             </Module>
 
@@ -427,9 +427,9 @@ const GalleryInfoCard: React.FC<GalleryInfoCardProps> = ({
             <Module>
               <ActionsHeading>About the Photographer</ActionsHeading>
               <SupportText>
-                I'm a professional trainer with 26+ years of experience.
-                If you'd like to support my work, you can leave a donation
-                of any amount. Know someone who'd benefit from a free
+                I&apos;m a professional trainer with 26+ years of experience.
+                If you&apos;d like to support my work, you can leave a donation
+                of any amount. Know someone who&apos;d benefit from a free
                 training orientation for home training? Send me a note!
               </SupportText>
 

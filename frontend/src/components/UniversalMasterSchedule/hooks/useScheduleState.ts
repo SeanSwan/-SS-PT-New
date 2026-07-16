@@ -45,7 +45,7 @@ interface CalendarEvent {
   metadata: Record<string, unknown>;
 }
 
-type ScheduleAction = 
+type ScheduleAction =
   | { type: 'LOAD_START' }
   | { type: 'LOAD_SUCCESS'; payload: ScheduleData }
   | { type: 'LOAD_ERROR'; payload: ScheduleError }
@@ -58,12 +58,12 @@ const scheduleReducer = (state: ScheduleState, action: ScheduleAction): Schedule
     case 'LOAD_START':
       return { ...state, status: 'loading', error: null };
     case 'LOAD_SUCCESS':
-      return { 
-        ...state, 
-        status: 'success', 
-        data: action.payload, 
+      return {
+        ...state,
+        status: 'success',
+        data: action.payload,
         lastUpdated: new Date(),
-        error: null 
+        error: null
       };
     case 'LOAD_ERROR':
       return { ...state, status: 'error', error: action.payload };
@@ -73,7 +73,7 @@ const scheduleReducer = (state: ScheduleState, action: ScheduleAction): Schedule
         ...state,
         data: {
           ...state.data,
-          events: state.data.events.map(event => 
+          events: state.data.events.map(event =>
             event.id === action.payload.id ? action.payload : event
           )
         }
@@ -94,12 +94,12 @@ const scheduleReducer = (state: ScheduleState, action: ScheduleAction): Schedule
   }
 };
 
-export const useScheduleState = ({ 
-  userRole = 'user', 
-  timezone = 'UTC' 
-}: { 
-  userRole?: string; 
-  timezone?: string; 
+export const useScheduleState = ({
+  userRole: _userRole = 'user',
+  timezone: _timezone = 'UTC'
+}: {
+  userRole?: string;
+  timezone?: string;
 } = {}) => {
   const [state, dispatch] = useReducer(scheduleReducer, {
     status: 'idle',
@@ -107,23 +107,23 @@ export const useScheduleState = ({
     error: null,
     lastUpdated: null
   });
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
-  
+
   const refreshData = useCallback(async () => {
     // Cancel any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
-    
+
     dispatch({ type: 'LOAD_START' });
-    
+
     try {
       // Simulate API call with mock data
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockData: ScheduleData = {
         events: [
           {
@@ -146,12 +146,12 @@ export const useScheduleState = ({
           lastSync: new Date().toISOString()
         }
       };
-      
+
       dispatch({ type: 'LOAD_SUCCESS', payload: mockData });
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
-        dispatch({ 
-          type: 'LOAD_ERROR', 
+        dispatch({
+          type: 'LOAD_ERROR',
           payload: {
             code: 'FETCH_ERROR',
             message: error.message,
@@ -161,21 +161,21 @@ export const useScheduleState = ({
       }
     }
   }, []);
-  
-  const isStale = state.lastUpdated ? 
+
+  const isStale = state.lastUpdated ?
     Date.now() - state.lastUpdated.getTime() > 5 * 60 * 1000 : // 5 minutes
     true;
-  
+
   useEffect(() => {
     refreshData();
-    
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
   }, [refreshData]);
-  
+
   return {
     state,
     dispatch,

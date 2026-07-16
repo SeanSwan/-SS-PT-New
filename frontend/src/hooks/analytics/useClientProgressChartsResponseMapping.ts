@@ -14,7 +14,13 @@ import {
   type EstOneRmBundle,
   type SetsRepsBundle,
 } from './useClientProgressCharts.types';
-import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
+import {
+  sanitizeClientProgressChartsBundle,
+  type RawAnchorLiftsBundle,
+  type RawAttendanceBundle,
+  type RawEstOneRmBundle,
+  type RawSetsRepsBundle,
+} from './useClientProgressChartsSanitizers';
 
 const EMPTY_ATTENDANCE: AttendanceBundle = {
   data: [],
@@ -46,45 +52,48 @@ export const EMPTY_CANONICAL_PROGRESS_CHARTS: CanonicalProgressCharts = {
   estOneRm: EMPTY_EST_ONE_RM,
 };
 
-const arrayOrEmpty = (value: unknown): any[] => (Array.isArray(value) ? value : []);
+type ResponseRecord = Record<string, unknown>;
 
-const isSuccessResponse = (response: any): boolean => (
-  response && typeof response === 'object' && response.success === true
+const isResponseRecord = (value: unknown): value is ResponseRecord =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const arrayOrEmpty = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+const isSuccessResponse = (response: unknown): response is ResponseRecord & { success: true } => (
+  isResponseRecord(response) && response.success === true
 );
 
-const successDataOrNull = (response: any): any => (
+const successDataOrNull = (response: unknown): unknown => (
   isSuccessResponse(response) ? response.data ?? null : null
 );
 
 const numberOrZero = (value: unknown): number => (typeof value === 'number' ? value : 0);
 
-const anchorLiftDataOrEmpty = (value: unknown): AnchorLiftsBundle['data'] => (
-  value && typeof value === 'object' && !Array.isArray(value)
-    ? value as AnchorLiftsBundle['data']
-    : {}
+const anchorLiftDataOrEmpty = (value: unknown): Record<string, unknown> => (
+  isResponseRecord(value) ? value : {}
 );
 
-const listOrEmpty = (response: any): any[] => arrayOrEmpty(successDataOrNull(response));
+const listOrEmpty = (response: unknown): unknown[] => arrayOrEmpty(successDataOrNull(response));
 
-const attendanceFrom = (response: any): AttendanceBundle => {
+const attendanceFrom = (response: unknown): RawAttendanceBundle => {
   if (!isSuccessResponse(response)) return EMPTY_ATTENDANCE;
   return {
     data: arrayOrEmpty(response.data),
     reliabilityPercent: numberOrZero(response.reliabilityPercent),
-    totals: response.totals || EMPTY_ATTENDANCE.totals,
+    totals: response.totals ?? EMPTY_ATTENDANCE.totals,
   };
 };
 
-const setsRepsFrom = (response: any): SetsRepsBundle => {
+const setsRepsFrom = (response: unknown): RawSetsRepsBundle => {
   const data = successDataOrNull(response);
-  if (!data) return EMPTY_SETS_REPS;
+  if (!isResponseRecord(data)) return EMPTY_SETS_REPS;
   return {
     sets: arrayOrEmpty(data.sets),
     reps: arrayOrEmpty(data.reps),
   };
 };
 
-const anchorLiftsFrom = (response: any): AnchorLiftsBundle => {
+const anchorLiftsFrom = (response: unknown): RawAnchorLiftsBundle => {
   if (!isSuccessResponse(response)) return EMPTY_ANCHOR_LIFTS;
   return {
     data: anchorLiftDataOrEmpty(response.data),
@@ -92,7 +101,7 @@ const anchorLiftsFrom = (response: any): AnchorLiftsBundle => {
   };
 };
 
-const estOneRmFrom = (response: any): EstOneRmBundle => {
+const estOneRmFrom = (response: unknown): RawEstOneRmBundle => {
   if (!isSuccessResponse(response)) return EMPTY_EST_ONE_RM;
   return {
     exercise: typeof response.exercise === 'string' && response.exercise.trim() ? response.exercise : null,
@@ -101,7 +110,7 @@ const estOneRmFrom = (response: any): EstOneRmBundle => {
 };
 
 export const buildCanonicalProgressChartsFromResponses = (
-  responses: any[],
+  responses: readonly unknown[],
 ): CanonicalProgressCharts => {
   const [
     workoutFreqRes,
@@ -140,7 +149,7 @@ export const buildCanonicalProgressChartsFromResponses = (
   });
 };
 
-export const countUnavailableChartResponses = (responses: any[]) => (
+export const countUnavailableChartResponses = (responses: readonly unknown[]) => (
   responses.filter((response) => !isSuccessResponse(response)).length
 );
 

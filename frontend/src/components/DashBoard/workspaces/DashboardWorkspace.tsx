@@ -2,6 +2,7 @@ import React from 'react';
 import { Shield, Bell, Clock, Activity } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 import AITerminalPanel from '../../Shared/AITerminalPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const tabs: WorkspaceTab[] = [
   { id: 'overview', label: 'Overview', icon: <Shield size={18} />, path: '/dashboard/home' },
@@ -12,14 +13,14 @@ const tabs: WorkspaceTab[] = [
 
 const DashboardWorkspace: React.FC = () => (
   <>
-    <div style={{ padding: '24px 24px 0' }}>
+    <StyledBox as="div" $style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
         context="general"
         label="Dashboard Assistant"
         emptyHint="Ask about overview, notifications, approvals..."
         defaultOpen={false}
       />
-    </div>
+    </StyledBox>
     <WorkspaceContainer
       title="Dashboard"
       subtitle="Executive command center overview"

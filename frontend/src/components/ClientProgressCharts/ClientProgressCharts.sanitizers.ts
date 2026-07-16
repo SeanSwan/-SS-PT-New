@@ -10,15 +10,18 @@ import type {
   RPEDistributionDataPoint,
   SessionIntensityDataPoint,
   StrengthProgressionDataPoint,
+  SanitizedFormTrendRow,
+  SanitizedVolumeProgressionRow,
+  SanitizedWorkoutHistoryRow,
 } from './types/ClientProgressTypes';
 
 type RawRow = Record<string, unknown>;
 
-interface SanitizedProgressPayload {
-  workoutHistory: RawRow[];
-  volumeProgression: RawRow[];
+export interface SanitizedProgressPayload {
+  workoutHistory: SanitizedWorkoutHistoryRow[];
+  volumeProgression: SanitizedVolumeProgressionRow[];
   oneRepMaxes: OneRepMaxDataPoint[];
-  formTrends: RawRow[];
+  formTrends: SanitizedFormTrendRow[];
   nasmCategories: NASMCategoryDataPoint[];
   categories: NASMCategoryDataPoint[];
   bodyComposition: BodyCompositionDataPoint[];
@@ -71,7 +74,7 @@ const categoryRows = (value: unknown): NASMCategoryDataPoint[] =>
       maxLevel,
       percentage: percentComplete,
       percentComplete,
-    } as NASMCategoryDataPoint;
+    };
   });
 
 export function sanitizeProgressPayload(raw: RawRow = {}): SanitizedProgressPayload {
@@ -138,7 +141,7 @@ export function sanitizeProgressPayload(raw: RawRow = {}): SanitizedProgressPayl
       zone: label(row.zone, 'Unrated'),
       count: finite(row.count),
       percentage: finite(row.percentage),
-      color: label(row.color, '#60C0F0'),
+      color: label(row.color, 'var(--accent-primary, #60C0F0)'),
     })),
     personalRecords: dateRows(raw.personalRecords, (row) => ({
       date: dateOrEmpty(row.date),

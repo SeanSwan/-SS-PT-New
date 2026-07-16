@@ -20,13 +20,11 @@
  * └───────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
-import {
-  CalendarDays, ChevronLeft, ChevronRight, Sparkles, Plus,
-  Video, Mic2, FileText, X, Loader2,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Plus, Video, Mic2, FileText, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -340,9 +338,9 @@ const ContentCalendarPanel: React.FC = () => {
                   return (
                     <ItemChip key={item.id} $color={cfg.color}>
                       {cfg.icon}
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <StyledBox as="span" $style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {item.title}
-                      </span>
+                      </StyledBox>
                       <RemoveBtn onClick={() => removeItem(item.id)} aria-label="Remove">
                         <X size={10} />
                       </RemoveBtn>

@@ -391,7 +391,7 @@ const WhySwanStudios: React.FC<WhySwanStudiosProps> = ({ showCTA = true }) => {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          Generic AI chatbots can answer fitness questions — but they can't log your workouts,
+          Generic AI chatbots can answer fitness questions — but they can&apos;t log your workouts,
           track your progress, connect you with trainers, or build a community around your goals.
           SwanStudios is a complete fitness platform with AI built in, not just a chatbot.
         </Subtitle>
@@ -413,7 +413,7 @@ const WhySwanStudios: React.FC<WhySwanStudiosProps> = ({ showCTA = true }) => {
               Big tech charges $20/month for a chatbot that forgets you exist.
               SwanStudios offers a full fitness platform — free to start, and our Pro tier
               is <strong>donation-based</strong> so everyone can access AI coaching regardless
-              of budget. Pay what you can. Your fitness journey shouldn't depend on your wallet.
+              of budget. Pay what you can. Your fitness journey shouldn&apos;t depend on your wallet.
             </PricingText>
           </div>
         </PricingCallout>

@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
 export const GroupPanel = styled.section`
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));

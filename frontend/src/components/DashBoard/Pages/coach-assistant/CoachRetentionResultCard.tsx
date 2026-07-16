@@ -141,7 +141,7 @@ function compactText(value: unknown): string | null {
 }
 
 function actionLabel(value: unknown): string {
-  const key = compactText(value)?.toLowerCase().replace(/[^a-z0-9_:\-]/g, '') || '';
+  const key = compactText(value)?.toLowerCase().replace(/[^a-z0-9_:-]/g, '') || '';
   return ACTION_LABELS[key] || 'Review Coach intake retention';
 }
 

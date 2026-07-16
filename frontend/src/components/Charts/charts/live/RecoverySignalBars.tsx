@@ -30,6 +30,7 @@ import {
 } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props { userId: number | string; }
 
@@ -142,10 +143,10 @@ const RecoverySignalBars: React.FC<Props> = ({ userId }) => {
           return (
             <BarRow key={row.x}>
               <BarLabel title={row.x}>
-                <AlertTriangle
+                <StyledBox as={AlertTriangle}
                   size={11}
                   aria-hidden="true"
-                  style={{
+                  $style={{
                     verticalAlign: '-2px',
                     marginRight: 4,
                     color: CHART_COLORS.crimsonFrost,

@@ -141,7 +141,7 @@ const ChartExpandModal: React.FC<ChartExpandModalProps> = ({
         </HeaderRow>
         {shareState === 'shared' && <ShareOutcome>Shared to your community feed.</ShareOutcome>}
         {shareState === 'failed' && (
-          <ShareOutcome>Couldn't share right now — you can post it from the Progress share studio.</ShareOutcome>
+          <ShareOutcome>Couldn&apos;t share right now — you can post it from the Progress share studio.</ShareOutcome>
         )}
         <ChartStage ref={stageRef}>
           {stageWidth > 0 && renderChart(stageWidth, chartHeight)}

@@ -45,6 +45,7 @@ import {
   AchievementSummaryDetails,
   PointsChip,
 } from '../styles/PostCardStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Workout Stats Renderer
@@ -127,17 +128,17 @@ const TransformationImages: React.FC<{
 }> = React.memo(({ transformationData, sliderValue }) => (
   <TransformationImageContainer>
     {transformationData.beforeImageUrl && (
-      <TransformationImage
+      <StyledBox as={TransformationImage}
         src={transformationData.beforeImageUrl}
         alt="Before transformation"
-        style={{ opacity: sliderValue / 100 }}
+        $style={{ opacity: sliderValue / 100 }}
       />
     )}
     {transformationData.afterImageUrl && (
-      <TransformationImage
+      <StyledBox as={TransformationImage}
         src={transformationData.afterImageUrl}
         alt="After transformation"
-        style={{ opacity: 1 - (sliderValue / 100) }}
+        $style={{ opacity: 1 - (sliderValue / 100) }}
       />
     )}
     <TransformationSlider>

@@ -35,13 +35,5 @@ export function useHomeNutritionAction(): HomeNutritionAction | null {
       ...getNextNutritionAction(macro.summary, hydration),
       label: 'Open Nutrition Today',
     };
-  }, [
-    macro.error,
-    macro.loading,
-    macro.summary,
-    hydration.dailyGoal,
-    hydration.filled,
-    hydration.glassOz,
-    hydration.loading,
-  ]);
+  }, [macro.loading, macro.error, macro.summary, hydration]);
 }

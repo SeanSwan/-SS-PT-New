@@ -11,6 +11,7 @@ import { ImagePlus, Send, X } from 'lucide-react';
 import styled from 'styled-components';
 import type { SocialFeedApi } from '../../../../hooks/social/useSocialFeed';
 import { PrimaryGroupButton, QuietGroupButton } from './GroupsShared.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ComposerShell = styled.div`
   display: grid;
@@ -125,7 +126,7 @@ const GroupComposer: React.FC<GroupComposerProps> = ({ feed, groupName }) => {
         maxLength={5000}
       />
       <ComposerActions>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
+        <StyledBox as="div" $style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
           <QuietGroupButton type="button" onClick={() => fileRef.current?.click()}>
             <ImagePlus size={16} aria-hidden="true" />
             {media ? 'Change media' : 'Add photo/video'}
@@ -145,7 +146,7 @@ const GroupComposer: React.FC<GroupComposerProps> = ({ feed, groupName }) => {
               </button>
             </MediaChip>
           )}
-        </div>
+        </StyledBox>
         <PrimaryGroupButton type="button" onClick={handleSubmit} disabled={!canPost}>
           <Send size={15} aria-hidden="true" />
           {feed.isCreatingPost ? 'Posting…' : 'Post'}

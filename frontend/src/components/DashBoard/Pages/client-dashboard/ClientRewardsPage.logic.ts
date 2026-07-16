@@ -60,7 +60,7 @@ export const clampPercent = (value: unknown): number =>
 export const formatNumber = (value: unknown): string =>
   Math.max(0, Math.round(toFiniteNumber(value, 0))).toLocaleString();
 
-const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F]/g;
+const CONTROL_CHARACTERS = /\p{Cc}/gu;
 const RUNNING_WHITESPACE = /\s+/g;
 const DEFAULT_COPY_LIMIT = 96;
 const ALLOWED_REWARD_RARITIES = new Set([

@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   findConversation: vi.fn(),
   query: vi.fn(),
   sendChatMessage: vi.fn(),
+  buildPromptMessages: vi.fn(),
+  enrichWithUserData: vi.fn(),
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -53,9 +55,9 @@ vi.mock('../../models/AiConversation.mjs', () => ({
 
 vi.mock('../../services/aiChatService.mjs', () => ({
   getSystemPrompt: vi.fn(() => ''),
-  buildPromptMessages: vi.fn(() => []),
+  buildPromptMessages: mocks.buildPromptMessages,
   sendChatMessage: mocks.sendChatMessage,
-  enrichWithUserData: vi.fn(),
+  enrichWithUserData: mocks.enrichWithUserData,
   getAIChatDiagnostics: vi.fn(),
   sanitizeAiChatMetadataForClient: vi.fn((value) => value),
   sanitizeAiFailoverTrace: vi.fn((value) => value),
@@ -70,13 +72,9 @@ vi.mock('../../services/voiceTranscriptionService.mjs', () => ({
 vi.mock('../../services/aiPrivacyService.mjs', () => ({
   stripIdentityFromMessage: vi.fn(async (message) => ({ sanitizedMessage: message, identitiesStripped: 0 })),
   stripIdentityFromResponse: vi.fn(async (message) => ({ sanitizedResponse: message, identitiesStripped: 0 })),
+  scrubGenericPII: vi.fn(async (message) => ({ sanitizedText: message, piiRemoved: 0 })),
 }));
 
-vi.mock('../../services/ai/aiChatPromptPrivacy.mjs', () => ({
-  CURRENT_MESSAGE_WITHHELD: '[message withheld]',
-  RESPONSE_MESSAGE_WITHHELD: '[response withheld]',
-  sanitizePromptHistory: vi.fn((messages) => messages),
-}));
 
 vi.mock('../../services/ai/coachIntakeContextService.mjs', () => ({
   buildCoachIntakeContextPromptBlock: vi.fn(() => ''),
@@ -142,6 +140,10 @@ describe('AI chat conversation target guard', () => {
     delete process.env.AI_CHAT_CLIENT_ACCESS_SOFT;
     mocks.findConversation.mockReset();
     mocks.sendChatMessage.mockReset();
+    mocks.buildPromptMessages.mockReset();
+    mocks.buildPromptMessages.mockImplementation((_system, history, current) => [...history, { role: 'user', content: current }]);
+    mocks.enrichWithUserData.mockReset();
+    mocks.enrichWithUserData.mockResolvedValue('');
     mocks.createConversation.mockImplementation(async (payload) => mockCreatedConversation(payload));
     mocks.query.mockResolvedValue([]);
     mocks.sendChatMessage.mockResolvedValue({
@@ -193,6 +195,119 @@ describe('AI chat conversation target guard', () => {
     });
     expect(mocks.sendChatMessage).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('redacts accessible client identities from unpinned staff message, history, and response prompts', async () => {
+    const update = vi.fn();
+    mocks.findConversation.mockResolvedValue({
+      id: 9001,
+      userId: 7,
+      role: 'admin',
+      context: 'coach_assistant',
+      targetUserId: null,
+      title: null,
+      messages: [{ role: 'user', content: 'Jackie Reed prefers mornings' }],
+      metadata: { responseStyle: 'both' },
+      update,
+    });
+    mocks.query.mockImplementation(async (sql) => {
+      if (/ai_privacy_profiles/i.test(sql)) return [];
+      return [{
+        id: 61,
+        firstName: 'Jackie',
+        lastName: 'Reed',
+        email: 'jackie.reed@example.com',
+        phone: '555-123-4567',
+      }];
+    });
+    mocks.sendChatMessage.mockResolvedValue({
+      content: 'Jackie Reed can train tomorrow.',
+      provider: 'test-provider',
+      model: 'test-model',
+      tokenUsage: null,
+      failoverTrace: [],
+    });
+
+    const response = await request(buildApp())
+      .post('/api/ai-chat/conversations/9001/messages')
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'admin')
+      .send({ message: 'Schedule Jackie Reed tomorrow' });
+
+    expect(response.status).toBe(200);
+    const [, promptHistory, currentMessage] = mocks.buildPromptMessages.mock.calls[0];
+    expect(currentMessage).toBe('Schedule Client #61 tomorrow');
+    expect(JSON.stringify(promptHistory)).not.toContain('Jackie Reed');
+    expect(response.body.assistantMessage.content).toBe('Client #61 can train tomorrow.');
+    expect(mocks.sendChatMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed before the provider when unpinned staff identity lookup fails', async () => {
+    mocks.findConversation.mockResolvedValue({
+      id: 9001,
+      userId: 7,
+      role: 'admin',
+      context: 'coach_assistant',
+      targetUserId: null,
+      title: null,
+      messages: [],
+      metadata: { responseStyle: 'both' },
+      update: vi.fn(),
+    });
+    mocks.query.mockImplementation(async (sql) => {
+      if (/ai_privacy_profiles/i.test(sql)) return [];
+      throw new Error('database unavailable');
+    });
+
+    const response = await request(buildApp())
+      .post('/api/ai-chat/conversations/9001/messages')
+      .set('x-test-user-role', 'admin')
+      .send({ message: 'Schedule Jackie Reed tomorrow' });
+
+    expect(response.status).toBe(503);
+    expect(response.body.code).toBe('AI_IDENTITY_REDACTION_UNAVAILABLE');
+    expect(mocks.sendChatMessage).not.toHaveBeenCalled();
+  });
+
+  it('applies roster-wide identity redaction even when staff pinned a target client', async () => {
+    mocks.findConversation.mockResolvedValue({
+      id: 9001,
+      userId: 7,
+      role: 'admin',
+      context: 'coach_assistant',
+      targetUserId: 42,
+      title: null,
+      messages: [{ role: 'user', content: 'Compare Sarah Smith with Jackie Reed' }],
+      metadata: { responseStyle: 'both' },
+      update: vi.fn(),
+    });
+    mocks.query.mockImplementation(async (sql) => {
+      if (/ai_privacy_profiles/i.test(sql)) return [];
+      return [
+        { id: 42, firstName: 'Sarah', lastName: 'Smith', email: null, phone: null },
+        { id: 61, firstName: 'Jackie', lastName: 'Reed', email: null, phone: null },
+      ];
+    });
+    mocks.enrichWithUserData.mockResolvedValue('Target context also mentions Jackie Reed');
+    mocks.sendChatMessage.mockResolvedValue({
+      content: 'Jackie Reed can train with Sarah Smith.',
+      provider: 'test-provider',
+      model: 'test-model',
+      tokenUsage: null,
+      failoverTrace: [],
+    });
+
+    const response = await request(buildApp())
+      .post('/api/ai-chat/conversations/9001/messages')
+      .set('x-test-user-role', 'admin')
+      .send({ message: 'Compare Sarah Smith with Jackie Reed' });
+
+    expect(response.status).toBe(200);
+    const [systemPrompt, promptHistory, currentMessage] = mocks.buildPromptMessages.mock.calls[0];
+    expect(currentMessage).not.toMatch(/Sarah Smith|Jackie Reed/);
+    expect(JSON.stringify(promptHistory)).not.toMatch(/Sarah Smith|Jackie Reed/);
+    expect(response.body.assistantMessage.content).not.toMatch(/Sarah Smith|Jackie Reed/);
+    expect(systemPrompt).not.toMatch(/Sarah Smith|Jackie Reed/);
   });
 
   it('creates a staff-owned client-preview conversation with client prompt scope', async () => {

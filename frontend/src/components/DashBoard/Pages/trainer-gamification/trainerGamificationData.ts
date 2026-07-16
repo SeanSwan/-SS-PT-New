@@ -66,7 +66,7 @@ const unwrapProfile = (payload: unknown): Record<string, unknown> => {
 
 const cleanText = (value: string, maxLength = 140): string => (
   value
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\p{Cc}/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength)

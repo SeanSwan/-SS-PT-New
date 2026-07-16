@@ -41,6 +41,7 @@ const noMotion = css`
 
 // Asset paths
 import { VIDEO } from "../../../config/videoAssets";
+import { StyledBox } from '@/components/ui/StyledBox';
 const swanVideo = VIDEO.swans;
 const logoImg = "/Logo.png";
 
@@ -395,11 +396,11 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
           PREMIER
         </PremiumBadge>
 
-        <motion.div
+        <StyledBox as={motion.div}
           initial={{ opacity: 0 }}
           animate={heroControls}
           variants={containerVariants}
-          style={{
+          $style={{
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -443,7 +444,7 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
               </motion.div>
             </ButtonsContainer>
           </HeroContent>
-        </motion.div>
+        </StyledBox>
 
         {animateScrollIndicator && (
           <ScrollIndicator

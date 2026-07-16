@@ -1,7 +1,7 @@
 /**
  * Cortex P0 §5.4/§13.5.9 — charming-no notice contract tests.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import CoachDispatchRefusalNotice from './CoachDispatchRefusalNotice';

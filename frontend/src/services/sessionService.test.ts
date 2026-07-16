@@ -1,12 +1,7 @@
 // TypeScript compilation + runtime shape tests for sessionService.ts
 
 import { sessionService } from './sessionService';
-import {
-  Session,
-  SessionRequest,
-  FilterOptions,
-  ScheduleStats
-} from '../components/UniversalMasterSchedule/types';
+import { SessionRequest, FilterOptions } from '../components/UniversalMasterSchedule/types';
 import { describe, it, expect } from 'vitest';
 
 // Test type compatibility

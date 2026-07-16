@@ -11,6 +11,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
 import { VIDEO } from '../../config/videoAssets';
 import { resolveContactApiBase } from './contactApiBase';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ================================================================
  * ContactV2 — Cinematic, Theme-Aware Contact Page
@@ -777,16 +778,16 @@ const ContactV2: React.FC = () => {
 
                 <AnimatePresence initial={false}>
                   {openFaq === idx && (
-                    <FAQAnswer
+                    <StyledBox as={FAQAnswer}
                       id={`faq-answer-${idx}`}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      style={{ overflow: 'hidden' }}
+                      $style={{ overflow: 'hidden' }}
                     >
                       {item.a}
-                    </FAQAnswer>
+                    </StyledBox>
                   )}
                 </AnimatePresence>
               </FAQCard>
@@ -835,9 +836,9 @@ const ContactV2: React.FC = () => {
       <NotificationWrapper $visible={success}>
         <AlertBox $type="success">
           <CheckCircle size={20} />
-          <span style={{ flex: 1 }}>
+          <StyledBox as="span" $style={{ flex: 1 }}>
             Your message has been sent successfully! We will get back to you soon.
-          </span>
+          </StyledBox>
           <AlertCloseBtn onClick={() => setSuccess(false)}>
             <X size={16} />
           </AlertCloseBtn>
@@ -847,7 +848,7 @@ const ContactV2: React.FC = () => {
       <NotificationWrapper $visible={!!error}>
         <AlertBox $type="error">
           <AlertCircle size={20} />
-          <span style={{ flex: 1 }}>{error}</span>
+          <StyledBox as="span" $style={{ flex: 1 }}>{error}</StyledBox>
           <AlertCloseBtn onClick={() => setError('')}>
             <X size={16} />
           </AlertCloseBtn>

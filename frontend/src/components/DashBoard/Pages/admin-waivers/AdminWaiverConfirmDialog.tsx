@@ -211,7 +211,7 @@ const AdminWaiverConfirmDialog: React.FC<AdminWaiverConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-waiver-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

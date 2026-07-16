@@ -43,10 +43,7 @@ interface MembershipBadgeProps {
 // SECTION: Animations
 // ─────────────────────────────────────────────────────────────
 
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
+
 
 const subtlePulse = keyframes`
   0%, 100% { box-shadow: 0 0 8px rgba(96, 192, 240, 0.2); }

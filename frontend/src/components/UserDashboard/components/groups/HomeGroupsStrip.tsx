@@ -154,7 +154,7 @@ const HomeGroupsStrip: React.FC = () => {
         // Don't imply "no groups" on a transient failure — offer a retry.
         <EmptyCopy type="button" onClick={() => void refresh()} aria-label="Retry loading your groups">
           <Users size={16} aria-hidden="true" />
-          Couldn't load your groups — tap to retry.
+          Couldn&apos;t load your groups — tap to retry.
         </EmptyCopy>
       ) : groups.length === 0 ? (
         <EmptyCopy type="button" onClick={browseGroups}>

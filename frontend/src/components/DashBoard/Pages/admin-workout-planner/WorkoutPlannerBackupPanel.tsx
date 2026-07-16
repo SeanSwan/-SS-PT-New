@@ -198,7 +198,7 @@ const WorkoutPlannerBackupPanel: React.FC<WorkoutPlannerBackupPanelProps> = ({
       {status === 'error' && <Meta role="status">Could not load the backup verdict right now.</Meta>}
 
       {status === 'ready' && !verdict?.hasBackup && (
-        <Meta>No backup plan yet. Generate one from this client's real logged history.</Meta>
+        <Meta>No backup plan yet. Generate one from this client&apos;s real logged history.</Meta>
       )}
       {status === 'ready' && verdict?.hasBackup && (
         <Meta>

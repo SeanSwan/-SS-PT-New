@@ -14,8 +14,7 @@ const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const coreRoutesSource = readBackend('../../core/routes.mjs');
 
 describe('social controller security hardening', () => {
-  it('locks the active gamification social routes and explore consumer', () => {
-    const exploreHookSource = readFrontend('src/components/Social/Explore/useExplore.ts');
+  it('locks the active gamification social routes and mounted follow consumer', () => {
     const gamificationSliceSource = readFrontend('src/redux/slices/gamificationSlice.ts');
 
     expect(coreRoutesSource).toContain("app.use('/api/v1/gamification', gamificationV1Routes)");
@@ -23,8 +22,6 @@ describe('social controller security hardening', () => {
     expect(routeSource).toContain("router.delete('/users/:userId/unfollow', authenticate, requireUser, socialController.unfollowUser)");
     expect(routeSource).toContain("router.get('/discover-users', authenticate, requireUser, socialController.discoverUsers)");
     expect(routeSource).toContain("router.get('/social-feed', authenticate, requireUser, socialController.getSocialFeed)");
-    expect(exploreHookSource).toContain("authAxios.get('/api/v1/gamification/discover-users'");
-    expect(exploreHookSource).toContain('authAxios.post(`/api/v1/gamification/users/${targetUserId}/follow`)');
     expect(gamificationSliceSource).toContain('fetch(`/api/v1/gamification/users/${userId}/follow`');
   });
 

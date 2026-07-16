@@ -16,7 +16,7 @@ import styled from 'styled-components';
 // THEME CONSTANTS
 // ==========================================
 
-export const executiveTheme = {
+const executiveTheme = {
   deepSpace: '#0a0a0f',
   commandNavy: '#1e3a8a',
   stellarAuthority: '#3b82f6',

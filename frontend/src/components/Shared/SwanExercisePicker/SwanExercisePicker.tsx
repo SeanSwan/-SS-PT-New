@@ -67,7 +67,7 @@ const SwanExercisePicker: React.FC<SwanExercisePickerProps> = ({
       ) : picker.totalCount === 0 ? (
         /* Truthful failure state: an empty library means the fetch failed
            (the live catalog is 840 strong) — don't blame the user's filters. */
-        <StateMessage>Couldn't load the exercise library. Check your connection and try again.</StateMessage>
+        <StateMessage>Couldn&apos;t load the exercise library. Check your connection and try again.</StateMessage>
       ) : picker.visible.length === 0 ? (
         <StateMessage>No exercises found. Try adjusting your search or filters.</StateMessage>
       ) : (

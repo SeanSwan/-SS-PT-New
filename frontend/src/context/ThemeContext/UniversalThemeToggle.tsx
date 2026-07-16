@@ -1,15 +1,15 @@
 /**
- * UniversalThemeToggle.tsx — Crystalline Swan theme changer control
+ * UniversalThemeToggle.tsx â€” Crystalline Swan theme changer control
  * ==================================================================
  * Header-mounted control (Header/components/ActionIcons.tsx + client home
- * rail). The swatch button previews the ACTIVE theme (data-driven — every
+ * rail). The swatch button previews the ACTIVE theme (data-driven â€” every
  * registered theme styles it automatically) and opens a grouped picker with
  * all themes plus the site-wide animations switch.
  *
  * Architecture:
- * - UniversalThemeToggle.styles.ts — data-driven styled components
- * - UniversalThemeToggle.panel.tsx — grouped picker + animations switch
- * - themeToggleMetadata (exported here) — per-theme icon + accessible name,
+ * - UniversalThemeToggle.styles.ts â€” data-driven styled components
+ * - UniversalThemeToggle.panel.tsx â€” grouped picker + animations switch
+ * - themeToggleMetadata (exported here) â€” per-theme icon + accessible name,
  *   contract-locked against the theme registry.
  */
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';

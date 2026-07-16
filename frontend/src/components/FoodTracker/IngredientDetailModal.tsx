@@ -27,6 +27,7 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { X, ShieldAlert, ExternalLink, AlertTriangle, Leaf } from 'lucide-react';
 import type { IngredientSafety } from './IngredientSafetyPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface IngredientDetailModalProps {
   ingredient: IngredientSafety;
@@ -122,14 +123,13 @@ const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredien
   // hover translateY) that would otherwise contain the fixed backdrop, and ensures
   // the inert loop in useEffect correctly isolates the app root.
   return createPortal(
-    <Backdrop onClick={onClose}>
+    <Backdrop onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <Modal
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Ingredient detail: ${ingredient.name}`}
-        onClick={e => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <ModalHeader>
           <HeaderLeft>
@@ -226,9 +226,9 @@ const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredien
           )}
 
           {!hasSections && (
-            <SectionText style={{ color: 'rgba(224,236,244,0.5)', fontStyle: 'italic' }}>
+            <StyledBox as={SectionText} $style={{ color: 'rgba(224,236,244,0.5)', fontStyle: 'italic' }}>
               No detailed safety information available for this ingredient.
-            </SectionText>
+            </StyledBox>
           )}
 
           {/* FDA Disclaimer — always visible */}

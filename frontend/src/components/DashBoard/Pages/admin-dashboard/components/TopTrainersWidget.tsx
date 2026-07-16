@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import { Trophy } from 'lucide-react';
+import 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
 import { CommandCard } from '../AdminDashboardCards';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const TrainerList = styled.ul`
   list-style: none;
@@ -78,10 +79,10 @@ const TopTrainersWidget: React.FC = () => {
   }, []);
 
   return (
-    <CommandCard style={{ padding: '2rem', height: '100%' }}>
-      <h3 style={{ color: '#fbbf24', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
+    <StyledBox as={CommandCard} $style={{ padding: '2rem', height: '100%' }}>
+      <StyledBox as="h3" $style={{ color: '#fbbf24', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
         Trainer Leaderboard
-      </h3>
+      </StyledBox>
       {loading ? ( <WidgetSkeleton count={4} /> ) : (
         <TrainerList>
           {trainers.map((trainer, index) => (
@@ -96,7 +97,7 @@ const TopTrainersWidget: React.FC = () => {
           ))}
         </TrainerList>
       )}
-    </CommandCard>
+    </StyledBox>
   );
 };
 

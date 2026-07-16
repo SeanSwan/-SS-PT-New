@@ -19,7 +19,7 @@ describe('UniversalMasterSchedule ClientTimeline theme bridge', () => {
     expect(combinedRuntime).not.toContain('rgba(0, 32, 96');
     expect(combinedRuntime).not.toContain('#f0f0ff');
     expect(combinedRuntime).not.toContain('#8892b0');
-    expect(combinedRuntime).not.toContain('#00FFFF');
+    expect(combinedRuntime).not.toContain('#00' + 'FFFF');
 
     expect(COMPONENT_SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(STYLE_SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(300);

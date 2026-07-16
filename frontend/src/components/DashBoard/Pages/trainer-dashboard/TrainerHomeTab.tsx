@@ -148,7 +148,7 @@ const TrainerHomeTab: React.FC = () => {
           </KpiStrip>
 
           <SessionsCard>
-            <SessionsHeading>Today's Sessions</SessionsHeading>
+            <SessionsHeading>Today&apos;s Sessions</SessionsHeading>
             {loading ? (
               <>
                 {Array.from({ length: 4 }).map((_, i) => (

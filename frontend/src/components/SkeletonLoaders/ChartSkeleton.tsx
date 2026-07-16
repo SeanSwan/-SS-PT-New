@@ -25,11 +25,12 @@ import CrystallineShimmer, {
   ShimmerLine,
   type ShimmerVariant,
 } from './CrystallineShimmer';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Theme Fallback Constants
 // ─────────────────────────────────────────────────────────────
-const GRAPHITE = '#1A1A24';
+
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Layout Components
@@ -98,14 +99,14 @@ const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
     <CrystallineShimmer label="Loading chart" variant={variant}>
       <ChartContainer>
         <TitleBar>
-          <ShimmerLine
+          <StyledBox as={ShimmerLine}
             $width="35%"
             $variant={variant}
-            style={{ height: 18 }}
+            $style={{ height: 18 }}
           />
-          <ShimmerBlock
+          <StyledBox as={ShimmerBlock}
             $variant={variant}
-            style={{ width: 60, height: 24, borderRadius: 4 }}
+            $style={{ width: 60, height: 24, borderRadius: 4 }}
           />
         </TitleBar>
 
@@ -114,28 +115,28 @@ const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
         {showAxes && (
           <AxisContainer>
             <AxisLine $width="100%" $variant={variant} />
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <ShimmerLine
+            <StyledBox as="div" $style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <StyledBox as={ShimmerLine}
                 $width="30px"
                 $variant={variant}
-                style={{ height: 8 }}
+                $style={{ height: 8 }}
               />
-              <ShimmerLine
+              <StyledBox as={ShimmerLine}
                 $width="30px"
                 $variant={variant}
-                style={{ height: 8 }}
+                $style={{ height: 8 }}
               />
-              <ShimmerLine
+              <StyledBox as={ShimmerLine}
                 $width="30px"
                 $variant={variant}
-                style={{ height: 8 }}
+                $style={{ height: 8 }}
               />
-              <ShimmerLine
+              <StyledBox as={ShimmerLine}
                 $width="30px"
                 $variant={variant}
-                style={{ height: 8 }}
+                $style={{ height: 8 }}
               />
-            </div>
+            </StyledBox>
           </AxisContainer>
         )}
       </ChartContainer>

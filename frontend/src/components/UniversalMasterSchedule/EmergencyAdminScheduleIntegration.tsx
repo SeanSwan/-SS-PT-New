@@ -6,7 +6,7 @@
  * Uses only confirmed working dependencies
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 // Safe icons
@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ===================== Styled Components =====================
 
@@ -32,13 +33,7 @@ const SpinnerContainer = styled.div`
 `;
 
 // Layout Components
-const Container = styled.div`
-  background: #0a0a0f;
-  color: #ffffff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  min-height: 400px;
-`;
+
 
 // Simplified Flex Container
 const FlexBox = styled.div`
@@ -230,7 +225,7 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
       <ScheduleHeader>
         <FlexBox className="column">
           <Heading className="h4 mb-1">
-            <Calendar size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
+            <StyledBox as={Calendar} size={28} $style={{ marginRight: 12, verticalAlign: 'middle' }} />
             Universal Master Schedule
           </Heading>
           <Text className="body2 secondary">
@@ -246,7 +241,7 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
               <Loader2 size={18} />
             </SpinnerContainer>
           ) : (
-            <RefreshCw size={18} style={{ marginRight: 8 }} />
+            <StyledBox as={RefreshCw} size={18} $style={{ marginRight: 8 }} />
           )}
           Refresh
         </StyledButton>
@@ -263,7 +258,7 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
         
         <ContentBox className="elevated">
           <Heading className="h6 primary mb-4">
-            ✅ What's Working:
+            ✅ What&apos;s Working:
           </Heading>
           <Text className="body2 text-left">
             • Backend APIs are operational<br/>

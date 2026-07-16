@@ -5,7 +5,7 @@
  * Data truth: Receives already-filtered Challenge records; no mock fallback.
  * Writes: Only calls the explicit join/leave handlers passed by ChallengesView.
  */
-import React from 'react';
+
 import { CalendarCheck, CheckCircle2, Clock, Trophy, Users } from 'lucide-react';
 import type { Challenge, ChallengeStatus } from '../../../hooks/useChallenges';
 import { ChallengeAction } from './ChallengesView.actions';

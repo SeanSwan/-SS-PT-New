@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Mountain, Waves, TreePine, Wind, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
+import { Mountain, Waves, TreePine, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { natureWellnessV2Theme as theme } from './NatureWellnessV2Theme';
 
@@ -516,7 +516,7 @@ const NatureWellnessV2Homepage: React.FC = () => {
               <ProgramDesc>
                 Water finds its way. Restore range of motion and cultivate fluidity
                 through mobility work, breathwork, and intentional stretching that
-                honors the body's natural rhythms.
+                honors the body&apos;s natural rhythms.
               </ProgramDesc>
             </ProgramCard>
             <ProgramCard {...fadeUp} transition={{ duration: 0.6, delay: 0.24 }}>
@@ -544,17 +544,17 @@ const NatureWellnessV2Homepage: React.FC = () => {
           <TestimonialGrid>
             <TestimonialCard {...fadeUp}>
               <TestimonialText>
-                "I came for the workouts but stayed for the stillness. There is a
+                &quot;I came for the workouts but stayed for the stillness. There is a
                 rare calm here that seeps into every part of your life. I move
-                differently now — with intention, not urgency."
+                differently now — with intention, not urgency.&quot;
               </TestimonialText>
               <TestimonialAuthor>— Mika T., Client since 2024</TestimonialAuthor>
             </TestimonialCard>
             <TestimonialCard {...fadeUp} transition={{ duration: 0.6, delay: 0.12 }}>
               <TestimonialText>
-                "SwanStudios taught me that strength isn't loud. The focused
+                &quot;SwanStudios taught me that strength isn&apos;t loud. The focused
                 approach to training has transformed not just my body but the way
-                I breathe through every challenge."
+                I breathe through every challenge.&quot;
               </TestimonialText>
               <TestimonialAuthor>— David L., Client since 2025</TestimonialAuthor>
             </TestimonialCard>

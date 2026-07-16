@@ -1,7 +1,7 @@
 /**
  * OptimizedSignupModal.tsx
  * ====================
- * 
+ *
  * Optimized signup modal with improved layout, compact footer,
  * U.S. standard units (lbs/inches), and better viewport handling.
  */
@@ -20,6 +20,7 @@ import { logger } from '@/utils/logger';
 // --- Asset Paths ---
 const Logo = "/Logo.png";
 import { VIDEO } from "../config/videoAssets";
+import { StyledBox } from '@/components/ui/StyledBox';
 const powerBackground = VIDEO.swans;
 
 /* ------------------ Animations ------------------ */
@@ -106,18 +107,18 @@ const ModalContent = styled(motion.div)`
   /* Custom scrollbar with theme colors */
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-  &::-webkit-scrollbar-thumb { 
-    background: ${({ theme }) => theme.gradients.primary}; 
-    border-radius: 4px; 
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.gradients.primary};
+    border-radius: 4px;
   }
-  
+
   &:hover {
     border-color: ${({ theme }) => theme.borders.elegant};
     box-shadow: ${({ theme }) => theme.shadows.cosmic};
   }
 
-  @media (max-width: 768px) { 
-    padding: 1.25rem; 
+  @media (max-width: 768px) {
+    padding: 1.25rem;
     width: 98%;
   }
 `;
@@ -186,18 +187,18 @@ const LogoCircle = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.cosmic};
   transition: all 0.3s ease;
 
-  &:before { 
-    content: ''; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    bottom: 0; 
-    background: ${({ theme }) => theme.gradients.primary}; 
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: ${({ theme }) => theme.gradients.primary};
     opacity: 0.3;
-    z-index: 1; 
+    z-index: 1;
   }
-  
+
   &:hover {
     transform: scale(1.05);
     box-shadow: ${({ theme }) => theme.shadows.primary}, ${({ theme }) => theme.shadows.cosmic};
@@ -213,7 +214,7 @@ const LogoImage = styled.img`
   animation: ${float} 6s ease-in-out infinite;
   filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
   transition: all 0.3s ease;
-  
+
   /* Swan-inspired enhancement */
   &:hover {
     filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}70);
@@ -234,7 +235,7 @@ const HeaderText = styled.h1`
   letter-spacing: 1px;
   text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
   transition: all 0.3s ease;
-  
+
   /* Swan Studios brand enhancement */
   &:hover {
     animation: ${shimmer} 2s linear infinite;
@@ -255,17 +256,17 @@ const FormTitle = styled.h2`
   text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}50;
   transition: all 0.3s ease;
 
-  &:after { 
-    content: ""; 
-    position: absolute; 
-    bottom: 0; 
-    left: 50%; 
-    transform: translateX(-50%); 
+  &:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 60px; /* Reduced width */
-    height: 2px; 
-    background: ${({ theme }) => theme.gradients.primary}; 
+    height: 2px;
+    background: ${({ theme }) => theme.gradients.primary};
   }
-  
+
   /* Swan elegance enhancement */
   &:hover {
     color: ${({ theme }) => theme.colors.accent || theme.colors.primary};
@@ -287,8 +288,8 @@ const Label = styled.label`
   letter-spacing: 0.5px;
   transition: color 0.3s ease;
 
-  ${InputWrapper}:focus-within & { 
-    color: ${({ theme }) => theme.colors.primary}; 
+  ${InputWrapper}:focus-within & {
+    color: ${({ theme }) => theme.colors.primary};
   }
 `;
 
@@ -302,22 +303,22 @@ const InputField = styled.input`
   font-size: 0.9rem; /* Reduced size */
   transition: all 0.3s ease;
 
-  &:focus { 
-    outline: none; 
-    border-color: ${({ theme }) => theme.colors.primary}; 
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20; 
-    background: ${({ theme }) => theme.background.surface}; 
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+    background: ${({ theme }) => theme.background.surface};
     transform: translateY(-1px);
     text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}20;
   }
-  
-  &::placeholder { 
-    color: ${({ theme }) => theme.text.muted}; 
+
+  &::placeholder {
+    color: ${({ theme }) => theme.text.muted};
   }
-  
-  &:disabled { 
-    opacity: 0.7; 
-    cursor: not-allowed; 
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 `;
 
@@ -345,12 +346,12 @@ const SelectField = styled.select`
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     background: rgba(30, 30, 60, 0.5);
   }
-  
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
-  
+
   /* Style for options - note: limited styling available */
   option {
     background-color: #1e1e3e;
@@ -363,8 +364,8 @@ const FormGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem; /* Reduced gap */
 
-  @media (max-width: 600px) { 
-    grid-template-columns: 1fr; 
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -383,24 +384,24 @@ const ForgotPasswordLink = styled(motion.button)`
   transition: all 0.3s ease;
   font-size: 0.85rem; /* Reduced size */
 
-  &:after { 
-    content: ''; 
-    position: absolute; 
-    bottom: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 1px; 
-    background-color: var(--neon-blue, #60C0F0); 
-    transform: translateX(-101%); 
-    transition: transform 0.3s ease; 
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: var(--neon-blue, #60C0F0);
+    transform: translateX(-101%);
+    transition: transform 0.3s ease;
   }
-  
-  &:hover { 
-    text-shadow: 0 0 8px rgba(139, 92, 246, 0.7); 
-    
-    &:after { 
-      transform: translateX(0); 
-    } 
+
+  &:hover {
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.7);
+
+    &:after {
+      transform: translateX(0);
+    }
   }
 `;
 
@@ -422,12 +423,12 @@ const FormSection = styled.div`
   background: rgba(30, 30, 60, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.05);
 
-  h3 { 
-    margin-top: 0; 
+  h3 {
+    margin-top: 0;
     margin-bottom: 0.75rem; /* Reduced margin */
     font-size: 1rem; /* Reduced size */
-    font-weight: 400; 
-    color: var(--neon-blue, #60C0F0); 
+    font-weight: 400;
+    color: var(--neon-blue, #60C0F0);
   }
 `;
 
@@ -448,7 +449,7 @@ const HelpText = styled.div`
 const MeasurementInput = styled.div`
   display: flex;
   align-items: center;
-  
+
   input {
     flex: 1;
     border-top-right-radius: 0;
@@ -479,7 +480,7 @@ const HeightField = styled.div`
   display: flex;
   align-items: center;
   flex: 1;
-  
+
   input {
     flex: 1;
     border-top-right-radius: 0;
@@ -509,13 +510,13 @@ const PasswordStrengthBar = styled.div<{ strength: number }>`
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 0.25rem;
-  
+
   &::after {
     content: '';
     display: block;
     height: 100%;
     width: ${props => props.strength}%;
-    background: ${props => 
+    background: ${props =>
       props.strength < 30 ? '#ff4d6d' :
       props.strength < 60 ? '#ffa726' :
       props.strength < 80 ? '#66bb6a' :
@@ -528,7 +529,7 @@ const PasswordStrengthBar = styled.div<{ strength: number }>`
 
 const PasswordStrengthText = styled.div<{ strength: number }>`
   font-size: 0.7rem;
-  color: ${props => 
+  color: ${props =>
     props.strength < 30 ? '#ff6b9d' :
     props.strength < 60 ? '#ffa726' :
     props.strength < 80 ? '#66bb6a' :
@@ -548,7 +549,7 @@ const PasswordToggle = styled.button`
   cursor: pointer;
   font-size: 0.9rem;
   padding: 4px;
-  
+
   &:hover {
     color: #60C0F0;
   }
@@ -556,7 +557,7 @@ const PasswordToggle = styled.button`
 
 const InputFieldWithToggle = styled.div`
   position: relative;
-  
+
   input {
     padding-right: 45px;
   }
@@ -571,31 +572,31 @@ const OptimizedSignupModal: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { register } = useAuth();
-  const { theme } = useUniversalTheme();
+  useUniversalTheme();
   const controls = useAnimation();
 
   const [videoReady, setVideoReady] = useState(false);
   const handleVideoReady = useCallback(() => setVideoReady(true), []);
 
   const [formData, setFormData] = useState({
-    firstName: "", 
-    lastName: "", 
-    email: "", 
-    username: "", 
+    firstName: "",
+    lastName: "",
+    email: "",
+    username: "",
     password: "",
-    confirmPassword: "", 
-    phone: "", 
-    dateOfBirth: "", 
-    gender: "", 
+    confirmPassword: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
     weight: "", // In pounds
     feet: "", // For height in feet
     inches: "", // For height in inches
     height: "", // Calculated in cm for backend
-    fitnessGoal: "", 
-    trainingExperience: "", 
+    fitnessGoal: "",
+    trainingExperience: "",
     healthConcerns: "",
-    emergencyContact: "", 
-    emergencyContactName: "", 
+    emergencyContact: "",
+    emergencyContactName: "",
     emergencyContactPhone: "",
     role: "user",
     clientSource: "swanstudios"
@@ -608,10 +609,20 @@ const OptimizedSignupModal: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
+  const calculateCompletionPercentage = useCallback(() => {
+    // Count non-empty fields
+    const totalFields = Object.keys(formData).length - 3; // Exclude confirmPassword, feet, inches
+    const filledFields = Object.entries(formData).filter(([key, value]) =>
+      !['confirmPassword', 'feet', 'inches'].includes(key) && value?.trim() !== ""
+    ).length;
+    const percentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
+    setCompletionPercentage(Math.min(percentage, 100));
+  }, [formData]);
+
   // Calculate completion percentage whenever formData changes
   useEffect(() => {
     calculateCompletionPercentage();
-  }, [formData]);
+  }, [calculateCompletionPercentage]);
 
   // Trigger entrance animation on mount
   useEffect(() => {
@@ -683,7 +694,7 @@ const OptimizedSignupModal: React.FC = () => {
   // Enhanced handle changes for input elements with real-time validation
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     // Clear field-specific error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => {
@@ -692,10 +703,10 @@ const OptimizedSignupModal: React.FC = () => {
         return newErrors;
       });
     }
-    
+
     // Clear general error when user makes changes
     if (error) setError('');
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -704,7 +715,7 @@ const OptimizedSignupModal: React.FC = () => {
         ? { clientSource: "swanstudios" }
         : {}),
     }));
-    
+
     // Real-time validation for critical fields
     if (['email', 'username', 'password', 'confirmPassword', 'firstName', 'lastName'].includes(name)) {
       const fieldError = validateField(name, value);
@@ -712,7 +723,7 @@ const OptimizedSignupModal: React.FC = () => {
         setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
       }
     }
-    
+
     // Update password strength
     if (name === 'password') {
       setPasswordStrength(calculatePasswordStrength(value));
@@ -724,7 +735,7 @@ const OptimizedSignupModal: React.FC = () => {
         }
       }
     }
-    
+
     // Revalidate confirm password when it changes
     if (name === 'confirmPassword') {
       const confirmError = validateField('confirmPassword', value);
@@ -732,17 +743,17 @@ const OptimizedSignupModal: React.FC = () => {
         setFieldErrors(prev => ({ ...prev, confirmPassword: confirmError }));
       }
     }
-    
+
     // If changing height fields (feet/inches), calculate the total height in cm
     if (name === 'feet' || name === 'inches') {
       const feet = name === 'feet' ? value : formData.feet;
       const inches = name === 'inches' ? value : formData.inches;
-      
+
       if (feet || inches) {
-        const totalInches = 
+        const totalInches =
           (parseFloat(feet) || 0) * 12 + (parseFloat(inches) || 0);
         const heightInCm = Math.round(totalInches * 2.54);
-        
+
         setFormData(prev => ({
           ...prev,
           height: heightInCm.toString(), // Store in cm for backend
@@ -750,7 +761,7 @@ const OptimizedSignupModal: React.FC = () => {
         }));
       }
     }
-    
+
     // If changing weight (in lbs), convert to kg for backend
     if (name === 'weight' && value) {
       const weightInKg = Math.round(parseFloat(value) * 0.453592);
@@ -763,34 +774,24 @@ const OptimizedSignupModal: React.FC = () => {
     }
   };
 
-  const calculateCompletionPercentage = () => {
-    // Count non-empty fields
-    const totalFields = Object.keys(formData).length - 3; // Exclude confirmPassword, feet, inches
-    const filledFields = Object.entries(formData).filter(([key, value]) => 
-      !['confirmPassword', 'feet', 'inches'].includes(key) && value?.trim() !== ""
-    ).length;
-    const percentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
-    setCompletionPercentage(Math.min(percentage, 100));
-  };
-
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    
+
     logger.log('👍 FORM SUBMISSION STARTED');
     logger.log('Form data (without password):', {
       ...formData,
       password: '[REDACTED]',
       confirmPassword: '[REDACTED]'
     });
-    
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    
+
     // Password validation
     const passwordErrors: string[] = [];
     if (formData.password.length < 8) {
@@ -808,26 +809,26 @@ const OptimizedSignupModal: React.FC = () => {
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
       passwordErrors.push("Password must contain at least one special character");
     }
-    
+
     if (passwordErrors.length > 0) {
       setError(passwordErrors[0]); // Show the first error
       return;
     }
-    
+
     // Note: Admin accounts are created through secure backend processes only
-    
+
     // Validate fitness goal format
     if (formData.fitnessGoal && !["weight-loss", "muscle-gain", "endurance", "flexibility", "general-fitness", "sports-specific", "other"].includes(formData.fitnessGoal)) {
       setError("Please select a valid fitness goal");
       return;
     }
-    
+
     // Validate training experience format
     if (formData.trainingExperience && !["beginner", "intermediate", "advanced", "professional"].includes(formData.trainingExperience)) {
       setError("Please select a valid training experience level");
       return;
     }
-    
+
     // Format emergency contact as a string
     const formattedData = { ...formData };
     if (formData.emergencyContactName || formData.emergencyContactPhone) {
@@ -837,16 +838,16 @@ const OptimizedSignupModal: React.FC = () => {
       formattedData.emergencyContact = name && phone ? `${name} ${phone}` : (name || phone);
     }
     formattedData.clientSource = formData.role === "client" ? formData.clientSource : "external";
-    
+
     // Convert weight from lbs to kg if needed
     if (formData.weight) {
       const weightInKg = Math.round(parseFloat(formData.weight) * 0.453592);
       formattedData.weight = weightInKg.toString();
     }
-    
+
     // Combine feet/inches to height in cm if not already calculated
     if ((formData.feet || formData.inches) && !formData.height) {
-      const totalInches = 
+      const totalInches =
         (parseFloat(formData.feet) || 0) * 12 + (parseFloat(formData.inches) || 0);
       const heightInCm = Math.round(totalInches * 2.54);
       formattedData.height = heightInCm.toString();
@@ -856,24 +857,24 @@ const OptimizedSignupModal: React.FC = () => {
 
     try {
       // Only send necessary fields to backend
-      const { 
+      const {
         confirmPassword, // Don't send confirmation
         feet, // Don't send feet
         inches, // Don't send inches
         emergencyContactName, // Don't send separate emergency contact fields
         emergencyContactPhone, // Don't send separate emergency contact fields
-        ...registrationData 
+        ...registrationData
       } = formattedData;
-      
+
       logger.log('🚀 Attempting registration...', {
         ...registrationData,
         password: '[REDACTED]'
       });
-      
+
       logger.log('🚀 CALLING REGISTER FUNCTION...');
       const result = await register(registrationData);
       logger.log('🎆 REGISTER FUNCTION COMPLETED, result:', result);
-      
+
       if (result.success) {
         logger.log('✅ Registration successful, user logged in:', result.user);
 
@@ -964,15 +965,14 @@ const OptimizedSignupModal: React.FC = () => {
 
         <ModalContent
           key="signup-modal-content"
-          onClick={(e) => e.stopPropagation()}
           variants={containerVariants}
           initial="hidden"
           animate={controls}
           exit="exit"
         >
-          <CloseButton 
-            onClick={handleClose} 
-            aria-label="Close sign up modal" 
+          <CloseButton
+            onClick={handleClose}
+            aria-label="Close sign up modal"
             whileTap={{ scale: 0.9 }}
           >
             <span>×</span>
@@ -1007,16 +1007,16 @@ const OptimizedSignupModal: React.FC = () => {
               <FormGrid>
                 <InputWrapper>
                   <Label htmlFor="firstName">First Name</Label>
-                  <InputField 
-                    type="text" 
-                    id="firstName" 
-                    name="firstName" 
-                    placeholder="e.g., Jane" 
-                    value={formData.firstName} 
-                    onChange={handleChange} 
-                    required 
+                  <StyledBox as={InputField}
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    placeholder="e.g., Jane"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
                     disabled={isLoading}
-                    style={{
+                    $style={{
                       borderColor: fieldErrors.firstName ? '#ff6b9d' : '',
                       boxShadow: fieldErrors.firstName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                     }}
@@ -1027,16 +1027,16 @@ const OptimizedSignupModal: React.FC = () => {
                 </InputWrapper>
                 <InputWrapper>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <InputField 
-                    type="text" 
-                    id="lastName" 
-                    name="lastName" 
-                    placeholder="e.g., Doe" 
-                    value={formData.lastName} 
-                    onChange={handleChange} 
-                    required 
+                  <StyledBox as={InputField}
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    placeholder="e.g., Doe"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    required
                     disabled={isLoading}
-                    style={{
+                    $style={{
                       borderColor: fieldErrors.lastName ? '#ff6b9d' : '',
                       boxShadow: fieldErrors.lastName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                     }}
@@ -1048,16 +1048,16 @@ const OptimizedSignupModal: React.FC = () => {
               </FormGrid>
               <InputWrapper>
                 <Label htmlFor="email">Email Address</Label>
-                <InputField 
-                  type="email" 
-                  id="email" 
-                  name="email" 
-                  placeholder="jane.doe@example.com" 
-                  value={formData.email} 
-                  onChange={handleChange} 
-                  required 
+                <StyledBox as={InputField}
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="jane.doe@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   disabled={isLoading}
-                  style={{
+                  $style={{
                     borderColor: fieldErrors.email ? '#ff6b9d' : '',
                     boxShadow: fieldErrors.email ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                   }}
@@ -1068,38 +1068,38 @@ const OptimizedSignupModal: React.FC = () => {
               </InputWrapper>
               <InputWrapper>
                 <Label htmlFor="phone">Phone Number (Optional)</Label>
-                <InputField 
-                  type="tel" 
-                  id="phone" 
-                  name="phone" 
-                  placeholder="e.g., 555-123-4567" 
-                  value={formData.phone} 
-                  onChange={handleChange} 
-                  disabled={isLoading} 
+                <InputField
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  placeholder="e.g., 555-123-4567"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  disabled={isLoading}
                 />
               </InputWrapper>
               <FormGrid>
                 <InputWrapper>
                   <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
-                  <InputField 
-                    type="date" 
-                    id="dateOfBirth" 
-                    name="dateOfBirth" 
-                    value={formData.dateOfBirth} 
-                    onChange={handleChange} 
-                    disabled={isLoading} 
+                  <InputField
+                    type="date"
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    disabled={isLoading}
                   />
                 </InputWrapper>
                 <InputWrapper>
                   <Label htmlFor="gender">Gender (Optional)</Label>
-                  <InputField 
-                    type="text" 
-                    id="gender" 
-                    name="gender" 
-                    placeholder="e.g., Female, Male, Non-binary" 
-                    value={formData.gender} 
-                    onChange={handleChange} 
-                    disabled={isLoading} 
+                  <InputField
+                    type="text"
+                    id="gender"
+                    name="gender"
+                    placeholder="e.g., Female, Male, Non-binary"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    disabled={isLoading}
                   />
                 </InputWrapper>
               </FormGrid>
@@ -1109,16 +1109,16 @@ const OptimizedSignupModal: React.FC = () => {
               <h3>Account Credentials</h3>
               <InputWrapper>
                 <Label htmlFor="username">Username</Label>
-                <InputField 
-                  type="text" 
-                  id="username" 
-                  name="username" 
-                  placeholder="Choose a unique username" 
-                  value={formData.username} 
-                  onChange={handleChange} 
-                  required 
+                <StyledBox as={InputField}
+                  type="text"
+                  id="username"
+                  name="username"
+                  placeholder="Choose a unique username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
                   disabled={isLoading}
-                  style={{
+                  $style={{
                     borderColor: fieldErrors.username ? '#ff6b9d' : '',
                     boxShadow: fieldErrors.username ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                   }}
@@ -1134,21 +1134,21 @@ const OptimizedSignupModal: React.FC = () => {
                 <InputWrapper>
                   <Label htmlFor="password">Password</Label>
                   <InputFieldWithToggle>
-                    <InputField 
-                      type={showPassword ? "text" : "password"} 
-                      id="password" 
-                      name="password" 
-                      placeholder="Enter password" 
-                      value={formData.password} 
-                      onChange={handleChange} 
-                      required 
+                    <StyledBox as={InputField}
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="Enter password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
                       disabled={isLoading}
-                      style={{
+                      $style={{
                         borderColor: fieldErrors.password ? '#ff6b9d' : '',
                         boxShadow: fieldErrors.password ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                       }}
                     />
-                    <PasswordToggle 
+                    <PasswordToggle
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={isLoading}
@@ -1177,21 +1177,21 @@ const OptimizedSignupModal: React.FC = () => {
                 <InputWrapper>
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <InputFieldWithToggle>
-                    <InputField 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      id="confirmPassword" 
-                      name="confirmPassword" 
-                      placeholder="Confirm password" 
-                      value={formData.confirmPassword} 
-                      onChange={handleChange} 
-                      required 
+                    <StyledBox as={InputField}
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      placeholder="Confirm password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
                       disabled={isLoading}
-                      style={{
+                      $style={{
                         borderColor: fieldErrors.confirmPassword ? '#ff6b9d' : '',
                         boxShadow: fieldErrors.confirmPassword ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                       }}
                     />
-                    <PasswordToggle 
+                    <PasswordToggle
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       disabled={isLoading}
@@ -1204,14 +1204,14 @@ const OptimizedSignupModal: React.FC = () => {
                   )}
                 </InputWrapper>
               </FormGrid>
-              
+
               <InputWrapper>
                 <Label htmlFor="role">Account Type</Label>
-                <SelectField 
-                  id="role" 
-                  name="role" 
-                  value={formData.role} 
-                  onChange={handleChange} 
+                <SelectField
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
                   disabled={isLoading}
                 >
                   <option value="user">Regular User</option>
@@ -1249,14 +1249,14 @@ const OptimizedSignupModal: React.FC = () => {
                 <InputWrapper>
                   <Label htmlFor="weight">Weight</Label>
                   <MeasurementInput>
-                    <InputField 
-                      type="number" 
-                      id="weight" 
-                      name="weight" 
-                      placeholder="e.g., 150" 
-                      value={formData.weight} 
-                      onChange={handleChange} 
-                      disabled={isLoading} 
+                    <InputField
+                      type="number"
+                      id="weight"
+                      name="weight"
+                      placeholder="e.g., 150"
+                      value={formData.weight}
+                      onChange={handleChange}
+                      disabled={isLoading}
                     />
                     <UnitLabel>lbs</UnitLabel>
                   </MeasurementInput>
@@ -1265,13 +1265,13 @@ const OptimizedSignupModal: React.FC = () => {
                   <Label htmlFor="height">Height</Label>
                   <HeightInputGroup>
                     <HeightField>
-                      <InputField 
-                        type="number" 
-                        id="feet" 
-                        name="feet" 
-                        placeholder="ft" 
-                        value={formData.feet} 
-                        onChange={handleChange} 
+                      <InputField
+                        type="number"
+                        id="feet"
+                        name="feet"
+                        placeholder="ft"
+                        value={formData.feet}
+                        onChange={handleChange}
                         min="0"
                         max="8"
                         disabled={isLoading}
@@ -1279,13 +1279,13 @@ const OptimizedSignupModal: React.FC = () => {
                       <UnitLabel>ft</UnitLabel>
                     </HeightField>
                     <HeightField>
-                      <InputField 
-                        type="number" 
-                        id="inches" 
-                        name="inches" 
-                        placeholder="in" 
-                        value={formData.inches} 
-                        onChange={handleChange} 
+                      <InputField
+                        type="number"
+                        id="inches"
+                        name="inches"
+                        placeholder="in"
+                        value={formData.inches}
+                        onChange={handleChange}
                         min="0"
                         max="11"
                         disabled={isLoading}
@@ -1297,11 +1297,11 @@ const OptimizedSignupModal: React.FC = () => {
               </FormGrid>
               <InputWrapper>
                 <Label htmlFor="fitnessGoal">Primary Fitness Goal</Label>
-                <SelectField 
-                  id="fitnessGoal" 
-                  name="fitnessGoal" 
-                  value={formData.fitnessGoal} 
-                  onChange={handleChange} 
+                <SelectField
+                  id="fitnessGoal"
+                  name="fitnessGoal"
+                  value={formData.fitnessGoal}
+                  onChange={handleChange}
                   disabled={isLoading}
                 >
                   <option value="">Select your primary fitness goal</option>
@@ -1316,11 +1316,11 @@ const OptimizedSignupModal: React.FC = () => {
               </InputWrapper>
               <InputWrapper>
                 <Label htmlFor="trainingExperience">Training Experience</Label>
-                <SelectField 
-                  id="trainingExperience" 
-                  name="trainingExperience" 
-                  value={formData.trainingExperience} 
-                  onChange={handleChange} 
+                <SelectField
+                  id="trainingExperience"
+                  name="trainingExperience"
+                  value={formData.trainingExperience}
+                  onChange={handleChange}
                   disabled={isLoading}
                 >
                   <option value="">Select your experience level</option>

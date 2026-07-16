@@ -8,7 +8,7 @@
  */
 import React, { lazy, Suspense, useState } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import 'framer-motion';
 
 const UploadTab = lazy(() => import('./UploadTab'));
 const FormAnalyzer = lazy(() => import('./FormAnalyzer'));

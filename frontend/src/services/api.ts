@@ -24,17 +24,17 @@ export const sessionAPI = {
     return [];
   },
   
-  createSession: async (data: any) => {
+  createSession: async (_data: any) => {
     // Implementation handled directly in component  
     return {};
   },
   
-  updateSession: async (id: number, data: any) => {
+  updateSession: async (_id: number, _data: any) => {
     // Implementation handled directly in component
     return {};
   },
   
-  deleteSession: async (id: number) => {
+  deleteSession: async (_id: number) => {
     // Implementation handled directly in component
     return {};
   }

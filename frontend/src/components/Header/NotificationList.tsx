@@ -3,23 +3,13 @@ import React from 'react';
 import styled from 'styled-components';
 
 // Swan primitives
-import {
-  Avatar,
-  Box,
-  Card,
-  Chip,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Stack,
-  Typography,
-} from '../ui/primitives';
+import { Avatar, Chip, List, ListItem, ListItemAvatar, ListItemText, Stack, Typography } from '../ui/primitives';
 import { alpha } from '../../styles/mui-replacements';
 
 // assets
-import { IconBrandTelegram, IconBuildingStore, IconMailbox, IconPhoto } from '@tabler/icons-react';
+import '@tabler/icons-react';
 import User1 from '../../assets/users/user-round.svg';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ListItemWrapperProps {
   children: React.ReactNode;
@@ -48,32 +38,32 @@ const ContentWrapper = styled.div`
 
 const NotificationList: React.FC = () => {
   return (
-    <List disablePadding style={{ width: '100%', maxWidth: 330 }}>
+    <StyledBox as={List} disablePadding $style={{ width: '100%', maxWidth: 330 }}>
       <ListItemWrapper>
-        <ListItem
-          style={{ alignItems: 'center', padding: 0 }}
+        <StyledBox as={ListItem}
+          $style={{ alignItems: 'center', padding: 0 }}
           secondaryAction={
-            <Stack direction="row" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
+            <StyledBox as={Stack} direction="row" $style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
               <Typography variant="caption">2 min ago</Typography>
-            </Stack>
+            </StyledBox>
           }
         >
           <ListItemAvatar>
             <Avatar src={User1} alt="John Doe" />
           </ListItemAvatar>
           <ListItemText primary="John Doe" />
-        </ListItem>
+        </StyledBox>
         <ContentWrapper>
           <Typography variant="subtitle2">It is a long established fact that a reader will be distracted</Typography>
-          <Stack direction="row" spacing={1} style={{ alignItems: 'center' }}>
+          <StyledBox as={Stack} direction="row" spacing={1} $style={{ alignItems: 'center' }}>
             <Chip label="Unread" color="#ef4444" size="small" />
             <Chip label="New" color="#f59e0b" size="small" />
-          </Stack>
+          </StyledBox>
         </ContentWrapper>
       </ListItemWrapper>
 
       {/* Add the rest of the list items here... */}
-    </List>
+    </StyledBox>
   );
 };
 

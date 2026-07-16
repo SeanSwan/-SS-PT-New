@@ -18,9 +18,9 @@ import {
   EMPTY_CANONICAL_PROGRESS_CHARTS,
 } from './useClientProgressChartsResponseMapping';
 
-type FetchProgressChartResponses = () => Promise<any[]>;
+type FetchProgressChartResponses = () => Promise<readonly unknown[]>;
 type ChartResponseResult =
-  | { ok: true; responses: any[] }
+  | { ok: true; responses: readonly unknown[] }
   | { ok: false; error: unknown };
 
 export interface UseCanonicalProgressChartsFetchReturn {
@@ -44,9 +44,17 @@ const resolveChartResponses = async (
   }
 };
 
-const messageFromError = (error: any): string => (
-  error?.message || 'Failed to load progress charts'
-);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const messageFromError = (error: unknown): string => {
+  if (error instanceof Error && error.message) return error.message;
+  if (isRecord(error) && typeof error.message === 'string' && error.message) return error.message;
+  return 'Failed to load progress charts';
+};
+
+const isLockedResponse = (value: unknown): boolean =>
+  isRecord(value) && value.locked === true;
 
 export function useCanonicalProgressChartsFetch(
   isEnabled: boolean,
@@ -75,7 +83,7 @@ export function useCanonicalProgressChartsFetch(
       setUnavailableChartCount(countUnavailableChartResponses(result.responses));
       // D2: 402-locked charts (server tier truth) render as upsell cards.
       setLockedChartIds(CANONICAL_CHART_IDS.filter(
-        (_, index) => (result.responses[index] as { locked?: boolean } | null)?.locked === true,
+        (_, index) => isLockedResponse(result.responses[index]),
       ));
       setCharts(buildCanonicalProgressChartsFromResponses(result.responses));
     }

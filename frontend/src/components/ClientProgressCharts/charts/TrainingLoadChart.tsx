@@ -15,12 +15,10 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import {
-  VictoryChart, VictoryArea, VictoryLine, VictoryAxis,
-  VictoryTooltip, VictoryVoronoiContainer, VictoryScatter,
-} from 'victory';
+import { VictoryChart, VictoryArea, VictoryLine, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
 import { TrainingLoadChartProps } from '../types/ClientProgressTypes';
 import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -99,7 +97,7 @@ const TrainingLoadChart: React.FC<TrainingLoadChartProps> = ({
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)', strokeWidth: 1 }}
-                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                   cornerRadius={8}
                   flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 />
@@ -115,22 +113,22 @@ const TrainingLoadChart: React.FC<TrainingLoadChartProps> = ({
             </linearGradient>
           </defs>
 
-          <VictoryAxis style={AXIS_STYLE}
+          <VictoryAxis {...victoryStyleProps(AXIS_STYLE)}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.week)}
           />
-          <VictoryAxis dependentAxis style={{
+          <VictoryAxis dependentAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             axisLabel: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", padding: 50 },
-          }} label="Weekly Tonnage (lbs)" />
+          })} label="Weekly Tonnage (lbs)" />
 
           <VictoryArea data={chartData} interpolation="monotoneX"
-            style={{ data: { fill: 'url(#trainingLoadGrad)', stroke: '#8B5CF6', strokeWidth: 2 } }}
+            {...victoryStyleProps({ data: { fill: 'url(#trainingLoadGrad)', stroke: '#8B5CF6', strokeWidth: 2 } })}
           />
 
           {rollingAvg.length > 0 && (
             <VictoryLine data={rollingAvg} interpolation="monotoneX"
-              style={{ data: { stroke: '#C6A84B', strokeWidth: 2, strokeDasharray: '6,4', opacity: 0.8 } }}
+              {...victoryStyleProps({ data: { stroke: '#C6A84B', strokeWidth: 2, strokeDasharray: '6,4', opacity: 0.8 } })}
             />
           )}
         </VictoryChart>

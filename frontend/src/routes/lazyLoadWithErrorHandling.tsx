@@ -4,6 +4,7 @@
  */
 import React, { lazy } from 'react';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type LazyRouteModule = { default: React.ComponentType<any> };
 type LazyRouteImport = () => Promise<LazyRouteModule>;
@@ -133,7 +134,7 @@ const createErrorRouteModule = (
     }
 
     return (
-      <div style={{
+      <StyledBox as="div" $style={{
         padding: '2rem',
         textAlign: 'center',
         background: 'var(--bg-base, #0A0A0F)',
@@ -144,17 +145,17 @@ const createErrorRouteModule = (
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <h2 style={{ color: 'var(--error, #ff416c)' }}>Error Loading {componentName}</h2>
+        <StyledBox as="h2" $style={{ color: 'var(--error, #ff416c)' }}>Error Loading {componentName}</StyledBox>
         <p>Try loading this route again, or contact support if it keeps failing.</p>
         {retryError && (
-          <p style={{ color: 'var(--error, #ff416c)', maxWidth: '560px' }}>
+          <StyledBox as="p" $style={{ color: 'var(--error, #ff416c)', maxWidth: '560px' }}>
             {retryError}
-          </p>
+          </StyledBox>
         )}
-        <button
+        <StyledBox as="button"
           onClick={handleRetryRouteImport}
           disabled={isRetrying}
-          style={{
+          $style={{
             background: 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #00c8ff))',
             border: 'none',
             padding: '0.75rem 1.5rem',
@@ -168,8 +169,8 @@ const createErrorRouteModule = (
           }}
         >
           {isRetrying ? 'Retrying...' : 'Retry'}
-        </button>
-      </div>
+        </StyledBox>
+      </StyledBox>
     );
   };
 

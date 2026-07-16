@@ -26,6 +26,7 @@ import {
   SegButton,
 } from './CoverStudioPanel.styles';
 import { FOCAL_PRESETS, HEIGHT_PRESETS } from './CoverStudioPanel.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export function FocalSection({
   isFocal,
@@ -135,11 +136,11 @@ export function SavedCoversSection({
   return (
     <div>
       <SectionLabel>Saved covers</SectionLabel>
-      <LibAddTile as="button" type="button" style={{ aspectRatio: 'auto', minHeight: 44, width: '100%', gap: 8, display: 'inline-flex' }} onClick={onSave} aria-label="Save current cover as preset">
+      <StyledBox as={LibAddTile} forwardedAs="button" type="button" $style={{ aspectRatio: 'auto', minHeight: 44, width: '100%', gap: 8, display: 'inline-flex' }} onClick={onSave} aria-label="Save current cover as preset">
         <Save size={16} /> Save this cover
-      </LibAddTile>
+      </StyledBox>
       {presets.length > 0 && (
-        <BannerPresetGrid aria-label="Saved banner presets" style={{ marginTop: 10 }}>
+        <StyledBox as={BannerPresetGrid} aria-label="Saved banner presets" $style={{ marginTop: 10 }}>
           {presets.map((preset) => (
             <BannerPresetRow key={preset.id}>
               <BannerPresetApplyButton type="button" onClick={() => onApply(preset.id)} aria-label={`Apply ${preset.name}`}>
@@ -150,7 +151,7 @@ export function SavedCoversSection({
               </BannerPresetRemoveButton>
             </BannerPresetRow>
           ))}
-        </BannerPresetGrid>
+        </StyledBox>
       )}
     </div>
   );

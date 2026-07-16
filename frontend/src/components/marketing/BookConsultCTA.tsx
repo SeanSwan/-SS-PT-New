@@ -28,6 +28,7 @@ import {
   TriggerButton, Overlay, Modal, CloseButton, Title, Subtitle,
   Form, Field, Input, Textarea, Honeypot, SubmitButton, Alert,
 } from './BookConsultCTA.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Mirrors the server's validator so we fail fast client-side (server still authoritative).
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -157,7 +158,7 @@ const BookConsultCTA: React.FC<BookConsultCTAProps> = ({ label = 'Book a Free Co
                 <Alert $type="success" role="status">
                   Thanks! Sean will reach out to confirm your free consult.
                 </Alert>
-                <SubmitButton type="button" onClick={close} style={{ marginTop: 18 }}>Done</SubmitButton>
+                <StyledBox as={SubmitButton} type="button" onClick={close} $style={{ marginTop: 18 }}>Done</StyledBox>
               </>
             ) : (
               <>

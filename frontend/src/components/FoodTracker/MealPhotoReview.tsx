@@ -150,10 +150,10 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
               {MEAL_TYPE_OPTIONS.map((m) => <option key={m} value={m}>{m[0].toUpperCase() + m.slice(1)}</option>)}
             </Select>
             <Macros>
-              <NumField><span>cal</span><NumInput aria-label={`Calories for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.calories ?? ''} onChange={(e) => updateField(i, 'calories', e.target.value)} disabled={saving || fullySaved} /></NumField>
-              <NumField><span>P</span><NumInput aria-label={`Protein for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.protein ?? ''} onChange={(e) => updateField(i, 'protein', e.target.value)} disabled={saving || fullySaved} /></NumField>
-              <NumField><span>C</span><NumInput aria-label={`Carbs for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.carbs ?? ''} onChange={(e) => updateField(i, 'carbs', e.target.value)} disabled={saving || fullySaved} /></NumField>
-              <NumField><span>F</span><NumInput aria-label={`Fat for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.fat ?? ''} onChange={(e) => updateField(i, 'fat', e.target.value)} disabled={saving || fullySaved} /></NumField>
+              <NumField htmlFor={`meal-food-${i}-calories`}><span>cal</span><NumInput id={`meal-food-${i}-calories`} aria-label={`Calories for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.calories ?? ''} onChange={(e) => updateField(i, 'calories', e.target.value)} disabled={saving || fullySaved} /></NumField>
+              <NumField htmlFor={`meal-food-${i}-protein`}><span>P</span><NumInput id={`meal-food-${i}-protein`} aria-label={`Protein for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.protein ?? ''} onChange={(e) => updateField(i, 'protein', e.target.value)} disabled={saving || fullySaved} /></NumField>
+              <NumField htmlFor={`meal-food-${i}-carbs`}><span>C</span><NumInput id={`meal-food-${i}-carbs`} aria-label={`Carbs for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.carbs ?? ''} onChange={(e) => updateField(i, 'carbs', e.target.value)} disabled={saving || fullySaved} /></NumField>
+              <NumField htmlFor={`meal-food-${i}-fat`}><span>F</span><NumInput id={`meal-food-${i}-fat`} aria-label={`Fat for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.fat ?? ''} onChange={(e) => updateField(i, 'fat', e.target.value)} disabled={saving || fullySaved} /></NumField>
             </Macros>
             <ConfidenceBadge value={f.confidence} />
             <RemoveBtn type="button" aria-label={`Remove ${f.name || `food ${i + 1}`}`} onClick={() => removeFood(i)} disabled={saving || fullySaved}>
@@ -169,13 +169,13 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
 
       {!fullySaved && (
         <SaveBtn type="button" onClick={handleSave} disabled={saving || savableFoodCount === 0} aria-busy={saving}>
-          {saving ? <><Loader2 size={16} className="spin" /> Saving...</> : <><ClipboardCheck size={16} /> Approve &amp; save to today's log</>}
+          {saving ? <><Loader2 size={16} className="spin" /> Saving...</> : <><ClipboardCheck size={16} /> Approve &amp; save to today&apos;s log</>}
         </SaveBtn>
       )}
 
       {error && <StatusMsg role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> {error}</StatusMsg>}
       {result && result.failed === 0 && (
-        <StatusMsg role="status" aria-live="polite" aria-atomic="true"><CheckCircle2 size={14} /> Saved {result.saved} {result.saved === 1 ? 'item' : 'items'} to today's log. {blankNameRows > 0 ? skippedBlankCopy : ''}</StatusMsg>
+        <StatusMsg role="status" aria-live="polite" aria-atomic="true"><CheckCircle2 size={14} /> Saved {result.saved} {result.saved === 1 ? 'item' : 'items'} to today&apos;s log. {blankNameRows > 0 ? skippedBlankCopy : ''}</StatusMsg>
       )}
       {result && result.failed > 0 && (
         <StatusMsg role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> Saved {result.saved} of {result.total}; {result.failed} failed - adjust and try again. {blankNameRows > 0 ? skippedBlankCopy : ''}</StatusMsg>

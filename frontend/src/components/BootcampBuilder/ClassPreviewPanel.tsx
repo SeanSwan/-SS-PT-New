@@ -31,7 +31,7 @@ import type { GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 type BootcampStretchItem = NonNullable<GeneratedBootcamp['stretches']>[number];
 type BootcampOverflowLap = NonNullable<GeneratedBootcamp['overflowPlan']>['lapExercises'][number];
 
-export const bootcampStretchItemKey = (stretch: BootcampStretchItem): string => [
+const bootcampStretchItemKey = (stretch: BootcampStretchItem): string => [
   'stretch',
   stretch.sortOrder,
   stretch.exerciseName,
@@ -39,7 +39,7 @@ export const bootcampStretchItemKey = (stretch: BootcampStretchItem): string => 
   stretch.durationSec,
 ].join('|');
 
-export const bootcampOverflowLapKey = (lap: BootcampOverflowLap): string => [
+const bootcampOverflowLapKey = (lap: BootcampOverflowLap): string => [
   'overflow-lap',
   lap.name,
   lap.durationMin,

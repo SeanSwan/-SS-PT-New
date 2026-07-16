@@ -22,6 +22,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { BarChart3 } from 'lucide-react';
 import { SectionHeading } from './EditProfileModalStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -172,7 +173,7 @@ const EditProfileChartToggles: React.FC<EditProfileChartTogglesProps> = ({
   return (
     <>
       <SectionHeading>
-        <BarChart3 size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+        <StyledBox as={BarChart3} size={12} $style={{ marginRight: 6, verticalAlign: 'middle' }} />
         Chart Visibility
       </SectionHeading>
       <Subtitle>Choose which charts appear on your public profile</Subtitle>

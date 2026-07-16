@@ -6,18 +6,11 @@ import { useLastWeightSuggestions } from './useLastWeightSuggestions';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  dailyWorkoutFormService,
-  ExerciseEntry,
-  ExerciseSet,
-} from '../../services/nasmApiService';
+import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import type { DailyWorkoutForm } from '../../services/nasmApiService';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
-import {
-  AI_SUBMIT_WORKOUT,
-  type AISubmitWorkoutEventDetail,
-} from '../../utils/aiWorkoutEvents';
-import { dispatchWorkoutLogged } from '../../utils/workoutLoggedEvent';
+import '../../utils/aiWorkoutEvents';
+import '../../utils/workoutLoggedEvent';
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
 import { MINUTES_PER_SET, MAX_WORKOUT_DURATION } from './WorkoutLoggerCS';
@@ -45,11 +38,11 @@ import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
 import ActivePlanContextStrip from './ActivePlanContextStrip';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
-import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
+import './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
 import SaveSuccessPanel from './SaveSuccessPanel';
-import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
-import { shouldBlockWorkoutSubmitForSessionBalance } from './WorkoutLogger.submitGuard';
+import './workoutLoggerSubmitPayload';
+import './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerLensFrame from './WorkoutLoggerLensFrame';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
@@ -75,16 +68,7 @@ import type {
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
 } from './WorkoutLogger.localTypes';
-import {
-  coerceToNumericId,
-  ensureWorkoutLoggerExerciseRowIdentity,
-  ensureWorkoutLoggerSetId,
-  getExerciseEntryRowKey,
-  hasIncompleteWorkoutSets,
-  normalizeWorkoutDate,
-  isSelfLoggingDashboardRole,
-  isWorkoutSubmitCanceled,
-} from './WorkoutLogger.helpers';
+import { coerceToNumericId, ensureWorkoutLoggerExerciseRowIdentity, ensureWorkoutLoggerSetId, getExerciseEntryRowKey, hasIncompleteWorkoutSets, normalizeWorkoutDate, isSelfLoggingDashboardRole } from './WorkoutLogger.helpers';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -145,9 +129,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       state: { workoutChallengeProgress: formData.challengeProgress ?? null },
     });
   });
-  const resolvedOnCancel = onCancel ?? (() => {
+  const resolvedOnCancel = useCallback(() => {
+    if (onCancel) {
+      onCancel();
+      return;
+    }
     navigate('/dashboard/client/overview');
-  });
+  }, [navigate, onCancel]);
 
   const [confirmRequest, setConfirmRequest] = useState<WorkoutLoggerConfirmRequest | null>(null);
   const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {

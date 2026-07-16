@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { logger } from '@/utils/logger';
 
 // Connection states
-export const CONNECTION_STATES = {
+const CONNECTION_STATES = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
   DISCONNECTED: 'disconnected',
@@ -154,14 +154,31 @@ const createApiInstance = (baseURL: string) => {
  * @returns {Object} Connection state and utilities
  */
 export const useBackendConnection = (config: Partial<BackendConnectionConfig> = {}) => {
-  const fullConfig = useMemo<BackendConnectionConfig>(() => ({ ...DEFAULT_CONFIG, ...config }), [
-    config.maxRetries,
-    config.retryDelay,
-    config.maxRetryDelay,
-    config.backoffMultiplier,
-    config.healthCheckInterval,
-    config.apiUrl,
-    config.forceUnavailableMode
+  const {
+    maxRetries = DEFAULT_CONFIG.maxRetries,
+    retryDelay = DEFAULT_CONFIG.retryDelay,
+    maxRetryDelay = DEFAULT_CONFIG.maxRetryDelay,
+    backoffMultiplier = DEFAULT_CONFIG.backoffMultiplier,
+    healthCheckInterval = DEFAULT_CONFIG.healthCheckInterval,
+    apiUrl = DEFAULT_CONFIG.apiUrl,
+    forceUnavailableMode = DEFAULT_CONFIG.forceUnavailableMode,
+  } = config;
+  const fullConfig = useMemo<BackendConnectionConfig>(() => ({
+    maxRetries,
+    retryDelay,
+    maxRetryDelay,
+    backoffMultiplier,
+    healthCheckInterval,
+    apiUrl,
+    forceUnavailableMode,
+  }), [
+    apiUrl,
+    backoffMultiplier,
+    forceUnavailableMode,
+    healthCheckInterval,
+    maxRetries,
+    maxRetryDelay,
+    retryDelay,
   ]);
   const [connectionState, setConnectionState] = useState(CONNECTION_STATES.CONNECTING);
   const [retryCount, setRetryCount] = useState(0);
@@ -434,11 +451,6 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       return;
     }
 
-    // Skip all connection attempts if already set to backend unavailable
-    if (connectionState === CONNECTION_STATES.UNAVAILABLE) {
-      logger.log('Already in backend unavailable, skipping connection attempts');
-      return;
-    }
 
     // For production or when backend is expected, attempt connection
     logger.log(`Attempting initial connection to: ${fullConfig.apiUrl}`);
@@ -456,8 +468,8 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
         healthCheckIntervalRef.current = null;
       }
     };
-    // Only run this effect once on mount with empty dependency array
-  }, []);
+    // Restart only when the effective connection configuration changes.
+  }, [attemptReconnection, fullConfig.apiUrl, fullConfig.forceUnavailableMode]);
 
   // Set up periodic health checks when connected
   useEffect(() => {
@@ -739,17 +751,3 @@ export const ConnectionStatusBanner = ({ connection }: { connection: ReturnType<
 /**
  * Higher-order component that provides connection context
  */
-export const withBackendConnection = (WrappedComponent: React.ComponentType<any>) => {
-  return function WithBackendConnectionComponent(props: Record<string, any>) {
-    const connection = useBackendConnection();
-
-    return (
-      <div>
-        <ConnectionStatusBanner connection={connection} />
-        <WrappedComponent {...props} connection={connection} />
-      </div>
-    );
-  };
-};
-
-export default useBackendConnection;

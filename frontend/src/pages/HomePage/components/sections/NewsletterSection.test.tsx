@@ -4,7 +4,7 @@
  * with the right source, invalid email is rejected client-side (no POST),
  * API failure surfaces an error. axios is mocked — no real network.
  */
-import React from 'react';
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';

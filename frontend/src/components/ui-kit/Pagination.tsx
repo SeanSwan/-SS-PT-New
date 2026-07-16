@@ -20,9 +20,10 @@
  * </Pagination>
  */
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext } from 'react';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ==========================================
 // CONTEXT FOR PAGINATION STATE
@@ -243,17 +244,17 @@ interface PaginationButtonProps {
 
 function PaginationButton({ onClick, disabled, children, active }: PaginationButtonProps) {
   return (
-    <StyledPaginationButton 
+    <StyledBox as={StyledPaginationButton}
       onClick={onClick} 
       disabled={disabled}
-      style={active ? {
+      $style={active ? {
         background: 'rgba(59, 130, 246, 0.3)',
         borderColor: 'rgba(59, 130, 246, 0.6)',
         color: '#60a5fa'
       } : undefined}
     >
       {children}
-    </StyledPaginationButton>
+    </StyledBox>
   );
 }
 

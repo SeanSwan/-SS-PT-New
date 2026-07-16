@@ -16,6 +16,7 @@ import {
   ActionButton, CadenceWarning,
 } from './marketing.styles';
 import type { EmailTemplate, EmailBlock, EmailBlockType } from './marketing.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Demo Data ─────────────────────────────────────────────────
 const TEMPLATES: EmailTemplate[] = [
@@ -347,16 +348,16 @@ const EmailDigestBuilder: React.FC = () => {
           </CardHeader>
 
           <InputRow>
-            <Label>Subject Line <CharHint>{subject.length}/60 ideal</CharHint></Label>
-            <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject..." />
+            <Label htmlFor="digest-subject">Subject Line <CharHint>{subject.length}/60 ideal</CharHint></Label>
+            <Input id="digest-subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject..." />
           </InputRow>
 
           <InputRow>
-            <Label>Preheader <CharHint>{preheader.length}/100 ideal</CharHint></Label>
-            <Input value={preheader} onChange={e => setPreheader(e.target.value)} placeholder="Preview text..." />
+            <Label htmlFor="digest-preheader">Preheader <CharHint>{preheader.length}/100 ideal</CharHint></Label>
+            <Input id="digest-preheader" value={preheader} onChange={e => setPreheader(e.target.value)} placeholder="Preview text..." />
           </InputRow>
 
-          <Label>Personalization Tokens</Label>
+          <Label as="h3">Personalization Tokens</Label>
           <TokenRow>
             {TOKENS.map(token => (
               <TokenChip key={token} onClick={() => navigator.clipboard?.writeText(token)} title="Click to copy">
@@ -365,7 +366,7 @@ const EmailDigestBuilder: React.FC = () => {
             ))}
           </TokenRow>
 
-          <Label>Content Blocks</Label>
+          <Label as="h3">Content Blocks</Label>
           <BlockList>
             {blocks.map(block => (
               <BlockItem key={block.id}>
@@ -378,13 +379,13 @@ const EmailDigestBuilder: React.FC = () => {
             ))}
           </BlockList>
 
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          <StyledBox as="div" $style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             {(['heading', 'paragraph', 'cta', 'testimonial'] as EmailBlockType[]).map(type => (
-              <ActionButton key={type} $variant="secondary" onClick={() => addBlock(type)} style={{ fontSize: 12, padding: '6px 12px' }}>
+              <StyledBox as={ActionButton} key={type} $variant="secondary" onClick={() => addBlock(type)} $style={{ fontSize: 12, padding: '6px 12px' }}>
                 <Plus size={12} /> {type}
-              </ActionButton>
+              </StyledBox>
             ))}
-          </div>
+          </StyledBox>
 
           <ActionButton disabled={cadenceReached}>
             {cadenceReached ? 'Cadence Limit Reached' : 'Schedule Send (Pending Approval)'}

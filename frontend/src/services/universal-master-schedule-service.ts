@@ -25,20 +25,51 @@ import type { AxiosResponse } from 'axios';
 import apiService from './api.service';
 
 // Import types from Universal Master Schedule
-import type {
-  Session,
-  SessionEvent, 
-  Client,
-  Trainer,
-  FilterOptions,
-  ScheduleStats,
-  ApiResponse
-} from '../components/UniversalMasterSchedule/types';
+import type { Session, SessionEvent, Client, Trainer, FilterOptions, ScheduleStats } from '../components/UniversalMasterSchedule/types';
+import type { Alternative, Conflict } from '../components/UniversalMasterSchedule/Conflicts/ConflictPanel';
 import { logger } from '@/utils/logger';
 import {
   isInvalidSessionsResponseError,
   normalizeSessionsResponse,
 } from './universal-master-schedule-session-response';
+
+type JsonRecord = Record<string, unknown>;
+type RawAlternative = Omit<Alternative, 'date'> & { date: string | Date };
+
+interface ConflictApiPayload {
+  conflicts?: Conflict[];
+  alternatives?: RawAlternative[];
+}
+
+interface ScheduleApiErrorResponse {
+  status?: number;
+  data?: unknown;
+}
+
+const isRecord = (value: unknown): value is JsonRecord => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const getScheduleApiErrorResponse = (error: unknown): ScheduleApiErrorResponse | null => {
+  if (!isRecord(error) || !isRecord(error.response)) return null;
+  const status = typeof error.response.status === 'number' ? error.response.status : undefined;
+  return { status, data: error.response.data };
+};
+
+const getConflictPayload = (value: unknown): ConflictApiPayload => {
+  if (!isRecord(value)) return {};
+  return {
+    conflicts: Array.isArray(value.conflicts) ? value.conflicts as Conflict[] : [],
+    alternatives: Array.isArray(value.alternatives) ? value.alternatives as RawAlternative[] : [],
+  };
+};
+
+const normalizeAlternatives = (alternatives: RawAlternative[] = []): Alternative[] => (
+  alternatives.map((alternative) => ({
+    ...alternative,
+    date: new Date(alternative.date),
+  }))
+);
 
 export interface ScheduleAiProposalRequest {
   message: string;
@@ -104,7 +135,7 @@ class UniversalMasterScheduleService {
       
       const response: AxiosResponse<unknown> = await this.api.get(`/api/sessions?${params.toString()}`);
       return normalizeSessionsResponse(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (isInvalidSessionsResponseError(error)) {
         logger.warn('Sessions endpoint returned an invalid list response:', error);
       } else {
@@ -125,8 +156,8 @@ class UniversalMasterScheduleService {
         return response.data.session;
       }
       return null;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if (getScheduleApiErrorResponse(error)?.status === 404) {
         return null;
       }
       console.error('Error fetching session by ID:', error);
@@ -155,7 +186,7 @@ class UniversalMasterScheduleService {
         start: session.start || session.sessionDate,
         end: session.end || new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000)
       })) as unknown as SessionEvent[];
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching calendar events:', error);
       return []; // Return empty array for graceful degradation
     }
@@ -203,14 +234,16 @@ class UniversalMasterScheduleService {
       } else {
         throw new Error(response.data.message || 'Failed to create sessions');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating sessions:', error);
       // Log detailed error info
-      if (error.response) {
+      const apiError = getScheduleApiErrorResponse(error);
+      if (apiError) {
+        const responseData = isRecord(apiError.data) ? apiError.data : null;
         console.error('[SessionService] Server responded with:', {
-          status: error.response.status,
-          data: error.response.data,
-          message: error.response.data?.message
+          status: apiError.status,
+          data: apiError.data,
+          message: responseData?.message,
         });
       }
       throw error;
@@ -238,7 +271,7 @@ class UniversalMasterScheduleService {
       }> = await this.api.post('/api/sessions/recurring', config);
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating recurring sessions:', error);
       throw error;
     }
@@ -247,7 +280,7 @@ class UniversalMasterScheduleService {
   /**
    * Book a session
    */
-  async bookSession(sessionId: string, bookingData?: any): Promise<{ success: boolean; message: string; session: Session }> {
+  async bookSession(sessionId: string, bookingData?: JsonRecord): Promise<{ success: boolean; message: string; session: Session }> {
     try {
       const response: AxiosResponse<{
         success: boolean;
@@ -256,7 +289,7 @@ class UniversalMasterScheduleService {
       }> = await this.api.post(`/api/sessions/${sessionId}/book`, bookingData || {});
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error booking session:', error);
       throw error;
     }
@@ -273,7 +306,7 @@ class UniversalMasterScheduleService {
       }> = await this.api.patch(`/api/sessions/${sessionId}/cancel`, { reason });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error cancelling session:', error);
       throw error;
     }
@@ -291,7 +324,7 @@ class UniversalMasterScheduleService {
       }> = await this.api.patch(`/api/sessions/${sessionId}/confirm`);
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error confirming session:', error);
       throw error;
     }
@@ -314,7 +347,7 @@ class UniversalMasterScheduleService {
       });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error completing session:', error);
       throw error;
     }
@@ -332,7 +365,7 @@ class UniversalMasterScheduleService {
       }> = await this.api.patch(`/api/sessions/${sessionId}/assign`, { trainerId });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error assigning trainer:', error);
       throw error;
     }
@@ -355,7 +388,7 @@ class UniversalMasterScheduleService {
       } else {
         throw new Error('Failed to fetch schedule statistics');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching schedule statistics:', error);
       throw error;
     }
@@ -370,7 +403,7 @@ class UniversalMasterScheduleService {
     try {
       const response: AxiosResponse<Trainer[]> = await this.api.get('/api/sessions/users/trainers');
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching trainers:', error);
       return [];
     }
@@ -383,7 +416,7 @@ class UniversalMasterScheduleService {
     try {
       const response: AxiosResponse<Client[]> = await this.api.get('/api/sessions/users/clients');
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching clients:', error);
       // Return empty array if unauthorized (expected for non-admin/trainer users)
       return [];
@@ -396,7 +429,7 @@ class UniversalMasterScheduleService {
    * Legacy method for backward compatibility
    * @deprecated Use bookSession instead
    */
-  async bookSessionLegacy(sessionId: string, userId: string): Promise<Session> {
+  async bookSessionLegacy(sessionId: string, _userId: string): Promise<Session> {
     const result = await this.bookSession(sessionId);
     return result.session;
   }
@@ -451,7 +484,7 @@ class UniversalMasterScheduleService {
       
       // For other updates, we'd need to implement additional backend endpoints
       throw new Error('Update type not supported. Use specific methods like assignTrainer, confirmSession, etc.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating session:', error);
       throw error;
     }
@@ -557,7 +590,7 @@ class UniversalMasterScheduleService {
       });
       
       window.dispatchEvent(event);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error syncing dashboard data:', error);
     }
   }
@@ -573,16 +606,13 @@ class UniversalMasterScheduleService {
     trainerId?: string | number | null;
     clientId?: string | number | null;
     excludeSessionId?: string | number;
-  }): Promise<{ conflicts: any[]; alternatives: any[] }> {
+  }): Promise<{ conflicts: Conflict[]; alternatives: Alternative[] }> {
     try {
-      const response = await this.api.post('/api/sessions/check-conflicts', data);
+      const response: AxiosResponse<ConflictApiPayload> = await this.api.post('/api/sessions/check-conflicts', data);
       const result = response.data;
       return {
-        conflicts: result?.conflicts || [],
-        alternatives: (result?.alternatives || []).map((alt: any) => ({
-          ...alt,
-          date: new Date(alt.date)
-        }))
+        conflicts: result.conflicts || [],
+        alternatives: normalizeAlternatives(result.alternatives),
       };
     } catch (error) {
       console.error('Conflict check failed:', error);
@@ -602,21 +632,19 @@ class UniversalMasterScheduleService {
       notifyClient?: boolean;
       conflictOverride?: boolean;
     }
-  ): Promise<{ success: boolean; status: number; conflicts?: any[]; alternatives?: any[]; data?: any }> {
+  ): Promise<{ success: boolean; status: number; conflicts?: Conflict[]; alternatives?: Alternative[]; data?: unknown }> {
     try {
-      const response = await this.api.put(`/api/sessions/${sessionId}/reschedule`, data);
+      const response: AxiosResponse<unknown> = await this.api.put(`/api/sessions/${sessionId}/reschedule`, data);
       return { success: true, status: response.status, data: response.data };
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        const result = error.response.data;
+    } catch (error: unknown) {
+      const apiError = getScheduleApiErrorResponse(error);
+      if (apiError?.status === 409) {
+        const result = getConflictPayload(apiError.data);
         return {
           success: false,
           status: 409,
-          conflicts: result?.conflicts || [],
-          alternatives: (result?.alternatives || []).map((alt: any) => ({
-            ...alt,
-            date: new Date(alt.date)
-          }))
+          conflicts: result.conflicts || [],
+          alternatives: normalizeAlternatives(result.alternatives),
         };
       }
       throw error;
@@ -653,7 +681,7 @@ class UniversalMasterScheduleService {
     maxRetries: number = 3,
     baseDelay: number = 1000
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {

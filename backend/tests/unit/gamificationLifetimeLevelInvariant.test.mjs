@@ -22,6 +22,7 @@ const read = (p) => readFileSync(resolve(__dirname, p), 'utf8');
 const pointsService = read('../../services/gamification/GamificationPointsService.mjs');
 const awardXP = read('../../services/awardWorkoutXP.mjs');
 const gamController = read('../../controllers/gamificationController.mjs');
+const progressController = read('../../controllers/progressController.mjs');
 
 describe('HR-008-F1: spending points never lowers level/rank', () => {
   it('arithmetic invariant: a spend that drops the balance-derived level leaves the lifetime-derived level unchanged', () => {
@@ -59,5 +60,15 @@ describe('HR-008-F1: spending points never lowers level/rank', () => {
     expect(gamController).not.toMatch(/calculateLevel\(updatedStats\.points\)/);
     // the now-unused curve import was removed (no dead import)
     expect(gamController).not.toMatch(/import \{ calculateLevel, getTier \}/);
+  });
+
+  it('source-lock: canonical profile, rank-title, and leaderboard reads use lifetime XP', () => {
+    expect(gamController).toMatch(/'points', 'lifetimePointsEarned', 'level'/);
+    expect(gamController).toMatch(/const progressionPoints = parseNonNegativeInteger\(user\.lifetimePointsEarned, 0\)/);
+    expect(gamController).toMatch(/buildRankTitleSelectionPayload\(\{\s*points: progressionPoints/);
+    expect(gamController).toMatch(/validateSelectedRankTitleKey\(requestedKey, \{\s*points: progressionPoints/);
+    expect(progressController).toContain("['lifetimePointsEarned', 'points']");
+    expect(progressController).toContain("orderBy = [['lifetimePointsEarned', 'DESC']]");
+    expect(progressController).not.toContain("orderBy = [['points', 'DESC']]");
   });
 });

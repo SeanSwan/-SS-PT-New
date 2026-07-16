@@ -13,7 +13,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, Copyright as CopyrightIcon } from 'lucide-react';
-import GlowButton from '../Button/glowButton';
+import '../Button/glowButton';
 import logoImage from '../../assets/Logo.png';
 
 // Styled Components with Digital Alchemist principles

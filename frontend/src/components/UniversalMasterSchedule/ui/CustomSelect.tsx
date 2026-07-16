@@ -19,7 +19,7 @@ import {
   SelectButton,
   SelectContainer,
 } from './CustomSelect.styles';
-
+import { StyledBox } from '@/components/ui/StyledBox';
 export type { CustomSelectProps, OpenDirection, SelectOption } from './CustomSelect.types';
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -242,9 +242,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           )}
 
           {filteredOptions.length === 0 ? (
-            <OptionItem $isSelected={false} $isFocused={false} style={{ cursor: 'default' }}>
+            <StyledBox as={OptionItem} $isSelected={false} $isFocused={false} $style={{ cursor: 'default' }}>
               No options found
-            </OptionItem>
+            </StyledBox>
           ) : (
             filteredOptions.map((option, index) => (
               <OptionItem

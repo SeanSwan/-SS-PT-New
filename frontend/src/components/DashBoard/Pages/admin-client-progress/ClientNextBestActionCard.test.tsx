@@ -4,7 +4,7 @@
  * Locks: per-client fetch path, loading skeleton, self-hide on error /
  * missing client / malformed payload, and the ready-state coach strip.
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -4,7 +4,7 @@
  * (PUT), set a follow-up date (PUT ISO), one-click email/call links, and that a
  * failed save reverts + surfaces an error. authAxios is mocked (no real network).
  */
-import React from 'react';
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -40,6 +40,7 @@ import {
 import { Bar, BarChartArea, BarColumn } from './SystemAnalyticsViz.styles';
 import { SystemAnalyticsStatCard } from './SystemAnalyticsStatCard';
 import type { SystemAnalyticsData } from './SystemAnalytics.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface SystemAnalyticsOverviewProps {
   data: SystemAnalyticsData;
@@ -61,7 +62,7 @@ export const SystemAnalyticsOverview: React.FC<SystemAnalyticsOverviewProps> = (
         <SystemAnalyticsStatCard title="Engagement Rate" value={`${asNumber(users.engagementRate)}%`} icon={<Activity size={24} />} trend="up" trendValue="3% from last month" />
       </Grid4Col>
 
-      <GridContainer style={{ marginTop: 24 }}>
+      <StyledBox as={GridContainer} $style={{ marginTop: 24 }}>
         <GlassCard>
           <CardHeaderStyled>Tier Distribution</CardHeaderStyled>
           <CardBody>
@@ -127,7 +128,7 @@ export const SystemAnalyticsOverview: React.FC<SystemAnalyticsOverviewProps> = (
             </CardBody>
           </GlassCard>
         </GridFull>
-      </GridContainer>
+      </StyledBox>
     </div>
   );
 };

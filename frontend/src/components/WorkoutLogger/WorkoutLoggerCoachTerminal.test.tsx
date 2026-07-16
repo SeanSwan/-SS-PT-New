@@ -4,6 +4,10 @@ import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
 
 const panelPropsMock = vi.hoisted(() => vi.fn());
 
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 vi.mock('../Shared/AITerminalPanel', () => ({
   default: (props: any) => {
     panelPropsMock(props);

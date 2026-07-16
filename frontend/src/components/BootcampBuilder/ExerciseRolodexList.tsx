@@ -20,6 +20,7 @@ import {
   SkeletonBlock,
   VirtualRow,
 } from './ExerciseRolodexList.styles';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 interface ExerciseRolodexListProps {
   exercises: ExerciseSlim[];
@@ -57,7 +58,7 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
     if (!pair) return null;
 
     return (
-      <VirtualRow style={style}>
+      <VirtualRow {...reactWindowStyleProps(style)}>
         {pair.map((exercise) => {
           const impact = getJointImpact(exercise);
           const eqArr = parseEquipment((exercise as any).equipment || (exercise as any).equipmentNeeded);
@@ -118,7 +119,7 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
           rowCount={exercisePairs.length}
           rowHeight={ROLODEX_ROW_HEIGHT}
           rowProps={{} as any}
-          style={{ height: Math.min(exercisePairs.length, 7) * ROLODEX_ROW_HEIGHT, overflowX: 'hidden' }}
+          {...reactWindowStyleProps({ height: Math.min(exercisePairs.length, 7) * ROLODEX_ROW_HEIGHT, overflowX: 'hidden' })}
         />
       )}
     </ExerciseGrid>
@@ -127,7 +128,7 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
 
 export default ExerciseRolodexList;
 
-export function getExerciseMediaPreview(exercise: ExerciseSlim) {
+function getExerciseMediaPreview(exercise: ExerciseSlim) {
   const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null;
   const poster = exercise.thumbnailUrl
     || exercise.imageUrl

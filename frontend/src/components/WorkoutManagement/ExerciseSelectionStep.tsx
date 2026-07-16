@@ -53,6 +53,7 @@ import {
   StyledTd,
   CompactInput,
 } from './WorkoutPlanBuilderStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -80,7 +81,7 @@ const ExerciseSelectionStep: React.FC<ExerciseSelectionStepProps> = ({
   setWorkoutDays,
 }) => {
   return (
-    <div style={{ marginTop: 16 }}>
+    <StyledBox as="div" $style={{ marginTop: 16 }}>
       <SectionTitle>Exercise Selection &amp; Customization</SectionTitle>
 
       {workoutDays.map((day, dayIndex) => {
@@ -97,19 +98,19 @@ const ExerciseSelectionStep: React.FC<ExerciseSelectionStepProps> = ({
               <ChevronDown size={18} />
             </CollapsibleHeader>
             <CollapsibleBody $open={isOpen}>
-              <OutlineButton
+              <StyledBox as={OutlineButton}
                 onClick={() => {
                   setCurrentDay(day);
                   setExerciseLibraryOpen(true);
                 }}
-                style={{ marginBottom: 16 }}
+                $style={{ marginBottom: 16 }}
               >
                 <Plus size={18} />
                 Add Exercise
-              </OutlineButton>
+              </StyledBox>
 
               {day.exercises && day.exercises.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
+                <StyledBox as="div" $style={{ overflowX: 'auto' }}>
                   <StyledTable>
                     <StyledThead>
                       <tr>
@@ -173,13 +174,13 @@ const ExerciseSelectionStep: React.FC<ExerciseSelectionStepProps> = ({
                       ))}
                     </tbody>
                   </StyledTable>
-                </div>
+                </StyledBox>
               )}
             </CollapsibleBody>
           </CollapsibleWrapper>
         );
       })}
-    </div>
+    </StyledBox>
   );
 };
 

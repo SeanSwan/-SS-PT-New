@@ -109,8 +109,8 @@ describe('advanced gamification auth pipeline', () => {
   });
 
   it('keeps dormant Vault Decryption animation safe if it is mounted later', () => {
-    expect(vaultAnimationSourceRaw).not.toMatch(/[^\x00-\x7F]/);
-    expect(vaultStylesSourceRaw).not.toMatch(/[^\x00-\x7F]/);
+    expect(vaultAnimationSourceRaw).not.toMatch(/\P{ASCII}/u);
+    expect(vaultStylesSourceRaw).not.toMatch(/\P{ASCII}/u);
     expect(vaultAnimationSource).not.toContain('style={{');
     expect(vaultAnimationSource).toContain('type="button"');
     expect(vaultAnimationSource).toContain('aria-live="polite"');
@@ -161,9 +161,9 @@ describe('advanced gamification auth pipeline', () => {
   it('keeps staged vault decryption animation safe for future mounting', () => {
     expect(vaultAnimationSource).not.toContain('style={{');
     expect(vaultAnimationSource).toContain('type="button"');
-    expect(vaultAnimationSourceRaw).not.toMatch(/[^\x00-\x7F]/);
+    expect(vaultAnimationSourceRaw).not.toMatch(/\P{ASCII}/u);
     expect(vaultStylesSourceRaw.split(/\r?\n/).length).toBeLessThanOrEqual(300);
-    expect(vaultStylesSourceRaw).not.toMatch(/[^\x00-\x7F]/);
+    expect(vaultStylesSourceRaw).not.toMatch(/\P{ASCII}/u);
     expect(vaultStylesSource).not.toContain('rgba(');
     expect(vaultStylesSource).not.toContain('transition: all');
     expect(vaultStylesSource).toContain('prefers-reduced-motion: reduce');
@@ -196,7 +196,7 @@ describe('advanced gamification auth pipeline', () => {
       useAegisHudSourceRaw,
       companionPetComponentSourceRaw,
     ]) {
-      expect(source).not.toMatch(/[^\x00-\x7F]/);
+      expect(source).not.toMatch(/\P{ASCII}/u);
     }
 
     expect(companionPetComponentSource).not.toMatch(/icon:\s*['"`]/);
@@ -208,7 +208,7 @@ describe('advanced gamification auth pipeline', () => {
   it('keeps the mounted CompanionPet sprite under the file cap without inline SVG styles', () => {
     expect(petSpriteSourceRaw.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(petSpriteSource).not.toContain('style={{');
-    expect(petSpriteSourceRaw).not.toMatch(/[^\x00-\x7F]/);
+    expect(petSpriteSourceRaw).not.toMatch(/\P{ASCII}/u);
   });
 
   it('keeps the mounted JobClassSelector under the component line cap with data/styles extracted', () => {
@@ -233,7 +233,7 @@ describe('advanced gamification auth pipeline', () => {
     ];
 
     for (const [rawSource, styleSource] of activeStylePairs) {
-      expect(rawSource).not.toMatch(/[^\x00-\x7F]/);
+      expect(rawSource).not.toMatch(/\P{ASCII}/u);
       expect(styleSource).not.toMatch(/#[0-9A-Fa-f]{4}\b/);
       expect(styleSource).not.toMatch(/#[0-9A-Fa-f]{8}\b/);
     }
@@ -254,7 +254,7 @@ describe('advanced gamification auth pipeline', () => {
 
   it('keeps mounted GhostMode visible copy free of mojibake', () => {
     expect(ghostModeBannerSource).not.toMatch(/[ÂÃ�]|â|ð/);
-    expect(ghostModeBannerSource).not.toMatch(/[^\x00-\x7F]/);
+    expect(ghostModeBannerSource).not.toMatch(/\P{ASCII}/u);
     expect(ghostModeBannerSource).toContain('Best volume session');
     expect(ghostModeBannerSource).toContain('Unknown session date');
     expect(ghostModeBannerSource).toContain('Number.isFinite(parsedDate.getTime())');

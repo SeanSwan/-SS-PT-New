@@ -31,11 +31,14 @@ import {
   buildMediaReels,
   getCommentsPreview,
   getDisplayName,
+  getReelCaptionsUrl,
   isTextEntryTarget,
   isVideoPost,
   safeCount,
   type ReelPost,
 } from './VerticalReels.model';
+
+const EMPTY_CAPTION_TRACK = 'data:text/vtt;charset=utf-8,WEBVTT%0A%0A';
 
 interface VerticalReelsProps {
   frame?: 'standalone' | 'dashboard';
@@ -53,6 +56,7 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
 
   const mediaPosts = useMemo(() => buildMediaReels(posts), [posts]);
   const currentItem = mediaPosts[currentIndex];
+  const currentCaptionsUrl = currentItem ? getReelCaptionsUrl(currentItem.post) : null;
 
   useEffect(() => {
     setCurrentIndex((index) => Math.min(index, Math.max(mediaPosts.length - 1, 0)));
@@ -69,10 +73,11 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
       const newVideo = videoRefs.current.get(idx);
       if (!newVideo) return;
       newVideo.currentTime = 0;
-      newVideo.muted = muted;
+      const nextCaptionsUrl = getReelCaptionsUrl(mediaPosts[idx].post);
+      newVideo.muted = muted || !nextCaptionsUrl;
       void newVideo.play().catch(() => {});
     }, 80);
-  }, [currentIndex, mediaPosts.length, muted]);
+  }, [currentIndex, mediaPosts, muted]);
 
   const goNext = useCallback(() => goTo(currentIndex + 1), [goTo, currentIndex]);
   const goPrev = useCallback(() => goTo(currentIndex - 1), [goTo, currentIndex]);
@@ -88,11 +93,11 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
         event.preventDefault();
         goPrev();
       }
-      if (event.key === 'm') setMuted((value) => !value);
+      if (event.key === 'm' && currentCaptionsUrl) setMuted((value) => !value);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [goNext, goPrev, mediaPosts.length]);
+  }, [currentCaptionsUrl, goNext, goPrev, mediaPosts.length]);
 
   const handleTouchStart = (event: React.TouchEvent) => {
     setTouchStart(event.touches[0].clientY);
@@ -216,8 +221,13 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
       </ProgressDots>
 
       {currentItem && isVideoPost(currentItem.post, currentItem.mediaUrl) && (
-        <MuteButton type="button" onClick={toggleMute} aria-label={muted ? 'Unmute reel' : 'Mute reel'}>
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        <MuteButton
+          type="button"
+          onClick={currentCaptionsUrl ? toggleMute : undefined}
+          disabled={!currentCaptionsUrl}
+          aria-label={currentCaptionsUrl ? (muted ? 'Unmute reel' : 'Mute reel') : 'Audio unavailable because captions were not provided'}
+        >
+          {muted || !currentCaptionsUrl ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </MuteButton>
       )}
 
@@ -242,6 +252,7 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
         const direction = idx < currentIndex ? 'up' as const : idx > currentIndex ? 'down' as const : 'none' as const;
         const displayName = getDisplayName(post);
         const commentsOpen = commentsPostId === post.id;
+        const captionsUrl = getReelCaptionsUrl(post);
         const commentsText = getCommentsPreview(post);
 
         return (
@@ -253,14 +264,17 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
                   src={mediaUrl}
                   loop
                   playsInline
-                  muted={muted}
+                  muted={muted || !captionsUrl}
                   preload="metadata"
                   aria-label={`Reel by ${displayName}`}
+                  onVolumeChange={(event) => { if (!captionsUrl) event.currentTarget.muted = true; }}
                   onClick={() => {
                     const video = videoRefs.current.get(idx);
                     if (video) void (video.paused ? video.play() : video.pause());
                   }}
-                />
+                >
+                  <track kind="captions" src={captionsUrl || EMPTY_CAPTION_TRACK} srcLang="en" label="English" />
+                </video>
               </VideoWrapper>
             ) : (
               mediaUrl ? <ImageWrapper $src={mediaUrl} /> : <DefaultBackground><img src="/Logo.png" alt="" /></DefaultBackground>

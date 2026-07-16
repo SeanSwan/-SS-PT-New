@@ -108,7 +108,7 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
   onNavigate,
   onView,
   views,
-  localizer,
+  localizer: _localizer,
 }) => {
   // Format and display date range based on current view
   const getDisplayTitle = () => {

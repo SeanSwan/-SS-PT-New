@@ -2,7 +2,7 @@
  * FILE: ClientDashboardHome.railSections.tsx
  * PURPOSE: Right-rail widgets for the client dashboard Home redesign.
  */
-import React from 'react';
+
 import { Trophy } from 'lucide-react';
 import {
   ActionButton,
@@ -33,7 +33,7 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
         <NextBestActionCard bare hideHeader />
       </PanelCard>
       <PanelCard>
-        <PanelHeader><Kicker>Today's recovery</Kicker></PanelHeader>
+        <PanelHeader><Kicker>Today&apos;s recovery</Kicker></PanelHeader>
         <RecoveryBoardPanel />
       </PanelCard>
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />

@@ -81,7 +81,7 @@ const chartData: TotalOrderLineChartData = {
       },
       y: {
         title: {
-          formatter: (seriesName: string) => 'Total Order'
+          formatter: (_seriesName: string) => 'Total Order'
         }
       },
       marker: {

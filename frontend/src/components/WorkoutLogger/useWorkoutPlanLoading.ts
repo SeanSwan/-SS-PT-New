@@ -183,7 +183,7 @@ export function useWorkoutPlanLoading({
       setExercises,
       setIsRepeatingSession,
     }),
-    [effectiveClientId, isClientSelfMode, createWorkoutLoggerLocalId],
+    [effectiveClientId, isClientSelfMode, createWorkoutLoggerLocalId, setExercises],
   );
 
   return {

@@ -15,6 +15,8 @@ import { SOCIAL_CATEGORIES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 interface SocialSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -83,13 +85,13 @@ const SocialSection: React.FC<SocialSectionProps> = ({ tier }) => {
   });
   const parallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
 
-  const reveal = getReveal(isEssential);
+  getReveal(isEssential);
 
   return (
     <BeyondSection ref={sectionRef}>
-      {isFull && <BeyondImageBg style={{ y: parallaxY }} />}
+      {isFull && <BeyondImageBg {...motionStyleProps({ y: parallaxY })} />}
       {!isEssential && <BeyondOverlay />}
-      <Container style={{ position: 'relative', zIndex: 3 }}>
+      <StyledBox as={Container} $style={{ position: 'relative', zIndex: 3 }}>
         <ScrollReveal disabled={isEssential} blur={isFull} once>
           <SectionHeader>
             <SectionTitle>Beyond the Gym</SectionTitle>
@@ -116,27 +118,27 @@ const SocialSection: React.FC<SocialSectionProps> = ({ tier }) => {
                 blur={isFull}
                 once
               >
-                <GlassCard interactive style={{ height: '100%' }}>
+                <StyledBox as={GlassCard} interactive $style={{ height: '100%' }}>
                   <IconWrapper><Icon size={28} /></IconWrapper>
                   <FeatureTitle>{cat.title}</FeatureTitle>
                   <FeatureDesc>{cat.desc}</FeatureDesc>
-                </GlassCard>
+                </StyledBox>
               </ScrollReveal>
             );
           })}
         </SocialGrid>
 
         <ScrollReveal disabled={isEssential} blur={isFull} once>
-          <div style={{ textAlign: 'center', marginTop: '3rem', position: 'relative', zIndex: 3 }}>
-            <GlowButton
+          <StyledBox as="div" $style={{ textAlign: 'center', marginTop: '3rem', position: 'relative', zIndex: 3 }}>
+            <StyledBox as={GlowButton}
               text="Join the Community"
               variant="cosmic"
               onClick={() => navigate('/user-dashboard')}
-              style={{ minWidth: 220, minHeight: 44 }}
+              $style={{ minWidth: 220, minHeight: 44 }}
             />
-          </div>
+          </StyledBox>
         </ScrollReveal>
-      </Container>
+      </StyledBox>
     </BeyondSection>
   );
 };

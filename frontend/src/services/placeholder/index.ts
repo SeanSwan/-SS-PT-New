@@ -11,7 +11,7 @@ import { PlaceholderImageService, PlaceholderOptions } from './PlaceholderImageS
 export const usePlaceholder = (options: PlaceholderOptions) => {
   return useMemo(() => {
     return PlaceholderImageService.createPlaceholder(options);
-  }, [options.width, options.height, options.text, options.backgroundColor, options.textColor, options.format]);
+  }, [options]);
 };
 
 /**
@@ -32,5 +32,5 @@ export const useContentPlaceholder = (
 ) => {
   return useMemo(() => {
     return PlaceholderImageService.createContentPlaceholder(contentType, size);
-  }, [contentType, size.width, size.height]);
+  }, [contentType, size]);
 };

@@ -2,15 +2,15 @@ import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { cssUrlValue, sanitizeImageUrl } from '../../utils/imageUrl';
 
-const surface = 'var(--bg-surface, #1A1A24)';
-const surfaceRaised = 'var(--bg-elevated, #003080)';
+
+
 const textPrimary = 'var(--text-primary, #E0ECF4)';
 const textMuted = 'var(--text-secondary, rgba(224, 236, 244, 0.68))';
 const accent = 'var(--accent-primary, #60C0F0)';
 const gold = 'var(--accent-gold, #C6A84B)';
-const success = 'var(--feedback-success, #22C55E)';
-const warning = 'var(--feedback-warning, #F59E0B)';
-const danger = 'var(--feedback-danger, #EF4444)';
+
+
+
 const glassBorder = 'var(--border-subtle, rgba(198, 168, 75, 0.25))';
 const glassSurface =
   'linear-gradient(135deg, rgba(0, 48, 128, 0.45) 0%, rgba(0, 32, 96, 0.25) 100%)';

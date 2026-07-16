@@ -46,7 +46,7 @@ export const normalizeCommunityText = (
   maxLength = MAX_TEXT_LENGTH,
 ): string => {
   const text = typeof value === 'string'
-    ? value.replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim()
+    ? value.replace(/\p{Cc}/gu, '').replace(/\s+/g, ' ').trim()
     : '';
   if (!text) return fallback;
   return text.length > maxLength ? `${text.slice(0, maxLength - 1).trimEnd()}...` : text;

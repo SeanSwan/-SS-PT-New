@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -56,7 +56,9 @@ vi.mock('./charts/FormQualityChart', () => ({
 }));
 
 vi.mock('./charts/NASMCategoryRadar', () => ({
-  default: () => <div data-testid="nasm-category-radar" />,
+  default: ({ data }: { data: Array<Record<string, unknown>> }) => (
+    <div data-testid="nasm-category-radar">{JSON.stringify(data)}</div>
+  ),
 }));
 
 vi.mock('./charts/BodyCompositionChart', () => ({
@@ -395,5 +397,6 @@ describe('ClientProgressCharts — detailed progress truth', () => {
     });
 
     expect(screen.getByTestId('nasm-category-radar')).toBeInTheDocument();
+    expect(screen.getByTestId('nasm-category-radar')).toHaveTextContent('"fullMark":1000');
   });
 });

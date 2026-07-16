@@ -18,7 +18,7 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
-export const coachTranscriptPainFlagKey = (flag: CoachTranscriptPainFlag): string =>
+const coachTranscriptPainFlagKey = (flag: CoachTranscriptPainFlag): string =>
   ['pain', flag.side, flag.bodyRegion, flag.mention].filter(Boolean).join('|');
 interface CoachMessageTranscriptCardsProps {
   transcriptReview?: CoachMessageMetadata['transcriptReview'];

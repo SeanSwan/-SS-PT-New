@@ -22,6 +22,7 @@ import {
 import { formatBytes } from './storageMeter.logic';
 import { compressVideo, isLikelySupported, type CompressResult } from './videoCompressor';
 import * as S from './VideoOptimizerPanel.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type PanelState = 'idle' | 'selected' | 'compressing' | 'done' | 'error';
 
@@ -170,7 +171,7 @@ const VideoOptimizerPanel: React.FC = () => {
       )}
 
       {busy && (
-        <S.ProgressTrack aria-hidden="true"><S.ProgressFill style={{ width: `${Math.round(progress * 100)}%` }} /></S.ProgressTrack>
+        <S.ProgressTrack aria-hidden="true"><StyledBox as={S.ProgressFill} $style={{ width: `${Math.round(progress * 100)}%` }} /></S.ProgressTrack>
       )}
 
       {state === 'error' && error && <S.ErrorLine role="alert"><AlertTriangle size={14} aria-hidden="true" /> {error}</S.ErrorLine>}

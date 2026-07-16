@@ -81,9 +81,10 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
       </SummaryTitle>
 
       <SummaryField>
-        <label>Overall Session Intensity (1-10, optional):</label>
+        <label htmlFor="session-intensity">Overall Session Intensity (1-10, optional):</label>
         <IntensityControlRow>
           <SliderInput
+            id="session-intensity"
             type="range"
             min={1}
             max={10}
@@ -108,8 +109,9 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
       </SummaryField>
 
       <SummaryField>
-        <label>Session Notes:</label>
+        <label htmlFor="session-notes">Session Notes:</label>
         <TextArea
+          id="session-notes"
           value={sessionNotes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Overall session notes, client feedback, observations, modifications made..."

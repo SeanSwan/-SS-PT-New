@@ -7,6 +7,51 @@
 
 import { axiosInstance, authAxiosInstance } from '../utils/axiosConfig';
 
+type JsonRecord = Record<string, unknown>;
+
+interface SessionParticipant {
+  id?: string | number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  photo?: string;
+  [key: string]: unknown;
+}
+
+interface SessionTestClient extends JsonRecord {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+  availableSessions?: number;
+}
+
+interface SessionAssignmentStatistics extends JsonRecord {
+  sessionSummary?: {
+    assigned?: number;
+    available?: number;
+  };
+  assignmentRate?: number;
+  trainerWorkload?: unknown[];
+}
+
+const isRecord = (value: unknown): value is JsonRecord => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const getSessionApiErrorMessage = (error: unknown): string | undefined => {
+  if (!isRecord(error) || !isRecord(error.response) || !isRecord(error.response.data)) {
+    return undefined;
+  }
+  const message = error.response.data.message;
+  return typeof message === 'string' && message.trim() ? message : undefined;
+};
+
+const getSessionErrorMessage = (error: unknown): string => (
+  error instanceof Error && error.message ? error.message : 'Unknown session service error'
+);
+
 // Types
 export interface Session {
   id: string;
@@ -17,8 +62,8 @@ export interface Session {
   location: string | null;
   notes: string | null;
   status: 'available' | 'assigned' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
-  client?: any;
-  trainer?: any;
+  client?: SessionParticipant;
+  trainer?: SessionParticipant;
   confirmed: boolean;
   cancellationReason?: string;
   cancelledBy?: string;
@@ -38,12 +83,19 @@ export interface SessionPackage {
   popular: boolean;
 }
 
-export interface SessionServiceResponse<T> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
-}
+export type SessionServiceResponse<T> =
+  | {
+      success: true;
+      message: string;
+      data: T;
+      error?: never;
+    }
+  | {
+      success: false;
+      message: string;
+      data?: never;
+      error: string;
+    };
 
 export interface SessionClientSummary {
   id: string | number;
@@ -71,12 +123,12 @@ class SessionService {
         message: 'Session packages fetched successfully',
         data: response.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching session packages:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to fetch session packages',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to fetch session packages',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -95,12 +147,12 @@ class SessionService {
           checkoutUrl: response.data.checkoutUrl
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error purchasing session package:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to purchase session package',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to purchase session package',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -109,7 +161,7 @@ class SessionService {
    * Get sessions with optional filtering
    * @param filters Optional filters
    */
-  async getSessions(filters: any = {}): Promise<SessionServiceResponse<Session[]>> {
+  async getSessions(filters: JsonRecord = {}): Promise<SessionServiceResponse<Session[]>> {
     try {
       const response = await authAxiosInstance.get('/api/sessions', { params: filters });
       return {
@@ -117,12 +169,12 @@ class SessionService {
         message: 'Sessions fetched successfully',
         data: response.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching sessions:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to fetch sessions',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to fetch sessions',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -139,12 +191,12 @@ class SessionService {
         message: response.data.message || 'Session booked successfully',
         data: response.data.session
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error booking session:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to book session',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to book session',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -162,12 +214,12 @@ class SessionService {
         message: response.data.message || 'Session cancelled successfully',
         data: response.data.session
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error cancelling session:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to cancel session',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to cancel session',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -176,7 +228,7 @@ class SessionService {
    * Request a custom session
    * @param sessionData Data for the requested session
    */
-  async requestSession(sessionData: any): Promise<SessionServiceResponse<Session>> {
+  async requestSession(sessionData: JsonRecord): Promise<SessionServiceResponse<Session>> {
     try {
       const response = await authAxiosInstance.post('/api/sessions/request', sessionData);
       return {
@@ -184,12 +236,12 @@ class SessionService {
         message: response.data.message || 'Session requested successfully',
         data: response.data.session
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error requesting session:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to request session',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to request session',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -200,7 +252,7 @@ class SessionService {
    * @param sessions Number of sessions to add
    * @param notes Optional admin notes
    */
-  async addSessionsViaPackage(clientId: string, sessions: number, notes?: string): Promise<SessionServiceResponse<any>> {
+  async addSessionsViaPackage(clientId: string, sessions: number, notes?: string): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.post('/api/session-packages/add-sessions', {
         clientId,
@@ -212,12 +264,12 @@ class SessionService {
         message: response.data.message || 'Sessions added successfully',
         data: response.data.user
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding sessions to client:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to add sessions',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to add sessions',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -225,7 +277,7 @@ class SessionService {
   /**
    * Create a test client (development only)
    */
-  async createTestClient(): Promise<SessionServiceResponse<any>> {
+  async createTestClient(): Promise<SessionServiceResponse<SessionTestClient>> {
     try {
       const response = await authAxiosInstance.post('/api/test/create-client');
       return {
@@ -233,12 +285,12 @@ class SessionService {
         message: 'Test client created successfully',
         data: response.data.client
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating test client:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to create test client',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to create test client',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -248,7 +300,7 @@ class SessionService {
    * @param clientId The ID of the test client
    * @param sessions Number of sessions to add
    */
-  async addSessionsToTestClient(clientId: string, sessions: number): Promise<SessionServiceResponse<any>> {
+  async addSessionsToTestClient(clientId: string, sessions: number): Promise<SessionServiceResponse<SessionTestClient>> {
     try {
       const response = await authAxiosInstance.post('/api/test/add-sessions', {
         clientId,
@@ -259,12 +311,12 @@ class SessionService {
         message: 'Sessions added to test client successfully',
         data: response.data.client
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding sessions to test client:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to add sessions to test client',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to add sessions to test client',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -272,7 +324,7 @@ class SessionService {
   /**
    * ADMIN: Manually allocate sessions from completed order
    */
-  async allocateSessionsFromOrder(orderId: number, userId: number): Promise<SessionServiceResponse<any>> {
+  async allocateSessionsFromOrder(orderId: number, userId: number): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.post('/api/sessions/allocate-from-order', {
         orderId,
@@ -284,12 +336,12 @@ class SessionService {
         message: response.data.message || 'Sessions allocated successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error allocating sessions from order:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to allocate sessions',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to allocate sessions',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -297,7 +349,7 @@ class SessionService {
   /**
    * ADMIN: Manually add sessions to user
    */
-  async addSessionsToClient(userId: string, sessionCount: number, reason?: string): Promise<SessionServiceResponse<any>> {
+  async addSessionsToClient(userId: string, sessionCount: number, reason?: string): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.post('/api/sessions/add-to-user', {
         userId,
@@ -310,12 +362,12 @@ class SessionService {
         message: response.data.message || 'Sessions added successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding sessions to client:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to add sessions',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to add sessions',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -323,7 +375,7 @@ class SessionService {
   /**
    * ADMIN: Get session summary for specific user
    */
-  async getUserSessionSummary(userId: string): Promise<SessionServiceResponse<any>> {
+  async getUserSessionSummary(userId: string): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.get(`/api/sessions/user-summary/${userId}`);
       
@@ -332,12 +384,12 @@ class SessionService {
         message: 'Session summary retrieved successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting user session summary:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to get session summary',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to get session summary',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -345,7 +397,7 @@ class SessionService {
   /**
    * ADMIN: Check session allocation service health
    */
-  async checkAllocationHealth(): Promise<SessionServiceResponse<any>> {
+  async checkAllocationHealth(): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.get('/api/sessions/allocation-health');
       
@@ -354,12 +406,12 @@ class SessionService {
         message: 'Health check completed',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error checking allocation health:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Health check failed',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Health check failed',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -376,7 +428,7 @@ class SessionService {
    * @param clientId The ID of the client
    * @param sessionIds Optional array of specific session IDs (assigns all available if empty)
    */
-  async assignTrainerToClient(trainerId: string, clientId: string, sessionIds?: string[]): Promise<SessionServiceResponse<any>> {
+  async assignTrainerToClient(trainerId: string, clientId: string, sessionIds?: string[]): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.post('/api/sessions/assign-trainer', {
         trainerId,
@@ -389,12 +441,12 @@ class SessionService {
         message: response.data.message || 'Trainer assigned successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error assigning trainer to client:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to assign trainer',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to assign trainer',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -403,7 +455,7 @@ class SessionService {
    * Get trainer assignments (for trainer dashboard)
    * @param trainerId The ID of the trainer
    */
-  async getTrainerAssignments(trainerId: string): Promise<SessionServiceResponse<any>> {
+  async getTrainerAssignments(trainerId: string): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.get(`/api/sessions/trainer-assignments/${trainerId}`);
       
@@ -412,12 +464,12 @@ class SessionService {
         message: 'Trainer assignments retrieved successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting trainer assignments:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to get trainer assignments',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to get trainer assignments',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -426,7 +478,7 @@ class SessionService {
    * Get client assignments (for client dashboard)
    * @param clientId The ID of the client
    */
-  async getClientAssignments(clientId: string): Promise<SessionServiceResponse<any>> {
+  async getClientAssignments(clientId: string): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.get(`/api/sessions/client-assignments/${clientId}`);
       
@@ -435,12 +487,12 @@ class SessionService {
         message: 'Client assignments retrieved successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting client assignments:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to get client assignments',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to get client assignments',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -449,7 +501,7 @@ class SessionService {
    * ADMIN: Remove trainer assignment from sessions
    * @param sessionIds Array of session IDs to unassign
    */
-  async removeTrainerAssignment(sessionIds: string[]): Promise<SessionServiceResponse<any>> {
+  async removeTrainerAssignment(sessionIds: string[]): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.post('/api/sessions/remove-trainer-assignment', {
         sessionIds
@@ -460,12 +512,12 @@ class SessionService {
         message: response.data.message || 'Trainer assignment removed successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing trainer assignment:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to remove trainer assignment',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to remove trainer assignment',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -473,7 +525,7 @@ class SessionService {
   /**
    * ADMIN: Get assignment statistics for dashboard
    */
-  async getAssignmentStatistics(): Promise<SessionServiceResponse<any>> {
+  async getAssignmentStatistics(): Promise<SessionServiceResponse<SessionAssignmentStatistics>> {
     try {
       const response = await authAxiosInstance.get('/api/sessions/assignment-statistics');
       
@@ -482,13 +534,13 @@ class SessionService {
         message: 'Assignment statistics retrieved successfully',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting assignment statistics:', error);
       
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to retrieve assignment statistics',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Failed to retrieve assignment statistics',
+        error: getSessionErrorMessage(error)
       };
     }
   }
@@ -496,7 +548,7 @@ class SessionService {
   /**
    * ADMIN: Check trainer assignment service health
    */
-  async checkTrainerAssignmentHealth(): Promise<SessionServiceResponse<any>> {
+  async checkTrainerAssignmentHealth(): Promise<SessionServiceResponse<unknown>> {
     try {
       const response = await authAxiosInstance.get('/api/sessions/trainer-assignment-health');
       
@@ -505,12 +557,12 @@ class SessionService {
         message: 'Trainer assignment health check completed',
         data: response.data.data
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error checking trainer assignment health:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Trainer assignment health check failed',
-        error: error.message
+        message: getSessionApiErrorMessage(error) || 'Trainer assignment health check failed',
+        error: getSessionErrorMessage(error)
       };
     }
   }

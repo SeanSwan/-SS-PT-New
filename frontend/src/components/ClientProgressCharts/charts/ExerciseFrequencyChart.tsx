@@ -21,6 +21,7 @@ import {
 } from 'victory';
 import { ExerciseFrequencyChartProps } from '../types/ClientProgressTypes';
 import { DETAILED_AXIS_STYLE } from './detailedChartTheme';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 const AXIS_STYLE = {
   ...DETAILED_AXIS_STYLE,
@@ -94,27 +95,27 @@ const ExerciseFrequencyChart: React.FC<ExerciseFrequencyChartProps> = ({
           domainPadding={{ x: 15 }}
           animate={animate ? { duration: 800, easing: 'cubicInOut' } : undefined}
         >
-          <VictoryAxis style={{
+          <VictoryAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             tickLabels: { ...AXIS_STYLE.tickLabels, textAnchor: 'end', fontSize: 10 },
-          }}
+          })}
             tickValues={chartData.map(d => d.x)}
             tickFormat={chartData.map(d => d.exercise)}
           />
-          <VictoryAxis dependentAxis style={AXIS_STYLE} />
+          <VictoryAxis dependentAxis {...victoryStyleProps(AXIS_STYLE)} />
 
           <VictoryBar data={chartData}
-            style={{
+            {...victoryStyleProps({
               data: {
                 fill: ({ index }) => BAR_COLORS[(index as number) % BAR_COLORS.length],
                 opacity: 0.85,
                 width: 14,
               },
-            }}
+            })}
             labelComponent={
               <VictoryTooltip
                 flyoutStyle={{ fill: '#141419', stroke: 'rgba(96, 192, 240, 0.3)' }}
-                style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                 cornerRadius={8}
                 flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
               />

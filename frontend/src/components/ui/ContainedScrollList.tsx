@@ -207,7 +207,13 @@ function ContainedScrollListInner<T>(
   // Support both controlled (parent owns state) and uncontrolled (internal state) search
   const isControlled = searchValue !== undefined;
   const query = isControlled ? searchValue : internalQuery;
-  const setQuery = isControlled ? (onSearchChange ?? (() => {})) : setInternalQuery;
+  const setQuery = useCallback((nextQuery: string) => {
+    if (isControlled) {
+      onSearchChange?.(nextQuery);
+      return;
+    }
+    setInternalQuery(nextQuery);
+  }, [isControlled, onSearchChange]);
 
   const filtered = useMemo(() => {
     if (!query.trim() || !searchFilter) return items;

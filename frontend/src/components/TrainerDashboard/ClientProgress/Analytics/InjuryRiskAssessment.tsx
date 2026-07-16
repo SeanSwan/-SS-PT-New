@@ -4,7 +4,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { logger } from '@/utils/logger';
 import type { InjuryRiskData } from '../../../../services/enhanced-progress-analytics-service';
 import type { InjuryRiskAssessmentProps } from './types';
-import { getRiskColor } from './InjuryRiskAssessment.logic';
+
 import InjuryRiskAssessmentView from './InjuryRiskAssessmentView';
 
 /**
@@ -66,5 +66,5 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
   );
 };
 
-export { getRiskColor };
+
 export default InjuryRiskAssessment;

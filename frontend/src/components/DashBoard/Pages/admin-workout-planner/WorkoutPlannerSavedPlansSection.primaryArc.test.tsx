@@ -1,5 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+const mockAuthAxios = vi.hoisted(() => ({
+  get: vi.fn().mockResolvedValue({ data: { success: false } }),
+  post: vi.fn(),
+}));
+
+vi.mock('../../../../context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 7, role: 'admin' }, authAxios: mockAuthAxios }),
+}));
 import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 
 const plans: SavedPlanSummary[] = [

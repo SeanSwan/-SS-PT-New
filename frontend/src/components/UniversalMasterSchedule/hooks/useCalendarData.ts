@@ -38,11 +38,37 @@ import type {
   Client, 
   Trainer, 
   ClientTrainerAssignment, 
-  Session
+  Session,
+  ScheduleStats
 } from '../types';
 import { logger } from '@/utils/logger';
 
-export interface CalendarDataValues {
+type ScheduleWindow = Window & {
+  __scheduleCleanup?: () => void;
+};
+
+type EnrichedSession = Session & {
+  trainerName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  clientAvailableSessions?: number;
+  clientSource?: Client['clientSource'];
+};
+
+interface EnhancedScheduleStats extends ScheduleStats {
+  totalClients: number;
+  totalTrainers: number;
+  totalAssignments: number;
+  lastUpdated: string;
+  dataQuality: {
+    healthScore: number;
+    isStale: boolean;
+    lastRefresh: Date | null;
+    successRate: number;
+  };
+}
+
+interface CalendarDataValues {
   // Core Raw Data (Enhanced with Redux Integration)
   sessions: Session[];
   clients: Client[];
@@ -52,7 +78,7 @@ export interface CalendarDataValues {
   // Redux State (Enhanced)
   scheduleStatus: string;
   scheduleError: string | null;
-  scheduleStats: any;
+  scheduleStats: EnhancedScheduleStats;
   
   // Loading States (Granular)
   loading: {
@@ -80,7 +106,7 @@ export interface CalendarDataValues {
   };
 }
 
-export interface CalendarDataActions {
+interface CalendarDataActions {
   // Enhanced Data Loading (Production-Ready)
   initializeComponent: (params: {
     realTimeEnabled?: boolean;
@@ -208,8 +234,8 @@ export const useCalendarData = () => {
   
   // ==================== CIRCUIT BREAKER UTILITY ====================
   
-  const executeWithCircuitBreaker = useCallback(async (
-    operation: () => Promise<any>,
+  const executeWithCircuitBreaker = useCallback(async <T>(
+    operation: () => Promise<T>,
     operationName: string,
     options: { showLoading?: boolean; dataType?: keyof typeof loading } = {}
   ) => {
@@ -285,7 +311,7 @@ export const useCalendarData = () => {
   // ==================== ENHANCED DATA LOADING FUNCTIONS ====================
   
   const loadSessions = useCallback(async (options: { force?: boolean; showLoading?: boolean; filterOptions?: import('../types').FilterOptions } = {}) => {
-    const { force = false, showLoading = true, filterOptions } = options;
+    const { showLoading = true, filterOptions } = options;
 
     try {
       await executeWithCircuitBreaker(
@@ -306,8 +332,8 @@ export const useCalendarData = () => {
 
           // Pass role context for backwards compatibility
           if (userRole === 'admin' || userRole === 'trainer') {
-            (filters as any).role = userRole;
-            (filters as any).userId = userId;
+            filters.role = userRole;
+            filters.userId = userId;
           }
 
           return await dispatch(fetchEvents(filters));
@@ -465,12 +491,13 @@ export const useCalendarData = () => {
       // Initialize real-time updates if enabled
       if (realTimeEnabled) {
         try {
-          if ((window as any).__scheduleCleanup) {
-            (window as any).__scheduleCleanup();
+          const previousCleanup = (window as ScheduleWindow).__scheduleCleanup;
+          if (previousCleanup) {
+            previousCleanup();
           }
           const cleanup = initializeRealTimeUpdates();
           // Store cleanup function for later use
-          (window as any).__scheduleCleanup = cleanup;
+          (window as ScheduleWindow).__scheduleCleanup = cleanup;
         } catch (rtError) {
           logger.warn('⚠️ Real-time updates failed to initialize:', rtError);
         }
@@ -561,9 +588,10 @@ export const useCalendarData = () => {
   useEffect(() => {
     return () => {
       // Cleanup real-time updates
-      if ((window as any).__scheduleCleanup) {
-        (window as any).__scheduleCleanup();
-        delete (window as any).__scheduleCleanup;
+      const cleanup = (window as ScheduleWindow).__scheduleCleanup;
+      if (cleanup) {
+        cleanup();
+        delete (window as ScheduleWindow).__scheduleCleanup;
       }
     };
   }, []);
@@ -575,34 +603,38 @@ export const useCalendarData = () => {
    * Backend returns nested client/trainer objects, but UI components expect string names
    */
   const transformedSessions = useMemo(() => {
-    return sessions.map(session => {
+    return sessions.map((session) => {
+      const enrichedSession = session as EnrichedSession;
+
       // Extract client name from nested object or use existing string
-      let clientName = (session as any).clientName;
-      if (!clientName && session.client) {
-        const client = session.client as any;
-        if (client.firstName || client.lastName) {
-          clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+      let clientName = enrichedSession.clientName;
+      if (!clientName && enrichedSession.client) {
+        const { firstName, lastName } = enrichedSession.client;
+        if (firstName || lastName) {
+          clientName = `${firstName || ''} ${lastName || ''}`.trim();
         }
       }
 
       // Extract trainer name from nested object or use existing string
-      let trainerName = (session as any).trainerName;
-      if (!trainerName && session.trainer) {
-        const trainer = session.trainer as any;
-        if (trainer.firstName || trainer.lastName) {
-          trainerName = `${trainer.firstName || ''} ${trainer.lastName || ''}`.trim();
+      let trainerName = enrichedSession.trainerName;
+      if (!trainerName && enrichedSession.trainer) {
+        const { firstName, lastName } = enrichedSession.trainer;
+        if (firstName || lastName) {
+          trainerName = `${firstName || ''} ${lastName || ''}`.trim();
         }
       }
 
       // Extract client contact info from nested object
-      const clientEmail = (session as any).clientEmail || (session.client as any)?.email || undefined;
-      const clientPhone = (session as any).clientPhone || (session.client as any)?.phone || undefined;
-      const clientAvailableSessions = (session as any).clientAvailableSessions ?? (session.client as any)?.availableSessions ?? undefined;
-      const clientSource = (session as any).clientSource ?? (session.client as any)?.clientSource ?? undefined;
-      const sessionDeducted = (session as any).sessionDeducted ?? undefined;
+      const clientEmail = enrichedSession.clientEmail || enrichedSession.client?.email || undefined;
+      const clientPhone = enrichedSession.clientPhone || enrichedSession.client?.phone || undefined;
+      const clientAvailableSessions = enrichedSession.clientAvailableSessions
+        ?? enrichedSession.client?.availableSessions
+        ?? undefined;
+      const clientSource = enrichedSession.clientSource ?? enrichedSession.client?.clientSource ?? undefined;
+      const sessionDeducted = enrichedSession.sessionDeducted ?? undefined;
 
       return {
-        ...session,
+        ...enrichedSession,
         clientName: clientName || undefined,
         trainerName: trainerName || undefined,
         clientEmail,
@@ -687,5 +719,3 @@ export const useCalendarData = () => {
   
   return { ...values, ...actions };
 };
-
-export default useCalendarData;

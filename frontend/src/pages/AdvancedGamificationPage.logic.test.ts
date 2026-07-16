@@ -15,7 +15,7 @@ import {
   getTransactionPointLabel,
 } from './AdvancedGamificationPage.logic';
 
-const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/;
+const CONTROL_CHARS = /\p{Cc}/u;
 
 describe('AdvancedGamificationPage display helpers', () => {
   it('normalizes malformed gamification display copy before rendering', () => {

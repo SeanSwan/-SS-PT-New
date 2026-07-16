@@ -295,8 +295,6 @@ class PerformanceMonitor {
     // Use requestIdleCallback to detect when main thread is idle
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => {
-        const timing = performance.timing;
-        const navigationStart = timing.navigationStart;
         const now = performance.now();
 
         // TTI = time from navigation start to now (idle callback)
@@ -391,8 +389,8 @@ class PerformanceMonitor {
   public logMetrics(): void {
     if (process.env.NODE_ENV !== 'development') return;
 
-    console.group('[PerformanceMonitor] Current Metrics');
-    console.table({
+    logger.group('[PerformanceMonitor] Current Metrics');
+    logger.table({
       'LCP (ms)': this.metrics.lcp?.toFixed(0) || 'N/A',
       'CLS (score)': this.metrics.cls?.toFixed(3) || 'N/A',
       'FID (ms)': this.metrics.fid?.toFixed(0) || 'N/A',
@@ -410,7 +408,7 @@ class PerformanceMonitor {
       budgetCheck.violations.forEach((violation) => logger.warn(`  - ${violation}`));
     }
 
-    console.groupEnd();
+    logger.groupEnd();
   }
 }
 

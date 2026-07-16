@@ -126,7 +126,7 @@ describe('TrainerHomeTab responsive contract', () => {
       widgetsStylesSource,
       dataSource,
     ].forEach((fileSource) => {
-      expect(fileSource).not.toMatch(/[^\x00-\x7F]/);
+      expect(fileSource).not.toMatch(/\P{ASCII}/u);
       expect(fileSource.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
     });
   });

@@ -44,6 +44,7 @@ import {
 } from './ClientStellarSidebar.styles';
 import { isNonDeductingClientSource } from '../../workspaces/clients-team/clientSessionSignal';
 import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -214,7 +215,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
               }).map((item, i) => {
                 const Icon = item.icon;
                 return (
-                  <NavItem
+                  <StyledBox as={NavItem}
                     key={item.path}
                     $active={isActive(item.path)}
                     $collapsed={collapsed}
@@ -222,12 +223,12 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
                     role="menuitem"
                     aria-label={item.label}
                     aria-current={isActive(item.path) ? 'page' : undefined}
-                    style={{ animationDelay: `${i * 30}ms` }}
+                    $style={{ animationDelay: `${i * 30}ms` }}
                   >
                     <NavIcon><Icon size={20} /></NavIcon>
                     <NavLabel $visible={showLabel}>{item.label}</NavLabel>
                     {collapsed && <NavTooltip>{item.label}</NavTooltip>}
-                  </NavItem>
+                  </StyledBox>
                 );
               })}
             </React.Fragment>

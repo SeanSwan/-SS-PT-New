@@ -5,7 +5,7 @@
  * load-into-builder wiring, generate reload + vault refresh, and the two-tap
  * promote confirm (first tap arms, second tap posts the transactional swap).
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -5,6 +5,7 @@ import { Award, Dumbbell, MessageSquare, UserPlus } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
 import { CommandCard } from '../AdminDashboardCards';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ActivityList = styled.ul`
   list-style: none;
@@ -106,8 +107,8 @@ const ClientActivityWidget: React.FC = () => {
   };
 
   return (
-    <CommandCard style={{ padding: '2rem', height: '100%' }}>
-      <h3 style={{ color: '#60C0F0', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>Live Activity Feed</h3>
+    <StyledBox as={CommandCard} $style={{ padding: '2rem', height: '100%' }}>
+      <StyledBox as="h3" $style={{ color: '#60C0F0', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>Live Activity Feed</StyledBox>
       {loading ? ( <WidgetSkeleton count={5} /> ) : (
         <ActivityList>
           {feed.map((item, index) => (
@@ -119,7 +120,7 @@ const ClientActivityWidget: React.FC = () => {
           ))}
         </ActivityList>
       )}
-    </CommandCard>
+    </StyledBox>
   );
 };
 

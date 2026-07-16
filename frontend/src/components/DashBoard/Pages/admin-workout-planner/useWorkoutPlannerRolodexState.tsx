@@ -18,6 +18,7 @@ import {
   type HorizonSwapTarget,
   type PlannerSwapTarget,
 } from './workoutPlannerHorizonSwap.helpers';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 interface UseWorkoutPlannerRolodexStateArgs {
   phase: OPTPhaseParams;
@@ -227,7 +228,7 @@ export function useWorkoutPlannerRolodexState({
         equipmentLabel={equipment.length > 0 ? equipment.slice(0, 2).join(', ') : 'Bodyweight'}
         impact={impact}
         selected={selectedExercise?.id === exercise.id}
-        style={style}
+        {...reactWindowStyleProps(style)}
         onAdd={addExercise}
         onSelect={setSelectedExercise}
       />

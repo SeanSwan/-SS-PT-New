@@ -172,7 +172,7 @@ class WebSocketManager {
   private reconnectInterval = 5000;
 
   connect(userId: string): Promise<Socket> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       try {
         // Create socket with more lenient timeout settings
         this.socket = io(WEBSOCKET_URL, {
@@ -424,7 +424,7 @@ class EnhancedClientDashboardService {
   }): Promise<GamificationData> {
     try {
       // Gamification rewards are recorded by the backend API.
-      const response: AxiosResponse<any> = await apiClient.post(
+      await apiClient.post(
         `/api/gamification/record-workout`,
         {
           userId: this.userId,

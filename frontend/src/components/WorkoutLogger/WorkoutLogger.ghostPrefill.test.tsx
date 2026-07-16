@@ -189,8 +189,8 @@ describe('Phase 16.2 round 12 — ghost-prefill admin fetch is blocked on client
 
     // Install fetch spy. If the SUT ever calls global.fetch with the
     // admin URL, the test captures it.
-    const origFetch = globalThis.fetch;
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, init?: any) => {
+
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, _init?: any) => {
       // Let through non-admin fetches so the mount path isn't starved —
       // return a minimal stub response shape for any other URL.
       const urlStr = typeof url === 'string' ? url : url?.url ?? String(url);

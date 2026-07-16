@@ -250,7 +250,7 @@ const DesignPlaygroundLayout: React.FC = () => {
     return (
       <ErrorContainer>
         <ErrorTitle>Concept Not Found</ErrorTitle>
-        <p>No concept matches "{conceptId}". Please select a valid concept.</p>
+        <p>No concept matches &quot;{conceptId}&quot;. Please select a valid concept.</p>
         <BackButton onClick={() => navigate('/dashboard/design-playground')}>
           <ArrowLeft size={14} /> Back to Playground
         </BackButton>

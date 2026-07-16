@@ -9,10 +9,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import {
-  Camera, Undo2, Redo2, Trash2, Save, X, Pen,
-  Circle, ArrowUpRight, Type,
-} from 'lucide-react';
+import { Undo2, Redo2, Trash2, Save, X, Pen, Circle, ArrowUpRight } from 'lucide-react';
 
 const Overlay = styled.div`
   position: fixed;

@@ -11,11 +11,9 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FileText, ChevronRight, AlertTriangle, Clock, Check } from 'lucide-react';
 import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
-import {
-  MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  ActionButton, StatusChip, CadenceWarning, PillTabs, PillTab,
-} from './marketing.styles';
-import type { BlogDraft, BlogWizardStep, CADENCE_CONFIG } from './marketing.types';
+import { MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle, ActionButton, StatusChip, CadenceWarning } from './marketing.styles';
+import type { BlogDraft, BlogWizardStep } from './marketing.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Demo Data ─────────────────────────────────────────────────
 const SUGGESTED_TOPICS = [
@@ -252,19 +250,19 @@ const BlogWriterPanel: React.FC = () => {
                 {i < stepIdx ? <Check size={14} /> : i + 1}
               </StepDot>
               <StepLabel $active={i === stepIdx}>{s.label}</StepLabel>
-              {i < STEPS.length - 1 && <ChevronRight size={14} style={{ opacity: 0.3 }} />}
+              {i < STEPS.length - 1 && <StyledBox as={ChevronRight} size={14} $style={{ opacity: 0.3 }} />}
             </React.Fragment>
           ))}
         </StepIndicator>
 
         {step === 'topic' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <StyledBox as="div" $style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {SUGGESTED_TOPICS.map(topic => (
               <TopicCard key={topic} $selected={selectedTopic === topic} onClick={() => setSelectedTopic(topic)}>
                 {topic}
               </TopicCard>
             ))}
-          </div>
+          </StyledBox>
         )}
 
         {step === 'outline' && (

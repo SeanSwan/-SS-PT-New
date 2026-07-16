@@ -4,7 +4,7 @@
  * Tracks workout sessions, training progress, and session analytics
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import apiService from '../services/api.service';
 import { logger } from '@/utils/logger';
@@ -79,39 +79,39 @@ interface SessionContextType {
   sessionAnalytics: SessionAnalytics | null;
   loading: boolean;
   error: string | null;
-  
+
   // Session Management
   startSession: (workoutPlanId?: string, title?: string) => Promise<WorkoutSession>;
   pauseSession: () => Promise<void>;
   resumeSession: () => Promise<void>;
   completeSession: (notes?: string) => Promise<void>;
   cancelSession: () => Promise<void>;
-  
+
   // Exercise Management
   addExercise: (exercise: Omit<SessionExercise, 'id' | 'completed'>) => Promise<void>;
   updateExercise: (exerciseId: string, updates: Partial<SessionExercise>) => Promise<void>;
   completeExercise: (exerciseId: string) => Promise<void>;
-  
+
   // Set Management
   addSet: (exerciseId: string, set: Omit<ExerciseSet, 'id' | 'completed'>) => Promise<void>;
   updateSet: (exerciseId: string, setId: string, updates: Partial<ExerciseSet>) => Promise<void>;
   completeSet: (exerciseId: string, setId: string) => Promise<void>;
-  
+
   // Data Management
   fetchSessions: (limit?: number) => Promise<void>;
   fetchSessionAnalytics: () => Promise<void>;
   saveSessionData: () => Promise<void>;
-  
+
   // User Session Booking (NEW - FIXED ENDPOINTS)
   fetchAvailableSessions: () => Promise<WorkoutSession[]>;
   bookAvailableSession: (sessionId: string) => Promise<void>;
-  
+
   // Role-based data access (NEW)
   fetchClientSessions: (clientId?: string) => Promise<WorkoutSession[]>;
   fetchAllUserSessions: () => Promise<WorkoutSession[]>; // Admin only
   fetchTrainerStats: () => Promise<any>; // Trainer stats
   fetchAdminStats: () => Promise<any>; // Admin stats
-  
+
   // Timer functions
   sessionTimer: number; // current session time in seconds
   startTimer: () => void;
@@ -178,8 +178,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionTimer, setSessionTimer] = useState(0);
-  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
-  
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // ENHANCED: Tab synchronization state to prevent localStorage race conditions
   const [tabId] = useState(createSessionTabId);
   const [isActiveTab, setIsActiveTab] = useState(true);
@@ -192,7 +192,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // CRITICAL FIX: saveSessionData function with route compatibility handling
   const saveSessionData = useCallback(async (): Promise<void> => {
     if (!currentSession || !user) return;
-    
+
     // FIXED: Skip backend save for client-generated session IDs to prevent 500 errors
     // Client-generated sessions are workout tracking sessions that work offline via localStorage
     if (isClientGeneratedSessionId(currentSession.id)) {
@@ -206,7 +206,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       return; // Skip backend call to prevent 500 errors
     }
-    
+
     // For database-generated session IDs (admin-created sessions), attempt backend save
     try {
       await apiService.put(`/api/sessions/${currentSession.id}`, {
@@ -230,7 +230,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Auto-save current session data - ENHANCED WITH PROPER CLEANUP AND ERROR HANDLING
   useEffect(() => {
     let autoSaveInterval: NodeJS.Timeout | null = null;
-    
+
     // Defensive check to ensure saveSessionData is available
     if (currentSession && currentSession.status === 'active' && saveSessionData) {
       autoSaveInterval = setInterval(() => {
@@ -241,7 +241,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
       }, 30000); // Auto-save every 30 seconds
     }
-    
+
     // Cleanup function - prevents memory leaks
     return () => {
       if (autoSaveInterval) {
@@ -251,36 +251,32 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, [currentSession, saveSessionData]); // Added saveSessionData to dependencies
 
-  // ENHANCED: Comprehensive timer cleanup on unmount and state changes
-  useEffect(() => {
-    return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        setTimerInterval(null);
-      }
-    };
-  }, []); // Empty dependency array for unmount cleanup only
+  const clearTimerInterval = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  }, []);
+
+  // ENHANCED: Comprehensive timer cleanup on unmount.
+  useEffect(() => clearTimerInterval, [clearTimerInterval]);
 
   // ENHANCED: Additional cleanup when session changes to prevent multiple timers
   useEffect(() => {
     if (!currentSession || currentSession.status !== 'active') {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        setTimerInterval(null);
-      }
+      clearTimerInterval();
     }
-  }, [currentSession, timerInterval]);
-
+  }, [clearTimerInterval, currentSession]);
   // ENHANCED: Tab synchronization system to prevent localStorage race conditions
   useEffect(() => {
     // Mark this tab as active
     localStorage.setItem('activeSessionTab', tabId);
-    
+
     // Listen for tab visibility changes
     const handleVisibilityChange = () => {
       const nowActive = !document.hidden;
       setIsActiveTab(nowActive);
-      
+
       if (nowActive) {
         // When tab becomes active, check if we should take over session management
         const currentActiveTab = localStorage.getItem('activeSessionTab');
@@ -289,21 +285,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
       }
     };
-    
+
     // Listen for localStorage changes from other tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (!user) return;
-      
+
       // Session data changed in another tab
       if (e.key === `activeSession_${user.id}` && e.newValue) {
         try {
           const sessionFromOtherTab = JSON.parse(e.newValue);
           const currentActiveTab = localStorage.getItem('activeSessionTab');
-          
+
           // Only update if this isn't the active tab managing the session
           if (currentActiveTab !== tabId) {
             setCurrentSession(sessionFromOtherTab);
-            
+
             // Sync timer if session is active
             if (sessionFromOtherTab.status === 'active' && sessionFromOtherTab.startTime) {
               const startTime = new Date(sessionFromOtherTab.startTime).getTime();
@@ -315,18 +311,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           logger.warn('[SessionContext] Error syncing session from other tab:', error);
         }
       }
-      
+
       // Active tab changed
       if (e.key === 'activeSessionTab' && e.newValue !== tabId) {
         setIsActiveTab(false);
         // Stop timer if we're no longer the active tab
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          setTimerInterval(null);
-        }
+        clearTimerInterval();
       }
     };
-    
+
     // Register event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('storage', handleStorageChange);
@@ -337,46 +330,66 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         localStorage.removeItem('activeSessionTab');
       }
     });
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorageChange);
-      
+
       // Clean up our active tab status
       const currentActiveTab = localStorage.getItem('activeSessionTab');
       if (currentActiveTab === tabId) {
         localStorage.removeItem('activeSessionTab');
       }
     };
-  }, [tabId, user, timerInterval]);
+  }, [clearTimerInterval, tabId, user]);
 
-  // Load session data when user logs in
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchSessions(10); // Load last 10 sessions
-      fetchSessionAnalytics();
-      
-      // Check for any active session from localStorage
-      const savedSession = localStorage.getItem(`activeSession_${user.id}`);
-      if (savedSession) {
-        try {
-          const parsedSession = JSON.parse(savedSession);
-          setCurrentSession(parsedSession);
-          
-          // Resume timer if session was active
-          if (parsedSession.status === 'active') {
-            const startTime = new Date(parsedSession.startTime).getTime();
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            setSessionTimer(elapsed);
-            startTimer();
-          }
-        } catch (error) {
-          console.error('Error loading saved session:', error);
-          localStorage.removeItem(`activeSession_${user.id}`);
-        }
+  const fetchSessions = useCallback(async (limit: number = 10): Promise<void> => {
+    if (!isAuthenticated || !user) return;
+
+    setLoading(true);
+    try {
+      // Use role-based sessions endpoint (filters by req.user automatically)
+      const response = await apiService.get('/api/sessions');
+      const data = response.data?.sessions ?? response.data;
+      if (data) {
+        const limitedSessions = Array.isArray(data) ? data.slice(0, limit) : [];
+        setSessions(limitedSessions);
       }
+    } catch (error) {
+      logger.warn('Failed to fetch sessions from backend, using local storage');
+      const localSessions = JSON.parse(localStorage.getItem(`sessions_${user.id}`) || '[]');
+      setSessions(localSessions.slice(0, limit));
+    } finally {
+      setLoading(false);
     }
   }, [isAuthenticated, user]);
+
+  const fetchSessionAnalytics = useCallback(async (): Promise<void> => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      const response = await apiService.get('/api/sessions/analytics');
+      if (response.data) {
+        setSessionAnalytics(response.data);
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch analytics from backend');
+      // Generate basic analytics from local sessions
+      const totalSessions = sessions.length;
+      const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
+      const basicAnalytics: SessionAnalytics = {
+        totalSessions,
+        totalDuration,
+        averageDuration: totalSessions > 0 ? totalDuration / totalSessions : 0,
+        caloriesBurned: sessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
+        favoriteExercises: [],
+        weeklyProgress: [],
+        currentStreak: 0,
+        longestStreak: 0
+      };
+      setSessionAnalytics(basicAnalytics);
+    }
+  }, [isAuthenticated, user, sessions]);
 
   // Session notification helper
   const showSessionNotification = useCallback((message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
@@ -405,7 +418,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     `;
     notification.textContent = message;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => notification.style.transform = 'translateX(0)', 100);
     setTimeout(() => {
       notification.style.transform = 'translateX(100%)';
@@ -415,29 +428,48 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Timer Functions
   const startTimer = useCallback(() => {
-    if (timerInterval) clearInterval(timerInterval);
-    
-    const interval = setInterval(() => {
+    clearTimerInterval();
+
+    timerIntervalRef.current = setInterval(() => {
       setSessionTimer(prev => prev + 1);
     }, 1000);
-    
-    setTimerInterval(interval);
-  }, [timerInterval]);
+  }, [clearTimerInterval]);
 
   const pauseTimer = useCallback(() => {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      setTimerInterval(null);
-    }
-  }, [timerInterval]);
+    clearTimerInterval();
+  }, [clearTimerInterval]);
 
   const resetTimer = useCallback(() => {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      setTimerInterval(null);
-    }
+    clearTimerInterval();
     setSessionTimer(0);
-  }, [timerInterval]);
+  }, [clearTimerInterval]);
+  // Load session data when user logs in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchSessions(10); // Load last 10 sessions
+      fetchSessionAnalytics();
+
+      // Check for any active session from localStorage
+      const savedSession = localStorage.getItem(`activeSession_${user.id}`);
+      if (savedSession) {
+        try {
+          const parsedSession = JSON.parse(savedSession);
+          setCurrentSession(parsedSession);
+
+          // Resume timer if session was active
+          if (parsedSession.status === 'active') {
+            const startTime = new Date(parsedSession.startTime).getTime();
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            setSessionTimer(elapsed);
+            startTimer();
+          }
+        } catch (error) {
+          console.error('Error loading saved session:', error);
+          localStorage.removeItem(`activeSession_${user.id}`);
+        }
+      }
+    }
+  }, [fetchSessionAnalytics, fetchSessions, isAuthenticated, startTimer, user]);
 
   // Session Management Functions
   const startSession = useCallback(async (workoutPlanId?: string, title?: string): Promise<WorkoutSession> => {
@@ -473,17 +505,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       logger.log('Creating local workout session (offline-first design)');
 
       setCurrentSession(newSession);
-      
+
       // ENHANCED: Safe localStorage write with tab coordination
       if (isActiveTab) {
         localStorage.setItem(`activeSession_${user.id}`, JSON.stringify(newSession));
       }
-      
+
       resetTimer();
       startTimer();
-      
+
       showSessionNotification('Workout session started! Let\'s get moving! 💪', 'success');
-      
+
       return newSession;
     } catch (error: any) {
       const message = error.message || 'Failed to start session';
@@ -510,15 +542,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
 
       setCurrentSession(updatedSession);
-      
+
       // ENHANCED: Safe localStorage write with tab coordination
       if (isActiveTab) {
         localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
       }
-      
+
       pauseTimer();
       showSessionNotification('Session paused. Take a break! ⏸️', 'info');
-      
+
       // Try to update backend (only for database-generated sessions)
       if (!isClientGeneratedSessionId(currentSession.id)) {
         try {
@@ -534,7 +566,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer, isClientGeneratedSessionId]);
+  }, [currentSession, sessionTimer, isActiveTab, pauseTimer, showSessionNotification, isClientGeneratedSessionId, user]);
 
   const resumeSession = useCallback(async (): Promise<void> => {
     if (!currentSession || currentSession.status !== 'paused') {
@@ -550,15 +582,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
 
       setCurrentSession(updatedSession);
-      
+
       // ENHANCED: Safe localStorage write with tab coordination
       if (isActiveTab) {
         localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
       }
-      
+
       startTimer();
       showSessionNotification('Session resumed! Keep going! 🔥', 'success');
-      
+
       // Try to update backend (only for database-generated sessions)
       if (!isClientGeneratedSessionId(currentSession.id)) {
         try {
@@ -574,7 +606,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, user, showSessionNotification, startTimer, isClientGeneratedSessionId]);
+  }, [currentSession, isActiveTab, startTimer, showSessionNotification, isClientGeneratedSessionId, user]);
 
   const completeSession = useCallback(async (notes?: string): Promise<void> => {
     if (!currentSession) {
@@ -594,20 +626,20 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // Add to sessions history
       setSessions(prev => [completedSession, ...prev]);
-      
+
       // Clear current session
       setCurrentSession(null);
-      
+
       // ENHANCED: Safe localStorage cleanup with tab coordination
       if (isActiveTab) {
         localStorage.removeItem(`activeSession_${user!.id}`);
       }
-      
+
       pauseTimer();
       resetTimer();
-      
+
       showSessionNotification(`Great job! Session completed in ${Math.floor(sessionTimer / 60)} minutes! 🎉`, 'success');
-      
+
       // Try to save completed session to backend (only for database-generated sessions)
       if (!isClientGeneratedSessionId(currentSession.id)) {
         try {
@@ -625,7 +657,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         localSessions.unshift(completedSession);
         localStorage.setItem(`sessions_${user!.id}`, JSON.stringify(localSessions.slice(0, 50))); // Keep last 50
       }
-      
+
       // Refresh analytics
       fetchSessionAnalytics();
     } catch (error: any) {
@@ -635,14 +667,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer, resetTimer, isClientGeneratedSessionId]);
+  }, [currentSession, sessionTimer, isActiveTab, pauseTimer, resetTimer, showSessionNotification, isClientGeneratedSessionId, fetchSessionAnalytics, user]);
 
   // Placeholder implementations for other functions
   const cancelSession = useCallback(async (): Promise<void> => {
     if (!currentSession) return;
-    
+
     setCurrentSession(null);
-    
+
     // ENHANCED: Safe localStorage cleanup with tab coordination
     if (isActiveTab) {
       localStorage.removeItem(`activeSession_${user!.id}`);
@@ -654,21 +686,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const addExercise = useCallback(async (exercise: Omit<SessionExercise, 'id' | 'completed'>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
-    
+
     const newExercise: SessionExercise = {
       ...exercise,
       id: `exercise_${Date.now()}`,
       completed: false
     };
-    
+
     const updatedSession = {
       ...currentSession,
       exercises: [...currentSession.exercises, newExercise],
       updatedAt: new Date().toISOString()
     };
-    
+
     setCurrentSession(updatedSession);
-    
+
     // ENHANCED: Safe localStorage write with tab coordination
     if (isActiveTab) {
       localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
@@ -678,17 +710,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateExercise = useCallback(async (exerciseId: string, updates: Partial<SessionExercise>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
-    
+
     const updatedSession = {
       ...currentSession,
-      exercises: currentSession.exercises.map(ex => 
+      exercises: currentSession.exercises.map(ex =>
         ex.id === exerciseId ? { ...ex, ...updates } : ex
       ),
       updatedAt: new Date().toISOString()
     };
-    
+
     setCurrentSession(updatedSession);
-    
+
     // ENHANCED: Safe localStorage write with tab coordination
     if (isActiveTab) {
       localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
@@ -702,25 +734,25 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const addSet = useCallback(async (exerciseId: string, set: Omit<ExerciseSet, 'id' | 'completed'>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
-    
+
     const newSet: ExerciseSet = {
       ...set,
       id: `set_${Date.now()}`,
       completed: false
     };
-    
+
     const updatedSession = {
       ...currentSession,
-      exercises: currentSession.exercises.map(ex => 
-        ex.id === exerciseId 
+      exercises: currentSession.exercises.map(ex =>
+        ex.id === exerciseId
           ? { ...ex, sets: [...ex.sets, newSet] }
           : ex
       ),
       updatedAt: new Date().toISOString()
     };
-    
+
     setCurrentSession(updatedSession);
-    
+
     // ENHANCED: Safe localStorage write with tab coordination
     if (isActiveTab) {
       localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
@@ -729,14 +761,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateSet = useCallback(async (exerciseId: string, setId: string, updates: Partial<ExerciseSet>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
-    
+
     const updatedSession = {
       ...currentSession,
-      exercises: currentSession.exercises.map(ex => 
-        ex.id === exerciseId 
+      exercises: currentSession.exercises.map(ex =>
+        ex.id === exerciseId
           ? {
               ...ex,
-              sets: ex.sets.map(set => 
+              sets: ex.sets.map(set =>
                 set.id === setId ? { ...set, ...updates } : set
               )
             }
@@ -744,9 +776,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       ),
       updatedAt: new Date().toISOString()
     };
-    
+
     setCurrentSession(updatedSession);
-    
+
     // ENHANCED: Safe localStorage write with tab coordination
     if (isActiveTab) {
       localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
@@ -757,54 +789,6 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     await updateSet(exerciseId, setId, { completed: true });
     showSessionNotification('Set completed! Keep it up! 🔥', 'success');
   }, [updateSet, showSessionNotification]);
-
-  const fetchSessions = useCallback(async (limit: number = 10): Promise<void> => {
-    if (!isAuthenticated || !user) return;
-    
-    setLoading(true);
-    try {
-      // Use role-based sessions endpoint (filters by req.user automatically)
-      const response = await apiService.get('/api/sessions');
-      const data = response.data?.sessions ?? response.data;
-      if (data) {
-        const limitedSessions = Array.isArray(data) ? data.slice(0, limit) : [];
-        setSessions(limitedSessions);
-      }
-    } catch (error) {
-      logger.warn('Failed to fetch sessions from backend, using local storage');
-      const localSessions = JSON.parse(localStorage.getItem(`sessions_${user.id}`) || '[]');
-      setSessions(localSessions.slice(0, limit));
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user]);
-
-  const fetchSessionAnalytics = useCallback(async (): Promise<void> => {
-    if (!isAuthenticated || !user) return;
-    
-    try {
-      const response = await apiService.get('/api/sessions/analytics');
-      if (response.data) {
-        setSessionAnalytics(response.data);
-      }
-    } catch (error) {
-      logger.warn('Failed to fetch analytics from backend');
-      // Generate basic analytics from local sessions
-      const totalSessions = sessions.length;
-      const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
-      const basicAnalytics: SessionAnalytics = {
-        totalSessions,
-        totalDuration,
-        averageDuration: totalSessions > 0 ? totalDuration / totalSessions : 0,
-        caloriesBurned: sessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
-        favoriteExercises: [],
-        weeklyProgress: [],
-        currentStreak: 0,
-        longestStreak: 0
-      };
-      setSessionAnalytics(basicAnalytics);
-    }
-  }, [isAuthenticated, user, sessions]);
 
   // NEW USER-LEVEL SESSION BOOKING FUNCTIONS (FIXED ENDPOINTS)
   const fetchAvailableSessions = useCallback(async (): Promise<WorkoutSession[]> => {
@@ -827,9 +811,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       // FIXED: Use user-level booking endpoint
       await apiService.post(`/api/sessions/book/${user.id}`, { sessionId });
-      
+
       showSessionNotification('Session booked successfully! 📅', 'success');
-      
+
       // Refresh user sessions after booking
       await fetchSessions();
     } catch (error: any) {
@@ -845,15 +829,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Role-based data access functions
   const fetchClientSessions = useCallback(async (clientId?: string): Promise<WorkoutSession[]> => {
     if (!isAuthenticated || !user) return [];
-    
+
     // If no clientId provided and user is client, fetch their own sessions
     const targetId = clientId || (user.role === 'client' ? user.id : null);
-    
+
     if (!targetId) {
       logger.warn('No client ID provided for fetching sessions');
       return [];
     }
-    
+
     try {
       const response = await apiService.get(`/api/sessions/client/${targetId}`);
       return response.data || [];
@@ -868,7 +852,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       logger.warn('Admin access required for fetching all user sessions');
       return [];
     }
-    
+
     try {
       const response = await apiService.get('/api/admin/all-sessions');
       return response.data || [];
@@ -883,7 +867,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       logger.warn('Trainer or Admin access required for trainer stats');
       return {};
     }
-    
+
     try {
       const response = await apiService.get('/api/trainer/stats');
       return response.data || {};
@@ -898,7 +882,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       logger.warn('Admin access required for admin stats');
       return {};
     }
-    
+
     try {
       const response = await apiService.get('/api/admin/session-stats');
       return response.data || {};
@@ -948,12 +932,6 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 };
 
 // Custom hook
-export const useSession = () => {
-  const context = useContext(SessionContext);
-  if (!context) {
-    throw new Error('useSession must be used within a SessionProvider');
-  }
-  return context;
-};
+
 
 export default SessionContext;

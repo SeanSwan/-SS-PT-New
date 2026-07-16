@@ -18,6 +18,7 @@ import {
   setUserInMemory
 } from '../../utils/dev-memory-store';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Create a safe fallback for RootState since we might not have access to the actual type
 interface SafeRootState {
@@ -364,7 +365,7 @@ const DevLoginPanel: React.FC = () => {
   }, [currentUser]);
   
   // Safely handle navigation without useNavigate hook
-  const safeNavigate = useCallback((path: string) => {
+  useCallback((path: string) => {
     try {
       if (navigationRef.current.navigate) {
         navigationRef.current.navigate(path);
@@ -590,7 +591,7 @@ const DevLoginPanel: React.FC = () => {
   if (!isOpen) {
     return (
       <DevPanelContainer $minimized>
-        <DevPaper $minimized onClick={togglePanel}>
+        <DevPaper $minimized role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }} onClick={togglePanel}>
           <Settings size={20} color="#60C0F0" />
         </DevPaper>
       </DevPanelContainer>
@@ -709,11 +710,11 @@ const DevLoginPanel: React.FC = () => {
           </Button>
           
           {!routerAvailable && (
-            <AlertBox $severity="warning" style={{ marginTop: '16px', fontSize: '0.8rem' }}>
+            <StyledBox as={AlertBox} $severity="warning" $style={{ marginTop: '16px', fontSize: '0.8rem' }}>
               <div>
                 No Router context found. Navigation will not work automatically. Please navigate manually after logging in.
               </div>
-            </AlertBox>
+            </StyledBox>
           )}
         </DevContent>
       </DevPaper>

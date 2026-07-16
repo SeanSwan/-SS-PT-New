@@ -19,14 +19,14 @@ const sliceBetween = (source, start, end) => {
 describe('cart routes security hardening', () => {
   it('locks the live cart API mount and frontend consumer surface', () => {
     const coreRoutesSource = readSource('core/routes.mjs');
-    const cartContextSource = readSource('../frontend/src/context/CartContext.tsx');
+    const cartContextSource = readSource('../frontend/src/context/CartContextProvider.tsx');
 
     expect(coreRoutesSource).toContain("app.use('/api/cart', cartRoutes)");
-    expect(cartContextSource).toContain("apiService.get('/api/cart')");
-    expect(cartContextSource).toContain("apiService.post('/api/cart/add'");
-    expect(cartContextSource).toContain('apiService.put(`/api/cart/update/${itemId}`');
-    expect(cartContextSource).toContain('apiService.delete(`/api/cart/remove/${itemId}`)');
-    expect(cartContextSource).toContain("apiService.delete('/api/cart/clear')");
+    expect(cartContextSource).toContain("apiService.get<unknown>('/api/cart')");
+    expect(cartContextSource).toContain("apiService.post<unknown>('/api/cart/add'");
+    expect(cartContextSource).toContain('apiService.put<unknown>(`/api/cart/update/${normalizedItemId}`');
+    expect(cartContextSource).toContain('apiService.delete<unknown>(`/api/cart/remove/${normalizedItemId}`)');
+    expect(cartContextSource).toContain("apiService.delete<unknown>('/api/cart/clear')");
   });
 
   it('does not echo raw exception details from client-facing cart responses', () => {

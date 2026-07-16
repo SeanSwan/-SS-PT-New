@@ -28,6 +28,7 @@ import {
   SectionHeading,
   RowGroup,
 } from './EditProfileModalStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -164,7 +165,7 @@ const EditProfileSocialFields: React.FC<EditProfileSocialFieldsProps> = ({
             Custom Link
           </CustomLinkHeader>
           <RowGroup>
-            <FormGroup style={{ marginBottom: 0 }}>
+            <StyledBox as={FormGroup} $style={{ marginBottom: 0 }}>
               <Label htmlFor="social-custom-label">Label</Label>
               <SocialInputWrapper>
                 <SocialIcon><Link2 size={14} /></SocialIcon>
@@ -176,8 +177,8 @@ const EditProfileSocialFields: React.FC<EditProfileSocialFieldsProps> = ({
                   placeholder="e.g. Twitter, YouTube, Website"
                 />
               </SocialInputWrapper>
-            </FormGroup>
-            <FormGroup style={{ marginBottom: 0 }}>
+            </StyledBox>
+            <StyledBox as={FormGroup} $style={{ marginBottom: 0 }}>
               <Label htmlFor="social-custom-url">URL</Label>
               <Input
                 id="social-custom-url"
@@ -186,7 +187,7 @@ const EditProfileSocialFields: React.FC<EditProfileSocialFieldsProps> = ({
                 onChange={(e) => onCustomChange('url', e.target.value)}
                 placeholder="https://..."
               />
-            </FormGroup>
+            </StyledBox>
           </RowGroup>
         </CustomLinkSection>
       </FormGroup>

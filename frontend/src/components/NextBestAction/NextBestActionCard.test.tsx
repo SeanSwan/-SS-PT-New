@@ -6,7 +6,7 @@
  * hide), the always-present rules-transparency disclosure, the onLogWorkout
  * override for log-class CTAs, and the two home mounts (source truth).
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';

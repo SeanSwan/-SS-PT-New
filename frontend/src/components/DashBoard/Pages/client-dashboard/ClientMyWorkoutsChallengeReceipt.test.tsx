@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,6 +19,10 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useWorkoutSessions: (params: unknown) => mockUseWorkoutSessions(params),
+}));
+
+vi.mock('./ClientWorkoutPlanVaultPanel', () => ({
+  default: () => null,
 }));
 
 import ClientMyWorkoutsPage from './ClientMyWorkoutsPage';

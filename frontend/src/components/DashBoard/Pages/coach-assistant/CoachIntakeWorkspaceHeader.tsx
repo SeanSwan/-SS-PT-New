@@ -3,7 +3,7 @@
  * ==============================
  * Header actions for the Coach voice intake workspace.
  */
-import React from 'react';
+
 import { Brain, FileAudio, ListChecks, RefreshCcw } from 'lucide-react';
 import type { PlaudIntakeSummary } from '../../../../services/plaudIntakeService';
 import { buildCoachIntakeNextMove } from './CoachIntakeNextMove.logic';

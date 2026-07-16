@@ -40,7 +40,7 @@
  * Children:  Single widget component
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
 
 // ─────────────────────────────────────────────────────────────

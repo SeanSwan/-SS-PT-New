@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Star, Clock, UserPlus, X } from 'lucide-react';
+import { Search, ChevronDown, Clock, UserPlus, X } from 'lucide-react';
 import {
   Avatar,
   ChevronIndicator,
@@ -112,7 +112,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
   // Recent clients from localStorage
   const recentIds: number[] = useMemo(() => {
     return readRecentClientIds();
-  }, [open]); // re-read when dropdown opens
+  }, []); // re-read when dropdown opens
 
   const addToRecent = useCallback((id: number) => {
     const prev = readRecentClientIds();

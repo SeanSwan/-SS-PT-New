@@ -5,7 +5,7 @@
  * plus fail-closed receipt rendering for an invalid recipe.
  */
 import { render, screen } from "@testing-library/react";
-import React from "react";
+
 import { describe, expect, it } from "vitest";
 import LensPlanFrame from "./LensPlanFrame";
 import {
@@ -30,11 +30,13 @@ describe("LensPlanFrame (Golden Pair render boundary)", () => {
     );
     const candy = frameOf(a.container);
     const prism = frameOf(b.container);
+    const candyStyle = window.getComputedStyle(candy);
+    const prismStyle = window.getComputedStyle(prism);
 
-    expect(candy.style.getPropertyValue("--world-panel-radius")).toBe("26px");
-    expect(prism.style.getPropertyValue("--world-panel-radius")).toBe("4px");
-    expect(candy.style.getPropertyValue("--world-title-font")).toContain("Sora");
-    expect(prism.style.getPropertyValue("--world-title-font")).toContain("Fira Code");
+    expect(candyStyle.getPropertyValue("--world-panel-radius")).toBe("26px");
+    expect(prismStyle.getPropertyValue("--world-panel-radius")).toBe("4px");
+    expect(candyStyle.getPropertyValue("--world-title-font")).toContain("Sora");
+    expect(prismStyle.getPropertyValue("--world-title-font")).toContain("Fira Code");
 
     expect(candy.getAttribute("data-lens2-collection")).toBe("arcade-cards");
     expect(prism.getAttribute("data-lens2-collection")).toBe("command-rows");

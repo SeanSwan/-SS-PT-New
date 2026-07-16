@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
+interface DropdownTriggerProps {
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  'aria-expanded'?: boolean;
+  'aria-haspopup'?: 'menu';
+  'aria-label'?: string;
+}
+
 interface DropdownProps {
   trigger: React.ReactNode;
   children: React.ReactNode;
@@ -44,23 +51,35 @@ const Dropdown: React.FC<DropdownProps> = ({
     };
   }, [open]);
 
-  return (
-    <Container ref={containerRef}>
-      <TriggerWrapper
-        onClick={() => setOpen((prev) => !prev)}
+  const triggerControl = React.isValidElement<DropdownTriggerProps>(trigger)
+    ? React.cloneElement(trigger, {
+        'aria-expanded': open,
+        'aria-haspopup': 'menu',
+        'aria-label': ariaLabel,
+        onClick: (event) => {
+          trigger.props.onClick?.(event);
+          setOpen((previous) => !previous);
+        },
+      })
+    : (
+      <TriggerButton
+        type="button"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={ariaLabel}
+        onClick={() => setOpen((previous) => !previous)}
       >
         {trigger}
-      </TriggerWrapper>
+      </TriggerButton>
+    );
+
+  return (
+    <Container ref={containerRef}>
+      <TriggerWrapper>{triggerControl}</TriggerWrapper>
       {open && (
-        <Menu $align={align} $fullWidthOnMobile={fullWidthOnMobile} role="menu">
+        <Menu $align={align} $fullWidthOnMobile={fullWidthOnMobile} role="menu" onClickCapture={() => setOpen(false)}>
           {React.Children.map(children, (child) => (
-            <MenuItemWrapper
-              role="menuitem"
-              onClick={() => setOpen(false)}
-            >
+            <MenuItemWrapper role="none">
               {child}
             </MenuItemWrapper>
           ))}
@@ -75,6 +94,15 @@ export default Dropdown;
 const Container = styled.div`
   position: relative;
   display: inline-flex;
+`;
+
+const TriggerButton = styled.button`
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
 `;
 
 const TriggerWrapper = styled.div`

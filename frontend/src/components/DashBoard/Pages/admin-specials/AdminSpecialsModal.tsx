@@ -24,6 +24,7 @@ import {
   ClientNote,
   ModalScrollContent,
 } from './adminSpecials.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface AdminSpecialsModalProps {
   show: boolean;
@@ -186,7 +187,7 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
                     onClick={() => addClient(client.id)}
                   >
                     <span>{client.firstName} {client.lastName}</span>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>{client.email}</span>
+                    <StyledBox as="span" $style={{ fontSize: '0.75rem', opacity: 0.5 }}>{client.email}</StyledBox>
                   </ClientDropdownItem>
                 ))}
               </ClientDropdown>
@@ -232,7 +233,7 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
         </ModalScrollContent>
 
         {showNoClientWarning && (
-          <div style={{
+          <StyledBox as="div" $style={{
             background: 'rgba(255, 51, 102, 0.12)',
             border: '1px solid rgba(255, 51, 102, 0.4)',
             borderRadius: '12px',
@@ -240,25 +241,25 @@ const AdminSpecialsModal: React.FC<AdminSpecialsModalProps> = ({
             marginBottom: '12px',
             textAlign: 'center',
           }}>
-            <p style={{ color: '#FF3366', fontWeight: 600, margin: '0 0 6px', fontSize: '0.9rem' }}>
+            <StyledBox as="p" $style={{ color: '#FF3366', fontWeight: 600, margin: '0 0 6px', fontSize: '0.9rem' }}>
               ⚠️ No clients assigned
-            </p>
-            <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', margin: '0 0 14px' }}>
-              This special will apply to <strong style={{ color: '#FF3366' }}>ALL clients</strong>.
+            </StyledBox>
+            <StyledBox as="p" $style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', margin: '0 0 14px' }}>
+              This special will apply to <StyledBox as="strong" $style={{ color: '#FF3366' }}>ALL clients</StyledBox>.
               Are you sure you want to continue?
-            </p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <CancelButton onClick={() => setShowNoClientWarning(false)} style={{ fontSize: '0.8rem', padding: '8px 16px' }}>
+            </StyledBox>
+            <StyledBox as="div" $style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <StyledBox as={CancelButton} onClick={() => setShowNoClientWarning(false)} $style={{ fontSize: '0.8rem', padding: '8px 16px' }}>
                 Go Back
-              </CancelButton>
-              <SaveButton
+              </StyledBox>
+              <StyledBox as={SaveButton}
                 onClick={() => { setShowNoClientWarning(false); onSave(); }}
-                style={{ fontSize: '0.8rem', padding: '8px 16px', background: 'linear-gradient(135deg, #FF3366, #cc2952)' }}
+                $style={{ fontSize: '0.8rem', padding: '8px 16px', background: 'linear-gradient(135deg, #FF3366, #cc2952)' }}
               >
                 Yes, Apply to Everyone
-              </SaveButton>
-            </div>
-          </div>
+              </StyledBox>
+            </StyledBox>
+          </StyledBox>
         )}
 
         <ButtonRow>

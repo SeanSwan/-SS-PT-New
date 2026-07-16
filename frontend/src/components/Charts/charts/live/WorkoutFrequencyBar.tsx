@@ -11,6 +11,7 @@ import { VictoryChart, VictoryBar, VictoryAxis, VictoryTooltip, VictoryVoronoiCo
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface Props { userId: number | string; }
 
@@ -37,7 +38,7 @@ const WorkoutFrequencyBar: React.FC<Props> = ({ userId }) => {
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}`} />
           <VictoryBar
             data={sanitizeChartData(data.data)}
-            style={{ data: { fill: CHART_COLORS.iceWing } }}
+            {...victoryStyleProps({ data: { fill: CHART_COLORS.iceWing } })}
             cornerRadius={{ top: 4 }}
             labels={({ datum }: any) => `${datum.y} workouts`}
             labelComponent={<VictoryTooltip />}

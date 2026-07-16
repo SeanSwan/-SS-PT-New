@@ -213,7 +213,7 @@ const WorkoutPlannerConfirmDialog: React.FC<WorkoutPlannerConfirmDialogProps> = 
         role="dialog"
         aria-modal="true"
         aria-labelledby="workout-planner-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

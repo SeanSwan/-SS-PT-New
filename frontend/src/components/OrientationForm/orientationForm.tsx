@@ -274,7 +274,8 @@ const FormGroup = styled(motion.div)`
   display: flex;
   flex-direction: column;
 
-  label {
+  label,
+  .field-label {
     font-weight: 400;
     margin-bottom: 0.5rem;
     color: rgba(255, 255, 255, 0.9);
@@ -896,7 +897,7 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
 
                 {/* Waiver Section */}
                 <FormGroup variants={itemVariants}>
-                  <label>Training Waiver</label>
+                  <div className="field-label">Training Waiver</div>
                   <WaiverSection variants={itemVariants}>{waiverText}</WaiverSection>
                 </FormGroup>
 

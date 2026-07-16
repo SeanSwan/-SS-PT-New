@@ -104,7 +104,10 @@ describe('TeachModeSidebar', () => {
 
     fireEvent.click(playButton);
 
-    expect(screen.getByLabelText('Push Up workout video')).toBeInTheDocument();
+    const video = screen.getByLabelText(
+      'Push Up workout video; audio disabled until captions are available',
+    );
+    expect(video).toHaveProperty('muted', true);
   });
 
   it('rejects unsafe custom video URLs and falls back to a safe catalog sample', () => {

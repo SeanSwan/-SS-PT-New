@@ -44,7 +44,7 @@ describe('admin impersonation UI wiring', () => {
     const commandPanelSource = readMaybe('frontend/src/components/Admin/AdminAccountCommandPanel.tsx');
     const bannerSource = readMaybe('frontend/src/components/Admin/AdminImpersonationBanner.tsx');
     const apiFactorySource = readMaybe('frontend/src/services/apiClientFactory.ts');
-    const authContextSource = readMaybe('frontend/src/context/AuthContext.tsx');
+    const authContextSource = readMaybe('frontend/src/context/AuthContextProvider.tsx');
     const authRoutesSource = readMaybe('backend/routes/authRoutes.mjs');
 
     expect(switcherSource).toContain('/api/auth/admin/accounts/access');

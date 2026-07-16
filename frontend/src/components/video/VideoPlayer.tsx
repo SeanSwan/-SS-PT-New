@@ -4,6 +4,8 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import LazyYouTubeEmbed from './LazyYouTubeEmbed';
 import apiService from '../../services/api.service';
 
+const EMPTY_CAPTION_TRACK = 'data:text/vtt;charset=utf-8,WEBVTT%0A%0A';
+
 interface VideoPlayerProps {
   source: 'upload' | 'youtube';
   signedUrl?: string;
@@ -74,7 +76,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             { once: true },
           );
         }
-        scheduleRefresh();
       }
     } catch {
       setError('Playback access expired. Try again to refresh the video.');
@@ -167,18 +168,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ref={videoRef}
           controls
           preload="metadata"
+          muted={!captionsUrl}
           src={currentSrc}
           onError={() => setError('Playback access expired. Try again to refresh the video.')}
+          onVolumeChange={(event) => { if (!captionsUrl) event.currentTarget.muted = true; }}
         >
-          {captionsUrl && (
-            <track
-              kind="captions"
-              src={captionsUrl}
-              srcLang="en"
-              label="English"
-              default
-            />
-          )}
+          <track
+            kind="captions"
+            src={captionsUrl || EMPTY_CAPTION_TRACK}
+            srcLang="en"
+            label="English"
+            default={Boolean(captionsUrl)}
+          />
         </StyledVideo>
       </AspectBox>
     </PlayerWrapper>

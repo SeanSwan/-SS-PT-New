@@ -1,7 +1,8 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import { Users, Calendar, MessageCircle, Dumbbell, Trophy, Activity } from 'lucide-react';
+import { Users, MessageCircle, Dumbbell, Trophy, Activity } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Animation variants
 const containerVariants = {
@@ -414,9 +415,9 @@ const CommunityDashboard = () => {
               <ChallengesGrid>
                 <ChallengeCard $accent="rgba(139, 92, 246, 0.1)">
                   <ChallengeTitle>30-Day Fitness</ChallengeTitle>
-                  <BodyText style={{ flex: 1 }}>
+                  <StyledBox as={BodyText} $style={{ flex: 1 }}>
                     Complete a workout every day for 30 days and track your progress
-                  </BodyText>
+                  </StyledBox>
                   <ChallengeFooter>
                     <ChipTag>621 participants</ChipTag>
                     <CaptionText>Ends in 12 days</CaptionText>
@@ -425,9 +426,9 @@ const CommunityDashboard = () => {
 
                 <ChallengeCard $accent="rgba(255, 183, 0, 0.1)">
                   <ChallengeTitle>100-Mile Club</ChallengeTitle>
-                  <BodyText style={{ flex: 1 }}>
+                  <StyledBox as={BodyText} $style={{ flex: 1 }}>
                     Run, walk, or jog a total of 100 miles this month
-                  </BodyText>
+                  </StyledBox>
                   <ChallengeFooter>
                     <ChipTag>332 participants</ChipTag>
                     <CaptionText>Ends in 18 days</CaptionText>
@@ -436,9 +437,9 @@ const CommunityDashboard = () => {
 
                 <ChallengeCard $accent="rgba(139, 92, 246, 0.1)">
                   <ChallengeTitle>Healthy Habits</ChallengeTitle>
-                  <BodyText style={{ flex: 1 }}>
+                  <StyledBox as={BodyText} $style={{ flex: 1 }}>
                     Build 5 new healthy habits over the course of 30 days
-                  </BodyText>
+                  </StyledBox>
                   <ChallengeFooter>
                     <ChipTag>479 participants</ChipTag>
                     <CaptionText>Ends in 6 days</CaptionText>

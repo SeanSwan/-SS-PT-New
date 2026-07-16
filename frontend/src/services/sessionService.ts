@@ -18,18 +18,7 @@
  */
 
 import apiService from './api.service';
-import {
-  Session,
-  SessionRequest,
-  SessionEvent,
-  DragDropEventData,
-  BulkOperationRequest,
-  BulkActionType,
-  ApiResponse,
-  PaginatedResponse,
-  ScheduleStats,
-  FilterOptions
-} from '../components/UniversalMasterSchedule/types';
+import { Session, SessionRequest, BulkActionType, ApiResponse, ScheduleStats, FilterOptions } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
 
 /**
@@ -684,7 +673,7 @@ class SessionService {
    * @param callback - Callback function for updates
    * @returns Unsubscribe function
    */
-  subscribeToSessionUpdates(callback: (session: Session) => void): () => void {
+  subscribeToSessionUpdates(_callback: (session: Session) => void): () => void {
     // TODO: Implement WebSocket subscription
     logger.log('WebSocket subscription for sessions not yet implemented');
     return () => {};

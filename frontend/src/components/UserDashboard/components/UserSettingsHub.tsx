@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Bell, Eye, HeartPulse, Save, Shield, Sparkles, UserCog } from 'lucide-react';
+import { Bell, Eye, HeartPulse, Save, Shield, UserCog } from 'lucide-react';
 import type { UserProfile } from '../../../services/profileService';
 import apiService from '../../../services/api.service';
 import { useSubscription } from '../../../hooks/useSubscription';
@@ -85,7 +85,7 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
 
   useEffect(() => {
     setForm(buildForm(profile));
-  }, [profile?.id, profile?.updatedAt]);
+  }, [profile]);
 
   const setField = useCallback(<K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));

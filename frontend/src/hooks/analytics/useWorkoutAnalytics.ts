@@ -26,12 +26,7 @@ import {
   withEstimatedOneRepMaxes,
 } from './workoutAnalyticsData';
 import { WORKOUT_ANALYTICS_DEFAULT_LIMIT } from './useWorkoutAnalytics.types';
-import type {
-  AnalyticsData,
-  UseWorkoutAnalyticsReturn,
-  WorkoutLogEntry,
-  WorkoutSession,
-} from './useWorkoutAnalytics.types';
+import type { AnalyticsData, UseWorkoutAnalyticsReturn, WorkoutSession } from './useWorkoutAnalytics.types';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types

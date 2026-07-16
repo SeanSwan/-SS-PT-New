@@ -7,12 +7,7 @@
  */
 
 import React from 'react';
-import {
-  VictoryChart,
-  VictoryArea,
-  VictoryPolarAxis,
-  VictoryLabel,
-} from 'victory';
+import { VictoryChart, VictoryArea, VictoryPolarAxis } from 'victory';
 import {
   ChartSection,
   ChartTitle,
@@ -20,6 +15,7 @@ import {
   NoDataMessage
 } from '../../styles/ClientProgress.styles';
 import { SkillData } from '../../types/progress.types';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface SkillRadarChartProps {
   skillData: SkillData[];
@@ -39,15 +35,15 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ skillData }) =
           >
             <VictoryPolarAxis
               dependentAxis
-              style={{
+              {...victoryStyleProps({
                 axis: { stroke: 'none' },
                 grid: { stroke: 'rgba(96, 192, 240, 0.15)', strokeDasharray: '4,4' },
                 tickLabels: { fill: 'transparent' },
-              }}
+              })}
               tickValues={[2, 4, 6, 8, 10]}
             />
             <VictoryPolarAxis
-              style={{
+              {...victoryStyleProps({
                 axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
                 grid: { stroke: 'rgba(96, 192, 240, 0.1)' },
                 tickLabels: {
@@ -56,20 +52,20 @@ export const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ skillData }) =
                   fontFamily: "'Sora', sans-serif",
                   padding: 12,
                 },
-              }}
+              })}
               tickValues={skillData.map((_, i) => i)}
               tickFormat={skillData.map(d => d.subject)}
               labelPlacement="vertical"
             />
             <VictoryArea
               data={skillData.map((d, i) => ({ x: i, y: d.value }))}
-              style={{
+              {...victoryStyleProps({
                 data: {
                   fill: 'rgba(80, 160, 240, 0.25)',
                   stroke: '#50A0F0',
                   strokeWidth: 2,
                 },
-              }}
+              })}
             />
           </VictoryChart>
         ) : (

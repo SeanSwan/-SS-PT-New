@@ -27,7 +27,7 @@ vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
 }));
 
 vi.mock('../../database.mjs', () => ({
-  default: {},
+  default: { query: vi.fn(async () => []) },
 }));
 
 vi.mock('../../services/ai/intentClassifier.mjs', () => ({

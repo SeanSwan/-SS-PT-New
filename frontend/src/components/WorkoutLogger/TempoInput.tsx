@@ -21,9 +21,10 @@
  *   - "X" means "as fast as possible" (explosive)
  */
 
-import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import styled from 'styled-components';
 import { CS, withAlpha } from './WorkoutLoggerCS';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -31,34 +32,13 @@ import { CS, withAlpha } from './WorkoutLoggerCS';
 const TEMPO_REGEX = /^\d+\/\d+\/\d+$|^[Xx]\/\d+\/[Xx]$/;
 
 /** Validate a tempo string. Returns true if valid NASM format. */
-export function isValidTempo(tempo: string): boolean {
+function isValidTempo(tempo: string): boolean {
   if (!tempo) return true; // Empty is allowed (optional field)
   return TEMPO_REGEX.test(tempo.trim());
 }
 
 /** Common NASM tempo presets by OPT phase */
-export const TEMPO_PRESETS: Record<string, { label: string; value: string }[]> = {
-  '1': [
-    { label: 'Phase 1 Standard', value: '4/2/1' },
-    { label: 'Slow Eccentric', value: '4/2/2' },
-  ],
-  '2': [
-    { label: 'Phase 2 Standard', value: '2/0/2' },
-    { label: 'Moderate Control', value: '3/1/2' },
-  ],
-  '3': [
-    { label: 'Hypertrophy TUT', value: '3/1/2' },
-    { label: 'High TUT', value: '4/1/2' },
-  ],
-  '4': [
-    { label: 'Max Strength', value: '2/0/1' },
-    { label: 'Controlled Heavy', value: '3/0/1' },
-  ],
-  '5': [
-    { label: 'Explosive', value: 'X/0/X' },
-    { label: 'Power Clean', value: 'X/1/X' },
-  ],
-};
+
 
 // ─── Styled Components ──────────────────────────────────────
 
@@ -231,9 +211,9 @@ const TempoInput = memo(function TempoInput({
       </TempoContainer>
       <TempoLabel>
         <span>ecc</span>
-        <span style={{ width: '10px' }} />
+        <StyledBox as="span" $style={{ width: '10px' }} />
         <span>iso</span>
-        <span style={{ width: '10px' }} />
+        <StyledBox as="span" $style={{ width: '10px' }} />
         <span>con</span>
       </TempoLabel>
     </div>

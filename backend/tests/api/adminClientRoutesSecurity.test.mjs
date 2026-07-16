@@ -22,7 +22,7 @@ describe('admin client route security contract', () => {
     expect(coreRoutesSource).toContain("app.use('/api/admin', adminRoutes)");
     expect(adminRoutesSource).toContain("router.use('/', adminClientRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/admin', adminClientRoutes)");
-    expect(frontendAdminClientServiceSource).toContain("this.api.get('/admin/clients'");
+    expect(frontendAdminClientServiceSource).toMatch(/this\.api\.get(?:<[^>]+>)?\('\/admin\/clients'/);
   });
 
   it('keeps activation-queue before the dynamic client id route', () => {
@@ -38,7 +38,7 @@ describe('admin client route security contract', () => {
     const exportIndex = adminClientRouteSource.indexOf("router.get('/clients/export'");
     const clientDetailsIndex = adminClientRouteSource.indexOf("router.get('/clients/:clientId'");
 
-    expect(frontendAdminClientServiceSource).toContain("this.api.get('/admin/clients/export'");
+    expect(frontendAdminClientServiceSource).toMatch(/this\.api\.get(?:<[^>]+>)?\('\/admin\/clients\/export'/);
     expect(exportIndex).toBeGreaterThan(-1);
     expect(clientDetailsIndex).toBeGreaterThan(-1);
     expect(exportIndex).toBeLessThan(clientDetailsIndex);

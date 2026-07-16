@@ -11,14 +11,14 @@
  * - Cross-component theme consistency
  *
  * PALETTE:
- * - Midnight Sapphire #002060 — Primary foundation
- * - Ice Wing #60C0F0 — PRIMARY accent
- * - Arctic Cyan #50A0F0 — Secondary accent
- * - Gilded Fern #C6A84B — Gold luxury accent
- * - Swan Lavender #4070C0 — Tertiary
+ * - Midnight Sapphire #002060 â€” Primary foundation
+ * - Ice Wing #60C0F0 â€” PRIMARY accent
+ * - Arctic Cyan #50A0F0 â€” Secondary accent
+ * - Gilded Fern #C6A84B â€” Gold luxury accent
+ * - Swan Lavender #4070C0 â€” Tertiary
  */
 
-import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContext';
+import type { CrystallineTheme, ThemeId } from '../../context/ThemeContext/UniversalThemeContext';
 
 const DARK_TEXT_ON_ACCENT = '#030712';
 const LIGHT_TEXT_ON_ACCENT = '#FFFFFF';
@@ -66,7 +66,7 @@ const getReadableAccentText = (background: string): string => {
 };
 
 /**
- * Hex → "R, G, B" triplet for the tokens.css RGB-derivation bridge.
+ * Hex â†’ "R, G, B" triplet for the tokens.css RGB-derivation bridge.
  * Returns null for non-hex inputs (rgba strings, gradients) so callers
  * can fail soft to the static brand value in tokens.css.
  */
@@ -83,9 +83,9 @@ const hexToRgbTriplet = (hex: string | undefined): string | null => {
  * triplets per theme re-themes the whole brand-token family at once, so
  * surfaces written against brand names (checkout, cart, dashboards) follow
  * the theme changer instead of staying pinned to static Crystalline values.
- * Non-hex theme fields emit nothing → static tokens.css value stays (fail-soft).
+ * Non-hex theme fields emit nothing â†’ static tokens.css value stays (fail-soft).
  */
-const generateBrandRgbBridge = (theme: (typeof themes)[ThemeId]): string => {
+const generateBrandRgbBridge = (theme: CrystallineTheme): string => {
   const mappings: Array<[string, string | undefined]> = [
     ['--midnight-sapphire-rgb', theme.background.secondary],
     ['--royal-depth-rgb', theme.colors.secondaryDeep],
@@ -112,7 +112,10 @@ const generateBrandRgbBridge = (theme: (typeof themes)[ThemeId]): string => {
  * Generates CSS custom properties for a given theme
  * This enables instant theme switching via CSS variables
  */
-export const generateCSSVariables = (themeId: ThemeId): string => {
+export const generateCSSVariables = (
+  themeId: ThemeId,
+  themes: Readonly<Record<ThemeId, CrystallineTheme>>,
+): string => {
   const theme = themes[themeId] || themes['crystalline-default'];
   const buttonPrimaryBg = theme.colors.primary;
   const buttonPrimaryText = getReadableAccentText(buttonPrimaryBg);
@@ -203,7 +206,7 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --font-data: ${theme.fonts.data};
     --font-ui: ${theme.fonts.ui};
 
-    /* === SEMANTIC VARIABLES (Social Master Strategy §3.1) === */
+    /* === SEMANTIC VARIABLES (Social Master Strategy Â§3.1) === */
     --bg-base: ${theme.background.primary};
     --bg-elevated: ${theme.background.elevated};
     --bg-glass: ${theme.gradients.glass};
@@ -297,7 +300,7 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
 
     /* === PREVIOUSLY-UNDEFINED SEMANTIC ALIASES (theme-changer compat) === */
     /* These names are consumed across mounted surfaces but were never
-       injected anywhere — they always rendered their static fallbacks.
+       injected anywhere â€” they always rendered their static fallbacks.
        Mapping them here makes those surfaces theme-responsive. */
     --error: ${theme.colors.error};
     --error-accent: ${theme.colors.error};
@@ -334,8 +337,11 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
  * Injects CSS custom properties into the document
  * Call this when theme changes to update all CSS variables
  */
-export const injectThemeVariables = (themeId: ThemeId): void => {
-  const cssVariables = generateCSSVariables(themeId);
+export const injectThemeVariables = (
+  themeId: ThemeId,
+  themes: Readonly<Record<ThemeId, CrystallineTheme>>,
+): void => {
+  const cssVariables = generateCSSVariables(themeId, themes);
 
   // Remove existing theme variables
   let themeStyleElement = document.getElementById('theme-variables');
@@ -356,258 +362,4 @@ export const injectThemeVariables = (themeId: ThemeId): void => {
 
   // Also set data attribute for theme-aware CSS selectors
   document.documentElement.setAttribute('data-theme', themeId);
-};
-
-// === STYLED-COMPONENTS HELPERS ===
-
-/**
- * Theme-aware styled-component helper
- * Use this to create components that automatically adapt to theme changes
- */
-export const themeColors = {
-  primary: ({ theme }: { theme: any }) => theme.colors.primary,
-  primaryBlue: ({ theme }: { theme: any }) => theme.colors.primaryBlue,
-  secondary: ({ theme }: { theme: any }) => theme.colors.secondary,
-  accent: ({ theme }: { theme: any }) => theme.colors.accent,
-  background: {
-    primary: ({ theme }: { theme: any }) => theme.background.primary,
-    secondary: ({ theme }: { theme: any }) => theme.background.secondary,
-    surface: ({ theme }: { theme: any }) => theme.background.surface,
-    elevated: ({ theme }: { theme: any }) => theme.background.elevated,
-  },
-  text: {
-    primary: ({ theme }: { theme: any }) => theme.text.primary,
-    secondary: ({ theme }: { theme: any }) => theme.text.secondary,
-    muted: ({ theme }: { theme: any }) => theme.text.muted,
-  },
-  gradients: {
-    primary: ({ theme }: { theme: any }) => theme.gradients.primary,
-    secondary: ({ theme }: { theme: any }) => theme.gradients.secondary,
-    cosmic: ({ theme }: { theme: any }) => theme.gradients.cosmic,
-    stellar: ({ theme }: { theme: any }) => theme.gradients.stellar,
-    swanCosmic: ({ theme }: { theme: any }) => theme.gradients.swanCosmic,
-  },
-  shadows: {
-    primary: ({ theme }: { theme: any }) => theme.shadows.primary,
-    secondary: ({ theme }: { theme: any }) => theme.shadows.secondary,
-    cosmic: ({ theme }: { theme: any }) => theme.shadows.cosmic,
-    accent: ({ theme }: { theme: any }) => theme.shadows.accent,
-    elevation: ({ theme }: { theme: any }) => theme.shadows.elevation,
-  },
-  borders: {
-    subtle: ({ theme }: { theme: any }) => theme.borders.subtle,
-    elegant: ({ theme }: { theme: any }) => theme.borders.elegant,
-    prominent: ({ theme }: { theme: any }) => theme.borders.prominent,
-  }
-};
-
-// === CSS VARIABLE HELPERS ===
-
-/**
- * Get CSS variable value
- * Use this for accessing theme variables in regular CSS or components
- */
-export const cssVar = (variable: string): string => `var(--${variable})`;
-
-/**
- * Common theme CSS variables for easy access
- */
-export const cssVars = {
-  // Colors
-  primary: 'var(--color-primary)',
-  primaryBlue: 'var(--color-primary-blue)',
-  secondary: 'var(--color-secondary)',
-  accent: 'var(--color-accent)',
-
-  // Backgrounds
-  bgPrimary: 'var(--bg-primary)',
-  bgSecondary: 'var(--bg-secondary)',
-  bgSurface: 'var(--bg-surface)',
-  bgElevated: 'var(--bg-elevated)',
-
-  // Text
-  textPrimary: 'var(--text-primary)',
-  textSecondary: 'var(--text-secondary)',
-  textMuted: 'var(--text-muted)',
-  textHeading: 'var(--text-heading)',
-  textAccent: 'var(--text-accent)',
-
-  // Gradients
-  gradientPrimary: 'var(--gradient-primary)',
-  gradientSecondary: 'var(--gradient-secondary)',
-  gradientCosmic: 'var(--gradient-cosmic)',
-  gradientStellar: 'var(--gradient-stellar)',
-  gradientGlass: 'var(--gradient-glass)',
-
-  // Shadows
-  shadowPrimary: 'var(--shadow-primary)',
-  shadowSecondary: 'var(--shadow-secondary)',
-  shadowCosmic: 'var(--shadow-cosmic)',
-  shadowAccent: 'var(--shadow-accent)',
-  shadowElevation: 'var(--shadow-elevation)',
-  shadowGlass: 'var(--shadow-glass)',
-  shadowButton: 'var(--shadow-button)',
-
-  // Borders
-  borderSubtle: 'var(--border-subtle)',
-  borderElegant: 'var(--border-elegant)',
-  borderProminent: 'var(--border-prominent)',
-  borderGlass: 'var(--border-glass)',
-  borderCard: 'var(--border-card)',
-  borderFocus: 'var(--border-focus)',
-
-  // Typography
-  fontHeading: 'var(--font-heading)',
-  fontDrama: 'var(--font-drama)',
-  fontData: 'var(--font-data)',
-  fontUi: 'var(--font-ui)',
-
-  // Semantic (Social Master Strategy §3.1)
-  bgBase: 'var(--bg-base)',
-  bgGlass: 'var(--bg-glass)',
-  textInverse: 'var(--text-inverse)',
-  borderSoft: 'var(--border-soft)',
-  borderStrong: 'var(--border-strong)',
-  accentPrimary: 'var(--accent-primary)',
-  accentSecondary: 'var(--accent-secondary)',
-  accentGold: 'var(--accent-gold)',
-  success: 'var(--success)',
-  warning: 'var(--warning)',
-  danger: 'var(--danger)',
-  info: 'var(--info)',
-};
-
-// === ANIMATION HELPERS ===
-
-/**
- * Theme-aware animation configurations
- * Provides different animation intensities based on theme and user preferences
- */
-export const getAnimationConfig = (themeId: ThemeId) => {
-  const baseConfig = {
-    duration: '0.3s',
-    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    reducedMotion: 'prefers-reduced-motion: reduce',
-  };
-
-  // Derived from each theme's own effects block, so every registered theme
-  // (all 38, not a hand-picked seven) gets correct motion tuning.
-  const effects = (themes[themeId] || themes['crystalline-default']).effects as {
-    glowIntensity?: 'subtle' | 'medium' | 'intense';
-    borderGlow?: boolean;
-  };
-  const glow = effects.borderGlow === true;
-  const intensity = !glow
-    ? 'minimal'
-    : effects.glowIntensity === 'subtle'
-      ? 'standard'
-      : 'enhanced';
-
-  return {
-    ...baseConfig,
-    duration: intensity === 'enhanced' ? '0.4s' : '0.3s',
-    intensity,
-    glow,
-  };
-};
-
-// === COMPONENT THEME MAPPING ===
-
-/**
- * Maps GlowButton variants to Universal Theme
- */
-export const getGlowButtonVariant = (themeId: ThemeId): string => {
-  switch (themeId) {
-    case 'crystalline-default':
-      return 'primary'; // Ice-wing blue
-    case 'crystalline-light':
-      return 'primary'; // Arctic cyan on frost
-    case 'crystalline-dark':
-      return 'cosmic'; // Deep ice glow
-    case 'crystalline-mono':
-      return 'ghost'; // Thin white border, no gradient
-    default:
-      return 'primary';
-  }
-};
-
-/**
- * Get theme-appropriate icon color
- */
-export const getIconColor = (themeId: ThemeId, type: 'primary' | 'secondary' | 'accent' = 'primary'): string => {
-  const theme = themes[themeId] || themes['crystalline-default'];
-  switch (type) {
-    case 'primary':
-      return theme.colors.primary;
-    case 'secondary':
-      return theme.colors.secondary;
-    case 'accent':
-      return theme.colors.accent;
-    default:
-      return theme.colors.primary;
-  }
-};
-
-// === PERFORMANCE UTILITIES ===
-
-/**
- * Optimized theme switching with RAF
- * Ensures smooth transitions without layout thrashing
- */
-export const switchThemeOptimized = (themeId: ThemeId, callback?: () => void): void => {
-  requestAnimationFrame(() => {
-    injectThemeVariables(themeId);
-
-    if (callback) {
-      requestAnimationFrame(callback);
-    }
-  });
-};
-
-/**
- * Debounced theme switching for rapid theme changes
- */
-let themeChangeTimeout: NodeJS.Timeout;
-export const switchThemeDebounced = (themeId: ThemeId, delay: number = 100): void => {
-  clearTimeout(themeChangeTimeout);
-  themeChangeTimeout = setTimeout(() => {
-    switchThemeOptimized(themeId);
-  }, delay);
-};
-
-// === ACCESSIBILITY HELPERS ===
-
-/**
- * Get contrast-appropriate colors based on theme
- */
-export const getContrastColor = (themeId: ThemeId, background: 'light' | 'dark' = 'dark'): string => {
-  const theme = themes[themeId];
-
-  if (background === 'light') {
-    return theme.colors.void;
-  }
-
-  return theme.text.primary;
-};
-
-/**
- * Check if current theme supports high contrast
- */
-export const supportsHighContrast = (themeId: ThemeId): boolean => {
-  return themeId === 'crystalline-dark';
-};
-
-export default {
-  generateCSSVariables,
-  injectThemeVariables,
-  themeColors,
-  cssVar,
-  cssVars,
-  getAnimationConfig,
-  getGlowButtonVariant,
-  getIconColor,
-  switchThemeOptimized,
-  switchThemeDebounced,
-  getContrastColor,
-  supportsHighContrast,
 };

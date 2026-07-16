@@ -21,6 +21,7 @@ import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import sequelize from '../database.mjs';
 import { getModel } from '../models/index.mjs';
+import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
 import {
   executeCommandPipeline,
   executeConfirmedOperation,
@@ -128,6 +129,22 @@ const normalizeRouteContext = (value) => {
 
   return Object.keys(normalized).length ? normalized : null;
 };
+const sanitizeCommandPromptInputs = async ({ message, previousContext, user }) => {
+  const { sanitize } = await createAccessibleClientIdentitySanitizer({ requester: user, sequelize });
+  const normalizedPreviousContext = normalizePreviousContext(previousContext);
+  return {
+    message: sanitize(message).sanitizedMessage,
+    previousContext: normalizedPreviousContext
+      ? sanitize(normalizedPreviousContext).sanitizedMessage
+      : undefined,
+  };
+};
+
+const IDENTITY_REDACTION_UNAVAILABLE_RESPONSE = {
+  success: false,
+  code: 'AI_IDENTITY_REDACTION_UNAVAILABLE',
+  error: 'Client identity protection is temporarily unavailable. Please try again.',
+};
 
 // Initialize command registry on first import
 initializeRegistry();
@@ -179,6 +196,18 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
       lastName: req.user.lastName,
     };
 
+    let promptInputs;
+    try {
+      promptInputs = await sanitizeCommandPromptInputs({ message, previousContext, user });
+    } catch (error) {
+      logger.error('[AICommand] Identity redaction failed closed', {
+        userId: user.id,
+        role: user.role,
+        errorName: error?.name ?? 'Error',
+      });
+      return res.status(503).json(IDENTITY_REDACTION_UNAVAILABLE_RESPONSE);
+    }
+
     const normalizedRouteContext = normalizeRouteContext(routeContext);
     const contextEnvelope = await buildCommandContextEnvelope({
       actor: user,
@@ -196,11 +225,10 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
       authorizeClient: assertAssignmentOrAdmin,
     });
 
-    // Get Sequelize instance from app
-    const ctx = await executeCommandPipeline(message, user, {
+    const ctx = await executeCommandPipeline(promptInputs.message, user, {
       selectedClientName: null,
       selectedClientId: normalizedSelectedClientId,
-      previousContext: normalizePreviousContext(previousContext),
+      previousContext: promptInputs.previousContext,
       routeContext: normalizedRouteContext,
       contextEnvelope,
       sequelize,

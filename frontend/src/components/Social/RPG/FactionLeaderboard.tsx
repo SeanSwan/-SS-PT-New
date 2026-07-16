@@ -17,6 +17,7 @@ import React, { memo } from 'react';
 import styled, { css } from 'styled-components';
 import { Shield, Zap, Star } from 'lucide-react';
 import type { Faction } from '../../../hooks/social/useFaction';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Icon Map
@@ -59,7 +60,7 @@ const FactionLeaderboard: React.FC<FactionLeaderboardProps> = memo(({ factions, 
               <span>{faction.name.replace('The ', '')}</span>
             </BarLabel>
             <BarTrack>
-              <BarFill $color={faction.color} style={{ width: `${Math.max(pct, 3)}%` }} />
+              <StyledBox as={BarFill} $color={faction.color} $style={{ width: `${Math.max(pct, 3)}%` }} />
             </BarTrack>
             <BarValue>{formatPoints(Number(faction.totalPoints))}</BarValue>
           </BarRow>

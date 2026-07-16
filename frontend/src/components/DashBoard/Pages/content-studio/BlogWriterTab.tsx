@@ -31,6 +31,7 @@ import {
   StudioInput, StudioTextArea, PrimaryBtn, SecondaryBtn, ActionRow,
   ChipRow, Chip, StudioCard, StatusChip, WarningBanner,
 } from './content-studio.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
@@ -187,23 +188,23 @@ const BlogWriterTab: React.FC = () => {
           <>
             <div>
               <SectionTitle>Blog Topic</SectionTitle>
-              <StudioInput value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter your blog post title or topic..." style={{ marginTop: 8 }} />
+              <StyledBox as={StudioInput} value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter your blog post title or topic..." $style={{ marginTop: 8 }} />
             </div>
             <div>
               <SectionTitle>SEO Keywords</SectionTitle>
-              <StudioInput value={keywordInput} onChange={e => setKeywordInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustomKeyword()} placeholder="Add keyword and press Enter..." style={{ marginTop: 8 }} />
-              <ChipRow style={{ marginTop: 8 }}>
+              <StyledBox as={StudioInput} value={keywordInput} onChange={e => setKeywordInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustomKeyword()} placeholder="Add keyword and press Enter..." $style={{ marginTop: 8 }} />
+              <StyledBox as={ChipRow} $style={{ marginTop: 8 }}>
                 {KEYWORD_PRESETS.map(kw => (
                   <Chip key={kw} $active={keywords.includes(kw)} $color="#C6A84B" onClick={() => toggleKeyword(kw)}>
                     <Tag size={10} /> {kw}
                   </Chip>
                 ))}
-              </ChipRow>
-              {keywords.length > 0 && <MetaText style={{ marginTop: 8 }}>Selected: {keywords.join(', ')}</MetaText>}
+              </StyledBox>
+              {keywords.length > 0 && <StyledBox as={MetaText} $style={{ marginTop: 8 }}>Selected: {keywords.join(', ')}</StyledBox>}
             </div>
             <ActionRow>
               <PrimaryBtn onClick={handleGenerateOutline} disabled={!title.trim() || generating}>
-                {generating ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <ChevronRight size={16} />}
+                {generating ? <StyledBox as={Loader2} size={16} $style={{ animation: 'spin 1s linear infinite' }} /> : <ChevronRight size={16} />}
                 Generate Outline
               </PrimaryBtn>
             </ActionRow>
@@ -213,11 +214,11 @@ const BlogWriterTab: React.FC = () => {
         {step === 'outline' && (
           <>
             <SectionTitle>Post Outline — {title}</SectionTitle>
-            <StudioTextArea value={outline} onChange={e => setOutline(e.target.value)} style={{ minHeight: 200 }} />
+            <StyledBox as={StudioTextArea} value={outline} onChange={e => setOutline(e.target.value)} $style={{ minHeight: 200 }} />
             <ActionRow>
               <SecondaryBtn onClick={() => setStep('topic')}>Back</SecondaryBtn>
               <PrimaryBtn onClick={handleGenerateDraft} disabled={!outline.trim() || generating}>
-                {generating ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <ChevronRight size={16} />}
+                {generating ? <StyledBox as={Loader2} size={16} $style={{ animation: 'spin 1s linear infinite' }} /> : <ChevronRight size={16} />}
                 Generate Draft
               </PrimaryBtn>
             </ActionRow>
@@ -227,11 +228,11 @@ const BlogWriterTab: React.FC = () => {
         {step === 'draft' && (
           <>
             <SectionTitle>Draft — {title}</SectionTitle>
-            <StudioTextArea value={draftContent} onChange={e => setDraftContent(e.target.value)} style={{ minHeight: 300 }} />
+            <StyledBox as={StudioTextArea} value={draftContent} onChange={e => setDraftContent(e.target.value)} $style={{ minHeight: 300 }} />
             <MetaText>{draftContent.split(/\s+/).filter(Boolean).length} words · {keywords.length} keywords</MetaText>
             {hasRecentPublish && (
               <WarningBanner>
-                <AlertTriangle size={16} style={{ color: '#C6A84B', flexShrink: 0 }} />
+                <StyledBox as={AlertTriangle} size={16} $style={{ color: '#C6A84B', flexShrink: 0 }} />
                 A post was published this week. Cadence limit: 1x/week.
               </WarningBanner>
             )}
@@ -246,17 +247,17 @@ const BlogWriterTab: React.FC = () => {
       <SidePanel $width={260}>
         {step === 'topic' && (
           <>
-            <SectionTitle style={{ fontSize: '0.85rem' }}><Search size={14} /> Topic Suggestions</SectionTitle>
+            <StyledBox as={SectionTitle} $style={{ fontSize: '0.85rem' }}><Search size={14} /> Topic Suggestions</StyledBox>
             {SUGGESTED_TOPICS.map(topic => (
               <TopicBtn key={topic} onClick={() => setTitle(topic)}>
-                <FileText size={14} style={{ color: '#8B5CF6', flexShrink: 0 }} /> {topic}
+                <StyledBox as={FileText} size={14} $style={{ color: '#8B5CF6', flexShrink: 0 }} /> {topic}
               </TopicBtn>
             ))}
           </>
         )}
-        <SectionTitle style={{ fontSize: '0.85rem', marginTop: step === 'topic' ? 16 : 0 }}>
+        <StyledBox as={SectionTitle} $style={{ fontSize: '0.85rem', marginTop: step === 'topic' ? 16 : 0 }}>
           <Clock size={14} /> Draft Queue ({drafts.length})
-        </SectionTitle>
+        </StyledBox>
         {drafts.map(d => (
           <StudioCard key={d.id}>
             <DraftTitle>{d.title}</DraftTitle>

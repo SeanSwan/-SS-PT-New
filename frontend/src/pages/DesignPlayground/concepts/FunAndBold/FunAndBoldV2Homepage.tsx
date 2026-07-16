@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Gamepad2, Trophy, Rocket, Sparkles, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { funAndBoldV2Theme as theme } from './FunAndBoldV2Theme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─── Keyframe Animations ─── */
 const neonFlicker = keyframes`
@@ -16,13 +17,7 @@ const neonFlicker = keyframes`
   20%, 24%, 55% { opacity: 0.6; text-shadow: none; }
 `;
 
-const bounce = keyframes`
-  0% { transform: translateY(0); }
-  30% { transform: translateY(-18px); }
-  50% { transform: translateY(-4px); }
-  70% { transform: translateY(-10px); }
-  100% { transform: translateY(0); }
-`;
+
 
 const confettiBurst = keyframes`
   0% { transform: scale(0) rotate(0deg); opacity: 1; }
@@ -546,7 +541,7 @@ const FunAndBoldV2Homepage: React.FC = () => {
         </HeroTagline>
 
         <HeroSubtitle {...fadeUp} transition={{ duration: 0.5, delay: 0.25 }}>
-          This isn't your average gym. It's a neon-lit arena where every
+          This isn&apos;t your average gym. It&apos;s a neon-lit arena where every
           rep is a power-up and every session is a new high score. Ready to play?
         </HeroSubtitle>
 
@@ -566,7 +561,7 @@ const FunAndBoldV2Homepage: React.FC = () => {
         <SectionInner>
           <SectionLabel>Select Your Class</SectionLabel>
           <SectionTitle>
-            Choose Your <NeonWord style={{ fontSize: 'inherit' }}>Game</NeonWord>
+            Choose Your <StyledBox as={NeonWord} $style={{ fontSize: 'inherit' }}>Game</StyledBox>
           </SectionTitle>
           <ProgramGrid>
             {programs.map((program, i) => (
@@ -616,7 +611,7 @@ const FunAndBoldV2Homepage: React.FC = () => {
             <CTANeonText>PLAYER ONE?</CTANeonText>
           </CTATitle>
           <CTASubtext>
-            The arena is waiting. Your character is built. All that's
+            The arena is waiting. Your character is built. All that&apos;s
             left is to press start and begin your transformation quest.
           </CTASubtext>
           <CTAButton

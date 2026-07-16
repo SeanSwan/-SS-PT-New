@@ -33,6 +33,7 @@ import {
 } from '../styles/DashboardV3Styles';
 import { MAX_BANNER_COLLAGE_PHOTOS, type BannerObjectPosition } from '../../../services/profileService';
 import { isBannerVideoUrl } from '../utils/bannerCompositionMedia';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type StageLayout = 'smart-carousel' | 'atrium' | 'vitrine';
 
@@ -126,7 +127,7 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
     const railItems = buildSmartRailItems(photos, active);
 
     return (
-      <BannerStageSmart data-testid="banner-stage-smart-carousel" style={positionStyle}>
+      <StyledBox as={BannerStageSmart} data-testid="banner-stage-smart-carousel" $style={positionStyle}>
         <BannerStageSmartBackdrop aria-hidden="true">
           {renderStageMedia(heroPhoto)}
         </BannerStageSmartBackdrop>
@@ -150,19 +151,19 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
           ))}
         </BannerStageSmartRail>
         {stageCount > 1 && (
-          <BannerCrossfadeDots aria-hidden="true" style={{ zIndex: 31 }}>
+          <StyledBox as={BannerCrossfadeDots} aria-hidden="true" $style={{ zIndex: 31 }}>
             {photos.map((photo, index) => (
               <BannerCrossfadeDot key={`${photo}-dot-${index}`} $active={index === active} />
             ))}
-          </BannerCrossfadeDots>
+          </StyledBox>
         )}
-      </BannerStageSmart>
+      </StyledBox>
     );
   }
 
   if (layout === 'atrium') {
     return (
-      <BannerStageAtrium data-testid="banner-stage-atrium" style={positionStyle}>
+      <StyledBox as={BannerStageAtrium} data-testid="banner-stage-atrium" $style={positionStyle}>
         <BannerStageAtriumTrack>
           {photos.map((photo, index) => {
             let offset = index - active;
@@ -171,7 +172,7 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
             const hero = offset === 0;
 
             return (
-              <BannerStageAtriumSlot key={`${photo}-${index}`} $hero={hero} style={buildAtriumSlotStyle(offset)}>
+              <StyledBox as={BannerStageAtriumSlot} key={`${photo}-${index}`} $hero={hero} $style={buildAtriumSlotStyle(offset)}>
                 {isBannerVideoUrl(photo) ? (
                   <BannerStageVideo src={photo} data-testid="banner-stage-video" muted loop autoPlay playsInline preload="metadata" />
                 ) : (
@@ -180,19 +181,19 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
                 {hero && isBannerVideoUrl(photo) && (
                   <BannerStagePlayOrb aria-hidden="true"><PlayGlyph /></BannerStagePlayOrb>
                 )}
-              </BannerStageAtriumSlot>
+              </StyledBox>
             );
           })}
         </BannerStageAtriumTrack>
-        <BannerCrossfadeScrim style={{ zIndex: 30 }} />
+        <StyledBox as={BannerCrossfadeScrim} $style={{ zIndex: 30 }} />
         {stageCount > 1 && (
-          <BannerCrossfadeDots aria-hidden="true" style={{ zIndex: 31 }}>
+          <StyledBox as={BannerCrossfadeDots} aria-hidden="true" $style={{ zIndex: 31 }}>
             {photos.map((photo, index) => (
               <BannerCrossfadeDot key={`${photo}-dot-${index}`} $active={index === active} />
             ))}
-          </BannerCrossfadeDots>
+          </StyledBox>
         )}
-      </BannerStageAtrium>
+      </StyledBox>
     );
   }
 
@@ -203,7 +204,7 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
     .slice(0, 4);
 
   return (
-    <BannerStageVitrine data-testid="banner-stage-vitrine" style={positionStyle}>
+    <StyledBox as={BannerStageVitrine} data-testid="banner-stage-vitrine" $style={positionStyle}>
       <BannerStageVitrineHero>
         <BannerStageHeroBackdrop aria-hidden="true">
           {renderStageMedia(heroPhoto)}
@@ -228,13 +229,13 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
         </BannerStageVitrineRail>
       )}
       {stageCount > 1 && (
-        <BannerCrossfadeDots aria-hidden="true" style={{ zIndex: 31 }}>
+        <StyledBox as={BannerCrossfadeDots} aria-hidden="true" $style={{ zIndex: 31 }}>
           {photos.map((photo, index) => (
             <BannerCrossfadeDot key={`${photo}-dot-${index}`} $active={index === active} />
           ))}
-        </BannerCrossfadeDots>
+        </StyledBox>
       )}
-    </BannerStageVitrine>
+    </StyledBox>
   );
 };
 

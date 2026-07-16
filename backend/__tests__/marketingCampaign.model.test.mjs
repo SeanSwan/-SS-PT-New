@@ -8,7 +8,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { Sequelize } from 'sequelize';
 
 vi.mock('../database.mjs', () => ({
-  default: new Sequelize('postgres://user:pass@localhost:5432/test_db', { logging: false }),
+  default: new Sequelize({
+    dialect: 'postgres',
+    database: 'test_db',
+    username: 'test_user',
+    password: 'test_password',
+    logging: false,
+  }),
 }));
 
 const { default: MarketingCampaign, OBJECTIVES, STATUSES } = await import('../models/MarketingCampaign.mjs');

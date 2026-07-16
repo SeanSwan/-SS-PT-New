@@ -10,6 +10,7 @@ import type {
   IntakeStateTile,
   QueueMetric,
 } from './CoachCommandCenter.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type CommandBannerProps = {
   nextActionLabel: string;
@@ -31,14 +32,9 @@ type IntakeHoldsPanelProps = {
   intakeStates: IntakeStateTile[];
 };
 
-export function nextOperatorLabel(label?: string | null) {
-  return label || 'Review next intake';
-}
 
-export function parsingProgress(processing: number) {
-  if (processing > 0) return '72%';
-  return '8%';
-}
+
+
 
 export function CommandBanner({ nextActionLabel, onReadback, onToggleTeachMode }: CommandBannerProps) {
   return (
@@ -81,11 +77,11 @@ export function QueueSummary({ statusMetrics }: QueueSummaryProps) {
   return (
     <section className="queue-summary" aria-label="Coach intake queue health">
       {statusMetrics.map((metric) => (
-        <article className="metric-card" style={{ '--accent-fill': metric.accent } as React.CSSProperties} key={metric.label}>
+        <StyledBox as="article" className="metric-card" $style={{ '--accent-fill': metric.accent } as React.CSSProperties} key={metric.label}>
           <span className="panel-subtitle">{metric.label}</span>
           <strong className="metric-value">{metric.value}</strong>
           <span className="metric-note">{metric.note}</span>
-        </article>
+        </StyledBox>
       ))}
     </section>
   );
@@ -111,7 +107,7 @@ function ActiveDossierPanel({ dossierTiles, progress, summary }: ActiveDossierPa
         ))}
       </div>
       <div className="progress-track" aria-label="Transcript parsing progress">
-        <span className="progress-fill" style={{ '--progress': progress } as React.CSSProperties} />
+        <StyledBox as="span" className="progress-fill" $style={{ '--progress': progress } as React.CSSProperties} />
       </div>
     </article>
   );

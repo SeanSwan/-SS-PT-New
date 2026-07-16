@@ -83,10 +83,12 @@ export function useMessagingLifecycleEffects({
   }, [activeConversationId, connected, currentUserId, enabled, markAsRead, messages]);
 
   useEffect(() => {
+    const timersRef = typingClearTimers;
+    const abortRef = fetchAbortRef;
     return () => {
-      typingClearTimers.current.forEach(timer => clearTimeout(timer));
-      typingClearTimers.current.clear();
-      if (fetchAbortRef.current) fetchAbortRef.current.abort();
+      timersRef.current.forEach(timer => clearTimeout(timer));
+      timersRef.current.clear();
+      abortRef.current?.abort();
     };
   }, [fetchAbortRef, typingClearTimers]);
 }

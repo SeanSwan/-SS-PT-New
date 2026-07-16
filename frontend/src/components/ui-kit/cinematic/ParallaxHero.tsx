@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import styled from 'styled-components';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 interface ParallaxHeroProps {
   videoSrc?: string;
@@ -95,7 +96,7 @@ const ParallaxHero: React.FC<ParallaxHeroProps> = ({
 
   return (
     <HeroContainer ref={containerRef} $minHeight={minHeight} className={className}>
-      <MediaWrapper style={disableParallax ? {} : { y }}>
+      <MediaWrapper {...motionStyleProps(disableParallax ? {} : { y })}>
         {videoSrc ? (
           <Video
             autoPlay

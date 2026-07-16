@@ -120,8 +120,8 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
           )}
         </ExerciseTitle>
         <ExerciseRatings>
-          <RatingGroup>
-            <label>Form Rating (1-5):</label>
+          <RatingGroup role="group" aria-labelledby={`exercise-${exerciseIndex}-form-rating-label`}>
+            <span id={`exercise-${exerciseIndex}-form-rating-label`}>Form Rating (1-5):</span>
             <RatingControlRow>
               <StarRatingContainer>
                 {[1, 2, 3, 4, 5].map(rating => (
@@ -141,9 +141,10 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
             </RatingControlRow>
           </RatingGroup>
           <RatingGroup>
-            <label>Pain Level (0-10):</label>
+            <label htmlFor={`exercise-${exerciseIndex}-pain-level`}>Pain Level (0-10):</label>
             <RatingControlRow>
               <SliderInput
+                id={`exercise-${exerciseIndex}-pain-level`}
                 type="range"
                 min={0}
                 max={10}

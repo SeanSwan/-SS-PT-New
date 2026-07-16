@@ -119,6 +119,9 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
         borderColor: 'rgba(139, 92, 246, 0.3)'
       }}
       whileTap={{ scale: 0.98 }}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); handleClick(); } }}
       onClick={handleClick}
     >
       <IconContainer color={iconColor}>

@@ -46,9 +46,9 @@
  *   FeedFilterBar --> ActiveHashtagBadge
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import styled from 'styled-components';
-import { Flame, Dumbbell, Palette, Users, Search } from 'lucide-react';
+import { Flame, Dumbbell, Palette, Users } from 'lucide-react';
 import TrendingHashtags from './TrendingHashtags';
 import type { HashtagData } from './HashtagChip';
 

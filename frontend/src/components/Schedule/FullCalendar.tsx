@@ -105,7 +105,7 @@ const ScheduleCalendar: React.FC<FullCalendarComponentProps> = ({
   const error = useSelector(selectScheduleError);
   const isMobile = useIsMobile();
 
-  const [viewDates, setViewDates] = useState({
+  const [, setViewDates] = useState({
     start: new Date(),
     end: new Date(new Date().setMonth(new Date().getMonth() + 1))
   });

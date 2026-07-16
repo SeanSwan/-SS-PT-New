@@ -171,7 +171,7 @@ const AboutSeanSection: React.FC<AboutSeanSectionProps> = ({ tier }) => {
                 the NASM Optimum Performance Training (OPT) model to every program he builds.
               </p>
               <p>
-                His career spans elite fitness brands including LA Fitness, Gold's Gym,
+                His career spans elite fitness brands including LA Fitness, Gold&apos;s Gym,
                 24 Hour Fitness, and Bodies in Motion. His time as a physical therapy aid
                 at Kerlan Jobe Health South deepened his expertise in injury prevention,
                 corrective exercise, and rehabilitation — principles he applies daily.
@@ -180,12 +180,12 @@ const AboutSeanSection: React.FC<AboutSeanSectionProps> = ({ tier }) => {
                 In 2013, Sean and his wife <strong>Jasmine</strong> founded SwanStudios
                 with a vision to blend elite coaching with technology. Today, SwanStudios
                 combines <strong>personal training with Swan Coach as a powerful tool</strong> —
-                enabling deep research on each client's goals for truly optimized programming.
+                enabling deep research on each client&apos;s goals for truly optimized programming.
               </p>
               <p>
                 In 2017, Sean graduated from Redwood Code Academy and completed MIT computer science
-                courses online, followed by Zero To Mastery Academy's React and Data Structures programs —
-                not to become a developer, but because he had a vision that couldn't wait for someone
+                courses online, followed by Zero To Mastery Academy&apos;s React and Data Structures programs —
+                not to become a developer, but because he had a vision that couldn&apos;t wait for someone
                 else to build it. Now a full-stack React engineer transitioning into AI development,
                 Sean built SwanStudios from the ground up: a health-first community platform that gives
                 trainers, creators, and everyday people a place where their data, their relationships,

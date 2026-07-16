@@ -85,7 +85,7 @@ const Chip = styled.button<{ $active: boolean; $color: string; $size: string }>`
   overflow: hidden;
   text-overflow: ellipsis;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: ${({ $active, $color }) => $active ? '#E0ECF4' : 'var(--text-secondary, #94a3b8)'};
+  color: ${({ $active, $color: _$color }) => $active ? '#E0ECF4' : 'var(--text-secondary, #94a3b8)'};
 
   ${({ $size }) => $size === 'sm' && css`
     padding: 4px 10px;

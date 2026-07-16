@@ -5,7 +5,7 @@
  * failure. authAxios is a STABLE mock (matches production context) so the one-shot
  * stats effect can't re-fire. No real network.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

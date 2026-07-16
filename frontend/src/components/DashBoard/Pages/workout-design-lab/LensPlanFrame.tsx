@@ -18,6 +18,7 @@ import type { HostCapabilityManifest } from "../../../../core/style-lens-os/v2/h
 import type { RecipeV2 } from "../../../../core/style-lens-os/v2/recipeV2";
 import { LAB_HOST_MANIFEST } from "../../../../adapters/style-lens-swan/v2/labRecipes";
 import { lensRepresentationStyles } from "./lensRepresentationStyles";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const FrameRoot = styled.div<{ $representation?: RuleSet<object> }>`
   display: block;
@@ -96,7 +97,7 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
   }
 
   return (
-    <FrameRoot
+    <StyledBox as={FrameRoot}
       aria-label={ariaLabel}
       $representation={representationStyles}
       data-lens2-plan={plan.lensId}
@@ -106,10 +107,10 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
       data-lens2-collection={plan.variants["collection.exercise"]}
       data-lens2-action={plan.variants["action.primary"]}
       data-lens2-chart={plan.variants["chart.progress"]}
-      style={style as React.CSSProperties}
+      $style={style as React.CSSProperties}
     >
       {children}
-    </FrameRoot>
+    </StyledBox>
   );
 };
 

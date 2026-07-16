@@ -29,21 +29,25 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('framer-motion', async () => {
   const ReactModule = await vi.importActual<typeof import('react')>('react');
-  const motionFactory = (tag: string) => forwardRef<HTMLElement, any>((props, ref) => {
-    const {
-      children,
-      initial,
-      animate,
-      exit,
-      variants,
-      transition,
-      whileHover,
-      whileTap,
-      ...rest
-    } = props;
+  const motionFactory = (tag: string) => {
+    const MockMotionComponent = forwardRef<HTMLElement, any>((props, ref) => {
+      const {
+        children,
+        initial,
+        animate,
+        exit,
+        variants,
+        transition,
+        whileHover,
+        whileTap,
+        ...rest
+      } = props;
 
-    return ReactModule.createElement(tag, { ...rest, ref }, children);
-  });
+      return ReactModule.createElement(tag, { ...rest, ref }, children);
+    });
+    MockMotionComponent.displayName = `MockMotion.${tag}`;
+    return MockMotionComponent;
+  };
 
   return {
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,

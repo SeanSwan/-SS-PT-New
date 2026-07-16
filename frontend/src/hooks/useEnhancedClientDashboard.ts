@@ -21,12 +21,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import clientDashboardService, {
-  SessionEvent,
-  GamificationData,
-  ClientDashboardData,
-  DashboardStats,
-} from '../services/enhancedClientDashboardService';
+import clientDashboardService, { SessionEvent, GamificationData, DashboardStats } from '../services/enhancedClientDashboardService';
 import { logger } from '@/utils/logger';
 
 // === TYPES ===
@@ -429,10 +424,11 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
 
   // === CLEANUP EFFECT ===
   useEffect(() => {
+    const ownedCache = cacheRef.current;
     return () => {
       logger.log('🧹 Cleaning up Enhanced Client Dashboard');
       clientDashboardService.cleanup();
-      cacheRef.current.clear();
+      ownedCache.clear();
     };
   }, []);
 

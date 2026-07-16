@@ -7,4 +7,6 @@
 import { makeLensFrame } from '../../../../adapters/style-lens-swan/v2/SurfaceLensGate';
 import { WORKOUT_PLANNER_MANIFEST } from '../../../../adapters/style-lens-swan/v2/surfaceManifests';
 
-export default makeLensFrame(WORKOUT_PLANNER_MANIFEST, 'Workout Planner style frame', 'WorkoutPlannerLensFrame');
+const WorkoutPlannerLensFrame = makeLensFrame(WORKOUT_PLANNER_MANIFEST, 'Workout Planner style frame', 'WorkoutPlannerLensFrame');
+
+export default WorkoutPlannerLensFrame;

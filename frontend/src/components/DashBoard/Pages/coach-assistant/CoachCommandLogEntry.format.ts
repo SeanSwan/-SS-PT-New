@@ -8,7 +8,7 @@ import { parseWorkoutSectionHeading } from './CoachCommandLogEntry.sections';
 
 const STEP_PATTERN = /(?:^|\s)(\d+)\.\s+\*\*([^*]+?)\*\*:?\s*/g;
 const BULLET_PATTERN = /^\s*[-*]\s+(.+?)\s*$/;
-const NUMBERED_WORKOUT_PATTERN = /^\s*\d+[\.)]\s+(.+?)\s*$/;
+const NUMBERED_WORKOUT_PATTERN = /^\s*\d+[.)]\s+(.+?)\s*$/;
 const NUMBERED_BOLD_STEP_PATTERN = /^\s*\d+\.\s+\*\*/;
 const WORKOUT_DETAIL_PATTERN =
   /\b(?:sets?|reps?|rounds?|rpe|rir|rest|tempo|sec(?:onds?)?|min(?:utes?)?|lbs?|kg|warm-?up|cool-?down)\b|\d+\s*x\s*\d+/i;

@@ -65,7 +65,7 @@ export const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 /** No url(), semicolons, braces, backslashes, angle brackets. Quotes are
  *  allowed for multi-word font family names only — they cannot terminate
  *  a declaration without ; or }. */
-const TOKEN_VALUE_PATTERN = /^[a-zA-Z0-9 #%().,+*/'\"_-]{1,240}$/;
+const TOKEN_VALUE_PATTERN = /^[a-zA-Z0-9 #%().,+*/'"_-]{1,240}$/;
 export const NAME_PATTERN = /^[a-z][a-z0-9-]{1,64}$/;
 
 export interface RecipeIssue {

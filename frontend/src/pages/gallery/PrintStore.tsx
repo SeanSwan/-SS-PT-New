@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { VaultDrawer } from '../../components/ui/crystalline-primitives/VaultDrawer';
 import { GildedButton } from '../../components/ui/crystalline-primitives/GildedButton';
 import { CrystallineSkeleton } from '../../components/ui/crystalline-primitives/CrystallineSkeleton';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Types ──
 interface PrintSize { size: string; price: number; }
@@ -275,23 +276,23 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <div style={{ position: 'relative' }}>
-        <button
+      <StyledBox as="div" $style={{ position: 'relative' }}>
+        <StyledBox as="button"
           onClick={onClose}
           aria-label="Close print store"
-          style={{
+          $style={{
             position: 'absolute', top: -8, right: -8,
             width: 44, height: 44, border: '1px solid rgba(224,236,244,0.15)',
             borderRadius: '50%', background: 'transparent', color: '#E0ECF4',
             fontSize: '1.25rem', cursor: 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
           }}
-        >✕</button>
+        >✕</StyledBox>
 
         <SectionLabel>Print Your Moment</SectionLabel>
-        <p style={{ color: 'rgba(224,236,244,0.6)', fontFamily: 'Sora, sans-serif', fontSize: '0.875rem', margin: '0 0 20px' }}>
+        <StyledBox as="p" $style={{ color: 'rgba(224,236,244,0.6)', fontFamily: 'Sora, sans-serif', fontSize: '0.875rem', margin: '0 0 20px' }}>
           Order premium prints of &ldquo;{photoName}&rdquo; — delivered to your door.
-        </p>
+        </StyledBox>
 
         <PhotoPreview>
           <img src={photoUrl} alt={photoName} loading="lazy" />
@@ -299,12 +300,12 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
 
         {loading ? (
           <ProductGrid>
-            {[1,2,3,4,5].map(i => <CrystallineSkeleton key={i} style={{ height: 120 }} />)}
+            {[1,2,3,4,5].map(i => <StyledBox as={CrystallineSkeleton} key={i} $style={{ height: 120 }} />)}
           </ProductGrid>
         ) : catalogError ? (
-          <CheckoutError role="alert" style={{ marginTop: 16 }}>
+          <StyledBox as={CheckoutError} role="alert" $style={{ marginTop: 16 }}>
             Couldn&apos;t load print options right now. Please close and try again.
-          </CheckoutError>
+          </StyledBox>
         ) : (
           <>
             <SectionLabel>Choose Product</SectionLabel>
@@ -354,26 +355,26 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
 
             {selectedSize && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '4px 0 12px' }}>
-                  <span style={{ color: 'var(--text-muted, rgba(224,236,244,0.6))', fontFamily: 'Sora, sans-serif', fontSize: '0.875rem' }}>Quantity</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button
+                <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '4px 0 12px' }}>
+                  <StyledBox as="span" $style={{ color: 'var(--text-muted, rgba(224,236,244,0.6))', fontFamily: 'Sora, sans-serif', fontSize: '0.875rem' }}>Quantity</StyledBox>
+                  <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <StyledBox as="button"
                       type="button"
                       onClick={() => setQuantity(q => Math.max(1, q - 1))}
                       disabled={quantity <= 1}
                       aria-label="Decrease quantity"
-                      style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity <= 1 ? 'not-allowed' : 'pointer', opacity: quantity <= 1 ? 0.4 : 1 }}
-                    >−</button>
-                    <span aria-live="polite" style={{ minWidth: 28, textAlign: 'center', color: 'var(--text-primary, #E0ECF4)', fontFamily: 'Sora, sans-serif', fontSize: '1rem' }}>{quantity}</span>
-                    <button
+                      $style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity <= 1 ? 'not-allowed' : 'pointer', opacity: quantity <= 1 ? 0.4 : 1 }}
+                    >−</StyledBox>
+                    <StyledBox as="span" aria-live="polite" $style={{ minWidth: 28, textAlign: 'center', color: 'var(--text-primary, #E0ECF4)', fontFamily: 'Sora, sans-serif', fontSize: '1rem' }}>{quantity}</StyledBox>
+                    <StyledBox as="button"
                       type="button"
                       onClick={() => setQuantity(q => Math.min(10, q + 1))}
                       disabled={quantity >= 10}
                       aria-label="Increase quantity"
-                      style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity >= 10 ? 'not-allowed' : 'pointer', opacity: quantity >= 10 ? 0.4 : 1 }}
-                    >+</button>
-                  </div>
-                </div>
+                      $style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity >= 10 ? 'not-allowed' : 'pointer', opacity: quantity >= 10 ? 0.4 : 1 }}
+                    >+</StyledBox>
+                  </StyledBox>
+                </StyledBox>
 
                 <TotalLine>
                   <span className="label">{selectedProduct?.label} — {selectedSize.size} × {quantity}</span>
@@ -391,14 +392,14 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
                 >
                   {submitting ? 'Processing...' : `Order for $${total}`}
                 </GildedButton>
-                <p style={{ color: 'var(--text-faint, rgba(224,236,244,0.4))', fontFamily: 'Sora, sans-serif', fontSize: '0.75rem', textAlign: 'center', margin: '8px 0 0' }}>
+                <StyledBox as="p" $style={{ color: 'var(--text-faint, rgba(224,236,244,0.4))', fontFamily: 'Sora, sans-serif', fontSize: '0.75rem', textAlign: 'center', margin: '8px 0 0' }}>
                   Shipping &amp; any sales tax are calculated at checkout.
-                </p>
+                </StyledBox>
               </>
             )}
           </>
         )}
-      </div>
+      </StyledBox>
     </VaultDrawer>
   );
 };

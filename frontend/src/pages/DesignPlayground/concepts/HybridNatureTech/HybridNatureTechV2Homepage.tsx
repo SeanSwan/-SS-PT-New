@@ -2,9 +2,10 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Anchor, Compass, Fish, Waves, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
+import { Anchor, Compass, Fish, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { hybridNatureTechV2Theme as theme } from './HybridNatureTechV2Theme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─── Keyframe Animations ─── */
 const jellyFloat = keyframes`
@@ -584,11 +585,11 @@ const HybridNatureTechV2Homepage: React.FC = () => {
           <TestimonialGrid>
             <TestimonialCard {...fadeUp}>
               <TestimonialText>
-                "I came in thinking I knew my limits. Three months later, I
+                &quot;I came in thinking I knew my limits. Three months later, I
                 realize I was only at the surface. The depth-based training
-                philosophy here is unlike anything I've experienced — every
+                philosophy here is unlike anything I&apos;ve experienced — every
                 session pushes me further, and every rest day builds me
-                stronger."
+                stronger.&quot;
               </TestimonialText>
               <TestimonialAuthor>
                 — Marcus T., Explorer since 2024
@@ -596,10 +597,10 @@ const HybridNatureTechV2Homepage: React.FC = () => {
             </TestimonialCard>
             <TestimonialCard {...fadeUp} transition={{ duration: 0.6, delay: 0.15 }}>
               <TestimonialText>
-                "SwanStudios understands that real transformation happens under
-                pressure. Their trainers don't just push you — they guide you
+                &quot;SwanStudios understands that real transformation happens under
+                pressure. Their trainers don&apos;t just push you — they guide you
                 through the deep waters and make sure you come up stronger
-                every single time."
+                every single time.&quot;
               </TestimonialText>
               <TestimonialAuthor>
                 — Elena R., Explorer since 2025
@@ -612,9 +613,9 @@ const HybridNatureTechV2Homepage: React.FC = () => {
       {/* ─── CTA ─── */}
       <CTASection>
         <CTAGlow aria-hidden="true" />
-        <motion.div
+        <StyledBox as={motion.div}
           {...fadeUp}
-          style={{ position: 'relative', zIndex: 1 }}
+          $style={{ position: 'relative', zIndex: 1 }}
         >
           <SectionLabel>Ready?</SectionLabel>
           <CTATitle>
@@ -632,7 +633,7 @@ const HybridNatureTechV2Homepage: React.FC = () => {
           >
             Explore Packages <ArrowRight size={18} />
           </GradientButton>
-        </motion.div>
+        </StyledBox>
       </CTASection>
 
       {/* ─── Footer ─── */}

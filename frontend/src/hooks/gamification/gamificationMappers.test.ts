@@ -17,6 +17,20 @@ const baseRawProfile = {
 };
 
 describe('gamificationMappers', () => {
+  it('separates spendable wallet points from lifetime progression XP', () => {
+    const profile = buildLegacyProfile({
+      raw: {
+        ...baseRawProfile,
+        points: 100,
+        lifetimePointsEarned: 2500,
+      } as any,
+      targetUserId: 42,
+      user: null,
+    });
+    expect(profile.points).toBe(100);
+    expect(profile.lifetimePointsEarned).toBe(2500);
+    expect(profile.nextLevelPoints).toBeGreaterThan(2500);
+  });
   it('normalizes malformed profile collections to arrays', () => {
     const profile = buildLegacyProfile({
       raw: {

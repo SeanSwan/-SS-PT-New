@@ -15,7 +15,7 @@ import {
   SectionEl, Container, SectionHeader, SectionTitle, SectionSubtitle,
 } from '../shared/HomeStyles';
 import {
-  getReveal, getLeftSlide, getRightSlide, staggerContainer,
+  getReveal, staggerContainer,
 } from '../shared/HomeAnimations';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
@@ -125,8 +125,8 @@ const AboutSection: React.FC<AboutSectionProps> = ({ tier }) => {
   const prefersReduced = isEssential;
 
   const reveal = getReveal(prefersReduced);
-  const leftSlide = isFull ? getLeftSlide(false) : reveal;
-  const rightSlide = isFull ? getRightSlide(false) : reveal;
+
+
 
   return (
     <SectionEl>
@@ -149,14 +149,14 @@ const AboutSection: React.FC<AboutSectionProps> = ({ tier }) => {
                 Performance Training (OPT) model to every program he builds.
               </p>
               <p>
-                His career spans elite fitness brands including LA Fitness, Gold's Gym, 24 Hour
+                His career spans elite fitness brands including LA Fitness, Gold&apos;s Gym, 24 Hour
                 Fitness, and Bodies in Motion. His time as a physical therapy aid at Kerlan Jobe
                 Health South deepened his expertise in injury prevention, corrective exercise, and
                 rehabilitation.
               </p>
               <p>
                 At SwanStudios, we blend elite personal training with AI as a powerful tool — not a
-                replacement for the coach. Sean and his team conduct deep research on each client's
+                replacement for the coach. Sean and his team conduct deep research on each client&apos;s
                 goals, athletic background, and physical history to build truly optimized programs.
                 The result: the fastest, safest progress possible with a real coach guiding every
                 step.

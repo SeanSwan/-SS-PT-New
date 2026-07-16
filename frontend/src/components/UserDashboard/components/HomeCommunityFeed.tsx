@@ -91,7 +91,7 @@ const useInfiniteFeedScroll = (
       observer.unobserve(sentinel);
       observer.disconnect();
     };
-  }, [feed.hasMore, feed.isLoadingMore, feed.loadMore]);
+  }, [feed, feed.hasMore, feed.isLoadingMore, feed.loadMore, sentinelRef]);
 };
 
 const FeedLoadingState = () => (

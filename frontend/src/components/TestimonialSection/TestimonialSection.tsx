@@ -2,12 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaArrowLeft, FaArrowRight, FaStar } from "react-icons/fa";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // =============== ANIMATIONS ===============
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
+
 
 const shimmer = keyframes`
   0% { background-position: -200% center; }
@@ -508,14 +506,14 @@ const TestimonialSection: React.FC = () => {
         
         <CarouselContainer>
           <AnimatePresence initial={false} custom={direction} mode="wait">
-            <TestimonialCard
+            <StyledBox as={TestimonialCard}
               key={current}
               custom={direction}
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              style={{ position: 'absolute', width: '100%' }}
+              $style={{ position: 'absolute', width: '100%' }}
             >
               <CardInner>
                 <ImageContainer>
@@ -531,7 +529,7 @@ const TestimonialSection: React.FC = () => {
                   </ClientInfo>
                 </ContentContainer>
               </CardInner>
-            </TestimonialCard>
+            </StyledBox>
           </AnimatePresence>
           
           <NavigationButton 

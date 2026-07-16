@@ -232,7 +232,7 @@ const DismissHint = styled.span`
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const PostWorkoutCelebration: React.FC<PostWorkoutCelebrationProps> = ({
-  xpEarned,
+  xpEarned: _xpEarned,
   previousXP,
   newXP,
   surpriseMultiplier,
@@ -274,7 +274,7 @@ const PostWorkoutCelebration: React.FC<PostWorkoutCelebrationProps> = ({
 
   return createPortal(
     <Overlay
-      onClick={handleDismiss}
+      onPointerDown={handleDismiss}
       role="dialog"
       aria-modal="true"
       aria-label="Workout completion celebration"

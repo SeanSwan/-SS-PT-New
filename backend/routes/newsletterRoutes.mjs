@@ -23,7 +23,7 @@ const CONFIRM_EMAIL_SENT_MESSAGE = 'Almost there - check your email to confirm y
 const CONFIRM_EMAIL_FAILED_MESSAGE = 'Your subscription request was saved, but the confirmation email could not be sent right now. Please try again later or contact SwanStudios.';
 const normalizeDisplayName = (value) => {
   if (typeof value !== 'string') return '';
-  return value.replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return value.replace(/\p{Cc}+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
 };
 
 const escapeHtml = (value) => String(value ?? '')

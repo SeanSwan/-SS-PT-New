@@ -147,7 +147,7 @@ const buildPlanLine = (form: DailyWorkoutForm): string | null => {
  * (beat-a-prior-best, loudest first by % improvement, capped at 3 lines) and
  * a quiet count of first-lift baselines. Exported for tests.
  */
-export const buildPrBeat = (
+const buildPrBeat = (
   form: DailyWorkoutForm
 ): { records: NonNullable<DailyWorkoutForm['prEvents']>; firstCount: number } => {
   const events = Array.isArray(form.prEvents) ? form.prEvents : [];
@@ -237,7 +237,7 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
       <WorkoutLoggerChallengeReceipt progress={challengeProgress} />
       {shareState === 'shared' && <SoftLine>Shared to your community feed.</SoftLine>}
       {shareState === 'failed' && (
-        <SoftLine>Couldn't share right now — you can post it from the Community feed.</SoftLine>
+        <SoftLine>Couldn&apos;t share right now — you can post it from the Community feed.</SoftLine>
       )}
       <ActionRow>
         {shareData && shareState !== 'shared' && (

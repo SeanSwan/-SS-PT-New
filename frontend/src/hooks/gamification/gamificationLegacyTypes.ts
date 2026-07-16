@@ -135,6 +135,7 @@ export interface GamificationProfile {
   username: string;
   photo?: string;
   points: number;
+  lifetimePointsEarned: number;
   level: number;
   tier: LegacyTier;
   streakDays: number;

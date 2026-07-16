@@ -165,7 +165,8 @@ describe('SessionDetailModal auth pipeline', () => {
     const sessionServiceSource = readSource('backend/services/sessions/session.service.mjs');
 
     expect(sessionServiceSource).toMatch(/availableSessions', 'clientSource'/);
-    expect(calendarDataSource).toContain("const clientSource = (session as any).clientSource ?? (session.client as any)?.clientSource ?? undefined;");
+    expect(calendarDataSource).toContain('const clientSource = enrichedSession.clientSource ?? enrichedSession.client?.clientSource ?? undefined;');
+    expect(calendarDataSource).not.toContain('(session as any).clientSource');
     expect(calendarDataSource).toContain('clientSource,');
 
     expect(typesSource).toContain('clientSource?: string;');

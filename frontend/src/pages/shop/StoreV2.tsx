@@ -47,6 +47,7 @@ import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideo
 import { logger } from '@/utils/logger';
 import { mapStorefrontItemToStoreItem } from './components/storeCatalog';
 import type { ProductVariant, StoreItem } from './components/storeCatalog.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ============================================================
 // Helper: Theme assignment by display order
@@ -506,7 +507,7 @@ const RetryButton = styled.button`
 const StoreV2: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { cart, addToCart, refreshCart } = useCart();
-  const { currentTheme } = useUniversalTheme();
+  useUniversalTheme();
 
   // Toast fallback (same pattern as original store)
   const toast = useCallback(
@@ -665,12 +666,12 @@ const StoreV2: React.FC = () => {
             Please login or register to view pricing and purchase training packages
           </AuthBanner>
         )}
-        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+        <StyledBox as={ContentOverlay} $style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
           <LoadingContainer>
             <Spinner />
             <LoadingText>Loading premium training packages...</LoadingText>
           </LoadingContainer>
-        </ContentOverlay>
+        </StyledBox>
       </StoreContainer>
     );
   }
@@ -686,15 +687,15 @@ const StoreV2: React.FC = () => {
             Please login or register to view pricing and purchase training packages
           </AuthBanner>
         )}
-        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+        <StyledBox as={ContentOverlay} $style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
           <ErrorContainer>
             <ErrorTitle>Failed to Load Packages</ErrorTitle>
             <ErrorMessage>
-              We couldn't load the training packages. Please try again.
+              We couldn&apos;t load the training packages. Please try again.
             </ErrorMessage>
             <RetryButton onClick={fetchPackages}>Retry Loading</RetryButton>
           </ErrorContainer>
-        </ContentOverlay>
+        </StyledBox>
       </StoreContainer>
     );
   }
@@ -711,7 +712,7 @@ const StoreV2: React.FC = () => {
         </AuthBanner>
       )}
 
-      <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+      <StyledBox as={ContentOverlay} $style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
         {/* ============================================ */}
         {/* 1. PARALLAX HERO SECTION                     */}
         {/* ============================================ */}
@@ -818,14 +819,14 @@ const StoreV2: React.FC = () => {
             <CTADescription>
               Take the first step towards becoming the best version of yourself.
               Schedule a complimentary consultation with Sean Swan and discover the
-              training program that's right for you.
+              training program that&apos;s right for you.
             </CTADescription>
             <CTAButton onClick={handleBookConsultation}>
               Schedule Your Free Consultation
             </CTAButton>
           </CTASection>
         </ScrollReveal>
-      </ContentOverlay>
+      </StyledBox>
 
       {/* ============================================ */}
       {/* 4. FLOATING CART (reused component)           */}

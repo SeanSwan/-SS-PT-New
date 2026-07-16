@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mocks, resetChallengeWorkspaceMocks } from './ChallengeCommandWorkspace.renderTestHarness';

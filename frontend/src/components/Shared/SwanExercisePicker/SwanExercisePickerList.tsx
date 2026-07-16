@@ -15,6 +15,8 @@ import ExerciseMediaPreview from '../../WorkoutLogger/ExerciseMediaPreview';
 import { exerciseLevel } from './filters';
 import { AddButton, DetailsButton, ListViewport, MetaTag, RowBody, RowCard, RowMedia, RowMeta, RowName } from './styles';
 import type { ExerciseSlim, SwanPickerModeConfig } from './types';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 const MAX_VISIBLE_MUSCLES = 3;
 
@@ -39,7 +41,7 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
     const hidden = Math.max(0, muscles.length - MAX_VISIBLE_MUSCLES);
 
     return (
-      <div style={style}>
+      <StyledBox as="div" $style={style}>
         <RowCard>
           {config.showMedia && (
             <RowMedia data-testid="swan-picker-row-media">
@@ -74,7 +76,7 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
             {config.actionLabel}
           </AddButton>
         </RowCard>
-      </div>
+      </StyledBox>
     );
   }, [exercises, config, onSelect, onPreview]);
 
@@ -87,7 +89,7 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
         rowCount={exercises.length}
         rowHeight={config.rowHeight}
         rowProps={{} as never}
-        style={{ height, overflowX: 'hidden' }}
+        {...reactWindowStyleProps({ height, overflowX: 'hidden' })}
       />
     </ListViewport>
   );

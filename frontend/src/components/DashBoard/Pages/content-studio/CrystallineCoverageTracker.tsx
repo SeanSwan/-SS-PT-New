@@ -34,6 +34,7 @@ import styled, { keyframes } from 'styled-components';
 import { Search, Film, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import CoverageExerciseMediaDetail from './CoverageExerciseMediaDetail';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -538,7 +539,7 @@ const CrystallineCoverageTracker: React.FC = () => {
       <Container>
         <SummaryGrid>
           {[1, 2, 3, 4].map(i => (
-            <SkeletonBlock key={i} style={{ height: 80 }} role="status" aria-live="polite" aria-label="Loading coverage data" />
+            <StyledBox as={SkeletonBlock} key={i} $style={{ height: 80 }} role="status" aria-live="polite" aria-label="Loading coverage data" />
           ))}
         </SummaryGrid>
         <SkeletonBlock />
@@ -642,9 +643,9 @@ const CrystallineCoverageTracker: React.FC = () => {
           <LegendSwatch $color="rgba(96, 192, 240, 0.06)" />
           No Uploaded Media
         </LegendItem>
-        <LegendItem style={{ marginLeft: 'auto' }}>
+        <StyledBox as={LegendItem} $style={{ marginLeft: 'auto' }}>
           <Film size={14} /> {filteredSummary.total} shown / {filteredSummary.covered} uploaded / {filteredSummary.gap} gaps ({filteredSummary.pct}%)
-        </LegendItem>
+        </StyledBox>
       </Legend>
 
       {/* Hexagonal Grid */}

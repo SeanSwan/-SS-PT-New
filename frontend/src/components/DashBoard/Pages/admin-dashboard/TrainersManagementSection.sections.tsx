@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Award, CheckCircle, Download, Edit3, Eye, MapPin, MoreVertical, Plus,

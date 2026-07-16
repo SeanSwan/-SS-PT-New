@@ -5,7 +5,7 @@
  * Safety: Sends only IDs, counts, statuses, and schedule-version metadata; never executes schedule or payment writes.
  */
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Bot, ChevronDown, ChevronUp, Mic, Pencil, Send, Sparkles, X } from 'lucide-react';
 import {
   ScheduleAiProposalRequest,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { ContainedButton, PlainButton } from '../styles/PostCardStyles';
 
@@ -52,24 +52,33 @@ const PostEditComposer: React.FC<PostEditComposerProps> = ({
   onChange,
   onCancel,
   onSave,
-}) => (
-  <EditShell>
-    <EditTextarea
-      value={content}
-      onChange={(event) => onChange(event.target.value)}
-      autoFocus
-      aria-label="Edit post content"
-      disabled={disabled}
-    />
-    <EditActions>
-      <PlainButton type="button" onClick={onCancel} disabled={disabled}>
-        Cancel
-      </PlainButton>
-      <ContainedButton type="button" onClick={onSave} disabled={disabled || !canSave}>
-        {disabled ? 'Saving...' : 'Save'}
-      </ContainedButton>
-    </EditActions>
-  </EditShell>
-);
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => textareaRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <EditShell>
+      <EditTextarea
+        ref={textareaRef}
+        value={content}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label="Edit post content"
+        disabled={disabled}
+      />
+      <EditActions>
+        <PlainButton type="button" onClick={onCancel} disabled={disabled}>
+          Cancel
+        </PlainButton>
+        <ContainedButton type="button" onClick={onSave} disabled={disabled || !canSave}>
+          {disabled ? 'Saving...' : 'Save'}
+        </ContainedButton>
+      </EditActions>
+    </EditShell>
+  );
+};
 
 export default PostEditComposer;

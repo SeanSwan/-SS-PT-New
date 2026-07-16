@@ -46,6 +46,7 @@ import {
   SelectionLabel,
   Summary,
 } from './EquipmentScanBatchPanel.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface EquipmentScanBatchPanelProps {
   batch: EquipmentScanBatch;
@@ -142,12 +143,12 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
             {detectionBoxes.length > 0 && (
               <PreviewOverlay>
                 {detectionBoxes.map(box => (
-                  <DetectionBox
+                  <StyledBox as={DetectionBox}
                     key={box.id}
                     aria-label={`${box.label} detection box`}
                     role="img"
                     data-status={box.status}
-                    style={{
+                    $style={{
                       left: `${box.left}%`,
                       top: `${box.top}%`,
                       width: `${box.width}%`,
@@ -155,7 +156,7 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
                     }}
                   >
                     <DetectionLabel>{box.label}</DetectionLabel>
-                  </DetectionBox>
+                  </StyledBox>
                 ))}
               </PreviewOverlay>
             )}

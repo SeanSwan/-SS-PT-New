@@ -16,6 +16,7 @@ import { Dumbbell, Share2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Eyebrow } from './HomeTabVision.styles';
 import { ButtonRow, Chip, GlassButton } from './HomeTabVisionCards.styles';
 import type { HomeTrainingProof } from './HomeTabViewModel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ProofHeader = styled(ButtonRow)`
   justify-content: space-between;
@@ -133,14 +134,14 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
             </LastSessionLine>
           )}
           {proof.shareLine && (
-            <ButtonRow style={{ marginTop: '0.75rem' }}>
+            <StyledBox as={ButtonRow} $style={{ marginTop: '0.75rem' }}>
               {/* O3: shares post as a REAL workout post — the parent attaches
                   the latest session link (workoutSessionId) to the payload. */}
               <GlassButton type="button" $variant="primary" onClick={() => onShareProgress(proof.shareLine!)}>
                 <Share2 size={15} aria-hidden="true" />
                 Share my week
               </GlassButton>
-            </ButtonRow>
+            </StyledBox>
           )}
         </>
       ) : (

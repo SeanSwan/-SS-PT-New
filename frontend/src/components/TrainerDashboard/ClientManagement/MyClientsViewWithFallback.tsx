@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../../ui/LoadingSpinner';
 // Import the full component
 import MyClientsView from './MyClientsView';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Styled Components for fallback
 const FallbackContainer = styled(motion.div)`
@@ -146,7 +147,7 @@ const mockClients = [
  * MyClientsViewWithFallback - Enhanced wrapper with graceful fallbacks
  */
 const MyClientsViewWithFallback: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showDemo, setShowDemo] = useState(false);
@@ -209,7 +210,7 @@ const MyClientsViewWithFallback: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ 
+      <StyledBox as="div" $style={{
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
@@ -218,7 +219,7 @@ const MyClientsViewWithFallback: React.FC = () => {
         color: 'white'
       }}>
         <LoadingSpinner message="Loading My Clients..." />
-      </div>
+      </StyledBox>
     );
   }
 
@@ -240,11 +241,11 @@ const MyClientsViewWithFallback: React.FC = () => {
           <p>This is demonstration data showing how the My Clients interface will work when fully integrated with the API.</p>
         </DemoHeader>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3 style={{ color: 'white', margin: 0 }}>
-            <Users size={24} style={{ verticalAlign: 'middle', marginRight: '0.5rem', color: '#8b5cf6' }} />
+        <StyledBox as="div" $style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <StyledBox as="h3" $style={{ color: 'white', margin: 0 }}>
+            <StyledBox as={Users} size={24} $style={{ verticalAlign: 'middle', marginRight: '0.5rem', color: '#8b5cf6' }} />
             Demo Client Assignments
-          </h3>
+          </StyledBox>
           <GlowButton
             text="Try API Mode"
             theme="purple"
@@ -252,7 +253,7 @@ const MyClientsViewWithFallback: React.FC = () => {
             leftIcon={<RefreshCw size={16} />}
             onClick={handleTryApi}
           />
-        </div>
+        </StyledBox>
 
         {mockClients.map((client, index) => (
           <ClientCard
@@ -294,7 +295,7 @@ const MyClientsViewWithFallback: React.FC = () => {
           </ClientCard>
         ))}
 
-        <div style={{ 
+        <StyledBox as="div" $style={{
           textAlign: 'center', 
           marginTop: '2rem', 
           padding: '1rem',
@@ -302,10 +303,10 @@ const MyClientsViewWithFallback: React.FC = () => {
           borderRadius: '8px',
           border: '1px solid rgba(59, 130, 246, 0.3)'
         }}>
-          <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
+          <StyledBox as="p" $style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
             🚀 <strong>Coming Soon:</strong> Real-time client data, workout logging, progress tracking, and scheduling integration!
-          </p>
-        </div>
+          </StyledBox>
+        </StyledBox>
       </DemoDataContainer>
     );
   }
@@ -317,11 +318,11 @@ const MyClientsViewWithFallback: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <AlertCircle size={48} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-      <h3 style={{ margin: '0 0 1rem 0', color: 'white' }}>
+      <StyledBox as={AlertCircle} size={48} $style={{ color: '#f59e0b', marginBottom: '1rem' }} />
+      <StyledBox as="h3" $style={{ margin: '0 0 1rem 0', color: 'white' }}>
         My Clients - Ready for Demo!
-      </h3>
-      <p style={{ 
+      </StyledBox>
+      <StyledBox as="p" $style={{
         margin: '0 0 2rem 0', 
         color: 'rgba(255, 255, 255, 0.8)',
         lineHeight: 1.6
@@ -329,8 +330,8 @@ const MyClientsViewWithFallback: React.FC = () => {
         The My Clients interface is fully implemented and ready to display your assigned clients. 
         The component will automatically connect to your API when the backend client-trainer 
         assignment routes are available.
-      </p>
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      </StyledBox>
+      <StyledBox as="div" $style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <GlowButton
           text="View Demo Data"
           theme="purple"
@@ -344,9 +345,9 @@ const MyClientsViewWithFallback: React.FC = () => {
           onClick={handleTryApi}
           leftIcon={<RefreshCw size={18} />}
         />
-      </div>
+      </StyledBox>
       
-      <div style={{ 
+      <StyledBox as="div" $style={{
         marginTop: '2rem', 
         padding: '1rem',
         background: 'rgba(139, 92, 246, 0.1)',
@@ -354,8 +355,8 @@ const MyClientsViewWithFallback: React.FC = () => {
         border: '1px solid rgba(139, 92, 246, 0.3)',
         maxWidth: '500px'
       }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6' }}>✅ Implementation Complete:</h4>
-        <ul style={{ 
+        <StyledBox as="h4" $style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6' }}>✅ Implementation Complete:</StyledBox>
+        <StyledBox as="ul" $style={{
           textAlign: 'left', 
           color: 'rgba(255, 255, 255, 0.8)', 
           margin: 0,
@@ -367,8 +368,8 @@ const MyClientsViewWithFallback: React.FC = () => {
           <li>Quick workout logging integration</li>
           <li>Responsive stellar command center design</li>
           <li>API integration ready for backend routes</li>
-        </ul>
-      </div>
+        </StyledBox>
+      </StyledBox>
     </FallbackContainer>
   );
 };

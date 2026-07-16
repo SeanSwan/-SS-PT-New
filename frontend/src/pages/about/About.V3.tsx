@@ -14,13 +14,10 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import {
-  Award, BookOpen, Brain, CheckCircle, Dumbbell,
-  Heart, Shield, Sparkles, Target, Users, Zap,
-} from 'lucide-react';
+import { Award, Brain, CheckCircle, Heart, Shield, Target, Users } from 'lucide-react';
 
 import GlowButton from '../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
@@ -31,6 +28,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import logoImg from '../../assets/Logo.png';
 import { VIDEO } from '../../config/videoAssets';
 import WhySwanStudios from '../../components/WhySwanStudios/WhySwanStudios';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ═══════════════════════════════════════════════════════
    ANIMATED COUNTER HOOK
@@ -151,10 +149,7 @@ const breathe = keyframes`
   50% { transform: scale(1.06); }
 `;
 
-const cyanPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.15), inset 0 0 8px rgba(139, 92, 246, 0.05); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 12px rgba(139, 92, 246, 0.08); }
-`;
+
 
 /* ═══════════════════════════════════════════════════════
    NOISE OVERLAY — Fixed inline SVG noise pattern
@@ -964,7 +959,7 @@ const AboutV3: React.FC = () => {
         <Section>
           <SectionInner>
             <ScrollReveal>
-              <div style={{
+              <StyledBox as="div" $style={{
                 maxWidth: '800px',
                 margin: '0 auto',
                 padding: 'clamp(2rem, 5vw, 3.5rem)',
@@ -975,7 +970,7 @@ const AboutV3: React.FC = () => {
                 borderRadius: '16px',
                 textAlign: 'center',
               }}>
-                <p style={{
+                <StyledBox as="p" $style={{
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',
                   fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
@@ -984,16 +979,16 @@ const AboutV3: React.FC = () => {
                   marginBottom: '1rem',
                 }}>
                   &ldquo;I&rsquo;m not building this to get rich. I&rsquo;m building this because people deserve a platform that&rsquo;s actually on their side.&rdquo;
-                </p>
-                <p style={{
+                </StyledBox>
+                <StyledBox as="p" $style={{
                   color: 'var(--accent-gold, #C6A84B)',
                   fontSize: '1rem',
                   fontWeight: 600,
                   margin: 0,
                 }}>
                   — Sean Swan, Founder
-                </p>
-              </div>
+                </StyledBox>
+              </StyledBox>
             </ScrollReveal>
           </SectionInner>
         </Section>
@@ -1021,7 +1016,7 @@ const AboutV3: React.FC = () => {
                     the NASM Optimum Performance Training (OPT) model to every program he builds.
                   </p>
                   <p>
-                    His career spans elite fitness brands including LA Fitness, Gold's Gym,
+                    His career spans elite fitness brands including LA Fitness, Gold&apos;s Gym,
                     24 Hour Fitness, and Bodies in Motion. His time as a physical therapy aid
                     at Kerlan Jobe Health South deepened his expertise in injury prevention,
                     corrective exercise, and rehabilitation — principles he applies daily.
@@ -1030,12 +1025,12 @@ const AboutV3: React.FC = () => {
                     In 2013, Sean and his wife <strong>Jasmine</strong> founded SwanStudios
                     with a vision to blend elite coaching with technology. Today, SwanStudios
                     combines <strong>personal training with AI as a powerful tool</strong> —
-                    enabling deep research on each client's goals for truly optimized programming.
+                    enabling deep research on each client&apos;s goals for truly optimized programming.
                   </p>
                   <p>
                     In 2017, Sean graduated from Redwood Code Academy and completed MIT computer science
-                    courses online, followed by Zero To Mastery Academy's React and Data Structures programs —
-                    not to become a developer, but because he had a vision that couldn't wait for someone
+                    courses online, followed by Zero To Mastery Academy&apos;s React and Data Structures programs —
+                    not to become a developer, but because he had a vision that couldn&apos;t wait for someone
                     else to build it. Now a full-stack React engineer transitioning into AI development,
                     Sean built SwanStudios from the ground up: a health-first community platform that gives
                     trainers, creators, and everyday people a place where their data, their relationships,
@@ -1088,7 +1083,7 @@ const AboutV3: React.FC = () => {
               <SectionTitle>The SwanStudios Promise</SectionTitle>
               <AccentLine />
             </ScrollReveal>
-            <div style={{
+            <StyledBox as="div" $style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '1.5rem',
@@ -1100,7 +1095,7 @@ const AboutV3: React.FC = () => {
                 { title: 'Community Over Profit', icon: <Users size={28} />, body: 'We will never sell your attention to the highest bidder. Every decision we make is filtered through one question: is this good for our community?' },
               ].map((item) => (
                 <ScrollReveal key={item.title}>
-                  <div style={{
+                  <StyledBox as="div" $style={{
                     background: 'rgba(0, 32, 96, 0.4)',
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
@@ -1110,13 +1105,13 @@ const AboutV3: React.FC = () => {
                     textAlign: 'center',
                     height: '100%',
                   }}>
-                    <div style={{ color: 'var(--accent-cyan, #60C0F0)', marginBottom: '1rem' }}>{item.icon}</div>
-                    <h3 style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>{item.title}</h3>
-                    <p style={{ color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>{item.body}</p>
-                  </div>
+                    <StyledBox as="div" $style={{ color: 'var(--accent-cyan, #60C0F0)', marginBottom: '1rem' }}>{item.icon}</StyledBox>
+                    <StyledBox as="h3" $style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>{item.title}</StyledBox>
+                    <StyledBox as="p" $style={{ color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>{item.body}</StyledBox>
+                  </StyledBox>
                 </ScrollReveal>
               ))}
-            </div>
+            </StyledBox>
           </SectionInner>
         </Section>
 
@@ -1160,7 +1155,7 @@ const AboutV3: React.FC = () => {
               <SectionTitle>Our Journey</SectionTitle>
               <AccentLine />
               <SectionSubtitle>
-                Key milestones in Sean Swan's career and the evolution of SwanStudios.
+                Key milestones in Sean Swan&apos;s career and the evolution of SwanStudios.
               </SectionSubtitle>
             </ScrollReveal>
 

@@ -116,7 +116,7 @@ export const useChallengeAudienceOptions = () => {
         error: error instanceof Error ? error.message : 'Audience clients unavailable',
       }));
     }
-  }, [authAxios, user?.id, user?.role]);
+  }, [authAxios, user]);
 
   useEffect(() => {
     void loadAudienceOptions();

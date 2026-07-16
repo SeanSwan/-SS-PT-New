@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ChangedItem {
   id: number;
@@ -263,14 +264,14 @@ const PriceMismatchModal: React.FC<PriceMismatchModalProps> = ({
           {changedItems.map(item => (
             <ItemRow key={item.id}>
               <ItemName>{item.name}</ItemName>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <StatusBadge $removed={item.status === 'REMOVED'}>
                   {item.status === 'REMOVED' ? 'Removed' : 'Updated'}
                 </StatusBadge>
                 <ItemDelta $positive={item.delta > 0}>
                   {item.delta > 0 ? '+' : ''}${item.delta.toFixed(2)}
                 </ItemDelta>
-              </div>
+              </StyledBox>
             </ItemRow>
           ))}
         </ItemList>

@@ -78,13 +78,13 @@ const ClientsWorkspaceIntentBanner: React.FC<ClientsWorkspaceIntentBannerProps> 
 }) => {
   if (intent !== 'log_workout' || selectedClientId !== null) return null;
   return (
-    <IntentBanner role="region" aria-label="Log workout mode">
+    <IntentBanner aria-label="Log workout mode">
       <span className="mode-icon" aria-hidden="true">
         <ClipboardCheck size={22} />
       </span>
       <div>
         <h2>Log workout mode</h2>
-        <p>Pick the client; the logger opens next with today's plan ready to review.</p>
+        <p>Pick the client; the logger opens next with today&apos;s plan ready to review.</p>
       </div>
       <span className="mode-step">
         <MousePointerClick size={16} aria-hidden="true" />

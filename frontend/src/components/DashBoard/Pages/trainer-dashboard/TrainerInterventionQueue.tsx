@@ -158,7 +158,7 @@ const TrainerInterventionQueue: React.FC = () => {
         Client interventions
       </QueueTitle>
       {clients.length === 0 ? (
-        <AllClear>No clients need intervention right now — everyone's on track.</AllClear>
+        <AllClear>No clients need intervention right now — everyone&apos;s on track.</AllClear>
       ) : (
         clients.map((c) => {
           const name = `${c.firstName} ${c.lastName}`.trim();

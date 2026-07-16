@@ -5,7 +5,7 @@
  * Data truth: Uses the normalized challenge status only; no progress mutation.
  * Writes: Calls explicit handlers or navigates to the canonical workout logger.
  */
-import React from 'react';
+
 import { CheckCircle2, ChevronRight, Clock, Dumbbell, LogOut, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Challenge } from '../../../hooks/useChallenges';

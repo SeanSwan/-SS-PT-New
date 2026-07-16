@@ -6,7 +6,7 @@
  * frequency-card row tap that opens the dialog (card body only — the
  * expand-modal copy stays non-interactive).
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

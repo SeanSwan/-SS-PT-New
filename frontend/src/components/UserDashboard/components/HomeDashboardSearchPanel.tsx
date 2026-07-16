@@ -113,9 +113,10 @@ const HomeDashboardSearchPanel: React.FC<HomeDashboardSearchPanelProps> = ({
   return (
     <SearchDock role="dialog" aria-label="Search dashboard" aria-modal="false">
       <SearchHeader>
-        <SearchFieldWrap>
+        <SearchFieldWrap htmlFor="home-dashboard-search">
           <Search size={17} aria-hidden="true" />
           <SearchField
+            id="home-dashboard-search"
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}

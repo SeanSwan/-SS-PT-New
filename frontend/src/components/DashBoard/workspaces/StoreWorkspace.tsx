@@ -2,6 +2,7 @@ import React from 'react';
 import { CreditCard, Package, Star, Crown, Calculator, Settings } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 import AITerminalPanel from '../../Shared/AITerminalPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const tabs: WorkspaceTab[] = [
   { id: 'orders', label: 'Orders', icon: <CreditCard size={18} />, path: '/dashboard/store' },
@@ -14,14 +15,14 @@ const tabs: WorkspaceTab[] = [
 
 const StoreWorkspace: React.FC = () => (
   <>
-    <div style={{ padding: '24px 24px 0' }}>
+    <StyledBox as="div" $style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
         context="general"
         label="Store Assistant"
         emptyHint="Ask about orders, packages, pricing, revenue..."
         defaultOpen={false}
       />
-    </div>
+    </StyledBox>
     <WorkspaceContainer
       title="Store & Revenue"
       subtitle="Orders, packages, and promotional specials"

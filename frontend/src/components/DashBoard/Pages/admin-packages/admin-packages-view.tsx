@@ -110,6 +110,7 @@ import {
   ThemeDot
 } from './admin-packages-view.tableStyles';
 import { EditPackageDialog, NewPackageDialog } from './admin-packages-view.dialogs';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Interface for session package data
 interface SessionPackage {
@@ -999,12 +1000,12 @@ const AdminPackagesView: React.FC = () => {
 
                               {/* Status — one-click inline on/off toggle (no dialog) */}
                               <StyledTableCell>
-                                <SwitchLabel
+                                <StyledBox as={SwitchLabel}
                                   htmlFor={`toggle-active-${pkg.id}`}
                                   title={pkg.isActive
                                     ? 'Active — visible in the store. Click to hide.'
                                     : 'Inactive — hidden from the store. Click to make it live.'}
-                                  style={togglingId === pkg.id ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+                                  $style={togglingId === pkg.id ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
                                 >
                                   <HiddenCheckbox
                                     id={`toggle-active-${pkg.id}`}
@@ -1018,7 +1019,7 @@ const AdminPackagesView: React.FC = () => {
                                     <SwitchThumb $checked={pkg.isActive} />
                                   </SwitchTrack>
                                   {pkg.isActive ? 'Active' : 'Inactive'}
-                                </SwitchLabel>
+                                </StyledBox>
                               </StyledTableCell>
 
                               {/* Actions */}

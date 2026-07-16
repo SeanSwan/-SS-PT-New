@@ -13,6 +13,7 @@ import {
 import { AlertTriangle, RefreshCw, Users, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CHART_COLORS, victoryTheme, hexAlpha } from '../../../../Charts/chartTheme';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface GrowthPoint { date: string; signups: number; active: number; }
 
@@ -142,7 +143,7 @@ const UserGrowthChart: React.FC = () => {
               x={50} y={2}
               orientation="horizontal"
               gutter={16}
-              style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } }}
+              {...victoryStyleProps({ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } })}
               data={[
                 { name: 'Active', symbol: { fill: CHART_COLORS.iceWing } },
                 { name: 'Signups', symbol: { fill: CHART_COLORS.wingPurple } },
@@ -151,21 +152,21 @@ const UserGrowthChart: React.FC = () => {
             <VictoryAxis
               fixLabelOverlap
               tickCount={Math.min(data.history.length, 7)}
-              style={{ tickLabels: { fontSize: 9, angle: -35, textAnchor: 'end', padding: 6 } }}
+              {...victoryStyleProps({ tickLabels: { fontSize: 9, angle: -35, textAnchor: 'end', padding: 6 } })}
             />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10 } }} />
+            <VictoryAxis dependentAxis {...victoryStyleProps({ tickLabels: { fontSize: 10 } })} />
             <VictoryLine
               data={activeData}
               interpolation="linear"
-              style={{ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2.5 } }}
+              {...victoryStyleProps({ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2.5 } })}
             />
-            <VictoryScatter data={activeData} size={3} style={{ data: { fill: CHART_COLORS.iceWing } }} />
+            <VictoryScatter data={activeData} size={3} {...victoryStyleProps({ data: { fill: CHART_COLORS.iceWing } })} />
             <VictoryLine
               data={signupData}
               interpolation="linear"
-              style={{ data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2, strokeDasharray: '6 3' } }}
+              {...victoryStyleProps({ data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2, strokeDasharray: '6 3' } })}
             />
-            <VictoryScatter data={signupData} size={3} style={{ data: { fill: CHART_COLORS.wingPurple } }} />
+            <VictoryScatter data={signupData} size={3} {...victoryStyleProps({ data: { fill: CHART_COLORS.wingPurple } })} />
           </VictoryChart>
         )}
       </ChartWrap>

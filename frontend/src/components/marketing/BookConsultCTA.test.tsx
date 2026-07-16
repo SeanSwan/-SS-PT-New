@@ -4,11 +4,12 @@
  * a valid submit POSTs the exact backend contract to /api/consult-request and shows
  * success; a server 400 surfaces its message; the honeypot field exists.
  */
-import React from 'react';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import BookConsultCTA from './BookConsultCTA';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 vi.mock('axios');
 const mockedPost = vi.mocked(axios.post);
@@ -88,9 +89,9 @@ describe('BookConsultCTA', () => {
 
   it('portals the dialog to <body> so transformed ancestors cannot clip it', () => {
     const { container } = render(
-      <div style={{ transform: 'translateZ(0)', overflow: 'hidden' }}>
+      <StyledBox as="div" $style={{ transform: 'translateZ(0)', overflow: 'hidden' }}>
         <BookConsultCTA />
-      </div>
+      </StyledBox>
     );
     openModal();
     const dialog = screen.getByRole('dialog');

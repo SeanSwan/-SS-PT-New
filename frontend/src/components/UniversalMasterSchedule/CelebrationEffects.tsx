@@ -16,6 +16,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Animation Keyframes
 const confettiDrop = keyframes`
@@ -40,11 +41,7 @@ const pulseGlow = keyframes`
   }
 `;
 
-const shakeError = keyframes`
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
-`;
+
 
 const floatUp = keyframes`
   0% {
@@ -69,50 +66,11 @@ const rippleEffect = keyframes`
 `;
 
 // Enhanced animation keyframes for better celebrations
-const starBurst = keyframes`
-  0% {
-    transform: scale(0) rotate(0deg);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5) rotate(180deg);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(0) rotate(360deg);
-    opacity: 0;
-  }
-`;
 
-const levelUpGlow = keyframes`
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-    transform: scale(1);
-  }
-  25% {
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
-    transform: scale(1.05);
-  }
-  75% {
-    box-shadow: 0 0 60px rgba(255, 215, 0, 1);
-    transform: scale(1.02);
-  }
-`;
 
-const achievementPulse = keyframes`
-  0% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    transform: scale(1.1);
-    filter: brightness(1.3);
-  }
-  100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-`;
+
+
+
 
 // Styled Components
 const CelebrationContainer = styled.div`
@@ -250,7 +208,7 @@ export interface CelebrationEffectsRef {
  * Advanced celebration animations for user achievements
  */
 export const CelebrationEffects = React.forwardRef<CelebrationEffectsRef, CelebrationEffectsProps>(
-  ({ onComplete }, ref) => {
+  ({ onComplete: _onComplete }, ref) => {
     // State management
     const [confetti, setConfetti] = useState<Array<{ id: string; color: string; delay: number; duration: number; left: string }>>([]);
     const [floatingTexts, setFloatingTexts] = useState<Array<FloatingTextConfig & { id: string }>>([]);
@@ -436,12 +394,12 @@ export const CelebrationEffects = React.forwardRef<CelebrationEffectsRef, Celebr
         
         {/* Confetti */}
         {confetti.map(piece => (
-          <ConfettiPiece
+          <StyledBox as={ConfettiPiece}
             key={piece.id}
             color={piece.color}
             delay={piece.delay}
             duration={piece.duration}
-            style={{ left: piece.left }}
+            $style={{ left: piece.left }}
           />
         ))}
         

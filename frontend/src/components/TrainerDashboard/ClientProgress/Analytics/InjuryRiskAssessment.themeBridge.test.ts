@@ -23,7 +23,7 @@ describe('InjuryRiskAssessment theme bridge', () => {
     expect(styleSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(logicSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(viewSource).toContain("from './InjuryRiskAssessment.styles'");
-    expect(source).toContain("from './InjuryRiskAssessment.logic'");
+    expect(viewSource).toContain("from './InjuryRiskAssessment.logic'");
     expect(existsSync(resolve(__dirname, './InjuryRiskAssessment.styles.ts'))).toBe(true);
     expect(existsSync(resolve(__dirname, './InjuryRiskAssessment.logic.ts'))).toBe(true);
   });

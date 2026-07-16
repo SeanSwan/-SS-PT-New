@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { motion } from 'framer-motion';
+import 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -18,6 +18,7 @@ import TypewriterText from '../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
 import apiService from '../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ================================================================
  * VideoLibraryV2 — Cinematic, Theme-Aware Video Library
@@ -703,11 +704,14 @@ const VideoLibraryV2: React.FC = () => {
               {collections.map((col) => (
                 <CollectionCard
                   key={col.id}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.click(); } }}
                   onClick={() => navigate(`/collections/${col.slug}`)}
                 >
                   {col.thumbnail ? (
-                    <CollectionThumb
-                      style={{ backgroundImage: `url(${col.thumbnail})`, opacity: 1 }}
+                    <StyledBox as={CollectionThumb}
+                      $style={{ backgroundImage: `url(${col.thumbnail})`, opacity: 1 }}
                     />
                   ) : (
                     <CollectionThumb>
@@ -762,7 +766,7 @@ const VideoLibraryV2: React.FC = () => {
                   direction="up"
                   delay={Math.min(idx * 0.05, 0.4)}
                 >
-                  <VideoCard onClick={() => navigate(`/watch/${video.slug}`)}>
+                  <VideoCard role="link" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.click(); } }} onClick={() => navigate(`/watch/${video.slug}`)}>
                     <ThumbnailWrap>
                       {video.thumbnail ? (
                         <Thumbnail

@@ -692,7 +692,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
           <AnimatePresence>
             {showPrintStore && photo && galleryToken && (
               <React.Suspense fallback={null}>
-                <div onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                <div onPointerDown={(e) => e.stopPropagation()}>
                   <PrintStore
                     photoId={photo.id}
                     photoUrl={photo.url}

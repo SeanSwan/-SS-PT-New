@@ -30,6 +30,7 @@ import ParallaxSectionWrapper from "../ui-kit/parallax/ParallaxSectionWrapper";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
 import marbleTexture from "../../assets/marble-texture.png";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // --- Design Tokens (from EtherealWildernessTheme) ---
 const T = {
@@ -392,7 +393,7 @@ const FeaturesSectionV2: React.FC = () => {
             animate={isInView ? "visible" : "hidden"}
           >
             {features.map((feature) => (
-              <motion.div key={feature.id} variants={itemVariants} style={{ height: '100%' }}>
+              <StyledBox as={motion.div} key={feature.id} variants={itemVariants} $style={{ height: '100%' }}>
                 <FeatureCardWrapper
                   onClick={() => {
                     window.location.href = feature.linkTo;
@@ -428,7 +429,7 @@ const FeaturesSectionV2: React.FC = () => {
                     </FeatureCardContent>
                   </FrostedCard>
                 </FeatureCardWrapper>
-              </motion.div>
+              </StyledBox>
             ))}
           </FeaturesGrid>
         </ContentWrapper>

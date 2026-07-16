@@ -32,7 +32,7 @@ function renderInlineCopy(value: string): React.ReactNode[] {
 }
 
 function splitWorkoutBullet(value: string): { name: string; detail: string } | null {
-  const match = value.match(/^(.{2,80}?)(?:\s*[:\-]\s+)(.+)$/);
+  const match = value.match(/^(.{2,80}?)(?:\s*[:-]\s+)(.+)$/);
   const name = match?.[1]?.trim();
   const detail = match?.[2]?.trim();
 

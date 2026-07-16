@@ -191,12 +191,12 @@ const SectionInner = styled.div`
   margin: 0 auto;
 `;
 
-const SectionLabel = styled.p`
+const SectionLabel = styled.p<{ $onPrimary?: boolean }>`
   font-family: '${theme.fonts.body}', monospace;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 4px;
-  color: ${theme.colors.primary};
+  color: ${({ $onPrimary }) => $onPrimary ? theme.colors.textOnPrimary : theme.colors.primary};
   margin: 0 0 8px;
   text-align: center;
 `;
@@ -500,7 +500,7 @@ const CyberpunkPremiumV2Homepage: React.FC = () => {
       {/* ─── Programs ─── */}
       <Section>
         <SectionInner>
-          <SectionLabel>// TRACKS</SectionLabel>
+          <SectionLabel>{'// TRACKS'}</SectionLabel>
           <SectionTitle>Select Your <PinkText>Mix</PinkText></SectionTitle>
           <ProgramGrid>
             <CassetteCard {...fadeUp}>
@@ -542,7 +542,7 @@ const CyberpunkPremiumV2Homepage: React.FC = () => {
       {/* ─── Stats ─── */}
       <Section $bg="rgba(14, 6, 24, 0.95)">
         <SectionInner>
-          <SectionLabel>// HIGHSCORES</SectionLabel>
+          <SectionLabel>{'// HIGHSCORES'}</SectionLabel>
           <SectionTitle>Performance <OrangeText>Leaderboard</OrangeText></SectionTitle>
           <StatsGrid>
             <StatPanel {...fadeUp}>
@@ -570,7 +570,7 @@ const CyberpunkPremiumV2Homepage: React.FC = () => {
         <CTAOverlay aria-hidden="true" />
         <CTAContent>
           <motion.div {...fadeUp}>
-            <SectionLabel style={{ color: theme.colors.textOnPrimary }}>
+            <SectionLabel $onPrimary>
               {'>'} INSERT_COIN
             </SectionLabel>
             <CTATitle>Press Start</CTATitle>

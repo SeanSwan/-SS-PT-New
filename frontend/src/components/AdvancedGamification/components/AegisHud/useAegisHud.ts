@@ -107,7 +107,7 @@ export function useAegisHud(userId: number | null | undefined, options: UseAegis
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [fetchNeeds, refreshInterval, skip]);
+  }, [fetchNeeds, refreshInterval, skip, userId]);
 
   const replenish = useCallback(async (actionType: string) => {
     const aegisPath = getGamificationUserPath(userId, '/aegis-hud/replenish');

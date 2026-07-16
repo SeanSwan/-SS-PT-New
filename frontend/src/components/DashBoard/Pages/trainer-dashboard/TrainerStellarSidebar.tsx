@@ -47,6 +47,7 @@ import {
 } from './TrainerStellarSidebar.styles';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
 import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -242,7 +243,7 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
               {group.items.map((item, i) => {
                 const Icon = item.icon;
                 return (
-                  <NavItem
+                  <StyledBox as={NavItem}
                     key={item.path}
                     $active={isActive(item.path)}
                     $collapsed={collapsed}
@@ -250,12 +251,12 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
                     role="menuitem"
                     aria-label={item.label}
                     aria-current={isActive(item.path) ? 'page' : undefined}
-                    style={{ animationDelay: `${i * 30}ms` }}
+                    $style={{ animationDelay: `${i * 30}ms` }}
                   >
                     <NavIcon><Icon size={20} /></NavIcon>
                     <NavLabel $visible={showLabel}>{item.label}</NavLabel>
                     {collapsed && <NavTooltip>{item.label}</NavTooltip>}
-                  </NavItem>
+                  </StyledBox>
                 );
               })}
             </React.Fragment>

@@ -18,7 +18,7 @@
  *
  * ARCHITECTURE: SuccessPage -> checkoutActivation + checkoutReceipt + stateViews + styled sections.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -51,24 +51,14 @@ const SuccessPage: React.FC = () => {
 
   const sessionId = searchParams.get('session_id');
 
-  const refreshCheckoutUser = async () => {
+  const refreshCheckoutUser = useCallback(async () => {
     const result = await refreshUser();
     if (!result.success) {
       logger.warn('[Success Page] User refresh after checkout failed:', result.error);
     }
-  };
+  }, [refreshUser]);
 
-  useEffect(() => {
-    if (!sessionId) {
-      setError('No session ID provided');
-      setIsLoading(false);
-      return;
-    }
-
-    verifyAndCompleteOrder();
-  }, [sessionId]);
-
-  const verifyAndCompleteOrder = async () => {
+  const verifyAndCompleteOrder = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -155,7 +145,17 @@ const SuccessPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clearCart, refreshCheckoutUser, sessionId, toast, user?.email]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setError('No session ID provided');
+      setIsLoading(false);
+      return;
+    }
+
+    verifyAndCompleteOrder();
+  }, [sessionId, verifyAndCompleteOrder]);
 
   const handlePrimaryActivationAction = () => {
     navigate(getActivationCta(activationStatus).route);

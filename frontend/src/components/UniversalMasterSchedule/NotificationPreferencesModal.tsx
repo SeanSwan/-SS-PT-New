@@ -18,6 +18,7 @@ import {
   SmallText
 } from './ui';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface NotificationPreferencesModalProps {
   open: boolean;
@@ -167,21 +168,21 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       )}
     >
       {loading && (
-        <SmallText secondary style={{ marginBottom: '1rem' }}>
+        <StyledBox as={SmallText} secondary $style={{ marginBottom: '1rem' }}>
           Loading current preferences...
-        </SmallText>
+        </StyledBox>
       )}
 
       {formError && (
-        <ErrorText style={{ marginBottom: '1rem' }}>
+        <StyledBox as={ErrorText} $style={{ marginBottom: '1rem' }}>
           {formError}
-        </ErrorText>
+        </StyledBox>
       )}
 
       {successMessage && (
-        <SmallText style={{ color: '#10b981', marginBottom: '1rem' }}>
+        <StyledBox as={SmallText} $style={{ color: '#10b981', marginBottom: '1rem' }}>
           {successMessage}
-        </SmallText>
+        </StyledBox>
       )}
 
       <FormField>

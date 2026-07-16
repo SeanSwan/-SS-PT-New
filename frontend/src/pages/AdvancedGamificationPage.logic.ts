@@ -1,7 +1,7 @@
 type RecordValue = Record<string, unknown>;
 
 const DISPLAY_TEXT_MAX = 83;
-const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const CONTROL_CHARS = /\p{Cc}/gu;
 const WHITESPACE = /\s+/g;
 
 const asRecord = (value: unknown): RecordValue =>

@@ -80,8 +80,8 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
   );
   const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
-  const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchKey]);
-  const routeThreadId = useMemo(() => parseRouteThreadId(searchParams.get('threadId')), [searchKey]);
+  const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchParams]);
+  const routeThreadId = useMemo(() => parseRouteThreadId(searchParams.get('threadId')), [searchParams]);
   const activeThreadClientId = useMemo(
     () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
     [activeThread?.targetUserId],
@@ -101,7 +101,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),
-    [searchKey, userRole],
+    [searchParams, userRole],
   );
   const workflowReturnSource = routeSource
     || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
@@ -115,19 +115,19 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
         workflowReturnTo,
         searchParams,
       }),
-    [effectiveClientId, searchKey, userRole, workflowReturnTo],
+    [effectiveClientId, searchParams, userRole, workflowReturnTo],
   );
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = clientPin.selectedClientName || routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
-  const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
+  const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchParams]);
   const routeContext = useMemo(
     () => routeTeachPrompt
       ? buildTeachPromptRouteContext(routeTeachPrompt, routeIntent)
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );
-  const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent, searchKey]);
+  const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent]);
   const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
   const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
   const chatRouteRequestContext = useMemo(

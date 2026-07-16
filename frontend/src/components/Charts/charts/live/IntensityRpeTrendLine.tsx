@@ -31,6 +31,7 @@ import {
 } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface Props { userId: number | string; }
 
@@ -88,9 +89,9 @@ const IntensityRpeTrendLine: React.FC<Props> = ({ userId }) => {
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}`} />
           <VictoryLine
             data={sanitizeChartData(points)}
-            style={{
+            {...victoryStyleProps({
               data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2.5 },
-            }}
+            })}
             interpolation="monotoneX"
             labels={({ datum }: any) =>
               `${datum.x}: ${datum.y}${datum.source ? ` (${datum.source})` : ''}`

@@ -2,7 +2,7 @@
  * Challenge board pulse.
  * Shows a compact real-data summary above the client challenge cards.
  */
-import React from 'react';
+
 import styled from 'styled-components';
 import type { Challenge } from '../../../hooks/useChallenges';
 

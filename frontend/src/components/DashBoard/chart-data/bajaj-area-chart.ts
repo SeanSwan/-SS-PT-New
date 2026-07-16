@@ -67,7 +67,7 @@ const chartData: BajajAreaChartData = {
       },
       y: {
         title: {
-          formatter: (seriesName: string) => 'Ticket '
+          formatter: (_seriesName: string) => 'Ticket '
         }
       },
       marker: {

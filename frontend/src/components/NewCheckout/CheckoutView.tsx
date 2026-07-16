@@ -63,7 +63,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     }),
   });
 
-  const cartItems = cart?.items || [];
+  const cartItems = useMemo(() => cart?.items || [], [cart?.items]);
   const checkoutTotals = useMemo(() => calculateCheckoutTotals(cartItems), [cartItems]);
   const baseFulfillmentIntent = useMemo(() => buildCheckoutFulfillmentIntent(cartItems), [cartItems]);
   const fulfillmentIntent = useMemo(

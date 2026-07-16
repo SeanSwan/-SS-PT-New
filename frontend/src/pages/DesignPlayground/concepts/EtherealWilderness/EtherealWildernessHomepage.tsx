@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import {
-  Mountain, Waves, Wind, Sun, Moon, Star,
-  Users, Clock, Award, Shield,
-  ArrowRight, MapPin, Phone, Mail, Instagram, Twitter,
-} from 'lucide-react';
+import { Mountain, Waves, Wind, Sun, Moon, Users, Clock, Award, Shield, ArrowRight, MapPin, Phone, Mail, Instagram, Twitter } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import {
@@ -576,7 +572,7 @@ const SocialRow = styled.div`
   margin-top: 12px;
 `;
 
-const SocialLink = styled.a<ThemeProps>`
+const SocialIcon = styled.span<ThemeProps>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -585,13 +581,6 @@ const SocialLink = styled.a<ThemeProps>`
   border-radius: 50%;
   border: 1px solid ${({ $t }) => $t.colors.primary}25;
   color: ${({ $t }) => $t.colors.textSecondary};
-  transition: all 0.3s;
-
-  &:hover {
-    color: ${({ $t }) => $t.colors.primary};
-    border-color: ${({ $t }) => $t.colors.primary}50;
-    background: ${({ $t }) => $t.colors.primary}10;
-  }
 `;
 
 /* ─────────────────────────────────────
@@ -926,12 +915,12 @@ const EtherealWildernessHomepage: React.FC = () => {
               crafted with the precision of nature and the polish of purpose.
             </FooterTagline>
             <SocialRow>
-              <SocialLink $t={t} href="#" aria-label="Instagram">
+              <SocialIcon $t={t} aria-hidden="true">
                 <Instagram size={18} />
-              </SocialLink>
-              <SocialLink $t={t} href="#" aria-label="Twitter">
+              </SocialIcon>
+              <SocialIcon $t={t} aria-hidden="true">
                 <Twitter size={18} />
-              </SocialLink>
+              </SocialIcon>
             </SocialRow>
           </FooterBrand>
 

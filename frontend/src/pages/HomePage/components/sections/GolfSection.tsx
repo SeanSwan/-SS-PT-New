@@ -8,11 +8,13 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Crosshair } from 'lucide-react';
 import { SectionEl, Container, SectionHeader, SectionTitle, SectionSubtitle } from '../shared/HomeStyles';
-import { slideInLeft, slideInRight, reducedReveal, staggerContainer } from '../shared/HomeAnimations';
+import { slideInLeft, reducedReveal, staggerContainer } from '../shared/HomeAnimations';
 import { GOLF_FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface GolfSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -127,7 +129,7 @@ const GolfSection: React.FC<GolfSectionProps> = ({ tier }) => {
   const parallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
 
   const leftVariants = isFull ? slideInLeft : reducedReveal;
-  const rightVariants = isFull ? slideInRight : reducedReveal;
+
 
   const featureList = (
     <GolfFeatureList
@@ -160,11 +162,11 @@ const GolfSection: React.FC<GolfSectionProps> = ({ tier }) => {
           Sport-specific training built on NASM principles — rotational power,
           core stability, and mobility protocols that translate directly to the course.
         </SummaryDesc>
-        <GlowButton
+        <StyledBox as={GlowButton}
           text="Improve Your Game"
           variant="gilded"
           onClick={() => navigate('/contact')}
-          style={{ minWidth: 200, minHeight: 44 }}
+          $style={{ minWidth: 200, minHeight: 44 }}
         />
       </GolfSummaryCard>
     </ScrollReveal>
@@ -172,7 +174,7 @@ const GolfSection: React.FC<GolfSectionProps> = ({ tier }) => {
 
   return (
     <GolfBg ref={sectionRef}>
-      {isFull && <ParallaxLayer style={{ y: parallaxY }} />}
+      {isFull && <ParallaxLayer {...motionStyleProps({ y: parallaxY })} />}
       <Container>
         <ScrollReveal disabled={isEssential} blur={isFull} once>
           <SectionHeader>

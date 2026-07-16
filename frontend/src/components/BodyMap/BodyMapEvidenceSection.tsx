@@ -241,7 +241,7 @@ const BodyMapEvidenceSection: React.FC<BodyMapEvidenceSectionProps> = ({ userId,
         const showRemove = !isClientMode || clientCanRemove(item);
         return (
           <Card key={item.id}>
-            <Preview>{item.mediaUrl ? (item.mediaType === 'image' ? <img src={item.mediaUrl} alt="Body map evidence" /> : <video src={item.mediaUrl} controls />) : 'Stored securely'}</Preview>
+            <Preview>{item.mediaUrl ? (item.mediaType === 'image' ? <img src={item.mediaUrl} alt="Body map evidence" /> : <video src={item.mediaUrl} controls muted onVolumeChange={(event) => { event.currentTarget.muted = true; }} aria-label="Movement evidence video; audio is disabled" />) : 'Stored securely'}</Preview>
             <CardBody>
               <Status>{readableStatus(item.analysisStatus)}</Status>
               <SmallText>{item.captureContext?.movement || 'Movement not specified'}{item.captureContext?.cameraAngle ? ` · ${item.captureContext.cameraAngle}` : ''}</SmallText>

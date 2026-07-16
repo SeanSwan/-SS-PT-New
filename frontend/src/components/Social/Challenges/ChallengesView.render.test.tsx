@@ -4,7 +4,7 @@
  * Verifies the mounted client challenge surface distinguishes API outage from
  * the ordinary no-challenges state and offers explicit retry/leave feedback.
  */
-import React from 'react';
+
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';

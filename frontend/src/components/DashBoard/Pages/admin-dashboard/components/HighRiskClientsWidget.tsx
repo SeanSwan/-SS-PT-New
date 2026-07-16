@@ -6,6 +6,7 @@ import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
 import { useToast } from '../../../../../hooks/use-toast';
 import { CommandCard } from '../AdminDashboardCards';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ClientList = styled.ul`
   list-style: none;
@@ -141,20 +142,20 @@ const HighRiskClientsWidget: React.FC = () => {
   }, [toast]);
 
   return (
-    <CommandCard style={{ padding: '2rem', height: '100%' }}>
-      <h3 style={{ color: 'var(--accent-gold, #C6A84B)', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
+    <StyledBox as={CommandCard} $style={{ padding: '2rem', height: '100%' }}>
+      <StyledBox as="h3" $style={{ color: 'var(--accent-gold, #C6A84B)', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
         Low Compliance Clients
-      </h3>
+      </StyledBox>
       {loading ? ( <WidgetSkeleton count={3} /> ) : (
         <ClientList>
           {clients.map((client, index) => (
-            <ClientItem
+            <StyledBox as={ClientItem}
               key={client.id}
               variants={itemVariants}
               initial="hidden"
               animate="visible"
               transition={{ delay: index * 0.1 }}
-              style={{ opacity: contactedClients.includes(client.id) ? 0.5 : 1 }}
+              $style={{ opacity: contactedClients.includes(client.id) ? 0.5 : 1 }}
             >
               <AlertTriangle size={24} color="var(--accent-gold, #C6A84B)" />
               <ClientInfo>
@@ -182,11 +183,11 @@ const HighRiskClientsWidget: React.FC = () => {
                   View Profile
                 </ActionButton>
               </Actions>
-            </ClientItem>
+            </StyledBox>
           ))}
         </ClientList>
       )}
-    </CommandCard>
+    </StyledBox>
   );
 };
 

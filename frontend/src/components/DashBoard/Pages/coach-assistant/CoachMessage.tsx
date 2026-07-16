@@ -47,7 +47,7 @@ import { normalizeClientSource } from '../../../../utils/clientSource';
 
 type LegacyClientCreateResult = NonNullable<NonNullable<CoachMessageData['metadata']>['clientCreateResult']>;
 
-export function getLegacyClientCreateTypeLabel(clientCreate: LegacyClientCreateResult): string {
+function getLegacyClientCreateTypeLabel(clientCreate: LegacyClientCreateResult): string {
   const normalizedClientSource = normalizeClientSource(clientCreate.clientSource);
   if (normalizedClientSource === 'external') return 'External (free tracking)';
   if (normalizedClientSource === 'move_fitness' || clientCreate.isMoveFitness) {

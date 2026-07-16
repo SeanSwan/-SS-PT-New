@@ -104,30 +104,33 @@ const CoverageExerciseMediaEditor: React.FC<CoverageExerciseMediaEditorProps> = 
 
   return (
     <EditorPanel onSubmit={handleSubmit}>
-      <EditorField>
+      <EditorField htmlFor="coverage-full-video-url">
         Full video URL
-        <EditorHint>The deep "click for depth" video (R2 .mp4/.webm, YouTube, or Vimeo).</EditorHint>
+        <EditorHint>The deep &quot;click for depth&quot; video (R2 .mp4/.webm, YouTube, or Vimeo).</EditorHint>
         <UrlInput
+          id="coverage-full-video-url"
           value={form.videoUrl}
           onChange={(e) => setForm(f => ({ ...f, videoUrl: e.target.value }))}
           placeholder="https://... (blank clears it)"
           inputMode="url"
         />
       </EditorField>
-      <EditorField>
+      <EditorField htmlFor="coverage-preview-video-url">
         Short loop URL (GIF-style preview)
         <EditorHint>A short muted R2 .mp4/.webm that auto-loops on the demo board.</EditorHint>
         <UrlInput
+          id="coverage-preview-video-url"
           value={form.previewVideoUrl}
           onChange={(e) => setForm(f => ({ ...f, previewVideoUrl: e.target.value }))}
           placeholder="https://... (optional)"
           inputMode="url"
         />
       </EditorField>
-      <EditorField>
+      <EditorField htmlFor="coverage-thumbnail-url">
         Thumbnail / poster URL
         <EditorHint>Shown before the clip plays.</EditorHint>
         <UrlInput
+          id="coverage-thumbnail-url"
           value={form.thumbnailUrl}
           onChange={(e) => setForm(f => ({ ...f, thumbnailUrl: e.target.value }))}
           placeholder="https://... (optional)"

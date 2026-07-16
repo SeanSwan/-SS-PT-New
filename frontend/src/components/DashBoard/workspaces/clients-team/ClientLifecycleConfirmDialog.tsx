@@ -188,7 +188,7 @@ const ClientLifecycleConfirmDialog: React.FC<ClientLifecycleConfirmDialogProps> 
         role="dialog"
         aria-modal="true"
         aria-labelledby="client-lifecycle-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap aria-hidden="true">

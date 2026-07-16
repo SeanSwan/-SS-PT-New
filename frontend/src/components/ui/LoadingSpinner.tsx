@@ -34,7 +34,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
     if (!showProgress) return;
 
     const interval = setInterval(() => {
-      setProgress(prev => {
+      setProgress(_prev => {
         const elapsed = Date.now() - loadStartTime;
         const newProgress = Math.min(95, (elapsed / timeout) * 100);
         return newProgress;

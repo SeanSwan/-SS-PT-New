@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { checkInGuard } from '../services/groupme';
 
 const CheckInForm = ({ groupId, botId }) => {

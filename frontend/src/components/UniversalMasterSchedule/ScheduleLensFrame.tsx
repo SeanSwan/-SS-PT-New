@@ -7,4 +7,6 @@
 import { makeLensFrame } from '../../adapters/style-lens-swan/v2/SurfaceLensGate';
 import { MASTER_SCHEDULE_MANIFEST } from '../../adapters/style-lens-swan/v2/surfaceManifests';
 
-export default makeLensFrame(MASTER_SCHEDULE_MANIFEST, 'Schedule style frame', 'ScheduleLensFrame');
+const ScheduleLensFrame = makeLensFrame(MASTER_SCHEDULE_MANIFEST, 'Schedule style frame', 'ScheduleLensFrame');
+
+export default ScheduleLensFrame;

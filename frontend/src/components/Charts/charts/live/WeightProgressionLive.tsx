@@ -11,6 +11,7 @@ import { VictoryChart, VictoryLine, VictoryArea, VictoryAxis, VictoryTooltip, Vi
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface Props { userId: number | string; }
 
@@ -37,12 +38,12 @@ const WeightProgressionLive: React.FC<Props> = ({ userId }) => {
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t} lbs`} />
           <VictoryArea
             data={sanitizeChartData(data.data)}
-            style={{ data: { fill: hexAlpha(CHART_COLORS.iceWing, 0.15), stroke: 'none' } }}
+            {...victoryStyleProps({ data: { fill: hexAlpha(CHART_COLORS.iceWing, 0.15), stroke: 'none' } })}
             interpolation="natural"
           />
           <VictoryLine
             data={sanitizeChartData(data.data)}
-            style={{ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2.5 } }}
+            {...victoryStyleProps({ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2.5 } })}
             interpolation="natural"
             labels={({ datum }: any) => `${datum.y} lbs`}
             labelComponent={<VictoryTooltip />}

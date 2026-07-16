@@ -127,12 +127,12 @@ const CollectionDetail: React.FC = () => {
           <EmptyState>
             <FolderOpen size={48} />
             <EmptyTitle>No Videos Yet</EmptyTitle>
-            <EmptyText>This collection doesn't have any published videos yet.</EmptyText>
+            <EmptyText>This collection doesn&apos;t have any published videos yet.</EmptyText>
           </EmptyState>
         ) : (
           <VideoList>
             {collection.videos.map((video, index) => (
-              <VideoRow key={video.id} onClick={() => navigate(`/watch/${video.slug}`)}>
+              <VideoRow key={video.id} role="link" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.click(); } }} onClick={() => navigate(`/watch/${video.slug}`)}>
                 <VideoIndex>{index + 1}</VideoIndex>
                 <ThumbnailWrap>
                   {video.thumbnail ? (

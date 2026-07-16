@@ -41,9 +41,10 @@ describe('PostMediaDisplay image lightbox', () => {
 
     const dialog = screen.getByRole('dialog', { name: /full post image/i });
     expect(dialog).toBeInTheDocument();
-    expect(dialog.parentElement).toHaveAttribute(
-      'style',
-      expect.stringContaining(`--post-lightbox-backdrop-image: url("${imagePost.mediaUrl}")`),
+    const overlay = dialog.parentElement;
+    expect(overlay).not.toHaveAttribute('style');
+    expect(overlay).toHaveStyle(
+      `--post-lightbox-backdrop-image: url("${imagePost.mediaUrl}")`,
     );
     expect(screen.getByRole('img', { name: /full post image/i })).toHaveAttribute('src', imagePost.mediaUrl);
 

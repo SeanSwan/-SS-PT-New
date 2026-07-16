@@ -103,6 +103,7 @@ const StyledBadge = styled.span<{
   $size: BadgeSize;
   $rounded?: boolean;
   $uppercase?: boolean;
+  $interactive?: boolean;
 }>`
   display: inline-flex;
   align-items: center;
@@ -116,6 +117,7 @@ const StyledBadge = styled.span<{
   letter-spacing: 0.025em;
   white-space: nowrap;
   transition: all 0.2s ease;
+  cursor: ${({ $interactive }) => ($interactive ? 'pointer' : 'default')};
   
   /* Size variations */
   ${props => {
@@ -174,9 +176,17 @@ const Badge: React.FC<BadgeProps> = ({
       $size={size}
       $rounded={rounded}
       $uppercase={uppercase}
+      $interactive={Boolean(onClick)}
       className={className}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       {children}
     </StyledBadge>
@@ -191,35 +201,6 @@ const Badge: React.FC<BadgeProps> = ({
  * Maps common status strings to appropriate badge variants
  * Usage: <Badge variant={getStatusVariant(status)}>{status}</Badge>
  */
-export function getStatusVariant(status: string): BadgeVariant {
-  const statusLower = status.toLowerCase();
-  
-  if (statusLower.includes('complet') || statusLower.includes('done') || statusLower.includes('success')) {
-    return 'completed';
-  }
-  if (statusLower.includes('schedul') || statusLower.includes('pending')) {
-    return 'scheduled';
-  }
-  if (statusLower.includes('confirm') || statusLower.includes('approved')) {
-    return 'confirmed';
-  }
-  if (statusLower.includes('cancel') || statusLower.includes('reject') || statusLower.includes('failed')) {
-    return 'cancelled';
-  }
-  if (statusLower.includes('available') || statusLower.includes('open')) {
-    return 'available';
-  }
-  if (statusLower.includes('warning') || statusLower.includes('caution')) {
-    return 'warning';
-  }
-  if (statusLower.includes('error') || statusLower.includes('critical')) {
-    return 'error';
-  }
-  if (statusLower.includes('info') || statusLower.includes('information')) {
-    return 'info';
-  }
-  
-  return 'default';
-}
+
 
 export default Badge;

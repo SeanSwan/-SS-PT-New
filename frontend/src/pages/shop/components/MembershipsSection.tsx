@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Heart, Crown } from 'lucide-react';

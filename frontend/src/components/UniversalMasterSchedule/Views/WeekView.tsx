@@ -46,7 +46,7 @@ import {
 import { getScheduleSlotMinuteFromOffset } from '../utils/scheduleTimeSlots';
 import { buildGhostsByDay } from './WeekView.ghostLogic';
 import WeekViewGhostLayer from './WeekViewGhostLayer';
-
+import { StyledBox } from '@/components/ui/StyledBox';
 const WeekViewComponent: React.FC<WeekViewProps> = ({
   date,
   sessions,
@@ -209,9 +209,9 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
         <GridBody>
           <TimeColumn>
             {HOURS.map((hour) => (
-              <TimeLabel key={hour} style={{ height: PIXELS_PER_HOUR }}>
+              <StyledBox as={TimeLabel} key={hour} $style={{ height: PIXELS_PER_HOUR }}>
                 {formatHour(hour)}
-              </TimeLabel>
+              </StyledBox>
             ))}
           </TimeColumn>
 
@@ -223,9 +223,9 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
               return (
                 <DayColumn key={getDayKey(day)} $isToday={isToday}>
                   {HOURS.map((hour) => (
-                    <HourSlot
+                    <StyledBox as={HourSlot}
                       key={hour}
-                      style={{ height: PIXELS_PER_HOUR }}
+                      $style={{ height: PIXELS_PER_HOUR }}
                       onClick={(event) => handleSlotClick(day, hour, getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight))}
                       onKeyDown={(event) => handleSlotKeyDown(day, hour, event)}
                       role="button"
@@ -269,10 +269,10 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                   })}
 
                   {isToday && currentTimeTop !== null && (
-                    <CurrentTimeIndicator style={{ top: currentTimeTop }}>
+                    <StyledBox as={CurrentTimeIndicator} $style={{ top: currentTimeTop }}>
                       <CurrentTimeDot />
                       <CurrentTimeLine />
-                    </CurrentTimeIndicator>
+                    </StyledBox>
                   )}
                 </DayColumn>
               );

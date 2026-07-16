@@ -16,6 +16,7 @@ import { Ruler, Scale } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import WidgetSkeleton from './WidgetSkeleton';
 import { CommandCard } from '../AdminDashboardCards';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─── Styled Components ─────────────────────────────────── */
 
@@ -224,7 +225,7 @@ const UpcomingChecksWidget: React.FC = () => {
   };
 
   return (
-    <CommandCard style={{ padding: '2rem', height: '100%', marginBottom: '1.5rem' }}>
+    <StyledBox as={CommandCard} $style={{ padding: '2rem', height: '100%', marginBottom: '1.5rem' }}>
       <WidgetTitle>
         <Ruler size={20} />
         Upcoming Check-ins
@@ -262,7 +263,7 @@ const UpcomingChecksWidget: React.FC = () => {
           ))}
         </ClientList>
       )}
-    </CommandCard>
+    </StyledBox>
   );
 };
 

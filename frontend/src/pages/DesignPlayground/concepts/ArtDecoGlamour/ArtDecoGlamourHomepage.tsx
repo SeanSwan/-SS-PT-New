@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Diamond, Crown, Star, Gem, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
+import { Diamond, Crown, Star, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { artDecoGlamourTheme as theme } from './ArtDecoGlamourTheme';
 

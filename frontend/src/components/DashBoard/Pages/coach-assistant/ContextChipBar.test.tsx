@@ -14,7 +14,7 @@
  * Complements the source-level locks in
  * SwanCoachAssistantPage.transcriptIntake.test.ts Phase 9.1 section.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ContextChipBar } from './ContextChipBar';

@@ -22,6 +22,7 @@ import {
 import { RestComplianceChartProps } from '../types/ClientProgressTypes';
 import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
 import { useLensChartPalette } from '../../Charts/lensChartPalette';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -77,40 +78,40 @@ const RestComplianceChart: React.FC<RestComplianceChartProps> = ({
             x={80} y={10}
             orientation="horizontal"
             gutter={20}
-            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+            {...victoryStyleProps({ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } })}
             data={[
               { name: 'Prescribed', symbol: { fill: palette.primary } },
               { name: 'Actual', symbol: { fill: '#8B5CF6' } },
             ]}
           />
 
-          <VictoryAxis style={AXIS_STYLE}
+          <VictoryAxis {...victoryStyleProps(AXIS_STYLE)}
             tickValues={data.map((_, i) => i + 1)}
             tickFormat={categories}
           />
-          <VictoryAxis dependentAxis style={{
+          <VictoryAxis dependentAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             axisLabel: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", padding: 40 },
-          }} label="Rest (seconds)" />
+          })} label="Rest (seconds)" />
 
           <VictoryGroup offset={20}>
             <VictoryBar data={prescribedData}
-              style={{ data: { fill: palette.primary, width: 18, opacity: 0.8 } }}
+              {...victoryStyleProps({ data: { fill: palette.primary, width: 18, opacity: 0.8 } })}
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(96, 192, 240, 0.3)' }}
-                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                   cornerRadius={8}
                 />
               }
               labels={({ datum }) => `Prescribed: ${datum.y}s`}
             />
             <VictoryBar data={actualData}
-              style={{ data: { fill: '#8B5CF6', width: 18, opacity: 0.8 } }}
+              {...victoryStyleProps({ data: { fill: '#8B5CF6', width: 18, opacity: 0.8 } })}
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
-                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                   cornerRadius={8}
                 />
               }

@@ -11,6 +11,7 @@ import { VictoryChart, VictoryLine, VictoryArea, VictoryAxis, VictoryScatter, Vi
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface Props { userId: number | string; }
 
@@ -37,18 +38,18 @@ const BodyFatTrendLine: React.FC<Props> = ({ userId }) => {
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}%`} />
           <VictoryArea
             data={sanitizeChartData(data.data)}
-            style={{ data: { fill: hexAlpha(CHART_COLORS.gildedFern, 0.15), stroke: 'none' } }}
+            {...victoryStyleProps({ data: { fill: hexAlpha(CHART_COLORS.gildedFern, 0.15), stroke: 'none' } })}
             interpolation="natural"
           />
           <VictoryLine
             data={sanitizeChartData(data.data)}
-            style={{ data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 } }}
+            {...victoryStyleProps({ data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 } })}
             interpolation="natural"
           />
           <VictoryScatter
             data={sanitizeChartData(data.data)}
             size={4}
-            style={{ data: { fill: CHART_COLORS.gildedFern, stroke: CHART_COLORS.midnightSapphire, strokeWidth: 2 } }}
+            {...victoryStyleProps({ data: { fill: CHART_COLORS.gildedFern, stroke: CHART_COLORS.midnightSapphire, strokeWidth: 2 } })}
             labels={({ datum }: any) => `${datum.y}%`}
             labelComponent={<VictoryTooltip />}
           />

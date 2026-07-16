@@ -56,6 +56,7 @@ import styled, { keyframes } from 'styled-components';
 import { X, Save, XCircle } from 'lucide-react';
 import { CreateClientRequest, ClientSource, CLIENT_SOURCE_LABELS, CLIENT_SOURCE_COLORS } from '../../../../services/adminClientService';
 import { isNonDeductingClientSource, normalizeClientSource } from '../../workspaces/clients-team/clientSessionSignal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─────────────────────── Keyframes ─────────────────────── */
 
@@ -564,7 +565,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     (Object.keys(DEFAULT_FORM_DATA) as Array<keyof CreateClientRequest>).some(
       key => formData[key] !== DEFAULT_FORM_DATA[key]
     )
-  ), [clientSource, formData, heightFeet, heightInches]);
+  ), [formData, heightFeet, heightInches, normalizedClientSource]);
 
   const resetDraft = useCallback(() => {
     setClientSource('swanstudios');
@@ -700,7 +701,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
   return (
     <ModalOverlay data-testid="create-client-modal-overlay">
-      <ModalPanel ref={modalRef} role="dialog" aria-modal="true" aria-label={isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'} onClick={(e) => e.stopPropagation()}>
+      <ModalPanel ref={modalRef} role="dialog" aria-modal="true" aria-label={isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'}>
         <ModalHeader>
           <ModalTitle>{isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'}</ModalTitle>
           <CloseButton onClick={handleClose} disabled={loading} aria-label="Close">
@@ -743,24 +744,24 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   ))}
                 </SourceSelectorRow>
                 {isExternal && (
-                  <ExternalNote style={{ marginTop: 10 }}>
+                  <StyledBox as={ExternalNote} $style={{ marginTop: 10 }}>
                     {normalizedClientSource === 'move_fitness'
                       ? 'Move Fitness client - gets full tool access (Workout Log, Food Logger, Body Map, Social) with 0 SwanStudios sessions. Account access is handled by a claim link.'
                       : 'External client - gets full tool access with 0 SwanStudios sessions. Account access is handled by a claim link.'}
-                  </ExternalNote>
+                  </StyledBox>
                 )}
                 {!isExternal && (
-                  <ExternalNote style={{ marginTop: 10 }}>
+                  <StyledBox as={ExternalNote} $style={{ marginTop: 10 }}>
                     SwanStudios clients receive a secure reset link after creation. No temporary password is shown or copied.
-                  </ExternalNote>
+                  </StyledBox>
                 )}
               </FullWidthCell>
 
               {/* Basic Information */}
-              <FullWidthCell style={{ marginTop: 12 }}>
+              <StyledBox as={FullWidthCell} $style={{ marginTop: 12 }}>
                 <SectionTitle>Basic Information</SectionTitle>
                 <SectionDivider />
-              </FullWidthCell>
+              </StyledBox>
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-firstName">First Name *</FieldLabel>
@@ -833,10 +834,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
               </FieldGroup>
 
               {/* Personal Information */}
-              <FullWidthCell style={{ marginTop: 16 }}>
+              <StyledBox as={FullWidthCell} $style={{ marginTop: 16 }}>
                 <SectionTitle>Personal Information</SectionTitle>
                 <SectionDivider />
-              </FullWidthCell>
+              </StyledBox>
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-dob">Date of Birth</FieldLabel>
@@ -910,10 +911,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
               </FieldGroup>
 
               {/* Fitness Information */}
-              <FullWidthCell style={{ marginTop: 16 }}>
+              <StyledBox as={FullWidthCell} $style={{ marginTop: 16 }}>
                 <SectionTitle>Fitness Information</SectionTitle>
                 <SectionDivider />
-              </FullWidthCell>
+              </StyledBox>
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-fitnessGoal">Fitness Goal</FieldLabel>
@@ -969,10 +970,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
               {/* Training Setup — only for SwanStudios clients */}
               {!isExternal && (
                 <>
-                  <FullWidthCell style={{ marginTop: 16 }}>
+                  <StyledBox as={FullWidthCell} $style={{ marginTop: 16 }}>
                     <SectionTitle>Training Setup</SectionTitle>
                     <SectionDivider />
-                  </FullWidthCell>
+                  </StyledBox>
 
                   <FieldGroup>
                     <FieldLabel htmlFor="ccm-sessions">Initial Available Sessions</FieldLabel>

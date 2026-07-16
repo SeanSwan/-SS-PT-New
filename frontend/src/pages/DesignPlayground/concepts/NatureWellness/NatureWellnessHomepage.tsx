@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Leaf, Sun, Droplets, Wind, Heart, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
+import { Leaf, Sun, Droplets, Wind, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { natureWellnessTheme as theme } from './NatureWellnessTheme';
 
@@ -432,15 +432,15 @@ const NatureWellnessHomepage: React.FC = () => {
           <TestimonialGrid>
             <TestimonialCard {...fadeUp}>
               <TestimonialText>
-                "Training at SwanStudios changed how I see fitness. It's no longer something I dread —
-                it's the most peaceful, empowering part of my day."
+                &quot;Training at SwanStudios changed how I see fitness. It&apos;s no longer something I dread —
+                it&apos;s the most peaceful, empowering part of my day.&quot;
               </TestimonialText>
               <TestimonialAuthor>— Sarah M., Client since 2024</TestimonialAuthor>
             </TestimonialCard>
             <TestimonialCard {...fadeUp} transition={{ duration: 0.6, delay: 0.1 }}>
               <TestimonialText>
-                "The holistic approach here is unmatched. My trainer understands that wellness is
-                mind, body, and spirit. I've never felt stronger or more balanced."
+                &quot;The holistic approach here is unmatched. My trainer understands that wellness is
+                mind, body, and spirit. I&apos;ve never felt stronger or more balanced.&quot;
               </TestimonialText>
               <TestimonialAuthor>— James R., Client since 2025</TestimonialAuthor>
             </TestimonialCard>

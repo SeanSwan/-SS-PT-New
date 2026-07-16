@@ -137,7 +137,7 @@ const ContextChipBarComponent: React.FC<ContextChipBarProps> = ({ userRole = 'ad
   return (
     <InfoBar aria-label="Swan Coach capabilities">
       <InfoLabel>What Swan Coach Can Help With</InfoLabel>
-      <InfoList role="list">
+      <InfoList>
         {visibleChips.map((chip) => (
           <InfoItem key={chip.key}>
             <InfoItemEmoji aria-hidden="true">{chip.emoji}</InfoItemEmoji>

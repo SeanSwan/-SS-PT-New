@@ -16,7 +16,7 @@
  */
 
 import React, { memo, useState, useCallback, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { Award } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -161,10 +161,7 @@ export default BadgeShowcase;
 // SECTION: Animations
 // ─────────────────────────────────────────────────────────────
 
-const rarityPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50% { box-shadow: 0 0 12px 2px currentColor; }
-`;
+
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components

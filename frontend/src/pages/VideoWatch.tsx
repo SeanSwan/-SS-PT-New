@@ -9,6 +9,7 @@ import YouTubeCTA from '../components/video/YouTubeCTA';
 import MembersGateBanner from '../components/video/MembersGateBanner';
 import VideoStructuredData from '../components/seo/VideoStructuredData';
 import apiService from '../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ---------- helpers ---------- */
 
@@ -148,8 +149,8 @@ const VideoWatch: React.FC = () => {
       <PageContainer>
         <ContentArea>
           <SkeletonPlayer />
-          <SkeletonText style={{ width: '60%', height: 28 }} />
-          <SkeletonText style={{ width: '90%', height: 16 }} />
+          <StyledBox as={SkeletonText} $style={{ width: '60%', height: 28 }} />
+          <StyledBox as={SkeletonText} $style={{ width: '90%', height: 16 }} />
         </ContentArea>
       </PageContainer>
     );

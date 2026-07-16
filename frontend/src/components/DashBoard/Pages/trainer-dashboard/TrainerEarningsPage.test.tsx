@@ -6,7 +6,7 @@
  * ledger rows with paid/unpaid + lead-source pills, honest empty state,
  * error state with working retry, and no fabricated zeros while loading.
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

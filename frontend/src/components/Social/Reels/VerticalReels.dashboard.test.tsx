@@ -20,6 +20,7 @@ const basePost = {
   createdAt: '2026-06-22T12:00:00.000Z',
   mediaUrl: '/uploads/reel.mp4?X-Amz-Signature=abc',
   mediaType: null,
+  captionsUrl: '/uploads/reel.en.vtt',
   user: {
     id: 'member-1',
     firstName: 'Avery',
@@ -89,6 +90,16 @@ describe('VerticalReels dashboard frame', () => {
     expect(screen.getByRole('region', { name: 'SwanStudios Reels' })).toBeInTheDocument();
     expect(video).toHaveAttribute('src', '/uploads/reel.mp4?X-Amz-Signature=abc');
     expect(screen.getByRole('button', { name: /unmute reel/i })).toBeInTheDocument();
+  });
+
+  it('keeps reel audio unavailable when the post has no caption track', () => {
+    useSocialFeedMock.mockReturnValue(buildFeed({
+      posts: [{ ...basePost, captionsUrl: null }],
+    }));
+
+    render(<VerticalReels frame="dashboard" />);
+
+    expect(screen.getByRole('button', { name: /audio unavailable because captions were not provided/i })).toBeDisabled();
   });
 
   it('wires like, comments, and share actions instead of rendering dead buttons', () => {

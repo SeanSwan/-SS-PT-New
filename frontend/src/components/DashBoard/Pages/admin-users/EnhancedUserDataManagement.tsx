@@ -24,7 +24,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
@@ -32,47 +32,8 @@ import apiService from '../../../../services/api.service';
 import { RoleConversionModal, UserDetailsModal } from './EnhancedUserDataManagement.modals';
 
 // Lucide icons
-import {
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  MoreVertical,
-  RefreshCw,
-  Download,
-  Upload,
-  Eye,
-  UserPlus,
-  Users,
-  TrendingUp,
-  Activity,
-  BarChart3,
-  Filter,
-  XCircle,
-  CheckCircle,
-  X as XIcon,
-  AlertTriangle,
-  Info,
-  Settings,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Dumbbell,
-  GraduationCap,
-  Briefcase,
-  Star,
-  PersonStanding,
-  Brain,
-  Heart,
-  MessageCircle,
-  Bell,
-  PieChart,
-  Gauge,
-  ArrowRightLeft,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+import { Search, Pencil, RefreshCw, Eye, UserPlus, Users, TrendingUp, Dumbbell, GraduationCap, ArrowRightLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // === STYLED COMPONENTS ===
 const DashboardContainer = styled.div`
@@ -614,7 +575,7 @@ interface UserStats {
 
 // === MAIN COMPONENT ===
 const EnhancedUserDataManagement: React.FC = () => {
-  const { user: currentUser } = useAuth();
+  useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -624,10 +585,10 @@ const EnhancedUserDataManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  useState<number[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentTab, setCurrentTab] = useState(0);
+  useState(0);
   const [stats, setStats] = useState<UserStats>({
     totalUsers: 0,
     newUsersThisMonth: 0,
@@ -641,7 +602,7 @@ const EnhancedUserDataManagement: React.FC = () => {
   const [userDetailsModalOpen, setUserDetailsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleConversionModalOpen, setRoleConversionModalOpen] = useState(false);
-  const [bulkActionModalOpen, setBulkActionModalOpen] = useState(false);
+  useState(false);
 
   // Fetch users data
   const fetchUsers = useCallback(async () => {
@@ -915,11 +876,11 @@ const EnhancedUserDataManagement: React.FC = () => {
                 ))
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <StyledTd colSpan={6} style={{ textAlign: 'center', padding: '3rem' }}>
+                  <StyledBox as={StyledTd} colSpan={6} $style={{ textAlign: 'center', padding: '3rem' }}>
                     <EmptyText>
                       No users found matching your criteria
                     </EmptyText>
-                  </StyledTd>
+                  </StyledBox>
                 </tr>
               ) : (
                 filteredUsers

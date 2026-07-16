@@ -52,7 +52,7 @@ const GoalProgressTrackerAchievements: React.FC<GoalProgressTrackerAchievementsP
       {data.achievements.length === 0 ? (
         <EmptyState>
           <PanelTitle>No Goal Achievements Yet</PanelTitle>
-          <BodyText>Completed goals will appear here once they are saved in this client's goal history.</BodyText>
+          <BodyText>Completed goals will appear here once they are saved in this client&apos;s goal history.</BodyText>
         </EmptyState>
       ) : (
         <AchievementsGrid>

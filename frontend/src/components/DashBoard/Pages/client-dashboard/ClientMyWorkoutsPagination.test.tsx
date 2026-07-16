@@ -11,7 +11,7 @@
  *   reachable. These tests lock the component's rendering + callback contract
  *   so future regressions can't silently disable pagination again.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';

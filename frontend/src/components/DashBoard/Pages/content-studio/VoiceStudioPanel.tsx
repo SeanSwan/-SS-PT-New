@@ -30,7 +30,7 @@
 
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { Mic2, Play, Pause, Download, Volume2, Clock, Loader2 } from 'lucide-react';
+import { Mic2, Play, Download, Volume2, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────
@@ -346,7 +346,7 @@ const VoiceStudioPanel: React.FC = () => {
                 <Play size={16} />
               </PlayBtn>
               <HistoryText>
-                <HistoryScript>"{item.script}..."</HistoryScript>
+                <HistoryScript>&quot;{item.script}...&quot;</HistoryScript>
                 <HistoryMeta>{item.voiceName} · {item.duration}</HistoryMeta>
               </HistoryText>
               {item.url && (

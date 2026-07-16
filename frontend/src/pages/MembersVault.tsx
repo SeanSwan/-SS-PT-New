@@ -2,12 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Search, Filter, Play, Clock, Tag, ChevronDown,
-  Video, X, RotateCcw,
-} from 'lucide-react';
+import { Search, Filter, Play, Clock, Tag, Video, X, RotateCcw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ---------- helpers ---------- */
 
@@ -145,6 +143,9 @@ const MembersVault: React.FC = () => {
               {continueWatching.map((v) => (
                 <ContinueCard
                   key={v.id}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.click(); } }}
                   onClick={() => navigate(`/watch/${v.slug}`)}
                 >
                   <ContinueThumb>
@@ -154,8 +155,8 @@ const MembersVault: React.FC = () => {
                     </ContinueOverlay>
                     {v.progress && (
                       <ContinueBar>
-                        <ContinueBarFill
-                          style={{
+                        <StyledBox as={ContinueBarFill}
+                          $style={{
                             width: `${Math.min(
                               ((v.progress.currentTime || 0) / Math.max(v.durationSeconds, 1)) * 100,
                               100,
@@ -202,8 +203,9 @@ const MembersVault: React.FC = () => {
               transition={{ duration: 0.2 }}
             >
               <FilterGroup>
-                <FilterLabel>Content Type</FilterLabel>
+                <FilterLabel htmlFor="vault-content-type">Content Type</FilterLabel>
                 <FilterSelect
+                  id="vault-content-type"
                   value={contentType}
                   onChange={(e) => setContentType(e.target.value)}
                 >
@@ -214,8 +216,9 @@ const MembersVault: React.FC = () => {
                 </FilterSelect>
               </FilterGroup>
               <FilterGroup>
-                <FilterLabel>Tag</FilterLabel>
+                <FilterLabel htmlFor="vault-tag">Tag</FilterLabel>
                 <FilterSelect
+                  id="vault-tag"
                   value={selectedTag}
                   onChange={(e) => setSelectedTag(e.target.value)}
                 >
@@ -260,6 +263,9 @@ const MembersVault: React.FC = () => {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04, duration: 0.3 }}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.click(); } }}
                   onClick={() => navigate(`/watch/${v.slug}`)}
                 >
                   <ThumbWrap>

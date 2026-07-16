@@ -58,7 +58,7 @@ const renderHtml = (template, variables = {}) => renderWith(template, variables,
 
 // Subject sanitizer: strip CR/LF + control chars (header-injection defense-in-depth even though the
 // @sendgrid v3 JSON API already blocks it), collapse whitespace, hard-cap length.
-const sanitizeSubject = (s) => String(s ?? '').replace(/[\x00-\x1F\x7F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+const sanitizeSubject = (s) => String(s ?? '').replace(/\p{Cc}+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
 
 const extractPlaceholders = (template) => {
   const found = new Set();

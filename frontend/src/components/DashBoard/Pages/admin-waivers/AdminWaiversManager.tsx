@@ -43,6 +43,7 @@ import {
   QUICK_FILTERS,
   SEARCH_DEBOUNCE_MS,
 } from './AdminWaiversManager.logic';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
@@ -206,7 +207,7 @@ const AdminWaiversManager: React.FC = () => {
   return (
     <Container>
       <Header>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Title>Waiver Management</Title>
           {!loading && totalRecords > 0 && (
             <StatsRow>
@@ -216,7 +217,7 @@ const AdminWaiversManager: React.FC = () => {
               )}
             </StatsRow>
           )}
-        </div>
+        </StyledBox>
         <FilterBar>
           <SearchInput
             placeholder="Search name, email, phone..."
@@ -259,9 +260,9 @@ const AdminWaiversManager: React.FC = () => {
           <PageButton disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             Prev
           </PageButton>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+          <StyledBox as="span" $style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
             Page {page} of {totalPages}
-          </span>
+          </StyledBox>
           <PageButton disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
             Next
           </PageButton>

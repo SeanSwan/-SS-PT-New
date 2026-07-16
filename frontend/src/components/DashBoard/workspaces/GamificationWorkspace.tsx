@@ -1,6 +1,7 @@
 import React from 'react';
 import AdminGamificationView from '../Pages/admin-gamification/admin-gamification-view';
 import AITerminalPanel from '../../Shared/AITerminalPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /**
  * GamificationWorkspace
@@ -10,14 +11,14 @@ import AITerminalPanel from '../../Shared/AITerminalPanel';
  */
 const GamificationWorkspace: React.FC = () => (
   <>
-    <div style={{ padding: '24px 24px 0' }}>
+    <StyledBox as="div" $style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
         context="gamification"
         label="Gamification Coach"
         emptyHint="Ask about achievements, badges, XP system, leaderboards, and tier progression."
         defaultOpen={false}
       />
-    </div>
+    </StyledBox>
     <AdminGamificationView />
   </>
 );

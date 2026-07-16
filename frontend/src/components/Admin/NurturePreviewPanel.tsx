@@ -32,6 +32,7 @@ import {
   type NurturePreviewAction,
   type NurturePreviewItem,
 } from '../../hooks/useNurturePreview';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Container = styled.div`
   display: flex;
@@ -156,14 +157,14 @@ const NurturePreviewPanel: React.FC = () => {
         </CardHeader>
         <CardBody>
           <HelperText>
-            <ShieldCheck size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+            <StyledBox as={ShieldCheck} size={13} $style={{ verticalAlign: '-2px', marginRight: 4 }} />
             Outbound automation is armed via <code>SWAN_AUTOMATION_CRON_ENABLED</code> on Render. This panel only
             previews what the engine <strong>would</strong> do right now — it never sends or changes anything.
           </HelperText>
 
           {error && <ErrorText>{error}</ErrorText>}
 
-          <TileGrid style={{ marginTop: '1rem' }}>
+          <StyledBox as={TileGrid} $style={{ marginTop: '1rem' }}>
             <Tile>
               <SmallText secondary>Pending due now</SmallText>
               <TileValue>{preview.total}</TileValue>
@@ -174,16 +175,16 @@ const NurturePreviewPanel: React.FC = () => {
                 <TileValue>{preview.summary[t.field]}</TileValue>
               </Tile>
             ))}
-          </TileGrid>
+          </StyledBox>
 
           {reasons.length > 0 && (
-            <FlexBox wrap gap="0.4rem" style={{ marginTop: '0.85rem' }}>
+            <StyledBox as={FlexBox} wrap gap="0.4rem" $style={{ marginTop: '0.85rem' }}>
               {reasons.map(([reason, count]) => (
                 <SmallText key={reason} secondary>
                   {reason}: <strong>{count}</strong>
                 </SmallText>
               ))}
-            </FlexBox>
+            </StyledBox>
           )}
         </CardBody>
       </Card>

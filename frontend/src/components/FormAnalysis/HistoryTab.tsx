@@ -8,6 +8,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useFormAnalysisAPI } from '../../hooks/useFormAnalysisAPI';
 import { getScoreColor, getScoreGrade } from './constants';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Container = styled.div`
   display: flex;
@@ -223,12 +224,12 @@ const HistoryTab: React.FC = () => {
       <Container>
         <EmptyState>
           <EmptyIcon>📊</EmptyIcon>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#E0ECF4', marginBottom: 8 }}>
+          <StyledBox as="p" $style={{ fontSize: 16, fontWeight: 600, color: '#E0ECF4', marginBottom: 8 }}>
             No analyses yet
-          </p>
-          <p style={{ fontSize: 13 }}>
+          </StyledBox>
+          <StyledBox as="p" $style={{ fontSize: 13 }}>
             Upload a video or use the live camera to get your first form analysis.
-          </p>
+          </StyledBox>
         </EmptyState>
       </Container>
     );
@@ -243,6 +244,9 @@ const HistoryTab: React.FC = () => {
         return (
           <React.Fragment key={a.id}>
             <Card
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
               onClick={() => setExpandedId(isExpanded ? null : a.id)}
               whileTap={{ scale: 0.98 }}
             >
@@ -272,17 +276,17 @@ const HistoryTab: React.FC = () => {
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
                 {a.overallScore != null && (
-                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                    <span style={{ fontSize: 36, fontWeight: 800, color }}>
+                  <StyledBox as="div" $style={{ textAlign: 'center', marginBottom: 12 }}>
+                    <StyledBox as="span" $style={{ fontSize: 36, fontWeight: 800, color }}>
                       {a.overallScore}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'rgba(224, 236, 244, 0.4)', marginLeft: 4 }}>
+                    </StyledBox>
+                    <StyledBox as="span" $style={{ fontSize: 12, color: 'rgba(224, 236, 244, 0.4)', marginLeft: 4 }}>
                       / 100
-                    </span>
-                    <p style={{ fontSize: 12, color, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>
+                    </StyledBox>
+                    <StyledBox as="p" $style={{ fontSize: 12, color, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700 }}>
                       {getScoreGrade(a.overallScore)}
-                    </p>
-                  </div>
+                    </StyledBox>
+                  </StyledBox>
                 )}
 
                 {a.findings?.length > 0 && (
@@ -319,13 +323,13 @@ const HistoryTab: React.FC = () => {
                 )}
 
                 {a.analysisStatus === 'failed' && (
-                  <LoadMoreButton
+                  <StyledBox as={LoadMoreButton}
                     onClick={(e) => { e.stopPropagation(); handleReprocess(a.id); }}
                     whileTap={{ scale: 0.95 }}
-                    style={{ marginTop: 12, borderColor: 'rgba(255, 184, 0, 0.3)', color: '#FFB800' }}
+                    $style={{ marginTop: 12, borderColor: 'rgba(255, 184, 0, 0.3)', color: '#FFB800' }}
                   >
                     Retry Analysis
-                  </LoadMoreButton>
+                  </StyledBox>
                 )}
               </DetailPanel>
             )}

@@ -5,7 +5,7 @@
 
 ### ✅ Core Services Implemented
 - [x] **StripeAnalyticsService.mjs** - Real-time Stripe API integration with Redis caching
-- [x] **BusinessIntelligenceService.mjs** - Advanced KPI calculation and forecasting  
+- [x] **Business-intelligence endpoint** - Mounted route uses direct database aggregators; the unimported legacy service was archived on 2026-07-16
 - [x] **AdminAnalyticsRoutes.mjs** - Complete financial analytics API with security
 - [x] **Admin compatibility routes** - retired bridge responses are fail-closed
 - [x] **AdminOrdersRoutes.mjs** - Real order management with Stripe correlation

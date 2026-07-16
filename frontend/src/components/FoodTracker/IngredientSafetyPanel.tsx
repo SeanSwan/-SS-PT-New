@@ -123,6 +123,14 @@ const IngredientSafetyPanel: React.FC<IngredientSafetyPanelProps> = ({ ingredien
               $level={level}
               as={isClickable ? 'button' : 'div'}
               type={isClickable ? 'button' : undefined}
+              role={isClickable ? 'button' : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              onKeyDown={isClickable ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setSelected(ing);
+                }
+              } : undefined}
               onClick={isClickable ? () => setSelected(ing) : undefined}
               aria-label={isClickable ? `View details for ${ing.name}` : undefined}
             >

@@ -30,6 +30,7 @@ import {
   SESSION_DURATION_OPTIONS,
   SESSION_LOCATION_OPTIONS,
 } from './utils/sessionOptions';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface SessionEditModalProps {
   open: boolean;
@@ -204,12 +205,12 @@ const SessionEditModal: React.FC<SessionEditModalProps> = ({
             aria-label="Edit session location"
           />
           {customLocation !== '' && (
-            <StyledInput
+            <StyledBox as={StyledInput}
               type="text"
               value={customLocation}
               onChange={(event) => setCustomLocation(event.target.value)}
               placeholder="Enter custom location..."
-              style={{ marginTop: '0.5rem' }}
+              $style={{ marginTop: '0.5rem' }}
             />
           )}
         </FormField>
@@ -260,7 +261,7 @@ const SessionEditModal: React.FC<SessionEditModalProps> = ({
           </CheckboxWrapper>
         </FormField>
 
-        {formError && <HelperText style={{ color: '#ef4444' }}>{formError}</HelperText>}
+        {formError && <StyledBox as={HelperText} $style={{ color: '#ef4444' }}>{formError}</StyledBox>}
       </FlexBox>
     </Modal>
   );

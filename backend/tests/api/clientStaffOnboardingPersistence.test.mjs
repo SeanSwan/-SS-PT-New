@@ -95,8 +95,6 @@ describe('staff client onboarding persistence', () => {
       weight: 180,
       height: 70,
       fitnessGoal: 'Build strength',
-      weight: 180,
-      height: 70,
     }));
     expect(mockQuestionnaire.findOne).toHaveBeenCalledWith({
       where: { userId: 55 },

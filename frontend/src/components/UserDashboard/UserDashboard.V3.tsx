@@ -90,7 +90,7 @@ const UserDashboardV3: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        style={dashboardBackground.backgroundStyle}
+        $backgroundStyle={dashboardBackground.backgroundStyle}
       >
         <NoiseOverlay />
         <MainContentZWrapper>
@@ -116,7 +116,7 @@ const UserDashboardV3: React.FC = () => {
                 onTabChange={handleTabChange}
               />
               <DashboardTeachMeGuide
-                role="user"
+                dashboardRole="user"
                 pathname={teachMePathname}
                 onAskCoach={handleTeachMeCoachPrompt}
                 onNavigate={navigate}
@@ -153,7 +153,7 @@ const UserDashboardV3: React.FC = () => {
                   onTabChange={handleTabChange}
                 />
                 <DashboardTeachMeGuide
-                  role="user"
+                  dashboardRole="user"
                   pathname={teachMePathname}
                   onAskCoach={handleTeachMeCoachPrompt}
                   onNavigate={navigate}

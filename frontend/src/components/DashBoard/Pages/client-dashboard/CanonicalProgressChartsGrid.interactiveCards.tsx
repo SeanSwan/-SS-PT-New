@@ -231,12 +231,13 @@ export const SetsRepsTrendCard: React.FC<{
   const [visibleSeries, setVisibleSeries] = useState<Record<SeriesId, boolean>>({ sets: true, reps: true });
   const visibleSets = useMemo(() => sliceChartPointsByRange(bundle.sets, range), [bundle.sets, range]);
   const visibleReps = useMemo(() => sliceChartPointsByRange(bundle.reps, range), [bundle.reps, range]);
-  const pulseSets = visibleSeries.sets ? visibleSets : [];
-  const pulseReps = visibleSeries.reps ? visibleReps : [];
   const pulse = useMemo(() => {
-    const source = selectSetsRepsPulseSource(pulseSets, pulseReps);
+    const source = selectSetsRepsPulseSource(
+      visibleSeries.sets ? visibleSets : [],
+      visibleSeries.reps ? visibleReps : [],
+    );
     return buildProgressChartPulse(source.points, { label: source.label, unit: source.unit });
-  }, [pulseReps, pulseSets]);
+  }, [visibleReps, visibleSeries.reps, visibleSeries.sets, visibleSets]);
   const hasVisibleSeries = hasAnyVisibleSeries(visibleSeries);
   const hasData = hasAnySetsRepsData(visibleSets, visibleReps);
   const csvRows = useMemo(() => buildSetsRepsRows(visibleSets, visibleReps), [visibleReps, visibleSets]);

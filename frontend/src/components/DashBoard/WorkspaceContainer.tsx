@@ -10,6 +10,7 @@ import React, { Component, useMemo, type ErrorInfo, type ReactNode } from 'react
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Types ────────────────────────────────────────────
 export interface WorkspaceTab {
@@ -270,7 +271,7 @@ class WorkspaceErrorBoundary extends Component<EBProps, EBState> {
       return (
         <ErrorFallbackWrapper>
           <h3>This workspace encountered an error</h3>
-          <p style={{ opacity: 0.6, fontSize: 14 }}>{this.state.error?.message}</p>
+          <StyledBox as="p" $style={{ opacity: 0.6, fontSize: 14 }}>{this.state.error?.message}</StyledBox>
           <RetryButton onClick={() => this.setState({ hasError: false, error: null })}>
             Retry
           </RetryButton>

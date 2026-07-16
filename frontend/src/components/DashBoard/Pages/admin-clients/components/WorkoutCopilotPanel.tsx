@@ -203,7 +203,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const handleRegenerateSingleWorkout = useCallback(() => {
     setState('idle');
     setEditedPlan(null);
-  }, []);
+  }, [setEditedPlan]);
 
   // ── Render ──────────────────────────────────────────────────
 

@@ -42,7 +42,7 @@
  * Children:  Wrapped data-fetching components
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
 
 // ─────────────────────────────────────────────────────────────

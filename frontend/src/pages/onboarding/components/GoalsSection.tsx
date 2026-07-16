@@ -34,6 +34,7 @@ import React from "react";
 import { FieldGroup, InputField, TextAreaField } from "../../../components/form";
 import styled from "styled-components";
 import { GOAL_CATEGORIES } from "./GoalConstants";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -91,12 +92,12 @@ const GoalsSection: React.FC<{
         </CategoryBlock>
 
         {formData.primaryGoal === "Other (specify below)" && (
-          <InputField
+          <StyledBox as={InputField}
             name="customGoal"
             value={formData.customGoal || ""}
             onChange={handleChange}
             placeholder="Describe your performance goal"
-            style={{ marginTop: '0.75rem' }}
+            $style={{ marginTop: '0.75rem' }}
           />
         )}
       </FieldGroup>

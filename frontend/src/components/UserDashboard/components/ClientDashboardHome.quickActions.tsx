@@ -2,7 +2,7 @@
  * FILE: ClientDashboardHome.quickActions.tsx
  * PURPOSE: First-viewport quick action controls for the client dashboard Home surface.
  */
-import React from 'react';
+
 import { Bot, CalendarDays, Dumbbell, LineChart, Sparkles, Trophy } from 'lucide-react';
 import { ActionButton, QuickActionGrid } from './ClientDashboardHome.cardStyles';
 import type { ClientDashboardAction, ClientDashboardHomeProps } from './ClientDashboardHome.types';

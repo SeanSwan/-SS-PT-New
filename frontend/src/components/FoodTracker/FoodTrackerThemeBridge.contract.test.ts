@@ -13,7 +13,7 @@ describe('FoodTracker nutrition theme bridge', () => {
     const intelligenceDashboardStyles = readSource('src/components/FoodTracker/FoodIntelligenceDashboard.styles.ts');
     const restaurantStyles = readSource('src/components/FoodTracker/RestaurantTab.styles.ts');
     const gardeningTab = readSource('src/components/FoodTracker/GardeningTab.tsx');
-    const mealPlanTab = readSource('src/components/FoodTracker/MealPlanTab.tsx');
+    readSource('src/components/FoodTracker/MealPlanTab.tsx');
     const mealPlanStyles = readSource('src/components/FoodTracker/MealPlanTab.styles.ts');
     const farmFinderStyles = readSource('src/components/FoodTracker/FarmFinderTab.styles.ts');
     const supplementStyles = readSource('src/components/FoodTracker/SupplementsTab.styles.ts');

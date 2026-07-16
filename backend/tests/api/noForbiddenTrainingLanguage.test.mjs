@@ -47,7 +47,8 @@ describe('backend generated challenge language', () => {
     for (const sourcePath of asciiGeneratedSources) {
       const source = readFileSync(resolve(__dirname, sourcePath), 'utf8');
 
-      expect(source, sourcePath).not.toMatch(/[^\x00-\x7F]/);
+      const isAscii = Array.from(source).every((character) => character.codePointAt(0) <= 0x7F);
+      expect(isAscii, sourcePath).toBe(true);
     }
   });
 });

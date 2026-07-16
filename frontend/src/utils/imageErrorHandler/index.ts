@@ -1,10 +1,9 @@
 // Export the main components
-export { 
-  ImageErrorHandler, 
-  imageErrorHandler, 
+export {
+  ImageErrorHandler,
+  imageErrorHandler,
   useImageErrorHandler,
-  type ImageErrorConfig 
+  type ImageErrorConfig
 } from './ImageErrorHandler';
 
 // Import React for the hook
-import React from 'react';

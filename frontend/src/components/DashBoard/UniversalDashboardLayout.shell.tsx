@@ -122,7 +122,7 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
             )}
             {!isCoachAssistantRoute && (
               <DashboardTeachMeGuide
-                role={activeRole}
+                dashboardRole={activeRole}
                 pathname={locationPathname}
                 onNavigate={navigate}
                 onAskCoach={onTeachMeCoachPrompt}

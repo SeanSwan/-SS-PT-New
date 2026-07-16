@@ -433,7 +433,7 @@ const HeroSectionV2: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.8, delay: prefersReducedMotion ? 0 : 0.4 }}
         >
-          The world's first Fitness Social Ecosystem. Expert coaching refined by 25 years
+          The world&apos;s first Fitness Social Ecosystem. Expert coaching refined by 25 years
           of science, AI-powered tracking, and a community that fuels your transformation.
         </Subtitle>
 

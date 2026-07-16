@@ -125,14 +125,14 @@ const ModerationConfirmDialog: React.FC<ModerationConfirmDialogProps> = ({
   onCancel,
   onConfirm,
 }) => {
-  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleOverlayClick = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.currentTarget === event.target && !busy) {
       onCancel();
     }
   };
 
   return (
-    <Overlay onClick={handleOverlayClick}>
+    <Overlay onPointerDown={handleOverlayClick}>
       <Dialog role="dialog" aria-modal="true" aria-labelledby="moderation-delete-title">
         <Header>
           <AlertTriangle size={22} />

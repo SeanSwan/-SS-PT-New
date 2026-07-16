@@ -6,7 +6,7 @@
  * data table, insight bar reuse, 44px lazy trigger, and the card wirings
  * (source truth) with the share surface untouched.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';

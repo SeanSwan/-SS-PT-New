@@ -17,7 +17,7 @@ describe('TierCarousel theme contract', () => {
     expect(source).toContain('offsetLeft');
     expect(source).toContain('scrollTo({');
     expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba\(/);
-    expect(source).not.toMatch(/[^\x00-\x7F]|console\.error/);
+    expect(source).not.toMatch(/\P{ASCII}|console\.error/u);
     expect(source).toContain('aria-label="Subscription tier cards"');
     expect(source).toContain('aria-label="Carousel position"');
   });

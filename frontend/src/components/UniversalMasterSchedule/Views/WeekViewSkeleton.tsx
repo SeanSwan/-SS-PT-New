@@ -1,6 +1,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { HOURS, PIXELS_PER_HOUR, WEEK_VIEW_THEME } from './WeekView.logic';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Constants (match WeekView) ────────────────────────────────────────────────
 
@@ -44,9 +45,9 @@ const WeekViewSkeleton: React.FC = () => {
           {/* Time column */}
           <TimeColumn>
             {HOURS.map((hour) => (
-              <TimeLabel key={hour} style={{ height: PIXELS_PER_HOUR }}>
+              <StyledBox as={TimeLabel} key={hour} $style={{ height: PIXELS_PER_HOUR }}>
                 {formatHour(hour)}
-              </TimeLabel>
+              </StyledBox>
             ))}
           </TimeColumn>
 
@@ -56,7 +57,7 @@ const WeekViewSkeleton: React.FC = () => {
               <DayColumn key={colIdx}>
                 {/* Hour grid lines */}
                 {HOURS.map((hour) => (
-                  <HourSlot key={hour} style={{ height: PIXELS_PER_HOUR }} />
+                  <StyledBox as={HourSlot} key={hour} $style={{ height: PIXELS_PER_HOUR }} />
                 ))}
 
                 {/* Skeleton blocks */}
@@ -65,9 +66,9 @@ const WeekViewSkeleton: React.FC = () => {
                   const height = duration * PIXELS_PER_HOUR;
 
                   return (
-                    <SkeletonBlock
+                    <StyledBox as={SkeletonBlock}
                       key={blockIdx}
-                      style={{ top, height: Math.max(height, 24) }}
+                      $style={{ top, height: Math.max(height, 24) }}
                     />
                   );
                 })}

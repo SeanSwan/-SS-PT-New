@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
-import { X, Search, User, Dumbbell, Calendar, Activity } from 'lucide-react';
+import { X, Search, Calendar, Activity } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 // ---- Types ----
@@ -156,7 +156,7 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onPointerDown={onClose}
           />
           <DrawerContainer
             $isMobile={isMobile}

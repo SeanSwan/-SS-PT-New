@@ -28,6 +28,7 @@ import {
   StatCard,
   StatsRow,
 } from './MyClientsView.layoutStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export interface TrainerClientsStatsSummary {
   totalClients: number;
@@ -91,7 +92,7 @@ export const TrainerClientsHeader = ({
   return (
     <HeaderSection>
       <HeaderTitle>
-        <Users size={32} style={{ color: 'var(--accent-purple, #8b5cf6)' }} />
+        <StyledBox as={Users} size={32} $style={{ color: 'var(--accent-purple, #8b5cf6)' }} />
         <div>
           <h1>{isLogWorkoutIntent ? 'Pick Client to Log Workout' : 'My Clients'}</h1>
           <div className="client-count">
@@ -99,7 +100,7 @@ export const TrainerClientsHeader = ({
           </div>
           {isLogWorkoutIntent && (
             <p className="client-intent-note">
-              Choose the client, then today's logger opens with the assigned plan loaded.
+              Choose the client, then today&apos;s logger opens with the assigned plan loaded.
             </p>
           )}
         </div>

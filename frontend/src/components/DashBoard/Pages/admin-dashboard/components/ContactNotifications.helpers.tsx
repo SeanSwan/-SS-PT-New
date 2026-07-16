@@ -31,7 +31,7 @@ export const TEXT_PRIMARY = 'var(--text-primary, #E0ECF4)';
 export const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 76%, transparent))';
 export const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 58%, transparent))';
 
-export const PRIORITY_COLOR_BY_LEVEL: Record<NotificationPriority, string> = {
+const PRIORITY_COLOR_BY_LEVEL: Record<NotificationPriority, string> = {
   low: PRIORITY_LOW,
   medium: PRIORITY_MEDIUM,
   high: PRIORITY_HIGH,
@@ -81,7 +81,7 @@ const sanitizeNotificationIdPart = (value: unknown): string =>
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'missing';
 
-export const stableFinanceNotificationId = (notif: FinanceNotificationPayload, index: number): string => {
+const stableFinanceNotificationId = (notif: FinanceNotificationPayload, index: number): string => {
   if (notif.id) return notif.id;
   return [
     'fin',

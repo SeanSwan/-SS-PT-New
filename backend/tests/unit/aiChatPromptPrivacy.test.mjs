@@ -67,6 +67,58 @@ describe('aiChatPromptPrivacy', () => {
     expect(result.identitiesStripped).toBe(0);
   });
 
+  it('strips accessible client identities from unpinned staff history', async () => {
+    const generalMessageStripper = vi.fn(async (content) => ({
+      sanitizedMessage: content.replace(/Jackie Reed/g, 'Client #61'),
+      identitiesStripped: content.includes('Jackie Reed') ? 1 : 0,
+    }));
+    const result = await sanitizePromptHistory({
+      messages: [
+        { role: 'user', content: 'Schedule Jackie Reed tomorrow' },
+        { role: 'assistant', content: 'Jackie Reed has an opening' },
+      ],
+      enrichUserId: null,
+      generalMessageStripper,
+    });
+
+    expect(JSON.stringify(result.messages)).not.toContain('Jackie Reed');
+    expect(result.messages[0].content).toContain('Client #61');
+    expect(result.messages[1].content).toContain('Client #61');
+    expect(result.identitiesStripped).toBe(2);
+    expect(generalMessageStripper).toHaveBeenCalledTimes(2);
+  });
+
+  it('layers roster-wide stripping on target-bound staff history', async () => {
+    const messageStripper = vi.fn(async (content) => ({
+      sanitizedMessage: content.replace(/Sarah Smith/g, '[Client #42]'),
+      identitiesStripped: content.includes('Sarah Smith') ? 1 : 0,
+    }));
+    const responseStripper = vi.fn(async (content) => ({
+      sanitizedResponse: content.replace(/Sarah Smith/g, 'Client #42'),
+      identitiesStripped: content.includes('Sarah Smith') ? 1 : 0,
+    }));
+    const generalMessageStripper = vi.fn(async (content) => ({
+      sanitizedMessage: content.replace(/Jackie Reed/g, 'Client #61'),
+      identitiesStripped: content.includes('Jackie Reed') ? 1 : 0,
+    }));
+
+    const result = await sanitizePromptHistory({
+      messages: [
+        { role: 'user', content: 'Compare Sarah Smith with Jackie Reed' },
+        { role: 'assistant', content: 'Sarah Smith and Jackie Reed differ' },
+      ],
+      enrichUserId: 42,
+      sequelize: {},
+      messageStripper,
+      responseStripper,
+      generalMessageStripper,
+    });
+
+    expect(JSON.stringify(result.messages)).not.toMatch(/Sarah Smith|Jackie Reed/);
+    expect(result.identitiesStripped).toBe(4);
+    expect(generalMessageStripper).toHaveBeenCalledTimes(2);
+  });
+
   it('exports the response-withheld placeholder for mounted route fail-closed behavior', () => {
     expect(RESPONSE_MESSAGE_WITHHELD).toBe('[Response withheld: identity redaction unavailable.]');
   });

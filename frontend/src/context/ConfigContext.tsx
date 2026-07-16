@@ -2,7 +2,7 @@
  * ConfigContext.tsx
  * Configuration context for Dashboard
  */
-import React, { createContext, useEffect, useReducer, ReactNode } from 'react';
+import React, { createContext, useReducer, ReactNode } from 'react';
 
 // Define configuration state interface
 interface ConfigState {
@@ -40,7 +40,7 @@ const initialConfig: ConfigState = {
 };
 
 // Configuration actions
-export enum ActionTypes {
+enum ActionTypes {
   MENU_OPEN = 'MENU_OPEN',
   MENU_TYPE = 'MENU_TYPE',
   THEME_LOCALE = 'THEME_LOCALE',

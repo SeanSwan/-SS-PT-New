@@ -36,6 +36,8 @@ import {
   Title,
   Wrapper,
 } from './RevenueChart.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 const EMPTY_REVENUE_DATA: RevenueChartData = {
   overview: {
@@ -135,7 +137,7 @@ const RevenueChart: React.FC = () => {
             </RangeBtn>
           ))}
           <RefreshBtn onClick={fetchRevenue} aria-label="Refresh revenue data">
-            <RefreshCw size={14} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+            <StyledBox as={RefreshCw} size={14} $style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
           </RefreshBtn>
         </Controls>
       </Header>
@@ -170,32 +172,32 @@ const RevenueChart: React.FC = () => {
               y={2}
               orientation="horizontal"
               gutter={16}
-              style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } }}
+              {...victoryStyleProps({ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } })}
               data={[{ name: 'Revenue', symbol: { fill: CHART_COLORS.gildedFern } }]}
             />
-            <VictoryAxis tickFormat={(tick: string) => tick} style={{ tickLabels: { fontSize: 10 } }} />
+            <VictoryAxis tickFormat={(tick: string) => tick} {...victoryStyleProps({ tickLabels: { fontSize: 10 } })} />
             <VictoryAxis
               dependentAxis
               tickFormat={(tick: number) => `$${(tick / 1000).toFixed(0)}k`}
-              style={{ tickLabels: { fontSize: 10 } }}
+              {...victoryStyleProps({ tickLabels: { fontSize: 10 } })}
             />
             <VictoryArea
               data={chartData}
               interpolation="linear"
-              style={{
+              {...victoryStyleProps({
                 data: {
                   fill: hexAlpha(CHART_COLORS.gildedFern, 0.15),
                   stroke: CHART_COLORS.gildedFern,
                   strokeWidth: 2.5,
                 },
-              }}
+              })}
             />
             <VictoryLine
               data={chartData}
               interpolation="linear"
-              style={{
+              {...victoryStyleProps({
                 data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 },
-              }}
+              })}
             />
           </VictoryChart>
         )}

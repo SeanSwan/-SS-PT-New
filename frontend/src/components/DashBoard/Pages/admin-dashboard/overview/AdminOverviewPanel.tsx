@@ -43,6 +43,7 @@ import {
   ErrorText,
   StatusText,
 } from './AdminOverviewPanel.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
@@ -280,7 +281,7 @@ const AdminOverviewPanel: React.FC = () => {
         lead="Long-form telemetry is promoted to a visible section instead of a mystery details button at the bottom of the page."
       >
         <BentoHalf>
-          <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+          <Suspense fallback={<StyledBox as="div" $style={{ minHeight: 400 }} />}>
             <VisitorWorldMap />
           </Suspense>
         </BentoHalf>

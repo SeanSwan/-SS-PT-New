@@ -31,9 +31,4 @@ describe('emergency admin gate contracts', () => {
   it('keeps the orphaned bypass AdminRoute deleted', () => {
     expect(existsSync(resolve(routesDir, 'admin-route.tsx'))).toBe(false);
   });
-
-  it('keeps hooks recovery from referencing the deleted bypass route', () => {
-    const hooksRecoverySource = readSource(resolve(routesDir, '../utils/hooksRecovery.js'));
-    expect(hooksRecoverySource).not.toContain('admin-route.tsx');
-  });
 });

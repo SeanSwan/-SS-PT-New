@@ -23,7 +23,7 @@ describe('contact API base', () => {
   });
 
   it('keeps all contact page variants on the shared same-origin base', () => {
-    for (const fileName of ['ContactV2.tsx', 'ContactV3.tsx', 'EnhancedContactPage.tsx']) {
+    for (const fileName of ['ContactV2.tsx', 'ContactV3.tsx']) {
       const source = readContactSource(fileName);
       expect(source).toContain('resolveContactApiBase(window.location.hostname)');
       expect(source).not.toContain("origin.includes('sswanstudios.com')");
@@ -31,7 +31,7 @@ describe('contact API base', () => {
   });
 
   it('passes acquisition attribution through every contact form variant', () => {
-    for (const fileName of ['ContactV2.tsx', 'ContactV3.tsx', 'EnhancedContactPage.tsx']) {
+    for (const fileName of ['ContactV2.tsx', 'ContactV3.tsx']) {
       const source = readContactSource(fileName);
       expect(source).toContain('readAcquisitionParams');
       expect(source).toContain('...readAcquisitionParams()');

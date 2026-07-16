@@ -63,7 +63,7 @@ describe('Trainer home observatory parity', () => {
       const filePath = resolve(here, file);
       expect(existsSync(filePath), `${file} should exist`).toBe(true);
       const fileSource = readFileSync(filePath, 'utf8');
-      expect(fileSource).not.toMatch(/[^\x00-\x7F]/);
+      expect(fileSource).not.toMatch(/\P{ASCII}/u);
       expect(fileSource.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
     });
   });

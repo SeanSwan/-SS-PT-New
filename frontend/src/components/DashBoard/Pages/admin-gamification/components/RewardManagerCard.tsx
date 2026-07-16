@@ -34,6 +34,7 @@ import {
   StatusPositioner,
 } from './RewardManagerControls.styles';
 import type { Reward } from './RewardManager.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface RewardManagerCardProps {
   reward: Reward;
@@ -55,13 +56,13 @@ export const RewardManagerCard: React.FC<RewardManagerCardProps> = ({
   onToggleStatus,
   onOpenStockDialog,
 }) => (
-  <RewardItem
+  <StyledBox as={RewardItem}
     tier={reward.tier}
     whileHover={{
       y: -5,
       transition: { duration: 0.2 },
     }}
-    style={{ opacity: reward.isActive ? 1 : 0.6 }}
+    $style={{ opacity: reward.isActive ? 1 : 0.6 }}
   >
     <RewardBadge tier={reward.tier}>{reward.tier.toUpperCase()}</RewardBadge>
 
@@ -113,5 +114,5 @@ export const RewardManagerCard: React.FC<RewardManagerCardProps> = ({
         <Trash2 size={16} />
       </IconBtn>
     </ActionRow>
-  </RewardItem>
+  </StyledBox>
 );

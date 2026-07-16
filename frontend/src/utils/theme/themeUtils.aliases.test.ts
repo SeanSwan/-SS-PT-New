@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { themeCycle, type ThemeId } from '../../context/ThemeContext/UniversalThemeContext';
+import { themes, themeCycle, type ThemeId } from '../../context/ThemeContext/UniversalThemeContext';
 import { generateCSSVariables } from './themeUtils';
 
 const requiredDashboardAliases = [
@@ -92,7 +92,7 @@ function contrastRatio(foreground: string, background: string): number {
 describe('theme CSS variable bridge aliases', () => {
   it('emits every dashboard alias used by mounted user-dashboard surfaces', () => {
     for (const themeId of themeCycle) {
-      const css = generateCSSVariables(themeId as ThemeId);
+      const css = generateCSSVariables(themeId as ThemeId, themes);
 
       for (const alias of requiredDashboardAliases) {
         expect(cssValue(css, alias), `${themeId} missing --${alias}`).not.toBe('');
@@ -102,7 +102,7 @@ describe('theme CSS variable bridge aliases', () => {
 
   it('keeps filled button text aliases AA-readable for every theme', () => {
     for (const themeId of themeCycle) {
-      const css = generateCSSVariables(themeId as ThemeId);
+      const css = generateCSSVariables(themeId as ThemeId, themes);
 
       expect(
         contrastRatio(cssValue(css, 'button-primary-text'), cssValue(css, 'button-primary-bg')),
@@ -117,7 +117,7 @@ describe('theme CSS variable bridge aliases', () => {
 
   it('keeps legacy button text aliases tied to the computed primary button text', () => {
     for (const themeId of themeCycle) {
-      const css = generateCSSVariables(themeId as ThemeId);
+      const css = generateCSSVariables(themeId as ThemeId, themes);
 
       expect(cssValue(css, 'button-text'), `${themeId} legacy --button-text`).toBe(cssValue(css, 'button-primary-text'));
       expect(cssValue(css, 'text-on-accent'), `${themeId} legacy --text-on-accent`).toBe(cssValue(css, 'button-primary-text'));
@@ -127,7 +127,7 @@ describe('theme CSS variable bridge aliases', () => {
 
   it('emits theme-owned session detail modal aliases for every theme', () => {
     for (const themeId of themeCycle) {
-      const css = generateCSSVariables(themeId as ThemeId);
+      const css = generateCSSVariables(themeId as ThemeId, themes);
 
       for (const alias of requiredSessionDetailAliases) {
         expect(cssValue(css, alias), `${themeId} missing --${alias}`).not.toBe('');
@@ -136,8 +136,8 @@ describe('theme CSS variable bridge aliases', () => {
   });
 
   it('ties premium session detail modal modules to the selected non-blue theme', () => {
-    const rubyCss = generateCSSVariables('ruby-forge');
-    const emeraldCss = generateCSSVariables('emerald-vault');
+    const rubyCss = generateCSSVariables('ruby-forge', themes);
+    const emeraldCss = generateCSSVariables('emerald-vault', themes);
 
     expect(cssValue(rubyCss, 'schedule-command-panel-bg')).toContain('#32111B');
     expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#9F1239');

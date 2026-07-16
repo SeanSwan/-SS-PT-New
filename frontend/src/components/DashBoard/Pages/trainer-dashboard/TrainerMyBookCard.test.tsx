@@ -5,7 +5,7 @@
  * partial rendering when one source fails, full self-hide when both fail,
  * and the one-tap earnings deep link.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

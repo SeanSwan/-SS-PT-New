@@ -19,7 +19,48 @@ import type {
 
 type RawPoint = Record<string, unknown>;
 
-const toArray = (value: unknown): RawPoint[] => (Array.isArray(value) ? value : []);
+export interface RawAttendanceBundle {
+  data?: unknown;
+  reliabilityPercent?: unknown;
+  totals?: unknown;
+}
+
+export interface RawSetsRepsBundle {
+  sets?: unknown;
+  reps?: unknown;
+}
+
+export interface RawAnchorLiftsBundle {
+  data?: unknown;
+  exercises?: unknown;
+}
+
+export interface RawEstOneRmBundle {
+  exercise?: unknown;
+  data?: unknown;
+}
+
+export interface RawClientProgressChartsBundle {
+  workoutFrequency?: unknown;
+  attendanceReliability?: RawAttendanceBundle | null;
+  weeklyVolume?: unknown;
+  setsRepsTrend?: RawSetsRepsBundle | null;
+  durationTrend?: unknown;
+  intensityRpeTrend?: unknown;
+  prTimeline?: unknown;
+  anchorLifts?: RawAnchorLiftsBundle | null;
+  exerciseFrequency?: unknown;
+  movementPatternBalance?: unknown;
+  muscleGroupBalance?: unknown;
+  recoverySignal?: unknown;
+  weightTrend?: unknown;
+  bodyFatTrend?: unknown;
+  estOneRm?: RawEstOneRmBundle | null;
+}
+
+const isRawPoint = (value: unknown): value is RawPoint =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const toArray = (value: unknown): RawPoint[] => (Array.isArray(value) ? value.filter(isRawPoint) : []);
 
 const toFiniteNumber = (value: unknown, fallback = 0): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -95,15 +136,16 @@ const EMPTY_SETS_REPS = { sets: [], reps: [] };
 
 const EMPTY_ANCHOR_LIFTS = { data: {}, exercises: [] };
 
-export function sanitizeClientProgressChartsBundle(raw: Partial<CanonicalProgressCharts>): CanonicalProgressCharts {
-  const attendance = raw.attendanceReliability || EMPTY_ATTENDANCE;
-  const attendanceTotals = attendance.totals || EMPTY_ATTENDANCE.totals;
-  const setsReps = raw.setsRepsTrend || EMPTY_SETS_REPS;
-  const anchor = raw.anchorLifts || EMPTY_ANCHOR_LIFTS;
-  const rawAnchorData =
-    anchor.data && typeof anchor.data === 'object' && !Array.isArray(anchor.data)
-      ? anchor.data
-      : {};
+export function sanitizeClientProgressChartsBundle(raw: RawClientProgressChartsBundle): CanonicalProgressCharts {
+  const attendance = isRawPoint(raw.attendanceReliability)
+    ? raw.attendanceReliability
+    : EMPTY_ATTENDANCE;
+  const attendanceTotals = isRawPoint(attendance.totals)
+    ? attendance.totals
+    : EMPTY_ATTENDANCE.totals;
+  const setsReps = isRawPoint(raw.setsRepsTrend) ? raw.setsRepsTrend : EMPTY_SETS_REPS;
+  const anchor = isRawPoint(raw.anchorLifts) ? raw.anchorLifts : EMPTY_ANCHOR_LIFTS;
+  const rawAnchorData = isRawPoint(anchor.data) ? anchor.data : {};
 
   const anchorData = Object.fromEntries(
     Object.entries(rawAnchorData)

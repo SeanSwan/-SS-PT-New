@@ -13,6 +13,7 @@
  */
 
 import React from 'react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /**
  * ┌─── SUB-COMPONENT: ErrorBoundary ──────────────────────────┐
@@ -49,7 +50,7 @@ class UserDashboardErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
+        <StyledBox as="div" $style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -60,9 +61,9 @@ class UserDashboardErrorBoundary extends React.Component<
           }}>
           <h2>Something went wrong</h2>
           <p>Retry this dashboard panel without leaving the page.</p>
-          <button
+          <StyledBox as="button"
             onClick={this.handleRetry}
-            style={{
+            $style={{
               padding: '0.75rem 1.5rem',
               background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
               border: 'none',
@@ -74,8 +75,8 @@ class UserDashboardErrorBoundary extends React.Component<
             }}
           >
             Try Again
-          </button>
-        </div>
+          </StyledBox>
+        </StyledBox>
       );
     }
 

@@ -2,7 +2,6 @@
  * Global Icon Shim - Emergency fix for icon import issues
  * This file provides fallbacks for any missing icons to prevent crashes
  */
-import React from 'react';
 import { logger } from '@/utils/logger';
 
 // Create a default icon component for fallbacks

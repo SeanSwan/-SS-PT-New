@@ -1,52 +1,58 @@
 import productionApiService from './api.service';
-import { AxiosResponse } from 'axios';
-import type { Achievement, FollowStats, SocialPost, UserProfile, UserStats } from './profileTypes';
+import type { AxiosResponse } from 'axios';
+import type { FollowStats, SocialPost, UserProfile, UserStats } from './profileTypes';
+import {
+  normalizeFollowStats,
+  profileServiceError,
+  type BannerPhotoEnvelope,
+  type FollowStatsEnvelope,
+  type ProfileAchievementsEnvelope,
+  type ProfileAchievementsPayload,
+  type ProfilePhotoEnvelope,
+  type UserPostsEnvelope,
+  type UserProfileEnvelope,
+  type UserStatsEnvelope,
+} from './profileService.contracts';
 export * from './profileBannerComposition';
 export * from './profileTypes';
 
 class ProfileService {
   async getCurrentProfile(): Promise<UserProfile> {
     try {
-      const response: AxiosResponse = await productionApiService.get('/api/profile');
+      const response: AxiosResponse<UserProfileEnvelope> = await productionApiService.get('/api/profile');
       
-      if (response.data.success) {
+      if (response.data.success && response.data.user) {
         return response.data.user;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch profile');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching current profile:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch profile');
+      throw new Error(response.data.message || 'Failed to fetch profile');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching current profile', error, 'Failed to fetch profile');
     }
   }
 
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
-      const response: AxiosResponse = await productionApiService.get(`/api/profile/${userId}`);
+      const response: AxiosResponse<UserProfileEnvelope> = await productionApiService.get(`/api/profile/${userId}`);
       
-      if (response.data.success) {
+      if (response.data.success && response.data.user) {
         return response.data.user;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch user profile');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching user profile:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch user profile');
+      throw new Error(response.data.message || 'Failed to fetch user profile');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching user profile', error, 'Failed to fetch user profile');
     }
   }
 
   async updateProfile(profileData: Partial<UserProfile>): Promise<UserProfile> {
     try {
-      const response: AxiosResponse = await productionApiService.put('/api/profile', profileData);
+      const response: AxiosResponse<UserProfileEnvelope> = await productionApiService.put('/api/profile', profileData);
       
-      if (response.data.success) {
+      if (response.data.success && response.data.user) {
         return response.data.user;
-      } else {
-        throw new Error(response.data.message || 'Failed to update profile');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error updating profile:', error);
-      throw new Error(error.response?.data?.message || 'Failed to update profile');
+      throw new Error(response.data.message || 'Failed to update profile');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error updating profile', error, 'Failed to update profile');
     }
   }
 
@@ -55,7 +61,7 @@ class ProfileService {
       const formData = new FormData();
       formData.append('profilePhoto', file);
 
-      const response: AxiosResponse = await productionApiService.post(
+      const response: AxiosResponse<ProfilePhotoEnvelope> = await productionApiService.post(
         '/api/profile/upload-profile-photo',
         formData,
         {
@@ -65,26 +71,24 @@ class ProfileService {
         }
       );
 
-      if (response.data.success) {
+      if (response.data.success && response.data.photoUrl && response.data.user) {
         return {
           photoUrl: response.data.photoUrl,
           user: response.data.user,
         };
-      } else {
-        throw new Error(response.data.message || 'Failed to upload photo');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error uploading profile photo:', error);
-      throw new Error(error.response?.data?.message || 'Failed to upload profile photo');
+      throw new Error(response.data.message || 'Failed to upload profile photo');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error uploading profile photo', error, 'Failed to upload profile photo');
     }
   }
 
-  async uploadBannerPhoto(file: File): Promise<{ bannerPhoto: string; user: UserProfile }> {
+  async uploadBannerPhoto(file: File): Promise<{ bannerPhoto: string; user?: UserProfile }> {
     try {
       const formData = new FormData();
       formData.append('bannerPhoto', file);
 
-      const response: AxiosResponse = await productionApiService.post(
+      const response: AxiosResponse<BannerPhotoEnvelope> = await productionApiService.post(
         '/api/profile/upload-banner-photo',
         formData,
         {
@@ -94,17 +98,14 @@ class ProfileService {
         }
       );
 
-      if (response.data.success) {
-        return {
-          bannerPhoto: response.data.data?.bannerPhoto || response.data.bannerPhoto,
-          user: response.data.user || response.data.data?.user,
-        };
-      } else {
-        throw new Error(response.data.message || 'Failed to upload banner photo');
+      const bannerPhoto = response.data.data?.bannerPhoto || response.data.bannerPhoto;
+      const user = response.data.user || response.data.data?.user;
+      if (response.data.success && bannerPhoto) {
+        return { bannerPhoto, ...(user ? { user } : {}) };
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error uploading banner photo:', error);
-      throw new Error(error.response?.data?.message || 'Failed to upload banner photo');
+      throw new Error(response.data.message || 'Failed to upload banner photo');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error uploading banner photo', error, 'Failed to upload banner photo');
     }
   }
 
@@ -113,34 +114,32 @@ class ProfileService {
       const formData = new FormData();
       formData.append('bannerPhoto', file);
 
-      const response: AxiosResponse = await productionApiService.post(
+      const response: AxiosResponse<BannerPhotoEnvelope> = await productionApiService.post(
         '/api/profile/upload-banner-collage-photo',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
-      if (response.data.success) {
-        return { bannerPhoto: response.data.data?.bannerPhoto || response.data.bannerPhoto };
+      const bannerPhoto = response.data.data?.bannerPhoto || response.data.bannerPhoto;
+      if (response.data.success && bannerPhoto) {
+        return { bannerPhoto };
       }
       throw new Error(response.data.message || 'Failed to upload collage photo');
-    } catch (error: any) {
-      console.error('ProfileService: Error uploading collage photo:', error);
-      throw new Error(error.response?.data?.message || 'Failed to upload collage photo');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error uploading collage photo', error, 'Failed to upload collage photo');
     }
   }
 
   async getUserStats(): Promise<UserStats> {
     try {
-      const response: AxiosResponse = await productionApiService.get('/api/profile/stats');
+      const response: AxiosResponse<UserStatsEnvelope> = await productionApiService.get('/api/profile/stats');
       
-      if (response.data.success) {
+      if (response.data.success && response.data.stats) {
         return response.data.stats;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch user stats');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching user stats:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch user stats');
+      throw new Error(response.data.message || 'Failed to fetch user stats');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching user stats', error, 'Failed to fetch user stats');
     }
   }
 
@@ -154,104 +153,45 @@ class ProfileService {
   }> {
     try {
       const url = userId ? `/api/profile/${userId}/posts` : '/api/profile/posts';
-      const response: AxiosResponse = await productionApiService.get(url, {
+      const response: AxiosResponse<UserPostsEnvelope> = await productionApiService.get(url, {
         params: { limit, offset }
       });
       
-      if (response.data.success) {
+      if (response.data.success && Array.isArray(response.data.posts) && response.data.pagination) {
         return {
           posts: response.data.posts,
           pagination: response.data.pagination
         };
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch user posts');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching user posts:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch user posts');
+      throw new Error(response.data.message || 'Failed to fetch user posts');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching user posts', error, 'Failed to fetch user posts');
     }
   }
 
-  async getUserAchievements(): Promise<{
-    user: {
-      points: number;
-      level: number;
-      tier: string;
-      streakDays: number;
-      lastActivityDate: string;
-      totalWorkouts: number;
-      totalExercises: number;
-      exercisesCompleted: any;
-    };
-    achievements: Achievement[];
-    stats: {
-      totalAchievements: number;
-      achievementsByRarity: Record<string, number>;
-      currentStreak: number;
-      totalPoints: number;
-      currentLevel: number;
-      currentTier: string;
-    };
-  }> {
+  async getUserAchievements(): Promise<ProfileAchievementsPayload> {
     try {
-      const response: AxiosResponse = await productionApiService.get('/api/profile/achievements');
+      const response: AxiosResponse<ProfileAchievementsEnvelope> = await productionApiService.get('/api/profile/achievements');
       
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
         return response.data.data;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch user achievements');
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching user achievements:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch user achievements');
+      throw new Error(response.data.message || 'Failed to fetch user achievements');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching user achievements', error, 'Failed to fetch user achievements');
     }
   }
 
   async getFollowStats(): Promise<FollowStats> {
     try {
-      const response: AxiosResponse = await productionApiService.get('/api/profile/follow-stats');
+      const response: AxiosResponse<FollowStatsEnvelope> = await productionApiService.get('/api/profile/follow-stats');
       
-      if (response.data.success) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch follow stats');
+      if (response.data.success && response.data.data) {
+        return normalizeFollowStats(response.data.data);
       }
-    } catch (error: any) {
-      console.error('ProfileService: Error fetching follow stats:', error);
-      throw new Error(error.response?.data?.message || 'Failed to fetch follow stats');
-    }
-  }
-
-  async uploadImage(file: File, type: 'profile' | 'background' | 'post' = 'post'): Promise<string> {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('type', type);
-
-      const response: AxiosResponse = await productionApiService.post(
-        '/api/upload/image',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-
-      if (response.data.success) {
-        return response.data.imageUrl;
-      } else {
-        throw new Error(response.data.message || 'Failed to upload image');
-      }
-    } catch (error: any) {
-      console.error('ProfileService: Error uploading image:', error);
-      
-      // For development, return a placeholder
-      if (process.env.NODE_ENV === 'development') {
-        return URL.createObjectURL(file);
-      }
-      
-      throw new Error(error.response?.data?.message || 'Failed to upload image');
+      throw new Error(response.data.message || 'Failed to fetch follow stats');
+    } catch (error: unknown) {
+      throw profileServiceError('ProfileService: Error fetching follow stats', error, 'Failed to fetch follow stats');
     }
   }
 
@@ -293,5 +233,3 @@ class ProfileService {
 
 const profileService = new ProfileService();
 export default profileService;
-
-export { ProfileService };

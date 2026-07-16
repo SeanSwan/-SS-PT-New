@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import React from 'react';
+
 
 // Mock ApiService so the panel never hits a real network. The component
 // invokes `new ApiService()` and calls `.post()` on the instance — so

@@ -53,7 +53,7 @@ const FRIENDLY_NOVEL_EQUIPMENT = new Set(['machine', 'cable', 'bodyweight', 'ban
 export function normalizeExerciseName(name) {
   return String(name || '')
     .toLowerCase()
-    .replace(/[_\-]+/g, ' ')
+    .replace(/[_-]+/g, ' ')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();

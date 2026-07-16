@@ -8,16 +8,16 @@
 
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { RefreshCw, AlertCircle, AlertTriangle, Info, CheckCircle } from 'lucide-react';
-import {
-  VictoryPie, VictoryAnimation, VictoryLabel,
-} from 'victory';
-import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
+import { RefreshCw, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { VictoryPie, VictoryLabel } from 'victory';
+import { hexAlpha } from '../../../../components/Charts/chartTheme';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
   ActionButton, DataTable,
 } from './marketing.styles';
 import type { SEOAuditResult, SEOIssueType } from './marketing.types';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─── Demo Data ─────────────────────────────────────────────────
 const DEMO_AUDIT: SEOAuditResult = {
@@ -159,7 +159,7 @@ const ScoreGauge: React.FC<{ score: number }> = ({ score }) => {
         x={80}
         y={75}
         text={String(score)}
-        style={{ fontSize: 36, fontWeight: 700, fill: color, fontFamily: 'Fira Code' }}
+        {...victoryStyleProps({ fontSize: 36, fontWeight: 700, fill: color, fontFamily: 'Fira Code' })}
       />
       <VictoryLabel
         textAnchor="middle"
@@ -167,7 +167,7 @@ const ScoreGauge: React.FC<{ score: number }> = ({ score }) => {
         x={80}
         y={100}
         text="/ 100"
-        style={{ fontSize: 12, fill: 'rgba(224,236,244,0.85)', fontFamily: 'Fira Code' }}
+        {...victoryStyleProps({ fontSize: 12, fill: 'rgba(224,236,244,0.85)', fontFamily: 'Fira Code' })}
       />
     </svg>
   );
@@ -204,14 +204,14 @@ const SEOAuditPanel: React.FC = () => {
           <ScoreLabel>
             Site Health Score
             <br />
-            <span style={{ color: '#EF4444' }}>{errors} errors</span>
+            <StyledBox as="span" $style={{ color: '#EF4444' }}>{errors} errors</StyledBox>
             {' · '}
-            <span style={{ color: '#F59E0B' }}>{warnings} warnings</span>
+            <StyledBox as="span" $style={{ color: '#F59E0B' }}>{warnings} warnings</StyledBox>
           </ScoreLabel>
-          <ActionButton onClick={runAudit} disabled={loading} style={{ width: '100%' }}>
-            <RefreshCw size={14} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+          <StyledBox as={ActionButton} onClick={runAudit} disabled={loading} $style={{ width: '100%' }}>
+            <StyledBox as={RefreshCw} size={14} $style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
             {loading ? 'Scanning...' : 'Run SEO Audit'}
-          </ActionButton>
+          </StyledBox>
           <LastAudit>Last: {new Date(data.lastAuditDate).toLocaleDateString()}</LastAudit>
         </ScoreCard>
 
@@ -222,9 +222,9 @@ const SEOAuditPanel: React.FC = () => {
                 <CatLabel>{key === 'metaTags' ? 'Meta Tags' : key === 'pageSpeed' ? 'Page Speed' : key === 'mobileFriendly' ? 'Mobile Friendly' : 'Content Quality'}</CatLabel>
                 <CatScore $score={cat.score}>
                   {cat.score}/100
-                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>
+                  <StyledBox as="span" $style={{ fontSize: 11, fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>
                     ({cat.issues} {cat.issues === 1 ? 'issue' : 'issues'})
-                  </span>
+                  </StyledBox>
                 </CatScore>
               </CategoryCard>
             ))}
@@ -242,7 +242,7 @@ const SEOAuditPanel: React.FC = () => {
                 </div>
               </HeaderLeft>
             </CardHeader>
-            <div style={{ overflowX: 'auto' }}>
+            <StyledBox as="div" $style={{ overflowX: 'auto' }}>
               <DataTable>
                 <thead>
                   <tr><th>Type</th><th>Issue</th><th>Page</th></tr>
@@ -251,13 +251,13 @@ const SEOAuditPanel: React.FC = () => {
                   {data.issues.map((issue, i) => (
                     <tr key={i}>
                       <td><IssueBadge $type={issue.type}>{IssueIcon[issue.type]} {issue.type}</IssueBadge></td>
-                      <td style={{ fontFamily: "'Sora', sans-serif" }}>{issue.message}</td>
+                      <StyledBox as="td" $style={{ fontFamily: "'Sora', sans-serif" }}>{issue.message}</StyledBox>
                       <PageCell>{issue.page}</PageCell>
                     </tr>
                   ))}
                 </tbody>
               </DataTable>
-            </div>
+            </StyledBox>
           </MarketingCard>
         </div>
       </Grid>

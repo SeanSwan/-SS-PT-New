@@ -15,7 +15,6 @@ const coreRoutesSource = readBackend('../../core/routes.mjs');
 const rewardsServiceSource = readFrontend('src/services/gamificationRewardsService.ts');
 const clientDashboardServiceSource = readFrontend('src/services/enhancedClientDashboardService.ts');
 const mcpIntegrationSource = readFrontend('src/hooks/useMcpIntegration.ts');
-const scheduleHandlersSource = readFrontend('src/components/UniversalMasterSchedule/hooks/useCalendarHandlers.ts');
 
 const functionSource = (name, nextName) => {
   const startMarker = `  ${name}: async`;
@@ -53,8 +52,6 @@ describe('gamification workout completion controller security hardening', () => 
     expect(clientDashboardServiceSource).toContain('`/api/gamification/record-workout`');
     expect(clientDashboardServiceSource).toContain('userId: this.userId');
     expect(mcpIntegrationSource).toContain('userId: user.id');
-    expect(scheduleHandlersSource).toContain('userId: clientId');
-    expect(scheduleHandlersSource).toContain('gamificationRewardsService.recordWorkoutCompletion(gamificationPayload)');
   });
 
   it('keeps workout completion client-facing failures stable', () => {

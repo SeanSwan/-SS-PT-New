@@ -21,7 +21,7 @@
  * This test renders the component with a mocked ProfileChartsSection and
  * asserts the effective visibility only enables the two truthful charts.
  */
-import React from 'react';
+
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

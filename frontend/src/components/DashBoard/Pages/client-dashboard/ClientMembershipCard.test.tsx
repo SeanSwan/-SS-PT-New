@@ -4,7 +4,7 @@
  * sub cancels via arm → confirm (exactly one cancel() call, with reason);
  * failures render an honest error; success states the access-until date.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientMembershipCard from './ClientMembershipCard';

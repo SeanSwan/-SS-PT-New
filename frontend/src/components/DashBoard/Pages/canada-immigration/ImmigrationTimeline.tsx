@@ -23,10 +23,7 @@ import type { ImmigrationTask } from './CanadaImmigrationTab';
 
 /* ────────── Props ────────── */
 
-interface ImmigrationTimelineProps {
-  tasks: any[];
-  onToggleTask: (id: number) => void;
-}
+
 
 /* Also accept legacy props from parent spread */
 interface Props {
@@ -672,7 +669,7 @@ const ResourceLink = styled.a`
 const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'timeline' | 'scorecard'>('timeline');
-  const [activeMonth, setActiveMonth] = useState<number>(() => {
+  const [activeMonth] = useState<number>(() => {
     /* Default active month: rough calc from a Phase 0 start ~March 2026 */
     const start = new Date(2026, 2, 1); // March 2026
     const now = new Date();
@@ -705,7 +702,7 @@ const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask 
   }, [tasks]);
 
   /* ── Total cost across all phases ── */
-  const grandTotalCost = useMemo(() => {
+  useMemo(() => {
     return tasks.reduce((sum: number, t: any) => sum + parseCost(t.cost), 0);
   }, [tasks]);
 

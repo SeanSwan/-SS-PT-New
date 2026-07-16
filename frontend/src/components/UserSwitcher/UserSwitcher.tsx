@@ -7,6 +7,7 @@ import styled from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { X, User, Users, Settings, Crown } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Container = styled.div<{ $visible: boolean }>`
   position: fixed;
@@ -226,7 +227,7 @@ const UserSwitcher: React.FC = () => {
                 $active={isActive}
                 onClick={() => handleUserSwitch(userType.username)}
               >
-                <Icon size={20} style={{ color: userType.color }} />
+                <StyledBox as={Icon} size={20} $style={{ color: userType.color }} />
                 <UserInfo>
                   <UserName>{userType.name}</UserName>
                   <UserRole>{userType.role}</UserRole>
@@ -236,7 +237,7 @@ const UserSwitcher: React.FC = () => {
           })}
           
           <UserButton onClick={logout}>
-            <X size={20} style={{ color: '#ff4444' }} />
+            <StyledBox as={X} size={20} $style={{ color: '#ff4444' }} />
             <UserInfo>
               <UserName>Logout</UserName>
               <UserRole>Clear Session</UserRole>

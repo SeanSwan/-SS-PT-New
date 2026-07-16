@@ -21,7 +21,7 @@
  * API Calls: GET /api/live-streams/config
  * Children: none (self-contained)
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Radio, Video, Zap, Users, Calendar, Star } from 'lucide-react';
 import { useSubscription } from '../../../hooks/useSubscription';

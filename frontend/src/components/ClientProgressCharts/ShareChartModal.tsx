@@ -295,7 +295,7 @@ const ShareChartModal: React.FC<ShareChartModalProps> = ({
 
   // Close on overlay click
   const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.PointerEvent) => {
       if (e.target === overlayRef.current) onClose();
     },
     [onClose]
@@ -316,7 +316,7 @@ const ShareChartModal: React.FC<ShareChartModalProps> = ({
       {isOpen && (
         <Overlay
           ref={overlayRef}
-          onClick={handleOverlayClick}
+          onPointerDown={handleOverlayClick}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

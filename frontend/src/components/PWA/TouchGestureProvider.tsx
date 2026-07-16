@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';
+import React, { createContext, useRef, useCallback, useEffect } from 'react';
 
 // Types
 interface TouchPoint {
@@ -62,13 +62,7 @@ interface TouchGestureContextType {
 const TouchGestureContext = createContext<TouchGestureContextType | null>(null);
 
 // Hook
-export const useTouchGesture = () => {
-  const context = useContext(TouchGestureContext);
-  if (!context) {
-    throw new Error('useTouchGesture must be used within a TouchGestureProvider');
-  }
-  return context;
-};
+
 
 // Helper functions
 const getDistance = (point1: TouchPoint, point2: TouchPoint): number => {
@@ -80,7 +74,7 @@ const getDistance = (point1: TouchPoint, point2: TouchPoint): number => {
 const getDirection = (start: TouchPoint, end: TouchPoint): 'up' | 'down' | 'left' | 'right' => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
-  
+
   if (Math.abs(dx) > Math.abs(dy)) {
     return dx > 0 ? 'right' : 'left';
   } else {
@@ -91,7 +85,7 @@ const getDirection = (start: TouchPoint, end: TouchPoint): 'up' | 'down' | 'left
 const getVelocity = (start: TouchPoint, end: TouchPoint): { x: number; y: number } => {
   const dt = end.timestamp - start.timestamp;
   if (dt === 0) return { x: 0, y: 0 };
-  
+
   return {
     x: (end.x - start.x) / dt,
     y: (end.y - start.y) / dt,
@@ -131,7 +125,7 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
       currentScale: number;
     };
   }>());
-  
+
   const isTouch = useRef(false);
 
   // Check for touch support
@@ -209,7 +203,7 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
       const currentDistance = getPinchDistance(event.touches);
       const scale = currentDistance / elementState.pinchState.initialDistance;
       const delta = scale - elementState.pinchState.currentScale;
-      
+
       elementState.pinchState.currentScale = scale;
       callbacks.onPinchMove?.(scale, delta);
       return;
@@ -239,7 +233,7 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
     if (!elementState || !elementState.state.isActive) return;
 
     const { state, callbacks, options, timers } = elementState;
-    
+
     // Handle pinch end
     if (elementState.pinchState) {
       callbacks.onPinchEnd?.(elementState.pinchState.currentScale);
@@ -260,13 +254,13 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
     }
 
     const isSwipe = state.distance > options.swipeThreshold;
-    const hasVelocity = Math.abs(state.velocity.x) > options.velocityThreshold || 
+    const hasVelocity = Math.abs(state.velocity.x) > options.velocityThreshold ||
                        Math.abs(state.velocity.y) > options.velocityThreshold;
 
     // Handle swipe gestures
     if (options.enableSwipe && (isSwipe || hasVelocity) && state.direction) {
       hapticFeedback('light');
-      
+
       switch (state.direction) {
         case 'left':
           callbacks.onSwipeLeft?.(state);
@@ -285,12 +279,12 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
     // Handle tap gestures
     else if (options.enableTap && state.distance < options.swipeThreshold) {
       const currentPoint = state.currentPoint;
-      
+
       // Check for double tap
       if (elementState.lastTap && callbacks.onDoubleTap) {
         const timeBetween = currentPoint.timestamp - elementState.lastTap.timestamp;
         const distanceBetween = getDistance(elementState.lastTap, currentPoint);
-        
+
         if (timeBetween < options.doubleTapDelay && distanceBetween < 50) {
           hapticFeedback('medium');
           callbacks.onDoubleTap(currentPoint);
@@ -330,7 +324,7 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
 
   const registerElement = useCallback((element: HTMLElement, callbacks: GestureCallbacks, options: GestureOptions = {}) => {
     const mergedOptions = { ...defaultOptions, ...options };
-    
+
     const elementState = {
       state: {
         isActive: false,
@@ -365,13 +359,13 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
       // Clear timers
       if (elementState.timers.longPress) clearTimeout(elementState.timers.longPress);
       if (elementState.timers.doubleTap) clearTimeout(elementState.timers.doubleTap);
-      
+
       // Remove event listeners
       element.removeEventListener('touchstart', onTouchStart);
       element.removeEventListener('touchmove', onTouchMove);
       element.removeEventListener('touchend', onTouchEnd);
       element.removeEventListener('touchcancel', onTouchCancel);
-      
+
       // Remove from state
       gestureStates.current.delete(element);
     };
@@ -393,32 +387,3 @@ const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children })
 export default TouchGestureProvider;
 
 // Hook for easy element registration
-export const useElementGesture = (callbacks: GestureCallbacks, options?: GestureOptions) => {
-  const { registerElement } = useTouchGesture();
-  const elementRef = useRef<HTMLElement | null>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
-
-  const ref = useCallback((element: HTMLElement | null) => {
-    // Cleanup previous registration
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
-    }
-
-    // Register new element
-    if (element) {
-      elementRef.current = element;
-      cleanupRef.current = registerElement(element, callbacks, options);
-    }
-  }, [registerElement, callbacks, options]);
-
-  useEffect(() => {
-    return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-      }
-    };
-  }, []);
-
-  return ref;
-};

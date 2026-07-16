@@ -23,7 +23,7 @@
  *   5 - Power (1-5 reps, 30-45%/85-100% 1RM, explosive)
  */
 
-import React, { useState, useRef, useCallback, memo, useEffect } from 'react';
+import { useState, useRef, useCallback, memo, useEffect } from 'react';
 import { CS } from './WorkoutLoggerCS';
 import {
   Modal,
@@ -53,7 +53,7 @@ export interface OPTPhaseInfo {
   description: string;
 }
 
-export const OPT_PHASES: OPTPhaseInfo[] = [
+const OPT_PHASES: OPTPhaseInfo[] = [
   {
     phase: 1,
     name: 'Stabilization Endurance',

@@ -57,7 +57,7 @@ export const SmartImage = forwardRef<HTMLImageElement, SmartImageProps>(
         setImageSrc(newSrc);
         setImageError(false);
       }
-    }, [src]); // Don't include imageSrc in deps to avoid infinite loops
+    }, [imageSrc, src]); // Don't include imageSrc in deps to avoid infinite loops
 
     return (
       <img

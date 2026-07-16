@@ -80,7 +80,7 @@ const AccessibleMenu: React.FC<AccessibleMenuProps> = ({
 
   return ReactDOM.createPortal(
     <>
-      <MenuBackdrop onClick={(e) => onClose?.(e, 'backdropClick')} />
+      <MenuBackdrop onPointerDown={(event) => onClose?.(event, 'backdropClick')} />
       <MenuPaper
         ref={menuRef}
         $top={position.top}

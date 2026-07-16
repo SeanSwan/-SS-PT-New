@@ -38,9 +38,9 @@ import styled, { keyframes, css } from 'styled-components';
 // PURPOSE: Crystalline Swan palette fallbacks when theme is unavailable
 // WHY: Ensures correct visuals even outside ThemeProvider context
 // ─────────────────────────────────────────────────────────────
-const OBSIDIAN_BLACK = '#0A0A0F';
+
 const CARBON = '#141419';
-const GRAPHITE = '#1A1A24';
+
 const ARCTIC_CYAN_10 = 'rgba(80, 160, 240, 0.10)';
 const ARCTIC_CYAN_18 = 'rgba(80, 160, 240, 0.18)';
 
@@ -169,7 +169,7 @@ const ShimmerWrapper = styled.div`
  */
 const CrystallineShimmer: React.FC<CrystallineShimmerProps> = ({
   label = 'Loading content',
-  variant = 'default',
+  variant: _variant = 'default',
   className,
   children,
 }) => {

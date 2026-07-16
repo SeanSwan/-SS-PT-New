@@ -5,7 +5,9 @@
  * formatting (null-honest), Escape + close-button + overlay dismissal,
  * focus restoration to the opener, and the card's 44px trigger path.
  */
-import React from 'react';
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -152,8 +154,6 @@ describe('overlay stacking contract', () => {
     // Header is --z-header: 1250 (tokens.css); dropdown 1260; toast 1300.
     // The shipped 1200 put the header ON TOP of the open dialog (found in
     // the 2026-07-02 post-deploy hostile review). Lock the house 2200.
-    const { readFileSync } = require('node:fs');
-    const { resolve } = require('node:path');
     const styles = readFileSync(resolve(__dirname, './WorkoutDayDrilldown.styles.ts'), 'utf8');
     const match = styles.match(/z-index:\s*(\d+)/);
     expect(match).not.toBeNull();

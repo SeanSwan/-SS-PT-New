@@ -10,12 +10,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import {
-  Trophy, Medal, Timer, Dumbbell, Zap, ChevronRight,
-  Play, ArrowUp, Users, Star, TrendingUp, Loader,
-  Heart,
-} from 'lucide-react';
+import { Trophy, Medal, Timer, Dumbbell, Zap, Play, ArrowUp, Users, Star, TrendingUp, Loader, Heart } from 'lucide-react';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Animations ──
 const shine = keyframes`
@@ -500,7 +497,7 @@ const VirtualOlympicsPage: React.FC = () => {
     return (
       <Page>
         <LoadingCenter>
-          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Loading Olympics...
+          <StyledBox as={Loader} size={18} $style={{ animation: 'spin 1s linear infinite' }} /> Loading Olympics...
         </LoadingCenter>
       </Page>
     );
@@ -525,6 +522,9 @@ const VirtualOlympicsPage: React.FC = () => {
             <EventCard
               key={ev.eventType}
               $active={activeEvent === ev.eventType}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
               onClick={() => { setActiveEvent(ev.eventType); setSubmitResult(null); }}
             >
               <EventHeader>
@@ -555,8 +555,9 @@ const VirtualOlympicsPage: React.FC = () => {
             </SubmitTitle>
             <InputGroup>
               <div>
-                <InputLabel>{isSprintEvent ? 'Time (seconds)' : 'Reps Completed'}</InputLabel>
+                <InputLabel htmlFor="olympics-score">{isSprintEvent ? 'Time (seconds)' : 'Reps Completed'}</InputLabel>
                 <Input
+                  id="olympics-score"
                   type="number"
                   min="1"
                   step={isSprintEvent ? '0.1' : '1'}
@@ -566,8 +567,9 @@ const VirtualOlympicsPage: React.FC = () => {
                 />
               </div>
               <div>
-                <InputLabel>Duration (seconds)</InputLabel>
+                <InputLabel htmlFor="olympics-duration">Duration (seconds)</InputLabel>
                 <Input
+                  id="olympics-duration"
                   type="number"
                   min="1"
                   placeholder="e.g. 60"
@@ -583,7 +585,7 @@ const VirtualOlympicsPage: React.FC = () => {
 
             {submitResult && (
               <ResultBanner $pb={submitResult.isPersonalBest}>
-                {submitResult.isPersonalBest ? <Trophy size={20} style={{ color: '#C6A84B' }} /> : <Medal size={20} />}
+                {submitResult.isPersonalBest ? <StyledBox as={Trophy} size={20} $style={{ color: '#C6A84B' }} /> : <Medal size={20} />}
                 <ResultText>
                   {submitResult.isPersonalBest ? 'New Personal Best! ' : 'Performance recorded. '}
                   Rank #{submitResult.rank}.{' '}
@@ -597,13 +599,13 @@ const VirtualOlympicsPage: React.FC = () => {
         {/* Leaderboard */}
         <SectionTitle><Trophy size={18} /> {activeEventInfo?.label || ''} Leaderboard</SectionTitle>
         {leaderboard.length === 0 ? (
-          <StatLabel style={{ marginBottom: 32 }}>No performances yet — be the first!</StatLabel>
+          <StyledBox as={StatLabel} $style={{ marginBottom: 32 }}>No performances yet — be the first!</StyledBox>
         ) : (
           <LeaderboardTable>
             <LBHeader as="div" $rank={0}>
               <div>#</div>
               <div>Athlete</div>
-              <div style={{ textAlign: 'right' }}>Score</div>
+              <StyledBox as="div" $style={{ textAlign: 'right' }}>Score</StyledBox>
             </LBHeader>
             {leaderboard.map(entry => (
               <LBRow key={`${entry.rank}-${entry.athleteId}`} $rank={entry.rank}>
@@ -619,9 +621,9 @@ const VirtualOlympicsPage: React.FC = () => {
           </LeaderboardTable>
         )}
         {userRank && (
-          <StatLabel style={{ marginBottom: 32 }}>
+          <StyledBox as={StatLabel} $style={{ marginBottom: 32 }}>
             <Zap size={12} /> Your rank: #{userRank}
-          </StatLabel>
+          </StyledBox>
         )}
 
         {/* Recovery Day */}

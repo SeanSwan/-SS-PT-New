@@ -6,7 +6,7 @@
  * └────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Video, ArrowLeft } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import PreCallCheck from './PreCallCheck';
 import VideoRoom from './VideoRoom';
 import AccessibleVideoPlayer from './AccessibleVideoPlayer';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -241,21 +242,21 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
       )}
 
       {error && (
-        <div style={{ padding: '16px 24px', color: '#EF4444', fontFamily: 'Sora, sans-serif', fontSize: 14 }}>
+        <StyledBox as="div" $style={{ padding: '16px 24px', color: '#EF4444', fontFamily: 'Sora, sans-serif', fontSize: 14 }}>
           {error}
-        </div>
+        </StyledBox>
       )}
 
       {phase === 'idle' && (
         <EmptyState>
-          <Video size={48} style={{ color: 'var(--accent-primary, #60C0F0)', opacity: 0.6 }} />
+          <StyledBox as={Video} size={48} $style={{ color: 'var(--accent-primary, #60C0F0)', opacity: 0.6 }} />
           <EmptyTitle>Start a Remote Assessment</EmptyTitle>
           <EmptyDesc>
             Video call with your client for movement screens, postural analysis, or performance tests.
             {!clientId && ' Select a client from the client workspace first.'}
           </EmptyDesc>
           {clientId && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <StyledBox as="div" $style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
               <CreateBtn onClick={() => handleCreate('movement_screen')} disabled={creating}>
                 Movement Screen
               </CreateBtn>
@@ -268,7 +269,7 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
               <CreateBtn onClick={() => handleCreate('general')} disabled={creating}>
                 General Session
               </CreateBtn>
-            </div>
+            </StyledBox>
           )}
         </EmptyState>
       )}
@@ -294,7 +295,7 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
 
       {phase === 'ended' && (
         <EmptyState>
-          <Video size={48} style={{ color: '#10B981', opacity: 0.6 }} />
+          <StyledBox as={Video} size={48} $style={{ color: '#10B981', opacity: 0.6 }} />
           <EmptyTitle>Session Complete</EmptyTitle>
           <EmptyDesc>
             {sessionData?.isTrainer
@@ -304,13 +305,13 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
 
           {/* Phase 3: Accessible recording player (when recording exists) */}
           {sessionData?.recordingUrl && (
-            <div style={{ width: '100%', maxWidth: 900, margin: '16px auto' }}>
+            <StyledBox as="div" $style={{ width: '100%', maxWidth: 900, margin: '16px auto' }}>
               <AccessibleVideoPlayer
                 src={sessionData.recordingUrl}
                 title={`Session Recording — ${sessionData.assessmentType || 'General'}`}
                 transcription={sessionData.transcription}
               />
-            </div>
+            </StyledBox>
           )}
 
           {onBack && (

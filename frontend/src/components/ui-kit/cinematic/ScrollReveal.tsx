@@ -7,8 +7,9 @@
  */
 
 import React, { useRef } from 'react';
-import { motion, useInView, Variants } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const CINEMATIC_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -61,7 +62,7 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
   const prefersReducedMotion = useReducedMotion();
 
   if (prefersReducedMotion || disabled) {
-    return <div className={className} style={style}>{children}</div>;
+    return <StyledBox as="div" className={className} $style={style}>{children}</StyledBox>;
   }
 
   const offset = directionOffset(direction, distance);
@@ -90,16 +91,16 @@ const ScrollReveal: React.FC<ScrollRevealProps> = ({
   }
 
   return (
-    <motion.div
+    <StyledBox as={motion.div}
       ref={ref}
       className={className}
-      style={style}
+      $style={style}
       initial={hidden}
       animate={isInView ? visible : hidden}
       transition={{ duration, delay, ease }}
     >
       {children}
-    </motion.div>
+    </StyledBox>
   );
 };
 

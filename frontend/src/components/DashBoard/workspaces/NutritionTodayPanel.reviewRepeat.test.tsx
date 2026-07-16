@@ -3,7 +3,7 @@
  * PURPOSE: Lock repeat-meal actions to the shared review-first draft contract.
  * SCOPE: Same-day and recent-day diary entries; no direct macro writes.
  */
-import React from 'react';
+
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

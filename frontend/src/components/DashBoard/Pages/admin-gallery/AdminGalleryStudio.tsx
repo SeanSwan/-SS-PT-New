@@ -27,6 +27,7 @@ import {
   Banner, EmptyState, MainArea, Panel, PageHeader, PageSubtitle, PageTitle, PageWrap, Rail, SectionTitle, TwoColLayout,
 } from './styles';
 import type { GalleryEvent, GalleryPhoto } from './types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const AdminGalleryStudio: React.FC = () => {
   const events = useGalleryEvents();
@@ -108,7 +109,7 @@ const AdminGalleryStudio: React.FC = () => {
     <PageWrap>
       <PageHeader>
         <div>
-          <PageTitle><Camera size={26} aria-hidden="true" style={{ verticalAlign: '-4px', marginRight: 8 }} />Photo Gallery Studio</PageTitle>
+          <PageTitle><StyledBox as={Camera} size={26} aria-hidden="true" $style={{ verticalAlign: '-4px', marginRight: 8 }} />Photo Gallery Studio</PageTitle>
           <PageSubtitle>
             Create passcode-protected photoshoot galleries and batch-upload a client&apos;s shoot. Clients unlock with
             their email + your passcode at the public gallery.

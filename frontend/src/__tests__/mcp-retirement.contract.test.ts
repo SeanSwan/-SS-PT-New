@@ -41,9 +41,8 @@ describe('MCP retirement contract', () => {
     const envConfig = readFrontendFile('config/env-config.ts');
     const mcpUtils = readFrontendFile('utils/mcp-utils.ts');
     const mcpIndex = readFrontendFile('services/mcp/index.ts');
-    const adminClientView = readFrontendFile('components/DashBoard/Pages/admin-clients/AdminClientManagementView.tsx');
 
-    for (const source of [envConfig, mcpUtils, mcpIndex, adminClientView]) {
+    for (const source of [envConfig, mcpUtils, mcpIndex]) {
       expect(source).not.toContain('http://localhost:8000');
       expect(source).not.toContain('http://localhost:8001');
       expect(source).not.toContain("status: 'online'");
@@ -52,7 +51,6 @@ describe('MCP retirement contract', () => {
     expect(mcpUtils).not.toContain('workoutMcpApi');
     expect(mcpUtils).not.toContain('gamificationMcpApi');
     expect(mcpIndex).not.toContain('mcpConfig.checkHealth');
-    expect(adminClientView).toContain('decommissioned');
   });
 
   it('keeps legacy MCP-named frontend adapters failed closed on REST APIs', () => {
@@ -75,11 +73,8 @@ describe('MCP retirement contract', () => {
     }
   });
 
-  it('does not call the legacy /api/mcp bridge from active AI feature surfaces', () => {
+  it('does not call the legacy /api/mcp bridge from the active AI dashboard service', () => {
     const files = [
-      'components/ProgressAnalysis/ProgressAnalysis.tsx',
-      'components/ExerciseAlternatives/ExerciseAlternatives.tsx',
-      'components/NutritionPlanning/NutritionPlanning.tsx',
       'services/enhancedClientDashboardService.ts',
     ];
 
@@ -93,6 +88,9 @@ describe('MCP retirement contract', () => {
       'components/AIDashboard',
       'components/AIFeaturesDashboard',
       'components/WorkoutGenerator',
+      'components/ProgressAnalysis/ProgressAnalysis.tsx',
+      'components/ExerciseAlternatives/ExerciseAlternatives.tsx',
+      'components/NutritionPlanning/NutritionPlanning.tsx',
       'pages/OverwatchGamificationHub.tsx',
     ];
 

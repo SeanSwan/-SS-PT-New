@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BiomechanicsStudio from './BiomechanicsStudio';
 import { useCustomExerciseAPI } from '../../hooks/useCustomExerciseAPI';
 import type { CustomExercise } from '../../hooks/useCustomExerciseAPI';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // --- Styled Components ---
 
@@ -291,9 +292,9 @@ const BiomechanicsStudioPage: React.FC = () => {
           <EmptyState>
             <EmptyTitle>No custom exercises yet</EmptyTitle>
             <p>Create your first custom exercise or start from a built-in template.</p>
-            <CreateButton onClick={() => setView('create')} style={{ marginTop: 16 }}>
+            <StyledBox as={CreateButton} onClick={() => setView('create')} $style={{ marginTop: 16 }}>
               Get Started
-            </CreateButton>
+            </StyledBox>
           </EmptyState>
         ) : (
           <AnimatePresence>
@@ -345,15 +346,15 @@ class BiomechanicsStudioErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <PageWrapper>
-          <Container style={{ textAlign: 'center', paddingTop: 80 }}>
+          <StyledBox as={Container} $style={{ textAlign: 'center', paddingTop: 80 }}>
             <EmptyTitle>Something went wrong</EmptyTitle>
-            <p style={{ color: 'rgba(224, 236, 244, 0.5)', marginBottom: 16 }}>
+            <StyledBox as="p" $style={{ color: 'rgba(224, 236, 244, 0.5)', marginBottom: 16 }}>
               The Biomechanics Studio encountered an error.
-            </p>
+            </StyledBox>
             <CreateButton onClick={() => this.setState({ hasError: false })}>
               Try Again
             </CreateButton>
-          </Container>
+          </StyledBox>
         </PageWrapper>
       );
     }

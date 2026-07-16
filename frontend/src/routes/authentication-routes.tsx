@@ -2,7 +2,7 @@
  * authentication-routes.tsx
  * Routes configuration for authentication pages
  */
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 import { RouteObject } from 'react-router-dom';
 import Loadable from '../components/ui/Loadable';
 import MinimalLayout from '../components/DashBoard/MinimalLayout/minimal-layout';

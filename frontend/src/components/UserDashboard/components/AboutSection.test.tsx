@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AboutSection from './AboutSection';
 import {
   buildAchievementCards,
+  buildPersonalInfo,
   buildSkillTreeStats,
-  formatJoinDate,
   getRarityFlat,
 } from './AboutSection.helpers';
 
@@ -157,7 +157,13 @@ describe('AboutSection', () => {
 
 describe('AboutSection helpers', () => {
   it('normalizes dates, duplicate achievements, skill counts, and legendary flat color', () => {
-    expect(formatJoinDate('not-a-date')).toBe('Unknown');
+    const personalInfo = buildPersonalInfo(
+      { createdAt: 'not-a-date' } as any,
+      { points: 100, lifetimePointsEarned: 2500, level: 1, streakDays: 0 } as any,
+      { currentPoints: 2500, level: 1, tierDisplay: { name: 'First Flight' } } as any,
+    );
+    expect(personalInfo[0].value).toBe('Unknown');
+    expect(personalInfo[2].value).toBe('2,500 points');
     expect(buildAchievementCards([
       { id: '1', achievement: { name: 'Repeat', rarity: 'legendary' } },
       { id: '2', achievement: { name: 'Repeat', rarity: 'legendary' } },
@@ -167,5 +173,22 @@ describe('AboutSection helpers', () => {
       [{ id: 'ua', achievement: { name: 'Lift', skillTree: 'iron_gravity' } }],
     )).toEqual({ total: { iron_gravity: 1 }, earned: { iron_gravity: 1 } });
     expect(getRarityFlat('legendary')).toBe('var(--accent-gold, #C6A84B)');
+  });
+
+  it('fails closed on malformed achievement rarity and skill-tree values', () => {
+    const [card] = buildAchievementCards([
+      {
+        id: 'unsafe-achievement',
+        achievement: {
+          name: 'Malformed Metadata',
+          rarity: 'private-rarity',
+          skillTree: 'private-skill-tree',
+        },
+      },
+    ]);
+
+    expect(card.rarity).toBe('common');
+    expect(card.skillTree).toBeUndefined();
+    expect(JSON.stringify(card)).not.toContain('private');
   });
 });

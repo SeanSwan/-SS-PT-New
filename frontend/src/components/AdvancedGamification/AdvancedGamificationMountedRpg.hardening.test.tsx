@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { act, cleanup, render, renderHook, screen, waitFor, fireEvent } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CompanionPet from './components/CompanionPet/CompanionPet';

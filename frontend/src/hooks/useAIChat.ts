@@ -432,7 +432,7 @@ export function useAIChat(audienceRole?: AIConversationRole) {
     } finally {
       setSending(false);
     }
-  }, [activeConversation, audienceRole, clearError, setFailureState]);
+  }, [activeConversation, clearError, setFailureState]);
 
   /**
    * Archive or delete a conversation

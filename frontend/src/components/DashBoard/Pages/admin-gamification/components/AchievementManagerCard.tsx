@@ -25,6 +25,7 @@ import {
   TooltipButton,
 } from './AchievementManagerControls.styles';
 import type { Achievement } from './AchievementManager.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface AchievementManagerCardProps {
   achievement: Achievement;
@@ -55,13 +56,13 @@ export const AchievementManagerCard: React.FC<AchievementManagerCardProps> = ({
   onDelete,
   onToggleStatus,
 }) => (
-  <AchievementItem
+  <StyledBox as={AchievementItem}
     tier={achievement.tier}
     whileHover={{
       y: -5,
       transition: { duration: 0.2 },
     }}
-    style={{ opacity: achievement.isActive ? 1 : 0.6 }}
+    $style={{ opacity: achievement.isActive ? 1 : 0.6 }}
   >
     <AchievementBadge tier={achievement.tier}>{getSwanTierLabel(achievement.tier)}</AchievementBadge>
 
@@ -108,5 +109,5 @@ export const AchievementManagerCard: React.FC<AchievementManagerCardProps> = ({
         <Trash2 size={16} />
       </IconActionButton>
     </ActionRow>
-  </AchievementItem>
+  </StyledBox>
 );

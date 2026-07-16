@@ -247,7 +247,7 @@ const TrainerOverviewPage: React.FC = () => {
         </StatCard>
         <StatCard>
           <IconCircle $color="rgba(139,92,246,0.15)"><CalendarDays size={22} color="#8B5CF6" /></IconCircle>
-          <StatInfo><StatValue>{stats.sessionsThisWeek}</StatValue><StatLabel>Today's Sessions</StatLabel></StatInfo>
+          <StatInfo><StatValue>{stats.sessionsThisWeek}</StatValue><StatLabel>Today&apos;s Sessions</StatLabel></StatInfo>
         </StatCard>
         <StatCard>
           <IconCircle $color="rgba(198,168,75,0.15)"><Clock size={22} color="#C6A84B" /></IconCircle>
@@ -259,7 +259,7 @@ const TrainerOverviewPage: React.FC = () => {
         </StatCard>
       </StatsGrid>
 
-      <SectionTitle>Today's Schedule</SectionTitle>
+      <SectionTitle>Today&apos;s Schedule</SectionTitle>
       <ScheduleCard>
         {loading ? (
           <EmptyState>Loading sessions...</EmptyState>

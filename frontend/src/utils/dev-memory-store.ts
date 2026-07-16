@@ -53,7 +53,7 @@ export const initializeMemoryStore = (): void => {
     }
     
     memoryStore.initialized = true;
-    console.debug('[DEV MODE] Memory store initialized from localStorage');
+    logger.debug('[DEV MODE] Memory store initialized from localStorage');
   } catch (error) {
     logger.warn('[DEV MODE] Failed to initialize memory store from localStorage', error);
     // Still mark as initialized even if it failed

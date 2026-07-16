@@ -38,6 +38,7 @@ import {
   PanelWell,
   PreviewFrame,
 } from './SocialCoverEditor.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface SocialCoverEditorProps {
   /** Close the editor; the parent refreshes the live cover. */
@@ -104,13 +105,13 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose, dashboar
     const next = { ...currentCropRef.current, position };
     currentCropRef.current = next;
     composition.previewBannerCrop(next);
-  }, [composition.previewBannerCrop]);
+  }, [composition]);
 
   const commitCropAtPosition = React.useCallback((position: BannerObjectPosition) => {
     const next = { ...currentCropRef.current, position };
     currentCropRef.current = next;
     void composition.handleBannerCropCommit(next);
-  }, [composition.handleBannerCropCommit]);
+  }, [composition]);
 
   const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (!canDragPreview) return;
@@ -175,11 +176,11 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose, dashboar
           <Camera size={15} />
           {backgroundImage ? 'Change photo' : 'Add photo'}
         </EditorButton>
-        <input
+        <StyledBox as="input"
           ref={photoInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          style={{ display: 'none' }}
+          $style={{ display: 'none' }}
           onChange={handlePhotoSelected}
         />
         <EditorButton type="button" onClick={onClose} aria-label="Accept cover changes">

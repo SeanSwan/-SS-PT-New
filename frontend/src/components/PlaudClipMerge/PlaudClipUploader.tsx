@@ -13,6 +13,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Upload, FileAudio } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ACCEPTED_MIMES = [
   'audio/mp4', 'audio/mpeg', 'audio/mp3', 'audio/wav',
@@ -202,7 +203,7 @@ export function PlaudClipUploader({
         <Headline>{isUploading ? 'Uploading...' : 'Drop PLAUD clips here'}</Headline>
         <Sub>{helpText || `Up to ${MAX_FILES} clips per batch · MP3 / WAV / M4A / AAC / FLAC / OGG`}</Sub>
         <ChooseButton type="button" onClick={(e) => { e.stopPropagation(); onPick(); }} disabled={isDisabled}>
-          <FileAudio size={16} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 6 }} />
+          <StyledBox as={FileAudio} size={16} aria-hidden="true" $style={{ verticalAlign: 'middle', marginRight: 6 }} />
           {isUploading ? 'Uploading...' : 'Choose files'}
         </ChooseButton>
         <HiddenInput

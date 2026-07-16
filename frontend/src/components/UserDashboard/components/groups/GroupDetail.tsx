@@ -32,6 +32,7 @@ import {
   QuietGroupButton,
   StatusPill,
 } from './GroupsShared.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const CHAT_DASHBOARD_ROLES = new Set(['admin', 'trainer', 'client']);
 
@@ -68,7 +69,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
     }, { rootMargin: '200px' });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [feed.hasMore, feed.isLoadingMore, feed.loadMore, group?.canViewContent]);
+  }, [feed, feed.hasMore, feed.isLoadingMore, feed.loadMore, group?.canViewContent]);
 
   if (detail.isLoading) {
     return (
@@ -148,7 +149,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
         </QuietGroupButton>
         <DetailTitleBlock>
           <GroupEmojiTile aria-hidden="true">{group.emoji || group.name.slice(0, 2).toUpperCase()}</GroupEmojiTile>
-          <div style={{ minWidth: 0 }}>
+          <StyledBox as="div" $style={{ minWidth: 0 }}>
             <h2>{group.name}</h2>
             <GroupMetaRow>
               <span><Users size={13} aria-hidden="true" />{group.memberCount} {group.memberCount === 1 ? 'member' : 'members'}</span>
@@ -161,9 +162,9 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
               )}
             </GroupMetaRow>
             {group.description && <p>{group.description}</p>}
-          </div>
+          </StyledBox>
         </DetailTitleBlock>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <StyledBox as="div" $style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {group.myMembership?.role && group.myMembership.role !== 'member' && group.myMembership.status === 'active' && (
             <StatusPill $tone="gold">{group.myMembership.role}</StatusPill>
           )}
@@ -194,7 +195,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
               Archive group
             </QuietGroupButton>
           )}
-        </div>
+        </StyledBox>
       </DetailHeaderCard>
 
       {!group.canViewContent ? (
@@ -203,7 +204,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
           {group.myMembership?.status === 'pending' ? (
             <>
               <strong>Request pending</strong>
-              <span>A group moderator will review your request. The feed and chat unlock once you're approved.</span>
+              <span>A group moderator will review your request. The feed and chat unlock once you&apos;re approved.</span>
             </>
           ) : (
             <>

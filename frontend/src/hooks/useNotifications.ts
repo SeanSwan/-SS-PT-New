@@ -137,11 +137,7 @@ export const useNotifications = () => {
     message: string,
     options: NotificationOptions = {}
   ) => {
-    const {
-      type = 'info',
-      autoClose = 5000,
-      position = 'top-right'
-    } = options;
+    const { type = 'info' } = options;
 
     // Convert type to variant for the project's toast system
     let variant: 'default' | 'destructive' = 'default';

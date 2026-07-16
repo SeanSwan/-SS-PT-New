@@ -40,6 +40,24 @@ async function mockMarketingApi(page: Page) {
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
+    if (endpoint === '/api/admin/marketing-readiness') {
+      return fulfillJson(route, {
+        success: true,
+        data: {
+          overall: 'degraded',
+          generatedAt: '2026-07-16T00:00:00.000Z',
+          subsystems: {
+            socialPublishing: { status: 'ready', encryptionConfigured: true, connectedAccounts: 0, schedulerEnabled: true, providers: [] },
+            automation: { status: 'degraded', armed: false, activeSequences: 0, leadNurtureActive: false, pendingScheduled: 0, emailSenderBuilt: false },
+            email: { status: 'ready', sendgridConfigured: true, confirmedSubscribers: 0, pendingSubscribers: 0, unsubscribed: 0, broadcastBuilt: true },
+            leadCapture: { status: 'ready', totalLeads: 0, capturePoints: {} },
+            calendar: { status: 'ready', totalItems: 0, upcoming: 0 },
+            campaigns: { status: 'ready', totalCampaigns: 0, activeCampaigns: 0 },
+            contentTools: { status: 'demo', tools: [] },
+          },
+        },
+      });
+    }
     if (endpoint === '/api/admin/social-publishing/health') {
       return fulfillJson(route, {
         success: true,

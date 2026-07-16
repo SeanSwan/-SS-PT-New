@@ -9,14 +9,13 @@
 
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Users, Star, Globe, Plus } from 'lucide-react';
+import { Users, Star, Globe } from 'lucide-react';
 import { VictoryLine } from 'victory';
 import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
-import {
-  MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  ActionButton, DataTable,
-} from './marketing.styles';
+import { MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle, DataTable } from './marketing.styles';
 import type { CompetitorProfile, SocialPlatform } from './marketing.types';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─── Demo Data ─────────────────────────────────────────────────
 const SWAN_STUDIOS: CompetitorProfile = {
@@ -194,7 +193,7 @@ const GrowthSparkline: React.FC<{ data: number[]; color?: string }> = ({ data, c
   <SparkWrap>
     <VictoryLine
       data={data.map((y, x) => ({ x, y }))}
-      style={{ data: { stroke: color || CHART_COLORS.iceWing, strokeWidth: 2 } }}
+      {...victoryStyleProps({ data: { stroke: color || CHART_COLORS.iceWing, strokeWidth: 2 } })}
       height={40}
       padding={{ top: 4, bottom: 4, left: 2, right: 2 }}
       animate={{ duration: 400 }}
@@ -247,13 +246,13 @@ const CompetitorAnalysisWidget: React.FC = () => {
                 <ReviewStars>
                   <Star size={14} fill="#C6A84B" />
                   <MetricValue>{comp.reviewScore}</MetricValue>
-                  <span style={{ fontSize: 11, color: 'rgba(224,236,244,0.85)' }}>({comp.reviewCount})</span>
+                  <StyledBox as="span" $style={{ fontSize: 11, color: 'rgba(224,236,244,0.85)' }}>({comp.reviewCount})</StyledBox>
                 </ReviewStars>
               </MetricRow>
 
               <MetricRow>
                 <MetricLabel>Pricing</MetricLabel>
-                <MetricValue style={{ fontSize: 12 }}>{comp.estimatedPricing}</MetricValue>
+                <StyledBox as={MetricValue} $style={{ fontSize: 12 }}>{comp.estimatedPricing}</StyledBox>
               </MetricRow>
 
               <KeywordList>
@@ -273,7 +272,7 @@ const CompetitorAnalysisWidget: React.FC = () => {
               <Globe size={14} />
               SwanStudios vs {competitor.name}
             </VsLabel>
-            <div style={{ overflowX: 'auto' }}>
+            <StyledBox as="div" $style={{ overflowX: 'auto' }}>
               <DataTable>
                 <thead>
                   <tr><th>Metric</th><th>SwanStudios</th><th>{competitor.name}</th></tr>
@@ -311,13 +310,13 @@ const CompetitorAnalysisWidget: React.FC = () => {
                         ).map(kw => <KwChip key={kw}>{kw}</KwChip>)}
                         {SWAN_STUDIOS.topKeywords.filter(kw =>
                           competitor.topKeywords.includes(kw)
-                        ).length === 0 && <span style={{ fontSize: 12, opacity: 0.85 }}>No overlap</span>}
+                        ).length === 0 && <StyledBox as="span" $style={{ fontSize: 12, opacity: 0.85 }}>No overlap</StyledBox>}
                       </KeywordList>
                     </td>
                   </CompareRow>
                 </tbody>
               </DataTable>
-            </div>
+            </StyledBox>
           </MarketingCard>
         </CompareSection>
       )}

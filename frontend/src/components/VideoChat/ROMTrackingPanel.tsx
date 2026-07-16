@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Types ──
 interface ROMMeasurement {
@@ -321,7 +322,7 @@ const ROMTrackingPanel: React.FC<Props> = ({ open, onClose, videoSessionId, reco
       <Body>
         {/* Recovery Score */}
         <ScoreCard>
-          <TrendingUp size={18} color="var(--accent-primary, #60C0F0)" style={{ marginBottom: 4 }} />
+          <StyledBox as={TrendingUp} size={18} color="var(--accent-primary, #60C0F0)" $style={{ marginBottom: 4 }} />
           <ScoreValue>{recoveryScore !== null ? `${recoveryScore}%` : '—'}</ScoreValue>
           <ScoreLabel>Recovery / Mobility Score</ScoreLabel>
         </ScoreCard>
@@ -334,11 +335,11 @@ const ROMTrackingPanel: React.FC<Props> = ({ open, onClose, videoSessionId, reco
               <option key={j.value} value={j.value}>{j.label} ({j.normal}&deg;)</option>
             ))}
           </Select>
-          <Select value={side} onChange={e => setSide(e.target.value)} style={{ minWidth: 80, flex: 'unset' }}>
+          <StyledBox as={Select} value={side} onChange={e => setSide(e.target.value)} $style={{ minWidth: 80, flex: 'unset' }}>
             <option value="left">L</option>
             <option value="right">R</option>
             <option value="bilateral">Both</option>
-          </Select>
+          </StyledBox>
         </InputRow>
         <InputRow>
           <NumInput
@@ -381,7 +382,7 @@ const ROMTrackingPanel: React.FC<Props> = ({ open, onClose, videoSessionId, reco
 
         {/* FDA disclaimer */}
         <Disclaimer>
-          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+          <StyledBox as={AlertTriangle} size={14} $style={{ flexShrink: 0, marginTop: 1 }} />
           ROM values are fitness assessments, not clinical diagnoses. Always refer clients to qualified healthcare providers for medical concerns.
         </Disclaimer>
       </Body>

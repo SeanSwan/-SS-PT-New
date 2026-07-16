@@ -42,7 +42,7 @@ import {
   StationDemoName,
 } from './BootcampDemoMode.styles';
 
-export { getFloorDirectorModel } from './BootcampDemoMode.floorDirector';
+
 
 interface BootcampDemoModeProps {
   bootcamp: GeneratedBootcamp;

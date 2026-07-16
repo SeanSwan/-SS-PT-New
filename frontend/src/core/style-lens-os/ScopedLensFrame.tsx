@@ -12,12 +12,13 @@
  * frame exactly as it would on the real dashboard — enabling instant
  * previews and true side-by-side comparison with zero global effects.
  *
- * Dependency-free on purpose (boundary-tested): the generic core has no
- * styling library — layout primitives here are inline styles only.
+ * App-component-free on purpose (boundary-tested): the generic core uses
+ * only its own static CSS primitives.
  * Preview-only by design: no state, no persistence, no coordinator.
  */
-import React, { type CSSProperties, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import type { AppearanceProfile } from './types';
+import './ScopedLensFrame.css';
 
 interface ScopedLensFrameProps {
   /** Lens to render inside the frame */
@@ -31,25 +32,6 @@ interface ScopedLensFrameProps {
   'aria-label'?: string;
 }
 
-const rootStyle: CSSProperties = {
-  display: 'block',
-  minWidth: 0,
-  containerType: 'inline-size',
-};
-
-const shellStyle: CSSProperties = {
-  display: 'block',
-  minWidth: 0,
-  minHeight: '100%',
-};
-
-const scrollStyle: CSSProperties = {
-  display: 'block',
-  minWidth: 0,
-  minHeight: '100%',
-  overflow: 'hidden',
-};
-
 export const ScopedLensFrame: React.FC<ScopedLensFrameProps> = ({
   styleLensId,
   density = 'comfortable',
@@ -59,9 +41,8 @@ export const ScopedLensFrame: React.FC<ScopedLensFrameProps> = ({
   'aria-label': ariaLabel,
 }) => (
   <div
-    className={className}
+    className={['style-lens-frame', className].filter(Boolean).join(' ')}
     aria-label={ariaLabel}
-    style={rootStyle}
     data-style-lens={styleLensId}
     data-density={density}
     data-motion-mode={motionMode}
@@ -69,8 +50,8 @@ export const ScopedLensFrame: React.FC<ScopedLensFrameProps> = ({
   >
     {/* Nested exactly like the live dashboard: lens vars → shell → scroll
         root, so descendant rules (canvas, radius, edge) all land. */}
-    <div style={shellStyle} data-style-lens-shell>
-      <div style={scrollStyle} data-dashboard-scroll-root>
+    <div className="style-lens-frame__shell" data-style-lens-shell>
+      <div className="style-lens-frame__scroll-root" data-dashboard-scroll-root>
         {children}
       </div>
     </div>

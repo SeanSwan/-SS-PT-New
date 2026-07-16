@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import {
   Search as SearchIcon,
@@ -12,6 +12,7 @@ import {
   Phone as PhoneIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─────────────────────────────────────────────
    Crystalline Swan Theme Tokens
@@ -737,15 +738,15 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
   selectedClients = [],
   multiSelect = false,
   showDetails = true,
-  filterOptions = {}
+  filterOptions: _filterOptions = {}
 }) => {
-  const { user } = useAuth();
+  useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [filters, setFilters] = useState({
     status: '',
@@ -754,7 +755,7 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
   });
 
   // Mock clients data for demo
-  const mockClients: Client[] = [
+  const mockClients = useMemo<Client[]>(() => ([
     {
       id: '1',
       name: 'John Doe',
@@ -849,12 +850,7 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
       goals: ['Rehabilitation'],
       level: 'beginner'
     }
-  ];
-
-  // Load clients on component mount
-  useEffect(() => {
-    loadClients();
-  }, []);
+  ]), []);
 
   // Filter clients based on search and filters
   useEffect(() => {
@@ -888,7 +884,7 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
     setFilteredClients(filtered);
   }, [clients, searchTerm, filters]);
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     setLoading(true);
     try {
       // In a real implementation, this would fetch from the backend API
@@ -899,7 +895,12 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [mockClients]);
+
+  // Load clients on component mount
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   const handleClientClick = (client: Client) => {
     if (multiSelect) {
@@ -930,6 +931,9 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
     <ClientCard
       key={client.id}
       $selected={isClientSelected(client.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
       onClick={() => handleClientClick(client)}
     >
       <CardBody>
@@ -966,7 +970,7 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
           <PlanBlock>
             <PlanTitle>Current Plan: {client.currentPlan.name}</PlanTitle>
             <ProgressRow>
-              <span style={{ fontSize: '0.75rem', color: T.textMuted }}>Progress:</span>
+              <StyledBox as="span" $style={{ fontSize: '0.75rem', color: T.textMuted }}>Progress:</StyledBox>
               <ProgressBadge>
                 <ProgressIcon size={14} />
                 {client.currentPlan.progress}%
@@ -1063,8 +1067,9 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
         </SearchWrapper>
 
         <SelectWrapper>
-          <SelectLabel>Status</SelectLabel>
+          <SelectLabel htmlFor="client-filter-status">Status</SelectLabel>
           <NativeSelect
+            id="client-filter-status"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -1076,8 +1081,9 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
         </SelectWrapper>
 
         <SelectWrapper>
-          <SelectLabel>Level</SelectLabel>
+          <SelectLabel htmlFor="client-filter-level">Level</SelectLabel>
           <NativeSelect
+            id="client-filter-level"
             value={filters.level}
             onChange={(e) => setFilters({ ...filters, level: e.target.value })}
           >
@@ -1089,8 +1095,9 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
         </SelectWrapper>
 
         <SelectWrapper>
-          <SelectLabel>Has Plan</SelectLabel>
+          <SelectLabel htmlFor="client-filter-plan">Has Plan</SelectLabel>
           <NativeSelect
+            id="client-filter-plan"
             value={filters.hasActivePlan}
             onChange={(e) => setFilters({ ...filters, hasActivePlan: e.target.value })}
           >
@@ -1125,8 +1132,8 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
 
       {/* Client Details Modal */}
       {detailsOpen && selectedClient && (
-        <ModalOverlay onClick={() => setDetailsOpen(false)}>
-          <ModalPanel onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onPointerDown={(event) => { if (event.target === event.currentTarget) setDetailsOpen(false); }}>
+          <ModalPanel>
             <ModalHeader>
               <AvatarCircle $size={56}>
                 {selectedClient.avatar
@@ -1169,18 +1176,18 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
                 {/* Fitness Profile */}
                 <div>
                   <SectionHeading>Fitness Profile</SectionHeading>
-                  <div style={{ marginBottom: 12 }}>
+                  <StyledBox as="div" $style={{ marginBottom: 12 }}>
                     <BodyText $muted>Level: {selectedClient.level}</BodyText>
                     <BodyText $muted>Status: {selectedClient.status}</BodyText>
-                  </div>
+                  </StyledBox>
                   <BodyText $muted>Goals:</BodyText>
-                  <ChipsRow style={{ marginTop: 6 }}>
+                  <StyledBox as={ChipsRow} $style={{ marginTop: 6 }}>
                     {selectedClient.goals.map((goal, index) => (
                       <ChipBase key={index} $variant="outlined" $color={T.accent}>
                         {goal}
                       </ChipBase>
                     ))}
-                  </ChipsRow>
+                  </StyledBox>
                 </div>
 
                 {/* Workout Statistics */}
@@ -1209,9 +1216,9 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
                       <StatCardIcon $color={T.success}>
                         <CompleteIcon size={40} />
                       </StatCardIcon>
-                      <StatCardValue $color={T.success} style={{ fontSize: '1.1rem' }}>
+                      <StyledBox as={StatCardValue} $color={T.success} $style={{ fontSize: '1.1rem' }}>
                         {new Date(selectedClient.stats.lastWorkout).toLocaleDateString()}
-                      </StatCardValue>
+                      </StyledBox>
                       <StatCardLabel>Last Workout</StatCardLabel>
                     </StatCard>
                   </StatCardsGrid>

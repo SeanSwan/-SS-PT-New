@@ -17,6 +17,7 @@ import {
   type LensChartPalette,
 } from './chartTheme';
 import { useOptionalStyleLensAppearance } from '../../core/style-lens-os/StyleLensProvider';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const LensChartPaletteContext = createContext<LensChartPalette>(SWAN_CHART_PALETTE);
 
@@ -43,11 +44,11 @@ export const LensChartPaletteProvider: React.FC<LensChartPaletteProviderProps> =
   }, [committedLensId]);
 
   return (
-    <div ref={hostRef} style={{ display: 'contents' }}>
+    <StyledBox as="div" ref={hostRef} $style={{ display: 'contents' }}>
       <LensChartPaletteContext.Provider value={palette}>
         {children}
       </LensChartPaletteContext.Provider>
-    </div>
+    </StyledBox>
   );
 };
 

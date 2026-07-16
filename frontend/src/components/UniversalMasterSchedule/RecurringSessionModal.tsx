@@ -27,6 +27,7 @@ import {
   RecurringSessionDetailsFields,
   RecurringTimeFields,
 } from './RecurringSessionModal.sections';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface RecurringSessionModalProps {
   open: boolean;
@@ -246,14 +247,14 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
         </>
       )}
     >
-      <SmallText secondary style={{ marginBottom: '1rem' }}>
+      <StyledBox as={SmallText} secondary $style={{ marginBottom: '1rem' }}>
         Note: Recurring series are capped at 52 occurrences or 12 months.
-      </SmallText>
+      </StyledBox>
 
       {formError && (
-        <ErrorText style={{ marginBottom: '1rem' }}>
+        <StyledBox as={ErrorText} $style={{ marginBottom: '1rem' }}>
           {formError}
-        </ErrorText>
+        </StyledBox>
       )}
 
       <RecurringScheduleFields

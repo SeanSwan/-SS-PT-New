@@ -50,7 +50,8 @@ describe('admin store control — inline one-click on/off toggle', () => {
   });
 
   it('reuses the accessible house switch (44px label, keyboard checkbox, aria-label)', () => {
-    expect(view).toContain('<SwitchLabel');
+    expect(view).toContain('<StyledBox as={SwitchLabel}');
+    expect(view).not.toContain('<SwitchLabel');
     expect(view).toContain('<SwitchTrack $checked={pkg.isActive}>');
     expect(view).toContain('aria-label={`${pkg.isActive');
   });

@@ -63,6 +63,7 @@ import {
 } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse, scrubGenericPII } from '../services/aiPrivacyService.mjs';
+import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
 import {
   checkClientAccess,
   CLIENT_ACCESS_DENIED_MESSAGE,
@@ -711,6 +712,25 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         }
       }
     }
+    let generalIdentitySanitizer = null;
+    if (requesterIsStaff) {
+      try {
+        const identityPrivacy = await createAccessibleClientIdentitySanitizer({ requester: req.user, sequelize });
+        generalIdentitySanitizer = identityPrivacy.sanitize;
+      } catch (error) {
+        logger.error('[AIChatRoutes] General identity redaction failed closed', {
+          userId: req.user.id,
+          role: req.user.role,
+          errorName: error?.name ?? 'Error',
+        });
+        return res.status(503).json({
+          success: false,
+          code: 'AI_IDENTITY_REDACTION_UNAVAILABLE',
+          error: 'Client identity protection is temporarily unavailable. Please try again.',
+        });
+      }
+    }
+
     let sanitizedMessage = message.trim();
     let piiStripped = false;
     // Strip client-identity terms only when we have a target client to name-map.
@@ -737,6 +757,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         sanitizedMessage = CURRENT_MESSAGE_WITHHELD;
         piiStripped = true;
       }
+    }
+    if (generalIdentitySanitizer) {
+      const stripResult = generalIdentitySanitizer(sanitizedMessage);
+      sanitizedMessage = stripResult.sanitizedMessage;
+      if (stripResult.identitiesStripped > 0) piiStripped = true;
     }
 
     // Build system prompt based on role + context, enriched with user data
@@ -817,10 +842,16 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       context: conversation.context,
       workoutDate: selectedWorkoutDate,
     });
+    if (generalIdentitySanitizer) {
+      const systemStrip = generalIdentitySanitizer(systemPrompt);
+      systemPrompt = systemStrip.sanitizedMessage;
+      if (systemStrip.identitiesStripped > 0) piiStripped = true;
+    }
     const promptHistory = await sanitizePromptHistory({
       messages: conversation.messages,
       enrichUserId,
       sequelize,
+      generalMessageStripper: generalIdentitySanitizer,
     });
     if (promptHistory.identitiesStripped > 0) piiStripped = true;
 
@@ -842,6 +873,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         aiContent = RESPONSE_MESSAGE_WITHHELD;
         piiStripped = true;
       }
+    }
+    if (generalIdentitySanitizer) {
+      const responseStrip = generalIdentitySanitizer(aiContent);
+      aiContent = responseStrip.sanitizedMessage;
+      if (responseStrip.identitiesStripped > 0) piiStripped = true;
     }
     aiContent = sanitizeNutritionChatCopy(aiContent, {
       context: conversation.context,

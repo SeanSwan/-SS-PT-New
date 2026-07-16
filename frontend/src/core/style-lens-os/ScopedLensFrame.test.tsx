@@ -16,14 +16,18 @@ describe('ScopedLensFrame', () => {
     );
 
     const root = container.querySelector('[data-scoped-lens-frame]');
+    expect(root).toHaveClass('style-lens-frame');
+    expect(root).not.toHaveAttribute('style');
     expect(root).not.toBeNull();
     expect(root!.getAttribute('data-style-lens')).toBe('tempo-forge');
     expect(root!.getAttribute('data-density')).toBe('comfortable');
     expect(root!.getAttribute('data-motion-mode')).toBe('full');
 
     const shell = root!.querySelector('[data-style-lens-shell]');
+    expect(shell).toHaveClass('style-lens-frame__shell');
     expect(shell).not.toBeNull();
     const scroll = shell!.querySelector('[data-dashboard-scroll-root]');
+    expect(scroll).toHaveClass('style-lens-frame__scroll-root');
     expect(scroll).not.toBeNull();
     expect(scroll!.contains(getByText('stage content'))).toBe(true);
   });

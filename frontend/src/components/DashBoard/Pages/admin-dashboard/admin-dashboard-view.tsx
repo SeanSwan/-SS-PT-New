@@ -12,17 +12,18 @@ import {
   DashboardBackgroundSettingsPanel,
   DashboardBackgroundSurface,
 } from '../../shared/DashboardBackgroundStudio';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // === MAIN ADMIN DASHBOARD COMPONENT ===
 // NOTE: Uses universal theme from UniversalThemeContext (provided by parent)
 // Removed standalone ThemeProvider/adminGalaxyTheme to connect to site-wide theme system
 const RevolutionaryAdminDashboard: React.FC = () => (
   <DashboardBackgroundSurface>
-  <motion.div
+  <StyledBox as={motion.div}
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.6, ease: 'easeOut' }}
-    style={{ width: '100%', minHeight: '100%' }}
+    $style={{ width: '100%', minHeight: '100%' }}
   >
     <CommandHeader
       initial={{ opacity: 0, y: -20 }}
@@ -42,7 +43,7 @@ const RevolutionaryAdminDashboard: React.FC = () => (
     >
       <AdminOverviewPanel />
     </motion.div>
-  </motion.div>
+  </StyledBox>
   </DashboardBackgroundSurface>
 );
 

@@ -4,7 +4,7 @@
  * Source-text + render locks. Hook (usePlaudPendingReviews) is mocked
  * via vi.mock so we can drive different list states.
  */
-import React from 'react';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';

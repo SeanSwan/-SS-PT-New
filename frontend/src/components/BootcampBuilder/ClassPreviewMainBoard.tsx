@@ -28,7 +28,7 @@ interface ClassPreviewMainBoardProps {
   onSelectStation?: (stationIndex: number) => void;
 }
 
-export const bootcampMainBoardExerciseKey = (
+const bootcampMainBoardExerciseKey = (
   ex: BootcampExercise,
   fallbackStationIndex: number | string,
 ): string => [

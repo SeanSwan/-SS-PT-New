@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle, Copy, Zap, Smartphone } from 'lucide-react';
+import { CheckCircle, Copy, Smartphone } from 'lucide-react';
 import GlowButton from '../../ui/buttons/GlowButton';
 import ZelleQR from '../../../assets/Zelle.png';
 
@@ -35,7 +35,7 @@ const ZellePayment: React.FC<ZellePaymentProps> = ({ total, zelleRecipient, onSu
         </QRCard>
         <QRInfo>
           <ScanLabel><Smartphone size={18} /> Scan to Pay Instantly</ScanLabel>
-          <ScanHint>Open your banking app's Zelle feature and scan this QR code</ScanHint>
+          <ScanHint>Open your banking app&apos;s Zelle feature and scan this QR code</ScanHint>
           <AmountBadge>${total.toFixed(2)}</AmountBadge>
         </QRInfo>
       </QRSection>
@@ -52,7 +52,7 @@ const ZellePayment: React.FC<ZellePaymentProps> = ({ total, zelleRecipient, onSu
       <StepList>
         <Step>
           <StepNumber>1</StepNumber>
-          <StepText>Open your bank's Zelle (Chase, BofA, Wells Fargo, etc.)</StepText>
+          <StepText>Open your bank&apos;s Zelle (Chase, BofA, Wells Fargo, etc.)</StepText>
         </Step>
         <Step>
           <StepNumber>2</StepNumber>

@@ -22,6 +22,7 @@ import {
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // TypeScript Interfaces
 interface OrderItem {
@@ -427,14 +428,14 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
   showSessionDetails = true,
   showPromoSection = false,
   showTaxes = false,
-  allowEditing = false,
+  allowEditing: _allowEditing = false,
   compact = false,
   className,
   onOrderChange,
   onProceedToPayment
 }) => {
   const { cart } = useCart();
-  const { user } = useAuth();
+  useAuth();
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromos, setAppliedPromos] = useState<string[]>([]);
 
@@ -540,7 +541,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
       totalSessions,
       estimatedDuration
     };
-  }, [cart, showTaxes]);
+  }, [cart]);
 
   // Notify parent of order changes
   React.useEffect(() => {
@@ -581,14 +582,14 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
       <SummaryContainer $compact={compact} className={className}>
-        <div style={{ 
+        <StyledBox as="div" $style={{
           textAlign: 'center', 
           padding: '2rem', 
           color: 'rgba(255, 255, 255, 0.7)' 
         }}>
-          <Package size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <StyledBox as={Package} size={48} $style={{ marginBottom: '1rem', opacity: 0.5 }} />
           <p>Your order is empty</p>
-        </div>
+        </StyledBox>
       </SummaryContainer>
     );
   }
@@ -676,10 +677,10 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
                     </MetaTag>
                   )}
                   {item.isDiscounted && (
-                    <MetaTag style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
+                    <StyledBox as={MetaTag} $style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
                       <Tag size={10} />
                       Save {formatPrice(item.discountAmount || 0)}
-                    </MetaTag>
+                    </StyledBox>
                   )}
                 </ItemMeta>
               </ItemDetails>
@@ -711,7 +712,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
           animate={{ opacity: 1, height: 'auto' }}
           transition={{ duration: 0.3 }}
         >
-          <div style={{ 
+          <StyledBox as="div" $style={{
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.5rem', 
@@ -722,9 +723,9 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
           }}>
             <Gift size={16} />
             Have a promo code?
-          </div>
+          </StyledBox>
           
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <StyledBox as="div" $style={{ display: 'flex', gap: '0.5rem' }}>
             <PromoInput
               type="text"
               placeholder="Enter promo code"
@@ -735,12 +736,12 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
             <PromoButton onClick={handleApplyPromo} disabled={!promoCode.trim()}>
               Apply
             </PromoButton>
-          </div>
+          </StyledBox>
           
           {appliedPromos.length > 0 && (
-            <div style={{ marginTop: '0.5rem' }}>
+            <StyledBox as="div" $style={{ marginTop: '0.5rem' }}>
               {appliedPromos.map(promo => (
-                <div key={promo} style={{ 
+                <StyledBox as="div" key={promo} $style={{
                   display: 'inline-flex', 
                   alignItems: 'center', 
                   gap: '0.25rem',
@@ -753,9 +754,9 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
                 }}>
                   <CheckCircle size={12} />
                   {promo} applied
-                </div>
+                </StyledBox>
               ))}
-            </div>
+            </StyledBox>
           )}
         </PromoSection>
       )}

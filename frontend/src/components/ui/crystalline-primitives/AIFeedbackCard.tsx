@@ -61,9 +61,3 @@ export const AIFeedbackCard = styled(motion.div)`
 `;
 
 /** Framer Motion animation presets for the feedback card */
-export const feedbackCardAnimations = {
-  initial: { opacity: 0, y: 10, scale: 0.95 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -10, scale: 0.95 },
-  transition: { type: 'spring' as const, stiffness: 300, damping: 20 },
-};

@@ -15,9 +15,9 @@ describe('DashboardTeachMeGuide mounts', () => {
     const userDashboard = read('src/components/UserDashboard/UserDashboard.V3.tsx');
 
     expect(dashboardShellSource).toContain('DashboardTeachMeGuide');
-    expect(dashboardShellSource).toContain('role={activeRole}');
+    expect(dashboardShellSource).toContain('dashboardRole={activeRole}');
     expect(userDashboard).toContain('DashboardTeachMeGuide');
-    expect(userDashboard).toContain('role="user"');
+    expect(userDashboard).toContain('dashboardRole="user"');
     expect(userDashboard).toContain('const teachMePathname');
     expect(userDashboard).toContain('pathname={teachMePathname}');
     expect(userDashboard).toContain('onAskCoach={handleTeachMeCoachPrompt}');

@@ -16,6 +16,6 @@ describe('OrderReviewStep theme contract', () => {
     expect(source).not.toContain('keyframes');
     expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba\(/);
     expect(source).not.toContain('style={{');
-    expect(source).not.toMatch(/color=\"/);
+    expect(source).not.toMatch(/color="/);
   });
 });

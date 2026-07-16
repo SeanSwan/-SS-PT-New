@@ -4,7 +4,7 @@
  * Fail-closed contract: with no provider (or any v1 lens id) the frame is
  * a pass-through — zero DOM additions, zero visual change.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import LensPlanFrame from '../DashBoard/Pages/workout-design-lab/LensPlanFrame';
@@ -47,14 +47,14 @@ describe('Workout Logger as a Recipe v2 second host (computed signature)', () =>
     const candyRoot = candy.container.querySelector('[data-lens2-plan]') as HTMLElement;
     expect(candyRoot).not.toBeNull();
     expect(candyRoot.getAttribute('data-lens2-collection')).toBe('arcade-cards');
-    expect(candyRoot.style.getPropertyValue('--world-panel-radius')).toBe('26px');
+    expect(window.getComputedStyle(candyRoot).getPropertyValue('--world-panel-radius')).toBe('26px');
     candy.unmount();
 
     const prism = renderWithRecipe(PRISM_TERMINAL_RECIPE);
     const prismRoot = prism.container.querySelector('[data-lens2-plan]') as HTMLElement;
     expect(prismRoot).not.toBeNull();
     expect(prismRoot.getAttribute('data-lens2-collection')).toBe('command-rows');
-    expect(prismRoot.style.getPropertyValue('--world-panel-radius')).toBe('4px');
+    expect(window.getComputedStyle(prismRoot).getPropertyValue('--world-panel-radius')).toBe('4px');
     expect(prismRoot.getAttribute('data-lens2-chart')).toBeNull();
   });
 });

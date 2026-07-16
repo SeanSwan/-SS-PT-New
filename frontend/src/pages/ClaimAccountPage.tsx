@@ -22,7 +22,7 @@
  *   ClaimAccountPage -->|POST /api/claim/activate| ActivateEndpoint
  *   ActivateEndpoint -->|success| LoginRedirect
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ActivatedUsername,
@@ -42,6 +42,7 @@ import {
   WelcomeName,
 } from './ClaimAccountPage.styles';
 import { PASSWORD_POLICY_COPY, isActivationPasswordStrong } from './activationPasswordPolicy';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -71,6 +72,15 @@ const ClaimAccountPage: React.FC = () => {
   const [status, setStatus] = useState<{ type: 'error' | 'success' | 'info'; message: string } | null>(null);
   const [activated, setActivated] = useState(false);
   const [activatedUsername, setActivatedUsername] = useState('');
+  const tokenInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      (verified ? passwordInputRef.current : tokenInputRef.current)?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [verified]);
 
   // Auto-verify if token is in URL
   useEffect(() => {
@@ -214,6 +224,7 @@ const ClaimAccountPage: React.FC = () => {
                 <>
                   <Label htmlFor="claim-token">Invite Code</Label>
                   <InputField
+                    ref={tokenInputRef}
                     id="claim-token"
                     type="text"
                     placeholder={CLAIM_TOKEN_PLACEHOLDER}
@@ -221,36 +232,36 @@ const ClaimAccountPage: React.FC = () => {
                     onChange={(e) => setToken(normalizeClaimTokenInput(e.target.value))}
                     onPaste={handleClaimTokenPaste}
                     maxLength={CLAIM_TOKEN_MAX_LENGTH}
-                    autoFocus
                     autoComplete="off"
                   />
-                  <SubmitButton
+                  <StyledBox as={SubmitButton}
                     type="button"
                     onClick={() => verifyToken(token)}
                     disabled={verifying || normalizeClaimTokenInput(token).length < 6}
                     whileTap={{ scale: 0.97 }}
-                    style={{ marginBottom: 16 }}
+                    $style={{ marginBottom: 16 }}
                   >
                     {verifying ? <LoadingDots>Verifying...</LoadingDots> : 'Verify Code'}
-                  </SubmitButton>
+                  </StyledBox>
                 </>
               )}
 
               {verified && (
                 <>
                   <Label htmlFor="claim-email">Email (optional - use your own email)</Label>
-                  <InputField
+                  <StyledBox as={InputField}
                     id="claim-email"
                     type="email"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{ letterSpacing: 'normal', textTransform: 'none' }}
+                    $style={{ letterSpacing: 'normal', textTransform: 'none' }}
                     autoComplete="email"
                   />
 
                   <Label htmlFor="claim-password">New Password</Label>
                   <PasswordInput
+                    ref={passwordInputRef}
                     id="claim-password"
                     type="password"
                     placeholder="Strong password"
@@ -258,7 +269,6 @@ const ClaimAccountPage: React.FC = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={8}
                     autoComplete="new-password"
-                    autoFocus
                   />
                   <PasswordPolicyHint>{PASSWORD_POLICY_COPY}</PasswordPolicyHint>
 

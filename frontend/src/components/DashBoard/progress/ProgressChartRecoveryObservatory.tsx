@@ -22,6 +22,7 @@ import {
   Title,
   TitleBlock,
 } from './ProgressChartRecoveryObservatory.styles';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface ProgressChartRecoveryObservatoryProps {
   charts: CanonicalProgressCharts;
@@ -87,16 +88,16 @@ const ProgressChartRecoveryObservatory: React.FC<ProgressChartRecoveryObservator
             padding={{ top: 18, right: 42, bottom: 20, left: 118 }}
           >
             <VictoryAxis
-              style={AXIS_STYLE}
+              {...victoryStyleProps(AXIS_STYLE)}
               tickFormat={(_, index) => chartData[index]?.name ?? ''}
             />
             <VictoryAxis
               dependentAxis
-              style={HIDDEN_AXIS_STYLE}
+              {...victoryStyleProps(HIDDEN_AXIS_STYLE)}
             />
             <VictoryBar
               data={chartData}
-              style={BAR_STYLE}
+              {...victoryStyleProps(BAR_STYLE)}
               barWidth={18}
               cornerRadius={{ topLeft: 5, topRight: 5 }}
               labels={({ datum }) => datum.label}

@@ -9,6 +9,7 @@ import {
   VISIBLE_ITEMS,
   WheelItem,
 } from './TimeWheel.styles';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 interface WheelColumnProps {
   items: (string | number)[];
@@ -79,7 +80,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
         dragMomentum={false}
         onDragEnd={handleDragEnd}
         animate={controls}
-        style={{ y }}
+        {...motionStyleProps({ y })}
       >
         {items.map((item, idx) => (
           <WheelItem

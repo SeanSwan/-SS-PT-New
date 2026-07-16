@@ -10,7 +10,7 @@ const readSource = (relativePath: string) =>
 describe('mounted FoodTracker auth pipeline', () => {
   it('covers FoodTracker tabs mounted from the nutrition workspace and backed by mounted APIs', () => {
     const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
-    const captureSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.capture.tsx');
+    readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.capture.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const macroRoutesSource = readSource('backend/routes/dailyMacroRoutes.mjs');
     const mealPlanRoutesSource = readSource('backend/routes/mealPlanRoutes.mjs');

@@ -39,6 +39,14 @@ describe('useClientProgressChartsResponseMapping', () => {
     expect(countNonEmptyCharts(charts)).toBe(5);
   });
 
+  it('drops malformed array members before chart point property access', () => {
+    const charts = buildCanonicalProgressChartsFromResponses([
+      { success: true, data: [null, 'broken', 42, { x: 'Week 1', y: '3' }] },
+    ]);
+
+    expect(charts.workoutFrequency).toEqual([{ x: 'Week 1', y: 3 }]);
+  });
+
   it('counts failed and malformed chart responses without marking honest empty data unavailable', () => {
     expect(countUnavailableChartResponses([
       { success: true, data: [] },

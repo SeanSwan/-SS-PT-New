@@ -11,11 +11,7 @@ import { changedAxisCount, whatChanged } from '../../../core/style-lens-os/v2/wh
 import { CANDY_GLASS_ARCADE_RECIPE, PRISM_TERMINAL_RECIPE } from './labRecipes';
 import { resolveRecipeForStyleLens } from './recipeResolution';
 import * as manifests from './surfaceManifests';
-import {
-  CLIENT_PROGRESS_MANIFEST,
-  WORKOUT_LOGGER_MANIFEST,
-  WORKOUT_PLANNER_MANIFEST,
-} from './surfaceManifests';
+import { CLIENT_PROGRESS_MANIFEST, WORKOUT_LOGGER_MANIFEST } from './surfaceManifests';
 
 describe('Lane-1 surface capability manifests', () => {
   it('EVERY exported manifest validates clean (SurfaceLensGate is fail-closed-silent)', () => {

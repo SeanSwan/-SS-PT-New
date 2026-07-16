@@ -1,6 +1,7 @@
 // src/components/ui/Transitions.tsx
 import React, { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface TransitionsProps {
   children: React.ReactNode;
@@ -34,7 +35,7 @@ const getSlideDirection = (direction: string) => {
 };
 
 const Transitions = forwardRef<HTMLDivElement, TransitionsProps>(
-  ({ children, position = 'top-left', type = 'grow', direction = 'up', in: show = true, style, ...others }, ref) => {
+  ({ children, position = 'top-left', type = 'grow', direction = 'up', in: show = true, style, ..._others }, ref) => {
     const transformOrigin = getTransformOrigin(position);
 
     const getVariants = () => {
@@ -86,20 +87,22 @@ const Transitions = forwardRef<HTMLDivElement, TransitionsProps>(
       <div ref={ref}>
         <AnimatePresence>
           {show && (
-            <motion.div
+            <StyledBox as={motion.div}
               initial={variants.initial}
               animate={variants.animate}
               exit={variants.exit}
               transition={variants.transition || { duration: 0.3, ease: 'easeInOut' }}
-              style={{ ...style, transformOrigin }}
+              $style={{ ...style, transformOrigin }}
             >
               {children}
-            </motion.div>
+            </StyledBox>
           )}
         </AnimatePresence>
       </div>
     );
   }
 );
+
+Transitions.displayName = 'Transitions';
 
 export default Transitions;

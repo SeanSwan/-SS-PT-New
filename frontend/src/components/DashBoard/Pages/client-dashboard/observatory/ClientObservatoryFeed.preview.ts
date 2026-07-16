@@ -5,7 +5,7 @@ import {
   timeLabel,
 } from './ClientObservatoryData';
 
-export const CONTROL_TEXT_PATTERN = /[\u0000-\u001F\u007F]/g;
+export const CONTROL_TEXT_PATTERN = /\p{Cc}/gu;
 
 export interface NormalizedFeedPostPreview {
   key: string;

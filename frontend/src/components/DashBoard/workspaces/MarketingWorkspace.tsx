@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Share2, CalendarDays, Users, Megaphone, BarChart3,
 } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const MarketingCommandOverview = lazy(() => import('./marketing/MarketingCommandOverview'));
 const SocialPostGenerator = lazy(() => import('./marketing/SocialPostGenerator'));
@@ -179,7 +180,7 @@ const MarketingWorkspace: React.FC = () => {
     <Wrapper>
       <Header>
         <Title>
-          <Megaphone size={28} style={{ opacity: 0.7 }} />
+          <StyledBox as={Megaphone} size={28} $style={{ opacity: 0.7 }} />
           Marketing Command Center
         </Title>
         <Subtitle>Human-approved campaigns, publishing cadence, lead follow-up, and performance signals</Subtitle>

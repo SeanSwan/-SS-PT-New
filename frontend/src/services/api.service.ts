@@ -15,6 +15,38 @@ import { ProductionTokenManager } from './productionTokenManager';
 
 export { registerPaywallTrigger, unregisterPaywallTrigger };
 
+type ApiDebugWindow = Window & {
+  debugAuth?: () => void;
+  clearAuthData?: () => void;
+  testAuthEndpoint?: () => Promise<void>;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const getApiErrorDetails = (
+  error: unknown
+): { message?: string; status?: number; code?: string } => {
+  const response = isRecord(error) && isRecord(error.response)
+    ? error.response
+    : undefined;
+
+  return {
+    message: error instanceof Error
+      ? error.message
+      : isRecord(error) && typeof error.message === 'string'
+        ? error.message
+        : undefined,
+    status: response && typeof response.status === 'number'
+      ? response.status
+      : undefined,
+    code: isRecord(error) && typeof error.code === 'string'
+      ? error.code
+      : undefined
+  };
+};
+
 const IS_PRODUCTION = import.meta.env.PROD
   || window.location.hostname.includes('render.com')
   || window.location.hostname.includes('sswanstudios.com')
@@ -46,11 +78,12 @@ class ProductionApiService {
 
       logger.warn('[API] Server responded but not with expected format');
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const details = getApiErrorDetails(error);
       logger.warn('[API] Server connection failed:', {
-        message: error.message,
-        status: error.response?.status,
-        code: error.code
+        message: details.message,
+        status: details.status,
+        code: details.code
       });
       return false;
     }
@@ -107,7 +140,7 @@ class ProductionApiService {
     }
   }
 
-  async register(userData: any) {
+  async register(userData: Record<string, unknown>) {
     try {
       const response = await this.client.post('/api/auth/register', userData);
 
@@ -177,15 +210,15 @@ class ProductionApiService {
     return this.client.get<T>(url, config);
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async post<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.client.post<T>(url, data, config);
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async put<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.client.put<T>(url, data, config);
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async patch<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.client.patch<T>(url, data, config);
   }
 
@@ -228,7 +261,8 @@ export { ProductionApiService, ProductionTokenManager };
 export { ProductionApiService as ApiService };
 
 if (import.meta.env.DEV && typeof window !== 'undefined') {
-  (window as any).debugAuth = () => {
+  const debugWindow = window as ApiDebugWindow;
+  debugWindow.debugAuth = () => {
     logger.log('[DEBUG] Auth Status:', {
       hasToken: !!ProductionTokenManager.getToken(),
       hasRefreshToken: !!ProductionTokenManager.getRefreshToken(),
@@ -239,12 +273,12 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     });
   };
 
-  (window as any).clearAuthData = () => {
+  debugWindow.clearAuthData = () => {
     ProductionTokenManager.clearAuthData();
     logger.log('[DEBUG] Auth data cleared');
   };
 
-  (window as any).testAuthEndpoint = async () => {
+  debugWindow.testAuthEndpoint = async () => {
     try {
       const response = await productionApiService.get('/api/auth/me');
       logger.log('[DEBUG] Auth endpoint test:', response.data);

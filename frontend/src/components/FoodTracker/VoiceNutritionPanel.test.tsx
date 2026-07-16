@@ -5,7 +5,7 @@
  * before saving; nothing-parsed (422) shows safe copy and no review panel.
  * (Speech API is absent in jsdom, so the textarea path is exercised directly.)
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

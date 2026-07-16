@@ -13,7 +13,7 @@ import { SectionEl, Container, SectionHeader, SectionTitle } from '../shared/Hom
 import { getReveal, staggerContainer } from '../shared/HomeAnimations';
 import { STATS } from '../shared/HomeData';
 import AnimatedCounter from '../../../../components/ui/animations/AnimatedCounter';
-import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 
 interface StatsSectionProps {

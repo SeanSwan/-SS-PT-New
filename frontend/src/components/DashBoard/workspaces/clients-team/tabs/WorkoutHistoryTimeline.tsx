@@ -76,7 +76,7 @@ interface WorkoutHistoryTimelineProps {
   clientName?: string;
 }
 
-const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientId, clientName }) => {
+const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientId, clientName: _clientName }) => {
   const { authAxios } = useAuth() as any;
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);

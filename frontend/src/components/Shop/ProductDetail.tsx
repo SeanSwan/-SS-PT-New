@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton from '../ui/buttons/GlowButton';
 import ProductRecommendations from './ProductRecommendations';
 import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Types
 interface ProductDetailType {
@@ -485,7 +486,7 @@ const ProductDetail: React.FC = () => {
                 // A hostile/rejected URL falls through to the placeholder.
                 const safeImg = sanitizeImageUrl(product.imageUrl);
                 return safeImg ? (
-                  <ProductImage style={{ backgroundImage: `url(${cssUrlValue(safeImg)})` }} />
+                  <StyledBox as={ProductImage} $style={{ backgroundImage: `url(${cssUrlValue(safeImg)})` }} />
                 ) : (
                   <ImagePlaceholder>
                     No Image Available

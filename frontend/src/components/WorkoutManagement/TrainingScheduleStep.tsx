@@ -66,6 +66,7 @@ import {
   ListLi,
   ListItemContent,
 } from './WorkoutPlanBuilderStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -111,7 +112,7 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
   removeExerciseFromDay,
 }) => {
   return (
-    <div style={{ marginTop: 16 }}>
+    <StyledBox as="div" $style={{ marginTop: 16 }}>
       <SectionTitle>Training Schedule Setup</SectionTitle>
 
       {/* Swan Coach Planning Options */}
@@ -173,7 +174,7 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
             })}
           />
         </FormGrid>
-        <div style={{ marginTop: 16 }}>
+        <StyledBox as="div" $style={{ marginTop: 16 }}>
           <PrimaryButton
             $fullWidth
             onClick={handleGenerateWorkout}
@@ -182,26 +183,26 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
             <Sparkles size={18} />
             Swan Coach Plan
           </PrimaryButton>
-        </div>
+        </StyledBox>
       </CardPanel>
 
       <Divider />
 
       {/* Manual Day Creation */}
-      <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
-        <SectionTitle style={{ marginBottom: 0 }}>
+      <StyledBox as={FlexRow} $justify="space-between" $align="center" $style={{ marginBottom: 16 }}>
+        <StyledBox as={SectionTitle} $style={{ marginBottom: 0 }}>
           Workout Days ({workoutDays.length})
-        </SectionTitle>
+        </StyledBox>
         <OutlineButton onClick={addWorkoutDay}>
           <Plus size={18} />
           Add Day
         </OutlineButton>
-      </FlexRow>
+      </StyledBox>
 
       {workoutDays.map((day, index) => (
         <CardPanel key={index}>
           <FlexRow $justify="space-between" $align="center">
-            <SubTitle style={{ marginBottom: 0 }}>{day.name}</SubTitle>
+            <StyledBox as={SubTitle} $style={{ marginBottom: 0 }}>{day.name}</StyledBox>
             <FlexRow $gap="4px">
               <RoundIconButton
                 type="button"
@@ -224,7 +225,7 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
             </FlexRow>
           </FlexRow>
 
-          <FormGrid $cols="1fr 1fr 1fr" style={{ marginTop: 12 }}>
+          <StyledBox as={FormGrid} $cols="1fr 1fr 1fr" $style={{ marginTop: 12 }}>
             <FieldGroup>
               <FieldLabel>Day Name</FieldLabel>
               <StyledInput
@@ -269,13 +270,13 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
                 }}
               />
             </FieldGroup>
-          </FormGrid>
+          </StyledBox>
 
           {day.exercises && day.exercises.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <SmallText style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+            <StyledBox as="div" $style={{ marginTop: 16 }}>
+              <StyledBox as={SmallText} $style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
                 Exercises ({day.exercises.length})
-              </SmallText>
+              </StyledBox>
               <ListUl>
                 {day.exercises.map((exercise, exIndex) => (
                   <ListLi key={exIndex}>
@@ -294,11 +295,11 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
                   </ListLi>
                 ))}
               </ListUl>
-            </div>
+            </StyledBox>
           )}
         </CardPanel>
       ))}
-    </div>
+    </StyledBox>
   );
 };
 

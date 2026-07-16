@@ -3,7 +3,7 @@
  */
 
 import { Brain, Target, Shield, Heart } from 'lucide-react';
-import React from 'react';
+
 import {
   MARKETING_STATS,
   YEARS_EXPERIENCE_CLAIM,

@@ -46,6 +46,14 @@ vi.mock('../../../../../hooks/analytics/useAdminClientProgressCharts', () => ({
   }),
 }));
 
+vi.mock('../../../progress/ExerciseCodexMatrix', () => ({
+  default: () => null,
+}));
+
+vi.mock('./AdminBodyCompPanel', () => ({
+  default: () => null,
+}));
+
 import AdminProgressChartsGrid from './AdminProgressChartsGrid';
 
 const makeCtx = (clientList: ActiveClient[]): GlobalClientContextType => ({

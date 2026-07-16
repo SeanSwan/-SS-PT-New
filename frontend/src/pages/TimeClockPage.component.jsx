@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
@@ -44,7 +44,7 @@ const StatusDisplay = styled.div`
 
 const TimeClockPage = () => {
   const [clockInTime, setClockInTime] = useState(null);
-  const [clockOutTime, setClockOutTime] = useState(null);
+  const [, setClockOutTime] = useState(null);
   const [isClockedIn, setIsClockedIn] = useState(false);
 
   useEffect(() => {

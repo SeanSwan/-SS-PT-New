@@ -252,6 +252,7 @@ test('client nutrition workspace enforces review-first logging across the respon
     !/preloaded using link preload/i.test(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
     && !/React Router Future Flag Warning/i.test(item)
+    && !/Service Worker registration blocked by Playwright/i.test(item)
     && !/\[PerformanceMonitor\] Long task detected/i.test(item)
     && !/WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost/i.test(item)
   ));

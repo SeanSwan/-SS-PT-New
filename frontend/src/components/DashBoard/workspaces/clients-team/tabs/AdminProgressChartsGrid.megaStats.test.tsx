@@ -45,6 +45,14 @@ vi.mock('../../../../../hooks/analytics/useAdminClientProgressCharts', () => ({
 }));
 
 import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
+vi.mock('../../../progress/ExerciseCodexMatrix', () => ({
+  default: () => null,
+}));
+
+vi.mock('./AdminBodyCompPanel', () => ({
+  default: () => null,
+}));
+
 import AdminProgressChartsGrid from './AdminProgressChartsGrid';
 
 describe('AdminProgressChartsGrid mega stats', () => {

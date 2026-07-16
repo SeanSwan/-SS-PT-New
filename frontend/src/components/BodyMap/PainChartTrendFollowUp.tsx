@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { VictoryAxis, VictoryChart, VictoryLine, VictoryScatter } from 'victory';
 import type { PainSeverityTrend } from './painChartInsights';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface PainChartTrendFollowUpProps {
   severityTrend: PainSeverityTrend;
@@ -79,10 +80,10 @@ const PainChartTrendFollowUp: React.FC<PainChartTrendFollowUpProps> = ({ severit
         {severityTrend.points.length > 0 && (
           <TrendGraphic role="img" aria-label={`Pain severity trend: ${severityTrend.summary}`}>
             <VictoryChart height={76} padding={{ top: 8, right: 8, bottom: 8, left: 8 }} domain={{ y: [0, 10] }}>
-              <VictoryAxis style={hiddenAxisStyle} />
-              <VictoryAxis dependentAxis style={hiddenAxisStyle} />
-              <VictoryLine data={data} interpolation="monotoneX" style={{ data: { stroke: 'var(--accent-primary, #60C0F0)', strokeWidth: 3 } }} />
-              <VictoryScatter data={data} size={3} style={{ data: { fill: 'var(--accent-primary, #60C0F0)' } }} />
+              <VictoryAxis {...victoryStyleProps(hiddenAxisStyle)} />
+              <VictoryAxis dependentAxis {...victoryStyleProps(hiddenAxisStyle)} />
+              <VictoryLine data={data} interpolation="monotoneX" {...victoryStyleProps({ data: { stroke: 'var(--accent-primary, #60C0F0)', strokeWidth: 3 } })} />
+              <VictoryScatter data={data} size={3} {...victoryStyleProps({ data: { fill: 'var(--accent-primary, #60C0F0)' } })} />
             </VictoryChart>
             <PointLabels aria-hidden="true">
               {severityTrend.points.map((point) => <span key={`${point.id}-label`}>{point.painLevel}/10</span>)}

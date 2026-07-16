@@ -1,5 +1,5 @@
 // EMERGENCY ICON FIX - Replace any missing FaArrowLeft with ArrowLeft from lucide-react
-import React from 'react';
+
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 // Export common arrow icons as aliases for any components still expecting FA icons

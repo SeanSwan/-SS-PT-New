@@ -30,16 +30,21 @@ describe('CartContext auth pipeline', () => {
   });
 
   it('keeps cart reads and mutations on the shared API service', () => {
-    const cartContextSource = readSource('src/context/CartContext.tsx');
+    const publicSurfaceSource = readSource('src/context/CartContext.ts');
+    const cartContextSource = readSource('src/context/CartContextProvider.tsx');
 
+    expect(publicSurfaceSource).toContain("export { CartProvider } from './CartContextProvider';");
+    expect(publicSurfaceSource).toContain("export { useCart } from './cartContextState';");
     expect(cartContextSource).toContain("import apiService from '../services/api.service';");
-    expect(cartContextSource).toContain("apiService.get('/api/cart')");
-    expect(cartContextSource).toContain("apiService.post('/api/cart/add'");
+    expect(cartContextSource).toContain("apiService.get<unknown>('/api/cart')");
+    expect(cartContextSource).toContain("apiService.post<unknown>('/api/cart/add'");
     expect(cartContextSource).toContain('productVariantId');
-    expect(cartContextSource).toContain('apiService.put(`/api/cart/update/${itemId}`');
-    expect(cartContextSource).toContain('apiService.delete(`/api/cart/remove/${itemId}`)');
-    expect(cartContextSource).toContain("apiService.delete('/api/cart/clear')");
+    expect(cartContextSource).toContain('apiService.put<unknown>(`/api/cart/update/${normalizedItemId}`');
+    expect(cartContextSource).toContain('apiService.delete<unknown>(`/api/cart/remove/${normalizedItemId}`)');
+    expect(cartContextSource).toContain("apiService.delete<unknown>('/api/cart/clear')");
     expect(cartContextSource).not.toContain('authAxios');
     expect(cartContextSource).not.toContain('Authorization');
+    expect(cartContextSource).not.toContain('console.error');
+    expect(cartContextSource).not.toContain('catch (err: any)');
   });
 });

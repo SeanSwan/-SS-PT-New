@@ -33,6 +33,7 @@ import {
   WorkbenchPanel,
   WorkbenchShell,
 } from './CoachOnboardingWorkbench.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type ClientHubAxios = Parameters<typeof fetchClientHubAdminClients>[0];
 
@@ -118,7 +119,7 @@ const RosterRail: React.FC<{
             >
               <strong>{getWorkbenchDisplayName(client)}</strong>
               <small>{sourceLabel(client.clientSource)} - {pct}% coverage</small>
-              <ProgressTrack aria-hidden="true"><span style={{ width: `${pct}%` }} /></ProgressTrack>
+              <ProgressTrack aria-hidden="true"><StyledBox as="span" $style={{ width: `${pct}%` }} /></ProgressTrack>
             </RosterButton>
           );
         })}
@@ -140,7 +141,7 @@ const CoverageLedger: React.FC<{ categories: WorkbenchCoverageCategory[] }> = ({
             {category.chartPriority >= 4 ? <StatusPill $status="known">chart priority</StatusPill> : null}
           </StatusRow>
           <ProgressTrack aria-label={`${category.label} ${category.percent}% complete`}>
-            <span style={{ width: `${category.percent}%` }} />
+            <StyledBox as="span" $style={{ width: `${category.percent}%` }} />
           </ProgressTrack>
           <p>{category.knownCount}/{category.totalCount} known - {category.requiredFor.join(', ') || 'follow-up'}</p>
         </CategoryItem>
@@ -275,10 +276,10 @@ const CoachOnboardingWorkbench: React.FC<CoachOnboardingWorkbenchProps> = ({
       </WorkbenchHeader>
       <WorkbenchGrid>
         <RosterRail clients={clients} selectedClientId={activeClientId} loading={loading} query={query} source={source} onQueryChange={setQuery} onSourceChange={setSource} onSelectClient={handleSelectClient} />
-        <div style={{ display: 'grid', gap: 14, minWidth: 0 }}>
+        <StyledBox as="div" $style={{ display: 'grid', gap: 14, minWidth: 0 }}>
           <IntakePanel selectedClient={selectedClient} commandText={commandText} commandTextRef={commandTextRef} onCommandTextChange={onCommandTextChange} onSubmit={onSubmit} />
           <CoverageLedger categories={categories} />
-        </div>
+        </StyledBox>
         <ApprovalAndHandoffPanel categories={categories} queueSummary={queueSummary} selectedClient={selectedClient} />
       </WorkbenchGrid>
     </WorkbenchShell>

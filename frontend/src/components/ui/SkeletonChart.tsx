@@ -17,6 +17,7 @@
  */
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Frost Shimmer Animation
@@ -57,8 +58,8 @@ const SkeletonChart: React.FC<SkeletonChartProps> = ({
     aria-live="polite"
     aria-label="Loading chart data"
   >
-    {variant !== 'list' && <TitleBar style={{ width: '60%' }} />}
-    {variant === 'chart' && <SubtitleBar style={{ width: '40%' }} />}
+    {variant !== 'list' && <StyledBox as={TitleBar} $style={{ width: '60%' }} />}
+    {variant === 'chart' && <StyledBox as={SubtitleBar} $style={{ width: '40%' }} />}
     <ChartArea />
   </Card>
 );

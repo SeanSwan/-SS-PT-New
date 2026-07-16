@@ -18,7 +18,8 @@ import React, { useMemo, memo, lazy, Suspense } from 'react';
 import type { ExerciseTeachData } from '../../types/TeachModeContracts';
 import type { OPTPhaseParams } from '../../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes';
 import { OPT_PHASES } from '../../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes';
-import { EmptyDataMsg, SkeletonLine } from '../../styles/TeachModeStyles';
+import { SkeletonLine } from '../../styles/TeachModeStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const OracleInsightsWidget = lazy(
   () => import('../../../../components/DashBoard/Pages/admin-dashboard/components/OracleInsightsWidget')
@@ -70,8 +71,8 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
     <div role="tabpanel" aria-label="Learn & Watch">
       {/* Video embed (if available) */}
       {data.videoUrl && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{
+        <StyledBox as="div" $style={{ marginBottom: 16 }}>
+          <StyledBox as="div" $style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontSize: '0.8rem',
             fontWeight: 700,
@@ -79,8 +80,8 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
             marginBottom: 8,
           }}>
             Video Demonstration
-          </div>
-          <div style={{
+          </StyledBox>
+          <StyledBox as="div" $style={{
             position: 'relative',
             paddingBottom: '56.25%',
             height: 0,
@@ -88,12 +89,12 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
             overflow: 'hidden',
             background: 'var(--bg-surface, #1A1A24)',
           }}>
-            <iframe
+            <StyledBox as="iframe"
               src={data.videoUrl}
               title={`${data.name} demonstration`}
               allowFullScreen
               loading="lazy"
-              style={{
+              $style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
@@ -102,13 +103,13 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
                 border: 'none',
               }}
             />
-          </div>
-        </div>
+          </StyledBox>
+        </StyledBox>
       )}
 
       {/* NASM Wisdom */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{
+      <StyledBox as="div" $style={{ marginBottom: 16 }}>
+        <StyledBox as="div" $style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontSize: '0.8rem',
           fontWeight: 700,
@@ -116,8 +117,8 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
           marginBottom: 8,
         }}>
           NASM Wisdom
-        </div>
-        <div style={{
+        </StyledBox>
+        <StyledBox as="div" $style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
           fontSize: '0.88rem',
@@ -129,13 +130,13 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
           borderLeft: '3px solid var(--accent-secondary, #8B5CF6)',
         }}>
           {wisdom}
-        </div>
-      </div>
+        </StyledBox>
+      </StyledBox>
 
       {/* Scientific References */}
       {data.scientificReferences && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{
+        <StyledBox as="div" $style={{ marginBottom: 16 }}>
+          <StyledBox as="div" $style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontSize: '0.8rem',
             fontWeight: 700,
@@ -143,8 +144,8 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
             marginBottom: 8,
           }}>
             Scientific References
-          </div>
-          <div style={{
+          </StyledBox>
+          <StyledBox as="div" $style={{
             fontFamily: "'Sora', sans-serif",
             fontSize: '0.72rem',
             lineHeight: 1.6,
@@ -152,13 +153,13 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
             whiteSpace: 'pre-wrap',
           }}>
             {data.scientificReferences}
-          </div>
-        </div>
+          </StyledBox>
+        </StyledBox>
       )}
 
       {/* Swan Oracle — YouTube/Research/Scholar */}
-      <div style={{ marginTop: 16 }}>
-        <div style={{
+      <StyledBox as="div" $style={{ marginTop: 16 }}>
+        <StyledBox as="div" $style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontSize: '0.8rem',
           fontWeight: 700,
@@ -166,13 +167,13 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
           marginBottom: 8,
         }}>
           Swan Oracle
-        </div>
+        </StyledBox>
         <Suspense fallback={
-          <div style={{ padding: 12 }} role="status" aria-live="polite" aria-label="Loading Oracle">
+          <StyledBox as="div" $style={{ padding: 12 }} role="status" aria-live="polite" aria-label="Loading Oracle">
             <SkeletonLine $width="80%" />
             <SkeletonLine $width="60%" />
             <SkeletonLine $width="90%" />
-          </div>
+          </StyledBox>
         }>
           <OracleInsightsWidget
             defaultTab="youtube"
@@ -180,7 +181,7 @@ const LearnWatchTab: React.FC<LearnWatchTabProps> = ({ data, phaseNumber }) => {
             compact
           />
         </Suspense>
-      </div>
+      </StyledBox>
     </div>
   );
 };

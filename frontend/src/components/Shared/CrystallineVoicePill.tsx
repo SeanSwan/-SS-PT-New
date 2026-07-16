@@ -36,6 +36,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Mic, MicOff, Loader, Volume2, AlertTriangle } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
@@ -472,7 +473,7 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
       {voiceState === 'listening' && (interim || accumulatedRef.current) && (
         <InterimOverlay aria-hidden="true">
           {accumulatedRef.current ? accumulatedRef.current + ' ' : ''}
-          {interim && <em style={{ opacity: 0.6 }}>{interim}</em>}
+          {interim && <StyledBox as="em" $style={{ opacity: 0.6 }}>{interim}</StyledBox>}
         </InterimOverlay>
       )}
 
@@ -501,16 +502,16 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
       </PillContainer>
 
       {/* ARIA live region */}
-      <div
+      <StyledBox as="div"
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
+        $style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
       >
         {voiceState === 'listening' ? 'Voice input active. Speak your command.' : ''}
         {voiceState === 'processing' ? 'Processing your request...' : ''}
         {voiceState === 'speaking' ? 'Reading response aloud.' : ''}
-      </div>
+      </StyledBox>
     </PillWrapper>
   );
 };

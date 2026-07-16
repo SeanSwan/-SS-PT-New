@@ -21,6 +21,7 @@ import {
 } from 'victory';
 import { SessionIntensityChartProps } from '../types/ClientProgressTypes';
 import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -81,7 +82,7 @@ const SessionIntensityChart: React.FC<SessionIntensityChartProps> = ({
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)', strokeWidth: 1 }}
-                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                   cornerRadius={8}
                   flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 />
@@ -89,19 +90,19 @@ const SessionIntensityChart: React.FC<SessionIntensityChartProps> = ({
             />
           }
         >
-          <VictoryAxis style={{
+          <VictoryAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             axisLabel: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", padding: 35 },
-          }} label="Duration (min)" />
-          <VictoryAxis dependentAxis style={{
+          })} label="Duration (min)" />
+          <VictoryAxis dependentAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             axisLabel: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", padding: 40 },
-          }} label="Intensity (1-10)" />
+          })} label="Intensity (1-10)" />
 
           <VictoryScatter
             data={chartData}
             bubbleProperty="size"
-            style={{
+            {...victoryStyleProps({
               data: {
                 fill: ({ datum }) => {
                   // Color by intensity: cool → warm
@@ -114,7 +115,7 @@ const SessionIntensityChart: React.FC<SessionIntensityChartProps> = ({
                 strokeWidth: 1,
                 opacity: 0.85,
               },
-            }}
+            })}
           />
         </VictoryChart>
       </ChartContainer>

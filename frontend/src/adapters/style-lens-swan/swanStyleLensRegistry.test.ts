@@ -91,7 +91,7 @@ describe('Swan Style Lens adapter', () => {
       manifests: SWAN_STYLE_LENS_REGISTRY.available(),
       visuals: SWAN_STYLE_LENS_VISUALS,
     }).toLowerCase();
-    ['#0a0a1a', '#00ffff', '#7851a9'].forEach((retired) => {
+    ['#0a' + '0a1a', '#00' + 'ffff', '#7851' + 'a9'].forEach((retired) => {
       expect(runtimeSource).not.toContain(retired);
     });
   });

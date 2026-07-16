@@ -14,26 +14,119 @@
  * - Integration with payment/session systems
  */
 
+import type { AxiosRequestConfig } from 'axios';
 import apiService from './api.service';
 
-type AdminApiClient = {
-  get<T = any>(url: string, config?: any): Promise<{ data: T }>;
-  post<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }>;
-  put<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }>;
-  delete<T = any>(url: string, config?: any): Promise<{ data: T }>;
+type JsonRecord = Record<string, unknown>;
+
+type AdminApiResponse<T> = {
+  data: T;
 };
 
-const needsApiPrefix = (apiInstance: any): boolean => {
-  const baseUrl = apiInstance?.defaults?.baseURL;
+type AdminApiTransport = {
+  defaults?: { baseURL?: string };
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AdminApiResponse<T>>;
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AdminApiResponse<T>>;
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AdminApiResponse<T>>;
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AdminApiResponse<T>>;
+};
+
+type AdminApiClient = Pick<AdminApiTransport, 'get' | 'post' | 'put' | 'delete'>;
+
+type AdminMutationData = JsonRecord & {
+  client?: AdminClient;
+};
+
+type AdminMutationResponse = JsonRecord & {
+  success?: boolean;
+  message?: string;
+  data?: AdminMutationData;
+  client?: AdminClient;
+};
+
+type AdminClientListPayload = {
+  clients?: AdminClient[];
+  count?: number;
+  newThisMonth?: number;
+  totalRevenue?: number;
+  sessionsBooked?: number;
+  averageSessionsPerClient?: number;
+};
+
+type AdminClientListEnvelope = AdminClientListPayload & {
+  data?: AdminClientListPayload;
+};
+
+type AdminClientListResult = {
+  clients: AdminClient[];
+  stats: {
+    totalClients: number;
+    activeClients: number;
+    newThisMonth: number;
+    totalRevenue: number;
+    sessionsBooked: number;
+    averageSessionsPerClient: number;
+  };
+};
+
+type AssignableTrainerEnvelope = {
+  data?: {
+    trainers?: unknown;
+    users?: unknown;
+  };
+  trainers?: unknown;
+  users?: unknown;
+};
+
+type WorkoutFormRecord = {
+  id?: string | number;
+  clientId?: string | number;
+  date?: string;
+  estimatedDuration?: number;
+  totalSets?: number;
+  sessionDeducted?: boolean;
+  billing?: unknown;
+};
+
+type WorkoutFormEnvelope = {
+  success?: boolean;
+  message?: string;
+  form?: WorkoutFormRecord;
+  data?: WorkoutFormRecord;
+};
+
+const isRecord = (value: unknown): value is JsonRecord => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const getApiErrorResponse = (error: unknown): JsonRecord | null => {
+  if (!isRecord(error) || !isRecord(error.response)) return null;
+  return error.response;
+};
+
+const getApiErrorMessage = (error: unknown): string | undefined => {
+  const response = getApiErrorResponse(error);
+  const data = response && isRecord(response.data) ? response.data : null;
+  const message = data?.message;
+  return typeof message === 'string' && message.trim() ? message : undefined;
+};
+
+const getApiErrorStatus = (error: unknown): number | undefined => {
+  const status = getApiErrorResponse(error)?.status;
+  return typeof status === 'number' ? status : undefined;
+};
+
+const needsApiPrefix = (apiInstance: AdminApiTransport): boolean => {
+  const baseUrl = apiInstance.defaults?.baseURL;
   return typeof baseUrl !== 'string' || !/\/api\/?$/.test(baseUrl);
 };
 
-const withApiPrefix = (path: string, apiInstance: any): string => {
+const withApiPrefix = (path: string, apiInstance: AdminApiTransport): string => {
   if (path.startsWith('/api/')) return path;
   return needsApiPrefix(apiInstance) ? `/api${path}` : path;
 };
 
-const createAdminApiClient = (apiInstance: any = apiService): AdminApiClient => ({
+const createAdminApiClient = (apiInstance: AdminApiTransport = apiService): AdminApiClient => ({
   get: (url, config) => apiInstance.get(withApiPrefix(url, apiInstance), config),
   post: (url, data, config) => apiInstance.post(withApiPrefix(url, apiInstance), data, config),
   put: (url, data, config) => apiInstance.put(withApiPrefix(url, apiInstance), data, config),
@@ -46,16 +139,16 @@ const createAdminApiClient = (apiInstance: any = apiService): AdminApiClient => 
 class AdminClientService {
   private readonly api: AdminApiClient;
 
-  constructor(apiInstance?: any) {
+  constructor(apiInstance?: AdminApiTransport) {
     this.api = createAdminApiClient(apiInstance);
   }
 
   /**
    * Get all clients with filtering and pagination
    */
-  async getClients(params = {}) {
+  async getClients(params: AdminClientFilters = {}): Promise<AdminClientListResult> {
     try {
-      const response = await this.api.get('/admin/clients', { params });
+      const response = await this.api.get<AdminClientListEnvelope>('/admin/clients', { params });
       // API returns { success, data: { clients, count, ... } }
       // Axios unwraps once, so response.data = { success, data: { clients } }
       const payload = response.data?.data || response.data || {};
@@ -64,7 +157,7 @@ class AdminClientService {
         clients,
         stats: {
           totalClients: payload.count || clients.length || 0,
-          activeClients: clients.filter((c: any) => c.isActive)?.length || 0,
+          activeClients: clients.filter((client) => client.isActive)?.length || 0,
           newThisMonth: payload.newThisMonth || 0,
           totalRevenue: payload.totalRevenue || 0,
           sessionsBooked: payload.sessionsBooked || 0,
@@ -80,9 +173,9 @@ class AdminClientService {
   /**
    * Get detailed information for a specific client
    */
-  async getClientDetails(clientId) {
+  async getClientDetails(clientId: string | number): Promise<unknown> {
     try {
-      const response = await this.api.get(`/admin/clients/${clientId}`);
+      const response = await this.api.get<unknown>(`/admin/clients/${clientId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching client details:', error);
@@ -93,10 +186,10 @@ class AdminClientService {
   /**
    * Create a new client with comprehensive data
    */
-  async createClient(clientData) {
+  async createClient(clientData: CreateClientRequest): Promise<AdminMutationResponse> {
     try {
       const { password: _discardedPassword, ...clientDataWithoutPassword } = clientData || {};
-      const response = await this.api.post('/admin/clients', {
+      const response = await this.api.post<AdminMutationResponse>('/admin/clients', {
         ...clientDataWithoutPassword,
         // Ensure client role
         role: 'client',
@@ -108,8 +201,9 @@ class AdminClientService {
       return response.data;
     } catch (error) {
       console.error('Error creating client:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to create client');
     }
@@ -121,12 +215,13 @@ class AdminClientService {
   async createExternalClient(clientData: CreateExternalClientRequest) {
     try {
       const { password: _discardedPassword, ...clientDataWithoutPassword } = clientData || {};
-      const response = await this.api.post('/admin/clients/create-external', clientDataWithoutPassword);
+      const response = await this.api.post<AdminMutationResponse>('/admin/clients/create-external', clientDataWithoutPassword);
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating external client:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to create external client');
     }
@@ -135,14 +230,15 @@ class AdminClientService {
   /**
    * Update existing client information
    */
-  async updateClient(clientId, updateData) {
+  async updateClient(clientId: string | number, updateData: UpdateClientRequest): Promise<AdminMutationResponse> {
     try {
-      const response = await this.api.put(`/admin/clients/${clientId}`, updateData);
+      const response = await this.api.put<AdminMutationResponse>(`/admin/clients/${clientId}`, updateData);
       return response.data;
     } catch (error) {
       console.error('Error updating client:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to update client');
     }
@@ -151,7 +247,7 @@ class AdminClientService {
   /**
    * Delete a client (soft delete - mark as inactive)
    */
-  async deleteClient(clientId) {
+  async deleteClient(clientId: string | number): Promise<unknown> {
     try {
       const response = await this.api.delete(`/admin/clients/${clientId}`, {
         data: { softDelete: true },
@@ -168,7 +264,7 @@ class AdminClientService {
    */
   async getAssignableTrainers(): Promise<AssignableTrainer[]> {
     try {
-      const response = await this.api.get('/admin/trainers');
+      const response = await this.api.get<AssignableTrainerEnvelope>('/admin/trainers');
       const payload = response.data?.data || response.data || {};
       const trainers = Array.isArray(payload.trainers)
         ? payload.trainers
@@ -177,8 +273,9 @@ class AdminClientService {
           : [];
 
       return trainers
-        .filter((trainer: any) => trainer?.id && trainer?.firstName && trainer?.lastName)
-        .map((trainer: any) => ({
+        .filter(isRecord)
+        .filter((trainer) => trainer.id && trainer.firstName && trainer.lastName)
+        .map((trainer) => ({
           id: String(trainer.id),
           firstName: String(trainer.firstName),
           lastName: String(trainer.lastName),
@@ -193,7 +290,7 @@ class AdminClientService {
   /**
    * Assign trainer to client
    */
-  async assignTrainer(clientId, trainerId) {
+  async assignTrainer(clientId: string | number, trainerId: string | number): Promise<unknown> {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/assign-trainer`, {
         trainerId
@@ -208,27 +305,28 @@ class AdminClientService {
   /**
    * Send a secure password reset email to a client.
    */
-  async sendClientPasswordReset(clientId) {
+  async sendClientPasswordReset(clientId: string | number): Promise<unknown> {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/send-password-reset`, {});
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending password reset:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to send password reset email');
     }
   }
 
-  async resetClientPassword(clientId) {
+  async resetClientPassword(clientId: string | number): Promise<unknown> {
     return this.sendClientPasswordReset(clientId);
   }
   
   /**
    * Get client workout statistics
    */
-  async getClientWorkoutStats(clientId) {
+  async getClientWorkoutStats(clientId: string | number): Promise<unknown> {
     try {
       const response = await this.api.get(`/admin/clients/${clientId}/workout-stats`);
       return response.data;
@@ -241,7 +339,7 @@ class AdminClientService {
   /**
    * Generate workout plan for client through Swan Coach planning.
    */
-  async generateWorkoutPlan(clientId, planData) {
+  async generateWorkoutPlan(clientId: string | number, planData: JsonRecord): Promise<unknown> {
     try {
       const targetClientId = Number(clientId);
       if (!Number.isSafeInteger(targetClientId) || targetClientId <= 0) {
@@ -261,7 +359,7 @@ class AdminClientService {
   /**
    * Bulk operations for multiple clients
    */
-  async bulkUpdate(clientIds, updateData) {
+  async bulkUpdate(clientIds: Array<string | number>, updateData: UpdateClientRequest): Promise<unknown> {
     try {
       const response = await this.api.post('/admin/clients/bulk-update', {
         clientIds,
@@ -277,9 +375,9 @@ class AdminClientService {
   /**
    * Export client data
    */
-  async exportClients(format = 'csv', filters = {}) {
+  async exportClients(format = 'csv', filters: AdminClientFilters = {}): Promise<boolean> {
     try {
-      const response = await this.api.get('/admin/clients/export', {
+      const response = await this.api.get<BlobPart>('/admin/clients/export', {
         params: { format, ...filters },
         responseType: 'blob'
       });
@@ -309,7 +407,7 @@ class AdminClientService {
   /**
    * Get client analytics dashboard data
    */
-  async getClientAnalytics(timeRange = '30d') {
+  async getClientAnalytics(timeRange = '30d'): Promise<unknown> {
     try {
       const response = await this.api.get('/admin/clients/analytics', {
         params: { timeRange }
@@ -324,7 +422,7 @@ class AdminClientService {
   /**
    * Search clients with advanced filters
    */
-  async searchClients(searchQuery, filters = {}) {
+  async searchClients(searchQuery: string, filters: AdminClientFilters = {}): Promise<unknown> {
     try {
       const response = await this.api.get('/admin/clients/search', {
         params: {
@@ -342,7 +440,7 @@ class AdminClientService {
   /**
    * Get client session history
    */
-  async getClientSessions(clientId, params = {}) {
+  async getClientSessions(clientId: string | number, params: JsonRecord = {}): Promise<unknown> {
     try {
       const response = await this.api.get(`/admin/clients/${clientId}/sessions`, { params });
       return response.data;
@@ -355,7 +453,7 @@ class AdminClientService {
   /**
    * Get client payment history
    */
-  async getClientPayments(clientId, params = {}) {
+  async getClientPayments(clientId: string | number, params: JsonRecord = {}): Promise<unknown> {
     try {
       const response = await this.api.get(`/admin/clients/${clientId}/payments`, { params });
       return response.data;
@@ -368,7 +466,7 @@ class AdminClientService {
   /**
    * Add sessions to client account
    */
-  async addSessions(clientId, sessionCount, packageId = null) {
+  async addSessions(clientId: string | number, sessionCount: number, packageId: string | number | null = null): Promise<unknown> {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/add-sessions`, {
         sessionCount,
@@ -384,7 +482,7 @@ class AdminClientService {
   /**
    * Get MCP (AI) system status for client features
    */
-  async getMCPStatus() {
+  async getMCPStatus(): Promise<unknown> {
     try {
       const response = await this.api.get('/admin/mcp-status');
       return response.data;
@@ -400,9 +498,9 @@ class AdminClientService {
   /**
    * Get billing overview for a client (session credits, pending orders, upcoming sessions)
    */
-  async getBillingOverview(clientId: string) {
+  async getBillingOverview(clientId: string): Promise<{ success: boolean; data: BillingOverviewData }> {
     try {
-      const response = await this.api.get(`/admin/clients/${clientId}/billing-overview`);
+      const response = await this.api.get<{ success: boolean; data: BillingOverviewData }>(`/admin/clients/${clientId}/billing-overview`);
       return response.data;
     } catch (error) {
       console.error('Error fetching billing overview:', error);
@@ -415,14 +513,15 @@ class AdminClientService {
    * @param orderId - The order ID to apply payment to
    * @param paymentData - Payment details { method, reference }
    */
-  async applyPayment(orderId: string | number, paymentData: { method: string; reference?: string }) {
+  async applyPayment(orderId: string | number, paymentData: ApplyPaymentData): Promise<unknown> {
     try {
       const response = await this.api.post(`/orders/${orderId}/apply-payment`, paymentData);
       return response.data;
     } catch (error) {
       console.error('Error applying payment:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to apply payment');
     }
@@ -438,14 +537,15 @@ class AdminClientService {
     trainerId: number | string;
     duration: number;
     notes?: string;
-  }) {
+  }): Promise<unknown> {
     try {
       const response = await this.api.post('/sessions/admin/book', data);
       return response.data;
     } catch (error) {
       console.error('Error booking session for client:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to book session');
     }
@@ -460,7 +560,7 @@ class AdminClientService {
     sessions: number;
     reason?: string;
     adminNote?: string;
-  }) {
+  }): Promise<unknown> {
     try {
       // Map frontend fields to backend expected format
       const notes = [data.reason, data.adminNote].filter(Boolean).join(' - ');
@@ -472,8 +572,9 @@ class AdminClientService {
       return response.data;
     } catch (error) {
       console.error('Error adding session credits:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const apiMessage = getApiErrorMessage(error);
+      if (apiMessage) {
+        throw new Error(apiMessage);
       }
       throw new Error('Failed to add session credits');
     }
@@ -489,11 +590,11 @@ class AdminClientService {
     try {
       const response = await this.api.get(`/admin/clients/${clientId}/onboarding`);
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if (getApiErrorStatus(error) === 404) {
         return { status: 'not_found', questionnaire: null };
       }
-      throw new Error(error.response?.data?.message || 'Failed to fetch onboarding status');
+      throw new Error(getApiErrorMessage(error) || 'Failed to fetch onboarding status');
     }
   }
 
@@ -501,15 +602,15 @@ class AdminClientService {
    * Save onboarding draft for a client.
    * Body: { mode: 'draft', responsesJson }
    */
-  async saveOnboardingDraft(clientId: number | string, responsesJson: Record<string, any>) {
+  async saveOnboardingDraft(clientId: number | string, responsesJson: JsonRecord) {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/onboarding`, {
         mode: 'draft',
         responsesJson,
       });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to save onboarding draft');
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error) || 'Failed to save onboarding draft');
     }
   }
 
@@ -517,15 +618,15 @@ class AdminClientService {
    * Submit completed onboarding for a client.
    * Body: { mode: 'submit', responsesJson }
    */
-  async submitOnboarding(clientId: number | string, responsesJson: Record<string, any>) {
+  async submitOnboarding(clientId: number | string, responsesJson: JsonRecord) {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/onboarding`, {
         mode: 'submit',
         responsesJson,
       });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to submit onboarding');
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error) || 'Failed to submit onboarding');
     }
   }
 
@@ -536,8 +637,8 @@ class AdminClientService {
     try {
       const response = await this.api.delete(`/admin/clients/${clientId}/onboarding`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to reset onboarding');
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error) || 'Failed to reset onboarding');
     }
   }
 
@@ -606,7 +707,7 @@ class AdminClientService {
       if (workoutData.notes) formPayload.sessionNotes = workoutData.notes;
       if (workoutData.intensity !== undefined) formPayload.overallIntensity = workoutData.intensity;
 
-      const response = await this.api.post('/workout-forms', formPayload);
+      const response = await this.api.post<WorkoutFormEnvelope>('/workout-forms', formPayload);
       const payload = response.data || {};
       const form = payload.form || payload.data || null;
       const formId = form?.id;
@@ -634,8 +735,8 @@ class AdminClientService {
           : undefined,
         xp: null,
       };
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to log workout');
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error) || 'Failed to log workout');
     }
   }
 
@@ -651,15 +752,15 @@ class AdminClientService {
     try {
       const response = await this.api.get(`/admin/clients/${clientId}/workouts`, { params });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch workout history');
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error) || 'Failed to fetch workout history');
     }
   }
 
   /**
    * Format client data for display
    */
-  formatClientData(client) {
+  formatClientData(client: AdminClient & { dateOfBirth?: string; lastActivity?: string }): AdminClient & { fullName: string; age: number | null; memberSince: number | null; lastActivity: Date | null } {
     return {
       ...client,
       fullName: `${client.firstName} ${client.lastName}`,
@@ -672,7 +773,7 @@ class AdminClientService {
   /**
    * Calculate age from date of birth
    */
-  calculateAge(dateOfBirth) {
+  calculateAge(dateOfBirth: string | Date): number {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -688,7 +789,7 @@ class AdminClientService {
   /**
    * Validate client data before submission
    */
-  validateClientData(clientData) {
+  validateClientData(clientData: Partial<CreateClientRequest>): { isValid: boolean; errors: Record<string, string> } {
     const errors: Record<string, string> = {};
     
     // Required fields
@@ -753,9 +854,9 @@ export interface AdminClient {
   totalWorkouts?: number;
   totalOrders?: number;
   createdAt: string;
-  lastWorkout?: any;
-  nextSession?: any;
-  measurementSchedule?: any;
+  lastWorkout?: unknown;
+  nextSession?: unknown;
+  measurementSchedule?: unknown;
 }
 
 export interface AdminClientFilters {
@@ -822,7 +923,7 @@ export interface UpdateClientRequest {
   phone?: string;
   fitnessGoal?: string;
   clientSource?: ClientSource;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // P0: Billing Overview Types
@@ -893,44 +994,11 @@ export interface AddSessionCreditsData {
   adminNote?: string;
 }
 
-// TypeScript interface for the service
-export interface AdminClientServiceInterface {
-  getClients(params?: any): Promise<any>;
-  getClientDetails(clientId: string): Promise<any>;
-  createClient(clientData: any): Promise<any>;
-  createExternalClient(clientData: CreateExternalClientRequest): Promise<any>;
-  updateClient(clientId: string, updateData: any): Promise<any>;
-  deleteClient(clientId: string): Promise<any>;
-  getAssignableTrainers(): Promise<AssignableTrainer[]>;
-  assignTrainer(clientId: string, trainerId: string): Promise<any>;
-  sendClientPasswordReset(clientId: string): Promise<any>;
-  resetClientPassword(clientId: string): Promise<any>;
-  getClientWorkoutStats(clientId: string): Promise<any>;
-  generateWorkoutPlan(clientId: string, planData: any): Promise<any>;
-  bulkUpdate(clientIds: string[], updateData: any): Promise<any>;
-  exportClients(format?: string, filters?: any): Promise<boolean>;
-  getClientAnalytics(timeRange?: string): Promise<any>;
-  searchClients(searchQuery: string, filters?: any): Promise<any>;
-  getClientSessions(clientId: string, params?: any): Promise<any>;
-  getClientPayments(clientId: string, params?: any): Promise<any>;
-  addSessions(clientId: string, sessionCount: number, packageId?: string | null): Promise<any>;
-  getMCPStatus(): Promise<any>;
-  // P0: Billing & Sessions
-  getBillingOverview(clientId: string): Promise<{ success: boolean; data: BillingOverviewData }>;
-  applyPayment(orderId: string | number, paymentData: ApplyPaymentData): Promise<any>;
-  bookSessionForClient(data: BookSessionData): Promise<any>;
-  addSessionCredits(clientId: string | number, data: AddSessionCreditsData): Promise<any>;
-  // Phase 1C: Admin onboarding + workout methods
-  getOnboardingStatus(clientId: number | string): Promise<any>;
-  saveOnboardingDraft(clientId: number | string, responsesJson: any): Promise<any>;
-  submitOnboarding(clientId: number | string, responsesJson: any): Promise<any>;
-  resetOnboarding(clientId: number | string): Promise<any>;
-  logWorkout(clientId: number | string, workoutData: any): Promise<any>;
-  getWorkoutHistory(clientId: number | string, params?: any): Promise<any>;
-}
+// Public service contract derives from the implementation to prevent signature drift.
+export type AdminClientServiceInterface = AdminClientService;
 
 // Factory function for creating the service with custom API instance
-export const createAdminClientService = (apiInstance?: any): AdminClientServiceInterface => {
+export const createAdminClientService = (apiInstance?: AdminApiTransport): AdminClientServiceInterface => {
   return new AdminClientService(apiInstance);
 };
 

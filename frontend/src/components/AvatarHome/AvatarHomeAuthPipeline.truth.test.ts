@@ -126,7 +126,7 @@ describe('Avatar Home auth pipeline', () => {
     expect(sources.factionPanel).toMatch(/apiService\.get[\s\S]{0,140}\('\/api\/avatar-home\/faction'\)/);
     expect(sources.factionPanel).toContain('const normalizeFactionId = (value: unknown): string | null =>');
     expect(sources.factionPanel).toContain('const MAX_FACTION_ID_LENGTH = 50;');
-    expect(sources.factionPanel).toContain('const CONTROL_CHARS = /[\\u0000-\\u001F\\u007F]/;');
+    expect(sources.factionPanel).toContain('const CONTROL_CHARS = /\\p{Cc}/u;');
     expect(sources.factionPanel).toContain('if (trimmed.length > MAX_FACTION_ID_LENGTH) return null;');
     expect(sources.factionPanel).toContain('if (CONTROL_CHARS.test(trimmed)) return null;');
     expect(sources.factionPanel).toMatch(/apiService\.patch[\s\S]{0,260}'\/api\/avatar-home\/faction'[\s\S]{0,160}factionId: safeSubmittedFactionId/);
@@ -174,7 +174,7 @@ describe('Avatar Home auth pipeline', () => {
 
   it('keeps the mounted Avatar Home faction hook tokenized and free of inline presentation', () => {
     expect(lineCount(read('./FactionHooksPanel.tsx'))).toBeLessThanOrEqual(300);
-    expect(read('./FactionHooksPanel.tsx')).not.toMatch(/[^\x00-\x7F]/);
+    expect(read('./FactionHooksPanel.tsx')).not.toMatch(/\P{ASCII}/u);
     expect(sources.factionPanel).not.toContain('style={{');
     expect(sources.factionPanel).not.toContain('rgba(');
     expect(sources.factionPanel).not.toContain('transition: all');
@@ -206,7 +206,7 @@ describe('Avatar Home auth pipeline', () => {
     const readyPlayerMeSource = read('./ReadyPlayerMeAvatar.tsx');
 
     expect(lineCount(readyPlayerMeSource)).toBeLessThanOrEqual(300);
-    expect(readyPlayerMeSource).not.toMatch(/[^\x00-\x7F]/);
+    expect(readyPlayerMeSource).not.toMatch(/\P{ASCII}/u);
     expect(sources.readyPlayerMe).toContain(
       "const READY_PLAYER_ME_SAVE_ERROR = 'Unable to link avatar. Please check the URL and try again.';"
     );

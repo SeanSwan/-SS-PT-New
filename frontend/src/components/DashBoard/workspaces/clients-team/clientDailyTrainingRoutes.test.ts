@@ -8,6 +8,7 @@ import {
   buildClientWorkoutPlannerRoute,
 } from './clientDailyTrainingRoutes';
 
+
 const VALID_CLIENT_ID = 42;
 const ENCODED_LOGGER_RETURN_TO =
   '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday';

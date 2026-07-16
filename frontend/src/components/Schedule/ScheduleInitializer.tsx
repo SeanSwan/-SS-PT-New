@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { CircularProgress, Typography } from '../ui/primitives';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ScheduleInitializerProps {
   children: React.ReactNode;
@@ -33,8 +34,8 @@ const ScheduleInitializer: React.FC<ScheduleInitializerProps> = ({ children }) =
 
   if (!isReady) {
     return (
-      <div
-        style={{
+      <StyledBox as="div"
+        $style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -43,13 +44,13 @@ const ScheduleInitializer: React.FC<ScheduleInitializerProps> = ({ children }) =
           padding: '24px',
         }}
       >
-        <div style={{ marginBottom: '16px' }}>
+        <StyledBox as="div" $style={{ marginBottom: '16px' }}>
           <CircularProgress size={40} />
-        </div>
+        </StyledBox>
         <Typography variant="body1">
           Initializing schedule...
         </Typography>
-      </div>
+      </StyledBox>
     );
   }
 

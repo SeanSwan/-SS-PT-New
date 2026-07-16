@@ -15,8 +15,9 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useFormAnalysisAPI } from '../../hooks/useFormAnalysisAPI';
-import { getScoreColor, getScoreGrade } from './constants';
+import { getScoreColor } from './constants';
 import MobilityRadar from './MobilityRadar';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface MovementProfile {
   mobilityScores: Record<string, number>;
@@ -334,13 +335,13 @@ const MovementProfilePage: React.FC<{ userId?: number }> = ({ userId }) => {
     return (
       <Page>
         <EmptyState>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#E0ECF4', marginBottom: 8 }}>
+          <StyledBox as="div" $style={{ fontSize: 48, marginBottom: 12 }}>📊</StyledBox>
+          <StyledBox as="p" $style={{ fontSize: 16, fontWeight: 600, color: '#E0ECF4', marginBottom: 8 }}>
             No Movement Profile Yet
-          </p>
-          <p style={{ fontSize: 13 }}>
+          </StyledBox>
+          <StyledBox as="p" $style={{ fontSize: 13 }}>
             Complete a form analysis to start building your movement profile.
-          </p>
+          </StyledBox>
         </EmptyState>
       </Page>
     );
@@ -469,9 +470,9 @@ const MovementProfilePage: React.FC<{ userId?: number }> = ({ userId }) => {
                     <ExMeta>
                       {data.count} analyses
                       {data.trend && (
-                        <TrendBadge $trend={data.trend} style={{ marginLeft: 4 }}>
+                        <StyledBox as={TrendBadge} $trend={data.trend} $style={{ marginLeft: 4 }}>
                           {data.trend}
-                        </TrendBadge>
+                        </StyledBox>
                       )}
                     </ExMeta>
                   </ExerciseCard>

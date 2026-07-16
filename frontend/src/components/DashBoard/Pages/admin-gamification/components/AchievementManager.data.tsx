@@ -1,7 +1,7 @@
 /**
  * Static icon, requirement, and tier options for achievement management.
  */
-import React from 'react';
+
 import {
   Award,
   Calendar,

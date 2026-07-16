@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import ApiStatusIndicator from './ApiStatusIndicator';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Position {
   x: number;
@@ -69,7 +70,7 @@ const Debug: React.FC = () => {
   }, [position, shouldHide]);
   
   // Mouse event handlers for dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.PointerEvent) => {
     if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('drag-handle')) {
       e.preventDefault();
       setDragState({
@@ -82,7 +83,7 @@ const Debug: React.FC = () => {
     }
   };
   
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragState.isDragging) {
       const deltaX = e.clientX - dragState.startX;
       const deltaY = e.clientY - dragState.startY;
@@ -93,11 +94,11 @@ const Debug: React.FC = () => {
       
       setPosition({ x: newX, y: newY });
     }
-  };
+  }, [dragState]);
   
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setDragState(prev => ({ ...prev, isDragging: false }));
-  };
+  }, []);
   
   // Add global mouse events for dragging
   useEffect(() => {
@@ -114,7 +115,7 @@ const Debug: React.FC = () => {
         document.body.style.userSelect = '';
       };
     }
-  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY, shouldHide]);
+  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY, shouldHide, handleMouseMove, handleMouseUp]);
   
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
@@ -126,10 +127,10 @@ const Debug: React.FC = () => {
   
   return (
     <>
-      <div 
+      <StyledBox as="div"
         ref={panelRef}
-        onMouseDown={handleMouseDown}
-        style={{
+        onPointerDown={handleMouseDown}
+        $style={{
           position: 'fixed',
           top: `${position.y}px`,
           right: `${position.x}px`,
@@ -150,9 +151,9 @@ const Debug: React.FC = () => {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
         }}
       >
-        <div 
+        <StyledBox as="div"
           className="drag-handle"
-          style={{ 
+          $style={{
             color: '#60C0F0', 
             marginBottom: isMinimized ? '0' : '10px', 
             display: 'flex', 
@@ -163,10 +164,11 @@ const Debug: React.FC = () => {
           }}
         >
           <strong>🔧 Debug Panel</strong>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span 
+          <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <StyledBox as="button"
+              type="button"
               onClick={toggleMinimize}
-              style={{ 
+              $style={{
                 cursor: 'pointer', 
                 padding: '2px 6px',
                 borderRadius: '3px',
@@ -177,59 +179,59 @@ const Debug: React.FC = () => {
               title={isMinimized ? 'Expand panel' : 'Minimize panel'}
             >
               {isMinimized ? '📖' : '📕'}
-            </span>
-          </div>
-        </div>
+            </StyledBox>
+          </StyledBox>
+        </StyledBox>
         
         {!isMinimized && (
           <>
-            <div style={{ marginBottom: '15px' }}>
+            <StyledBox as="div" $style={{ marginBottom: '15px' }}>
               <strong>Navigation:</strong><br/>
               Path: {location.pathname}<br/>
               Query: {location.search}<br/>
-            </div>
+            </StyledBox>
             
-            <div style={{ marginBottom: '15px' }}>
+            <StyledBox as="div" $style={{ marginBottom: '15px' }}>
               <strong>Auth State:</strong><br/>
               Loading: {String(isLoading)}<br/>
               User: {user ? '✅' : '❌'}<br/>
               Role: {user?.role || 'none'}<br/>
               Name: {user ? `${user.firstName} ${user.lastName}` : 'none'}<br/>
               Email: {user?.email || 'none'}<br/>
-            </div>
+            </StyledBox>
             
-            <div style={{ marginBottom: '15px' }}>
+            <StyledBox as="div" $style={{ marginBottom: '15px' }}>
               <strong>Dashboard Access:</strong><br/>
               {typeof dashboardAccess === 'object' ? (
                 Object.entries(dashboardAccess).map(([key, value]) => (
-                  <span key={key} style={{ display: 'block' }}>
+                  <StyledBox as="span" key={key} $style={{ display: 'block' }}>
                     {key}: {value ? '✅' : '❌'}
-                  </span>
+                  </StyledBox>
                 ))
               ) : (
                 <span>{dashboardAccess}</span>
               )}
-            </div>
+            </StyledBox>
             
-            <div style={{ marginBottom: '15px' }}>
+            <StyledBox as="div" $style={{ marginBottom: '15px' }}>
               <strong>DOM Check:</strong><br/>
               DashboardSelector: {document.querySelector('[data-dashboard-selector="true"]') ? '✅' : '❌'}<br/>
               User Switcher: {document.querySelector('.user-switcher-panel') ? '✅' : '❌'}
-            </div>
+            </StyledBox>
             
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+            <StyledBox as="div" $style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
               Tip: Use the user switcher (bottom right) to test different roles<br/>
               💡 Drag this panel by the header • Click 📕 to minimize
-            </div>
+            </StyledBox>
           </>
         )}
         
         {isMinimized && (
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', marginTop: '5px' }}>
+          <StyledBox as="div" $style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', marginTop: '5px' }}>
             User: {user?.role || 'none'} • Path: {location.pathname.split('/').pop() || 'home'}
-          </div>
+          </StyledBox>
         )}
-      </div>
+      </StyledBox>
       
       {/* API/Mock Status Indicator */}
       <ApiStatusIndicator hideInProduction={false} />

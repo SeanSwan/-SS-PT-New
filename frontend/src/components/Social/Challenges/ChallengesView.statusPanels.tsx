@@ -5,7 +5,7 @@
  * Data truth: Retryable unavailable state is driven by useChallenges.error.
  * Writes: Only calls the retry handler supplied by the mounted view.
  */
-import React from 'react';
+
 import { AlertTriangle, Dumbbell, Lock, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ChallengeStatus } from '../../../hooks/useChallenges';

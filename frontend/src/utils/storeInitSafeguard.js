@@ -9,7 +9,7 @@
  * before React components mount, preventing infinite update loops.
  */
 
-import { store } from '../redux/store';
+import '../redux/store';
 // Import the main store and the notificationSlice for initialization
 import mainStore from '../store';
 import { clearNotifications } from '../store/slices/notificationSlice';

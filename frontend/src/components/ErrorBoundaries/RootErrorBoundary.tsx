@@ -45,7 +45,7 @@
  * Children:  None (fallback UI only)
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 // ─────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBound
         <Content>
           <Title>Something shattered.</Title>
           <Message>
-            We've logged the error and are recovering. Try going back
+            We&apos;ve logged the error and are recovering. Try going back
             or returning to the homepage.
           </Message>
           {import.meta.env.DEV && this.state.error && (

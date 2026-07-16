@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import moment from 'moment';
-import { Calendar, User, Clock } from 'lucide-react';
+import { User, Clock } from 'lucide-react';
 
 // Types
 interface EventProps {

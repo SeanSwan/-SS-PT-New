@@ -103,15 +103,16 @@ const PaymentSettingsPanel: React.FC = () => {
             <ZeroBadge>Zero Fee</ZeroBadge>
           </CardHeader>
           <CardDescription>
-            Phone number or email registered with your bank's Zelle service.
+            Phone number or email registered with your bank&apos;s Zelle service.
             Customers will send payments to this number/email.
           </CardDescription>
           <InputGroup>
-            <InputLabel>
+            <InputLabel htmlFor="payment-zelle-recipient">
               <Phone size={14} />
               Zelle Phone or Email
             </InputLabel>
             <StyledInput
+              id="payment-zelle-recipient"
               type="text"
               value={settings.zelleRecipient}
               onChange={(e) => setSettings(prev => ({ ...prev, zelleRecipient: e.target.value }))}
@@ -133,11 +134,12 @@ const PaymentSettingsPanel: React.FC = () => {
             Business accounts recommended for buyer protection.
           </CardDescription>
           <InputGroup>
-            <InputLabel>
+            <InputLabel htmlFor="payment-venmo-handle">
               <AtSign size={14} />
               Venmo Handle
             </InputLabel>
             <StyledInput
+              id="payment-venmo-handle"
               type="text"
               value={settings.venmoHandle}
               onChange={(e) => setSettings(prev => ({ ...prev, venmoHandle: e.target.value }))}
@@ -160,11 +162,12 @@ const PaymentSettingsPanel: React.FC = () => {
             This appears in the checkout instructions.
           </CardDescription>
           <InputGroup>
-            <InputLabel>
+            <InputLabel htmlFor="payment-check-payee">
               <FileText size={14} />
               Check Payee Name
             </InputLabel>
             <StyledInput
+              id="payment-check-payee"
               type="text"
               value={settings.checkPayeeName}
               onChange={(e) => setSettings(prev => ({ ...prev, checkPayeeName: e.target.value }))}

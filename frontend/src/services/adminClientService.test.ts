@@ -137,24 +137,6 @@ describe('adminClientService sendClientPasswordReset', () => {
       consoleError.mockRestore();
     }
   });
-
-  it('keeps legacy admin-client surfaces off raw password prompts', () => {
-    const hookSource = readFileSync(
-      resolve(__dirname, '../components/DashBoard/Pages/admin-clients/hooks/useClientActions.ts'),
-      'utf8',
-    );
-    const enhancedSource = readFileSync(
-      resolve(__dirname, '../components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx'),
-      'utf8',
-    );
-
-    expect(hookSource).not.toMatch(/prompt\([^)]*password/i);
-    expect(hookSource).not.toContain('newPassword');
-    expect(hookSource).toMatch(/sendClientPasswordReset\(client\.id\)/);
-    expect(enhancedSource).not.toMatch(/prompt\([^)]*password/i);
-    expect(enhancedSource).not.toContain('newPassword');
-    expect(enhancedSource).toMatch(/sendClientPasswordReset\(client\.id\)/);
-  });
 });
 
 describe('adminClientService generateWorkoutPlan', () => {

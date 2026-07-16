@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProgressAreaChartProps {
   data: any[];
@@ -56,13 +57,13 @@ const ProgressAreaChart: React.FC<ProgressAreaChartProps> = ({
   title
 }) => {
   return (
-    <ChartShell style={{ minHeight: height }}>
+    <StyledBox as={ChartShell} $style={{ minHeight: height }}>
       {title && <ChartTitle>{title}</ChartTitle>}
       <ChartPlaceholder>
         <div>Chart visualization is temporarily unavailable.</div>
         <MetaLine>{(data?.length ?? 0)} data points ready</MetaLine>
       </ChartPlaceholder>
-    </ChartShell>
+    </StyledBox>
   );
 };
 

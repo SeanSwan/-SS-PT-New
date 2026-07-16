@@ -6,7 +6,7 @@
  * that the modal exposes NO plan-switching or editing control (trainer-
  * indispensability doctrine, Sean 2026-07-11).
  */
-import React from 'react';
+
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 

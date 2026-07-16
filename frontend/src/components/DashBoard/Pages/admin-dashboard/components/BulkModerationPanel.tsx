@@ -14,13 +14,11 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import {
-  CheckSquare, Square, CheckCircle, X, EyeOff, Trash2,
-  Play, Pause, RotateCcw, AlertTriangle, Clock, Zap
-} from 'lucide-react';
+import { CheckSquare, Square, CheckCircle, X, EyeOff, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
 import ConfirmActionDialog from '../../../../Shared/ConfirmActionDialog';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // === STYLED COMPONENTS ===
 const BulkPanel = styled(motion.div)`
@@ -377,12 +375,12 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
         </SelectedCount>
         
         {canUndo && (
-          <ActionButton
+          <StyledBox as={ActionButton}
             className="undo"
             onClick={handleUndo}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            style={{
+            $style={{
               background: 'rgba(59, 130, 246, 0.1)',
               borderColor: 'rgba(59, 130, 246, 0.3)',
               color: '#3b82f6'
@@ -390,7 +388,7 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
           >
             <RotateCcw size={16} />
             Undo
-          </ActionButton>
+          </StyledBox>
         )}
         
         <CloseButton
@@ -418,7 +416,7 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
       )}
 
       {progress.errors.length > 0 && (
-        <div style={{ 
+        <StyledBox as="div" $style={{
           background: 'rgba(239, 68, 68, 0.1)', 
           border: '1px solid rgba(239, 68, 68, 0.3)',
           borderRadius: '8px',
@@ -426,16 +424,16 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
           margin: '1rem 0',
           color: '#ef4444'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <AlertTriangle size={16} />
             <strong>Some actions failed:</strong>
-          </div>
+          </StyledBox>
           {progress.errors.map((error, index) => (
-            <div key={index} style={{ fontSize: '0.875rem', marginLeft: '1.5rem' }}>
+            <StyledBox as="div" key={index} $style={{ fontSize: '0.875rem', marginLeft: '1.5rem' }}>
               • {error}
-            </div>
+            </StyledBox>
           ))}
-        </div>
+        </StyledBox>
       )}
 
       <ActionButtons>

@@ -166,5 +166,5 @@ export const useImageErrorHandler = (config?: Partial<ImageErrorConfig>) => {
     return () => {
       imageErrorHandler.cleanup();
     };
-  }, []);
+  }, [config]);
 };

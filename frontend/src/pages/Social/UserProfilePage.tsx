@@ -20,8 +20,8 @@ import TransformationPhotoShowcase from '../../components/UserDashboard/componen
 import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
 import type { ChartVisibility } from './components/ChartVisibilityToggle';
 import RPGProfileHeader from '../../components/Social/RPGProfileHeader';
-import { FactionSelector, BadgeShowcase } from '../../components/Social/RPG';
-import type { ShowcaseBadge } from '../../components/Social/RPG';
+import { FactionSelector } from '../../components/Social/RPG';
+
 // Feed Banner Studio Slice 3 (2026-06-13): the public profile cover now uses
 // the SAME shared banner engine as the dashboard (single/tile/collage/carousel/
 // crossfade/Atrium/Vitrine) instead of a flat single-photo background:url().
@@ -38,6 +38,7 @@ import {
   type BannerCollageLayout,
   type BannerObjectFit,
 } from '../../services/profileService';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Crystalline Swan Tokens ──
 const TOKENS = {
@@ -233,20 +234,7 @@ const Username = styled.p`
   opacity: 0.8;
 `;
 
-const LevelBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: ${TOKENS.frostWhite};
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-family: 'Fira Code', monospace;
-  margin-left: 8px;
-  vertical-align: middle;
-`;
+
 
 const Bio = styled.p`
   max-width: 960px;
@@ -628,8 +616,8 @@ const UserProfilePage: React.FC = () => {
         <ArrowLeft size={18} /> Back
       </BackButton>
 
-      <BannerSection
-        style={{
+      <StyledBox as={BannerSection}
+        $style={{
           '--banner-frame-height': `${bannerComposition?.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT}px`,
         } as React.CSSProperties}
       >
@@ -644,7 +632,7 @@ const UserProfilePage: React.FC = () => {
             bannerStickyCarousel={false}
           />
         )}
-      </BannerSection>
+      </StyledBox>
 
       <ProfileHeader>
         <AvatarRow>
@@ -769,13 +757,13 @@ const UserProfilePage: React.FC = () => {
             if (!showOnProfile && !isOwnProfile) return null;
             if (photos.length === 0 && !isOwnProfile) return null;
             return (
-              <div style={{ marginBottom: '1.5rem' }}>
+              <StyledBox as="div" $style={{ marginBottom: '1.5rem' }}>
                 <TransformationPhotoShowcase
                   photos={photos}
                   visibility={vis as 'public' | 'friends' | 'private' | 'hidden'}
                   isOwnProfile={isOwnProfile}
                 />
-              </div>
+              </StyledBox>
             );
           })()}
 

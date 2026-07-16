@@ -5,7 +5,7 @@
  * ready-state compass + three metric tiles, null-honest balance/variety
  * fallbacks, CTA navigation, and streak pending hint copy.
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';

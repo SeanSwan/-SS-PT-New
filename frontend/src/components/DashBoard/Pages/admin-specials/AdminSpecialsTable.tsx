@@ -35,7 +35,7 @@ const AdminSpecialsTable: React.FC<AdminSpecialsTableProps> = ({
     return (
       <EmptyState>
         <p>No specials created yet.</p>
-        <p>Click "Add Special" to create your first bonus promotion!</p>
+        <p>Click &quot;Add Special&quot; to create your first bonus promotion!</p>
       </EmptyState>
     );
   }

@@ -1,5 +1,5 @@
 /**
- * Source-text regression — sibling sweep on 6 surfaces previously listed
+ * Source-text regression — sibling sweep on live surfaces previously listed
  * in the user-dashboard debate file as still using raw `url(${...})`
  * interpolation. Closes the deferred follow-up from PR #4 / PR #5.
  *
@@ -19,7 +19,6 @@ import { resolve } from 'path';
 const SURFACES: Array<{ label: string; path: string }> = [
   // ── Wave 1 (PR #6): the 6 originally-named debate-file surfaces ────────
   { label: 'PhotoGalleryCard.styles.ts', path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts' },
-  { label: 'ConversationList.tsx', path: '../components/Messaging/ConversationList.tsx' },
   { label: 'TestimonialSlider.tsx', path: '../components/TestimonialSlider/TestimonialSlider.tsx' },
   { label: 'VerticalReels.styles.ts', path: '../components/Social/Reels/VerticalReels.styles.ts' },
   { label: 'HomeStyles.tsx', path: '../pages/HomePage/components/shared/HomeStyles.tsx' },
@@ -28,16 +27,13 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'FriendSuggestionRows.tsx', path: '../components/Social/Friends/FriendSuggestionRows.tsx' },
   { label: 'FriendsListRows.tsx', path: '../components/Social/Friends/FriendsListRows.tsx' },
   { label: 'FriendRequests.tsx', path: '../components/Social/Friends/FriendRequests.tsx' },
-  { label: 'ExploreStyles.ts', path: '../components/Social/Explore/ExploreStyles.ts' },
   { label: 'PostCardStyles.ts', path: '../components/Social/Feed/styles/PostCardStyles.ts' },
-  { label: 'SidebarStyles.ts', path: '../components/Social/Feed/styles/SidebarStyles.ts' },
   { label: 'UserProfilePage.tsx', path: '../pages/Social/UserProfilePage.tsx' },
   // UserDashboard cluster
   { label: 'CreativeGalleryCard.styles.ts', path: '../components/UserDashboard/components/CreativeGalleryCard.styles.ts' },
   // Admin Dashboard cluster
   { label: 'ClientTrainerAssignments.styles.ts', path: '../components/Admin/ClientTrainerAssignments.styles.ts' },
   { label: 'WorkoutClientDrawer.tsx', path: '../components/DashBoard/workspaces/WorkoutClientDrawer.tsx' },
-  { label: 'CommunicationCenter.tsx', path: '../components/DashBoard/Pages/admin-clients/components/CommunicationCenter.tsx' },
   { label: 'EnhancedTrainerDataManagement.tsx', path: '../components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx' },
   { label: 'admin-packages-view.formStyles.ts', path: '../components/DashBoard/Pages/admin-packages/admin-packages-view.formStyles.ts' },
   { label: 'FeatureAccessPage.tsx', path: '../components/DashBoard/Pages/admin-feature-access/FeatureAccessPage.tsx' },
@@ -47,7 +43,6 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'RelatedVideos.tsx', path: '../components/video/RelatedVideos.tsx' },
   { label: 'GalleryPage.tsx', path: '../pages/GalleryPage.tsx' },
   { label: 'PackageCard.tsx', path: '../pages/shop/components/PackageCard.tsx' },
-  { label: 'PreviewPanel.tsx', path: '../components/Reports/PreviewPanel.tsx' },
 ];
 
 const readSource = (relativePath: string): string => {
@@ -114,9 +109,8 @@ describe('imageUrl sibling sweep — each surface uses sanitizeImageUrl + cssUrl
     });
   });
 
-  it('SURFACES array covers Wave 1 (6 originally-named debate surfaces) + Wave 2 (Phase-4 wider sweep)', () => {
-    // Wave 1 was 6 surfaces (PR #6). Wave 2 adds the broader sweep — minimum
-    // total guards against accidental array truncation in future edits.
-    expect(SURFACES.length).toBeGreaterThanOrEqual(25);
+  it('SURFACES array covers the retained live image surfaces', () => {
+    // The minimum guards the current live sweep against accidental truncation.
+    expect(SURFACES.length).toBeGreaterThanOrEqual(20);
   });
 });

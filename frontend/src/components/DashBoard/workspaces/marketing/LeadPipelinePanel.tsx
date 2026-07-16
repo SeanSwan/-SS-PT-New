@@ -19,6 +19,7 @@ import {
   FilterBar, FilterChip, ChannelTag,
 } from './LeadPipelinePanel.styles';
 import type { LeadStatus } from './LeadPipelinePanel.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export type LeadFilter = 'all' | 'hot' | 'followups';
 const FILTER_LABEL: Record<LeadFilter, string> = { all: 'All leads', hot: 'Hot leads', followups: 'Follow-ups due' };
@@ -166,7 +167,7 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
               ? "No leads yet — they'll appear here as they come in."
               : `No ${FILTER_LABEL[activeFilter].toLowerCase()} right now.`}
             {activeFilter !== 'all' && (
-              <FilterChip type="button" onClick={() => setActiveFilter('all')} style={{ marginTop: 12 }}>Show all leads</FilterChip>
+              <StyledBox as={FilterChip} type="button" onClick={() => setActiveFilter('all')} $style={{ marginTop: 12 }}>Show all leads</StyledBox>
             )}
           </EmptyState>
         ) : (

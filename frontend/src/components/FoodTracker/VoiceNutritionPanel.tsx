@@ -124,7 +124,7 @@ const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent, o
               {parsing ? <><Loader2 size={16} className="spin" /> Drafting...</> : <><Sparkles size={16} /> {onReviewDraft ? 'Review my meal' : 'Draft my meal'}</>}
             </DraftBtn>
           </Row>
-          {!supported && <Hint>Voice input isn't available in this browser - type your meal above.</Hint>}
+          {!supported && <Hint>Voice input isn&apos;t available in this browser - type your meal above.</Hint>}
           {parseError && <Status $error role="alert" aria-live="assertive"><AlertTriangle size={14} /> {parseError}</Status>}
         </>
       )}

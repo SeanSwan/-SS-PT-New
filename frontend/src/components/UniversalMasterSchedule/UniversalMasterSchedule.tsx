@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { AlertTriangle } from 'lucide-react';
+import 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // Services
@@ -55,13 +55,7 @@ import type { LayoutMode, DensityMode } from './types';
 import { useResponsiveLayout } from './hooks/useResponsiveLayout';
 
 // UI Components
-import {
-  Spinner,
-  BodyText,
-  PrimaryHeading,
-  Box,
-  Modal
-} from './ui';
+import { Spinner, Modal } from './ui';
 
 // Types
 import { DragDropResult } from './DragDrop/DragDropManager';
@@ -211,8 +205,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   }, [dispatch]);
 
   // Loading states for async operations
-  const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [isQuickBooking, setIsQuickBooking] = useState(false);
+  const [, setIsCreatingSession] = useState(false);
+  const [, setIsQuickBooking] = useState(false);
 
   // Local UI State
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -431,7 +425,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
     setIsCreatingSession(true);
     try {
-      const endDate = new Date(startDate.getTime() + formData.duration * 60000);
+      new Date(startDate.getTime() + formData.duration * 60000);
 
       const result = await universalMasterScheduleService.createAvailableSessions([{
         start: startDate.toISOString(),
@@ -614,7 +608,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     }
   }, [sessions, refreshData]);
 
-  const handleSelectSlot = useCallback(
+  useCallback(
     ({ date, hour, minute = 0, trainerId }: { date?: Date; hour: number; minute?: number; trainerId?: string | number }) => {
       if (!canCreateSessions) return;
 
@@ -640,7 +634,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       setIsSlotSelected(true);
       setShowCreateDialog(true);
     },
-    [canCreateSessions, currentDate]
+    [canCreateSessions, currentDate, mode, warning]
   );
 
   const handleBookingDialog = useCallback((session: any) => {

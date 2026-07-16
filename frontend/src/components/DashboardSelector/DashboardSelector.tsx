@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronDown, LayoutDashboard, Users, User, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type DashboardType = 'admin' | 'trainer' | 'client' | 'user';
 
@@ -244,14 +245,14 @@ const DashboardSelector: React.FC = () => {
     
     return (
       <SelectorContainer>
-        <SelectorButton 
+        <StyledBox as={SelectorButton}
           type="button"
           onClick={() => navigate(dashboard.path)}
-          style={{ cursor: 'pointer' }}
+          $style={{ cursor: 'pointer' }}
         >
           <DashboardIcon size={16} />
           {singleDashboard === 'user' ? 'My Dashboard' : dashboard.title}
-        </SelectorButton>
+        </StyledBox>
       </SelectorContainer>
     );
   }

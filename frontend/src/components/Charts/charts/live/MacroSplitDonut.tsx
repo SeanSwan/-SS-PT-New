@@ -9,9 +9,10 @@
  */
 import React from 'react';
 import { VictoryPie, VictoryTooltip } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, MACRO_PALETTE, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, MACRO_PALETTE, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface Props { userId: number | string; }
 
@@ -38,14 +39,14 @@ const MacroSplitDonut: React.FC<Props> = ({ userId }) => {
           padAngle={2}
           animate={VICTORY_ANIMATE}
           colorScale={MACRO_PALETTE}
-          style={{
+          {...victoryStyleProps({
             data: { stroke: CHART_COLORS.midnightSapphire, strokeWidth: 2 },
             labels: {
               fill: CHART_COLORS.frostWhite,
               fontSize: 12,
               fontFamily: "'Fira Code', monospace",
             },
-          }}
+          })}
           labels={({ datum }: any) => `${datum.x}\n${datum.y}g`}
           labelComponent={<VictoryTooltip />}
         />

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 import { CS, reducedMotionSafe, withAlpha } from './WorkoutLoggerCS';
 
 export const CardContainer = styled(motion.div)<{ $isSuperset?: boolean }>`

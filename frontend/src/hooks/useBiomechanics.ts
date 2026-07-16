@@ -100,6 +100,34 @@ export function useBiomechanics(): UseBiomechanicsReturn {
   const valleyAngleRef = useRef(180);
   const trackingJointRef = useRef<keyof JointAngles>('leftKnee');
 
+  const updateRepState = useCallback((angle: number) => {
+    const threshold = ANALYSIS_CONFIG.REP_ANGLE_THRESHOLD;
+    const phase = repPhaseRef.current;
+
+    if (phase === 'idle') {
+      peakAngleRef.current = angle;
+      valleyAngleRef.current = angle;
+      if (angle < peakAngleRef.current - threshold) {
+        repPhaseRef.current = 'descending';
+        setRepState(prev => ({ ...prev, phase: 'descending' }));
+      }
+    } else if (phase === 'descending') {
+      valleyAngleRef.current = Math.min(valleyAngleRef.current, angle);
+      if (angle > valleyAngleRef.current + threshold) {
+        repPhaseRef.current = 'ascending';
+        setRepState(prev => ({ ...prev, phase: 'ascending' }));
+      }
+    } else if (phase === 'ascending') {
+      if (angle > peakAngleRef.current - 10) {
+        // Rep completed
+        repPhaseRef.current = 'idle';
+        peakAngleRef.current = angle;
+        valleyAngleRef.current = angle;
+        setRepState(prev => ({ ...prev, count: prev.count + 1, phase: 'idle' }));
+      }
+    }
+  }, []);
+
   const processLandmarks = useCallback(
     (landmarks: NormalizedLandmark[]): BiomechanicsData | null => {
       const now = performance.now();
@@ -170,36 +198,8 @@ export function useBiomechanics(): UseBiomechanicsReturn {
 
       return data;
     },
-    []
+    [updateRepState]
   );
-
-  const updateRepState = useCallback((angle: number) => {
-    const threshold = ANALYSIS_CONFIG.REP_ANGLE_THRESHOLD;
-    const phase = repPhaseRef.current;
-
-    if (phase === 'idle') {
-      peakAngleRef.current = angle;
-      valleyAngleRef.current = angle;
-      if (angle < peakAngleRef.current - threshold) {
-        repPhaseRef.current = 'descending';
-        setRepState(prev => ({ ...prev, phase: 'descending' }));
-      }
-    } else if (phase === 'descending') {
-      valleyAngleRef.current = Math.min(valleyAngleRef.current, angle);
-      if (angle > valleyAngleRef.current + threshold) {
-        repPhaseRef.current = 'ascending';
-        setRepState(prev => ({ ...prev, phase: 'ascending' }));
-      }
-    } else if (phase === 'ascending') {
-      if (angle > peakAngleRef.current - 10) {
-        // Rep completed
-        repPhaseRef.current = 'idle';
-        peakAngleRef.current = angle;
-        valleyAngleRef.current = angle;
-        setRepState(prev => ({ ...prev, count: prev.count + 1, phase: 'idle' }));
-      }
-    }
-  }, []);
 
   const resetReps = useCallback(() => {
     repPhaseRef.current = 'idle';

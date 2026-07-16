@@ -181,7 +181,7 @@ const PreCallCheck: React.FC<PreCallCheckProps> = ({ onReady, assessmentType }) 
     <Wrapper>
       <Title>Pre-Call Check</Title>
       <Subtitle>
-        Let's make sure everything is working before your{' '}
+        Let&apos;s make sure everything is working before your{' '}
         {assessmentType === 'movement_screen' ? 'movement screen' :
          assessmentType === 'postural_analysis' ? 'postural analysis' :
          assessmentType === 'performance_test' ? 'performance test' : 'session'}.

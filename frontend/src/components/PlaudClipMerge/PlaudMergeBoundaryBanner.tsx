@@ -11,7 +11,7 @@
  *
  * role="alert" so screen readers announce the warning when it appears.
  */
-import React from 'react';
+
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
 import type { BoundaryWarning } from '../../services/plaudMergeService';

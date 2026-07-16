@@ -13,6 +13,8 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { VIDEO } from '../../../../config/videoAssets';
 import logoImg from '../../../../assets/Logo.png';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 interface HeroProps {
@@ -87,7 +89,7 @@ const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
     const id = setInterval(() => { if (i <= text.length) { setDisplayed(text.slice(0, i)); i++; } else clearInterval(id); }, 55);
     return () => clearInterval(id);
   }, [text]);
-  return <>{displayed}<span style={{ opacity: 0.6 }}>|</span></>;
+  return <>{displayed}<StyledBox as="span" $style={{ opacity: 0.6 }}>|</StyledBox></>;
 };
 
 /* ── Component ──────────────────────────────────────────────────────────── */
@@ -117,13 +119,13 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
           poster="/images/parallax/hero-swan-bg.png"
           preload="metadata"
           autoPlay loop muted playsInline
-          style={isFull ? { scale: videoScale } : undefined}
+          {...motionStyleProps(isFull ? { scale: videoScale } : undefined)}
         />
       )}
       <Overlay />
 
       <Content
-        style={isFull ? { y: contentY } : undefined}
+        {...motionStyleProps(isFull ? { y: contentY } : undefined)}
         variants={isEssential ? undefined : staggerContainer}
         initial={isEssential ? undefined : 'hidden'}
         whileInView={isEssential ? undefined : 'visible'}

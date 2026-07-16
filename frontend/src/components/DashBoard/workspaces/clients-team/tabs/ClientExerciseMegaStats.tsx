@@ -1,7 +1,8 @@
+export { default } from '../../../progress/ClientExerciseMegaStats';
+
 export {
-  default,
   getExerciseMegaStatRowKey,
   sanitizeExerciseMegaStats,
-} from '../../../progress/ClientExerciseMegaStats';
+} from '../../../progress/ClientExerciseMegaStats.logic';
 
-export type { ExerciseMegaStatPoint } from '../../../progress/ClientExerciseMegaStats';
+export type { ExerciseMegaStatPoint } from '../../../progress/ClientExerciseMegaStats.logic';

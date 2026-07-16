@@ -20,6 +20,7 @@ import {
   Users,
   Star
 } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Animation keyframes
 const shimmer = keyframes`
@@ -327,7 +328,7 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
   };
 
   return (
-    <motion.div
+    <StyledBox as={motion.div}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -336,11 +337,11 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
         damping: 10,
         delay: 0.1
       }}
-      style={{ height: '100%' }}
+      $style={{ height: '100%' }}
     >
       <StatsCardContainer $colorScheme={colorScheme}>
         <CardContentWrapper>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <IconContainer $colorScheme={colorScheme}>
               {renderIcon()}
             </IconContainer>
@@ -348,7 +349,7 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
               {isLoading ? (
                 <>
                   <TitleSkeleton />
-                  <div style={{ height: '0.5rem' }} />
+                  <StyledBox as="div" $style={{ height: '0.5rem' }} />
                   <ValueSkeleton />
                   <TrendSkeleton />
                 </>
@@ -373,10 +374,10 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
                 </>
               )}
             </div>
-          </div>
+          </StyledBox>
         </CardContentWrapper>
       </StatsCardContainer>
-    </motion.div>
+    </StyledBox>
   );
 };
 

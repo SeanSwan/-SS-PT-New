@@ -12,7 +12,7 @@ type CoachMessageResponseVariantsProps = {
   preferredResponseStyle?: ResponseStyle;
 };
 
-export function getResponseStyleVariantKey(style?: ResponseStyle): LogStyleVariantKey {
+function getResponseStyleVariantKey(style?: ResponseStyle): LogStyleVariantKey {
   return style === 'simple_only' ? 'keep100' : 'science';
 }
 
@@ -37,7 +37,7 @@ function CoachMessageResponseVariants({
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>(
     () => preferredVariantKey,
   );
-  const variants = formatted.variants || [];
+  const variants = useMemo(() => formatted.variants || [], [formatted.variants]);
   const selectedVariant = variants.find((variant) => variant.key === activeVariant) || variants[0];
   const visibleText = selectedVariant ? formattedLogBodyToPlainText(selectedVariant.body) : null;
 

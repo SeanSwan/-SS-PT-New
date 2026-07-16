@@ -11,6 +11,7 @@ import {
   getOnboardingResetUrlToCopy,
   getOnboardingAccessStatusLabel,
 } from "./ClientOnboardingAccessHandoff";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ── Lazy-loaded wizard sections (code-split for FCP) ── */
 const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
@@ -41,7 +42,7 @@ const WING_PURPLE = "#8B5CF6";
 const ICE_WING = "#60C0F0";
 const FROST_WHITE = "#E0ECF4";
 /* Legacy aliases for downstream references */
-const GALAXY_CORE = MIDNIGHT_SAPPHIRE;
+
 const SWAN_CYAN = WING_PURPLE;
 const COSMIC_PURPLE = WING_PURPLE;
 
@@ -646,7 +647,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.25 }}
           >
-            <Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem', color: FROST_WHITE }}>Loading...</div>}>
+            <Suspense fallback={<StyledBox as="div" $style={{ textAlign: 'center', padding: '2rem', color: FROST_WHITE }}>Loading...</StyledBox>}>
               <CurrentSection formData={formData} updateFormData={updateFormData} data={formData} updateData={updateFormData} />
             </Suspense>
           </motion.div>
@@ -682,14 +683,13 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleSuccessModalClose}
+            onPointerDown={(event) => { if (event.target === event.currentTarget) handleSuccessModalClose(); }}
           >
             <ModalContent
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby="client-onboarding-success-title"
@@ -736,13 +736,13 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
 
               </CredentialsBox>
               <ModalText>{accessModalCopy}</ModalText>
-              <Button
+              <StyledBox as={Button}
                 $variant="primary"
-                onClick={handleSuccessModalClose}
-                style={{ marginTop: "1.5rem" }}
+                onPointerDown={(event) => { if (event.target === event.currentTarget) handleSuccessModalClose(); }}
+                $style={{ marginTop: "1.5rem" }}
               >
                 {completionCtaLabel}
-              </Button>
+              </StyledBox>
             </ModalContent>
           </ModalOverlay>
         )}

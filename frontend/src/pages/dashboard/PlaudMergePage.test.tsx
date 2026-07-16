@@ -18,6 +18,10 @@ vi.mock('react-router-dom', async (orig) => {
   return { ...actual, useNavigate: () => vi.fn() };
 });
 
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ authAxios: undefined, user: null }),
+}));
+
 // Mock hooks used by child components so render is fast + deterministic
 vi.mock('../../hooks/usePlaudClipQueue', () => ({
   usePlaudClipQueue: () => ({

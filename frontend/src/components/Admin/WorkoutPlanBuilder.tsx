@@ -30,6 +30,7 @@ import {
 } from '../UniversalMasterSchedule/ui';
 import { useCurrentWorkout } from '../../hooks/useCurrentWorkout';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type ExerciseSearchResult = {
   id: string | number;
@@ -352,14 +353,14 @@ const WorkoutPlanBuilder: React.FC = () => {
           {days.map((day, dayIndex) => (
             <DayCard key={`day-${dayIndex}`}>
               <DayHeader>
-                <FormField style={{ flex: 1, marginBottom: 0 }}>
+                <StyledBox as={FormField} $style={{ flex: 1, marginBottom: 0 }}>
                   <Label htmlFor={`day-name-${dayIndex}`}>Day Name</Label>
                   <StyledInput
                     id={`day-name-${dayIndex}`}
                     value={day.name}
                     onChange={(event) => handleDayNameChange(dayIndex, event.target.value)}
                   />
-                </FormField>
+                </StyledBox>
                 <OutlinedButton type="button" onClick={() => handleRemoveDay(dayIndex)}>
                   <Trash2 size={16} /> Remove Day
                 </OutlinedButton>
@@ -598,7 +599,7 @@ const ExerciseSearch: React.FC<{ onSelect: (exercise: ExerciseSearchResult) => v
 
   return (
     <SearchContainer>
-      <SectionTitle style={{ fontSize: '1rem' }}>Search Exercises</SectionTitle>
+      <StyledBox as={SectionTitle} $style={{ fontSize: '1rem' }}>Search Exercises</StyledBox>
       <SearchRow>
         <StyledInput
           type="text"

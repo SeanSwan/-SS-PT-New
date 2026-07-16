@@ -8,4 +8,3 @@ export * from "./select";
 export * from "./textarea";
 export { GlowButton } from "./buttons";
 export type { GlowButtonProps, GlowButtonColorScheme, GlowButtonSize } from "./buttons";
-export { SwanGalaxyLuxuryButton } from "./SwanGalaxyLuxuryButton";

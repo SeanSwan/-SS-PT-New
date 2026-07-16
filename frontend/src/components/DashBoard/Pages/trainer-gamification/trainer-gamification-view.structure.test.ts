@@ -82,7 +82,7 @@ describe('trainer gamification view structure', () => {
       expect(source).not.toContain('rgba(');
       expect(source).not.toContain('transition: all');
       expect(source).not.toMatch(/color="#[0-9A-Fa-f]{3,8}"/);
-      expect(source).not.toMatch(/[^\x00-\x7F]/);
+      expect(source).not.toMatch(/\P{ASCII}/u);
       expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     }
 

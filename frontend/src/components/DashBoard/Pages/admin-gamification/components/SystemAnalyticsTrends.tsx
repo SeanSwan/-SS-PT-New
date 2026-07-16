@@ -83,13 +83,13 @@ export const SystemAnalyticsTrends: React.FC<SystemAnalyticsTrendsProps> = ({ da
                 <ListRow>
                   <ListIcon><Trophy size={18} /></ListIcon>
                   <ListContent>
-                    <ListSecondary>"{achievements.mostPopularAchievement?.name ?? 'N/A'}" is the most popular achievement in the current data set.</ListSecondary>
+                    <ListSecondary>&quot;{achievements.mostPopularAchievement?.name ?? 'N/A'}&quot; is the most popular achievement in the current data set.</ListSecondary>
                   </ListContent>
                 </ListRow>
                 <ListRow>
                   <ListIcon><Gift size={18} /></ListIcon>
                   <ListContent>
-                    <ListSecondary>"{rewards.mostRedeemedReward?.name ?? 'N/A'}" is the most redeemed reward in the current data set.</ListSecondary>
+                    <ListSecondary>&quot;{rewards.mostRedeemedReward?.name ?? 'N/A'}&quot; is the most redeemed reward in the current data set.</ListSecondary>
                   </ListContent>
                 </ListRow>
                 <ListRow>

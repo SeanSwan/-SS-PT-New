@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- This is the centralized, production-gated console boundary. */
 /**
  * ============================================================================
  * FILE: logger.ts

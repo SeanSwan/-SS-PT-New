@@ -207,7 +207,7 @@ const AdminGamificationConfirmDialog: React.FC<AdminGamificationConfirmDialogPro
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-gamification-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

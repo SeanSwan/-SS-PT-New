@@ -5,7 +5,7 @@
  * no auto-select without the flag or on inexact queries, re-open resets, and
  * the WorkoutLogger source contract (?exercise= param -> Rolodex props).
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
@@ -14,6 +14,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useRolodexDeepLink from './useRolodexDeepLink';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 const { mockUseExerciseSearch, mockScrollToRow, mockSetQuery } = vi.hoisted(() => ({
   mockUseExerciseSearch: vi.fn(),
@@ -24,11 +26,11 @@ const { mockUseExerciseSearch, mockScrollToRow, mockSetQuery } = vi.hoisted(() =
 vi.mock('react-window', () => ({
   useListRef: () => ({ current: { scrollToRow: mockScrollToRow } }),
   List: ({ rowComponent: RowComponent, rowCount, rowHeight, style, id, role, 'aria-label': ariaLabel }: any) => (
-    <div id={id} role={role} aria-label={ariaLabel} style={style}>
+    <StyledBox as="div" id={id} role={role} aria-label={ariaLabel} $style={style}>
       {Array.from({ length: rowCount }).map((_, index) => (
-        <RowComponent key={index} index={index} style={{ height: rowHeight, top: index * rowHeight }} />
+        <RowComponent key={index} index={index} {...reactWindowStyleProps({ height: rowHeight, top: index * rowHeight })} />
       ))}
-    </div>
+    </StyledBox>
   ),
 }));
 

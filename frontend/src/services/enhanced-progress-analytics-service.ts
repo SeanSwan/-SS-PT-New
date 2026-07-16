@@ -1,6 +1,6 @@
 // services/enhanced-progress-analytics-service.ts
 import { AxiosInstance } from 'axios';
-import { ClientProgressData, ClientProgressServiceInterface, createClientProgressService } from './client-progress-service';
+import { ClientProgressServiceInterface, createClientProgressService } from './client-progress-service';
 import { logger } from '@/utils/logger';
 
 export type { ClientProgressData } from './client-progress-service';

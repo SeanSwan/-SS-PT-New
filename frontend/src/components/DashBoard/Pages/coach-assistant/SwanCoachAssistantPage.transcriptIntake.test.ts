@@ -1147,7 +1147,7 @@ describe('Phase 13.2 — parser prompt note-scope guidance', () => {
 });
 
 describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
-  const PANEL_SOURCE = readFileSync(
+  readFileSync(
     resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
     'utf8',
   );

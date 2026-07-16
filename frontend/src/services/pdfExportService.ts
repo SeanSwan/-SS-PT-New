@@ -553,7 +553,7 @@ export function exportLongHorizonPDF(data: PDFLongHorizonPlan, clientName?: stri
   y = getLastAutoTableY(doc, y) + 6;
 
   // Detailed phase cards
-  data.blocks.forEach((block, i) => {
+  data.blocks.forEach((block, _i) => {
     y = checkPageBreak(doc, y, 35);
     y = addSectionTitle(doc, y, `Phase ${block.sequence}: ${block.phaseName}`);
     y = addKeyValue(doc, y, 'Framework', block.nasmFramework);

@@ -235,7 +235,7 @@ export function getTimezoneAbbr(): string {
 
 // ─── React Hook ──────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 interface UseTimeWheelStateOptions {
   value: string;

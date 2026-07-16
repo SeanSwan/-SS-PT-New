@@ -61,6 +61,7 @@ import {
   Wrap,
   foodTheme,
 } from './FoodSearchPanel.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface BadgeProps {
   group?: '1' | '2A' | '2B';
@@ -96,6 +97,12 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
   const { addError, addToLog, addedIds, addedMealTypes, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSequence = useRef(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => searchInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   const doSearch = useCallback(async (rawQuery: string) => {
     const requestId = ++requestSequence.current;
@@ -141,8 +148,8 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
       <SearchBar>
         <SIcon size={18} />
         <SInput
+          ref={searchInputRef}
           aria-label="Search foods"
-          autoFocus
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search foods... (e.g. chicken breast, oatmeal)"
           type="text"
@@ -151,7 +158,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
       </SearchBar>
 
       <Filters>
-        <Filter size={16} style={{ flexShrink: 0, alignSelf: 'center', color: foodTheme.textSoft }} />
+        <StyledBox as={Filter} size={16} $style={{ flexShrink: 0, alignSelf: 'center', color: foodTheme.textSoft }} />
         {CATEGORIES.map((item) => (
           <Chip key={item} $on={category === item} onClick={() => setCategory(item)}>
             {item}
@@ -165,7 +172,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
           {MEAL_TYPE_OPTIONS.map((type) => <option key={type} value={type}>{formatMealLabel(type)}</option>)}
         </MealSelect>
       </MealRow>
-      {addError && <Empty role="alert" style={{ color: foodTheme.danger, padding: '8px' }}>{addError}</Empty>}
+      {addError && <StyledBox as={Empty} role="alert" $style={{ color: foodTheme.danger, padding: '8px' }}>{addError}</StyledBox>}
       {searchError && (
         <Empty role="alert">
           <p>Food search is temporarily unavailable. Your Nutrition Center is still available.</p>
@@ -187,7 +194,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
             const saving = savingId === food.id;
             const currentMeal = formatMealLabel((added && addedMealTypes.get(food.id)) || mealType);
             return (
-              <Card key={food.id ?? index} $healthRating={food.healthRating} style={{ animationDelay: `${index * 50}ms` }}>
+              <StyledBox as={Card} key={food.id ?? index} $healthRating={food.healthRating} $style={{ animationDelay: `${index * 50}ms` }}>
                 <Header>
                   <div>
                     <Name>
@@ -198,10 +205,10 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
                       <Meta>{[food.brand, food.servingSize].filter(Boolean).join(' - ')}</Meta>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <StyledBox as="div" $style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                     {food.source && <SourceBadge $src={food.source}>{food.source}</SourceBadge>}
                     {food.category && <Meta>{food.category}</Meta>}
-                  </div>
+                  </StyledBox>
                 </Header>
                 <Kcal>{formatMacroValue(food.calories)} <span>kcal</span></Kcal>
                 <Macros>
@@ -233,7 +240,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewD
                         ? <><Spin size={18} /> Adding...</>
                         : <><Plus size={18} /> Add to {currentMeal}</>}
                 </AddBtn>
-              </Card>
+              </StyledBox>
             );
           })}
         </Grid>

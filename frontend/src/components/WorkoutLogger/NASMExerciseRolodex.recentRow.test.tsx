@@ -5,12 +5,14 @@
  * (stale ids drop), one-tap pick fires onSelectExercise AND records, the row
  * hides while searching, and selection still records recents.
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import { readRecentExercises, recordRecentExercise } from './recentExercises';
 import type { ExerciseSlim } from './useExerciseSearch';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 const { mockUseExerciseSearch, mockScrollToRow, mockSetQuery } = vi.hoisted(() => ({
   mockUseExerciseSearch: vi.fn(),
@@ -21,11 +23,11 @@ const { mockUseExerciseSearch, mockScrollToRow, mockSetQuery } = vi.hoisted(() =
 vi.mock('react-window', () => ({
   useListRef: () => ({ current: { scrollToRow: mockScrollToRow } }),
   List: ({ rowComponent: RowComponent, rowCount, rowHeight, style, id, role, 'aria-label': ariaLabel }: any) => (
-    <div id={id} role={role} aria-label={ariaLabel} style={style}>
+    <StyledBox as="div" id={id} role={role} aria-label={ariaLabel} $style={style}>
       {Array.from({ length: rowCount }).map((_, index) => (
-        <RowComponent key={index} index={index} style={{ height: rowHeight, top: index * rowHeight }} />
+        <RowComponent key={index} index={index} {...reactWindowStyleProps({ height: rowHeight, top: index * rowHeight })} />
       ))}
-    </div>
+    </StyledBox>
   ),
 }));
 

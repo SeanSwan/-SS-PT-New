@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +7,7 @@ import { useToast } from '../../hooks/use-toast';
 import BarcodeScanner from '../../components/FoodScanner/BarcodeScanner';
 import ProductAnalysis, { foodScannerRatingLabel, type FoodProduct } from '../../components/FoodScanner/ProductAnalysis';
 import axios from 'axios';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Styled components
 const PageContainer = styled.div`
@@ -29,7 +30,7 @@ const Title = styled(motion.h1)`
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  
+
   @media (max-width: 768px) {
     font-size: 2rem;
   }
@@ -40,7 +41,7 @@ const Subtitle = styled.p`
   font-size: 1.1rem;
   max-width: 600px;
   margin: 0 auto;
-  
+
   @media (max-width: 768px) {
     font-size: 0.9rem;
   }
@@ -109,11 +110,11 @@ const SearchInput = styled.input`
   padding: 0.8rem 1rem;
   color: white;
   font-size: 0.9rem;
-  
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
-  
+
   &:focus {
     outline: none;
     border-color: rgba(139, 92, 246, 0.5);
@@ -128,7 +129,7 @@ const SearchButton = styled.button`
   padding: 0 1.5rem;
   font-weight: 600;
   cursor: pointer;
-  
+
   &:hover {
     background: linear-gradient(135deg, #8961b9, #20ffff);
   }
@@ -204,7 +205,7 @@ const ScanHistoryItem = styled.div`
   gap: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -304,22 +305,15 @@ const FoodScannerPage: React.FC = () => {
   const { isAuthenticated, authAxios } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  // Fetch scan history if user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'history') {
-      fetchScanHistory();
-    }
-  }, [isAuthenticated, activeTab]);
-  
+
   // Fetch user's scan history
-  const fetchScanHistory = async () => {
+  const fetchScanHistory = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await authAxios.get('/api/food-scanner/history');
-      
+
       if (response.data && response.data.success) {
         setScanHistory(response.data.scans);
       } else {
@@ -331,21 +325,28 @@ const FoodScannerPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [authAxios]);
+
+  // Fetch scan history if user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'history') {
+      fetchScanHistory();
+    }
+  }, [isAuthenticated, activeTab, fetchScanHistory]);
+
   // Handle barcode detection
   const handleBarcodeDetected = async (barcode: string) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Clear previous scan
       setScannedProduct(null);
-      
+
       // Call API to get product information
       const api = isAuthenticated ? authAxios : axios;
       const response = await api.get(`/api/food-scanner/scan/${barcode}`);
-      
+
       if (response.data && response.data.success) {
         setScannedProduct(response.data.product);
       } else {
@@ -358,39 +359,39 @@ const FoodScannerPage: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle tab change
   const handleTabChange = (tab: 'scan' | 'history') => {
     setActiveTab(tab);
-    
+
     // Clear any scan results when switching to history tab
     if (tab === 'history') {
       setScannedProduct(null);
     }
   };
-  
+
   // Handle search
   const handleSearch = async () => {
     if (!searchInput.trim()) return;
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       // Clear previous scan
       setScannedProduct(null);
-      
+
       // Call API to search for products
       const api = isAuthenticated ? authAxios : axios;
       const response = await api.get(`/api/food-scanner/search?query=${encodeURIComponent(searchInput)}`);
-      
+
       if (response.data && response.data.success && response.data.products.length > 0) {
         // Get the first product
         const productId = response.data.products[0].id;
-        
+
         // Fetch full product details
         const productResponse = await api.get(`/api/food-scanner/product/${productId}`);
-        
+
         if (productResponse.data && productResponse.data.success) {
           setScannedProduct(productResponse.data.product);
         } else {
@@ -406,28 +407,28 @@ const FoodScannerPage: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle saving a scanned product
   const handleSaveProduct = async (isFavorite: boolean) => {
     if (!isAuthenticated || !scannedProduct) return;
-    
+
     try {
       // Find the scan in history
       const scan = scanHistory.find(item => item.product.id === scannedProduct.id);
-      
+
       if (scan) {
         // Update existing scan
         await authAxios.put(`/api/food-scanner/history/${scan.id}`, {
           isFavorite
         });
-        
+
         toast({
           title: isFavorite ? 'Product Saved' : 'Product Removed',
-          description: isFavorite ? 
-            'Product has been added to your favorites' : 
+          description: isFavorite ?
+            'Product has been added to your favorites' :
             'Product has been removed from your favorites',
         });
-        
+
         // Refresh scan history
         if (activeTab === 'history') {
           fetchScanHistory();
@@ -442,7 +443,7 @@ const FoodScannerPage: React.FC = () => {
       });
     }
   };
-  
+
   // Handle clicking on a history item
   const handleHistoryItemClick = (product: FoodProduct) => {
     setScannedProduct(product);
@@ -492,16 +493,16 @@ const FoodScannerPage: React.FC = () => {
           Scan food products to review ingredient and nutrition signals before logging them
         </Subtitle>
       </Header>
-      
+
       <ContentContainer>
         <TabsContainer>
-          <TabButton 
+          <TabButton
             $active={activeTab === 'scan'}
             onClick={() => handleTabChange('scan')}
           >
             Scanner
           </TabButton>
-          <TabButton 
+          <TabButton
             $active={activeTab === 'history'}
             onClick={() => handleTabChange('history')}
             disabled={!isAuthenticated}
@@ -509,7 +510,7 @@ const FoodScannerPage: React.FC = () => {
             History
           </TabButton>
         </TabsContainer>
-        
+
         <AnimatePresence mode="wait">
           {activeTab === 'scan' ? (
             <motion.div
@@ -522,7 +523,7 @@ const FoodScannerPage: React.FC = () => {
               {!scannedProduct && (
                 <>
                   <SearchContainer>
-                    <SearchInput 
+                    <SearchInput
                       placeholder="Search by product name or barcode"
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
@@ -532,14 +533,14 @@ const FoodScannerPage: React.FC = () => {
                       Search
                     </SearchButton>
                   </SearchContainer>
-                
+
                   <InstructionsCard>
                     <h3>How It Works</h3>
                     <StepsList>
                       <Step>
                         <StepNumber>1</StepNumber>
                         <StepContent>
-                          Tap "Scan with Camera" to activate your device's camera
+                          Tap &quot;Scan with Camera&quot; to activate your device&apos;s camera
                         </StepContent>
                       </Step>
                       <Step>
@@ -558,11 +559,11 @@ const FoodScannerPage: React.FC = () => {
                   </InstructionsCard>
                 </>
               )}
-              
+
               {error && (
                 <ErrorMessage>{error}</ErrorMessage>
               )}
-              
+
               {loading ? (
                 <LoadingContainer>
                   <LoadingSpinner
@@ -597,13 +598,13 @@ const FoodScannerPage: React.FC = () => {
                           item.product.id === scannedProduct.id && item.isFavorite
                         )}
                       />
-                      
-                      <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                        <button
+
+                      <StyledBox as="div" $style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                        <StyledBox as="button"
                           onClick={() => {
                             setScannedProduct(null);
                           }}
-                          style={{
+                          $style={{
                             background: 'rgba(60, 60, 100, 0.5)',
                             color: 'white',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -615,8 +616,8 @@ const FoodScannerPage: React.FC = () => {
                           }}
                         >
                           Scan Another Product
-                        </button>
-                      </div>
+                        </StyledBox>
+                      </StyledBox>
                     </ScanResultsContainer>
                   )}
                 </>
@@ -633,12 +634,12 @@ const FoodScannerPage: React.FC = () => {
               {!isAuthenticated ? (
                 <InstructionsCard>
                   <h3>Login Required</h3>
-                  <p style={{ margin: '1rem 0' }}>
+                  <StyledBox as="p" $style={{ margin: '1rem 0' }}>
                     Please login to view your scan history and save products
-                  </p>
-                  <button
+                  </StyledBox>
+                  <StyledBox as="button"
                     onClick={() => navigate('/login')}
-                    style={{
+                    $style={{
                       background: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
                       color: 'white',
                       border: 'none',
@@ -650,7 +651,7 @@ const FoodScannerPage: React.FC = () => {
                     }}
                   >
                     Login
-                  </button>
+                  </StyledBox>
                 </InstructionsCard>
               ) : loading ? (
                 <LoadingContainer>
@@ -673,13 +674,16 @@ const FoodScannerPage: React.FC = () => {
               ) : (
                 <ScanHistoryList>
                   {scanHistory.map((scan) => (
-                    <ScanHistoryItem 
+                    <ScanHistoryItem
                       key={scan.id}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                       onClick={() => handleHistoryItemClick(scan.product)}
                     >
-                      <ScanHistoryImage 
-                        style={{ 
-                          backgroundImage: `url(${scan.product.imageUrl || '/placeholder-product.jpg'})` 
+                      <StyledBox as={ScanHistoryImage}
+                        $style={{
+                          backgroundImage: `url(${scan.product.imageUrl || '/placeholder-product.jpg'})`
                         }}
                       />
                       <ScanHistoryContent>
@@ -695,7 +699,7 @@ const FoodScannerPage: React.FC = () => {
                         {foodScannerRatingLabel(scan.product.overallRating)}
                       </ScanHistoryRating>
                       {scan.isFavorite && (
-                        <div style={{ color: '#ffc107', fontSize: '1.2rem' }}>&#9733;</div>
+                        <StyledBox as="div" $style={{ color: '#ffc107', fontSize: '1.2rem' }}>&#9733;</StyledBox>
                       )}
                     </ScanHistoryItem>
                   ))}

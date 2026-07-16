@@ -15,7 +15,7 @@ describe('DonationSlider theme contract', () => {
     expect(source).not.toContain('styled');
     expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba\(/);
     expect(source).not.toContain('style={{');
-    expect(source).not.toMatch(/[^\x00-\x7F]|console\.error/);
+    expect(source).not.toMatch(/\P{ASCII}|console\.error/u);
     expect(source).toContain('one-time donation -');
     expect(source).toContain('Suggested: $');
   });

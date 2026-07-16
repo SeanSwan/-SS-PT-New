@@ -27,7 +27,7 @@ const SummarySection: React.FC<{
   return (
     <SectionContainer>
       <InfoNote>
-        You're almost done! Share anything else that will help your trainer build the perfect program for you.
+        You&apos;re almost done! Share anything else that will help your trainer build the perfect program for you.
       </InfoNote>
 
       <FieldGroup label="Anything Else We Should Know?">

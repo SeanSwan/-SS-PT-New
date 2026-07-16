@@ -20,6 +20,7 @@ import { TRAINER_FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ── Props ─────────────────────────────────────────────── */
 interface TrainersSectionProps {
@@ -76,15 +77,15 @@ const TrainersSection: React.FC<TrainersSectionProps> = ({ tier }) => {
   const renderCard = (f: (typeof TRAINER_FEATURES)[number], i: number) => {
     const Icon = f.icon;
     const inner = (
-      <GlassCard
+      <StyledBox as={GlassCard}
         variant={cardVariant}
         disableBlur={isEssential}
-        style={{ border: '1px solid rgba(198, 168, 75, 0.2)' }}
+        $style={{ border: '1px solid rgba(198, 168, 75, 0.2)' }}
       >
         <IconBox><Icon /></IconBox>
         <CardTitle>{f.title}</CardTitle>
         <CardDesc>{f.desc}</CardDesc>
-      </GlassCard>
+      </StyledBox>
     );
 
     if (isFull) {
@@ -110,7 +111,7 @@ const TrainersSection: React.FC<TrainersSectionProps> = ({ tier }) => {
         <SectionHeader variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           <SectionTitle>Trainers: This Platform Is Yours</SectionTitle>
           <SectionSubtitle>
-            Whether you're in Anaheim or Amsterdam, Lagos or London — bring your
+            Whether you&apos;re in Anaheim or Amsterdam, Lagos or London — bring your
             clients to SwanStudios.
           </SectionSubtitle>
         </SectionHeader>

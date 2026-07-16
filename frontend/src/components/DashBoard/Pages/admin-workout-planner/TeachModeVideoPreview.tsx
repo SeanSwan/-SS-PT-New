@@ -75,7 +75,7 @@ const TeachModeVideoPreview: React.FC<TeachModeVideoPreviewProps> = ({
         <>
           <VideoMediaFrame>
             {directVideo ? (
-              <video controls preload="metadata" poster={thumbnailUrl || undefined} aria-label={title}>
+              <video controls muted onVolumeChange={(event) => { event.currentTarget.muted = true; }} preload="metadata" poster={thumbnailUrl || undefined} aria-label={`${title}; audio disabled until captions are available`}>
                 <source src={videoUrl} />
               </video>
             ) : (

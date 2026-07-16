@@ -37,7 +37,7 @@ const chartData = {
       },
       y: {
         title: {
-          formatter: (seriesName) => 'Total Order'
+          formatter: (_seriesName) => 'Total Order'
         }
       },
       marker: {

@@ -17,6 +17,8 @@ import {
   DataTable, PillTabs, PillTab, CompetitionBadge,
 } from './marketing.styles';
 import type { KeywordEntry, KeywordCategory } from './marketing.types';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─── Demo Data ─────────────────────────────────────────────────
 const DEMO_KEYWORDS: KeywordEntry[] = [
@@ -123,7 +125,7 @@ const RankSparkline: React.FC<{ data: number[] }> = ({ data }) => (
   <SparkWrap>
     <VictoryLine
       data={data.map((y, x) => ({ x, y }))}
-      style={{ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } }}
+      {...victoryStyleProps({ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } })}
       height={30}
       width={80}
       padding={2}
@@ -184,11 +186,11 @@ const KeywordResearchWidget: React.FC = () => {
         ))}
       </PillTabs>
 
-      <div style={{ overflowX: 'auto' }}>
+      <StyledBox as="div" $style={{ overflowX: 'auto' }}>
         <DataTable>
           <thead>
             <tr>
-              <th style={{ width: 44 }} />
+              <StyledBox as="th" $style={{ width: 44 }} />
               <th>Keyword</th>
               <SortHeader onClick={() => handleSort('volume')}>
                 Volume {sortBy === 'volume' && (sortAsc ? '↑' : '↓')}
@@ -226,7 +228,7 @@ const KeywordResearchWidget: React.FC = () => {
             ))}
           </tbody>
         </DataTable>
-      </div>
+      </StyledBox>
     </MarketingCard>
   );
 };

@@ -7,4 +7,6 @@
 import { makeLensFrame } from '../../../adapters/style-lens-swan/v2/SurfaceLensGate';
 import { CLIENTS_WORKSPACE_MANIFEST } from '../../../adapters/style-lens-swan/v2/surfaceManifests';
 
-export default makeLensFrame(CLIENTS_WORKSPACE_MANIFEST, 'Clients and Team style frame', 'ClientsWorkspaceLensFrame');
+const ClientsWorkspaceLensFrame = makeLensFrame(CLIENTS_WORKSPACE_MANIFEST, 'Clients and Team style frame', 'ClientsWorkspaceLensFrame');
+
+export default ClientsWorkspaceLensFrame;

@@ -11,6 +11,7 @@ import { createPainEntryService, type PainEntry, type CreatePainEntryPayload } f
 import { useAuth } from '../../context/AuthContext';
 import GlobalClientContext from '../../context/GlobalClientContext';
 import { device } from '../../styles/breakpoints';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const BodyMapSection = styled.div`
   background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.4)'};
@@ -287,7 +288,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       <SectionHeader>
         <SectionTitle>Body Map</SectionTitle>
         {entries.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <StyledBox as="div" $style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <SummaryBadge $color="#E0ECF4">
               {activeEntries.length} active
             </SummaryBadge>
@@ -303,7 +304,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
             {mildCount > 0 && (
               <SummaryBadge $color="#60C0F0">{mildCount} mild</SummaryBadge>
             )}
-          </div>
+          </StyledBox>
         )}
       </SectionHeader>
 
@@ -343,7 +344,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
               {activeEntries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
-                  <ActiveEntryRow key={entry.id} $color={color} onClick={() => handleRegionClick(entry.bodyRegion)}>
+                  <ActiveEntryRow key={entry.id} $color={color} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }} onClick={() => handleRegionClick(entry.bodyRegion)}>
                     <DotIndicator $color={color} />
                     <EntryLabel>{formatRegionLabel(entry.bodyRegion)}</EntryLabel>
                     <EntryMeta>{entry.painLevel}/10 &middot; {entry.painType}</EntryMeta>

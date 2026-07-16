@@ -2,6 +2,7 @@ import React from 'react';
 import { BarChart3, DollarSign, FileText, TrendingUp, Globe, PieChart, Award } from 'lucide-react';
 import WorkspaceContainer, { type WorkspaceTab } from '../WorkspaceContainer';
 import AITerminalPanel from '../../Shared/AITerminalPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const allTabs: WorkspaceTab[] = [
   { id: 'overview', label: 'Overview', icon: <BarChart3 size={18} />, path: '/dashboard/analytics' },
@@ -18,14 +19,14 @@ const tabs = import.meta.env.DEV ? allTabs : allTabs.filter(t => t.id !== 'perfo
 
 const AnalyticsWorkspace: React.FC = () => (
   <>
-    <div style={{ padding: '24px 24px 0' }}>
+    <StyledBox as="div" $style={{ padding: '24px 24px 0' }}>
       <AITerminalPanel
         context="data_management"
         label="Analytics Assistant"
         emptyHint="Ask about revenue trends, performance, insights..."
         defaultOpen={false}
       />
-    </div>
+    </StyledBox>
     <WorkspaceContainer
       title="Analytics"
       subtitle="Data analytics, revenue intelligence, and performance insights"

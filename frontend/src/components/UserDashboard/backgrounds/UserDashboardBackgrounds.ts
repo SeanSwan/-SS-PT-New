@@ -4,7 +4,7 @@ export { USER_DASHBOARD_BACKGROUNDS };
 
 export type UserDashboardBackgroundMode = 'fixed' | 'rotate';
 
-type DashboardBackgroundStyle = CSSProperties & Record<`--${string}`, string | number>;
+export type DashboardBackgroundStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 export interface UserDashboardBackgroundRecipe {
   id: string;

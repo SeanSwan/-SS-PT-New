@@ -32,6 +32,7 @@ import {
   BarValue,
   RecoveryIcon,
 } from './AdminProgressChartsGrid.styles';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 type SizeProps = { width?: number; height?: number };
 
@@ -142,7 +143,7 @@ export const AdminTrendLine: React.FC<{ data: Array<{ x: string; y: number }>; c
   >
     <VictoryAxis />
     <VictoryAxis dependentAxis />
-    <VictoryLine data={data} style={{ data: { stroke: color, strokeWidth: 2 } }} />
+    <VictoryLine data={data} {...victoryStyleProps({ data: { stroke: color, strokeWidth: 2 } })} />
   </VictoryChart>
 );
 

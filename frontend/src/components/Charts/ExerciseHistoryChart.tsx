@@ -140,10 +140,7 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
   const getBarValue = (ex: ExerciseHistoryItem) =>
     getExerciseHistoryBarValue(ex, sort);
 
-  const getBarLabel = (ex: ExerciseHistoryItem) =>
-    sort === 'totalVolume'
-      ? `${(Number(ex.totalVolume) / 1000).toFixed(1)}k lbs`
-      : `${ex.timesPerformed}×`;
+
 
   if (loading) return <SkeletonChart height={400} />;
 

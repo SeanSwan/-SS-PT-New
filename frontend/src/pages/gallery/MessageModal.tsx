@@ -376,7 +376,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
     }
   }, [feedback, onClose]);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: React.PointerEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
@@ -432,7 +432,7 @@ const MessageModal: React.FC<MessageModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={handleOverlayClick}>
+    <ModalOverlay onPointerDown={handleOverlayClick}>
       <ModalContent ref={contentRef} role="dialog" aria-modal="true" aria-label="Send a note">
         <CloseButton onClick={onClose} aria-label="Close modal">
           <X size={18} />
@@ -440,13 +440,14 @@ const MessageModal: React.FC<MessageModalProps> = ({
 
         <ModalTitle>Send a Note</ModalTitle>
         <ModalSubtitle>
-          Have a question, request, or just want to say thanks? We'd love to hear from you.
+          Have a question, request, or just want to say thanks? We&apos;d love to hear from you.
         </ModalSubtitle>
 
         <form onSubmit={handleSubmit}>
           <FormGroup>
-            <Label>Email</Label>
+            <Label htmlFor="gallery-message-email">Email</Label>
             <Input
+              id="gallery-message-email"
               type="email"
               value={email}
               disabled
@@ -457,8 +458,9 @@ const MessageModal: React.FC<MessageModalProps> = ({
 
           <FieldRow>
             <FormGroup>
-              <Label>First Name</Label>
+              <Label htmlFor="gallery-message-first-name">First Name</Label>
               <Input
+                id="gallery-message-first-name"
                 type="text"
                 placeholder="Optional"
                 value={firstName}
@@ -466,8 +468,9 @@ const MessageModal: React.FC<MessageModalProps> = ({
               />
             </FormGroup>
             <FormGroup>
-              <Label>Phone</Label>
+              <Label htmlFor="gallery-message-phone">Phone</Label>
               <Input
+                id="gallery-message-phone"
                 type="tel"
                 placeholder="Optional"
                 value={phone}
@@ -477,10 +480,11 @@ const MessageModal: React.FC<MessageModalProps> = ({
           </FieldRow>
 
           <FormGroup>
-            <Label>
+            <Label htmlFor="gallery-message-body">
               Message<RequiredStar>*</RequiredStar>
             </Label>
             <TextArea
+              id="gallery-message-body"
               ref={messageInputRef}
               placeholder="Write your message here..."
               value={message}

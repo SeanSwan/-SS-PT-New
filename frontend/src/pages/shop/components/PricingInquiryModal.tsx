@@ -270,7 +270,7 @@ const PricingInquiryModal: React.FC<PricingInquiryModalProps> = ({
             </Field>
 
             <Field>
-              <label htmlFor="inq-note">Anything you'd like us to know? (optional)</label>
+              <label htmlFor="inq-note">Anything you&apos;d like us to know? (optional)</label>
               <textarea
                 id="inq-note"
                 name="note"

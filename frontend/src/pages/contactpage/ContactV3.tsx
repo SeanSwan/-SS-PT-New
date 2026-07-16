@@ -11,6 +11,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
 import { resolveContactApiBase } from './contactApiBase';
 import BookConsultCTA from '../../components/marketing/BookConsultCTA';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ================================================================
  * ContactV3 — Cinematic Upgrade of ContactV2
@@ -955,9 +956,9 @@ const ContactV3: React.FC = () => {
                     live on the ROUTED contact page — which is ContactV3 (routes/main-routes.tsx:84),
                     NOT the orphaned EnhancedContactPage. Otherwise the drip's terminal action goes
                     nowhere. POSTs to the live POST /api/consult-request. */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.75rem' }}>
+                <StyledBox as="div" $style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.75rem' }}>
                   <BookConsultCTA />
-                </div>
+                </StyledBox>
 
                 <FormTitle>Send Us a Message</FormTitle>
                 <Form onSubmit={handleSubmit}>
@@ -1104,7 +1105,7 @@ const ContactV3: React.FC = () => {
 
                   <AnimatePresence initial={false}>
                     {openFaq === idx && (
-                      <FAQAnswer
+                      <StyledBox as={FAQAnswer}
                         id={`faq-answer-${idx}`}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -1114,10 +1115,10 @@ const ContactV3: React.FC = () => {
                           ease: [0.4, 0, 0.2, 1],
                           opacity: { duration: 0.3, delay: 0.05 },
                         }}
-                        style={{ overflow: 'hidden' }}
+                        $style={{ overflow: 'hidden' }}
                       >
                         {item.a}
-                      </FAQAnswer>
+                      </StyledBox>
                     )}
                   </AnimatePresence>
                 </FAQCard>
@@ -1167,9 +1168,9 @@ const ContactV3: React.FC = () => {
       <NotificationWrapper $visible={success}>
         <AlertBox $type="success">
           <CheckCircle size={20} />
-          <span style={{ flex: 1 }}>
+          <StyledBox as="span" $style={{ flex: 1 }}>
             Your message has been sent successfully! We will get back to you soon.
-          </span>
+          </StyledBox>
           <AlertCloseBtn onClick={() => setSuccess(false)}>
             <X size={16} />
           </AlertCloseBtn>
@@ -1179,7 +1180,7 @@ const ContactV3: React.FC = () => {
       <NotificationWrapper $visible={!!error}>
         <AlertBox $type="error">
           <AlertCircle size={20} />
-          <span style={{ flex: 1 }}>{error}</span>
+          <StyledBox as="span" $style={{ flex: 1 }}>{error}</StyledBox>
           <AlertCloseBtn onClick={() => setError('')}>
             <X size={16} />
           </AlertCloseBtn>

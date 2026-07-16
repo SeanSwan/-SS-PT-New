@@ -19,6 +19,7 @@ import {
   getClientSessionSignal,
   isNonDeductingClientSource,
 } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ScheduleStatsProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -121,9 +122,9 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
             $accentColor={card.color}
             onClick={() => handleFilterChange(card.key)}
           >
-            <div className="stat-value" style={{ color: card.color }}>
+            <StyledBox as="div" className="stat-value" $style={{ color: card.color }}>
               {card.getValue(stats)}
-            </div>
+            </StyledBox>
             <S.CardLabel>{card.label}</S.CardLabel>
             <S.CardSubtitle>{card.subtitle}</S.CardSubtitle>
             <S.Tooltip className="tooltip">{card.definition}</S.Tooltip>
@@ -136,9 +137,9 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
             $active={false}
             $accentColor={SCHEDULE_STAT_COLORS.secondary}
           >
-            <div className="stat-value" style={{ color: SCHEDULE_STAT_COLORS.secondary }}>
+            <StyledBox as="div" className="stat-value" $style={{ color: SCHEDULE_STAT_COLORS.secondary }}>
               {isNonDeductingClient ? 'Log' : creditsDisplay}
-            </div>
+            </StyledBox>
             <S.CardLabel>{isNonDeductingClient ? 'Tracking' : 'Credits'}</S.CardLabel>
             <S.CardSubtitle>{clientSessionSignal.label}</S.CardSubtitle>
             <S.Tooltip className="tooltip">{clientSessionSignal.note}</S.Tooltip>
@@ -189,7 +190,7 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
 
             {drillDownSessions.length === 0 ? (
               <S.EmptyState>
-                <Calendar size={32} style={{ opacity: 0.5, color: SCHEDULE_STAT_COLORS.primary }} />
+                <StyledBox as={Calendar} size={32} $style={{ opacity: 0.5, color: SCHEDULE_STAT_COLORS.primary }} />
                 <S.EmptyTitle>No {activeConfig.label.toLowerCase()} sessions found</S.EmptyTitle>
                 <S.EmptySubtext>
                   {statusFilter === 'available'

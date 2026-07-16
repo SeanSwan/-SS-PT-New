@@ -49,8 +49,8 @@ describe('SessionDetailModal cancellation feedback', () => {
     expect(feedbackPanelSource).toContain('<PartyPopper');
     expect(cancelWarningPanelSource).toContain('<AlertTriangle');
     expect(cancelWarningPanelSource).toContain('<Check');
-    expect(source).not.toMatch(/[^\x00-\x7F]/);
-    expect(cancelWarningPanelSource).not.toMatch(/[^\x00-\x7F]/);
-    expect(feedbackPanelSource).not.toMatch(/[^\x00-\x7F]/);
+    expect(source).not.toMatch(/\P{ASCII}/u);
+    expect(cancelWarningPanelSource).not.toMatch(/\P{ASCII}/u);
+    expect(feedbackPanelSource).not.toMatch(/\P{ASCII}/u);
   });
 });

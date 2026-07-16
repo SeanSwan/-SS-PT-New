@@ -26,6 +26,7 @@ import {
   RotationSelectRow,
   UploadPhotoButton,
 } from './UserDashboardBackgroundControls.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export interface UserDashboardBackgroundControlsProps {
   preference: UserDashboardBackgroundPreference;
@@ -134,7 +135,7 @@ const UserDashboardBackgroundControls: React.FC<UserDashboardBackgroundControlsP
           aria-pressed={customActive}
           onClick={handleCustomSelected}
         >
-          <BackgroundPreview style={customPreviewStyle(preference.customImageUrl)} />
+          <StyledBox as={BackgroundPreview} $style={customPreviewStyle(preference.customImageUrl)} />
           <BackgroundMeta>
             <BackgroundName>Custom Photo</BackgroundName>
             <BackgroundMood>{preference.customImageUrl ? 'your uploaded dashboard image' : 'upload your own image'}</BackgroundMood>
@@ -159,7 +160,7 @@ const UserDashboardBackgroundControls: React.FC<UserDashboardBackgroundControlsP
             aria-pressed={preference.selectedId === background.id}
             onClick={() => onBackgroundSelect(background.id)}
           >
-            <BackgroundPreview style={recipePreviewStyle(background)} />
+            <StyledBox as={BackgroundPreview} $style={recipePreviewStyle(background)} />
             <BackgroundMeta>
               <BackgroundName>{background.name}</BackgroundName>
               <BackgroundMood>{background.mood}</BackgroundMood>
@@ -171,11 +172,11 @@ const UserDashboardBackgroundControls: React.FC<UserDashboardBackgroundControlsP
         ))}
       </BackgroundGrid>
 
-      <input
+      <StyledBox as="input"
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        style={{ display: 'none' }}
+        $style={{ display: 'none' }}
         aria-label="Upload custom dashboard background"
         onChange={handleFileChange}
       />

@@ -164,7 +164,7 @@ const HistoryBackfillDialog: React.FC<HistoryBackfillDialogProps> = ({
           </IconButton>
         </TitleRow>
         <Note>
-          Reconstructs past sessions from this client's REAL logged exercise
+          Reconstructs past sessions from this client&apos;s REAL logged exercise
           history. Backfilled entries never bill sessions, award points, or
           extend streaks. Answer the grounding questions, preview, then attest.
         </Note>

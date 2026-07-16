@@ -19,6 +19,7 @@ import AssessmentNotesPanel from './AssessmentNotesPanel';
 import MicroWinOverlay, { type MicroWinType } from './MicroWinOverlay';
 import ROMTrackingPanel from './ROMTrackingPanel';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const RoomWrapper = styled.div<{ $fullscreen: boolean }>`
   ${({ $fullscreen }) => $fullscreen ? `
@@ -308,7 +309,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
         <Timer>{formatTime(elapsedSec)}</Timer>
       </InfoBar>
 
-      <VideoGrid style={{ position: 'relative' }}>
+      <StyledBox as={VideoGrid} $style={{ position: 'relative' }}>
         {/* Step Back Mode for clients */}
         {stepBackMode && !isTrainer && (
           <StepBackOverlay>
@@ -325,11 +326,11 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
           <NoVideo>
             <Camera size={32} />
             {isTrainer ? 'Client video will appear here' : 'Trainer video will appear here'}
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
+            <StyledBox as="div" $style={{ fontSize: 12, opacity: 0.7 }}>
               Connect LiveKit SDK to see live video.
               <br />
               LiveKit URL: {livekitUrl || 'Not configured'}
-            </div>
+            </StyledBox>
           </NoVideo>
           <ParticipantLabel>{isTrainer ? 'Client' : 'Trainer'}</ParticipantLabel>
         </VideoTile>
@@ -339,15 +340,15 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
           <NoVideo>
             <Camera size={32} />
             Your camera preview
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
+            <StyledBox as="div" $style={{ fontSize: 12, opacity: 0.7 }}>
               LiveKit React SDK handles video rendering.
               <br />
               Token ready: {token ? 'Yes' : 'No'}
-            </div>
+            </StyledBox>
           </NoVideo>
           <ParticipantLabel>{isTrainer ? 'You (Trainer)' : 'You'}</ParticipantLabel>
         </VideoTile>
-      </VideoGrid>
+      </StyledBox>
 
       <ControlBar>
         <ControlBtn $active={micEnabled} onClick={() => setMicEnabled(!micEnabled)} title={micEnabled ? 'Mute' : 'Unmute'}>
@@ -379,12 +380,12 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
             <ControlBtn onClick={() => setShowROM(!showROM)} title="ROM Tracking">
               <Activity size={22} />
             </ControlBtn>
-            <div style={{ position: 'relative' }}>
+            <StyledBox as="div" $style={{ position: 'relative' }}>
               <ControlBtn onClick={() => setShowMicroWinMenu(!showMicroWinMenu)} title="Award Micro-Win">
                 <Sparkles size={22} />
               </ControlBtn>
               {showMicroWinMenu && (
-                <div style={{
+                <StyledBox as="div" $style={{
                   position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)',
                   background: 'var(--bg-elevated, #141419)', border: '1px solid rgba(96,192,240,0.2)',
                   borderRadius: 10, padding: 6, minWidth: 200, zIndex: 20,
@@ -397,10 +398,10 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
                     ['consistency', 'Consistent Pace! (+10 XP)'],
                     ['improvement', 'Visible Improvement! (+50 XP)'],
                   ] as [MicroWinType, string][]).map(([type, label]) => (
-                    <button
+                    <StyledBox as="button"
                       key={type}
                       onClick={() => { handleTriggerMicroWin(type); setShowMicroWinMenu(false); }}
-                      style={{
+                      $style={{
                         minHeight: 40, padding: '8px 12px', borderRadius: 6, border: 'none',
                         background: 'transparent', color: '#E0ECF4', cursor: 'pointer',
                         fontFamily: 'Sora, sans-serif', fontSize: 13, textAlign: 'left',
@@ -409,11 +410,11 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       {label}
-                    </button>
+                    </StyledBox>
                   ))}
-                </div>
+                </StyledBox>
               )}
-            </div>
+            </StyledBox>
           </>
         )}
 

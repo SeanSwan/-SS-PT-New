@@ -42,6 +42,7 @@ import {
   Activity,
 } from 'lucide-react';
 import api from '../../../../../services/api';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── F-Alt Crystalline Token Matrix (Mandatory — no hardcoded colors) ───
 const T = {
@@ -842,7 +843,7 @@ const AdminSocialManagementView: React.FC = () => {
         </GlassPanel>
 
         {/* Activity Sidebar */}
-        <GlassPanel style={{ height: 'fit-content' }}>
+        <StyledBox as={GlassPanel} $style={{ height: 'fit-content' }}>
           <SectionHeader>
             <h3><Activity size={16} /> Recent Activity</h3>
           </SectionHeader>
@@ -862,7 +863,7 @@ const AdminSocialManagementView: React.FC = () => {
               </ActivityItem>
             ))
           )}
-        </GlassPanel>
+        </StyledBox>
       </ContentGrid>
     </SocialContainer>
   );

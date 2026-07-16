@@ -5,9 +5,10 @@
  * in the MCP integration and other components.
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const ErrorPaper = styled.div`
   padding: 24px;
@@ -136,7 +137,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <ErrorPaper>
           <ErrorHeader>
-            <AlertTriangle color="#f44336" size={24} style={{ marginRight: '8px' }} />
+            <StyledBox as={AlertTriangle} color="#f44336" size={24} $style={{ marginRight: '8px' }} />
             <ErrorTitle>
               Something went wrong
             </ErrorTitle>

@@ -9,7 +9,7 @@
  *
  * This test locks the new stable-height contract.
  */
-import React from 'react';
+
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ThinkingIndicator, { THINKING_STAGES } from './ThinkingIndicator';

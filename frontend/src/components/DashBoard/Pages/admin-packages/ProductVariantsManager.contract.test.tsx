@@ -42,7 +42,7 @@ describe('ProductVariantsManager admin variant controls', () => {
   });
 
   it('keeps the new component ASCII-only to avoid mojibake regressions', () => {
-    expect(manager).not.toMatch(/[^\x00-\x7F]/);
-    expect(styles).not.toMatch(/[^\x00-\x7F]/);
+    expect(manager).not.toMatch(/\P{ASCII}/u);
+    expect(styles).not.toMatch(/\P{ASCII}/u);
   });
 });

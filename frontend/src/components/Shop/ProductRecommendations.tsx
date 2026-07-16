@@ -1,6 +1,7 @@
 // ProductRecommendations Component
 import React from 'react';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProductRecommendationsProps {
   type: 'personalized' | 'popular' | 'cart' | 'complementary';
@@ -58,11 +59,11 @@ const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({ type, t
           <RecommendationCard key={item.id}>
             <h3>{item.name}</h3>
             <p>{item.price}</p>
-            <p style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+            <StyledBox as="p" $style={{ fontSize: '0.8rem', opacity: 0.7 }}>
               {type === 'personalized' ? 'Based on your preferences' :
                type === 'popular' ? 'Popular choice' :
                'Frequently bought together'}
-            </p>
+            </StyledBox>
           </RecommendationCard>
         ))}
       </RecommendationsGrid>

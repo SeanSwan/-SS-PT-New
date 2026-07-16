@@ -77,7 +77,7 @@ const GoalProgressTrackerView: React.FC<GoalProgressTrackerViewProps> = ({
         <GlassPanel>
           <EmptyState>
             <PanelTitle>Loading Goal Tracking</PanelTitle>
-            <BodyText>Reading this client's saved goal history.</BodyText>
+            <BodyText>Reading this client&apos;s saved goal history.</BodyText>
           </EmptyState>
         </GlassPanel>
       );

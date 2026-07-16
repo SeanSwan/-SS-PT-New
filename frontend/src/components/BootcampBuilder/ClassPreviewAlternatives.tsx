@@ -19,7 +19,7 @@ interface ClassPreviewAlternativesProps {
   onSelectExercise: (ex: BootcampExercise) => void;
 }
 
-export const bootcampAlternativeStationKey = (
+const bootcampAlternativeStationKey = (
   board: BoardView,
   station: BootcampStation | undefined,
   stationIndex: number,
@@ -31,7 +31,7 @@ export const bootcampAlternativeStationKey = (
   station?.equipmentNeeded ?? '',
 ].join('|');
 
-export const bootcampAlternativeExerciseKey = (
+const bootcampAlternativeExerciseKey = (
   board: BoardView,
   ex: BootcampExercise,
   fallbackStationIndex: number | string,
@@ -47,7 +47,7 @@ export const bootcampAlternativeExerciseKey = (
   ex.sourceExerciseName ?? '',
 ].join('|');
 
-export const bootcampLowImpactSwapKey = (
+const bootcampLowImpactSwapKey = (
   ex: BootcampExercise,
   fallbackStationIndex: number | string,
 ): string => bootcampAlternativeExerciseKey('lowImpact', ex, fallbackStationIndex);

@@ -32,8 +32,8 @@ import {
 
 const linePadding = { top: 16, bottom: 40, left: 44, right: 12 };
 
-const renderLine = (data: ChartPoint[], color: string) =>
-  (width?: number, height = 200) => (
+const renderLine = (data: ChartPoint[], color: string) => {
+  const ProgressLineChart = (width?: number, height = 200) => (
     <VictoryChart
       theme={victoryTheme as any}
       height={height}
@@ -45,6 +45,9 @@ const renderLine = (data: ChartPoint[], color: string) =>
       <VictoryLine data={data} {...lineStyleProps(color)} />
     </VictoryChart>
   );
+  ProgressLineChart.displayName = 'ProgressLineChart';
+  return ProgressLineChart;
+};
 
 export const WeightTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => {
   const facts = buildSeriesFacts(data, { unit: 'lbs', pointsLabel: 'entries', decimals: 1 });

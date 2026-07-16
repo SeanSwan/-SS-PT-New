@@ -15,12 +15,10 @@ describe('exercise routes security hardening', () => {
     const coreRoutesSource = readBackend('../../core/routes.mjs');
     const loggerSearchSource = readFrontend('src/components/WorkoutLogger/useExerciseSearch.ts');
     const teachModeSource = readFrontend('src/features/teach-mode/hooks/useExerciseTeachData.ts');
-    const adminExerciseSource = readFrontend('src/components/DashBoard/Pages/admin-exercises/components/ExerciseLibraryManager.tsx');
 
     expect(coreRoutesSource).toContain("app.use('/api/exercises', exerciseRoutes)");
     expect(loggerSearchSource).toContain("api.get('/api/exercises/library')");
     expect(teachModeSource).toContain('`/api/exercises/${id}/teach-mode`');
-    expect(adminExerciseSource).toContain("authAxios.get('/api/exercises/all')");
   });
 
   it('does not echo raw exception details from exercise responses', () => {

@@ -59,15 +59,7 @@ interface SelectedClientPanelProps {
 }
 
 export const ApplyPaymentSelectedClientPanel: React.FC<SelectedClientPanelProps> = ({ controller }) => {
-  const {
-    adminNotes, applying, attachingTestCard, cardsLoading, handleApplyPackage,
-    handleAttachTestCard, handlePaymentMethodChange, lastPackage, modalMode, packages,
-    packagesLoading, paymentMethod, paymentReference, paymentNote, pkgPrice, pkgSessions,
-    savedCards, selectedCardId, selectedClient, selectedPackageId, selectedPkg,
-    sessionsToAdd, showPaymentConfirmation, setAdminNotes, setModalMode,
-    setPaymentReference, setPaymentNote, setSelectedCardId, setSelectedPackageId,
-    setSessionsToAdd, setShowPaymentConfirmation,
-  } = controller;
+  const { adminNotes, attachingTestCard, cardsLoading, handleApplyPackage, handleAttachTestCard, handlePaymentMethodChange, lastPackage, modalMode, packages, packagesLoading, paymentMethod, paymentReference, paymentNote, pkgPrice, pkgSessions, savedCards, selectedCardId, selectedClient, selectedPackageId, selectedPkg, sessionsToAdd, showPaymentConfirmation, setAdminNotes, setModalMode, setPaymentReference, setPaymentNote, setSelectedCardId, setSelectedPackageId, setSessionsToAdd, setShowPaymentConfirmation } = controller;
 
   if (!selectedClient) return null;
 

@@ -19,7 +19,7 @@ describe('CheckoutView theme contract', () => {
     expect(runtimeSources).not.toMatch(/\bGenesis\b|\bGalaxy\b|galaxy/i);
     expect(runtimeSources).not.toContain('keyframes');
     expect(runtimeSources).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba\(/);
-    expect(runtimeSources).not.toMatch(/variant=\"(?:cosmic|emerald)\"/);
+    expect(runtimeSources).not.toMatch(/variant="(?:cosmic|emerald)"/);
     expect(runtimeSources).not.toContain('style={{');
   });
 

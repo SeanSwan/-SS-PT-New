@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { render, screen, within } from '@testing-library/react';
@@ -290,7 +290,7 @@ describe('AdvancedGamificationPage truth surface', () => {
     expect(source).toContain('getTransactionPointLabel(item)');
     expect(logicSource).toContain('cleanGamificationText');
     expect(logicSource).toContain('getLeaderboardRowKey');
-    expect(logicSource).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/);
+    expect(logicSource.replace(/[\t\n\r]/g, '')).not.toMatch(/\p{Cc}/u);
     expect(stylesSource).not.toContain('rgba(');
     expect(source.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(logicSource.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);

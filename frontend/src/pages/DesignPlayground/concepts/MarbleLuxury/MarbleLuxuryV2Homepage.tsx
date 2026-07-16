@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Award, Shield, Gem, Crown, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { marbleLuxuryV2Theme as theme } from './MarbleLuxuryV2Theme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ============================================================
    Animations
@@ -615,11 +616,11 @@ const MarbleLuxuryV2Homepage: React.FC = () => {
       <CTASection>
         <CTAVein aria-hidden="true" />
         <motion.div {...fadeUp}>
-          <Crown
+          <StyledBox as={Crown}
             size={36}
             strokeWidth={1.2}
             color={theme.colors.primary}
-            style={{ marginBottom: 24 }}
+            $style={{ marginBottom: 24 }}
             aria-hidden="true"
           />
           <CTATitle>Claim Your Legacy</CTATitle>

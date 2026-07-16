@@ -5,6 +5,7 @@ import {
   CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE,
 } from '../../chartTheme';
 import { useReducedMotion } from '../../../../hooks/useReducedMotion';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 const DEFAULT_REFERENCES = { protein: 150, carbs: 250, fat: 65, fiber: 30, hydrationMl: 2500 };
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
@@ -106,27 +107,27 @@ const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
       >
         <VictoryPolarAxis
           dependentAxis
-          style={{ axis: { stroke: 'none' }, grid: { stroke: CHART_COLORS.gridLine } }}
+          {...victoryStyleProps({ axis: { stroke: 'none' }, grid: { stroke: CHART_COLORS.gridLine } })}
           tickFormat={() => ''}
         />
         <VictoryPolarAxis
           tickValues={[0, 1, 2, 3, 4]}
           labelPlacement="vertical"
           tickFormat={['Protein', 'Carbs', 'Fats', 'Fiber', 'Hydration']}
-          style={{
+          {...victoryStyleProps({
             axis: { stroke: CHART_COLORS.gridLine },
             tickLabels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Sora', sans-serif" },
-          }}
+          })}
         />
         <VictoryArea
           data={data}
-          style={{
+          {...victoryStyleProps({
             data: {
               fill: hexAlpha(CHART_COLORS.arcticCyan, 0.3),
               stroke: CHART_COLORS.arcticCyan,
               strokeWidth: 2,
             },
-          }}
+          })}
         />
       </VictoryChart>
     </ChartContainer>

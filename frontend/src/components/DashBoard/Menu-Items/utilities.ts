@@ -2,7 +2,7 @@
  * utilities.ts
  * Configuration for utilities menu items
  */
-import { IconTypography, IconPalette, IconShadow, IconWindmill } from '@tabler/icons-react';
+import { IconTypography, IconPalette, IconShadow } from '@tabler/icons-react';
 import { MenuGroup } from './menu-types';
 
 // Utilities menu items definition

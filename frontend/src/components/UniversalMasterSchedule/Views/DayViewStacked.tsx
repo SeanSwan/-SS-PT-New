@@ -13,7 +13,7 @@ import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
 import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 import { DENSITY_SPECS } from '../types';
-import type { DayViewSession, DayViewTrainer } from './DayView.types';
+import type { DayViewSession } from './DayView.types';
 import type { DayViewStackedProps } from './DayViewStacked.types';
 import { getScheduleSlotMinuteFromOffset } from '../utils/scheduleTimeSlots';
 import {

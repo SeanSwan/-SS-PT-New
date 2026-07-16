@@ -14,7 +14,7 @@
  *   6. search filters the list by name and email
  *   7. clear button calls onSelectClient(null)
  */
-import React from 'react';
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

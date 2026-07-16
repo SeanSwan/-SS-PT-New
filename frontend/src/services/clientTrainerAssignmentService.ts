@@ -17,15 +17,7 @@
  */
 
 import apiService from './api.service';
-import {
-  ClientTrainerAssignment,
-  AssignmentRequest,
-  ApiResponse,
-  PaginatedResponse,
-  Client,
-  Trainer,
-  BulkOperationRequest
-} from '../components/UniversalMasterSchedule/types';
+import { ClientTrainerAssignment, AssignmentRequest, Client, Trainer } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
 
 /**
@@ -511,7 +503,7 @@ class ClientTrainerAssignmentService {
    * @param callback - Callback function for updates
    * @returns Unsubscribe function
    */
-  subscribeToAssignmentUpdates(callback: (assignment: ClientTrainerAssignment) => void): () => void {
+  subscribeToAssignmentUpdates(_callback: (assignment: ClientTrainerAssignment) => void): () => void {
     // TODO: Implement WebSocket subscription
     logger.log('WebSocket subscription for assignments not yet implemented');
     return () => {};

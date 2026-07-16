@@ -11,7 +11,7 @@ import type { ActiveClient } from '../../context/GlobalClientContext';
 
 type ClientOption = Pick<ActiveClient, 'id' | 'firstName' | 'lastName' | 'email'>;
 
-export function formatPainChartClientName(client: ClientOption): string {
+function formatPainChartClientName(client: ClientOption): string {
   const fullName = `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim();
   return fullName || client.email || `Client #${client.id}`;
 }

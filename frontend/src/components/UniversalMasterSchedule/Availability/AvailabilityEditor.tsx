@@ -10,6 +10,7 @@ import { useTrainerAvailability, AvailabilityEntry } from '../../../hooks/useTra
 import { PrimaryButton, OutlinedButton, FlexBox, BodyText, SmallText } from '../ui';
 import { Save } from 'lucide-react';
 import { Spinner } from '../ui';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface AvailabilityEditorProps {
   trainerId: number | string;
@@ -111,7 +112,7 @@ const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({ trainerId, onCl
   if (isLoading) return <Spinner size={40} />;
 
   return (
-    <EditorContainer onMouseLeave={handleMouseUp} onMouseUp={handleMouseUp}>
+    <EditorContainer onMouseLeave={handleMouseUp} onPointerUp={handleMouseUp}>
       <FlexBox justify="space-between" align="center">
         <BodyText>Click and drag to set your weekly availability.</BodyText>
         <FlexBox gap="0.5rem">
@@ -136,7 +137,16 @@ const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({ trainerId, onCl
               <AvailableCell
                 key={`${dayIndex}-${hour}`}
                 $selected={grid[dayIndex][hour]}
-                onMouseDown={() => handleMouseDown(dayIndex, hour)}
+                role="checkbox"
+                aria-checked={grid[dayIndex][hour]}
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    updateCell(dayIndex, hour, !grid[dayIndex][hour]);
+                  }
+                }}
+                onPointerDown={() => handleMouseDown(dayIndex, hour)}
                 onMouseEnter={() => handleMouseEnter(dayIndex, hour)}
               />
             ))}
@@ -149,10 +159,10 @@ const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({ trainerId, onCl
           <LegendSwatch $available />
           Available
         </SmallText>
-        <SmallText secondary style={{ marginLeft: 16 }}>
+        <StyledBox as={SmallText} secondary $style={{ marginLeft: 16 }}>
           <LegendSwatch />
           Unavailable
-        </SmallText>
+        </StyledBox>
       </FlexBox>
     </EditorContainer>
   );

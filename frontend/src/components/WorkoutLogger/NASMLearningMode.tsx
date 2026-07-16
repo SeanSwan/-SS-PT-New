@@ -36,7 +36,7 @@ const NASMLearningContext = createContext<NASMLearningContextValue>({
   setEnabled: () => {},
 });
 
-export const useNASMLearning = () => useContext(NASMLearningContext);
+const useNASMLearning = () => useContext(NASMLearningContext);
 
 // ─── Provider ────────────────────────────────────────────────
 

@@ -116,7 +116,7 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
       <MissionPanel>
         <Eyebrow>
           <HeartPulse size={14} />
-          Today's Mission
+          Today&apos;s Mission
         </Eyebrow>
         <MissionTitle>{mission.title}</MissionTitle>
         <MissionCopy>{mission.copy}</MissionCopy>

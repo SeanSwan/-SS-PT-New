@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { VIDEO } from '../../config/videoAssets';
 

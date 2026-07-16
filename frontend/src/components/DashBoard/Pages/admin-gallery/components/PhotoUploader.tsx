@@ -13,6 +13,7 @@ import type { UploadFileStatus, UploadStatus } from '../types';
 import type { UploadResultMessage } from '../hooks/useGalleryUpload';
 import { Banner, DangerButton, HelperText, Panel, PrimaryButton, SectionTitle } from '../styles';
 import ToggleField from './ToggleField';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   eventName: string;
@@ -85,7 +86,7 @@ const PhotoUploader: React.FC<Props> = ({
 
       <TipsToggle type="button" onClick={() => setTipsOpen((v) => !v)} aria-expanded={tipsOpen}>
         <Info size={14} aria-hidden="true" /> Export tips for best results
-        <ChevronDown size={14} aria-hidden="true" style={{ transform: tipsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+        <StyledBox as={ChevronDown} size={14} aria-hidden="true" $style={{ transform: tipsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
       </TipsToggle>
       {tipsOpen && (
         <HelperText>
@@ -108,7 +109,7 @@ const PhotoUploader: React.FC<Props> = ({
       >
         <UploadCloud size={30} aria-hidden="true" />
         <strong>{dragging ? 'Drop to upload' : 'Drag photos here or click to browse'}</strong>
-        <HelperText style={{ margin: 0 }}>JPEG · up to 25&nbsp;MB each · up to 500 per batch</HelperText>
+        <StyledBox as={HelperText} $style={{ margin: 0 }}>JPEG · up to 25&nbsp;MB each · up to 500 per batch</StyledBox>
       </DropZone>
       <HiddenInput ref={inputRef} type="file" accept={ACCEPT} multiple onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
 
@@ -118,7 +119,7 @@ const PhotoUploader: React.FC<Props> = ({
             <span>Uploading… {overallProgress}%</span>
             <Elapsed>{fmtElapsed(elapsed)}</Elapsed>
           </ProgressHead>
-          <Track><Bar style={{ width: `${overallProgress}%` }} /></Track>
+          <Track><StyledBox as={Bar} $style={{ width: `${overallProgress}%` }} /></Track>
           <DangerButton type="button" onClick={onCancel}><X size={16} /> Cancel</DangerButton>
         </Progress>
       )}

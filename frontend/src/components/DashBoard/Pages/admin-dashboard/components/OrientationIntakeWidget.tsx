@@ -20,6 +20,7 @@ import {
   Tag,
   Title,
 } from './OrientationIntakeWidget.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const formatSubmitted = (createdAt: string) => {
   const date = new Date(createdAt);
@@ -85,7 +86,7 @@ const OrientationIntakeWidget: React.FC<OrientationIntakeWidgetProps> = ({
   }, [authAxios, fetchOrientationQueue]);
 
   return (
-    <CommandCard style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+    <StyledBox as={CommandCard} $style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
       <HeaderRow>
         <Title>
           <BellRing size={18} />
@@ -151,7 +152,7 @@ const OrientationIntakeWidget: React.FC<OrientationIntakeWidgetProps> = ({
           ))}
         </List>
       )}
-    </CommandCard>
+    </StyledBox>
   );
 };
 

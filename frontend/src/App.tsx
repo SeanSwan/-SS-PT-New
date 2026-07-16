@@ -29,7 +29,7 @@ import {
   SWAN_STYLE_LENS_REGISTRY,
   SwanStyleLensGlobalStyles,
 } from './adapters/style-lens-swan';
-import MenuStateProvider from './hooks/useMenuState';
+import MenuStateProvider from './hooks/MenuStateProvider';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 import AdminImpersonationBanner from './components/Admin/AdminImpersonationBanner';
 
@@ -45,7 +45,7 @@ import { DevToolsProvider } from './components/DevTools';
 import ThemeStatusIndicator from './components/ThemeStatusIndicator';
 
 // PWA Components
-import { TouchGestureProvider, PWAInstallPrompt, NetworkStatus } from './components/PWA';
+import { TouchGestureProvider, NetworkStatus } from './components/PWA';
 
 // Routes configuration
 import MainRoutes from './routes/main-routes';
@@ -81,9 +81,9 @@ import './styles/mobile/mobile-base.css';
 import './styles/mobile/mobile-workout.css';
 // import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
 // Crystalline Swan theme integration with Cosmic Elegance
-// (ImprovedGlobalStyle import removed — it was imported but never rendered)
+// (ImprovedGlobalStyle import removed because it was imported but never rendered)
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
-import theme from './styles/theme';
+import './styles/theme';
 // Import consolidated SwanStudios theme
 // swanStudiosTheme now merged into UniversalThemeProvider (context/ThemeContext)
 // Cosmic Performance Optimizer
@@ -119,9 +119,9 @@ const AppContent = () => {
   // Use individual selectors to prevent unnecessary rerenders
   const user = useSelector((state: RootState) => state.auth?.user || null);
   const isAuthenticated = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
-  const isLoading = useSelector((state: RootState) => state.ui?.isLoading || false);
-  const isDarkMode = useSelector((state: RootState) => state.ui?.isDarkMode || false);
-  const isInitialized = useSelector((state: RootState) => state.app?.isInitialized || false);
+  useSelector((state: RootState) => state.ui?.isLoading || false);
+  useSelector((state: RootState) => state.ui?.isDarkMode || false);
+  useSelector((state: RootState) => state.app?.isInitialized || false);
   
   // Backend connection state
   const connection = useBackendConnection();
@@ -184,7 +184,7 @@ const AppContent = () => {
     // Tracks LCP, CLS, FPS, long tasks for performance budget enforcement
     initPerformanceMonitoring();
     logger.log('🎯 [Homepage v2.0] Performance monitoring initialized (LCP ≤2.5s, CLS ≤0.1, FPS ≥30)');
-  }, []);
+  }, [dispatch]);
   
   // Initialize notifications when user is authenticated
   useEffect(() => {

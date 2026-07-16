@@ -50,6 +50,7 @@ import {
   RankDivider,
   RankGoldSegment,
 } from './ObservatoryCoverHero.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ObservatoryCoverHeroProps {
   displayName: string;
@@ -103,9 +104,9 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
 
   return (
     <>
-      <CoverHeroSection
+      <StyledBox as={CoverHeroSection}
         aria-label="Profile cover"
-        style={{ '--cover-hero-height': `${bannerFrameHeight}px` } as React.CSSProperties}
+        $style={{ '--cover-hero-height': `${bannerFrameHeight}px` } as React.CSSProperties}
       >
         {bannerLayer ? (
           <CoverMediaHost aria-hidden="true">{bannerLayer}</CoverMediaHost>
@@ -186,7 +187,7 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
             </CoverActionButton>
           </CoverActions>
         </CoverForeground>
-      </CoverHeroSection>
+      </StyledBox>
 
       {coverEditorSlot && <CoverEditorDock>{coverEditorSlot}</CoverEditorDock>}
     </>

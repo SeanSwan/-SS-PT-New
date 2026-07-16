@@ -30,6 +30,7 @@ import {
   WaveBar,
   WaveContainer,
 } from './VoiceMemoUpload.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ---- Types ---- */
 
@@ -83,7 +84,7 @@ const ACCEPTED_TYPES = [
 export const MAX_UPLOAD_FILE_SIZE_MB = 20;
 export const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
 
-export const voiceMemoPainFlagKey = (flag: VoiceMemoPainFlag): string =>
+const voiceMemoPainFlagKey = (flag: VoiceMemoPainFlag): string =>
   ['pain', flag.side, flag.bodyRegion, flag.mention].filter(Boolean).join('|');
 
 const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
@@ -216,11 +217,11 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
             </>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+              <StyledBox as="div" $style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
                 <Mic size={28} color={VOICE_MEMO_ACCENT} />
                 <Upload size={28} color={VOICE_MEMO_MUTED_ICON} />
                 <FileText size={28} color={VOICE_MEMO_MUTED_ICON} />
-              </div>
+              </StyledBox>
               <DropLabel>
                 Drop voice memo or click to upload
               </DropLabel>
@@ -256,7 +257,7 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
               {result.parsedWorkout.painFlags.map((flag) => (
                 <PainFlag key={voiceMemoPainFlagKey(flag)}>
                   <AlertTriangle size={12} />
-                  {flag.side} {flag.bodyRegion}: "{flag.mention}"
+                  {flag.side} {flag.bodyRegion}: &quot;{flag.mention}&quot;
                 </PainFlag>
               ))}
             </PainFlagList>

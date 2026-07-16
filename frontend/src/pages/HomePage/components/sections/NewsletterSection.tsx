@@ -9,6 +9,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Send, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNewsletterSubscribe } from '../../../../hooks/useNewsletterSubscribe';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type AnimationTier = 'full' | 'balanced' | 'essential';
 interface Props { tier?: AnimationTier }
@@ -204,7 +205,7 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
             ) : (
               <CheckCircle2 size={40} aria-hidden color="var(--accent-primary, #60C0F0)" />
             )}
-            <p style={{ margin: 0, fontSize: '1.05rem' }}>{message || 'Almost there — check your email to confirm your subscription.'}</p>
+            <StyledBox as="p" $style={{ margin: 0, fontSize: '1.05rem' }}>{message || 'Almost there — check your email to confirm your subscription.'}</StyledBox>
             <SuccessActions>
               <CtaLink href="/contact">Book your free assessment</CtaLink>
               <ResendButton type="button" onClick={() => subscribe({ email })} disabled={status === 'loading'}>

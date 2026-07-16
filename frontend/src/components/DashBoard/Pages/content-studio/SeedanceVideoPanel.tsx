@@ -36,6 +36,7 @@ import {
   resolveSeedanceJobResult,
   type SeedanceJobStatus,
 } from './SeedanceVideoPanel.logic';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
@@ -121,10 +122,10 @@ const JobPrompt = styled.div`
 `;
 
 const StatusIcon: React.FC<{ status: SeedanceJobStatus }> = ({ status }) => {
-  if (status === 'generating') return <Loader2 size={18} style={{ color: '#8B5CF6', animation: 'spin 1s linear infinite' }} />;
-  if (status === 'queued') return <Clock size={18} style={{ color: '#8B5CF6' }} />;
-  if (status === 'complete') return <CheckCircle2 size={18} style={{ color: '#60C0F0' }} />;
-  if (status === 'error') return <AlertCircle size={18} style={{ color: '#ef4444' }} />;
+  if (status === 'generating') return <StyledBox as={Loader2} size={18} $style={{ color: '#8B5CF6', animation: 'spin 1s linear infinite' }} />;
+  if (status === 'queued') return <StyledBox as={Clock} size={18} $style={{ color: '#8B5CF6' }} />;
+  if (status === 'complete') return <StyledBox as={CheckCircle2} size={18} $style={{ color: '#60C0F0' }} />;
+  if (status === 'error') return <StyledBox as={AlertCircle} size={18} $style={{ color: '#ef4444' }} />;
   return null;
 };
 
@@ -170,8 +171,8 @@ const SeedanceVideoPanel: React.FC = () => {
           <CategoryCard key={cat.id} $active={category === cat.id} onClick={() => setCategory(cat.id)}>
             {cat.icon}
             <div>
-              <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.85rem', fontWeight: 600 }}>{cat.label}</span>
-              <SectionHint style={{ margin: 0 }}>{cat.hint}</SectionHint>
+              <StyledBox as="span" $style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.85rem', fontWeight: 600 }}>{cat.label}</StyledBox>
+              <StyledBox as={SectionHint} $style={{ margin: 0 }}>{cat.hint}</StyledBox>
             </div>
           </CategoryCard>
         ))}
@@ -194,20 +195,20 @@ const SeedanceVideoPanel: React.FC = () => {
       </OptionsRow>
 
       <div>
-        <PrimaryBtn onClick={handleGenerate} disabled={generating || !prompt.trim()} style={{ height: 48, padding: '0 28px', fontSize: '0.9rem' }}>
-          {generating ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={18} />}
+        <StyledBox as={PrimaryBtn} onClick={handleGenerate} disabled={generating || !prompt.trim()} $style={{ height: 48, padding: '0 28px', fontSize: '0.9rem' }}>
+          {generating ? <StyledBox as={Loader2} size={18} $style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={18} />}
           {generating ? 'Generating...' : 'Generate Video'}
-        </PrimaryBtn>
+        </StyledBox>
       </div>
 
       {jobs.length > 0 && (
         <div>
           <SectionTitle>Recent Jobs</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <StyledBox as="div" $style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {jobs.slice(0, 10).map(job => (
               <JobCard key={job.id} $status={job.status}>
-                <Film size={18} style={{ color: '#8B5CF6', flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <StyledBox as={Film} size={18} $style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                <StyledBox as="div" $style={{ flex: 1, minWidth: 0 }}>
                   <JobPrompt>{job.prompt}</JobPrompt>
                   <MetaText>
                     {job.category} | {job.style} | {job.duration}s
@@ -215,12 +216,12 @@ const SeedanceVideoPanel: React.FC = () => {
                     {job.providerJobId && ` | ${job.providerJobId}`}
                     {job.error && ` | ${job.error}`}
                   </MetaText>
-                </div>
+                </StyledBox>
                 <StatusIcon status={job.status} />
-                {job.videoUrl && <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#60C0F0' }}><Play size={18} /></a>}
+                {job.videoUrl && <StyledBox as="a" href={job.videoUrl} target="_blank" rel="noopener noreferrer" $style={{ color: '#60C0F0' }}><Play size={18} /></StyledBox>}
               </JobCard>
             ))}
-          </div>
+          </StyledBox>
         </div>
       )}
     </PanelContainer>

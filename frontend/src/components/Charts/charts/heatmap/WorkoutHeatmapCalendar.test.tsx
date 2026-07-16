@@ -6,7 +6,7 @@
  * days), the userId mount renders real cells instead of the dev demo,
  * and empty history keeps the honest empty state in prod.
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

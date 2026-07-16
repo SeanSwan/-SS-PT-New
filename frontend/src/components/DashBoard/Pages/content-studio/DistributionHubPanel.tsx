@@ -31,6 +31,7 @@ import {
   CheckCircle2, XCircle, Loader2, Calendar,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -370,7 +371,7 @@ const DistributionHubPanel: React.FC = () => {
                     </IconBtn>
                   </>
                 )}
-                {item.status === 'publishing' && <Loader2 size={16} style={{ color: '#8B5CF6' }} />}
+                {item.status === 'publishing' && <StyledBox as={Loader2} size={16} $style={{ color: '#8B5CF6' }} />}
               </QueueCard>
             );
           })

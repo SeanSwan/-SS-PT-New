@@ -29,11 +29,7 @@ const noMotion = css`
 `;
 
 // === Animation Keyframes ===
-const float = keyframes`
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0); }
-`;
+
 
 const pulse = keyframes`
   0% { box-shadow: 0 0 15px currentColor; }
@@ -428,7 +424,7 @@ const CreativeExpressionSection: React.FC = () => {
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
-            At SwanStudios, we build <span>warriors and artists</span>. True power is found when peak physical strength is united with unbridled creative expression. Here, we don't just lift weights; we lift each other. <strong>EVERY POSITIVE ACTION IS REWARDED</strong> - your journey is holistic. You earn points for everything: crushing a workout, creating art, motivating a teammate. In this ecosystem, your growth in body, mind, and spirit is our most valued currency.
+            At SwanStudios, we build <span>warriors and artists</span>. True power is found when peak physical strength is united with unbridled creative expression. Here, we don&apos;t just lift weights; we lift each other. <strong>EVERY POSITIVE ACTION IS REWARDED</strong> - your journey is holistic. You earn points for everything: crushing a workout, creating art, motivating a teammate. In this ecosystem, your growth in body, mind, and spirit is our most valued currency.
           </SectionDescription>
 
           <motion.div

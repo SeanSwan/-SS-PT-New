@@ -13,6 +13,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { ConsistencyHeatmapProps, ConsistencyDataPoint } from '../types/ClientProgressTypes';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ==================== CONSTANTS ====================
 
@@ -70,11 +71,7 @@ const Cell = styled.div<{ bgColor: string }>`
   }
 `;
 
-const MonthLabelsRow = styled.div`
-  display: flex;
-  margin-left: 32px;
-  margin-bottom: 4px;
-`;
+
 
 const MonthLabel = styled.div<{ offset: number }>`
   font-size: 0.65rem;
@@ -251,10 +248,10 @@ const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Consistency Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <StyledBox as="h4" $style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Consistency Data</StyledBox>
+            <StyledBox as="p" $style={{ margin: 0, fontSize: '0.875rem' }}>
               Start logging workouts to see your consistency heatmap!
-            </p>
+            </StyledBox>
           </motion.div>
         </NoDataContainer>
       </HeatmapWrapper>
@@ -318,13 +315,13 @@ const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) => {
             month: 'short',
             day: 'numeric'
           })}</div>
-          <div style={{ color: '#60C0F0' }}>
+          <StyledBox as="div" $style={{ color: '#60C0F0' }}>
             {tooltip.count} workout{tooltip.count !== 1 ? 's' : ''}
-          </div>
+          </StyledBox>
           {tooltip.volume !== undefined && (
-            <div style={{ color: '#C6A84B' }}>
+            <StyledBox as="div" $style={{ color: '#C6A84B' }}>
               {tooltip.volume.toLocaleString()} lbs volume
-            </div>
+            </StyledBox>
           )}
         </TooltipOverlay>
       )}

@@ -43,6 +43,7 @@ import {
   StyledTextarea,
   NativeSelect,
 } from './WorkoutPlanBuilderStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -66,10 +67,10 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
   clientName,
 }) => {
   return (
-    <div style={{ marginTop: 16 }}>
+    <StyledBox as="div" $style={{ marginTop: 16 }}>
       {/* Client badge — shown when clientId is pre-set from Client Detail View */}
       {clientId && (
-        <div style={{
+        <StyledBox as="div" $style={{
           marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
@@ -79,20 +80,20 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
           background: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)',
           border: '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
         }}>
-          <span style={{
+          <StyledBox as="span" $style={{
             fontFamily: "'Sora', sans-serif",
             fontSize: 12,
             color: 'var(--text-muted, #94a3b8)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-          }}>Client</span>
-          <span style={{
+          }}>Client</StyledBox>
+          <StyledBox as="span" $style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontSize: 15,
             fontWeight: 600,
             color: 'var(--accent-primary, #60C0F0)',
-          }}>{clientName || `Client #${clientId}`}</span>
-        </div>
+          }}>{clientName || `Client #${clientId}`}</StyledBox>
+        </StyledBox>
       )}
 
       <FormGrid $cols="1fr 1fr">
@@ -123,7 +124,7 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
         </FieldGroup>
       </FormGrid>
 
-      <div style={{ marginTop: 20 }}>
+      <StyledBox as="div" $style={{ marginTop: 20 }}>
         <FieldGroup>
           <FieldLabel htmlFor="plan-description">Description</FieldLabel>
           <StyledTextarea
@@ -134,9 +135,9 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
             rows={3}
           />
         </FieldGroup>
-      </div>
+      </StyledBox>
 
-      <FormGrid $cols="1fr 1fr" style={{ marginTop: 20 }}>
+      <StyledBox as={FormGrid} $cols="1fr 1fr" $style={{ marginTop: 20 }}>
         <FieldGroup>
           <FieldLabel htmlFor="plan-start-date">Start Date</FieldLabel>
           <StyledInput
@@ -155,8 +156,8 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
             onChange={(e) => handlePlanDetailChange('endDate', e.target.value)}
           />
         </FieldGroup>
-      </FormGrid>
-    </div>
+      </StyledBox>
+    </StyledBox>
   );
 };
 

@@ -132,6 +132,23 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
     onCompleteRef.current?.();
   }, [enableVibration, enableAudio, prefersReducedMotion]);
 
+  // Fallback: use setInterval on main thread
+  const startFallbackInterval = useCallback((duration: number) => {
+    let remaining = duration;
+    setSecondsLeft(remaining);
+    setIsRunning(true);
+
+    intervalRef.current = setInterval(() => {
+      remaining--;
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        setIsRunning(false);
+        fireAlert();
+        cleanup();
+      }
+    }, 1000);
+  }, [cleanup, fireAlert]);
+
   // Start the timer
   const start = useCallback((seconds?: number) => {
     cleanup();
@@ -174,24 +191,7 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
       // Web Worker not available — use setInterval fallback
       startFallbackInterval(duration);
     }
-  }, [cleanup, defaultSeconds, fireAlert]);
-
-  // Fallback: use setInterval on main thread
-  const startFallbackInterval = useCallback((duration: number) => {
-    let remaining = duration;
-    setSecondsLeft(remaining);
-    setIsRunning(true);
-
-    intervalRef.current = setInterval(() => {
-      remaining--;
-      setSecondsLeft(remaining);
-      if (remaining <= 0) {
-        setIsRunning(false);
-        fireAlert();
-        cleanup();
-      }
-    }, 1000);
-  }, [cleanup, fireAlert]);
+  }, [cleanup, defaultSeconds, fireAlert, startFallbackInterval]);
 
   // Stop the timer (pause)
   const stop = useCallback(() => {

@@ -5,12 +5,7 @@
 
 export { 
   UniversalThemeProvider, 
-  useUniversalTheme, 
-  useStyledTheme,
-  getGlowButtonVariant,
-  getThemeColors,
-  getThemeGradients,
-  getThemeShadows,
+  useUniversalTheme,
   themes
 } from './UniversalThemeContext';
 

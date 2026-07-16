@@ -23,7 +23,7 @@
  * prefers-reduced-motion).
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
 import { logApiError } from '@/utils/logApiError';
 
@@ -122,7 +122,7 @@ export class PanelErrorBoundary extends Component<Props, State> {
       <Box role="alert" aria-live="polite">
         <Title>{this.props.panelName} unavailable</Title>
         <Message>
-          This panel hit an error and couldn't load. The rest of the page is still working.
+          This panel hit an error and couldn&apos;t load. The rest of the page is still working.
         </Message>
         <RetryButton type="button" onClick={this.reset}>
           Retry

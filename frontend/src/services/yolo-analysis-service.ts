@@ -169,7 +169,7 @@ export const YoloAnalysisService = {
     const socket = new WebSocket(wsUrl);
     
     // Set up all WebSocket event handlers
-    socket.onopen = (event) => {
+    socket.onopen = (_event) => {
       logger.log(`WebSocket connection opened for session: ${sessionId}`);
     };
     

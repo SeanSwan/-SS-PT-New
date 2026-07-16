@@ -19,6 +19,7 @@ import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Users, Search, X, ChevronDown } from 'lucide-react';
 import { useGlobalClient } from '../../context/GlobalClientContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -300,19 +301,19 @@ const GlobalClientSelector: React.FC<GlobalClientSelectorProps> = ({ closeKey })
             <X size={14} />
           </ClearButton>
         ) : (
-          <ChevronDown size={14} style={{ flexShrink: 0, opacity: 0.5 }} />
+          <StyledBox as={ChevronDown} size={14} $style={{ flexShrink: 0, opacity: 0.5 }} />
         )}
       </TriggerButton>
 
       {isOpen && createPortal(
-        <Dropdown
+        <StyledBox as={Dropdown}
           ref={dropdownRef}
           $visible={isOpen}
           role="listbox"
-          style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          $style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
         >
           <SearchRow>
-            <Search size={14} style={{ color: 'var(--text-muted, rgba(224,236,244,0.4))' }} />
+            <StyledBox as={Search} size={14} $style={{ color: 'var(--text-muted, rgba(224,236,244,0.4))' }} />
             <SearchInput
               ref={searchRef}
               placeholder="Search clients..."
@@ -329,6 +330,8 @@ const GlobalClientSelector: React.FC<GlobalClientSelectorProps> = ({ closeKey })
                 <OptionItem
                   key={client.id}
                   $active={activeClient?.id === client.id}
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleSelect(client); } }}
                   onClick={() => handleSelect(client)}
                   role="option"
                   aria-selected={activeClient?.id === client.id}
@@ -341,7 +344,7 @@ const GlobalClientSelector: React.FC<GlobalClientSelectorProps> = ({ closeKey })
               ))
             )}
           </OptionsList>
-        </Dropdown>,
+        </StyledBox>,
         document.body
       )}
     </SelectorWrapper>

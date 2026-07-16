@@ -18,7 +18,7 @@ const circuitBreakers = new Map<string, CircuitBreakerState>();
 // Configuration
 const FAILURE_THRESHOLD = 5;
 const TIMEOUT = 60000; // 1 minute
-const RETRY_TIMEOUT = 10000; // 10 seconds
+ // 10 seconds
 
 /**
  * Initialize or get circuit breaker for a given key

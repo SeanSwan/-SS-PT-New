@@ -23,6 +23,9 @@ const assignment = {
     availableSessions: 4,
     phone: null,
     membershipLevel: 'basic',
+    totalWorkouts: 1,
+    lastWorkout: { completedAt: '2026-05-20T12:00:00.000Z' },
+    createdAt: '2026-05-22T12:00:00.000Z',
   },
 };
 
@@ -100,8 +103,8 @@ test('trainer My Clients renders live assignments without demo wrapper data', as
   await page.goto('/dashboard/trainer/clients', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /^My Clients$/i })).toBeVisible();
-  await expect(page.getByText(/QA Assigned/i)).toBeVisible();
+  await expect(page.getByRole('region', { name: /client roster/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /open qa assigned/i })).toBeVisible();
   await expect(page.getByText(/Workout Proof/i)).toBeVisible();
   await expect(page.getByText(/1 logged/i)).toBeVisible();
   await expect(page.getByText(/Last logged:/i)).toBeVisible();
@@ -124,9 +127,10 @@ test('trainer My Clients shows an honest API error instead of demo clients', asy
   await page.goto('/dashboard/trainer/clients', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /error loading clients/i })).toBeVisible();
-  await expect(page.getByText(/failed to fetch trainer assignments/i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /try again/i })).toBeVisible();
+  const errorAlert = page.getByRole('alert');
+  await expect(errorAlert).toContainText(/couldn't load your client roster/i);
+  await expect(page.getByText(/failed to fetch trainer assignments/i)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /try again/i })).toHaveCount(0);
   await expect(page.getByText(/Demo Mode|View Demo Data|Sarah Johnson|sarah\.j@demo\.com|Demo Client Assignments/i)).toHaveCount(0);
 
   const layout = await layoutSnapshot(page);
@@ -134,6 +138,7 @@ test('trainer My Clients shows an honest API error instead of demo clients', asy
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
     !/preloaded using link preload/i.test(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
+    && !/\[ClientHub\] roster load failed/i.test(item)
     && !/Error loading clients:/i.test(item)
     && !/\[GlobalClientContext\] Failed to fetch clients:/i.test(item)
     && !/\/api\/client-trainer-assignments\/trainer\/7/i.test(item)

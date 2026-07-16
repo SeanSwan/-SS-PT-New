@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { motion, MotionProps } from 'framer-motion';
-import { defaultShouldForwardProp } from './styled-component-helpers';
+import './styled-component-helpers';
 
 /**
  * Creates a properly configured motion component for use with styled-components

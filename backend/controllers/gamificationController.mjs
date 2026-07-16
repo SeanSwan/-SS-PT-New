@@ -974,7 +974,7 @@ const gamificationController = {
       const user = await User.findByPk(normalizedUserId, {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
+          'points', 'lifetimePointsEarned', 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises', 'selectedRankTitleKey'
         ],
         include: [
@@ -1012,12 +1012,13 @@ const gamificationController = {
           message: 'User not found'
         });
       }
+      const progressionPoints = parseNonNegativeInteger(user.lifetimePointsEarned, 0);
       
       // Get leaderboard position
       const leaderboardPosition = await User.count({
         where: {
-          points: {
-            [Op.gt]: user.points
+          lifetimePointsEarned: {
+            [Op.gt]: progressionPoints
           }
         }
       }) + 1;
@@ -1034,7 +1035,7 @@ const gamificationController = {
       const nextMilestone = await Milestone.findOne({
         where: {
           targetPoints: {
-            [Op.gt]: user.points
+            [Op.gt]: progressionPoints
           },
           isActive: true
         },
@@ -1053,7 +1054,7 @@ const gamificationController = {
         if (settings.levelRequirements && settings.levelRequirements[user.level + 1]) {
           nextLevelPoints = settings.levelRequirements[user.level + 1];
           const currentLevelPoints = settings.levelRequirements[user.level] || 0;
-          nextLevelProgress = ((user.points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
+          nextLevelProgress = ((progressionPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
         }
         
         // Calculate next tier progress using Octalysis tier system
@@ -1065,13 +1066,13 @@ const gamificationController = {
           const nextTierThreshold = settings.tierThresholds[nextTier] || 0;
 
           if (nextTierThreshold > currentTierThreshold) {
-            nextTierProgress = ((user.points - currentTierThreshold) / (nextTierThreshold - currentTierThreshold)) * 100;
+            nextTierProgress = ((progressionPoints - currentTierThreshold) / (nextTierThreshold - currentTierThreshold)) * 100;
           }
         }
       }
 
       const rankTitlePayload = buildRankTitleSelectionPayload({
-        points: user.points,
+        points: progressionPoints,
         level: user.level,
         selectedRankTitleKey: user.selectedRankTitleKey
       });
@@ -1159,7 +1160,7 @@ const gamificationController = {
       }
 
       const user = await User.findByPk(normalizedUserId, {
-        attributes: ['id', 'points', 'level', 'selectedRankTitleKey']
+        attributes: ['id', 'points', 'lifetimePointsEarned', 'level', 'selectedRankTitleKey']
       });
 
       if (!user) {
@@ -1168,10 +1169,11 @@ const gamificationController = {
           message: 'User not found'
         });
       }
+      const progressionPoints = parseNonNegativeInteger(user.lifetimePointsEarned, 0);
 
       const requestedKey = req.body?.rankTitleKey ?? req.body?.selectedRankTitleKey;
       const validation = validateSelectedRankTitleKey(requestedKey, {
-        points: user.points,
+        points: progressionPoints,
         level: user.level
       });
 
@@ -1186,7 +1188,7 @@ const gamificationController = {
       await user.update({ selectedRankTitleKey: validation.rankTitleKey });
 
       const rankTitlePayload = buildRankTitleSelectionPayload({
-        points: user.points,
+        points: progressionPoints,
         level: user.level,
         selectedRankTitleKey: validation.rankTitleKey
       });

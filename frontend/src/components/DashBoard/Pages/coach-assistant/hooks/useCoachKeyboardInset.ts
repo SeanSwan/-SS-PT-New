@@ -15,11 +15,10 @@ const INSET_VAR = '--coach-kb-inset';
 export function useCoachKeyboardInset(shellRef: RefObject<HTMLElement>) {
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
-    if (!viewport) return undefined;
+    const shell = shellRef.current;
+    if (!viewport || !shell) return undefined;
 
     const applyInset = () => {
-      const shell = shellRef.current;
-      if (!shell) return;
       // Pinch/accessibility zoom shrinks viewport.height with NO keyboard —
       // only a 1:1 scale shrink is keyboard occlusion.
       if (Math.abs(viewport.scale - 1) > 0.01) {
@@ -37,7 +36,7 @@ export function useCoachKeyboardInset(shellRef: RefObject<HTMLElement>) {
     return () => {
       viewport.removeEventListener('resize', applyInset);
       viewport.removeEventListener('scroll', applyInset);
-      shellRef.current?.style.removeProperty(INSET_VAR);
+      shell.style.removeProperty(INSET_VAR);
     };
   }, [shellRef]);
 }

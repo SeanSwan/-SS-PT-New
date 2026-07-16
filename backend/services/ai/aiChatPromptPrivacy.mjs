@@ -15,10 +15,11 @@ export async function sanitizePromptHistory({
   maxMessages = 6,
   messageStripper = stripIdentityFromMessage,
   responseStripper = stripIdentityFromResponse,
+  generalMessageStripper = null,
   log = logger,
 } = {}) {
   const sourceMessages = Array.isArray(messages) ? messages.slice(-maxMessages) : [];
-  if (!enrichUserId) return { messages: sourceMessages, identitiesStripped: 0 };
+  if (!enrichUserId && typeof generalMessageStripper !== 'function') return { messages: sourceMessages, identitiesStripped: 0 };
 
   let identitiesStripped = 0;
   const sanitizedMessages = [];
@@ -32,14 +33,30 @@ export async function sanitizePromptHistory({
     }
 
     try {
-      if (msg.role === 'assistant') {
+      if (!enrichUserId) {
+        const result = await generalMessageStripper(content);
+        identitiesStripped += result.identitiesStripped || 0;
+        sanitizedMessages.push({ ...msg, content: result.sanitizedMessage });
+      } else if (msg.role === 'assistant') {
         const result = await responseStripper(content, enrichUserId, sequelize);
         identitiesStripped += result.identitiesStripped || 0;
-        sanitizedMessages.push({ ...msg, content: result.sanitizedResponse });
+        let sanitizedContent = result.sanitizedResponse;
+        if (typeof generalMessageStripper === 'function') {
+          const generalResult = await generalMessageStripper(sanitizedContent);
+          identitiesStripped += generalResult.identitiesStripped || 0;
+          sanitizedContent = generalResult.sanitizedMessage;
+        }
+        sanitizedMessages.push({ ...msg, content: sanitizedContent });
       } else {
         const result = await messageStripper(content, enrichUserId, sequelize);
         identitiesStripped += result.identitiesStripped || 0;
-        sanitizedMessages.push({ ...msg, content: result.sanitizedMessage });
+        let sanitizedContent = result.sanitizedMessage;
+        if (typeof generalMessageStripper === 'function') {
+          const generalResult = await generalMessageStripper(sanitizedContent);
+          identitiesStripped += generalResult.identitiesStripped || 0;
+          sanitizedContent = generalResult.sanitizedMessage;
+        }
+        sanitizedMessages.push({ ...msg, content: sanitizedContent });
       }
     } catch (stripErr) {
       identitiesStripped += 1;

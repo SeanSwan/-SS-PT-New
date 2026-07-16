@@ -9,7 +9,7 @@ import {
 } from '../ui';
 import GlowButton from '../../ui/buttons/GlowButton';
 import ViewSelector from '../Views/ViewSelector';
-import { CalendarView } from '../types';
+import '../types';
 import Dropdown from '../../common/Dropdown/Dropdown';
 import type { ScheduleHeaderProps } from './ScheduleHeader.types';
 import {

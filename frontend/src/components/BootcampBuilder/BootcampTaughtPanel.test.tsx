@@ -5,7 +5,7 @@
  * error path re-enables; success confirms + refetches history; truthful
  * empty state; null-bootcamp renders history only; ClassPreviewPanel wiring.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';

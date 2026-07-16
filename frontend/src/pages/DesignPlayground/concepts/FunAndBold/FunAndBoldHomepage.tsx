@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Flame, Dumbbell, Users, Zap, ArrowRight, MapPin, Phone, Mail, Heart } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { funAndBoldTheme as theme } from './FunAndBoldTheme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─── Animations ─── */
 const bounce = keyframes`
@@ -448,7 +449,7 @@ const FunAndBoldHomepage: React.FC = () => {
           <TiltedWord>LIKE THIS</TiltedWord>
         </HeroTitle>
         <HeroSubtitle {...fadeUp} transition={{ duration: 0.5, delay: 0.2 }}>
-          Forget the boring gym vibes. We're building a fitness experience that's as fun
+          Forget the boring gym vibes. We&apos;re building a fitness experience that&apos;s as fun
           as it is effective. Good sweat, great people, zero judgment.
         </HeroSubtitle>
         <BoldButton
@@ -458,7 +459,7 @@ const FunAndBoldHomepage: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          LET'S GO <ArrowRight size={20} />
+          LET&apos;S GO <ArrowRight size={20} />
         </BoldButton>
       </Hero>
 
@@ -512,21 +513,21 @@ const FunAndBoldHomepage: React.FC = () => {
           <TestimonialGrid>
             <BubbleCard $accentColor={theme.colors.primary} {...fadeUp}>
               <BubbleText>
-                "I used to HATE the gym. Now I actually look forward to my sessions. The energy
-                here is completely different — it's like working out with friends."
+                &quot;I used to HATE the gym. Now I actually look forward to my sessions. The energy
+                here is completely different — it&apos;s like working out with friends.&quot;
               </BubbleText>
               <BubbleAuthor>Jessica P.</BubbleAuthor>
             </BubbleCard>
             <BubbleCard $accentColor={theme.colors.secondary} {...fadeUp} transition={{ duration: 0.5, delay: 0.1 }}>
               <BubbleText>
-                "Down 30lbs and up a whole lot of confidence. The trainers here actually make
-                it FUN. Who knew fitness could feel this good?"
+                &quot;Down 30lbs and up a whole lot of confidence. The trainers here actually make
+                it FUN. Who knew fitness could feel this good?&quot;
               </BubbleText>
               <BubbleAuthor>Marcus T.</BubbleAuthor>
             </BubbleCard>
             <BubbleCard $accentColor={theme.colors.accent} {...fadeUp} transition={{ duration: 0.5, delay: 0.2 }}>
               <BubbleText>
-                "Best vibes. Best community. Best results. That's it. That's the review."
+                &quot;Best vibes. Best community. Best results. That&apos;s it. That&apos;s the review.&quot;
               </BubbleText>
               <BubbleAuthor>Sam K.</BubbleAuthor>
             </BubbleCard>
@@ -541,10 +542,10 @@ const FunAndBoldHomepage: React.FC = () => {
             <path d="M0,60 C360,0 1080,0 1440,60 L1440,0 L0,0 Z" fill="#FFF0E6" />
           </svg>
         </WaveTop>
-        <motion.div {...fadeUp} style={{ position: 'relative', zIndex: 1 }}>
+        <StyledBox as={motion.div} {...fadeUp} $style={{ position: 'relative', zIndex: 1 }}>
           <CTATitle>READY TO<br />GET STARTED?</CTATitle>
           <CTASubtext>
-            Your future self is already high-fiving you. Let's make it official.
+            Your future self is already high-fiving you. Let&apos;s make it official.
           </CTASubtext>
           <WhiteButton
             onClick={() => navigate('/store')}
@@ -553,7 +554,7 @@ const FunAndBoldHomepage: React.FC = () => {
           >
             VIEW PACKAGES <ArrowRight size={20} />
           </WhiteButton>
-        </motion.div>
+        </StyledBox>
       </CTASection>
 
       {/* ─── Footer ─── */}

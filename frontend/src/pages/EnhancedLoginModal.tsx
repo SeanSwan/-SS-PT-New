@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
@@ -345,7 +345,7 @@ const Button = styled(motion.button)`
   }
 `;
 
-const ForgotPasswordLink = styled(motion.a)`
+const ForgotPasswordLink = styled(motion(Link))`
   display: block;
   margin-top: 15px;
   text-align: center;
@@ -426,7 +426,7 @@ const ConnectionStatus = styled(motion.div)<{ $connected: boolean }>`
 const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
   const { login, user, isAuthenticated } = useAuth();
-  const { theme } = useUniversalTheme();
+  useUniversalTheme();
   // Slice 12 claim handoff: a freshly activated account arrives with
   // ?username=&claimed=1 — prefill the field and greet, never re-type.
   const [searchParams] = useSearchParams();
@@ -496,11 +496,6 @@ const EnhancedLoginModal: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleForgotPassword = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    navigate('/forgot-password');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -783,8 +778,7 @@ const EnhancedLoginModal: React.FC = () => {
               </form>
 
               <ForgotPasswordLink
-                href="#"
-                onClick={handleForgotPassword}
+                to="/forgot-password"
                 variants={itemVariants}
                 whileHover={{ scale: 1.05 }}
               >

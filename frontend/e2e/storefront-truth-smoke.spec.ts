@@ -111,6 +111,7 @@ async function mockAuthenticatedPurchaseApi(page: Page) {
     if (endpoint === '/api/storefront') {
       return fulfillJson(route, {
         success: true,
+        pricesVisible: true,
         items: [livePackage],
         data: { packages: [livePackage], activeSpecials: [] },
       });

@@ -14,7 +14,7 @@
  * returns different payloads for page=1 and page=2, clicks the pagination
  * controls, and asserts the user is never stranded.
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,6 +31,10 @@ vi.mock('react-router-dom', () => ({
 const mockUseWorkoutSessions = vi.fn();
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useWorkoutSessions: (params: unknown) => mockUseWorkoutSessions(params),
+}));
+
+vi.mock('./ClientWorkoutPlanVaultPanel', () => ({
+  default: () => null,
 }));
 
 import ClientMyWorkoutsPage from './ClientMyWorkoutsPage';

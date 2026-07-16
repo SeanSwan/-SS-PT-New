@@ -250,7 +250,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         <InfoContent>
           <InfoTitle>ACH / eCheck — Direct Bank Transfer</InfoTitle>
           <InfoDesc>
-            Pay directly from your bank account. Processed through Stripe's secure banking network.
+            Pay directly from your bank account. Processed through Stripe&apos;s secure banking network.
           </InfoDesc>
         </InfoContent>
       </InfoCard>
@@ -366,7 +366,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       )}
 
       <Note>
-        You'll be prompted to connect your bank account via Stripe's secure Financial Connections.
+        You&apos;ll be prompted to connect your bank account via Stripe&apos;s secure Financial Connections.
         ACH is not instant like card checkout; it can process for several business days or require
         microdeposit verification. Your banking credentials are never shared with SwanStudios.
       </Note>

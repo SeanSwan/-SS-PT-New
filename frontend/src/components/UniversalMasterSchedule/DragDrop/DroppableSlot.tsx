@@ -42,7 +42,21 @@ const DroppableSlot: React.FC<DroppableSlotProps> = ({
   });
 
   return (
-    <SlotContainer ref={setNodeRef} $isOver={isOver} $disabled={disabled} onClick={onClick}>
+    <SlotContainer
+      ref={setNodeRef}
+      $isOver={isOver}
+      $disabled={disabled}
+      role={onClick && !disabled ? 'button' : undefined}
+      tabIndex={onClick && !disabled ? 0 : undefined}
+      aria-disabled={disabled}
+      onKeyDown={onClick && !disabled ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.currentTarget.click();
+        }
+      } : undefined}
+      onClick={onClick}
+    >
       {children || (
         <EmptySlot $isOver={isOver} $disabled={disabled}>
           <span>Available</span>

@@ -422,8 +422,8 @@ const CyberpunkPremiumHomepage: React.FC = () => {
           <MagentaText>Operating System</MagentaText>
         </HeroTitle>
         <HeroSubtitle {...fadeUp} transition={{ duration: 0.5, delay: 0.2 }}>
-          Your body is the most advanced machine you'll ever operate.
-          It's time for a firmware update. Elite coaching. Data-driven results. Zero excuses.
+          Your body is the most advanced machine you&apos;ll ever operate.
+          It&apos;s time for a firmware update. Elite coaching. Data-driven results. Zero excuses.
         </HeroSubtitle>
         <NeonButton
           {...fadeUp}
@@ -439,7 +439,7 @@ const CyberpunkPremiumHomepage: React.FC = () => {
       {/* ─── Programs ─── */}
       <Section>
         <SectionInner>
-          <SectionLabel>// MODULES</SectionLabel>
+          <SectionLabel>{'// MODULES'}</SectionLabel>
           <SectionTitle>Select Your <CyanText>Protocol</CyanText></SectionTitle>
           <ProgramGrid>
             <HoloCard {...fadeUp}>
@@ -477,7 +477,7 @@ const CyberpunkPremiumHomepage: React.FC = () => {
       {/* ─── Stats ─── */}
       <Section $bg="rgba(10, 10, 20, 0.95)">
         <SectionInner>
-          <SectionLabel>// SYSTEM_METRICS</SectionLabel>
+          <SectionLabel>{'// SYSTEM_METRICS'}</SectionLabel>
           <SectionTitle>Performance <MagentaText>Data</MagentaText></SectionTitle>
           <StatsGrid>
             <StatPanel {...fadeUp}>
@@ -540,7 +540,7 @@ const CyberpunkPremiumHomepage: React.FC = () => {
             <ContactItem><Mail size={14} /> loveswanstudios@protonmail.com</ContactItem>
           </FooterCol>
         </FooterInner>
-        <Copyright>// 2026 SWANSTUDIOS — ALL RIGHTS RESERVED</Copyright>
+        <Copyright>{'// 2026 SWANSTUDIOS — ALL RIGHTS RESERVED'}</Copyright>
       </Footer>
     </ConceptWrapper>
   );

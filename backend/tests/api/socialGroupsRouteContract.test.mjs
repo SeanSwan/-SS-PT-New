@@ -66,9 +66,9 @@ describe('engagement routes respect the group boundary (hostile-review fixes)', 
     expect(gateCount).toBeGreaterThanOrEqual(4);
   });
   it('the three activity broadcasts are skipped for group posts', () => {
-    expect(postsSrc).toMatch(/if \(!groupPost\) \{[\s\S]*?post_created/);
-    expect(postsSrc).toMatch(/if \(!post\.groupId\) \{[\s\S]*?reaction_added/);
-    expect(postsSrc).toMatch(/if \(!post\.groupId\) \{[\s\S]*?comment_added/);
+    expect(postsSrc).toMatch(/if \(!groupPost && visibility === 'public'\) \{[\s\S]*?post_created/);
+    expect(postsSrc).toMatch(/if \(!post\.groupId && post\.visibility === 'public'\) \{[\s\S]*?reaction_added/);
+    expect(postsSrc).toMatch(/if \(!post\.groupId && post\.visibility === 'public'\) \{[\s\S]*?comment_added/);
   });
   it('the hashtag detail page excludes group posts', () => {
     const hashtagsSrc = read('../../routes/social/hashtags.mjs');

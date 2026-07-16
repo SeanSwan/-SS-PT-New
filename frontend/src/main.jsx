@@ -1,6 +1,5 @@
 // DISABLED - These utilities were causing infinite loops and have been disabled
 // import './utils/emergencyAdminFix';
-// import './utils/hooksRecovery';
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

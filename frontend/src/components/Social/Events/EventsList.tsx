@@ -24,6 +24,7 @@ import { Calendar, Plus } from 'lucide-react';
 import { useEvents } from '../../../hooks/social/useEvents';
 import EventCard from './EventCard';
 import { EventsHeader, CreateEventBtn } from './EventStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const EventCreateModal = lazy(() => import('./EventCreateModal'));
 
@@ -41,7 +42,7 @@ const EventsList: React.FC = () => {
         <EventsHeader>
           <h3><Calendar size={18} aria-hidden="true" /> Upcoming Events</h3>
         </EventsHeader>
-        <div style={{
+        <StyledBox as="div" $style={{
           height: 60,
           borderRadius: 10,
           background: 'var(--bg-elevated, #141419)',
@@ -61,7 +62,7 @@ const EventsList: React.FC = () => {
       </EventsHeader>
 
       {error && (
-        <div style={{
+        <StyledBox as="div" $style={{
           background: 'var(--bg-elevated, #141419)',
           borderLeft: '4px solid var(--error-accent, #C92A54)',
           borderRadius: 8,
@@ -71,18 +72,18 @@ const EventsList: React.FC = () => {
           fontSize: '0.8125rem',
         }}>
           {error}
-        </div>
+        </StyledBox>
       )}
 
       {events.length === 0 ? (
-        <p style={{
+        <StyledBox as="p" $style={{
           color: 'var(--text-muted, #94a3b8)',
           fontSize: '0.875rem',
           textAlign: 'center',
           padding: '1.5rem 0',
         }}>
           No upcoming events. Create one to get the community moving!
-        </p>
+        </StyledBox>
       ) : (
         events.slice(0, 5).map(ev => (
           <EventCard key={ev.id} event={ev} onRsvp={rsvp} />

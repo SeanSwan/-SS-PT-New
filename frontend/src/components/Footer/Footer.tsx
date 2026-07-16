@@ -10,6 +10,7 @@ import {
 import logoImage from '../../assets/Logo.png';
 import { defaultShouldForwardProp } from '../../utils/styled-component-helpers';
 import FooterNewsletter from './FooterNewsletter';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ═══════════════════════════════════════════════════════
    STYLED COMPONENTS — All theme-aware
@@ -346,7 +347,7 @@ const EnhancedFooter: React.FC = () => {
               <Facebook size={16} />
             </SocialIcon>
             <SocialIcon href="https://bsky.app/profile/swanstudios.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="Bluesky">
-              <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>B</span>
+              <StyledBox as="span" $style={{ fontWeight: 700, fontSize: '0.85rem' }}>B</StyledBox>
             </SocialIcon>
             <SocialIcon href="https://www.instagram.com/seanswantech" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <Instagram size={16} />
@@ -359,9 +360,9 @@ const EnhancedFooter: React.FC = () => {
             </SocialIcon>
           </SocialIcons>
 
-          <div style={{ marginTop: '1.75rem', width: '100%', maxWidth: '360px' }}>
+          <StyledBox as="div" $style={{ marginTop: '1.75rem', width: '100%', maxWidth: '360px' }}>
             <FooterNewsletter />
-          </div>
+          </StyledBox>
         </LogoSection>
 
         {/* Quick Links */}
@@ -404,7 +405,7 @@ const EnhancedFooter: React.FC = () => {
             <span>loveswanstudios@protonmail.com</span>
           </ContactItem>
 
-          <FooterHeading style={{ marginTop: '1.5rem' }}>Hours</FooterHeading>
+          <StyledBox as={FooterHeading} $style={{ marginTop: '1.5rem' }}>Hours</StyledBox>
           <ContactItem>
             <span>Monday–Sunday: By Appointment Only</span>
           </ContactItem>
@@ -424,7 +425,7 @@ const EnhancedFooter: React.FC = () => {
           <SmallFooterLink to="/terms">Terms of Service</SmallFooterLink>
         </BottomLinks>
 
-        <p style={{
+        <StyledBox as="p" $style={{
           color: 'rgba(224, 236, 244, 0.35)',
           fontSize: '0.7rem',
           lineHeight: 1.5,
@@ -436,7 +437,7 @@ const EnhancedFooter: React.FC = () => {
           SwanStudios is a fitness tracking and community platform intended for general wellness purposes only.
           It is not a medical device and does not provide medical advice, diagnosis, or treatment.
           Consult a physician before starting any exercise program.
-        </p>
+        </StyledBox>
       </BottomFooter>
     </FooterContainer>
   );

@@ -38,6 +38,7 @@ import styled from 'styled-components';
 import { Search, X, User, ChevronDown } from 'lucide-react';
 import { CS } from '../../styles/crystallineSwanTheme';
 import { useGlobalClient, type ActiveClient } from '../../context/GlobalClientContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Styled Components ──
 const PickerWrapper = styled.div`
@@ -306,13 +307,13 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
               )}
             </Avatar>
             <ClientName>{selectedClient.firstName} {selectedClient.lastName}</ClientName>
-            <X size={16} style={{ color: CS.textMuted, cursor: 'pointer' }} onClick={handleClear} />
+            <StyledBox as={X} size={16} $style={{ color: CS.textMuted, cursor: 'pointer' }} onClick={handleClear} />
           </>
         ) : (
           <>
-            <User size={16} style={{ color: CS.textMuted }} />
-            <ClientName style={{ color: CS.textMuted }}>Select a client...</ClientName>
-            <ChevronDown size={16} style={{ color: CS.textMuted }} />
+            <StyledBox as={User} size={16} $style={{ color: CS.textMuted }} />
+            <StyledBox as={ClientName} $style={{ color: CS.textMuted }}>Select a client...</StyledBox>
+            <StyledBox as={ChevronDown} size={16} $style={{ color: CS.textMuted }} />
           </>
         )}
       </SelectedClient>
@@ -320,7 +321,7 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
       {isOpen && (
         <Dropdown>
           <SearchBar>
-            <Search size={16} style={{ color: CS.textMuted }} />
+            <StyledBox as={Search} size={16} $style={{ color: CS.textMuted }} />
             <SearchInput
               ref={searchRef}
               value={search}
@@ -357,12 +358,12 @@ const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectCli
                       <User size={14} />
                     )}
                   </Avatar>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <StyledBox as="div" $style={{ flex: 1, minWidth: 0 }}>
+                    <StyledBox as="div" $style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {client.firstName} {client.lastName}
-                    </div>
+                    </StyledBox>
                     <ClientMeta>{client.email}</ClientMeta>
-                  </div>
+                  </StyledBox>
                 </ClientItem>
               ))
             )}

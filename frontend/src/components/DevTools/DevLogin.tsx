@@ -9,6 +9,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ===================== Styled Components =====================
 
@@ -346,7 +347,7 @@ const DevLogin: React.FC = () => {
         throw new Error('Failed to create test user');
       }
 
-      const data = await response.json();
+      await response.json();
       setSuccess(`Successfully created test ${role} user: ${username}`);
     } catch (err) {
       setError('Failed to create test user. Check if development server is running.');
@@ -359,7 +360,7 @@ const DevLogin: React.FC = () => {
     <Container>
       <Paper>
         <Title>
-          <User size={20} style={{ marginRight: 8 }} />
+          <StyledBox as={User} size={20} $style={{ marginRight: 8 }} />
           Dev Login Tool
         </Title>
 

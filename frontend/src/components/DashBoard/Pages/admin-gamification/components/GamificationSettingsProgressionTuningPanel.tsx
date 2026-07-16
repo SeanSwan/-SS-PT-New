@@ -22,11 +22,11 @@ const PREVIEW_BEAT_LEVEL = 1;
 const numberFormat = new Intl.NumberFormat('en-US');
 const rankTitles = getRankTitles();
 
-export const getRankTitleForLevel = (level: number): string => (
+const getRankTitleForLevel = (level: number): string => (
   rankTitles.find((title) => level >= title.minLevel && level <= title.maxLevel)?.name ?? 'First Flight'
 );
 
-export const buildProgressionPreviewRows = () => SAMPLE_LEVELS.map((level) => ({
+const buildProgressionPreviewRows = () => SAMPLE_LEVELS.map((level) => ({
   level,
   pointsRequired: pointsForLevel(level),
   rankTitle: getRankTitleForLevel(level),

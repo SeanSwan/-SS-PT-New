@@ -3,7 +3,7 @@
  * Locks searched-food logging through the backend-owned provider proxy and
  * /api/macros write path.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -23,6 +23,7 @@ import {
   CalendarGrid, CalendarHeader, CalendarDayHeader,
   CalendarCell, CalendarDot, SecondaryButton, ActionBar,
 } from './SprintPlannerStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   slots: SprintClassSlot[];
@@ -101,9 +102,9 @@ const BootcampCalendar: React.FC<Props> = ({ slots, onSlotClick }) => {
     <div>
       <CalendarHeader>
         <ActionBar>
-          <SecondaryButton onClick={prevMonth} style={{ padding: '6px 12px', minHeight: '36px' }}>&lt;</SecondaryButton>
+          <StyledBox as={SecondaryButton} onClick={prevMonth} $style={{ padding: '6px 12px', minHeight: '36px' }}>&lt;</StyledBox>
           <h2>{monthName}</h2>
-          <SecondaryButton onClick={nextMonth} style={{ padding: '6px 12px', minHeight: '36px' }}>&gt;</SecondaryButton>
+          <StyledBox as={SecondaryButton} onClick={nextMonth} $style={{ padding: '6px 12px', minHeight: '36px' }}>&gt;</StyledBox>
         </ActionBar>
       </CalendarHeader>
 

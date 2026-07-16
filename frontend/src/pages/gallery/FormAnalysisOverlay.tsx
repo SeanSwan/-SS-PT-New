@@ -5,10 +5,11 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { CrystalNode } from '../../components/ui/crystalline-primitives/CrystalNode';
 import { FrostedBone } from '../../components/ui/crystalline-primitives/FrostedBone';
 import { AIFeedbackCard, feedbackCardAnimations } from '../../components/ui/crystalline-primitives/AIFeedbackCard';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Types ──
 interface Keypoint { name: string; x: number; y: number; confidence: number; }
@@ -254,7 +255,7 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
 
       {scanning && <StatusText>Analyzing your form...</StatusText>}
 
-      {error && <StatusText style={{ color: '#8B5CF6' }}>{error}</StatusText>}
+      {error && <StyledBox as={StatusText} $style={{ color: '#8B5CF6' }}>{error}</StyledBox>}
 
       <ImageContainer>
         <img src={photoUrl} alt="Form analysis" />
@@ -286,10 +287,10 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
               const correction = correctionMap.get(kp.name);
               const status = correction ? 'adjust' : 'perfect';
               return (
-                <CrystalNode
+                <StyledBox as={CrystalNode}
                   key={kp.name}
                   $status={status}
-                  style={{
+                  $style={{
                     left: `calc(${kp.x * 100}% - 6px)`,
                     top: `calc(${kp.y * 100}% - 6px)`,
                   }}
@@ -306,9 +307,9 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
                 const kp = result.keypoints.find(k => k.name === correction.joint);
                 if (!kp) return null;
                 return (
-                  <div
+                  <StyledBox as="div"
                     key={correction.joint}
-                    style={{
+                    $style={{
                       position: 'absolute',
                       left: `${Math.min(70, kp.x * 100 + 5)}%`,
                       top: `${kp.y * 100}%`,
@@ -327,7 +328,7 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
                         <span className="metric">{correction.angle}°</span>
                       )}
                     </AIFeedbackCard>
-                  </div>
+                  </StyledBox>
                 );
               })}
             </AnimatePresence>
@@ -359,9 +360,9 @@ const FormAnalysisOverlay: React.FC<FormAnalysisOverlayProps> = ({
       )}
 
       {result && result.corrections.length === 0 && (
-        <StatusText style={{ fontSize: '1.25rem' }}>
+        <StyledBox as={StatusText} $style={{ fontSize: '1.25rem' }}>
           Perfect form — no corrections needed
-        </StatusText>
+        </StyledBox>
       )}
     </Container>
   );

@@ -4,7 +4,7 @@
  * A browser may expose SpeechRecognition while its backing service fails.
  * The Coach mic must report that runtime failure so recorder capture can take over.
  */
-import React from 'react';
+
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

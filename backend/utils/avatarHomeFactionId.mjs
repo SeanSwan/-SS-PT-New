@@ -1,5 +1,5 @@
 const MAX_FACTION_ID_LENGTH = 50;
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+const CONTROL_CHARS = /\p{Cc}/u;
 
 export function normalizeAvatarHomeFactionId(value) {
   if (value == null) return null;

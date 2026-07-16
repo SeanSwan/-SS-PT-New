@@ -8,6 +8,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getScoreColor } from './constants';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface RepCounterProps {
   count: number;
@@ -132,7 +133,7 @@ const RepCounter: React.FC<RepCounterProps> = ({ count, phase, score, exerciseNa
       {score != null && (
         <ScoreBadge $color={scoreColor}>
           <ScoreText $color={scoreColor}>{score}</ScoreText>
-          <Label style={{ margin: 0, fontSize: '8px' }}>Form</Label>
+          <StyledBox as={Label} $style={{ margin: 0, fontSize: '8px' }}>Form</StyledBox>
         </ScoreBadge>
       )}
 

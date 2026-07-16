@@ -4,7 +4,7 @@
  * FLOW: FriendSuggestions owns state; this file renders candidates, loading, and empty states.
  * UX: Keeps friend search/read states compact, touch-safe, and branch-light.
  */
-import React from 'react';
+
 import { CheckCircle, Search, UserPlus, Users } from 'lucide-react';
 import type { FriendUser } from '../../../hooks/social/useSocialFriends.types';
 import { cssUrlValue, sanitizeImageUrl } from '../../../utils/imageUrl';
@@ -181,7 +181,7 @@ export function FriendSearchPanel({ users, isSearching, searchQuery, sentRequest
   if (searchQuery) {
     return (
       <EmptyState>
-        <EmptyTitle>No results found for "{searchQuery}"</EmptyTitle>
+        <EmptyTitle>No results found for &quot;{searchQuery}&quot;</EmptyTitle>
         <EmptyText>Try a different search term</EmptyText>
       </EmptyState>
     );

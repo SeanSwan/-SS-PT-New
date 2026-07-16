@@ -12,9 +12,10 @@
  *   </CelebrationPortal>
  */
 
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Crystalline Swan Theme Tokens ─────────────────────────────
 const TOKENS = {
@@ -97,10 +98,7 @@ const backdropFadeIn = keyframes`
   100% { opacity: 1; }
 `;
 
-const breathePulse = keyframes`
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-`;
+
 
 // ── Styled Components ─────────────────────────────────────────
 
@@ -311,6 +309,13 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number>(0);
+  const dismissButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!levelUp) return;
+    const frame = window.requestAnimationFrame(() => dismissButtonRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [levelUp]);
 
   // Sync particles
   useEffect(() => {
@@ -401,18 +406,18 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
     return createPortal(
       <PortalRoot role="status" aria-live="polite">
         {xpPops.map(pop => (
-          <XPPopText key={pop.id} $x={pop.x} $y={pop.y} style={{ animation: 'none', opacity: 1 }}>
+          <StyledBox as={XPPopText} key={pop.id} $x={pop.x} $y={pop.y} $style={{ animation: 'none', opacity: 1 }}>
             +{pop.amount} XP
-          </XPPopText>
+          </StyledBox>
         ))}
         {levelUp && (
-          <LevelUpBackdrop style={{ backdropFilter: 'none', background: 'rgba(0,32,96,0.95)' }}>
-            <LevelNumber style={{ animation: 'none' }}>{levelUp.newLevel}</LevelNumber>
-            <LevelLabel style={{ animation: 'none', opacity: 1 }}>Level Up</LevelLabel>
-            <DismissButton onClick={levelUp.dismiss} style={{ animation: 'none', opacity: 1 }}>
+          <StyledBox as={LevelUpBackdrop} $style={{ backdropFilter: 'none', background: 'rgba(0,32,96,0.95)' }}>
+            <StyledBox as={LevelNumber} $style={{ animation: 'none' }}>{levelUp.newLevel}</StyledBox>
+            <StyledBox as={LevelLabel} $style={{ animation: 'none', opacity: 1 }}>Level Up</StyledBox>
+            <StyledBox as={DismissButton} ref={dismissButtonRef} onClick={levelUp.dismiss} $style={{ animation: 'none', opacity: 1 }}>
               Continue
-            </DismissButton>
-          </LevelUpBackdrop>
+            </StyledBox>
+          </StyledBox>
         )}
       </PortalRoot>,
       document.body,
@@ -460,7 +465,7 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
 
             <LevelNumber>{levelUp.newLevel}</LevelNumber>
             <LevelLabel>Level Up</LevelLabel>
-            <DismissButton onClick={levelUp.dismiss} autoFocus>
+            <DismissButton ref={dismissButtonRef} onClick={levelUp.dismiss}>
               Continue
             </DismissButton>
           </LevelUpBackdrop>
@@ -471,6 +476,6 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
   );
 };
 
-export { createBurstParticles, TOKENS };
+export { createBurstParticles };
 export type { Particle };
 export default CelebrationPortal;

@@ -177,7 +177,7 @@ const AdminNoteConfirmDialog: React.FC<AdminNoteConfirmDialogProps> = ({ request
     <Overlay role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !confirming) onClose();
     }}>
-      <Dialog role="dialog" aria-modal="true" aria-labelledby="note-confirm-title" onKeyDown={handleKeyDown}>
+      <Dialog role="dialog" aria-modal="true" aria-labelledby="note-confirm-title" onKeyDownCapture={handleKeyDown}>
         <Header>
           <IconWrap aria-hidden="true"><AlertTriangle size={20} /></IconWrap>
           <CopyBlock>

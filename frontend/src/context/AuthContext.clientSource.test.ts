@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('AuthContext clientSource persistence', () => {
   it('maps clientSource through the shared auth user formatter used by auth paths', () => {
-    const source = readFileSync(resolve(__dirname, 'AuthContext.tsx'), 'utf8');
+    const source = readFileSync(resolve(__dirname, 'AuthContextProvider.tsx'), 'utf8');
 
     expect(source).toContain('clientSource: userData.clientSource');
     expect(source).toContain('const formattedUser = formatAuthUser(userData, undefined, readStoredUser());');

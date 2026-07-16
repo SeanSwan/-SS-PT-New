@@ -3,7 +3,7 @@
  * PURPOSE: Lazy tab renderers for the canonical admin Client Hub.
  */
 
-import React, { lazy, Suspense, useCallback } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LoadingPulse } from './ClientsWorkspace.styles';
 import type {

@@ -119,7 +119,7 @@ export interface CompensationControlProps {
   onSave: (changes: { compensationMode: CompensationMode; flatSessionRate?: number }) => Promise<void>;
 }
 
-export const compensationLabel = (value: CompensationValue) =>
+const compensationLabel = (value: CompensationValue) =>
   value.compensationMode === 'per_session_flat'
     ? `$${(value.flatSessionRate ?? 0).toFixed(2)}/session`
     : 'Rev-share';

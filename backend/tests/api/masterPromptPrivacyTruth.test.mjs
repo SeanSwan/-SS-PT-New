@@ -19,6 +19,14 @@ describe('master prompt privacy truth contracts', () => {
     expect(routeSource).toContain('error.statusCode || 500');
   });
 
+  it('fails closed until a real minimization data store is connected', async () => {
+    const { DataMinimization } = await import('../../services/privacy/DataMinimization.mjs');
+    const service = new DataMinimization();
+
+    await expect(service.runMinimization({ requestingUserId: 7 }))
+      .rejects.toMatchObject({ statusCode: 501 });
+  });
+
   it('does not report privacy framework compliance from static or random scores', () => {
     expect(complianceSource).not.toContain('compliant: true');
     expect(complianceSource).not.toContain("status: 'compliant'");
@@ -39,7 +47,7 @@ describe('master prompt privacy truth contracts', () => {
     expect(minimizationSource).not.toContain('Math.random()');
     expect(minimizationSource).not.toContain('Mock');
     expect(minimizationSource).not.toContain('generateMockItems');
-    expect(minimizationSource).toContain("dataSource: 'not_connected'");
+    expect(minimizationSource).toContain("this.dataSource = 'not_connected'");
   });
 
   it('normalizes privacy route user IDs before ownership checks', () => {

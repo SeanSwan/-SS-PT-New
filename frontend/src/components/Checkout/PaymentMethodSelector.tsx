@@ -15,18 +15,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
 import api from '../../services/api.service';
-import {
-  getPaymentMethods,
-  calculateFee,
-  PaymentMethodId,
-  PaymentMethodInfo,
-} from './PaymentFeeCalculator';
+import { getPaymentMethods, calculateFee, PaymentMethodId } from './PaymentFeeCalculator';
 import CheckPayment from './methods/CheckPayment';
 import ZellePayment from './methods/ZellePayment';
 import VenmoPayment from './methods/VenmoPayment';
 import ACHPayment from './methods/ACHPayment';
 import ProcessingOverlay from './ProcessingOverlay';
 import PriceMismatchModal from './PriceMismatchModal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
 function getPersistedIdempotencyKey(fingerprint: string): string {
@@ -155,7 +151,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, cart, selectedMethod, user, total, toastSuccess, toastError, refreshCart]);
+  }, [isProcessing, cart?.items, selectedMethod, user, total, toastSuccess, refreshCart, cartFingerprint, toastError]);
 
   const handlePriceMismatchAccept = useCallback(() => {
     setPriceMismatch(null);
@@ -221,11 +217,11 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         {selectedMethod === 'card' && children}
 
         {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'loading' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <SkeletonCard style={{ height: 80 }} />
-            <SkeletonCard style={{ height: 48 }} />
-            <SkeletonCard style={{ height: 48 }} />
-          </div>
+          <StyledBox as="div" $style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <StyledBox as={SkeletonCard} $style={{ height: 80 }} />
+            <StyledBox as={SkeletonCard} $style={{ height: 48 }} />
+            <StyledBox as={SkeletonCard} $style={{ height: 48 }} />
+          </StyledBox>
         )}
 
         {selectedMethod !== 'card' && selectedMethod !== 'ach' && settingsStatus === 'error' && (

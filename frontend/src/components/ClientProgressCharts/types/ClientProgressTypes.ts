@@ -6,40 +6,6 @@
  * Comprehensive type definitions for workout progress analytics
  */
 
-// ==================== CORE DATA TYPES ====================
-
-interface WorkoutLogData {
-  id: number;
-  userId: number;
-  trainerId?: number;
-  completedAt: string;
-  duration: number;
-  totalVolume: number;
-  sessionNotes?: string;
-  overallRPE?: number;
-  setLogs?: SetLogData[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface SetLogData {
-  id: number;
-  workoutLogId: number;
-  exerciseId: number;
-  exerciseName: string;
-  setNumber: number;
-  weight: number;
-  reps: number;
-  tempo?: string;
-  rpe?: number;
-  formRating: number;
-  restTime?: number;
-  notes?: string;
-  nasmCategory?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // ==================== CHART DATA TYPES ====================
 
 export interface ChartDataPoint {
@@ -76,21 +42,9 @@ export interface NASMCategoryDataPoint {
   fullMark: number;
   color?: string;
   percentage?: number;
-}
-
-// ==================== NASM CATEGORIES ====================
-
-enum NASMCategory {
-  CORE = 'Core Stability',
-  BALANCE = 'Balance Training',
-  POWER = 'Power Development', 
-  STRENGTH = 'Strength Training',
-  ENDURANCE = 'Muscular Endurance',
-  FLEXIBILITY = 'Flexibility',
-  CARDIO = 'Cardiovascular',
-  FUNCTIONAL = 'Functional Movement',
-  CORRECTIVE = 'Corrective Exercise',
-  GENERAL = 'General Fitness'
+  level?: number;
+  maxLevel?: number;
+  percentComplete?: number;
 }
 
 // ==================== CHART CONFIGURATION ====================
@@ -124,49 +78,12 @@ export interface ChartTheme {
   tooltip: string;
 }
 
-// ==================== PROGRESS METRICS ====================
-
-interface ProgressMetrics {
-  totalWorkouts: number;
-  totalVolume: number;
-  averageFormRating: number;
-  totalSets: number;
-  totalReps: number;
-  strongestLift: OneRepMaxDataPoint;
-  mostImprovedLift: OneRepMaxDataPoint;
-  dominantCategory: NASMCategoryDataPoint;
-  consistencyScore: number;
-  progressTrend: 'improving' | 'declining' | 'stable';
-}
-
-// ==================== API RESPONSE TYPES (FIXED) ====================
+// ==================== SANITIZED API ROWS ====================
 
 // Backend API response structure (from dailyWorkoutFormRoutes.mjs)
-interface ProgressDataApiResponse {
-  success: boolean;
-  progressData: {
-    categories: BackendNASMCategory[];
-    workoutHistory: BackendWorkoutHistory[];
-    formTrends: BackendFormTrend[];
-    volumeProgression: BackendVolumeProgression[];
-  };
-  totalWorkouts: number;
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
-  message?: string;
-}
+export type ProgressPayloadRow = Record<string, unknown>;
 
-// Backend data structures
-interface BackendNASMCategory {
-  category: string;
-  level: number;
-  maxLevel: number;
-  percentComplete: number;
-}
-
-interface BackendWorkoutHistory {
+export interface SanitizedWorkoutHistoryRow extends ProgressPayloadRow {
   date: string;
   duration: number;
   intensity: number;
@@ -175,16 +92,18 @@ interface BackendWorkoutHistory {
   pointsEarned: number;
 }
 
-interface BackendFormTrend {
-  date: string;
-  averageFormRating: number;
-  exerciseCount: number;
-}
-
-interface BackendVolumeProgression {
+export interface SanitizedVolumeProgressionRow {
   date: string;
   totalWeight: number;
   totalReps: number;
+  totalSets: number;
+  intensity: number;
+}
+
+export interface SanitizedFormTrendRow {
+  date: string;
+  averageFormRating: number | null;
+  exerciseCount: number;
   totalSets: number;
 }
 
@@ -335,29 +254,4 @@ export interface ExerciseFrequencyChartProps extends BaseChartProps {
 
 export interface SessionIntensityChartProps extends BaseChartProps {
   data: SessionIntensityDataPoint[];
-}
-
-// ==================== UTILITY TYPES ====================
-
-type SortDirection = 'asc' | 'desc';
-
-interface SortConfig {
-  key: string;
-  direction: SortDirection;
-}
-
-interface FilterConfig {
-  timeRange: ChartTimeRange;
-  exercises?: string[];
-  categories?: NASMCategory[];
-  minFormRating?: number;
-  minWeight?: number;
-}
-
-// ==================== ERROR TYPES ====================
-
-interface ChartError {
-  type: 'data' | 'api' | 'render';
-  message: string;
-  details?: any;
 }

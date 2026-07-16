@@ -1,6 +1,6 @@
 // src/pages/HomePage/components/Hero-Section.jsx - Fixed and enhanced version
 
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import OrientationForm from "../../components/OrientationForm/orientationForm";

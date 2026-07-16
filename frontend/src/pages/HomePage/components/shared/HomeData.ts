@@ -2,12 +2,7 @@
  * HomeData — Static data arrays for homepage sections
  */
 
-import {
-  Dumbbell, Activity, Apple, Heart, Monitor, Users,
-  Target, Building2, Star, Crosshair, Shield, Brain, Zap,
-  Sparkles, Mic2, Gamepad2, Paintbrush, Laugh, MapPin,
-  Award, TrendingUp, Flame,
-} from 'lucide-react';
+import { Dumbbell, Activity, Apple, Heart, Monitor, Users, Target, Building2, Star, Crosshair, Shield, Brain, Sparkles, Mic2, Gamepad2, Paintbrush, Laugh, MapPin, Award, TrendingUp, Flame } from 'lucide-react';
 import {
   MARKETING_STATS,
   YEARS_EXPERIENCE_CLAIM,

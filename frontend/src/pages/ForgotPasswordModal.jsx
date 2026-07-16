@@ -1,187 +1,129 @@
-// src/pages/ForgotPasswordModal.jsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
+/**
+ * @file ForgotPasswordModal.jsx
+ * @description Canonical public password-reset request surface.
+ *
+ * Blueprint:
+ * - Route: `/forgot-password` from `routes/main-routes.tsx`.
+ * - Data flow: `useAuth().forgotPassword` -> `POST /api/auth/forgot-password`.
+ * - Safety: preserves enumeration-resistant generic success messaging.
+ * - Accessibility: labeled fields, live status, Escape dismissal, and 44px controls.
+ */
+import { useEffect, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-/* 
-  ModalOverlay:
-  A full-screen fixed container with a solid overlay.
-*/
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1500;
-  overflow: auto;
-  background: rgba(0, 0, 0, 0.9);
-`;
+import { useAuth } from '../context/AuthContext';
+import {
+  CloseButton,
+  Eyebrow,
+  FieldLabel,
+  InputField,
+  ModalContent,
+  ModalOverlay,
+  ResetForm,
+  StatusMessage,
+  SubmitButton,
+  Title,
+  Intro,
+  VideoBackground,
+} from './ForgotPasswordModal.styles';
 
-/* 
-  VideoBackground:
-  A full-screen background video with reduced opacity.
-*/
-const VideoBackground = styled.video`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-  opacity: 0.3;
-`;
-
-/* 
-  ModalContent:
-  A centered panel for the forgot password form that allows vertical scrolling if needed.
-*/
-const ModalContent = styled(motion.div)`
-  position: relative;
-  z-index: 1;
-  margin: 50px auto;
-  width: 90%;
-  max-width: 400px;
-  max-height: 90vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: #222;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-`;
-
-/* 
-  CloseButton:
-  A circular button to close the modal.
-*/
-const CloseButton = styled.button`
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: transparent;
-  border: 2px solid var(--neon-blue);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5rem;
-  color: var(--neon-blue);
-  cursor: pointer;
-  transition: background 0.3s ease;
-  
-  &:hover {
-    background: var(--neon-blue);
-    color: #000;
-  }
-`;
-
-/* 
-  InputField:
-  Styled input field for the form.
-*/
-const InputField = styled.input`
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 2px solid var(--royal-purple);
-  border-radius: 5px;
-  background: #111;
-  color: #fff;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--neon-blue);
-  }
-`;
-
-/* 
-  Button:
-  Styled button for form submission.
-*/
-const Button = styled.button`
-  width: 100%;
-  padding: 10px;
-  background: var(--neon-blue);
-  border: none;
-  border-radius: 5px;
-  color: #000;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  
-  &:hover {
-    background: var(--royal-purple);
-  }
-`;
-
-/* 
-  ForgotPasswordModal Component:
-  Implements the forgot password modal with an email input field.
-*/
 const ForgotPasswordModal = () => {
   const navigate = useNavigate();
-  const { forgotPassword } = useAuth(); // Ensure your AuthContext provides this function
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const shouldReduceMotion = useReducedMotion();
+  const { forgotPassword } = useAuth();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Close the modal by navigating back
-  const handleClose = () => {
-    navigate(-1);
-  };
+  const handleClose = () => navigate(-1);
 
-  // Handle form submission for forgot password
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setMessage("");
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') handleClose();
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  });
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    setError('');
+    setMessage('');
+    setIsSubmitting(true);
+
     try {
       const result = await forgotPassword(email);
       if (result.success) {
-        setMessage("If an account with that email exists, a password reset link has been sent.");
+        setMessage('If an account with that email exists, a password reset link has been sent.');
       }
-    } catch (err) {
-      setError("Failed to send reset email. Please try again.");
+    } catch {
+      setError('Failed to send reset email. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <ModalOverlay onClick={handleClose}>
-      {/* Video background */}
-      <VideoBackground autoPlay loop muted>
+    <ModalOverlay
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) handleClose();
+      }}
+    >
+      <VideoBackground autoPlay loop muted playsInline aria-hidden="true" tabIndex={-1}>
         <source src="/assets/movie.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
       </VideoBackground>
 
-      {/* Forgot Password Modal Content */}
       <ModalContent
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forgot-password-title"
+        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.24, ease: 'easeOut' }}
       >
-        <CloseButton onClick={handleClose}>&times;</CloseButton>
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-          Forgot Password
-        </h2>
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
-        {message && (
-          <p style={{ color: "green", textAlign: "center" }}>{message}</p>
+        <CloseButton type="button" onClick={handleClose} aria-label="Close password reset">
+          &times;
+        </CloseButton>
+        <Eyebrow>Secure account recovery</Eyebrow>
+        <Title id="forgot-password-title">Reset your password</Title>
+        <Intro>
+          Enter the email linked to your SwanStudios account. For your privacy, the response is
+          identical whether or not an account exists.
+        </Intro>
+
+        {error && (
+          <StatusMessage $tone="error" role="alert">
+            {error}
+          </StatusMessage>
         )}
-        <form onSubmit={handleSubmit}>
+        {message && (
+          <StatusMessage $tone="success" role="status" aria-live="polite">
+            {message}
+          </StatusMessage>
+        )}
+
+        <ResetForm onSubmit={handleSubmit}>
+          <FieldLabel htmlFor="forgot-password-email">Email address</FieldLabel>
           <InputField
+            id="forgot-password-email"
             type="email"
             name="email"
-            placeholder="Enter your email address"
+            placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            inputMode="email"
             required
           />
-          <Button type="submit">Reset Password</Button>
-        </form>
+          <SubmitButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Sending secure link...' : 'Send reset link'}
+          </SubmitButton>
+        </ResetForm>
       </ModalContent>
     </ModalOverlay>
   );

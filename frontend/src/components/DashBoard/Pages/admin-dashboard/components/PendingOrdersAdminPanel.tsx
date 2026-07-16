@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   ShoppingBag, User, DollarSign, Calendar, Clock, CheckCircle,
@@ -37,6 +37,7 @@ import {
   STORE_TOKENS,
 } from '../../store-shared/StoreDesignSystem';
 import AdminFulfillmentQueue from './AdminFulfillmentQueue';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Page-specific styled components ─────────────────────
 
@@ -479,13 +480,13 @@ const PendingOrdersAdminPanel: React.FC = () => {
           Refresh
         </StoreButton>
 
-        <StoreButton
+        <StyledBox as={StoreButton}
           onClick={() => setAutoRefresh(!autoRefresh)}
-          style={autoRefresh ? { borderColor: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)' } : undefined}
+          $style={autoRefresh ? { borderColor: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)' } : undefined}
         >
           {autoRefresh ? <Eye size={16} /> : <EyeOff size={16} />}
           {autoRefresh ? 'Live' : 'Manual'}
-        </StoreButton>
+        </StyledBox>
       </ControlsRow>
 
       {partialWarning && (
@@ -514,7 +515,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
                 transition={{ duration: 0.4, delay: index * 0.05 }}
               >
                 <OrderHeader>
-                  <div style={{ flex: 1 }}>
+                  <StyledBox as="div" $style={{ flex: 1 }}>
                     <OrderId>#{order.orderReference}</OrderId>
                     <OrderMeta>
                       <StatusBadge
@@ -534,15 +535,15 @@ const PendingOrdersAdminPanel: React.FC = () => {
                         Tax: {formatCurrency(order.amount * CA_TAX_RATE)}
                       </TaxBadge>
                     </OrderMeta>
-                  </div>
+                  </StyledBox>
 
                   {order.status === 'pending_manual_payment' && (
-                    <StoreButton onClick={() => markAsPaid(order.id)} style={{
+                    <StyledBox as={StoreButton} onClick={() => markAsPaid(order.id)} $style={{
                       background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent), color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent))',
                       borderColor: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)',
                     }}>
                       <CheckCircle size={16} /> Mark Paid
-                    </StoreButton>
+                    </StyledBox>
                   )}
                 </OrderHeader>
 
@@ -561,16 +562,16 @@ const PendingOrdersAdminPanel: React.FC = () => {
                     {order.items.map((item, i) => (
                       <OrderItemRow key={i}>
                         <div>
-                          <span style={{ fontWeight: 500 }}>{item.name}</span>
+                          <StyledBox as="span" $style={{ fontWeight: 500 }}>{item.name}</StyledBox>
                           {item.sessions && (
-                            <span style={{ fontSize: '0.75rem', color: STORE_TOKENS.color.muted, marginLeft: '0.5rem' }}>
+                            <StyledBox as="span" $style={{ fontSize: '0.75rem', color: STORE_TOKENS.color.muted, marginLeft: '0.5rem' }}>
                               {item.sessions} sessions
-                            </span>
+                            </StyledBox>
                           )}
                         </div>
-                        <span style={{ fontWeight: 500 }}>
+                        <StyledBox as="span" $style={{ fontWeight: 500 }}>
                           {formatCurrency(item.price)} x {item.quantity}
-                        </span>
+                        </StyledBox>
                       </OrderItemRow>
                     ))}
                   </OrderItemsBox>

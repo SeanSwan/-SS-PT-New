@@ -52,9 +52,9 @@ const makeWrapper = () => {
       mutations: { retry: false },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
+  return function QueryWrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  };
 };
 
 // Real backend-shape response - matches gamificationController.getUserProfile:698-710
@@ -68,6 +68,7 @@ const realProfileResponse = {
       lastName: 'Client',
       username: 'testclient',
       points: 2500,
+      lifetimePointsEarned: 6400,
       level: 5,
       tier: 'silver_edge',
       streakDays: 12, // TOP-LEVEL, the real column on User model
@@ -105,6 +106,22 @@ describe('useGamificationData — profile streakDays top-level read', () => {
     // CRITICAL: streakDays must be 12, not 0.
     // The prior `raw.stats?.streakDays` bug always returned 0 here.
     expect(result.current.profile.data?.streakDays).toBe(12);
+  });
+  it('uses lifetime XP for progression while preserving the spendable wallet balance', async () => {
+    mockAxiosGet.mockImplementation((url: string) => {
+      if (url.includes('/profile')) return Promise.resolve(realProfileResponse);
+      return Promise.resolve({ data: [] });
+    });
+
+    const { result } = renderHook(() => useGamificationData(), { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.profile.isSuccess).toBe(true);
+    });
+
+    expect(result.current.profile.data?.points).toBe(2500);
+    expect(result.current.profile.data?.lifetimePointsEarned).toBe(6400);
+    expect(result.current.levelProgress.currentPoints).toBe(6400);
   });
 
   it('falls back to 0 when streakDays is genuinely missing (no silent drift)', async () => {

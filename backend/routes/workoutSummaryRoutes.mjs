@@ -176,7 +176,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     if (sendEmail && client.email) {
       try {
         // Use existing email service if available
-        const { sendEmail: sendEmailFn } = await import('../services/emailService.mjs').catch(() => ({}));
+        const { sendEmail: sendEmailFn } = await import('../emailService.mjs').catch(() => ({}));
         if (sendEmailFn) {
           await sendEmailFn({
             to: client.email,

@@ -22,13 +22,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import {
-  Users, UserPlus, UserCheck, UserX, Edit3, Eye, 
-  Search, Filter, Download, RefreshCw, MoreVertical,
-  Mail, Phone, Calendar, MapPin, Activity, Shield,
-  AlertTriangle, CheckCircle, Clock, Star
-} from 'lucide-react';
+import { Users, UserCheck, UserX, Edit3, Eye, Search, Download, RefreshCw, MoreVertical, Shield } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -594,14 +590,14 @@ const UsersManagementSection: React.FC = () => {
   if (loading) {
     return (
       <ManagementContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <StyledBox as="div" $style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
             <RefreshCw size={32} color="#60C0F0" />
           </motion.div>
-        </div>
+        </StyledBox>
       </ManagementContainer>
     );
   }
@@ -639,7 +635,7 @@ const UsersManagementSection: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <SearchContainer>
-          <div style={{ position: 'relative', flex: 1 }}>
+          <StyledBox as="div" $style={{ position: 'relative', flex: 1 }}>
             <SearchIcon>
               <Search size={16} />
             </SearchIcon>
@@ -649,7 +645,7 @@ const UsersManagementSection: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </StyledBox>
           
           <FilterSelect
             value={roleFilter}
@@ -672,7 +668,7 @@ const UsersManagementSection: React.FC = () => {
           </FilterSelect>
         </SearchContainer>
         
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <StyledBox as="div" $style={{ display: 'flex', gap: '0.5rem' }}>
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -689,7 +685,7 @@ const UsersManagementSection: React.FC = () => {
             <Download size={16} />
             Export
           </CommandButton>
-        </div>
+        </StyledBox>
       </ActionBar>
 
       {/* Users Grid */}
@@ -705,7 +701,7 @@ const UsersManagementSection: React.FC = () => {
               whileHover={{ scale: 1.02 }}
             >
               <UserHeader>
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <StyledBox as="div" $style={{ display: 'flex', alignItems: 'flex-start' }}>
                   <UserAvatar>
                     {getUserInitials(user.name)}
                   </UserAvatar>
@@ -716,7 +712,7 @@ const UsersManagementSection: React.FC = () => {
                       {user.role}
                     </UserRole>
                   </UserInfo>
-                </div>
+                </StyledBox>
                 
                 <ActionMenu>
                   <ActionButton
@@ -798,7 +794,7 @@ const UsersManagementSection: React.FC = () => {
                 </StatItem>
               </UserStats>
               
-              <div style={{ 
+              <StyledBox as="div" $style={{
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
@@ -810,26 +806,26 @@ const UsersManagementSection: React.FC = () => {
               }}>
                 <span>Joined: {formatDate(user.createdAt)}</span>
                 <span>Last active: {getTimeAgo(user.lastActive)}</span>
-              </div>
+              </StyledBox>
             </UserCard>
           ))}
         </AnimatePresence>
       </UsersGrid>
       
       {filteredUsers.length === 0 && (
-        <motion.div
+        <StyledBox as={motion.div}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          style={{
+          $style={{
             textAlign: 'center',
             padding: '3rem',
             color: 'rgba(255, 255, 255, 0.6)'
           }}
         >
-          <Users size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <StyledBox as={Users} size={48} $style={{ marginBottom: '1rem', opacity: 0.5 }} />
           <h3>No users found</h3>
           <p>Try adjusting your search or filters</p>
-        </motion.div>
+        </StyledBox>
       )}
     </ManagementContainer>
   );

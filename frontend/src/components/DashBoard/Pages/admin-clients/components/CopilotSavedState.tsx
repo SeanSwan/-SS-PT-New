@@ -43,6 +43,7 @@ import {
   InfoPanel,
   InfoContent,
 } from './copilot-shared-styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -69,14 +70,14 @@ const CopilotSavedState: React.FC<CopilotSavedStateProps> = ({
 }) => (
   <CenterContent>
     <CheckCircle2 size={48} color="#00ff64" />
-    <h3 style={{ color: '#00ff64', margin: 0 }}>Plan Approved and Saved</h3>
-    <p style={{ color: '#94a3b8', margin: 0 }}>
-      Plan ID: <strong style={{ color: '#e2e8f0' }}>{savedPlanId}</strong> for {clientName}
-    </p>
+    <StyledBox as="h3" $style={{ color: '#00ff64', margin: 0 }}>Plan Approved and Saved</StyledBox>
+    <StyledBox as="p" $style={{ color: '#94a3b8', margin: 0 }}>
+      Plan ID: <StyledBox as="strong" $style={{ color: '#e2e8f0' }}>{savedPlanId}</StyledBox> for {clientName}
+    </StyledBox>
 
     {unmatchedExercises.length > 0 && (
       <InfoPanel $variant="warning">
-        <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <StyledBox as={AlertTriangle} size={16} $style={{ flexShrink: 0, marginTop: 2 }} />
         <InfoContent>
           <strong>Unmatched exercises</strong> (not in library):
           {unmatchedExercises.map((e, i) => (
@@ -88,7 +89,7 @@ const CopilotSavedState: React.FC<CopilotSavedStateProps> = ({
 
     {validationWarnings.length > 0 && (
       <InfoPanel $variant="warning">
-        <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <StyledBox as={Info} size={16} $style={{ flexShrink: 0, marginTop: 2 }} />
         <InfoContent>
           {validationWarnings.map((w, i) => (
             <div key={i}>{w.message}</div>

@@ -93,14 +93,27 @@ export interface SocialPost {
   };
 }
 
-export interface Achievement {
-  id: string;
+export interface AchievementDefinition {
+  id: string | number;
   name: string;
   description: string;
+  icon?: string;
+  iconEmoji?: string;
   iconUrl?: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   category: string;
+  pointValue?: number;
+  skillTree?: string;
+  requirementType?: string;
+}
+
+export interface Achievement {
+  id: string | number;
   earnedAt: string;
+  progress?: number;
+  isCompleted?: boolean;
+  pointsAwarded?: number;
+  achievement?: AchievementDefinition;
 }
 
 export interface FollowStats {

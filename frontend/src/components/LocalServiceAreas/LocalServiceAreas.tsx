@@ -266,7 +266,7 @@ const itemVariants = {
 const LocalServiceAreas: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });
-  const { theme } = useUniversalTheme();
+  useUniversalTheme();
 
   return (
     <ServiceAreasContainer id="service-areas" ref={ref}>
@@ -277,7 +277,7 @@ const LocalServiceAreas: React.FC = () => {
           animate={isInView ? "visible" : "hidden"}
         >
           <SectionTitle variants={itemVariants}>
-            Serving Southern California's Fitness Community
+            Serving Southern California&apos;s Fitness Community
           </SectionTitle>
           
           <SectionSubtitle variants={itemVariants}>

@@ -53,7 +53,7 @@ const progressController = {
 
       // Validate user exists
       const user = await User.findByPk(userId, {
-        attributes: ['id', 'firstName', 'lastName', 'username', 'points', 'level']
+        attributes: ['id', 'firstName', 'lastName', 'username', ['lifetimePointsEarned', 'points'], 'level']
       });
 
       if (!user) {
@@ -142,7 +142,7 @@ const progressController = {
       const user = await User.findByPk(userId, {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
+          ['lifetimePointsEarned', 'points'], 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises', 'createdAt'
         ],
       });
@@ -202,7 +202,7 @@ const progressController = {
       // Calculate leaderboard position
       const leaderboardRank = await User.count({
         where: {
-          points: { [Op.gt]: user.points }
+          lifetimePointsEarned: { [Op.gt]: user.points }
         }
       }) + 1;
 
@@ -383,11 +383,11 @@ const progressController = {
           orderBy = [['streakDays', 'DESC']];
           break;
         case 'level':
-          orderBy = [['level', 'DESC'], ['points', 'DESC']];
+          orderBy = [['level', 'DESC'], ['lifetimePointsEarned', 'DESC']];
           break;
         case 'points':
         default:
-          orderBy = [['points', 'DESC']];
+          orderBy = [['lifetimePointsEarned', 'DESC']];
           break;
       }
 
@@ -432,7 +432,7 @@ const progressController = {
         where: whereClause,
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
+          ['lifetimePointsEarned', 'points'], 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises'
         ],
         include: includeClause,
@@ -469,8 +469,8 @@ const progressController = {
         const userPosition = await User.count({
           where: {
             ...whereClause,
-            [metric === 'points' ? 'points' : metric === 'level' ? 'level' : metric === 'streak' ? 'streakDays' : 'totalWorkouts']: {
-              [Op.gt]: metric === 'points' ? (await User.findByPk(includeUser))?.points || 0 :
+            [metric === 'points' ? 'lifetimePointsEarned' : metric === 'level' ? 'level' : metric === 'streak' ? 'streakDays' : 'totalWorkouts']: {
+              [Op.gt]: metric === 'points' ? (await User.findByPk(includeUser))?.lifetimePointsEarned || 0 :
                        metric === 'level' ? (await User.findByPk(includeUser))?.level || 0 :
                        metric === 'streak' ? (await User.findByPk(includeUser))?.streakDays || 0 :
                        (await User.findByPk(includeUser))?.totalWorkouts || 0

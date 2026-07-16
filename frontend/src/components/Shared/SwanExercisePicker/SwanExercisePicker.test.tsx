@@ -6,7 +6,7 @@
  * controls (a11y), an 840-row full-library smoke, and source locks for
  * virtualization + 44px touch targets.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -17,11 +17,11 @@ import type { ExerciseSlim } from './types';
 vi.mock('react-window', () => ({
   useListRef: () => ({ current: null }),
   List: ({ rowComponent: RowComponent, rowCount, rowHeight, rowProps, style }: any) => (
-    <div style={style} data-testid="swan-picker-virtual-list">
+    <StyledBox as="div" $style={style} data-testid="swan-picker-virtual-list">
       {Array.from({ length: rowCount }).map((_, index) => (
-        <RowComponent key={index} index={index} style={{ height: rowHeight }} {...(rowProps ?? {})} />
+        <RowComponent key={index} index={index} {...reactWindowStyleProps({ height: rowHeight })} {...(rowProps ?? {})} />
       ))}
-    </div>
+    </StyledBox>
   ),
 }));
 
@@ -68,6 +68,8 @@ vi.mock('../../../features/teach-mode/hooks/useExerciseTeachData', () => ({
 
 import SwanExercisePicker from './SwanExercisePicker';
 import { SWAN_PICKER_MODES } from './types';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 const setPool = (pool: ExerciseSlim[]) => {
   searchState.results = pool;

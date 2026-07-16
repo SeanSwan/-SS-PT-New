@@ -3,7 +3,8 @@
  * Extracted from DashboardV3Styles.ts without CSS behavior changes.
  */
 
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import type { DashboardBackgroundStyle } from '../backgrounds/UserDashboardBackgrounds';
 import { motion } from 'framer-motion';
 
 export const NoiseOverlay = styled.div`
@@ -26,7 +27,19 @@ export const MainContentZWrapper = styled.div`
 // SECTION: Layout Components
 // PURPOSE: Primary containers, grids, and structural wrappers
 
-export const ProfileContainer = styled(motion.div)`
+export const ProfileContainer = styled(motion.div)<{ $backgroundStyle?: DashboardBackgroundStyle }>`
+  ${({ $backgroundStyle }) => $backgroundStyle && css`
+    --user-dashboard-bg-base: ${$backgroundStyle['--user-dashboard-bg-base']};
+    --user-dashboard-bg-base-size: ${$backgroundStyle['--user-dashboard-bg-base-size']};
+    --user-dashboard-bg-base-position: ${$backgroundStyle['--user-dashboard-bg-base-position']};
+    --user-dashboard-bg-base-repeat: ${$backgroundStyle['--user-dashboard-bg-base-repeat']};
+    --user-dashboard-bg-art: ${$backgroundStyle['--user-dashboard-bg-art']};
+    --user-dashboard-bg-mark-image: ${$backgroundStyle['--user-dashboard-bg-mark-image']};
+    --user-dashboard-bg-mark-opacity: ${$backgroundStyle['--user-dashboard-bg-mark-opacity']};
+    --user-dashboard-bg-mark-position: ${$backgroundStyle['--user-dashboard-bg-mark-position']};
+    --user-dashboard-bg-mark-size: ${$backgroundStyle['--user-dashboard-bg-mark-size']};
+    --user-dashboard-bg-mark-blur: ${$backgroundStyle['--user-dashboard-bg-mark-blur']};
+  `}
   min-height: 100vh;
   background: var(--user-dashboard-bg-base, var(--bg-base));
   background-size: var(--user-dashboard-bg-base-size, auto);

@@ -7,6 +7,8 @@ import {
   CenterLabel, CHART_COLORS, VICTORY_ANIMATE,
 } from '../../chartTheme';
 import { useReducedMotion } from '../../../../hooks/useReducedMotion';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface MacroDonutProps {
   protein?: number;
@@ -70,12 +72,12 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
           <>
             <CenterLabel>
               <div className="value">{calLabel}</div>
-              <div className="label" style={{
+              <StyledBox as="div" className="label" $style={{
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
                 color: 'var(--swan-lavender, #4070C0)',
                 fontSize: '10px',
-              }}>KCAL</div>
+              }}>KCAL</StyledBox>
             </CenterLabel>
             <VictoryPie
               data={data}
@@ -88,14 +90,14 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
               />}
               animate={prefersReducedMotion ? undefined : VICTORY_ANIMATE}
               labelRadius={({ innerRadius }) => (innerRadius as number) + 30}
-              style={{
+              {...victoryStyleProps({
                 labels: { fill: CHART_COLORS.frostWhite, fontSize: 11, fontFamily: "'Sora', sans-serif" },
                 data: {
                   fill: ({ datum }: any) => datum.color,
                   stroke: CHART_COLORS.midnightSapphire,
                   strokeWidth: 2,
                 },
-              }}
+              })}
             />
           </>
         )}

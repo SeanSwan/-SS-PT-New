@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -26,7 +26,7 @@ vi.mock('../services/api.service', () => ({
   default: {
     get: mocks.apiGet,
     setAuthToken: mocks.setAuthToken,
-    post: vi.fn(),
+    post: vi.fn().mockResolvedValue({ data: { success: true } }),
   },
   ProductionTokenManager: {
     getToken: mocks.getToken,
@@ -152,5 +152,72 @@ describe('AuthProvider session refresh on boot', () => {
     });
 
     expect(mocks.apiGet).toHaveBeenCalledWith('/api/auth/me');
+  });
+
+  it('keeps a complete stored session when the boot profile check hits a transient server error', async () => {
+    localStorage.setItem('user', JSON.stringify({
+      id: '42',
+      email: 'client@example.test',
+      username: 'client',
+      firstName: 'Client',
+      lastName: 'Example',
+      role: 'client',
+      isActive: true,
+      createdAt: '2026-06-09T00:00:00.000Z',
+      updatedAt: '2026-06-09T00:00:00.000Z',
+      hasLinkedWaiver: true,
+      waiverStatus: 'linked',
+      waiverRecordId: 99,
+      waiverSignedAt: '2026-06-16T00:00:00.000Z',
+    }));
+    mocks.apiGet.mockRejectedValueOnce({
+      response: {
+        status: 503,
+      },
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-state')).toHaveTextContent('client:linked');
+    });
+
+    expect(mocks.cleanupAllTokens).not.toHaveBeenCalled();
+    expect(mocks.dispatch).toHaveBeenCalled();
+  });
+
+  it('clears the stored session when the boot profile check returns 401', async () => {
+    localStorage.setItem('user', JSON.stringify({
+      id: '42',
+      email: 'client@example.test',
+      username: 'client',
+      firstName: 'Client',
+      lastName: 'Example',
+      role: 'client',
+      isActive: true,
+      createdAt: '2026-06-09T00:00:00.000Z',
+      updatedAt: '2026-06-09T00:00:00.000Z',
+    }));
+    mocks.apiGet.mockRejectedValueOnce({
+      response: {
+        status: 401,
+      },
+    });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-state')).toHaveTextContent('guest:unknown');
+    });
+
+    expect(mocks.cleanupAllTokens).toHaveBeenCalledTimes(1);
   });
 });

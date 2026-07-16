@@ -5,6 +5,7 @@ import {
   Modal, ModalContent, ModalTitle, SearchInput, UserSearchList, UserSearchItem,
   ActionButton, ButtonRow, CloseButton, LoadingState,
 } from './adminWaivers.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   recordId: number | null;
@@ -20,6 +21,13 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (recordId == null) return;
+    const frame = window.requestAnimationFrame(() => searchInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [recordId]);
 
   const fetchUsers = useCallback(async (term: string) => {
     setLoading(true);
@@ -60,15 +68,15 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
 
   return (
     <Modal onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+      <StyledBox as={ModalContent} onClick={(e) => e.stopPropagation()} $style={{ maxWidth: 500 }}>
         <ModalTitle>Attach User to Waiver #{recordId}</ModalTitle>
 
-        <SearchInput
+        <StyledBox as={SearchInput}
+          ref={searchInputRef}
           placeholder="Search clients by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: '100%' }}
-          autoFocus
+          $style={{ width: '100%' }}
         />
 
         {loading ? (
@@ -76,9 +84,9 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
         ) : (
           <UserSearchList>
             {users.length === 0 && (
-              <div style={{ padding: 16, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+              <StyledBox as="div" $style={{ padding: 16, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
                 {search.trim() ? 'No matching clients.' : 'No clients found.'}
-              </div>
+              </StyledBox>
             )}
             {users.map((u) => (
               <UserSearchItem
@@ -87,11 +95,11 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
                 onClick={() => setSelectedUserId(u.id)}
               >
                 <div>
-                  <div style={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{u.email}</div>
+                  <StyledBox as="div" $style={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</StyledBox>
+                  <StyledBox as="div" $style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{u.email}</StyledBox>
                 </div>
                 {selectedUserId === u.id && (
-                  <span style={{ color: '#60C0F0', fontWeight: 600 }}>Selected</span>
+                  <StyledBox as="span" $style={{ color: '#60C0F0', fontWeight: 600 }}>Selected</StyledBox>
                 )}
               </UserSearchItem>
             ))}
@@ -108,7 +116,7 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
           </ActionButton>
           <CloseButton onClick={onClose}>Cancel</CloseButton>
         </ButtonRow>
-      </ModalContent>
+      </StyledBox>
     </Modal>
   );
 };

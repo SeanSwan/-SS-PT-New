@@ -19,7 +19,7 @@ import {
   TriggerText,
   TzBadge,
 } from './TimeWheelPicker.styles';
-import { useTimeWheelState, getTimezoneAbbr, formatTimeDisplay } from './useTimeWheelState';
+import { useTimeWheelState, getTimezoneAbbr } from './useTimeWheelState';
 
 // Lazy-load mobile wheel — desktop users never download this chunk
 const TimeWheel = lazy(() => import('./TimeWheel'));

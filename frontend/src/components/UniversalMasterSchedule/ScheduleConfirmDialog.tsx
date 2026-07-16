@@ -212,7 +212,7 @@ const ScheduleConfirmDialog: React.FC<ScheduleConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="session-detail-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

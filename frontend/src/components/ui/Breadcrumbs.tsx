@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 
 // Constants from your theme
 import { THEME_CONFIG } from './../../store/constant';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Styled components
 const BreadcrumbsContainer = styled.div`
@@ -212,8 +213,8 @@ const Breadcrumbs = () => {
 
   return (
     <BreadcrumbsContainer>
-      <Box
-        style={{
+      <StyledBox as={Box}
+        $style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -229,7 +230,7 @@ const Breadcrumbs = () => {
           ))}
         </StyledBreadcrumbsNav>
 
-      </Box>
+      </StyledBox>
     </BreadcrumbsContainer>
   );
 };

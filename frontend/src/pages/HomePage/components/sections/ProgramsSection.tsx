@@ -7,11 +7,12 @@ import styled, { css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { SectionEl, Container, SectionHeader, SectionTitle, SectionSubtitle } from '../shared/HomeStyles';
-import { staggerContainer, cinematicReveal, reducedReveal } from '../shared/HomeAnimations';
+import { cinematicReveal, reducedReveal } from '../shared/HomeAnimations';
 import { PROGRAMS } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProgramsSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -164,13 +165,13 @@ const ProgramsSection: React.FC<ProgramsSectionProps> = ({ tier }) => {
                   ))}
                 </ProgramFeatures>
                 <CtaWrap>
-                  <GlowButton
+                  <StyledBox as={GlowButton}
                     colorScheme={isPopular ? 'accent' : 'primary'}
                     onClick={() => navigate('/shop')}
-                    style={{ width: '100%', minHeight: '44px' }}
+                    $style={{ width: '100%', minHeight: '44px' }}
                   >
                     Get Started
-                  </GlowButton>
+                  </StyledBox>
                 </CtaWrap>
               </ProgramCard>
             );

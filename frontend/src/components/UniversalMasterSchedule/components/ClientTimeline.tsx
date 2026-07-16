@@ -34,9 +34,8 @@ const ClientTimeline: React.FC<ClientTimelineProps> = ({
   onSelect,
   creditsDisplay,
 }) => {
-  const now = new Date();
-
   const { upcoming, past } = useMemo(() => {
+    const now = new Date();
     const sorted = [...sessions].sort(
       (a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
     );

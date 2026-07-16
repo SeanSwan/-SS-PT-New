@@ -1,4 +1,6 @@
 import express from 'express';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +24,8 @@ vi.mock('../../models/index.mjs', () => ({
   }),
 }));
 
+const workoutSummaryRouteSource = readFileSync(resolve(process.cwd(), 'routes/workoutSummaryRoutes.mjs'), 'utf8');
+
 const workoutSummaryRoutes = (await import('../../routes/workoutSummaryRoutes.mjs')).default;
 
 function makeApp() {
@@ -38,9 +42,17 @@ describe('workout summary route payload validation', () => {
       id: 42,
       firstName: 'Client',
       lastName: 'Example',
+
       email: null,
     });
     dailyWorkoutFormUpdate.mockResolvedValue([1]);
+  });
+
+  it('loads the canonical backend email sender when a summary email is requested', () => {
+    expect(workoutSummaryRouteSource).toContain("await import('../emailService.mjs')");
+    expect(workoutSummaryRouteSource).not.toContain(
+      "await import('../services/emailService.mjs')",
+    );
   });
 
   it('rejects malformed client IDs before ORM lookup', async () => {

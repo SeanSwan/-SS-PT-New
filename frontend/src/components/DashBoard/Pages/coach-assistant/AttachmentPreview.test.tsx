@@ -10,7 +10,7 @@
  * present; only its content size changes on user interaction (which
  * the Web Vitals layout-shift API excludes via hadRecentInput).
  */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AttachmentPreview from './AttachmentPreview';

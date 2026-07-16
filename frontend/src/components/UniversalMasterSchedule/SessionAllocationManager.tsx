@@ -20,46 +20,24 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 
 // Icons
-import {
-  CreditCard,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Calendar,
-  DollarSign,
-  Package,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Settings,
-  RefreshCw,
-  Plus,
-  Edit,
-  Eye,
-  Download,
-  Upload,
-  Star,
-  Zap,
-  Target,
-  Award,
-  Activity
-} from 'lucide-react';
+import { Users, Calendar, DollarSign, AlertTriangle, RefreshCw, Plus, Edit, Target } from 'lucide-react';
 
 // Context and Services
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import sessionService from '../../services/sessionService';
-import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
+import '../../services/universal-master-schedule-service';
 
 // Types
-import type { Client, Session } from './types';
+import type { Client } from './types';
 
 // Styled Components Theme
 import { stellarTheme } from './UniversalMasterScheduleTheme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ==================== INTERFACES ====================
 
@@ -156,7 +134,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   showControls = true,
   compactView = false
 }) => {
-  const { user } = useAuth();
+  useAuth();
   const { toast } = useToast();
 
   // ==================== STATE ====================
@@ -175,7 +153,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   });
 
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [, setDialogOpen] = useState(false);
   const [allocationDialogOpen, setAllocationDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -217,7 +195,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
     const interval = setInterval(loadAllocationData, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [loadAllocationData]);
 
   // ==================== DATA LOADING ====================
 
@@ -557,9 +535,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
                   disabled={refreshing}
                   title="Refresh data"
                 >
-                  <RefreshCw
+                  <StyledBox as={RefreshCw}
                     size={20}
-                    style={{
+                    $style={{
                       animation: refreshing ? 'spin 1s linear infinite' : 'none'
                     }}
                   />
@@ -609,16 +587,17 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
           {/* Create Allocation Dialog */}
           {allocationDialogOpen && (
-            <DialogOverlay onClick={() => setAllocationDialogOpen(false)}>
-              <DialogPanel onClick={(e) => e.stopPropagation()}>
+            <DialogOverlay onPointerDown={(event) => { if (event.target === event.currentTarget) setAllocationDialogOpen(false); }}>
+              <DialogPanel>
                 <DialogTitleStyled>
                   Create Session Allocation
                 </DialogTitleStyled>
                 <DialogContentStyled>
                   <FormGrid>
                     <FormField $fullWidth>
-                      <FormLabel>Client</FormLabel>
+                      <FormLabel htmlFor="allocation-client">Client</FormLabel>
                       <FormSelect
+                        id="allocation-client"
                         value={manualAllocation.clientId}
                         onChange={(e) => setManualAllocation(prev => ({ ...prev, clientId: e.target.value }))}
                       >
@@ -632,8 +611,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
                     </FormField>
 
                     <FormField>
-                      <FormLabel>Package Name</FormLabel>
+                      <FormLabel htmlFor="allocation-package-name">Package Name</FormLabel>
                       <FormInput
+                        id="allocation-package-name"
                         type="text"
                         value={manualAllocation.packageName}
                         onChange={(e) => setManualAllocation(prev => ({ ...prev, packageName: e.target.value }))}
@@ -642,8 +622,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
                     </FormField>
 
                     <FormField>
-                      <FormLabel>Total Sessions</FormLabel>
+                      <FormLabel htmlFor="allocation-total-sessions">Total Sessions</FormLabel>
                       <FormInput
+                        id="allocation-total-sessions"
                         type="number"
                         value={manualAllocation.totalSessions}
                         onChange={(e) => setManualAllocation(prev => ({ ...prev, totalSessions: parseInt(e.target.value) }))}
@@ -651,8 +632,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
                     </FormField>
 
                     <FormField>
-                      <FormLabel>Package Price</FormLabel>
+                      <FormLabel htmlFor="allocation-package-price">Package Price</FormLabel>
                       <FormInput
+                        id="allocation-package-price"
                         type="number"
                         value={manualAllocation.packagePrice}
                         onChange={(e) => setManualAllocation(prev => ({ ...prev, packagePrice: parseInt(e.target.value) }))}
@@ -660,8 +642,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
                     </FormField>
 
                     <FormField>
-                      <FormLabel>Expiry (Months)</FormLabel>
+                      <FormLabel htmlFor="allocation-expiry-months">Expiry (Months)</FormLabel>
                       <FormInput
+                        id="allocation-expiry-months"
                         type="number"
                         value={manualAllocation.expiryMonths}
                         onChange={(e) => setManualAllocation(prev => ({ ...prev, expiryMonths: parseInt(e.target.value) }))}

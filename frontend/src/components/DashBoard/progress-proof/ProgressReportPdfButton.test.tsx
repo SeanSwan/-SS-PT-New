@@ -4,7 +4,7 @@
  * buildFile callback assembles the report input (sections from the charts
  * bundle, neutral name fallback, subject clientSource) for the preview builder.
  */
-import React from 'react';
+
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { CanonicalProgressCharts } from '../../../hooks/analytics/useClientProgressCharts';

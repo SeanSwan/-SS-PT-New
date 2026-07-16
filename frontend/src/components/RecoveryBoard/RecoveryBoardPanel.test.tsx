@@ -5,7 +5,7 @@
  * BOTH disclaimers ALWAYS rendered (pain-panel pattern), Rule-9 vocabulary ban,
  * failed completion reverts the ✓ (truthful latch), rail mount wired.
  */
-import React from 'react';
+
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -106,6 +106,6 @@ describe('RecoveryBoardPanel', () => {
       'utf8'
     );
     expect(rail).toMatch(/<RecoveryBoardPanel \/>/);
-    expect(rail).toMatch(/Today's recovery/);
+    expect(rail).toContain('Today&apos;s recovery');
   });
 });

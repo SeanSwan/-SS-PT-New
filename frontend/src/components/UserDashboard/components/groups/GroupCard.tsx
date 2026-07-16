@@ -21,6 +21,7 @@ import {
   QuietGroupButton,
   StatusPill,
 } from './GroupsShared.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface GroupCardProps {
   group: CommunityGroup;
@@ -54,7 +55,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen, onJoin, isJoining 
         <GroupEmojiTile aria-hidden="true">
           {group.emoji || monogram(group.name)}
         </GroupEmojiTile>
-        <div style={{ minWidth: 0 }}>
+        <StyledBox as="div" $style={{ minWidth: 0 }}>
           <GroupName>{group.name}</GroupName>
           <GroupMetaRow>
             <span>
@@ -74,7 +75,7 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen, onJoin, isJoining 
               </span>
             )}
           </GroupMetaRow>
-        </div>
+        </StyledBox>
       </GroupIdentityRow>
 
       {group.description && <GroupDescription>{group.description}</GroupDescription>}

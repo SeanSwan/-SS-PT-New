@@ -7,7 +7,7 @@
  * review, and confirm flow can mount inside the admin Clients & Team
  * Training tab without duplicating transcript logic.
  */
-import React from 'react';
+
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
 

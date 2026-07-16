@@ -14,6 +14,7 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, MessageSquare, Download,
 } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   src: string;
@@ -173,10 +174,20 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onClose }) => {
+function formatVttTime(sec: number): string {
+  const totalMs = Math.max(0, Math.floor(sec * 1000));
+  const hours = Math.floor(totalMs / 3_600_000);
+  const minutes = Math.floor((totalMs % 3_600_000) / 60_000);
+  const seconds = Math.floor((totalMs % 60_000) / 1000);
+  const milliseconds = totalMs % 1000;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+}
+
+const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onClose: _onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasCaptions = Boolean(transcription?.trim());
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(!hasCaptions);
   const [volume, setVolume] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -202,6 +213,19 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
     return segments;
   }, [transcription]);
 
+  const captionTrackSrc = React.useMemo(() => {
+    const cues = transcriptSegments.map((segment, index) => (
+      `${index + 1}\n${formatVttTime(segment.start)} --> ${formatVttTime(segment.end)}\n${segment.text}`
+    ));
+    return `data:text/vtt;charset=utf-8,${encodeURIComponent(`WEBVTT\n\n${cues.join('\n\n')}`)}`;
+  }, [transcriptSegments]);
+
+  useEffect(() => {
+    if (hasCaptions) return;
+    setMuted(true);
+    if (videoRef.current) videoRef.current.muted = true;
+  }, [hasCaptions]);
+
   useEffect(() => {
     if (!captionsOn || transcriptSegments.length === 0) {
       setCaptionText('');
@@ -220,19 +244,19 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
 
   const toggleMute = useCallback(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !hasCaptions) return;
     v.muted = !v.muted;
     setMuted(v.muted);
-  }, []);
+  }, [hasCaptions]);
 
   const handleVolumeChange = useCallback((val: number) => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !hasCaptions) return;
     v.volume = val;
     setVolume(val);
     if (val === 0) setMuted(true);
     else if (muted) { v.muted = false; setMuted(false); }
-  }, [muted]);
+  }, [hasCaptions, muted]);
 
   const seek = useCallback((sec: number) => {
     const v = videoRef.current;
@@ -280,20 +304,23 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
 
       <PlayerWrapper
         ref={wrapperRef}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
         role="region"
         aria-label={`Video player${title ? `: ${title}` : ''}`}
       >
         <Video
           ref={videoRef}
           src={src}
+          muted={!hasCaptions || muted}
+          onVolumeChange={(event) => { if (!hasCaptions) event.currentTarget.muted = true; }}
           onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
           onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
           onEnded={() => setPlaying(false)}
           onClick={togglePlay}
           aria-label="Session recording"
-        />
+        >
+          <track kind="captions" src={captionTrackSrc} srcLang="en" label="English" />
+        </Video>
 
         {/* Captions */}
         <CaptionOverlay $visible={!!captionText} aria-live="polite">
@@ -309,6 +336,21 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
             aria-valuemax={Math.floor(duration)}
             aria-valuenow={Math.floor(currentTime)}
             tabIndex={0}
+            onKeyDown={(event) => {
+              const nextTime = event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? duration
+                  : event.key === 'ArrowLeft' || event.key === 'ArrowDown'
+                    ? currentTime - 5
+                    : event.key === 'ArrowRight' || event.key === 'ArrowUp'
+                      ? currentTime + 5
+                      : null;
+              if (nextTime !== null) {
+                event.preventDefault();
+                seek(nextTime);
+              }
+            }}
             onClick={handleProgressClick}
           >
             <ProgressFill $pct={pct} />
@@ -333,7 +375,7 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
 
             <Spacer />
 
-            <ControlBtn onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+            <ControlBtn onClick={toggleMute} disabled={!hasCaptions} aria-label={hasCaptions ? (muted ? 'Unmute' : 'Mute') : 'Audio unavailable because captions were not provided'}>
               {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </ControlBtn>
 
@@ -343,18 +385,19 @@ const AccessibleVideoPlayer: React.FC<Props> = ({ src, title, transcription, onC
               max="1"
               step="0.05"
               value={muted ? 0 : volume}
+              disabled={!hasCaptions}
               onChange={e => handleVolumeChange(parseFloat(e.target.value))}
               aria-label="Volume"
             />
 
             {transcription && (
-              <ControlBtn
+              <StyledBox as={ControlBtn}
                 onClick={() => setCaptionsOn(p => !p)}
                 aria-label={captionsOn ? 'Hide captions' : 'Show captions'}
-                style={{ color: captionsOn ? 'var(--accent-primary, #60C0F0)' : 'rgba(255,255,255,0.5)' }}
+                $style={{ color: captionsOn ? 'var(--accent-primary, #60C0F0)' : 'rgba(255,255,255,0.5)' }}
               >
                 <MessageSquare size={18} />
-              </ControlBtn>
+              </StyledBox>
             )}
 
             {transcription && (

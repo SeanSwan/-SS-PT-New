@@ -19,7 +19,7 @@
  * The tests also lock that legacy Phase 13.2 encoded rows still
  * render correctly — backward compatibility is a real requirement.
  */
-import React from 'react';
+
 import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';

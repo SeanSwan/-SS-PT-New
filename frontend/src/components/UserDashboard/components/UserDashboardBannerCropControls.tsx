@@ -26,6 +26,7 @@ import {
   formatBannerPosition,
   parseBannerPosition,
 } from '../utils/bannerCompositionMedia';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface UserDashboardBannerCropControlsProps {
   backgroundImage: string | null;
@@ -154,10 +155,10 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
   return (
     <>
       <BannerStage>
-        <BackgroundSection
+        <StyledBox as={BackgroundSection}
           $backgroundImage={backgroundImage}
           $repositioning={canDragBanner}
-          style={{ '--banner-frame-height': `${bannerFrameHeight}px` } as React.CSSProperties}
+          $style={{ '--banner-frame-height': `${bannerFrameHeight}px` } as React.CSSProperties}
           onPointerDown={handleBannerPointerDown}
           onPointerMove={handleBannerPointerMove}
           onPointerUp={handleBannerPointerEnd}
@@ -172,7 +173,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
             bannerCollageLayout={bannerCollageLayout}
             bannerStickyCarousel={bannerStickyCarousel}
           />
-        </BackgroundSection>
+        </StyledBox>
         <BannerActionRow>
           <BannerRepositionAnchor>
             <BannerRepositionButton

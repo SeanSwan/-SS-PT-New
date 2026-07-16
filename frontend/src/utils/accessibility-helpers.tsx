@@ -3,6 +3,7 @@
  * Utilities to help implement accessibility features consistently across the application
  */
 import React from 'react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /**
  * Generate an accessible label with appropriate context
@@ -26,10 +27,10 @@ export const SkipToContent: React.FC<{ mainContentId?: string }> = ({
   mainContentId = 'main-content' 
 }) => {
   return (
-    <a 
+    <StyledBox as="a"
       href={`#${mainContentId}`}
       className="skip-to-content"
-      style={{
+      $style={{
         position: 'absolute',
         top: '-40px',
         left: 0,
@@ -49,7 +50,7 @@ export const SkipToContent: React.FC<{ mainContentId?: string }> = ({
       }}
     >
       Skip to main content
-    </a>
+    </StyledBox>
   );
 };
 
@@ -72,8 +73,8 @@ export const formatAriaLabel = (text: string): string => {
  */
 export const VisuallyHidden: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <span 
-      style={{
+    <StyledBox as="span"
+      $style={{
         border: 0,
         clip: 'rect(0 0 0 0)',
         height: '1px',
@@ -87,7 +88,7 @@ export const VisuallyHidden: React.FC<{ children: React.ReactNode }> = ({ childr
       }}
     >
       {children}
-    </span>
+    </StyledBox>
   );
 };
 

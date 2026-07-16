@@ -3,7 +3,7 @@
  * ==========================
  * Header-level scope receipt for the Coach intake worklist.
  */
-import React from 'react';
+
 import styled from 'styled-components';
 import type { CoachIntakeQueueScope } from '../../../../services/coachIntakeService';
 import type { PlaudIntakeSummary } from '../../../../services/plaudIntakeService';

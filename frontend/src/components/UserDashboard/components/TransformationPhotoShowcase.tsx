@@ -59,6 +59,7 @@ import {
   FooterRow,
   TimeDelta,
 } from './TransformationPhotoStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -213,15 +214,15 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
             aria-valuemax={95}
           >
             {/* Before photo (full width background) */}
-            <PhotoLayer
+            <StyledBox as={PhotoLayer}
               $position="before"
-              style={{ backgroundImage: `url(${currentPair.before.url})` }}
+              $style={{ backgroundImage: `url(${currentPair.before.url})` }}
             />
 
             {/* After photo (clipped to right side of slider) */}
-            <PhotoLayer
+            <StyledBox as={PhotoLayer}
               $position="after"
-              style={{
+              $style={{
                 backgroundImage: `url(${currentPair.after.url})`,
                 clipPath: `inset(0 0 0 ${sliderPos}%)`,
               }}
@@ -232,12 +233,12 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
             <PhotoLabel $side="left">Before</PhotoLabel>
             <PhotoLabel $side="right">After</PhotoLabel>
 
-            <DateLabel style={{ left: 12 }}>
+            <StyledBox as={DateLabel} $style={{ left: 12 }}>
               {formatDate(currentPair.before.takenAt)}
-            </DateLabel>
-            <DateLabel style={{ right: 12 }}>
+            </StyledBox>
+            <StyledBox as={DateLabel} $style={{ right: 12 }}>
               {formatDate(currentPair.after.takenAt)}
-            </DateLabel>
+            </StyledBox>
           </SliderContainer>
 
           {availableAngles.length > 1 && (

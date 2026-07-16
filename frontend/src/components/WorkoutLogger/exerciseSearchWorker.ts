@@ -63,9 +63,7 @@ export interface ExerciseSlim {
   hipMod?: string;
 }
 
-interface CacheMessage { type: 'CACHE'; exercises: ExerciseSlim[] }
-interface SearchMessage { type: 'SEARCH'; query: string; category: string | null }
-type WorkerMessage = CacheMessage | SearchMessage;
+
 
 /** Inline worker code as a string — bundled into a Blob URL */
 const WORKER_CODE = `

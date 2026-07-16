@@ -24,6 +24,7 @@ import {
   getTimezoneAbbr,
 } from './ui';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface BlockedTimeModalProps {
   open: boolean;
@@ -209,14 +210,14 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
         </>
       )}
     >
-      <SmallText secondary style={{ marginBottom: '1rem' }}>
+      <StyledBox as={SmallText} secondary $style={{ marginBottom: '1rem' }}>
         Blocked time removes availability from the schedule.
-      </SmallText>
+      </StyledBox>
 
       {formError && (
-        <ErrorText style={{ marginBottom: '1rem' }}>
+        <StyledBox as={ErrorText} $style={{ marginBottom: '1rem' }}>
           {formError}
-        </ErrorText>
+        </StyledBox>
       )}
 
       <FormField>
@@ -233,7 +234,7 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
           }}
           hasError={Boolean(fieldErrors.sessionDate)}
         />
-        <div style={{ marginTop: '0.5rem' }}>
+        <StyledBox as="div" $style={{ marginTop: '0.5rem' }}>
           <TimeWheelPicker
             value={blockedTimeStr}
             onChange={setBlockedTimeStr}
@@ -244,11 +245,11 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
             timezone={getTimezoneAbbr()}
             data-testid="blocked-time-picker"
           />
-        </div>
+        </StyledBox>
         {blockedMinTime === null && blockedIsToday && (
-          <HelperText style={{ color: '#f59e0b' }}>
+          <StyledBox as={HelperText} $style={{ color: '#f59e0b' }}>
             No times available today. Select a future date.
-          </HelperText>
+          </StyledBox>
         )}
         {fieldErrors.sessionDate && <ErrorText>{fieldErrors.sessionDate}</ErrorText>}
       </FormField>

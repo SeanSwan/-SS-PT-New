@@ -38,7 +38,8 @@ describe('AdminOverviewMetrics active surface theme contract', () => {
   it('keeps KPI card accents controlled by active theme variables', () => {
     expect(source).toContain('const getMetricAccent = (metric: AdminDashboardMetric): string');
     expect(source).toContain("'--admin-metric-accent': accent");
-    expect(source).toContain('<MetricCommandCard key={metric.id} style={metricCardStyle(accent)}');
+    expect(source).toContain('<StyledBox as={MetricCommandCard} key={metric.id} $style={metricCardStyle(accent)}');
+    expect(source).not.toContain('<MetricCommandCard key={metric.id} style={metricCardStyle(accent)}');
     expect(source).not.toContain('accentColor={metric.color}');
     expect(source).not.toContain('style={{ color: metric.color }}');
     expect(source).not.toContain('background: metric.color');

@@ -11,6 +11,7 @@ import {
   LightboxOpenLink,
   LightboxOverlay,
 } from './PostMediaLightbox.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface PostMediaLightboxProps {
   src: string;
@@ -46,7 +47,7 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
   if (!open || !safeSrc || typeof document === 'undefined') return null;
 
   return createPortal(
-    <LightboxOverlay style={backdropStyle} onClick={onClose}>
+    <StyledBox as={LightboxOverlay} $style={backdropStyle} onClick={onClose}>
       <LightboxFrame
         role="dialog"
         aria-modal="true"
@@ -67,7 +68,7 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
         </LightboxHeader>
         <FullImage src={safeSrc} alt={`Full post image: ${alt}`} loading="eager" decoding="async" />
       </LightboxFrame>
-    </LightboxOverlay>,
+    </StyledBox>,
     document.body,
   );
 };

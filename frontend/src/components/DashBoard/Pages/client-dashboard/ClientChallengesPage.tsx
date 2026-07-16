@@ -102,7 +102,7 @@ const ClientChallengesPage: React.FC = () => (
           <Kicker>Proving Ground</Kicker>
           <Title id="client-challenges-title">Challenges</Title>
           <Intro>
-            Pick the campaign that matches today's training, join it, and keep your progress visible from the live challenge board.
+            Pick the campaign that matches today&apos;s training, join it, and keep your progress visible from the live challenge board.
           </Intro>
         </div>
         <UtilitySlot>

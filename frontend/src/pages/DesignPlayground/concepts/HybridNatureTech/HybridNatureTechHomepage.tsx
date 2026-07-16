@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Dna, Brain, Activity, Sprout, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
 import { hybridNatureTechTheme as theme } from './HybridNatureTechTheme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ─── Animations ─── */
 const bioGlow = keyframes`
@@ -426,7 +427,7 @@ const HybridNatureTechHomepage: React.FC = () => {
               <CardTitle>Neural Optimization</CardTitle>
               <CardDesc>
                 Train your nervous system to recruit muscles faster and more efficiently.
-                Mind-muscle connection isn't just a cliché — it's neuroscience.
+                Mind-muscle connection isn&apos;t just a cliché — it&apos;s neuroscience.
                 We engineer the pathways.
               </CardDesc>
             </OrganicCard>
@@ -483,16 +484,16 @@ const HybridNatureTechHomepage: React.FC = () => {
           <SectionTitle>From the <GreenText>Community</GreenText></SectionTitle>
           <TestimonialCard {...fadeUp}>
             <TestimonialText>
-              "The combination of science and intuition here is incredible. My trainer understands
-              both the data and the human behind it. I've seen improvements I didn't think were
-              possible at my age."
+              &quot;The combination of science and intuition here is incredible. My trainer understands
+              both the data and the human behind it. I&apos;ve seen improvements I didn&apos;t think were
+              possible at my age.&quot;
             </TestimonialText>
             <TestimonialAuthor>— David L., Member since 2024</TestimonialAuthor>
           </TestimonialCard>
           <TestimonialCard {...fadeUp}>
             <TestimonialText>
-              "SwanStudios doesn't just train your body — they educate you. I now understand
-              WHY every exercise matters, and that knowledge compounds over time."
+              &quot;SwanStudios doesn&apos;t just train your body — they educate you. I now understand
+              WHY every exercise matters, and that knowledge compounds over time.&quot;
             </TestimonialText>
             <TestimonialAuthor>— Rachel K., Member since 2025</TestimonialAuthor>
           </TestimonialCard>
@@ -503,12 +504,12 @@ const HybridNatureTechHomepage: React.FC = () => {
       <CTASection>
         <BioOrb $color="rgba(88, 214, 141, 0.1)" $size="300px" $top="30%" $left="5%" $delay="0" aria-hidden="true" />
         <BioOrb $color="rgba(93, 173, 226, 0.08)" $size="250px" $top="20%" $left="75%" $delay="3" aria-hidden="true" />
-        <motion.div {...fadeUp} style={{ position: 'relative', zIndex: 1 }}>
+        <StyledBox as={motion.div} {...fadeUp} $style={{ position: 'relative', zIndex: 1 }}>
           <SectionLabel>Next Step</SectionLabel>
           <CTATitle>Ready to <GreenText>Evolve</GreenText>?</CTATitle>
           <CTASubtext>
             Your body has been waiting millions of years for this upgrade.
-            Let's activate your potential.
+            Let&apos;s activate your potential.
           </CTASubtext>
           <GradientButton
             onClick={() => navigate('/store')}
@@ -517,7 +518,7 @@ const HybridNatureTechHomepage: React.FC = () => {
           >
             View Packages <ArrowRight size={18} />
           </GradientButton>
-        </motion.div>
+        </StyledBox>
       </CTASection>
 
       {/* ─── Footer ─── */}

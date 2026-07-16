@@ -197,16 +197,21 @@ export function PlaudClipAudioPreview({
         {loadState === 'error'
           ? <AlertCircle size={14} aria-hidden="true" />
           : <Headphones size={14} aria-hidden="true" />}
-        <span>{loadState === 'error' ? 'Audio could not be loaded. Refresh and try again.' : statusText}</span>
+        <span id={`plaud-audio-status-${clip.clipId}`}>{loadState === 'error' ? 'Audio could not be loaded. Refresh and try again.' : `${statusText}. Transcript appears in the merged review after processing.`}</span>
       </PreviewStatus>
 
       {objectUrl ? (
-        <AudioPlayer
+        <>
+          {/* Audio-only previews receive their text alternative in the merged transcript review. */}
+          {/* eslint-disable-next-line styled-components-a11y/media-has-caption */}
+          <AudioPlayer
           controls
           preload="metadata"
           src={objectUrl}
-          aria-label={`Audio preview for ${label}`}
-        />
+            aria-label={`Audio preview for ${label}`}
+            aria-describedby={`plaud-audio-status-${clip.clipId}`}
+          />
+        </>
       ) : (
         <LoadButton
           type="button"

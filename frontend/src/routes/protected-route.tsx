@@ -221,7 +221,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (refreshedToken) {
       await auth.refreshUser();
     }
-  }, [auth.refreshToken, auth.refreshUser]);
+  }, [auth]);
   
   // Show loading while authentication is being verified
   if (auth.loading) {

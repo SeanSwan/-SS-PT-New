@@ -51,6 +51,7 @@ import {
   Badge,
   Label,
 } from './copilot-shared-styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -85,19 +86,19 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 }) => (
   <CenterContent>
     <Sparkles size={48} color={SWAN_CYAN} />
-    <h3 style={{ color: '#e2e8f0', margin: 0 }}>Swan Coach Workout Planning</h3>
-    <p style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
+    <StyledBox as="h3" $style={{ color: '#e2e8f0', margin: 0 }}>Swan Coach Workout Planning</StyledBox>
+    <StyledBox as="p" $style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
       Swan Coach will analyze {clientName}&apos;s profile, training history, and NASM assessment
       to draft a personalized workout plan for your review.
-    </p>
+    </StyledBox>
 
     {/* Launch P1-7: the backend rejected the first generate for a missing
         override reason. Without this notice the button appears to "do nothing"
         on the first click — the two-click consent-override trap. */}
     {overrideReasonRequired && (
-      <div
+      <StyledBox as="div"
         role="alert"
-        style={{
+        $style={{
           width: '100%', maxWidth: 500,
           display: 'flex', alignItems: 'flex-start', gap: 8,
           padding: '10px 14px', borderRadius: 8,
@@ -106,17 +107,17 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
           color: 'var(--warning, #C6A84B)', fontSize: '0.85rem', textAlign: 'left',
         }}
       >
-        <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <StyledBox as={AlertTriangle} size={16} $style={{ flexShrink: 0, marginTop: 2 }} />
         <span>
           A reason is required to override this client&apos;s consent before Swan Coach
           can generate a draft. Enter your justification below, then click
           &ldquo;Swan Coach Planning Draft&rdquo; again.
         </span>
-      </div>
+      </StyledBox>
     )}
 
     {(isAdmin || overrideReasonRequired) && (
-      <OverrideSection style={{ width: '100%', maxWidth: 500 }}>
+      <StyledBox as={OverrideSection} $style={{ width: '100%', maxWidth: 500 }}>
         <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
         <OverrideTextArea
           $required={overrideReasonRequired}
@@ -125,7 +126,7 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
           placeholder="Provide justification when consent override is required"
           rows={3}
         />
-      </OverrideSection>
+      </StyledBox>
     )}
 
     <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
@@ -135,30 +136,30 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 
     {/* Template catalog (informational -- backend auto-selects from NASM constraints) */}
     {templatesLoading && (
-      <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Loading templates...</p>
+      <StyledBox as="p" $style={{ color: '#64748b', fontSize: '0.85rem' }}>Loading templates...</StyledBox>
     )}
     {!templatesLoading && templates.length > 0 && (
       <>
-        <SectionTitle style={{ marginTop: 16 }}>
+        <StyledBox as={SectionTitle} $style={{ marginTop: 16 }}>
           <Info size={16} /> Available NASM Templates
-        </SectionTitle>
+        </StyledBox>
         <TemplateList>
           {templates.map((t) => (
             <TemplateItem key={t.id}>
               <Badge>{t.nasmFramework}</Badge>
               <span>{t.label}</span>
               {t.tags.length > 0 && (
-                <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: 'auto' }}>
+                <StyledBox as="span" $style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: 'auto' }}>
                   {t.tags.join(', ')}
-                </span>
+                </StyledBox>
               )}
             </TemplateItem>
           ))}
         </TemplateList>
-        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 8, maxWidth: 500 }}>
+        <StyledBox as="p" $style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 8, maxWidth: 500 }}>
           Swan Coach automatically selects the best template based on {clientName}&apos;s
           NASM assessment and training goals.
-        </p>
+        </StyledBox>
       </>
     )}
   </CenterContent>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * FILE: XPCounter.tsx
  * PURPOSE: Animated XP count-up display with easeOutExpo easing
@@ -11,45 +11,45 @@
  * easeOutExpo easing. Used in post-workout celebrations and level-up screens.
  *
  * HOW IT FITS IN THE APP:
- *   PostWorkoutCelebration → XPCounter (animated display)
- *   CelebrationPortal → XPCounter (level-up overlay)
+ *   PostWorkoutCelebration â†’ XPCounter (animated display)
+ *   CelebrationPortal â†’ XPCounter (level-up overlay)
  *
- * ┌─── SUB-COMPONENT: XPCounter ───────────────────────────────┐
- * │ PARENT: PostWorkoutCelebration                              │
- * │ PURPOSE: Animated count-up from startXP to endXP            │
- * │ WIREFRAME:                                                  │
- * │ ┌──────────────────────────┐                                │
- * │ │       +125 XP            │  ← tabular-nums, Fira Code    │
- * │ │    ███████████░░         │  ← optional progress bar       │
- * │ └──────────────────────────┘                                │
- * │ Props: { startXP, endXP, duration?, onComplete? }           │
- * │ CLICK-OUTCOMES: None (display only)                         │
- * │ GAMIFICATION: Displays XP earned from point award events    │
- * └─────────────────────────────────────────────────────────────┘
+ * â”Œâ”€â”€â”€ SUB-COMPONENT: XPCounter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ * â”‚ PARENT: PostWorkoutCelebration                              â”‚
+ * â”‚ PURPOSE: Animated count-up from startXP to endXP            â”‚
+ * â”‚ WIREFRAME:                                                  â”‚
+ * â”‚ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                                â”‚
+ * â”‚ â”‚       +125 XP            â”‚  â† tabular-nums, Fira Code    â”‚
+ * â”‚ â”‚    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–‘â–‘         â”‚  â† optional progress bar       â”‚
+ * â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                                â”‚
+ * â”‚ Props: { startXP, endXP, duration?, onComplete? }           â”‚
+ * â”‚ CLICK-OUTCOMES: None (display only)                         â”‚
+ * â”‚ GAMIFICATION: Displays XP earned from point award events    â”‚
+ * â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Types
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface XPCounterProps {
   startXP: number;
   endXP: number;
-  duration?: number; // ms — auto-calculated if not provided
+  duration?: number; // ms â€” auto-calculated if not provided
   onComplete?: () => void;
   label?: string;
   showDelta?: boolean;
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Easing Function
-// PURPOSE: easeOutExpo — fast start, graceful deceleration
-// WHY: Kahneman's Peak-End Rule — the ending impression matters most.
+// PURPOSE: easeOutExpo â€” fast start, graceful deceleration
+// WHY: Kahneman's Peak-End Rule â€” the ending impression matters most.
 //      Fast initial counting creates excitement, slow final digits
 //      build anticipation for the exact number.
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const easeOutExpo = (t: number): number => {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 };
@@ -64,9 +64,9 @@ export const normalizeXpCounterValue = (value: unknown): number => {
   return Math.round(parsed);
 };
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CounterContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -104,9 +104,9 @@ const DeltaChip = styled.span`
   opacity: 0.9;
 `;
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Component
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const XPCounter: React.FC<XPCounterProps> = ({
   startXP,
   endXP,
@@ -129,11 +129,7 @@ const XPCounter: React.FC<XPCounterProps> = ({
     : (delta < 100 ? 800 : delta < 1000 ? 1200 : 1500);
 
   // Increment logic: <100 by 1s, <1000 by 5s, 1000+ by 25s
-  const getIncrement = (remaining: number): number => {
-    if (remaining < 100) return 1;
-    if (remaining < 1000) return 5;
-    return 25;
-  };
+
 
   useEffect(() => {
     // Respect prefers-reduced-motion

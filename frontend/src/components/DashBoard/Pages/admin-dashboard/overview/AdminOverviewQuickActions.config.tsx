@@ -1,4 +1,4 @@
-import React from 'react';
+
 import type { NavigateFunction } from 'react-router-dom';
 import { BarChart3, Brain, ClipboardList, Dumbbell, Mail, UserCheck, UserPlus, UserRound, Users } from 'lucide-react';
 import { buildClientCoachOnboardingRoute } from '../../../workspaces/clients-team/clientDailyTrainingRoutes';

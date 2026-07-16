@@ -4,6 +4,7 @@ import { Clapperboard, Loader2, Sparkles } from 'lucide-react';
 import type { FoodProduct, ProductExplanation, ProductVideoBrief } from './productAnalysis.types';
 import { productFlags, sourceConfidenceForProduct } from './productAnalysis.logic';
 import { ActionButton, ButtonRow, Chip, InfoMessage, PanelShell, SectionCopy, SectionTitle } from './ProductAnalysis.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const SectionCard = styled.div`
   padding: 0.9rem;
@@ -74,7 +75,7 @@ const HowItsMadePanel: React.FC<HowItsMadePanelProps> = ({
           {loadingAction === 'video' ? 'Drafting...' : 'Create video brief'}
         </ActionButton>
       </ButtonRow>
-      {error && <InfoMessage style={{ marginTop: '0.9rem' }}>{error}</InfoMessage>}
+      {error && <StyledBox as={InfoMessage} $style={{ marginTop: '0.9rem' }}>{error}</StyledBox>}
       {explanation ? explanation.sections.map((section) => (
         <SectionCard key={section.title}>
           <CardTitle>{section.title}</CardTitle>

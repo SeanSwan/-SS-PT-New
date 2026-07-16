@@ -10,7 +10,7 @@
 import { logger } from '@/utils/logger';
 
 export class StripeAccountValidator {
-  static extractAccountFromPaymentIntent(clientSecret: string): string | null {
+  static extractAccountFromPaymentIntent(_clientSecret: string): string | null {
     // DEPRECATED: Payment intent ID parsing is unreliable
     // Instead, we'll focus on environment consistency
     return null;

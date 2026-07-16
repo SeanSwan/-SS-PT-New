@@ -26,7 +26,7 @@ export interface ObservatoryWidgetRow {
   value: string;
 }
 
-export const CONTROL_TEXT_PATTERN = /[\u0000-\u001F\u007F]/g;
+export const CONTROL_TEXT_PATTERN = /\p{Cc}/gu;
 
 const MAX_LABEL_LENGTH = 64;
 const DEFAULT_CHALLENGE_TITLE = 'No active challenge yet';

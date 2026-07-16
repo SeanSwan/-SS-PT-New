@@ -9,7 +9,7 @@
  * The actual workout duration comes from the Workout Duration field.
  * Work/rest intervals auto-calculate to fill the target duration.
  */
-import type { ClassFormat, DayType } from '../../hooks/useBootcampAPI';
+import type { DayType } from '../../hooks/useBootcampAPI';
 
 // ── Timing Constants ────────────────────────────────────────
 export const OVERHEAD_MIN = 13; // 5 demo + 5 clear + 3 stretch
@@ -252,16 +252,16 @@ export function getRounds(format: string): number {
   return FORMAT_CONFIG[format]?.rounds || 1;
 }
 
-export function getDurationSec(format: string): number {
+export function getDurationSec(_format: string): number {
   // Default 35s — but this should be overridden by calcWorkInterval in most cases
   return 35;
 }
 
-export function getWorkoutMin(format: string): number {
+export function getWorkoutMin(_format: string): number {
   // This is now meaningless without targetDuration — use calcWorkInterval instead
   return 0;
 }
 
-export function getTotalMin(format: string): number {
+export function getTotalMin(_format: string): number {
   return 0;
 }

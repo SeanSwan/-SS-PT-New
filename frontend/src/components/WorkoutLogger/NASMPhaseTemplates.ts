@@ -13,8 +13,8 @@
  * Each includes full warmup→resistance→cooldown matching the phase protocol.
  */
 
-import type { NASMItem } from './NASMProtocolSection';
-import type { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
+
+
 
 // ─── Phase Protocol Constants ────────────────────────────────────────
 

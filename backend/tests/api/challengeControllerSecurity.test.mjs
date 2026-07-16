@@ -36,9 +36,6 @@ const associationsSource = readBackend('../../models/associations.mjs');
 
 describe('challenge controller security hardening', () => {
   it('locks the active gamification challenge API and frontend consumers', () => {
-    const adminGamificationSource = readFrontend(
-      'src/components/DashBoard/Pages/admin-clients/components/GamificationOverview.tsx',
-    );
     const useChallengesSource = readFrontend('src/hooks/useChallenges.ts');
     const updateChallengeProgressSection = controllerSource.slice(
       controllerSource.indexOf('updateChallengeProgress: async'),
@@ -116,7 +113,7 @@ describe('challenge controller security hardening', () => {
     expect(challengeStatusSource).toContain("isPublic: publishVisibility === 'public'");
     expect(controllerSource).toContain("const { action = 'publish', visibility = 'public' } = req.body ?? {};");
     expect(controllerSource).toContain('statusMessageForAction(action)');
-    expect(controllerSource).toMatch(/viewer: req\.user,\r?\n        action,\r?\n        visibility,\r?\n      \}\);/);
+    expect(controllerSource).toMatch(/viewer: req\.user,\r?\n[ ]{8}action,\r?\n[ ]{8}visibility,\r?\n[ ]{6}\}\);/);
     expect(challengeAudienceSource).toContain("challenge.status !== 'draft'");
     expect(challengeAudienceSource).toContain('ClientTrainerAssignment.count');
     expect(challengeAudienceSource).toContain("status: 'active'");
@@ -180,9 +177,8 @@ describe('challenge controller security hardening', () => {
     expect(leaveChallengeSection.indexOf("if (participation.status === 'completed')")).toBeLessThan(leaveChallengeSection.indexOf('await participation.update({'));
     expect(challengeParticipantModelSource).toContain("DataTypes.ENUM('joined', 'active', 'completed', 'failed', 'quit', 'disqualified')");
     expect(routeSource).toContain("router.get('/users/:userId/challenges', authenticate, authorizeResourceAccess('userId'), challengeController.getUserChallenges)");
-    expect(adminGamificationSource).toContain("authAxios.get('/api/v1/gamification/challenges'");
-    expect(adminGamificationSource).toContain('`/api/v1/gamification/users/${clientId}/challenges`');
     expect(useChallengesSource).toContain("apiService.get('/api/v1/gamification/challenges'");
+    expect(useChallengesSource).toContain('`/api/v1/gamification/users/${user.id}/challenges`');
   });
 
   it('exposes a public aggregate challenge view endpoint without viewer identity capture', () => {

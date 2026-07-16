@@ -39,6 +39,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Wand2, Download, Save, Image, Palette, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Badge Style Presets
@@ -230,7 +231,7 @@ const NanoBananaBadgeCreator: React.FC = () => {
             </PresetCard>
           ))}
 
-          <PresetTitle style={{ marginTop: 20 }}><Sparkles size={14} /> Rarity</PresetTitle>
+          <StyledBox as={PresetTitle} $style={{ marginTop: 20 }}><Sparkles size={14} /> Rarity</StyledBox>
           {RARITY_PRESETS.map((rarity) => (
             <PresetCard
               key={rarity.id}
@@ -301,7 +302,7 @@ const NanoBananaBadgeCreator: React.FC = () => {
           {/* Generated Images */}
           {generatedImages.length > 0 && (
             <ResultsSection>
-              <Label>Generated Badges</Label>
+              <Label as="h3">Generated Badges</Label>
               <ImageGrid>
                 {generatedImages.map((img, idx) => (
                   <ImageCard

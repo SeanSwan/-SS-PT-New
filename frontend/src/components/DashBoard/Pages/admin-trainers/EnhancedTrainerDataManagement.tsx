@@ -24,64 +24,16 @@
  * - Professional development and training history
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 
 // Lucide Icons
-import {
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  MoreVertical,
-  RefreshCw,
-  Download,
-  Upload,
-  Eye,
-  UserPlus,
-  Dumbbell,
-  GraduationCap,
-  Star,
-  TrendingUp,
-  Activity,
-  BarChart3,
-  Filter,
-  XCircle,
-  CheckCircle,
-  XOctagon,
-  AlertTriangle,
-  Info,
-  Settings,
-  X,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Briefcase,
-  PersonStanding,
-  Brain,
-  Heart,
-  MessageCircle,
-  Bell,
-  PieChart,
-  Gauge,
-  Repeat,
-  Award,
-  Users,
-  DollarSign,
-  Clock,
-  CalendarCheck,
-  ChevronDown,
-  BarChart2,
-  ChevronLeft,
-  ChevronRight,
-  ImagePlus
-} from 'lucide-react';
+import { Search, Pencil, RefreshCw, Eye, UserPlus, Dumbbell, Star, BarChart3, Users, DollarSign, ChevronLeft, ChevronRight, ImagePlus } from 'lucide-react';
 
 // === STYLED COMPONENTS ===
 const DashboardContainer = styled.div`
@@ -254,20 +206,7 @@ const TableHeader = styled.div`
   }
 `;
 
-const TrainerCard = styled(motion.div)`
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
 
-  &:hover {
-    border-color: #60C0F0;
-    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
-    transform: translateY(-2px);
-  }
-`;
 
 const SearchInput = styled.div`
   position: relative;
@@ -769,7 +708,7 @@ interface TrainerStats {
 
 // === MAIN COMPONENT ===
 const EnhancedTrainerDataManagement: React.FC = () => {
-  const { user: currentUser, authAxios } = useAuth();
+  const { authAxios } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -779,11 +718,11 @@ const EnhancedTrainerDataManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedTrainers, setSelectedTrainers] = useState<number[]>([]);
+  useState<number[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentTab, setCurrentTab] = useState(0);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  useState(0);
+  useState<'table' | 'cards'>('table');
   const [stats, setStats] = useState<TrainerStats>({
     totalTrainers: 0,
     activeTrainers: 0,
@@ -795,13 +734,20 @@ const EnhancedTrainerDataManagement: React.FC = () => {
   });
 
   // Modal states
-  const [trainerDetailsModalOpen, setTrainerDetailsModalOpen] = useState(false);
-  const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
-  const [certificationModalOpen, setCertificationModalOpen] = useState(false);
-  const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
+  const [, setTrainerDetailsModalOpen] = useState(false);
+  const [, setSelectedTrainer] = useState<Trainer | null>(null);
+  useState(false);
+  const [, setPerformanceModalOpen] = useState(false);
   const [photoEditorTrainer, setPhotoEditorTrainer] = useState<Trainer | null>(null);
   const [photoUrlDraft, setPhotoUrlDraft] = useState('');
   const [photoSaving, setPhotoSaving] = useState(false);
+  const photoUrlInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!photoEditorTrainer) return;
+    const frame = window.requestAnimationFrame(() => photoUrlInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [photoEditorTrainer]);
 
   // Fetch trainers data
   const fetchTrainers = useCallback(async () => {
@@ -927,9 +873,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
     return colors[specialty.toLowerCase() as keyof typeof colors] || '#6b7280';
   };
 
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? '#10b981' : '#ef4444';
-  };
+
 
   const handleSetTrainerPhoto = async (trainer: Trainer) => {
     setPhotoEditorTrainer(trainer);
@@ -1315,7 +1259,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
         </PaginationBar>
       </DataTable>
       {photoEditorTrainer && (
-        <PhotoModalOverlay onMouseDown={(event) => {
+        <PhotoModalOverlay onPointerDown={(event) => {
           if (event.target === event.currentTarget) closePhotoEditor();
         }}>
           <PhotoModalCard role="dialog" aria-modal="true" aria-label="Set trainer profile photo">
@@ -1324,10 +1268,10 @@ const EnhancedTrainerDataManagement: React.FC = () => {
               Paste a secure image URL for {photoEditorTrainer.firstName} {photoEditorTrainer.lastName}, or leave the field empty to clear it.
             </p>
             <PhotoUrlInput
+              ref={photoUrlInputRef}
               value={photoUrlDraft}
               onChange={(event) => setPhotoUrlDraft(event.target.value)}
               placeholder="https://..."
-              autoFocus
             />
             <PhotoModalActions>
               <PhotoModalButton type="button" onClick={closePhotoEditor} disabled={photoSaving}>

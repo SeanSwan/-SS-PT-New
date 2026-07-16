@@ -16,6 +16,7 @@ import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcam
 import AITerminalPanel from '../Shared/AITerminalPanel';
 import { BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ExerciseDetailPanelProps {
   selectedExercise: BootcampExercise | null;
@@ -194,16 +195,16 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
 
       {selectedExercise ? (
         <div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+          <StyledBox as="div" $style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
             {selectedExercise.exerciseName}
-          </div>
+          </StyledBox>
 
           {/* ── Teach Me: How to Perform ── */}
           <TeachMeWrap>
             <TeachMeHeader onClick={() => setTeachMeOpen(!teachMeOpen)}>
               <BookOpen size={14} />
               How to Perform
-              {teachMeOpen ? <ChevronUp size={14} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={14} style={{ marginLeft: 'auto' }} />}
+              {teachMeOpen ? <StyledBox as={ChevronUp} size={14} $style={{ marginLeft: 'auto' }} /> : <StyledBox as={ChevronDown} size={14} $style={{ marginLeft: 'auto' }} />}
             </TeachMeHeader>
             {teachMeOpen && (() => {
               const info = getExerciseTeachMe(selectedExercise);
@@ -219,11 +220,11 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
                   </TeachMeRow>
                   <TeachMeRow>
                     <TeachMeLabel>{info.isGeneric ? 'General Form Cues: ' : 'Instructions: '}</TeachMeLabel>
-                    {info.tips.map((t) => <div key={bootcampTeachMeTipKey(t)} style={{ marginTop: 4 }}>{t}</div>)}
+                    {info.tips.map((t) => <StyledBox as="div" key={bootcampTeachMeTipKey(t)} $style={{ marginTop: 4 }}>{t}</StyledBox>)}
                     {info.isGeneric && (
-                      <div style={{ marginTop: 6, fontSize: 11, opacity: 0.6, fontStyle: 'italic' }}>
+                      <StyledBox as="div" $style={{ marginTop: 6, fontSize: 11, opacity: 0.6, fontStyle: 'italic' }}>
                         General guidance based on the exercise name — not yet specific to this exercise.
-                      </div>
+                      </StyledBox>
                     )}
                   </TeachMeRow>
                   {selectedExercise.easyVariation && (
@@ -244,7 +245,7 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
           </TeachMeWrap>
 
           <SectionDivider>Difficulty Tiers</SectionDivider>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          <StyledBox as="div" $style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             {isMeaningfulVariation(selectedExercise.easyVariation, selectedExercise.exerciseName) && (
               <DifficultyChip $tier="easy">Easy: {selectedExercise.easyVariation}</DifficultyChip>
             )}
@@ -254,7 +255,7 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
             {isMeaningfulVariation(selectedExercise.hardVariation, selectedExercise.exerciseName) && (
               <DifficultyChip $tier="hard">Hard: {selectedExercise.hardVariation}</DifficultyChip>
             )}
-          </div>
+          </StyledBox>
 
           <SectionDivider>Pain Modifications</SectionDivider>
           {(selectedExercise.kneeMod || selectedExercise.shoulderMod || selectedExercise.ankleMod || selectedExercise.wristMod || selectedExercise.backMod) ? (
@@ -266,24 +267,24 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
               {selectedExercise.backMod && <ModChip>Back: {selectedExercise.backMod}</ModChip>}
             </ModGrid>
           ) : (
-            <div style={{ fontSize: 12, opacity: 0.5 }}>No modifications available for this exercise</div>
+            <StyledBox as="div" $style={{ fontSize: 12, opacity: 0.5 }}>No modifications available for this exercise</StyledBox>
           )}
 
           {selectedExercise.muscleTargets && (
             <>
               <SectionDivider>Muscle Targets</SectionDivider>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <StyledBox as="div" $style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {selectedExercise.muscleTargets.split(',').map((m) => (
                   <ModChip key={bootcampMuscleTargetKey(m)}>{formatMuscle(m)}</ModChip>
                 ))}
-              </div>
+              </StyledBox>
             </>
           )}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: 24, opacity: 0.5, fontSize: 13 }}>
+        <StyledBox as="div" $style={{ textAlign: 'center', padding: 24, opacity: 0.5, fontSize: 13 }}>
           Click an exercise to see how to perform it, difficulty tiers, and pain modifications
-        </div>
+        </StyledBox>
       )}
 
       {bootcamp && bootcamp.explanations.length > 0 && (

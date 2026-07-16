@@ -124,7 +124,7 @@ export const responsive = {
     // Extract numeric values and units
     const minSizeValue = parseFloat(minSize);
     const maxSizeValue = parseFloat(maxSize);
-    const minSizeUnit = minSize.replace(/[0-9.]/g, '');
+    minSize.replace(/[0-9.]/g, '');
     
     const minWidthValue = parseFloat(minWidth);
     const maxWidthValue = parseFloat(maxWidth);

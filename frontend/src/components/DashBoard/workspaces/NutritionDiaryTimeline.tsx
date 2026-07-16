@@ -156,14 +156,14 @@ const NutritionDiaryTimeline: React.FC<NutritionDiaryTimelineProps> = ({
       <DiaryTimelineHeader>
         <div>
           <DiaryTimelineTitle id="nutrition-diary-timeline-title">
-            <Utensils size={18} /> Today's diary timeline
+            <Utensils size={18} /> Today&apos;s diary timeline
           </DiaryTimelineTitle>
           <DiaryTimelineMeta>Source, serving, confidence, and review state stay visible.</DiaryTimelineMeta>
         </div>
         {state === 'ready' && <DiaryTimelineMeta>{entries.length} saved</DiaryTimelineMeta>}
       </DiaryTimelineHeader>
 
-      {state === 'loading' && <DiaryState role="status">Loading today's diary...</DiaryState>}
+      {state === 'loading' && <DiaryState role="status">Loading today&apos;s diary...</DiaryState>}
       {state === 'error' && (
         <DiaryState role="alert" $error>
           <AlertTriangle size={16} /> Today diary is temporarily unavailable.

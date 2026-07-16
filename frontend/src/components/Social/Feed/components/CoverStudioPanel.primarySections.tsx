@@ -43,16 +43,17 @@ import {
   getTypeSchematicKind,
   type CoverType,
 } from './CoverStudioPanel.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 type SchematicProps = { kind: string };
 
 function Schematic({ kind }: SchematicProps) {
   return (
-    <Schem style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <StyledBox as={Schem} $style={{ alignItems: 'center', justifyContent: 'center' }}>
       {(SCHEMATIC[kind] ?? SCHEMATIC.single).map((bar, index) => (
-        <i key={index} style={{ width: bar.w, height: bar.h }} />
+        <StyledBox as="i" key={index} $style={{ width: bar.w, height: bar.h }} />
       ))}
-    </Schem>
+    </StyledBox>
   );
 }
 
@@ -67,13 +68,13 @@ export function CoverTypeSection({
     <div>
       <SectionLabel><span className="num">01</span> Cover type</SectionLabel>
       {COVER_TYPES.map((type) => (
-        <TypeCard
+        <StyledBox as={TypeCard}
           key={type.id}
           type="button"
           $active={coverType === type.id}
           aria-pressed={coverType === type.id}
           onClick={() => onSelectType(type.id)}
-          style={{ marginBottom: 12 }}
+          $style={{ marginBottom: 12 }}
         >
           <TypeCardPreview><Schematic kind={getTypeSchematicKind(type.id)} /></TypeCardPreview>
           <TypeCardMeta>
@@ -81,7 +82,7 @@ export function CoverTypeSection({
             <TypeCardDesc>{type.desc}</TypeCardDesc>
           </TypeCardMeta>
           <TypeCardCheck $active={coverType === type.id}><Check size={12} /></TypeCardCheck>
-        </TypeCard>
+        </StyledBox>
       ))}
     </div>
   );
@@ -129,14 +130,14 @@ export function LayoutSection({
         ))}
       </DirGrid>
       {coverType === 'carousel' && (
-        <Seg role="group" aria-label="Carousel follow behavior" style={{ marginTop: 10 }}>
+        <StyledBox as={Seg} role="group" aria-label="Carousel follow behavior" $style={{ marginTop: 10 }}>
           <SegButton type="button" $active={!stickyCarousel} onClick={() => onStickyCarouselChange(false)}>
             In cover
           </SegButton>
           <SegButton type="button" $active={stickyCarousel} onClick={() => onStickyCarouselChange(true)}>
             Sticky strip
           </SegButton>
-        </Seg>
+        </StyledBox>
       )}
     </div>
   );
@@ -205,12 +206,12 @@ export function MediaLibrarySection({
           <Shuffle size={18} />
         </LibAddTile>
       </LibGrid>
-      <input
+      <StyledBox as="input"
         ref={fileRef}
         type="file"
         accept={BANNER_COLLAGE_MEDIA_TYPES.join(',')}
         multiple
-        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+        $style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         aria-label="Add cover media"
         onChange={(event) => {
           if (event.target.files) onFiles(event.target.files);

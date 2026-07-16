@@ -10,31 +10,10 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  generateKeyBundle,
-  encryptMessage,
-  decryptMessage,
-  hasLocalKeys,
-  clearLocalKeys,
-  getLocalIdentityPublicKey,
-  getSignedPreKeyPrivate,
-  getOrCreateDeviceId,
-  getOrCreateRegistrationId,
-  getOrCreateIdentityKey,
-  generateSignedPreKey,
-  generateOneTimePreKeys,
-} from './e2eeCrypto';
+import { generateKeyBundle, encryptMessage, decryptMessage, hasLocalKeys, clearLocalKeys, getSignedPreKeyPrivate, getOrCreateDeviceId, getOrCreateRegistrationId, getOrCreateIdentityKey, generateSignedPreKey, generateOneTimePreKeys } from './e2eeCrypto';
 import type { EncryptedPayload } from './e2eeCrypto';
-import {
-  getEncryptionStatus,
-  uploadKeyBundle,
-  fetchUserKeyBundle,
-  getSafetyNumber,
-  deactivateE2EE as apiDeactivateE2EE,
-  replenishPreKeys,
-  getPreKeyCount,
-} from './e2eeApi';
-import type { E2EEStatus } from './e2eeApi';
+import { getEncryptionStatus, uploadKeyBundle, fetchUserKeyBundle, getSafetyNumber, deactivateE2EE as apiDeactivateE2EE, replenishPreKeys } from './e2eeApi';
+
 
 // ---------------------------------------------------------------------------
 // Hook

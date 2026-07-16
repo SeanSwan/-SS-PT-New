@@ -2,6 +2,7 @@ import React, { ReactNode, forwardRef } from 'react';
 import styled from 'styled-components';
 import { Card, CardContent, Divider, Typography } from './primitives';
 import { alpha } from '../../styles/mui-replacements';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface MainCardProps {
   border?: boolean;
@@ -61,7 +62,7 @@ const MainCard = forwardRef<HTMLDivElement, MainCardProps>(
     };
 
     return (
-      <Card elevation={elevation} ref={ref} className={className} style={cardStyle} {...others}>
+      <StyledBox as={Card} elevation={elevation} ref={ref} className={className} $style={cardStyle} {...others}>
         {/* card header and action */}
         {!darkTitle && title && (
           <CardHeaderWrapper>
@@ -77,19 +78,21 @@ const MainCard = forwardRef<HTMLDivElement, MainCardProps>(
         )}
 
         {/* content & header divider */}
-        {title && <Divider style={{ opacity: 0.5 }} />}
+        {title && <StyledBox as={Divider} $style={{ opacity: 0.5 }} />}
 
         {/* card content */}
         {content ? (
-          <CardContent className={contentClass || ''} style={{ padding: '20px', ...contentSX }}>
+          <StyledBox as={CardContent} className={contentClass || ''} $style={{ padding: '20px', ...contentSX }}>
             {children}
-          </CardContent>
+          </StyledBox>
         ) : (
           children
         )}
-      </Card>
+      </StyledBox>
     );
   }
 );
+
+MainCard.displayName = 'MainCard';
 
 export default MainCard;

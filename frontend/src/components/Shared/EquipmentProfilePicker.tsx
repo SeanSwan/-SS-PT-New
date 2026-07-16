@@ -136,6 +136,7 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
               </TriggerMeta>
             </TriggerInfo>
             <ChangeBtn
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect(null);
@@ -224,7 +225,7 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
         </DropdownPanel>
       )}
 
-      {expanded && <Backdrop onClick={() => setExpanded(false)} />}
+      {expanded && <Backdrop onPointerDown={() => setExpanded(false)} />}
     </PickerWrapper>
   );
 };
@@ -313,10 +314,13 @@ const TriggerMeta = styled.div`
   margin-top: 2px;
 `;
 
-const ChangeBtn = styled.span`
+const ChangeBtn = styled.button`
   font-size: 12px;
   color: #60C0F0;
   cursor: pointer;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
   padding: 4px 8px;
   border-radius: 6px;
   &:hover { background: rgba(96, 192, 240, 0.1); }

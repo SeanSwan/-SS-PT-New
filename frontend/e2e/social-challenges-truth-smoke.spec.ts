@@ -81,14 +81,16 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('social challenges show an honest empty state when challenge API fails', async ({ page }, testInfo) => {
+test('social challenges show an honest retryable error when challenge API fails', async ({ page }, testInfo) => {
   const consoleWatcher = watchSocialSmokeConsole(page);
 
   await page.goto('/social/challenges', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('tab', { name: /active/i })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /no active challenges/i })).toBeVisible();
+  const unavailableAlert = page.getByRole('alert');
+  await expect(unavailableAlert).toContainText(/challenges unavailable/i);
+  await expect(unavailableAlert.getByRole('button', { name: /retry/i })).toBeVisible();
   await expect(page.getByText(/30-day push-up challenge/i)).toHaveCount(0);
   await expect(page.getByText(/showing sample challenges/i)).toHaveCount(0);
 

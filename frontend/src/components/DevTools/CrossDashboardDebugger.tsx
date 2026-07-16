@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   ChevronDown,
@@ -431,9 +431,10 @@ const DebugLog = styled.div`
 `;
 
 // Import services
-import sessionService from '../../services/session-service';
-import api from '../../services/api';
-import { axiosInstance, authAxiosInstance } from '../../utils/axiosConfig';
+import '../../services/session-service';
+import '../../services/api';
+import { authAxiosInstance } from '../../utils/axiosConfig';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /**
  * CrossDashboardDebugger
@@ -453,19 +454,14 @@ const CrossDashboardDebugger: React.FC = () => {
   const [fixAttempts, setFixAttempts] = useState<Record<string, string>>({});
   const [debugLog, setDebugLog] = useState<string[]>([]);
 
-  // Fetch all data on component mount
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
   // Add to debug log
-  const log = (message: string) => {
+  const log = useCallback((message: string) => {
     const timestamp = new Date().toISOString();
     setDebugLog(prev => [`[${timestamp}] ${message}`, ...prev]);
-  };
+  }, []);
 
   // Fetch all data for debugging
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
     log('Starting comprehensive data fetch');
     
@@ -518,18 +514,20 @@ const CrossDashboardDebugger: React.FC = () => {
       
       log('Legacy MCP server checks skipped; SwanStudios APIs are the active runtime');
       
-      // Analyze data flow issues
-      analyzeDataFlow();
-      
+
     } catch (error: any) {
       log(`Error in data fetch: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [log]);
   
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
   // Analyze potential data flow issues between dashboards
-  const analyzeDataFlow = () => {
+  const analyzeDataFlow = useCallback(() => {
     const issues: string[] = [];
     
     // Check if session API is working
@@ -582,8 +580,14 @@ const CrossDashboardDebugger: React.FC = () => {
     
     setDataFlowIssues(issues);
     log(`Analysis complete: Found ${issues.length} potential data flow issues`);
-  };
+  }, [apiStatus, log, sessions, users]);
   
+
+  useEffect(() => {
+    if (!loading) {
+      analyzeDataFlow();
+    }
+  }, [analyzeDataFlow, loading]);
   // Fix common issues
   const attemptFixCommonIssues = async () => {
     log('Attempting to fix common issues');
@@ -717,7 +721,7 @@ const CrossDashboardDebugger: React.FC = () => {
           </FlexBox>
         ) : (
           <>
-            <div style={{ marginBottom: '32px' }}>
+            <StyledBox as="div" $style={{ marginBottom: '32px' }}>
               <Alert className={dataFlowIssues.length > 0 ? "warning" : "success"}>
                 <AlertIcon>
                   {dataFlowIssues.length > 0 ? <AlertTriangle size={16} /> : <CheckCircle size={16} />}
@@ -763,14 +767,14 @@ const CrossDashboardDebugger: React.FC = () => {
                     <CardTitle>
                       Legacy MCP
                     </CardTitle>
-                    <FlexBox className="gap-2" style={{ marginBottom: '8px' }}>
+                    <StyledBox as={FlexBox} className="gap-2" $style={{ marginBottom: '8px' }}>
                       <Chip className="warning small">Retired</Chip>
                       <Chip className="success small">APIs Active</Chip>
-                    </FlexBox>
+                    </StyledBox>
                   </CardContent>
                 </Card>
               </Grid>
-            </div>
+            </StyledBox>
             
             <TabsContainer>
               <TabsList>
@@ -809,7 +813,7 @@ const CrossDashboardDebugger: React.FC = () => {
                 </Subtitle>
                 
                 {dataFlowIssues.length > 0 ? (
-                  <div style={{ marginBottom: '32px' }}>
+                  <StyledBox as="div" $style={{ marginBottom: '32px' }}>
                     {dataFlowIssues.map((issue, index) => (
                       <Alert 
                         key={index}
@@ -823,16 +827,16 @@ const CrossDashboardDebugger: React.FC = () => {
                         </AlertContent>
                       </Alert>
                     ))}
-                  </div>
+                  </StyledBox>
                 ) : (
-                  <Alert className="success" style={{ marginBottom: '32px' }}>
+                  <StyledBox as={Alert} className="success" $style={{ marginBottom: '32px' }}>
                     <AlertIcon>
                       <CheckCircle size={16} />
                     </AlertIcon>
                     <AlertContent>
                       No data flow issues detected
                     </AlertContent>
-                  </Alert>
+                  </StyledBox>
                 )}
                 
                 {Object.keys(fixAttempts).length > 0 && (
@@ -841,8 +845,8 @@ const CrossDashboardDebugger: React.FC = () => {
                       Fix Attempts
                     </Subtitle>
                     
-                    <div style={{ marginBottom: '32px' }}>
-                      {Object.entries(fixAttempts).map(([key, result], index) => (
+                    <StyledBox as="div" $style={{ marginBottom: '32px' }}>
+                      {Object.entries(fixAttempts).map(([_key, result], index) => (
                         <Alert 
                           key={index}
                           className={result.includes('successful') ? "success" : "info"}
@@ -855,7 +859,7 @@ const CrossDashboardDebugger: React.FC = () => {
                           </AlertContent>
                         </Alert>
                       ))}
-                    </div>
+                    </StyledBox>
                   </>
                 )}
                 
@@ -866,9 +870,9 @@ const CrossDashboardDebugger: React.FC = () => {
                 <Accordion>
                   <AccordionHeader onClick={() => toggleAccordion(0)}>
                     <span>Sessions Not Appearing</span>
-                    <ChevronDown 
+                    <StyledBox as={ChevronDown}
                       size={20} 
-                      style={{ 
+                      $style={{
                         transform: expandedAccordions[0] ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease'
                       }} 
@@ -885,9 +889,9 @@ const CrossDashboardDebugger: React.FC = () => {
                         <li>Ensure sessions are associated with the correct client ID</li>
                         <li>Check that role-based filtering is working correctly in the session controller</li>
                       </ol>
-                      <Text style={{ marginTop: '16px' }}>
+                      <StyledBox as={Text} $style={{ marginTop: '16px' }}>
                         Direct fix: You can run a database repair script from the admin panel to ensure session data consistency.
-                      </Text>
+                      </StyledBox>
                     </AccordionBody>
                   </AccordionContent>
                 </Accordion>
@@ -895,9 +899,9 @@ const CrossDashboardDebugger: React.FC = () => {
                 <Accordion>
                   <AccordionHeader onClick={() => toggleAccordion(1)}>
                     <span>Notifications Not Appearing</span>
-                    <ChevronDown 
+                    <StyledBox as={ChevronDown}
                       size={20} 
-                      style={{ 
+                      $style={{
                         transform: expandedAccordions[1] ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease'
                       }} 
@@ -914,9 +918,9 @@ const CrossDashboardDebugger: React.FC = () => {
                         <li>Ensure notification events are being properly triggered by actions</li>
                         <li>Check that notification types are being correctly filtered</li>
                       </ol>
-                      <Text style={{ marginTop: '16px' }}>
+                      <StyledBox as={Text} $style={{ marginTop: '16px' }}>
                         Direct fix: You can manually trigger test notifications for all users to verify the notification system.
-                      </Text>
+                      </StyledBox>
                     </AccordionBody>
                   </AccordionContent>
                 </Accordion>
@@ -924,9 +928,9 @@ const CrossDashboardDebugger: React.FC = () => {
                 <Accordion>
                   <AccordionHeader onClick={() => toggleAccordion(2)}>
                     <span>Session Purchase Not Showing in Client Dashboard</span>
-                    <ChevronDown 
+                    <StyledBox as={ChevronDown}
                       size={20} 
-                      style={{ 
+                      $style={{
                         transform: expandedAccordions[2] ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease'
                       }} 
@@ -939,13 +943,13 @@ const CrossDashboardDebugger: React.FC = () => {
                       </Text>
                       <ol>
                         <li>Check that order processing is correctly adding session credits to client accounts</li>
-                        <li>Verify the client's availableSessions field is being updated</li>
+                        <li>Verify the client&apos;s availableSessions field is being updated</li>
                         <li>Ensure session packages are correctly defined with session counts</li>
                         <li>Check that the cart checkout process is completing successfully</li>
                       </ol>
-                      <Text style={{ marginTop: '16px' }}>
+                      <StyledBox as={Text} $style={{ marginTop: '16px' }}>
                         Direct fix: You can manually add session credits to client accounts from the admin dashboard.
-                      </Text>
+                      </StyledBox>
                     </AccordionBody>
                   </AccordionContent>
                 </Accordion>
@@ -953,9 +957,9 @@ const CrossDashboardDebugger: React.FC = () => {
                 <Accordion>
                   <AccordionHeader onClick={() => toggleAccordion(3)}>
                     <span>Legacy MCP Retirement</span>
-                    <ChevronDown 
+                    <StyledBox as={ChevronDown}
                       size={20} 
-                      style={{ 
+                      $style={{
                         transform: expandedAccordions[3] ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease'
                       }} 
@@ -972,9 +976,9 @@ const CrossDashboardDebugger: React.FC = () => {
                         <li>Check auth headers and role access for the active REST endpoints</li>
                         <li>Keep ENABLE_MCP_SERVICES and ENABLE_MCP_ROUTES disabled unless restoring the old stack deliberately</li>
                       </ol>
-                      <Text style={{ marginTop: '16px' }}>
+                      <StyledBox as={Text} $style={{ marginTop: '16px' }}>
                         Direct fix: repair the first-party API route or service that is failing.
-                      </Text>
+                      </StyledBox>
                     </AccordionBody>
                   </AccordionContent>
                 </Accordion>
@@ -1124,9 +1128,9 @@ const CrossDashboardDebugger: React.FC = () => {
                   </Table>
                 </TableContainer>
                 
-                <Subtitle style={{ marginTop: '32px', marginBottom: '16px' }}>
+                <StyledBox as={Subtitle} $style={{ marginTop: '32px', marginBottom: '16px' }}>
                   Legacy MCP Status
-                </Subtitle>
+                </StyledBox>
                 
                 <TableContainer>
                   <Table>

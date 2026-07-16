@@ -163,7 +163,7 @@ const LoadingSpinner = styled(Loader)`
 `;
 
 const MAX_FACTION_ID_LENGTH = 50;
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+const CONTROL_CHARS = /\p{Cc}/u;
 
 const normalizeFactionId = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;

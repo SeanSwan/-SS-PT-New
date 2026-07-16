@@ -37,7 +37,7 @@ interface NutritionTabConfig {
   icon: ReactNode;
 }
 
-export const NUTRITION_PRIMARY_TABS: NutritionTabConfig[] = [
+const NUTRITION_PRIMARY_TABS: NutritionTabConfig[] = [
   { id: 'log', label: 'Manual Meal', icon: <Utensils size={16} /> },
   { id: 'search', label: 'Food Search', icon: <Search size={16} /> },
   { id: 'barcode', label: 'Barcode', icon: <ScanBarcode size={16} /> },
@@ -64,11 +64,10 @@ export const NUTRITION_TAB_LABELS = ALL_TABS.reduce<Record<Tab, string>>((labels
   return labels;
 }, {} as Record<Tab, string>);
 
-export const isCaptureNutritionTab = (tab: Tab) =>
-  NUTRITION_PRIMARY_TABS.some((captureTab) => captureTab.id === tab);
+
 
 export const isMoreNutritionTab = (tab: Tab) =>
   NUTRITION_MORE_TABS.some((secondaryTab) => secondaryTab.id === tab);
 
-export const nutritionTabId = (tab: Tab) => `nutrition-tab-${tab}-tab`;
+
 export const nutritionPanelId = (tab: Tab) => `nutrition-tab-${tab}`;

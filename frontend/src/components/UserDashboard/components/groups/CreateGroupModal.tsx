@@ -191,9 +191,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onCreate }
           </CloseButton>
         </DialogHeader>
 
-        <FieldLabel>
+        <FieldLabel htmlFor="group-name">
           Group name
           <GroupSearchInput
+            id="group-name"
             ref={nameRef}
             value={name}
             maxLength={80}
@@ -202,9 +203,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onCreate }
           />
         </FieldLabel>
 
-        <FieldLabel>
+        <FieldLabel htmlFor="group-description">
           What is this group about?
           <DescriptionInput
+            id="group-description"
             value={description}
             maxLength={2000}
             onChange={(e) => setDescription(e.target.value)}

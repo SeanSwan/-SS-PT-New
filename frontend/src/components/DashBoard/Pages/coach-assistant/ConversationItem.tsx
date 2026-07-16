@@ -10,7 +10,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { MessageSquare, Trash2, Pencil, Check, X } from 'lucide-react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import {
@@ -57,6 +57,13 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const frame = window.requestAnimationFrame(() => editInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [isEditing]);
 
   const handleSelect = useCallback(() => {
     if (!isEditing) onSelect(conversation.id);
@@ -118,11 +125,11 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
       <ConvItemContent>
         {isEditing ? (
           <InlineTitleInput
+            ref={editInputRef}
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             onClick={e => e.stopPropagation()}
-            autoFocus
           />
         ) : (
           <>

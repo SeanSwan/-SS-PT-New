@@ -1,5 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const shimmer = keyframes`
   0% {
@@ -65,11 +66,11 @@ const WidgetSkeleton: React.FC<{ count?: number }> = ({ count = 3 }) => {
       {Array.from({ length: count }).map((_, index) => (
         <SkeletonItem key={index}>
           <SkeletonCircle />
-          <div style={{ flex: 1 }}>
+          <StyledBox as="div" $style={{ flex: 1 }}>
             <SkeletonLine className="long" />
             <SkeletonLine className="short" />
-          </div>
-          <SkeletonBase style={{ width: '50px', height: '24px' }} />
+          </StyledBox>
+          <StyledBox as={SkeletonBase} $style={{ width: '50px', height: '24px' }} />
         </SkeletonItem>
       ))}
     </div>

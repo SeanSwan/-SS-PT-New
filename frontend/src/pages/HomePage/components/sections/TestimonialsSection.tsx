@@ -13,6 +13,8 @@ import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../../../components/ui-kit/cinematic/TypewriterText';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props { tier: 'full' | 'balanced' | 'essential' }
 
@@ -65,8 +67,8 @@ const TestimonialsSection: React.FC<Props> = ({ tier }) => {
   };
 
   const cards = TESTIMONIALS.map((t, i) => (
-    <GlassCard key={i} variant="cyan" padding="1.75rem" disableBlur={tier === 'essential'}
-      variants={animate ? cardVariant : undefined} style={{ display: 'flex', flexDirection: 'column' }}>
+    <StyledBox as={GlassCard} key={i} variant="cyan" padding="1.75rem" disableBlur={tier === 'essential'}
+      variants={animate ? cardVariant : undefined} $style={{ display: 'flex', flexDirection: 'column' }}>
       <StarsRow>{STARS}</StarsRow>
       <Quote>&ldquo;{t.quote}&rdquo;</Quote>
       <div>
@@ -74,7 +76,7 @@ const TestimonialsSection: React.FC<Props> = ({ tier }) => {
         <TestimonialMeta>{t.descriptor}</TestimonialMeta>
         <ResultBadge>{t.result}</ResultBadge>
       </div>
-    </GlassCard>
+    </StyledBox>
   ));
 
   const header = (
@@ -87,7 +89,7 @@ const TestimonialsSection: React.FC<Props> = ({ tier }) => {
   return (
     <SectionEl ref={sectionRef}>
       {tier === 'full' && (
-        <ParallaxBg $bgImage="/images/parallax/testimonials-swan-bg.png" $opacity={0.25} style={{ y: parallaxY }} />
+        <ParallaxBg $bgImage="/images/parallax/testimonials-swan-bg.png" $opacity={0.25} {...motionStyleProps({ y: parallaxY })} />
       )}
       <Container>
         {animate ? <ScrollReveal blur={useBlur} {...reveal}>{header}</ScrollReveal> : header}

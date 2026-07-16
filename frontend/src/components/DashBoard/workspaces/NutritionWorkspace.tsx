@@ -126,7 +126,7 @@ const NutritionWorkspace: React.FC = () => {
         <HeaderIcon><Apple size={28} /></HeaderIcon>
         <div>
           <HeaderTitle>Nutrition Intelligence</HeaderTitle>
-          <HeaderSubtitle>Today's diary, macro balance, hydration, and trainer review</HeaderSubtitle>
+          <HeaderSubtitle>Today&apos;s diary, macro balance, hydration, and trainer review</HeaderSubtitle>
         </div>
         <HeaderActions>
           <GentleModeButton

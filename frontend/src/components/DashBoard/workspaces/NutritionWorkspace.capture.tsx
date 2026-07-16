@@ -41,6 +41,7 @@ import {
   TileTitle,
   TodayRibbon,
 } from './NutritionWorkspace.capture.styles';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 interface CaptureAction {
   tab: Tab;
@@ -218,14 +219,14 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
                 padAngle={3}
                 padding={10}
                 labels={() => ''}
-                style={{
+                {...victoryStyleProps({
                   data: {
                     fill: ({ datum }) => String(datum?.color || 'var(--accent-primary, #60C0F0)'),
                     opacity: gentleMode || macroPulse.total <= 0 ? 0.46 : 0.95,
                     stroke: 'var(--primary, #002060)',
                     strokeWidth: 2,
                   },
-                }}
+                })}
               />
               <MacroPulseCenter>
                 <strong>{macroPulseCenter}</strong>

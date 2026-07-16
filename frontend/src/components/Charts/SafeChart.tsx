@@ -7,6 +7,7 @@
 import React, { Component, Suspense } from 'react';
 import styled from 'styled-components';
 import { CHART_COLORS, hexAlpha, ChartCard } from './chartTheme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Error Boundary ──
 interface ErrorBoundaryState { hasError: boolean; error: Error | null }
@@ -46,8 +47,8 @@ class ChartErrorBoundary extends Component<
 // ── Skeleton Loader ──
 const ChartSkeleton: React.FC = () => (
   <SkeletonCard aria-label="Loading chart…">
-    <SkeletonBar style={{ width: '60%', height: 14 }} />
-    <SkeletonBar style={{ width: '40%', height: 10, marginTop: 6 }} />
+    <StyledBox as={SkeletonBar} $style={{ width: '60%', height: 14 }} />
+    <StyledBox as={SkeletonBar} $style={{ width: '40%', height: 10, marginTop: 6 }} />
     <SkeletonBody />
   </SkeletonCard>
 );

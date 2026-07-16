@@ -11,13 +11,7 @@
  *   ref.current?.isEmpty()
  *   ref.current?.toDataURL()
  */
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useCallback,
-} from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import SignaturePadLib from 'signature_pad';
 

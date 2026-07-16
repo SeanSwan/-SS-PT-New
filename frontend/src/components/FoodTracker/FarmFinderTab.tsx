@@ -15,6 +15,7 @@ import {
 } from './FarmFinderTab.styles';
 import apiService from '../../services/api.service';
 import LocalFoodActionPanel from './LocalFoodActionPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const FARM_SEARCH_ERROR = 'Farmers market search is unavailable right now. Please try again.';
 const FARM_DETAILS_ERROR = 'Could not load market details. Please try again.';
@@ -216,7 +217,7 @@ const FarmFinderTab: React.FC = () => {
 
       {mapReady && mapMarkers.length > 0 && MapContainer && (
         <MapWrapper>
-          <MapContainer center={mapCenter} zoom={10} style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
+          <StyledBox as={MapContainer} center={mapCenter} zoom={10} $style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
@@ -226,7 +227,7 @@ const FarmFinderTab: React.FC = () => {
                 <Popup>{m.name}</Popup>
               </Marker>
             ))}
-          </MapContainer>
+          </StyledBox>
         </MapWrapper>
       )}
 
@@ -245,7 +246,7 @@ const FarmFinderTab: React.FC = () => {
                     onClick={() => loadDetail(market.id)}
                   >
                     <MarketHeader>
-                      <MapPin size={16} style={{ color: 'var(--accent-primary, #60C0F0)', flexShrink: 0 }} />
+                      <StyledBox as={MapPin} size={16} $style={{ color: 'var(--accent-primary, #60C0F0)', flexShrink: 0 }} />
                       <MarketName>{market.name}</MarketName>
                       {market.distanceMiles != null && (
                         <DistBadge>{market.distanceMiles.toFixed(1)} mi</DistBadge>

@@ -13,9 +13,9 @@ vi.mock('../context/AuthContext', () => ({
 }));
 
 function makeWrapper(queryClient: QueryClient) {
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return function QueryWrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
 }
 
 describe('useCreatePost gamification invalidation', () => {

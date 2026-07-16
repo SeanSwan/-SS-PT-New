@@ -6,8 +6,8 @@
  * └────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback, useEffect, memo } from 'react';
-import { Ruler, Save, RotateCcw, HelpCircle } from 'lucide-react';
+import React, { useState, useCallback, memo } from 'react';
+import { Ruler, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   Btn,

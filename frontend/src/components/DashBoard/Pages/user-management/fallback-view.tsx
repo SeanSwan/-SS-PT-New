@@ -208,7 +208,7 @@ const UserManagementFallback: React.FC = () => {
             <CardBody>
               <CardTitle>Sample User List</CardTitle>
               <CardDesc>
-                Below is a representation of the user management interface. When fully implemented, you'll be able to:
+                Below is a representation of the user management interface. When fully implemented, you&apos;ll be able to:
               </CardDesc>
 
               {sampleUsers.map((user, index) => (

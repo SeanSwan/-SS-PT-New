@@ -262,21 +262,21 @@ describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
   const themeIds = Object.keys(themes) as ThemeId[];
 
   it('re-points --wing-purple-rgb at the active theme palette', () => {
-    const ruby = generateCSSVariables('ruby-forge' as ThemeId);
+    const ruby = generateCSSVariables('ruby-forge' as ThemeId, themes);
     // ruby-forge wingPurple <- spec.secondary #BE123C -> 190, 18, 60
     expect(ruby).toContain('--wing-purple-rgb: 190, 18, 60;');
     expect(ruby).not.toContain('--wing-purple-rgb: 139, 92, 246;');
   });
 
   it('keeps the default theme identical to the static tokens.css values', () => {
-    const dflt = generateCSSVariables('crystalline-default' as ThemeId);
+    const dflt = generateCSSVariables('crystalline-default' as ThemeId, themes);
     expect(dflt).toContain('--wing-purple-rgb: 139, 92, 246;');
     expect(dflt).toContain('--ice-wing-rgb: 96, 192, 240;');
   });
 
   it('fails soft: no malformed --*-rgb line for any theme', () => {
     for (const id of themeIds) {
-      const css = generateCSSVariables(id);
+      const css = generateCSSVariables(id, themes);
       expect(css, `${id} emitted rgba into an rgb triplet`).not.toMatch(/--[a-z-]+-rgb:\s*rgba\(/);
       expect(css, `${id} emitted an empty rgb triplet`).not.toMatch(/--[a-z-]+-rgb:\s*;/);
     }
@@ -293,7 +293,7 @@ describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
       '--shadow-strong:', '--achievement-text:', '--achievement-accent:'
     ];
     for (const id of themeIds) {
-      const css = generateCSSVariables(id);
+      const css = generateCSSVariables(id, themes);
       for (const token of required) {
         expect(css, `${id} missing ${token}`).toContain(token);
       }

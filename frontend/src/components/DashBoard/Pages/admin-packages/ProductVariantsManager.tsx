@@ -58,6 +58,7 @@ import {
   SwitchTrack,
 } from './admin-packages-view.formStyles';
 import { AddBtn, Editor, Hint, IconBtn, Meta, Row, RowLabel, Title, Wrap } from './ProductVariantsManager.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Variant {
   id: number;
@@ -207,7 +208,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
             <RowLabel $dim={!variant.isActive}>{variant.label}</RowLabel>
             <Meta>{variant.price === null || variant.price === undefined ? 'inherits' : `$${variant.price}`}</Meta>
             <Meta>{variant.stockQuantity === null || variant.stockQuantity === undefined ? '-' : `${variant.stockQuantity} in stock`}</Meta>
-            <SwitchLabel htmlFor={`variant-active-${variant.id}`} title={variant.isActive ? 'Active' : 'Inactive'} style={busyId === variant.id ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+            <StyledBox as={SwitchLabel} htmlFor={`variant-active-${variant.id}`} title={variant.isActive ? 'Active' : 'Inactive'} $style={busyId === variant.id ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
               <HiddenCheckbox
                 id={`variant-active-${variant.id}`}
                 type="checkbox"
@@ -217,7 +218,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
                 onChange={() => handleToggle(variant)}
               />
               <SwitchTrack $checked={variant.isActive}><SwitchThumb $checked={variant.isActive} /></SwitchTrack>
-            </SwitchLabel>
+            </StyledBox>
             <IconBtn type="button" onClick={() => startEdit(variant)} aria-label={`Edit ${variant.label}`} title="Edit"><Edit2 size={15} /></IconBtn>
             <IconBtn type="button" className="danger" disabled={busyId === variant.id} onClick={() => handleDelete(variant)} aria-label={`Delete ${variant.label}`} title="Delete"><Trash2 size={15} /></IconBtn>
           </Row>
@@ -230,7 +231,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
         <FormInput id="variant-stock" type="number" min={0} value={dStock} onChange={(e) => setDStock(e.target.value)} placeholder="Stock (blank=untracked)" />
       </Editor>
       <FormInput id="variant-sku" value={dSku} onChange={(e) => setDSku(e.target.value)} placeholder="SKU (optional)" />
-      <Row style={{ background: 'transparent', padding: 0 }}>
+      <StyledBox as={Row} $style={{ background: 'transparent', padding: 0 }}>
         <AddBtn type="button" onClick={handleSaveDraft} disabled={saving}>
           {saving ? <Loader2 size={15} className="spin" /> : editingId !== null ? <Check size={15} /> : <Plus size={15} />}
           {editingId !== null ? 'Save variant' : 'Add variant'}
@@ -238,7 +239,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
         {editingId !== null && (
           <IconBtn type="button" onClick={resetDraft} aria-label="Cancel edit" title="Cancel"><X size={15} /></IconBtn>
         )}
-      </Row>
+      </StyledBox>
     </Wrap>
   );
 };

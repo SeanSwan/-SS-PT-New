@@ -37,7 +37,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
       setCommandMessages(prev => [...prev, userMsg, reviewMsg]);
       return { userMsgId, reviewMsgId };
     },
-    [],
+    [setCommandMessages],
   );
 
   /**
@@ -65,7 +65,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
         }),
       );
     },
-    [],
+    [setCommandMessages],
   );
 
   /**
@@ -94,7 +94,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
         }),
       );
     },
-    [],
+    [setCommandMessages],
   );
 
   /**
@@ -108,7 +108,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
         prev.filter(msg => msg.id !== userMsgId && msg.id !== reviewMsgId),
       );
     },
-    [],
+    [setCommandMessages],
   );
 
   /**
@@ -168,7 +168,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
       setCommandMessages(prev => [...prev, userMsg, errorMsg]);
       return { userMsgId, errorMsgId };
     },
-    [],
+    [setCommandMessages],
   );
 
   const appendAudioIntakeReceipt = useCallback(
@@ -201,7 +201,7 @@ export function useCoachAssistantTranscriptMessages(setCommandMessages: CommandM
       setCommandMessages(prev => [...prev, userMsg, receiptMsg]);
       return { userMsgId, receiptMsgId };
     },
-    [],
+    [setCommandMessages],
   );
 
   return {

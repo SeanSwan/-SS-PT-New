@@ -6,6 +6,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import logoSrc from '../../assets/Logo.png';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface SwanIconProps {
   size?: number;
@@ -15,7 +16,7 @@ interface SwanIconProps {
 
 const SwanIcon: React.FC<SwanIconProps> = ({ size = 24, elevated = false, className }) => {
   return (
-    <motion.img
+    <StyledBox as={motion.img}
       src={logoSrc}
       alt="Swan"
       width={size}
@@ -27,7 +28,7 @@ const SwanIcon: React.FC<SwanIconProps> = ({ size = 24, elevated = false, classN
         scale: elevated ? [1, 1.25, 1] : 1,
       }}
       transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
-      style={{
+      $style={{
         borderRadius: '50%',
         objectFit: 'cover',
         filter: elevated

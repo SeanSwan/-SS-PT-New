@@ -39,7 +39,7 @@ const TrainerWorkoutForgeNextActions = ({
       </ActionBtn>
     </ButtonRow>
     <HelperCopy>
-      Logger opens with today's plan loaded. Workout Planner keeps the draft in the review lane.
+      Logger opens with today&apos;s plan loaded. Workout Planner keeps the draft in the review lane.
     </HelperCopy>
   </Card>
 );

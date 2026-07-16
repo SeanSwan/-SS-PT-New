@@ -157,7 +157,7 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
         </Header>
         <StateMessage>
           No OHSA compensations on file. Run an Overhead Squat Assessment from
-          the client's Movement Analysis tab to populate corrective
+          the client&apos;s Movement Analysis tab to populate corrective
           recommendations here.
         </StateMessage>
       </Container>

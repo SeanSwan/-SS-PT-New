@@ -208,7 +208,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     if (!trimmed) continue;
 
     const intervalMatch = trimmed.match(
-      /^(?:\d+[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:rounds?|sets?)\s*(?:x|\u00d7|of)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
+      /^(?:\d+[.)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:rounds?|sets?)\s*(?:x|\u00d7|of)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
     );
 
     if (intervalMatch) {
@@ -221,7 +221,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     }
 
     const timedSetMatch = trimmed.match(
-      /^(?:\d+[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:x|\u00d7)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
+      /^(?:\d+[.)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:x|\u00d7)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
     );
 
     if (timedSetMatch) {
@@ -234,7 +234,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     }
 
     const durationMatch = trimmed.match(
-      /^(?:\d+[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:m|min|mins|minutes?)\b/i
+      /^(?:\d+[.)]\s*|[-\u2022]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-\u2013\u2014:]\s*(\d+)\s*(?:m|min|mins|minutes?)\b/i
     );
 
     if (durationMatch) {
@@ -247,7 +247,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     }
 
     const exerciseMatch = trimmed.match(
-      /^(?:(?:[A-Z]\d+|\d+)[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?(?:\s*[-\u2013\u2014:]\s*|\s+)(\d+)\s*(?:sets?\s*(?:x|\u00d7|of)\s*|\s*(?:x|\u00d7)\s*)(\d+)\s*(?:reps?)?/i
+      /^(?:(?:[A-Z]\d+|\d+)[.)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?(?:\s*[-\u2013\u2014:]\s*|\s+)(\d+)\s*(?:sets?\s*(?:x|\u00d7|of)\s*|\s*(?:x|\u00d7)\s*)(\d+)\s*(?:reps?)?/i
     );
 
     if (exerciseMatch) {
@@ -274,7 +274,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
 
     // Simpler pattern: "Exercise Name (3x10)"
     const simpleMatch = trimmed.match(
-      /^(?:(?:[A-Z]\d+|\d+)[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?[\s]*\((\d+)\s*[x\u00d7]\s*(\d+)\)/i
+      /^(?:(?:[A-Z]\d+|\d+)[.)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?[\s]*\((\d+)\s*[x\u00d7]\s*(\d+)\)/i
     );
 
     if (simpleMatch) {

@@ -78,12 +78,7 @@ export function useClientAnalytics(): UseClientAnalyticsReturn {
 
     try {
       // Parallel fetch: core analytics + all 9 chart endpoints
-      const [
-        dashboardRes, volumeRes, prsRes, frequencyRes,
-        chartFreqRes, chartWeightRes, chartMuscleRes, chartMacroRes,
-        chartCardioRes, chartSessionRes, chartBodyFatRes, chartRecoveryRes,
-        chartRPERes,
-      ] = await Promise.allSettled([
+      const [, volumeRes, prsRes, , chartFreqRes, chartWeightRes, chartMuscleRes, chartMacroRes, chartCardioRes, chartSessionRes, chartBodyFatRes, chartRecoveryRes, chartRPERes] = await Promise.allSettled([
         authAxios.get('/api/client/analytics/dashboard', { params: { days: 90 } }),
         authAxios.get('/api/client/analytics/volume-progression', { params: { groupBy: 'week' } }),
         authAxios.get('/api/client/analytics/personal-records'),

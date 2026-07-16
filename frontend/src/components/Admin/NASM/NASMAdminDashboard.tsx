@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
 import ConfirmActionDialog from '../../Shared/ConfirmActionDialog';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* =============================================
    INTERFACES (unchanged)
@@ -555,11 +556,11 @@ const NASMAdminDashboard: React.FC = () => {
 
   // Template Builder State
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [, setTemplateDialogOpen] = useState(false);
 
   // Exercise Library State
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
+  const [, setExerciseDialogOpen] = useState(false);
 
   // Certification Verification State
   const [certifications, setCertifications] = useState<TrainerCertification[]>([]);
@@ -573,33 +574,27 @@ const NASMAdminDashboard: React.FC = () => {
 
   // Load initial data based on active tab
   useEffect(() => {
-    loadTabData();
-  }, [activeTab]);
-
-  const loadTabData = async () => {
-    setLoading(true);
-    try {
-      switch (activeTab) {
-        case 0: // Compliance Dashboard
-          await loadComplianceMetrics();
-          break;
-        case 1: // Template Builder
-          await loadWorkoutTemplates();
-          break;
-        case 2: // Exercise Library
-          await loadExercises();
-          break;
-        case 3: // Certifications
-          await loadCertifications();
-          break;
+    const loadTabData = async () => {
+      setLoading(true);
+      try {
+        const requestByTab = [
+          '/api/admin/nasm/compliance-metrics',
+          '/api/admin/workout-templates',
+          '/api/admin/exercise-library',
+          '/api/admin/trainer-certifications',
+        ] as const;
+        const response = await api.get(requestByTab[activeTab]);
+        const applyByTab = [setMetrics, setTemplates, setExercises, setCertifications] as const;
+        applyByTab[activeTab](response.data);
+      } catch (error) {
+        console.error('Error loading tab data:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading tab data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
+    void loadTabData();
+  }, [activeTab]);
   // ========================================
   // COMPLIANCE DASHBOARD
   // ========================================
@@ -961,11 +956,11 @@ const NASMAdminDashboard: React.FC = () => {
                 <Td>{exercise.primary_body_part}</Td>
                 <Td>{exercise.primary_equipment}</Td>
                 <Td>
-                  <StackRow $gap={4} style={{ flexWrap: 'wrap' }}>
+                  <StyledBox as={StackRow} $gap={4} $style={{ flexWrap: 'wrap' }}>
                     {exercise.opt_phases.map((phase) => (
                       <Chip key={phase} $small>P{phase}</Chip>
                     ))}
-                  </StackRow>
+                  </StyledBox>
                 </Td>
                 <Td>
                   {exercise.demo_video_url ? (

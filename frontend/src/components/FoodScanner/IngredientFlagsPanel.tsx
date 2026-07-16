@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Info, Microscope } from 'lucide-react';
 import type { FoodProduct, Ingredient, RatingTone } from './productAnalysis.types';
 import { ingredientCounts, ingredientFlags, ratingTone } from './productAnalysis.logic';
 import { ActionButton, Chip, DetailLabel, DetailRow, InfoMessage, PanelShell, SectionTitle, toneColor, toneSurface } from './ProductAnalysis.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Legend = styled.div`
   display: flex;
@@ -122,10 +123,10 @@ const IngredientFlagsPanel: React.FC<IngredientFlagsPanelProps> = ({ product, on
         );
       })}
       {product.healthConcerns && product.healthConcerns.length > 0 && (
-        <div style={{ marginTop: '1rem' }}>
+        <StyledBox as="div" $style={{ marginTop: '1rem' }}>
           <SectionTitle>Ingredient Notes</SectionTitle>
           {product.healthConcerns.map((concern) => <InfoMessage key={concern}>{concern}</InfoMessage>)}
-        </div>
+        </StyledBox>
       )}
     </PanelShell>
   );

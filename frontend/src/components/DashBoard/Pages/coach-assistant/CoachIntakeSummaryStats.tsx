@@ -3,7 +3,7 @@
  * ============================
  * Reusable queue-pressure summary for the Hive Mind intake workspace.
  */
-import React from 'react';
+
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import { Stat, StatGrid } from './CoachIntakeWorkspace.styles';
 

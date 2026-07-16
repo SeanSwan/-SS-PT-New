@@ -15,6 +15,7 @@ import type { PrintOrder } from '../types';
 import {
   Banner, DangerButton, EmptyState, GhostButton, HelperText, Input, Panel, PrimaryButton, SectionTitle, Select, Spinner,
 } from '../styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const money = (v?: string | null) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const when = (s?: string | null) => (s ? new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
@@ -47,14 +48,14 @@ const PrintOrdersPanel: React.FC = () => {
       <Head>
         <SectionTitle><Printer size={18} aria-hidden="true" /> Print orders</SectionTitle>
         <Controls>
-          <Select
+          <StyledBox as={Select}
             aria-label="Filter print orders by status"
             value={po.filter}
             onChange={(e) => po.setFilter(e.target.value as never)}
-            style={{ minWidth: 150 }}
+            $style={{ minWidth: 150 }}
           >
             {FILTERS.map((f) => <option key={f.v} value={f.v}>{f.label}</option>)}
-          </Select>
+          </StyledBox>
           <GhostButton type="button" onClick={() => po.reload()} disabled={po.loading}>
             <RefreshCcw size={16} aria-hidden="true" /> Refresh
           </GhostButton>
@@ -110,12 +111,12 @@ const PrintOrdersPanel: React.FC = () => {
                   )}
                   {canShip && (
                     <ShipRow>
-                      <Input
+                      <StyledBox as={Input}
                         aria-label="Tracking number"
                         placeholder="Tracking #"
                         value={tracking[o.id] ?? ''}
                         onChange={(e) => setTracking((t) => ({ ...t, [o.id]: e.target.value }))}
-                        style={{ minHeight: 44, maxWidth: 140 }}
+                        $style={{ minHeight: 44, maxWidth: 140 }}
                       />
                       <PrimaryButton type="button" onClick={() => po.markShipped(o.id, tracking[o.id]?.trim() || undefined)} disabled={busy}>
                         <Truck size={15} aria-hidden="true" /> Ship

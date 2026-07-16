@@ -8,14 +8,14 @@
  */
 
 import React from 'react';
-import styled, { css, keyframes, type RuleSet } from 'styled-components';
-import { galaxySwanTheme, mediaQueries } from './galaxy-swan-theme';
+import styled, { css, keyframes } from 'styled-components';
+import { galaxySwanTheme } from './galaxy-swan-theme';
 import GlowButton from '../components/ui/buttons/GlowButton';
 
 // === ENHANCED KEYFRAME ANIMATIONS ===
 
 // Swan-inspired elegant animations with PRIMARY colors
-export const swanGlide = keyframes`
+const swanGlide = keyframes`
   0% { 
     transform: translateY(0px); 
     filter: drop-shadow(0 0 5px ${galaxySwanTheme.primary.main}); 
@@ -31,7 +31,7 @@ export const swanGlide = keyframes`
 `;
 
 // Crystalline Swan shimmer effect with PRIMARY colors
-export const galaxySwanShimmer = keyframes`
+const galaxySwanShimmer = keyframes`
   0% { 
     background-position: -200% 0; 
     opacity: 0.8;
@@ -47,7 +47,7 @@ export const galaxySwanShimmer = keyframes`
 `;
 
 // Elegant glow effect combining Swan and Galaxy elements with PRIMARY focus
-export const elegantGlow = keyframes`
+const elegantGlow = keyframes`
   0%, 100% { 
     text-shadow: 
       0 0 5px ${galaxySwanTheme.primary.main},
@@ -65,47 +65,13 @@ export const elegantGlow = keyframes`
 // === RESPONSIVE ANIMATION MIXINS ===
 
 // Animation with performance fallbacks - Enhanced version
-export const responsiveAnimation = (
-  standardAnimation: string,
-  reducedAnimation: string = 'none'
-) => css`
-  animation: ${standardAnimation};
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: ${reducedAnimation};
-  }
-  
-  @media (max-width: 768px) {
-    animation-duration: 0.8s; /* Slightly faster on mobile */
-  }
-`;
+
 
 // Alternative responsive animation function for CSS strings
-export const responsiveAnimationCSS = (animationCSS: string) => css`
-  ${animationCSS}
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
+
 
 // Hover effects with accessibility considerations using PRIMARY colors
-export const accessibleHover = (hoverStyles: RuleSet<object> | string) => css`
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  &:hover {
-    ${hoverStyles}
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    
-    &:hover {
-      transform: none;
-      animation: none;
-    }
-  }
-`;
+
 
 // === THEME-BASED STYLED COMPONENTS ===
 
@@ -329,55 +295,21 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
 // === UTILITY MIXINS ===
 
 // Glassmorphism effect with Swan-Galaxy colors using PRIMARY
-export const glassMorphism = css`
-  background: rgba(30, 30, 60, 0.4);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-`;
+
 
 // Text gradient with Crystalline Swan colors emphasizing PRIMARY
-export const textGradient = (colors: string[] = [
-  '#8B5CF6',
-  '#00A0E3',
-  '#8B5CF6'
-]) => css`
-  background: linear-gradient(to right, ${colors.join(', ')});
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-`;
+
 
 // Responsive glow effect using PRIMARY colors
-export const responsiveGlow = (color: string = '#8B5CF6') => css`
-  filter: drop-shadow(0 0 10px ${color}33);
-  
-  @media (prefers-reduced-motion: reduce) {
-    filter: none;
-  }
-`;
+
 
 // === THEME PROVIDER HELPERS ===
 
 // Function to get theme-appropriate spacing
-export const getSpacing = (multiplier: number = 1): string => {
-  return `${0.5 * multiplier}rem`;
-};
+
 
 // Function to get responsive font size
-export const getResponsiveFontSize = (baseSize: string) => css`
-  font-size: ${baseSize};
-  
-  @media (max-width: 480px) {
-    font-size: calc(${baseSize} * 0.875);
-  }
-  
-  @media (min-width: 481px) and (max-width: 768px) {
-    font-size: calc(${baseSize} * 0.9375);
-  }
-`;
+
 
 // === PERFORMANCE OPTIMIZED COMPONENTS ===
 
@@ -405,8 +337,4 @@ export const PurpleButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedG
 // Legacy alias for compatibility - points to ThemedGlowButton with PRIMARY default
 export const SwanButton = ThemedGlowButton;
 
-export {
-  galaxySwanTheme,
-  mediaQueries,
-  GlowButton // Re-export the original component
-};
+export { GlowButton };

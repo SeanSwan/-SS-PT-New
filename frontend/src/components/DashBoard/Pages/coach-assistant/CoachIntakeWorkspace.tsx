@@ -11,7 +11,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
-import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+
 import type { CoachActionProposal } from './SwanCoachTypes';
 import CoachIntakeEventTrail from './CoachIntakeEventTrail';
 import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
@@ -136,7 +136,7 @@ export function CoachIntakeWorkspace({
   React.useEffect(() => {
     if (!isTrainerSurface || !activeIntakeId || activeItem || isLoading || error) return;
     navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), queue.scope), { replace: true });
-  }, [activeIntakeId, activeItem, coachWorkspaceHref, error, isLoading, isTrainerSurface, navigate, nextItem]);
+  }, [activeIntakeId, activeItem, coachWorkspaceHref, error, isLoading, isTrainerSurface, navigate, nextItem, queue.scope]);
 
   const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
     const shouldAdvance = shouldAdvanceAfterProposalAction(proposal);
@@ -173,7 +173,7 @@ export function CoachIntakeWorkspace({
       });
       navigate(queueScopedHref(itemReviewHref(nextItemAfterAction, coachWorkspaceHref), queue.scope));
     })();
-  }, [activeIntakeId, activeItem, activeReviewTargetId, coachWorkspaceHref, navigate, orderedItems, refresh]);
+  }, [activeIntakeId, activeItem, activeReviewTargetId, coachWorkspaceHref, navigate, orderedItems, queue.scope, refresh]);
 
   if (!isTrainerSurface) return null;
 

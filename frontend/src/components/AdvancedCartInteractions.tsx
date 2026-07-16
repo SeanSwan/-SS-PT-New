@@ -20,29 +20,17 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, TrendingUp, Zap, Star, Target } from 'lucide-react';
+import { TrendingUp, Zap, Star, Target } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Celebration animations
-const celebrate = keyframes`
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.1) rotate(-2deg); }
-  50% { transform: scale(1.2) rotate(2deg); }
-  75% { transform: scale(1.1) rotate(-1deg); }
-  100% { transform: scale(1) rotate(0deg); }
-`;
 
-const sparkle = keyframes`
-  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(180deg); }
-`;
 
-const priceUpdate = keyframes`
-  0% { background-color: rgba(139, 92, 246, 0.2); transform: scale(1); }
-  50% { background-color: rgba(139, 92, 246, 0.4); transform: scale(1.05); }
-  100% { background-color: transparent; transform: scale(1); }
-`;
+
+
+
 
 // Interactive tooltip component
 const ContextualTooltip = styled(motion.div)`
@@ -222,7 +210,7 @@ const getParticleOffset = (index: number) => {
 
 // Main interaction hook
 export const useAdvancedCartInteractions = () => {
-  const [tooltips, setTooltips] = useState<TooltipInfo[]>([]);
+  const [tooltips] = useState<TooltipInfo[]>([]);
   const [celebrations, setCelebrations] = useState<CelebrationEffect[]>([]);
   const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
   const [notifications, setNotifications] = useState<SmartNotificationData[]>([]);
@@ -322,20 +310,20 @@ export const SmartTooltip: React.FC<{
   }, []);
   
   return (
-    <div
+    <StyledBox as="div"
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
-      style={{ position: 'relative', display: 'inline-block' }}
+      $style={{ position: 'relative', display: 'inline-block' }}
     >
       {children}
       <AnimatePresence>
         {isVisible && (
-          <ContextualTooltip
+          <StyledBox as={ContextualTooltip}
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            style={{
+            $style={{
               position: 'absolute',
               bottom: '100%',
               left: '50%',
@@ -344,10 +332,10 @@ export const SmartTooltip: React.FC<{
             }}
           >
             {content}
-          </ContextualTooltip>
+          </StyledBox>
         )}
       </AnimatePresence>
-    </div>
+    </StyledBox>
   );
 };
 
@@ -361,8 +349,8 @@ export const SessionProgressIndicator: React.FC<{
   
   return (
     <SessionProgress className={className}>
-      <div
-        style={{
+      <StyledBox as="div"
+        $style={{
           position: 'absolute',
           top: 0,
           left: 0,
@@ -374,7 +362,7 @@ export const SessionProgressIndicator: React.FC<{
       />
       <ProgressText>
         <div className="progress-label">
-          <Target size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+          <StyledBox as={Target} size={16} $style={{ marginRight: '0.5rem', display: 'inline' }} />
           Session Progress
         </div>
         <div className="progress-value">
@@ -428,28 +416,28 @@ export const CelebrationParticles: React.FC<{
 export const SmartNotifications: React.FC<{
   notifications: SmartNotificationData[];
   onDismiss: (id: string) => void;
-}> = ({ notifications, onDismiss }) => {
+}> = ({ notifications, onDismiss: _onDismiss }) => {
   return (
     <AnimatePresence>
       {notifications.map((notification, index) => (
-        <SmartNotification
+        <StyledBox as={SmartNotification}
           key={notification.id}
           initial={{ opacity: 0, x: 100, scale: 0.9 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: 100, scale: 0.9 }}
           transition={{ duration: 0.3, delay: index * 0.1 }}
-          style={{ top: `${2 + index * 5}rem` }}
+          $style={{ top: `${2 + index * 5}rem` }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {notification.type === 'success' && <Star size={16} />}
             {notification.type === 'info' && <Zap size={16} />}
             {notification.type === 'warning' && <TrendingUp size={16} />}
             <span>{notification.message}</span>
-          </div>
+          </StyledBox>
           {notification.action && (
-            <button
+            <StyledBox as="button"
               onClick={notification.action.onClick}
-              style={{
+              $style={{
                 background: 'rgba(255, 255, 255, 0.2)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 color: 'white',
@@ -461,21 +449,13 @@ export const SmartNotifications: React.FC<{
               }}
             >
               {notification.action.label}
-            </button>
+            </StyledBox>
           )}
-        </SmartNotification>
+        </StyledBox>
       ))}
     </AnimatePresence>
   );
 };
 
 // Export all components and hooks
-export {
-  ContextualTooltip,
-  SessionProgress,
-  PriceChangeIndicator,
-  HelpIcon,
-  celebrate,
-  sparkle,
-  priceUpdate
-};
+export { ContextualTooltip, SessionProgress, PriceChangeIndicator, HelpIcon };

@@ -1,20 +1,5 @@
 // Pure command-lane summaries live outside orchestration hooks so routing stays readable.
-import {
-  isNavigationCommand,
-  nonZeroNumberPart,
-  numberOr,
-  numberPart,
-  numberValue,
-  painEntryWord,
-  plural,
-  positiveNumberPart,
-  signed,
-  stringOr,
-  stringPart,
-  stringPairPart,
-  stringValue,
-  textOr,
-} from './coachCommandSummaryParts';
+import { isNavigationCommand, nonZeroNumberPart, numberOr, numberPart, painEntryWord, plural, positiveNumberPart, signed, stringOr, stringPart, stringPairPart, stringValue, textOr } from './coachCommandSummaryParts';
 import type { SummaryResult } from './coachCommandSummaryParts';
 
 type SummaryClient = { id?: number; firstName?: string } | null;

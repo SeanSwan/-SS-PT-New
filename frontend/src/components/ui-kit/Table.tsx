@@ -22,6 +22,7 @@
 
 import React, { createContext, useContext } from 'react';
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ==========================================
 // CONTEXT FOR TABLE STATE
@@ -156,7 +157,7 @@ function TableHeader({ children }: { children: React.ReactNode }) {
 
 // Body Component
 function TableBody({ children }: { children: React.ReactNode }) {
-  const { variant } = useContext(TableContext);
+  useContext(TableContext);
   
   return <StyledTableBody>{children}</StyledTableBody>;
 }
@@ -172,14 +173,14 @@ function TableRow({ children, onClick, className }: TableRowProps) {
   const { variant } = useContext(TableContext);
   
   return (
-    <StyledTableRow 
+    <StyledBox as={StyledTableRow}
       onClick={onClick} 
       className={className}
       striped={variant === 'striped'}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      $style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
       {children}
-    </StyledTableRow>
+    </StyledBox>
   );
 }
 

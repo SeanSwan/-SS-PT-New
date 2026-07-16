@@ -3,7 +3,7 @@
  * ==============================
  * Scope-aware empty state for the Coach intake queue worklist.
  */
-import React from 'react';
+
 import type { CoachIntakeQueueScope } from '../../../../services/coachIntakeService';
 import { ItemCard, ItemTitle, SourceChip } from './CoachIntakeWorkspace.styles';
 

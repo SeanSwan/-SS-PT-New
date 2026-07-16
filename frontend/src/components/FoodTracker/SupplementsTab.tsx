@@ -28,6 +28,7 @@ import {
   ShopLink, ComingSoon,
 } from './SupplementsTab.catalog.styles';
 import apiService from '../../services/api.service';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const SUPPLEMENT_GAP_LOGIN_ERROR = 'Log in to analyze your nutrition.';
 const SUPPLEMENT_GAP_ERROR = 'Supplement gap analysis is unavailable right now. Please try again.';
@@ -180,7 +181,7 @@ const SupplementsTab: React.FC = () => {
         )}
       </GapSection>
 
-      <SectionTitle style={{ marginTop: 24 }}>Browse by Category</SectionTitle>
+      <StyledBox as={SectionTitle} $style={{ marginTop: 24 }}>Browse by Category</StyledBox>
       <CategoryRow>
         <CatChip $active={selectedCategory === null} onClick={() => setSelectedCategory(null)}
           whileHover={reduceMotion ? undefined : { scale: 1.03 }} whileTap={reduceMotion ? undefined : { scale: 0.97 }}>

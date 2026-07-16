@@ -119,7 +119,7 @@ const TimelineSection: React.FC<TimelineSectionProps> = ({ tier }) => {
           </SectionTitle>
           <AccentLine />
           <SectionSubtitle>
-            Key milestones in Sean Swan's career and the evolution of SwanStudios.
+            Key milestones in Sean Swan&apos;s career and the evolution of SwanStudios.
           </SectionSubtitle>
         </ScrollReveal>
 

@@ -5,6 +5,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../../../context/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 import NutritionWorkspace from './NutritionWorkspace';
 
 const mocks = vi.hoisted(() => ({

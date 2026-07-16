@@ -19,7 +19,7 @@
  *   2. No fake upcoming-session time string is present
  *   3. Book Session CTA is present and navigates to /dashboard/client/schedule
  */
-import React from 'react';
+
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

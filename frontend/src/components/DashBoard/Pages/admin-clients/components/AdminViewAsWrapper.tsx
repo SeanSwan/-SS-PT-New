@@ -32,11 +32,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, X, Dumbbell, Flame, Trophy, Star, Calendar, ArrowLeft } from 'lucide-react';
+import { Shield, X, Dumbbell, Trophy, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getTier, getTierDisplay } from '../../../../../types/gamification';
 import { getNumericClientId } from '../../../workspaces/clients-team/tabs/clientTabId';
 import EnhancedWorkoutsModal from './EnhancedWorkoutsModal';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -466,7 +467,7 @@ const AdminViewAsWrapper: React.FC = () => {
 
       {/* Gamification Bar */}
       {gamification && (
-        <Panel style={{ marginBottom: 24 }}>
+        <StyledBox as={Panel} $style={{ marginBottom: 24 }}>
           <SectionTitle>
             <Trophy size={16} color="#C6A84B" />
             {gamification.tier} — Level {gamification.level}
@@ -474,10 +475,10 @@ const AdminViewAsWrapper: React.FC = () => {
           <XPBar>
             <XPFill $pct={gamification.xpProgress} />
           </XPBar>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
+          <StyledBox as="div" $style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
             {gamification.xpToNextLevel.toLocaleString()} XP to next level
-          </div>
-        </Panel>
+          </StyledBox>
+        </StyledBox>
       )}
 
       {/* Two-column: Workouts + Sessions */}
@@ -497,9 +498,9 @@ const AdminViewAsWrapper: React.FC = () => {
                 <Dumbbell size={14} color="#60C0F0" />
                 <div>
                   <div>{w.title}</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>
+                  <StyledBox as="div" $style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>
                     {new Date(w.date).toLocaleDateString()}
-                  </div>
+                  </StyledBox>
                 </div>
                 <Badge $color={w.status === 'completed' ? '#4caf50' : '#60C0F0'}>
                   {w.status}
@@ -519,9 +520,9 @@ const AdminViewAsWrapper: React.FC = () => {
                 <Calendar size={14} color="#8B5CF6" />
                 <div>
                   <div>{s.type}</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>
+                  <StyledBox as="div" $style={{ fontSize: '0.6875rem', color: '#94a3b8' }}>
                     {new Date(s.date).toLocaleDateString()} {new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  </StyledBox>
                 </div>
                 <Badge $color="#8B5CF6">{s.status}</Badge>
               </ListItem>

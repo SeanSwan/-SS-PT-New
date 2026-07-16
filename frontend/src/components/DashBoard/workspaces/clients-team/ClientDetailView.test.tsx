@@ -40,7 +40,7 @@ const TAB_INDEX_SOURCE = readFileSync(
   resolve(__dirname, './tabs/index.ts'),
   'utf8',
 );
-const PROGRESS_TAB_SOURCE = readFileSync(
+readFileSync(
   resolve(__dirname, './tabs/ProgressTabContent.tsx'),
   'utf8',
 );

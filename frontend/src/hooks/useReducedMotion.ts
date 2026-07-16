@@ -1,6 +1,7 @@
 // frontend/src/hooks/useReducedMotion.ts
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 
 /**
  * useReducedMotion Hook
@@ -61,9 +62,9 @@ export function useReducedMotion(): boolean {
       setPrefersReducedMotion(event.matches);
 
       if (event.matches) {
-        console.info('[useReducedMotion] User enabled reduced motion preference');
+        logger.debug('[useReducedMotion] User enabled reduced motion preference');
       } else {
-        console.info('[useReducedMotion] User disabled reduced motion preference');
+        logger.debug('[useReducedMotion] User disabled reduced motion preference');
       }
     };
 
@@ -110,9 +111,9 @@ export function useReducedTransparency(): boolean {
       setPrefersReducedTransparency(event.matches);
 
       if (event.matches) {
-        console.info('[useReducedTransparency] User enabled reduced transparency preference');
+        logger.debug('[useReducedTransparency] User enabled reduced transparency preference');
       } else {
-        console.info('[useReducedTransparency] User disabled reduced transparency preference');
+        logger.debug('[useReducedTransparency] User disabled reduced transparency preference');
       }
     };
 

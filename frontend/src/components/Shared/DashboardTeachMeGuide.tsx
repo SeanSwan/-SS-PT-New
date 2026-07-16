@@ -44,7 +44,7 @@ import {
 } from './DashboardTeachMeGuide.quickStyles';
 
 interface DashboardTeachMeGuideProps {
-  role: DashboardTeachMeRole | string;
+  dashboardRole: DashboardTeachMeRole | string;
   pathname: string;
   search?: string;
   onAskCoach?: (prompt: string) => void;
@@ -67,14 +67,14 @@ const sectionIdFor = (role: DashboardTeachMeRole, pathname: string) => {
 };
 
 const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> = ({
-  role,
+  dashboardRole,
   pathname,
   effectiveSearch,
   onAskCoach,
   onNavigate,
   variant = 'full',
 }) => {
-  const normalizedRole = normalizeDashboardTeachMeRole(role);
+  const normalizedRole = normalizeDashboardTeachMeRole(dashboardRole);
   const guide = useMemo(
     () => getDashboardTeachMeGuide({ role: normalizedRole, pathname, search: effectiveSearch }),
     [normalizedRole, pathname, effectiveSearch],

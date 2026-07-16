@@ -299,7 +299,7 @@ const ShareToFeedModal: React.FC<Props> = ({
   };
 
   return (
-    <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Overlay onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <Modal ref={modalRef} role="dialog" aria-modal="true" aria-label="Share to feed" tabIndex={-1}>
         <Header>
           <Title><Share2 size={18} color="#8B5CF6" /> Share to Feed</Title>
@@ -312,7 +312,6 @@ const ShareToFeedModal: React.FC<Props> = ({
             onChange={(e) => setContent(e.target.value)}
             placeholder="Add a message..."
             maxLength={2000}
-            autoFocus
           />
 
           <Row role="radiogroup" aria-label="Post visibility">

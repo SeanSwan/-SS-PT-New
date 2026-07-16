@@ -4,7 +4,7 @@
  * Locks the dashboard Plan Vault CTA target so /dashboard/client/workouts
  * contains the client's training-plan arcs, not only historical workout logs.
  */
-import React from 'react';
+
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

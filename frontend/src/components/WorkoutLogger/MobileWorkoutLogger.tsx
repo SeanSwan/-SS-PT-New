@@ -5,6 +5,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Dumbbell } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface MobileWorkoutLoggerProps {
   clientId: number;
@@ -28,9 +29,9 @@ const MobileWorkoutLogger: React.FC<MobileWorkoutLoggerProps> = ({ onCancel }) =
   <Placeholder>
     <Dumbbell size={24} />
     <span>Mobile workout logger coming soon.</span>
-    <button onClick={onCancel} style={{ padding: '8px 16px', minHeight: 44, cursor: 'pointer' }}>
+    <StyledBox as="button" onClick={onCancel} $style={{ padding: '8px 16px', minHeight: 44, cursor: 'pointer' }}>
       Go Back
-    </button>
+    </StyledBox>
   </Placeholder>
 );
 

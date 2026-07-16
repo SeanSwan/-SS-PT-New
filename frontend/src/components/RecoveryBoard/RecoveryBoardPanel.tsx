@@ -141,7 +141,7 @@ const RecoveryBoardPanel: React.FC = () => {
     return <Note>Loading your recovery plan…</Note>;
   }
   if (status === 'error') {
-    return <Note>Couldn't load your recovery plan right now — pull to refresh or check back shortly.</Note>;
+    return <Note>Couldn&apos;t load your recovery plan right now — pull to refresh or check back shortly.</Note>;
   }
   if (status === 'no-assessment' || !board) {
     return (
@@ -193,7 +193,7 @@ const RecoveryBoardPanel: React.FC = () => {
       )}
       {typeof board.daysSinceLastRecovery === 'number' && board.daysSinceLastRecovery > 2 && (
         <Note>
-          It's been {board.daysSinceLastRecovery} days since your last recovery session — even 10
+          It&apos;s been {board.daysSinceLastRecovery} days since your last recovery session — even 10
           minutes helps.
         </Note>
       )}

@@ -3,6 +3,7 @@ import { PackageSearch, ShieldCheck } from 'lucide-react';
 import type { FoodProduct } from './productAnalysis.types';
 import { foodScannerRatingLabel, ratingTone, sourceConfidenceForProduct } from './productAnalysis.logic';
 import { Chip, HeaderGrid, MetaRow, ProductImage, ProductMeta, ProductTitle } from './ProductAnalysis.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProductHeroCardProps {
   product: FoodProduct;
@@ -26,7 +27,7 @@ const ProductHeroCard: React.FC<ProductHeroCardProps> = ({ product }) => {
           <Chip>Confidence: {source.confidence}</Chip>
           {product.lastVerified && <Chip>Verified: {new Date(product.lastVerified).toLocaleDateString()}</Chip>}
         </MetaRow>
-        <ProductMeta style={{ marginTop: '0.55rem' }}>{source.detail}</ProductMeta>
+        <StyledBox as={ProductMeta} $style={{ marginTop: '0.55rem' }}>{source.detail}</StyledBox>
       </div>
     </HeaderGrid>
   );

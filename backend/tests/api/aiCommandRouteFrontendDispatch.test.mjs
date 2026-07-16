@@ -2,10 +2,11 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockBuildCommandContextEnvelope, mockExecuteCommandPipeline, mockGetCommandExecutionLane } = vi.hoisted(() => ({
+const { mockBuildCommandContextEnvelope, mockExecuteCommandPipeline, mockGetCommandExecutionLane, mockQuery } = vi.hoisted(() => ({
   mockBuildCommandContextEnvelope: vi.fn(),
   mockExecuteCommandPipeline: vi.fn(),
   mockGetCommandExecutionLane: vi.fn(),
+  mockQuery: vi.fn(),
 }));
 
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
@@ -21,7 +22,7 @@ vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
 }));
 
 vi.mock('../../database.mjs', () => ({
-  default: {},
+  default: { query: mockQuery },
 }));
 
 vi.mock('../../services/ai/commandExecutor.mjs', () => ({
@@ -70,6 +71,8 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
       correlationId: 'corr-123',
       promptVersion: 'swan-command-context-v1',
     });
+    mockQuery.mockReset();
+    mockQuery.mockResolvedValue([]);
     mockGetCommandExecutionLane.mockImplementation((command) => {
       if (command.type === 'block_user_posting') {
         return {
@@ -94,6 +97,53 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
         manualOnlyReason: null,
       };
     });
+  });
+
+  it('redacts accessible client identities from command text and previous context before classification', async () => {
+    mockQuery.mockResolvedValue([{
+      id: 61,
+      firstName: 'Jackie',
+      lastName: 'Reed',
+      email: 'jackie.reed@example.com',
+      phone: '555-123-4567',
+    }]);
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {}, confidence: 1 },
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'Schedule Jackie Reed tomorrow',
+        previousContext: 'Jackie Reed prefers mornings',
+        selectedClientId: 61,
+      })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenCalledWith(
+      'Schedule Client #61 tomorrow',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({
+        selectedClientId: 61,
+        previousContext: 'Client #61 prefers mornings',
+      }),
+    );
+  });
+
+  it('fails closed before classification when the identity roster is unavailable', async () => {
+    mockQuery.mockRejectedValue(new Error('database unavailable'));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'Schedule Jackie Reed tomorrow' })
+      .expect(503);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      code: 'AI_IDENTITY_REDACTION_UNAVAILABLE',
+    });
+    expect(mockExecuteCommandPipeline).not.toHaveBeenCalled();
   });
 
   it('returns a typed browser event for safe workout-form commands', async () => {

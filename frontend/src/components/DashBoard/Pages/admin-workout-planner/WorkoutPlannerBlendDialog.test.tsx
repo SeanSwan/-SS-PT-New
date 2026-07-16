@@ -5,7 +5,7 @@
  * picks (weeks a source lacks are disabled on that side), submit posts the
  * full pick list, and a backend rejection surfaces its message honestly.
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

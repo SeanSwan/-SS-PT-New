@@ -11,6 +11,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Shield, ShieldCheck, Eye, Lock, Brain, Info } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Theme tokens (matching wizard) ──────────────────────────────────────────
 
@@ -260,8 +261,9 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
       </ConsentDisclosure>
 
       {/* Toggle */}
-      <ConsentToggleRow>
+      <ConsentToggleRow htmlFor="agentic-ai-consent">
         <HiddenCheckbox
+          id="agentic-ai-consent"
           type="checkbox"
           checked={isConsentGranted}
           onChange={handleToggle}
@@ -287,7 +289,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
       {/* Skip note */}
       {!isConsentGranted && (
         <SkipNote>
-          <Info size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+          <StyledBox as={Info} size={16} color="#f59e0b" $style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <strong>This step is optional.</strong> You can skip it and still use all
             manual and trainer-assigned workout features. You can enable Swan Coach features

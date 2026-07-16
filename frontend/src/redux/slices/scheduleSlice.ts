@@ -25,19 +25,10 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
-import { RootState } from '../store';
+import type { RootState } from '../store';
 
 // Import types from the service (ensure consistency)
-import type {
-  Session,
-  SessionEvent,
-  Client,
-  Trainer,
-  FilterOptions,
-  ScheduleStats,
-  LayoutMode,
-  DensityMode
-} from '../../components/UniversalMasterSchedule/types';
+import type { Session, Client, Trainer, FilterOptions, ScheduleStats, LayoutMode, DensityMode } from '../../components/UniversalMasterSchedule/types';
 
 // Redux-specific type extensions
 export type ScheduleView = 'month' | 'week' | 'day' | 'agenda';
@@ -593,7 +584,7 @@ const scheduleSlice = createSlice({
       .addCase(fetchTrainers.fulfilled, (state, action) => {
         state.trainers = action.payload;
       })
-      .addCase(fetchTrainers.rejected, (state, action) => {
+      .addCase(fetchTrainers.rejected, (state, _action) => {
         // Fail silently for unauthorized users
         state.trainers = [];
       })
@@ -602,7 +593,7 @@ const scheduleSlice = createSlice({
       .addCase(fetchClients.fulfilled, (state, action) => {
         state.clients = action.payload;
       })
-      .addCase(fetchClients.rejected, (state, action) => {
+      .addCase(fetchClients.rejected, (state, _action) => {
         // Fail silently for unauthorized users
         state.clients = [];
       })
@@ -639,7 +630,7 @@ const scheduleSlice = createSlice({
       })
       
       // ==================== CREATE RECURRING SESSIONS ====================
-      .addCase(createRecurringSessions.fulfilled, (state, action) => {
+      .addCase(createRecurringSessions.fulfilled, (state, _action) => {
         // Refresh sessions after creating recurring sessions
         // The component should dispatch fetchEvents after this succeeds
         state.fetched = false; // Mark as needing refresh
@@ -803,7 +794,7 @@ export const selectUserRoleSessions = (state: RootState) => {
 export const selectSessionActions = (state: RootState, sessionId: string) => {
   const session = selectSessionById(state, sessionId);
   const userRole = selectCurrentUserRole(state);
-  const userId = selectCurrentUserId(state);
+  selectCurrentUserId(state);
   
   if (!session || !userRole) return [];
   

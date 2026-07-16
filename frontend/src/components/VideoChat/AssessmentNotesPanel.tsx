@@ -9,7 +9,8 @@
 
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FileText, X, Save, Clock, Image } from 'lucide-react';
+import { FileText, X, Save, Clock } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Panel = styled.div<{ $open: boolean }>`
   position: fixed;
@@ -183,7 +184,7 @@ interface AssessmentNotesPanelProps {
 }
 
 const AssessmentNotesPanel: React.FC<AssessmentNotesPanelProps> = ({
-  open, onClose, videoSessionId, notes, onNotesChange, onSaveNotes,
+  open, onClose, videoSessionId: _videoSessionId, notes, onNotesChange, onSaveNotes,
   annotations, previousSessions = [],
 }) => {
   const [saving, setSaving] = useState(false);
@@ -226,7 +227,7 @@ const AssessmentNotesPanel: React.FC<AssessmentNotesPanelProps> = ({
         <SectionLabel>Previous Sessions</SectionLabel>
         {previousSessions.length === 0 ? (
           <EmptyHistory>
-            <Clock size={24} style={{ opacity: 0.4, marginBottom: 8 }} />
+            <StyledBox as={Clock} size={24} $style={{ opacity: 0.4, marginBottom: 8 }} />
             <div>No previous assessment sessions</div>
           </EmptyHistory>
         ) : (

@@ -159,7 +159,7 @@ const WorkoutsTab: React.FC = () => {
         <NextMovePanel aria-label="Workout next best move">
           <NextMoveText>
             <NextMoveEyebrow>Next best move</NextMoveEyebrow>
-            <NextMoveTitle>Turn this history into today's plan</NextMoveTitle>
+            <NextMoveTitle>Turn this history into today&apos;s plan</NextMoveTitle>
             <NextMoveCopy>
               Coach gets {stats.totalExercises.toLocaleString()} logged exercise touches,
               a {mostActiveLabel} emphasis, your streak, and top movement before it answers.

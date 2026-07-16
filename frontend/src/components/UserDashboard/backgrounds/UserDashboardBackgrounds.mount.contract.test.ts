@@ -17,7 +17,7 @@ describe('UserDashboard background picker mount contract', () => {
     expect(dashboard).toContain('useUserDashboardBackgroundPreference(brandLogo)');
     expect(dashboard).toContain('<UserDashboardBackgroundControlsDisclosure');
     expect(dashboard).not.toContain("import UserDashboardBackgroundControls from './backgrounds/UserDashboardBackgroundControls';");
-    expect(dashboard).toContain('style={dashboardBackground.backgroundStyle}');
+    expect(dashboard).toContain('$backgroundStyle={dashboardBackground.backgroundStyle}');
     expect(dashboard).toContain('dashboardBackgroundControls={dashboardBackgroundControls}');
     expect(hero).toContain('dashboardBackgroundControls?: React.ReactNode');
     expect(hero).toContain('useHomeCoverBanner(dashboardBackgroundControls)');

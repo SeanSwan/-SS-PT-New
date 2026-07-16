@@ -3,7 +3,7 @@
  * Extracted admin user action dialogs for the mounted User Data Management surface.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { ArrowRightLeft, Calendar, Mail, Phone, Shield, User as UserIcon, X } from 'lucide-react';
 
@@ -158,8 +158,8 @@ export const UserDetailsModal = ({ open, user, onClose, onConvertRole }: UserDet
   if (!user) return null;
 
   return (
-    <Overlay $open={open} onClick={onClose}>
-      <Panel role="dialog" aria-modal="true" aria-labelledby="admin-user-details-title" onClick={(event) => event.stopPropagation()}>
+    <Overlay $open={open} onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <Panel role="dialog" aria-modal="true" aria-labelledby="admin-user-details-title">
         <Header>
           <h3 id="admin-user-details-title">{user.firstName} {user.lastName}</h3>
           <IconButton type="button" onClick={onClose} aria-label="Close user details">
@@ -195,8 +195,8 @@ export const RoleConversionModal = ({ open, user, onClose, onConvert }: RoleConv
   if (!user) return null;
 
   return (
-    <Overlay $open={open} onClick={onClose}>
-      <Panel role="dialog" aria-modal="true" aria-labelledby="admin-user-role-title" onClick={(event) => event.stopPropagation()}>
+    <Overlay $open={open} onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <Panel role="dialog" aria-modal="true" aria-labelledby="admin-user-role-title">
         <Header>
           <h3 id="admin-user-role-title">Convert role</h3>
           <IconButton type="button" onClick={onClose} aria-label="Close role conversion">

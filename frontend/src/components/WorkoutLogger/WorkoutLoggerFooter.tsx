@@ -19,6 +19,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, Save, MessageSquare } from 'lucide-react';
 import { CS, shimmer, reducedMotionSafe, withAlpha } from './WorkoutLoggerCS';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface WorkoutLoggerFooterProps {
   onCancel: () => void;
@@ -71,14 +72,14 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
         <Download size={18} />
         Export PDF
       </Button>
-      <Button
+      <StyledBox as={Button}
         type="button"
         variant="primary"
         onClick={onSubmit}
         disabled={!hasExercises || isSubmitting}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        style={isSubmitting ? { pointerEvents: 'none' } : undefined}
+        $style={isSubmitting ? { pointerEvents: 'none' } : undefined}
       >
         {isSubmitting ? (
           <Spinner />
@@ -88,7 +89,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
             Complete & Save Workout
           </>
         )}
-      </Button>
+      </StyledBox>
       {shouldRenderSummaryAction && (
         <Button
           type="button"

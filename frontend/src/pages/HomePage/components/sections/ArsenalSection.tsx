@@ -18,6 +18,7 @@ import { FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
 /* ── Props ────────────────────────────────────────────── */
 interface ArsenalSectionProps {
@@ -66,7 +67,7 @@ const ArsenalSection: React.FC<ArsenalSectionProps> = ({ tier }) => {
         <ParallaxBg
           $bgImage="/images/parallax/features-swan-bg.png"
           $opacity={0.35}
-          style={{ y: parallaxY }}
+          {...motionStyleProps({ y: parallaxY })}
         />
       )}
 

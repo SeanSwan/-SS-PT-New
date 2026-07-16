@@ -43,20 +43,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState<ScheduleConfirmRequest | null>(null);
 
-  const {
-    isBlocked,
-    canManage,
-    canManageSeries,
-    isNonDeductingClient,
-    sessionSignal,
-    isEarlyCancelEligible,
-    canComplete,
-    canCancel,
-    canRecordAttendance,
-    hasAttendanceRecorded,
-    canOpenWorkoutLogger,
-    canViewWorkouts,
-  } = useSessionDetailPermissions({
+  const { canManage, canManageSeries, isNonDeductingClient, sessionSignal, isEarlyCancelEligible, canComplete, canCancel, canRecordAttendance, hasAttendanceRecorded, canOpenWorkoutLogger, canViewWorkouts } = useSessionDetailPermissions({
     open,
     mode,
     session,

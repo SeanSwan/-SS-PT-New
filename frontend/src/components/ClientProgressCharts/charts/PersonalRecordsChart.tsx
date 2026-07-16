@@ -21,6 +21,7 @@ import {
 } from 'victory';
 import { PersonalRecordsChartProps } from '../types/ClientProgressTypes';
 import { DETAILED_AXIS_STYLE as AXIS_STYLE } from './detailedChartTheme';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -84,7 +85,7 @@ const PersonalRecordsChart: React.FC<PersonalRecordsChartProps> = ({
               labelComponent={
                 <VictoryTooltip
                   flyoutStyle={{ fill: '#141419', stroke: 'rgba(198, 168, 75, 0.4)', strokeWidth: 1 }}
-                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  {...victoryStyleProps({ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" })}
                   cornerRadius={8}
                   flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 />
@@ -92,25 +93,25 @@ const PersonalRecordsChart: React.FC<PersonalRecordsChartProps> = ({
             />
           }
         >
-          <VictoryAxis style={AXIS_STYLE}
+          <VictoryAxis {...victoryStyleProps(AXIS_STYLE)}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.displayDate)}
           />
-          <VictoryAxis dependentAxis style={{
+          <VictoryAxis dependentAxis {...victoryStyleProps({
             ...AXIS_STYLE,
             axisLabel: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", padding: 40 },
-          }} label="Estimated 1RM (lbs)" />
+          })} label="Estimated 1RM (lbs)" />
 
           <VictoryScatter
             data={chartData}
-            style={{
+            {...victoryStyleProps({
               data: {
                 fill: '#C6A84B',
                 stroke: '#8B5CF6',
                 strokeWidth: 2,
                 opacity: 0.9,
               },
-            }}
+            })}
             bubbleProperty="size"
           />
         </VictoryChart>

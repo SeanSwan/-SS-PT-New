@@ -14,7 +14,7 @@
  * Label/readiness logic lives in clientCardReadiness.ts (300-line cap).
  */
 
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Activity, ClipboardCheck, Dumbbell, Trophy, UserRound } from 'lucide-react';
 import { getClientOnboardingPct } from '../ClientsWorkspace.logic';
 import type { ClientOption } from './ClientSelectorDropdown';

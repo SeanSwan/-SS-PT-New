@@ -114,7 +114,7 @@ export function PlaudClipMergePanel({
     } finally {
       setIsMerging(false);
     }
-  }, [queue, resolvedClient, onMergeReady]);
+  }, [queue, resolvedClient, loadGroups, onMergeReady]);
 
   const isDisabled = isMerging || queue.isUploading;
 

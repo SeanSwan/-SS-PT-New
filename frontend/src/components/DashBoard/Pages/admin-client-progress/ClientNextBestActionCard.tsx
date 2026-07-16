@@ -123,7 +123,7 @@ const ClientNextBestActionCard: React.FC<{ clientId: number | string | null }> =
   if (status !== 'ready' || !decision) return null;
 
   return (
-    <Strip role="region" aria-label="Client next best action">
+    <Strip aria-label="Client next best action">
       <Kicker><Compass size={12} aria-hidden="true" /> Next Best Action</Kicker>
       <Primary>
         <Title>{decision.primary.title}</Title>

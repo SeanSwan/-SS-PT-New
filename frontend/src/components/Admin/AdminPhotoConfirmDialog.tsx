@@ -199,7 +199,7 @@ const AdminPhotoConfirmDialog: React.FC<AdminPhotoConfirmDialogProps> = ({ reque
     <Overlay role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !confirming) onClose();
     }}>
-      <Dialog role="dialog" aria-modal="true" aria-labelledby="photo-confirm-title" onKeyDown={handleKeyDown}>
+      <Dialog role="dialog" aria-modal="true" aria-labelledby="photo-confirm-title" onKeyDownCapture={handleKeyDown}>
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">
             <AlertTriangle size={20} />

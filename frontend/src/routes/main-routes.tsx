@@ -277,9 +277,9 @@ const UserProfilePage = lazyLoadWithErrorHandling(
 );
 // Workstream N (2026-06-11, Sean's direction): the V3 Observatory IS the main
 // hub. UserDashboard.V3 mounts at /user-dashboard with URL-driven tabs, and it
-// absorbed everything the retired /social page had (full feed + coach dock +
-// right rail on the feed tab; friends/challenges/notifications tabs).
-// SocialPage.V3 / SocialPage are unmounted legacy (rule 34 — files stay).
+// now owns live community content on Home. The duplicate full-feed tab, coach
+// dock, and right rail were archived after a resolved-import closure audit.
+// Compatibility routes below preserve old /social links.
 const UserDashboardV3 = lazyLoadWithErrorHandling(
   () => import('../components/UserDashboard/UserDashboard.V3'),
   'User Dashboard'

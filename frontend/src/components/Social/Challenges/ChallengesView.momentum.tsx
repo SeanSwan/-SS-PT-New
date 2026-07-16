@@ -1,7 +1,7 @@
 /**
  * Challenge momentum and join-impact rows.
  */
-import React from 'react';
+
 import { Activity, Target } from 'lucide-react';
 import type { Challenge } from '../../../hooks/useChallenges';
 import { MetaItem, MetaRow } from './ChallengesView.styles';

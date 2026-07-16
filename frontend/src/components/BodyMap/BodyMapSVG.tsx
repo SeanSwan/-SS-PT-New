@@ -442,7 +442,21 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   const shouldShowProfilePhoto = Boolean(profilePhotoUrl) && !profilePhotoFailed;
 
   React.useEffect(() => {
+    let active = true;
     setProfilePhotoFailed(false);
+
+    if (!profilePhotoUrl) return () => { active = false; };
+
+    const profileImage = new Image();
+    profileImage.onload = () => { if (active) setProfilePhotoFailed(false); };
+    profileImage.onerror = () => { if (active) setProfilePhotoFailed(true); };
+    profileImage.src = profilePhotoUrl;
+
+    return () => {
+      active = false;
+      profileImage.onload = null;
+      profileImage.onerror = null;
+    };
   }, [profilePhotoUrl]);
 
   // Reset and preload image state when gender changes.
@@ -694,7 +708,6 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
                     clipPath="url(#body-map-profile-head-clip)"
                     opacity="0.92"
                     pointerEvents="none"
-                    onError={() => setProfilePhotoFailed(true)}
                   />
                   <ellipse
                     cx="100" cy="24" rx="12" ry="15"

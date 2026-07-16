@@ -16,6 +16,7 @@ import {
 import type { DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 export interface ConfigPanelProps {
   stationCount: number;
@@ -142,22 +143,22 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     </FormGroup>
 
     <FormGroup>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-        <input
+      <StyledBox as="label" $style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+        <StyledBox as="input"
           type="checkbox"
           checked={includeStretch}
           onChange={e => setIncludeStretch(e.target.checked)}
-          style={{ width: 18, height: 18, accentColor: 'var(--accent-primary, #60C0F0)' }}
+          $style={{ width: 18, height: 18, accentColor: 'var(--accent-primary, #60C0F0)' }}
         />
         Include 3-5 min warm-up stretch
-      </label>
+      </StyledBox>
     </FormGroup>
 
     <PrimaryButton $floorMode={floorMode} onClick={onGenerate} disabled={loading}>
       {loading ? 'Generating...' : 'Generate Class'}
     </PrimaryButton>
 
-    {error && <ErrorBanner style={{ marginTop: 12 }}>{error}</ErrorBanner>}
+    {error && <StyledBox as={ErrorBanner} $style={{ marginTop: 12 }}>{error}</StyledBox>}
   </Panel>
 );
 

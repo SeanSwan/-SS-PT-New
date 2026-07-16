@@ -5,9 +5,9 @@
  * enhanced glass depth, pulse CTA button, improved mobile UX.
  * Same form logic and validation as V2.
  */
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 import SignaturePad, { type SignaturePadHandle } from '../components/SignatureCapture/SignaturePad';
 import {
   fetchCurrentWaiverVersions,
@@ -25,6 +25,7 @@ import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
 import GlowButton from '../components/ui/buttons/GlowButton';
 import logoImg from '../assets/Logo.png';
 import { useAuth } from '../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Activity display names ───────────────────────────────────
 const ACTIVITY_OPTIONS: { value: ActivityType; label: string }[] = [
@@ -550,12 +551,12 @@ export default function PublicWaiverPageV3() {
             <SuccessCard>
               <CheckIcon aria-hidden>&#10003;</CheckIcon>
               <SuccessTitle>Waiver Submitted</SuccessTitle>
-              <p style={{ marginBottom: '0.5rem' }}>
+              <StyledBox as="p" $style={{ marginBottom: '0.5rem' }}>
                 Thank you! Your waiver has been submitted successfully.
-              </p>
-              <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>
+              </StyledBox>
+              <StyledBox as="p" $style={{ fontSize: '0.875rem', opacity: 0.7 }}>
                 Confirmation ID: <strong>{submitResult.waiverRecordId}</strong>
-              </p>
+              </StyledBox>
               <LinkButton href="/signup">Create an Account</LinkButton>
             </SuccessCard>
           </GlassCard>
@@ -637,9 +638,9 @@ export default function PublicWaiverPageV3() {
                           <PreText>{v.displayText}</PreText>
                         )
                       ) : (
-                        <p style={{ color: '#f59e0b', fontStyle: 'italic' }}>
+                        <StyledBox as="p" $style={{ color: '#f59e0b', fontStyle: 'italic' }}>
                           Text not available
-                        </p>
+                        </StyledBox>
                       )}
                     </div>
                   ))}
@@ -770,10 +771,10 @@ export default function PublicWaiverPageV3() {
 
             {/* Section 7: Submit */}
             {pageState === 'error' && submitError && (
-              <ErrorText style={{ marginTop: '1rem' }}>{submitError}</ErrorText>
+              <StyledBox as={ErrorText} $style={{ marginTop: '1rem' }}>{submitError}</StyledBox>
             )}
 
-            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <StyledBox as="div" $style={{ marginTop: '1.5rem', textAlign: 'center' }}>
               <GlowButton
                 text={pageState === 'submitting' ? 'Submitting...' : 'Submit Waiver'}
                 variant="primary"
@@ -785,7 +786,7 @@ export default function PublicWaiverPageV3() {
                 pulse={isFormValid && pageState === 'form'}
                 haptic
               />
-            </div>
+            </StyledBox>
           </GlassCard>
         </ScrollReveal>
       </FormContainer>

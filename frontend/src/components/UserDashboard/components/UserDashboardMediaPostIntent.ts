@@ -10,7 +10,7 @@ import {
 
 const normalizeDashboardMediaCaption = (content: string) => (
   content
-    .replace(/[\u0000-\u001F\u007F]+/g, ' ')
+    .replace(/\p{Cc}+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 );

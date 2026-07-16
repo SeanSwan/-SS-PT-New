@@ -56,6 +56,7 @@ import {
   ListLi,
   ListItemContent,
 } from './WorkoutPlanBuilderStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -81,11 +82,11 @@ const ReviewSaveStep: React.FC<ReviewSaveStepProps> = ({
   toggleAccordion,
 }) => {
   return (
-    <div style={{ marginTop: 16 }}>
+    <StyledBox as="div" $style={{ marginTop: 16 }}>
       <SectionTitle>Review &amp; Save Plan</SectionTitle>
 
       <CardPanel>
-        <PageTitle style={{ fontSize: '1.5rem' }}>{plan.name}</PageTitle>
+        <StyledBox as={PageTitle} $style={{ fontSize: '1.5rem' }}>{plan.name}</StyledBox>
         <BodyText $muted>{plan.description}</BodyText>
 
         <FormGrid $cols="1fr 1fr 1fr 1fr">
@@ -148,7 +149,7 @@ const ReviewSaveStep: React.FC<ReviewSaveStepProps> = ({
           </CollapsibleWrapper>
         );
       })}
-    </div>
+    </StyledBox>
   );
 };
 

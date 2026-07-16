@@ -40,7 +40,7 @@ describe('admin dashboard local recovery contracts', () => {
   });
 
   it('cleans emergency auth flags during real login and token cleanup', () => {
-    const authContextSource = readSource(resolve(srcDir, 'context/AuthContext.tsx'));
+    const authContextSource = readSource(resolve(srcDir, 'context/AuthContextProvider.tsx'));
     const tokenCleanupSource = readSource(resolve(srcDir, 'utils/tokenCleanup.ts'));
 
     expect(authContextSource).toContain("localStorage.removeItem('bypass_admin_verification')");

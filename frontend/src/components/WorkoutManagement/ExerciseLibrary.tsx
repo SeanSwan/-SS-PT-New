@@ -1,16 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import {
-  Search as SearchIcon,
-  Dumbbell as ExerciseIcon,
-  Filter as FilterIcon,
-  ChevronDown as ExpandMoreIcon,
-  Clock as DurationIcon,
-  TrendingUp as DifficultyIcon,
-  Tag as CategoryIcon,
-  X as CloseIcon
-} from 'lucide-react';
+import { Search as SearchIcon, Dumbbell as ExerciseIcon, Filter as FilterIcon, ChevronDown as ExpandMoreIcon, TrendingUp as DifficultyIcon, Tag as CategoryIcon, X as CloseIcon } from 'lucide-react';
 import { useWorkoutMcp, Exercise } from '../../hooks/useWorkoutMcp';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /* ───────────────────────────────────────────
    Types & Interfaces
@@ -683,9 +675,9 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
   onExerciseSelect,
   selectedExercises = [],
   multiSelect = false,
-  filterOptions = {}
+  filterOptions: _filterOptions = {}
 }) => {
-  const { getWorkoutRecommendations, loading, error } = useWorkoutMcp();
+  const { getWorkoutRecommendations, error } = useWorkoutMcp();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -701,12 +693,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const emptyExercises: Exercise[] = [];
-
-  // Load exercises on mount and when the goal changes
-  useEffect(() => {
-    loadExercises();
-  }, [filters.goal]);
+  const emptyExercises = useMemo<Exercise[]>(() => [], []);
 
   // Filter exercises based on search and filters
   useEffect(() => {
@@ -747,7 +734,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
     setFilteredExercises(filtered);
   }, [exercises, searchTerm, filters]);
 
-  const loadExercises = async () => {
+  const loadExercises = useCallback(async () => {
     try {
       // Load from the active workout API compatibility hook.
       const response = await getWorkoutRecommendations({
@@ -767,7 +754,12 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       console.error('Failed to load exercises from workout API:', err);
       setExercises(emptyExercises);
     }
-  };
+  }, [emptyExercises, filters.goal, getWorkoutRecommendations]);
+
+  // Load exercises on mount and when the goal changes
+  useEffect(() => {
+    loadExercises();
+  }, [filters.goal, loadExercises]);
 
   const handleExerciseClick = (exercise: Exercise) => {
     if (onExerciseSelect) {
@@ -934,6 +926,9 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
           <ExerciseCard
             key={exercise.id}
             $selected={isExerciseSelected(exercise.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
             onClick={() => handleExerciseClick(exercise)}
           >
             <CardBody>
@@ -963,7 +958,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
               </ChipRow>
 
               {exercise.muscleGroups && exercise.muscleGroups.length > 0 && (
-                <div style={{ marginBottom: 8 }}>
+                <StyledBox as="div" $style={{ marginBottom: 8 }}>
                   <CaptionLabel>Target Muscles:</CaptionLabel>
                   <SmallChipRow>
                     {exercise.muscleGroups.slice(0, 3).map((mg) => (
@@ -977,7 +972,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                       </Chip>
                     )}
                   </SmallChipRow>
-                </div>
+                </StyledBox>
               )}
 
               {exercise.equipment && exercise.equipment.length > 0 && (
@@ -1029,11 +1024,11 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       </ExerciseGrid>
 
       {/* Exercise Detail Modal */}
-      <ModalOverlay $open={dialogOpen} onClick={() => setDialogOpen(false)}>
+      <ModalOverlay $open={dialogOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) setDialogOpen(false); }}>
         {selectedExercise && (
-          <ModalPanel onClick={(e) => e.stopPropagation()}>
+          <ModalPanel>
             <ModalHeader>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', flex: 1 }}>
+              <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', flex: 1 }}>
                 <ModalTitle>{selectedExercise.name}</ModalTitle>
                 <DialogChipRow>
                   {selectedExercise.category && (
@@ -1047,7 +1042,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                     </Chip>
                   )}
                 </DialogChipRow>
-              </div>
+              </StyledBox>
               <IconBtn title="Close" onClick={() => setDialogOpen(false)}>
                 <CloseIcon size={18} />
               </IconBtn>

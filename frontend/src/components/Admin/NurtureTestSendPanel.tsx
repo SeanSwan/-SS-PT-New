@@ -35,6 +35,7 @@ import {
 } from '../UniversalMasterSchedule/ui';
 import apiService from '../../services/api.service';
 import AutomationConfirmDialog, { type AutomationConfirmRequest } from './AutomationConfirmDialog';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const SendButton = styled.button`
   display: inline-flex;
@@ -68,7 +69,7 @@ export const maskPhone = (raw: string): string => {
 };
 
 /** Map the backend's guard codes to plain operator language. */
-export const TEST_SEND_ERROR_COPY: Record<string, string> = {
+const TEST_SEND_ERROR_COPY: Record<string, string> = {
   confirm_required: 'Confirmation flag was missing (internal).',
   invalid_phone: 'Enter a valid phone number, e.g. +15551234567.',
   unknown_template: 'That template name is not recognized.',
@@ -133,7 +134,7 @@ const NurtureTestSendPanel: React.FC = () => {
   };
 
   return (
-    <Card style={{ marginTop: '1.25rem' }}>
+    <StyledBox as={Card} $style={{ marginTop: '1.25rem' }}>
       <CardHeader>
         <FlexBox align="center" gap="0.5rem">
           <ShieldAlert size={16} color="var(--danger, #c92a54)" />
@@ -146,12 +147,12 @@ const NurtureTestSendPanel: React.FC = () => {
           will actually receive it. Use it to verify delivery before arming the automation cron.
         </LiveWarning>
 
-        <FlexBox gap="1rem" wrap align="flex-end" style={{ marginTop: '0.75rem' }}>
-          <FormField style={{ flex: '1 1 200px' }}>
+        <StyledBox as={FlexBox} gap="1rem" wrap align="flex-end" $style={{ marginTop: '0.75rem' }}>
+          <StyledBox as={FormField} $style={{ flex: '1 1 200px' }}>
             <Label required>Recipient phone</Label>
             <StyledInput value={to} onChange={(e) => setTo(e.target.value)} placeholder="+15551234567" inputMode="tel" />
-          </FormField>
-          <FormField style={{ flex: '1 1 200px' }}>
+          </StyledBox>
+          <StyledBox as={FormField} $style={{ flex: '1 1 200px' }}>
             <Label required>Template</Label>
             <CustomSelect
               value={templateName}
@@ -159,18 +160,18 @@ const NurtureTestSendPanel: React.FC = () => {
               options={templates}
               placeholder={templates.length ? 'Choose template' : 'No templates loaded'}
             />
-          </FormField>
+          </StyledBox>
           <SendButton onClick={requestSend} disabled={isSending} aria-label="Send live test SMS">
             <Send size={16} /> {isSending ? 'Sending…' : 'Send live test'}
           </SendButton>
-        </FlexBox>
+        </StyledBox>
 
-        {result && <ResultLine $ok={result.ok} style={{ marginTop: '0.85rem' }}>{result.ok ? '✓ ' : '✗ '}{result.text}</ResultLine>}
-        {!templates.length && <ErrorText style={{ marginTop: '0.5rem' }}>No SMS templates available — check the server.</ErrorText>}
+        {result && <StyledBox as={ResultLine} $ok={result.ok} $style={{ marginTop: '0.85rem' }}>{result.ok ? '✓ ' : '✗ '}{result.text}</StyledBox>}
+        {!templates.length && <StyledBox as={ErrorText} $style={{ marginTop: '0.5rem' }}>No SMS templates available — check the server.</StyledBox>}
 
         <AutomationConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
       </CardBody>
-    </Card>
+    </StyledBox>
   );
 };
 

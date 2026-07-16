@@ -1,0 +1,26 @@
+/**
+ * Scoped Lens Frame structural primitives.
+ *
+ * Keeps the generic Style Lens core independent from application component
+ * libraries while avoiding inline styles. These classes only establish the
+ * bounded preview geometry; lens attributes continue to own visual tokens.
+ */
+
+.style-lens-frame {
+  display: block;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.style-lens-frame__shell {
+  display: block;
+  min-width: 0;
+  min-height: 100%;
+}
+
+.style-lens-frame__scroll-root {
+  display: block;
+  min-width: 0;
+  min-height: 100%;
+  overflow: hidden;
+}

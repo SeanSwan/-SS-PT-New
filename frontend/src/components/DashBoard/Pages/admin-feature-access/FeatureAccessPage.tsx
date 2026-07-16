@@ -33,8 +33,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
-import { Shield, Search, Users } from 'lucide-react';
+import { Shield, Search } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -438,7 +439,7 @@ const FeatureAccessPage: React.FC = () => {
       {loading ? (
         <UserList role="status" aria-live="polite" aria-label="Loading users">
           {Array.from({ length: 5 }, (_, i) => (
-            <SkeletonRow key={i} style={{ animationDelay: `${i * 0.15}s` }} />
+            <StyledBox as={SkeletonRow} key={i} $style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </UserList>
       ) : filtered.length === 0 ? (

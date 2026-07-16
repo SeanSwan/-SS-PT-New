@@ -139,7 +139,7 @@ export const useAvailableSlots = (
   // Memoize dateStr to prevent unnecessary recalculations
   const dateStr = useMemo(() => {
     return date ? formatDateOnlyLocal(date) : null;
-  }, [date?.getTime()]);
+  }, [date]);
 
   // Create a stable cache key
   const cacheKey = useMemo(() => {

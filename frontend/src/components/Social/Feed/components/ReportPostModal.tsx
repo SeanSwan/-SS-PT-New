@@ -145,23 +145,34 @@ const RadioLabel = styled.label<{ $selected?: boolean }>`
   &:hover { background: rgba(255,255,255,0.04); }
 `;
 
-const Radio = styled.div<{ $checked?: boolean }>`
+const Radio = styled.input.attrs({ type: 'radio' })`
+  appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid ${props => props.$checked ? '#60C0F0' : 'rgba(255,255,255,0.3)'};
+  border: 2px solid rgba(255,255,255,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
   transition: border-color 0.15s ease;
   &::after {
     content: '';
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: ${props => props.$checked ? '#60C0F0' : 'transparent'};
+    background: transparent;
     transition: background 0.15s ease;
+  }
+
+  &:checked {
+    border-color: var(--accent-primary, #60C0F0);
+
+    &::after {
+      background: var(--accent-primary, #60C0F0);
+    }
   }
 `;
 
@@ -260,7 +271,7 @@ const ReportPostModal: React.FC<ReportPostModalProps> = ({ onClose, onSubmit }) 
   };
 
   return (
-    <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Overlay onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <Modal
         ref={modalRef}
         role="dialog"
@@ -280,9 +291,15 @@ const ReportPostModal: React.FC<ReportPostModalProps> = ({ onClose, onSubmit }) 
               <RadioLabel
                 key={r.value}
                 $selected={reason === r.value}
-                onClick={() => setReason(r.value)}
+                htmlFor={`report-reason-${r.value}`}
               >
-                <Radio $checked={reason === r.value} />
+                <Radio
+                  id={`report-reason-${r.value}`}
+                  name="report-reason"
+                  value={r.value}
+                  checked={reason === r.value}
+                  onChange={() => setReason(r.value)}
+                />
                 {r.label}
               </RadioLabel>
             ))}

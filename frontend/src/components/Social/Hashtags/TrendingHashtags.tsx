@@ -95,11 +95,7 @@ const TrendingLabel = styled.span`
   flex-shrink: 0;
 `;
 
-const EmptyLabel = styled.span`
-  font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
-  font-style: italic;
-`;
+
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component

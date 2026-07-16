@@ -34,7 +34,7 @@ function statusLabel(thread: ConversationSummary): string {
 const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ thread }) => {
   if (!thread) {
     return (
-      <section className="active-thread-header is-empty" role="region" aria-label="Active coach thread">
+      <section className="active-thread-header is-empty" aria-label="Active coach thread">
         <MessageCircle size={16} aria-hidden="true" />
         <span>New chat</span>
         <small>No client selected</small>
@@ -45,7 +45,7 @@ const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ threa
   const title = getConversationTitle(thread);
 
   return (
-    <section className="active-thread-header" role="region" aria-label={`Active coach thread: ${title}`}>
+    <section className="active-thread-header" aria-label={`Active coach thread: ${title}`}>
       <MessageCircle size={16} aria-hidden="true" />
       <strong>{title}</strong>
       <span>{clientLabel(thread)}</span>

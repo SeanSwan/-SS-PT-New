@@ -24,9 +24,10 @@
  * └──────────────────────────────────────┘
  */
 
-import React, { memo } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Send, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const Shell = styled.div`
   display: flex;
@@ -134,6 +135,13 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
   onEdit,
   onRetry,
 }) => {
+  const primaryActionRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => primaryActionRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
   const isInaudible =
     !transcript.trim() ||
     transcript.toLowerCase().trim() === '[inaudible]' ||
@@ -143,15 +151,11 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
     return (
       <Shell>
         <ErrorBox>
-          <AlertCircle size={18} style={{ flexShrink: 0 }} />
-          Couldn't hear that clearly. Try speaking closer to the mic.
+          <StyledBox as={AlertCircle} size={18} $style={{ flexShrink: 0 }} />
+          Couldn&apos;t hear that clearly. Try speaking closer to the mic.
         </ErrorBox>
         <BtnRow>
-          {/* autoFocus: VoiceTranscriptPreview mounts when previewReady becomes true
-              inside a role="dialog" aria-modal overlay — WCAG SC 2.4.3 requires
-              focus to move into the dialog on open. autoFocus on first button is
-              the minimal safe fix since the component always mounts fresh. */}
-          <Btn type="button" $variant="primary" onClick={onRetry} aria-label="Try recording again" autoFocus>
+          <Btn ref={primaryActionRef} type="button" $variant="primary" onClick={onRetry} aria-label="Try recording again">
             <RefreshCw size={16} /> Try Again
           </Btn>
         </BtnRow>
@@ -166,14 +170,12 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
         {transcript}
       </TranscriptBox>
       <BtnRow>
-        {/* autoFocus on first button — same WCAG SC 2.4.3 fix as inaudible branch above */}
         <Btn
+          ref={primaryActionRef}
           type="button"
           $variant="ghost"
           onClick={onEdit}
           aria-label="Edit transcript in text field"
-          // eslint-disable-next-line jsx-a11y/no-autofocus
-          autoFocus
         >
           <Edit3 size={16} /> Edit
         </Btn>

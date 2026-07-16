@@ -7,7 +7,7 @@
  * (?clientId=N via the audience route builder); Send check-in routes to
  * the admin messages surface. Also locks buildClientProfileRoute.
  */
-import React from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';

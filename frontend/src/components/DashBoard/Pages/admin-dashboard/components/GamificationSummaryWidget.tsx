@@ -9,6 +9,7 @@ import styled from 'styled-components';
 import { Trophy, Star, Zap, Crown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface LeaderEntry { rank: number; name: string; xp: number; level: number; }
 
@@ -120,7 +121,7 @@ const GamificationSummaryWidget: React.FC = () => {
               <LeaderMeta>Lv.{entry.level}</LeaderMeta>
             </LeaderInfo>
             <XPBar>
-              <XPFill style={{ width: `${(entry.xp / maxXP) * 100}%` }} $rank={entry.rank} />
+              <StyledBox as={XPFill} $style={{ width: `${(entry.xp / maxXP) * 100}%` }} $rank={entry.rank} />
             </XPBar>
             <XPValue>{entry.xp.toLocaleString()} XP</XPValue>
           </LeaderRow>

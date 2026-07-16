@@ -5,7 +5,7 @@
  * loading / no-cues states, safety tips rendering, media presence, and the
  * action button emitting the full ExerciseSlim.
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExerciseSlim } from './types';

@@ -52,7 +52,7 @@ interface RepositionPanelContentProps {
 }
 
 const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContentProps> = ({
-  backgroundImage,
+  backgroundImage: _backgroundImage,
   bannerObjectPosition,
   bannerObjectFit,
   bannerImageScale,

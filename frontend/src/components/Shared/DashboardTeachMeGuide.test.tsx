@@ -20,7 +20,7 @@ describe('DashboardTeachMeGuide', () => {
 
     render(
       <DashboardTeachMeGuide
-        role="admin"
+        dashboardRole="admin"
         pathname="/dashboard/admin/coach-assistant"
         onAskCoach={onAskCoach}
         onNavigate={onNavigate}
@@ -72,7 +72,7 @@ describe('DashboardTeachMeGuide', () => {
   it('keeps the client guide useful without rendering an unavailable Coach action', () => {
     render(
       <DashboardTeachMeGuide
-        role="client"
+        dashboardRole="client"
         pathname="/dashboard/client/progress"
       />,
     );
@@ -107,7 +107,7 @@ describe('DashboardTeachMeGuide', () => {
 
     render(
       <DashboardTeachMeGuide
-        role="client"
+        dashboardRole="client"
         pathname="/dashboard/client/progress"
         onAskCoach={onAskCoach}
       />,
@@ -127,7 +127,7 @@ describe('DashboardTeachMeGuide', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/workout-planner?self=1&source=swan-coach']}>
         <DashboardTeachMeGuide
-          role="admin"
+          dashboardRole="admin"
           pathname="/dashboard/admin/workout-planner"
         />
       </MemoryRouter>,
@@ -144,7 +144,7 @@ describe('DashboardTeachMeGuide', () => {
 
     render(
       <DashboardTeachMeGuide
-        role="client"
+        dashboardRole="client"
         pathname="/dashboard/client/log-workout"
         onAskCoach={onAskCoach}
       />,
@@ -162,7 +162,7 @@ describe('DashboardTeachMeGuide', () => {
 
     render(
       <DashboardTeachMeGuide
-        role="admin"
+        dashboardRole="admin"
         pathname="/dashboard/admin/coach-assistant"
         variant="headerPopover"
         onNavigate={onNavigate}

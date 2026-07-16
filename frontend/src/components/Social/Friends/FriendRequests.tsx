@@ -143,7 +143,7 @@ const FriendRequests: React.FC<FriendRequestsProps> = ({ open, onClose, friendsA
           <EmptyState>
             <AlertCircle size={48} />
             <EmptyTitle>No pending requests</EmptyTitle>
-            <EmptyText>When someone sends you a friend request, you'll see it here</EmptyText>
+            <EmptyText>When someone sends you a friend request, you&apos;ll see it here</EmptyText>
           </EmptyState>
         )}
 

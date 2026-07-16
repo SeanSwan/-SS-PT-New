@@ -17,17 +17,18 @@ describe('messaging routes security hardening', () => {
   it('locks the live messaging API mount and frontend consumer surface', () => {
     const coreRoutesSource = readSource('core/routes.mjs');
     const routeSource = readSource('routes/messagingRoutes.mjs');
-    const adminCommunicationSource = readSource('../frontend/src/components/DashBoard/Pages/admin-clients/components/CommunicationCenter.tsx');
-    const chatWindowSource = readSource('../frontend/src/components/Messaging/ChatWindow.tsx');
-    const newConversationSource = readSource('../frontend/src/components/Messaging/NewConversationModal.tsx');
+    const dashboardQueriesSource = readSource('../frontend/src/hooks/useDashboardQueries.ts');
+    const messagingApiFetchSource = readSource('../frontend/src/components/Social/Messaging/messagingApiFetch.ts');
+    const messagingHookSource = readSource('../frontend/src/components/Social/Messaging/useMessaging.ts');
 
     expect(coreRoutesSource).toContain("app.use('/api/messaging', messagingRoutes)");
     expect(routeSource).toContain("router.post('/conversations'");
     expect(routeSource).toContain("router.post('/conversations/:id/messages'");
-    expect(adminCommunicationSource).toContain("authAxios.get('/api/messaging/conversations'");
-    expect(adminCommunicationSource).toContain("authAxios.post('/api/messaging/conversations'");
-    expect(chatWindowSource).toContain('api.post(`/api/messaging/conversations/${conversationId}/messages`');
-    expect(newConversationSource).toContain("api.post('/api/messaging/conversations'");
+    expect(dashboardQueriesSource).toContain("authAxios.get('/api/messaging/conversations'");
+    expect(messagingApiFetchSource).toContain("const API_BASE = '/api/messaging'");
+    expect(messagingHookSource).toContain("apiFetch<unknown>('/conversations')");
+    expect(messagingHookSource).toContain("apiFetch<unknown>('/conversations', {");
+    expect(messagingHookSource).toContain('apiFetch<unknown>(`/conversations/${segment}/messages`, {');
   });
 
   it('requires protected group-management routes for rename, add, role, and removal actions', () => {

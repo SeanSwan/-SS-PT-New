@@ -5,7 +5,7 @@
  * semantics, Escape + backdrop close, body scroll lock + restore, initial
  * focus on the close control, and reduced-motion source discipline.
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';

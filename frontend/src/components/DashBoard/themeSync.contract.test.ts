@@ -26,7 +26,6 @@ describe('dashboard theme synchronization contract', () => {
     const universalStyles = readSource('src/components/DashBoard/UniversalDashboardLayout.styles.ts');
     const universalControls = readSource('src/components/DashBoard/UniversalDashboardLayout.controls.ts');
     const universalShell = [universalStyles, universalControls].join('\n');
-    const adminLayout = readSource('src/components/DashBoard/AdminLayout.styles.ts');
 
     expect(universalStyles).toContain('var(--shadow-focus, 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent))');
     expect(universalControls).toContain('var(--shadow-subtle, 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent))');
@@ -35,8 +34,6 @@ describe('dashboard theme synchronization contract', () => {
     expect(universalControls).toContain('var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent))');
     expect(universalControls).toContain('var(--border-accent-soft');
     expect(universalControls).toContain('var(--border-accent-medium');
-    expect(adminLayout).toContain('var(--text-on-accent, #FFFFFF)');
-    expect(adminLayout).toContain('var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4))');
 
     [
       'border: 1px solid rgba(139, 92, 246, 0.3);',
@@ -56,25 +53,13 @@ describe('dashboard theme synchronization contract', () => {
       expect(universalShell).not.toContain(rawDeclaration);
     });
 
-    [
-      'color: #fff;',
-      'box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);',
-    ].forEach((rawDeclaration) => {
-      expect(adminLayout).not.toContain(rawDeclaration);
-    });
   });
 
   it('keeps the schedule shell connected to universal theme variables', () => {
     const masterSchedule = readSource('src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
-    const fallbackCalendar = readSource('src/components/UniversalMasterSchedule/CalendarFallback/CalendarFallback.tsx');
-    const adminSchedule = readSource('src/components/UniversalMasterSchedule/AdminScheduleIntegration.tsx');
 
     expect(masterSchedule).toContain('background-color: var(--bg-base, #0A0A0F)');
     expect(masterSchedule).not.toContain('background-color: #002060');
-    expect(fallbackCalendar).toContain('var(--accent-primary, #60C0F0)');
-    expect(fallbackCalendar).not.toContain("props.$active ? '#3b82f6'");
-    expect(adminSchedule).toContain('var(--bg-base, #0A0A0F)');
-    expect(adminSchedule).not.toContain('background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%)');
   });
 
   it('keeps store and revenue shells dark-first instead of fixed bright blue panels', () => {
@@ -82,7 +67,7 @@ describe('dashboard theme synchronization contract', () => {
     const adminSessionsTheme = readSource('src/components/DashBoard/Pages/admin-sessions/AdminSessionsTheme.styles.ts');
     const adminPackages = readSource('src/components/DashBoard/Pages/admin-packages/admin-packages-view.tsx');
     const revenuePanel = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.styles.ts');
-    const storeDesignSystem = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.tsx');
+    const storeDesignSystem = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.ts');
     const storeTokens = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.tokens.ts');
     const storeLayout = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.layout.tsx');
     const storeControls = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.controls.tsx');

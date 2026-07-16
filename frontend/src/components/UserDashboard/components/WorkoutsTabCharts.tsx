@@ -14,6 +14,7 @@ import {
   ChartScroll,
 } from './WorkoutsTabStyles';
 import type { CategoryData } from './WorkoutsTabData';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 const CHART_TEXT_COLOR = 'var(--text-primary, #E0ECF4)';
 
@@ -43,14 +44,14 @@ const WorkoutsTabCharts: React.FC<WorkoutsTabChartsProps> = ({ categories }) => 
             >
               <VictoryAxis
                 dependentAxis
-                style={{
+                {...victoryStyleProps({
                   axis: { stroke: 'none' },
                   tickLabels: { fill: 'none' },
                   grid: { stroke: 'none' },
-                }}
+                })}
               />
               <VictoryAxis
-                style={{
+                {...victoryStyleProps({
                   axis: { stroke: 'none' },
                   tickLabels: {
                     fill: CHART_TEXT_COLOR,
@@ -59,26 +60,26 @@ const WorkoutsTabCharts: React.FC<WorkoutsTabChartsProps> = ({ categories }) => 
                     textAnchor: 'end',
                   },
                   grid: { stroke: 'none' },
-                }}
+                })}
                 tickFormat={(_, index) => formatExerciseName(category.exercises[index]?.name ?? '')}
               />
               <VictoryBar
                 data={category.exercises.map((exercise, index) => ({ x: index + 1, y: exercise.count }))}
-                style={{
+                {...victoryStyleProps({
                   data: { fill: category.color, opacity: 0.85 },
-                }}
+                })}
                 barWidth={18}
                 cornerRadius={{ topLeft: 4, topRight: 4 }}
                 labels={({ datum }) => datum.y}
                 labelComponent={
                   <VictoryLabel
                     dx={6}
-                    style={{
+                    {...victoryStyleProps({
                       fill: CHART_TEXT_COLOR,
                       fontSize: 11,
                       fontFamily: "'Fira Code', monospace",
                       fontWeight: 600,
-                    }}
+                    })}
                   />
                 }
               />

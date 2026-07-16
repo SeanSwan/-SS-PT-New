@@ -3,7 +3,7 @@
  * ============================
  * Compact queue row for Coach intake work items.
  */
-import React from 'react';
+
 import { GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';

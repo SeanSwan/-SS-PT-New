@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, ExternalLink, Eye, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import {
@@ -66,7 +66,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       ? createdClientHubRoute(proposal.client, typeof window === 'undefined' ? null : window.location.pathname)
       : null
   ));
-  const summary = proposal.summary || {};
+  const summary = useMemo(() => proposal.summary || {}, [proposal.summary]);
   const [accessHandoff, setAccessHandoff] = useState<CoachAccessHandoff | null>(proposal.accessHandoff ?? null);
   const pending = status === 'PENDING';
   const approveLabel = (proposal.type === 'workout_log' || proposal.type === 'nutrition_log')

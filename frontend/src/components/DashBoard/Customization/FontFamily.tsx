@@ -7,6 +7,7 @@ import { FormControlLabel, Grid, Radio, RadioGroup, Typography } from '../../ui/
 // project imports
 import useConfig from '../../../hooks/useConfig';
 import MainCard from '../../ui/MainCard';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface FontOption {
   id: string;
@@ -85,9 +86,9 @@ const FontFamily: React.FC = () => {
                   border
                   isActive={fontFamily === font.value}
                 >
-                  <FormControlLabel
-                    style={{ width: '100%' }}
-                    control={<Radio value={font.value} style={{ display: 'none' }} />}
+                  <StyledBox as={FormControlLabel}
+                    $style={{ width: '100%' }}
+                    control={<StyledBox as={Radio} value={font.value} $style={{ display: 'none' }} />}
                     label={
                       <FontLabel variant="h5" fontFamily={font.value}>
                         {font.label}

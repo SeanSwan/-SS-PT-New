@@ -182,11 +182,11 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
           )}
           {renaming ? (
             <RenameInput
+              ref={renameInputRef}
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onClick={stopProp}
               onKeyDown={handleRenameKeyDown}
-              ref={renameInputRef}
               aria-label="Rename plan"
               data-testid={`rename-input-${plan.id}`}
             />

@@ -164,8 +164,8 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
   });
 
   const levelProgress = useMemo(() => {
-    return getLevelProgress(profileQuery.data?.points ?? 0);
-  }, [profileQuery.data?.points]);
+    return getLevelProgress(profileQuery.data?.lifetimePointsEarned ?? profileQuery.data?.points ?? 0);
+  }, [profileQuery.data?.lifetimePointsEarned, profileQuery.data?.points]);
 
   const achievementsBySkillTree = useMemo(() => {
     const grouped: Record<string, Achievement[]> = {};

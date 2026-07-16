@@ -3,7 +3,7 @@ import type { Reward } from './gamificationLegacyTypes';
 const REWARD_REDEEM_UNAVAILABLE_COPY = 'Reward could not be redeemed.';
 const ID_SEGMENT_PATTERN = /^[1-9]\d*$/;
 const REWARD_COPY_MAX = 64;
-const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const CONTROL_CHARS = /\p{Cc}/gu;
 const WHITESPACE = /\s+/g;
 const MARKUP_BOUNDARIES = /[<>]/;
 

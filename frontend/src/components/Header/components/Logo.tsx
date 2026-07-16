@@ -6,6 +6,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import logoImage from '../../../assets/Logo.png';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Theme-aware colors via CSS variables
 
@@ -196,7 +197,7 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
   return (
-    <LogoContainer
+    <StyledBox as={LogoContainer}
       onClick={onLogoClick}
       variants={variants}
       whileHover={{ scale: 1.02 }}
@@ -204,7 +205,7 @@ const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
       role="button"
       aria-label="Go to homepage"
       tabIndex={0}
-      style={{ minWidth: 44, minHeight: 44 }}
+      $style={{ minWidth: 44, minHeight: 44 }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           onLogoClick();
@@ -215,7 +216,7 @@ const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
         <img src={logoImage} alt="SwanStudios Logo" />
         <span className="logo-text">SwanStudios</span>
       </LogoElement>
-    </LogoContainer>
+    </StyledBox>
   );
 };
 

@@ -60,7 +60,7 @@ export const useApplyPayment = () => {
     mutationFn: async ({ orderId, paymentData }: { orderId: string | number; paymentData: ApplyPaymentData }) => {
       return adminClientService.applyPayment(orderId, paymentData);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
       // Invalidate billing overview to refresh data
       queryClient.invalidateQueries({ queryKey: ['clientBillingOverview'] });
       // Also invalidate any order-related queries

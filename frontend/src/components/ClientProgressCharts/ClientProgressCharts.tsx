@@ -25,16 +25,10 @@
  * Part of the SwanStudios Unified Dashboard Enhancement System
  */
 
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import {
-  TrendingUp, BarChart3, Activity, Target, Zap,
-  Calendar, Filter, RefreshCw, Eye, EyeOff,
-  ChevronLeft, ChevronRight, Settings, Download,
-  Dumbbell, Heart, Flame, Radar, Printer, FileDown,
-  Gauge, Trophy, BarChart2, Crosshair, Share2
-} from 'lucide-react';
+import { TrendingUp, BarChart3, Activity, Target, Zap, RefreshCw, Dumbbell, Heart, Flame, Radar, Printer, FileDown, Gauge, Trophy, BarChart2, Crosshair, Share2 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { captureChartAsImage } from '../../utils/chartCapture';
 import ShareChartModal from './ShareChartModal';
@@ -63,7 +57,13 @@ import productionApiService from '../../services/api.service';
 
 // Types and Interfaces
 import {
-  ChartDataPoint,
+  VolumeDataPoint,
+  OneRepMaxDataPoint,
+  FormQualityDataPoint,
+  NASMCategoryDataPoint,
+  SanitizedFormTrendRow,
+  SanitizedVolumeProgressionRow,
+  SanitizedWorkoutHistoryRow,
   ChartTimeRange,
   ChartVisibility,
   BodyCompositionDataPoint,
@@ -78,6 +78,7 @@ import {
   SessionIntensityDataPoint,
 } from './types/ClientProgressTypes';
 import { sanitizeProgressPayload } from './ClientProgressCharts.sanitizers';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const toLoggedEffort = (value: unknown): number | null => {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -95,6 +96,9 @@ const toNonNegativeNumber = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
+const toNonEmptyString = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && value.trim() ? value.trim() : fallback;
+
 
 // ==================== INTERFACES ====================
 
@@ -108,11 +112,11 @@ interface ClientProgressChartsProps {
 }
 
 interface ProgressData {
-  workoutLogs: Record<string, unknown>[];
-  volumeData: ChartDataPoint[];
-  oneRepMaxData: any[];
-  formQualityData: ChartDataPoint[];
-  nasmCategoryData: any[];
+  workoutLogs: SanitizedWorkoutHistoryRow[];
+  volumeData: VolumeDataPoint[];
+  oneRepMaxData: OneRepMaxDataPoint[];
+  formQualityData: FormQualityDataPoint[];
+  nasmCategoryData: NASMCategoryDataPoint[];
   bodyCompositionData: BodyCompositionDataPoint[];
   strengthProgressionData: StrengthProgressionDataPoint[];
   consistencyData: ConsistencyDataPoint[];
@@ -449,7 +453,7 @@ const ErrorContainer = styled.div`
 const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
   userId,
   clientId,
-  isTrainerView = false,
+  isTrainerView: _isTrainerView = false,
   showControls = true,
   defaultTimeRange = '30d',
   className
@@ -461,7 +465,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<ChartTimeRange>(defaultTimeRange);
-  const [chartVisibility, setChartVisibility] = useState<ChartVisibility>({
+  const chartVisibility: ChartVisibility = {
     volume: true,
     oneRepMax: true,
     formQuality: true,
@@ -483,7 +487,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     restCompliance: false,
     exerciseFrequency: true,
     sessionIntensity: true,
-  });
+  };
   const [refreshing, setRefreshing] = useState(false);
   // Chart sharing state
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -532,9 +536,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         volumeData: processVolumeData(pd.volumeProgression || []),
         oneRepMaxData: pd.oneRepMaxes.length > 0 ? pd.oneRepMaxes : processOneRepMaxData(workoutLogs),
         formQualityData: processFormQualityData(pd.formTrends || []),
-        nasmCategoryData: processNASMCategoryData(
-          pd.nasmCategories.length > 0 ? pd.nasmCategories : pd.categories,
-        ),
+        nasmCategoryData: pd.nasmCategories.length > 0
+          ? pd.nasmCategories
+          : pd.categories,
         bodyCompositionData: pd.bodyComposition || [],
         strengthProgressionData: pd.strengthProgression || [],
         consistencyData: pd.consistencyData || [],
@@ -544,7 +548,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
           : [],
         lastUpdated: new Date(),
         // V5 chart data — processed from raw workout history
-        trainingLoadData: processTrainingLoadData(pd.volumeProgression || [], workoutLogs),
+        trainingLoadData: processTrainingLoadData(pd.volumeProgression || []),
         rpeDistributionData: pd.rpeDistribution.length > 0
           ? pd.rpeDistribution
           : processRPEDistribution(workoutLogs),
@@ -553,9 +557,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         exerciseFrequencyData: pd.exerciseFrequency.length > 0
           ? pd.exerciseFrequency
           : processExerciseFrequency(workoutLogs),
-        sessionIntensityData: processSessionIntensity(
-          pd.sessionIntensity.length > 0 ? pd.sessionIntensity : workoutLogs,
-        ),
+        sessionIntensityData: pd.sessionIntensity.length > 0
+          ? pd.sessionIntensity
+          : processSessionIntensity(workoutLogs),
       };
 
       setProgressData(processedData);
@@ -572,11 +576,11 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [targetUserId, timeRange]);
+  }, [targetUserId, timeRange, toast]);
 
   // ==================== DATA PROCESSING FUNCTIONS ====================
   
-  const processVolumeData = (volumeProgression: any[]): ChartDataPoint[] => {
+  const processVolumeData = (volumeProgression: SanitizedVolumeProgressionRow[]): VolumeDataPoint[] => {
     // FIXED: Process volume progression data from backend
     if (!volumeProgression || volumeProgression.length === 0) return [];
     
@@ -589,22 +593,29 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     }));
   };
 
-  const processOneRepMaxData = (workoutHistory: any[]) => {
-    // Process 1RM data from backend (Epley formula applied server-side)
-    if (!workoutHistory || workoutHistory.length === 0) return [];
+  const processOneRepMaxData = (workoutHistory: SanitizedWorkoutHistoryRow[]): OneRepMaxDataPoint[] => {
+    if (workoutHistory.length === 0) return [];
 
-    return workoutHistory.map((entry: any) => ({
-      exercise: entry.exercise || entry.exerciseName || 'Unknown',
-      max: entry.max || entry.estimated1RM || 0,
-      label: `${entry.max || entry.estimated1RM || 0} lbs`,
-      improvement: entry.improvement || 0,
-      category: entry.category || 'General',
-      date: entry.date,
-    }));
+    return workoutHistory.map((entry) => {
+      const max = toNonNegativeNumber(entry.max ?? entry.estimated1RM);
+      const parsedImprovement = typeof entry.improvement === 'number'
+        ? entry.improvement
+        : Number(entry.improvement);
+      const improvement = Number.isFinite(parsedImprovement) ? parsedImprovement : 0;
+
+      return {
+        exercise: toNonEmptyString(entry.exercise ?? entry.exerciseName, 'Unknown'),
+        max,
+        label: max.toLocaleString() + ' lbs',
+        improvement,
+        category: toNonEmptyString(entry.category, 'General'),
+        date: entry.date,
+      };
+    });
   };
 
-  const processFormQualityData = (formTrends: any[]): ChartDataPoint[] => {
-    if (!formTrends || formTrends.length === 0) return [];
+  const processFormQualityData = (formTrends: SanitizedFormTrendRow[]): FormQualityDataPoint[] => {
+    if (formTrends.length === 0) return [];
 
     return formTrends.flatMap(trend => {
       const averageForm = toLoggedFormRating(trend.averageFormRating);
@@ -621,24 +632,11 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     });
   };
 
-  const processNASMCategoryData = (categories: any[]) => {
-    // FIXED: Process NASM categories from backend
-    if (!categories || categories.length === 0) return [];
-    
-    const maxLevel = Math.max(...categories.map(cat => cat.level || 0));
-    
-    return categories.map(category => ({
-      category: category.category,
-      value: category.level || 0,
-      fullMark: maxLevel || 1000,
-      percentage: category.percentComplete || 0
-    }));
-  };
 
   // ==================== V5 DATA PROCESSING FUNCTIONS ====================
 
-  const processTrainingLoadData = (volumeProgression: any[], workoutHistory: any[]): TrainingLoadDataPoint[] => {
-    if (!volumeProgression || volumeProgression.length === 0) return [];
+  const processTrainingLoadData = (volumeProgression: SanitizedVolumeProgressionRow[]): TrainingLoadDataPoint[] => {
+    if (volumeProgression.length === 0) return [];
     // Group by week
     const weeks: Record<string, { tonnage: number; sessions: number; intensities: number[] }> = {};
     volumeProgression.forEach(entry => {
@@ -662,17 +660,16 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     }));
   };
 
-  const processRPEDistribution = (data: any[]): RPEDistributionDataPoint[] => {
-    const zones = { 'Easy (1-3)': 0, 'Moderate (4-6)': 0, 'Hard (7-8)': 0, 'Max Effort (9-10)': 0 };
+  const processRPEDistribution = (data: SanitizedWorkoutHistoryRow[]): RPEDistributionDataPoint[] => {
+    const zones: Record<string, number> = { 'Easy (1-3)': 0, 'Moderate (4-6)': 0, 'Hard (7-8)': 0, 'Max Effort (9-10)': 0 };
     const colors: Record<string, string> = {
-      'Easy (1-3)': '#50A0F0', 'Moderate (4-6)': '#60C0F0',
-      'Hard (7-8)': '#8B5CF6', 'Max Effort (9-10)': '#C6A84B',
+      'Easy (1-3)': 'var(--data-cyan, #50A0F0)',
+      'Moderate (4-6)': 'var(--accent-primary, #60C0F0)',
+      'Hard (7-8)': 'var(--accent-secondary, #8B5CF6)',
+      'Max Effort (9-10)': 'var(--accent-gold, #C6A84B)',
     };
-    if (!data || data.length === 0) return [];
-    // If backend provides pre-calculated distribution, use it
-    if (data[0]?.zone) return data as RPEDistributionDataPoint[];
-    // Otherwise derive from workout history
-    data.forEach((entry: any) => {
+    if (data.length === 0) return [];
+    data.forEach((entry) => {
       const rpe = toLoggedEffort(entry.overallRPE)
         ?? toLoggedEffort(entry.rpe)
         ?? toLoggedEffort(entry.intensity);
@@ -685,35 +682,37 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     const total = Object.values(zones).reduce((s, v) => s + v, 0);
     if (total === 0) return [];
     return Object.entries(zones).map(([zone, count]) => ({
-      zone, count, percentage: (count / total) * 100, color: colors[zone],
+      zone, count, percentage: (count / total) * 100, color: colors[zone] ?? 'var(--accent-primary, #60C0F0)',
     }));
   };
 
-  const processExerciseFrequency = (workoutHistory: any[]): ExerciseFrequencyDataPoint[] => {
-    if (!workoutHistory || workoutHistory.length === 0) return [];
+  const processExerciseFrequency = (workoutHistory: SanitizedWorkoutHistoryRow[]): ExerciseFrequencyDataPoint[] => {
+    if (workoutHistory.length === 0) return [];
     const freq: Record<string, { count: number; lastPerformed: string }> = {};
-    workoutHistory.forEach((entry: any) => {
-      const name = entry.exerciseName || entry.exercise || 'Unknown';
-      if (!freq[name]) freq[name] = { count: 0, lastPerformed: entry.date || '' };
+    workoutHistory.forEach((entry) => {
+      const name = toNonEmptyString(entry.exerciseName ?? entry.exercise, 'Unknown');
+      if (!freq[name]) freq[name] = { count: 0, lastPerformed: entry.date };
       freq[name].count++;
-      if (entry.date && entry.date > freq[name].lastPerformed) freq[name].lastPerformed = entry.date;
+      if (entry.date > freq[name].lastPerformed) freq[name].lastPerformed = entry.date;
     });
     return Object.entries(freq).map(([exercise, val]) => ({
       exercise, count: val.count, lastPerformed: val.lastPerformed,
     }));
   };
 
-  const processSessionIntensity = (workoutHistory: any[]): SessionIntensityDataPoint[] => {
-    if (!workoutHistory || workoutHistory.length === 0) return [];
-    return workoutHistory.flatMap((entry: any) => {
+  const processSessionIntensity = (workoutHistory: SanitizedWorkoutHistoryRow[]): SessionIntensityDataPoint[] => {
+    if (workoutHistory.length === 0) return [];
+    return workoutHistory.flatMap((entry) => {
       const intensity = toLoggedEffort(entry.intensity);
-      if (!entry.duration || intensity === null) return [];
+      if (entry.duration <= 0 || intensity === null) return [];
       return [{
-        date: entry.date || entry.completedAt || '',
-        duration: entry.duration || 0,
+        date: entry.date,
+        duration: entry.duration,
         intensity,
-        totalVolume: entry.totalVolume || 0,
-        sessionTitle: entry.title,
+        totalVolume: entry.totalVolume,
+        sessionTitle: typeof entry.title === 'string' && entry.title.trim()
+          ? entry.title.trim()
+          : undefined,
       }];
     });
   };
@@ -759,12 +758,6 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     setTimeRange(event.target.value as ChartTimeRange);
   }, []);
 
-  const toggleChartVisibility = useCallback((chartType: keyof ChartVisibility) => {
-    setChartVisibility(prev => ({
-      ...prev,
-      [chartType]: !prev[chartType]
-    }));
-  }, []);
 
   // ==================== RENDER ====================
   
@@ -773,13 +766,13 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       <ProgressContainer className={className}>
         <LoadingContainer>
           <LoadingSpinner />
-          <motion.p
+          <StyledBox as={motion.p}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            style={{ color: '#b8c9db', fontSize: '1.1rem', fontFamily: "'Sora', sans-serif" }}
+            $style={{ color: '#b8c9db', fontSize: '1.1rem', fontFamily: "'Sora', sans-serif" }}
           >
             Loading your progress data...
-          </motion.p>
+          </StyledBox>
         </LoadingContainer>
       </ProgressContainer>
     );
@@ -823,7 +816,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       {/* Header Section */}
       <HeaderSection>
         <HeaderTitle>
-          <Activity style={{ marginRight: '1rem' }} />
+          <StyledBox as={Activity} $style={{ marginRight: '1rem' }} />
           Progress Analytics
         </HeaderTitle>
         
@@ -919,7 +912,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Share2 size={16} />
               </ShareIconBtn>
             </ChartHeader>
-            <FormQualityChart data={progressData.formQualityData as any} />
+            <FormQualityChart data={progressData.formQualityData} />
           </ChartCard>
         )}
 

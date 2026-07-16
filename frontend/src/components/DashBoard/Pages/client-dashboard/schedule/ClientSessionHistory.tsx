@@ -12,9 +12,9 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, User, MapPin, FileText, Filter, TrendingUp, Award } from 'lucide-react';
+import { X, Calendar, Clock, User, MapPin, FileText, TrendingUp, Award } from 'lucide-react';
 import moment from 'moment';
-import { theme, prefersReducedMotion } from '../../../../../theme/tokens';
+import { theme } from '../../../../../theme/tokens';
 import type { Session } from '../../../../../components/UniversalMasterSchedule/types';
 
 // ==================== TYPES ====================
@@ -529,14 +529,13 @@ const ClientSessionHistory: React.FC<ClientSessionHistoryProps> = ({
           initial="hidden"
           animate="visible"
           exit="exit"
-          onClick={onClose}
+          onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
         >
           <ModalContainer
             variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <ModalHeader>

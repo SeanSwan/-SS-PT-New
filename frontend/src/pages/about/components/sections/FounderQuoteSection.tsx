@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container } from '../shared/AboutStyles';
-import { getReveal } from '../shared/AboutAnimations';
+import '../shared/AboutAnimations';
 
 interface FounderQuoteSectionProps {
   tier: 'full' | 'balanced' | 'essential';

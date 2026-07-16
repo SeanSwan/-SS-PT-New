@@ -34,14 +34,14 @@ const Lightbox: React.FC<Props> = ({ photo, onClose, onPrev, onNext, hasPrev, ha
   if (!photo) return null;
 
   return (
-    <Backdrop onClick={onClose}>
+    <Backdrop onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <CloseBtn type="button" onClick={onClose} aria-label="Close photo"><X size={22} /></CloseBtn>
       {hasPrev && (
         <NavBtn $side="left" type="button" aria-label="Previous photo" onClick={(e) => { e.stopPropagation(); onPrev?.(); }}>
           <ChevronLeft size={26} />
         </NavBtn>
       )}
-      <Frame onClick={(e) => e.stopPropagation()}>
+      <Frame>
         <FullImg src={photo.url} alt={photo.displayName || `Photo ${photo.photoNumber}`} />
         <Caption>#{photo.photoNumber} · {photo.displayName}</Caption>
       </Frame>

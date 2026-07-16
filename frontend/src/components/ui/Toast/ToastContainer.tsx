@@ -10,14 +10,7 @@
  * - z-index: 2000
  */
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-} from 'react';
+import React, { createContext, useState, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import {
@@ -356,13 +349,7 @@ const ProgressBar = styled.div<{ $duration: number; $color: string; $paused: boo
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-export const useToast = (): ToastContextValue => {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error('useToast must be used within a SwanToastProvider');
-  }
-  return ctx;
-};
+
 
 // ─── Single Toast Item ──────────────────────────────────────────
 

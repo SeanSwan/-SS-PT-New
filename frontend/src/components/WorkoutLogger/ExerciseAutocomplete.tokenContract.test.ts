@@ -10,9 +10,6 @@ const readOptional = (relativePath: string) => {
   return existsSync(target) ? readFileSync(target, 'utf8') : '';
 };
 
-const enhancedAdminClients = read('frontend/src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx');
-const workoutLoggerModal = read('frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutLoggerModal.tsx');
-const exerciseEntryCard = read('frontend/src/components/DashBoard/Pages/admin-clients/components/ExerciseEntryCard.tsx');
 const autocompleteSource = read('frontend/src/components/WorkoutLogger/ExerciseAutocomplete.tsx');
 const autocompleteStylesPath = 'frontend/src/components/WorkoutLogger/ExerciseAutocomplete.styles.ts';
 const autocompleteStylesSource = readOptional(autocompleteStylesPath);
@@ -21,15 +18,7 @@ function lineCount(source: string): number {
   return source.trimEnd().split(/\r?\n/).length;
 }
 
-describe('ExerciseAutocomplete active admin-client token contract', () => {
-  it('stays wired into the active admin client workout modal surface', () => {
-    expect(enhancedAdminClients).toContain("import WorkoutLoggerModal from './components/WorkoutLoggerModal'");
-    expect(enhancedAdminClients).toContain('<WorkoutLoggerModal');
-    expect(workoutLoggerModal).toContain("import ExerciseEntryCard");
-    expect(workoutLoggerModal).toContain('<ExerciseEntryCard');
-    expect(exerciseEntryCard).toContain("import ExerciseAutocomplete from '../../../../WorkoutLogger/ExerciseAutocomplete'");
-    expect(exerciseEntryCard).toContain('<ExerciseAutocomplete');
-  });
+describe('ExerciseAutocomplete token contract', () => {
 
   it('uses the shared WorkoutLogger Crystalline Swan tokens instead of a local palette', () => {
     expect(existsSync(resolve(repoRoot, autocompleteStylesPath))).toBe(true);

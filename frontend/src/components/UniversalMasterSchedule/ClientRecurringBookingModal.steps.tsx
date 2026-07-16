@@ -132,7 +132,7 @@ export const RecurringFilterStep: React.FC<{
         onChange={(val) => onWeeksAheadChange(Number(val))}
         options={weeksAheadOptions}
       />
-      <HelperText>We'll find available sessions for the next {weeksAhead} weeks</HelperText>
+      <HelperText>We&apos;ll find available sessions for the next {weeksAhead} weeks</HelperText>
     </FormField>
 
     <ResultPreview>
@@ -262,7 +262,7 @@ export const RecurringConfirmStep: React.FC<{
     </ConfirmSummary>
 
     <ConfirmSessionList>
-      <ConfirmListLabel secondary>Sessions you're booking:</ConfirmListLabel>
+      <ConfirmListLabel secondary>Sessions you&apos;re booking:</ConfirmListLabel>
       {selectedSessions.map((session) => {
         const sessionDate = new Date(session.sessionDate);
 

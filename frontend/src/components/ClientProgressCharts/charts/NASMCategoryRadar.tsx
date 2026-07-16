@@ -29,6 +29,8 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import { NASMRadarChartProps, NASMCategoryDataPoint } from '../types/ClientProgressTypes';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -163,13 +165,13 @@ const truncateCategoryName = (name: string): string => {
 
 const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
   data,
-  height = 350,
+  height: _height = 350,
   showTooltip = true,
-  showLegend = false,
+  showLegend: _showLegend = false,
   animate = true,
   showPercentages = true,
   maxValue,
-  theme,
+  theme: _theme,
   className
 }) => {
   // ==================== COMPUTED VALUES ====================
@@ -223,10 +225,10 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>No Category Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <StyledBox as="h4" $style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>No Category Data</StyledBox>
+            <StyledBox as="p" $style={{ margin: 0, fontSize: '0.875rem' }}>
               Log more workouts to see your NASM category distribution!
-            </p>
+            </StyledBox>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -255,9 +257,9 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
         {dominantCategory && (
           <SummaryItem>
             <SummaryLabel>Primary Focus</SummaryLabel>
-            <SummaryValue style={{ fontSize: '1rem' }}>
+            <StyledBox as={SummaryValue} $style={{ fontSize: '1rem' }}>
               {dominantCategory.category}
-            </SummaryValue>
+            </StyledBox>
           </SummaryItem>
         )}
       </SummaryContainer>
@@ -289,11 +291,11 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
                       stroke: 'rgba(139, 92, 246, 0.3)',
                       strokeWidth: 1,
                     }}
-                    style={{
+                    {...victoryStyleProps({
                       fill: '#E0ECF4',
                       fontSize: 11,
                       fontFamily: "'Fira Code', monospace",
-                    }}
+                    })}
                     cornerRadius={8}
                     flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                   />
@@ -306,7 +308,7 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
           <VictoryPolarAxis
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.category)}
-            style={{
+            {...victoryStyleProps({
               axis: { stroke: 'rgba(148, 163, 184, 0.2)' },
               tickLabels: {
                 fill: '#94a3b8',
@@ -319,13 +321,13 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
                 stroke: 'rgba(148, 163, 184, 0.15)',
                 strokeDasharray: '4,4',
               },
-            }}
+            })}
           />
 
           {/* Radial axis (values) */}
           <VictoryPolarAxis
             dependentAxis
-            style={{
+            {...victoryStyleProps({
               axis: { stroke: 'none' },
               tickLabels: {
                 fill: '#64748b',
@@ -335,21 +337,21 @@ const NASMCategoryRadar: React.FC<NASMRadarChartProps> = ({
               grid: {
                 stroke: 'rgba(148, 163, 184, 0.1)',
               },
-            }}
+            })}
             tickCount={4}
           />
 
           {/* Data area */}
           <VictoryArea
             data={chartData}
-            style={{
+            {...victoryStyleProps({
               data: {
                 fill: '#50A0F0',
                 fillOpacity: 0.2,
                 stroke: '#50A0F0',
                 strokeWidth: 3,
               },
-            }}
+            })}
           />
         </VictoryChart>
       </ChartContainer>

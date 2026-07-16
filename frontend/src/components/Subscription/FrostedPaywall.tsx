@@ -158,37 +158,13 @@ const TrialBadge = styled.div<{ $isExpired?: boolean }>`
       : 'rgba(96, 192, 240, 0.2)'};
 `;
 
-const UsageBar = styled.div`
-  margin-bottom: 1.5rem;
-`;
 
-const UsageLabel = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
-  margin-bottom: 0.5rem;
-`;
 
-const UsageTrack = styled.div`
-  width: 100%;
-  height: 6px;
-  background: rgba(224, 236, 244, 0.1);
-  border-radius: 3px;
-  overflow: hidden;
-`;
 
-const UsageFill = styled.div<{ $pct: number }>`
-  width: ${({ $pct }) => Math.min(100, $pct)}%;
-  height: 100%;
-  background: ${({ $pct }) =>
-    $pct >= 100
-      ? '#C92A54'
-      : $pct >= 66
-        ? 'var(--accent-gold, #C6A84B)'
-        : 'var(--accent-primary, #60C0F0)'};
-  border-radius: 3px;
-  transition: width 0.5s ease;
-`;
+
+
+
+
 
 const ButtonRow = styled.div`
   display: flex;
@@ -331,7 +307,7 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
   onClose,
   onUnlocked,
 }) => {
-  const { subscription, usage, startTrial, checkout, isTrial } = useSubscription();
+  const { subscription, startTrial, checkout, isTrial } = useSubscription();
   const [starting, setStarting] = useState(false);
 
   const handleStartTrial = async () => {
@@ -354,13 +330,11 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
   const trialExpired = subscription && !subscription.isInTrial && subscription.trialDaysRemaining === 0;
   const trialDays = subscription?.trialDaysRemaining || 0;
 
-  const messagesUsed = usage?.aiMessagesUsed || 0;
-  const messagesLimit = usage?.aiMessagesLimit || 3;
-  const messagePct = messagesLimit > 0 ? (messagesUsed / messagesLimit) * 100 : 100;
+
 
   return (
-    <Backdrop onClick={onClose} role="dialog" aria-modal="true" aria-label="Subscription required">
-      <Card onClick={(e) => e.stopPropagation()}>
+    <Backdrop onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }} role="dialog" aria-modal="true" aria-label="Subscription required">
+      <Card>
         <CloseBtn onClick={onClose} aria-label="Close">&times;</CloseBtn>
 
         <LockIcon aria-hidden="true">

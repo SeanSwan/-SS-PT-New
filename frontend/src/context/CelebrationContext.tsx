@@ -201,7 +201,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     },
-    [reducedMotion],
+    [addParticles, reducedMotion],
   );
 
   const triggerLevelUp = useCallback(
@@ -223,7 +223,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
       // Auto-dismiss after 6s
       setTimeout(dismiss, 6000);
     },
-    [reducedMotion],
+    [addParticles, reducedMotion],
   );
 
   const triggerAchievement = useCallback(
@@ -237,7 +237,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
         addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.35, count));
       }
     },
-    [reducedMotion],
+    [addParticles, reducedMotion],
   );
 
   const triggerStreak = useCallback(
@@ -251,7 +251,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
         addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.4, count));
       }
     },
-    [reducedMotion],
+    [addParticles, reducedMotion],
   );
 
   // ── Context value ─────────────────────────────────────────

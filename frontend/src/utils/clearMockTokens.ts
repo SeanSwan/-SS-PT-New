@@ -8,7 +8,7 @@ import { logger } from '@/utils/logger';
 const clearMockTokens = () => {
   // Get current token from localStorage
   const token = localStorage.getItem('token');
-  const userRole = localStorage.getItem('user_role');
+  localStorage.getItem('user_role');
   
   if (token && token.startsWith('dev_')) {
     logger.log('🧹 Detected mock token, clearing...');

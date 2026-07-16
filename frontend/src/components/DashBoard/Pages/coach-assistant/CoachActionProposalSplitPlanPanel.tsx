@@ -3,7 +3,7 @@
  * =====================================
  * Readable split-plan candidate list for Swan Coach proposal review.
  */
-import React from 'react';
+
 import styled from 'styled-components';
 
 const Panel = styled.div`

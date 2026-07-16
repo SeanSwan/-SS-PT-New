@@ -1,4 +1,6 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -32,8 +34,8 @@ class DevToolsErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log the error to console but don't interfere with production behavior
-    console.error('[DEV MODE] Error in DevTools component:', error);
-    console.info('[DEV MODE] Component stack:', errorInfo.componentStack);
+    logger.error('[DEV MODE] Error in DevTools component:', error);
+    logger.debug('[DEV MODE] Component stack:', errorInfo.componentStack);
   }
 
   // Allow error boundary to recover on prop changes
@@ -47,7 +49,7 @@ class DevToolsErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       // Show fallback UI or minimal error message to avoid cluttering the app
       return this.props.fallback || (
-        <div style={{
+        <StyledBox as="div" $style={{
           position: 'fixed',
           bottom: '20px',
           right: '20px',
@@ -62,15 +64,15 @@ class DevToolsErrorBoundary extends Component<Props, State> {
           zIndex: 9000
         }}>
           <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+            <StyledBox as="summary" $style={{ cursor: 'pointer', fontWeight: 'bold' }}>
               DevTools Error (Click to expand)
-            </summary>
-            <div style={{ marginTop: '8px', wordBreak: 'break-word' }}>
+            </StyledBox>
+            <StyledBox as="div" $style={{ marginTop: '8px', wordBreak: 'break-word' }}>
               {this.state.error?.message || 'Unknown error in development tools'}
-            </div>
-            <button 
+            </StyledBox>
+            <StyledBox as="button"
               onClick={() => this.setState({ hasError: false, error: null })}
-              style={{
+              $style={{
                 background: 'rgba(139, 92, 246, 0.2)',
                 border: 'none',
                 borderRadius: '4px',
@@ -81,9 +83,9 @@ class DevToolsErrorBoundary extends Component<Props, State> {
               }}
             >
               Reset
-            </button>
+            </StyledBox>
           </details>
-        </div>
+        </StyledBox>
       );
     }
 

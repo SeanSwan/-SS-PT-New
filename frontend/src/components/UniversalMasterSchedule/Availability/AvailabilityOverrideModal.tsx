@@ -27,6 +27,7 @@ import {
 } from '../ui';
 import { HelperText } from '../ui/Typography';
 import { roundUpToStep } from '../ui/TimeWheelPicker/useTimeWheelState';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface AvailabilityOverrideModalProps {
   trainerId: number | string;
@@ -170,7 +171,7 @@ const AvailabilityOverrideModal: React.FC<AvailabilityOverrideModalProps> = ({
         </FormField>
 
         <FlexBox gap="1rem">
-          <FormField style={{ flex: 1 }}>
+          <StyledBox as={FormField} $style={{ flex: 1 }}>
             <Label htmlFor="startTime" required>Start Time</Label>
             <TimeWheelPicker
               value={formData.startTime}
@@ -182,12 +183,12 @@ const AvailabilityOverrideModal: React.FC<AvailabilityOverrideModalProps> = ({
               data-testid="override-start-time"
             />
             {startMinTime === null && isToday && (
-              <HelperText style={{ color: '#f59e0b', marginTop: '0.25rem' }}>
+              <StyledBox as={HelperText} $style={{ color: '#f59e0b', marginTop: '0.25rem' }}>
                 No times available today. Select a future date.
-              </HelperText>
+              </StyledBox>
             )}
-          </FormField>
-          <FormField style={{ flex: 1 }}>
+          </StyledBox>
+          <StyledBox as={FormField} $style={{ flex: 1 }}>
             <Label htmlFor="endTime" required>End Time</Label>
             <TimeWheelPicker
               value={formData.endTime}
@@ -198,16 +199,16 @@ const AvailabilityOverrideModal: React.FC<AvailabilityOverrideModalProps> = ({
               timezone={tzAbbr}
               data-testid="override-end-time"
             />
-          </FormField>
+          </StyledBox>
         </FlexBox>
 
         {timeRangeNotice && (
-          <HelperText
-            style={{ color: '#f59e0b' }}
+          <StyledBox as={HelperText}
+            $style={{ color: '#f59e0b' }}
             data-testid="time-range-notice"
           >
             {timeRangeNotice}
-          </HelperText>
+          </StyledBox>
         )}
 
         <FormField>

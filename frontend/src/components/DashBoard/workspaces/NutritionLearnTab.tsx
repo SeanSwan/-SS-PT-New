@@ -23,6 +23,7 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { BookOpen, ChevronDown, Zap, Droplets, Apple, Flame } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Education Content (NASM-aligned)
@@ -101,7 +102,7 @@ const NutritionLearnTab: React.FC = () => {
   return (
     <Wrapper>
       <Intro>
-        <BookOpen size={20} style={{ flexShrink: 0 }} />
+        <StyledBox as={BookOpen} size={20} $style={{ flexShrink: 0 }} />
         <span>NASM-aligned nutrition education. Tap a topic to expand.</span>
       </Intro>
 

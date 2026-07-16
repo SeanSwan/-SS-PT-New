@@ -101,15 +101,7 @@ async function dbGet<T>(storeName: string, key: string | number): Promise<T | un
   });
 }
 
-async function dbDelete(storeName: string, key: string | number): Promise<void> {
-  const db = await openKeyStore();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    tx.objectStore(storeName).delete(key);
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  });
-}
+
 
 // ---------------------------------------------------------------------------
 // Utility — Base64 <-> ArrayBuffer

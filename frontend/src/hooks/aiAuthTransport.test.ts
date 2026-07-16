@@ -58,7 +58,7 @@ describe('AI and admin auth transport', () => {
   it('does not create a standalone admin-client axios auth lane', () => {
     expect(ADMIN_CLIENT_SERVICE_SOURCE).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
     expect(ADMIN_CLIENT_SERVICE_SOURCE).toMatch(/constructor\(apiInstance/);
-    expect(ADMIN_CLIENT_SERVICE_SOURCE).toMatch(/createAdminClientService\s*=\s*\(apiInstance\?: any\)[\s\S]*new AdminClientService\(apiInstance\)/);
+    expect(ADMIN_CLIENT_SERVICE_SOURCE).toMatch(/createAdminClientService\s*=\s*\(apiInstance\?: AdminApiTransport\)[\s\S]*new AdminClientService\(apiInstance\)/);
     expect(ADMIN_CLIENT_SERVICE_SOURCE).not.toMatch(/axios\.create/);
     expect(ADMIN_CLIENT_SERVICE_SOURCE).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
   });
@@ -129,7 +129,8 @@ describe('AI and admin auth transport', () => {
   });
 
   it('does not synthesize 503 responses from the disabled service worker', () => {
-    expect(SPA_SW_SOURCE).toMatch(/Intentionally no event\.respondWith/);
+    expect(SPA_SW_SOURCE).not.toMatch(/addEventListener\(\s*['"]fetch['"]/);
+    expect(SPA_SW_SOURCE).not.toMatch(/\.respondWith\s*\(/);
     expect(SPA_SW_SOURCE).not.toMatch(/new Response\('Service Worker: Network error'/);
   });
 });

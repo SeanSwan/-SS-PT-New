@@ -24,7 +24,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, MessageSquareOff, Search } from 'lucide-react';
+import { Plus, X, MessageSquareOff } from 'lucide-react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import ConversationItem from './ConversationItem';
 import {

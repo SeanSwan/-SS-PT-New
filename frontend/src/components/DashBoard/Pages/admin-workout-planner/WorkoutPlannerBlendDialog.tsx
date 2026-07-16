@@ -242,7 +242,7 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
   const canSubmit = Boolean(planAId && planBId && planAId !== planBId && maxWeeks > 0 && !loadingWeeks);
 
   return (
-    <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Overlay onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <Panel role="dialog" aria-modal="true" aria-label="Blend two plans">
         <TitleRow>
           <GitMerge size={16} aria-hidden="true" />

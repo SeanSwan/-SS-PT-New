@@ -1,7 +1,7 @@
 /**
  * Static icon and tier options for reward management.
  */
-import React from 'react';
+
 import {
   Award,
   Calendar,

@@ -203,11 +203,12 @@ export function buildLegacyProfile({
   user,
 }: ProfileMapperInput): GamificationProfile {
   const points = firstNonNegativeNumber(raw.points);
+  const lifetimePointsEarned = firstNonNegativeNumber(raw.lifetimePointsEarned, points);
   const stats = isRecord(raw.stats) ? raw.stats : null;
-  const levelProgress = getLevelProgress(points);
+  const levelProgress = getLevelProgress(lifetimePointsEarned);
   const legacyTier = mapTierToLegacy(raw.tier || levelProgress.tier);
   const nextTier = getNextLegacyTier(legacyTier);
-  const usableNextLevelTarget = getUsableNextLevelTarget(raw.nextLevelPoints, points);
+  const usableNextLevelTarget = getUsableNextLevelTarget(raw.nextLevelPoints, lifetimePointsEarned);
   const nextLevelProgress = usableNextLevelTarget
     ? clampProgressPercent(raw.nextLevelProgress, levelProgress.progressPercent)
     : levelProgress.progressPercent;
@@ -223,6 +224,7 @@ export function buildLegacyProfile({
     username: user?.username || '',
     photo: user?.profileImageUrl,
     points,
+    lifetimePointsEarned,
     level: firstNonNegativeNumber(raw.level) || levelProgress.level,
     tier: legacyTier,
     streakDays: firstNonNegativeNumber(raw.streakDays, stats?.streakDays),
@@ -246,7 +248,7 @@ export function buildLegacyProfile({
       gold: 20000,
       platinum: 50000,
     };
-    profile.nextTierProgress = clampProgressPercent((points / tierTargets[nextTier]) * 100);
+    profile.nextTierProgress = clampProgressPercent((lifetimePointsEarned / tierTargets[nextTier]) * 100);
   }
 
   return profile;
@@ -259,7 +261,8 @@ export function buildFallbackProfile(
 ): GamificationProfile {
   const fallbackRecord = isRecord(fallbackUser) ? fallbackUser : null;
   const points = firstNonNegativeNumber(fallbackRecord?.points);
-  const levelProgress = getLevelProgress(points);
+  const lifetimePointsEarned = firstNonNegativeNumber(fallbackRecord?.lifetimePointsEarned, points);
+  const levelProgress = getLevelProgress(lifetimePointsEarned);
   const legacyTier = mapTierToLegacy(levelProgress.tier);
   return {
     id: String(targetUserId || ''),
@@ -268,6 +271,7 @@ export function buildFallbackProfile(
     username: user?.username || '',
     photo: user?.profileImageUrl,
     points,
+    lifetimePointsEarned,
     level: firstNonNegativeNumber(fallbackRecord?.level) || levelProgress.level,
     tier: legacyTier,
     streakDays: firstNonNegativeNumber(fallbackRecord?.streakDays),

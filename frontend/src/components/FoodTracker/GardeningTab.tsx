@@ -18,6 +18,7 @@ import {
 } from './GardeningTab.styles';
 import apiService from '../../services/api.service';
 import LocalFoodActionPanel from './LocalFoodActionPanel';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const GARDENING_ZONE_ERROR = 'Growing zone lookup is unavailable right now. Please try again.';
 const GARDENING_PLANTS_ERROR = 'Plant recommendations are unavailable right now. Please try again.';
@@ -220,16 +221,16 @@ const GardeningTab: React.FC = () => {
               >
                 <PlantHeader>
                   <PlantEmoji aria-hidden="true">{plant.imageEmoji}</PlantEmoji>
-                  <div style={{ flex: 1 }}>
+                  <StyledBox as="div" $style={{ flex: 1 }}>
                     <PlantName>{plant.name}</PlantName>
                     <PlantMeta>
-                      <DiffBadge style={{ color: difficultyColor(plant.difficulty) }}>
+                      <StyledBox as={DiffBadge} $style={{ color: difficultyColor(plant.difficulty) }}>
                         {plant.difficulty}
-                      </DiffBadge>
+                      </StyledBox>
                       <span>{plant.category}</span>
                       {plant.containerFriendly && <span>container OK</span>}
                     </PlantMeta>
-                  </div>
+                  </StyledBox>
                   <HarvestDays>{plant.daysToHarvest}d</HarvestDays>
                 </PlantHeader>
 

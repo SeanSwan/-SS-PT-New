@@ -5,9 +5,9 @@
  * on Cancel / Escape / click-outside — without ever downloading on error.
  * PDF rendering itself is a browser concern; here we assert the wiring.
  */
-import React from 'react';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import PdfApprovalVault, { type PdfPreviewPayload } from './PdfApprovalVault';
 
 const makePayload = (over: Partial<PdfPreviewPayload> = {}): PdfPreviewPayload => ({

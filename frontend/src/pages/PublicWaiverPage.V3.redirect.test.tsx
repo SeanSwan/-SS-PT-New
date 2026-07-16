@@ -55,8 +55,8 @@ vi.mock('../components/ui/buttons/GlowButton', () => ({
   ),
 }));
 
-vi.mock('../components/SignatureCapture/SignaturePad', () => ({
-  default: forwardRef(({ onEnd, onClear }: { onEnd?: () => void; onClear?: () => void }, ref) => {
+vi.mock('../components/SignatureCapture/SignaturePad', () => {
+  const MockSignaturePad = forwardRef(({ onEnd, onClear }: { onEnd?: () => void; onClear?: () => void }, ref) => {
     const [signed, setSigned] = useState(false);
     useImperativeHandle(ref, () => ({
       isEmpty: () => !signed,
@@ -78,8 +78,10 @@ vi.mock('../components/SignatureCapture/SignaturePad', () => ({
         Sign waiver
       </button>
     );
-  }),
-}));
+  });
+  MockSignaturePad.displayName = 'MockSignaturePad';
+  return { default: MockSignaturePad };
+});
 
 const waiverVersions = [
   {

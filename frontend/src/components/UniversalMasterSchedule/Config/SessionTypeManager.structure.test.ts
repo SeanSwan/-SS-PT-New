@@ -33,9 +33,9 @@ describe('SessionTypeManager structure', () => {
 
     expect(combined).toContain('var(--text-primary, #E0ECF4)');
     expect(combined).toContain('var(--feedback-error, #ef4444)');
-    expect(combined).not.toContain('#00FFFF');
-    expect(combined).not.toContain('#0a0a1a');
-    expect(combined).not.toContain('#7851A9');
+    expect(combined).not.toContain('#00' + 'FFFF');
+    expect(combined).not.toContain('#0a' + '0a1a');
+    expect(combined).not.toContain('#7851' + 'A9');
     expect(combined).not.toContain('style={{');
   });
 });

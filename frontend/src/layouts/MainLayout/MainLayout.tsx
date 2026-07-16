@@ -15,6 +15,7 @@ import { useMenuActions, useMenuState } from '../../hooks/useMenuState';
 // Constants
 const DEFAULT_BORDER_RADIUS = 8;
 const MD_BREAKPOINT = 960;
+const noopDrawerOpen = (_state: boolean): void => {};
 
 // Types
 interface MainLayoutProps {
@@ -72,7 +73,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   }
 
   // Get menu actions with proper error handling
-  let handleDrawerOpen = (state: boolean) => {};
+  let handleDrawerOpen = noopDrawerOpen;
   try {
     const actions = useMenuActions();
     handleDrawerOpen = actions.handleDrawerOpen;

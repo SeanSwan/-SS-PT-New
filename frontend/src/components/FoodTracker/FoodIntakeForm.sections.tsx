@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { Activity, Pencil, Plus, Trash2, UtensilsCrossed, X, Zap } from 'lucide-react';
-import type { FoodItem, FoodQuality, MealType, SavedMacroEntry } from './FoodIntakeForm.logic';
+import type { FoodItem, FoodQuality, SavedMacroEntry } from './FoodIntakeForm.logic';
 import { FOOD_QUALITY } from './FoodIntakeForm.logic';
 import {
   AddButton,
@@ -237,6 +237,3 @@ export const SuccessToast = ({ visible, exiting, message, onClose }: {
     </ToastContent>
   </ToastOverlay>
 ) : null;
-
-export const mealTypeLabel = (mealType: MealType) =>
-  mealType.charAt(0).toUpperCase() + mealType.slice(1);

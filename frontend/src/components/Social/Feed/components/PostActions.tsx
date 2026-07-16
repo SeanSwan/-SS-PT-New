@@ -37,7 +37,7 @@ const PostActions: React.FC<PostActionsProps> = React.memo(({
   userReactions,
   reactionCounts,
   onReaction,
-  showComments,
+  showComments: _showComments,
   onToggleComments,
   onShareClick,
 }) => {

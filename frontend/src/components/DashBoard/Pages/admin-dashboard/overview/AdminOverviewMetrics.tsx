@@ -59,22 +59,22 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
     if (data.every(d => d.y === 0)) return null;
     return (
       <SparklineWrap>
-        <svg viewBox="0 0 100 32" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+        <StyledBox as="svg" viewBox="0 0 100 32" preserveAspectRatio="none" $style={{ width: '100%', height: '100%' }}>
           <VictoryGroup standalone={false} width={100} height={32} padding={0}>
             <VictoryLine
               data={data}
               interpolation="linear"
-              style={{ data: { stroke: color, strokeWidth: 2 } }}
+              {...victoryStyleProps({ data: { stroke: color, strokeWidth: 2 } })}
             />
           </VictoryGroup>
-        </svg>
+        </StyledBox>
       </SparklineWrap>
     );
   };
 
   const formatValue = (metric: AdminDashboardMetric, accent: string) => {
     const val = Number(metric.value);
-    if (isNaN(val)) return <ValueText style={{ color: accent }}>{metric.value}</ValueText>;
+    if (isNaN(val)) return <StyledBox as={ValueText} $style={{ color: accent }}>{metric.value}</StyledBox>;
 
     return (
       <AnimatedCounter
@@ -90,14 +90,14 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
     const accent = getMetricAccent(metric);
 
     return (
-      <MetricCommandCard key={metric.id} style={metricCardStyle(accent)} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+      <StyledBox as={MetricCommandCard} key={metric.id} $style={metricCardStyle(accent)} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
         <CardInner>
           <TopRow>
-            <div style={{ flex: 1 }}>
+            <StyledBox as="div" $style={{ flex: 1 }}>
               <Label>{metric.title}</Label>
-              <ValueRow style={{ color: accent }}>
+              <StyledBox as={ValueRow} $style={{ color: accent }}>
                 {formatValue(metric, accent)}
-              </ValueRow>
+              </StyledBox>
               {metric.format !== 'text' && (
                 <ChangeRow>
                   {metric.changeType === 'increase' ? (
@@ -112,11 +112,11 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
                   </ChangeText>
                 </ChangeRow>
               )}
-            </div>
+            </StyledBox>
             <IconCol>
-              <IconBubble style={{ background: metricAccentWash(accent), color: accent }}>
+              <StyledBox as={IconBubble} $style={{ background: metricAccentWash(accent), color: accent }}>
                 {metric.icon}
-              </IconBubble>
+              </StyledBox>
               {metric.target && (
                 <TargetText>
                   Target: {metric.target}{metric.format === 'percentage' ? '%' : ''}
@@ -135,8 +135,8 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
                 <span>{((Number(metric.value) / metric.target) * 100).toFixed(1)}%</span>
               </ProgressMeta>
               <ProgressTrack>
-                <ProgressFill
-                  style={{
+                <StyledBox as={ProgressFill}
+                  $style={{
                     width: `${Math.min((Number(metric.value) / metric.target) * 100, 100)}%`,
                     background: accent,
                   }}
@@ -151,7 +151,7 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             <ChartContainer>Awaiting trend data</ChartContainer>
           )}
         </CardInner>
-      </MetricCommandCard>
+      </StyledBox>
     );
   };
   return <MetricGrid>{metrics.map(renderMetricCard)}</MetricGrid>;
@@ -162,6 +162,8 @@ export default AdminOverviewMetrics;
 /* Inline styled helpers (kept minimal to stay under 300 lines) */
 
 import styled from 'styled-components';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 const CardInner = styled.div`padding: 1.5rem;`;
 

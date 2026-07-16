@@ -56,6 +56,7 @@ import {
   recommendationItemKey,
 } from './InjuryRiskAssessment.logic';
 import StatusIcon from './InjuryRiskAssessmentIcons';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface InjuryRiskAssessmentViewProps {
   riskAssessment: InjuryRiskData | null;
@@ -109,15 +110,15 @@ const renderOverallRisk = (riskAssessment: InjuryRiskData | null) => {
 
   return (
     <GlassPanel>
-      <FlexBetween style={{ marginBottom: 24 }}>
+      <StyledBox as={FlexBetween} $style={{ marginBottom: 24 }}>
         <FlexRow>
-          <Shield color="var(--accent-primary, #60C0F0)" size={24} style={{ marginRight: 12 }} />
-          <Heading6 style={{ marginBottom: 0 }}>Injury Risk Assessment</Heading6>
+          <StyledBox as={Shield} color="var(--accent-primary, #60C0F0)" size={24} $style={{ marginRight: 12 }} />
+          <StyledBox as={Heading6} $style={{ marginBottom: 0 }}>Injury Risk Assessment</StyledBox>
         </FlexRow>
         <RiskChip $bgColor={getRiskColor(riskAssessment.overallRisk)}>
           {riskAssessment.overallRisk.toUpperCase()} RISK
         </RiskChip>
-      </FlexBetween>
+      </StyledBox>
 
       <GridContainer>
         <CenterBox>
@@ -134,10 +135,10 @@ const renderOverallRisk = (riskAssessment: InjuryRiskData | null) => {
           <Subtitle>Risk Categories</Subtitle>
           {riskAssessment.categories.map((category) => (
             <CategoryBlock key={category.id}>
-              <FlexBetween style={{ marginBottom: 6 }}>
+              <StyledBox as={FlexBetween} $style={{ marginBottom: 6 }}>
                 <BodyText>{category.name}</BodyText>
                 <SmallRiskChip $bgColor={getRiskColor(category.risk)}>{category.risk}</SmallRiskChip>
-              </FlexBetween>
+              </StyledBox>
               <ProgressBarTrack>
                 <ProgressBarFill $width={category.score} $color={getRiskColor(category.risk)} />
               </ProgressBarTrack>
@@ -160,10 +161,10 @@ const renderCriticalAlerts = (riskAssessment: InjuryRiskData | null) => {
       </Heading6>
       {riskAssessment.criticalAlerts.map((alert) => (
         <AlertBox key={criticalAlertKey(alert)}>
-          <Subtitle style={{ marginBottom: 4 }}>
+          <StyledBox as={Subtitle} $style={{ marginBottom: 4 }}>
             {alert.title} - Action needed: {alert.timeframe}
-          </Subtitle>
-          <SecondaryText style={{ marginBottom: 8 }}>{alert.description}</SecondaryText>
+          </StyledBox>
+          <StyledBox as={SecondaryText} $style={{ marginBottom: 8 }}>{alert.description}</StyledBox>
           <MediumText>Action: {alert.action}</MediumText>
         </AlertBox>
       ))}
@@ -191,7 +192,7 @@ const renderDetailedAssessment = (riskAssessment: InjuryRiskData | null) => {
               <TableHead>
                 <tr>
                   <th>Assessment Area</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
+                  <StyledBox as="th" $style={{ textAlign: 'center' }}>Status</StyledBox>
                   <th>Notes</th>
                   <th>Recommendation</th>
                 </tr>
@@ -200,7 +201,7 @@ const renderDetailedAssessment = (riskAssessment: InjuryRiskData | null) => {
                 {category.findings.map((finding) => (
                   <tr key={findingRowKey(finding)}>
                     <td><MediumText>{finding.pattern}</MediumText></td>
-                    <td style={{ textAlign: 'center' }}><StatusIcon status={finding.status} /></td>
+                    <StyledBox as="td" $style={{ textAlign: 'center' }}><StatusIcon status={finding.status} /></StyledBox>
                     <td><SecondaryText>{finding.notes}</SecondaryText></td>
                     <td><BodyText>{finding.recommendation}</BodyText></td>
                   </tr>
@@ -240,9 +241,9 @@ const renderCorrectiveProtocol = (riskAssessment: InjuryRiskData | null) => {
   return (
     <GlassPanel>
       <Heading6>NASM Corrective Exercise Protocol</Heading6>
-      <SecondaryText style={{ marginBottom: 24 }}>
+      <StyledBox as={SecondaryText} $style={{ marginBottom: 24 }}>
         Based on assessment findings, follow this 4-phase corrective approach:
-      </SecondaryText>
+      </StyledBox>
       <GridContainer>
         {sections.map(({ phase, items, background, color, label }) => (
           <ProtocolCard key={phase} $bgColor={background}>
@@ -259,7 +260,7 @@ const renderRecommendations = (riskAssessment: InjuryRiskData | null) => {
   if (!riskAssessment?.recommendations?.length) return null;
 
   return (
-    <GlassPanel style={{ marginBottom: 0 }}>
+    <StyledBox as={GlassPanel} $style={{ marginBottom: 0 }}>
       <Heading6>Action Plan Recommendations</Heading6>
       <GridThreeCol>
         {riskAssessment.recommendations.map((category) => (
@@ -268,7 +269,7 @@ const renderRecommendations = (riskAssessment: InjuryRiskData | null) => {
             <StyledList>
               {category.items.map((item) => (
                 <StyledListItem key={recommendationItemKey(category, item)}>
-                  <CheckCircle size={16} color="var(--status-success, #4CAF50)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <StyledBox as={CheckCircle} size={16} color="var(--status-success, #4CAF50)" $style={{ flexShrink: 0, marginTop: 2 }} />
                   <BodyText>{item}</BodyText>
                 </StyledListItem>
               ))}
@@ -276,7 +277,7 @@ const renderRecommendations = (riskAssessment: InjuryRiskData | null) => {
           </RecommendationCard>
         ))}
       </GridThreeCol>
-    </GlassPanel>
+    </StyledBox>
   );
 };
 

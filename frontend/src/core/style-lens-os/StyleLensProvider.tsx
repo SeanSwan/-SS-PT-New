@@ -13,7 +13,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { DEFAULT_APPEARANCE_PROFILE } from './constants';
+import './constants';
 import { DEFAULT_STYLE_LENS_MANIFEST } from './defaultManifest';
 import {
   APPEARANCE_STORAGE_KEY,

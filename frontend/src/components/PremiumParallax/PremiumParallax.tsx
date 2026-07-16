@@ -1,14 +1,15 @@
 // src/pages/homepage/components/PremiumParallax/PremiumParallax.jsx
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { motion, useScroll, useTransform, useInView, useAnimation } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { FaRocket, FaStar, FaMedal, FaGem } from 'react-icons/fa';
+import { FaRocket, FaStar, FaMedal } from 'react-icons/fa';
 import GlowButtonComponent from "../Button/glow";
 import { VIDEO } from "../../../../config/videoAssets";
 const parallaxVideo = VIDEO.swan;
 import logoImage from "../../../../assets/Logo.png";
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -88,32 +89,7 @@ const ParticlesOverlay = styled.div`
   z-index: -1;
 `;
 
-const Particle = styled.div`
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: rgba(139, 92, 246, 0.6);
-  border-radius: 50%;
-  animation: float 20s linear infinite;
-  opacity: 0;
-  
-  @keyframes float {
-    0% {
-      transform: translateY(0) translateX(0);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    90% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(-1000px) translateX(100px);
-      opacity: 0;
-    }
-  }
-`;
+
 
 const ContentWrapper = styled.div`
   width: 100%;
@@ -592,8 +568,8 @@ const PremiumParallax = () => {
   return (
     <ParallaxContainer ref={containerRef} id="premium-parallax">
       <VideoBackground>
-        <ParallaxVideo
-          style={{ y: videoY }}
+        <StyledBox as={ParallaxVideo}
+          $style={{ y: videoY }}
           autoPlay
           loop
           muted
@@ -602,7 +578,7 @@ const PremiumParallax = () => {
           onCanPlayThrough={handleVideoReady}
         >
           <source src={parallaxVideo} type="video/mp4" />
-        </ParallaxVideo>
+        </StyledBox>
         <DarkenOverlay />
         <GradientOverlay />
       </VideoBackground>
@@ -610,8 +586,8 @@ const PremiumParallax = () => {
       <ParticlesOverlay className="particles-overlay" />
       
       <ContentWrapper>
-        <LeftContent
-          style={{ x: leftContentX }}
+        <StyledBox as={LeftContent}
+          $style={{ x: leftContentX }}
           variants={containerVariants}
           initial="hidden"
           animate={controls}
@@ -634,10 +610,10 @@ const PremiumParallax = () => {
               </FeatureItem>
             ))}
           </FeaturesList>
-        </LeftContent>
+        </StyledBox>
         
-        <RightContent
-          style={{ x: rightContentX }}
+        <StyledBox as={RightContent}
+          $style={{ x: rightContentX }}
           variants={containerVariants}
           initial="hidden"
           animate={controls}
@@ -672,7 +648,7 @@ const PremiumParallax = () => {
               <GlowButtonComponent text="Schedule Consultation" />
             </ButtonContainer>
           </PlanCard>
-        </RightContent>
+        </StyledBox>
       </ContentWrapper>
     </ParallaxContainer>
   );

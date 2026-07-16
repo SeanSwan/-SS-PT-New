@@ -1,10 +1,10 @@
 /**
- * UniversalThemeToggle.panel.tsx — grouped theme picker + animations switch
+ * UniversalThemeToggle.panel.tsx â€” grouped theme picker + animations switch
  * ==========================================================================
  * Popover for the header theme changer: every registered theme rendered as a
  * data-driven swatch (background/primary/accent pulled from the theme object),
  * organized into named collections, with the site-wide animations switch.
- * Any theme not in a named group lands in "More" automatically — future
+ * Any theme not in a named group lands in "More" automatically â€” future
  * themes can never silently vanish from the picker.
  */
 import React, { useState } from 'react';
@@ -67,7 +67,7 @@ export const buildThemeGroups = (): Array<{ label: string; ids: ThemeId[] }> => 
 };
 
 /**
- * Curated default view (Sean, 2026-07-03: "too many" — show a featured set
+ * Curated default view (Sean, 2026-07-03: "too many" â€” show a featured set
  * first, full catalog behind Show all). One strong pick per identity family;
  * the ACTIVE theme is always appended so it can never disappear.
  */

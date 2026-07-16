@@ -38,6 +38,7 @@ import {
   TILE_REPEAT_COUNT,
 } from '../utils/bannerCompositionMedia';
 import UserDashboardBannerStageLayouts from './UserDashboardBannerStageLayouts';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const TILE_INDEXES = Array.from({ length: TILE_REPEAT_COUNT }, (_, index) => index);
 
@@ -93,22 +94,22 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
     const smartFitScale = Math.min(bannerImageScale, 1);
 
     return (
-      <BannerSmartFitLayer
+      <StyledBox as={BannerSmartFitLayer}
         data-testid="banner-smart-fit-layer"
-        style={{
+        $style={{
           '--banner-object-position': bannerObjectPosition,
           '--banner-image-scale': String(smartFitScale),
         } as React.CSSProperties}
       >
         <BannerSmartFitBackdrop src={backgroundImage} alt="" aria-hidden="true" draggable={false} />
         <BannerSmartFitImage src={backgroundImage} alt="Profile cover photo" draggable={false} />
-      </BannerSmartFitLayer>
+      </StyledBox>
     );
   }
 
   if (bannerObjectFit === 'tile' && backgroundImage) {
     return (
-      <BannerTileLayer style={{ '--banner-image-scale': String(bannerImageScale) } as React.CSSProperties}>
+      <StyledBox as={BannerTileLayer} $style={{ '--banner-image-scale': String(bannerImageScale) } as React.CSSProperties}>
         {TILE_INDEXES.map((index) => (
           <BannerTileImage
             key={index}
@@ -118,7 +119,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
             draggable={false}
           />
         ))}
-      </BannerTileLayer>
+      </StyledBox>
     );
   }
 
@@ -187,10 +188,10 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
       const aspectRatio = collageAspectRatios[mediaKey] ?? DEFAULT_BANNER_COLLAGE_ASPECT_RATIO;
 
       return (
-        <BannerCollageMediaFrame
+        <StyledBox as={BannerCollageMediaFrame}
           key={mediaKey}
           data-index={index % photos.length}
-          style={buildBannerCollageFrameStyle(aspectRatio, bannerImageScale)}
+          $style={buildBannerCollageFrameStyle(aspectRatio, bannerImageScale)}
         >
           {isBannerVideoUrl(photo) ? (
             <BannerCollageVideo
@@ -220,24 +221,24 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
               )}
             />
           )}
-        </BannerCollageMediaFrame>
+        </StyledBox>
       );
     });
 
     return (
       <>
         {(!isCarouselLayout || !bannerStickyCarousel) && (
-          <BannerCollageLayer
+          <StyledBox as={BannerCollageLayer}
             data-layout={bannerCollageLayout}
-            style={{
+            $style={{
               '--banner-image-scale': String(bannerImageScale),
               '--banner-object-position': bannerObjectPosition,
             } as React.CSSProperties}
           >
             {isCarouselLayout ? (
-              <BannerCarouselTrack style={carouselDurationStyle}>{collageFrames}</BannerCarouselTrack>
+              <StyledBox as={BannerCarouselTrack} $style={carouselDurationStyle}>{collageFrames}</StyledBox>
             ) : collageFrames}
-          </BannerCollageLayer>
+          </StyledBox>
         )}
         {isCarouselLayout && bannerStickyCarousel && (
           <BannerStickyCarouselLayer
@@ -245,7 +246,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
             data-layout={bannerCollageLayout}
             aria-hidden="true"
           >
-            <BannerStickyCarouselTrack style={carouselDurationStyle}>
+            <StyledBox as={BannerStickyCarouselTrack} $style={carouselDurationStyle}>
               {displayPhotos.map((photo, index) => (
                 <BannerStickyCarouselFrame key={`${photo}-sticky-${index}`}>
                   {isBannerVideoUrl(photo) ? (
@@ -268,7 +269,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
                   )}
                 </BannerStickyCarouselFrame>
               ))}
-            </BannerStickyCarouselTrack>
+            </StyledBox>
           </BannerStickyCarouselLayer>
         )}
       </>
@@ -278,10 +279,10 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   if (!backgroundImage) return null;
 
   return (
-    <BannerImage
+    <StyledBox as={BannerImage}
       src={backgroundImage}
       alt="Profile cover photo"
-      style={{
+      $style={{
         objectFit: bannerObjectFit,
         objectPosition: bannerObjectPosition,
         '--banner-image-scale': String(bannerImageScale),

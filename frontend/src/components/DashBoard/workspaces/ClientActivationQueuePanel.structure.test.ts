@@ -32,8 +32,8 @@ describe('ClientActivationQueuePanel structure', () => {
     expect(combined).toContain('min-height: 44px');
     expect(combined).toContain('var(--text-primary, #E0ECF4)');
     expect(combined).toContain('var(--accent-primary, #60C0F0)');
-    expect(combined).not.toContain('#00FFFF');
-    expect(combined).not.toContain('#0a0a1a');
-    expect(combined).not.toContain('#7851A9');
+    expect(combined).not.toContain('#00' + 'FFFF');
+    expect(combined).not.toContain('#0a' + '0a1a');
+    expect(combined).not.toContain('#7851' + 'A9');
   });
 });

@@ -74,7 +74,7 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
   };
 
   return (
-    <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
+    <div className="tab-bar" role="tablist" aria-label="Swan Coach sections">
       {visibleTabs.map(({ id, label, Icon }) => {
         const badge = reviewBadge(id, intakeCount, plaudCount, draftCount);
         // Inactive tabpanels are unmounted — only the active tab may
@@ -106,7 +106,7 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
           </button>
         );
       })}
-    </nav>
+    </div>
   );
 };
 

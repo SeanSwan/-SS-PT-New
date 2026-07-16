@@ -141,7 +141,9 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     const idx = SOURCE.indexOf('resolvedOnCancel');
     expect(idx).toBeGreaterThan(-1);
     const slice = SOURCE.slice(idx, idx + 500);
-    expect(slice).toMatch(/onCancel\s*\?\?\s*\(\s*\(\)\s*=>\s*\{[\s\S]*?navigate\s*\(/);
+    expect(slice).toMatch(
+      /useCallback\s*\(\s*\(\)\s*=>\s*\{[\s\S]*?if\s*\(\s*onCancel\s*\)[\s\S]*?onCancel\(\)[\s\S]*?navigate\s*\(/
+    );
     expect(slice).toMatch(/\/dashboard\/client\//);
   });
 
@@ -220,7 +222,7 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
   });
 
   it('coerces user.id to a numeric id (AuthContext types it as string)', () => {
-    // Codex round 2: AuthContext.tsx:17 types User.id as string, but
+    // AuthContextProvider.tsx types User.id as string, but
     // effectiveClientId is number-typed and all downstream URLs/hooks
     // expect numbers. Lock that the coercion exists - via an explicit
     // helper (coerceToNumericId), Number.isFinite, or equivalent guard

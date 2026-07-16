@@ -3,7 +3,7 @@
  * =====================================================
  * A modern, accessible toast notification system for the Universal Master Schedule
  * and other SwanStudios components.
- * 
+ *
  * Features:
  * - Multiple toast variants (default, success, warning, destructive)
  * - Auto-dismiss with configurable duration
@@ -92,7 +92,7 @@ const ToastContainer = styled.div`
   width: 400px;
   max-width: 90vw;
   pointer-events: none;
-  
+
   @media (max-width: 768px) {
     bottom: 0.5rem;
     right: 0.5rem;
@@ -117,7 +117,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
         return 'rgba(30, 41, 59, 0.95)';
     }
   }};
-  
+
   border: 1px solid ${props => {
     switch (props.variant) {
       case 'success':
@@ -133,7 +133,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
         return 'rgba(255, 255, 255, 0.1)';
     }
   }};
-  
+
   backdrop-filter: blur(20px);
   border-radius: 12px;
   padding: 1rem;
@@ -142,7 +142,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
   pointer-events: auto;
   position: relative;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -192,7 +192,7 @@ const ToastIcon = styled.div<{ variant: Toast['variant'] }>`
         return '#60C0F0';
     }
   }};
-  
+
   flex-shrink: 0;
   margin-top: 1px;
 `;
@@ -232,12 +232,12 @@ const ToastAction = styled.button`
   color: white;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
   }
-  
+
   &:active {
     transform: translateY(1px);
   }
@@ -254,7 +254,7 @@ const CloseButton = styled.button`
   padding: 0.25rem;
   border-radius: 4px;
   transition: all 0.2s;
-  
+
   &:hover {
     color: white;
     background: rgba(255, 255, 255, 0.1);
@@ -295,13 +295,13 @@ const ToastComponent = forwardRef<HTMLDivElement, {
         <ToastIcon variant={toast.variant}>
           {getIcon()}
         </ToastIcon>
-        
+
         <ToastText>
           {toast.title && (
             <ToastTitle>{toast.title}</ToastTitle>
           )}
           <ToastDescription>{toast.description}</ToastDescription>
-          
+
           {toast.action && (
             <ToastActions>
               <ToastAction onClick={toast.action.onClick}>
@@ -311,7 +311,7 @@ const ToastComponent = forwardRef<HTMLDivElement, {
           )}
         </ToastText>
       </ToastContent>
-      
+
       <CloseButton
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
@@ -335,10 +335,22 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const generateId = generateToastId;
 
+  const dismiss = useCallback((id: string) => {
+    // Clear timeout
+    const timeout = timeoutRefs.current.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeoutRefs.current.delete(id);
+    }
+
+    // Remove toast
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const toast = useCallback((toastOptions: Omit<Toast, 'id'>) => {
     const id = generateId();
     const duration = toastOptions.duration ?? 4000;
-    
+
     const newToast: Toast = {
       id,
       variant: 'default',
@@ -353,28 +365,16 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       const timeout = setTimeout(() => {
         dismiss(id);
       }, duration);
-      
+
       timeoutRefs.current.set(id, timeout);
     }
-  }, []);
-
-  const dismiss = useCallback((id: string) => {
-    // Clear timeout
-    const timeout = timeoutRefs.current.get(id);
-    if (timeout) {
-      clearTimeout(timeout);
-      timeoutRefs.current.delete(id);
-    }
-    
-    // Remove toast
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+  }, [dismiss, generateId]);
 
   const dismissAll = useCallback(() => {
     // Clear all timeouts
     timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
     timeoutRefs.current.clear();
-    
+
     // Remove all toasts
     setToasts([]);
   }, []);
@@ -404,5 +404,3 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     </ToastContext.Provider>
   );
 };
-
-export default useToast;

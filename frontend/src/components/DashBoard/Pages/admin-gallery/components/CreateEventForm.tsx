@@ -14,6 +14,7 @@ import {
   ErrorText, Field, FieldRow, GhostButton, HelperText, Input, Panel, PrimaryButton, SectionTitle, Textarea,
 } from '../styles';
 import ToggleField from './ToggleField';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Props {
   onCreate: (draft: NewEventDraft) => Promise<GalleryEvent>;
@@ -52,9 +53,9 @@ const CreateEventForm: React.FC<Props> = ({ onCreate, onCreated }) => {
   return (
     <Panel>
       <Header type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <SectionTitle style={{ margin: 0 }}>
+        <StyledBox as={SectionTitle} $style={{ margin: 0 }}>
           <Plus size={18} aria-hidden="true" /> New Gallery
-        </SectionTitle>
+        </StyledBox>
         <Chevron $open={open} size={18} aria-hidden="true" />
       </Header>
 
@@ -83,7 +84,7 @@ const CreateEventForm: React.FC<Props> = ({ onCreate, onCreated }) => {
             <Input value={draft.password} onChange={(e) => set('password', e.target.value)} placeholder="Shareable access code" required />
           </Field>
           <HelperText>
-            <Lock size={12} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            <StyledBox as={Lock} size={12} aria-hidden="true" $style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Clients enter this passcode (plus their email) to unlock the gallery.
           </HelperText>
           <Field>

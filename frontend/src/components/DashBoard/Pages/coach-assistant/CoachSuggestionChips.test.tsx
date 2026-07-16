@@ -5,7 +5,7 @@
  *  - hidden state keeps the slot mounted (CLS contract) but removes the
  *    chips from the tab order and marks them aria-hidden
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CoachSuggestionChips from './CoachSuggestionChips';

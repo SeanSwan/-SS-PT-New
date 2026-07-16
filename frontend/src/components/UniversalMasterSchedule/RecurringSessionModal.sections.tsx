@@ -11,6 +11,7 @@ import {
   TimeWheelPicker,
 } from './ui';
 import type { RecurringTimeRow, TrainerOption } from './RecurringSessionModal.logic';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const daysOfWeekOptions = [
   { value: 0, label: 'Sun' },
@@ -116,7 +117,7 @@ export const RecurringDayFields: React.FC<RecurringDayFieldsProps> = ({
 }) => (
   <FormField>
     <Label required>Days of Week</Label>
-    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+    <StyledBox as="div" $style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
       {daysOfWeekOptions.map((day) => (
         <CheckboxWrapper key={day.value}>
           <input
@@ -127,7 +128,7 @@ export const RecurringDayFields: React.FC<RecurringDayFieldsProps> = ({
           <span>{day.label}</span>
         </CheckboxWrapper>
       ))}
-    </div>
+    </StyledBox>
     {fieldErrors.daysOfWeek && <ErrorText>{fieldErrors.daysOfWeek}</ErrorText>}
   </FormField>
 );
@@ -149,10 +150,10 @@ export const RecurringTimeFields: React.FC<RecurringTimeFieldsProps> = ({
 }) => (
   <FormField>
     <Label required>Times</Label>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <StyledBox as="div" $style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {timeRows.map((timeRow, index) => (
-        <div key={timeRow.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
+        <StyledBox as="div" key={timeRow.id} $style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <StyledBox as="div" $style={{ flex: 1 }}>
             <TimeWheelPicker
               value={timeRow.value}
               onChange={(value) => onUpdateTime(timeRow.id, value)}
@@ -160,7 +161,7 @@ export const RecurringTimeFields: React.FC<RecurringTimeFieldsProps> = ({
               label={`Session time ${index + 1}`}
               data-testid={`recurring-time-${index}`}
             />
-          </div>
+          </StyledBox>
           <OutlinedButton
             onClick={() => onRemoveTime(timeRow.id)}
             disabled={timeRows.length === 1}
@@ -168,14 +169,14 @@ export const RecurringTimeFields: React.FC<RecurringTimeFieldsProps> = ({
           >
             Remove
           </OutlinedButton>
-        </div>
+        </StyledBox>
       ))}
-    </div>
-    <div style={{ marginTop: '0.75rem' }}>
+    </StyledBox>
+    <StyledBox as="div" $style={{ marginTop: '0.75rem' }}>
       <OutlinedButton onClick={onAddTime} type="button">
         Add Time
       </OutlinedButton>
-    </div>
+    </StyledBox>
     {fieldErrors.times && <ErrorText>{fieldErrors.times}</ErrorText>}
     <HelperText>At least one time is required.</HelperText>
   </FormField>

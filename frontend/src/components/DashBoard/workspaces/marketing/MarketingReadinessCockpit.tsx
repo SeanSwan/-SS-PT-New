@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../../../context/AuthContext';
 import * as S from './MarketingReadinessCockpit.styles';
 import type { ReadinessStatus } from './MarketingReadinessCockpit.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProviderInfo {
   id: string; name: string; implementationStatus: string; usable: boolean; connected: number;
@@ -167,12 +168,12 @@ const MarketingReadinessCockpit: React.FC = () => {
             <S.Subtitle>What is live, what is safe-off, and what is still demo — no theater.</S.Subtitle>
           </div>
         </S.HeaderLeft>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <StyledBox as="div" $style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {state === 'ready' && <S.OverallPill $status={overall}>{STATUS_LABEL[overall]}</S.OverallPill>}
           <S.RefreshButton type="button" onClick={load} disabled={state === 'loading'} aria-label="Refresh readiness">
             <RefreshCw size={15} /> Refresh
           </S.RefreshButton>
-        </div>
+        </StyledBox>
       </S.HeaderRow>
 
       {state === 'loading' && (

@@ -267,7 +267,7 @@ test('protected admin workout planner renders rolodex without SVG NaN or horizon
   await page.goto('/dashboard/admin/workout-planner', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /swan studios workout planner/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Workout Planner$/i })).toBeVisible();
   await expect(page.getByText(/exercise rolodex/i)).toBeVisible();
   await expect(page.getByText('21s Bicep Curl')).toBeVisible();
 

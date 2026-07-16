@@ -19,8 +19,8 @@ export { default as workoutMcpApi, McpServiceError } from './workoutMcpService';
 export { default as gamificationMcpApi, GamificationMcpError } from './gamificationMcpService';
 
 // Type imports
-import type { GamificationMcpApi } from '../../types/mcp/gamification.types';
-import type { WorkoutMcpApi } from '../../types/mcp/workout.types';
+
+
 import { logger } from '@/utils/logger';
 
 /**

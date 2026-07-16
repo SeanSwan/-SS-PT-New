@@ -4,7 +4,7 @@
  * double-write (savingRef guard, hostile-review parity with MealPlanApproveSavePanel);
  * onSaved fires on success.
  */
-import React from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MealPhotoReview from './MealPhotoReview';

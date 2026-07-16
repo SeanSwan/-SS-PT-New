@@ -7,8 +7,9 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { X, Heart, CreditCard, CheckCircle, AlertCircle, DollarSign, Smartphone } from 'lucide-react';
+import { X, Heart, CreditCard, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import ZelleQR from '../../assets/Zelle.png';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -23,7 +24,7 @@ export interface DonationModalProps {
 
 type PaymentMethod = 'stripe' | 'venmo' | 'zelle';
 
-const PRESET_AMOUNTS = [5, 10, 25, 50];
+
 
 // ── Animations ────────────────────────────────────────────────────────────
 const fadeInUp = keyframes`
@@ -160,42 +161,9 @@ const SectionLabel = styled.label`
 `;
 
 // ── Amount Selector ───────────────────────────────────────────────────────
-const AmountGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
 
-  @media (max-width: 380px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-`;
 
-const AmountButton = styled.button<{ $active: boolean }>`
-  min-height: 44px;
-  padding: 10px 8px;
-  border-radius: 12px;
-  font-family: 'Sora', system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
 
-  ${p => p.$active ? css`
-    background: rgba(198, 168, 75, 0.15);
-    border: 1.5px solid rgba(198, 168, 75, 0.5);
-    color: #C6A84B;
-  ` : css`
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
-
-    &:hover {
-      border-color: rgba(198, 168, 75, 0.3);
-      color: rgba(255, 255, 255, 0.9);
-    }
-  `}
-`;
 
 const CustomAmountRow = styled.div`
   display: flex;
@@ -464,9 +432,9 @@ const FeedbackMessage = styled.div<{ $type: 'success' | 'error' }>`
 const DonationModal: React.FC<DonationModalProps> = ({
   isOpen,
   onClose,
-  email,
+  email: _email,
   galleryToken,
-  eventSlug,
+  eventSlug: _eventSlug,
 }) => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
@@ -479,12 +447,19 @@ const DonationModal: React.FC<DonationModalProps> = ({
   } | null>(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   // Reset on open
   useEffect(() => {
-    if (isOpen) {
-      setFeedback(null);
-    }
+    if (!isOpen) return;
+    setFeedback(null);
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => amountInputRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus();
+    };
   }, [isOpen]);
 
   // ESC closes modal
@@ -543,11 +518,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     return selectedAmount || 0;
   };
 
-  const handlePresetClick = (amt: number) => {
-    setSelectedAmount(amt);
-    setCustomAmount('');
-    setFeedback(null);
-  };
+
 
   const handleCustomChange = (val: string) => {
     // Allow only numbers and one decimal point
@@ -557,7 +528,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setFeedback(null);
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: React.PointerEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
@@ -633,7 +604,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const zelleRecipient = import.meta.env.VITE_ZELLE_RECIPIENT || '';
 
   return (
-    <ModalOverlay onClick={handleOverlayClick}>
+    <ModalOverlay onPointerDown={handleOverlayClick}>
       <ModalContent ref={contentRef} role="dialog" aria-modal="true" aria-label="Leave a donation">
         <CloseButton onClick={onClose} aria-label="Close modal">
           <X size={18} />
@@ -649,22 +620,23 @@ const DonationModal: React.FC<DonationModalProps> = ({
         </ModalSubtitle>
 
         {/* Amount Input */}
-        <SectionLabel>Enter amount</SectionLabel>
+        <SectionLabel htmlFor="donation-amount">Enter amount</SectionLabel>
         <CustomAmountRow>
           <DollarPrefix>$</DollarPrefix>
           <CustomAmountInput
+            ref={amountInputRef}
+            id="donation-amount"
             type="text"
             inputMode="decimal"
             placeholder="Enter any amount"
             value={customAmount}
             onChange={e => handleCustomChange(e.target.value)}
-            autoFocus
           />
         </CustomAmountRow>
 
         {/* Payment Method */}
-        <SectionLabel>Payment method</SectionLabel>
-        <MethodGrid>
+        <SectionLabel as="div" id="donation-payment-method">Payment method</SectionLabel>
+        <MethodGrid role="radiogroup" aria-labelledby="donation-payment-method">
           <MethodButton $active={method === 'zelle'} onClick={() => { setMethod('zelle'); setFeedback(null); }}>
             <MethodIcon>⚡</MethodIcon>
             Zelle
@@ -673,10 +645,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
             <MethodIcon><CreditCard size={18} /></MethodIcon>
             Card
           </MethodButton>
-          <MethodButton $active={false} disabled style={{ opacity: 0.35, cursor: 'not-allowed' }}>
+          <StyledBox as={MethodButton} $active={false} disabled $style={{ opacity: 0.35, cursor: 'not-allowed' }}>
             <MethodIcon>V</MethodIcon>
-            <span style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</span>
-          </MethodButton>
+            <StyledBox as="span" $style={{ fontSize: '9px', lineHeight: 1 }}>Coming Soon</StyledBox>
+          </StyledBox>
         </MethodGrid>
 
         {/* Zelle QR + Instructions */}
@@ -708,9 +680,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
         {/* Feedback */}
         {feedback && (
           <FeedbackMessage $type={feedback.type}>
-            <span style={{ flexShrink: 0, display: 'flex' }}>
+            <StyledBox as="span" $style={{ flexShrink: 0, display: 'flex' }}>
               {feedback.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-            </span>
+            </StyledBox>
             {feedback.text}
           </FeedbackMessage>
         )}

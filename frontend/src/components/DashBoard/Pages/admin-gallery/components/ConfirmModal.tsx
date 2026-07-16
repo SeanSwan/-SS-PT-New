@@ -47,8 +47,8 @@ const ConfirmModal: React.FC<Props> = ({ request, onClose }) => {
   const Confirm = request.tone === 'danger' ? DangerButton : PrimaryButton;
 
   return (
-    <Backdrop onClick={onClose}>
-      <Dialog role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={(e) => e.stopPropagation()}>
+    <Backdrop onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <Dialog role="dialog" aria-modal="true" aria-labelledby="confirm-title">
         <TitleRow $danger={request.tone === 'danger'}>
           <AlertTriangle size={18} aria-hidden="true" />
           <span id="confirm-title">{request.title}</span>

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -173,7 +173,7 @@ describe('ClientRewardsPage gamification truth', () => {
       description: `  ${longCopy}\r\napproved\u0000`,
     });
 
-    expect(normalizedName).not.toMatch(/[\u0000-\u001F\u007F]/);
+    expect(normalizedName).not.toMatch(/\p{Cc}/u);
     expect(normalizedName).not.toMatch(/\s{2,}/);
     expect(normalizedName.length).toBeLessThanOrEqual(96);
     expect(normalizedName.endsWith('...')).toBe(true);
@@ -183,7 +183,7 @@ describe('ClientRewardsPage gamification truth', () => {
     expect(getAchievementDescription({ description: '\u0000', pointsAwarded: 75 })).toBe('75 XP awarded');
     expect(getAchievementRarity({ achievement: { rarity: ' EPIC ' } })).toBe('epic');
     expect(getAchievementRarity({ achievement: { rarity: 'RARE\nbad' } })).toBe('common');
-    expect(normalizedTransaction).not.toMatch(/[\u0000-\u001F\u007F]/);
+    expect(normalizedTransaction).not.toMatch(/\p{Cc}/u);
     expect(normalizedTransaction.length).toBeLessThanOrEqual(96);
     expect(getSourceLabel('reward_redemption\nadmin')).toBe('reward redemption admin');
   });

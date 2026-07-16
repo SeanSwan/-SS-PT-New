@@ -4,21 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import styled, { keyframes, css } from 'styled-components';
 import { formatDistanceToNow } from 'date-fns';
 
-import {
-  Bell,
-  BellOff,
-  CheckCircle,
-  Dumbbell,
-  CalendarCheck,
-  ShoppingCart,
-  Info,
-  Trash2,
-  MessageSquare,
-  Trophy,
-  Shield,
-  Settings,
-  X,
-} from 'lucide-react';
+import { Bell, BellOff, CheckCircle, Dumbbell, CalendarCheck, ShoppingCart, Info, Trash2, MessageSquare, Trophy, Shield, Settings } from 'lucide-react';
 
 import { RootState, AppDispatch } from '../../redux/store';
 import {
@@ -32,6 +18,7 @@ import {
 } from '../../store/slices/notificationSlice';
 import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Design Tokens ───────────────────────────────────────────────
 const TOKENS = {
@@ -678,7 +665,7 @@ const EnhancedNotificationSection: React.FC = () => {
         )}
       </Header>
 
-      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+      <StyledBox as="div" $style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         {loading && (
           <LoadingOverlay>
             <Spinner />
@@ -688,11 +675,11 @@ const EnhancedNotificationSection: React.FC = () => {
         <ScrollArea>
           {notifications.length === 0 ? (
             <EmptyStateContainer>
-              <BellOff
+              <StyledBox as={BellOff}
                 size={40}
-                style={{ color: 'rgba(224, 236, 244, 0.3)' }}
+                $style={{ color: 'rgba(224, 236, 244, 0.3)' }}
               />
-              <EmptyText>You're all caught up</EmptyText>
+              <EmptyText>You&apos;re all caught up</EmptyText>
               <EmptySub>
                 New activity will appear here when it happens
               </EmptySub>
@@ -736,12 +723,12 @@ const EnhancedNotificationSection: React.FC = () => {
             })
           )}
         </ScrollArea>
-      </div>
+      </StyledBox>
     </>
   );
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <StyledBox as="div" ref={containerRef} $style={{ position: 'relative' }}>
       <BellButton
         $pulsing={isPulsing}
         onClick={toggleOpen}
@@ -759,7 +746,7 @@ const EnhancedNotificationSection: React.FC = () => {
 
       {isOpen && (
         <>
-          <Backdrop onClick={() => setIsOpen(false)} />
+          <Backdrop onPointerDown={() => setIsOpen(false)} />
 
           {/* Desktop dropdown */}
           <DropdownPanel>
@@ -778,7 +765,7 @@ const EnhancedNotificationSection: React.FC = () => {
           </BottomSheet>
         </>
       )}
-    </div>
+    </StyledBox>
   );
 };
 

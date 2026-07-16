@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 /** Reactive mobile check — updates on viewport resize (no stale static check) */
 function useIsMobile(breakpoint = 768): boolean {
@@ -161,9 +162,9 @@ export const ParallaxImageBackground: React.FC<ParallaxImageBackgroundProps> = (
       <img src={src} alt="" loading="lazy" />
     </StaticLayer>
   ) : (
-    <ParallaxLayer style={{ y }}>
+    <StyledBox as={ParallaxLayer} $style={{ y }}>
       <img src={src} alt="" loading="lazy" />
-    </ParallaxLayer>
+    </StyledBox>
   );
 
   const layers = (

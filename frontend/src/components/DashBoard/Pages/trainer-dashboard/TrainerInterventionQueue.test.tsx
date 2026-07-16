@@ -5,7 +5,7 @@
  * ranked top-4 rendering with days-since truth, audience-aware deep link,
  * truthful empty/error states (self-hiding on denial), and 44px targets.
  */
-import React from 'react';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

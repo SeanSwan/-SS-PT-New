@@ -26,6 +26,7 @@ import {
   type BannerPreset,
 } from '../../../services/profileService';
 import { isBannerVideoUrl } from '../utils/bannerCompositionMedia';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 const COLLAGE_FOCUS_OPTIONS: Array<{ label: string; aria: string; position: BannerObjectPosition }> = [
   { label: 'Top', aria: 'Collage focus top', position: '50% 0%' },
@@ -158,12 +159,12 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
         <Save size={16} />
         Save preset
       </BannerCropResetButton>
-      <input
+      <StyledBox as="input"
         ref={inputRef}
         type="file"
         accept={accept}
         multiple
-        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+        $style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         aria-label="Add collage media"
         onChange={(event) => {
           if (event.target.files) onFiles(event.target.files);

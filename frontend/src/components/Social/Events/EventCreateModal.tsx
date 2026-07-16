@@ -16,12 +16,13 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { CalendarPlus, X } from 'lucide-react';
+import { CalendarPlus } from 'lucide-react';
 import type { CreateEventPayload } from '../../../hooks/social/useEvents';
 import {
   FormOverlay, FormCard, FormGroup, FormInput, FormTextarea,
   FormSelect, FormRow, FormActions, SubmitBtn, CancelBtn,
 } from './EventStyles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Category options (match backend ENUM)
@@ -177,7 +178,7 @@ const EventCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
         )}
 
         {error && (
-          <div style={{
+          <StyledBox as="div" $style={{
             background: 'var(--bg-elevated, #141419)',
             borderLeft: '4px solid var(--error-accent, #C92A54)',
             borderRadius: 8,
@@ -187,7 +188,7 @@ const EventCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
             fontSize: '0.8125rem',
           }}>
             {error}
-          </div>
+          </StyledBox>
         )}
 
         <FormActions>

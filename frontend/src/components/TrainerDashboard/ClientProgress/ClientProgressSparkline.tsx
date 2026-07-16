@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import type { ProgressMeasurement } from '../../UniversalMasterSchedule/hooks/useClientProgress';
 import { EmptyState } from './ClientProgressView.styles';
+import { StyledBox } from '@/components/ui/StyledBox';
 
-export const buildSparklinePath = (points: number[], width: number, height: number) => {
+const buildSparklinePath = (points: number[], width: number, height: number) => {
   if (points.length < 2) return '';
   const min = Math.min(...points);
   const max = Math.max(...points);
@@ -36,7 +37,7 @@ const ClientProgressSparkline: React.FC<ClientProgressSparklineProps> = ({ measu
   }
 
   return (
-    <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+    <StyledBox as="svg" width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none" $style={{ overflow: 'visible' }}>
       <defs>
         <filter id="clientProgressSparkGlow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow
@@ -57,7 +58,7 @@ const ClientProgressSparkline: React.FC<ClientProgressSparklineProps> = ({ measu
         strokeLinejoin="round"
         filter="url(#clientProgressSparkGlow)"
       />
-    </svg>
+    </StyledBox>
   );
 };
 

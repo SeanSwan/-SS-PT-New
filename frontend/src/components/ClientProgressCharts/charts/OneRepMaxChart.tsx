@@ -27,6 +27,8 @@ import {
   VictoryTooltip,
 } from 'victory';
 import { OneRepMaxChartProps, OneRepMaxDataPoint } from '../types/ClientProgressTypes';
+import { StyledBox } from '@/components/ui/StyledBox';
+import { victoryStyleProps } from '@/components/Charts/victoryStyleProps';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -86,13 +88,13 @@ const truncateExerciseName = (name: string, maxLength: number = 20): string => {
 
 const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
   data,
-  height = 350,
+  height: _height = 350,
   showTooltip = true,
-  showLegend = false,
+  showLegend: _showLegend = false,
   animate = true,
   maxExercises = 8,
   sortBy = 'weight',
-  theme,
+  theme: _theme,
   className
 }) => {
   // ==================== STATE ====================
@@ -153,10 +155,10 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No 1RM Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <StyledBox as="h4" $style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No 1RM Data</StyledBox>
+            <StyledBox as="p" $style={{ margin: 0, fontSize: '0.875rem' }}>
               Log some strength workouts to see your 1-rep max projections!
-            </p>
+            </StyledBox>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -214,7 +216,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
           {/* X Axis (values — appears at bottom for horizontal chart) */}
           <VictoryAxis
             dependentAxis
-            style={{
+            {...victoryStyleProps({
               axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
               tickLabels: {
                 fill: '#E0ECF4',
@@ -225,12 +227,12 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
                 stroke: 'rgba(96, 192, 240, 0.08)',
                 strokeDasharray: '4,4',
               },
-            }}
+            })}
           />
 
           {/* Y Axis (categories — appears on left for horizontal chart) */}
           <VictoryAxis
-            style={{
+            {...victoryStyleProps({
               axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
               tickLabels: {
                 fill: '#E0ECF4',
@@ -238,7 +240,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
                 fontFamily: "'Fira Code', monospace",
               },
               grid: { stroke: 'none' },
-            }}
+            })}
           />
 
           {/* Bars */}
@@ -246,12 +248,12 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
             data={chartData}
             barRatio={0.7}
             cornerRadius={{ topLeft: 4, topRight: 4 }}
-            style={{
+            {...victoryStyleProps({
               data: {
                 fill: ({ datum }) => getBarColor(datum.y),
                 cursor: 'pointer',
               },
-            }}
+            })}
             labels={({ datum }) => {
               const d = datum as OneRepMaxDataPoint & { y: number };
               const parts = [`${d.exercise}: ${d.y} lbs`];
@@ -269,11 +271,11 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
                     stroke: 'rgba(139, 92, 246, 0.3)',
                     strokeWidth: 1,
                   }}
-                  style={{
+                  {...victoryStyleProps({
                     fill: '#E0ECF4',
                     fontSize: 11,
                     fontFamily: "'Fira Code', monospace",
-                  }}
+                  })}
                   cornerRadius={8}
                   flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 />

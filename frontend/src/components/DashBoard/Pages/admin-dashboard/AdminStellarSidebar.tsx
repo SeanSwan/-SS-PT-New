@@ -23,7 +23,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   CollapseBtn,
@@ -48,14 +48,9 @@ import {
 } from './AdminStellarSidebar.styles';
 import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
-import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig, WorkspaceSection } from '../../../../config/dashboard-tabs';
-import {
-  Shield, Users, Calendar, Dumbbell, Gamepad2,
-  DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
-  ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
-  Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck, FileSignature,
-  Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote,
-} from 'lucide-react';
+import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig } from '../../../../config/dashboard-tabs';
+import { Shield, Users, Calendar, Dumbbell, Gamepad2, DollarSign, CreditCard, Video, BarChart3, Settings, Globe, ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound, Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature, Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote } from 'lucide-react';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
@@ -239,7 +234,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                   {sectionItems.map((ws) => {
                     const i = globalIndex++;
                     return (
-                      <NavItem
+                      <StyledBox as={NavItem}
                         key={ws.id}
                         $active={isActive(ws.prefix)}
                         $collapsed={collapsed && !isMobile}
@@ -247,14 +242,14 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                         role="menuitem"
                         aria-label={ws.label}
                         aria-current={isActive(ws.prefix) ? 'page' : undefined}
-                        style={{ animationDelay: `${i * 30}ms` }}
+                        $style={{ animationDelay: `${i * 30}ms` }}
                       >
                         <NavIcon>{getIcon(ws.icon)}</NavIcon>
                         <NavLabel $visible={showLabel}>{ws.label}</NavLabel>
                         {collapsed && !isMobile && (
                           <NavTooltip>{ws.label}</NavTooltip>
                         )}
-                      </NavItem>
+                      </StyledBox>
                     );
                   })}
                 </React.Fragment>

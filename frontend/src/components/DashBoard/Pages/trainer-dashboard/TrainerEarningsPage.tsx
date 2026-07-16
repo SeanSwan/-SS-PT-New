@@ -82,7 +82,7 @@ const TrainerEarningsPage: React.FC = () => {
           My Earnings
         </PageTitle>
         <PageSubtitle>
-          Your earnings ledger — attributed package sales and per-session pay, what you earned, and what's been paid out.
+          Your earnings ledger — attributed package sales and per-session pay, what you earned, and what&apos;s been paid out.
         </PageSubtitle>
       </div>
 

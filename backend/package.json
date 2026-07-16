@@ -109,8 +109,9 @@
     "@google/generative-ai": "^0.24.1",
     "@sendgrid/mail": "^8.1.4",
     "archiver": "^7.0.1",
+    "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
-    "bullmq": "^5.34.0",
+    "bullmq": "^5.80.5",
     "compression": "^1.8.0",
     "connect-redis": "^9.0.0",
     "cors": "^2.8.5",
@@ -121,7 +122,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.1",
     "express-session": "^1.18.1",
-    "express-validator": "^7.2.1",
+    "express-validator": "^7.3.2",
     "ffmpeg-static": "^5.3.0",
     "ffprobe-static": "^3.1.0",
     "helmet": "^8.1.0",
@@ -135,7 +136,7 @@
     "pg": "^8.13.3",
     "rrule": "^2.7.1",
     "sanitize-html": "^2.17.6",
-    "sequelize": "^6.37.5",
+    "sequelize": "^6.37.8",
     "sharp": "^0.34.5",
     "slugify": "^1.6.8",
     "socket.io": "^4.8.1",
@@ -146,14 +147,13 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "axios": "^1.9.0",
     "chalk": "^5.4.1",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.1",
     "nodemon": "^3.1.11",
     "sequelize-cli": "^6.6.2",
     "supertest": "^7.2.2",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.10"
   },
   "optionalDependencies": {
     "dcraw-vendored-linux": "^9.28.2"

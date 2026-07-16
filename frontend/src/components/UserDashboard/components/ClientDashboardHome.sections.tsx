@@ -3,30 +3,7 @@
  * PURPOSE: Structural sections for the client dashboard Home redesign.
  */
 import React from 'react';
-import {
-  Award,
-  Bell,
-  Bot,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  CreditCard,
-  Dumbbell,
-  Flame,
-  Grid2X2,
-  HelpCircle,
-  LineChart,
-  LogOut,
-  MessageSquare,
-  Search,
-  ShoppingCart,
-  Sparkles,
-  Store,
-  Trophy,
-  UserRound,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+import { Award, Bell, Bot, CalendarDays, ChevronDown, CreditCard, Dumbbell, Flame, Grid2X2, HelpCircle, LineChart, LogOut, MessageSquare, Search, ShoppingCart, Sparkles, Store, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react';
 import { UniversalThemeToggle } from '../../../context/ThemeContext';
 import {
   ActionCount,
@@ -39,24 +16,7 @@ import {
   UserMenuButton,
 } from './ClientDashboardHome.layoutStyles';
 import { LeftRail, RailButton, RailLabel, RailSection, StorePromo } from './ClientDashboardHome.sideStyles';
-import {
-  ActionButton,
-  CardBody,
-  CardTitle,
-  Kicker,
-  ListStack,
-  MetricGrid,
-  MetricTile,
-  MutedText,
-  PanelCard,
-  PanelHeader,
-  ProgressFill,
-  ProgressTrack,
-  QuickActionGrid,
-  RowItem,
-  StatusDot,
-  TinyText,
-} from './ClientDashboardHome.cardStyles';
+import { ActionButton, CardBody, CardTitle, Kicker, ListStack, MetricGrid, MetricTile, MutedText, PanelCard, PanelHeader, ProgressFill, ProgressTrack, QuickActionGrid, RowItem, TinyText } from './ClientDashboardHome.cardStyles';
 import {
   HeroAvatar,
   HeroContent,

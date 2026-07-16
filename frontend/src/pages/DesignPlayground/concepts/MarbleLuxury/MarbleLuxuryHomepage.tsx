@@ -432,7 +432,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
               <ProgramName>Bespoke Strength</ProgramName>
               <ProgramDesc>
                 Every program is tailored to your unique physiology, goals, and lifestyle.
-                We don't believe in templates — only in craftsmanship. Your body deserves
+                We don&apos;t believe in templates — only in craftsmanship. Your body deserves
                 a training program as unique as your fingerprint.
               </ProgramDesc>
             </ProgramContent>
@@ -476,16 +476,16 @@ const MarbleLuxuryHomepage: React.FC = () => {
           <GoldDivider />
           <PullQuote {...fadeUp}>
             <QuoteText>
-              "Training at SwanStudios is unlike anything else. The attention to detail,
-              the personalized approach, the environment — it's luxury fitness redefined.
-              I've never felt more confident in my body."
+              &quot;Training at SwanStudios is unlike anything else. The attention to detail,
+              the personalized approach, the environment — it&apos;s luxury fitness redefined.
+              I&apos;ve never felt more confident in my body.&quot;
             </QuoteText>
             <QuoteAuthor>— Alexandra K., Member since 2024</QuoteAuthor>
           </PullQuote>
           <PullQuote {...fadeUp}>
             <QuoteText>
-              "Sean doesn't just train bodies — he transforms mindsets. Every session feels
-              like an investment in my future self. The results speak for themselves."
+              &quot;Sean doesn&apos;t just train bodies — he transforms mindsets. Every session feels
+              like an investment in my future self. The results speak for themselves.&quot;
             </QuoteText>
             <QuoteAuthor>— Michael T., Member since 2023</QuoteAuthor>
           </PullQuote>

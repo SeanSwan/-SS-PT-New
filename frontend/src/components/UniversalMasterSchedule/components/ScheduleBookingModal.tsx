@@ -24,6 +24,7 @@ import {
   PurchaseButton,
 } from './ScheduleModals.styles';
 import type { ScheduleMode } from './ScheduleModals.types';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ScheduleBookingModalProps {
   mode: ScheduleMode;
@@ -139,9 +140,9 @@ const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             </BookingCard>
             <CreditCard>
               <SmallText secondary>Credits Remaining</SmallText>
-              <PrimaryHeading style={{ fontSize: '1.75rem' }}>
+              <StyledBox as={PrimaryHeading} $style={{ fontSize: '1.75rem' }}>
                 {creditsDisplay}
-              </PrimaryHeading>
+              </StyledBox>
               {normalizedSessionsRemaining != null && (
                 <HelperText>
                   After booking: {Math.max(0, normalizedSessionsRemaining - 1)}

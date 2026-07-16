@@ -260,10 +260,11 @@ describe('UserDashboardBannerCropControls', () => {
     fireEvent.load(image);
 
     await waitFor(() => {
-      const frameStyle = image.parentElement?.getAttribute('style') ?? '';
-      expect(frameStyle).toContain('--banner-collage-aspect-ratio: 1.778');
-      expect(frameStyle).toContain('--banner-collage-grow: 1.778');
-      expect(frameStyle).toContain('--banner-collage-basis:');
+      expect(image.parentElement).not.toBeNull();
+      const frameStyle = window.getComputedStyle(image.parentElement!);
+      expect(frameStyle.getPropertyValue('--banner-collage-aspect-ratio')).toBe('1.778');
+      expect(frameStyle.getPropertyValue('--banner-collage-grow')).toBe('1.778');
+      expect(frameStyle.getPropertyValue('--banner-collage-basis')).not.toBe('');
     });
   });
 

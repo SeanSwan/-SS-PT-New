@@ -101,12 +101,12 @@ const ChartTogglePanel: React.FC<ChartTogglePanelProps> = ({
     };
   }, []);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: React.PointerEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
   return (
-    <Overlay onClick={handleOverlayClick} aria-hidden="false">
+    <Overlay onPointerDown={handleOverlayClick} aria-hidden="false">
       <Dialog
         ref={dialogRef}
         role="dialog"

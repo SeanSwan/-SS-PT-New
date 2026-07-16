@@ -212,7 +212,7 @@ const WorkoutLoggerConfirmDialog: React.FC<WorkoutLoggerConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="workout-logger-confirm-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <Header>
           <IconWrap $tone={tone} aria-hidden="true">

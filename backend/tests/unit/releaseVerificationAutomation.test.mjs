@@ -15,12 +15,12 @@ function serviceBlock(renderYaml, serviceName) {
   const start = lines.findIndex((line) => line.match(new RegExp(`^\\s+name:\\s+${serviceName}\\s*$`)));
   expect(start).toBeGreaterThanOrEqual(0);
   let serviceStart = start;
-  while (serviceStart > 0 && !lines[serviceStart].match(/^  - type:\s+/)) {
+  while (serviceStart > 0 && !lines[serviceStart].match(/^[ ]{2}- type:\s+/)) {
     serviceStart -= 1;
   }
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i += 1) {
-    if (lines[i].match(/^  - type:\s+/) || lines[i].match(/^[a-zA-Z]+:/)) {
+    if (lines[i].match(/^[ ]{2}- type:\s+/) || lines[i].match(/^[a-zA-Z]+:/)) {
       end = i;
       break;
     }

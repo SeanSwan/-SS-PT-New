@@ -15,6 +15,7 @@ import { ShoppingCart, User } from 'lucide-react';
 
 import EnhancedNotificationSectionWrapper from '../EnhancedNotificationSectionWrapper';
 import UniversalThemeToggle from '../../../context/ThemeContext/UniversalThemeToggle';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
@@ -245,7 +246,7 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
 
       {/* User Profile or Login */}
       {user ? (
-        <motion.div variants={itemVariants} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <StyledBox as={motion.div} variants={itemVariants} $style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Tooltip title={`${user?.firstName || 'User'} Profile`}>
             <ProfileIconButton
               aria-label="Open your dashboard"
@@ -279,7 +280,7 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
               Logout
             </LogoutButton>
           )}
-        </motion.div>
+        </StyledBox>
       ) : (
         <>
           {isMobile && (

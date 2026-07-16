@@ -12,6 +12,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { shimmerStyles, SCHEDULE_SKELETON_THEME } from './Skeleton.theme';
+import { StyledBox } from '@/components/ui/StyledBox';
 
 // Base skeleton element
 export const Skeleton = styled.div<{
@@ -94,7 +95,7 @@ export const SessionCardSkeleton: React.FC = () => (
     <SkeletonHeader>
       <SkeletonDot />
       <SkeletonLine width="60px" />
-      <SkeletonLine width="40px" style={{ marginLeft: 'auto' }} />
+      <StyledBox as={SkeletonLine} width="40px" $style={{ marginLeft: 'auto' }} />
     </SkeletonHeader>
     <SkeletonCardContent>
       <SkeletonLine width="80%" />
@@ -217,7 +218,7 @@ export const MonthViewSkeleton: React.FC<MonthViewSkeletonProps> = ({
 }) => (
   <MonthSkeletonGrid>
     {Array.from({ length: 7 }).map((_, dayIndex) => (
-      <SkeletonLine key={`header-${dayIndex}`} width="40px" style={{ margin: '0 auto' }} />
+      <StyledBox as={SkeletonLine} key={`header-${dayIndex}`} width="40px" $style={{ margin: '0 auto' }} />
     ))}
     {Array.from({ length: weeks * 7 }).map((_, cellIndex) => (
       <SkeletonDayCell key={cellIndex} />

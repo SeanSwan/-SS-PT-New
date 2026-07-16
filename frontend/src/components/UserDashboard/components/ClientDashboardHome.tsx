@@ -12,14 +12,7 @@ import {
   PrimaryStack,
   RightRail,
 } from './ClientDashboardHome.layoutStyles';
-import {
-  ClientProfileHero,
-  ClientQuickActions,
-  ClientSidebar,
-  ClientTopNavigation,
-  NextSessionCard,
-  TodaySnapshotCard,
-} from './ClientDashboardHome.sections';
+import { ClientProfileHero, ClientQuickActions, ClientSidebar, ClientTopNavigation, NextSessionCard } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
 import {
   CommunityFeedCard,
