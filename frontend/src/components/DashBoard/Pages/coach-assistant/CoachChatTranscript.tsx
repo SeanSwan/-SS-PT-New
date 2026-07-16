@@ -94,8 +94,9 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
     }
     // A (re)opened thread always lands on the newest message. During a live
     // session, follow the conversation only while the reader was near the
-    // bottom — never yank them out of older history; offer a jump pill instead.
-    if (threadChanged || wasNearBottomRef.current || busy) {
+    // bottom — never yank them out of older history (background sends from
+    // sibling surfaces flip `busy` too); offer a jump pill instead.
+    if (threadChanged || wasNearBottomRef.current) {
       el.scrollTop = el.scrollHeight;
       wasNearBottomRef.current = true;
       setUnseenBelow(false);
