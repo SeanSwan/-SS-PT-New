@@ -1,7 +1,7 @@
-#!/usr/bin/env node
-
 /**
  * Safe Migration Runner
+ * (No shebang: always invoked as `node scripts/safe-migrate.mjs`, and the
+ * unit suite imports this module — Vite cannot transform a shebang import.)
  * =====================
  * Runs sequelize-cli migrations one at a time. If a migration fails with an
  * "already exists" error (column, relation, index, constraint, etc.), it marks
@@ -20,28 +20,23 @@ import { spawn } from 'child_process';
 import { Sequelize } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const backendDir = path.resolve(__dirname, '..');
 const migrationsDir = path.join(backendDir, 'migrations');
 const env = process.argv[2] || 'production';
 
-// "Already exists" patterns that indicate the migration was already applied
-const ALREADY_APPLIED_PATTERNS = [
-  /already exists/i,
-  /duplicate key value/i,
-  /relation .+ already exists/i,
-  /column .+ of relation .+ already exists/i,
-  /index .+ already exists/i,
-  /constraint .+ already exists/i,
-  /type .+ already exists/i,
-  /violates foreign key constraint/i, // FK refs existing data = table was already set up
-];
-
-function isAlreadyAppliedError(stderr) {
-  return ALREADY_APPLIED_PATTERNS.some(p => p.test(stderr));
-}
+export {
+  isAlreadyAppliedError,
+  isStructuralAlreadyExistsError,
+  isDataCriticalMigration,
+} from './safe-migrate-lanes.mjs';
+import {
+  isAlreadyAppliedError,
+  isStructuralAlreadyExistsError,
+  isDataCriticalMigration,
+} from './safe-migrate-lanes.mjs';
 
 /** Get a Sequelize connection using the same config as sequelize-cli */
 async function getSequelize() {
@@ -121,6 +116,77 @@ function getAllMigrationFiles() {
     .sort();
 }
 
+/**
+ * Run every pending migration through the three-lane policy:
+ *  - exit 0                          -> applied
+ *  - already-exists class failure    -> mark done, continue (legacy skip lane;
+ *    DATA-CRITICAL files only skip on STRUCTURAL already-exists errors — FK
+ *    violations / duplicate keys are plausible genuine backfill failures)
+ *  - genuine failure, schema lane    -> mark done, continue (legacy behavior,
+ *    deliberately unchanged: blocking boot on schema drift caused the
+ *    crash-loop incidents this runner exists to prevent)
+ *  - genuine failure, DATA-CRITICAL  -> never mark done, HALT remaining
+ *    migrations (they may depend on this data), report for retry next deploy
+ */
+export async function processPendingMigrations({ pending, runMigration, markCompleted, logger = console }) {
+  const summary = {
+    applied: 0, skipped: 0, failed: 0,
+    dataCriticalFailures: [], halted: false, haltedRemaining: [],
+  };
+
+  for (const [index, migration] of pending.entries()) {
+    // Log BEFORE running so a hanging migration is identifiable in deploy logs.
+    logger.log(`  ${migration} ... running`);
+    const result = await runMigration(migration);
+    const dataCritical = isDataCriticalMigration(migration);
+
+    if (result.code === 0) {
+      logger.log(`  ${migration} ... migrated`);
+      summary.applied++;
+      continue;
+    }
+
+    const skipEligible = dataCritical
+      ? isStructuralAlreadyExistsError(result.combined)
+      : isAlreadyAppliedError(result.combined);
+    if (skipEligible) {
+      await markCompleted(migration);
+      logger.log(`  ${migration} ... already applied (marked as done)`);
+      summary.skipped++;
+      continue;
+    }
+
+    const errorLines = result.combined.split('\n').filter(l => l.includes('ERROR')).join('\n    ')
+      || result.combined.slice(-200);
+    summary.failed++;
+
+    if (dataCritical) {
+      logger.log(`  ${migration} ... FAILED (DATA-CRITICAL)`);
+      logger.error(`    Error: ${errorLines}`);
+      logger.error('    DATA-CRITICAL migration NOT marked as done — it stays pending and');
+      logger.error('    will retry on the next deploy. Remaining migrations are HALTED');
+      logger.error('    because they may depend on this data.');
+      summary.dataCriticalFailures.push(migration);
+      summary.halted = true;
+      summary.haltedRemaining = pending.slice(index + 1);
+      if (summary.haltedRemaining.length > 0) {
+        logger.error(`    Halted without attempting: ${summary.haltedRemaining.join(', ')}`);
+      }
+      break;
+    }
+
+    logger.log(`  ${migration} ... FAILED`);
+    logger.error(`    Error: ${errorLines}`);
+    // Legacy schema lane: mark as done to prevent blocking future deploys.
+    // (Historical rationale cited sync({ alter: true }); that sync is gated
+    // off in production — kept ONLY for schema files to avoid re-run loops.)
+    await markCompleted(migration);
+    logger.log('    (schema lane: marked as done to prevent blocking)');
+  }
+
+  return summary;
+}
+
 async function main() {
   console.log('Safe Migration Runner');
   console.log('=====================');
@@ -162,50 +228,61 @@ async function main() {
     return;
   }
 
-  let applied = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const migration of pending) {
-    process.stdout.write(`  ${migration} ... `);
-
-    const result = await runSingleMigration(migration);
-
-    if (result.code === 0) {
-      console.log('migrated');
-      applied++;
-    } else if (isAlreadyAppliedError(result.combined)) {
-      // Migration failed because changes already exist — mark as done
-      await markAsCompleted(seq, migration);
-      console.log('already applied (marked as done)');
-      skipped++;
-    } else {
-      // Genuine failure — log it but continue
-      console.log('FAILED');
-      console.error(`    Error: ${result.combined.split('\n').filter(l => l.includes('ERROR')).join('\n    ') || result.combined.slice(-200)}`);
-      failed++;
-      // Mark as done anyway to prevent blocking future deploys
-      // The server uses sync({ alter: true }) which handles the schema
-      await markAsCompleted(seq, migration);
-      console.log('    (marked as done to prevent blocking — sync will handle schema)');
-    }
-  }
+  const summary = await processPendingMigrations({
+    pending,
+    runMigration: runSingleMigration,
+    markCompleted: (name) => markAsCompleted(seq, name),
+    logger: console,
+  });
 
   console.log('\n=====================');
-  console.log(`Applied:  ${applied}`);
-  console.log(`Skipped:  ${skipped} (already existed)`);
-  console.log(`Failed:   ${failed} (marked done, sync handles schema)`);
+  console.log(`Applied:  ${summary.applied}`);
+  console.log(`Skipped:  ${summary.skipped} (already existed)`);
+  console.log(`Failed:   ${summary.failed}`);
   console.log('=====================\n');
 
   await seq.close();
 
-  if (failed > 0) {
-    console.log('WARNING: Some migrations had genuine failures.');
-    console.log('The server sync({ alter: true }) should handle these, but review the errors above.');
+  if (summary.dataCriticalFailures.length > 0) {
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.error('!! DATA-CRITICAL MIGRATION FAILURE — NOT marked done, will retry  !!');
+    console.error('!! on every deploy until it succeeds or is fixed:                 !!');
+    for (const name of summary.dataCriticalFailures) {
+      console.error(`!!   ${name}`);
+    }
+    console.error('!! Later pending migrations were HALTED this run.                 !!');
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    process.exit(1);
+  }
+
+  if (summary.failed > 0) {
+    console.log('WARNING: Some schema migrations had genuine failures (marked done — legacy lane).');
+    console.log('Review the errors above and reconcile the schema manually if needed.');
   }
 }
 
-main().catch(err => {
-  console.error('Safe migration runner failed:', err);
+// Import guard: tests import the helpers above without running the CLI.
+// realpathSync both sides — through a directory junction/symlink,
+// import.meta.url is realpath'd while argv[1] keeps the link path; without
+// normalization the guard is silently FALSE and all migrations no-op.
+const resolveRealHref = (p) => {
+  try {
+    return pathToFileURL(fs.realpathSync(path.resolve(p))).href;
+  } catch {
+    return pathToFileURL(path.resolve(p)).href;
+  }
+};
+const isMainModule = process.argv[1]
+  && resolveRealHref(fileURLToPath(import.meta.url)) === resolveRealHref(process.argv[1]);
+
+if (isMainModule) {
+  main().catch(err => {
+    console.error('Safe migration runner failed:', err);
+    process.exit(1);
+  });
+} else if (process.argv[1] && /safe-migrate\.mjs$/i.test(process.argv[1])) {
+  // Someone invoked this file as a CLI but the guard didn't match — never
+  // fail silently (a no-op here means "migrations stopped running").
+  console.error('[safe-migrate] import-guard mismatch: CLI invocation did not match module URL — refusing to no-op silently.');
   process.exit(1);
-});
+}
