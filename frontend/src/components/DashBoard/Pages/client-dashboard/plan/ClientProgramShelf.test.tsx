@@ -158,6 +158,22 @@ describe('ClientProgramShelf', () => {
     expect(screen.getByText('Completed').tagName).not.toBe('BUTTON');
   });
 
+  it('lets the shared Today rollout hide only the legacy assignment row', () => {
+    render(
+      <ClientProgramShelf
+        userId={42}
+        workout={workout as never}
+        planVault={vault as never}
+        assignment={assignment() as never}
+        showTodayAssignment={false}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('client-program-shelf')).toBeInTheDocument();
+    expect(screen.getByTestId('program-shelf-hero')).toBeInTheDocument();
+    expect(screen.queryByTestId('current-workout-card')).not.toBeInTheDocument();
+  });
   it("ABSORBED: today's session lives on the hero — name, next exercise, and the RIGHT route", () => {
     const onNavigate = vi.fn();
     render(

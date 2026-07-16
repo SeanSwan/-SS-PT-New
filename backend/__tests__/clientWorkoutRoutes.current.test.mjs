@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
@@ -9,6 +9,7 @@ const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
 const mockDailyWorkoutFormFindOne = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
+const mockPdfDerivativeQuery = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -43,7 +44,11 @@ beforeEach(() => {
     allowed: true,
     clientId: 42,
     models: {
-      WorkoutPlan: { findOne: mockWorkoutPlanFindOne, findAll: mockWorkoutPlanFindAll },
+      WorkoutPlan: {
+        findOne: mockWorkoutPlanFindOne,
+        findAll: mockWorkoutPlanFindAll,
+        sequelize: { query: mockPdfDerivativeQuery },
+      },
       WorkoutSession: { findAll: mockWorkoutSessionFindAll },
       DailyWorkoutForm: { findOne: mockDailyWorkoutFormFindOne },
       // These existing models are intentionally present. The current route
@@ -57,6 +62,12 @@ beforeEach(() => {
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockDailyWorkoutFormFindOne.mockResolvedValue(null);
   mockDailyWorkoutFormFindAll.mockResolvedValue([]);
+  mockPdfDerivativeQuery.mockResolvedValue([[]]);
+  delete process.env.TRAINING_PLAN_PDF_DERIVATIVES;
+});
+
+afterEach(() => {
+  delete process.env.TRAINING_PLAN_PDF_DERIVATIVES;
 });
 
 describe('clientWorkoutRoutes GET /:userId/current', () => {
@@ -175,6 +186,88 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
     });
   });
 
+  it('batch-enriches plan catalog PDF status without exposing private derivative storage', async () => {
+    process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'true';
+    const activePlan = {
+      id: 'plan-6m',
+      title: 'Six Month Foundation',
+      durationWeeks: 26,
+      status: 'active',
+      contentRevision: 3,
+      currentWeek: 1,
+      currentDay: 1,
+      metadata: { planHorizon: 'six_month' },
+      planData: { weeks: [{ days: [{ dayNumber: 1, name: 'Foundation', exercises: [] }] }] },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockPdfDerivativeQuery.mockResolvedValue([[
+      {
+        plan_id: 'plan-6m',
+        id: 'derivative-1',
+        state: 'ready',
+        source_type: 'generated',
+        source_revision: 3,
+        source_hash: 'safe-source-hash',
+        render_hash: 'safe-render-hash',
+        renderer_version: 'v1',
+        needs_review: false,
+        attempt_count: 1,
+        safe_error_code: null,
+        ready_at: '2026-07-15T12:00:00.000Z',
+        storage_key: 'workout-plans/42/private-generated.pdf',
+        created_at: '2026-07-15T12:00:00.000Z',
+      },
+    ]]);
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(mockPdfDerivativeQuery).toHaveBeenCalledOnce();
+    expect(res.body.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      plan: {
+        contentRevision: 3,
+        pdfDerivative: {
+          enabled: true,
+          state: 'ready',
+          latestGenerated: { sourceRevision: 3, state: 'ready' },
+        },
+      },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('private-generated.pdf');
+  });
+  it('keeps current training available when PDF derivative status storage is unavailable', async () => {
+    process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'true';
+    const activePlan = {
+      id: 'plan-6m',
+      title: 'Six Month Foundation',
+      durationWeeks: 26,
+      status: 'active',
+      contentRevision: 3,
+      currentWeek: 1,
+      currentDay: 1,
+      metadata: { planHorizon: 'six_month' },
+      planData: { weeks: [{ days: [{ dayNumber: 1, name: 'Foundation', exercises: [] }] }] },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockPdfDerivativeQuery.mockRejectedValue(new Error('private derivative storage outage'));
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(res.body.todayAssignment).toBeTruthy();
+    expect(res.body.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      plan: { pdfDerivative: { enabled: true, state: 'unavailable' } },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('private derivative storage outage');
+  });
   it('marks current homework completed when today has a matching planned-assignment log', async () => {
     const activePlan = {
       id: 'plan-6m',
@@ -229,7 +322,7 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
       attributes: ['id', 'formData', 'submittedAt', 'updatedAt'],
     }));
     expect(res.body.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w3:d2:homework',
+      assignmentKey: 'plan-6m:w3:d2:' + today + ':o1:r1',
       status: 'completed',
       isLoggable: false,
       ctaLabel: 'Review Workout',
@@ -271,7 +364,11 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
       allowed: true,
       clientId: 42,
       models: {
-        WorkoutPlan: { findOne: mockWorkoutPlanFindOne, findAll: mockWorkoutPlanFindAll },
+        WorkoutPlan: {
+        findOne: mockWorkoutPlanFindOne,
+        findAll: mockWorkoutPlanFindAll,
+        sequelize: { query: mockPdfDerivativeQuery },
+      },
         WorkoutSession: { findAll: mockWorkoutSessionFindAll },
         DailyWorkoutForm: {
           findOne: mockDailyWorkoutFormFindOne,

@@ -23,6 +23,7 @@ import {
   selectCurrentWorkoutPlan,
 } from '../services/workoutPlanRouteHelpers.mjs';
 import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
+import { getWorkoutPlanPdfDerivativeStatusesForPlans } from '../services/workoutPlanPdfDerivativeService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -92,6 +93,30 @@ router.get('/:userId/current', protect, async (req, res) => {
       }
     }
     plan = selectCurrentWorkoutPlan(plan, clientPlans);
+    const overviewPlanRows = clientPlans.length > 0 ? clientPlans : plan ? [plan] : [];
+    const planIds = overviewPlanRows
+      .map((row) => String((row.toJSON?.() ?? row)?.id || ''))
+      .filter(Boolean);
+    let pdfStatuses;
+    try {
+      pdfStatuses = await getWorkoutPlanPdfDerivativeStatusesForPlans({
+        sequelize: WorkoutPlan?.sequelize,
+        planIds,
+      });
+    } catch (error) {
+      logger.warn('Plan PDF derivative status lookup failed:', error.message);
+      pdfStatuses = Object.fromEntries(planIds.map((planId) => [
+        planId,
+        { enabled: true, state: 'unavailable' },
+      ]));
+    }
+    const plansWithPdfStatus = overviewPlanRows.map((row) => {
+      const raw = row.toJSON?.() ?? row;
+      return { ...raw, pdfDerivative: pdfStatuses[String(raw.id)] || null };
+    });
+    const activePlanWithPdfStatus = plan
+      ? plansWithPdfStatus.find((row) => String(row.id) === String(plan.id)) || (plan.toJSON?.() ?? plan)
+      : null;
     const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
       clientId,
       date: today,
@@ -108,12 +133,12 @@ router.get('/:userId/current', protect, async (req, res) => {
     if (!plan) {
       const overview = buildClientTrainingOverview({
         activePlan: null,
-        plans: clientPlans,
+        plans: plansWithPdfStatus,
         today,
         recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
       });
       const assignmentPicker = buildClientTrainingAssignmentPicker({
-        plans: clientPlans,
+        plans: plansWithPdfStatus,
         today,
         assignmentCompletions: completionContext.assignmentCompletions,
       });
@@ -133,15 +158,15 @@ router.get('/:userId/current', protect, async (req, res) => {
     const formattedPlan = toCurrentWorkoutPlanResponse(plan);
     const currentSession = formattedPlan.currentSession || null;
     const overview = buildClientTrainingOverview({
-      activePlan: plan,
-      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      activePlan: activePlanWithPdfStatus,
+      plans: plansWithPdfStatus,
       currentSession,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,
       recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
     });
     const assignmentPicker = buildClientTrainingAssignmentPicker({
-      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      plans: plansWithPdfStatus,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,
     });
