@@ -10,6 +10,19 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
 import { resolveContactApiBase } from './contactApiBase';
+
+// Consultation types a public URL may request (?type=assessment from YouTube CTAs
+// etc.). Allowlisted so arbitrary query strings can't inject text into the
+// [CONSULTATION TYPE]-prefixed message the backend builds.
+const ALLOWED_CONSULTATION_TYPES = ['general', 'assessment', 'training', 'app'] as const;
+
+export function readConsultationType(): string {
+  try {
+    const t = new URLSearchParams(window.location.search).get('type');
+    if (t && (ALLOWED_CONSULTATION_TYPES as readonly string[]).includes(t)) return t;
+  } catch { /* malformed query - fall through */ }
+  return 'general';
+}
 import BookConsultCTA from '../../components/marketing/BookConsultCTA';
 
 /* ================================================================
@@ -885,7 +898,7 @@ const ContactV3: React.FC = () => {
         name,
         email,
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
-        consultationType: 'general',
+        consultationType: readConsultationType(),
         priority: 'normal',
         ...readAcquisitionParams(), // attribute which channel sent this contact (rule 8 non-PII)
       });
