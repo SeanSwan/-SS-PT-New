@@ -738,13 +738,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     [sessions]
   );
 
-  // Memoized motion props to avoid re-creating objects on every render
-  const motionStyle = useMemo(() => ({
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    flex: 1,
-    height: '100%'
-  }), []);
 
   if (dataLoading.sessions && sessions.length === 0) {
     return <Spinner size={60} text="Loading Schedule..." fullscreen />;
@@ -762,11 +755,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             : 'Schedule may be out of date — the last refresh failed. Showing last-loaded sessions.'}
         </ErrorNote>
       )}
-      <motion.div
+      <ScheduleMotionContent
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        style={motionStyle}
       >
       <ScheduleHeader
         mode={mode}
@@ -991,7 +983,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           <SessionTypeManager />
         </Modal>
       )}
-      </motion.div>
+      </ScheduleMotionContent>
     </ScheduleContainer>
     </ScheduleLensFrame>
     </ErrorBoundary>
@@ -1000,6 +992,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
 export default UniversalMasterSchedule;
 
+
+const ScheduleMotionContent = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+`;
 
 const ScheduleContainer = styled.div`
   --shell-chrome: 80px;

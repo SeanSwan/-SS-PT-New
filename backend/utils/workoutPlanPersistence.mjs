@@ -10,7 +10,6 @@
  *   3. WorkoutPlan → WorkoutPlanDay → WorkoutPlanDayExercise creation
  *   4. Returns created plan metadata + unmatched exercises list
  */
-import logger from './logger.mjs';
 import { createWorkoutPlanRecord } from '../services/workoutPlanMutationService.mjs';
 import { transitionWorkoutPlanLifecycle } from '../services/workoutPlanLifecycleService.mjs';
 import { buildExerciseLookupMap, findExerciseByName } from './exerciseLookup.mjs';

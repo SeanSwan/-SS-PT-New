@@ -19,7 +19,6 @@ const SCHEDULED_TRAINER_ASSIGNMENT_TYPES = new Set(['trainer_session']);
 const WEEK_NUMBER_KEYS = ['weekNumber', 'week'];
 const DAY_NUMBER_KEYS = ['dayNumber', 'sessionNumber', 'day'];
 
-const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const sameId = (a, b) => String(a) === String(b);
 const toPositiveInteger = (value) => {
   const parsed = Number.parseInt(value, 10);

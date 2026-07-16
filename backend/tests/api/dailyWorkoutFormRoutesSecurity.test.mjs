@@ -136,7 +136,8 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('const workoutDateValue = linkedScheduledSession?.sessionDate');
     expect(submitRoute).toContain("new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]");
     expect(submitRoute).toContain('const workoutDateIso = toIsoDateOnly(workoutDateValue);');
-    expect(submitRoute).toContain("const workoutDate = new Date(`${workoutDateIso}T00:00:00.000Z`);");
+    expect(submitRoute).toContain('if (workoutDateIso > trainingDateContext.localDate)');
+    expect(submitRoute).not.toContain('const workoutDate = new Date');
     expect(submitRoute).toContain('date: workoutDateIso');
     expect(submitRoute).toContain('workoutDate: workoutDateIso');
     expect(submitRoute).toContain('sessionId: linkedScheduledSession.id');

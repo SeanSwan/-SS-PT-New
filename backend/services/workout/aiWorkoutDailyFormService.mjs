@@ -25,7 +25,6 @@ import {
   normalizeText,
   parseNonNegativeInteger,
   parsePositiveInteger,
-  toIsoDateOnly,
 } from './aiWorkoutDailyFormPayloadService.mjs';
 import { runWorkoutXpAwardStep } from './workoutXpAwardStep.mjs';
 import { detectAndRecordPersonalRecords } from './workoutPrDetectionService.mjs';

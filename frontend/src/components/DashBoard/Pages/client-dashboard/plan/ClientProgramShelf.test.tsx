@@ -6,7 +6,6 @@
  *   2. Trainer indispensability — the member SEES their plans but is given no
  *      control to switch or edit one. Status pills are read-outs.
  */
-import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 

@@ -153,8 +153,9 @@ const verifyStoredIdentity = ({ row, hashContent }) => {
 const verifyAllRows = async ({ sequelize, batchSize, hashContent }) => {
   let cursor = null;
   let verified = 0;
+  let hasRows = true;
 
-  while (true) {
+  while (hasRows) {
     const cursorSql = cursor === null ? '' : 'WHERE id > :cursor\n';
     const rows = await sequelize.query(
       IDENTITY_COLUMNS_SQL + '\n' + cursorSql + 'ORDER BY id ASC\nLIMIT :batchSize',
@@ -163,12 +164,14 @@ const verifyAllRows = async ({ sequelize, batchSize, hashContent }) => {
         type: sequelize.QueryTypes?.SELECT,
       },
     );
-    if (rows.length === 0) return verified;
+    hasRows = rows.length > 0;
+    if (!hasRows) continue;
 
     for (const row of rows) verifyStoredIdentity({ row, hashContent });
     verified += rows.length;
     cursor = rows.at(-1).id;
   }
+  return verified;
 };
 
 const countInvalidRows = async (sequelize) => {

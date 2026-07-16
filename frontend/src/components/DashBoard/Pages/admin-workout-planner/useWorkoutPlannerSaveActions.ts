@@ -11,7 +11,6 @@ import type {
   PdfAttachResult,
   RunSaveOperationInput,
   SaveActionResponseData,
-  SaveOperationResult,
   UseWorkoutPlannerSaveActionsInput,
 } from './useWorkoutPlannerSaveActions.types';
 const saveStatusText = (base: string, pdfResult: PdfAttachResult) => {

@@ -5,7 +5,7 @@
  * A11y: keyboard-loadable card plus named 44px nested controls.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, Check, Copy, Edit3, Play, Star, X } from 'lucide-react';
 import SavedPlanPdfPanel from './SavedPlanPdfPanel';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
@@ -78,6 +78,13 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
 }) => {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(plan.name);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!renaming) return;
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+  }, [renaming]);
   const isCurrent = isWorkoutPlanActiveStatus(plan.status);
   const isPrimaryCurrent = isCurrent && Boolean(plan.isPrimary);
   const normalizedStatus = String(plan.status || '').trim().toLowerCase();
@@ -179,7 +186,7 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
               onChange={(e) => setRenameValue(e.target.value)}
               onClick={stopProp}
               onKeyDown={handleRenameKeyDown}
-              autoFocus
+              ref={renameInputRef}
               aria-label="Rename plan"
               data-testid={`rename-input-${plan.id}`}
             />

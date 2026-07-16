@@ -50,6 +50,7 @@ vi.mock('stripe', () => {
 
 vi.mock('../utils/apiKeyChecker.mjs', () => ({
   isStripeEnabled: () => true,
+  isTwilioEnabled: () => false,
 }));
 
 vi.mock('../utils/logger.mjs', () => ({

@@ -17,7 +17,6 @@ import {
 import { normalizeClientPlanPdfContract } from './ClientWorkoutPlanPdfState.logic';
 import {
   PLAN_HORIZON_SLOTS,
-  type ClientPlanHorizonSlot,
   type ClientPlanSummary,
   type ClientPlanVaultSummary,
   type ClientTodayAssignmentSummary,

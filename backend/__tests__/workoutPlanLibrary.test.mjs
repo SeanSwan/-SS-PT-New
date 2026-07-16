@@ -6,7 +6,6 @@ import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.m
 const mockTransaction = vi.fn();
 const mockFindAll = vi.fn();
 const mockFindByPk = vi.fn();
-const mockUpdate = vi.fn();
 const mockBulkUpdate = vi.fn();
 const mockCreate = vi.fn();
 const mockUserUpdate = vi.fn();

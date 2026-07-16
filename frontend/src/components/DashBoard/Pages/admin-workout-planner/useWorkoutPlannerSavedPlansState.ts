@@ -15,7 +15,6 @@ import {
 } from '../../shared/plan-pdf/useProtectedPlanPdfViewer';
 import { mapSavedPlan } from './workoutPlannerSavedPlanMapping';
 import type {
-  PlannerAuthClient,
   SavedPlansApiData,
   UseWorkoutPlannerSavedPlansStateInput,
 } from './useWorkoutPlannerSavedPlansState.types';

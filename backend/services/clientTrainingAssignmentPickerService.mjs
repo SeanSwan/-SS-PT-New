@@ -107,7 +107,7 @@ const isCurrentPlanDay = (plan, weekNumber, dayNumber) => (
   && Number(plan.currentDay || 1) === Number(dayNumber || 1)
 );
 
-const buildPickerAssignment = ({ plan, rawPlan, weekNumber, day, dayIndex, today, assignmentCompletions }) => {
+const buildPickerAssignment = ({ rawPlan, weekNumber, day, dayIndex, today, assignmentCompletions }) => {
   const planId = rawPlan.id ?? null;
   const dayNumber = toPositiveInteger(day.dayNumber ?? day.sessionNumber ?? day.day, dayIndex + 1);
   const exercises = (Array.isArray(day.exercises) ? day.exercises : []).map(toPickerExercise);
@@ -167,7 +167,6 @@ export const buildClientTrainingAssignmentPicker = ({
   const assignments = planRows.flatMap((rawPlan) => {
     const planData = toPlainObject(rawPlan.planData || rawPlan.plan_data) || {};
     return dayEntriesForPlan(planData).map(({ weekNumber, day, dayIndex }) => buildPickerAssignment({
-      plan: rawPlan,
       rawPlan,
       weekNumber,
       day,

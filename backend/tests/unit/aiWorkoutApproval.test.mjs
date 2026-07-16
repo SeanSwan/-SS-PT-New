@@ -245,6 +245,7 @@ vi.mock('../../database.mjs', async () => {
         rollback: vi.fn(),
         LOCK: { UPDATE: 'UPDATE' },
       }),
+      query: vi.fn().mockResolvedValue([[], { rowCount: 1 }]),
     },
   };
 });
@@ -254,6 +255,31 @@ const mockRes = () => {
   res.status = vi.fn().mockReturnValue(res);
   res.json = vi.fn().mockReturnValue(res);
   return res;
+};
+
+const buildWorkoutPlanModel = ({
+  createdId = '44444444-4444-4444-8444-444444444444',
+  existingPlans = [],
+} = {}) => {
+  let createdPlan = null;
+  const rows = () => [...existingPlans, createdPlan].filter(Boolean);
+  return {
+    create: vi.fn(async (values) => {
+      createdPlan = {
+        ...values,
+        id: createdId,
+        update: vi.fn(async (updates) => {
+          Object.assign(createdPlan, updates);
+          return createdPlan;
+        }),
+      };
+      return createdPlan;
+    }),
+    findAll: vi.fn(async () => rows()),
+    findByPk: vi.fn(async (id) => (
+      rows().find((plan) => String(plan.id) === String(id)) || null
+    )),
+  };
 };
 
 // Standard mock models for tests that pass authz
@@ -270,11 +296,7 @@ const makeMockModels = (overrides = {}) => ({
   Exercise: {
     findOne: vi.fn().mockResolvedValue(null),
   },
-  WorkoutPlan: {
-    create: vi.fn(),
-    findAll: vi.fn().mockResolvedValue([]),
-    findByPk: vi.fn(),
-  },
+  WorkoutPlan: buildWorkoutPlanModel(),
   WorkoutPlanDay: { create: vi.fn() },
   WorkoutPlanDayExercise: { create: vi.fn() },
   AiInteractionLog: null,
@@ -627,10 +649,9 @@ describe('approveDraftPlan — successful persistence shape', () => {
         ]),
         findOne: vi.fn().mockResolvedValue(null),
       },
-      WorkoutPlan: {
-        findAll: vi.fn().mockResolvedValue([]),
-        create: vi.fn().mockResolvedValue({ id: 'approved-plan-1' }),
-      },
+      WorkoutPlan: buildWorkoutPlanModel({
+        createdId: '55555555-5555-4555-8555-555555555555',
+      }),
       WorkoutPlanDay: {
         create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
       },
@@ -651,12 +672,12 @@ describe('approveDraftPlan — successful persistence shape', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       success: true,
-      planId: 'approved-plan-1',
+      planId: '55555555-5555-4555-8555-555555555555',
       sourceType: 'coach_approved',
     }));
     expect(models.WorkoutPlan.create).toHaveBeenCalledWith(expect.objectContaining({
       userId: 1,
-      status: 'active',
+      status: 'draft',
       currentWeek: 1,
       currentDay: 1,
       planData: expect.objectContaining({
@@ -696,16 +717,19 @@ describe('approveDraftPlan — successful persistence shape', () => {
     }), expect.objectContaining({ transaction: expect.any(Object) }));
   });
 
-  it('31c — demotes an existing active plan before creating the approved plan', async () => {
+  it('31c - creates a draft, then atomically pauses the old active plan during activation', async () => {
     const existingActivePlan = {
-      id: 'old-active-plan',
+      id: '66666666-6666-4666-8666-666666666666',
       userId: 1,
       status: 'active',
       metadata: { planHorizon: 'three_month', isPrimaryPlan: true, primary: true, retainedFlag: true },
       planData: {},
       contentRevision: null,
       contentHash: null,
-      update: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn(async (updates) => {
+        Object.assign(existingActivePlan, updates);
+        return existingActivePlan;
+      }),
     };
     const models = makeMockModels({
       Exercise: {
@@ -716,11 +740,10 @@ describe('approveDraftPlan — successful persistence shape', () => {
         ]),
         findOne: vi.fn().mockResolvedValue(null),
       },
-      WorkoutPlan: {
-        findAll: vi.fn().mockResolvedValue([existingActivePlan]),
-        findByPk: vi.fn().mockResolvedValue(existingActivePlan),
-        create: vi.fn().mockResolvedValue({ id: 'approved-plan-2' }),
-      },
+      WorkoutPlan: buildWorkoutPlanModel({
+        createdId: '77777777-7777-4777-8777-777777777777',
+        existingPlans: [existingActivePlan],
+      }),
       WorkoutPlanDay: {
         create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
       },
@@ -740,22 +763,17 @@ describe('approveDraftPlan — successful persistence shape', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(models.WorkoutPlan.findAll).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 1, status: 'active' },
+      where: { userId: 1 },
+      order: [['id', 'ASC']],
       transaction: expect.any(Object),
     }));
     expect(existingActivePlan.update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'paused',
-      metadata: expect.objectContaining({
-        planHorizon: 'three_month',
-        retainedFlag: true,
-        isPrimaryPlan: false,
-        primary: false,
-      }),
       contentRevision: 1,
       contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     }), expect.objectContaining({ transaction: expect.any(Object) }));
-    expect(existingActivePlan.update.mock.invocationCallOrder[0])
-      .toBeLessThan(models.WorkoutPlan.create.mock.invocationCallOrder[0]);
+    expect(models.WorkoutPlan.create.mock.invocationCallOrder[0])
+      .toBeLessThan(existingActivePlan.update.mock.invocationCallOrder[0]);
   });
 
   it('31d - sanitizes approved draft planData before persistence', async () => {
@@ -766,10 +784,9 @@ describe('approveDraftPlan — successful persistence shape', () => {
         ]),
         findOne: vi.fn().mockResolvedValue(null),
       },
-      WorkoutPlan: {
-        findAll: vi.fn().mockResolvedValue([]),
-        create: vi.fn().mockResolvedValue({ id: 'approved-plan-privacy' }),
-      },
+      WorkoutPlan: buildWorkoutPlanModel({
+        createdId: '88888888-8888-4888-8888-888888888888',
+      }),
       WorkoutPlanDay: {
         create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
       },
