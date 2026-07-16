@@ -64,8 +64,17 @@ const LogoElement = styled.div`
   display: flex;
   align-items: center;
   position: relative;
-  animation: ${galaxyFloat} 8s ease-in-out infinite;
-  
+
+  /* Desktop-only float: an always-on animation inside the header's
+     backdrop-filter layer kept the blur repainting on phones. */
+  @media (min-width: 1025px) {
+    animation: ${galaxyFloat} 8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
   .logo-text {
     font-size: 1.25rem;
     font-weight: 700;

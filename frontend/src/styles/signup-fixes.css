@@ -6,12 +6,13 @@
  * and scrolling behavior across all devices.
  */
 
-/* Fix for overall viewport height issues */
-html, body {
-  height: 100%;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
+/*
+ * NOTE: this file is imported globally (App.tsx), so every rule MUST stay
+ * scoped to auth/signup classes. An earlier unscoped `html, body { height: 100% }`
+ * block here silently turned <body> into an inner viewport-height scroller on
+ * EVERY route (the document itself never scrolled), which caused the app-wide
+ * "gummy scroll" on iOS. Do not add unscoped element selectors back.
+ */
 
 /* Add padding to the top of auth content */
 .auth-layout-content {

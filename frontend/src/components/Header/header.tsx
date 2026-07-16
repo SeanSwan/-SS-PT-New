@@ -72,8 +72,11 @@ const HeaderContainer = styled(motion.header)<{
          inset 0 1px 0 rgba(255, 255, 255, 0.05)`
   };
 
-  /* Smooth transitions */
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Smooth transitions — explicit properties only. 'transition: all' animated
+     backdrop-filter/box-shadow on a full-width blur layer during scroll. */
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.4s ease,
+              box-shadow 0.4s ease;
   transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});
 
   /* Mobile optimizations */
@@ -119,9 +122,19 @@ const HeaderContainer = styled(motion.header)<{
       color-mix(in srgb, var(--accent-primary) 4%, transparent) 100%
     );
     background-size: 400% 400%;
-    animation: ${nebulaPulse} 8s ease-in-out infinite;
     pointer-events: none;
     z-index: -1;
+
+    /* Desktop-only: an infinite gradient animation inside a backdrop-filter
+       layer forces continuous repaints of the blur — a gummy-scroll tax on
+       phones. Static gradient on mobile, ambient motion on desktop. */
+    @media (min-width: 1025px) {
+      animation: ${nebulaPulse} 8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 `;
 

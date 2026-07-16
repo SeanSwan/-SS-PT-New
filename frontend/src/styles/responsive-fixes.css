@@ -22,10 +22,13 @@
   }
 }
 
-/* Fix for overflow issues that cause horizontal scrollbars */
+/* Fix for overflow issues that cause horizontal scrollbars.
+   clip (with hidden fallback) guards overflow WITHOUT creating a scroll
+   container — hidden on body steals viewport scroll (gummy-scroll root cause). */
 html, body, #root {
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Fix for mobile viewport height calculation (addresses iOS Safari issues) */

@@ -81,7 +81,7 @@ import './styles/mobile/mobile-base.css';
 import './styles/mobile/mobile-workout.css';
 // import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
 // Crystalline Swan theme integration with Cosmic Elegance
-import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
+// (ImprovedGlobalStyle import removed — it was imported but never rendered)
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
 // Import consolidated SwanStudios theme

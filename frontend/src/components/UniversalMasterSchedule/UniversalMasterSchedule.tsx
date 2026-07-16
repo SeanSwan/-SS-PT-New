@@ -989,23 +989,32 @@ export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
   --shell-chrome: 80px;
-  height: calc(100dvh - var(--shell-chrome));
   display: flex;
   flex-direction: column;
 
-  /* Theme-synced depth background */
+  /* Theme-synced depth background.
+     NOTE: background-attachment: fixed was removed — inside a scroller iOS
+     repaints these gradients on every scrolled frame (gummy scroll). */
   background-color: var(--bg-base, #0A0A0F);
   background-image:
     radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 16%, transparent) 0%, transparent 40%),
     radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent) 0%, transparent 40%);
-  background-attachment: fixed;
   color: var(--text-primary, #E0ECF4);
 
   overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  will-change: scroll-position;
+  overflow-x: clip;
+
+  /* Phones/tablets: flow naturally — the DOCUMENT scrolls (no nested scroller
+     swallowing touch gestures; that was the "pull, then finally scrolls" bug).
+     Desktop keeps the app-like fixed-height calendar with its own scroll. */
+  min-height: calc(100dvh - var(--shell-chrome));
+
+  @media (min-width: 1025px) {
+    height: calc(100dvh - var(--shell-chrome));
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+  }
 
   /* Premium Custom Scrollbar — Crystalline Swan palette */
   &::-webkit-scrollbar {

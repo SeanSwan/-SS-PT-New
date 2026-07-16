@@ -506,7 +506,8 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
   /* === BASE STYLES === */
   html {
     font-size: 16px;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed — global smooth scroll animates every
+       programmatic scroll and contributed to the app-wide gummy-scroll feel */
     height: 100%;
     
     ${media.mobile} {
@@ -570,12 +571,6 @@ const CosmicEleganceGlobalStyle = createGlobalStyle<{ deviceCapability?: string 
     /* Prevent zoom on input focus */
     input, select, textarea {
       font-size: 16px !important;
-    }
-    
-    /* Optimize scrolling */
-    body {
-      -webkit-overflow-scrolling: touch;
-      scroll-behavior: smooth;
     }
     
     /* Reduce motion on mobile if needed */

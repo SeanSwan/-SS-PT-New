@@ -56,9 +56,13 @@ export const UniversalGlobalStyles = createGlobalStyle`
     padding: 0;
   }
 
+  /* min-height (NOT height) + clip (NOT hidden-only): pinning body to viewport
+     height while giving it non-visible overflow turns <body> into an inner
+     scroller and kills native document scrolling (gummy-scroll root cause). */
   html, body {
-    height: 100%;
+    min-height: 100%;
     overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body.mobile-sidebar-open {
@@ -143,8 +147,12 @@ export const UniversalMainContent = styled(motion.main)<{ $compactMobileTop?: bo
   min-height: 100dvh;
   position: relative;
   background: var(--bg-base, #0A0A0F);
-  overflow-y: auto;
+  /* No overflow-y here: the DOCUMENT owns vertical scroll (sidebars are
+     position: fixed). An inner overflow-y:auto made this a nested scroller
+     that swallowed touch gestures before the page moved. clip keeps the
+     horizontal guard without creating a scroll container. */
   overflow-x: hidden;
+  overflow-x: clip;
   transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   @media (max-width: 1024px) {

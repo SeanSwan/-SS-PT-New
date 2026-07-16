@@ -104,7 +104,7 @@ const AboutPage = styled(motion.div)`
   background-size: 50px 50px;
   background-position: 0 0, 25px 25px;
   background-repeat: repeat;
-  background-attachment: fixed;
+  /* background-attachment: fixed removed - iOS ignores it and repaints the layer every scrolled frame (gummy scroll) */
   
   /* Premium overlay with gradient */
   &:before {

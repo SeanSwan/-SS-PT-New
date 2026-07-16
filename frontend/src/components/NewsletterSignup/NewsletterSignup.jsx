@@ -43,7 +43,7 @@ const NewsletterSection = styled.section`
               url(${backgroundImage});
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  /* background-attachment: fixed removed - iOS ignores it and repaints the layer every scrolled frame (gummy scroll) */
   overflow: hidden;
   width: 100%;
   max-width: 100vw;

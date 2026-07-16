@@ -116,7 +116,7 @@ const ContactPageWrapper = styled.div`
   align-items: center;
   overflow-x: hidden;
   background: linear-gradient(135deg, #002060 0%, #1e1e3f 50%, #002060 100%);
-  background-attachment: fixed;
+  /* background-attachment: fixed removed - iOS ignores it and repaints the layer every scrolled frame (gummy scroll) */
 
   /* Ensure dark bg covers entire page — no white bleed */
   &::after {

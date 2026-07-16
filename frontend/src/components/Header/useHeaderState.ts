@@ -28,6 +28,35 @@ const getThemeValue = (theme: any, path: string, fallback: string) => {
   }
 };
 
+// ===================== ANIMATION VARIANTS =====================
+// Module scope: rebuilding these per render handed fresh object identities to
+// every framer-motion child on each header commit, defeating memoization.
+const containerVariants = {
+  hidden: { opacity: 0, y: -20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut",
+      when: "beforeChildren",
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: "easeOut"
+    }
+  }
+};
+
 /**
  * Custom hook that manages all header state and business logic
  */
@@ -37,7 +66,10 @@ export const useHeaderState = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  // Ref, NOT state: keeping lastScrollY in state re-rendered the whole header
+  // on every scroll frame AND re-subscribed the scroll listener per tick
+  // (the effect depended on handleScroll, which depended on lastScrollY).
+  const lastScrollYRef = useRef(0);
   
   // ===================== CONTEXT HOOKS =====================
   const { cart } = useCart();
@@ -66,13 +98,16 @@ export const useHeaderState = () => {
   };
   
   // ===================== SCROLL HANDLER =====================
+  // Dep-free: setState calls with unchanged values bail out of re-rendering,
+  // so the header only commits when isScrolled/isVisible actually flip.
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY;
+    const lastScrollY = lastScrollYRef.current;
     const scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
-    
+
     // Set scrolled state for styling
     setIsScrolled(currentScrollY > 10);
-    
+
     // Header visibility logic with improved UX
     if (currentScrollY < 10) {
       // Always show at top
@@ -84,9 +119,9 @@ export const useHeaderState = () => {
       // Show when scrolling up (with threshold)
       setIsVisible(true);
     }
-    
-    setLastScrollY(currentScrollY);
-  }, [lastScrollY]);
+
+    lastScrollYRef.current = currentScrollY;
+  }, []);
   
   // ===================== LOGOUT HANDLER =====================
   const handleLogout = useCallback(() => {
@@ -204,33 +239,6 @@ export const useHeaderState = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [mobileMenuOpen]);
-
-  // ===================== ANIMATION VARIANTS =====================
-  const containerVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut",
-        when: "beforeChildren",
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: -10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { 
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    }
-  };
 
   // ===================== RETURN HEADER STATE OBJECT =====================
   return {

@@ -17,12 +17,17 @@
 }
 
 html {
+  /* clip guards horizontal overflow WITHOUT creating a scroll container
+     (hidden would make the element scrollable and steal viewport scroll) */
   overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   min-height: 100%;
   margin: 0;
   padding: 0;
-  scroll-behavior: smooth; /* Smooth scrolling for better UX */
+  /* scroll-behavior: smooth removed — it animated EVERY programmatic scroll
+     (anchor jumps, focus scrolls) and added to the gummy-scroll feel.
+     Opt in per component where intended. */
   color-scheme: dark light; /* Tell Dark Reader this app handles its own theme */
 }
 
@@ -35,6 +40,7 @@ body {
   background-color: var(--bg-primary, var(--dark-bg, #002060));
   color: var(--text-primary, white);
   overflow-x: hidden;
+  overflow-x: clip; /* see html note — never make body a scroll container */
   width: 100%;
   max-width: 100%;
   min-height: 100%;
