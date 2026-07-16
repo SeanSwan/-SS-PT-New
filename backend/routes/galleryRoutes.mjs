@@ -1287,7 +1287,7 @@ router.post('/vip-login', vipSignupLimiter, requireGalleryAccess, async (req, re
       await visitor.update({ userId: existingUser.id });
     }
 
-    logger.info(`[Gallery VIP] Existing user logged in: ${email} (id=${existingUser.id})`);
+    logger.info(`[Gallery VIP] Existing user logged in (id=${existingUser.id})`);
 
     return res.json({
       success: true,
@@ -1354,7 +1354,7 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
         await visitor.update({ userId: existingUser.id });
       }
 
-      logger.info(`[Gallery VIP] Existing user logged in: ${email} (id=${existingUser.id})`);
+      logger.info(`[Gallery VIP] Existing user logged in (id=${existingUser.id})`);
 
       return res.json({
         success: true,
@@ -1405,7 +1405,7 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
       await visitor.update({ userId: newUser.id });
     }
 
-    logger.info(`[Gallery VIP] New user created: ${email} (id=${newUser.id}, username=${username})`);
+    logger.info(`[Gallery VIP] New user created (id=${newUser.id}, username=${username})`);
 
     return res.json({
       success: true,

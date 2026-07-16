@@ -1106,11 +1106,14 @@ const gamificationController = {
       const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 10, 100);
       const offset = (normalizedPage - 1) * normalizedLimit;
       
-      const whereClause = {};
+      // Respect the privacy opt-out — a user who set leaderboardOptIn=false
+      // must not appear on the public leaderboard (defaults true, so existing
+      // users stay visible).
+      const whereClause = { leaderboardOptIn: true };
       if (tier && VALID_GAMIFICATION_TIERS.has(tier)) {
         whereClause.tier = tier;
       }
-      
+
       const leaderboard = await User.findAll({
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
