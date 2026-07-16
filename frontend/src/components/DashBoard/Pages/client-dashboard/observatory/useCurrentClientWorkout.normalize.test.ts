@@ -23,6 +23,12 @@ describe('normalizeCurrentClientWorkout', () => {
         dayNumber: '2',
         exerciseCount: 4,
         firstExerciseName: 'Split Squat',
+        exercises: [
+          { exerciseName: 'Split Squat' },
+          { exerciseName: 'Single-Arm Row' },
+        ],
+        scheduledDate: '2026-07-15',
+        prescribedRevision: 3,
         ctaLabel: 'Log Assignment',
       },
       trainingPlanCatalog: {
@@ -48,6 +54,9 @@ describe('normalizeCurrentClientWorkout', () => {
       dayNumber: 2,
       exerciseCount: 4,
       firstExercise: 'Split Squat',
+      exerciseNames: ['Split Squat', 'Single-Arm Row'],
+      scheduledDate: '2026-07-15',
+      prescribedRevision: 3,
       primaryPlanLabel: '6 Month',
     });
   });
@@ -96,6 +105,12 @@ describe('normalizeTrainingPlanVault', () => {
               id: 'plan-6m',
               title: 'Six Month Foundation',
               status: 'active',
+              contentRevision: 3,
+              pdfDerivative: {
+                enabled: true,
+                state: 'ready',
+                latestGenerated: { sourceRevision: 3, state: 'ready' },
+              },
             },
           },
         ],
@@ -116,6 +131,12 @@ describe('normalizeTrainingPlanVault', () => {
       isFilled: true,
       isPrimary: true,
       planTitle: 'Six Month Foundation',
+      contentRevision: 3,
+      pdfDerivative: {
+        enabled: true,
+        state: 'ready',
+        latestGenerated: { sourceRevision: 3, state: 'ready' },
+      },
     });
     expect(vault?.slots.find((slot) => slot.horizonKey === 'one_day')).toMatchObject({
       label: '1 Day',

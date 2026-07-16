@@ -255,7 +255,7 @@ const DEFAULT_SECURITY_SETTINGS = {
   },
   cors: {
     origins: ['https://sswanstudios.com', 'https://www.sswanstudios.com'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Timezone'],
     credentials: true
   }
 };

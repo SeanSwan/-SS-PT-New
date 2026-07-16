@@ -1,116 +1,136 @@
 /**
- * PDF auto-attach pin — blueprint S6 verification (feature shipped
- * 2026-07-14 @ 41d07423d..de31a5b91; this test PINS it, it does not rebuild).
- * POST /api/workout-plans with planData must come back with
- * plan.metadata.planPdf attached (route → refreshWorkoutPlanPdfAttachment →
- * plan.update). PDF build + storage leaves are mocked; the route and the
- * attachment service run REAL.
+ * ============================================================================
+ * FILE: workoutPlanPdfAutoAttach.test.mjs
+ * PURPOSE: Prove canonical create commits one derivative request, never a PDF.
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
+ * AI VILLAGE VALIDATED: 2026-07-15
+ * ============================================================================
  */
+
 import express from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCreate, mockStorePdf } = vi.hoisted(() => ({
-  mockCreate: vi.fn(),
-  mockStorePdf: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  create: vi.fn(),
+  query: vi.fn(),
+  transaction: vi.fn(),
+  storePdf: vi.fn(),
 }));
+const transaction = { LOCK: { UPDATE: 'UPDATE' } };
 
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = { id: 7, role: 'admin' }; next(); },
   trainerOrAdminOnly: (_req, _res, next) => next(),
 }));
-vi.mock('../../database.mjs', () => ({ default: { query: vi.fn(), QueryTypes: {} } }));
+vi.mock('../../database.mjs', () => ({
+  default: {
+    query: (...args) => mocks.query(...args),
+    transaction: (...args) => mocks.transaction(...args),
+  },
+}));
 vi.mock('../../models/index.mjs', () => ({
   getModel: vi.fn((name) => (name === 'WorkoutPlan'
-    ? { create: mockCreate, findOne: vi.fn() }
+    ? { create: mocks.create, findOne: vi.fn() }
     : { findOne: vi.fn() })),
+  getWorkoutPlan: vi.fn(() => ({ create: mocks.create, findOne: vi.fn() })),
 }));
-// Read-model/service imports unrelated to the create path stay inert.
 vi.mock('../../services/workoutPlanShapeService.mjs', () => ({ extractCurrentSession: vi.fn() }));
 vi.mock('../../services/clientTrainingReadModelService.mjs', () => ({ buildClientTrainingOverview: vi.fn() }));
 vi.mock('../../services/clientTrainingAssignmentCompletionService.mjs', () => ({ readAssignmentCompletionContext: vi.fn() }));
 vi.mock('../../services/clientTrainingPlanProgressService.mjs', () => ({ advancePlanDataCursor: vi.fn() }));
-// PDF leaves: build + brand + storage are mocked; the attachment service runs REAL.
-vi.mock('../../services/workoutPlanServerPdfService.mjs', () => ({
-  buildWorkoutPlanPdfFile: vi.fn(async () => ({ buffer: Buffer.from('%PDF-fake'), fileName: 'plan.pdf', mimetype: 'application/pdf' })),
-}));
-vi.mock('../../services/workoutPlanExerciseGuideService.mjs', () => ({
-  resolveWorkoutPlanPdfBrandForClient: vi.fn(async () => 'swanstudios'),
-  buildWorkoutPlanExerciseGuideLines: vi.fn(async () => []),
-}));
 vi.mock('../../services/workoutPlanPdfStorageService.mjs', async (importOriginal) => ({
   ...(await importOriginal()),
-  storeWorkoutPlanPdf: mockStorePdf,
+  storeWorkoutPlanPdf: mocks.storePdf,
 }));
 
 const workoutPlanRoutes = (await import('../../routes/workoutPlanRoutes.mjs')).default;
-
-function makeApp() {
-  const app = express();
-  app.use(express.json());
-  app.use('/api/workout-plans', workoutPlanRoutes);
-  return app;
-}
+const app = express();
+app.use(express.json());
+app.use('/api/workout-plans', workoutPlanRoutes);
 
 const PLAN_DATA = {
-  days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Leg Press', sets: 3, reps: 12 }] }],
+  weeks: [{ days: [{ exercises: [{ exerciseName: 'Leg Press', sets: 3, reps: 12 }] }] }],
 };
 
-describe('POST /api/workout-plans PDF auto-attach pin (blueprint S6)', () => {
+const planRecord = (id) => ({
+  id,
+  userId: 84,
+  trainerId: 7,
+  title: 'Leg Day Plan',
+  durationWeeks: 4,
+  nasmPhase: 2,
+  status: 'draft',
+  planData: PLAN_DATA,
+  metadata: {},
+});
+
+describe('POST /api/workout-plans PDF derivative request', () => {
   beforeEach(() => {
-    mockCreate.mockReset();
-    mockStorePdf.mockReset();
+    vi.clearAllMocks();
+    mocks.transaction.mockImplementation(async (callback) => callback(transaction));
+    mocks.create.mockImplementation(async (values) => ({ ...planRecord('plan-501'), ...values }));
+    mocks.query.mockImplementation(async (sql) => {
+      if (sql.includes('SELECT "clientSource"')) {
+        return [[{ clientSource: 'swanstudios' }]];
+      }
+      if (sql.includes('INSERT INTO workout_plan_pdf_derivatives')) {
+        return [[{
+          id: 'job-501',
+          state: 'pending',
+          source_type: 'generated',
+          source_revision: 1,
+          source_hash: 'a'.repeat(64),
+          render_hash: 'b'.repeat(64),
+          renderer_version: 'swan-plan-pdf-v1',
+          needs_review: false,
+        }]];
+      }
+      return [[], {}];
+    });
   });
 
-  it('returns the created plan with metadata.planPdf attached', async () => {
-    const planRecord = {
-      id: 501,
-      userId: 84,
-      trainerId: 7,
-      title: 'Leg Day Plan',
-      durationWeeks: 4,
-      nasmPhase: 2,
-      planData: PLAN_DATA,
-      metadata: {},
-      update: vi.fn(async function update(fields) { Object.assign(this, fields); return this; }),
-    };
-    mockCreate.mockResolvedValue(planRecord);
-    mockStorePdf.mockResolvedValue({
-      url: '/uploads/workout-plans/plan-501.pdf',
-      fileName: 'plan-501.pdf',
-      uploadedAt: '2026-07-14T00:00:00.000Z',
-    });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
-    const response = await request(makeApp())
+  it('queues exactly one server derivative inside the plan transaction', async () => {
+    vi.stubEnv('TRAINING_PLAN_PDF_DERIVATIVES', 'true');
+
+    const response = await request(app)
       .post('/api/workout-plans')
       .send({ userId: 84, title: 'Leg Day Plan', nasmPhase: 2, planData: PLAN_DATA })
       .expect(201);
 
-    expect(response.body.success).toBe(true);
-    expect(response.body.plan.metadata.planPdf).toMatchObject({
-      url: '/uploads/workout-plans/plan-501.pdf',
-      fileName: 'plan-501.pdf',
+    expect(response.body).toMatchObject({
+      success: true,
+      pdfDerivative: {
+        enabled: true,
+        id: 'job-501',
+        state: 'pending',
+        sourceType: 'generated',
+        sourceRevision: 1,
+      },
     });
-    expect(mockStorePdf).toHaveBeenCalledWith(expect.objectContaining({ planId: 501, clientId: 84 }));
-    expect(planRecord.update).toHaveBeenCalledWith(expect.objectContaining({
-      metadata: expect.objectContaining({ planPdf: expect.any(Object) }),
-    }));
+    const outboxCall = mocks.query.mock.calls.find(([sql]) => (
+      sql.includes('INSERT INTO workout_plan_pdf_derivatives')
+    ));
+    expect(outboxCall).toBeTruthy();
+    expect(outboxCall[1].transaction).toBe(transaction);
+    expect(mocks.create.mock.calls[0][1]).toEqual({ transaction });
+    expect(mocks.storePdf).not.toHaveBeenCalled();
   });
 
-  it('stays non-fatal: a PDF storage failure still creates the plan (no planPdf)', async () => {
-    const planRecord = {
-      id: 502, userId: 84, trainerId: 7, title: 'Plan', durationWeeks: 4,
-      planData: PLAN_DATA, metadata: {}, update: vi.fn(),
-    };
-    mockCreate.mockResolvedValue(planRecord);
-    mockStorePdf.mockRejectedValue(new Error('R2 down'));
+  it('returns explicit legacy mode for the one-upload browser rollback path', async () => {
+    vi.stubEnv('TRAINING_PLAN_PDF_DERIVATIVES', 'false');
 
-    const response = await request(makeApp())
+    const response = await request(app)
       .post('/api/workout-plans')
-      .send({ userId: 84, title: 'Plan', planData: PLAN_DATA })
+      .send({ userId: 84, title: 'Leg Day Plan', planData: PLAN_DATA })
       .expect(201);
 
-    expect(response.body.success).toBe(true);
-    expect(response.body.plan.metadata?.planPdf).toBeUndefined();
+    expect(response.body.pdfDerivative).toEqual({ enabled: false, state: 'legacy' });
+    expect(mocks.query).not.toHaveBeenCalled();
+    expect(mocks.storePdf).not.toHaveBeenCalled();
   });
 });

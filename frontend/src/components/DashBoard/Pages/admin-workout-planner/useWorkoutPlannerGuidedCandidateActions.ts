@@ -16,6 +16,7 @@ import type {
 } from './WorkoutPlannerGuidedCandidateTypes';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 import { workoutGenerationErrorMessage } from './workoutPlannerGenerationActions.helpers';
+import type { PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
 import {
   buildWorkoutCandidateRequest,
   mapGuidedCandidateToPlanExercise,
@@ -60,7 +61,10 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
 
   const clearGuidedCandidates = useCallback(() => setGuidedCandidates(null), []);
 
-  const handleGuidedCandidateGenerate = useCallback(async (selectedClientId: number | null) => {
+  const handleGuidedCandidateGenerate = useCallback(async (
+    selectedClientId: number | null,
+    overrides?: PlannerGenerateOverrides,
+  ) => {
     if (!selectedClientId) return;
     setGeneratingCandidates(true);
     setStatusMsg(null);
@@ -68,9 +72,10 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
     try {
       const res = await authAxios.post('/api/workout-builder/candidates', buildWorkoutCandidateRequest({
         selectedClientId,
-        category,
-        goal,
-        phaseNumber,
+        // Spoken overrides win over dropdown state for the immediate call (H4).
+        category: overrides?.category ?? category,
+        goal: overrides?.goal ?? goal,
+        phaseNumber: overrides?.phaseNumber ?? phaseNumber,
         selectedEquipmentProfileId,
         trainingIntensityMode,
         hardcoreMethod,

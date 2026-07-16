@@ -23,6 +23,14 @@ services:
     startCommand: cd backend && npm start
     plan: starter # or standard/pro based on needs
     env:
+      - key: TRAINING_PLAN_PDF_DERIVATIVES
+        value: true
+      - key: TRAINING_PLAN_SCHEDULE_PROJECTIONS
+        value: true
+      - key: VITE_CLIENT_TODAY_TRAINING_MODULE
+        value: true
+      - key: VITE_TRAINING_PLAN_SCHEDULE_PROJECTIONS
+        value: true
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -83,6 +91,10 @@ services:
         value: https://sswanstudios.com
       - key: VITE_SOCKET_URL
         value: https://ss-pt-new.onrender.com
+      - key: VITE_CLIENT_TODAY_TRAINING_MODULE
+        value: true
+      - key: VITE_TRAINING_PLAN_SCHEDULE_PROJECTIONS
+        value: true
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         sync: false  # Set manually in Render dashboard; exposed to Stripe.js at build time
       - key: NODE_ENV

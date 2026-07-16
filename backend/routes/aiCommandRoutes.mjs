@@ -17,13 +17,16 @@ import express from 'express';
 import logger from '../utils/logger.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiCommandGuards.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import sequelize from '../database.mjs';
+import { getModel } from '../models/index.mjs';
 import {
   executeCommandPipeline,
   executeConfirmedOperation,
   checkForConfirmation,
 } from '../services/ai/commandExecutor.mjs';
+import { buildCommandContextEnvelope } from '../services/ai/commandContextEnvelope.mjs';
 import { cancelOperation, getPendingCount } from '../services/ai/destructiveOperations.mjs';
 import {
   getCommandsForRole,
@@ -133,7 +136,9 @@ initializeRegistry();
 
 router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
-    const { message, selectedClientId, previousContext, routeContext } = req.body;
+    const {
+      message, selectedClientId, previousContext, routeContext, entityId, entityVersion, correlationId,
+    } = req.body;
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
@@ -174,12 +179,30 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
       lastName: req.user.lastName,
     };
 
+    const normalizedRouteContext = normalizeRouteContext(routeContext);
+    const contextEnvelope = await buildCommandContextEnvelope({
+      actor: user,
+      request: {
+        surfaceHint: normalizedRouteContext?.surface ?? null,
+        selectedClientId: normalizedSelectedClientId,
+        entityId,
+        entityVersion,
+        correlationId,
+      },
+      loadPlan: async (id) => {
+        const WorkoutPlan = getModel('WorkoutPlan');
+        return WorkoutPlan.findByPk(id);
+      },
+      authorizeClient: assertAssignmentOrAdmin,
+    });
+
     // Get Sequelize instance from app
     const ctx = await executeCommandPipeline(message, user, {
       selectedClientName: null,
       selectedClientId: normalizedSelectedClientId,
       previousContext: normalizePreviousContext(previousContext),
-      routeContext: normalizeRouteContext(routeContext),
+      routeContext: normalizedRouteContext,
+      contextEnvelope,
       sequelize,
     });
 
@@ -188,9 +211,11 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
         success: false,
         type: 'error',
         error: ctx.error,
+        code: ctx.result?.code || 'EXECUTION_FAILED',
         stage: ctx.stage,
         suggestions: ctx.result?.suggestions || null,
         intent: ctx.intent,
+        fallbackToChat: false,
         timing: ctx.metadata.timing,
       });
     }

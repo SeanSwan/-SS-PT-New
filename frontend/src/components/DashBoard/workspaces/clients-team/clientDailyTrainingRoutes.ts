@@ -115,3 +115,19 @@ export const buildClientWorkoutPlannerRoute = (
 
   return `${getClientHubAudienceConfig(audience).workoutPlannerBase}?${params.toString()}`;
 };
+const normalizeWorkoutPlanRouteId = (planId: number | string): string | null => {
+  const normalized = String(planId).trim();
+  return /^[A-Za-z0-9-]{1,64}$/.test(normalized) ? normalized : null;
+};
+
+export const buildClientWorkoutPlanEditRoute = (
+  clientId: number | string,
+  planId: number | string,
+  audience: ClientHubAudience = 'admin',
+) => {
+  const plannerRoute = buildClientWorkoutPlannerRoute(clientId, audience);
+  const normalizedPlanId = normalizeWorkoutPlanRouteId(planId);
+  if (!plannerRoute || !normalizedPlanId) return null;
+  const params = new URLSearchParams({ planId: normalizedPlanId, mode: 'edit' });
+  return `${plannerRoute}&${params.toString()}`;
+};

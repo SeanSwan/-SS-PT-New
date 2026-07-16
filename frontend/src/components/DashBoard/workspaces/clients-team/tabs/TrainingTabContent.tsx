@@ -265,6 +265,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
               aria-label={TRAINING_SECTION_CHIPS[activeSection].label}
             >
               <TrainingTabSectionContent
+                audience={audience}
                 activeSection={activeSection}
                 clientName={clientName}
                 lastSavedWorkout={lastSavedWorkout}

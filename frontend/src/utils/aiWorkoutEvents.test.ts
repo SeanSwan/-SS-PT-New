@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AI_ADD_EXERCISE, AI_SUBMIT_WORKOUT, dispatchAIWorkoutEvent } from './aiWorkoutEvents';
+import {
+  AI_ADD_EXERCISE, AI_PLANNER_REARRANGE, AI_PLANNER_UNDO,
+  AI_SUBMIT_WORKOUT, dispatchAIWorkoutEvent,
+} from './aiWorkoutEvents';
 
 describe('AI workout event dispatch acknowledgements', () => {
   it('does not report a submit event as handled when no WorkoutLogger listener acknowledges it', () => {
@@ -54,4 +57,20 @@ describe('AI workout event dispatch acknowledgements', () => {
       window.removeEventListener(AI_ADD_EXERCISE, listener);
     }
   });
+
+  it.each([AI_PLANNER_REARRANGE, AI_PLANNER_UNDO])(
+    'registers %s in the generic frontend dispatcher',
+    (eventName) => {
+      const listener = vi.fn((event: Event) => {
+        const detail = (event as CustomEvent<{ acknowledgeAIWorkoutEvent?: () => void }>).detail;
+        detail.acknowledgeAIWorkoutEvent?.();
+      });
+      window.addEventListener(eventName, listener);
+      try {
+        expect(dispatchAIWorkoutEvent(eventName, {})).toBe(true);
+      } finally {
+        window.removeEventListener(eventName, listener);
+      }
+    },
+  );
 });

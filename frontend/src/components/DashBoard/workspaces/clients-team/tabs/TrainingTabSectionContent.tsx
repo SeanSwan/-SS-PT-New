@@ -12,6 +12,7 @@
  */
 
 import React, { Suspense } from 'react';
+import type { ClientHubAudience } from '../clientHubAudience';
 import ClientTrainingSaveReceipt, {
   type ClientTrainingSavedWorkout,
 } from './ClientTrainingSaveReceipt';
@@ -50,6 +51,7 @@ export type TrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'pla
 
 interface TrainingSectionContentProps {
   activeSection: TrainingSection;
+  audience?: ClientHubAudience;
   clientName?: string;
   lastSavedWorkout: ClientTrainingSavedWorkout | null;
   loadTodayPlanSignal: number;
@@ -86,8 +88,9 @@ const sectionRenderers: Record<TrainingSection, (props: TrainingSectionContentPr
       onPlanCreated={onArchitectPlanCreated}
     />
   ),
-  plans: ({ clientName, onLogTodayFromPlan, planVaultRefreshSignal, safeClientId }) => (
+  plans: ({ audience, clientName, onLogTodayFromPlan, planVaultRefreshSignal, safeClientId }) => (
     <ClientWorkoutPlansPanel
+      audience={audience}
       clientId={safeClientId}
       clientName={clientName}
       onLogToday={onLogTodayFromPlan}

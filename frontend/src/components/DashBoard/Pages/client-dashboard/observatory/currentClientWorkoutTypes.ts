@@ -51,6 +51,9 @@ export interface TodayAssignmentPreview {
   dayLabel?: string;
   exerciseCount?: number;
   firstExerciseName?: string;
+  exercises?: PlannedExercisePreview[];
+  scheduledDate?: string;
+  prescribedRevision?: number | string;
   ctaLabel?: string;
 }
 
@@ -87,6 +90,9 @@ export interface CurrentClientWorkout {
   dayLabel?: string;
   exerciseCount: number;
   firstExercise?: string;
+  exerciseNames: string[];
+  scheduledDate?: string;
+  prescribedRevision?: number;
   primaryPlanLabel?: string;
   homeworkSummary?: ClientHomeworkSummary | null;
 }

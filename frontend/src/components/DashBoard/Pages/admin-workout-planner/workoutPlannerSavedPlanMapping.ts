@@ -114,6 +114,7 @@ export const mapSavedPlan = (plan: Record<string, unknown>): SavedPlanSummary =>
     name: stringFrom('Untitled Plan', plan.title, plan.name),
     status: stringFrom('draft', plan.status),
     createdAt: stringFrom('', plan.createdAt),
+    contentRevision: Number.isSafeInteger(Number(plan.contentRevision)) && Number(plan.contentRevision) > 0 ? Number(plan.contentRevision) : undefined,
     goal: stringFrom('', recordValue(planData, 'goal'), plan.goal),
     horizonKey,
     horizonLabel: HORIZON_LABELS[horizonKey] || '6 Month',

@@ -7,13 +7,16 @@
  * app endpoint; storageKey preserves the private local/R2 object path.
  */
 
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.mjs';
 import { buildProtectedWorkoutPlanPdfUrl } from './workoutPlanPdfContentService.mjs';
-import { slugifyWorkoutPlanPdfSegment } from './workoutPlanPdfKeyService.mjs';
+import {
+  normalizeWorkoutPlanPdfStorageKey,
+  slugifyWorkoutPlanPdfSegment,
+} from './workoutPlanPdfKeyService.mjs';
 
 export const WORKOUT_PLAN_PDF_MAX_BYTES = 20 * 1024 * 1024;
 
@@ -173,4 +176,35 @@ export async function storeWorkoutPlanPdf({
     updatedBy: uploadedBy,
     updatedAt,
   };
+}
+export async function deleteStoredWorkoutPlanPdf({
+  storage,
+  storageKey,
+  uploadsRoot,
+} = {}) {
+  const normalizedKey = normalizeWorkoutPlanPdfStorageKey(storageKey);
+  if (!normalizedKey) return false;
+
+  if (storage === 'r2') {
+    await ensureR2Imports();
+    if (!r2Configured || typeof getR2Client !== 'function') return false;
+    await getR2Client().send(new DeleteObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: normalizedKey,
+    }));
+    return true;
+  }
+
+  const root = path.resolve(
+    uploadsRoot || process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT || path.join(process.cwd(), 'uploads'),
+  );
+  const fullPath = path.resolve(root, normalizedKey);
+  if (!fullPath.startsWith(`${root}${path.sep}`)) return false;
+  try {
+    await fs.unlink(fullPath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
 }

@@ -11,7 +11,6 @@
  * Output: { intent, clientRef, params, confidence }
  * If confidence < 0.7, returns 'clarification_needed' intent.
  */
-import { z } from 'zod';
 import logger from '../../utils/logger.mjs';
 import { sendChatMessage } from '../aiChatService.mjs';
 import { scanForPHI } from './phiScanner.mjs';
@@ -24,6 +23,13 @@ import { classifyDeterministicCoachIntakeIntent } from './deterministicCoachInta
 const CONFIDENCE_THRESHOLD = 0.7;
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
 const ROUTE_CONTEXT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const classificationFailure = (code) => ({
+  intent: 'classification_error',
+  clientRef: null,
+  params: { code },
+  confidence: 0,
+});
 
 function buildRouteContextLine(routeContext) {
   if (!routeContext || typeof routeContext !== 'object' || Array.isArray(routeContext)) return null;
@@ -140,13 +146,15 @@ export async function classifyIntent(message, userRole, options = {}) {
     ]);
 
     if (!result.ok) {
-      logger.warn('[IntentClassifier] All providers failed, falling back to chat');
-      return { intent: 'chat', clientRef: null, params: {}, confidence: 1.0 };
+      logger.warn('[IntentClassifier] All providers failed; command classification stopped');
+      return classificationFailure('CLASSIFICATION_FAILED');
     }
 
     // Parse the JSON response
     const responseText = result.content || '';
     const parsed = parseClassificationResponse(responseText);
+
+    if (parsed.intent === 'classification_error') return parsed;
 
     // Apply confidence threshold
     if (parsed.confidence < CONFIDENCE_THRESHOLD && parsed.intent !== 'chat') {
@@ -170,8 +178,8 @@ export async function classifyIntent(message, userRole, options = {}) {
   } catch (err) {
     logger.error('[IntentClassifier] Classification failed', { error: err.message });
 
-    // AI Village consensus: Re-check for PHI before falling back to chat
-    // If PHI is present, block rather than sending raw input to cloud AI
+    // Re-check for PHI so a classifier outage returns privacy-specific guidance
+    // while the command lane stays fail-closed and never opens chatbot mode.
     const phiResult = scanForPHI(message);
     if (phiResult.hasPHI) {
       logger.warn('[IntentClassifier] PHI detected in failed classification, blocking chat fallback');
@@ -183,8 +191,7 @@ export async function classifyIntent(message, userRole, options = {}) {
       };
     }
 
-    // Safe to fall back to conversational chat
-    return { intent: 'chat', clientRef: null, params: {}, confidence: 1.0 };
+    return classificationFailure('CLASSIFICATION_FAILED');
   } finally {
     clearTimeout(classificationTimer);
   }
@@ -198,26 +205,18 @@ export async function classifyIntent(message, userRole, options = {}) {
  * @returns {{ intent: string, clientRef: string|null, params: Object, confidence: number }}
  */
 function parseClassificationResponse(responseText) {
-  const fallback = { intent: 'chat', clientRef: null, params: {}, confidence: 1.0 };
-
-  if (!responseText) return fallback;
+  if (!responseText) return classificationFailure('PARSE_FAIL');
 
   try {
-    // Strip markdown code fences if model wrapped output
-    let cleaned = responseText.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    }
-
+    const cleaned = responseText.trim();
     const parsed = JSON.parse(cleaned);
     const validated = ClassifiedIntentSchema.safeParse(parsed);
 
     if (!validated.success) {
       logger.warn('[IntentClassifier] Zod validation failed on AI response', {
         errors: validated.error.issues,
-        raw: cleaned.slice(0, 200),
       });
-      return fallback;
+      return classificationFailure('PARSE_FAIL');
     }
 
     return {
@@ -227,28 +226,10 @@ function parseClassificationResponse(responseText) {
       confidence: validated.data.confidence,
     };
   } catch (err) {
-    // Fallback: regex extraction for JSON embedded in prose
-    const jsonMatch = responseText.match(/\{[\s\S]*"intent"\s*:[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const extracted = JSON.parse(jsonMatch[0]);
-        const validated = ClassifiedIntentSchema.safeParse(extracted);
-        if (validated.success) {
-          logger.info('[IntentClassifier] Recovered JSON via regex extraction');
-          return {
-            intent: validated.data.intent,
-            clientRef: validated.data.clientRef || null,
-            params: validated.data.params || {},
-            confidence: validated.data.confidence,
-          };
-        }
-      } catch { /* regex extraction also failed, use fallback */ }
-    }
-
     logger.warn('[IntentClassifier] JSON parse failed on AI response', {
       error: err.message,
-      raw: responseText.slice(0, 200),
+      responseLength: responseText.length,
     });
-    return fallback;
+    return classificationFailure('PARSE_FAIL');
   }
 }

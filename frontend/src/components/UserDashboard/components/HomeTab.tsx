@@ -22,6 +22,9 @@ import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import HomeDashboardSearchPanel from './HomeDashboardSearchPanel';
 import DailyHealthLoop from './DailyHealthLoop';
 import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
+import TodayTrainingModule from '../../DashBoard/shared/client-training/TodayTrainingModule';
+import { clientTodayTrainingModuleEnabled } from '../../DashBoard/shared/client-training/todayTrainingFeatureFlag';
+import { useCurrentClientWorkout } from '../../DashBoard/Pages/client-dashboard/observatory/useCurrentClientWorkout';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
 import { DockSkeleton } from './HomeTabActions.styles';
@@ -66,6 +69,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const currentWorkoutState = useCurrentClientWorkout(user?.id);
+  const todayTrainingEnabled = clientTodayTrainingModuleEnabled();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
   const { factions } = useFaction();
@@ -73,7 +78,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const communityFeed = useSocialFeed();
   const { items: feedEnrichmentItems } = useFeedEnrichment({ limit: 8 });
   const notificationSummary = useNotificationSummary();
-  // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
+  // Messaging is elite-gated server-side - free tiers never poll it (402 by design).
   const messageSummary = useMessageSummary({
     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
   });
@@ -114,8 +119,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
     () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
     [streakDays, workoutSessions.data],
   );
-  // O3: Quick Post composer (extracted hook) — "Share my week" arms the
-  // workout-proof attachment with the latest REAL session link.
+  // O3 Quick Post composer can attach the latest real workout-proof session.
   const composer = useHomeComposer({
     createPost: communityFeed.createPost,
     isCreatingPost: communityFeed.isCreatingPost,
@@ -207,12 +211,16 @@ const HomeTab: React.FC<HomeTabProps> = ({
   };
   return (
     <CreatorPage data-testid="creator-observatory-home">
-      <HomeTrainingCommandStrip
-        coachPath={homeTrainingCoachPath}
-        logWorkoutPath={logWorkoutPath}
-        onNavigate={navigate}
-        onProgress={() => onTabChange('progress')}
-      />
+      {todayTrainingEnabled ? (
+        <TodayTrainingModule state={currentWorkoutState} onNavigate={navigate} />
+      ) : (
+        <HomeTrainingCommandStrip
+          coachPath={homeTrainingCoachPath}
+          logWorkoutPath={logWorkoutPath}
+          onNavigate={navigate}
+          onProgress={() => onTabChange('progress')}
+        />
+      )}
 
       <CreatorShell>
         <HomeTabVisionLeftRail

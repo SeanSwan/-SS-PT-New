@@ -7,6 +7,7 @@
  */
 
 import { Op, Sequelize } from 'sequelize';
+import { matchesWorkoutPlanAssignmentIdentity } from './workoutPlanAssignmentIdentityService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
@@ -151,16 +152,16 @@ export const readAssignmentCompletionContext = async (
   };
 };
 
-const completionForAssignment = (assignmentKey, assignmentCompletions = []) => {
-  if (!assignmentKey || !Array.isArray(assignmentCompletions)) return null;
+const completionForAssignment = (assignment, assignmentCompletions = []) => {
+  if (!assignment || !Array.isArray(assignmentCompletions)) return null;
   return assignmentCompletions.find((completion) => (
-    compactString(completion?.assignmentKey || completion?.assignmentId) === assignmentKey
+    matchesWorkoutPlanAssignmentIdentity(completion, assignment)
   )) || null;
 };
 
 export const applyAssignmentCompletion = (assignment, assignmentCompletions) => {
   if (!assignment || typeof assignment !== 'object') return assignment;
-  const completion = completionForAssignment(assignment.assignmentKey, assignmentCompletions);
+  const completion = completionForAssignment(assignment, assignmentCompletions);
   if (!completion) return assignment;
 
   return {

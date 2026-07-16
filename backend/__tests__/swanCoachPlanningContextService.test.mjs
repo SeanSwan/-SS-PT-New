@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
 
 import {
   appendSwanCoachPlanningGuidance,
@@ -104,6 +105,7 @@ describe('swanCoachPlanningContextService', () => {
   });
 
   it('includes read-safe off-day assignment semantics for Swan Coach logging guidance', () => {
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
     const context = formatActiveWorkoutPlanContext([{
       id: 'plan-6m',
       title: 'Six Month Homework Arc',
@@ -131,7 +133,7 @@ describe('swanCoachPlanningContextService', () => {
     expect(context).toContain('Loggable: yes');
     expect(context).toContain('Billing: non-billable');
     expect(context).toContain('Deduct Paid Session: no');
-    expect(context).toContain('Assignment Key: plan-6m:w4:d2:homework');
+    expect(context).toContain('Assignment Key: plan-6m:w4:d2:' + today + ':o1:r1');
   });
 
   it('does not expose plan titles that can contain client PII in active-plan LLM context', () => {

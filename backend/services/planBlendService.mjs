@@ -10,7 +10,9 @@
  * Sources are NEVER mutated; provenance records blendedFrom + the pick map.
  * Activation stays a separate explicit step (nothing auto-activates).
  */
+import sequelize from '../database.mjs';
 import { getWorkoutPlan } from '../models/index.mjs';
+import { createWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
 import {
   sanitizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
@@ -92,26 +94,30 @@ export async function blendPlans({ trainerId, planAId, planBId, picks, title }) 
     picks,
   });
 
-  const blended = await WorkoutPlan.create({
-    userId: planA.userId,
-    trainerId,
-    title:
-      typeof title === 'string' && title.trim().length > 0
-        ? title.trim()
-        : `Blended Plan — ${new Date().toISOString().slice(0, 10)}`,
-    description: 'Composed from two existing plans (blend). Activation is a separate explicit step.',
-    durationWeeks: blendedData.weeks.length,
-    status: 'draft',
-    currentWeek: 1,
-    currentDay: 1,
-    planData: sanitizeWorkoutPlanDataForPersistence(blendedData),
-    createdBy: 'trainer',
-    metadata: sanitizeWorkoutPlanMetadataForPersistence({
-      blendedFrom: [planA.id, planB.id],
-      blendPicks: picks,
-      blendedAt: new Date().toISOString(),
-      blendedBy: trainerId,
-    }),
+  const blended = await createWorkoutPlanRecord({
+    sequelize,
+    WorkoutPlan,
+    values: {
+      userId: planA.userId,
+      trainerId,
+      title:
+        typeof title === 'string' && title.trim().length > 0
+          ? title.trim()
+          : `Blended Plan — ${new Date().toISOString().slice(0, 10)}`,
+      description: 'Composed from two existing plans (blend). Activation is a separate explicit step.',
+      durationWeeks: blendedData.weeks.length,
+      status: 'draft',
+      currentWeek: 1,
+      currentDay: 1,
+      planData: sanitizeWorkoutPlanDataForPersistence(blendedData),
+      createdBy: 'trainer',
+      metadata: sanitizeWorkoutPlanMetadataForPersistence({
+        blendedFrom: [planA.id, planB.id],
+        blendPicks: picks,
+        blendedAt: new Date().toISOString(),
+        blendedBy: trainerId,
+      }),
+    },
   });
 
   logger.info('[PlanBlend] created blended plan #%d from #%d + #%d (client %d)', blended.id, planA.id, planB.id, planA.userId);

@@ -59,6 +59,7 @@ import automationRoutes from '../routes/automationRoutes.mjs';
 // ===================== FITNESS & WELLNESS =====================
 import workoutRoutes from '../routes/workoutRoutes.mjs';
 import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
+import trainingPlanProjectionRoutes from '../routes/trainingPlanProjectionRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import bodyMeasurementRoutes from '../routes/bodyMeasurementRoutes.mjs';
 import wearableDataRoutes from '../routes/wearableDataRoutes.mjs';
@@ -354,6 +355,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/workout/plans', workoutPlanRoutes); // Legacy mount point for backward compat
   app.use('/api/workout', workoutRoutes);
   app.use('/api/workout/sessions', workoutSessionRoutes);
+  app.use('/api/training-plan-projections', trainingPlanProjectionRoutes);
   
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================
   // Consolidated from enhancedScheduleRoutes + scheduleRoutes using unified session service

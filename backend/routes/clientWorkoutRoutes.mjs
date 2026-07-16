@@ -18,7 +18,12 @@ import { buildClientTrainingOverview } from '../services/clientTrainingReadModel
 import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingAssignmentPickerService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { toClientWorkoutHistoryRow as mapClientWorkoutHistoryRow } from '../services/clientWorkoutHistoryRowService.mjs';
-import { selectCurrentWorkoutPlan } from '../services/workoutPlanRouteHelpers.mjs';
+import {
+  normalizeWorkoutPlanId,
+  selectCurrentWorkoutPlan,
+} from '../services/workoutPlanRouteHelpers.mjs';
+import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
+import { getWorkoutPlanPdfDerivativeStatusesForPlans } from '../services/workoutPlanPdfDerivativeService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -47,8 +52,6 @@ const parseBoundedPositiveInteger = (value, { defaultValue, maxValue }) => {
   return { ok: true, value: Math.min(parsed, maxValue) };
 };
 
-const currentDateOnly = () => new Date().toISOString().slice(0, 10);
-
 // Workout-history row mapping lives in clientWorkoutHistoryRowService.mjs.
 
 /**
@@ -62,9 +65,16 @@ router.get('/:userId/current', protect, async (req, res) => {
       return res.status(access.status).json({ success: false, message: access.message });
     }
 
-    const { clientId, models } = access;
+    const { clientId, client, models } = access;
     const { WorkoutPlan, DailyWorkoutForm } = models;
-    const today = currentDateOnly();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client?.timeZone,
+      storedTimeZoneConfigured: client?.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: clientId,
+    });
+    const today = trainingDateContext.localDate;
 
     let plan = null;
     let clientPlans = [];
@@ -83,6 +93,30 @@ router.get('/:userId/current', protect, async (req, res) => {
       }
     }
     plan = selectCurrentWorkoutPlan(plan, clientPlans);
+    const overviewPlanRows = clientPlans.length > 0 ? clientPlans : plan ? [plan] : [];
+    const planIds = overviewPlanRows
+      .map((row) => String((row.toJSON?.() ?? row)?.id || ''))
+      .filter(Boolean);
+    let pdfStatuses;
+    try {
+      pdfStatuses = await getWorkoutPlanPdfDerivativeStatusesForPlans({
+        sequelize: WorkoutPlan?.sequelize,
+        planIds,
+      });
+    } catch (error) {
+      logger.warn('Plan PDF derivative status lookup failed:', error.message);
+      pdfStatuses = Object.fromEntries(planIds.map((planId) => [
+        planId,
+        { enabled: true, state: 'unavailable' },
+      ]));
+    }
+    const plansWithPdfStatus = overviewPlanRows.map((row) => {
+      const raw = row.toJSON?.() ?? row;
+      return { ...raw, pdfDerivative: pdfStatuses[String(raw.id)] || null };
+    });
+    const activePlanWithPdfStatus = plan
+      ? plansWithPdfStatus.find((row) => String(row.id) === String(plan.id)) || (plan.toJSON?.() ?? plan)
+      : null;
     const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
       clientId,
       date: today,
@@ -99,12 +133,12 @@ router.get('/:userId/current', protect, async (req, res) => {
     if (!plan) {
       const overview = buildClientTrainingOverview({
         activePlan: null,
-        plans: clientPlans,
+        plans: plansWithPdfStatus,
         today,
         recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
       });
       const assignmentPicker = buildClientTrainingAssignmentPicker({
-        plans: clientPlans,
+        plans: plansWithPdfStatus,
         today,
         assignmentCompletions: completionContext.assignmentCompletions,
       });
@@ -116,6 +150,7 @@ router.get('/:userId/current', protect, async (req, res) => {
         trainingPlanCatalog: overview.trainingPlanCatalog,
         homeworkSummary: overview.homeworkSummary,
         assignmentPicker,
+        trainingDateContext,
         message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
       });
     }
@@ -123,15 +158,15 @@ router.get('/:userId/current', protect, async (req, res) => {
     const formattedPlan = toCurrentWorkoutPlanResponse(plan);
     const currentSession = formattedPlan.currentSession || null;
     const overview = buildClientTrainingOverview({
-      activePlan: plan,
-      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      activePlan: activePlanWithPdfStatus,
+      plans: plansWithPdfStatus,
       currentSession,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,
       recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
     });
     const assignmentPicker = buildClientTrainingAssignmentPicker({
-      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      plans: plansWithPdfStatus,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,
     });
@@ -141,6 +176,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
       assignmentPicker,
+      trainingDateContext,
     };
 
     return res.status(200).json({
@@ -152,6 +188,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
       assignmentPicker,
+      trainingDateContext,
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);
@@ -184,9 +221,8 @@ router.get('/:userId/current', protect, async (req, res) => {
  */
 router.get('/:userId/plans/:planId', protect, async (req, res) => {
   try {
-    const planId = String(req.params.planId ?? '').trim();
-    const numericPlanId = Number(planId);
-    if (!/^\d+$/.test(planId) || !Number.isSafeInteger(numericPlanId) || numericPlanId <= 0) {
+    const planId = normalizeWorkoutPlanId(req.params.planId);
+    if (!planId) {
       return res.status(400).json({ success: false, message: 'Invalid plan id.' });
     }
 
@@ -204,7 +240,7 @@ router.get('/:userId/plans/:planId', protect, async (req, res) => {
     // Ownership is enforced in the QUERY (userId is part of the where clause),
     // so a foreign plan can never be loaded in the first place.
     const plan = await WorkoutPlan.findOne({
-      where: { id: numericPlanId, userId: clientId },
+      where: { id: planId, userId: clientId },
     });
 
     if (!plan) {

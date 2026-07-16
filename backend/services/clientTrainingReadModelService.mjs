@@ -14,6 +14,8 @@ import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionS
 import { buildCompletedAssignmentFromLoggedCompletion } from './clientTrainingCompletedAssignmentReadService.mjs';
 import { buildHomeworkSummary } from './clientTrainingHomeworkSummaryService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
+import { buildWorkoutPlanAssignmentIdentity } from './workoutPlanAssignmentIdentityService.mjs';
+import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const toPositiveInteger = (value, fallback = null) => {
@@ -22,7 +24,7 @@ const toPositiveInteger = (value, fallback = null) => {
 };
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const firstCompactString = (...values) => values.map(compactString).find(Boolean) || null;
-const todayDateOnly = () => new Date().toISOString().slice(0, 10);
+const todayDateOnly = () => formatDateOnlyInTimeZone(new Date(), DEFAULT_CLIENT_TIME_ZONE);
 const isDateOnlyString = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 const parseDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value);
@@ -66,24 +68,13 @@ const planUpdatedTime = (plan) => {
   const value = [raw.updatedAt, raw.createdAt, raw.startDate].find(Boolean);
   return value ? new Date(value).getTime() || 0 : 0;
 };
-const hasPrimaryMetadata = (plan) => {
-  const metadata = toPlainObject(plan.metadata) || {};
-  return metadata.isPrimaryPlan === true || metadata.primary === true;
-};
 const isActivePlan = (plan) => firstCompactString(toPlainObject(plan)?.status)?.toLowerCase() === 'active';
-const isActivePrimaryPlan = (plan) => isActivePlan(plan) && hasPrimaryMetadata(plan);
 const samePlanId = (plan, planId) => Boolean(planId) && String(plan.id) === String(planId);
-const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
-  const matchers = [
-    (plan) => samePlanId(plan, explicitPrimaryPlanId),
-    isActivePrimaryPlan,
-    isActivePlan,
-    hasPrimaryMetadata,
-    (plan) => inferPlanHorizonKey(plan) === DEFAULT_PLAN_HORIZON_KEY,
-    () => true,
-  ];
-  return matchers.map((matches) => planRows.find(matches)).find(Boolean) || null;
-};
+const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => (
+  planRows.find((plan) => isActivePlan(plan) && samePlanId(plan, explicitPrimaryPlanId))
+  || planRows.find(isActivePlan)
+  || null
+);
 const planSummary = (plan, horizonKey, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = toPlainObject(raw.metadata) || {};
@@ -101,7 +92,10 @@ const planSummary = (plan, horizonKey, isPrimary) => {
     nasmPhase: toPositiveInteger(raw.nasmPhase, null),
     createdBy: raw.createdBy ?? null,
     isPrimary,
+    contentRevision: toPositiveInteger(raw.contentRevision, 1),
+    contentHash: firstCompactString(raw.contentHash),
     pdfFile: extractWorkoutPlanPdfAttachment(metadata),
+    pdfDerivative: raw.pdfDerivative ?? null,
     assignmentDefault: assignmentSemantics.defaultAssignmentType,
     billingIntent: assignmentSemantics.billingIntent,
     defaultShouldDeductSession: assignmentSemantics.shouldDeductSession,
@@ -220,9 +214,6 @@ const isAssignmentLoggable = ({ exerciseCount, status, type }) => {
   return exerciseCount > 0 && status !== 'completed' && type !== 'rest';
 };
 
-const assignmentKeyFor = ({ planId, weekNumber, dayNumber, type }) => (
-  planId ? `${planId}:w${weekNumber || 1}:d${dayNumber || 1}:${type}` : null
-);
 
 const buildTodayAssignment = ({
   plan = null,
@@ -242,11 +233,15 @@ const buildTodayAssignment = ({
   const sessionType = type === 'trainer_session' ? 'trainer-led' : 'solo';
   const weekNumber = toPositiveInteger(currentSession?.weekNumber, rawPlan.currentWeek || null);
   const dayNumber = toPositiveInteger(currentSession?.dayNumber, rawPlan.currentDay || null);
-  const assignmentKey = assignmentKeyFor({ planId: rawPlan.id, weekNumber, dayNumber, type });
+  const assignmentIdentity = buildWorkoutPlanAssignmentIdentity({
+    planId: rawPlan.id, weekNumber, dayNumber, assignmentType: type,
+    scheduledDate: normalizeDateOnly(today),
+    occurrenceIndex: toPositiveInteger(currentSession?.occurrenceIndex, 1),
+    prescribedRevision: toPositiveInteger(rawPlan.contentRevision, 1),
+  });
 
   const assignment = {
-    assignmentId: assignmentKey,
-    assignmentKey,
+    ...assignmentIdentity,
     assignmentType: type,
     sessionType,
     status,
@@ -255,7 +250,6 @@ const buildTodayAssignment = ({
     isBillable: type === 'trainer_session',
     shouldDeductSession: type === 'trainer_session' && session.shouldDeductSession === true,
     title: assignmentTitle(rawPlan, currentSession, type),
-    scheduledDate: normalizeDateOnly(today),
     weekNumber,
     dayNumber,
     dayLabel: currentSession?.dayLabel || session.dayLabel || session.name || null,

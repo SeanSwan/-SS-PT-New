@@ -97,7 +97,7 @@ describe('clientTrainingReadModelService', () => {
     });
   });
 
-  it('uses the six-month plan as the default primary arc when no plan is explicitly active', () => {
+  it('leaves primary null when catalog plans exist but none is active', () => {
     const catalog = buildClientTrainingOverview({
       activePlan: null,
       plans: [
@@ -107,12 +107,12 @@ describe('clientTrainingReadModelService', () => {
       ],
     }).trainingPlanCatalog;
 
-    expect(catalog.primaryPlanId).toBe('plan-6m-draft');
-    expect(catalog.primaryHorizonKey).toBe('six_month');
+    expect(catalog.primaryPlanId).toBeNull();
+    expect(catalog.primaryHorizonKey).toBeNull();
     expect(catalog.filledHorizonKeys).toEqual(['one_week', 'six_month', 'twelve_month']);
     expect(catalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
       isFilled: true,
-      isPrimary: true,
+      isPrimary: false,
       plan: { id: 'plan-6m-draft', title: 'Default Six Month Arc' },
     });
   });
@@ -182,6 +182,31 @@ describe('clientTrainingReadModelService', () => {
           updatedAt: '2026-06-06T00:00:00.000Z',
         },
       },
+    });
+  });
+
+  it('exposes the safe batched PDF derivative summary on staff catalog plans', () => {
+    const pdfDerivative = {
+      enabled: true,
+      state: 'failed',
+      latestGenerated: {
+        state: 'failed',
+        sourceRevision: 3,
+        safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+      },
+      latestManual: {
+        state: 'ready',
+        sourceRevision: 2,
+        needsReview: true,
+      },
+    };
+    const catalog = buildClientTrainingOverview({
+      activePlan: { ...sixMonthPlan, contentRevision: 3, pdfDerivative },
+      plans: [{ ...sixMonthPlan, contentRevision: 3, pdfDerivative }],
+    }).trainingPlanCatalog;
+
+    expect(catalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      plan: { id: 'plan-6m', contentRevision: 3, pdfDerivative },
     });
   });
 

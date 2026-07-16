@@ -112,7 +112,7 @@ export const createApp = async () => {
         res,
         corsOrigin,
         'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD',
-        'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, X-CSRF-Token, X-Forwarded-For'
+        'Content-Type, Authorization, X-Requested-With, X-Client-Timezone, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, X-CSRF-Token, X-Forwarded-For'
       );
       
       // Debug headers — only in development
@@ -158,7 +158,7 @@ export const createApp = async () => {
       return res.status(403).end();
     }
 
-    applyCorsHeaders(res, corsOrigin, 'GET, OPTIONS', 'Content-Type, Authorization');
+    applyCorsHeaders(res, corsOrigin, 'GET, OPTIONS', 'Content-Type, Authorization, X-Client-Timezone');
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Health');
     
     res.status(204).end();
@@ -176,7 +176,7 @@ export const createApp = async () => {
       return res.status(403).end();
     }
 
-    applyCorsHeaders(res, corsOrigin, 'POST, OPTIONS', 'Content-Type, Authorization, X-Requested-With');
+    applyCorsHeaders(res, corsOrigin, 'POST, OPTIONS', 'Content-Type, Authorization, X-Requested-With, X-Client-Timezone');
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Login');
     
     res.status(204).end();
@@ -198,7 +198,7 @@ export const createApp = async () => {
       res,
       corsOrigin,
       'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+      'Content-Type, Authorization, X-Requested-With, X-Client-Timezone, Accept, Origin'
     );
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-API');
     
@@ -222,7 +222,7 @@ export const createApp = async () => {
       res,
       corsOrigin,
       'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD',
-      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'
+      'Content-Type, Authorization, X-Requested-With, X-Client-Timezone, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'
     );
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer3-Wildcard-Fallback');
     

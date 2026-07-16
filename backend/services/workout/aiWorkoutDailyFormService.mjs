@@ -25,7 +25,6 @@ import {
   normalizeText,
   parseNonNegativeInteger,
   parsePositiveInteger,
-  toIsoDateOnly,
 } from './aiWorkoutDailyFormPayloadService.mjs';
 import { runWorkoutXpAwardStep } from './workoutXpAwardStep.mjs';
 import { detectAndRecordPersonalRecords } from './workoutPrDetectionService.mjs';
@@ -43,6 +42,7 @@ import {
 import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
 import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
 import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
+import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -102,6 +102,14 @@ export async function submitAiWorkoutLogAsDailyForm({
 
     const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
     if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
+    const trainingReferenceDate = new Date();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      targetClientId: parsedClientId,
+      referenceDate: trainingReferenceDate,
+    });
 
     const { linkedScheduledSession, creditsRequired: scheduledCreditsRequired } = await resolveAiScheduledSessionForLog({
       Session: models.Session,
@@ -115,10 +123,10 @@ export async function submitAiWorkoutLogAsDailyForm({
     const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date);
     if (!workoutDateIso) throw new AiWorkoutDailyFormError('Valid workout date is required');
 
-    const workoutDate = new Date(`${workoutDateIso}T00:00:00.000Z`);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (workoutDate > today) throw new AiWorkoutDailyFormError('Workout date cannot be in the future');
+    if (workoutDateIso > trainingDateContext.localDate) {
+      throw new AiWorkoutDailyFormError('Workout date cannot be in the future');
+    }
+    const workoutDate = new Date(workoutDateIso + 'T00:00:00.000Z');
 
     const existingForm = await DailyWorkoutForm.findOne({
       where: { clientId: parsedClientId, date: workoutDateIso },
@@ -135,6 +143,10 @@ export async function submitAiWorkoutLogAsDailyForm({
       clientId: parsedClientId,
       workoutDateValue: workoutDateIso,
       hasScheduledSession: Boolean(linkedScheduledSession),
+      clientTimeZone: client.timeZone,
+      clientTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      referenceDate: trainingReferenceDate,
       transaction,
     });
     const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
@@ -214,6 +226,7 @@ export async function submitAiWorkoutLogAsDailyForm({
       ? null
       : await advanceAiPlannedAssignmentAfterLog({
         WorkoutPlan: models.WorkoutPlan,
+        WorkoutPlanCompletionReceipt: models.WorkoutPlanCompletionReceipt,
         assignment: plannedAssignmentMetadata,
         clientId: parsedClientId,
         dailyWorkoutFormId: dailyForm.id,

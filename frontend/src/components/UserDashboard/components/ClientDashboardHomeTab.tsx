@@ -40,6 +40,8 @@ import {
 } from './HomeTabViewModel';
 import ClientDashboardHome from './ClientDashboardHome';
 import ClientProgramShelf from '../../DashBoard/Pages/client-dashboard/plan/ClientProgramShelf';
+import TodayTrainingModule from '../../DashBoard/shared/client-training/TodayTrainingModule';
+import { clientTodayTrainingModuleEnabled } from '../../DashBoard/shared/client-training/todayTrainingFeatureFlag';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
   buildAssignmentView,
@@ -86,6 +88,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const messageSummary = useMessageSummary({ enabled: hasEliteAccess });
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const currentWorkoutState = useCurrentClientWorkout(user?.id);
+  const todayTrainingEnabled = clientTodayTrainingModuleEnabled();
   const upcomingSessionState = useUpcomingClientSession(user?.id);
   const canBookSessions = canBookSwanStudiosSessions((user as { clientSource?: string } | null | undefined)?.clientSource);
 
@@ -188,18 +191,24 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         embedded={embedded}
         backgroundSettings={backgroundSettings}
         programShelf={(
-          <ClientProgramShelf
-            userId={user?.id}
-            workout={currentWorkoutState.workout}
-            planVault={currentWorkoutState.planVault}
-            loading={currentWorkoutState.loading}
-            error={currentWorkoutState.error}
-            /* Today's session (absorbed from TodaysAssignmentCard). It resolves its
-               own actionPath, so the logger gets assignmentKey/assignmentType and a
-               completed session routes to history instead of re-logging. */
-            assignment={assignment}
-            onNavigate={navigate}
-          />
+          <>
+            {todayTrainingEnabled && (
+              <TodayTrainingModule state={currentWorkoutState} onNavigate={navigate} />
+            )}
+            <ClientProgramShelf
+              userId={user?.id}
+              workout={currentWorkoutState.workout}
+              planVault={currentWorkoutState.planVault}
+              loading={currentWorkoutState.loading}
+              error={currentWorkoutState.error}
+              showTodayAssignment={!todayTrainingEnabled}
+              /* Today's session (absorbed from TodaysAssignmentCard). It resolves its
+                 own actionPath, so the logger gets assignmentKey/assignmentType and a
+                 completed session routes to history instead of re-logging. */
+              assignment={assignment}
+              onNavigate={navigate}
+            />
+          </>
         )}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}

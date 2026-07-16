@@ -7,6 +7,7 @@ const { mockAuthAxios } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
     put: vi.fn(),
+    post: vi.fn(),
   },
 }));
 vi.mock('../../../../../context/AuthContext', () => ({
@@ -24,6 +25,7 @@ describe('ClientWorkoutPlansPanel', () => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     vi.spyOn(window, 'open').mockImplementation(() => null);
     mockAuthAxios.put.mockResolvedValue({ data: { success: true } });
+    mockAuthAxios.post.mockResolvedValue({ data: { success: true } });
     mockAuthAxios.get.mockResolvedValue({
       data: {
         success: true,
@@ -89,7 +91,7 @@ describe('ClientWorkoutPlansPanel', () => {
     renderPlansPanel();
     expect((await screen.findAllByText('Server Canonical Six Month Arc')).length).toBeGreaterThan(0);
     expect(screen.getByText('1 of 7 arcs filled')).toBeInTheDocument();
-    expect(screen.getByLabelText(/6 month plan arc/i)).toHaveTextContent('Primary');
+    expect(screen.getByLabelText(/6 month plan arc/i)).toHaveTextContent('Current');
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
   it('shows whether a vault arc is homework diary work or trainer-led scheduled work', async () => {
@@ -262,7 +264,7 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(
       within(screen.getByLabelText(/6 month plan arc/i)).getByRole('button', { name: /open 6 month pdf plan/i })
     ).toHaveTextContent(/open pdf/i);
-    await user.click(screen.getByRole('button', { name: /open primary six month arc pdf/i }));
+    await user.click(screen.getByRole('button', { name: /view primary six month arc pdf/i }));
     expect(mockAuthAxios.get).toHaveBeenLastCalledWith('/api/workout-plans/99/pdf/content.pdf', { responseType: 'blob' });
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     const dialog = await screen.findByRole('dialog', { name: /primary six month arc pdf/i });
@@ -306,7 +308,7 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(mockAuthAxios.get).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/valid client/i);
   });
-  it('renders the seven trainer-facing horizon slots and promotes a chosen arc to primary', async () => {
+  it('renders seven trainer-facing horizon slots and makes a chosen arc current', async () => {
     const user = userEvent.setup();
     mockAuthAxios.get.mockResolvedValue({
       data: {
@@ -336,8 +338,8 @@ describe('ClientWorkoutPlansPanel', () => {
     for (const label of ['1 Day', '1 Week', '1 Month', '3 Month', '6 Month', '9 Month', '12 Month']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    await user.click(screen.getByRole('button', { name: /make 9 month primary arc/i }));
-    expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+    await user.click(screen.getByRole('button', { name: /make 9 month the current arc/i }));
+    expect(mockAuthAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
   });
   it('keeps plan-vault guidance opt-in and explains off-day logging semantics', async () => {

@@ -2,15 +2,16 @@
  * Client Hub training-plan vault section.
  * ======================================
  *
- * Renders all seven SwanStudios plan-horizon slots for the selected client.
- * The parent owns loading and mutations; this component only presents the
- * read model and forwards PDF / primary-arc actions.
+ * Renders all seven plan horizons. The parent owns reads and commands; each
+ * filled slot exposes one current-plan activation command and protected PDF.
  */
-
 import React from 'react';
 import { Layers3 } from 'lucide-react';
 import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
-import type { ClientPlanSummary, ClientPlanVaultSummary } from './ClientWorkoutPlansPanel.logic';
+import type {
+  ClientPlanSummary,
+  ClientPlanVaultSummary,
+} from './ClientWorkoutPlansPanel.logic';
 import {
   VaultGrid,
   VaultHeader,
@@ -23,9 +24,7 @@ interface ClientWorkoutPlanVaultSectionProps {
   activatingPlanId: string | null;
   openingPdfId: string | null;
   planVault: ClientPlanVaultSummary;
-  primaryUpdatingId: string | null;
   onActivate: (plan: ClientPlanSummary) => void;
-  onMakePrimary: (plan: ClientPlanSummary) => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
 }
 
@@ -33,9 +32,7 @@ const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps
   activatingPlanId,
   openingPdfId,
   planVault,
-  primaryUpdatingId,
   onActivate,
-  onMakePrimary,
   onOpenPdf,
 }) => (
   <VaultSection aria-label="Plan Arc Library">
@@ -50,10 +47,8 @@ const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps
           slot={slot}
           activatingPlanId={activatingPlanId}
           openingPdfId={openingPdfId}
-          primaryUpdatingId={primaryUpdatingId}
           onActivate={onActivate}
           onOpenPdf={onOpenPdf}
-          onMakePrimary={onMakePrimary}
         />
       ))}
     </VaultGrid>

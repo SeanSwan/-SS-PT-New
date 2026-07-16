@@ -6,6 +6,7 @@
  * WorkoutSession linkage, and plan progress.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { hashWorkoutPlanContent } from '../../services/workoutPlanRevisionService.mjs';
 
 let models;
 
@@ -47,8 +48,8 @@ function makeScheduledSession(overrides = {}) {
 }
 
 function makeActivePlan(overrides = {}) {
-  return {
-    id: 'plan-6m',
+  const plan = {
+    id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
     userId: 42,
     title: 'Six Month Foundation',
     status: 'active',
@@ -76,6 +77,9 @@ function makeActivePlan(overrides = {}) {
     update: vi.fn(async () => undefined),
     ...overrides,
   };
+  plan.contentRevision = overrides.contentRevision ?? 4;
+  plan.contentHash = overrides.contentHash ?? hashWorkoutPlanContent(plan.planData);
+  return plan;
 }
 
 async function loadService({
@@ -111,7 +115,13 @@ async function loadService({
       destroy: vi.fn(async () => undefined),
       bulkCreate: vi.fn(async () => []),
     },
-    WorkoutPlan: { findOne: vi.fn(async () => activePlan) },
+    WorkoutPlan: {
+      findOne: vi.fn(async () => activePlan),
+      findByPk: vi.fn(async () => activePlan),
+    },
+    WorkoutPlanCompletionReceipt: {
+      findOrCreate: vi.fn(async ({ defaults }) => [{ id: 'receipt-ai-scheduled', ...defaults }, true]),
+    },
   };
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => models,
@@ -168,8 +178,8 @@ describe('submitAiWorkoutLogAsDailyForm scheduled-session truth', () => {
       intensity: 8,
       notes: 'Dictated from the schedule',
       plannedAssignment: {
-        assignmentKey: 'plan-6m:w1:d1:trainer_session',
-        planId: 'plan-6m',
+        assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w1:d1:trainer_session',
+        planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
         assignmentType: 'trainer_session',
         source: 'workout_plan',
         isBillable: true,

@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FILE: useWorkoutPlannerSaveActions.test.tsx
+ * PURPOSE: Lock one-owner PDF behavior across derivative and rollback modes.
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
+ * AI VILLAGE VALIDATED: 2026-07-15
+ * ============================================================================
+ */
+
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
@@ -28,7 +37,7 @@ const makeHookInput = (authAxios: any, overrides: Record<string, unknown> = {}) 
   selectedClientId: 42,
   planExercisesLength: 0,
   hasGeneratedHorizonPlan: true,
-  loadedPlanId: null,
+  loadedPlanId: null, loadedPlanRevision: 1,
   planDuration: '26' as const,
   userRole: 'trainer',
   phaseName: 'Strength Endurance',
@@ -58,24 +67,27 @@ describe('useWorkoutPlannerSaveActions', () => {
     mocks.buildPlanPdfFileFromPlanData.mockResolvedValue(makePdfFile());
   });
 
-  it('saves generated plans with horizon metadata and uploads a PDF from the saved planData', async () => {
+  it('uses the server derivative request without generating or uploading a second PDF', async () => {
     const authAxios = {
-      post: vi.fn((url: string) => (
-        url === '/api/workout-plans'
-          ? Promise.resolve({ data: { plan: { id: 'plan-26', title: 'Client Plan' } } })
-          : Promise.resolve({ data: { success: true } })
-      )),
-      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+      post: vi.fn().mockResolvedValue({
+        data: {
+          plan: { id: 'plan-26', title: 'Client Plan' },
+          pdfDerivative: { enabled: true, state: 'pending' },
+        },
+      }),
+      put: vi.fn().mockResolvedValue({
+        data: { success: true, pdfDerivative: { enabled: true, state: 'pending' } },
+      }),
     };
     const input = makeHookInput(authAxios);
-
     const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
 
     await act(async () => {
       await result.current.handleSaveAndActivate();
     });
 
-    expect(authAxios.post).toHaveBeenNthCalledWith(1, '/api/workout-plans', expect.objectContaining({
+    expect(authAxios.post).toHaveBeenCalledTimes(2);
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans', expect.objectContaining({
       durationWeeks: 26,
       createdBy: 'swan_coach_planning',
       planData,
@@ -86,33 +98,23 @@ describe('useWorkoutPlannerSaveActions', () => {
         planSource: 'swan_coach_planning',
       }),
     }));
-    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-26/activate');
-    expect(mocks.buildPlanPdfFileFromPlanData).toHaveBeenCalledWith(expect.objectContaining({
-      planData,
-      durationWeeks: 26,
-      horizonKey: 'six_month',
-      goal: 'strength',
-      nasmPhase: 2,
-    }));
-    expect(authAxios.post).toHaveBeenNthCalledWith(
-      2,
-      '/api/workout-plans/plan-26/pdf/upload',
-      expect.any(FormData),
-    );
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-26/status', { action: 'activate' });
+    expect(mocks.buildPlanPdfFileFromPlanData).not.toHaveBeenCalled();
     expect(input.setStatusMsg).toHaveBeenCalledWith({
       type: 'success',
-      text: 'Plan saved and made current. PDF attached from the saved plan.',
+      text: 'Plan saved and made current. PDF generation queued.',
       nextAction: 'current-plan-ready',
     });
   });
 
-  it('backfills trainer-led plan-use metadata when updating an existing saved plan', async () => {
+  it('uses the update derivative response without browser PDF upload', async () => {
     const authAxios = {
       post: vi.fn().mockResolvedValue({ data: { success: true } }),
-      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+      put: vi.fn().mockResolvedValue({
+        data: { success: true, pdfDerivative: { enabled: true, state: 'pending' } },
+      }),
     };
-    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan' });
-
+    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan', loadedPlanRevision: 4 });
     const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
 
     await act(async () => {
@@ -121,6 +123,7 @@ describe('useWorkoutPlannerSaveActions', () => {
 
     expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/loaded-plan', expect.objectContaining({
       nasmPhase: 2,
+      expectedRevision: 4,
       durationWeeks: 26,
       planData,
       metadata: expect.objectContaining({
@@ -130,20 +133,39 @@ describe('useWorkoutPlannerSaveActions', () => {
         defaultShouldDeductSession: false,
       }),
     }));
-    expect(authAxios.post).toHaveBeenCalledWith(
-      '/api/workout-plans/loaded-plan/pdf/upload',
-      expect.any(FormData),
-    );
+    expect(authAxios.post).not.toHaveBeenCalled();
+    expect(mocks.buildPlanPdfFileFromPlanData).not.toHaveBeenCalled();
   });
 
-  it('keeps single-session plans attached to one-day plan vault PDFs', async () => {
+  it('refreshes a stale loaded plan after a revision conflict', async () => {
+    const authAxios = {
+      post: vi.fn(),
+      put: vi.fn().mockRejectedValue({ response: { status: 409 } }),
+    };
+    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan', loadedPlanRevision: 4 });
+    const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
+
+    await act(async () => result.current.handleUpdateLoaded());
+
+    expect(input.fetchSavedPlans).toHaveBeenCalledWith(42);
+    expect(input.setStatusMsg).toHaveBeenCalledWith({
+      type: 'error',
+      text: 'This plan changed on the server. Saved plans were refreshed; review and retry.',
+    });
+  });
+  it('retains one browser upload only when the server reports legacy rollback mode', async () => {
     const singlePlanData = {
-      weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Mobility Prep' }] }] }],
+      weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Flexibility Prep' }] }] }],
     };
     const authAxios = {
       post: vi.fn((url: string) => (
         url === '/api/workout-plans'
-          ? Promise.resolve({ data: { plan: { id: 'plan-1d', title: 'Single Day Plan' } } })
+          ? Promise.resolve({
+            data: {
+              plan: { id: 'plan-1d', title: 'Single Day Plan' },
+              pdfDerivative: { enabled: false, state: 'legacy' },
+            },
+          })
           : Promise.resolve({ data: { success: true } })
       )),
       put: vi.fn().mockResolvedValue({ data: { success: true } }),
@@ -154,7 +176,6 @@ describe('useWorkoutPlannerSaveActions', () => {
       planExercisesLength: 1,
       buildPlanData: vi.fn(() => singlePlanData),
     });
-
     const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
 
     await act(async () => {
@@ -173,5 +194,10 @@ describe('useWorkoutPlannerSaveActions', () => {
       durationWeeks: 1,
       horizonKey: 'one_day',
     }));
+    expect(authAxios.post).toHaveBeenNthCalledWith(
+      2,
+      '/api/workout-plans/plan-1d/pdf/upload',
+      expect.any(FormData),
+    );
   });
 });

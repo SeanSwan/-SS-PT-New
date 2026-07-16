@@ -4,6 +4,7 @@
  * Locks the Swan Coach workout command write path to diary/billing truth.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { hashWorkoutPlanContent } from '../../services/workoutPlanRevisionService.mjs';
 
 let models;
 let challengeBridge;
@@ -20,6 +21,8 @@ function makeTransaction() {
 function makeClient(overrides = {}) {
   return {
     id: 42,
+    timeZone: 'UTC',
+    timeZoneConfigured: true,
     clientSource: 'swanstudios',
     availableSessions: 2,
     decrement: vi.fn(async () => undefined),
@@ -28,8 +31,8 @@ function makeClient(overrides = {}) {
 }
 
 function makeActivePlan(overrides = {}) {
-  return {
-    id: 'plan-6m',
+  const plan = {
+    id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
     userId: 42,
     title: 'Six Month Foundation',
     status: 'active',
@@ -58,6 +61,9 @@ function makeActivePlan(overrides = {}) {
     update: vi.fn(async () => undefined),
     ...overrides,
   };
+  plan.contentRevision = overrides.contentRevision ?? 4;
+  plan.contentHash = overrides.contentHash ?? hashWorkoutPlanContent(plan.planData);
+  return plan;
 }
 
 async function loadService({ client = makeClient(), existingForm = null, activePlan = makeActivePlan() } = {}) {
@@ -106,6 +112,10 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     },
     WorkoutPlan: {
       findOne: vi.fn(async () => activePlan),
+      findByPk: vi.fn(async () => activePlan),
+    },
+    WorkoutPlanCompletionReceipt: {
+      findOrCreate: vi.fn(async ({ defaults }) => [{ id: 'receipt-ai', ...defaults }, true]),
     },
     Challenge: { modelName: 'Challenge' },
     ChallengeParticipant: { modelName: 'ChallengeParticipant' },
@@ -346,14 +356,15 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       tx,
     } = await loadService({ client });
 
+    const workoutDate = new Date().toISOString().slice(0, 10);
     const result = await submitAiWorkoutLogAsDailyForm({
       clientId: 42,
       trainerId: 7,
-      date: new Date().toISOString().slice(0, 10),
+      date: workoutDate,
       exercises: [{ name: 'Goblet Squat', sets: [{ reps: 10, weight: 40 }] }],
       plannedAssignment: {
-        assignmentKey: 'plan-6m:w4:d2:homework',
-        planId: 'plan-6m',
+        assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:homework',
+        planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
         assignmentType: 'homework',
         source: 'workout_plan',
         isBillable: false,
@@ -366,14 +377,17 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
 
     expect(client.decrement).not.toHaveBeenCalled();
     expect(models.WorkoutPlan.findOne).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'plan-6m', userId: 42, status: 'active' },
+      where: { id: '6ea7806d-36c8-4307-bd5d-6b04b68be849', userId: 42, status: 'active' },
       lock: 'UPDATE',
       transaction: tx,
     }));
     const formCreate = models.DailyWorkoutForm.create.mock.calls[0][0];
     expect(formCreate.formData.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
-      planId: 'plan-6m',
+      assignmentKey: `6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:${workoutDate}:o1:r4`,
+      planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
+      scheduledDate: workoutDate,
+      occurrenceIndex: 1,
+      prescribedRevision: 4,
       assignmentType: 'homework',
       source: 'workout_plan',
       isBillable: false,
@@ -390,7 +404,7 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       status: 'active',
     }), { transaction: tx });
     expect(result.form.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentKey: `6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:${workoutDate}:o1:r4`,
       shouldDeductSession: false,
     });
     expect(result.form.planProgress).toMatchObject({
@@ -454,8 +468,8 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       source: 'move_fitness_historical_import',
       exercises: [{ name: 'Goblet Squat', sets: [{ reps: 10, weight: 40 }] }],
       plannedAssignment: {
-        assignmentKey: 'plan-6m:w4:d2:homework',
-        planId: 'plan-6m',
+        assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:homework',
+        planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
         assignmentType: 'homework',
         source: 'workout_plan',
         isBillable: false,
@@ -468,7 +482,7 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
 
     expect(activePlan.update).not.toHaveBeenCalled();
     expect(result.form.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentKey: `6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:${verifiedAssignmentDate}:o1:r4`,
       shouldDeductSession: false,
     });
     expect(result.form.planProgress).toBeUndefined();

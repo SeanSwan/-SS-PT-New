@@ -2,7 +2,8 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockExecuteCommandPipeline, mockGetCommandExecutionLane } = vi.hoisted(() => ({
+const { mockBuildCommandContextEnvelope, mockExecuteCommandPipeline, mockGetCommandExecutionLane } = vi.hoisted(() => ({
+  mockBuildCommandContextEnvelope: vi.fn(),
   mockExecuteCommandPipeline: vi.fn(),
   mockGetCommandExecutionLane: vi.fn(),
 }));
@@ -14,6 +15,11 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
   },
 }));
 
+vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
+  aiCommandLaneKillSwitch: (_req, _res, next) => next(),
+  aiCommandRateLimiter: (_req, _res, next) => next(),
+}));
+
 vi.mock('../../database.mjs', () => ({
   default: {},
 }));
@@ -22,6 +28,10 @@ vi.mock('../../services/ai/commandExecutor.mjs', () => ({
   executeCommandPipeline: mockExecuteCommandPipeline,
   executeConfirmedOperation: vi.fn(),
   checkForConfirmation: vi.fn(),
+}));
+
+vi.mock('../../services/ai/commandContextEnvelope.mjs', () => ({
+  buildCommandContextEnvelope: mockBuildCommandContextEnvelope,
 }));
 
 vi.mock('../../services/ai/commandExecutionLane.mjs', () => ({
@@ -48,6 +58,18 @@ const baseCtx = {
 describe('aiCommandRoutes frontend dispatch responses', () => {
   beforeEach(() => {
     mockExecuteCommandPipeline.mockReset();
+    mockBuildCommandContextEnvelope.mockReset();
+    mockBuildCommandContextEnvelope.mockResolvedValue({
+      schemaVersion: '1.0',
+      contextStatus: 'READY',
+      surfaceId: 'workout-planner',
+      actor: { id: 7, role: 'admin' },
+      permissions: { readEntity: true, mutateEntity: true },
+      capabilities: ['conversation', 'plan:mutate'],
+      entity: { type: 'workout_plan', id: 'plan-1', clientId: 42, version: '7' },
+      correlationId: 'corr-123',
+      promptVersion: 'swan-command-context-v1',
+    });
     mockGetCommandExecutionLane.mockImplementation((command) => {
       if (command.type === 'block_user_posting') {
         return {
@@ -235,6 +257,82 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     );
     expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('clientName');
     expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('notes');
+  });
+
+  it('builds the trusted context envelope from server auth plus narrow client hints', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'rearrange this workout',
+        selectedClientId: 42,
+        entityId: '11111111-1111-4111-8111-111111111111',
+        entityVersion: '7',
+        correlationId: 'corr-123',
+        routeContext: {
+          surface: 'workout-planner',
+          role: 'admin',
+          capabilities: ['plan:mutate:anything'],
+          notes: 'free text must not enter the envelope request',
+        },
+      })
+      .expect(200);
+
+    expect(mockBuildCommandContextEnvelope).toHaveBeenCalledWith(expect.objectContaining({
+      actor: expect.objectContaining({ id: 7, role: 'admin' }),
+      request: {
+        surfaceHint: 'workout-planner',
+        selectedClientId: 42,
+        entityId: '11111111-1111-4111-8111-111111111111',
+        entityVersion: '7',
+        correlationId: 'corr-123',
+      },
+      loadPlan: expect.any(Function),
+      authorizeClient: expect.any(Function),
+    }));
+    expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.contextEnvelope).toBe(
+      mockBuildCommandContextEnvelope.mock.results[0].value
+        ? await mockBuildCommandContextEnvelope.mock.results[0].value
+        : null,
+    );
+  });
+
+  it('returns typed classifier failures without opening the chat fallback', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      error: 'Swan Coach could not safely interpret that request. No data was changed.',
+      stage: 'validate',
+      intent: {
+        intent: 'classification_error',
+        params: { code: 'PARSE_FAIL' },
+        confidence: 0,
+      },
+      command: null,
+      result: {
+        type: 'error',
+        code: 'PARSE_FAIL',
+        message: 'Swan Coach could not safely interpret that request. No data was changed.',
+      },
+    });
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'rearrange this workout' })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      type: 'error',
+      code: 'PARSE_FAIL',
+      error: 'Swan Coach could not safely interpret that request. No data was changed.',
+      fallbackToChat: false,
+    });
   });
 
   it('preserves safe scheduled-session route context for workout logging commands', async () => {

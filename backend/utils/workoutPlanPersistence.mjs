@@ -10,11 +10,11 @@
  *   3. WorkoutPlan → WorkoutPlanDay → WorkoutPlanDayExercise creation
  *   4. Returns created plan metadata + unmatched exercises list
  */
-import logger from './logger.mjs';
+import { createWorkoutPlanRecord } from '../services/workoutPlanMutationService.mjs';
+import { transitionWorkoutPlanLifecycle } from '../services/workoutPlanLifecycleService.mjs';
 import { buildExerciseLookupMap, findExerciseByName } from './exerciseLookup.mjs';
 import {
   buildWorkoutPlanData,
-  demoteActiveWorkoutPlansForUser,
   inferWorkoutPlanHorizonKey,
   normalizeDayType,
   normalizeOptPhase,
@@ -102,7 +102,15 @@ export function preflightValidatePlan(plan) {
  * @returns {Promise<{ workoutPlan: Model, createdExerciseCount: number, unmatchedExercises: Array }>}
  * @throws {Error} If no exercises could be matched (caller should rollback)
  */
-export async function persistWorkoutPlan({ plan, userId, models, transaction, tags = ['ai_generated'] }) {
+export async function persistWorkoutPlan({
+  plan,
+  userId,
+  actorId,
+  sequelize,
+  models,
+  transaction,
+  tags = ['ai_generated'],
+}) {
   const { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise } = models;
   const unmatchedExercises = [];
   let createdExerciseCount = 0;
@@ -115,32 +123,33 @@ export async function persistWorkoutPlan({ plan, userId, models, transaction, ta
   const sourceType = tags.includes('coach_approved') ? 'coach_approved' : 'ai_generated';
   const horizonKey = inferWorkoutPlanHorizonKey(durationWeeks);
 
-  await demoteActiveWorkoutPlansForUser(WorkoutPlan, userId, transaction);
 
   // Create the plan record. Keep planData populated because current-plan and
   // logger handoff routes read the JSONB shape, not the normalized child rows.
-  const workoutPlan = await WorkoutPlan.create({
-    userId,
-    title: plan.planName || 'AI Workout Plan',
-    description: plan.summary || 'AI-generated workout plan',
-    durationWeeks,
-    status: 'active',
-    currentWeek: 1,
-    currentDay: 1,
-    planData,
-    createdBy: 'swan_coach_planning',
-    metadata: {
-      planSource: 'swan_coach_planning',
-      sourceType,
-      planHorizon: horizonKey,
-      horizonKey,
-      planDurationKey: horizonKey,
-      ...TRAINER_LED_WORKOUT_PLAN_METADATA,
-      isPrimaryPlan: true,
-      primary: true,
+  let workoutPlan = await createWorkoutPlanRecord({
+    WorkoutPlan,
+    transaction,
+    values: {
+      userId,
+      title: plan.planName || 'AI Workout Plan',
+      description: plan.summary || 'AI-generated workout plan',
+      durationWeeks,
+      status: 'draft',
+      currentWeek: 1,
+      currentDay: 1,
+      planData,
+      createdBy: 'swan_coach_planning',
+      metadata: {
+        planSource: 'swan_coach_planning',
+        sourceType,
+        planHorizon: horizonKey,
+        horizonKey,
+        planDurationKey: horizonKey,
+        ...TRAINER_LED_WORKOUT_PLAN_METADATA,
+      },
+      tags,
     },
-    tags,
-  }, { transaction });
+  });
 
   const days = Array.isArray(plan.days) ? plan.days : [];
 
@@ -218,6 +227,19 @@ export async function persistWorkoutPlan({ plan, userId, models, transaction, ta
     error.unmatchedExercises = unmatchedExercises;
     throw error;
   }
+
+  const activation = await transitionWorkoutPlanLifecycle({
+    sequelize,
+    WorkoutPlan,
+    transaction,
+    planId: workoutPlan.id,
+    action: 'activate',
+    actorId,
+    derivativeReason: sourceType === 'coach_approved'
+      ? 'coach_approved_plan_save'
+      : 'ai_generated_plan_save',
+  });
+  workoutPlan = activation.plan;
 
   return { workoutPlan, createdExerciseCount, unmatchedExercises };
 }

@@ -46,18 +46,20 @@ export const ensureClientAccess = async (req, clientIdInput) => {
   const models = getAllModels();
   const { User } = models;
 
-  const client = await User.findByPk(clientId, { attributes: ['id', 'role'] });
+  const client = await User.findByPk(clientId, {
+    attributes: ['id', 'role', 'timeZone', 'timeZoneConfigured'],
+  });
   if (!client || !isClientEquivalentRole(client.role)) {
     return { allowed: false, status: 404, message: 'Client not found' };
   }
 
   if (req.user?.role === 'admin') {
-    return { allowed: true, clientId, models };
+    return { allowed: true, clientId, client, models };
   }
 
   if (isClientEquivalentRole(req.user?.role)) {
     if (requesterId === clientId) {
-      return { allowed: true, clientId, models };
+      return { allowed: true, clientId, client, models };
     }
     return { allowed: false, status: 403, message: 'Access denied' };
   }
@@ -67,7 +69,7 @@ export const ensureClientAccess = async (req, clientIdInput) => {
     if (!assigned) {
       return { allowed: false, status: 403, message: 'Not assigned to this client' };
     }
-    return { allowed: true, clientId, models };
+    return { allowed: true, clientId, client, models };
   }
 
   return { allowed: false, status: 403, message: 'Access denied' };

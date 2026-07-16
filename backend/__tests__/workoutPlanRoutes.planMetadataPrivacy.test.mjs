@@ -4,9 +4,10 @@
  * Complements the planData privacy tests by proving adjacent WorkoutPlan JSONB
  * fields do not persist direct contact details through route write paths.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -30,9 +31,16 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
+const mockTransitionLifecycle = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
+  getWorkoutPlan: () => ({
+    findByPk: mockWorkoutPlanFindByPk,
+    findAll: mockWorkoutPlanFindAll,
+    findOne: mockWorkoutPlanFindOne,
+    create: mockWorkoutPlanCreate,
+  }),
   getModel: (name) => {
     if (name === 'ClientTrainerAssignment') return { findOne: mockAssignmentFindOne };
     if (name === 'DailyWorkoutForm') return { findAll: mockDailyWorkoutFormFindAll };
@@ -50,6 +58,10 @@ vi.mock('../models/index.mjs', () => ({
 
 vi.mock('../database.mjs', () => ({
   default: { transaction: (...args) => mockSequelizeTransaction(...args) },
+}));
+
+vi.mock('../services/workoutPlanLifecycleService.mjs', () => ({
+  transitionWorkoutPlanLifecycle: (...args) => mockTransitionLifecycle(...args),
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
@@ -95,6 +107,7 @@ const expectSanitizedJson = (value) => {
 describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('TRAINING_PLAN_PDF_DERIVATIVES', 'false');
     mockAssignmentFindOne.mockResolvedValue({ id: 'assign-1', status: 'active' });
     mockWorkoutPlanFindByPk.mockResolvedValue(null);
     mockWorkoutPlanFindAll.mockResolvedValue([]);
@@ -106,8 +119,18 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
       rollback: vi.fn().mockResolvedValue(undefined),
       LOCK: { UPDATE: 'UPDATE' },
     };
-    mockSequelizeTransaction.mockResolvedValue(mockTransactionInstance);
+    mockSequelizeTransaction.mockImplementation(async (callback) => (
+      typeof callback === 'function'
+        ? callback(mockTransactionInstance)
+        : mockTransactionInstance
+    ));
+    mockTransitionLifecycle.mockImplementation(async ({ planId, action }) => {
+      const plan = { id: planId, userId: 42, status: 'active', durationWeeks: 26, metadata: {} };
+      return { plan, plans: [plan], lifecycleReceipt: { planId, action } };
+    });
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('sanitizes progressNotes and metadata on POST /api/workout-plans', async () => {
     const res = await auth(request(app).post('/api/workout-plans')).send({
@@ -118,7 +141,12 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     });
 
     expect(res.status).toBe(201);
-    const payload = mockWorkoutPlanCreate.mock.calls[0][0];
+    const [payload, options] = mockWorkoutPlanCreate.mock.calls[0];
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent(payload.planData),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
     expectSanitizedJson(payload.progressNotes);
     expectSanitizedJson(payload.metadata);
     expect(payload.metadata).toMatchObject({
@@ -143,7 +171,12 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     });
 
     expect(res.status).toBe(200);
-    const payload = update.mock.calls[0][0];
+    const [payload, options] = update.mock.calls[0];
+    expect(payload).toMatchObject({
+      contentRevision: 1,
+      contentHash: hashWorkoutPlanContent({}),
+    });
+    expect(options).toEqual({ transaction: mockTransactionInstance });
     expectSanitizedJson(payload.progressNotes);
     expectSanitizedJson(payload.metadata);
     expect(payload.metadata).toMatchObject({
@@ -171,8 +204,6 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
     expect(metadata).toMatchObject({
       planHorizon: 'six_month',
       assignmentDefault: 'trainer_session',
-      isPrimaryPlan: false,
-      primary: false,
       duplicatedFrom: 'plan-1',
     });
     expect(metadata.planPdf).toBeUndefined();
@@ -203,33 +234,16 @@ describe('workoutPlanRoutes metadata/progressNotes privacy', () => {
       planPdf: { fileName: 'Six Month Plan.pdf' },
     });
   });
-  it('sanitizes target and sibling metadata on PUT /api/workout-plans/:id/primary', async () => {
-    const targetUpdate = vi.fn().mockResolvedValue(undefined);
-    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
+  it('delegates primary compatibility requests without rewriting plan metadata', async () => {
     mockWorkoutPlanFindByPk.mockResolvedValue({
-      id: 'plan-9m',
-      userId: 42,
-      title: 'Nine Month Plan',
-      status: 'active',
-      metadata: unsafeMetadata(),
-      update: targetUpdate,
+      id: 'plan-9m', userId: 42, status: 'paused', metadata: unsafeMetadata(),
     });
-    mockWorkoutPlanFindAll.mockResolvedValue([{
-      id: 'plan-6m',
-      userId: 42,
-      status: 'active',
-      metadata: unsafeMetadata(),
-      update: siblingUpdate,
-    }]);
 
     const res = await auth(request(app).put('/api/workout-plans/plan-9m/primary')).send({});
 
     expect(res.status).toBe(200);
-    const targetMetadata = targetUpdate.mock.calls[0][0].metadata;
-    const siblingMetadata = siblingUpdate.mock.calls[0][0].metadata;
-    expectSanitizedJson(targetMetadata);
-    expectSanitizedJson(siblingMetadata);
-    expect(targetMetadata).toMatchObject({ isPrimaryPlan: true, primary: true });
-    expect(siblingMetadata).toMatchObject({ isPrimaryPlan: false, primary: false });
+    expect(mockTransitionLifecycle).toHaveBeenCalledWith(expect.objectContaining({
+      planId: 'plan-9m', action: 'activate', actorId: 7,
+    }));
   });
 });

@@ -15,7 +15,9 @@ describe('Swan Coach workout command route truth', () => {
     expect(coreRoutesSource).toContain("app.use('/api/workout-plans', workoutPlanRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/workout', workoutRoutes)");
     expect(workoutPlanRoutesSource).toContain("router.post('/', protect, trainerOrAdminOnly");
-    expect(workoutPlanRoutesSource).toContain("router.delete('/:id', protect, trainerOrAdminOnly");
+    expect(workoutPlanRoutesSource).toMatch(
+      /router\.delete\(\s*'\/:id',\s*protect,\s*trainerOrAdminOnly,\s*verifyClientAccessByPlanId\(\{ paramName: 'id' \}\),\s*workoutPlanArchiveHandler,\s*\);/,
+    );
     expect(workoutRoutesSource).toContain("router.get('/sessions/user/:userId', protect, authorize(['admin', 'trainer'])");
     expect(workoutRoutesSource).toContain("router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer'])");
     expect(workoutRoutesSource).toContain("router.post('/sessions', protect, workoutController.createWorkoutSession)");

@@ -1,7 +1,7 @@
 /**
  * Command Registry — Index
  * =========================
- * Merges all 16 domain-split command registries into a unified registry.
+ * Merges the domain-split command registries into a unified registry.
  * Call initializeRegistry() once at server startup.
  *
  * Commands are registered across categories A-N:
@@ -13,6 +13,7 @@
  */
 import { register as registerClient } from './clientCommands.mjs';
 import { register as registerWorkout } from './workoutCommands.mjs';
+import { register as registerPlannerSequence } from './plannerSequenceCommands.mjs';
 import { register as registerSchedule } from './scheduleCommands.mjs';
 import { register as registerHealth } from './healthCommands.mjs';
 import { register as registerNutrition } from './nutritionCommands.mjs';
@@ -49,6 +50,7 @@ export function initializeRegistry() {
 
   registerClient();
   registerWorkout();
+  registerPlannerSequence();
   registerSchedule();
   registerHealth();
   registerNutrition();
