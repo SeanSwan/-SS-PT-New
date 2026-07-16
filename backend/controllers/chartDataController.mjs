@@ -615,14 +615,17 @@ export async function getMuscleGroupBalanceChart(req, res) {
              THEN 'Shoulders'
            WHEN wl."exerciseName" ILIKE '%bicep%'
              OR wl."exerciseName" ILIKE '%tricep%'
-             OR wl."exerciseName" ILIKE '%curl%'
-             OR wl."exerciseName" ILIKE '%extension%'
+             -- 'Leg Curl'/'Hamstring Curl'/'Leg Extension'/'Quad Extension' are
+             -- LEGS, not Arms — exclude them from the curl/extension catch-all
+             -- (Arms was evaluated before Legs, so these were mislabeled Arms).
+             OR (wl."exerciseName" ILIKE '%curl%' AND wl."exerciseName" NOT ILIKE '%leg%' AND wl."exerciseName" NOT ILIKE '%hamstring%')
+             OR (wl."exerciseName" ILIKE '%extension%' AND wl."exerciseName" NOT ILIKE '%leg%' AND wl."exerciseName" NOT ILIKE '%quad%')
              OR wl."exerciseName" ILIKE '%hammer%'
              OR wl."exerciseName" ILIKE '%preacher%'
              OR wl."exerciseName" ILIKE '%skull%'
              THEN 'Arms'
            WHEN wl."exerciseName" ILIKE '%squat%'
-             OR wl."exerciseName" ILIKE '% leg%'
+             OR wl."exerciseName" ILIKE '%leg%'
              OR wl."exerciseName" ILIKE '%lunge%'
              OR wl."exerciseName" ILIKE '%calf%'
              OR wl."exerciseName" ILIKE '%hamstring%'
@@ -913,13 +916,19 @@ export async function getEstOneRmTrendChart(req, res) {
        )
        SELECT
          TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
-         LEAST(MAX(ROUND(wl.weight / (1.0278 - 0.0278 * wl.reps))), 1500)::float AS est,
+         -- Take the real MAX est-1RM (no LEAST clamp). Clamping garbage to a
+         -- flat 1500 plotted a FABRICATED PR from a fat-finger weight — the same
+         -- bug oneRepMaxService.estimateBrzycki1RM was rewritten to reject. Over-
+         -- ceiling sets are DROPPED below (WHERE), so a week with only garbage
+         -- yields no bar rather than a fake 1500.
+         MAX(ROUND(wl.weight / (1.0278 - 0.0278 * wl.reps)))::float AS est,
          (SELECT name FROM target) AS exercise
        FROM workout_logs wl
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId AND ws.status = 'completed'
          AND wl."exerciseName" = (SELECT name FROM target)
          AND wl.weight > 0 AND wl.reps BETWEEN 1 AND 15
+         AND (wl.weight / (1.0278 - 0.0278 * wl.reps)) <= 1500
          AND ws.date >= NOW() - INTERVAL '180 days'
        GROUP BY DATE_TRUNC('week', ws.date)
        ORDER BY DATE_TRUNC('week', ws.date)`,
