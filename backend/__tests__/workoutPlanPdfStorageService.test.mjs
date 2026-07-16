@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  deleteStoredWorkoutPlanPdf,
   storeWorkoutPlanPdf,
 } from '../services/workoutPlanPdfStorageService.mjs';
 
@@ -54,6 +55,31 @@ describe('workoutPlanPdfStorageService', () => {
     expect(written.equals(pdfBuffer)).toBe(true);
   });
 
+  it('removes an uncommitted local PDF by its validated storage key', async () => {
+    const uploadsRoot = await makeUploadsRoot();
+    const pdfBuffer = Buffer.from('%PDF-1.4\n%%EOF\n');
+    const stored = await storeWorkoutPlanPdf({
+      file: {
+        originalname: 'Cleanup Plan.pdf',
+        mimetype: 'application/pdf',
+        size: pdfBuffer.length,
+        buffer: pdfBuffer,
+      },
+      planId: 'plan-1',
+      clientId: 42,
+      uploadedBy: 7,
+      uploadsRoot,
+      idFactory: () => 'cleanup-id',
+    });
+
+    await expect(deleteStoredWorkoutPlanPdf({ ...stored, uploadsRoot })).resolves.toBe(true);
+    await expect(readFile(path.join(uploadsRoot, stored.storageKey))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    await expect(deleteStoredWorkoutPlanPdf({
+      storage: 'local', storageKey: '../outside.pdf', uploadsRoot,
+    })).resolves.toBe(false);
+  });
   it('rejects files that do not have a PDF MIME type, extension, and magic header', async () => {
     const badFiles = [
       {

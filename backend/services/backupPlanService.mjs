@@ -256,6 +256,11 @@ export async function promoteBackupPlan({ planId, trainerId }) {
       planId: backup.id,
       expectedRevision: backup.contentRevision,
       transaction,
+      pdfDerivativeIntent: {
+        requestedBy: trainerId,
+        reason: 'backup_promotion',
+        promoteGenerated: true,
+      },
       updates: (lockedBackup) => ({
         status: 'active',
         currentWeek: 1,

@@ -15,6 +15,7 @@
  *   - save_workout_plan: Create a multi-week workout program from AI-generated plan
  */
 import logger from '../utils/logger.mjs';
+import { getWorkoutPlan } from '../models/index.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
 import { encrypt } from './encryption/encryptionService.mjs';
 import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
@@ -24,10 +25,7 @@ import {
   sanitizeWorkoutPlanMetadataForPersistence,
 } from './workoutPlanDataPrivacyService.mjs';
 import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
-import {
-  attachGeneratedWorkoutPlanPdf,
-  extractInsertedWorkoutPlanId,
-} from './workoutPlanAiPdfAttachmentService.mjs';
+import { createWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
 
 const DURATION_HORIZONS = PLAN_HORIZONS.filter((slot) => slot.key !== 'one_day');
 const AI_DATA_WRITE_FAILED_CODE = 'AI_DATA_WRITE_FAILED';
@@ -579,7 +577,6 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
   const description = data.description ? String(data.description).slice(0, 5000) : null;
   const nasmPhase = normalizePlanNasmPhase(data.nasmPhase);
   const planData = normalizeWorkoutPlanDataForPersistence(data.planData);
-  // Cap at 52 weeks to prevent abuse.
   planData.weeks = planData.weeks.slice(0, 52);
   const durationWeeks = inferSaveWorkoutPlanDurationWeeks(data, planData);
   const startDate = data.startDate || null;
@@ -596,62 +593,52 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
   metadata.defaultShouldDeductSession = false;
   Object.assign(metadata, PRIMARY_WORKOUT_PLAN_METADATA);
 
-  const assignmentDefaults = planData.assignmentDefaults && typeof planData.assignmentDefaults === 'object' && !Array.isArray(planData.assignmentDefaults)
-    ? { ...planData.assignmentDefaults }
-    : {};
+  const assignmentDefaults = (
+    planData.assignmentDefaults
+    && typeof planData.assignmentDefaults === 'object'
+    && !Array.isArray(planData.assignmentDefaults)
+  ) ? { ...planData.assignmentDefaults } : {};
   planData.assignmentDefaults = {
     defaultAssignmentType: assignmentDefaults.defaultAssignmentType || metadata.assignmentDefault,
     billingIntent: assignmentDefaults.billingIntent || metadata.billingIntent,
     shouldDeductSession: false,
   };
 
-  const replacements = {
-    clientId,
-    trainerId,
-    title,
-    description,
-    nasmPhase,
-    startDate,
-    endDate,
-    durationWeeks,
-    planData: JSON.stringify(planData),
-    createdBy: 'swan_coach_planning',
-    metadata: JSON.stringify(metadata),
-  };
-
-  const insertResult = await runWorkoutPlanWriteTransaction(sequelize, async (transaction) => {
+  const WorkoutPlan = getWorkoutPlan();
+  const plan = await runWorkoutPlanWriteTransaction(sequelize, async (transaction) => {
     await demoteActiveWorkoutPlansForClient(clientId, sequelize, transaction);
-    return sequelize.query(
-      `INSERT INTO workout_plans ("userId", trainer_id, title, description,
-                                  nasm_phase, start_date, end_date, "durationWeeks",
-                                  status, current_week, current_day,
-                                  plan_data, progress_notes, created_by, metadata,
-                                  "createdAt", "updatedAt")
-       VALUES (:clientId, :trainerId, :title, :description,
-               :nasmPhase, :startDate, :endDate, :durationWeeks,
-               'active', 1, 1,
-               :planData::jsonb, '[]'::jsonb, :createdBy, :metadata::jsonb,
-               NOW(), NOW())
-       RETURNING id`,
-      withTransactionOption({ replacements, type: sequelize.QueryTypes.INSERT }, transaction),
-    );
-  });
-
-  await attachGeneratedWorkoutPlanPdf({
-    sequelize,
-    planId: extractInsertedWorkoutPlanId(insertResult),
-    clientId,
-    trainerId,
-    title,
-    description,
-    durationWeeks,
-    nasmPhase,
-    planData,
-    metadata,
+    return createWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      transaction,
+      values: {
+        userId: clientId,
+        trainerId,
+        title,
+        description,
+        nasmPhase,
+        startDate,
+        endDate,
+        durationWeeks,
+        status: 'active',
+        currentWeek: 1,
+        currentDay: 1,
+        planData,
+        progressNotes: [],
+        createdBy: 'swan_coach_planning',
+        metadata,
+      },
+      pdfDerivativeIntent: {
+        requestedBy: trainerId,
+        reason: 'ai_plan_save',
+        promoteGenerated: true,
+      },
+    });
   });
 
   logger.info('[AIDataWrite] Workout plan created for client %d by trainer %d: %s (%d weeks, phase %s)',
     clientId, trainerId, title, durationWeeks, nasmPhase || 'unset');
+  return plan;
 }
 
 // ─────────────────────────────────────────────────────────────

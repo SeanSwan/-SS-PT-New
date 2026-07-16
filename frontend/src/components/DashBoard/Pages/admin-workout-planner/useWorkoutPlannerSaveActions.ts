@@ -1,40 +1,38 @@
 /**
- * Hook: useWorkoutPlannerSaveActions
- * Purpose: Own Workout Planner save/update network actions and their saving
- * state so the mounted page can stay focused on route and builder wiring.
+ * FILE: useWorkoutPlannerSaveActions.ts | PURPOSE: Canonical save plus one-owner PDF fallback.
+ * AUTHOR: Codex GPT-5 | MODIFIED: 2026-07-16 | AI VILLAGE: 2026-07-15
  */
-
-import { useCallback, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import { logApiError } from '../../../../utils/logApiError';
 import type { PlannerClient, PlanDuration, PlanGoal } from './WorkoutPlannerTypes';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 import { buildPlanPdfFileFromPlanData } from './workoutPlannerPlanPdfAdapter';
 import { buildWorkoutPlanSaveFields } from './workoutPlannerSavePayload';
-
-type PdfAttachResult = 'attached' | 'failed' | 'skipped';
+type PdfAttachResult = 'attached' | 'failed' | 'queued' | 'skipped';
 type WorkoutPlanSaveFields = ReturnType<typeof buildWorkoutPlanSaveFields>;
-
 interface PlannerAuthClient {
   post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
   put: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
 }
-
+interface PdfDerivativeSummary {
+  enabled?: boolean;
+  state?: string;
+}
 interface SaveActionResponseData {
   plan?: {
     id?: unknown;
     title?: unknown;
   };
+  pdfDerivative?: PdfDerivativeSummary;
 }
-
 interface SaveOperationResult {
   client: PlannerClient | undefined;
   planData: unknown;
   saveFields: WorkoutPlanSaveFields;
   planId: string | null;
   planTitle?: unknown;
+  pdfDerivative?: PdfDerivativeSummary;
 }
-
 interface RunSaveOperationInput {
   activate: boolean;
   requiresLoadedPlan: boolean;
@@ -43,7 +41,6 @@ interface RunSaveOperationInput {
   errorLogLabel: string;
   errorText: string;
 }
-
 interface UseWorkoutPlannerSaveActionsInput {
   authAxios: PlannerAuthClient;
   selectedClientId: number | null;
@@ -65,13 +62,14 @@ interface UseWorkoutPlannerSaveActionsInput {
   setLoadedPlanName: Dispatch<SetStateAction<string | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
 }
-
 const saveStatusText = (base: string, pdfResult: PdfAttachResult) => {
-  if (pdfResult === 'attached') return `${base} PDF attached from the saved plan.`;
-  if (pdfResult === 'failed') return `${base} PDF attachment failed; update the PDF from Saved Plans.`;
+  if (pdfResult === 'queued') return base + ' PDF generation queued.';
+  if (pdfResult === 'attached') return base + ' PDF attached from the saved plan.';
+  if (pdfResult === 'failed') {
+    return base + ' PDF attachment failed; update the PDF from Saved Plans.';
+  }
   return base;
 };
-
 export const useWorkoutPlannerSaveActions = ({
   authAxios,
   selectedClientId,
@@ -94,9 +92,9 @@ export const useWorkoutPlannerSaveActions = ({
   setStatusMsg,
 }: UseWorkoutPlannerSaveActionsInput) => {
   const [saving, setSaving] = useState(false);
-
-  const hasSaveablePlan = Boolean(selectedClientId && (planExercisesLength > 0 || hasGeneratedHorizonPlan));
-
+  const hasSaveablePlan = Boolean(
+    selectedClientId && (planExercisesLength > 0 || hasGeneratedHorizonPlan),
+  );
   const attachGeneratedPdf = useCallback(async (
     planId: string,
     planData: unknown,
@@ -115,19 +113,17 @@ export const useWorkoutPlannerSaveActions = ({
         horizonKey,
       });
       if (!file) return 'skipped';
-
       const formData = new FormData();
       formData.append('pdf', file);
-      await authAxios.post(`/api/workout-plans/${planId}/pdf/upload`, formData);
+      await authAxios.post('/api/workout-plans/' + planId + '/pdf/upload', formData);
       return 'attached';
     } catch (err) {
       logApiError('Attach generated plan PDF failed', err);
       return 'failed';
     }
   }, [authAxios, goal, phaseNumber]);
-
   const buildSaveContext = useCallback(() => {
-    const client = clients.find(c => c.id === selectedClientId);
+    const client = clients.find((candidate) => candidate.id === selectedClientId);
     const planData = buildPlanData();
     const saveFields = buildWorkoutPlanSaveFields({
       planData,
@@ -136,14 +132,20 @@ export const useWorkoutPlannerSaveActions = ({
       userRole,
     });
     return { client, planData, saveFields };
-  }, [buildPlanData, clients, hasGeneratedHorizonPlan, planDuration, selectedClientId, userRole]);
-
+  }, [
+    buildPlanData,
+    clients,
+    hasGeneratedHorizonPlan,
+    planDuration,
+    selectedClientId,
+    userRole,
+  ]);
   const createPlan = useCallback(async () => {
     const { client, planData, saveFields } = buildSaveContext();
     const res = await authAxios.post('/api/workout-plans', {
       userId: selectedClientId,
-      title: `${client?.firstName || 'Client'}'s ${phaseName} Plan`,
-      description: `${categoryLabel} \u2014 ${goal}`,
+      title: (client?.firstName || 'Client') + "'s " + phaseName + ' Plan',
+      description: categoryLabel + ' — ' + goal,
       nasmPhase: phaseNumber,
       durationWeeks: saveFields.durationWeeks,
       status: 'draft',
@@ -152,21 +154,40 @@ export const useWorkoutPlannerSaveActions = ({
       metadata: saveFields.metadata,
     });
     const data = res.data as SaveActionResponseData | undefined;
-    const newId = data?.plan?.id ? String(data.plan.id) : null;
-    return { client, planData, saveFields, planId: newId, planTitle: data?.plan?.title };
-  }, [authAxios, buildSaveContext, categoryLabel, goal, phaseName, phaseNumber, selectedClientId]);
-
+    return {
+      client,
+      planData,
+      saveFields,
+      planId: data?.plan?.id ? String(data.plan.id) : null,
+      planTitle: data?.plan?.title,
+      pdfDerivative: data?.pdfDerivative,
+    };
+  }, [
+    authAxios,
+    buildSaveContext,
+    categoryLabel,
+    goal,
+    phaseName,
+    phaseNumber,
+    selectedClientId,
+  ]);
   const updateLoadedPlan = useCallback(async () => {
     const { client, planData, saveFields } = buildSaveContext();
-    await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
+    const res = await authAxios.put('/api/workout-plans/' + loadedPlanId, {
       nasmPhase: phaseNumber,
       durationWeeks: saveFields.durationWeeks,
       planData,
       metadata: saveFields.metadata,
     });
-    return { client, planData, saveFields, planId: loadedPlanId };
+    const data = res.data as SaveActionResponseData | undefined;
+    return {
+      client,
+      planData,
+      saveFields,
+      planId: loadedPlanId,
+      pdfDerivative: data?.pdfDerivative,
+    };
   }, [authAxios, buildSaveContext, loadedPlanId, phaseNumber]);
-
   const runSaveOperation = useCallback(async ({
     activate,
     requiresLoadedPlan,
@@ -178,19 +199,31 @@ export const useWorkoutPlannerSaveActions = ({
     if (!hasSaveablePlan || !selectedClientId || (requiresLoadedPlan && !loadedPlanId)) return;
     setSaving(true);
     try {
-      const { client, planData, saveFields, planId, planTitle } = await operation();
+      const result = await operation();
+      const { client, planData, saveFields, planId, planTitle } = result;
+      let pdfDerivative = result.pdfDerivative;
       if (activate) {
         if (!planId) throw new Error('Backend returned no plan id');
-        await authAxios.put(`/api/workout-plans/${planId}/activate`);
+        const activation = await authAxios.put('/api/workout-plans/' + planId + '/activate');
+        const activationData = activation.data as SaveActionResponseData | undefined;
+        pdfDerivative = activationData?.pdfDerivative ?? pdfDerivative;
       }
       setSavedSnapshot(currentExercisesSig);
       if (planId && !requiresLoadedPlan) {
         setLoadedPlanId(planId);
         setLoadedPlanName(planTitle ? String(planTitle) : null);
       }
-      const pdfResult = planId
-        ? await attachGeneratedPdf(planId, planData, client, saveFields.durationWeeks, saveFields.metadata.planHorizon)
-        : 'skipped';
+      const pdfResult: PdfAttachResult = pdfDerivative?.enabled === true
+        ? 'queued'
+        : planId
+          ? await attachGeneratedPdf(
+            planId,
+            planData,
+            client,
+            saveFields.durationWeeks,
+            saveFields.metadata.planHorizon,
+          )
+          : 'skipped';
       setStatusMsg({
         type: 'success',
         text: saveStatusText(successText, pdfResult),
@@ -203,8 +236,19 @@ export const useWorkoutPlannerSaveActions = ({
     } finally {
       setSaving(false);
     }
-  }, [attachGeneratedPdf, authAxios, currentExercisesSig, fetchSavedPlans, hasSaveablePlan, loadedPlanId, selectedClientId, setLoadedPlanId, setLoadedPlanName, setSavedSnapshot, setStatusMsg]);
-
+  }, [
+    attachGeneratedPdf,
+    authAxios,
+    currentExercisesSig,
+    fetchSavedPlans,
+    hasSaveablePlan,
+    loadedPlanId,
+    selectedClientId,
+    setLoadedPlanId,
+    setLoadedPlanName,
+    setSavedSnapshot,
+    setStatusMsg,
+  ]);
   const handleSaveDraft = useCallback(async () => {
     await runSaveOperation({
       activate: false,
@@ -215,7 +259,6 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to save plan. Please try again.',
     });
   }, [createPlan, runSaveOperation]);
-
   const handleSaveAndActivate = useCallback(async () => {
     await runSaveOperation({
       activate: true,
@@ -226,7 +269,6 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to save & activate plan.',
     });
   }, [createPlan, runSaveOperation]);
-
   const handleUpdateLoaded = useCallback(async () => {
     await runSaveOperation({
       activate: false,
@@ -237,7 +279,6 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to update plan.',
     });
   }, [runSaveOperation, updateLoadedPlan]);
-
   const handleUpdateAndActivate = useCallback(async () => {
     await runSaveOperation({
       activate: true,
@@ -248,7 +289,6 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to update & activate plan.',
     });
   }, [runSaveOperation, updateLoadedPlan]);
-
   return {
     saving,
     handleSaveDraft,

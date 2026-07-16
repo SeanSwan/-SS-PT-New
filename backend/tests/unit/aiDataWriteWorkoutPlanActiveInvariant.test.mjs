@@ -1,28 +1,23 @@
 /**
- * AI workout-plan active invariant regression tests.
- *
- * Guards the legacy Swan Coach save_workout_plan fallback so it cannot trip the
- * one-active-plan-per-client invariant when it creates a new active plan.
+ * ============================================================================
+ * FILE: aiDataWriteWorkoutPlanActiveInvariant.test.mjs
+ * PURPOSE: Prove Swan Coach demotes active plans before canonical creation.
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
+ * AI VILLAGE VALIDATED: 2026-07-15
+ * ============================================================================
  */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockStoreWorkoutPlanPdf = vi.hoisted(() => vi.fn(async ({ file, planId, clientId, uploadedBy }) => ({
-  url: `/api/workout-plans/${planId}/pdf/content.pdf`,
-  fileName: file.originalname,
-  contentType: 'application/pdf',
-  storage: 'local',
-  storageKey: `workout-plans/${clientId}/${planId}-ai-generated.pdf`,
-  size: file.size,
-  updatedBy: uploadedBy,
-  updatedAt: '2026-06-06T12:00:00.000Z',
-})));
-
+const harness = vi.hoisted(() => ({ create: vi.fn(), storePdf: vi.fn() }));
 vi.mock('../../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
-
+vi.mock('../../models/index.mjs', () => ({
+  getWorkoutPlan: () => ({ create: harness.create }),
+}));
 vi.mock('../../services/workoutPlanPdfStorageService.mjs', () => ({
-  storeWorkoutPlanPdf: mockStoreWorkoutPlanPdf,
+  storeWorkoutPlanPdf: harness.storePdf,
 }));
 
 const { processAIDataUpdates } = await import('../../services/aiDataWriteService.mjs');
@@ -30,27 +25,10 @@ const { processAIDataUpdates } = await import('../../services/aiDataWriteService
 function makeFakeSequelize(capture) {
   const transaction = { id: 'tx-workout-plan' };
   capture.transaction = transaction;
-
   return {
     transaction: vi.fn(async (work) => work(transaction)),
-    query: vi.fn().mockImplementation(async (sql, opts = {}) => {
-      const entry = {
-        sql,
-        replacements: opts.replacements || {},
-        type: opts.type,
-        transaction: opts.transaction,
-      };
-      capture.queries.push(entry);
-
-      if (typeof sql === 'string' && sql.includes('INSERT INTO workout_plans')) {
-        capture.insert = entry;
-        return [[{ id: 'plan-ai-2' }], { rowCount: 1 }];
-      }
-
-      if (typeof sql === 'string' && sql.includes('SET metadata = :metadata::jsonb')) {
-        capture.pdfUpdate = entry;
-      }
-
+    query: vi.fn(async (sql, options = {}) => {
+      capture.queries.push({ sql, ...options });
       return [[], { rowCount: 1 }];
     }),
     QueryTypes: { INSERT: 'INSERT', UPDATE: 'UPDATE' },
@@ -61,13 +39,16 @@ describe('aiDataWriteService save_workout_plan active invariant', () => {
   let capture;
 
   beforeEach(() => {
-    capture = { queries: [], insert: null, pdfUpdate: null, transaction: null };
-    mockStoreWorkoutPlanPdf.mockClear();
+    capture = { queries: [], create: null, transaction: null };
+    vi.clearAllMocks();
+    harness.create.mockImplementation(async (values, options) => {
+      capture.create = { values, ...options };
+      return { id: 'plan-ai-2', ...values };
+    });
   });
 
-  it('pauses existing active plans transactionally before inserting the AI-created active plan', async () => {
+  it('pauses existing active plans transactionally before creating the replacement', async () => {
     const sequelize = makeFakeSequelize(capture);
-
     const result = await processAIDataUpdates(42, [{
       type: 'save_workout_plan',
       data: {
@@ -84,37 +65,38 @@ describe('aiDataWriteService save_workout_plan active invariant', () => {
 
     expect(result).toEqual({ successful: 1, errors: [] });
     expect(sequelize.transaction).toHaveBeenCalledOnce();
-
-    const demotionIndex = capture.queries.findIndex((query) => (
-      typeof query.sql === 'string'
-      && query.sql.includes("SET status = 'paused'")
-      && query.sql.includes('WHERE "userId" = :clientId')
+    const demotionIndex = capture.queries.findIndex(({ sql }) => (
+      sql.includes("SET status = 'paused'") && sql.includes('WHERE "userId" = :clientId')
     ));
-    const insertIndex = capture.queries.findIndex((query) => (
-      typeof query.sql === 'string' && query.sql.includes('INSERT INTO workout_plans')
-    ));
-
     expect(demotionIndex).toBeGreaterThanOrEqual(0);
-    expect(insertIndex).toBeGreaterThan(demotionIndex);
-
-    const demotion = capture.queries[demotionIndex];
-    expect(demotion).toMatchObject({
+    expect(capture.create).toBeTruthy();
+    expect(capture.queries.length).toBe(demotionIndex + 1);
+    expect(capture.queries[demotionIndex]).toMatchObject({
       replacements: { clientId: 42 },
       type: 'UPDATE',
       transaction: capture.transaction,
     });
-    expect(demotion.sql).toContain('COALESCE(metadata');
-    expect(JSON.parse(demotion.replacements.demotionMetadata)).toEqual({
+    expect(JSON.parse(capture.queries[demotionIndex].replacements.demotionMetadata)).toEqual({
       isPrimaryPlan: false,
       primary: false,
     });
-
-    expect(capture.insert.transaction).toBe(capture.transaction);
-    expect(JSON.parse(capture.insert.replacements.metadata)).toMatchObject({
-      planSource: 'swan_coach_planning',
-      isPrimaryPlan: true,
-      primary: true,
+    expect(capture.create.transaction).toBe(capture.transaction);
+    expect(capture.create.values).toMatchObject({
+      status: 'active',
+      contentRevision: 1,
+      contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      metadata: {
+        planHorizon: 'six_month',
+        horizonKey: 'six_month',
+        planDurationKey: 'six_month',
+        planSource: 'swan_coach_planning',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+        isPrimaryPlan: true,
+        primary: true,
+      },
     });
-    expect(capture.pdfUpdate).toBeTruthy();
+    expect(harness.storePdf).not.toHaveBeenCalled();
   });
 });

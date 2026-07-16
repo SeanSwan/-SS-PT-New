@@ -42,8 +42,7 @@ import { buildClientTrainingOverview } from '../services/clientTrainingReadModel
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
-import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
-import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAttachmentService.mjs';
+
 import {
   createWorkoutPlanRecord,
   mutateWorkoutPlanRecord,
@@ -69,6 +68,11 @@ import {
   handleWorkoutPlanPdfUpload,
 } from './workoutPlanPdfUploadHandler.mjs';
 import { handleWorkoutPlanPdfContent } from './workoutPlanPdfContentHandler.mjs';
+import { handleWorkoutPlanPdfMetadataUpdate } from './workoutPlanPdfMetadataHandler.mjs';
+import {
+  handleWorkoutPlanPdfGenerate,
+  handleWorkoutPlanPdfStatus,
+} from './workoutPlanPdfDerivativeHandlers.mjs';
 
 const router = express.Router();
 
@@ -469,16 +473,17 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
         createdBy: createdBy || 'trainer',
         metadata: safeMetadata
       },
+      pdfDerivativeIntent: {
+        requestedBy: req.user.id,
+        reason: 'canonical_save',
+      },
     });
 
     logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
       plan.id, userId, req.user.id);
 
-    // Keep the attached client-facing PDF in lockstep with planData
-    // (brand-aware + exercise-guide appendix). Non-fatal on failure.
-    await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
 
-    res.status(201).json({ success: true, plan });
+    res.status(201).json({ success: true, plan, pdfDerivative: plan.pdfDerivative });
   } catch (error) {
     logger.error('[WorkoutPlan] POST / error: %s', error.message);
     res.status(500).json({ success: false, message: 'Failed to create workout plan' });
@@ -516,7 +521,6 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
       'planData', 'progressNotes', 'metadata'
     ];
 
-    let appliedUpdates = {};
     const mutation = await mutateWorkoutPlanRecord({
       sequelize,
       WorkoutPlan: getWorkoutPlan(),
@@ -536,21 +540,19 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
             updates[field] = req.body[field];
           }
         }
-        appliedUpdates = updates;
         return updates;
+      },
+      pdfDerivativeIntent: {
+        requestedBy: req.user.id,
+        reason: 'canonical_save',
       },
     });
     const plan = mutation.plan;
 
     logger.info('[WorkoutPlan] Updated plan #%d by user %d', plan.id, req.user.id);
 
-    // Content changed → regenerate the attached PDF so it always mirrors the
-    // latest applied plan (swaps included). Non-fatal on failure.
-    if (mutation.contentChanged || appliedUpdates.title !== undefined) {
-      await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
-    }
 
-    res.json({ success: true, plan });
+    res.json({ success: true, plan, pdfDerivative: mutation.pdfDerivative });
   } catch (error) {
     const status = Number(error?.statusCode);
     if (Number.isInteger(status) && status >= 400 && status < 500) {
@@ -576,36 +578,29 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
  * @access Trainer (assigned client) / Admin
  */
 // fallow-ignore-next-line complexity
-router.put('/:id/pdf', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  try {
-    const plan = req.workoutPlan;
-    const result = buildWorkoutPlanPdfMetadata({
-      currentMetadata: plan.metadata || {},
-      planId: plan.id,
-      pdfUrl: req.body?.pdfUrl || req.body?.url,
-      fileName: req.body?.fileName,
-      storage: req.body?.storage,
-      storageKey: req.body?.storageKey,
-      updatedBy: req.user.id,
-    });
+router.put(
+  '/:id/pdf',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfMetadataUpdate,
+);
 
-    if (!result.ok) {
-      return res.status(400).json({ success: false, message: result.message });
-    }
+router.post(
+  '/:id/pdf/generate',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfGenerate,
+);
 
-    const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(result.metadata);
-    const safePlanPdf = safeMetadata.planPdf || result.planPdf;
-
-    await plan.update({ metadata: safeMetadata });
-
-    logger.info('[WorkoutPlan] Updated plan PDF for plan #%s by user %d', plan.id, req.user.id);
-
-    return res.json({ success: true, plan, planPdf: safePlanPdf });
-  } catch (error) {
-    logger.error('[WorkoutPlan] PUT /:id/pdf error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to update workout plan PDF' });
-  }
-});
+router.get(
+  '/:id/pdf/status',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfStatus,
+);
 
 // ─────────────────────────────────────────────────────────────
 /**
@@ -771,7 +766,7 @@ const updateActivationSiblings = async (WorkoutPlan, siblings, transaction) => {
   return updatedSiblings;
 };
 
-const activateFreshWorkoutPlan = async (WorkoutPlan, freshPlan, transaction) => {
+const activateFreshWorkoutPlan = async (WorkoutPlan, freshPlan, transaction, requestedBy) => {
   const nextFresh = { ...markPlanPrimary(freshPlan, true), status: 'active' };
   const freshUpdate = { status: 'active', metadata: nextFresh.metadata };
   const mutation = await mutateWorkoutPlanRecord({
@@ -780,8 +775,13 @@ const activateFreshWorkoutPlan = async (WorkoutPlan, freshPlan, transaction) => 
     planId: freshPlan.id,
     updates: freshUpdate,
     transaction,
+    pdfDerivativeIntent: {
+      requestedBy,
+      reason: 'activation',
+      promoteGenerated: true,
+    },
   });
-  return { ...toPlainObject(mutation.plan), ...freshUpdate };
+  return { ...toPlainObject(mutation.plan), ...freshUpdate, pdfDerivative: mutation.pdfDerivative };
 };
 
 const buildActivatedPlanResponse = (updatedFresh, updatedSiblings) => {
@@ -793,11 +793,12 @@ const buildActivatedPlanResponse = (updatedFresh, updatedSiblings) => {
   return {
     success: true,
     plan: updatedFresh,
+    pdfDerivative: updatedFresh.pdfDerivative,
     trainingPlanCatalog: overview.trainingPlanCatalog,
   };
 };
 
-const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transaction) => {
+const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transaction, requestedBy) => {
   await lockClientPlanRows(WorkoutPlan, targetPlan.userId, transaction);
 
   const fresh = await WorkoutPlan.findByPk(targetPlan.id, { transaction });
@@ -805,14 +806,14 @@ const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transac
 
   const siblings = await loadActivationSiblings(WorkoutPlan, fresh, transaction);
   const updatedSiblings = await updateActivationSiblings(WorkoutPlan, siblings, transaction);
-  const updatedFresh = await activateFreshWorkoutPlan(WorkoutPlan, fresh, transaction);
+  const updatedFresh = await activateFreshWorkoutPlan(WorkoutPlan, fresh, transaction, requestedBy);
   return buildActivatedPlanResponse(updatedFresh, updatedSiblings);
 };
 
 const runActivateWorkoutPlanAttempt = async (WorkoutPlan, targetPlan, userId) => {
   const transaction = await sequelize.transaction();
   try {
-    const payload = await activateWorkoutPlanInTransaction(WorkoutPlan, targetPlan, transaction);
+    const payload = await activateWorkoutPlanInTransaction(WorkoutPlan, targetPlan, transaction, userId);
     if (!payload) {
       await transaction.rollback();
       return { status: 404, body: { success: false, message: 'Plan not found' } };

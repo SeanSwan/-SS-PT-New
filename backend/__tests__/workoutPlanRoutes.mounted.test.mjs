@@ -24,7 +24,7 @@
  *   - Trainer + plan owned by unassigned client -> 404 on GET /:id (existence-leak protection)
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import request from 'supertest';
@@ -67,11 +67,19 @@ const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
 const mockUserFindByPk = vi.fn();
 const mockSequelizeTransaction = vi.fn();
+const mockSequelizeQuery = vi.fn();
 const mockGenerateBackupPlan = vi.fn();
 const mockPromoteBackupPlan = vi.fn();
 let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
+  getWorkoutPlan: () => ({
+    findByPk: mockWorkoutPlanFindByPk,
+    findAll: mockWorkoutPlanFindAll,
+    findOne: mockWorkoutPlanFindOne,
+    update: mockWorkoutPlanUpdate,
+    create: mockWorkoutPlanCreate,
+  }),
   getModel: (name) => {
     if (name === 'ClientTrainerAssignment') {
       return { findOne: mockAssignmentFindOne };
@@ -97,6 +105,7 @@ vi.mock('../models/index.mjs', () => ({
 
 vi.mock('../database.mjs', () => ({
   default: {
+    query: (...args) => mockSequelizeQuery(...args),
     transaction: (...args) => mockSequelizeTransaction(...args),
   },
 }));
@@ -122,6 +131,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   routeUploadsRoot = await mkdtemp(path.join(os.tmpdir(), 'swan-workout-plan-route-'));
   process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT = routeUploadsRoot;
+  process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'false';
   // Defaults: no assignment, no plan.
   mockAssignmentFindOne.mockResolvedValue(null);
   mockWorkoutPlanFindByPk.mockResolvedValue(null);
@@ -129,6 +139,7 @@ beforeEach(async () => {
   mockWorkoutPlanFindOne.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue([0]);
   mockWorkoutPlanCreate.mockResolvedValue({ id: 'plan-copy-1' });
+  mockSequelizeQuery.mockResolvedValue([[], { rowCount: 0 }]);
   mockDailyWorkoutFormFindAll.mockResolvedValue([]);
   mockUserFindByPk.mockResolvedValue({
     id: 42,
@@ -149,6 +160,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   delete process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT;
+  delete process.env.TRAINING_PLAN_PDF_DERIVATIVES;
   if (routeUploadsRoot) {
     await rm(routeUploadsRoot, { recursive: true, force: true });
   }
@@ -1019,22 +1031,27 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith({
-        metadata: {
-          planHorizon: 'six_month',
-          painAware: true,
-          planPdf: {
-            url: '/api/workout-plans/plan-1/pdf/content.pdf',
-            fileName: 'Six Month Foundation.pdf',
-            contentType: 'application/pdf',
-            storage: 'r2',
-            storageKey: 'workout-plans/42/plan-1-existing.pdf',
-            size: 123,
-            updatedBy: 7,
-            updatedAt: expect.any(String),
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({}),
+          metadata: {
+            planHorizon: 'six_month',
+            painAware: true,
+            planPdf: expect.objectContaining({
+              url: '/api/workout-plans/plan-1/pdf/content.pdf',
+              fileName: 'Six Month Foundation.pdf',
+              storage: 'r2',
+              storageKey: 'workout-plans/42/plan-1-existing.pdf',
+              sourceType: 'manual',
+              state: 'ready',
+              sourceRevision: 1,
+              needsReview: false,
+            }),
           },
-        },
-      });
+        }),
+        { transaction: mockTransactionInstance },
+      );
       expect(res.body.planPdf).toMatchObject({
         url: '/api/workout-plans/plan-1/pdf/content.pdf',
         fileName: 'Six Month Foundation.pdf',
@@ -1098,19 +1115,25 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         });
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith({
-        metadata: {
-          planPdf: {
-            url: '/api/workout-plans/plan-1/pdf/content.pdf',
-            fileName: 'Plan 1.pdf',
-            contentType: 'application/pdf',
-            storage: 'r2',
-            storageKey: 'workout-plans/42/plan-1-imported-plan.pdf',
-            updatedBy: 7,
-            updatedAt: expect.any(String),
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({}),
+          metadata: {
+            planPdf: expect.objectContaining({
+              url: '/api/workout-plans/plan-1/pdf/content.pdf',
+              fileName: 'Plan 1.pdf',
+              storage: 'r2',
+              storageKey: 'workout-plans/42/plan-1-imported-plan.pdf',
+              sourceType: 'manual',
+              state: 'ready',
+              sourceRevision: 1,
+              needsReview: false,
+            }),
           },
-        },
-      });
+        }),
+        { transaction: mockTransactionInstance },
+      );
     });
 
     it('trainer + assigned plan PUT /:id/pdf rejects a private key scoped to a different plan', async () => {
@@ -1139,6 +1162,96 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(update).not.toHaveBeenCalled();
     });
 
+    it('trainer + assigned plan POST /:id/pdf/generate queues a revision-bound derivative', async () => {
+      process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'true';
+      const currentPlan = {
+        id: 'plan-1',
+        userId: 42,
+        trainerId: 7,
+        title: 'Six Month Plan',
+        status: 'active',
+        contentRevision: 3,
+        contentHash: 'a'.repeat(64),
+        planData: { weeks: [] },
+        metadata: {},
+        update: vi.fn(),
+      };
+      currentPlan.update.mockImplementation(async (updates) => {
+        Object.assign(currentPlan, updates);
+        return currentPlan;
+      });
+      mockWorkoutPlanFindByPk.mockResolvedValue(currentPlan);
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      mockSequelizeQuery.mockImplementation(async (sql, options) => {
+        if (sql.includes('SELECT "clientSource"')) return [[{ clientSource: 'swanstudios' }]];
+        if (sql.includes('INSERT INTO workout_plan_pdf_derivatives')) {
+          return [[{
+            id: 'job-3',
+            state: 'pending',
+            source_type: 'generated',
+            source_revision: 3,
+            source_hash: options.replacements.sourceHash,
+            render_hash: options.replacements.renderHash,
+            renderer_version: options.replacements.rendererVersion,
+            needs_review: false,
+            attempt_count: 0,
+          }]];
+        }
+        return [[], { rowCount: 0 }];
+      });
+
+      const res = await request(app)
+        .post('/api/workout-plans/plan-1/pdf/generate')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({ expectedRevision: 3 });
+
+      expect(res.status).toBe(202);
+      expect(res.body.pdfDerivative).toMatchObject({
+        enabled: true,
+        id: 'job-3',
+        state: 'pending',
+        sourceType: 'generated',
+        sourceRevision: 3,
+      });
+      const outboxCall = mockSequelizeQuery.mock.calls.find(([sql]) => (
+        sql.includes('INSERT INTO workout_plan_pdf_derivatives')
+      ));
+      expect(outboxCall[1].transaction).toBe(mockTransactionInstance);
+    });
+
+    it('trainer + assigned plan GET /:id/pdf/status returns no private storage key', async () => {
+      process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'true';
+      mockWorkoutPlanFindByPk.mockResolvedValue({ id: 'plan-1', userId: 42 });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      mockSequelizeQuery.mockResolvedValueOnce([[
+        {
+          id: 'job-ready',
+          state: 'ready',
+          source_type: 'generated',
+          source_revision: 3,
+          source_hash: 'a'.repeat(64),
+          render_hash: 'b'.repeat(64),
+          renderer_version: 'swan-plan-pdf-v1',
+          storage_key: 'workout-plans/42/private-generated.pdf',
+          needs_review: false,
+          attempt_count: 1,
+        },
+      ]]);
+
+      const res = await request(app)
+        .get('/api/workout-plans/plan-1/pdf/status')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(res.body.pdfDerivative).toMatchObject({
+        enabled: true,
+        state: 'ready',
+        latestGenerated: { id: 'job-ready', state: 'ready', sourceType: 'generated' },
+      });
+      expect(JSON.stringify(res.body)).not.toContain('private-generated.pdf');
+    });
     it('trainer + assigned plan POST /:id/pdf/upload stores a multipart PDF as plan metadata', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
@@ -1161,22 +1274,32 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         );
 
       expect(res.status).toBe(200);
-      expect(update).toHaveBeenCalledWith({
-        metadata: {
-          planHorizon: 'six_month',
-          painAware: true,
-          planPdf: expect.objectContaining({
-            url: '/api/workout-plans/plan-1/pdf/content.pdf',
-            fileName: 'Six Month Foundation.pdf',
-            contentType: 'application/pdf',
-            storage: 'local',
-            storageKey: expect.stringMatching(/^workout-plans\/42\/plan-1-/),
-            size: expect.any(Number),
-            updatedBy: 7,
-            updatedAt: expect.any(String),
-          }),
-        },
-      });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentRevision: 1,
+          contentHash: hashWorkoutPlanContent({}),
+          metadata: {
+            planHorizon: 'six_month',
+            painAware: true,
+            planPdf: expect.objectContaining({
+              url: '/api/workout-plans/plan-1/pdf/content.pdf',
+              fileName: 'Six Month Foundation.pdf',
+              contentType: 'application/pdf',
+              storage: 'local',
+              storageKey: expect.stringMatching(/^workout-plans\/42\/plan-1-/),
+              size: expect.any(Number),
+              updatedBy: 7,
+              updatedAt: expect.any(String),
+              sourceType: 'manual',
+              state: 'ready',
+              sourceRevision: 1,
+              checksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+              needsReview: false,
+            }),
+          },
+        }),
+        { transaction: mockTransactionInstance },
+      );
       expect(res.body.planPdf).toMatchObject({
         url: '/api/workout-plans/plan-1/pdf/content.pdf',
         fileName: 'Six Month Foundation.pdf',
@@ -1185,6 +1308,33 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       });
     });
 
+    it('cleans up an uploaded PDF when its metadata transaction fails', async () => {
+      const update = vi.fn();
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Cleanup Plan',
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      mockSequelizeTransaction.mockRejectedValueOnce(new Error('database write failed'));
+
+      const res = await request(app)
+        .post('/api/workout-plans/plan-1/pdf/upload')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .attach(
+          'pdf',
+          Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n'),
+          { filename: 'Cleanup Plan.pdf', contentType: 'application/pdf' },
+        );
+
+      expect(res.status).toBe(500);
+      const remaining = await readdir(routeUploadsRoot, { recursive: true });
+      expect(remaining.filter((entry) => entry.endsWith('.pdf'))).toEqual([]);
+      expect(update).not.toHaveBeenCalled();
+    });
     it('trainer + assigned plan GET /:id/pdf/content.pdf streams the stored local PDF after access checks', async () => {
       const storageKey = 'workout-plans/42/plan-1-upload.pdf';
       await mkdir(path.join(routeUploadsRoot, 'workout-plans', '42'), { recursive: true });

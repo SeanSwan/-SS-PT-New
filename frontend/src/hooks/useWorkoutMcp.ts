@@ -128,20 +128,27 @@ export const useWorkoutMcp = () => {
     const payload = buildWorkoutPlanSavePayload(plan, { ...options, userRole: user?.role });
     const response = await apiService.post('/api/workout-plans', payload);
     const planId = response.data?.plan?.id;
+    let pdfDerivative = response.data?.pdfDerivative;
     if (options.activate && planId) {
-      await apiService.put(`/api/workout-plans/${encodeURIComponent(String(planId))}/activate`);
+      const activation = await apiService.put(
+        `/api/workout-plans/${encodeURIComponent(String(planId))}/activate`,
+      );
+      pdfDerivative = activation.data?.pdfDerivative ?? pdfDerivative;
     }
-    const pdfAttachment = options.attachPdf && planId
-      ? await attachWorkoutPlanPdf({
-        api: apiService,
-        planId,
-        planData: payload.planData,
-        clientName: options.clientName,
-        goal: payload.planData.goal || plan.goal,
-        nasmPhase: payload.nasmPhase,
-        durationWeeks: payload.durationWeeks,
-      })
-      : 'skipped';
+    const serverOwnsPdf = pdfDerivative?.enabled === true;
+    const pdfAttachment = serverOwnsPdf
+      ? (pdfDerivative?.state === 'ready' ? 'attached' : 'queued')
+      : options.attachPdf && planId
+        ? await attachWorkoutPlanPdf({
+          api: apiService,
+          planId,
+          planData: payload.planData,
+          clientName: options.clientName,
+          goal: payload.planData.goal || plan.goal,
+          nasmPhase: payload.nasmPhase,
+          durationWeeks: payload.durationWeeks,
+        })
+        : 'skipped';
     return response.data && typeof response.data === 'object'
       ? { ...response.data, pdfAttachment }
       : { data: response.data, pdfAttachment };

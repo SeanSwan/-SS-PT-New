@@ -2,7 +2,7 @@
  * ============================================================================
  * FILE: workoutPlanMutationService.mjs
  * PURPOSE: Own every transactional WorkoutPlan create and update invariant.
- * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-15
+ * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
  * AI VILLAGE VALIDATED: 2026-07-15
  * ============================================================================
  *
@@ -19,6 +19,11 @@ import {
   hashWorkoutPlanContent,
   resolveWorkoutPlanContentRevision,
 } from './workoutPlanRevisionService.mjs';
+import {
+  markManualPdfMetadataNeedsReview,
+  markManualWorkoutPlanPdfNeedsReview,
+  requestWorkoutPlanPdfDerivative,
+} from './workoutPlanPdfDerivativeService.mjs';
 
 const RESERVED_UPDATE_FIELDS = new Set([
   'id',
@@ -31,13 +36,6 @@ const RESERVED_UPDATE_FIELDS = new Set([
 const isRecord = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 const isContentHash = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 
-// SECTION: Typed boundary errors and dependency guards
-// PURPOSE: Keep route/service callers on one stable status/code contract.
-// WHY: Transaction, lock, and ownership failures must fail closed and remain diagnosable.
-
-/**
- * Typed error for invalid or unavailable WorkoutPlan mutations.
- */
 export class WorkoutPlanMutationError extends Error {
   constructor(message, { code, statusCode, field } = {}) {
     super(message);
@@ -89,20 +87,50 @@ const resolveUpdates = async (updates, plan) => {
   return resolved;
 };
 
-// SECTION: Canonical transactional write operations
-// PURPOSE: Apply content identity exactly once for creates and locked updates.
-// WHY: Bypassing this boundary would permit hash drift or lost concurrent edits.
+const attachPdfDerivativeSummary = (plan, summary) => {
+  if (!summary || !plan) return;
+  if (typeof plan.setDataValue === 'function') {
+    plan.setDataValue('pdfDerivative', summary);
+  } else {
+    plan.pdfDerivative = summary;
+  }
+};
 
-/**
- * Creates a WorkoutPlan with revision-one prescribed-content identity.
- * @param {object} input Injected Sequelize/model dependencies and create values.
- * @returns {Promise<object>} The created Sequelize model instance.
- */
+const applyPdfDerivativeEffects = async ({
+  sequelize,
+  plan,
+  contentChanged,
+  pdfDerivativeIntent,
+  transaction,
+}) => {
+  if (contentChanged) {
+    await markManualWorkoutPlanPdfNeedsReview({
+      sequelize,
+      planId: plan.id,
+      transaction,
+    });
+  }
+  if (!pdfDerivativeIntent) return null;
+
+  const summary = await requestWorkoutPlanPdfDerivative({
+    sequelize,
+    plan,
+    requestedBy: pdfDerivativeIntent.requestedBy,
+    reason: pdfDerivativeIntent.reason,
+    promoteGenerated: pdfDerivativeIntent.promoteGenerated,
+    clientSource: pdfDerivativeIntent.clientSource,
+    transaction,
+  });
+  attachPdfDerivativeSummary(plan, summary);
+  return summary;
+};
+
 export const createWorkoutPlanRecord = async ({
   sequelize,
   WorkoutPlan,
   values,
   transaction,
+  pdfDerivativeIntent,
 } = {}) => {
   assertModelCapability(WorkoutPlan, 'create');
   if (!isRecord(values)) {
@@ -115,21 +143,24 @@ export const createWorkoutPlanRecord = async ({
   const planData = isRecord(values.planData) ? values.planData : {};
   const contentHash = hashWorkoutPlanContent(planData);
 
-  return runInTransaction({ sequelize, transaction }, (activeTransaction) => (
-    WorkoutPlan.create({
+  return runInTransaction({ sequelize, transaction }, async (activeTransaction) => {
+    const plan = await WorkoutPlan.create({
       ...values,
       planData,
       contentRevision: 1,
       contentHash,
-    }, { transaction: activeTransaction })
-  ));
+    }, { transaction: activeTransaction });
+    await applyPdfDerivativeEffects({
+      sequelize,
+      plan,
+      contentChanged: false,
+      pdfDerivativeIntent,
+      transaction: activeTransaction,
+    });
+    return plan;
+  });
 };
 
-/**
- * Locks and mutates one WorkoutPlan with optimistic prescription concurrency.
- * @param {object} input Injected dependencies, plan id, updates, and expectation.
- * @returns {Promise<{plan: object, contentChanged: boolean, contentRevision: number, contentHash: string}>}
- */
 export const mutateWorkoutPlanRecord = async ({
   sequelize,
   WorkoutPlan,
@@ -137,6 +168,7 @@ export const mutateWorkoutPlanRecord = async ({
   updates,
   expectedRevision,
   transaction,
+  pdfDerivativeIntent,
 } = {}) => {
   assertModelCapability(WorkoutPlan, 'findByPk');
   if (planId === undefined || planId === null || planId === '') {
@@ -182,17 +214,35 @@ export const mutateWorkoutPlanRecord = async ({
       nextPlanData,
       expectedRevision,
     });
-    const persistedPlan = await plan.update({
+    const contentChanged = hadIdentity ? identity.changed : hasPlanDataUpdate;
+    const persistedUpdates = {
       ...safeUpdates,
+      ...(contentChanged ? {
+        metadata: markManualPdfMetadataNeedsReview(
+          Object.hasOwn(safeUpdates, 'metadata') ? safeUpdates.metadata : plan.metadata,
+        ),
+      } : {}),
       contentRevision: identity.revision,
       contentHash: identity.hash,
-    }, { transaction: activeTransaction });
+    };
+    const persistedPlan = await plan.update(persistedUpdates, {
+      transaction: activeTransaction,
+    });
+    const currentPlan = persistedPlan || plan;
+    const pdfDerivative = await applyPdfDerivativeEffects({
+      sequelize,
+      plan: currentPlan,
+      contentChanged,
+      pdfDerivativeIntent,
+      transaction: activeTransaction,
+    });
 
     return {
-      plan: persistedPlan || plan,
-      contentChanged: hadIdentity ? identity.changed : hasPlanDataUpdate,
+      plan: currentPlan,
+      contentChanged,
       contentRevision: identity.revision,
       contentHash: identity.hash,
+      pdfDerivative,
     };
   });
 };

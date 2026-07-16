@@ -124,6 +124,10 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
       updates: {
         planData: normalizeWorkoutPlanDataForPersistence(planData),
       },
+      pdfDerivativeIntent: {
+        requestedBy: req.user?.id ?? null,
+        reason: 'approved_ai_edit',
+      },
     });
   }
 

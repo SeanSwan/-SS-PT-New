@@ -128,4 +128,35 @@ describe('workoutPlanPdfAttachmentService', () => {
       restorePdfEnv();
     }
   });
+  it('exposes derivative provenance without leaking private storage keys', () => {
+    const attachment = extractWorkoutPlanPdfAttachment({
+      planPdf: {
+        url: '/api/workout-plans/plan-1/pdf/content.pdf',
+        fileName: 'Generated Plan.pdf',
+        storageKey: 'workout-plans/42/private-plan.pdf',
+        sourceType: 'generated',
+        state: 'ready',
+        sourceRevision: 6,
+        sourceHash: 'a'.repeat(64),
+        renderHash: 'b'.repeat(64),
+        rendererVersion: 'swan-plan-pdf-v1',
+        derivativeId: 'job-6',
+        checksum: 'c'.repeat(64),
+        needsReview: false,
+      },
+    });
+
+    expect(attachment).toMatchObject({
+      sourceType: 'generated',
+      state: 'ready',
+      sourceRevision: 6,
+      sourceHash: 'a'.repeat(64),
+      renderHash: 'b'.repeat(64),
+      rendererVersion: 'swan-plan-pdf-v1',
+      derivativeId: 'job-6',
+      checksum: 'c'.repeat(64),
+      needsReview: false,
+    });
+    expect(attachment).not.toHaveProperty('storageKey');
+  });
 });
