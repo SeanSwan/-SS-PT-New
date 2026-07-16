@@ -49,6 +49,7 @@ describe('command registry execution coverage', () => {
         'planner_rearrange_workout',
         'planner_remove_exercise',
         'planner_swap_exercise',
+        'planner_undo_last_change',
         'planner_update_exercise',
         'submit_workout_form',
         'toggle_nasm_item',

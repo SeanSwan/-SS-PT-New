@@ -12,8 +12,9 @@ import React, { useEffect, useRef } from 'react';
 import { Mic, Speech } from 'lucide-react';
 import {
   ClientChip, DockBar, DockFooterRow, DockTextarea, DockTitle, DockWrap,
-  InputRow, InterimHint, MicBtn, OpenBtn, ReceiptFeed, ReceiptRow, SendBtn,
+  InputRow, InterimHint, MicBtn, OpenBtn, ReceiptActionBtn, ReceiptFeed, ReceiptRow, SendBtn,
 } from './WorkoutPlannerCoachDock.styles';
+import type { CoachDockReceiptAction } from './useWorkoutPlannerCoachDock';
 
 export interface WorkoutPlannerCoachDockProps {
   /** Selected client display name; null = no client selected (dock disabled). */
@@ -28,7 +29,9 @@ export interface WorkoutPlannerCoachDockProps {
   voiceOverlay: React.ReactNode;
   submitting: boolean;
   handleSubmit: () => Promise<void> | void;
-  receipts: Array<{ id: string; ok: boolean; text: string }>;
+  /** Fired when the single action on an actionable receipt is tapped. */
+  onReceiptAction: (receiptId: string, action: CoachDockReceiptAction) => void;
+  receipts: Array<{ id: string; ok: boolean; text: string; action?: CoachDockReceiptAction }>;
 }
 
 const EXAMPLE_PROMPTS =
@@ -36,7 +39,7 @@ const EXAMPLE_PROMPTS =
 
 const WorkoutPlannerCoachDock: React.FC<WorkoutPlannerCoachDockProps> = ({
   clientName, open, toggleOpen, dockText, setDockText, listening, interim,
-  handleVoice, voiceOverlay, submitting, handleSubmit, receipts,
+  handleVoice, voiceOverlay, submitting, handleSubmit, onReceiptAction, receipts,
 }) => {
   const feedRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -89,6 +92,14 @@ const WorkoutPlannerCoachDock: React.FC<WorkoutPlannerCoachDockProps> = ({
           <ReceiptRow key={receipt.id} $ok={receipt.ok}>
             <span aria-hidden="true">{receipt.ok ? '✓' : '✗'}</span>
             {receipt.text}
+            {receipt.action ? (
+              <ReceiptActionBtn
+                type="button"
+                onClick={() => onReceiptAction(receipt.id, receipt.action!)}
+              >
+                {receipt.action.label}
+              </ReceiptActionBtn>
+            ) : null}
           </ReceiptRow>
         ))}
         {submitting ? <ReceiptRow $muted>Swan Coach is thinking…</ReceiptRow> : null}

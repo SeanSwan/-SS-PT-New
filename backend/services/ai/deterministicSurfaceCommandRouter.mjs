@@ -8,8 +8,13 @@
 
 const EDITOR_ROLES = new Set(['admin', 'trainer']);
 const MAX_INSTRUCTION_LENGTH = 4000;
-const DIRECT_SEQUENCE_IMPERATIVE = /^(?:(?:please)\s+|(?:(?:can|could|would|will)\s+you)\s+|(?:i\s+(?:want|need)\s+you\s+to)\s+)?(?:rearrange|reorder|optimi[sz]e|organi[sz]e|sequence)\b/i;
+const POLITE_LEAD_IN = String.raw`(?:(?:please)\s+|(?:(?:can|could|would|will)\s+you)\s+|(?:i\s+(?:want|need)\s+you\s+to)\s+)?`;
+const DIRECT_SEQUENCE_IMPERATIVE = new RegExp(`^${POLITE_LEAD_IN}(?:rearrange|reorder|optimi[sz]e|organi[sz]e|sequence)\\b`, 'i');
 const PLAN_SEQUENCE_OBJECT = /\b(?:workout|plan|exercises?|movements?|session|day|order|sequence|flow)\b/i;
+// Undo is one-shot and scope-free: any direct "undo …" imperative on the
+// Planner maps to the guarded one-level Undo; the browser hook decides
+// honestly whether an undo is still valid.
+const DIRECT_UNDO_IMPERATIVE = new RegExp(`^${POLITE_LEAD_IN}undo\\b`, 'i');
 
 const trustedPlannerEnvelope = (envelope) => (
   envelope
@@ -29,6 +34,17 @@ export function routeDeterministicSurfaceCommand(message, contextEnvelope) {
 
   const instruction = message.trim();
   if (!instruction || instruction.length > MAX_INSTRUCTION_LENGTH) return null;
+
+  if (DIRECT_UNDO_IMPERATIVE.test(instruction)) {
+    return {
+      intent: 'planner_undo_last_change',
+      clientRef: null,
+      params: {},
+      confidence: 1,
+      source: 'deterministic_surface_router',
+    };
+  }
+
   if (!DIRECT_SEQUENCE_IMPERATIVE.test(instruction)) return null;
   if (!PLAN_SEQUENCE_OBJECT.test(instruction)) return null;
 

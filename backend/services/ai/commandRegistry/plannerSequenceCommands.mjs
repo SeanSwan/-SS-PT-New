@@ -28,6 +28,23 @@ const commands = [{
   requiresClientRef: false,
   category: 'B',
   frontendEvent: 'AI_PLANNER_REARRANGE',
+}, {
+  type: 'planner_undo_last_change',
+  description: 'Undo the last Swan Coach rearrangement in the open Workout Planner',
+  naturalLanguagePatterns: [
+    'undo that',
+    'undo the last planner change',
+    'undo the rearrangement',
+  ],
+  method: 'FRONTEND_DISPATCH',
+  endpoint: 'AI_PLANNER_UNDO',
+  inputSchema: z.object({}).strict(),
+  destructive: false,
+  requiresConfirmation: false,
+  roleRequired: ['admin', 'trainer'],
+  requiresClientRef: false,
+  category: 'B',
+  frontendEvent: 'AI_PLANNER_UNDO',
 }];
 
 export function register() {

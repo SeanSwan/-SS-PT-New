@@ -22,7 +22,13 @@ import {
   type CoachSpeechRuntimeFailure,
 } from '../coach-assistant/hooks/useCoachBrowserSpeechInput';
 
-export interface CoachDockReceiptInput { ok: boolean; text: string }
+/** One-tap follow-up rendered on a receipt row (e.g. Undo a rearrangement). */
+export interface CoachDockReceiptAction {
+  label: string;
+  eventName: string;
+  payload?: Record<string, unknown>;
+}
+export interface CoachDockReceiptInput { ok: boolean; text: string; action?: CoachDockReceiptAction }
 export interface CoachDockReceipt extends CoachDockReceiptInput { id: string }
 
 const COACH_UNREACHABLE = 'Swan Coach is unreachable — try again.';

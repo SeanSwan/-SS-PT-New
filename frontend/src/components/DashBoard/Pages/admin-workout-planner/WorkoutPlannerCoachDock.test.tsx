@@ -20,6 +20,7 @@ const baseProps: WorkoutPlannerCoachDockProps = {
   voiceOverlay: null,
   submitting: false,
   handleSubmit: vi.fn(),
+  onReceiptAction: vi.fn(),
   receipts: [],
 };
 
@@ -92,6 +93,22 @@ describe('WorkoutPlannerCoachDock', () => {
   it('shows the example prompts row when the feed is empty', () => {
     render(<WorkoutPlannerCoachDock {...baseProps} open />);
     expect(screen.getByText(/Try: "Add goblet squats, three sets of twelve"/)).toBeInTheDocument();
+  });
+
+  it('renders a single accessible receipt action and identifies its receipt', () => {
+    const onReceiptAction = vi.fn();
+    const action = { label: 'Undo', eventName: 'AI_PLANNER_UNDO', payload: {} };
+    render(
+      <WorkoutPlannerCoachDock
+        {...baseProps}
+        open
+        onReceiptAction={onReceiptAction}
+        receipts={[{ id: 'r1', ok: true, text: 'Reordered 3 exercises.', action }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(onReceiptAction).toHaveBeenCalledWith('r1', action);
   });
 
   it('shows only the muted select-a-client bar when no client is selected', () => {

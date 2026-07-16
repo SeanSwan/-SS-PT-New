@@ -90,6 +90,25 @@ export const ReceiptRow = styled.p<{ $ok?: boolean; $muted?: boolean }>`
   }
 `;
 
+export const ReceiptActionBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 64px;
+  margin-left: 10px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-primary, #60C0F0);
+  background: transparent;
+  color: var(--accent-primary, #60C0F0);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { background: rgba(96, 192, 240, 0.12); }
+  ${focusRing}
+`;
+
 export const InputRow = styled.div`
   display: flex;
   align-items: stretch;

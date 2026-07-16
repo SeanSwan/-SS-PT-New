@@ -16,8 +16,7 @@ import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGeneratio
 import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
-import { useWorkoutPlannerCoachDock, pushWorkoutPlannerCoachReceipt } from './useWorkoutPlannerCoachDock';
-import { useWorkoutPlannerAiEvents } from './useWorkoutPlannerAiEvents';
+import { useWorkoutPlannerCoachSurface } from './useWorkoutPlannerCoachSurface';
 import { type PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
@@ -168,8 +167,7 @@ const WorkoutPlannerPage: React.FC = () => {
 
   const requestSwanCoachWorkoutForSelectedClient = useCallback(() => { void handleSwanCoachWorkoutGenerate(selectedClientId); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
-  const coachDock = useWorkoutPlannerCoachDock({ selectedClientId, pushReceipt: pushWorkoutPlannerCoachReceipt });
-  useWorkoutPlannerAiEvents({ planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, pushReceipt: pushWorkoutPlannerCoachReceipt, phase });
+  const coachDock = useWorkoutPlannerCoachSurface({ selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, phase, phaseNumber });
 
   const {
     savedPlans, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,

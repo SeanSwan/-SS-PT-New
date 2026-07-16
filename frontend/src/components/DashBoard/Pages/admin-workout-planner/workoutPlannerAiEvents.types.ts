@@ -41,6 +41,13 @@ export interface PlannerGeneratePayload {
   phase?: number;
 }
 
+export interface PlannerRearrangePayload {
+  instruction: string;
+}
+
+/** AI_PLANNER_UNDO carries no fields — the hook owns the guarded history. */
+export type PlannerUndoPayload = Record<string, never>;
+
 /** Selected Detailed-Schedule day, surfaced by LongHorizonScheduleView. */
 export interface PlannerHorizonSelection {
   weekNumber: number;

@@ -54,6 +54,31 @@ describe('deterministicSurfaceCommandRouter', () => {
   });
 
   it.each([
+    'Undo that.',
+    'Undo the last planner change.',
+    'Please undo the rearrangement.',
+  ])('routes a direct Planner Undo without asking the LLM: %s', async (message) => {
+    const service = await loadRouter();
+
+    expect(service?.routeDeterministicSurfaceCommand(message, envelope())).toEqual({
+      intent: 'planner_undo_last_change',
+      clientRef: null,
+      params: {},
+      confidence: 1,
+      source: 'deterministic_surface_router',
+    });
+  });
+
+  it('does not route Undo outside the Workout Planner surface', async () => {
+    const service = await loadRouter();
+
+    expect(service?.routeDeterministicSurfaceCommand(
+      'Undo that.',
+      envelope('coach-command-center'),
+    )).toBeNull();
+  });
+
+  it.each([
     'What does workout sequencing mean?',
     'How would you organize workout plans in general?',
     'Tell me why exercise order matters.',

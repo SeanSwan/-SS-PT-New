@@ -94,6 +94,19 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
     });
   });
 
+  it('registers Undo as a typed Planner-only browser command', () => {
+    const command = getCommand('planner_undo_last_change');
+
+    expect(command).toMatchObject({
+      type: 'planner_undo_last_change',
+      method: 'FRONTEND_DISPATCH',
+      frontendEvent: 'AI_PLANNER_UNDO',
+      requiresConfirmation: false,
+      destructive: false,
+      roleRequired: ['admin', 'trainer'],
+    });
+  });
+
   it('remaps logger twins to the planner family on the workout-planner surface', () => {
     const add = applySurfaceIntentRemap(intent('add_exercise_to_form', { exerciseName: 'Goblet Squat' }), { surface: 'workout-planner' });
     expect(add.intent).toBe('planner_add_exercise');
@@ -155,6 +168,23 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
       command: 'planner_rearrange_workout',
       event: 'AI_PLANNER_REARRANGE',
       payload: { instruction: phrase },
+      fallbackToChat: false,
+    });
+    expect(mockClassifyIntent).not.toHaveBeenCalled();
+  });
+
+  it('routes direct Planner Undo without a classifier or chat fallback', async () => {
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'Undo that.', routeContext: { surface: 'workout-planner' } })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'frontend_dispatch',
+      command: 'planner_undo_last_change',
+      event: 'AI_PLANNER_UNDO',
+      payload: {},
       fallbackToChat: false,
     });
     expect(mockClassifyIntent).not.toHaveBeenCalled();
