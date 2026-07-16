@@ -65,6 +65,7 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
 const mockWorkoutPlanCreate = vi.fn();
 const mockDailyWorkoutFormFindAll = vi.fn();
+const mockUserFindByPk = vi.fn();
 const mockSequelizeTransaction = vi.fn();
 const mockGenerateBackupPlan = vi.fn();
 const mockPromoteBackupPlan = vi.fn();
@@ -86,6 +87,9 @@ vi.mock('../models/index.mjs', () => ({
     }
     if (name === 'DailyWorkoutForm') {
       return { findAll: mockDailyWorkoutFormFindAll };
+    }
+    if (name === 'User') {
+      return { findByPk: mockUserFindByPk };
     }
     return null;
   },
@@ -126,6 +130,11 @@ beforeEach(async () => {
   mockWorkoutPlanUpdate.mockResolvedValue([0]);
   mockWorkoutPlanCreate.mockResolvedValue({ id: 'plan-copy-1' });
   mockDailyWorkoutFormFindAll.mockResolvedValue([]);
+  mockUserFindByPk.mockResolvedValue({
+    id: 42,
+    timeZone: 'America/Los_Angeles',
+    timeZoneConfigured: false,
+  });
   mockTransactionInstance = {
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined),

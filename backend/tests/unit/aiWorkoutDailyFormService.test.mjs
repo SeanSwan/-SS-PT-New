@@ -21,6 +21,8 @@ function makeTransaction() {
 function makeClient(overrides = {}) {
   return {
     id: 42,
+    timeZone: 'UTC',
+    timeZoneConfigured: true,
     clientSource: 'swanstudios',
     availableSessions: 2,
     decrement: vi.fn(async () => undefined),

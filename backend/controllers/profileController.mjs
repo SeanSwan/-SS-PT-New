@@ -14,6 +14,7 @@ import logger from '../utils/logger.mjs';
 import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import { sanitizeImageUrl } from '../utils/imageUrl.mjs';
+import { normalizeClientTimeZoneUpdate } from '../services/clientTrainingDateService.mjs';
 
 // Get directory name in ES modules context
 const __filename = fileURLToPath(import.meta.url);
@@ -366,7 +367,7 @@ export const updateUserProfile = async (req, res) => {
       'firstName', 'lastName', 'phone', 'email', 'photo', 'bannerPhoto', 'bio',
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
-      'emailNotifications', 'smsNotifications', 'preferences',
+      'emailNotifications', 'smsNotifications', 'preferences', 'timeZone',
       'notificationPreferences',
       'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
       'showWorkoutHistory', 'showLevel', 'chartVisibility',
@@ -504,6 +505,14 @@ export const updateUserProfile = async (req, res) => {
       );
     }
 
+    if (updateData.timeZone !== undefined) {
+      try {
+        updateData.timeZone = normalizeClientTimeZoneUpdate(updateData.timeZone);
+      } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+    }
+
     // Filter out fields that are not allowed to be updated
     const filteredUpdateData = Object.keys(updateData)
       .filter(key => allowedFields.includes(key))
@@ -511,6 +520,10 @@ export const updateUserProfile = async (req, res) => {
         obj[key] = updateData[key];
         return obj;
       }, {});
+    if (updateData.timeZone !== undefined) {
+      filteredUpdateData.timeZoneConfigured = true;
+    }
+
     
     // If there's nothing to update
     if (Object.keys(filteredUpdateData).length === 0) {
@@ -585,7 +598,7 @@ export const updateClientProfile = async (req, res) => {
       'firstName', 'lastName', 'phone', 'photo',
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
-      'emailNotifications', 'smsNotifications', 'preferences'
+      'emailNotifications', 'smsNotifications', 'preferences', 'timeZone'
     ];
 
     // 2026-05-11 SLICE 3 sibling sweep: same photo allowlist as
@@ -601,6 +614,14 @@ export const updateClientProfile = async (req, res) => {
       updateData.photo = sanitizedPhoto;
     }
 
+    if (updateData.timeZone !== undefined) {
+      try {
+        updateData.timeZone = normalizeClientTimeZoneUpdate(updateData.timeZone);
+      } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+    }
+
     // Filter out fields that are not allowed to be updated
     const filteredUpdateData = Object.keys(updateData)
       .filter(key => allowedFields.includes(key))
@@ -608,6 +629,9 @@ export const updateClientProfile = async (req, res) => {
         obj[key] = updateData[key];
         return obj;
       }, {});
+    if (updateData.timeZone !== undefined) {
+      filteredUpdateData.timeZoneConfigured = true;
+    }
 
     // If there's nothing to update
     if (Object.keys(filteredUpdateData).length === 0) {

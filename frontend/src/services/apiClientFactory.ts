@@ -6,6 +6,7 @@ import {
   shouldFailClosedForExpiredSession,
 } from './authRequestPolicy';
 import { ProductionTokenManager } from './productionTokenManager';
+import { getBrowserTimeZoneHeader } from './clientTimeZoneHeader';
 import { restoreAdminSessionFromImpersonation } from '../utils/adminImpersonationSession';
 
 type PaywallTriggerFn = (featureName: string, data?: Record<string, unknown>) => void;
@@ -54,6 +55,10 @@ export const createProductionApiClient = (
   client.interceptors.request.use(
     async (config) => {
       const token = ProductionTokenManager.getToken();
+      const clientTimeZone = getBrowserTimeZoneHeader();
+      if (clientTimeZone) {
+        config.headers['X-Client-Timezone'] = clientTimeZone;
+      }
 
       if (token && !isPublicAuthRequest(config.url)) {
         if (ProductionTokenManager.isTokenExpired(token)) {

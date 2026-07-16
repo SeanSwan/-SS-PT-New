@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
@@ -75,8 +76,9 @@ describe('clientWorkoutRoutes current primary plan selection', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe('plan-9m');
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
     expect(res.body.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-9m:w1:d1:homework',
+      assignmentKey: 'plan-9m:w1:d1:' + today + ':o1:r1',
       title: 'Nine Month Primary Arc',
       firstExerciseName: 'Cossack Squat',
       isBillable: false,

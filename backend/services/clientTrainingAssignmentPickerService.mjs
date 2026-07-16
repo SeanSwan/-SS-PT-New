@@ -8,6 +8,7 @@
 
 import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
+import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
@@ -154,7 +155,7 @@ const buildPickerAssignment = ({ plan, rawPlan, weekNumber, day, dayIndex, today
 
 export const buildClientTrainingAssignmentPicker = ({
   plans = [],
-  today = new Date().toISOString().slice(0, 10),
+  today = formatDateOnlyInTimeZone(new Date(), DEFAULT_CLIENT_TIME_ZONE),
   assignmentCompletions = [],
   limit = 160,
 } = {}) => {

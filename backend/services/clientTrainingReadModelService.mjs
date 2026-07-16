@@ -15,6 +15,7 @@ import { buildCompletedAssignmentFromLoggedCompletion } from './clientTrainingCo
 import { buildHomeworkSummary } from './clientTrainingHomeworkSummaryService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
 import { buildWorkoutPlanAssignmentIdentity } from './workoutPlanAssignmentIdentityService.mjs';
+import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const toPositiveInteger = (value, fallback = null) => {
@@ -23,7 +24,7 @@ const toPositiveInteger = (value, fallback = null) => {
 };
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const firstCompactString = (...values) => values.map(compactString).find(Boolean) || null;
-const todayDateOnly = () => new Date().toISOString().slice(0, 10);
+const todayDateOnly = () => formatDateOnlyInTimeZone(new Date(), DEFAULT_CLIENT_TIME_ZONE);
 const isDateOnlyString = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 const parseDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value);

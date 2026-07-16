@@ -6,7 +6,7 @@
  * confirms the assignment matches the active plan cursor.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
@@ -157,6 +157,8 @@ beforeEach(() => {
   mockUserDecrement.mockResolvedValue(undefined);
   mockUserFindByPk.mockResolvedValue({
     id: 11,
+    timeZone: 'UTC',
+    timeZoneConfigured: true,
     clientSource: 'swanstudios',
     availableSessions: 0,
     decrement: mockUserDecrement,
@@ -177,6 +179,10 @@ beforeEach(() => {
   const activePlan = buildActivePlan();
   mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
   mockWorkoutPlanFindByPk.mockResolvedValue(activePlan);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('POST /api/workout-forms planned assignment logging', () => {
@@ -247,6 +253,29 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 
+  it('accepts the client local day when it is still the previous UTC date', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-07T16:30:00.000Z'));
+    mockUserFindByPk.mockResolvedValue({
+      id: 11,
+      timeZone: 'Asia/Tokyo',
+      timeZoneConfigured: true,
+      clientSource: 'swanstudios',
+      availableSessions: 0,
+      decrement: mockUserDecrement,
+    });
+
+    const res = await request(app).post('/api/workout-forms').send({
+      ...payload,
+      date: '2026-03-08',
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockDailyWorkoutFormCreate.mock.calls[0][0]).toMatchObject({
+      clientId: 11,
+      date: '2026-03-08',
+    });
+  });
   it('returns normalized persisted ids in the save receipt when clientId arrives as a string', async () => {
     const res = await request(app)
       .post('/api/workout-forms')

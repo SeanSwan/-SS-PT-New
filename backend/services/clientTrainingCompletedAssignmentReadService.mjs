@@ -7,13 +7,14 @@
  */
 
 import { normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
+import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const toPositiveInteger = (value, fallback = null) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
-const todayDateOnly = () => new Date().toISOString().slice(0, 10);
+const todayDateOnly = () => formatDateOnlyInTimeZone(new Date(), DEFAULT_CLIENT_TIME_ZONE);
 const isDateOnlyString = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 const normalizeDateOnly = (value) => {
   if (isDateOnlyString(value)) return value;

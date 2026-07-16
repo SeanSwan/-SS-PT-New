@@ -44,6 +44,7 @@ import { buildChallengeProgressImpactReceipt } from '../services/gamification/ch
 import { buildWorkoutSessionBillingDecision, normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import {
   buildProgressDetailedAnalysisRows,
   fetchCanonicalProgressWorkoutSessions,
@@ -207,6 +208,11 @@ const resolvePlannedAssignmentForLog = async ({
   clientId,
   workoutDateValue,
   hasScheduledSession,
+  clientTimeZone,
+  clientTimeZoneConfigured,
+  actorId,
+  headerTimeZone,
+  referenceDate = new Date(),
   transaction,
 }) => {
   const normalized = normalizePlannedWorkoutAssignmentInput(rawAssignment, { hasScheduledSession });
@@ -236,11 +242,19 @@ const resolvePlannedAssignmentForLog = async ({
 
   const formatted = toCurrentWorkoutPlanResponse(plan);
   const currentSession = formatted.currentSession || null;
+  const trainingDateContext = resolveClientTrainingDateContext({
+    storedTimeZone: clientTimeZone,
+    storedTimeZoneConfigured: clientTimeZoneConfigured,
+    headerTimeZone,
+    actorId,
+    targetClientId: clientId,
+    referenceDate,
+  });
   const overview = buildClientTrainingOverview({
     activePlan: plan,
     plans: [plan],
     currentSession,
-    ...(hasScheduledSession ? { today: workoutDateValue } : {}),
+    today: hasScheduledSession ? workoutDateValue : trainingDateContext.localDate,
   });
 
   assertPlannedAssignmentMatchesOverview(
@@ -270,16 +284,23 @@ router.get('/my/info', protect, async (req, res) => {
 
     const client = await User.findOne({
       where: { id: userId },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource', 'createdAt']
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource', 'timeZone', 'timeZoneConfigured', 'createdAt']
     });
 
     if (!client) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: userId,
+    });
     let recentWorkoutCount = 0;
     let todayWorkout = null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = trainingDateContext.localDate;
 
     if (DailyWorkoutForm) {
       try {
@@ -297,6 +318,7 @@ router.get('/my/info', protect, async (req, res) => {
 
     res.json({
       success: true,
+      trainingDateContext,
       client: {
         id: client.id,
         firstName: client.firstName,
@@ -352,6 +374,8 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
         'phone',
         'availableSessions',
         'clientSource',
+        'timeZone',
+        'timeZoneConfigured',
         'createdAt'
       ]
     });
@@ -411,8 +435,15 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
       }
     }
 
-    // Check if client already has a workout logged today
-    const today = new Date().toISOString().split('T')[0];
+    // Check if client already has a workout logged on the client's date.
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: parsedClientId,
+    });
+    const today = trainingDateContext.localDate;
     let todayWorkout = null;
     if (DailyWorkoutForm) {
       try {
@@ -448,6 +479,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
 
     res.json({
       success: true,
+      trainingDateContext,
       client: clientInfo
     });
 
@@ -699,6 +731,15 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
+    const trainingReferenceDate = new Date();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: parsedClientId,
+      referenceDate: trainingReferenceDate,
+    });
     const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
 
     let linkedScheduledSession = null;
@@ -771,6 +812,11 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       clientId: parsedClientId,
       workoutDateValue: workoutDateIso,
       hasScheduledSession: Boolean(linkedScheduledSession),
+      clientTimeZone: client.timeZone,
+      clientTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: req.user.id,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      referenceDate: trainingReferenceDate,
       transaction,
     });
 
@@ -799,12 +845,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
-    // Validate date is not in the future
-    const workoutDate = new Date(`${workoutDateIso}T00:00:00.000Z`);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // Allow today
-    
-    if (workoutDate > today) {
+    // DATEONLY strings compare chronologically once both sides use the client's zone.
+    if (workoutDateIso > trainingDateContext.localDate) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,

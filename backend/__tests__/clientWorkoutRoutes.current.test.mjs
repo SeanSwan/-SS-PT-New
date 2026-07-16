@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
@@ -151,8 +152,9 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
       .set('x-test-user-role', 'client');
 
     expect(res.status).toBe(200);
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
     expect(res.body.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w3:d2:homework',
+      assignmentKey: 'plan-6m:w3:d2:' + today + ':o1:r1',
       assignmentType: 'homework',
       sessionType: 'solo',
       isLoggable: true,
@@ -200,7 +202,7 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
         ],
       },
     };
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
     mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
     mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
     mockDailyWorkoutFormFindOne.mockResolvedValue({

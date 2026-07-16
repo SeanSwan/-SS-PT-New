@@ -3,6 +3,7 @@ import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.mjs';
+import { normalizeClientTimeZoneUpdate } from '../services/clientTrainingDateService.mjs';
 
 /**
  * Enhanced User Model
@@ -351,6 +352,25 @@ User.init(
       type: DataTypes.JSON,
       allowNull: true,
       comment: 'Per-user notification preferences (email/sms/push/quietHours)'
+    },
+    // Canonical client-local date context. Existing accounts receive the
+    // documented account default until the client explicitly chooses a zone.
+    timeZone: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
+      defaultValue: 'America/Los_Angeles',
+      validate: {
+        isIanaTimeZone(value) {
+          normalizeClientTimeZoneUpdate(value);
+        },
+      },
+      comment: 'Validated IANA time zone governing workout-plan dates',
+    },
+    timeZoneConfigured: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'True after the client explicitly saves their time zone',
     },
     // Misc user settings
     preferences: {

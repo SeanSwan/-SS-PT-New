@@ -40,6 +40,7 @@ import logger from '../utils/logger.mjs';
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
+import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAttachmentService.mjs';
@@ -56,7 +57,6 @@ import {
 import {
   ACTIVATE_MAX_RETRIES,
   buildDuplicatePlanMetadata,
-  currentDateOnly,
   isUniqueViolation,
   markPlanPrimary,
   mergePlanMetadata,
@@ -149,6 +149,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
   try {
     const WorkoutPlan = getWorkoutPlan();
     const DailyWorkoutForm = getModel('DailyWorkoutForm');
+    const User = getModel('User');
     const userId = parseInt(req.params.userId, 10);
 
     if (!userId || isNaN(userId)) {
@@ -177,9 +178,23 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       });
     }
 
+    const client = await User.findByPk(userId, {
+      attributes: ['id', 'timeZone', 'timeZoneConfigured'],
+    });
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
     // Extract current session info for the AI when a live active arc exists.
     const currentSession = plan ? extractCurrentSession(plan) : null;
-    const today = currentDateOnly();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: userId,
+    });
+    const today = trainingDateContext.localDate;
     const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
       clientId: userId,
       date: today,
@@ -208,6 +223,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
+      trainingDateContext,
     });
   } catch (error) {
     logger.error('[WorkoutPlan] GET /client/:userId error: %s', error.message);

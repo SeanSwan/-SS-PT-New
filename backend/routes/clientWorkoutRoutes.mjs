@@ -19,6 +19,7 @@ import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingA
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { toClientWorkoutHistoryRow as mapClientWorkoutHistoryRow } from '../services/clientWorkoutHistoryRowService.mjs';
 import { selectCurrentWorkoutPlan } from '../services/workoutPlanRouteHelpers.mjs';
+import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -47,8 +48,6 @@ const parseBoundedPositiveInteger = (value, { defaultValue, maxValue }) => {
   return { ok: true, value: Math.min(parsed, maxValue) };
 };
 
-const currentDateOnly = () => new Date().toISOString().slice(0, 10);
-
 // Workout-history row mapping lives in clientWorkoutHistoryRowService.mjs.
 
 /**
@@ -62,9 +61,16 @@ router.get('/:userId/current', protect, async (req, res) => {
       return res.status(access.status).json({ success: false, message: access.message });
     }
 
-    const { clientId, models } = access;
+    const { clientId, client, models } = access;
     const { WorkoutPlan, DailyWorkoutForm } = models;
-    const today = currentDateOnly();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client?.timeZone,
+      storedTimeZoneConfigured: client?.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: clientId,
+    });
+    const today = trainingDateContext.localDate;
 
     let plan = null;
     let clientPlans = [];
@@ -116,6 +122,7 @@ router.get('/:userId/current', protect, async (req, res) => {
         trainingPlanCatalog: overview.trainingPlanCatalog,
         homeworkSummary: overview.homeworkSummary,
         assignmentPicker,
+        trainingDateContext,
         message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
       });
     }
@@ -141,6 +148,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
       assignmentPicker,
+      trainingDateContext,
     };
 
     return res.status(200).json({
@@ -152,6 +160,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
       assignmentPicker,
+      trainingDateContext,
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);
