@@ -48,6 +48,7 @@ type CoachCommandActionProps = {
   routeIntent: string | null;
   routeContextPrompt: string | null;
   routeRequestContext: CoachChatRouteRequestContext | null;
+  isBusy?: () => boolean;
   speakCoachReply?: (text: string) => void;
   workoutPlannerRoute?: string | null;
   onThreadSelectRoute: (thread: ConversationSummary) => void;
@@ -91,6 +92,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.onThreadSelectRoute(thread);
     props.setAutoSelectSuppressed(false);
     props.setActiveThreadId(thread.id);
+    // Session bubbles belong to their thread — never render X's under Y.
+    props.setLogs(INITIAL_COMMAND_LOGS);
     props.setSelectedStatus(status);
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);
@@ -117,6 +120,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.onNewThreadRoute();
     props.setAutoSelectSuppressed(true);
     props.setActiveThreadId(null);
+    props.setLogs(INITIAL_COMMAND_LOGS);
     closeDrawer(false);
     props.setCommandText('');
     props.setSelectedStatus(props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
@@ -157,6 +161,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           label: 'command lane failed',
           body: commandLaneErrorBody(commandResult),
           attachments: ['command lane error', 'No data was changed'],
+          retryMessage: trimmed,
         });
         props.setSelectedStatus('Command lane failed');
         return;
@@ -178,7 +183,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const response = props.routeRequestContext
       ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
       : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
-    const outcome = interpretCoachChatResponse(response, trimmed);
+    const outcome = interpretCoachChatResponse(response, trimmed, typeof navigator !== 'undefined' && navigator.onLine === false);
     if (outcome.kind === 'superseded') return;
     if (outcome.kind !== 'reply') {
       props.setSelectedStatus(outcome.status);
@@ -189,6 +194,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         attachments: outcome.attachments,
         ...(outcome.retryMessage ? { retryMessage: outcome.retryMessage } : {}),
       });
+      // No retry button on non-retryable failures — hand the words back.
+      if (outcome.kind === 'failed' && !outcome.retryMessage) {
+        props.setCommandText((current) => (current.trim() ? current : trimmed));
+      }
       return;
     }
     addLog({
@@ -211,6 +220,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   const handleRetryMessage = async (message: string) => {
     const trimmed = message.trim();
     if (!trimmed) return;
+    // A second send aborts the first inside useAIChat — refuse while busy.
+    if (props.isBusy?.()) return props.setSelectedStatus('Wait for the current message to finish, then retry');
     await submitCoachMessage(trimmed);
   };
 

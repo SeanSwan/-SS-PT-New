@@ -53,10 +53,30 @@ describe('interpretCoachChatResponse — honest chat-lane outcomes (spec: no fak
       const outcome = interpretCoachChatResponse(weird, SENT);
       expect(outcome.kind).toBe('empty');
       if (outcome.kind === 'empty') {
-        expect(outcome.body).toContain('Nothing was saved');
+        // The user message may be persisted server-side — never claim nothing
+        // was saved on the empty-reply path.
+        expect(outcome.body).not.toContain('Nothing was saved');
+        expect(outcome.body).toContain('no answer came back');
         expect(outcome.retryMessage).toBe(SENT);
       }
     }
+  });
+
+  it('maps axios offline code and code-less offline failures to connection-truth copy', () => {
+    const axiosOffline = interpretCoachChatResponse(
+      { failed: true, originalMessage: SENT, errorCode: 'ERR_NETWORK', retryable: true },
+      SENT,
+    );
+    expect(axiosOffline.kind).toBe('failed');
+    if (axiosOffline.kind === 'failed') expect(axiosOffline.body).toContain('Check your connection');
+
+    const codelessOffline = interpretCoachChatResponse(
+      { failed: true, originalMessage: SENT, errorCode: null, retryable: true },
+      SENT,
+      true,
+    );
+    expect(codelessOffline.kind).toBe('failed');
+    if (codelessOffline.kind === 'failed') expect(codelessOffline.body).toContain('offline');
   });
 
   it('never returns the retired fabricated draft copy for any outcome', () => {

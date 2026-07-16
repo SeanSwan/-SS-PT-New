@@ -69,7 +69,9 @@ function CoachCommandLogEntry({
   return (
     <LogEntry $actor={entry.actor}>
       <LogMeta>
-        {entry.label.toLowerCase().startsWith(entry.actor.toLowerCase()) ? <span aria-hidden="true" /> : <span>{entry.actor}</span>}
+        {/* Coach/operator labels already name the speaker ("Swan Coach", "You",
+            "operator command") — the raw actor tag only adds signal for system rows. */}
+        {entry.actor === 'system' ? <span>{entry.actor}</span> : <span aria-hidden="true" />}
         <span>
           {entry.label}
           {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}

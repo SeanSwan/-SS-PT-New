@@ -23,7 +23,9 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .bridge-shell.is-chat-tab {
-      height: max(420px, calc(100dvh - 200px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
+      /* The 420px floor must yield while the keyboard is open, or it re-grows
+         the shell past the visible area and buries the composer. */
+      height: max(calc(420px - var(--coach-kb-inset, 0px)), calc(100dvh - 200px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
     }
 
     .bridge-shell.is-workspace-tab {
@@ -53,13 +55,10 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     /* Compact the main-client binder: the select keeps its aria-label, the
-       visual eyebrow is redundant next to the "Now coaching" header. */
+       visual eyebrow is redundant next to the "Now coaching" header. The
+       select itself stays at the 44px touch floor (rule 2). */
     .main-client-picker > span {
       display: none;
-    }
-
-    .main-client-picker select {
-      min-height: 40px;
     }
 
     .client-name {
@@ -178,8 +177,10 @@ export const coachCommandBridgeMobileDockStyles = css`
       padding: 6px;
     }
 
+    /* The approval promise must survive the smallest phones — shrink, never
+       hide (it is the only persistent trust cue mid-conversation). */
     .dock-trust {
-      display: none;
+      font-size: 11px;
     }
   }
   /* The matrix phone tier owns usable floor-mode geometry. Measured on the
@@ -192,7 +193,17 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .bridge-shell.is-chat-tab {
-      height: max(420px, calc(100dvh - 132px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
+      height: max(calc(420px - var(--coach-kb-inset, 0px)), calc(100dvh - 132px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
+    }
+  }
+
+  /* Landscape phones (667-926px wide — too wide for the phone bucket, too
+     short for the 420px floor): let the transcript own the real height so the
+     composer stays reachable. */
+  ${media.landscapePhone} {
+    .bridge-shell.is-chat-tab {
+      height: calc(100dvh - 100px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px));
+      min-height: 240px;
     }
   }
 

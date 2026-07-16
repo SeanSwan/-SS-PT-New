@@ -16,14 +16,17 @@ import CoachActiveThreadHeader from './CoachActiveThreadHeader';
 
 type CoachChatTranscriptProps = {
   activeThread: ConversationSummary | null;
+  /** True while a send is awaiting Swan Coach — renders the pending row. */
+  busy?: boolean;
   clientFacing?: boolean;
   logs: CommandLogEntry[];
   nextActionLabel?: string | null;
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
-  onReset: () => void;
   onRetryMessage?: (message: string) => void;
   onSuggestedPrompt?: (prompt: string) => void;
+  /** True while a history thread is being loaded into the transcript. */
+  threadLoading?: boolean;
   workoutLoggerRoute?: string | null;
   workoutLoggerScopeLabel?: string | null;
 };
@@ -47,6 +50,7 @@ function liveAnnouncement(entry: CommandLogEntry): string {
 
 const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   activeThread,
+  busy = false,
   clientFacing = false,
   logs,
   nextActionLabel,
@@ -54,6 +58,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   onConfirmCommand,
   onRetryMessage,
   onSuggestedPrompt,
+  threadLoading = false,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
 }) => {
@@ -72,28 +77,39 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
     setUnseenBelow(false);
   };
 
-  const previousCountRef = useRef(0);
+  // "Near bottom" must be measured BEFORE the DOM grows: a long reply pushes
+  // scrollHeight past the threshold in the same frame, which would misread a
+  // pinned-to-bottom reader as scrolled-up. Track it live from scroll events.
+  const wasNearBottomRef = useRef(true);
+  const threadKeyRef = useRef<string | number | null>(null);
   useEffect(() => {
     const el = streamRef.current;
-    const previousCount = previousCountRef.current;
-    previousCountRef.current = logs.length;
-    if (!el || !logs.length) return;
-    // First fill of a thread always lands on the newest message. During a live
-    // session, follow the conversation only while the reader is near the
+    const threadKey = activeThread?.id ?? null;
+    const threadChanged = threadKeyRef.current !== threadKey;
+    threadKeyRef.current = threadKey;
+    if (threadChanged) wasNearBottomRef.current = true;
+    if (!el || !logs.length) {
+      if (threadChanged) setUnseenBelow(false);
+      return;
+    }
+    // A (re)opened thread always lands on the newest message. During a live
+    // session, follow the conversation only while the reader was near the
     // bottom — never yank them out of older history; offer a jump pill instead.
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
-    if (previousCount === 0 || nearBottom) {
+    if (threadChanged || wasNearBottomRef.current || busy) {
       el.scrollTop = el.scrollHeight;
+      wasNearBottomRef.current = true;
       setUnseenBelow(false);
     } else {
       setUnseenBelow(true);
     }
-  }, [logs.length]);
+  }, [activeThread?.id, busy, logs.length]);
 
   const handleStreamScroll = () => {
     const el = streamRef.current;
     if (!el) return;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 160) setUnseenBelow(false);
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    wasNearBottomRef.current = nearBottom;
+    if (nearBottom) setUnseenBelow(false);
   };
 
   return (
@@ -115,17 +131,30 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
 
       <div className="transcript-stream" ref={streamRef} onScroll={handleStreamScroll}>
         {ordered.length ? (
-          ordered.map((entry) => (
-            <CoachCommandLogEntry
-              entry={entry}
-              key={entry.id}
-              onCancelCommand={onCancelCommand}
-              onConfirmCommand={onConfirmCommand}
-              onRetryMessage={onRetryMessage}
-              workoutLoggerRoute={workoutLoggerRoute}
-              workoutLoggerScopeLabel={workoutLoggerScopeLabel}
-            />
-          ))
+          <>
+            {ordered.map((entry) => (
+              <CoachCommandLogEntry
+                entry={entry}
+                key={entry.id}
+                onCancelCommand={onCancelCommand}
+                onConfirmCommand={onConfirmCommand}
+                onRetryMessage={onRetryMessage}
+                workoutLoggerRoute={workoutLoggerRoute}
+                workoutLoggerScopeLabel={workoutLoggerScopeLabel}
+              />
+            ))}
+            {busy ? (
+              <div className="transcript-pending" role="status">
+                <span className="voice-strip-pulse" aria-hidden="true"><i /><i /><i /></span>
+                Swan Coach is thinking...
+              </div>
+            ) : null}
+          </>
+        ) : threadLoading ? (
+          <div className="transcript-empty" role="status">
+            <span className="voice-strip-pulse" aria-hidden="true"><i /><i /><i /></span>
+            <strong>Loading thread...</strong>
+          </div>
         ) : (
           <div className="transcript-empty">
             <Sparkles size={22} aria-hidden="true" />

@@ -180,14 +180,15 @@ const CoachCommandCenterPage: React.FC = () => {
             <div className="chat-panel" id="coach-tabpanel-talk" role="tabpanel" aria-labelledby="coach-tab-talk">
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
+                busy={commandCenter.commandBusy}
                 clientFacing={isClientMode}
                 logs={commandCenter.logs}
                 nextActionLabel={nextActionLabel}
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}
-                onReset={commandCenter.resetLogs}
                 onRetryMessage={commandCenter.handleRetryMessage}
                 onSuggestedPrompt={handleSuggestedPrompt}
+                threadLoading={commandCenter.chatLoading}
                 workoutLoggerRoute={workoutLoggerRoute}
                 workoutLoggerScopeLabel={workoutLoggerScopeLabel}
               />

@@ -68,6 +68,10 @@ const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) =
         const AudioContextCtor = window.AudioContext
           || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!AudioContextCtor) {
+          // No analyser possible — release the parallel capture immediately so
+          // the OS mic indicator reflects only the dictation stream.
+          mediaStream.getTracks().forEach((track) => track.stop());
+          stream = null;
           setMeterState('pulse');
           return;
         }
@@ -89,6 +93,10 @@ const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) =
         frame = window.requestAnimationFrame(render);
       })
       .catch(() => {
+        // Covers both denial (no stream) and post-grant construction failures
+        // (stream captured but unusable) — never hold an unconsumed capture.
+        stream?.getTracks().forEach((track) => track.stop());
+        stream = null;
         if (!cancelled) setMeterState('pulse');
       });
 

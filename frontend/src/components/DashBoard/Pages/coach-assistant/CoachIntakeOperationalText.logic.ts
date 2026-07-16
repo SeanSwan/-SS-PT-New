@@ -178,7 +178,8 @@ export function safeCommandResultMessage(value: unknown): string | null {
 }
 
 export function safeCommandConfirmationFailure(): string {
-  return 'Confirmation failed. Please try again.';
+  // Pending ops expire server-side (~2 min) — name the real recovery path.
+  return 'Confirmation failed. Try once more; if it keeps failing the request likely expired — cancel it and re-issue the command.';
 }
 
 export function safeAudioReviewPlanLabel(value: unknown): string | null {

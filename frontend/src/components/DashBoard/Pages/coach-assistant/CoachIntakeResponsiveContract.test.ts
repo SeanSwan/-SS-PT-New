@@ -59,7 +59,9 @@ describe('Coach intake responsive contract', () => {
     expect(pageSource).toContain("activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'");
     // W3 rebuild: chat height honors the visualViewport keyboard inset so the
     // composer is never hidden behind the iOS keyboard.
-    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*max\(420px,\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\) - var\(--coach-kb-inset, 0px\)\)\)/);
+    // The 420px floor is itself keyboard-aware — a fixed floor would re-grow
+    // the shell past the visible area while the keyboard is open.
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*max\(calc\(420px - var\(--coach-kb-inset, 0px\)\),\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\) - var\(--coach-kb-inset, 0px\)\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab[\s\S]*height:\s*auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-content[\s\S]*flex:\s*0\s+0\s+auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-scroll[\s\S]*overflow:\s*visible/);

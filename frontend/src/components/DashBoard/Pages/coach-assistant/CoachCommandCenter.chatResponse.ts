@@ -21,22 +21,30 @@ export type CoachChatOutcome =
     }
   | { kind: 'reply'; body: string };
 
+const NETWORK_REASON = 'The message could not reach Swan Coach. Check your connection, then retry.';
+
 const FAILURE_REASONS: Record<string, string> = {
   RATE_LIMITED: 'Swan Coach is receiving too many requests right now. Wait a moment before sending again.',
   MESSAGE_TOO_LONG: 'That message is too long for one send. Split it into smaller messages.',
-  NETWORK_ERROR: 'The message could not reach Swan Coach. Check your connection, then retry.',
+  NETWORK_ERROR: NETWORK_REASON,
+  // Axios offline/network failures surface this code when no HTTP status exists.
+  ERR_NETWORK: NETWORK_REASON,
 };
 
-function failureReason(errorCode: string | null | undefined): string {
+function failureReason(errorCode: string | null | undefined, offline: boolean): string {
   if (errorCode && FAILURE_REASONS[errorCode]) return FAILURE_REASONS[errorCode];
+  // A code-less failure while the browser reports no connectivity IS a
+  // network failure — say so instead of a vague generic (W3: offline truth).
+  if (offline) return 'You appear to be offline. The message was not sent — reconnect, then retry.';
   return 'Swan Coach could not process this message.';
 }
 
 /**
  * Classify whatever the chat lane returned. `sentMessage` is the operator's
- * original text so failed sends can offer a real retry.
+ * original text so failed sends can offer a real retry; `offline` is the
+ * caller's navigator.onLine truth at interpretation time.
  */
-export function interpretCoachChatResponse(response: unknown, sentMessage: string): CoachChatOutcome {
+export function interpretCoachChatResponse(response: unknown, sentMessage: string, offline = false): CoachChatOutcome {
   // A newer message aborted this one; the newer request reports its own result.
   if (response === null || response === undefined) return { kind: 'superseded' };
 
@@ -56,7 +64,7 @@ export function interpretCoachChatResponse(response: unknown, sentMessage: strin
     return {
       kind: 'failed',
       label: 'message failed',
-      body: `${failureReason(failure.errorCode)} Nothing was saved and no reply was generated.`,
+      body: `${failureReason(failure.errorCode, offline)} Nothing was saved and no reply was generated.`,
       attachments: retryable ? ['no reply generated', 'retry available'] : ['no reply generated'],
       status: 'Swan Coach message failed',
       ...(retryable ? { retryMessage: sentMessage } : {}),
@@ -68,11 +76,13 @@ export function interpretCoachChatResponse(response: unknown, sentMessage: strin
     if (body) return { kind: 'reply', body };
   }
 
-  // Unknown shape: never fabricate a coach reply.
+  // Unknown shape or blank content: never fabricate a coach reply. The user
+  // message may already be delivered server-side, so do NOT claim nothing was
+  // saved — retrying knowingly asks again.
   return {
     kind: 'empty',
     label: 'no reply received',
-    body: 'Swan Coach returned an empty reply. Nothing was saved. Retry the message, or rephrase it if this keeps happening.',
+    body: 'Swan Coach returned an empty reply. Your message went through, but no answer came back. Retry to ask again, or rephrase it if this keeps happening.',
     attachments: ['no reply generated', 'retry available'],
     status: 'Swan Coach reply was empty',
     retryMessage: sentMessage,

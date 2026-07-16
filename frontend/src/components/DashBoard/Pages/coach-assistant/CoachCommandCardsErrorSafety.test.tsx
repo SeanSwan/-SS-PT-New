@@ -25,7 +25,7 @@ describe('Coach command card error safety', () => {
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Confirmation failed\. Please try again\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Confirmation failed\. Try once more; if it keeps failing the request likely expired/i)).toBeInTheDocument();
     });
     expect(screen.queryByText(/do-not-render-private-confirm-detail/i)).not.toBeInTheDocument();
   });

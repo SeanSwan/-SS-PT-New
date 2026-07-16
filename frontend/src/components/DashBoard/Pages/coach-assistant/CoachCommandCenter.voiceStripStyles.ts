@@ -91,6 +91,29 @@ export const coachCommandVoiceStripStyles = css`
     position: relative;
   }
 
+  .transcript-pending {
+    align-items: center;
+    align-self: flex-start;
+    background: color-mix(in srgb, var(--coach-cyan) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 20%, var(--coach-line));
+    border-radius: 14px;
+    color: var(--coach-text-soft);
+    display: inline-flex;
+    font-size: 14px;
+    font-weight: 740;
+    gap: 10px;
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  .transcript-pending .voice-strip-pulse {
+    margin-left: 0;
+  }
+
+  .transcript-pending .voice-strip-pulse i {
+    background: var(--coach-cyan);
+  }
+
   .transcript-jump-newest {
     align-items: center;
     background: color-mix(in srgb, var(--coach-surface-strong) 94%, var(--coach-bg));

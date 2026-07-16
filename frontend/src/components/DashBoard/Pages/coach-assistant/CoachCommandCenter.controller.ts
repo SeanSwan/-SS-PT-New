@@ -37,9 +37,7 @@ import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
-export function useCoachCommandCenterController({
-  userRole = 'admin',
-}: { userRole?: CoachCommandRole } = {}) {
+export function useCoachCommandCenterController({ userRole = 'admin' }: { userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat(userRole);
   const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
@@ -205,6 +203,7 @@ export function useCoachCommandCenterController({
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
     routeRequestContext: chatRouteRequestContext,
+    isBusy: () => chat.sending || executingCommand,
     speakCoachReply: tts.speak,
     workoutPlannerRoute,
     onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
@@ -233,6 +232,7 @@ export function useCoachCommandCenterController({
     activeIntakeId: searchParams.get('intake'),
     activeThread,
     activeThreadId,
+    chatLoading: chat.loading,
     clientContextTiles,
     clientPin: clientPin.barProps,
     coachQueue,

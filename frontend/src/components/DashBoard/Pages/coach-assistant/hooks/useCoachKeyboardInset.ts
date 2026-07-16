@@ -20,6 +20,12 @@ export function useCoachKeyboardInset(shellRef: RefObject<HTMLElement>) {
     const applyInset = () => {
       const shell = shellRef.current;
       if (!shell) return;
+      // Pinch/accessibility zoom shrinks viewport.height with NO keyboard —
+      // only a 1:1 scale shrink is keyboard occlusion.
+      if (Math.abs(viewport.scale - 1) > 0.01) {
+        shell.style.setProperty(INSET_VAR, '0px');
+        return;
+      }
       const occluded = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
       // Ignore sub-pixel noise; only react to a real keyboard-sized occlusion.
       shell.style.setProperty(INSET_VAR, occluded > 40 ? `${Math.round(occluded)}px` : '0px');

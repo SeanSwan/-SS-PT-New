@@ -23,7 +23,9 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
     expect(pageSource).toContain('logs={commandCenter.logs}');
     expect(pageSource).toContain('onCancelCommand={commandCenter.handleCancelCommand}');
     expect(pageSource).toContain('onConfirmCommand={commandCenter.handleConfirmCommand}');
-    expect(pageSource).toContain('onReset={commandCenter.resetLogs}');
+    // onReset was dead wiring (never consumed by the transcript) — the live
+    // affordance contract is the failed-send retry lane.
+    expect(pageSource).toContain('onRetryMessage={commandCenter.handleRetryMessage}');
     expect(transcriptSource).toContain("import CoachCommandLogEntry from './CoachCommandLogEntry'");
     expect(transcriptSource).toContain('<CoachCommandLogEntry');
     expect(transcriptSource).toContain('entry={entry}');
