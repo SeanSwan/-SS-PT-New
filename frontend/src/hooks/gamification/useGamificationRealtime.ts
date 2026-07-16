@@ -72,6 +72,11 @@ export const useGamificationRealtime = () => {
   const celebrationRef = useRef(celebration);
   celebrationRef.current = celebration;
 
+  // Dedup level-up celebrations: a socket reconnect can replay the same
+  // level_up event, and we don't want two overlapping fireworks. Only fire
+  // for a level strictly higher than the last one we already celebrated.
+  const lastCelebratedLevelRef = useRef(0);
+
   const handleGamificationEvent = useCallback((
     event: GamificationRealtimeEvent,
     data: GamificationRealtimePayload,
@@ -85,10 +90,13 @@ export const useGamificationRealtime = () => {
     // Malformed payloads (no usable newLevel) fall through to the toast.
     if (event === 'gamification:level_up' && celebrationRef.current) {
       const newLevel = normalizeRealtimeXp(data.newLevel);
-      if (newLevel > 0) {
+      if (newLevel > 0 && newLevel > lastCelebratedLevelRef.current) {
+        lastCelebratedLevelRef.current = newLevel;
         celebrationRef.current.triggerLevelUp(newLevel);
         return;
       }
+      // Duplicate/replayed level_up (same or lower level) — refresh silently.
+      if (newLevel > 0) return;
     }
 
     const points = normalizeRealtimeXp(data.points ?? data.xpEarned);
@@ -106,6 +114,9 @@ export const useGamificationRealtime = () => {
       setIsConnected(false);
       return;
     }
+    // New user in the same tab starts fresh — otherwise the previous user's
+    // last-celebrated level would suppress this user's early level-ups.
+    lastCelebratedLevelRef.current = 0;
 
     const token = authToken || ProductionTokenManager.getToken();
     if (!token) {

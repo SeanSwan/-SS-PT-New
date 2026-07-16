@@ -43,10 +43,16 @@ const socketAuthMiddleware = async (socket, next) => {
   if (!token) return next(new Error('Authentication error: No token provided'));
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
+    // Only access tokens open a socket — a refresh / force-password-change temp
+    // token (signature-valid because the refresh secret defaults to JWT_SECRET)
+    // must NOT authenticate a live connection.
+    if (decoded.tokenType && decoded.tokenType !== 'access') {
+      return next(new Error('Authentication error: Invalid token type'));
+    }
     const userId = decoded.userId ?? decoded.id;
     const [user] = await sequelize.query(
-      'SELECT id, role, "firstName", "lastName", username, photo FROM "Users" WHERE id = :id AND "isActive" = true AND "deletedAt" IS NULL',
+      'SELECT id, role, "firstName", "lastName", username, photo FROM "Users" WHERE id = :id AND "isActive" = true AND "isLocked" = false AND "deletedAt" IS NULL',
       { replacements: { id: userId }, type: QueryTypes.SELECT }
     );
 

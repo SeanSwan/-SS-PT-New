@@ -41,6 +41,11 @@ route tree (Rule 26 receipt REQUIRED in the slice report: route file line + moun
 inserts `<CrownHeader/>` as the first child above existing content. DO NOT restructure Home.
 
 ## F3 — rollout (3 files)
+**The runtime caller that flips (know this before editing):** the ONLY production consumer is
+`SurfaceLensGate.tsx:29` → `resolveRecipeForStyleLens(appearance?.state.committed.styleLensId)`,
+which feeds all six `*LensFrame` bindings. It already passes the committed CATALOG id, so putting
+the flag + catalog-map resolution INSIDE `resolveRecipeForStyleLens` gates every surface at once
+(no per-surface edits). Flag OFF → returns null → host defaults; ON → returns the recipe.
 `adapters/style-lens-swan/v2/recipeResolution.ts` edit: **make `resolveRecipeForStyleLens` resolve
 via the single catalog-keyed map `V2_RECIPE_BY_CATALOG_ID`** (M2 — today it keys by recipe id
 `swan.*.v2` while the committed `styleLensId` is the catalog id, so it can never match; retire the
@@ -51,9 +56,9 @@ override**, NOT a fleet incident kill — do not call it one. The production rol
 misbehaving v2 rollout is a `git revert` + redeploy; if a real fleet kill is wanted, make the
 default an env/build value like the existing server-side `TIER_GATING_ENABLED` pattern
 (requireTier.mjs) — flag that as a Sean decision at the F3 checkpoint. Document all of this in the file header.
-**Sanctioned F3 source-contract test changes (N1 — the M2 map switch breaks THREE assertions across
-TWO files; the pre-rollout "stays inert" intent is exactly what this Sean-approved successor slice
-reverses, so these are authorized, not accidental):**
+**Sanctioned F3 source-contract test changes (N1 — the M2 map switch breaks FOUR assertions across
+TWO files, two per file; the pre-rollout "stays inert" intent is exactly what this Sean-approved
+successor slice reverses, so these are authorized, not accidental):**
 1. `frontend/src/components/DashBoard/Pages/workout-design-lab/WorkoutDesignLab.styleAxis.test.tsx`
    — the test **"A3: production resolveRecipeForStyleLens stays untouched and inert (source
    contract)"**: `expect(resolution).not.toContain("catalogV2Map")` and
@@ -68,8 +73,9 @@ reverses, so these are authorized, not accidental):**
    RECIPE id `swan.candy-glass-arcade.v2`). After M2 keys by CATALOG id, flip those two lookups to
    catalog ids (`'candy-glass-arcade'`, `'prism-terminal'`); the `null`/`undefined`/unknown-id
    fall-through lines stay.
-These are the FULL enumerated set of F3 contract changes — there is no other. Do NOT edit any other
-test to make F3 pass; if a fourth breaks, STOP and checkpoint.
+These are the FULL enumerated set of F3 contract changes (4 assertion-lines, 2 files) — there is no
+other. Do NOT edit any other test to make F3 pass; if ANY test beyond these four goes RED, STOP and
+checkpoint.
 
 ## F4 — Style Studio (6 files)
 `components/UserDashboard/StyleStudio/StyleStudio.tsx` ≤260 (sheet/drawer, rows, tier locks) ·

@@ -143,11 +143,17 @@ export const useGroups = (mode: 'discover' | 'mine' = 'discover') => {
       if (mode === 'mine') {
         setGroups((prev) => prev.filter((g) => g.id !== groupId));
       } else {
-        setGroups((prev) => prev.map((g) => (
-          g.id === groupId
-            ? { ...g, myMembership: null, memberCount: Math.max(g.memberCount - 1, 0) }
-            : g
-        )));
+        setGroups((prev) => prev.map((g) => {
+          if (g.id !== groupId) return g;
+          // Only an ACTIVE member counted toward memberCount — a pending
+          // request never did, so cancelling it must not decrement.
+          const wasActive = g.myMembership?.status === 'active';
+          return {
+            ...g,
+            myMembership: null,
+            memberCount: wasActive ? Math.max(g.memberCount - 1, 0) : g.memberCount,
+          };
+        }));
       }
       toast({ title: 'Left group', description: 'You are no longer a member.' });
       return true;
@@ -183,29 +189,37 @@ export const useGroupDetail = (groupId: number | null) => {
   const [members, setMembers] = useState<GroupMemberEntry[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(groupId));
   const [error, setError] = useState<string | null>(null);
+  // Monotonic request id: rapid refresh() calls must not let an earlier,
+  // slower response overwrite a newer one (last-write-wins by request order).
+  const requestSeqRef = useRef(0);
 
   const fetchDetail = useCallback(async () => {
     if (!user || !groupId) return;
+    const seq = ++requestSeqRef.current;
+    const isStale = () => seq !== requestSeqRef.current;
     setIsLoading(true);
     setError(null);
     try {
       const response = await authAxios.get(`/api/social/groups/${groupId}`);
+      if (isStale()) return;
       const detail: CommunityGroup = response.data.group;
       setGroup(detail);
       if (detail.canViewContent) {
         try {
           const membersRes = await authAxios.get(`/api/social/groups/${groupId}/members`);
+          if (isStale()) return;
           setMembers(membersRes.data.members || []);
         } catch {
-          setMembers([]);
+          if (!isStale()) setMembers([]);
         }
       } else {
         setMembers([]);
       }
     } catch (err: any) {
+      if (isStale()) return;
       setError(err.response?.status === 404 ? 'This group no longer exists.' : 'Unable to load this group.');
     } finally {
-      setIsLoading(false);
+      if (!isStale()) setIsLoading(false);
     }
   }, [authAxios, user, groupId]);
 
@@ -282,6 +296,8 @@ export const useGroupModeration = (groupId: number) => {
       run(() => authAxios.patch(`/api/social/groups/${groupId}/members/${userId}`, { role }), 'Role updated'),
     transferOwnership: (userId: number) =>
       run(() => authAxios.post(`/api/social/groups/${groupId}/transfer-ownership`, { userId }), 'Ownership transferred'),
+    archiveGroup: () =>
+      run(() => authAxios.delete(`/api/social/groups/${groupId}`), 'Group archived'),
   };
 };
 

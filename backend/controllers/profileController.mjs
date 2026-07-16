@@ -175,8 +175,19 @@ export const uploadProfilePhoto = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const targetUserId = req.params.userId || req.user.id;
+    // Exclude ALL credential/security/billing fields — this endpoint is
+    // reachable by an assigned trainer (not just self/admin), so the old
+    // 2-field blocklist leaked reset-token hashes, Stripe ids, and login IPs
+    // to trainers. (Follow-up: migrate to an explicit allowlist.)
     const user = await User.findByPk(targetUserId, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: {
+        exclude: [
+          'password', 'refreshTokenHash',
+          'resetPasswordToken', 'resetPasswordExpires', 'claimTokenHash',
+          'stripeCustomerId', 'lastLoginIP', 'registrationIP',
+          'failedLoginAttempts', 'isLocked',
+        ],
+      },
     });
 
     if (!user) {

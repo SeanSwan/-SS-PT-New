@@ -64,6 +64,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { MOVEMENT_PATTERN_CASE_SQL } from '../services/analytics/movementPatternSql.mjs';
+import { MUSCLE_GROUP_CASE_SQL, MUSCLE_GROUP_DISPLAY } from '../services/analytics/muscleGroupSql.mjs';
 
 const safeQuery = async (sequelize, sql, replacements, context = '') => {
   try {
@@ -394,7 +395,7 @@ export async function getPRTimelineChart(req, res) {
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
-      `SELECT DISTINCT ON (ws.date::date, wl."exerciseName")
+      `SELECT DISTINCT ON (ws.date::date, LOWER(TRIM(wl."exerciseName")))
          TO_CHAR(ws.date::date, 'YYYY-MM-DD') AS day,
          wl."exerciseName" AS exercise,
          wl.weight::float AS top_weight,
@@ -404,7 +405,8 @@ export async function getPRTimelineChart(req, res) {
        WHERE ws."userId" = :userId AND ws.status = 'completed'
          AND wl.weight > 0
          AND ws.date >= NOW() - INTERVAL '180 days'
-       ORDER BY ws.date::date, wl."exerciseName", wl.weight DESC`,
+       -- Case-insensitive per-day top set (one point per exercise per day).
+       ORDER BY ws.date::date, LOWER(TRIM(wl."exerciseName")), wl.weight DESC`,
       { userId }, 'getPRTimelineChart');
 
     res.json({
@@ -440,17 +442,19 @@ export async function getAnchorLiftsChart(req, res) {
 
     const rows = await safeQuery(sequelize,
       `WITH top_exercises AS (
-         SELECT wl."exerciseName" AS exercise
+         -- Top-3 by frequency, case/whitespace-insensitive so a lift isn't
+         -- missed because its session count is split across name variants.
+         SELECT LOWER(TRIM(wl."exerciseName")) AS exercise_key
          FROM workout_logs wl
          JOIN workout_sessions ws ON wl."sessionId" = ws.id
          WHERE ws."userId" = :userId AND ws.status = 'completed'
            AND wl.weight > 0
            AND ws.date >= NOW() - INTERVAL '90 days'
-         GROUP BY wl."exerciseName"
+         GROUP BY LOWER(TRIM(wl."exerciseName"))
          ORDER BY COUNT(DISTINCT wl."sessionId") DESC
          LIMIT 3
        )
-       SELECT DISTINCT ON (ws.date::date, wl."exerciseName")
+       SELECT DISTINCT ON (ws.date::date, LOWER(TRIM(wl."exerciseName")))
          TO_CHAR(ws.date::date, 'YYYY-MM-DD') AS day,
          wl."exerciseName" AS exercise,
          wl.weight::float AS top_weight,
@@ -459,16 +463,22 @@ export async function getAnchorLiftsChart(req, res) {
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId AND ws.status = 'completed'
          AND wl.weight > 0
-         AND wl."exerciseName" IN (SELECT exercise FROM top_exercises)
+         AND LOWER(TRIM(wl."exerciseName")) IN (SELECT exercise_key FROM top_exercises)
          AND ws.date >= NOW() - INTERVAL '90 days'
-       ORDER BY ws.date::date, wl."exerciseName", wl.weight DESC`,
+       ORDER BY ws.date::date, LOWER(TRIM(wl."exerciseName")), wl.weight DESC`,
       { userId }, 'getAnchorLiftsChart');
 
-    // Group by exercise → array of {day, weight, reps}.
+    // Group by NORMALIZED exercise → array of {day, weight, reps}, with a
+    // stable first-seen display name so case variants don't split one lift
+    // into two series.
     const byExercise = {};
+    const keyToDisplay = {};
     for (const r of rows) {
-      if (!byExercise[r.exercise]) byExercise[r.exercise] = [];
-      byExercise[r.exercise].push({
+      const key = String(r.exercise).trim().toLowerCase();
+      if (!keyToDisplay[key]) keyToDisplay[key] = r.exercise;
+      const display = keyToDisplay[key];
+      if (!byExercise[display]) byExercise[display] = [];
+      byExercise[display].push({
         x: r.day,
         y: r.top_weight,
         reps: r.top_reps,
@@ -501,14 +511,16 @@ export async function getExerciseFrequencyChart(req, res) {
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
-      `SELECT wl."exerciseName" AS exercise,
+      `SELECT MAX(wl."exerciseName") AS exercise,
               COUNT(DISTINCT wl."sessionId")::int AS sessions,
               COUNT(*)::int AS sets
        FROM workout_logs wl
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId AND ws.status = 'completed'
-       GROUP BY wl."exerciseName"
-       ORDER BY sessions DESC, sets DESC, wl."exerciseName" ASC`,
+       -- Merge case/whitespace variants ('Bench Press' == 'bench press') into
+       -- one bar instead of two, matching the Rolodex convention.
+       GROUP BY LOWER(TRIM(wl."exerciseName"))
+       ORDER BY sessions DESC, sets DESC, MAX(wl."exerciseName") ASC`,
       { userId }, 'getExerciseFrequencyChart');
 
     res.json({
@@ -583,76 +595,7 @@ export async function getMuscleGroupBalanceChart(req, res) {
 
     const rows = await safeQuery(sequelize,
       `SELECT
-         CASE
-           WHEN wl."exerciseName" ILIKE '%bench%'
-             OR wl."exerciseName" ILIKE '%chest%'
-             OR wl."exerciseName" ILIKE '% fly%'
-             OR wl."exerciseName" ILIKE '%push-up%'
-             OR wl."exerciseName" ILIKE '%pushup%'
-             OR wl."exerciseName" ILIKE '%pec%'
-             OR wl."exerciseName" ILIKE '%dip%'
-             THEN 'Chest'
-           WHEN wl."exerciseName" ILIKE '%row%'
-             OR wl."exerciseName" ILIKE '%pull-up%'
-             OR wl."exerciseName" ILIKE '%pullup%'
-             OR wl."exerciseName" ILIKE '%chin-up%'
-             OR wl."exerciseName" ILIKE '%chinup%'
-             OR wl."exerciseName" ILIKE '%lat%'
-             OR wl."exerciseName" ILIKE '%pulldown%'
-             OR wl."exerciseName" ILIKE '%deadlift%'
-             OR wl."exerciseName" ILIKE '%rdl%'
-             OR wl."exerciseName" ILIKE '%back extension%'
-             THEN 'Back'
-           WHEN wl."exerciseName" ILIKE '%shoulder%'
-             OR wl."exerciseName" ILIKE '%delt%'
-             OR wl."exerciseName" ILIKE '%overhead%'
-             OR wl."exerciseName" ILIKE '%ohp%'
-             OR wl."exerciseName" ILIKE '%lateral raise%'
-             OR wl."exerciseName" ILIKE '%front raise%'
-             OR wl."exerciseName" ILIKE '%military%'
-             OR wl."exerciseName" ILIKE '%arnold%'
-             OR wl."exerciseName" ILIKE '%face pull%'
-             THEN 'Shoulders'
-           WHEN wl."exerciseName" ILIKE '%bicep%'
-             OR wl."exerciseName" ILIKE '%tricep%'
-             OR wl."exerciseName" ILIKE '%curl%'
-             OR wl."exerciseName" ILIKE '%extension%'
-             OR wl."exerciseName" ILIKE '%hammer%'
-             OR wl."exerciseName" ILIKE '%preacher%'
-             OR wl."exerciseName" ILIKE '%skull%'
-             THEN 'Arms'
-           WHEN wl."exerciseName" ILIKE '%squat%'
-             OR wl."exerciseName" ILIKE '% leg%'
-             OR wl."exerciseName" ILIKE '%lunge%'
-             OR wl."exerciseName" ILIKE '%calf%'
-             OR wl."exerciseName" ILIKE '%hamstring%'
-             OR wl."exerciseName" ILIKE '%quad%'
-             OR wl."exerciseName" ILIKE '%hip thrust%'
-             OR wl."exerciseName" ILIKE '%glute%'
-             OR wl."exerciseName" ILIKE '%step-up%'
-             OR wl."exerciseName" ILIKE '%leg press%'
-             THEN 'Legs'
-           WHEN wl."exerciseName" ILIKE '%plank%'
-             OR wl."exerciseName" ILIKE '%crunch%'
-             OR wl."exerciseName" ILIKE '%core%'
-             OR wl."exerciseName" ILIKE '%oblique%'
-             OR wl."exerciseName" ILIKE '%russian twist%'
-             OR wl."exerciseName" ILIKE '%sit-up%'
-             OR wl."exerciseName" ILIKE '%situp%'
-             OR wl."exerciseName" ILIKE '%dead bug%'
-             OR wl."exerciseName" ILIKE '%bird dog%'
-             OR wl."exerciseName" ILIKE '%hollow%'
-             THEN 'Core'
-           WHEN wl."exerciseName" ILIKE '%clean%'
-             OR wl."exerciseName" ILIKE '%snatch%'
-             OR wl."exerciseName" ILIKE '%thruster%'
-             OR wl."exerciseName" ILIKE '%turkish get-up%'
-             OR wl."exerciseName" ILIKE '%farmer%'
-             OR wl."exerciseName" ILIKE '%kettlebell swing%'
-             OR wl."exerciseName" ILIKE '%battle rope%'
-             THEN 'Full Body'
-           ELSE 'Other'
-         END AS muscle_group,
+         ${MUSCLE_GROUP_CASE_SQL} AS muscle_group,
          COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
          COUNT(*)::int AS sets
        FROM workout_logs wl
@@ -665,7 +608,7 @@ export async function getMuscleGroupBalanceChart(req, res) {
 
     res.json({
       success: true,
-      data: rows.map(r => ({ x: r.muscle_group, y: Math.round(r.volume), sets: r.sets })),
+      data: rows.map(r => ({ x: MUSCLE_GROUP_DISPLAY[r.muscle_group] || r.muscle_group, y: Math.round(r.volume), sets: r.sets })),
     });
   } catch (error) {
     console.error('Error getting muscle group balance chart:', error);
@@ -901,25 +844,34 @@ export async function getEstOneRmTrendChart(req, res) {
 
     const rows = await safeQuery(sequelize,
       `WITH target AS (
-         SELECT wl."exerciseName" AS name
+         -- Most-logged lift, case/whitespace-insensitive so variants don't
+         -- split the count (and the outer query below catches ALL variants).
+         SELECT LOWER(TRIM(wl."exerciseName")) AS name_key,
+                MAX(wl."exerciseName") AS display_name
          FROM workout_logs wl
          JOIN workout_sessions ws ON wl."sessionId" = ws.id
          WHERE ws."userId" = :userId AND ws.status = 'completed'
            AND wl.weight > 0 AND wl.reps BETWEEN 1 AND 15
            AND ws.date >= NOW() - INTERVAL '180 days'
-         GROUP BY wl."exerciseName"
+         GROUP BY LOWER(TRIM(wl."exerciseName"))
          ORDER BY COUNT(*) DESC, MAX(wl.weight) DESC
          LIMIT 1
        )
        SELECT
          TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
-         LEAST(MAX(ROUND(wl.weight / (1.0278 - 0.0278 * wl.reps))), 1500)::float AS est,
-         (SELECT name FROM target) AS exercise
+         -- Take the real MAX est-1RM (no LEAST clamp). Clamping garbage to a
+         -- flat 1500 plotted a FABRICATED PR from a fat-finger weight — the same
+         -- bug oneRepMaxService.estimateBrzycki1RM was rewritten to reject. Over-
+         -- ceiling sets are DROPPED below (WHERE), so a week with only garbage
+         -- yields no bar rather than a fake 1500.
+         MAX(ROUND(wl.weight / (1.0278 - 0.0278 * wl.reps)))::float AS est,
+         (SELECT display_name FROM target) AS exercise
        FROM workout_logs wl
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND wl."exerciseName" = (SELECT name FROM target)
+         AND LOWER(TRIM(wl."exerciseName")) = (SELECT name_key FROM target)
          AND wl.weight > 0 AND wl.reps BETWEEN 1 AND 15
+         AND (wl.weight / (1.0278 - 0.0278 * wl.reps)) <= 1500
          AND ws.date >= NOW() - INTERVAL '180 days'
        GROUP BY DATE_TRUNC('week', ws.date)
        ORDER BY DATE_TRUNC('week', ws.date)`,

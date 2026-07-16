@@ -9,11 +9,51 @@
  *
  * Contract: WAIVER-CONSENT-QR-FLOW-CONTRACT.md §5, §10.1, §12.6/7/8
  */
+import sanitizeHtml from 'sanitize-html';
 import { getModel, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 // ── Constants ────────────────────────────────────────────────────
+
+/**
+ * Sanitize admin-authored waiver HTML before it is served to the PUBLIC,
+ * unauthenticated waiver page (which renders it via dangerouslySetInnerHTML).
+ * Allowlist = the formatting a legal document needs, nothing executable. This
+ * strips <script>/<style>/<iframe>, on* handlers, and javascript:/data: URIs,
+ * closing the stored-XSS vector (a compromised admin, or any future lower-priv
+ * path that can set htmlText, can no longer inject script into every visitor).
+ */
+const WAIVER_SANITIZE_OPTIONS = {
+  allowedTags: [
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'span', 'div',
+    'ul', 'ol', 'li', 'blockquote', 'hr',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    '*': ['style'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+  // Neutralize style-based vectors (expression(), url(javascript:...)).
+  allowedStyles: {
+    '*': {
+      'text-align': [/^(left|right|center|justify)$/],
+      'font-weight': [/^(normal|bold|\d{3})$/],
+      'font-style': [/^(normal|italic)$/],
+      'text-decoration': [/^(none|underline|line-through)$/],
+    },
+  },
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow' }),
+  },
+};
+
+function sanitizeWaiverDisplayHtml(html) {
+  if (typeof html !== 'string' || html.length === 0) return html;
+  return sanitizeHtml(html, WAIVER_SANITIZE_OPTIONS);
+}
 
 const VALID_ACTIVITY_TYPES = ['HOME_GYM_PT', 'PARK_TRAINING', 'SWIMMING_LESSONS'];
 const VALID_PUBLIC_SOURCES = ['qr', 'header_waiver'];
@@ -77,7 +117,9 @@ export async function getCurrentWaiverVersions(req, res) {
       waiverType: v.waiverType,
       activityType: v.activityType,
       title: v.title,
-      displayText: resolveDisplayText(v),
+      // Sanitize the DISPLAY copy — it's rendered as HTML on the public page.
+      // (The legal snapshot stored on submit stays verbatim for evidence.)
+      displayText: sanitizeWaiverDisplayHtml(resolveDisplayText(v)),
       textHash: v.textHash,
     }));
 

@@ -90,6 +90,33 @@ describe('membership hardening (hostile-review fixes)', () => {
   });
 });
 
+describe('moderation lifecycle (cold-eyes review fixes)', () => {
+  it('banned members are barred from ALL engagement, even in public groups', () => {
+    const svcSrc = read('../../services/social/groupAccessService.mjs');
+    expect(svcSrc).toMatch(/membership\?\.status === 'banned'/);
+    // The ban check sits inside assertGroupPostAccess before the view gate.
+    const gateIdx = svcSrc.indexOf('assertGroupPostAccess');
+    const banIdx = svcSrc.indexOf("membership?.status === 'banned'");
+    expect(banIdx).toBeGreaterThan(gateIdx);
+  });
+  it('approve endpoint also reinstates banned members', () => {
+    expect(membershipSrc).toMatch(/status: \{ \[Op\.in\]: \['pending', 'banned'\] \}/);
+    expect(membershipSrc).toContain('Member reinstated');
+  });
+  it('members list shows banned to moderators', () => {
+    expect(membershipSrc).toMatch(/\['active', 'pending', 'banned'\]/);
+  });
+  it('a sole owner can leave-and-archive; archive endpoint exists', () => {
+    expect(membershipSrc).toContain('You left and archived the group');
+    expect(groupsSrc).toMatch(/router\.delete\('\/:id'/);
+    expect(groupsSrc).toMatch(/isArchived: true/);
+  });
+  it('post points use the NORMALIZED stored type (no transformation=50 farm)', () => {
+    expect(postsSrc).toMatch(/const storedType = post\.type/);
+    expect(postsSrc).toMatch(/post_create_\$\{storedType\}/);
+  });
+});
+
 describe('model/migration index parity (single source of truth)', () => {
   it('SocialGroup + SocialGroupMember + SocialPost declare the migration index names', () => {
     const groupModel = read('../../models/social/SocialGroup.mjs');

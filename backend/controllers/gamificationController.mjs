@@ -1106,11 +1106,14 @@ const gamificationController = {
       const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 10, 100);
       const offset = (normalizedPage - 1) * normalizedLimit;
       
-      const whereClause = {};
+      // Respect the privacy opt-out — a user who set leaderboardOptIn=false
+      // must not appear on the public leaderboard (defaults true, so existing
+      // users stay visible).
+      const whereClause = { leaderboardOptIn: true };
       if (tier && VALID_GAMIFICATION_TIERS.has(tier)) {
         whereClause.tier = tier;
       }
-      
+
       const leaderboard = await User.findAll({
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
@@ -2712,7 +2715,12 @@ const gamificationController = {
       const targetUserId = userId || req.user?.id;
       const normalizedUserId = parsePositiveInteger(targetUserId);
       const normalizedDuration = duration === undefined ? 0 : parseBoundedNumber(duration, 0, 1440);
-      const normalizedExercisesCompleted = exercisesCompleted === undefined ? 0 : parseNonNegativeInteger(exercisesCompleted);
+      // Clamp exercisesCompleted to a sane max — it multiplies into the point
+      // award with no per-award cap, so an unbounded client value minted a huge
+      // award. Keep the non-negative-integer contract, then cap at 100.
+      const normalizedExercisesCompleted = exercisesCompleted === undefined
+        ? 0
+        : Math.min(parseNonNegativeInteger(exercisesCompleted, 0), 100);
       const normalizedCaloriesBurned = caloriesBurned === undefined ? undefined : parseNonNegativeInteger(caloriesBurned);
       const normalizedNotes = normalizeBoundedString(notes, 500);
 

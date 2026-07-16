@@ -185,7 +185,8 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
             html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
           });
           emailSent = true;
-          logger.info('[WorkoutSummary] Email sent', { clientId: parsedClientId, email: client.email });
+          // Log the client id only — never the email (PII, incl. minors).
+          logger.info('[WorkoutSummary] Email sent', { clientId: parsedClientId });
         } else {
           logger.warn('[WorkoutSummary] Email service not available');
         }

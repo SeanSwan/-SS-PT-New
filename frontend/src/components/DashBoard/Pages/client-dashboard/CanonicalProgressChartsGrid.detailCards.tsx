@@ -151,7 +151,12 @@ export const MuscleGroupBalanceCard: React.FC<{
           <BarTrack>
             <BarFill $pct={fills[i] ?? 0} $color={CHART_COLORS.gildedFern} />
           </BarTrack>
-          <BarValue>{Math.round(row.y).toLocaleString()}</BarValue>
+          {/* Bodyweight-only groups (push-ups, planks, pull-ups) log weight 0,
+              so their volume is 0. Show the set count instead of a bare "0" so
+              the group reads as trained, not skipped. */}
+          <BarValue>
+            {row.y > 0 ? Math.round(row.y).toLocaleString() : `${row.sets} sets`}
+          </BarValue>
         </BarRow>
       ))}
     </BarList>

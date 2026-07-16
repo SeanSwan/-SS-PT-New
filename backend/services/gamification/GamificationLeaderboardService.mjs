@@ -33,7 +33,8 @@ export class GamificationLeaderboardService {
     const cappedLimit = Math.min(parseInt(limit) || 10, MAX_LEADERBOARD_LIMIT);
     const offset = (parseInt(page) - 1) * cappedLimit;
 
-    const whereClause = {};
+    // Respect the leaderboardOptIn privacy control (defaults true).
+    const whereClause = { leaderboardOptIn: true };
     if (tier) whereClause.tier = tier;
 
     const [leaderboard, total] = await Promise.all([

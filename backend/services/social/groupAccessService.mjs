@@ -64,6 +64,12 @@ export function canPostInGroup(group, membership) {
 export async function assertGroupPostAccess(post, user) {
   if (!post || !post.groupId) return { ok: true };
   const { group, membership } = await getGroupWithMembership(post.groupId, user?.id);
+  // A banned member is barred from ALL engagement, even in a public group
+  // (public content is otherwise open) — banning a harasser must actually
+  // stop them. Admins are never banned. Checked before the view gate.
+  if (user?.role !== 'admin' && membership?.status === 'banned') {
+    return { ok: false, status: 403, message: 'You are banned from this group' };
+  }
   if (canViewGroupContent(group, membership, user)) return { ok: true };
   return { ok: false, status: 403, message: 'Join this group to interact with its posts' };
 }

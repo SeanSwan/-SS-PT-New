@@ -350,7 +350,9 @@ describe('Phase 14 — chart-exercise-frequency', () => {
     await getExerciseFrequencyChart(req, res);
     const executedSql = sql[0];
     expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
-    expect(executedSql).toMatch(/GROUP BY\s+wl\."exerciseName"/i);
+    // Case/whitespace-insensitive grouping (2026-07-16 data-truth fix) — merges
+    // 'Bench Press' and 'bench press' into one diary row instead of two.
+    expect(executedSql).toMatch(/GROUP BY\s+LOWER\(TRIM\(wl\."exerciseName"\)\)/i);
     expect(executedSql).not.toMatch(/LIMIT\s+\d+/i);
     expect(executedSql).not.toMatch(/INTERVAL\s+'90 days'/i);
     assertNoForbiddenTables(executedSql);
@@ -380,10 +382,12 @@ describe('Phase 14 — chart-muscle-group-balance', () => {
     const executedSql = sql[0];
     expect(executedSql).toMatch(/CASE/i);
     expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
-    expect(executedSql).toMatch(/'Chest'/);
-    expect(executedSql).toMatch(/'Back'/);
-    expect(executedSql).toMatch(/'Legs'/);
-    expect(executedSql).toMatch(/'Core'/);
+    // The shared classifier (muscleGroupSql.mjs) emits canonical LOWERCASE
+    // keys; the Title-case display label is applied in JS via MUSCLE_GROUP_DISPLAY.
+    expect(executedSql).toMatch(/'chest'/);
+    expect(executedSql).toMatch(/'back'/);
+    expect(executedSql).toMatch(/'legs'/);
+    expect(executedSql).toMatch(/'core'/);
     assertNoForbiddenTables(executedSql);
   });
 });

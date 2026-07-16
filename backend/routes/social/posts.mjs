@@ -838,11 +838,15 @@ router.post('/', upload.single('media'), async (req, res) => {
       try { await groupPost.update({ lastActivityAt: new Date() }); } catch { /* non-fatal */ }
     }
 
-    // Award points AFTER commit (non-transactional, fire-and-forget safe)
-    const pointAction = `post_create_${type}`;
+    // Award points AFTER commit (non-transactional, fire-and-forget safe).
+    // Use the NORMALIZED, stored type — not the raw request `type`. The raw
+    // value let 'transformation' (stored as 'milestone') mint post_create_
+    // transformation=50pts per post; the point action must match what was saved.
+    const storedType = post.type;
+    const pointAction = `post_create_${storedType}`;
     const pointResult = await awardSocialPoints(req.user.id, pointAction, {
       postId: post.id,
-      postType: type,
+      postType: storedType,
       hasMedia: !!req.file,
       visibility,
       hashtags: linkedHashtags.map(h => h.name)
