@@ -17,6 +17,7 @@ import { LensChartPaletteProvider } from '../Charts/lensChartPalette';
 export { UniversalSchedule };
 
 export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'));
+export const OwnerSupportInboxPage = React.lazy(() => import('./Pages/admin-support/OwnerSupportInboxPage'));
 export const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'));
 export const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-management/modern-user-management'));
 export const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));

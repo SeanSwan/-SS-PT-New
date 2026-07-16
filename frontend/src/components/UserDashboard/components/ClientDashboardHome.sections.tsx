@@ -98,7 +98,7 @@ const railGroups: RailGroup[] = [
     items: [
       ['Profile & Settings', 'profile', UserRound],
       ['Billing & Plans', undefined, CreditCard],
-      ['Help Center', undefined, HelpCircle],
+      ['Report a problem', 'support', HelpCircle],
       ['Sign Out', undefined, LogOut],
     ],
   },

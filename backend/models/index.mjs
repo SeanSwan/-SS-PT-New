@@ -129,6 +129,8 @@ export const getSessionType = () => getModel('SessionType');
 export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
 export const getContact = () => getModel('Contact');
+export const getSupportIssue = () => getModel('SupportIssue');
+export const getSupportIssueEvent = () => getModel('SupportIssueEvent');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
 export const getAdminSpecial = () => getModel('AdminSpecial');
