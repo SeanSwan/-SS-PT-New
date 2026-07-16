@@ -234,9 +234,47 @@ describe('Phase 14 — hook fetch contract', () => {
     expect(bundle.prTimeline[0]).toMatchObject({ y: 225, exercise: 'Unknown exercise', reps: 5 });
     expect(bundle.anchorLifts.exercises).toEqual(['Squat']);
     expect(bundle.anchorLifts.data.Broken).toBeUndefined();
-    expect(bundle.movementPatternBalance).toEqual([]);
+    // Balance charts keep a bucket with real sets even at zero/non-finite volume
+    // (bodyweight training) — 'push' has 8 sets, so it survives with y floored to 0.
+    expect(bundle.movementPatternBalance).toEqual([{ x: 'push', y: 0, sets: 8 }]);
     expect(bundle.muscleGroupBalance[0]).toMatchObject({ x: 'Point 1', y: 1250, sets: 9 });
     expect(bundle.recoverySignal).toEqual([]);
+  });
+
+  it('keeps bodyweight-only balance buckets (sets>0, volume=0) but still drops truly-empty ones', () => {
+    // Real production case (user 108): 8 sets of push-ups record weight 0, so
+    // muscle-group volume is 0. Dropping them made the client's Chest bar vanish
+    // and the chart falsely claimed they skipped chest. sets>0 = real training.
+    const bundle = sanitizeClientProgressChartsBundle({
+      muscleGroupBalance: [
+        { x: 'Chest', y: 0, sets: 8 },       // bodyweight push-ups — KEEP
+        { x: 'Legs', y: 4200, sets: 12 },    // weighted — KEEP
+        { x: 'Core', y: '0', sets: '5' },    // stringy bodyweight planks — KEEP
+        { x: 'Arms', y: 0, sets: 0 },        // nothing logged — DROP
+      ],
+      movementPatternBalance: [
+        { x: 'push', y: 0, sets: 6 },        // bodyweight — KEEP
+        { x: 'hinge', y: 0, sets: 0 },       // nothing — DROP
+      ],
+    } as any);
+
+    expect(bundle.muscleGroupBalance).toEqual([
+      { x: 'Chest', y: 0, sets: 8 },
+      { x: 'Legs', y: 4200, sets: 12 },
+      { x: 'Core', y: 0, sets: 5 },
+    ]);
+    expect(bundle.movementPatternBalance).toEqual([{ x: 'push', y: 0, sets: 6 }]);
+  });
+
+  it('does NOT resurrect zero-volume points on non-balance (volume/trend) charts', () => {
+    // The keep-zero rule is balance-only. A weekly-volume bucket of 0 is genuinely
+    // nothing to plot on a volume axis and must still drop.
+    const bundle = sanitizeClientProgressChartsBundle({
+      weeklyVolume: [{ x: '05/08', y: 0, workouts: 3 }],
+      workoutFrequency: [{ x: '05/08', y: 0 }],
+    } as any);
+    expect(bundle.weeklyVolume).toEqual([]);
+    expect(bundle.workoutFrequency).toEqual([]);
   });
 });
 

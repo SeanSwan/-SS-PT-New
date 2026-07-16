@@ -79,7 +79,9 @@ describe('useAdminClientProgressCharts', () => {
     expect(result.current.charts.prTimeline[0]).toMatchObject({ y: 225, exercise: 'Unknown exercise', reps: 5 });
     expect(result.current.charts.anchorLifts.exercises).toEqual(['Squat']);
     expect(result.current.charts.anchorLifts.data.Broken).toBeUndefined();
-    expect(result.current.charts.movementPatternBalance).toEqual([]);
+    // Balance charts keep a real-sets bucket even at zero/non-finite volume
+    // (bodyweight training) — 'push' has 8 sets, so it survives with y floored to 0.
+    expect(result.current.charts.movementPatternBalance).toEqual([{ x: 'push', y: 0, sets: 8 }]);
     expect(result.current.charts.muscleGroupBalance[0]).toMatchObject({ x: 'Point 1', y: 1250, sets: 9 });
     expect(result.current.charts.recoverySignal).toEqual([]);
   });
