@@ -310,10 +310,19 @@ router.post('/configure-rules',
 
 /**
  * @route   POST /api/master-prompt/gamification/process-action
- * @desc    Process user action for gamification (automated)
- * @access  Private
+ * @desc    Process user action for gamification (automated/system only)
+ * @access  Private — system_monitoring permission (NOT end users)
+ *
+ * SECURITY 2026-07-15: this awards points to req.user.id from a CLIENT-supplied
+ * `action` + `metadata` (incl. a client-controlled idempotency key), and the
+ * per-user daily cap was never enforced — so any authenticated user could
+ * self-award 500-pt streak actions in a loop and farm unlimited points to drain
+ * redeemable-reward stock. Now gated behind the SAME permission as its sibling
+ * /award-points (no frontend/internal caller depended on the open route).
  */
-router.post('/process-action', async (req, res) => {
+router.post('/process-action',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
   try {
     const { action, metadata = {} } = req.body;
     const userId = req.user.id;

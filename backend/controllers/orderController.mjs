@@ -7,7 +7,7 @@ import {
   getUser,
 } from '../models/index.mjs';
 import { createAdminNotification, createNotification } from './notificationController.mjs';
-import sessionAllocationService from '../services/SessionAllocationService.mjs';
+import unifiedSessionService from '../services/sessions/session.service.mjs';
 import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -171,7 +171,9 @@ export const applyOrderPayment = async (req, res) => {
     if (previousStatus !== 'completed') {
       try {
         logger.info(`Payment applied to order ${orderId}, allocating sessions for user ${order.userId}`);
-        sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(orderId, order.userId);
+        // Unified allocator = idempotent (FinancialTransaction-keyed) + row-locked,
+        // so a double-submit / concurrent admin apply can't double-grant.
+        sessionCreationResult = await unifiedSessionService.allocateSessionsFromOrder(orderId, order.userId);
         logger.info(`Successfully allocated ${sessionCreationResult.allocated} sessions for order ${orderId}`, {
           orderNumber: order.orderNumber,
           totalSessions: sessionCreationResult.totalSessions,

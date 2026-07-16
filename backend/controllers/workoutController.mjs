@@ -207,6 +207,7 @@
 import workoutService from '../services/workoutService.mjs';
 import { errorResponse, successResponse } from '../utils/responseUtils.mjs';
 import logger from '../utils/logger.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 
 /**
  * Get all workout sessions for a user
@@ -275,11 +276,13 @@ export async function getWorkoutSessionById(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to view this session
-    if (session.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    // Authorize: owner (client/user), admin, or a trainer with an ACTIVE
+    // assignment to the session's owner. The old check let ANY trainer through
+    // (no assignment gate) and its int-vs-string compare denied real owners.
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId))) {
       return errorResponse(res, 403, 'You are not authorized to view this session');
     }
-    
+
     return successResponse(res, { session });
   } catch (error) {
     logger.error(`Error getting workout session: ${error.message}`, { stack: error.stack });
@@ -305,8 +308,8 @@ export async function createWorkoutSession(req, res) {
       if (req.body[field] !== undefined) sessionData[field] = req.body[field];
     }
 
-    // Check if the user is authorized to create a session for another user
-    if (sessionData.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    // Authorize creating-for-another: self, admin, or an assigned trainer.
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, sessionData.userId))) {
       return errorResponse(res, 403, 'You are not authorized to create sessions for other users');
     }
 
@@ -335,11 +338,11 @@ export async function updateWorkoutSession(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to update this session
-    if (existingSession.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    // Authorize: owner, admin, or an assigned trainer.
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, existingSession.userId))) {
       return errorResponse(res, 403, 'You are not authorized to update this session');
     }
-    
+
     // Whitelist allowed fields — never allow userId/trainerId injection
     const updateAllowed = [
       'title', 'description', 'status', 'notes', 'duration', 'sessionDate',
@@ -375,11 +378,11 @@ export async function deleteWorkoutSession(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to delete this session
-    if (existingSession.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    // Authorize: owner, admin, or an assigned trainer.
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, existingSession.userId))) {
       return errorResponse(res, 403, 'You are not authorized to delete this session');
     }
-    
+
     await workoutService.deleteWorkoutSession(sessionId);
     
     return successResponse(res, { message: 'Workout session deleted successfully' });
@@ -397,12 +400,12 @@ export async function deleteWorkoutSession(req, res) {
 export async function getClientProgress(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
-    
-    // Check if the user is authorized to view this progress
-    if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+
+    // Authorize: self, admin, or an assigned trainer (no blanket trainer read).
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, userId))) {
       return errorResponse(res, 403, 'You are not authorized to view this progress');
     }
-    
+
     const progress = await workoutService.getClientProgress(userId);
     
     return successResponse(res, { progress });
@@ -420,9 +423,9 @@ export async function getClientProgress(req, res) {
 export async function getWorkoutStatistics(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
-    
-    // Check if the user is authorized to view these statistics
-    if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+
+    // Authorize: self, admin, or an assigned trainer (no blanket trainer read).
+    if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, userId))) {
       return errorResponse(res, 403, 'You are not authorized to view these statistics');
     }
     
@@ -465,8 +468,9 @@ export async function getExerciseRecommendations(req, res) {
       (req.user.role === 'admin' || req.user.role === 'trainer');
     const userId = libraryMode ? 'admin-library' : (requestedUserId || req.user.id);
     
-    // Check if the user is authorized to get recommendations for this user
-    if (!libraryMode && userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    // Authorize (outside the shared admin/trainer library): self, admin, or an
+    // assigned trainer — a trainer can't pull recommendations for an unassigned user.
+    if (!libraryMode && !(await assertAssignmentOrAdmin(req.user.id, req.user.role, userId))) {
       return errorResponse(res, 403, 'You are not authorized to get recommendations for this user');
     }
     

@@ -43,6 +43,13 @@ import {
 
 const INTERNAL_ERROR = 'Internal server error';
 
+// V1 challenge categories whose progress must come from VERIFIED workout events
+// (the challenges/progress-events/workout-completed evidence path), never a
+// client-typed number. Creative/community/habit categories (nutrition,
+// mindfulness, social, dance, music, art, gaming, comedy, community_meetup)
+// have no workout-event evidence source and stay self-reportable. (Sean policy 2026-07-15.)
+const EVIDENCE_REQUIRED_V1_CATEGORIES = new Set(['fitness', 'streak']);
+
 const sendChallengeError = (res, status, message, error = INTERNAL_ERROR) =>
   res.status(status).json({
     success: false,
@@ -560,6 +567,18 @@ const challengeController = {
         return res.status(400).json({
           success: false,
           message: 'Challenge is not active'
+        });
+      }
+
+      // Fitness/streak challenges earn progress ONLY from verified workout
+      // events — a client-typed number can't complete them. Other categories
+      // stay self-reportable. (Sean policy 2026-07-15.)
+      if (EVIDENCE_REQUIRED_V1_CATEGORIES.has(challenge.category)) {
+        await transaction.rollback();
+        return res.status(409).json({
+          success: false,
+          message: 'Fitness-challenge progress is credited automatically from your logged workouts.',
+          code: 'CHALLENGE_REQUIRES_WORKOUT_EVIDENCE'
         });
       }
 

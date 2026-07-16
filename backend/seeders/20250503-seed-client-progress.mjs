@@ -6,8 +6,17 @@ import { v4 as uuidv4 } from 'uuid';
  * Creates sample progress records for existing client users
  */
 export async function up(queryInterface, Sequelize) {
+  // SAFETY GUARD 2026-07-15: this seeder fabricates progress (workoutsCompleted,
+  // streaks, achievement dates) for REAL client users — running it in production
+  // would inflate real athletes' charts with fake data, breaking the product's
+  // core "charts come from real logs" promise. Refuse to run outside dev/test.
+  if (process.env.NODE_ENV === 'production') {
+    console.log('[seed-client-progress] Refusing to fabricate progress in production — skipped.');
+    return;
+  }
+
   const now = new Date();
-  
+
   // First, find existing client users to use their IDs
   const clientUsers = await queryInterface.sequelize.query(
     `SELECT id FROM users WHERE role = 'client' LIMIT 5`,

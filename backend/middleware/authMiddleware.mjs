@@ -291,7 +291,7 @@ export const protect = async (req, res, next) => {
 
     try {
       // Verify token
-      const decoded = jwt.verify(token, getJwtSecret());
+      const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
       
       // PRODUCTION FIX: Enhanced token validation with logging
       logger.info('Token decoded successfully', {

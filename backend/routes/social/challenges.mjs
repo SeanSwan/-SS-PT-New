@@ -15,6 +15,12 @@ import { calculateChallengeProgressAward } from '../../services/gamification/cha
 
 const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 
+// Challenge categories whose progress must come from VERIFIED workout events
+// (the canonical workout-completed evidence path), never client-typed numbers.
+// The biometric/habit categories have no workout-event evidence source and
+// stay self-reportable. (Sean policy 2026-07-15.)
+const EVIDENCE_REQUIRED_CATEGORIES = new Set(['workout']);
+
 const router = express.Router();
 
 // Apply auth middleware to all routes
@@ -557,6 +563,20 @@ router.post('/:challengeId/progress', async (req, res) => {
         return { error: true, status: 404, message: 'Challenge not found' };
       }
 
+      // Fitness challenges must earn progress from VERIFIED workout events, not
+      // client-typed numbers — otherwise a joiner posts the goal and collects
+      // the full reward without training. Biometric/habit categories (steps/
+      // weight/nutrition/water/sleep/custom) have no workout-event evidence
+      // source and stay self-reportable. (Sean policy 2026-07-15.)
+      if (EVIDENCE_REQUIRED_CATEGORIES.has(challenge.category)) {
+        return {
+          error: true,
+          status: 409,
+          message: 'Workout-challenge progress is credited automatically from your logged workouts.',
+          code: 'CHALLENGE_REQUIRES_WORKOUT_EVIDENCE',
+        };
+      }
+
       const {
         newProgress,
         cumulativePoints,
@@ -611,7 +631,11 @@ router.post('/:challengeId/progress', async (req, res) => {
     });
 
     if (result.error) {
-      return res.status(result.status).json({ success: false, message: result.message });
+      return res.status(result.status).json({
+        success: false,
+        message: result.message,
+        ...(result.code ? { code: result.code } : {}),
+      });
     }
 
     return res.status(200).json({

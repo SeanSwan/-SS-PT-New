@@ -60,6 +60,31 @@ const points = <T extends object>(
   .map((raw, index) => point<T>(raw, index, extra?.(raw, index)))
   .filter((row): row is T => row !== null);
 
+// Balance charts (muscle-group, movement-pattern) answer "did you train this
+// area", NOT "how much did you lift". A bucket with real logged sets but ZERO
+// volume is bodyweight training — push-ups (Chest), planks (Core), pull-ups
+// (Back), air squats (Legs) all record weight 0, so weight*reps = 0. The shared
+// `point()` helper drops y<=0 (correct for volume/trend axes), which would make
+// a client who did 8 sets of push-ups see their Chest bar VANISH — the chart
+// then lies that they skipped chest. Keep the bucket whenever sets>0 even at
+// zero volume; the plotted y floors at 0. ~25% of real logged sets are
+// bodyweight, so this is a routine truth case, not an edge case.
+const balancePoints = <T extends object>(
+  value: unknown,
+  meta: (raw: RawPoint, index: number) => RawPoint & { sets: number },
+): T[] => toArray(value)
+  .map((raw, index) => {
+    const extra = meta(raw, index);
+    const y = toFiniteNumber(raw.y, 0);
+    if (!(y > 0) && !(extra.sets > 0)) return null;
+    return {
+      ...extra,
+      x: toLabel(raw.x, `Point ${index + 1}`),
+      y: Math.max(0, y),
+    } as unknown as T;
+  })
+  .filter((row): row is T => row !== null);
+
 const EMPTY_ATTENDANCE = {
   data: [],
   reliabilityPercent: 0,
@@ -120,8 +145,8 @@ export function sanitizeClientProgressChartsBundle(raw: Partial<CanonicalProgres
       exercises: anchorExercises.filter((name) => anchorData[name]?.length > 0),
     },
     exerciseFrequency: points<ExerciseFrequencyPoint>(raw.exerciseFrequency, (row) => ({ sets: toFiniteNumber(row.sets) })),
-    movementPatternBalance: points<MovementPatternPoint>(raw.movementPatternBalance, (row) => ({ sets: toFiniteNumber(row.sets) })),
-    muscleGroupBalance: points<MuscleGroupPoint>(raw.muscleGroupBalance, (row) => ({ sets: toFiniteNumber(row.sets) })),
+    movementPatternBalance: balancePoints<MovementPatternPoint>(raw.movementPatternBalance, (row) => ({ sets: toFiniteNumber(row.sets) })),
+    muscleGroupBalance: balancePoints<MuscleGroupPoint>(raw.muscleGroupBalance, (row) => ({ sets: toFiniteNumber(row.sets) })),
     recoverySignal: points<RecoveryPoint>(raw.recoverySignal, (row) => ({
       painFlags: toFiniteNumber(row.painFlags),
       highRpeFlags: toFiniteNumber(row.highRpeFlags),

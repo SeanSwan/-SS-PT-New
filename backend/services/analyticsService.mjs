@@ -132,7 +132,10 @@ export async function getPersonalRecords(userId) {
   try {
     const [rows] = await sequelize.query(
       `WITH max_per_exercise AS (
-         SELECT DISTINCT ON (wl."exerciseName")
+         -- Dedup case/whitespace-insensitively so 'Bench Press' and 'bench
+         -- press' are ONE PR, not two cards (matches the Rolodex convention).
+         -- DISTINCT ON keeps the max-weight set's actual typed name for display.
+         SELECT DISTINCT ON (LOWER(TRIM(wl."exerciseName")))
            wl."exerciseName" AS exercise_name,
            wl.weight::float AS max_weight,
            wl.reps AS reps_at_max,
@@ -144,7 +147,7 @@ export async function getPersonalRecords(userId) {
            AND ws.status = 'completed'
            AND wl.weight IS NOT NULL
            AND wl.weight > 0
-         ORDER BY wl."exerciseName", wl.weight DESC, ws.date DESC
+         ORDER BY LOWER(TRIM(wl."exerciseName")), wl.weight DESC, ws.date DESC
        )
        SELECT * FROM max_per_exercise
        ORDER BY max_weight DESC`,

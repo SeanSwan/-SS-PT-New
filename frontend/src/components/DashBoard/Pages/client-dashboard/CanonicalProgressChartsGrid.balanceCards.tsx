@@ -99,9 +99,16 @@ export const AnchorLiftsCard: React.FC<{
 export const MovementPatternBalanceCard: React.FC<{
   data: CanonicalProgressCharts['movementPatternBalance'];
 }> = ({ data }) => {
+  // The pie sizes each wedge by VOLUME. Bodyweight-only patterns (sets>0,
+  // volume=0) are KEPT in `data` so the drill-down table + facts still count
+  // them (that's the data-truth fix), but a zero-value VictoryPie datum draws a
+  // zero-angle wedge whose label collides with its neighbour — so the wedge
+  // render itself skips zero-volume rows. (A sets-based balance metric that
+  // shows bodyweight work as a real wedge is the recommended follow-up.)
+  const pieData = data.filter((r) => r.y > 0).map((r) => ({ x: r.x, y: r.y }));
   const renderPie = (width?: number, height = 200) => (
     <VictoryPie
-      data={data.map((r) => ({ x: r.x, y: r.y }))}
+      data={pieData}
       colorScale={FULL_PALETTE}
       innerRadius={40}
       padAngle={2}

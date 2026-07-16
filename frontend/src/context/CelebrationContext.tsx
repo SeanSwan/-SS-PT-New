@@ -78,6 +78,19 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
   const [combos, setCombos] = useState<ComboData[]>([]);
   const [levelUp, setLevelUp] = useState<LevelUpData | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
+  // Bound the particle state so repeated celebrations (now driven by real
+  // level-up socket events) can't grow it without limit. The canvas self-
+  // prunes dead particles each frame; this caps the React-state history a
+  // single big level-up burst is 300, so a few windows of headroom is plenty.
+  const MAX_PARTICLES = 600;
+  const addParticles = useCallback((burst: Particle[]) => {
+    setParticles(prev => {
+      const next = prev.length + burst.length > MAX_PARTICLES
+        ? [...prev.slice(prev.length + burst.length - MAX_PARTICLES), ...burst]
+        : [...prev, ...burst];
+      return next;
+    });
+  }, []);
   const [soundMuted, setSoundMutedState] = useState(soundManager.getMuted());
   const [retroMode, setRetroModeState] = useState(soundManager.getRetroMode());
 
@@ -90,6 +103,15 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
+
+  // Idle-clear: once particles have been added and nothing new arrives for a
+  // few seconds (longer than any particle's on-screen life), release the
+  // retained burst objects so a long gamified session doesn't hold them.
+  useEffect(() => {
+    if (particles.length === 0) return undefined;
+    const timer = setTimeout(() => setParticles([]), 4000);
+    return () => clearTimeout(timer);
+  }, [particles]);
 
   // Combo tracking
   const comboCountRef = useRef(0);
@@ -148,7 +170,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!reducedMotion) {
         const isMobile = window.innerWidth < 768;
         const count = isMobile ? 8 : 15;
-        setParticles(prev => [...prev, ...createBurstParticles(popX, popY, count)]);
+        addParticles(createBurstParticles(popX, popY, count));
       }
 
       // Combo tracking
@@ -175,10 +197,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
           const burstCount = isMobile
             ? 15 + tierIdx * 10
             : 30 + tierIdx * 20;
-          setParticles(prev => [
-            ...prev,
-            ...createBurstParticles(window.innerWidth / 2, window.innerHeight / 2, burstCount),
-          ]);
+          addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight / 2, burstCount));
         }
       }
     },
@@ -198,10 +217,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!reducedMotion) {
         const isMobile = window.innerWidth < 768;
         const count = isMobile ? 100 : 300;
-        setParticles(prev => [
-          ...prev,
-          ...createBurstParticles(window.innerWidth / 2, window.innerHeight / 2, count),
-        ]);
+        addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight / 2, count));
       }
 
       // Auto-dismiss after 6s
@@ -218,10 +234,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!reducedMotion) {
         const isMobile = window.innerWidth < 768;
         const count = isMobile ? 30 : 60;
-        setParticles(prev => [
-          ...prev,
-          ...createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.35, count),
-        ]);
+        addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.35, count));
       }
     },
     [reducedMotion],
@@ -235,10 +248,7 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!reducedMotion) {
         const isMobile = window.innerWidth < 768;
         const count = isMobile ? 20 : 40;
-        setParticles(prev => [
-          ...prev,
-          ...createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.4, count),
-        ]);
+        addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight * 0.4, count));
       }
     },
     [reducedMotion],

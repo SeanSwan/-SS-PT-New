@@ -128,6 +128,17 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
     void runModeration(moderation.transferOwnership(userId));
   };
 
+  const handleArchive = async () => {
+    if (!window.confirm('Archive this group? It will be hidden from everyone. This cannot be undone from the app.')) return;
+    setIsMutating(true);
+    try {
+      const ok = await moderation.archiveGroup();
+      if (ok) onBack();
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
   return (
     <DetailLayout>
       <DetailHeaderCard>
@@ -176,6 +187,11 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
           {isActiveMember && group.myMembership?.role !== 'owner' && (
             <QuietGroupButton type="button" onClick={handleLeave} disabled={isMutating}>
               Leave
+            </QuietGroupButton>
+          )}
+          {isOwner && (
+            <QuietGroupButton type="button" onClick={handleArchive} disabled={isMutating}>
+              Archive group
             </QuietGroupButton>
           )}
         </div>
@@ -253,6 +269,8 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
             onDeny={(uid) => void runModeration(moderation.removeMember(uid))}
             onSetRole={(uid, role) => void runModeration(moderation.setRole(uid, role))}
             onRemove={(uid) => void runModeration(moderation.removeMember(uid))}
+            onBan={(uid) => void runModeration(moderation.removeMember(uid, true))}
+            onReinstate={(uid) => void runModeration(moderation.approveMember(uid))}
             onTransfer={handleTransfer}
           />
         </DetailLayout>

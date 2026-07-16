@@ -21,6 +21,7 @@ import {
   transferGroupOwnership,
 } from '../../services/social/groupAccessService.mjs';
 import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
+import { serializeGroup, toPositiveInt } from './groupRouteHelpers.mjs';
 import {
   addUserToGroupChat,
   removeUserFromGroupChat,
@@ -29,19 +30,6 @@ import {
 const router = express.Router();
 
 const USER_PREVIEW_ATTRS = ['id', 'firstName', 'lastName', 'username', 'photo', 'role'];
-
-const toPositiveInt = (value) => {
-  const next = Number(value);
-  return Number.isInteger(next) && next > 0 ? next : null;
-};
-
-function serializeGroup(group, membership = null) {
-  const json = typeof group.toJSON === 'function' ? group.toJSON() : { ...group };
-  return {
-    ...json,
-    myMembership: membership ? { role: membership.role, status: membership.status } : null,
-  };
-}
 
 /** POST /:id/join — public: active member; private: pending request. */
 router.post('/:id/join', async (req, res) => {
@@ -100,7 +88,17 @@ router.delete('/:id/leave', async (req, res) => {
     const { group, membership } = await getGroupWithMembership(groupId, req.user.id);
     if (!group || !membership) return res.status(404).json({ success: false, message: 'Group membership not found' });
     if (membership.role === 'owner') {
-      return res.status(400).json({ success: false, message: 'Transfer ownership before leaving your group' });
+      // An owner can't just leave (would orphan the group) — but if they're the
+      // ONLY member, leaving retires the group (archive) instead of dead-ending.
+      const otherActive = await SocialGroupMember.count({
+        where: { groupId, status: 'active', userId: { [Op.ne]: req.user.id } },
+      });
+      if (otherActive > 0) {
+        return res.status(400).json({ success: false, message: 'Transfer ownership before leaving your group' });
+      }
+      await membership.destroy();
+      await group.update({ isArchived: true });
+      return res.json({ success: true, message: 'You left and archived the group' });
     }
 
     await membership.destroy();
@@ -127,8 +125,9 @@ router.get('/:id/members', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Join this group to see its members' });
     }
 
-    const includePending = canModerateGroup(membership, req.user);
-    const statuses = includePending ? ['active', 'pending'] : ['active'];
+    // Moderators also see pending (to approve) and banned (to reinstate).
+    const includeManaged = canModerateGroup(membership, req.user);
+    const statuses = includeManaged ? ['active', 'pending', 'banned'] : ['active'];
     const members = await SocialGroupMember.findAll({
       where: { groupId, status: { [Op.in]: statuses } },
       order: [['role', 'ASC'], ['createdAt', 'ASC']],
@@ -158,7 +157,8 @@ router.get('/:id/members', async (req, res) => {
   }
 });
 
-/** POST /:id/members/:userId/approve — approve a pending request (mods). */
+/** POST /:id/members/:userId/approve — approve a pending request OR reinstate
+    a banned member (both → active). Moderator-gated. */
 router.post('/:id/members/:userId/approve', async (req, res) => {
   try {
     const groupId = toPositiveInt(req.params.id);
@@ -171,15 +171,18 @@ router.post('/:id/members/:userId/approve', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only group moderators can approve members' });
     }
 
-    const target = await SocialGroupMember.findOne({ where: { groupId, userId: targetUserId, status: 'pending' } });
-    if (!target) return res.status(404).json({ success: false, message: 'No pending request for that user' });
+    const target = await SocialGroupMember.findOne({
+      where: { groupId, userId: targetUserId, status: { [Op.in]: ['pending', 'banned'] } },
+    });
+    if (!target) return res.status(404).json({ success: false, message: 'No pending or banned member for that user' });
+    const wasBanned = target.status === 'banned';
 
     await target.update({ status: 'active' });
     await refreshMemberCount(groupId);
     if (group.conversationId) {
       try { await addUserToGroupChat(group.conversationId, targetUserId); } catch { /* best-effort */ }
     }
-    return res.json({ success: true, message: 'Member approved' });
+    return res.json({ success: true, message: wasBanned ? 'Member reinstated' : 'Member approved' });
   } catch (error) {
     console.error('Error approving group member:', error);
     return sendSocialRouteError(res, 500, 'Failed to approve member');

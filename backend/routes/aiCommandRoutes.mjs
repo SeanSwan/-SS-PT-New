@@ -68,6 +68,21 @@ const normalizeSelectedClientId = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+// previousContext reaches the classifier prompt verbatim — cap it so a caller
+// can never inflate LLM cost or smuggle a mega-prompt through this channel.
+// 2000 chars comfortably fits the Coach Command Center's recent-context use
+// and the planner's structural plan snapshot (~600 chars by contract).
+const PREVIOUS_CONTEXT_MAX_CHARS = 2000;
+/** Exported for tests (same precedent as resolveVoiceUploadScope). */
+export const normalizePreviousContext = (value) => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.length > PREVIOUS_CONTEXT_MAX_CHARS
+    ? trimmed.slice(0, PREVIOUS_CONTEXT_MAX_CHARS)
+    : trimmed;
+};
+
 const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface'];
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
 const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;
@@ -185,7 +200,7 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     const ctx = await executeCommandPipeline(message, user, {
       selectedClientName: null,
       selectedClientId: normalizedSelectedClientId,
-      previousContext,
+      previousContext: normalizePreviousContext(previousContext),
       routeContext: normalizedRouteContext,
       contextEnvelope,
       sequelize,

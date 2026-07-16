@@ -85,9 +85,8 @@ erDiagram
     user_appearance_profiles {
         integer id PK
         integer userId FK "REFERENCES Users(id) - PascalCase table, per house law"
-        jsonb profile "validated AppearanceProfile JSON"
+        jsonb profile "validated AppearanceProfile JSON (carries profileSchemaVersion: number 1 inside)"
         jsonb overlay "validated UserStyleOverlay JSON, nullable"
-        string profileSchemaVersion
         timestamptz createdAt
         timestamptz updatedAt
     }
