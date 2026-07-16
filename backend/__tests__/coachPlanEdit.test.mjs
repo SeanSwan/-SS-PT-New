@@ -6,6 +6,12 @@
  *    are required; unknown ids and foreign plans are refused.
  */
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../database.mjs', () => ({
+  default: {
+    transaction: vi.fn(async (operation) => operation({ LOCK: { UPDATE: 'UPDATE' } })),
+  },
+}));
 import { checkPlanEditItem, stampDoctrineVerdicts } from '../services/ai/planEditDoctrineService.mjs';
 import { applyPlanEditProposal } from '../services/ai/coachPlanEditApprovalService.mjs';
 
@@ -78,13 +84,19 @@ const ITEMS = [
   { id: 'e3', weekNumber: 2, dayNumber: 1, exerciseName: 'Push-Up', field: 'reps', fromValue: '12', toValue: '10' },
 ];
 
-const run = (plan, items, approvedItemIds) => applyPlanEditProposal({
-  proposal: proposalWith(items),
-  req: { body: { approvedItemIds } },
-  models: { WorkoutPlan: { findOne: vi.fn(async ({ where }) => (
-    where.id === 7 && where.userId === 42 ? plan : null
-  )) } },
-});
+const run = (plan, items, approvedItemIds) => {
+  const WorkoutPlan = {
+    findOne: vi.fn(async ({ where }) => (
+      where.id === 7 && where.userId === 42 ? plan : null
+    )),
+    findByPk: vi.fn(async (id) => (Number(id) === 7 ? plan : null)),
+  };
+  return applyPlanEditProposal({
+    proposal: proposalWith(items),
+    req: { body: { approvedItemIds } },
+    models: { WorkoutPlan },
+  });
+};
 
 describe('applyPlanEditProposal — per-item approval', () => {
   it('applies ONLY the approved subset; the rest is recorded as skipped, untouched', async () => {

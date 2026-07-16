@@ -14,7 +14,9 @@
  * Weight is intensity-based BY CONTRACT: the Coach proposes targetIntensity
  * (%1RM), matching the plan generator — a raw weight never comes from the model.
  */
+import sequelize from '../../database.mjs';
 import { normalizeWorkoutPlanDataForPersistence } from '../workoutPlanDataPrivacyService.mjs';
+import { mutateWorkoutPlanRecord } from '../workoutPlanMutationService.mjs';
 
 const toPlain = (value) => (value?.toJSON ? value.toJSON() : value);
 
@@ -114,7 +116,15 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
 
   const appliedCount = outcomes.filter((entry) => entry.outcome === 'applied').length;
   if (appliedCount > 0) {
-    await plan.update({ planData: normalizeWorkoutPlanDataForPersistence(planData) });
+    await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: planRecord.id,
+      expectedRevision: planRecord.contentRevision,
+      updates: {
+        planData: normalizeWorkoutPlanDataForPersistence(planData),
+      },
+    });
   }
 
   return {

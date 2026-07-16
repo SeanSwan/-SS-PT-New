@@ -185,7 +185,11 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       return { status: 200, body: { success: true, proposal: updated, applied: applyResult.result } };
     } catch (err) {
       const code = err.code || 'PLAN_EDIT_APPLY_FAILED';
-      await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
+      const isRevisionConflict = code === 'WORKOUT_PLAN_REVISION_CONFLICT' && Number(err.statusCode) === 409;
+      await updateProposalStatus({ id, status: isRevisionConflict
+        ? COACH_PROPOSAL_STATUS.PENDING : COACH_PROPOSAL_STATUS.FAILED, errorCode: isRevisionConflict ? null : code, db });
+      if (isRevisionConflict) return { status: 409,
+        body: { success: false, code, currentRevision: err.currentRevision } };
       return { status: 500, body: { success: false, code } };
     }
   }
