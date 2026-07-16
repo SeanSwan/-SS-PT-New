@@ -20,6 +20,7 @@ import { useWorkoutPlannerCoachSurface } from './useWorkoutPlannerCoachSurface';
 import { type PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
+import { useWorkoutPlannerRoutePlanLoad } from './useWorkoutPlannerRoutePlanLoad';
 import { useWorkoutPlannerPdfActions } from './useWorkoutPlannerPdfActions';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
@@ -29,7 +30,6 @@ import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanD
 import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 import { resolveWorkoutPlannerReturnTo } from './workoutPlannerReturnTo';
 import { useWorkoutPlannerDebateResultHydration } from './workoutPlannerDebateResultHydration';
-
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const navigate = useNavigate();
@@ -170,7 +170,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const coachDock = useWorkoutPlannerCoachSurface({ selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, phase, phaseNumber });
 
   const {
-    savedPlans, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,
+    savedPlans, savedPlansClientId, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,
     handleCardActivate, handlePlanSetPrimary, handleCardRename, handleCardDuplicate, handleCardArchive,
     pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening,
     handlePlanPdfView, handlePlanPdfUpdate, handlePlanPdfSave, handlePlanPdfUpload, closePlanPdfDialog,
@@ -197,7 +197,7 @@ const WorkoutPlannerPage: React.FC = () => {
     selectedClientId,
     planExercisesLength: planExercises.length,
     hasGeneratedHorizonPlan,
-    loadedPlanId,
+    loadedPlanId, loadedPlanRevision: savedPlans.find((plan) => plan.id === loadedPlanId)?.contentRevision ?? 1,
     planDuration,
     userRole: user?.role,
     phaseName: phase.name,
@@ -215,7 +215,6 @@ const WorkoutPlannerPage: React.FC = () => {
   });
 
   const { handleCreateBuilderPdf } = useWorkoutPlannerPdfActions({ selectedClient, planExercisesLength: planExercises.length, hasGeneratedHorizonPlan, planDuration, userRole: user?.role, goal, phaseNumber, buildPlanData, setStatusMsg });
-
   const { loadPlanIntoBuilder } = useWorkoutPlannerLoadPlanActions({
     authAxios,
     selectedClientId,
@@ -236,6 +235,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setStatusMsg,
   });
 
+  useWorkoutPlannerRoutePlanLoad({ loadPlanIntoBuilder, requestedPlanId: searchParams.get('planId'), routeClientId: routeRequestedClientId, routeMode: searchParams.get('mode'), savedPlans, savedPlansClientId, selectedClientId, setStatusMsg });
   const {
     removeExercise,
     updateExercise,

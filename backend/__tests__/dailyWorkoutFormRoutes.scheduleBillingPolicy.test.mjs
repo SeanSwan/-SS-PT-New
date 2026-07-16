@@ -11,6 +11,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -39,7 +40,12 @@ const mockWorkoutLogBulkCreate = vi.fn();
 const mockSessionFindByPk = vi.fn();
 const mockSessionTypeFindByPk = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockCompletionReceiptFindOrCreate = vi.fn(async ({ defaults }) => [
+  { id: 'receipt-scheduled-route', ...defaults },
+  true,
+]);
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: mockUserFindOne }),
@@ -49,7 +55,11 @@ vi.mock('../models/index.mjs', () => ({
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
   getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
-  getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
+  getWorkoutPlan: () => ({
+    findOne: mockWorkoutPlanFindOne,
+    findByPk: mockWorkoutPlanFindByPk,
+  }),
+  getWorkoutPlanCompletionReceipt: () => ({ findOrCreate: mockCompletionReceiptFindOrCreate }),
   getSession: () => ({ findByPk: mockSessionFindByPk }),
   getSessionType: () => ({ findByPk: mockSessionTypeFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
@@ -116,8 +126,8 @@ const VALID_PAYLOAD = {
 };
 
 const TRAINER_SESSION_ASSIGNMENT = {
-  assignmentKey: 'plan-6m:w4:d2:trainer_session',
-  planId: 'plan-6m',
+  assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:trainer_session',
+  planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
   assignmentType: 'trainer_session',
   source: 'workout_plan',
   isBillable: true,
@@ -175,8 +185,8 @@ function primeScheduledWorkoutLog({
 }
 
 function buildActiveTrainerSessionPlan() {
-  return {
-    id: 'plan-6m',
+  const plan = {
+    id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
     userId: 11,
     title: 'Six Month Trainer Arc',
     status: 'active',
@@ -205,6 +215,9 @@ function buildActiveTrainerSessionPlan() {
     },
     update: mockWorkoutPlanUpdate,
   };
+  plan.contentRevision = 4;
+  plan.contentHash = hashWorkoutPlanContent(plan.planData);
+  return plan;
 }
 
 beforeEach(() => {
@@ -214,6 +227,7 @@ beforeEach(() => {
   mockWorkoutLogDestroy.mockResolvedValue(undefined);
   mockWorkoutLogBulkCreate.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
+  mockWorkoutPlanFindByPk.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue(undefined);
   mockSessionTypeFindByPk.mockResolvedValue(null);
 });
@@ -381,7 +395,9 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
 
   it('advances the active trainer-session plan cursor without changing scheduled billing rules', async () => {
     const scheduledSession = primeScheduledWorkoutLog();
-    mockWorkoutPlanFindOne.mockResolvedValue(buildActiveTrainerSessionPlan());
+    const activePlan = buildActiveTrainerSessionPlan();
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindByPk.mockResolvedValue(activePlan);
 
     const res = await request(app).post('/api/workout-forms').send({
       ...VALID_PAYLOAD,
@@ -412,7 +428,10 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
     });
     const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
     expect(formCreate.formData.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:trainer_session',
+      assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:2026-05-03:o1:r4',
+      scheduledDate: '2026-05-03',
+      occurrenceIndex: 1,
+      prescribedRevision: 4,
       assignmentType: 'trainer_session',
       isBillable: true,
       shouldDeductSession: true,

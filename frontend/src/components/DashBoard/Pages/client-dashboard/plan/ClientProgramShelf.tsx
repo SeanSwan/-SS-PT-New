@@ -51,6 +51,7 @@ export interface ClientProgramShelfProps {
   planVault?: ClientTrainingPlanVault | null;
   loading?: boolean;
   error?: boolean;
+  showTodayAssignment?: boolean;
   /**
    * Today's session view (absorbed from the retired TodaysAssignmentCard,
    * Sean 2026-07-11 — two cards both narrating "today" was pure clutter).
@@ -91,6 +92,7 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
   planVault,
   loading = false,
   error = false,
+  showTodayAssignment = true,
   assignment,
   onNavigate,
 }) => {
@@ -236,7 +238,7 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
   return (
     <ShelfSection aria-label="Your training programs" data-testid="client-program-shelf">
       {heroBody()}
-      {todayStrip()}
+      {showTodayAssignment ? todayStrip() : null}
 
       {others.length > 0 && (
         <>

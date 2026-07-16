@@ -157,6 +157,7 @@ describe('SavedPlanCard — stopPropagation matrix (Codex correction #4)', () =>
     expect(h.onLoad).not.toHaveBeenCalled();
     // Rename mode is now active
     expect(screen.getByTestId('rename-input-p-50')).toBeInTheDocument();
+    expect(screen.getByTestId('rename-input-p-50')).toHaveFocus();
     expect(screen.getByTestId('rename-save-p-50')).toBeInTheDocument();
   });
 

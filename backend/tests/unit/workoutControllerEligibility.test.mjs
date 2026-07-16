@@ -7,6 +7,7 @@ vi.mock('../../models/index.mjs', () => ({
 vi.mock('../../database.mjs', () => ({
   default: {
     transaction: vi.fn(),
+    query: vi.fn().mockResolvedValue([[], { rowCount: 1 }]),
   },
 }));
 
@@ -122,6 +123,28 @@ const makeReviewRequiredPlanning = () => ({
   },
 });
 
+const buildWorkoutPlanModel = () => {
+  let createdPlan = null;
+  const create = vi.fn(async (values) => {
+    createdPlan = {
+      ...values,
+      id: '99999999-9999-4999-8999-999999999999',
+      update: vi.fn(async (updates) => {
+        Object.assign(createdPlan, updates);
+        return createdPlan;
+      }),
+    };
+    return createdPlan;
+  });
+  return {
+    create,
+    findAll: vi.fn(async () => (createdPlan ? [createdPlan] : [])),
+    findByPk: vi.fn(async (id) => (
+      createdPlan && String(createdPlan.id) === String(id) ? createdPlan : null
+    )),
+  };
+};
+
 const buildModels = () => {
   const draftAuditLog = {
     id: 501,
@@ -140,7 +163,7 @@ const buildModels = () => {
   return {
     User: { findByPk: vi.fn().mockResolvedValue(makeUser()) },
     Exercise: { findOne: vi.fn().mockResolvedValue({ id: 900, name: 'Bench Press' }) },
-    WorkoutPlan: { create: vi.fn().mockResolvedValue({ id: 1001 }) },
+    WorkoutPlan: buildWorkoutPlanModel(),
     WorkoutPlanDay: { create: vi.fn().mockResolvedValue({ id: 1002 }) },
     WorkoutPlanDayExercise: { create: vi.fn().mockResolvedValue({ id: 1003 }) },
     ClientTrainerAssignment: { findOne: vi.fn().mockResolvedValue({ id: 1, status: 'active' }) },
@@ -191,6 +214,7 @@ describe('workout controller eligibility integration', () => {
     sequelize.transaction.mockResolvedValue({
       commit: vi.fn().mockResolvedValue(),
       rollback: vi.fn().mockResolvedValue(),
+      LOCK: { UPDATE: 'UPDATE' },
     });
 
     const mod = await import('../../controllers/aiWorkoutController.mjs');

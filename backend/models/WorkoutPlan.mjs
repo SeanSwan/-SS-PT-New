@@ -2,8 +2,8 @@
  * ============================================================================
  * FILE: WorkoutPlan.mjs
  * PURPOSE: Sequelize model for multi-week workout programs (NASM OPT aligned)
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-29
- * AI VILLAGE VALIDATED: 2026-03-29
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-15
+ * AI VILLAGE VALIDATED: 2026-07-15
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Defines the WorkoutPlan model for storing planned
@@ -17,7 +17,7 @@
  * KEY DECISIONS:
  *   - JSONB planData instead of normalized child tables: simpler for AI to
  *     read/write entire programs in one shot, avoids N+1 queries
- *   - INTEGER PK (not UUID) to match Users FK pattern across the codebase
+ *   - UUID PK matches the live original table and prevents sequential enumeration
  *   - underscored: true + explicit field mappings for snake_case DB columns
  *
  * NASM PROTOCOL CONTEXT:
@@ -40,7 +40,8 @@ class WorkoutPlan extends Model {}
 // - Original columns (2025): camelCase — id (UUID), userId, title, description,
 //   durationWeeks, status, tags, difficulty, isTemplate, isPublic, createdAt, updatedAt
 // - Added columns (2026 migration): snake_case — trainer_id, nasm_phase, start_date,
-//   end_date, current_week, current_day, plan_data, progress_notes, created_by, metadata
+//   end_date, current_week, current_day, plan_data, content_revision, content_hash,
+//   progress_notes, created_by, metadata
 // We use explicit `field:` on every column to map correctly. NO underscored: true.
 
 WorkoutPlan.init({
@@ -100,10 +101,22 @@ WorkoutPlan.init({
     comment: 'Total duration of the program in weeks'
   },
   status: {
-    type: DataTypes.ENUM('active', 'paused', 'completed', 'draft'),
+    type: DataTypes.ENUM('active', 'paused', 'completed', 'draft', 'archived'),
     defaultValue: 'active',
     allowNull: false,
     comment: 'Current plan status'
+  },
+  archivedAt: {
+    type: DataTypes.DATE,
+    field: 'archived_at',
+    allowNull: true,
+    comment: 'When this plan entered its terminal archived state'
+  },
+  archivedBy: {
+    type: DataTypes.INTEGER,
+    field: 'archived_by',
+    allowNull: true,
+    comment: 'Authorized staff user who archived this plan'
   },
   currentWeek: {
     type: DataTypes.INTEGER,
@@ -127,6 +140,21 @@ WorkoutPlan.init({
     allowNull: true,
     defaultValue: { weeks: [] },
     comment: 'Full plan structure: weeks → sessions → exercises with sets/reps/tempo/rest'
+  },
+  contentRevision: {
+    type: DataTypes.INTEGER,
+    field: 'content_revision',
+    allowNull: true,
+    defaultValue: 1,
+    validate: { min: 1 },
+    comment: 'Monotonic revision of prescribed content; nullable during expand-phase rollout'
+  },
+  contentHash: {
+    type: DataTypes.STRING(64),
+    field: 'content_hash',
+    allowNull: true,
+    validate: { is: /^[a-f0-9]{64}$/ },
+    comment: 'SHA-256 digest of canonical prescribed content; nullable until backfill completes'
   },
   progressNotes: {
     type: DataTypes.JSONB,

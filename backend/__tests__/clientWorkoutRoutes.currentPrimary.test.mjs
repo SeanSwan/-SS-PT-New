@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
@@ -65,26 +66,27 @@ describe('clientWorkoutRoutes current primary plan selection', () => {
     mockDailyWorkoutFormFindOne.mockResolvedValue(null);
   });
 
-  it('drives today assignment from the active primary plan when legacy active rows overlap', async () => {
+  it('drives today assignment from the first ordered active plan when legacy primary metadata overlaps', async () => {
     const olderActive = planFor({ id: 'plan-6m', title: 'Six Month Foundation', primary: false });
-    const primaryActive = planFor({ id: 'plan-9m', title: 'Nine Month Primary Arc', primary: true });
+    const primaryActive = planFor({ id: 'plan-9m', title: 'Six Month Foundation', primary: true });
     mockWorkoutPlanFindOne.mockResolvedValue(olderActive);
     mockWorkoutPlanFindAll.mockResolvedValue([olderActive, primaryActive]);
 
     const res = await request(buildApp()).get('/api/workouts/42/current');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.id).toBe('plan-9m');
+    expect(res.body.data.id).toBe('plan-6m');
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
     expect(res.body.todayAssignment).toMatchObject({
-      assignmentKey: 'plan-9m:w1:d1:homework',
-      title: 'Nine Month Primary Arc',
-      firstExerciseName: 'Cossack Squat',
+      assignmentKey: 'plan-6m:w1:d1:' + today + ':o1:r1',
+      title: 'Six Month Foundation',
+      firstExerciseName: 'Goblet Squat',
       isBillable: false,
       shouldDeductSession: false,
     });
     expect(res.body.trainingPlanCatalog).toMatchObject({
-      primaryPlanId: 'plan-9m',
-      primaryHorizonKey: 'nine_month',
+      primaryPlanId: 'plan-6m',
+      primaryHorizonKey: 'six_month',
     });
   });
 });

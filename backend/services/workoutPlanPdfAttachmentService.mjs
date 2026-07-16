@@ -92,12 +92,29 @@ const pdfAttachmentMetadata = (metadata = {}) => {
 const normalizePdfAttachment = (raw = {}) => {
   const url = normalizeProtectedPdfUrl(raw.url || raw.pdfUrl);
   if (!url) return null;
+  const sourceRevision = Number.parseInt(raw.sourceRevision, 10);
+  const safeHash = (value) => (
+    /^[a-f0-9]{64}$/i.test(String(value || '')) ? String(value).toLowerCase() : null
+  );
 
   return {
     url,
     fileName: stripUnsafeFileName(raw.fileName || fileNameFromUrl(url)),
     contentType: PDF_CONTENT_TYPE,
     updatedAt: compactString(raw.updatedAt) || null,
+    sourceType: raw.sourceType === 'generated' ? 'generated' : 'manual',
+    state: ['pending', 'rendering', 'ready', 'failed', 'superseded'].includes(raw.state)
+      ? raw.state
+      : 'ready',
+    sourceRevision: Number.isSafeInteger(sourceRevision) && sourceRevision > 0
+      ? sourceRevision
+      : null,
+    sourceHash: safeHash(raw.sourceHash),
+    renderHash: safeHash(raw.renderHash),
+    rendererVersion: compactString(raw.rendererVersion),
+    derivativeId: compactString(raw.derivativeId),
+    checksum: safeHash(raw.checksum),
+    needsReview: raw.needsReview === true,
   };
 };
 
@@ -146,6 +163,9 @@ export const buildWorkoutPlanPdfMetadata = ({
     storageKey: normalizedStorageKey,
     ...(!providedStorageKey && Number.isFinite(Number(current.size)) && Number(current.size) > 0
       ? { size: Number(current.size) }
+      : {}),
+    ...(!providedStorageKey && /^[a-f0-9]{64}$/i.test(String(current.checksum || ''))
+      ? { checksum: String(current.checksum).toLowerCase() }
       : {}),
     updatedBy,
     updatedAt,

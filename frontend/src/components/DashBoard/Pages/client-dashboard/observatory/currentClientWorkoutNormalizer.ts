@@ -156,7 +156,7 @@ function currentWorkoutContext(payload?: CurrentWorkoutResponse | null): Current
     plan: objectOrEmpty(plan, EMPTY_PLAN),
     assignment: objectOrEmpty(assignment, EMPTY_ASSIGNMENT),
     session,
-    exercises: sessionExercises(session),
+    exercises: assignment?.exercises?.length ? assignment.exercises : sessionExercises(session),
     catalog: catalogFrom(payload, plan),
     homeworkSummary: homeworkSummaryFrom(payload, plan),
   };
@@ -202,10 +202,12 @@ function exerciseCount(context: CurrentWorkoutContext): number {
   return context.exercises.length;
 }
 
+function exerciseNames(context: CurrentWorkoutContext): string[] {
+  return context.exercises.map(exerciseName).filter((name): name is string => Boolean(name));
+}
+
 function firstExercise(context: CurrentWorkoutContext): string | undefined {
-  const assignedExercise = cleanString(context.assignment.firstExerciseName);
-  if (assignedExercise) return assignedExercise;
-  return exerciseName(context.exercises[0]);
+  return cleanString(context.assignment.firstExerciseName) || exerciseNames(context)[0];
 }
 
 function buildCurrentClientWorkout(context: CurrentWorkoutContext): CurrentClientWorkout {
@@ -222,6 +224,9 @@ function buildCurrentClientWorkout(context: CurrentWorkoutContext): CurrentClien
     dayLabel: dayLabel(context),
     exerciseCount: exerciseCount(context),
     firstExercise: firstExercise(context),
+    exerciseNames: exerciseNames(context),
+    scheduledDate: cleanString(context.assignment.scheduledDate),
+    prescribedRevision: toPositiveInteger(context.assignment.prescribedRevision),
     primaryPlanLabel: primaryPlanLabel(context.catalog),
     homeworkSummary: normalizeClientHomeworkSummary(context.homeworkSummary),
   };

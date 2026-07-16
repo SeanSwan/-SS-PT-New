@@ -8,6 +8,7 @@
  * workout-plan summaries only.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatDateOnlyInTimeZone } from '../services/clientTrainingDateService.mjs';
 
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
@@ -98,9 +99,9 @@ describe('clientSelfServiceReadDispatchers', () => {
       },
       trainingPlanCatalog: {
         defaultHorizonKey: 'six_month',
-        primaryPlanId: 'plan-8w-draft',
-        primaryHorizonKey: 'three_month',
-        primaryHorizonLabel: '3 Month',
+        primaryPlanId: null,
+        primaryHorizonKey: null,
+        primaryHorizonLabel: null,
         filledHorizonKeys: ['three_month'],
         slotCount: 7,
         slots: expect.arrayContaining([
@@ -108,7 +109,7 @@ describe('clientSelfServiceReadDispatchers', () => {
             horizonKey: 'three_month',
             label: '3 Month',
             isFilled: true,
-            isPrimary: true,
+            isPrimary: false,
             planId: 'plan-8w-draft',
             status: 'draft',
             hasPdf: false,
@@ -212,6 +213,8 @@ describe('clientSelfServiceReadDispatchers', () => {
   });
 
   it('returns completed/non-loggable homework context after the client logs today assignment', async () => {
+    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
+    const assignmentKey = 'plan-6m:w4:d2:' + today + ':o1:r1';
     const activePlan = {
       id: 'plan-6m',
       userId: 42,
@@ -245,7 +248,7 @@ describe('clientSelfServiceReadDispatchers', () => {
       submittedAt: '2026-06-06T12:00:00.000Z',
       formData: {
         plannedAssignment: {
-          assignmentKey: 'plan-6m:w4:d2:homework',
+          assignmentKey,
           planId: 'plan-6m',
           assignmentType: 'homework',
         },
@@ -262,8 +265,8 @@ describe('clientSelfServiceReadDispatchers', () => {
     });
 
     expect(result.todayAssignment).toMatchObject({
-      assignmentId: 'plan-6m:w4:d2:homework',
-      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentId: assignmentKey,
+      assignmentKey,
       assignmentType: 'homework',
       status: 'completed',
       isLoggable: false,
@@ -285,7 +288,7 @@ describe('clientSelfServiceReadDispatchers', () => {
       recentCompletions: [
         expect.objectContaining({
           assignmentType: 'homework',
-          assignmentKey: 'plan-6m:w4:d2:homework',
+          assignmentKey,
           formId: 'daily-form-1',
         }),
       ],

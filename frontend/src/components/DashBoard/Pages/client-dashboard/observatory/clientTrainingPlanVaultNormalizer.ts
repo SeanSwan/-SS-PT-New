@@ -27,6 +27,18 @@ interface ClientPlanPdfPreview {
   updatedAt?: string | null;
 }
 
+export interface ClientPlanPdfDerivativeItem {
+  state?: string | null;
+  sourceRevision?: number | null;
+  needsReview?: boolean;
+}
+
+export interface ClientPlanPdfDerivativeStatus {
+  enabled: boolean;
+  state: string;
+  latestGenerated?: ClientPlanPdfDerivativeItem | null;
+  latestManual?: ClientPlanPdfDerivativeItem | null;
+}
 interface TrainingPlanSlotPreview {
   horizonKey?: string;
   label?: string;
@@ -39,6 +51,8 @@ interface TrainingPlanSlotPreview {
     id?: string | number | null;
     title?: string;
     status?: string;
+    contentRevision?: number | string | null;
+    pdfDerivative?: ClientPlanPdfDerivativeStatus | null;
     currentWeek?: number | string | null;
     currentDay?: number | string | null;
     pdfFile?: ClientPlanPdfPreview | null;
@@ -76,6 +90,8 @@ export interface ClientTrainingPlanSlot {
   planId?: string | number | null;
   planTitle?: string;
   planStatus?: string;
+  contentRevision?: number;
+  pdfDerivative?: ClientPlanPdfDerivativeStatus | null;
   assignmentDefault?: string | null;
   billingIntent?: string | null;
   defaultShouldDeductSession?: boolean;
@@ -123,6 +139,24 @@ const knownHorizonKey = (value?: string) => (
   value && CLIENT_PLAN_VAULT_HORIZON_KEYS.has(value) ? value : null
 );
 
+
+const normalizePdfDerivativeItem = (raw?: ClientPlanPdfDerivativeItem | null) => raw ? {
+  state: typeof raw.state === 'string' ? raw.state : null,
+  sourceRevision: toPositiveInteger(raw.sourceRevision) ?? null,
+  needsReview: raw.needsReview === true,
+} : null;
+
+function normalizePdfDerivative(
+  raw?: ClientPlanPdfDerivativeStatus | null,
+): ClientPlanPdfDerivativeStatus | null {
+  if (!raw || typeof raw !== 'object') return null;
+  return {
+    enabled: raw.enabled === true,
+    state: typeof raw.state === 'string' && raw.state.trim() ? raw.state.trim() : 'missing',
+    latestGenerated: normalizePdfDerivativeItem(raw.latestGenerated),
+    latestManual: normalizePdfDerivativeItem(raw.latestManual),
+  };
+}
 function normalizePlanPdfFile(raw?: ClientPlanPdfPreview | null): ClientTrainingPlanSlot['pdfFile'] {
   const url = normalizeProtectedPlanPdfUrl(raw?.url);
   if (!url) return null;
@@ -165,6 +199,8 @@ export function normalizeTrainingPlanVault(
       planId: slot.plan?.id,
       planTitle: slot.plan?.title,
       planStatus: slot.plan?.status,
+      contentRevision: toPositiveInteger(slot.plan?.contentRevision),
+      pdfDerivative: normalizePdfDerivative(slot.plan?.pdfDerivative),
       assignmentDefault: planUse.assignmentDefault,
       billingIntent: planUse.billingIntent,
       defaultShouldDeductSession: planUse.defaultShouldDeductSession,

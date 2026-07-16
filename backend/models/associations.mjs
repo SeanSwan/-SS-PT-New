@@ -102,6 +102,7 @@ const setupAssociations = async () => {
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
     const TrainerAvailabilityModule = await import('./TrainerAvailability.mjs');
     const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
+    const WorkoutPlanCompletionReceiptModule = await import('./WorkoutPlanCompletionReceipt.mjs');
     // Launch charter 2026-07: PR engine (4a), Recovery Board (4B.3), History Backfill (H)
     const PersonalRecordModule = await import('./PersonalRecord.mjs');
     const RecoveryCompletionModule = await import('./RecoveryCompletion.mjs');
@@ -317,6 +318,7 @@ const setupAssociations = async () => {
     const TrainerPermissions = TrainerPermissionsModule.default;
     const TrainerAvailability = TrainerAvailabilityModule.default;
     const DailyWorkoutForm = DailyWorkoutFormModule.default;
+    const WorkoutPlanCompletionReceipt = WorkoutPlanCompletionReceiptModule.default;
     const PersonalRecord = PersonalRecordModule.default;
     const RecoveryCompletion = RecoveryCompletionModule.default;
     const HistoryBackfillRun = HistoryBackfillRunModule.default;
@@ -503,7 +505,7 @@ const setupAssociations = async () => {
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
-        ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
+        ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, WorkoutPlanCompletionReceipt, ClientOnboardingQuestionnaire,
         PersonalRecord, RecoveryCompletion, HistoryBackfillRun,
         ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
@@ -968,6 +970,16 @@ const setupAssociations = async () => {
     DailyWorkoutForm.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     DailyWorkoutForm.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
     WorkoutSession.hasMany(DailyWorkoutForm, { foreignKey: 'sessionId', as: 'dailyForms' });
+
+    // Immutable proof that a prescribed plan assignment was completed.
+    User.hasMany(WorkoutPlanCompletionReceipt, { foreignKey: 'clientId', as: 'workoutPlanCompletionReceipts' });
+    WorkoutPlan.hasMany(WorkoutPlanCompletionReceipt, { foreignKey: 'workoutPlanId', as: 'completionReceipts' });
+    WorkoutPlanCompletionReceipt.belongsTo(WorkoutPlan, { foreignKey: 'workoutPlanId', as: 'plan' });
+    DailyWorkoutForm.hasOne(WorkoutPlanCompletionReceipt, { foreignKey: 'dailyWorkoutFormId', as: 'planCompletionReceipt' });
+    WorkoutPlanCompletionReceipt.belongsTo(DailyWorkoutForm, { foreignKey: 'dailyWorkoutFormId', as: 'dailyWorkoutForm' });
+    WorkoutSession.hasMany(WorkoutPlanCompletionReceipt, { foreignKey: 'workoutSessionId', as: 'planCompletionReceipts' });
+    WorkoutPlanCompletionReceipt.belongsTo(WorkoutSession, { foreignKey: 'workoutSessionId', as: 'workoutSession' });
+    WorkoutPlanCompletionReceipt.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
 
     // Client Onboarding Questionnaire Associations
     User.hasMany(ClientOnboardingQuestionnaire, { foreignKey: 'userId', as: 'onboardingQuestionnaires' });
@@ -1460,6 +1472,7 @@ const setupAssociations = async () => {
       TrainerPermissions,
       TrainerAvailability,
       DailyWorkoutForm,
+      WorkoutPlanCompletionReceipt,
       // Launch charter 2026-07 (PR engine / Recovery Board / History Backfill)
       PersonalRecord,
       RecoveryCompletion,

@@ -34,8 +34,10 @@ describe('client training plan horizon service', () => {
 
     expect(oneDaySlot).toMatchObject({
       isFilled: true,
-      plan: { id: 'plan-1d' },
+      isPrimary: false,
+      plan: { id: 'plan-1d', isPrimary: false },
     });
+    expect(overview.trainingPlanCatalog.primaryPlanId).toBeNull();
     expect(oneWeekSlot).toMatchObject({ isFilled: false, plan: null });
   });
 });

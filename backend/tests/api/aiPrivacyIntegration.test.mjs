@@ -14,14 +14,18 @@
  *   - Audit log lifecycle (pending → success/degraded/parse_error/validation_error)
  *   - Consent controller endpoints (grant/withdraw/read)
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // ── Mock Setup (hoisted before any imports) ──────────────────────────────────
 
 const { mockRouteAiGeneration, mockTransaction, mockEvaluateWaiverVersionEligibility } = vi.hoisted(() => {
   return {
     mockRouteAiGeneration: vi.fn(),
-    mockTransaction: { commit: vi.fn(), rollback: vi.fn() },
+    mockTransaction: {
+      commit: vi.fn(),
+      rollback: vi.fn(),
+      LOCK: { UPDATE: 'UPDATE' },
+    },
     mockEvaluateWaiverVersionEligibility: vi.fn(),
   };
 });
@@ -44,6 +48,7 @@ vi.mock('../../database.mjs', () => ({
   default: {
     authenticate: vi.fn().mockResolvedValue(true),
     transaction: vi.fn().mockResolvedValue(mockTransaction),
+    query: vi.fn().mockResolvedValue([[], { rowCount: 1 }]),
   },
 }));
 
@@ -59,7 +64,11 @@ const { mockModels } = vi.hoisted(() => ({
   mockModels: {
     User: { findByPk: vi.fn() },
     Exercise: { findOne: vi.fn() },
-    WorkoutPlan: { create: vi.fn() },
+    WorkoutPlan: {
+      create: vi.fn(),
+      findAll: vi.fn().mockResolvedValue([]),
+      findByPk: vi.fn(),
+    },
     WorkoutPlanDay: { create: vi.fn() },
     WorkoutPlanDayExercise: { create: vi.fn() },
     ClientTrainerAssignment: { findOne: vi.fn() },
@@ -193,7 +202,24 @@ describe('Controller Integration — generateWorkoutPlan', () => {
     });
     mockModels.ClientBaselineMeasurements.findOne.mockResolvedValue(null);
     mockModels.Exercise.findOne.mockResolvedValue({ id: 1, name: 'Barbell Squat' });
-    mockModels.WorkoutPlan.create.mockResolvedValue({ id: 100 });
+    let createdPlan = null;
+    mockModels.WorkoutPlan.create.mockImplementation(async (values) => {
+      createdPlan = {
+        ...values,
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        update: vi.fn(async (updates) => {
+          Object.assign(createdPlan, updates);
+          return createdPlan;
+        }),
+      };
+      return createdPlan;
+    });
+    mockModels.WorkoutPlan.findByPk.mockImplementation(async (id) => (
+      createdPlan && String(createdPlan.id) === String(id) ? createdPlan : null
+    ));
+    mockModels.WorkoutPlan.findAll.mockImplementation(async () => (
+      createdPlan ? [createdPlan] : []
+    ));
     mockModels.WorkoutPlanDay.create.mockResolvedValue({ id: 200 });
     mockModels.WorkoutPlanDayExercise.create.mockResolvedValue({ id: 300 });
   });

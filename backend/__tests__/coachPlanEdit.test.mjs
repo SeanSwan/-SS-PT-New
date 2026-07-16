@@ -6,6 +6,12 @@
  *    are required; unknown ids and foreign plans are refused.
  */
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../database.mjs', () => ({
+  default: {
+    transaction: vi.fn(async (operation) => operation({ LOCK: { UPDATE: 'UPDATE' } })),
+  },
+}));
 import { checkPlanEditItem, stampDoctrineVerdicts } from '../services/ai/planEditDoctrineService.mjs';
 import { applyPlanEditProposal } from '../services/ai/coachPlanEditApprovalService.mjs';
 
@@ -46,9 +52,11 @@ describe('planEditDoctrineService — the deterministic referee', () => {
   });
 });
 
+const PLAN_ID = '33333333-3333-4333-8333-333333333333';
+
 const buildPlan = () => {
   const record = {
-    id: 7,
+    id: PLAN_ID,
     userId: 42,
     planData: {
       weeks: [{
@@ -70,7 +78,7 @@ const buildPlan = () => {
   };
 };
 
-const proposalWith = (items) => ({ payload: { planId: 7, clientId: 42, phase: 3, items } });
+const proposalWith = (items) => ({ payload: { planId: PLAN_ID, clientId: 42, phase: 3, items } });
 
 const ITEMS = [
   { id: 'e1', weekNumber: 2, dayNumber: 1, exerciseName: 'Deadlift', field: 'sets', fromValue: 3, toValue: 4 },
@@ -78,13 +86,19 @@ const ITEMS = [
   { id: 'e3', weekNumber: 2, dayNumber: 1, exerciseName: 'Push-Up', field: 'reps', fromValue: '12', toValue: '10' },
 ];
 
-const run = (plan, items, approvedItemIds) => applyPlanEditProposal({
-  proposal: proposalWith(items),
-  req: { body: { approvedItemIds } },
-  models: { WorkoutPlan: { findOne: vi.fn(async ({ where }) => (
-    where.id === 7 && where.userId === 42 ? plan : null
-  )) } },
-});
+const run = (plan, items, approvedItemIds) => {
+  const WorkoutPlan = {
+    findOne: vi.fn(async ({ where }) => (
+      where.id === PLAN_ID && where.userId === 42 ? plan : null
+    )),
+    findByPk: vi.fn(async (id) => (id === PLAN_ID ? plan : null)),
+  };
+  return applyPlanEditProposal({
+    proposal: proposalWith(items),
+    req: { body: { approvedItemIds } },
+    models: { WorkoutPlan },
+  });
+};
 
 describe('applyPlanEditProposal — per-item approval', () => {
   it('applies ONLY the approved subset; the rest is recorded as skipped, untouched', async () => {
@@ -133,7 +147,7 @@ describe('applyPlanEditProposal — per-item approval', () => {
     });
     expect(out.ok).toBe(false);
     expect(out.code).toBe('PLAN_EDIT_PLAN_NOT_FOUND');
-    expect(findOne.mock.calls[0][0].where).toMatchObject({ id: 7, userId: 42 });
+    expect(findOne.mock.calls[0][0].where).toMatchObject({ id: PLAN_ID, userId: 42 });
   });
 
   it('a vanished target is a per-item failure, not a crash — other items still apply', async () => {

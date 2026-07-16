@@ -5,6 +5,7 @@
  * can complete plan homework without trusting model-provided metadata alone.
  */
 import { buildClientTrainingOverview } from '../clientTrainingReadModelService.mjs';
+import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
 import { advancePlanAfterPlannedAssignmentLog } from '../clientTrainingPlanProgressService.mjs';
 import {
   PlannedWorkoutAssignmentError,
@@ -36,6 +37,10 @@ export async function resolveAiPlannedAssignmentForLog({
   clientId,
   workoutDateValue,
   hasScheduledSession = false,
+  clientTimeZone,
+  clientTimeZoneConfigured,
+  actorId,
+  referenceDate = new Date(),
   transaction,
 }) {
   const normalized = normalizePlannedWorkoutAssignmentInput(rawAssignment, { hasScheduledSession });
@@ -60,11 +65,18 @@ export async function resolveAiPlannedAssignmentForLog({
   if (!plan) throw plannedAssignmentError('Active workout plan assignment was not found');
 
   const formatted = toCurrentWorkoutPlanResponse(plan);
+  const trainingDateContext = resolveClientTrainingDateContext({
+    storedTimeZone: clientTimeZone,
+    storedTimeZoneConfigured: clientTimeZoneConfigured,
+    actorId,
+    targetClientId: clientId,
+    referenceDate,
+  });
   const overview = buildClientTrainingOverview({
     activePlan: plan,
     plans: [plan],
     currentSession: formatted.currentSession || null,
-    ...(hasScheduledSession ? { today: workoutDateValue } : {}),
+    today: hasScheduledSession ? workoutDateValue : trainingDateContext.localDate,
   });
 
   try {
@@ -91,6 +103,7 @@ export async function resolveAiPlannedAssignmentForLog({
 
 export async function advanceAiPlannedAssignmentAfterLog({
   WorkoutPlan,
+  WorkoutPlanCompletionReceipt,
   assignment,
   clientId,
   dailyWorkoutFormId,
@@ -102,6 +115,7 @@ export async function advanceAiPlannedAssignmentAfterLog({
   if (!assignment) return null;
   return advancePlanAfterPlannedAssignmentLog({
     WorkoutPlan,
+    WorkoutPlanCompletionReceipt,
     assignment,
     clientId,
     dailyWorkoutFormId,

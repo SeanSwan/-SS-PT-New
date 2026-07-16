@@ -69,9 +69,11 @@ describe('buildBackupPlanData', () => {
 });
 
 describe('promotion + generation contracts', () => {
-  it('promotion is transactional, pauses the old primary, and refuses non-backup rows', () => {
-    expect(SERVICE).toMatch(/transaction/);
-    expect(SERVICE).toMatch(/status: 'paused'/);
+  it('promotion delegates transactional sibling pauses to the audited lifecycle boundary', () => {
+    expect(SERVICE).toMatch(/transitionWorkoutPlanLifecycle/);
+    expect(SERVICE).toMatch(/action: 'activate'/);
+    expect(SERVICE).toMatch(/derivativeReason: 'backup_promotion'/);
+    expect(SERVICE).toMatch(/activate_sibling_pause/);
     expect(SERVICE).toMatch(/only .*backup.* can be promoted|not an AI backup plan/i);
   });
 

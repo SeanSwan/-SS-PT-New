@@ -19,7 +19,6 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import bcrypt from 'bcrypt';
 
 // Setup environment
 const __filename = fileURLToPath(import.meta.url);

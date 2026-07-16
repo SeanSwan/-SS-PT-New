@@ -24,6 +24,12 @@
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { getWorkoutPlan, getWorkoutSession } from '../models/index.mjs';
+import {
+  createWorkoutPlanRecord,
+  mutateWorkoutPlanRecord,
+  WorkoutPlanMutationError,
+} from './workoutPlanMutationService.mjs';
+import { transitionWorkoutPlanLifecycle } from './workoutPlanLifecycleService.mjs';
 import { generatePlan } from './workoutBuilderService.mjs';
 import {
   sanitizeWorkoutPlanDataForPersistence,
@@ -139,92 +145,95 @@ export async function generateBackupPlan({
   const WorkoutPlan = getWorkoutPlan();
   const existing = await WorkoutPlan.findOne({ where: backupWhere(userId) });
   if (existing) {
-    await existing.update({
+    const { plan: refreshed } = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: existing.id,
+      expectedRevision: existing.contentRevision,
+      updates: {
+        title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
+        durationWeeks,
+        planData,
+        metadata,
+        status: 'draft',
+        currentWeek: 1,
+        currentDay: 1,
+        createdBy: 'ai',
+      },
+    });
+    logger.info('[BackupPlan] refreshed backup #%d for client %d', refreshed.id, userId);
+    return { backup: refreshed, refreshed: true };
+  }
+
+  const backup = await createWorkoutPlanRecord({
+    sequelize,
+    WorkoutPlan,
+    values: {
+      userId,
+      trainerId,
       title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
+      description: 'Data-grounded backup program generated from real training history. Trainer-activated only.',
       durationWeeks,
-      planData,
-      metadata,
       status: 'draft',
       currentWeek: 1,
       currentDay: 1,
+      planData,
       createdBy: 'ai',
-    });
-    logger.info('[BackupPlan] refreshed backup #%d for client %d', existing.id, userId);
-    return { backup: existing, refreshed: true };
-  }
-
-  const backup = await WorkoutPlan.create({
-    userId,
-    trainerId,
-    title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
-    description: 'Data-grounded backup program generated from real training history. Trainer-activated only.',
-    durationWeeks,
-    status: 'draft',
-    currentWeek: 1,
-    currentDay: 1,
-    planData,
-    createdBy: 'ai',
-    metadata,
+      metadata,
+    },
   });
   logger.info('[BackupPlan] created backup #%d for client %d', backup.id, userId);
   return { backup, refreshed: false };
 }
 
-/**
- * THE SWAP (trainer-chosen, never automatic): backup → primary/active;
- * current active plan(s) → 'paused' archived variants. One transaction.
- */
+/** Builds role provenance without the retired metadata primary markers. */
+const buildPromotionMetadata = (plan, trainerId) => {
+  const metadata = sanitizeWorkoutPlanMetadataForPersistence({
+    ...(plan.metadata ?? {}),
+    planRole: 'promoted_backup',
+    promotedFrom: 'ai_backup',
+    promotedAt: new Date().toISOString(),
+    promotedBy: trainerId,
+  });
+  delete metadata.isPrimaryPlan;
+  delete metadata.primary;
+  return metadata;
+};
+
+const validateBackupTarget = (plan) => {
+  if (plan.metadata?.planRole !== 'ai_backup') {
+    throw new WorkoutPlanMutationError(
+      'Not an AI backup plan - only a backup can be promoted',
+      { code: 'WORKOUT_PLAN_NOT_BACKUP', statusCode: 400 },
+    );
+  }
+};
+
+/** Promotes one trainer-chosen backup through the audited activation boundary. */
 export async function promoteBackupPlan({ planId, trainerId }) {
   const WorkoutPlan = getWorkoutPlan();
-  return sequelize.transaction(async (transaction) => {
-    const backup = await WorkoutPlan.findByPk(planId, { transaction, lock: transaction.LOCK.UPDATE });
-    if (!backup) {
-      const err = new Error('Plan not found');
-      err.statusCode = 404;
-      throw err;
-    }
-    if (backup.metadata?.planRole !== 'ai_backup') {
-      const err = new Error('Not an AI backup plan — only a backup can be promoted');
-      err.statusCode = 400;
-      throw err;
-    }
-
-    const priorActive = await WorkoutPlan.findAll({
-      where: { userId: backup.userId, status: 'active' },
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    for (const plan of priorActive) {
-      await plan.update(
-        {
-          status: 'paused',
-          metadata: sanitizeWorkoutPlanMetadataForPersistence({
-            ...(plan.metadata ?? {}),
-            archivedReason: 'replaced_by_backup_promotion',
-            archivedAt: new Date().toISOString(),
-          }),
-        },
-        { transaction }
-      );
-    }
-
-    await backup.update(
-      {
-        status: 'active',
-        currentWeek: 1,
-        currentDay: 1,
-        metadata: sanitizeWorkoutPlanMetadataForPersistence({
-          ...(backup.metadata ?? {}),
-          planRole: 'primary',
-          promotedFrom: 'ai_backup',
-          promotedAt: new Date().toISOString(),
-          promotedBy: trainerId,
-        }),
-      },
-      { transaction }
-    );
-
-    logger.info('[BackupPlan] promoted #%d to primary for client %d (archived %d prior)', backup.id, backup.userId, priorActive.length);
-    return { promoted: backup, archived: priorActive.map((p) => p.id) };
+  const result = await transitionWorkoutPlanLifecycle({
+    sequelize,
+    WorkoutPlan,
+    planId,
+    action: 'activate',
+    actorId: trainerId,
+    derivativeReason: 'backup_promotion',
+    validateTarget: validateBackupTarget,
+    targetUpdates: (plan) => ({
+      currentWeek: 1,
+      currentDay: 1,
+      metadata: buildPromotionMetadata(plan, trainerId),
+    }),
   });
+  const archived = result.lifecycleReceipts
+    .filter((receipt) => receipt.action === 'activate_sibling_pause')
+    .map((receipt) => receipt.planId);
+  logger.info(
+    '[BackupPlan] promoted #%s for client %s (paused %d prior active plans)',
+    result.plan.id,
+    result.plan.userId,
+    archived.length,
+  );
+  return { promoted: result.plan, archived };
 }

@@ -6,6 +6,8 @@
  * homework/recovery work or scheduled trainer-session plan progress.
  */
 
+import { matchesWorkoutPlanAssignmentIdentity } from './workoutPlanAssignmentIdentityService.mjs';
+
 const NON_BILLABLE_TYPES = new Set(['homework', 'active_recovery']);
 const SCHEDULED_TRAINER_TYPES = new Set(['trainer_session']);
 
@@ -62,7 +64,7 @@ const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Arra
 
 const buildAssignmentDraft = (value) => ({
   assignmentKey: compactString(value.assignmentKey || value.assignmentId),
-  planId: compactString(value.planId),
+  planId: compactString(String(value.planId ?? '')),
   assignmentType: normalizeAssignmentType(value.assignmentType),
   weekNumber: toPositiveInteger(value.weekNumber),
   dayNumber: toPositiveInteger(value.dayNumber),
@@ -152,9 +154,7 @@ const assignmentCursorMismatch = (input, overviewAssignment) => (
 
 const overviewMatchRules = [
   {
-    fails: (input, overviewAssignment) => (
-      !overviewAssignment?.assignmentKey || overviewAssignment.assignmentKey !== input.assignmentKey
-    ),
+    fails: (input, overviewAssignment) => !matchesWorkoutPlanAssignmentIdentity(input, overviewAssignment),
     message: 'Planned assignment does not match the active workout plan',
   },
   {
@@ -221,6 +221,8 @@ export const buildPlannedAssignmentFormMetadata = (input, overviewAssignment = {
     shouldDeductSession: isScheduledTrainerSession && overviewAssignment.shouldDeductSession === true,
     title: compactString(overviewAssignment.title),
     scheduledDate: compactString(overviewAssignment.scheduledDate),
+    occurrenceIndex: toPositiveInteger(overviewAssignment.occurrenceIndex) || 1,
+    prescribedRevision: toPositiveInteger(overviewAssignment.prescribedRevision) || 1,
     weekNumber: toPositiveInteger(overviewAssignment.weekNumber) || input.weekNumber,
     dayNumber: toPositiveInteger(overviewAssignment.dayNumber) || input.dayNumber,
     dayLabel: compactString(overviewAssignment.dayLabel),

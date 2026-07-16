@@ -3,15 +3,18 @@
  * ==========================
  *
  * Pure helpers used by workoutPlanRoutes. Keeping these here reduces route
- * ownership and gives primary-plan metadata behavior focused test coverage.
+ * ownership and gives UUID, metadata, and active-status behavior focused tests.
  */
 
 import { sanitizeWorkoutPlanMetadataForPersistence } from './workoutPlanDataPrivacyService.mjs';
 
-export const ACTIVATE_MAX_RETRIES = 2;
+const WORKOUT_PLAN_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export const isUniqueViolation = (err) =>
-  err?.original?.code === '23505' || err?.parent?.code === '23505';
+export const normalizeWorkoutPlanId = (value) => {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  return WORKOUT_PLAN_UUID_PATTERN.test(normalized) ? normalized : null;
+};
 
 export const parseStrictPositiveInteger = (value) => {
   if (typeof value === 'number') {
@@ -58,33 +61,13 @@ export const buildDuplicatePlanMetadata = (plan) => {
   const raw = toPlainObject(plan) || {};
   const metadata = sanitizeWorkoutPlanMetadataForPersistence(raw.metadata);
   delete metadata.planPdf;
-  return {
-    ...metadata,
-    isPrimaryPlan: false,
-    primary: false,
-    duplicatedFrom: raw.id,
-  };
+  delete metadata.isPrimaryPlan;
+  delete metadata.primary;
+  return { ...metadata, duplicatedFrom: raw.id };
 };
 
-export const markPlanPrimary = (plan, isPrimary) => {
-  const raw = toPlainObject(plan) || {};
-  const metadata = sanitizeWorkoutPlanMetadataForPersistence(raw.metadata);
-  return {
-    ...raw,
-    metadata: sanitizeWorkoutPlanMetadataForPersistence({
-      ...metadata,
-      isPrimaryPlan: isPrimary,
-      primary: isPrimary,
-    }),
-  };
-};
-
-const isPrimaryActivePlan = (plan) => {
-  const raw = toPlainObject(plan) || {};
-  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
-  return raw.status === 'active' && (metadata.isPrimaryPlan === true || metadata.primary === true);
-};
-
+const isActivePlan = (plan) => cleanPlanStatus(plan) === 'active';
+const cleanPlanStatus = (plan) => String(toPlainObject(plan)?.status || '').trim().toLowerCase();
 export const selectCurrentWorkoutPlan = (fallbackPlan, plans = []) => (
-  Array.isArray(plans) ? plans.find(isPrimaryActivePlan) : null
-) || fallbackPlan;
+  Array.isArray(plans) ? plans.find(isActivePlan) : null
+) || (isActivePlan(fallbackPlan) ? fallbackPlan : null);

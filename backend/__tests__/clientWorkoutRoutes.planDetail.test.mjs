@@ -41,8 +41,11 @@ const buildApp = () => {
   return app;
 };
 
+const PLAN_ID = '11111111-1111-4111-8111-111111111111';
+const FOREIGN_PLAN_ID = '22222222-2222-4222-8222-222222222222';
+
 const multiWeekPlan = {
-  id: 7,
+  id: PLAN_ID,
   userId: 42,
   title: '12-Week Strength Base',
   description: 'Foundation block',
@@ -87,7 +90,7 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
   it('returns EVERY week (not just the current one) with days and exercises', async () => {
     mockWorkoutPlanFindOne.mockResolvedValue(multiWeekPlan);
 
-    const res = await request(buildApp()).get('/api/workouts/42/plans/7');
+    const res = await request(buildApp()).get('/api/workouts/42/plans/' + PLAN_ID);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -110,7 +113,7 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
     mockWorkoutPlanFindOne.mockResolvedValue(null);
 
     const res = await request(buildApp())
-      .get('/api/workouts/42/plans/999')          // 999 belongs to someone else
+      .get('/api/workouts/42/plans/' + FOREIGN_PLAN_ID)          // FOREIGN_PLAN_ID belongs to someone else
       .set('x-test-user-id', '42')
       .set('x-test-user-role', 'client');
 
@@ -120,7 +123,7 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
 
     // The ownership predicate MUST be in the query itself.
     const where = mockWorkoutPlanFindOne.mock.calls[0][0].where;
-    expect(where).toMatchObject({ id: 999, userId: 42 });
+    expect(where).toMatchObject({ id: FOREIGN_PLAN_ID, userId: 42 });
   });
 
   it('SECURITY: honors ensureClientAccess denial (cannot read another user\'s plans at all)', async () => {
@@ -130,20 +133,20 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
       message: 'Not authorized',
     });
 
-    const res = await request(buildApp()).get('/api/workouts/99/plans/7');
+    const res = await request(buildApp()).get('/api/workouts/99/plans/' + PLAN_ID);
 
     expect(res.status).toBe(403);
     expect(mockWorkoutPlanFindOne).not.toHaveBeenCalled();
   });
 
-  it('rejects a non-numeric plan id without touching the database', async () => {
-    const res = await request(buildApp()).get('/api/workouts/42/plans/not-a-number');
+  it('rejects a non-UUID plan id without touching the database', async () => {
+    const res = await request(buildApp()).get('/api/workouts/42/plans/not-a-uuid');
 
     expect(res.status).toBe(400);
     expect(mockWorkoutPlanFindOne).not.toHaveBeenCalled();
   });
 
-  it.each(['0', '-1', '9007199254740992'])('rejects unsafe or out-of-range plan id %s before access or database work', async (planId) => {
+  it.each(['0', '-1', '9007199254740992'])('rejects malformed legacy plan id %s before access or database work', async (planId) => {
     const res = await request(buildApp()).get(`/api/workouts/42/plans/${planId}`);
 
     expect(res.status).toBe(400);
@@ -155,8 +158,8 @@ describe('GET /:userId/plans/:planId — full plan read', () => {
     // Trainer-indispensability doctrine: only a trainer/admin may switch or edit
     // a plan. If someone adds a client-scoped activate/edit route, this fails.
     const app = buildApp();
-    const put = await request(app).put('/api/workouts/42/plans/7');
-    const post = await request(app).post('/api/workouts/42/plans/7/activate');
+    const put = await request(app).put('/api/workouts/42/plans/' + PLAN_ID);
+    const post = await request(app).post('/api/workouts/42/plans/' + PLAN_ID + '/activate');
 
     expect(put.status).toBe(404);
     expect(post.status).toBe(404);

@@ -14,7 +14,13 @@
  * Weight is intensity-based BY CONTRACT: the Coach proposes targetIntensity
  * (%1RM), matching the plan generator — a raw weight never comes from the model.
  */
+import sequelize from '../../database.mjs';
 import { normalizeWorkoutPlanDataForPersistence } from '../workoutPlanDataPrivacyService.mjs';
+import { mutateWorkoutPlanRecord } from '../workoutPlanMutationService.mjs';
+import {
+  normalizeWorkoutPlanId,
+  parseStrictPositiveInteger,
+} from '../workoutPlanRouteHelpers.mjs';
 
 const toPlain = (value) => (value?.toJSON ? value.toJSON() : value);
 
@@ -95,11 +101,15 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
   const { WorkoutPlan } = models;
   if (!WorkoutPlan) return { ok: false, code: 'PLAN_EDIT_MODEL_UNAVAILABLE' };
 
+  const planId = normalizeWorkoutPlanId(payload.planId);
+  const clientId = parseStrictPositiveInteger(payload.clientId);
+  if (!planId || !clientId) return { ok: false, code: 'PLAN_EDIT_IDENTITY_INVALID' };
+
   // Ownership in the QUERY (same IDOR posture as the client plan read): the plan
   // must belong to the client named in the proposal — a swapped planId cannot
   // reach another client's program.
   const plan = await WorkoutPlan.findOne({
-    where: { id: Number(payload.planId), userId: Number(payload.clientId) },
+    where: { id: planId, userId: clientId },
   });
   if (!plan) return { ok: false, code: 'PLAN_EDIT_PLAN_NOT_FOUND' };
 
@@ -114,7 +124,19 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
 
   const appliedCount = outcomes.filter((entry) => entry.outcome === 'applied').length;
   if (appliedCount > 0) {
-    await plan.update({ planData: normalizeWorkoutPlanDataForPersistence(planData) });
+    await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      planId: planRecord.id,
+      expectedRevision: planRecord.contentRevision,
+      updates: {
+        planData: normalizeWorkoutPlanDataForPersistence(planData),
+      },
+      pdfDerivativeIntent: {
+        requestedBy: req.user?.id ?? null,
+        reason: 'approved_ai_edit',
+      },
+    });
   }
 
   return {

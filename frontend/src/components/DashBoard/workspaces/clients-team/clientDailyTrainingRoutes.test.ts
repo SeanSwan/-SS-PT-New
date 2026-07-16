@@ -4,10 +4,10 @@ import {
   buildClientCoachDailyRoute,
   buildClientCoachOnboardingRoute,
   buildClientWorkoutLoggerRoute,
+  buildClientWorkoutPlanEditRoute,
   buildClientWorkoutPlannerRoute,
 } from './clientDailyTrainingRoutes';
 
-const CLIENT_ID = 'fixture client/42';
 const VALID_CLIENT_ID = 42;
 const ENCODED_LOGGER_RETURN_TO =
   '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday';
@@ -42,6 +42,12 @@ describe('client daily training routes', () => {
   it('opens the full Workout Planner with a Client Hub Plan Library return target', () => {
     expect(buildClientWorkoutPlannerRoute(VALID_CLIENT_ID)).toBe(
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans'
+    );
+  });
+
+  it('opens a specific saved plan in edit mode with the Client Hub return path intact', () => {
+    expect(buildClientWorkoutPlanEditRoute(VALID_CLIENT_ID, '6ea7806d-36c8-4307-bd5d-6b04b68be849')).toBe(
+      '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans&planId=6ea7806d-36c8-4307-bd5d-6b04b68be849&mode=edit'
     );
   });
 

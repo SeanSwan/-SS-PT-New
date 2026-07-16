@@ -8,46 +8,68 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
-const buildPlan = (overrides = {}) => ({
-  id: 'plan-6m',
-  userId: 42,
-  currentWeek: 1,
-  currentDay: 1,
-  status: 'active',
-  planData: {
-    weeks: [
-      {
-        days: [
-          { dayLabel: 'Homework Day', exercises: [{ exerciseName: 'Goblet Squat' }] },
-          { dayLabel: 'Second Day', exercises: [] },
-        ],
-      },
-    ],
-  },
-  update: vi.fn().mockResolvedValue(undefined),
-  ...overrides,
-});
+const buildPlan = (overrides = {}) => {
+  const plan = {
+    id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
+    userId: 42,
+    currentWeek: 1,
+    currentDay: 1,
+    status: 'active',
+    planData: {
+      weeks: [
+        {
+          days: [
+            { dayLabel: 'Homework Day', exercises: [{ exerciseName: 'Goblet Squat' }] },
+            { dayLabel: 'Second Day', exercises: [] },
+          ],
+        },
+      ],
+    },
+    update: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+  plan.contentRevision = overrides.contentRevision ?? 4;
+  plan.contentHash = overrides.contentHash ?? hashWorkoutPlanContent(plan.planData);
+  return plan;
+};
 
 const nonBillableAssignment = {
   source: 'workout_plan',
   assignmentType: 'homework',
   isBillable: false,
   shouldDeductSession: false,
-  planId: 'plan-6m',
+  planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
   weekNumber: 1,
   dayNumber: 1,
+  assignmentId: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w1:d1:2026-06-07:o1:r4',
+  assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w1:d1:2026-06-07:o1:r4',
+  scheduledDate: '2026-06-07',
+  occurrenceIndex: 1,
+  prescribedRevision: 4,
 };
+
+const transaction = { LOCK: { UPDATE: 'UPDATE' } };
+const WorkoutPlanCompletionReceipt = {
+  findOrCreate: vi.fn(async ({ defaults }) => [{ id: 'completion-receipt', ...defaults }, true]),
+};
+const buildWorkoutPlanModel = (plan) => ({
+  findOne: vi.fn().mockResolvedValue(plan),
+  findByPk: vi.fn().mockResolvedValue(plan),
+});
 
 describe('advancePlanAfterPlannedAssignmentLog', () => {
   it('advances the active plan cursor after a verified non-billable homework log', async () => {
     const plan = buildPlan();
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: nonBillableAssignment,
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-1',
       workoutSessionId: 'workout-session-1',
       completedAt: '2026-06-07T12:00:00.000Z',
@@ -63,7 +85,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 2,
       status: 'active',
-    }), { transaction: undefined });
+    }), { transaction });
     const updatePayload = plan.update.mock.calls[0][0];
     expect(updatePayload.planData.weeks[0].days[0]).toMatchObject({
       completed: true,
@@ -78,6 +100,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: {
         ...nonBillableAssignment,
         assignmentType: 'trainer_session',
@@ -85,6 +108,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         shouldDeductSession: true,
       },
       clientId: 42,
+      transaction,
     });
 
     expect(result).toEqual({ advanced: false, reason: 'not_applicable' });
@@ -104,10 +128,11 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         ],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: {
         ...nonBillableAssignment,
         assignmentType: 'trainer_session',
@@ -115,6 +140,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         shouldDeductSession: true,
       },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-2',
       workoutSessionId: 'workout-session-2',
       allowScheduledTrainerSession: true,
@@ -129,7 +155,7 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 2,
       status: 'active',
-    }), { transaction: undefined });
+    }), { transaction });
   });
 
   it('advances sparse numbered week/day entries to the next explicit day number', async () => {
@@ -146,12 +172,14 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         }],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: { ...nonBillableAssignment, weekNumber: 2, dayNumber: 3 },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-sparse',
       workoutSessionId: 'workout-session-sparse',
     });
@@ -182,12 +210,14 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
         ],
       },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: { ...nonBillableAssignment, weekNumber: 1, dayNumber: 2 },
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-top-level',
       workoutSessionId: 'workout-session-top-level',
     });
@@ -210,12 +240,14 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
     const plan = buildPlan({
       planData: { weeks: [{ days: [{ dayLabel: 'Final Homework', exercises: [] }] }] },
     });
-    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+    const WorkoutPlan = buildWorkoutPlanModel(plan);
 
     const result = await advancePlanAfterPlannedAssignmentLog({
       WorkoutPlan,
+      WorkoutPlanCompletionReceipt,
       assignment: nonBillableAssignment,
       clientId: 42,
+      transaction,
       dailyWorkoutFormId: 'daily-form-final',
       workoutSessionId: 'workout-session-final',
     });
@@ -229,6 +261,6 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
       currentWeek: 1,
       currentDay: 1,
       status: 'completed',
-    }), { transaction: undefined });
+    }), { transaction });
   });
 });

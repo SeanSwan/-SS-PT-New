@@ -2,14 +2,12 @@
  * Workout Plan Persistence Plan Data Helpers
  * ==========================================
  * Normalizes approved AI workout drafts into the JSONB shape consumed by
- * current-plan, logger, and Coach handoff routes. Also owns the active-plan
- * demotion invariant required before inserting a new active WorkoutPlan row.
+ * current-plan, logger, and Coach handoff routes. Lifecycle activation remains
+ * owned by workoutPlanLifecycleService after all normalized child rows persist.
  */
 import { PLAN_HORIZONS } from '../services/clientTrainingPlanHorizonService.mjs';
-import {
-  normalizeWorkoutPlanDataForPersistence,
-  sanitizeWorkoutPlanMetadataForPersistence,
-} from '../services/workoutPlanDataPrivacyService.mjs';
+import { normalizeWorkoutPlanDataForPersistence } from '../services/workoutPlanDataPrivacyService.mjs';
+
 
 export const ALLOWED_DAY_TYPES = new Set([
   'training',
@@ -160,45 +158,4 @@ export function buildWorkoutPlanData(plan, durationWeeks) {
     assignmentDefaults: { ...TRAINER_LED_WORKOUT_PLAN_ASSIGNMENT_DEFAULTS },
     recommendations: Array.isArray(plan?.recommendations) ? plan.recommendations : [],
   });
-}
-
-const DEMOTED_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: false, primary: false });
-
-const activePlanMetadata = (plan) => {
-  const metadata = plan?.metadata && typeof plan.metadata === 'object' && !Array.isArray(plan.metadata)
-    ? plan.metadata
-    : {};
-  return sanitizeWorkoutPlanMetadataForPersistence({
-    ...metadata,
-    ...DEMOTED_WORKOUT_PLAN_METADATA,
-  });
-};
-
-export async function demoteActiveWorkoutPlansForUser(WorkoutPlan, userId, transaction) {
-  if (typeof WorkoutPlan?.findAll === 'function') {
-    const activePlans = await WorkoutPlan.findAll({
-      where: { userId, status: 'active' },
-      transaction,
-    });
-
-    if (Array.isArray(activePlans) && activePlans.length > 0) {
-      let demotedWithInstances = false;
-      for (const activePlan of activePlans) {
-        if (typeof activePlan?.update !== 'function') continue;
-        await activePlan.update({
-          status: 'paused',
-          metadata: activePlanMetadata(activePlan),
-        }, { transaction });
-        demotedWithInstances = true;
-      }
-      if (demotedWithInstances) return;
-    }
-  }
-
-  if (typeof WorkoutPlan?.update === 'function') {
-    await WorkoutPlan.update({ status: 'paused' }, {
-      where: { userId, status: 'active' },
-      transaction,
-    });
-  }
 }

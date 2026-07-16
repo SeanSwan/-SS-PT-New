@@ -1,16 +1,12 @@
 /**
  * ============================================================================
  * FILE: ClientWorkoutPlanVaultSlot.tsx
- * PURPOSE: Single horizon tile for the Clients & Team workout-plan vault.
+ * PURPOSE: Compact command tile for one saved-plan horizon.
  * ============================================================================
  *
- * WHAT THIS FILE DOES:
- * Renders one plan horizon as a compact trainer/admin action tile, including
- * primary-arc promotion and protected PDF access.
- *
- * HOW IT FITS IN THE APP:
- * ClientWorkoutPlansPanel builds the seven-horizon vault summary, then delegates
- * each slot here so the parent stays focused on data loading and orchestration.
+ * A plan's active status is the only current/primary truth. A non-current slot
+ * exposes one activation command, avoiding parallel "activate" and "primary"
+ * controls that would dispatch the same canonical lifecycle transition.
  */
 
 import React from 'react';
@@ -33,110 +29,59 @@ import {
 } from './ClientWorkoutPlansPanel.styles';
 
 interface ClientWorkoutPlanVaultSlotProps {
-  slot: ClientPlanHorizonSlot;
   activatingPlanId: string | null;
   openingPdfId: string | null;
-  primaryUpdatingId: string | null;
+  slot: ClientPlanHorizonSlot;
   onActivate: (plan: ClientPlanSummary) => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
-  onMakePrimary: (plan: ClientPlanSummary) => void;
 }
 
 const slotPlanName = (slot: ClientPlanHorizonSlot) => slot.plan?.name || 'Pending';
-const filledSlotStatus = (plan: ClientPlanSummary | null | undefined) => (
-  plan?.status === 'paused' ? 'Paused' : 'Ready'
-);
-const emptySlotStatus = (slot: ClientPlanHorizonSlot) => (
-  slot.isDefaultHorizon ? 'Default' : 'Pending'
-);
 const activeSlot = (slot: ClientPlanHorizonSlot) => (
   Boolean(slot.plan && isClientPlanActiveStatus(slot.plan.status))
 );
-
-function vaultSlotStatus(slot: ClientPlanHorizonSlot) {
-  if (slot.isPrimary) return 'Primary';
-  if (activeSlot(slot)) return 'Active';
-  if (slot.isFilled) return filledSlotStatus(slot.plan);
-  return emptySlotStatus(slot);
-}
-
-function vaultSlotDetail(slot: ClientPlanHorizonSlot) {
-  if (slot.plan) return `${slot.durationWeeks} weeks - ${slot.plan.status} - ${formatPlanUseLabel(slot.plan.assignmentDefault)}`;
-  if (slot.isDefaultHorizon) return 'Default six-month arc pending';
-  return 'No plan saved yet';
-}
-
-interface SlotActionProps {
-  slot: ClientPlanHorizonSlot;
-  plan: ClientPlanSummary;
-}
-
-interface ActivateArcActionProps extends SlotActionProps {
-  activatingPlanId: string | null;
-  onActivate: (plan: ClientPlanSummary) => void;
-}
-
-const ActivateArcAction: React.FC<ActivateArcActionProps> = ({
-  slot,
-  plan,
-  activatingPlanId,
-  onActivate,
-}) => {
-  if (isClientPlanActiveStatus(plan.status)) return null;
-
-  return (
-    <PlanActionButton
-      type="button"
-      disabled={activatingPlanId === plan.id}
-      aria-label={`Activate ${slot.label} arc`}
-      onClick={() => onActivate(plan)}
-    >
-      <PlayCircle size={14} aria-hidden="true" />
-      {activatingPlanId === plan.id ? 'Activating' : 'Activate Arc'}
-    </PlanActionButton>
-  );
+const vaultSlotStatus = (slot: ClientPlanHorizonSlot) => {
+  if (slot.isPrimary || activeSlot(slot)) return 'Current';
+  if (slot.plan?.status === 'paused') return 'Paused';
+  if (slot.isFilled) return 'Ready';
+  return slot.isDefaultHorizon ? 'Default' : 'Pending';
+};
+const vaultSlotDetail = (slot: ClientPlanHorizonSlot) => {
+  if (slot.plan) {
+    return `${slot.durationWeeks} weeks - ${slot.plan.status} - ${formatPlanUseLabel(slot.plan.assignmentDefault)}`;
+  }
+  return slot.isDefaultHorizon ? 'Default six-month arc pending' : 'No plan saved yet';
 };
 
-interface PrimaryArcActionProps extends SlotActionProps {
-  primaryUpdatingId: string | null;
-  onMakePrimary: (plan: ClientPlanSummary) => void;
-}
-
-const PrimaryArcAction: React.FC<PrimaryArcActionProps> = ({
-  slot,
-  plan,
-  primaryUpdatingId,
-  onMakePrimary,
-}) => {
-  if (slot.isPrimary) return null;
-
+const ActivateArcAction: React.FC<{
+  activatingPlanId: string | null;
+  plan: ClientPlanSummary;
+  slot: ClientPlanHorizonSlot;
+  onActivate: (plan: ClientPlanSummary) => void;
+}> = ({ activatingPlanId, plan, slot, onActivate }) => {
+  if (isClientPlanActiveStatus(plan.status)) return null;
+  const busy = activatingPlanId === plan.id;
   return (
     <PlanActionButton
       type="button"
       $variant="primary"
-      disabled={primaryUpdatingId === plan.id}
-      aria-label={`Make ${slot.label} primary arc`}
-      onClick={() => onMakePrimary(plan)}
+      disabled={busy}
+      aria-label={`Make ${slot.label} the current arc`}
+      onClick={() => onActivate(plan)}
     >
-      <Crown size={14} aria-hidden="true" />
-      {primaryUpdatingId === plan.id ? 'Updating' : 'Make Primary'}
+      <PlayCircle size={14} aria-hidden="true" />
+      {busy ? 'Activating' : 'Make Current'}
     </PlanActionButton>
   );
 };
 
-interface PlanPdfActionProps extends SlotActionProps {
+const PlanPdfAction: React.FC<{
   openingPdfId: string | null;
+  plan: ClientPlanSummary;
+  slot: ClientPlanHorizonSlot;
   onOpenPdf: (plan: ClientPlanSummary) => void;
-}
-
-const PlanPdfAction: React.FC<PlanPdfActionProps> = ({
-  slot,
-  plan,
-  openingPdfId,
-  onOpenPdf,
-}) => {
+}> = ({ openingPdfId, plan, slot, onOpenPdf }) => {
   if (!plan.pdfFile) return null;
-
   return (
     <PlanActionButton
       type="button"
@@ -150,74 +95,52 @@ const PlanPdfAction: React.FC<PlanPdfActionProps> = ({
   );
 };
 
-const ClientWorkoutPlanVaultSlotActions: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
-  slot,
+const SlotActions: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
   activatingPlanId,
   openingPdfId,
-  primaryUpdatingId,
+  slot,
   onActivate,
   onOpenPdf,
-  onMakePrimary,
 }) => {
   if (!slot.plan) return null;
-
   return (
     <PlanActions>
       <ActivateArcAction
-        slot={slot}
-        plan={slot.plan}
         activatingPlanId={activatingPlanId}
+        plan={slot.plan}
+        slot={slot}
         onActivate={onActivate}
       />
-      <PrimaryArcAction
-        slot={slot}
-        plan={slot.plan}
-        primaryUpdatingId={primaryUpdatingId}
-        onMakePrimary={onMakePrimary}
-      />
       <PlanPdfAction
-        slot={slot}
-        plan={slot.plan}
         openingPdfId={openingPdfId}
+        plan={slot.plan}
+        slot={slot}
         onOpenPdf={onOpenPdf}
       />
     </PlanActions>
   );
 };
 
-const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
-  slot,
-  activatingPlanId,
-  openingPdfId,
-  primaryUpdatingId,
-  onActivate,
-  onOpenPdf,
-  onMakePrimary,
-}) => (
-  <VaultSlot
-    aria-label={`${slot.label} plan arc`}
-    $filled={slot.isFilled}
-    $primary={slot.isPrimary}
-  >
-    <VaultSlotTop>
-      <VaultSlotLabel>{slot.label}</VaultSlotLabel>
-      <VaultSlotStatus $primary={slot.isPrimary}>
-        {slot.isPrimary && <Crown size={11} aria-hidden="true" />}
-        {vaultSlotStatus(slot)}
-      </VaultSlotStatus>
-    </VaultSlotTop>
-    <VaultSlotPlanName>{slotPlanName(slot)}</VaultSlotPlanName>
-    <VaultSlotDetail>{vaultSlotDetail(slot)}</VaultSlotDetail>
-    <ClientWorkoutPlanVaultSlotActions
-      slot={slot}
-      activatingPlanId={activatingPlanId}
-      openingPdfId={openingPdfId}
-      primaryUpdatingId={primaryUpdatingId}
-      onActivate={onActivate}
-      onOpenPdf={onOpenPdf}
-      onMakePrimary={onMakePrimary}
-    />
-  </VaultSlot>
-);
+const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = (props) => {
+  const { slot } = props;
+  return (
+    <VaultSlot
+      aria-label={`${slot.label} plan arc`}
+      $filled={slot.isFilled}
+      $primary={slot.isPrimary}
+    >
+      <VaultSlotTop>
+        <VaultSlotLabel>{slot.label}</VaultSlotLabel>
+        <VaultSlotStatus $primary={slot.isPrimary}>
+          {(slot.isPrimary || activeSlot(slot)) && <Crown size={11} aria-hidden="true" />}
+          {vaultSlotStatus(slot)}
+        </VaultSlotStatus>
+      </VaultSlotTop>
+      <VaultSlotPlanName>{slotPlanName(slot)}</VaultSlotPlanName>
+      <VaultSlotDetail>{vaultSlotDetail(slot)}</VaultSlotDetail>
+      <SlotActions {...props} />
+    </VaultSlot>
+  );
+};
 
 export default ClientWorkoutPlanVaultSlot;

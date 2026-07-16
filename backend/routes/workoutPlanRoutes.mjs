@@ -2,7 +2,7 @@
  * ============================================================================
  * FILE: workoutPlanRoutes.mjs
  * PURPOSE: REST API for multi-week workout plan CRUD + session advancement
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-29
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-15
  * AI VILLAGE VALIDATED: 2026-03-29
  * ============================================================================
  *
@@ -18,12 +18,11 @@
  *
  * KEY DECISIONS:
  *   - All routes require protect + trainerOrAdminOnly (plans are trainer-managed)
- *   - Soft delete via status='completed' (no hard deletes)
+ *   - Archive via terminal status='archived' with immutable lifecycle receipts
  *   - /advance is atomic: marks session complete + advances cursor in one call
  */
 
 import express from 'express';
-import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
@@ -39,22 +38,25 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { getWorkoutPlanPdfDerivativeStatusesForPlans } from '../services/workoutPlanPdfDerivativeService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
+import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
-import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
-import { refreshWorkoutPlanPdfAttachment } from '../services/workoutPlanAiPdfAttachmentService.mjs';
+
+import {
+  createWorkoutPlanRecord,
+  mutateWorkoutPlanRecord,
+  WorkoutPlanMutationError,
+} from '../services/workoutPlanMutationService.mjs';
 import {
   normalizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
   sanitizeWorkoutPlanProgressNotesForPersistence,
 } from '../services/workoutPlanDataPrivacyService.mjs';
 import {
-  ACTIVATE_MAX_RETRIES,
   buildDuplicatePlanMetadata,
-  currentDateOnly,
-  isUniqueViolation,
-  markPlanPrimary,
   mergePlanMetadata,
+  normalizeWorkoutPlanId,
   parseStrictPositiveInteger,
   selectCurrentWorkoutPlan,
   toPlainObject,
@@ -64,13 +66,21 @@ import {
   handleWorkoutPlanPdfUpload,
 } from './workoutPlanPdfUploadHandler.mjs';
 import { handleWorkoutPlanPdfContent } from './workoutPlanPdfContentHandler.mjs';
+import { handleWorkoutPlanPdfMetadataUpdate } from './workoutPlanPdfMetadataHandler.mjs';
+import {
+  handleWorkoutPlanPdfGenerate,
+  handleWorkoutPlanPdfStatus,
+} from './workoutPlanPdfDerivativeHandlers.mjs';
+import {
+  workoutPlanActivateHandler,
+  workoutPlanArchiveHandler,
+  workoutPlanStatusHandler,
+} from './workoutPlanLifecycleHandlers.mjs';
 
 const router = express.Router();
 
-// Plan Library slice (REV 2 receipt §6.2). Activate handler retries on
-// SQLSTATE 23505 (Postgres unique_violation), which fires when the partial
-// unique index `workout_plans_one_active_per_user` catches a concurrent
-// activate that slipped past the row lock.
+// Lifecycle routes use a stable per-client row lock plus the existing partial
+// unique index workout_plans_one_active_per_user as a database backstop.
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
 // PURPOSE: Lazy-load from model cache to avoid circular imports
@@ -144,6 +154,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
   try {
     const WorkoutPlan = getWorkoutPlan();
     const DailyWorkoutForm = getModel('DailyWorkoutForm');
+    const User = getModel('User');
     const userId = parseInt(req.params.userId, 10);
 
     if (!userId || isNaN(userId)) {
@@ -172,9 +183,23 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       });
     }
 
+    const client = await User.findByPk(userId, {
+      attributes: ['id', 'timeZone', 'timeZoneConfigured'],
+    });
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
     // Extract current session info for the AI when a live active arc exists.
     const currentSession = plan ? extractCurrentSession(plan) : null;
-    const today = currentDateOnly();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+      targetClientId: userId,
+    });
+    const today = trainingDateContext.localDate;
     const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
       clientId: userId,
       date: today,
@@ -187,9 +212,24 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
         error.message,
       ),
     });
+    const overviewPlanRows = catalogPlans.length ? catalogPlans : plan ? [plan] : [];
+    const pdfDerivativesByPlanId = await getWorkoutPlanPdfDerivativeStatusesForPlans({
+      sequelize,
+      planIds: overviewPlanRows.map((row) => toPlainObject(row)?.id).filter(Boolean),
+    });
+    const plansWithPdfStatus = overviewPlanRows.map((row) => {
+      const raw = toPlainObject(row);
+      return {
+        ...raw,
+        pdfDerivative: pdfDerivativesByPlanId[String(raw.id)] || null,
+      };
+    });
+    const activePlanWithPdfStatus = plan
+      ? plansWithPdfStatus.find((row) => String(row.id) === String(plan.id)) || toPlainObject(plan)
+      : null;
     const overview = buildClientTrainingOverview({
-      activePlan: plan || null,
-      plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],
+      activePlan: activePlanWithPdfStatus,
+      plans: plansWithPdfStatus,
       currentSession,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,
@@ -203,6 +243,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
+      trainingDateContext,
     });
   } catch (error) {
     logger.error('[WorkoutPlan] GET /client/:userId error: %s', error.message);
@@ -300,6 +341,21 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
           missingCriticalData: err.missingCriticalData,
         });
       }
+      const status = Number(err.statusCode);
+      if (
+        Number.isInteger(status)
+        && status >= 400
+        && status < 500
+        && typeof err.code === 'string'
+        && err.code.startsWith('WORKOUT_PLAN_')
+      ) {
+        return res.status(status).json({
+          success: false,
+          code: err.code || 'WORKOUT_PLAN_MUTATION_FAILED',
+          message: err.message,
+          ...(err.currentRevision ? { currentRevision: err.currentRevision } : {}),
+        });
+      }
       logger.error('[WorkoutPlan] backup generate error: %s', err.message);
       return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
     }
@@ -314,23 +370,25 @@ router.post('/blend', protect, trainerOrAdminOnly,
   // Shim: surface the A-side plan id as :id so the STANDARD access middleware
   // runs natively (service re-verifies both sources share one client).
   (req, res, next) => {
-    const parsedA = parseInt(req.body?.planAId, 10);
-    const parsedB = parseInt(req.body?.planBId, 10);
+    const parsedA = normalizeWorkoutPlanId(req.body?.planAId);
+    const parsedB = normalizeWorkoutPlanId(req.body?.planBId);
     if (!parsedA || !parsedB || parsedA === parsedB) {
       return res.status(400).json({ success: false, message: 'Two distinct source plan ids are required' });
     }
-    req.params.id = String(parsedA);
+    req.params.id = parsedA;
     return next();
   },
   verifyClientAccessByPlanId({ paramName: 'id' }),
   async (req, res) => {
     try {
-      const { planAId, planBId, picks, title } = req.body || {};
+      const { picks, title } = req.body || {};
+      const planAId = normalizeWorkoutPlanId(req.body?.planAId);
+      const planBId = normalizeWorkoutPlanId(req.body?.planBId);
       const { blendPlans } = await import('../services/planBlendService.mjs');
       const result = await blendPlans({
         trainerId: req.user.id,
-        planAId: parseInt(planAId, 10),
-        planBId: parseInt(planBId, 10),
+        planAId,
+        planBId,
         picks,
         title,
       });
@@ -352,16 +410,29 @@ router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
     try {
       const { promoteBackupPlan } = await import('../services/backupPlanService.mjs');
       const result = await promoteBackupPlan({
-        planId: parseInt(req.params.id, 10),
+        planId: req.workoutPlan.id,
         trainerId: req.user.id,
       });
       return res.json({ success: true, promotedPlanId: result.promoted.id, archivedPlanIds: result.archived });
     } catch (error) {
-      const status = Number(error?.statusCode) || 500;
-      if (status >= 500) logger.error('[WorkoutPlan] promote-backup error: %s', error.message);
-      return res.status(status).json({
+      const status = Number(error?.statusCode);
+      const isClientSafe = Number.isInteger(status)
+        && status >= 400
+        && status < 500
+        && typeof error?.code === 'string'
+        && error.code.startsWith('WORKOUT_PLAN_');
+      if (isClientSafe) {
+        return res.status(status).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+        });
+      }
+      logger.error('[WorkoutPlan] promote-backup error: %s', error.message);
+      return res.status(500).json({
         success: false,
-        message: status >= 500 ? 'Failed to promote backup plan' : error.message,
+        message: 'Failed to promote backup plan',
       });
     }
   });
@@ -400,32 +471,37 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
     const safeProgressNotes = sanitizeWorkoutPlanProgressNotesForPersistence(progressNotes);
     const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(metadata);
 
-    const plan = await WorkoutPlan.create({
-      userId: parseInt(userId, 10),
-      trainerId: req.user.id,
-      title,
-      description: description || null,
-      nasmPhase: nasmPhase || null,
-      startDate: startDate || null,
-      endDate: endDate || null,
-      durationWeeks: durationWeeks || 4,
-      status: 'draft',
-      currentWeek: 1,
-      currentDay: 1,
-      planData: safePlanData,
-      progressNotes: safeProgressNotes,
-      createdBy: createdBy || 'trainer',
-      metadata: safeMetadata
+    const plan = await createWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan,
+      values: {
+        userId: parseInt(userId, 10),
+        trainerId: req.user.id,
+        title,
+        description: description || null,
+        nasmPhase: nasmPhase || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        durationWeeks: durationWeeks || 4,
+        status: 'draft',
+        currentWeek: 1,
+        currentDay: 1,
+        planData: safePlanData,
+        progressNotes: safeProgressNotes,
+        createdBy: createdBy || 'trainer',
+        metadata: safeMetadata
+      },
+      pdfDerivativeIntent: {
+        requestedBy: req.user.id,
+        reason: 'canonical_save',
+      },
     });
 
     logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
       plan.id, userId, req.user.id);
 
-    // Keep the attached client-facing PDF in lockstep with planData
-    // (brand-aware + exercise-guide appendix). Non-fatal on failure.
-    await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
 
-    res.status(201).json({ success: true, plan });
+    res.status(201).json({ success: true, plan, pdfDerivative: plan.pdfDerivative });
   } catch (error) {
     logger.error('[WorkoutPlan] POST / error: %s', error.message);
     res.status(500).json({ success: false, message: 'Failed to create workout plan' });
@@ -434,7 +510,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: PUT /api/workout-plans/:id
-// PURPOSE: Update plan fields (title, planData, status, etc.)
+// PURPOSE: Update prescribed/descriptive fields; lifecycle uses /status.
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -445,52 +521,68 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
 // fallow-ignore-next-line complexity
 router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
+    // Middleware proves access; the mutation boundary then refetches and locks
+    // the authoritative row before deriving metadata or content identity.
+    const authorizedPlan = req.workoutPlan;
 
-    if (req.body.status === 'active') {
+    if (req.body.status !== undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Use the activate endpoint to make a workout plan active.',
+        message: 'Use the status endpoint for workout plan lifecycle changes.',
       });
     }
 
-    // Whitelist updatable fields to prevent mass-assignment
+    // Whitelist updatable fields to prevent mass-assignment.
     const allowedFields = [
       'title', 'description', 'nasmPhase', 'startDate', 'endDate',
-      'durationWeeks', 'status', 'currentWeek', 'currentDay',
+      'durationWeeks', 'currentWeek', 'currentDay',
       'planData', 'progressNotes', 'metadata'
     ];
 
-    const updates = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        if (field === 'metadata') {
-          updates[field] = mergePlanMetadata(plan, req.body[field]);
-        } else if (field === 'planData') {
-          updates[field] = normalizeWorkoutPlanDataForPersistence(req.body[field]);
-        } else if (field === 'progressNotes') {
-          updates[field] = sanitizeWorkoutPlanProgressNotesForPersistence(req.body[field]);
-        } else {
-          updates[field] = req.body[field];
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan: getWorkoutPlan(),
+      planId: authorizedPlan.id,
+      expectedRevision: req.body.expectedRevision,
+      updates: (lockedPlan) => {
+        const updates = {};
+        for (const field of allowedFields) {
+          if (req.body[field] === undefined) continue;
+          if (field === 'metadata') {
+            updates[field] = mergePlanMetadata(lockedPlan, req.body[field]);
+          } else if (field === 'planData') {
+            updates[field] = normalizeWorkoutPlanDataForPersistence(req.body[field]);
+          } else if (field === 'progressNotes') {
+            updates[field] = sanitizeWorkoutPlanProgressNotesForPersistence(req.body[field]);
+          } else {
+            updates[field] = req.body[field];
+          }
         }
-      }
-    }
-
-    await plan.update(updates);
+        return updates;
+      },
+      pdfDerivativeIntent: {
+        requestedBy: req.user.id,
+        reason: 'canonical_save',
+      },
+    });
+    const plan = mutation.plan;
 
     logger.info('[WorkoutPlan] Updated plan #%d by user %d', plan.id, req.user.id);
 
-    // Content changed → regenerate the attached PDF so it always mirrors the
-    // latest applied plan (swaps included). Non-fatal on failure.
-    if (updates.planData !== undefined || updates.title !== undefined) {
-      await refreshWorkoutPlanPdfAttachment({ plan, uploadedBy: req.user.id });
-    }
 
-    res.json({ success: true, plan });
+    res.json({ success: true, plan, pdfDerivative: mutation.pdfDerivative });
   } catch (error) {
+    const status = Number(error?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logger.error('[WorkoutPlan] PUT /:id error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to update workout plan' });
+    return res.status(500).json({ success: false, message: 'Failed to update workout plan' });
   }
 });
 
@@ -504,36 +596,29 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
  * @access Trainer (assigned client) / Admin
  */
 // fallow-ignore-next-line complexity
-router.put('/:id/pdf', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  try {
-    const plan = req.workoutPlan;
-    const result = buildWorkoutPlanPdfMetadata({
-      currentMetadata: plan.metadata || {},
-      planId: plan.id,
-      pdfUrl: req.body?.pdfUrl || req.body?.url,
-      fileName: req.body?.fileName,
-      storage: req.body?.storage,
-      storageKey: req.body?.storageKey,
-      updatedBy: req.user.id,
-    });
+router.put(
+  '/:id/pdf',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfMetadataUpdate,
+);
 
-    if (!result.ok) {
-      return res.status(400).json({ success: false, message: result.message });
-    }
+router.post(
+  '/:id/pdf/generate',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfGenerate,
+);
 
-    const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(result.metadata);
-    const safePlanPdf = safeMetadata.planPdf || result.planPdf;
-
-    await plan.update({ metadata: safeMetadata });
-
-    logger.info('[WorkoutPlan] Updated plan PDF for plan #%s by user %d', plan.id, req.user.id);
-
-    return res.json({ success: true, plan, planPdf: safePlanPdf });
-  } catch (error) {
-    logger.error('[WorkoutPlan] PUT /:id/pdf error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to update workout plan PDF' });
-  }
-});
+router.get(
+  '/:id/pdf/status',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfStatus,
+);
 
 // ─────────────────────────────────────────────────────────────
 /**
@@ -565,226 +650,39 @@ router.get(
 );
 
 /**
- * Mark a saved plan as the primary client-visible training arc.
- *
+ * Legacy primary path now means activate. Active status is the only primary
+ * truth; this compatibility route delegates to the audited lifecycle service.
  * @route PUT /api/workout-plans/:id/primary
  * @access Trainer (assigned client) / Admin
  */
-// fallow-ignore-next-line complexity
-router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  let t;
-  try {
-    t = await sequelize.transaction();
-    const WorkoutPlan = getWorkoutPlan();
-    const targetPlan = req.workoutPlan;
-
-    await WorkoutPlan.findAll({
-      where: { userId: targetPlan.userId },
-      lock: t.LOCK.UPDATE,
-      transaction: t,
-    });
-
-    const freshTarget = await WorkoutPlan.findByPk(targetPlan.id, { transaction: t });
-    if (!freshTarget) {
-      await t.rollback();
-      return res.status(404).json({ success: false, message: 'Plan not found' });
-    }
-
-    const primaryStatus = String(freshTarget.status || '').trim().toLowerCase();
-    if (primaryStatus !== 'active') {
-      await t.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Use the activate endpoint to make this workout plan current before selecting it as primary.',
-      });
-    }
-
-    const siblings = await WorkoutPlan.findAll({
-      where: {
-        userId: freshTarget.userId,
-        id: { [Op.ne]: freshTarget.id },
-        status: ['active', 'paused', 'draft'],
-      },
-      order: [['updatedAt', 'DESC']],
-      limit: 50,
-      transaction: t,
-    });
-
-    const updatedSiblings = [];
-    for (const sibling of siblings) {
-      const nextSibling = markPlanPrimary(sibling, false);
-      await sibling.update({ metadata: nextSibling.metadata }, { transaction: t });
-      updatedSiblings.push(nextSibling);
-    }
-
-    const updatedTarget = markPlanPrimary(freshTarget, true);
-    await freshTarget.update({ metadata: updatedTarget.metadata }, { transaction: t });
-
-    const overview = buildClientTrainingOverview({
-      activePlan: updatedTarget,
-      plans: [updatedTarget, ...updatedSiblings],
-    });
-
-    await t.commit();
-    logger.info('[WorkoutPlan] Set primary training arc #%s for client %d by user %d',
-      freshTarget.id, freshTarget.userId, req.user.id);
-
-    return res.json({
-      success: true,
-      plan: updatedTarget,
-      trainingPlanCatalog: overview.trainingPlanCatalog,
-    });
-  } catch (error) {
-    if (t) {
-      await t.rollback();
-    }
-    logger.error('[WorkoutPlan] PUT /:id/primary error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to update primary training arc' });
-  }
-});
-
-const lockClientPlanRows = (WorkoutPlan, userId, transaction) => (
-  WorkoutPlan.findAll({
-    where: { userId },
-    lock: transaction.LOCK.UPDATE,
-    transaction,
-  })
+router.put(
+  '/:id/primary',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanActivateHandler,
 );
-
-const loadActivationSiblings = (WorkoutPlan, freshPlan, transaction) => (
-  WorkoutPlan.findAll({
-    where: {
-      userId: freshPlan.userId,
-      id: { [Op.ne]: freshPlan.id },
-      status: ['active', 'paused', 'draft'],
-    },
-    order: [['updatedAt', 'DESC']],
-    limit: 50,
-    transaction,
-  })
-);
-
-const updateActivationSiblings = async (siblings, transaction) => {
-  const updatedSiblings = [];
-
-  for (const sibling of siblings) {
-    const demotedSibling = markPlanPrimary(sibling, false);
-    const shouldPauseSibling = sibling.status === 'active';
-    const nextSibling = shouldPauseSibling
-      ? { ...demotedSibling, status: 'paused' }
-      : demotedSibling;
-    const siblingUpdate = shouldPauseSibling
-      ? { status: 'paused', metadata: nextSibling.metadata }
-      : { metadata: nextSibling.metadata };
-
-    await sibling.update(siblingUpdate, { transaction });
-    updatedSiblings.push(nextSibling);
-  }
-
-  return updatedSiblings;
-};
-
-const activateFreshWorkoutPlan = async (freshPlan, transaction) => {
-  const updatedFresh = { ...markPlanPrimary(freshPlan, true), status: 'active' };
-  await freshPlan.update({
-    status: 'active',
-    metadata: updatedFresh.metadata,
-  }, { transaction });
-  return updatedFresh;
-};
-
-const buildActivatedPlanResponse = (updatedFresh, updatedSiblings) => {
-  const overview = buildClientTrainingOverview({
-    activePlan: updatedFresh,
-    plans: [updatedFresh, ...updatedSiblings],
-  });
-
-  return {
-    success: true,
-    plan: updatedFresh,
-    trainingPlanCatalog: overview.trainingPlanCatalog,
-  };
-};
-
-const activateWorkoutPlanInTransaction = async (WorkoutPlan, targetPlan, transaction) => {
-  await lockClientPlanRows(WorkoutPlan, targetPlan.userId, transaction);
-
-  const fresh = await WorkoutPlan.findByPk(targetPlan.id, { transaction });
-  if (!fresh) return null;
-
-  const siblings = await loadActivationSiblings(WorkoutPlan, fresh, transaction);
-  const updatedSiblings = await updateActivationSiblings(siblings, transaction);
-  const updatedFresh = await activateFreshWorkoutPlan(fresh, transaction);
-  return buildActivatedPlanResponse(updatedFresh, updatedSiblings);
-};
-
-const runActivateWorkoutPlanAttempt = async (WorkoutPlan, targetPlan, userId) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const payload = await activateWorkoutPlanInTransaction(WorkoutPlan, targetPlan, transaction);
-    if (!payload) {
-      await transaction.rollback();
-      return { status: 404, body: { success: false, message: 'Plan not found' } };
-    }
-
-    await transaction.commit();
-    logger.info('[WorkoutPlan] Activated plan #%d for client %d (trainer %d)',
-      payload.plan.id, payload.plan.userId, userId);
-    return { status: 200, body: payload };
-  } catch (error) {
-    await transaction.rollback();
-    return { error };
-  }
-};
-
-const resolveActivateWorkoutPlanAttempt = (result, attempt) => {
-  if (!result.error) return result;
-  if (isUniqueViolation(result.error) && attempt < ACTIVATE_MAX_RETRIES) {
-    logger.warn('[WorkoutPlan] Activate race caught by unique index, retrying (attempt %d)', attempt);
-    return { retry: true };
-  }
-
-  logger.error('[WorkoutPlan] Activate error: %s', result.error.message);
-  return { status: 500, body: { success: false, message: 'Failed to activate plan' } };
-};
-
-const sendActivateWorkoutPlanResult = (res, result) => (
-  res.status(result.status).json(result.body)
-);
-
-// SECTION: PUT /api/workout-plans/:id/activate    (Plan Library slice)
-// PURPOSE: Make this plan the canonical "active" plan for its client.
-//          Demotes any sibling active plan(s) to 'paused' atomically.
-// ─────────────────────────────────────────────────────────────
-
 /**
- * Activate a plan as the client's current. Atomically demotes sibling
- * active plans to 'paused'.
- *
- * Concurrency strategy:
- *   1) Per-user row lock via `SELECT ... FOR UPDATE` serializes concurrent
- *      activates for the same client. Different clients don't lock each other.
- *   2) Partial unique index `workout_plans_one_active_per_user` is the DB-level
- *      backstop — any race that escapes the row lock raises SQLSTATE 23505.
- *   3) On 23505, retry up to ACTIVATE_MAX_RETRIES times before failing.
- *
- * @route PUT /api/workout-plans/:id/activate
+ * Apply an explicit audited lifecycle transition.
+ * @route POST /api/workout-plans/:id/status
  * @access Trainer (assigned client) / Admin
  */
-router.put('/:id/activate', protect, trainerOrAdminOnly,
+router.post(
+  '/:id/status',
+  protect,
+  trainerOrAdminOnly,
   verifyClientAccessByPlanId({ paramName: 'id' }),
-  // fallow-ignore-next-line complexity
-  async (req, res) => {
-    const WorkoutPlan = getWorkoutPlan();
-    const targetPlan = req.workoutPlan; // attached by middleware
+  workoutPlanStatusHandler,
+);
 
-    for (let attempt = 0; attempt <= ACTIVATE_MAX_RETRIES; attempt++) {
-      const result = await runActivateWorkoutPlanAttempt(WorkoutPlan, targetPlan, req.user.id);
-      const resolvedResult = resolveActivateWorkoutPlanAttempt(result, attempt);
-      if (resolvedResult.retry) continue;
-      return sendActivateWorkoutPlanResult(res, resolvedResult);
-    }
-});
+/** Legacy activation path retained on the canonical lifecycle service. */
+router.put(
+  '/:id/activate',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanActivateHandler,
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: POST /api/workout-plans/:id/duplicate    (Plan Library slice)
@@ -817,22 +715,26 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
       // re-copy contact details into new saved drafts.
       const clonedPlanData = normalizeWorkoutPlanDataForPersistence(original.planData);
 
-      const copy = await WorkoutPlan.create({
-        userId: original.userId,
-        trainerId: req.user.id,
-        title: (typeof title === 'string' && title.trim().length > 0)
-          ? title.trim()
-          : `${original.title} (copy)`,
-        description: original.description,
-        nasmPhase: original.nasmPhase,
-        durationWeeks: original.durationWeeks,
-        status: 'draft', // ALWAYS draft per product rule
-        currentWeek: 1,
-        currentDay: 1,
-        planData: clonedPlanData,
-        progressNotes: [],
-        createdBy: 'trainer',
-        metadata: buildDuplicatePlanMetadata(original),
+      const copy = await createWorkoutPlanRecord({
+        sequelize,
+        WorkoutPlan,
+        values: {
+          userId: original.userId,
+          trainerId: req.user.id,
+          title: (typeof title === 'string' && title.trim().length > 0)
+            ? title.trim()
+            : `${original.title} (copy)`,
+          description: original.description,
+          nasmPhase: original.nasmPhase,
+          durationWeeks: original.durationWeeks,
+          status: 'draft', // ALWAYS draft per product rule
+          currentWeek: 1,
+          currentDay: 1,
+          planData: clonedPlanData,
+          progressNotes: [],
+          createdBy: 'trainer',
+          metadata: buildDuplicatePlanMetadata(original),
+        },
       });
 
       logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',
@@ -864,94 +766,100 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
 // fallow-ignore-next-line complexity
 router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
+    const authorizedPlan = req.workoutPlan;
+    let cursorAdvance;
+    let currentWeek;
+    let currentDay;
+    let appliedUpdates;
 
-    if (plan.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot advance a ${plan.status} plan. Only active plans can be advanced.`
-      });
-    }
+    const mutation = await mutateWorkoutPlanRecord({
+      sequelize,
+      WorkoutPlan: getWorkoutPlan(),
+      planId: authorizedPlan.id,
+      updates: (lockedPlan) => {
+        if (lockedPlan.status !== 'active') {
+          throw new WorkoutPlanMutationError(
+            `Cannot advance a ${lockedPlan.status} plan. Only active plans can be advanced.`,
+            { code: 'WORKOUT_PLAN_NOT_ACTIVE', statusCode: 400 },
+          );
+        }
 
-    const { currentWeek, currentDay } = plan;
-    const { trainerNotes } = req.body;
+        currentWeek = lockedPlan.currentWeek;
+        currentDay = lockedPlan.currentDay;
+        cursorAdvance = advancePlanDataCursor({
+          planData: lockedPlan.planData || { weeks: [] },
+          weekNumber: currentWeek,
+          dayNumber: currentDay,
+          completedAt: new Date().toISOString(),
+          trainerNotes: req.body.trainerNotes,
+        });
+        if (!cursorAdvance.advanced) {
+          throw new WorkoutPlanMutationError('Current plan session not found', {
+            code: 'WORKOUT_PLAN_SESSION_NOT_FOUND',
+            statusCode: 400,
+          });
+        }
 
-    const cursorAdvance = advancePlanDataCursor({
-      planData: plan.planData || { weeks: [] },
-      weekNumber: currentWeek,
-      dayNumber: currentDay,
-      completedAt: new Date().toISOString(),
-      trainerNotes,
+        appliedUpdates = {
+          planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),
+          currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
+          currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
+          status: cursorAdvance.planCompleted ? 'completed' : 'active',
+        };
+        return appliedUpdates;
+      },
     });
-    if (!cursorAdvance.advanced) {
-      return res.status(400).json({
-        success: false,
-        message: 'Current plan session not found',
-      });
-    }
-
-    // Apply updates
-    const updates = {
-      planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),
-      currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
-      currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
-      status: cursorAdvance.planCompleted ? 'completed' : 'active'
-    };
-
-    await plan.update(updates);
-
-    // Extract the new current session (or null if completed)
+    const responsePlan = { ...toPlainObject(mutation.plan), ...appliedUpdates };
     const nextSession = cursorAdvance.planCompleted
       ? null
-      : extractCurrentSession({ ...toPlainObject(plan), ...updates });
+      : extractCurrentSession(responsePlan);
 
     logger.info('[WorkoutPlan] Advanced plan #%d: week %d day %d → %s',
-      plan.id, currentWeek, currentDay,
+      mutation.plan.id, currentWeek, currentDay,
       cursorAdvance.planCompleted
         ? 'COMPLETED'
         : `week ${cursorAdvance.next.week} day ${cursorAdvance.next.day}`);
 
-    res.json({
+    return res.json({
       success: true,
-      plan,
+      plan: responsePlan,
       advanced: true,
       planCompleted: cursorAdvance.planCompleted,
       previousSession: cursorAdvance.previous,
-      nextSession
+      nextSession,
     });
   } catch (error) {
+    const status = Number(error?.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      return res.status(status).json({
+        success: false,
+        message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logger.error('[WorkoutPlan] PUT /:id/advance error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to advance workout plan' });
+    return res.status(500).json({ success: false, message: 'Failed to advance workout plan' });
   }
 });
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: DELETE /api/workout-plans/:id
-// PURPOSE: Soft-delete by setting status to 'completed'
-// WHY: Never hard-delete user workout data (audit trail)
+// PURPOSE: Preserve compatibility while applying a real audited archive state.
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Soft-delete a workout plan (sets status to 'completed').
+ * Archive a workout plan without deleting its history or last PDF derivative.
  * @route DELETE /api/workout-plans/:id
  * @access Trainer/Admin
  */
-router.delete('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
-  try {
-    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
-    const plan = req.workoutPlan;
-
-    await plan.update({ status: 'completed' });
-
-    logger.info('[WorkoutPlan] Soft-deleted plan #%d by user %d', plan.id, req.user.id);
-
-    res.json({ success: true, message: 'Workout plan archived' });
-  } catch (error) {
-    logger.error('[WorkoutPlan] DELETE /:id error: %s', error.message);
-    res.status(500).json({ success: false, message: 'Failed to delete workout plan' });
-  }
-});
+router.delete(
+  '/:id',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanArchiveHandler,
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper Functions

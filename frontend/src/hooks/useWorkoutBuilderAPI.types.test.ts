@@ -41,6 +41,6 @@ describe('useWorkoutBuilderAPI type boundary', () => {
     expect(hookSource).toContain('saveGeneratedPlan');
     expect(hookSource).toContain("'/api/workout-plans'");
     expect(hookSource).toContain('activateWorkoutPlan');
-    expect(hookSource).toContain('}/activate`');
+    expect(hookSource).toContain('}/status`');
   });
 });

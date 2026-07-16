@@ -6,9 +6,10 @@
  * confirms the assignment matches the active plan cursor.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { hashWorkoutPlanContent } from '../services/workoutPlanRevisionService.mjs';
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -28,7 +29,12 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutLogDestroy = vi.fn();
 const mockWorkoutLogBulkCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockCompletionReceiptFindOrCreate = vi.fn(async ({ defaults }) => [
+  { id: 'receipt-route', ...defaults },
+  true,
+]);
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: vi.fn() }),
@@ -38,7 +44,11 @@ vi.mock('../models/index.mjs', () => ({
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
   getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
-  getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
+  getWorkoutPlan: () => ({
+    findOne: mockWorkoutPlanFindOne,
+    findByPk: mockWorkoutPlanFindByPk,
+  }),
+  getWorkoutPlanCompletionReceipt: () => ({ findOrCreate: mockCompletionReceiptFindOrCreate }),
   getSession: () => ({ findByPk: vi.fn() }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
   getTrainerPermissions: () => ({ findOne: vi.fn() }),
@@ -96,8 +106,8 @@ const payload = {
   ],
   sessionNotes: 'Logged from homework assignment',
   plannedAssignment: {
-    assignmentKey: 'plan-6m:w4:d2:homework',
-    planId: 'plan-6m',
+    assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:homework',
+    planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
     assignmentType: 'homework',
     source: 'workout_plan',
     isBillable: false,
@@ -107,8 +117,9 @@ const payload = {
   },
 };
 
-const buildActivePlan = () => ({
-  id: 'plan-6m',
+const buildActivePlan = () => {
+  const plan = {
+  id: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
   userId: 11,
   title: 'Six Month Foundation',
   status: 'active',
@@ -135,13 +146,19 @@ const buildActivePlan = () => ({
     ],
   },
   update: mockWorkoutPlanUpdate,
-});
+  };
+  plan.contentRevision = 4;
+  plan.contentHash = hashWorkoutPlanContent(plan.planData);
+  return plan;
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockUserDecrement.mockResolvedValue(undefined);
   mockUserFindByPk.mockResolvedValue({
     id: 11,
+    timeZone: 'UTC',
+    timeZoneConfigured: true,
     clientSource: 'swanstudios',
     availableSessions: 0,
     decrement: mockUserDecrement,
@@ -159,7 +176,13 @@ beforeEach(() => {
     update: vi.fn().mockResolvedValue(undefined),
   });
   mockWorkoutPlanUpdate.mockResolvedValue(undefined);
-  mockWorkoutPlanFindOne.mockResolvedValue(buildActivePlan());
+  const activePlan = buildActivePlan();
+  mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+  mockWorkoutPlanFindByPk.mockResolvedValue(activePlan);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('POST /api/workout-forms planned assignment logging', () => {
@@ -169,7 +192,7 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(res.status).toBe(201);
     expect(mockUserDecrement).not.toHaveBeenCalled();
     expect(mockWorkoutPlanFindOne).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'plan-6m', userId: 11, status: 'active' },
+      where: { id: '6ea7806d-36c8-4307-bd5d-6b04b68be849', userId: 11, status: 'active' },
     }));
     const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
     expect(mockWorkoutLogDestroy).toHaveBeenCalledWith({
@@ -190,8 +213,11 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     }));
     expect(formCreate.sessionDeducted).toBe(false);
     expect(formCreate.formData.plannedAssignment).toMatchObject({
-      assignmentKey: 'plan-6m:w4:d2:homework',
-      planId: 'plan-6m',
+      assignmentKey: `6ea7806d-36c8-4307-bd5d-6b04b68be849:w4:d2:${payload.date}:o1:r4`,
+      planId: '6ea7806d-36c8-4307-bd5d-6b04b68be849',
+      scheduledDate: payload.date,
+      occurrenceIndex: 1,
+      prescribedRevision: 4,
       assignmentType: 'homework',
       source: 'workout_plan',
       isBillable: false,
@@ -227,6 +253,29 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 
+  it('accepts the client local day when it is still the previous UTC date', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-07T16:30:00.000Z'));
+    mockUserFindByPk.mockResolvedValue({
+      id: 11,
+      timeZone: 'Asia/Tokyo',
+      timeZoneConfigured: true,
+      clientSource: 'swanstudios',
+      availableSessions: 0,
+      decrement: mockUserDecrement,
+    });
+
+    const res = await request(app).post('/api/workout-forms').send({
+      ...payload,
+      date: '2026-03-08',
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockDailyWorkoutFormCreate.mock.calls[0][0]).toMatchObject({
+      clientId: 11,
+      date: '2026-03-08',
+    });
+  });
   it('returns normalized persisted ids in the save receipt when clientId arrives as a string', async () => {
     const res = await request(app)
       .post('/api/workout-forms')
@@ -270,7 +319,7 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       ...payload,
       plannedAssignment: {
         ...payload.plannedAssignment,
-        assignmentKey: 'plan-6m:w9:d9:homework',
+        assignmentKey: '6ea7806d-36c8-4307-bd5d-6b04b68be849:w9:d9:homework',
       },
     });
 

@@ -8,6 +8,7 @@
 
 import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
+import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
@@ -106,7 +107,7 @@ const isCurrentPlanDay = (plan, weekNumber, dayNumber) => (
   && Number(plan.currentDay || 1) === Number(dayNumber || 1)
 );
 
-const buildPickerAssignment = ({ plan, rawPlan, weekNumber, day, dayIndex, today, assignmentCompletions }) => {
+const buildPickerAssignment = ({ rawPlan, weekNumber, day, dayIndex, today, assignmentCompletions }) => {
   const planId = rawPlan.id ?? null;
   const dayNumber = toPositiveInteger(day.dayNumber ?? day.sessionNumber ?? day.day, dayIndex + 1);
   const exercises = (Array.isArray(day.exercises) ? day.exercises : []).map(toPickerExercise);
@@ -154,7 +155,7 @@ const buildPickerAssignment = ({ plan, rawPlan, weekNumber, day, dayIndex, today
 
 export const buildClientTrainingAssignmentPicker = ({
   plans = [],
-  today = new Date().toISOString().slice(0, 10),
+  today = formatDateOnlyInTimeZone(new Date(), DEFAULT_CLIENT_TIME_ZONE),
   assignmentCompletions = [],
   limit = 160,
 } = {}) => {
@@ -166,7 +167,6 @@ export const buildClientTrainingAssignmentPicker = ({
   const assignments = planRows.flatMap((rawPlan) => {
     const planData = toPlainObject(rawPlan.planData || rawPlan.plan_data) || {};
     return dayEntriesForPlan(planData).map(({ weekNumber, day, dayIndex }) => buildPickerAssignment({
-      plan: rawPlan,
       rawPlan,
       weekNumber,
       day,

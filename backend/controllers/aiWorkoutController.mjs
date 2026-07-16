@@ -947,6 +947,8 @@ export const generateWorkoutPlan = async (req, res) => {
       const persistResult = await persistWorkoutPlan({
         plan: aiPlan,
         userId: targetUserId,
+        actorId: requesterId,
+        sequelize,
         models: { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise },
         transaction,
         tags: ['ai_generated'],
@@ -1238,6 +1240,8 @@ export const approveDraftPlan = async (req, res) => {
       const persistResult = await persistWorkoutPlan({
         plan: approvedPlan,
         userId: parsedUserId,
+        actorId: requesterId,
+        sequelize,
         models: { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise },
         transaction,
         tags: ['ai_generated', 'coach_approved'],
