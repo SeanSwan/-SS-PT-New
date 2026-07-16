@@ -27,95 +27,16 @@ const backendDir = path.resolve(__dirname, '..');
 const migrationsDir = path.join(backendDir, 'migrations');
 const env = process.argv[2] || 'production';
 
-// "Already exists" patterns that indicate the migration was already applied
-const ALREADY_APPLIED_PATTERNS = [
-  /already exists/i,
-  /duplicate key value/i,
-  /relation .+ already exists/i,
-  /column .+ of relation .+ already exists/i,
-  /index .+ already exists/i,
-  /constraint .+ already exists/i,
-  /type .+ already exists/i,
-  /violates foreign key constraint/i, // FK refs existing data = table was already set up
-];
-
-export function isAlreadyAppliedError(stderr) {
-  return ALREADY_APPLIED_PATTERNS.some(p => p.test(stderr));
-}
-
-// DATA-CRITICAL LANE (2026-07-16 hostile-review fix). Data migrations
-// (backfills, repairs) must be fail-closed: a genuine failure may NEVER be
-// recorded as applied — the invalid rows would persist silently forever,
-// because sync({ alter: true }) never runs in production and SequelizeMeta
-// says "done". Name a migration with "backfill" or "data-critical" to opt in.
-const DATA_CRITICAL_PATTERN = /backfill|data-critical/i;
-
-export function isDataCriticalMigration(name) {
-  return DATA_CRITICAL_PATTERN.test(String(name || ''));
-}
-
-/**
- * Run every pending migration through the three-lane policy:
- *  - exit 0                          -> applied
- *  - already-exists class failure    -> mark done, continue (legacy skip lane)
- *  - genuine failure, schema lane    -> mark done, continue (legacy behavior,
- *    deliberately unchanged: blocking boot on schema drift caused the
- *    crash-loop incidents this runner exists to prevent)
- *  - genuine failure, DATA-CRITICAL  -> never mark done, HALT remaining
- *    migrations (they may depend on this data), report for retry next deploy
- */
-export async function processPendingMigrations({ pending, runMigration, markCompleted, logger = console }) {
-  const summary = {
-    applied: 0, skipped: 0, failed: 0,
-    dataCriticalFailures: [], halted: false, haltedRemaining: [],
-  };
-
-  for (const [index, migration] of pending.entries()) {
-    const result = await runMigration(migration);
-
-    if (result.code === 0) {
-      logger.log(`  ${migration} ... migrated`);
-      summary.applied++;
-      continue;
-    }
-
-    if (isAlreadyAppliedError(result.combined)) {
-      await markCompleted(migration);
-      logger.log(`  ${migration} ... already applied (marked as done)`);
-      summary.skipped++;
-      continue;
-    }
-
-    const errorLines = result.combined.split('\n').filter(l => l.includes('ERROR')).join('\n    ')
-      || result.combined.slice(-200);
-    summary.failed++;
-
-    if (isDataCriticalMigration(migration)) {
-      logger.log(`  ${migration} ... FAILED (DATA-CRITICAL)`);
-      logger.error(`    Error: ${errorLines}`);
-      logger.error('    DATA-CRITICAL migration NOT marked as done — it stays pending and');
-      logger.error('    will retry on the next deploy. Remaining migrations are HALTED');
-      logger.error('    because they may depend on this data.');
-      summary.dataCriticalFailures.push(migration);
-      summary.halted = true;
-      summary.haltedRemaining = pending.slice(index + 1);
-      if (summary.haltedRemaining.length > 0) {
-        logger.error(`    Halted without attempting: ${summary.haltedRemaining.join(', ')}`);
-      }
-      break;
-    }
-
-    logger.log(`  ${migration} ... FAILED`);
-    logger.error(`    Error: ${errorLines}`);
-    // Legacy schema lane: mark as done to prevent blocking future deploys.
-    // (Historical rationale cited sync({ alter: true }); that sync is gated
-    // off in production — kept ONLY for schema files to avoid re-run loops.)
-    await markCompleted(migration);
-    logger.log('    (schema lane: marked as done to prevent blocking)');
-  }
-
-  return summary;
-}
+export {
+  isAlreadyAppliedError,
+  isStructuralAlreadyExistsError,
+  isDataCriticalMigration,
+} from './safe-migrate-lanes.mjs';
+import {
+  isAlreadyAppliedError,
+  isStructuralAlreadyExistsError,
+  isDataCriticalMigration,
+} from './safe-migrate-lanes.mjs';
 
 /** Get a Sequelize connection using the same config as sequelize-cli */
 async function getSequelize() {
@@ -193,6 +114,75 @@ function getAllMigrationFiles() {
   return fs.readdirSync(migrationsDir)
     .filter(f => f.endsWith('.cjs') || f.endsWith('.js'))
     .sort();
+}
+
+/**
+ * Run every pending migration through the three-lane policy:
+ *  - exit 0                          -> applied
+ *  - already-exists class failure    -> mark done, continue (legacy skip lane;
+ *    DATA-CRITICAL files only skip on STRUCTURAL already-exists errors — FK
+ *    violations / duplicate keys are plausible genuine backfill failures)
+ *  - genuine failure, schema lane    -> mark done, continue (legacy behavior,
+ *    deliberately unchanged: blocking boot on schema drift caused the
+ *    crash-loop incidents this runner exists to prevent)
+ *  - genuine failure, DATA-CRITICAL  -> never mark done, HALT remaining
+ *    migrations (they may depend on this data), report for retry next deploy
+ */
+export async function processPendingMigrations({ pending, runMigration, markCompleted, logger = console }) {
+  const summary = {
+    applied: 0, skipped: 0, failed: 0,
+    dataCriticalFailures: [], halted: false, haltedRemaining: [],
+  };
+
+  for (const [index, migration] of pending.entries()) {
+    const result = await runMigration(migration);
+    const dataCritical = isDataCriticalMigration(migration);
+
+    if (result.code === 0) {
+      logger.log(`  ${migration} ... migrated`);
+      summary.applied++;
+      continue;
+    }
+
+    const skipEligible = dataCritical
+      ? isStructuralAlreadyExistsError(result.combined)
+      : isAlreadyAppliedError(result.combined);
+    if (skipEligible) {
+      await markCompleted(migration);
+      logger.log(`  ${migration} ... already applied (marked as done)`);
+      summary.skipped++;
+      continue;
+    }
+
+    const errorLines = result.combined.split('\n').filter(l => l.includes('ERROR')).join('\n    ')
+      || result.combined.slice(-200);
+    summary.failed++;
+
+    if (dataCritical) {
+      logger.log(`  ${migration} ... FAILED (DATA-CRITICAL)`);
+      logger.error(`    Error: ${errorLines}`);
+      logger.error('    DATA-CRITICAL migration NOT marked as done — it stays pending and');
+      logger.error('    will retry on the next deploy. Remaining migrations are HALTED');
+      logger.error('    because they may depend on this data.');
+      summary.dataCriticalFailures.push(migration);
+      summary.halted = true;
+      summary.haltedRemaining = pending.slice(index + 1);
+      if (summary.haltedRemaining.length > 0) {
+        logger.error(`    Halted without attempting: ${summary.haltedRemaining.join(', ')}`);
+      }
+      break;
+    }
+
+    logger.log(`  ${migration} ... FAILED`);
+    logger.error(`    Error: ${errorLines}`);
+    // Legacy schema lane: mark as done to prevent blocking future deploys.
+    // (Historical rationale cited sync({ alter: true }); that sync is gated
+    // off in production — kept ONLY for schema files to avoid re-run loops.)
+    await markCompleted(migration);
+    logger.log('    (schema lane: marked as done to prevent blocking)');
+  }
+
+  return summary;
 }
 
 async function main() {
