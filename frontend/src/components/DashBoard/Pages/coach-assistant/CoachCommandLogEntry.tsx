@@ -69,7 +69,7 @@ function CoachCommandLogEntry({
   return (
     <LogEntry $actor={entry.actor}>
       <LogMeta>
-        <span>{entry.actor}</span>
+        {entry.label.toLowerCase().startsWith(entry.actor.toLowerCase()) ? <span aria-hidden="true" /> : <span>{entry.actor}</span>}
         <span>
           {entry.label}
           {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}

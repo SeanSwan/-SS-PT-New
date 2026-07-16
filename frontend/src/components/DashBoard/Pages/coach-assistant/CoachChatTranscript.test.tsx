@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import CoachChatTranscript from './CoachChatTranscript';
@@ -65,5 +65,32 @@ describe('CoachChatTranscript scrolling', () => {
     const announcement = screen.getByLabelText('Conversation with Swan Coach')
       .querySelector('.transcript-live-announcement');
     expect(announcement).toHaveTextContent('Your next workout is ready.');
+  });
+});
+
+describe('CoachChatTranscript jump-to-newest pill (W3 hardening)', () => {
+  it('offers a jump pill instead of yanking a reader out of history when a new reply lands', () => {
+    mockScrollableTranscript();
+    const logs = [{ id: 'entry-1', actor: 'coach' as const, label: 'Coach reply', body: 'First.' }];
+    const { rerender } = render(
+      <CoachChatTranscript activeThread={null} logs={logs} onReset={() => undefined} />,
+    );
+    const stream = screen.getByLabelText('Conversation with Swan Coach')
+      .querySelector('.transcript-stream') as HTMLDivElement;
+    // Reader scrolls up into history (scrollHeight mocked to 600; top = far away).
+    stream.scrollTop = 0;
+
+    rerender(
+      <CoachChatTranscript
+        activeThread={null}
+        logs={[...logs, { id: 'entry-2', actor: 'coach' as const, label: 'Coach reply', body: 'Second.' }]}
+        onReset={() => undefined}
+      />,
+    );
+
+    const pill = screen.getByRole('button', { name: /new reply/i });
+    fireEvent.click(pill);
+    expect(stream.scrollTop).toBe(600);
+    expect(screen.queryByRole('button', { name: /new reply/i })).toBeNull();
   });
 });

@@ -52,6 +52,16 @@ export const coachCommandBridgeMobileDockStyles = css`
       font-size: 11px;
     }
 
+    /* Compact the main-client binder: the select keeps its aria-label, the
+       visual eyebrow is redundant next to the "Now coaching" header. */
+    .main-client-picker > span {
+      display: none;
+    }
+
+    .main-client-picker select {
+      min-height: 40px;
+    }
+
     .client-name {
       font-size: clamp(17px, 4.6vw, 20px);
     }
@@ -172,16 +182,17 @@ export const coachCommandBridgeMobileDockStyles = css`
       display: none;
     }
   }
-  /* The matrix phone tier owns usable floor-mode geometry. The dashboard shell
-     starts below the 56px site header, so ~120px reserves the remaining mobile
-     controls + breathing room without double-counting that header. */
+  /* The matrix phone tier owns usable floor-mode geometry. Measured on the
+     live route: dashboard chrome above the shell is ~130px, so a 132px
+     reserve fits the shell inside 100dvh (sticky cannot rescue an oversized
+     shell here — overflow-x:hidden ancestors change the sticky scrollport). */
   ${media.phone} {
     .bridge-shell {
       gap: 6px;
     }
 
     .bridge-shell.is-chat-tab {
-      height: max(420px, calc(100dvh - 124px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
+      height: max(420px, calc(100dvh - 132px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px)));
     }
   }
 
@@ -189,7 +200,7 @@ export const coachCommandBridgeMobileDockStyles = css`
      transcript own the remaining height instead of a fixed floor. */
   ${media.shortViewport(700)} and (max-width: ${PHONE_MAX_WIDTH}px) and (pointer: coarse) {
     .bridge-shell.is-chat-tab {
-      height: calc(100dvh - 100px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px));
+      height: calc(100dvh - 104px - env(safe-area-inset-bottom) - var(--coach-kb-inset, 0px));
       min-height: 300px;
     }
   }

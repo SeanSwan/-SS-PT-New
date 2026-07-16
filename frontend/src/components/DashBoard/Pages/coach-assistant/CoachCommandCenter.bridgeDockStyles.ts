@@ -203,10 +203,10 @@ export const coachCommandDockStyles = css`
     box-shadow: 0 18px 50px color-mix(in srgb, var(--coach-bg) 72%, transparent);
     display: grid;
     gap: 6px;
+    left: 0;
     min-width: 216px;
     padding: 8px;
     position: absolute;
-    right: 0;
     z-index: 35;
   }
   .dock-more-menu button,

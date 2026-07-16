@@ -6,8 +6,8 @@
  * empty state gives concrete prompt starters and keeps the approval rule visible
  * without creating fake save actions.
  */
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Sparkles } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, Sparkles } from 'lucide-react';
 
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CommandLogConfirmation, CommandLogEntry } from './CoachCommandCenter.data';
@@ -58,16 +58,43 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   workoutLoggerScopeLabel,
 }) => {
   const streamRef = useRef<HTMLDivElement>(null);
+  const [unseenBelow, setUnseenBelow] = useState(false);
 
   // Controller prepends new entries (newest first); a chat reads oldest to newest.
   const ordered = useMemo(() => [...logs].reverse(), [logs]);
   const latestEntry = ordered[ordered.length - 1];
   const suggestedPrompts = clientFacing ? CLIENT_PROMPTS : OPERATOR_PROMPTS;
 
+  const scrollToNewest = () => {
+    const el = streamRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    setUnseenBelow(false);
+  };
+
+  const previousCountRef = useRef(0);
   useEffect(() => {
     const el = streamRef.current;
-    if (el) el.scrollTop = logs.length ? el.scrollHeight : 0;
+    const previousCount = previousCountRef.current;
+    previousCountRef.current = logs.length;
+    if (!el || !logs.length) return;
+    // First fill of a thread always lands on the newest message. During a live
+    // session, follow the conversation only while the reader is near the
+    // bottom — never yank them out of older history; offer a jump pill instead.
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    if (previousCount === 0 || nearBottom) {
+      el.scrollTop = el.scrollHeight;
+      setUnseenBelow(false);
+    } else {
+      setUnseenBelow(true);
+    }
   }, [logs.length]);
+
+  const handleStreamScroll = () => {
+    const el = streamRef.current;
+    if (!el) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 160) setUnseenBelow(false);
+  };
 
   return (
     <section className="chat-transcript" aria-label="Conversation with Swan Coach">
@@ -79,7 +106,14 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
         </div>
       ) : null}
 
-      <div className="transcript-stream" ref={streamRef}>
+      {unseenBelow ? (
+        <button type="button" className="transcript-jump-newest" onClick={scrollToNewest}>
+          <ArrowDown size={16} aria-hidden="true" />
+          New reply
+        </button>
+      ) : null}
+
+      <div className="transcript-stream" ref={streamRef} onScroll={handleStreamScroll}>
         {ordered.length ? (
           ordered.map((entry) => (
             <CoachCommandLogEntry

@@ -1,10 +1,11 @@
 /**
  * FILE: CoachCommandCenter.voiceStripStyles.ts
- * PURPOSE: Unmistakable recording state for Swan Coach dictation.
+ * PURPOSE: Live-conversation affordances — recording strip + jump-to-newest.
  *
- * Three simultaneous cues (color + label + motion) so recording is obvious
- * even without the live meter; reduced-motion drops the animation but keeps
- * the color + label truth (rule 25).
+ * Recording gets three simultaneous cues (color + label + motion) so it is
+ * obvious even without the live meter; reduced-motion drops the animation but
+ * keeps the color + label truth (rule 25). The jump pill appears when new
+ * replies land while the reader is scrolled up in history.
  */
 import { css, keyframes } from 'styled-components';
 
@@ -84,6 +85,35 @@ export const coachCommandVoiceStripStyles = css`
 
   .dock-mic.is-listening {
     animation: ${listeningPulse} 1.6s ease-in-out infinite;
+  }
+
+  .chat-transcript {
+    position: relative;
+  }
+
+  .transcript-jump-newest {
+    align-items: center;
+    background: color-mix(in srgb, var(--coach-surface-strong) 94%, var(--coach-bg));
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 38%, var(--coach-line));
+    border-radius: 999px;
+    bottom: 10px;
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--coach-bg) 70%, transparent);
+    color: var(--coach-text);
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 780;
+    gap: 6px;
+    left: 50%;
+    min-height: 44px;
+    padding: 0 16px;
+    position: absolute;
+    transform: translateX(-50%);
+    z-index: 8;
+  }
+
+  .transcript-jump-newest:hover,
+  .transcript-jump-newest:focus-visible {
+    border-color: color-mix(in srgb, var(--coach-cyan) 58%, var(--coach-line));
   }
 
   @media (prefers-reduced-motion: reduce) {
