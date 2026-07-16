@@ -14,7 +14,7 @@ type CoachVoiceLevelMeterProps = { active: boolean };
 
 const BAR_COUNT = 24;
 
-function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array) {
+function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array<ArrayBuffer>) {
   const context = canvas.getContext('2d');
   if (!context) return;
   analyser.getByteTimeDomainData(data);
