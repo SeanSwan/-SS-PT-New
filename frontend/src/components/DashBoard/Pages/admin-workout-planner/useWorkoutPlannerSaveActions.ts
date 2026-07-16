@@ -2,66 +2,18 @@
  * FILE: useWorkoutPlannerSaveActions.ts | PURPOSE: Canonical save plus one-owner PDF fallback.
  * AUTHOR: Codex GPT-5 | MODIFIED: 2026-07-16 | AI VILLAGE: 2026-07-15
  */
-import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useState } from 'react';
 import { logApiError } from '../../../../utils/logApiError';
-import type { PlannerClient, PlanDuration, PlanGoal } from './WorkoutPlannerTypes';
-import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
+import type { PlannerClient } from './WorkoutPlannerTypes';
 import { buildPlanPdfFileFromPlanData } from './workoutPlannerPlanPdfAdapter';
 import { buildWorkoutPlanSaveFields } from './workoutPlannerSavePayload';
-type PdfAttachResult = 'attached' | 'failed' | 'queued' | 'skipped';
-type WorkoutPlanSaveFields = ReturnType<typeof buildWorkoutPlanSaveFields>;
-interface PlannerAuthClient {
-  post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
-  put: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
-}
-interface PdfDerivativeSummary {
-  enabled?: boolean;
-  state?: string;
-}
-interface SaveActionResponseData {
-  plan?: {
-    id?: unknown;
-    title?: unknown;
-  };
-  pdfDerivative?: PdfDerivativeSummary;
-}
-interface SaveOperationResult {
-  client: PlannerClient | undefined;
-  planData: unknown;
-  saveFields: WorkoutPlanSaveFields;
-  planId: string | null;
-  planTitle?: unknown;
-  pdfDerivative?: PdfDerivativeSummary;
-}
-interface RunSaveOperationInput {
-  activate: boolean;
-  requiresLoadedPlan: boolean;
-  operation: () => Promise<SaveOperationResult>;
-  successText: string;
-  errorLogLabel: string;
-  errorText: string;
-}
-interface UseWorkoutPlannerSaveActionsInput {
-  authAxios: PlannerAuthClient;
-  selectedClientId: number | null;
-  planExercisesLength: number;
-  hasGeneratedHorizonPlan: boolean;
-  loadedPlanId: string | null;
-  planDuration: PlanDuration;
-  userRole?: string;
-  phaseName: string;
-  phaseNumber: number;
-  categoryLabel: string;
-  goal: PlanGoal;
-  clients: PlannerClient[];
-  buildPlanData: () => unknown;
-  currentExercisesSig: string;
-  fetchSavedPlans: (clientId: number | null) => Promise<void>;
-  setSavedSnapshot: Dispatch<SetStateAction<string | null>>;
-  setLoadedPlanId: Dispatch<SetStateAction<string | null>>;
-  setLoadedPlanName: Dispatch<SetStateAction<string | null>>;
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-}
+import type {
+  PdfAttachResult,
+  RunSaveOperationInput,
+  SaveActionResponseData,
+  SaveOperationResult,
+  UseWorkoutPlannerSaveActionsInput,
+} from './useWorkoutPlannerSaveActions.types';
 const saveStatusText = (base: string, pdfResult: PdfAttachResult) => {
   if (pdfResult === 'queued') return base + ' PDF generation queued.';
   if (pdfResult === 'attached') return base + ' PDF attached from the saved plan.';
@@ -76,6 +28,7 @@ export const useWorkoutPlannerSaveActions = ({
   planExercisesLength,
   hasGeneratedHorizonPlan,
   loadedPlanId,
+  loadedPlanRevision,
   planDuration,
   userRole,
   phaseName,
@@ -175,6 +128,7 @@ export const useWorkoutPlannerSaveActions = ({
     const { client, planData, saveFields } = buildSaveContext();
     const res = await authAxios.put('/api/workout-plans/' + loadedPlanId, {
       nasmPhase: phaseNumber,
+      expectedRevision: loadedPlanRevision,
       durationWeeks: saveFields.durationWeeks,
       planData,
       metadata: saveFields.metadata,
@@ -187,7 +141,7 @@ export const useWorkoutPlannerSaveActions = ({
       planId: loadedPlanId,
       pdfDerivative: data?.pdfDerivative,
     };
-  }, [authAxios, buildSaveContext, loadedPlanId, phaseNumber]);
+  }, [authAxios, buildSaveContext, loadedPlanId, loadedPlanRevision, phaseNumber]);
   const runSaveOperation = useCallback(async ({
     activate,
     requiresLoadedPlan,
@@ -204,7 +158,10 @@ export const useWorkoutPlannerSaveActions = ({
       let pdfDerivative = result.pdfDerivative;
       if (activate) {
         if (!planId) throw new Error('Backend returned no plan id');
-        const activation = await authAxios.put('/api/workout-plans/' + planId + '/activate');
+        const activation = await authAxios.post(
+          '/api/workout-plans/' + planId + '/status',
+          { action: 'activate' },
+        );
         const activationData = activation.data as SaveActionResponseData | undefined;
         pdfDerivative = activationData?.pdfDerivative ?? pdfDerivative;
       }
@@ -231,6 +188,14 @@ export const useWorkoutPlannerSaveActions = ({
       });
       await fetchSavedPlans(selectedClientId);
     } catch (err) {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) {
+        await fetchSavedPlans(selectedClientId);
+        setStatusMsg({
+          type: 'error',
+          text: 'This plan changed on the server. Saved plans were refreshed; review and retry.',
+        });
+        return;
+      }
       logApiError(errorLogLabel, err);
       setStatusMsg({ type: 'error', text: errorText });
     } finally {

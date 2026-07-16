@@ -130,8 +130,9 @@ export const useWorkoutMcp = () => {
     const planId = response.data?.plan?.id;
     let pdfDerivative = response.data?.pdfDerivative;
     if (options.activate && planId) {
-      const activation = await apiService.put(
-        `/api/workout-plans/${encodeURIComponent(String(planId))}/activate`,
+      const activation = await apiService.post(
+        `/api/workout-plans/${encodeURIComponent(String(planId))}/status`,
+        { action: 'activate' },
       );
       pdfDerivative = activation.data?.pdfDerivative ?? pdfDerivative;
     }

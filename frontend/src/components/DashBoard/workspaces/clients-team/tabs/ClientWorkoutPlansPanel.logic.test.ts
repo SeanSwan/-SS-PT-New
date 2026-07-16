@@ -47,6 +47,71 @@ describe('ClientWorkoutPlansPanel.logic PDF safety', () => {
     expect(plans.find((plan) => plan.id === 'uploads-plan')?.pdfFile).toBeNull();
   });
 
+  it('preserves only safe revision-aware PDF state from the batched staff catalog', () => {
+    const { plans } = normalizeClientWorkoutPlansResponse({
+      trainingPlanCatalog: {
+        primaryPlanId: 'revision-plan',
+        primaryHorizonKey: 'six_month',
+        slots: [{
+          horizonKey: 'six_month',
+          label: '6 Month',
+          durationWeeks: 26,
+          durationDays: 182,
+          isDefaultHorizon: true,
+          isFilled: true,
+          isPrimary: true,
+          plan: {
+            id: 'revision-plan',
+            title: 'Revision Aware Plan',
+            status: 'active',
+            contentRevision: 3,
+            contentHash: 'a'.repeat(64),
+            pdfFile: {
+              ...pdfFile('/api/workout-plans/revision-plan/pdf/content.pdf'),
+              sourceType: 'manual',
+              state: 'ready',
+              sourceRevision: 2,
+              needsReview: true,
+              storageKey: 'private/manual.pdf',
+            },
+            pdfDerivative: {
+              enabled: true,
+              state: 'failed',
+              latestGenerated: {
+                state: 'failed',
+                sourceType: 'generated',
+                sourceRevision: 3,
+                safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+                storageKey: 'private/generated.pdf',
+              },
+              latestManual: {
+                state: 'ready',
+                sourceType: 'manual',
+                sourceRevision: 2,
+                needsReview: true,
+              },
+            },
+          },
+        }],
+      },
+    });
+
+    expect(plans[0]).toMatchObject({
+      contentRevision: 3,
+      contentHash: 'a'.repeat(64),
+      pdfFile: { sourceType: 'manual', sourceRevision: 2, needsReview: true },
+      pdfDerivative: {
+        enabled: true,
+        state: 'failed',
+        latestGenerated: {
+          state: 'failed',
+          safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+        },
+      },
+    });
+    expect(JSON.stringify(plans[0])).not.toContain('private/');
+  });
+
   it('does not fetch non-proxy PDF URLs', async () => {
     const authAxios = { get: vi.fn() };
 

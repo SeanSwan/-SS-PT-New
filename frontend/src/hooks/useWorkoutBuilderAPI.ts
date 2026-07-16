@@ -142,8 +142,8 @@ export function useWorkoutBuilderAPI() {
 
   const activateWorkoutPlan = useCallback(async (planId: string | number): Promise<SavedWorkoutPlan> => {
     const data = await apiFetch<{ success: boolean; plan: SavedWorkoutPlan }>(
-      `/api/workout-plans/${encodeURIComponent(String(planId))}/activate`,
-      { method: 'PUT' }
+      `/api/workout-plans/${encodeURIComponent(String(planId))}/status`,
+      { method: 'POST', body: JSON.stringify({ action: 'activate' }) }
     );
     return data.plan;
   }, []);

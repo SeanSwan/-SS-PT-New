@@ -185,6 +185,31 @@ describe('clientTrainingReadModelService', () => {
     });
   });
 
+  it('exposes the safe batched PDF derivative summary on staff catalog plans', () => {
+    const pdfDerivative = {
+      enabled: true,
+      state: 'failed',
+      latestGenerated: {
+        state: 'failed',
+        sourceRevision: 3,
+        safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+      },
+      latestManual: {
+        state: 'ready',
+        sourceRevision: 2,
+        needsReview: true,
+      },
+    };
+    const catalog = buildClientTrainingOverview({
+      activePlan: { ...sixMonthPlan, contentRevision: 3, pdfDerivative },
+      plans: [{ ...sixMonthPlan, contentRevision: 3, pdfDerivative }],
+    }).trainingPlanCatalog;
+
+    expect(catalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      plan: { id: 'plan-6m', contentRevision: 3, pdfDerivative },
+    });
+  });
+
   it('builds one overview object for dashboard, logger, trainer, admin, and Swan Coach readers', () => {
     const overview = buildClientTrainingOverview({
       activePlan: sixMonthPlan,

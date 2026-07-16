@@ -436,6 +436,63 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.body.trainingPlanCatalog.slots).toHaveLength(7);
     });
 
+    it('batches safe PDF derivative status into the staff plan catalog', async () => {
+      process.env.TRAINING_PLAN_PDF_DERIVATIVES = 'true';
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      const activePlan = {
+        id: 'plan-pdf-state',
+        userId: 42,
+        title: 'Audited PDF Plan',
+        status: 'active',
+        durationWeeks: 26,
+        currentWeek: 1,
+        currentDay: 1,
+        metadata: { planHorizon: 'six_month' },
+        planData: { weeks: [] },
+      };
+      mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+      mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+      mockSequelizeQuery.mockResolvedValueOnce([[
+        {
+          plan_id: activePlan.id,
+          id: 'pdf-job-1',
+          state: 'failed',
+          source_type: 'generated',
+          source_revision: 3,
+          source_hash: 'a'.repeat(64),
+          render_hash: 'b'.repeat(64),
+          renderer_version: 'swan-plan-pdf-v1',
+          safe_error_code: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+          created_at: '2026-07-16T08:00:00.000Z',
+        },
+      ], { rowCount: 1 }]);
+
+      const res = await request(app)
+        .get('/api/workout-plans/client/42')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(mockSequelizeQuery).toHaveBeenCalledTimes(1);
+      expect(mockSequelizeQuery.mock.calls[0][1].replacements.planIds).toEqual([activePlan.id]);
+      expect(res.body.trainingPlanCatalog.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          horizonKey: 'six_month',
+          plan: expect.objectContaining({
+            id: activePlan.id,
+            pdfDerivative: expect.objectContaining({
+              enabled: true,
+              state: 'failed',
+              latestGenerated: expect.objectContaining({
+                safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+              }),
+            }),
+          }),
+        }),
+      ]));
+      expect(JSON.stringify(res.body)).not.toContain('storage_key');
+    });
+
     it('trainer + assigned client GET /client/:userId returns plan catalog when no active plan exists', async () => {
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
       const draftPlan = {

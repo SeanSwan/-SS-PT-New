@@ -14,6 +14,7 @@ import {
   requestWorkoutPlanPdfDerivative,
   markManualWorkoutPlanPdfNeedsReview,
   getWorkoutPlanPdfDerivativeStatus,
+  getWorkoutPlanPdfDerivativeStatusesForPlans,
   recordManualWorkoutPlanPdfDerivative,
 } from '../../services/workoutPlanPdfDerivativeService.mjs';
 
@@ -167,6 +168,7 @@ describe('workout plan PDF derivative service', () => {
   it('returns safe status summaries without storage keys', async () => {
     const sequelize = {
       query: vi.fn(async () => [[{
+        plan_id: plan().id,
         id: 'job-ready',
         state: 'ready',
         source_type: 'generated',
@@ -199,5 +201,67 @@ describe('workout plan PDF derivative service', () => {
     });
     expect(result.latestGenerated).not.toHaveProperty('storageKey');
     expect(JSON.stringify(result)).not.toContain('private-generated.pdf');
+  });
+
+  it('reads derivative summaries for a staff plan list in one bounded query', async () => {
+    const planA = plan().id;
+    const planB = '4b29b19c-c47c-48eb-8260-8dcda24b07f8';
+    const sequelize = {
+      query: vi.fn(async () => [[
+        {
+          plan_id: planA,
+          id: 'manual-review',
+          state: 'ready',
+          source_type: 'manual',
+          source_revision: 2,
+          source_hash: 'a'.repeat(64),
+          render_hash: 'b'.repeat(64),
+          renderer_version: 'manual-upload-v1',
+          storage_key: 'private/manual.pdf',
+          needs_review: true,
+          created_at: '2026-07-16T09:00:00.000Z',
+        },
+        {
+          plan_id: planA,
+          id: 'generated-failed',
+          state: 'failed',
+          source_type: 'generated',
+          source_revision: 3,
+          source_hash: 'c'.repeat(64),
+          render_hash: 'd'.repeat(64),
+          renderer_version: PDF_RENDERER_VERSION,
+          safe_error_code: 'WORKOUT_PLAN_PDF_RENDER_FAILED',
+          created_at: '2026-07-16T08:00:00.000Z',
+        },
+        {
+          plan_id: planB,
+          id: 'generated-pending',
+          state: 'pending',
+          source_type: 'generated',
+          source_revision: 1,
+          source_hash: 'e'.repeat(64),
+          render_hash: 'f'.repeat(64),
+          renderer_version: PDF_RENDERER_VERSION,
+          created_at: '2026-07-16T07:00:00.000Z',
+        },
+      ]]),
+    };
+
+    const result = await getWorkoutPlanPdfDerivativeStatusesForPlans({
+      sequelize,
+      planIds: [planA, planB, planA],
+      enabled: true,
+    });
+
+    expect(sequelize.query).toHaveBeenCalledTimes(1);
+    expect(sequelize.query.mock.calls[0][1].replacements.planIds).toEqual([planA, planB]);
+    expect(result[planA]).toMatchObject({
+      enabled: true,
+      state: 'failed',
+      latestGenerated: { state: 'failed', safeErrorCode: 'WORKOUT_PLAN_PDF_RENDER_FAILED' },
+      latestManual: { state: 'ready', needsReview: true },
+    });
+    expect(result[planB]).toMatchObject({ enabled: true, state: 'pending' });
+    expect(JSON.stringify(result)).not.toContain('private/manual.pdf');
   });
 });

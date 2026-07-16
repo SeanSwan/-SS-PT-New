@@ -7,6 +7,7 @@ const { mockAuthAxios } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
     put: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -24,6 +25,7 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthAxios.put.mockResolvedValue({ data: { success: true } });
+    mockAuthAxios.post.mockResolvedValue({ data: { success: true } });
     mockAuthAxios.get.mockResolvedValue({
       data: {
         success: true,
@@ -76,7 +78,7 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
-      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
+      expect(mockAuthAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     });
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
   });
@@ -90,9 +92,8 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
-      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
+      expect(mockAuthAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     });
-    expect(mockAuthAxios.put).not.toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
   });
 
   it('lets trainer and admin users activate a non-active saved horizon before it drives client homework', async () => {
@@ -100,10 +101,10 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
-    await user.click(await screen.findByRole('button', { name: /activate 9 month arc/i }));
+    await user.click(await screen.findByRole('button', { name: /make 9 month the current arc/i }));
 
     await waitFor(() => {
-      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
+      expect(mockAuthAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     });
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
   });
@@ -137,14 +138,13 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
     expect(await screen.findByText(/2 current plans for fixture client/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /activate 9 month arc/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /make 9 month the current arc/i })).toBeNull();
 
     const activeArcSelector = await waitForActiveArcValue();
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
-      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+      expect(mockAuthAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     });
-    expect(mockAuthAxios.put).not.toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
   });
 });

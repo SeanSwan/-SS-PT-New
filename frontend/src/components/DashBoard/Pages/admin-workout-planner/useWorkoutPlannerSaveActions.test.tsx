@@ -37,7 +37,7 @@ const makeHookInput = (authAxios: any, overrides: Record<string, unknown> = {}) 
   selectedClientId: 42,
   planExercisesLength: 0,
   hasGeneratedHorizonPlan: true,
-  loadedPlanId: null,
+  loadedPlanId: null, loadedPlanRevision: 1,
   planDuration: '26' as const,
   userRole: 'trainer',
   phaseName: 'Strength Endurance',
@@ -86,7 +86,7 @@ describe('useWorkoutPlannerSaveActions', () => {
       await result.current.handleSaveAndActivate();
     });
 
-    expect(authAxios.post).toHaveBeenCalledTimes(1);
+    expect(authAxios.post).toHaveBeenCalledTimes(2);
     expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans', expect.objectContaining({
       durationWeeks: 26,
       createdBy: 'swan_coach_planning',
@@ -98,7 +98,7 @@ describe('useWorkoutPlannerSaveActions', () => {
         planSource: 'swan_coach_planning',
       }),
     }));
-    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-26/activate');
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-26/status', { action: 'activate' });
     expect(mocks.buildPlanPdfFileFromPlanData).not.toHaveBeenCalled();
     expect(input.setStatusMsg).toHaveBeenCalledWith({
       type: 'success',
@@ -114,7 +114,7 @@ describe('useWorkoutPlannerSaveActions', () => {
         data: { success: true, pdfDerivative: { enabled: true, state: 'pending' } },
       }),
     };
-    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan' });
+    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan', loadedPlanRevision: 4 });
     const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
 
     await act(async () => {
@@ -123,6 +123,7 @@ describe('useWorkoutPlannerSaveActions', () => {
 
     expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/loaded-plan', expect.objectContaining({
       nasmPhase: 2,
+      expectedRevision: 4,
       durationWeeks: 26,
       planData,
       metadata: expect.objectContaining({
@@ -136,6 +137,22 @@ describe('useWorkoutPlannerSaveActions', () => {
     expect(mocks.buildPlanPdfFileFromPlanData).not.toHaveBeenCalled();
   });
 
+  it('refreshes a stale loaded plan after a revision conflict', async () => {
+    const authAxios = {
+      post: vi.fn(),
+      put: vi.fn().mockRejectedValue({ response: { status: 409 } }),
+    };
+    const input = makeHookInput(authAxios, { loadedPlanId: 'loaded-plan', loadedPlanRevision: 4 });
+    const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
+
+    await act(async () => result.current.handleUpdateLoaded());
+
+    expect(input.fetchSavedPlans).toHaveBeenCalledWith(42);
+    expect(input.setStatusMsg).toHaveBeenCalledWith({
+      type: 'error',
+      text: 'This plan changed on the server. Saved plans were refreshed; review and retry.',
+    });
+  });
   it('retains one browser upload only when the server reports legacy rollback mode', async () => {
     const singlePlanData = {
       weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Flexibility Prep' }] }] }],

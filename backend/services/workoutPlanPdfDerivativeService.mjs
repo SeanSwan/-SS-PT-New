@@ -12,6 +12,11 @@
 
 import { createHash } from 'node:crypto';
 import { hashWorkoutPlanContent } from './workoutPlanRevisionService.mjs';
+import {
+  getWorkoutPlanPdfDerivativeStatus as readWorkoutPlanPdfDerivativeStatus,
+  getWorkoutPlanPdfDerivativeStatusesForPlans as readWorkoutPlanPdfDerivativeStatusesForPlans,
+  summarizeWorkoutPlanPdfDerivative,
+} from './workoutPlanPdfDerivativeReadService.mjs';
 
 export const PDF_RENDERER_VERSION = 'swan-plan-pdf-v1';
 
@@ -29,6 +34,20 @@ const queryRows = async (sequelize, sql, options) => {
 
 export const workoutPlanPdfDerivativesEnabled = (env = process.env) => (
   String(env.TRAINING_PLAN_PDF_DERIVATIVES || '').trim().toLowerCase() === 'true'
+);
+
+export const getWorkoutPlanPdfDerivativeStatus = (input = {}) => (
+  readWorkoutPlanPdfDerivativeStatus({
+    ...input,
+    enabled: input.enabled ?? workoutPlanPdfDerivativesEnabled(),
+  })
+);
+
+export const getWorkoutPlanPdfDerivativeStatusesForPlans = (input = {}) => (
+  readWorkoutPlanPdfDerivativeStatusesForPlans({
+    ...input,
+    enabled: input.enabled ?? workoutPlanPdfDerivativesEnabled(),
+  })
 );
 
 export const normalizeWorkoutPlanPdfBrandKey = (clientSource) => (
@@ -71,24 +90,6 @@ export const buildWorkoutPlanPdfDerivativeIdentity = ({
     idempotencyKey: (
       String(plan.id) + ':' + sourceRevision + ':' + renderHash + ':' + rendererVersion
     ),
-  };
-};
-
-const derivativeSummary = (row, enabled = true) => {
-  if (!row) return enabled ? null : { enabled: false, state: 'legacy' };
-  return {
-    enabled,
-    id: row.id,
-    state: row.state,
-    sourceType: row.source_type,
-    sourceRevision: Number(row.source_revision) || null,
-    sourceHash: compactString(row.source_hash),
-    renderHash: compactString(row.render_hash),
-    rendererVersion: compactString(row.renderer_version),
-    needsReview: row.needs_review === true,
-    attemptCount: Number(row.attempt_count) || 0,
-    safeErrorCode: compactString(row.safe_error_code),
-    readyAt: row.ready_at || null,
   };
 };
 
@@ -162,7 +163,7 @@ export async function requestWorkoutPlanPdfDerivative({
     },
     transaction,
   });
-  return derivativeSummary(rows[0]);
+  return summarizeWorkoutPlanPdfDerivative(rows[0]);
 }
 
 export async function markManualWorkoutPlanPdfNeedsReview({
@@ -247,26 +248,5 @@ export async function recordManualWorkoutPlanPdfDerivative({
     },
     transaction,
   });
-  return derivativeSummary(rows[0]);
-}
-
-export async function getWorkoutPlanPdfDerivativeStatus({
-  sequelize,
-  planId,
-  enabled = workoutPlanPdfDerivativesEnabled(),
-} = {}) {
-  if (!enabled) return { enabled: false, state: 'legacy' };
-  const rows = await queryRows(sequelize, [
-    'SELECT * FROM workout_plan_pdf_derivatives',
-    'WHERE plan_id = :planId',
-    'ORDER BY created_at DESC LIMIT 20',
-  ].join('\n'), { replacements: { planId } });
-  const latestGenerated = rows.find((row) => row.source_type === 'generated') || null;
-  const latestManual = rows.find((row) => row.source_type === 'manual') || null;
-  return {
-    enabled: true,
-    state: latestGenerated?.state || latestManual?.state || 'missing',
-    latestGenerated: derivativeSummary(latestGenerated),
-    latestManual: derivativeSummary(latestManual),
-  };
+  return summarizeWorkoutPlanPdfDerivative(rows[0]);
 }

@@ -38,6 +38,7 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { getWorkoutPlanPdfDerivativeStatusesForPlans } from '../services/workoutPlanPdfDerivativeService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
@@ -211,9 +212,24 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
         error.message,
       ),
     });
+    const overviewPlanRows = catalogPlans.length ? catalogPlans : plan ? [plan] : [];
+    const pdfDerivativesByPlanId = await getWorkoutPlanPdfDerivativeStatusesForPlans({
+      sequelize,
+      planIds: overviewPlanRows.map((row) => toPlainObject(row)?.id).filter(Boolean),
+    });
+    const plansWithPdfStatus = overviewPlanRows.map((row) => {
+      const raw = toPlainObject(row);
+      return {
+        ...raw,
+        pdfDerivative: pdfDerivativesByPlanId[String(raw.id)] || null,
+      };
+    });
+    const activePlanWithPdfStatus = plan
+      ? plansWithPdfStatus.find((row) => String(row.id) === String(plan.id)) || toPlainObject(plan)
+      : null;
     const overview = buildClientTrainingOverview({
-      activePlan: plan || null,
-      plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],
+      activePlan: activePlanWithPdfStatus,
+      plans: plansWithPdfStatus,
       currentSession,
       today,
       assignmentCompletions: completionContext.assignmentCompletions,

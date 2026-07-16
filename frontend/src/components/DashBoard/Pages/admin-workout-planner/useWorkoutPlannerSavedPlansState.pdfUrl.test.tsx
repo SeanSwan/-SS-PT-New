@@ -89,11 +89,11 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
     expect(result.current.savedPlans[2].pdfFile).toBeNull();
   });
 
-  it('sets a saved plan as the primary arc through the dedicated endpoint', async () => {
+  it('reconciles a legacy primary request through the canonical activation endpoint', async () => {
     const authAxios = {
       get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),
-      post: vi.fn(),
-      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+      post: vi.fn().mockResolvedValue({ data: { success: true } }),
+      put: vi.fn(),
       delete: vi.fn(),
     };
     const setStatusMsg = vi.fn();
@@ -107,18 +107,18 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
       await result.current.handlePlanSetPrimary('plan-9m', 'Nine Month Arc');
     });
 
-    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-9m/status', { action: 'activate' });
     expect(setStatusMsg).toHaveBeenCalledWith({
       type: 'success',
-      text: 'Nine Month Arc is now the primary training arc.',
+      text: 'Nine Month Arc is now the current training arc.',
     });
   });
 
   it('marks an activated saved plan as ready for the current-plan logger handoff', async () => {
     const authAxios = {
       get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),
-      post: vi.fn(),
-      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+      post: vi.fn().mockResolvedValue({ data: { success: true } }),
+      put: vi.fn(),
       delete: vi.fn(),
     };
     const setStatusMsg = vi.fn();
@@ -132,7 +132,7 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
       await result.current.handleCardActivate('plan-current', 'Current Arc');
     });
 
-    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-current/activate');
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans/plan-current/status', { action: 'activate' });
     expect(setStatusMsg).toHaveBeenCalledWith({
       type: 'success',
       text: 'Current Arc is now the current plan.',

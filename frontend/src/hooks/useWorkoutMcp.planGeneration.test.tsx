@@ -234,8 +234,8 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
         },
       }),
     }));
-    expect(apiService.put).toHaveBeenCalledWith('/api/workout-plans/99/activate');
-    expect(apiService.post).toHaveBeenCalledTimes(1);
+    expect(apiService.post).toHaveBeenCalledWith('/api/workout-plans/99/status', { action: 'activate' });
+    expect(apiService.post).toHaveBeenCalledTimes(2);
     expect(mocks.buildPlanPdfFileFromPlanData).not.toHaveBeenCalled();
     expect(response).toEqual(expect.objectContaining({ pdfAttachment: 'queued' }));
   });

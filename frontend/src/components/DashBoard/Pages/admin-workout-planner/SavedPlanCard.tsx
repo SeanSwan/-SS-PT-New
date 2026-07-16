@@ -40,6 +40,7 @@ export interface SavedPlanSummary {
   status: SavedPlanStatus | string;
   createdAt: string;
   goal: string;
+  contentRevision?: number;
   horizonKey?: string;
   horizonLabel?: string;
   isPrimary?: boolean;
