@@ -8,8 +8,17 @@
  */
 
 import express from 'express';
+import sanitizeHtml from 'sanitize-html';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../models/index.mjs';
+
+// Notifications render as plain text in the recipient's bell — strip ALL markup so
+// a broadcast title/body can never carry stored HTML/script into another user's UI
+// (defense-in-depth: this route is admin-gated, but the content fans out to every user).
+const toPlainText = (value) =>
+  typeof value === 'string'
+    ? sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim()
+    : value;
 
 const router = express.Router();
 
@@ -206,6 +215,15 @@ router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => 
       });
     }
 
+    const safeTitle = toPlainText(title);
+    const safeContent = toPlainText(content);
+    if (!safeTitle || !safeContent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and content are required'
+      });
+    }
+
     const models = getAllModels();
     const User = models.User;
     const Notification = models.Notification;
@@ -239,8 +257,8 @@ router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => 
       await Notification.bulkCreate(
         recipientIds.map((recipientId) => ({
           userId: recipientId,
-          title,
-          message: content,
+          title: safeTitle,
+          message: safeContent,
           type: 'admin',
           read: false,
           link: link || null,
@@ -252,8 +270,8 @@ router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => 
 
     const adminNotification = await AdminNotification.create({
       type: 'system_alert',
-      title,
-      message: content,
+      title: safeTitle,
+      message: safeContent,
       priority: type === 'alert' ? 'high' : 'medium',
       actionRequired: type === 'alert',
       metadata: JSON.stringify({
