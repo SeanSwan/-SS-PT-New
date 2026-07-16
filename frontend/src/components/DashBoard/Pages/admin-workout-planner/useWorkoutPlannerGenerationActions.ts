@@ -41,6 +41,7 @@ import {
 import type { SafetyGateReviewState } from './useWorkoutPlannerSafetyGate';
 import { isGuidedGenerationMode } from './workoutPlannerGuidedCandidates.helpers';
 import { useWorkoutPlannerGuidedCandidateActions } from './useWorkoutPlannerGuidedCandidateActions';
+import type { PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 
 interface PlannerAuthClient {
@@ -141,6 +142,7 @@ export const useWorkoutPlannerGenerationActions = ({
   const postWorkoutGeneration = useCallback(async (
     selectedClientId: number,
     ack?: PlanningReviewAck,
+    overrides?: PlannerGenerateOverrides,
   ) => {
     setGenerating(true);
     setDegradedIntelligence(false);
@@ -152,9 +154,10 @@ export const useWorkoutPlannerGenerationActions = ({
       const res = await authAxios.post('/api/workout-builder/generate', {
         ...buildWorkoutGenerationRequest({
           selectedClientId,
-          category,
-          goal,
-          phaseNumber,
+          // Spoken overrides win over dropdown state for the immediate call (H4).
+          category: overrides?.category ?? category,
+          goal: overrides?.goal ?? goal,
+          phaseNumber: overrides?.phaseNumber ?? phaseNumber,
           selectedEquipmentProfileId,
           trainingIntensityMode,
           hardcoreMethod,
@@ -253,18 +256,18 @@ export const useWorkoutPlannerGenerationActions = ({
     confirmSafetyGateReview,
   } = useWorkoutPlannerSafetyGate({ onAcknowledged });
 
-  const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
+  const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null, overrides?: PlannerGenerateOverrides) => {
     if (isGuidedGenerationMode(generationMode)) {
       setGenerating(true);
       try {
-        await handleGuidedCandidateGenerate(selectedClientId);
+        await handleGuidedCandidateGenerate(selectedClientId, overrides);
       } finally {
         setGenerating(false);
       }
       return;
     }
     if (!selectedClientId) return;
-    const review = await postWorkoutGeneration(selectedClientId);
+    const review = await postWorkoutGeneration(selectedClientId, undefined, overrides);
     if (review) openSafetyGateReview({ mode: 'workout', clientId: selectedClientId, ...review });
   }, [generationMode, handleGuidedCandidateGenerate, openSafetyGateReview, postWorkoutGeneration]);
 

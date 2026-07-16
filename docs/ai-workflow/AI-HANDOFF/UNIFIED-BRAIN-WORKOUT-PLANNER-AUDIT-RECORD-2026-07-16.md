@@ -77,6 +77,13 @@ Trainer (typed or dictated) on /workout-planner
 - H4 (generate ignores instruction detail) remains open — highest-value next planner intelligence slice.
 - Verify the `@zxing/browser` baseline tsc errors get resolved by an `npm install` or a dependency fix in the nutrition lane.
 
+## 8b. Addendum 2026-07-16 (same day): Slices 7–8
+
+- **Slice 7 (revision fencing) — VERIFIED ALREADY SHIPPED by the canonical-training-plan lane** in the merge at `c58e1d413`: `useWorkoutPlannerSaveActions.ts:130` sends `expectedRevision` on update, 409 → savedPlans refetch + honest "plan changed on the server" status, post-save refetch keeps `loadedPlanRevision` fresh (page derives it live from savedPlans). Per Rule 52 no rework was performed; the future-hook from §8 is closed.
+- **Slice 8 (H4 — generate honors spoken detail):** new `workoutPlannerGenerateIntent.ts` normalizes AI_PLANNER_GENERATE payload (category/goal/phase synonym maps; unrecognized detail dropped, never guessed; junk/MouseEvent-shaped payloads safe), receipt names the exact ask ("Generating a fresh legs workout — hypertrophy, Phase 3…"), page reflects overrides into the visible dropdowns via `applyPlannerGenerateOverrides`, and explicit overrides thread through `handleSwanCoachWorkoutGenerate` → `postWorkoutGeneration`/guided candidates so the immediate request cannot use stale closure state. Safety-gate retries use the already-synced dropdown state.
+- Hostile round 1 caught both `WorkoutPlannerPage.tsx` (305) and `useWorkoutPlannerGenerationActions.ts` (303) over the 300-line cap → helper extraction + signature compaction (298/299). **Review hook: both files are within 2 lines of the cap — the next planner feature must extract first.**
+- Evidence: planner directory 69 files / 294 tests green; intent normalizer 12 tests; generation override threading locked at the POST-body level; ESLint clean; tsc recorded in the push gate. Browser smoke not re-run for generate — it shares the exact dock→dispatch→hook machinery the rearrange smoke drives; the generate-specific chain is locked by unit/integration tests.
+
 ## 9. Review log
 
 - Round 1 (Slice 5): full-suite run caught `WorkoutPlannerPage.tsx` at 306 lines against the 300-line structural contract → extracted `useWorkoutPlannerCoachSurface`.

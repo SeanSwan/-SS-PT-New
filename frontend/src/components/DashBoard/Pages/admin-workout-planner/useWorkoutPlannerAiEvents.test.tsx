@@ -240,14 +240,23 @@ describe('useWorkoutPlannerAiEvents (blueprint S3)', () => {
     expect(receipts).toContainEqual({ ok: false, text: 'Couldn\'t find "blorp press" — say the exercise name again?' });
   });
 
-  it('GENERATE pushes the status receipt and calls the existing generation action', async () => {
+  it('GENERATE honors spoken detail: forwards validated overrides and names them in the receipt', async () => {
     const { receipts, onGenerate } = setupHarness({});
     let handled = false;
     await act(async () => {
-      handled = dispatchAIWorkoutEvent('AI_PLANNER_GENERATE', { category: 'legs' });
+      handled = dispatchAIWorkoutEvent('AI_PLANNER_GENERATE', { category: 'leg day', goal: 'muscle growth', phase: 3 });
     });
     expect(handled).toBe(true);
-    expect(onGenerate).toHaveBeenCalledTimes(1);
+    expect(onGenerate).toHaveBeenCalledWith({ category: 'legs', goal: 'hypertrophy', phaseNumber: 3 });
+    expect(receipts).toContainEqual({ ok: true, text: 'Generating a fresh legs workout — hypertrophy, Phase 3…' });
+  });
+
+  it('GENERATE without recognizable detail stays generic and never guesses', async () => {
+    const { receipts, onGenerate } = setupHarness({});
+    await act(async () => {
+      dispatchAIWorkoutEvent('AI_PLANNER_GENERATE', { category: 'mobility vibes' });
+    });
+    expect(onGenerate).toHaveBeenCalledWith({});
     expect(receipts).toContainEqual({ ok: true, text: 'Generating a fresh workout…' });
   });
 

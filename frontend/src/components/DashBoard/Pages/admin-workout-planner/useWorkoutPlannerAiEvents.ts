@@ -23,7 +23,10 @@ import {
   updateHorizonExerciseFields, type HorizonSwapTarget,
 } from './workoutPlannerHorizonSwap.helpers';
 import type { GeneratedPlan, GeneratedPlanWeekDay, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
-import type { PlannerAddExercisePayload, PlannerHorizonSelection, PlannerRemoveExercisePayload, PlannerSwapExercisePayload, PlannerUpdateExercisePayload } from './workoutPlannerAiEvents.types';
+import type { PlannerAddExercisePayload, PlannerGeneratePayload, PlannerHorizonSelection, PlannerRemoveExercisePayload, PlannerSwapExercisePayload, PlannerUpdateExercisePayload } from './workoutPlannerAiEvents.types';
+import {
+  normalizePlannerGeneratePayload, plannerGenerateReceiptText, type PlannerGenerateOverrides,
+} from './workoutPlannerGenerateIntent';
 
 export interface UseWorkoutPlannerAiEventsArgs {
   planExercises: PlanExercise[];
@@ -32,7 +35,7 @@ export interface UseWorkoutPlannerAiEventsArgs {
   setGeneratedPlan: React.Dispatch<React.SetStateAction<GeneratedPlan | null>>;
   selectedHorizonTarget: PlannerHorizonSelection | null;
   searchExercises: (query: string) => Promise<ExerciseSlim[]>;
-  onGenerate: () => void;
+  onGenerate: (overrides?: PlannerGenerateOverrides) => void;
   pushReceipt: (r: { ok: boolean; text: string }) => void;
   /** Phase defaults for builder-row adds (same derivation as rolodex addExercise). */
   phase: OPTPhaseParams;
@@ -253,8 +256,11 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
 
     const onGenerate = (e: Event) => {
       ack(e, true);
-      stateRef.current.pushReceipt({ ok: true, text: 'Generating a fresh workout…' });
-      stateRef.current.onGenerate();
+      // H4 fix: honor spoken detail — "give me a leg day for hypertrophy"
+      // generates exactly that. Unrecognized detail is dropped, not guessed.
+      const overrides = normalizePlannerGeneratePayload((e as CustomEvent<PlannerGeneratePayload>).detail);
+      stateRef.current.pushReceipt({ ok: true, text: plannerGenerateReceiptText(overrides) });
+      stateRef.current.onGenerate(overrides);
     };
 
     window.addEventListener(AI_PLANNER_ADD_EXERCISE, onAdd);

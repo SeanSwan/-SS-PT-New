@@ -18,6 +18,7 @@ import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanConten
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
 import { useWorkoutPlannerCoachSurface } from './useWorkoutPlannerCoachSurface';
 import { type PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
+import { applyPlannerGenerateOverrides, type PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerRoutePlanLoad } from './useWorkoutPlannerRoutePlanLoad';
@@ -165,7 +166,7 @@ const WorkoutPlannerPage: React.FC = () => {
 
   useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState });
 
-  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => { void handleSwanCoachWorkoutGenerate(selectedClientId); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
+  const requestSwanCoachWorkoutForSelectedClient = useCallback((overrides?: PlannerGenerateOverrides) => { applyPlannerGenerateOverrides(overrides, { setCategory, setGoal, setPhaseNumber }); void handleSwanCoachWorkoutGenerate(selectedClientId, overrides); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
   const coachDock = useWorkoutPlannerCoachSurface({ selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, phase, phaseNumber });
 

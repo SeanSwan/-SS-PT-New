@@ -20,6 +20,7 @@ import { useWorkoutPlannerAiEvents } from './useWorkoutPlannerAiEvents';
 import { useWorkoutPlannerSequenceEvents } from './useWorkoutPlannerSequenceEvents';
 import type { GeneratedPlan, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 import type { PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
+import type { PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
 
 export interface UseWorkoutPlannerCoachSurfaceArgs {
   selectedClientId: number | null;
@@ -29,7 +30,7 @@ export interface UseWorkoutPlannerCoachSurfaceArgs {
   setGeneratedPlan: React.Dispatch<React.SetStateAction<GeneratedPlan | null>>;
   selectedHorizonTarget: PlannerHorizonSelection | null;
   searchExercises: (query: string) => Promise<ExerciseSlim[]>;
-  onGenerate: () => void;
+  onGenerate: (overrides?: PlannerGenerateOverrides) => void;
   phase: OPTPhaseParams;
   phaseNumber: number;
 }

@@ -248,4 +248,34 @@ describe('useWorkoutPlannerGenerationActions', () => {
       hardcoreMethod: 'superset',
     }));
   });
+
+  it('spoken generate overrides beat dropdown state in the immediate request (H4)', async () => {
+    const { hook, authAxios } = renderGenerationHook();
+
+    await act(async () => {
+      await hook.result.current.handleSwanCoachWorkoutGenerate(91, {
+        category: 'legs', goal: 'hypertrophy', phaseNumber: 3,
+      });
+    });
+
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-builder/generate', expect.objectContaining({
+      category: 'legs',
+      primaryGoal: 'hypertrophy',
+      nasmPhase: 3,
+    }));
+  });
+
+  it('generate without overrides still uses the dropdown state', async () => {
+    const { hook, authAxios } = renderGenerationHook();
+
+    await act(async () => {
+      await hook.result.current.handleSwanCoachWorkoutGenerate(91);
+    });
+
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-builder/generate', expect.objectContaining({
+      category: 'full_body',
+      primaryGoal: 'general_fitness',
+      nasmPhase: 2,
+    }));
+  });
 });
