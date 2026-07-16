@@ -45,10 +45,14 @@ vi.mock('../../services/workoutBuilderService.mjs', () => ({
   generatePlan: (...args) => fixtures.generatePlan(...args),
 }));
 
-vi.mock('../../services/workoutPlanMutationService.mjs', () => ({
-  createWorkoutPlanRecord: (...args) => fixtures.createWorkoutPlanRecord(...args),
-  mutateWorkoutPlanRecord: (...args) => fixtures.mutateWorkoutPlanRecord(...args),
-}));
+vi.mock('../../services/workoutPlanMutationService.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    WorkoutPlanMutationError: actual.WorkoutPlanMutationError,
+    createWorkoutPlanRecord: (...args) => fixtures.createWorkoutPlanRecord(...args),
+    mutateWorkoutPlanRecord: (...args) => fixtures.mutateWorkoutPlanRecord(...args),
+  };
+});
 vi.mock('../../services/workoutPlanLifecycleService.mjs', () => ({
   transitionWorkoutPlanLifecycle: (...args) => fixtures.transitionLifecycle(...args),
 }));
@@ -108,16 +112,39 @@ describe('service-level WorkoutPlan mutation wiring', () => {
 
     const result = await generateBackupPlan({ userId: 7, trainerId: 3 });
 
+    // Updates MUST be a function of the locked row: the refresh re-verifies the
+    // role under the lock so a concurrent promotion can't be demoted back to
+    // draft (promotion is hash-invisible and never bumps contentRevision).
     expect(fixtures.mutateWorkoutPlanRecord).toHaveBeenCalledWith(expect.objectContaining({
       WorkoutPlan: fixtures.WorkoutPlan,
       planId: existing.id,
       expectedRevision: 6,
-      updates: expect.objectContaining({
-        status: 'draft',
-        planData: expect.objectContaining({ weeks: expect.any(Array) }),
-      }),
+      updates: expect.any(Function),
     }));
+    const updatesFn = fixtures.mutateWorkoutPlanRecord.mock.calls.at(-1)[0].updates;
+    const written = updatesFn({ status: 'draft', metadata: { planRole: 'ai_backup' } });
+    expect(written).toMatchObject({
+      status: 'draft',
+      planData: expect.objectContaining({ weeks: expect.any(Array) }),
+    });
     expect(result).toEqual({ backup: refreshed, refreshed: true });
+  });
+
+  it('aborts a refresh when the locked row was promoted mid-flight', async () => {
+    const existing = {
+      id: 'backup-existing',
+      contentRevision: 6,
+      planData: generatedPlan(),
+    };
+    fixtures.WorkoutPlan.findOne.mockResolvedValue(existing);
+    fixtures.mutateWorkoutPlanRecord.mockImplementation(async ({ updates }) => ({
+      plan: { ...existing, ...updates({ status: 'active', metadata: { planRole: 'primary' } }) },
+    }));
+
+    await expect(generateBackupPlan({ userId: 7, trainerId: 3 })).rejects.toMatchObject({
+      code: 'WORKOUT_PLAN_BACKUP_PROMOTED_CONFLICT',
+      statusCode: 409,
+    });
   });
 
   it('creates a blend through the canonical create boundary', async () => {

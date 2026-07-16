@@ -1353,6 +1353,24 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         message: getPlannedWorkoutAssignmentClientMessage(error),
       });
     }
+    // Plan-advance / completion-receipt typed errors carry designed 4xx
+    // semantics (409 evidence conflict, 409 stale revision, 400 invalid
+    // evidence). Same fail-closed allowlist as workoutPlanRoutes: integer 4xx
+    // + WORKOUT_PLAN_ code with a static message; everything else stays 500.
+    const receiptStatus = Number(error?.statusCode);
+    if (
+      Number.isInteger(receiptStatus)
+      && receiptStatus >= 400 && receiptStatus < 500
+      && typeof error?.code === 'string'
+      && error.code.startsWith('WORKOUT_PLAN_')
+    ) {
+      return res.status(receiptStatus).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        ...(error.currentRevision ? { currentRevision: error.currentRevision } : {}),
+      });
+    }
     logWorkoutFormError('Error submitting workout form', error, req);
     return sendInternalError(res, 'Failed to submit workout form');
   }

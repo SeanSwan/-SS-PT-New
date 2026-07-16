@@ -150,15 +150,30 @@ export async function generateBackupPlan({
       WorkoutPlan,
       planId: existing.id,
       expectedRevision: existing.contentRevision,
-      updates: {
-        title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
-        durationWeeks,
-        planData,
-        metadata,
-        status: 'draft',
-        currentWeek: 1,
-        currentDay: 1,
-        createdBy: 'ai',
+      // Re-verify the role on the LOCKED row: a concurrent promotion flips this
+      // row to active/'primary' without bumping contentRevision (status/metadata
+      // writes are hash-invisible), so the revision gate alone cannot stop a
+      // refresh from demoting a just-promoted active plan back to draft.
+      updates: (lockedPlan) => {
+        if (lockedPlan.metadata?.planRole !== 'ai_backup' || lockedPlan.status === 'active') {
+          throw new WorkoutPlanMutationError(
+            'Backup was promoted while refreshing — refresh aborted',
+            {
+              code: 'WORKOUT_PLAN_BACKUP_PROMOTED_CONFLICT',
+              statusCode: 409,
+            },
+          );
+        }
+        return {
+          title: `Backup Plan — ${new Date().toISOString().slice(0, 10)}`,
+          durationWeeks,
+          planData,
+          metadata,
+          status: 'draft',
+          currentWeek: 1,
+          currentDay: 1,
+          createdBy: 'ai',
+        };
       },
     });
     logger.info('[BackupPlan] refreshed backup #%d for client %d', refreshed.id, userId);
