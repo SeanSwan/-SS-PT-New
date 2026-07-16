@@ -474,11 +474,15 @@ export function useAIChat(audienceRole?: AIConversationRole) {
     setSending(true);
     clearError();
 
+    // Declared OUTSIDE the try so the catch-path cleanup (which removes the
+    // optimistic message from the same conversation) can reference them.
+    let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId, audienceRole)
+      ? activeConversation.id
+      : null;
+    const optimisticUserMsg: Message = { role: 'user', content: message, timestamp: new Date().toISOString() };
+
     try {
       // Step 1: Ensure we have a conversation (create if needed)
-      let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId, audienceRole)
-        ? activeConversation.id
-        : null;
       if (!convId) {
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (audienceRole) payload.audienceRole = audienceRole;
@@ -500,7 +504,6 @@ export function useAIChat(audienceRole?: AIConversationRole) {
       }
 
       // Step 2: Optimistic user message
-      const optimisticUserMsg: Message = { role: 'user', content: message, timestamp: new Date().toISOString() };
       setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, optimisticUserMsg] } : prev);
 
       // Step 3: Send message using the conversation ID we have (not from state)

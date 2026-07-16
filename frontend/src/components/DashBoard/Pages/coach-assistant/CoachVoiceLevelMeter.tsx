@@ -14,7 +14,7 @@ type CoachVoiceLevelMeterProps = { active: boolean };
 
 const BAR_COUNT = 24;
 
-function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array) {
+function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array<ArrayBuffer>) {
   const context = canvas.getContext('2d');
   if (!context) return;
   analyser.getByteTimeDomainData(data);
@@ -79,7 +79,7 @@ const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) =
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 512;
         audioContext.createMediaStreamSource(mediaStream).connect(analyser);
-        const data = new Uint8Array(analyser.fftSize);
+        const data = new Uint8Array(new ArrayBuffer(analyser.fftSize));
         setMeterState('live');
         const render = (timestamp: number) => {
           if (cancelled) return;
