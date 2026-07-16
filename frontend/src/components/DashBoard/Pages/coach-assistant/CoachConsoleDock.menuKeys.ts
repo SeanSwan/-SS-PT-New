@@ -5,7 +5,7 @@
  */
 import type { KeyboardEvent } from 'react';
 
-export function focusMenuItem(target: EventTarget | null, direction: 1 | -1 | 'first' | 'last') {
+function focusMenuItem(target: EventTarget | null, direction: 1 | -1 | 'first' | 'last') {
   const menu = target instanceof HTMLElement ? target.closest('[role="menu"]') : null;
   if (!menu) return;
   const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]'))
