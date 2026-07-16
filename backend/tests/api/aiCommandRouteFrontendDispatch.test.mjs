@@ -28,7 +28,9 @@ vi.mock('../../services/ai/commandExecutionLane.mjs', () => ({
   getCommandExecutionLane: mockGetCommandExecutionLane,
 }));
 
-const aiCommandRoutes = (await import('../../routes/aiCommandRoutes.mjs')).default;
+const aiCommandRoutesModule = await import('../../routes/aiCommandRoutes.mjs');
+const aiCommandRoutes = aiCommandRoutesModule.default;
+const { normalizePreviousContext } = aiCommandRoutesModule;
 
 function makeApp() {
   const app = express();
@@ -207,6 +209,7 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
       .send({
         message: 'we did squats 3 sets of 10',
         selectedClientId: 42,
+        previousContext: 'y'.repeat(50_000),
         routeContext: {
           source: 'clients-team',
           intent: 'daily_training_command',
@@ -216,6 +219,8 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
         },
       })
       .expect(200);
+    // Piggybacked integration assertion: the route caps previousContext in-line.
+    expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.previousContext).toHaveLength(2000);
 
     expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
       'we did squats 3 sets of 10',
@@ -309,6 +314,15 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
       }),
     );
   });
+  it('caps previousContext before it reaches the classifier prompt (cost/injection guard)', () => {
+    // Pure-unit — the route path is asserted by piggyback in the routeContext
+    // test above (this suite shares one user against a real 10/min limiter).
+    expect(normalizePreviousContext('x'.repeat(50_000))).toHaveLength(2000);
+    expect(normalizePreviousContext({ nested: 'object' })).toBeUndefined();
+    expect(normalizePreviousContext('   ')).toBeUndefined();
+    expect(normalizePreviousContext('  Planner mode: single-day builder.  ')).toBe('Planner mode: single-day builder.');
+  });
+
   it('rejects malformed selected-client ids instead of letting stale client refs take over', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,
