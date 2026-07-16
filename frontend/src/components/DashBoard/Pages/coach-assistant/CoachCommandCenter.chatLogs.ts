@@ -26,7 +26,7 @@ export function buildConversationLogs(
       actor: actorForMessage(message.role),
       label: labelForMessage(message.role),
       body: message.content,
-      attachments: ['Loaded thread history'],
+      at: message.timestamp,
     }))
     .reverse();
 }

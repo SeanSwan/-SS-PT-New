@@ -187,6 +187,7 @@ const CoachCommandCenterPage: React.FC = () => {
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}
                 onReset={commandCenter.resetLogs}
+                onRetryMessage={commandCenter.handleRetryMessage}
                 onSuggestedPrompt={handleSuggestedPrompt}
                 workoutLoggerRoute={workoutLoggerRoute}
                 workoutLoggerScopeLabel={workoutLoggerScopeLabel}

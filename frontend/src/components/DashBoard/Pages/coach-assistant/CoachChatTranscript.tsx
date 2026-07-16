@@ -21,6 +21,7 @@ type CoachChatTranscriptProps = {
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
   onReset: () => void;
+  onRetryMessage?: (message: string) => void;
   onSuggestedPrompt?: (prompt: string) => void;
   workoutLoggerRoute?: string | null;
   workoutLoggerScopeLabel?: string | null;
@@ -49,6 +50,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   logs,
   onCancelCommand,
   onConfirmCommand,
+  onRetryMessage,
   onSuggestedPrompt,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
@@ -83,6 +85,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
               key={entry.id}
               onCancelCommand={onCancelCommand}
               onConfirmCommand={onConfirmCommand}
+              onRetryMessage={onRetryMessage}
               workoutLoggerRoute={workoutLoggerRoute}
               workoutLoggerScopeLabel={workoutLoggerScopeLabel}
             />

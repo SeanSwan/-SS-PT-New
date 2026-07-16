@@ -19,6 +19,7 @@ import {
   PacketDetails,
   StyleSwitch,
 } from './CoachCommandLogEntry.styles';
+import { RetryRow } from './CoachCommandLogEntry.retryStyles';
 import type { CoachCommandLogEntryProps, LogStyleVariantKey } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { CoachFormattedLogContent } from './CoachFormattedLogContent';
@@ -34,10 +35,18 @@ import {
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
+function formatLogTime(at?: string): string | null {
+  if (!at) return null;
+  const parsed = new Date(at);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 function CoachCommandLogEntry({
   entry,
   onCancelCommand,
   onConfirmCommand,
+  onRetryMessage,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
 }: CoachCommandLogEntryProps) {
@@ -61,7 +70,10 @@ function CoachCommandLogEntry({
     <LogEntry $actor={entry.actor}>
       <LogMeta>
         <span>{entry.actor}</span>
-        <span>{entry.label}</span>
+        <span>
+          {entry.label}
+          {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}
+        </span>
       </LogMeta>
 
       <LogBody>
@@ -138,6 +150,14 @@ function CoachCommandLogEntry({
           message={entry.commandResult.message}
           showAccessHandoff={false}
         />
+      ) : null}
+
+      {entry.retryMessage && onRetryMessage ? (
+        <RetryRow>
+          <button type="button" onClick={() => onRetryMessage(entry.retryMessage as string)}>
+            Retry message
+          </button>
+        </RetryRow>
       ) : null}
 
       {entry.attachments?.length ? (

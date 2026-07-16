@@ -193,7 +193,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
             placeholder={notebook?.active ? 'Dictate or type a client note...' : 'Talk or type to Swan Coach...'}
             aria-label={notebook?.active ? 'Client note' : 'Message Swan Coach'}
             aria-describedby="coach-dock-status coach-dock-trust"
-            readOnly={dockBusy}
+            readOnly={Boolean(notebook?.saving)}
             rows={2}
           />
           <div className="dock-primary-row">

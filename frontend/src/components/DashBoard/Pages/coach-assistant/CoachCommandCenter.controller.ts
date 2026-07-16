@@ -251,6 +251,7 @@ export function useCoachCommandCenterController({
     handleNewThread: actions.handleNewThread,
     handleQuickClientSubmit: actions.handleQuickClientSubmit,
     handleReadback: actions.handleReadback,
+    handleRetryMessage: actions.handleRetryMessage,
     handleStartPlaudUpload: actions.handleStartPlaudUpload,
     handleSubmit: notebook.dockControls.active ? notebook.handleSubmit : actions.handleSubmit,
     handleThreadSelect: actions.handleThreadSelect,

@@ -16,6 +16,7 @@ import {
   type ConfirmCoachCommand,
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
+import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
 import { buildCommandLogAccessHandoff, commandLogAccessHandoffAttachment, commandLogAccessHandoffIntro } from './CoachCommandCenter.accessHandoff';
@@ -64,8 +65,11 @@ type CoachCommandActionProps = {
 };
 
 export function createCoachCommandCenterActions(props: CoachCommandActionProps) {
-  const addLog = (entry: Omit<CommandLogEntry, 'id'>) => {
-    props.setLogs((current) => [{ ...entry, id: `log-${Date.now()}-${current.length}` }, ...current]);
+  const addLog = (entry: Omit<CommandLogEntry, 'id' | 'at'>) => {
+    props.setLogs((current) => [
+      { ...entry, id: `log-${Date.now()}-${current.length}`, at: new Date().toISOString() },
+      ...current,
+    ]);
   };
   const focusComposer = (value?: string, status?: string) => {
     if (value !== undefined) props.setCommandText(value);
@@ -159,11 +163,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     }
   };
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = props.commandText.trim();
-    if (!trimmed) return;
-
+  const submitCoachMessage = async (trimmed: string) => {
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
     props.setSelectedStatus('Sending command to Swan Coach');
@@ -206,23 +206,40 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const response = props.routeRequestContext
       ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
       : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
-    if (response && typeof response === 'object' && 'failed' in response) {
-      props.setSelectedStatus('Swan Coach command failed');
-      addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.' });
+    const outcome = interpretCoachChatResponse(response, trimmed);
+    if (outcome.kind === 'superseded') return;
+    if (outcome.kind !== 'reply') {
+      props.setSelectedStatus(outcome.status);
+      addLog({
+        actor: 'system',
+        label: outcome.label,
+        body: outcome.body,
+        attachments: outcome.attachments,
+        ...(outcome.retryMessage ? { retryMessage: outcome.retryMessage } : {}),
+      });
       return;
     }
-    const responseBody = response && typeof response === 'object' && 'content' in response
-      ? String(response.content)
-      : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.';
     addLog({
       actor: 'coach',
-      label: props.clientFacing ? 'coach response' : 'prepared draft',
-      body: responseBody,
-      attachments: props.clientFacing ? ['review before logging'] : ['draft_review_packet.md', 'approval gate remains locked'],
+      label: props.clientFacing ? 'coach response' : 'coach reply',
+      body: outcome.body,
     });
-    props.speakCoachReply?.(responseBody);
-    props.setSelectedStatus(props.clientFacing ? 'Swan Coach response ready' : 'Prepared draft awaiting operator approval');
+    props.speakCoachReply?.(outcome.body);
+    props.setSelectedStatus('Swan Coach response ready');
     void props.chat.listConversations('active', true);
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = props.commandText.trim();
+    if (!trimmed) return;
+    await submitCoachMessage(trimmed);
+  };
+
+  const handleRetryMessage = async (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    await submitCoachMessage(trimmed);
   };
 
   const handleConfirmCommand = async (confirmation: CommandLogConfirmation): Promise<CommandConfirmationResult> => {
@@ -290,6 +307,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     handleNewThread,
     handleQuickClientSubmit,
     handleReadback,
+    handleRetryMessage,
     handleStartPlaudUpload,
     handleSubmit,
     handleThreadSelect,

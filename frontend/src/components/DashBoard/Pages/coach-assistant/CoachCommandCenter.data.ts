@@ -23,6 +23,10 @@ export type CommandLogEntry = {
   actor: 'system' | 'operator' | 'coach';
   label: string;
   body: string;
+  /** ISO timestamp of when the entry landed in the transcript. */
+  at?: string;
+  /** Original operator text; present only on failed sends that can be retried. */
+  retryMessage?: string;
   attachments?: string[];
   commandConfirmation?: CommandLogConfirmation;
   commandResult?: CommandLogResult;
