@@ -46,6 +46,7 @@ describe('command registry execution coverage', () => {
         'load_phase_template',
         'planner_add_exercise',
         'planner_generate_workout',
+        'planner_rearrange_workout',
         'planner_remove_exercise',
         'planner_swap_exercise',
         'planner_update_exercise',

@@ -16,8 +16,11 @@ import logger from '../../utils/logger.mjs';
 import { sanitizeInput } from './inputSanitizer.mjs';
 import { scanForPHI, stripPHI } from './phiScanner.mjs';
 import { classifyIntent } from './intentClassifier.mjs';
+import { routeDeterministicSurfaceCommand } from './deterministicSurfaceCommandRouter.mjs';
 import { applySurfaceIntentRemap } from './surfaceIntentRemap.mjs';
 import { getCommand } from './commandRegistry/index.mjs';
+import { createCommandErrorOutcome } from './commandOutcomeContract.mjs';
+import { authorizeCommandCapability } from './commandCapabilityPolicy.mjs';
 import { resolveClient } from './clientResolver.mjs';
 import { rehydrateResponse } from './deIdentifier.mjs';
 import {
@@ -36,6 +39,20 @@ import { recordCommandAudit } from './commandAudit.mjs';
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+const CLASSIFIER_FAILURE_CODES = new Set(['PARSE_FAIL', 'CLASSIFICATION_FAILED']);
+
+function setTypedPipelineError(ctx, code) {
+  const outcome = createCommandErrorOutcome(code);
+  ctx.error = outcome.message;
+  ctx.result = outcome;
+  return ctx;
+}
+
+function classifierFailureCode(intent) {
+  const code = intent?.params?.code;
+  return CLASSIFIER_FAILURE_CODES.has(code) ? code : 'PARSE_FAIL';
+}
+
 const DEBATE_TYPE_BY_COMMAND = {
   build_workout_plan: 'workout_plan',
   create_nasm_program: 'workout_plan',
@@ -257,6 +274,14 @@ async function stepPHIScan(ctx) {
 /** Step 3: Classify intent via AI */
 async function stepClassify(ctx) {
   ctx.stage = 'classify';
+  const deterministicIntent = routeDeterministicSurfaceCommand(
+    ctx.sanitizedInput,
+    ctx.options.contextEnvelope,
+  );
+  if (deterministicIntent) {
+    ctx.intent = deterministicIntent;
+    return ctx;
+  }
   ctx.intent = await classifyIntent(ctx.sanitizedInput, ctx.user.role, {
     previousContext: ctx.options.previousContext,
     routeContext: ctx.options.routeContext,
@@ -272,6 +297,15 @@ async function stepClassify(ctx) {
 async function stepValidate(ctx) {
   ctx.stage = 'validate';
 
+  if (!ctx.intent || typeof ctx.intent.intent !== 'string') {
+    return setTypedPipelineError(ctx, 'PARSE_FAIL');
+  }
+
+  if (ctx.intent.intent === 'classification_error') {
+    const code = classifierFailureCode(ctx.intent);
+    return setTypedPipelineError(ctx, code);
+  }
+
   // Chat and clarification intents don't map to commands
   if (ctx.intent.intent === 'chat' || ctx.intent.intent === 'clarification_needed') {
     return ctx; // Pass through to conversational handler
@@ -280,9 +314,7 @@ async function stepValidate(ctx) {
   const command = getCommand(ctx.intent.intent);
   if (!command) {
     logger.warn('[CommandExecutor] Unknown command intent', { intent: ctx.intent.intent });
-    // Fall back to chat mode
-    ctx.intent.intent = 'chat';
-    return ctx;
+    return setTypedPipelineError(ctx, 'UNKNOWN_INTENT');
   }
 
   ctx.command = command;
@@ -337,6 +369,23 @@ async function stepRBAC(ctx) {
   if (!ctx.command.roleRequired.includes(ctx.user.role)) {
     ctx.error = `You don't have permission to ${ctx.command.description.toLowerCase()}. This requires ${ctx.command.roleRequired.join(' or ')} role.`;
     return ctx;
+  }
+  return ctx;
+}
+
+/** Step 5.5: Enforce active-surface capability after identity RBAC. */
+async function stepCapabilityGate(ctx) {
+  ctx.stage = 'capability_gate';
+  if (!ctx.command) return ctx;
+
+  const decision = authorizeCommandCapability(
+    ctx.command,
+    ctx.options.contextEnvelope,
+    ctx.user,
+  );
+  ctx.metadata.capabilityPolicy = decision.policy;
+  if (!decision.allowed) {
+    return setTypedPipelineError(ctx, 'CAPABILITY_DENIED');
   }
   return ctx;
 }
@@ -562,6 +611,7 @@ const PIPELINE_STEPS = [
   stepValidate,
   stepWriteKillSwitch,
   stepRBAC,
+  stepCapabilityGate,
   stepResolveClient,
   stepDebateRouting,
   stepConfirmation,

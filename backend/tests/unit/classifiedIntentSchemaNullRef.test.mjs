@@ -42,6 +42,18 @@ describe('ClassifiedIntentSchema (prod incident 2026-07-15)', () => {
     expect(result.success).toBe(true);
   });
 
+  it('rejects undeclared provider fields instead of silently stripping prose', () => {
+    const result = ClassifiedIntentSchema.safeParse({
+      intent: 'chat',
+      clientRef: null,
+      params: {},
+      confidence: 1,
+      message: 'untrusted provider prose',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('still rejects genuinely malformed classifications', () => {
     expect(ClassifiedIntentSchema.safeParse({ intent: '', confidence: 0.9 }).success).toBe(false);
     expect(ClassifiedIntentSchema.safeParse({ intent: 'x', confidence: 2 }).success).toBe(false);

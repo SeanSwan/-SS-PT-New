@@ -1,6 +1,6 @@
 /**
  * Planner FRONTEND_DISPATCH commands — blueprint dictation-planner-logger S2.
- * Proves: the five planner_* registry entries, the deterministic surface
+ * Proves: the Planner registry entries, the deterministic surface
  * remap (planner dock ↔ logger family, pinned BOTH ways), a full REAL
  * pipeline round-trip through the route (only the LLM classifier is mocked),
  * and the standard role-denied envelope for client callers.
@@ -19,6 +19,11 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
     req.user = { ...mockUser };
     next();
   },
+}));
+
+vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
+  aiCommandLaneKillSwitch: (_req, _res, next) => next(),
+  aiCommandRateLimiter: (_req, _res, next) => next(),
 }));
 
 vi.mock('../../database.mjs', () => ({
@@ -63,7 +68,7 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
     mockUser.role = 'admin';
   });
 
-  it('registers all five planner commands as admin/trainer-only frontend dispatches', () => {
+  it('registers the original five planner commands as admin/trainer-only frontend dispatches', () => {
     for (const { type, event } of PLANNER_COMMANDS) {
       const command = getCommand(type);
       expect(command, `${type} missing from registry`).toBeTruthy();
@@ -74,6 +79,19 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
       expect(command.roleRequired).toEqual(['admin', 'trainer']);
       expect(command.roleRequired).not.toContain('client');
     }
+  });
+
+  it('registers rearrangement as a typed Planner-only browser command', () => {
+    const command = getCommand('planner_rearrange_workout');
+
+    expect(command).toMatchObject({
+      type: 'planner_rearrange_workout',
+      method: 'FRONTEND_DISPATCH',
+      frontendEvent: 'AI_PLANNER_REARRANGE',
+      requiresConfirmation: false,
+      destructive: false,
+      roleRequired: ['admin', 'trainer'],
+    });
   });
 
   it('remaps logger twins to the planner family on the workout-planner surface', () => {
@@ -119,6 +137,84 @@ describe('planner FRONTEND_DISPATCH commands (blueprint S2)', () => {
       });
     });
   }
+
+  it('REPRO: keeps a Planner rearrangement mutation out of the wall-of-text chat fallback', async () => {
+    const phrase = 'Rearrange this workout into the best order for this client.';
+    // This is the observed failure boundary: the current classifier has no
+    // rearrangement command to select and therefore resolves the mutation as chat.
+    mockClassifyIntent.mockResolvedValue(intent('chat'));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: phrase, routeContext: { surface: 'workout-planner' } })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'frontend_dispatch',
+      command: 'planner_rearrange_workout',
+      event: 'AI_PLANNER_REARRANGE',
+      payload: { instruction: phrase },
+      fallbackToChat: false,
+    });
+    expect(mockClassifyIntent).not.toHaveBeenCalled();
+  });
+
+  it('denies a Planner mutation classified from Command Center instead of dispatching it', async () => {
+    mockClassifyIntent.mockResolvedValue(intent('planner_rearrange_workout', {
+      instruction: 'Rearrange this workout.',
+    }));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'Rearrange this workout.',
+        routeContext: { surface: 'coach-command-center' },
+      })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      type: 'error',
+      code: 'CAPABILITY_DENIED',
+      stage: 'capability_gate',
+      fallbackToChat: false,
+    });
+  });
+
+  it('denies a Planner mutation when no mounted surface was supplied', async () => {
+    mockClassifyIntent.mockResolvedValue(intent('planner_rearrange_workout', {
+      instruction: 'Rearrange this workout.',
+    }));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'Rearrange this workout.' })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      type: 'error',
+      code: 'CAPABILITY_DENIED',
+      stage: 'capability_gate',
+      fallbackToChat: false,
+    });
+  });
+
+  it('keeps legitimate Command Center conversation in the chat lane', async () => {
+    mockClassifyIntent.mockResolvedValue(intent('chat'));
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'Explain exercise sequencing.', routeContext: { surface: 'coach-command-center' } })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'chat',
+      fallbackToChat: true,
+    });
+  });
 
   it('teaches the classifier the EXACT param keys — the summary lists schema keys per command (prod incident 2026-07-15 round 3)', () => {
     // Without this, the model copies pattern placeholders ("{exercise}") as

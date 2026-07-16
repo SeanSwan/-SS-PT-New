@@ -24,7 +24,7 @@ export const ClassifiedIntentSchema = z.object({
   clientRef: z.string().max(200).nullable().optional(),
   params: z.record(z.unknown()).nullable().optional(),
   confidence: z.number().min(0).max(1),
-});
+}).strict();
 
 // ── Command Definition Shape ─────────────────────────────────────────────
 

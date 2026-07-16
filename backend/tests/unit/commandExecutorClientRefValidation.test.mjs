@@ -343,6 +343,13 @@ describe('command executor client reference validation', () => {
 
     const ctx = await executeCommandPipeline('submit this workout', adminUser, {
       sequelize: {},
+      contextEnvelope: {
+        schemaVersion: '1.0',
+        contextStatus: 'READY',
+        surfaceId: 'workout-logger',
+        actor: { id: adminUser.id, role: adminUser.role },
+        capabilities: ['conversation', 'workout-form:mutate'],
+      },
     });
 
     expect(ctx.error).toBeNull();
