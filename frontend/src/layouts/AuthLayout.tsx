@@ -11,30 +11,31 @@ import { Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import CompactFooter from '../components/Footer/CompactFooter';
 
-// Styled container for auth pages
+// Styled container for auth pages.
+// min-height + document scroll — the previous height:100vh + overflow:hidden
+// + inner overflow-y:auto made the first screen a paying customer sees a
+// nested scroll trap (and fought the iOS keyboard/URL bar). The container
+// subtracts the fixed header so form + compact footer fit one viewport.
 const AuthLayoutContainer = styled.div`
-  height: 100vh;
+  min-height: calc(100dvh - var(--header-height, 64px) - env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
   background: var(--bg-base);
-  overflow: hidden;
   position: relative;
   z-index: 1;
 `;
 
-// Content area that takes most of the space
+// Content area that takes most of the space (no inner scroller — the
+// document owns scrolling)
 const ContentArea = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
   position: relative;
   z-index: 2;
   padding-top: 10px;
   padding-bottom: 20px;
-  -webkit-overflow-scrolling: touch;
 `;
 
 interface AuthLayoutProps {

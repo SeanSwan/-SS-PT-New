@@ -10,7 +10,7 @@
 .dashboard-full-space,
 .admin-dashboard-full-space,
 .trainer-dashboard-full-space {
-  width: 100vw !important;
+  width: 100% !important; /* was 100vw - includes scrollbar width, causes horizontal overflow */
   height: 100vh !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -63,7 +63,7 @@ body.dashboard-mode {
 #root.dashboard-mode,
 .App.dashboard-mode {
   height: 100vh !important;
-  width: 100vw !important;
+  width: 100% !important; /* was 100vw - includes scrollbar width, causes horizontal overflow */
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;

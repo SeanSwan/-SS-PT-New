@@ -64,6 +64,10 @@ const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
   'Login Modal'
 );
+const NotFoundPage = lazyLoadWithErrorHandling(
+  () => import('../pages/NotFoundPage'),
+  'Not Found Page'
+);
 const ForgotPasswordModal = lazyLoadWithErrorHandling(
   () => import('../pages/ForgotPasswordModal'),
   'Forgot Password'
@@ -908,10 +912,16 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Fallback Route (404)
+    // Fallback Route (404) — a real page, not a silent redirect home.
+    // The silent redirect made broken deep links indistinguishable from
+    // "the app sent me home" and masked dead-route regressions.
     {
       path: '*',
-      element: <Navigate to="/" replace />
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <NotFoundPage />
+        </Suspense>
+      )
     }
   ]
 };

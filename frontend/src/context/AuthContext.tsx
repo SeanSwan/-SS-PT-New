@@ -351,11 +351,35 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         } else {
           throw new Error('Invalid user data from server');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth check failed:', error);
         if (isMounted) {
-          setError('Authentication failed');
-          logout();
+          // Only a real auth rejection may destroy the session. A timeout,
+          // offline blip, or backend 5xx during boot must NOT wipe tokens —
+          // that force-logged-out valid users (incl. the refresh token) every
+          // time /api/auth/me flaked on mobile networks.
+          const status = error?.response?.status ?? error?.status;
+          const isAuthRejection =
+            status === 401 || status === 403 || error?.isAuthSessionExpired === true;
+
+          if (isAuthRejection) {
+            setError('Authentication failed');
+            logout();
+          } else {
+            const storedUser = readStoredUser();
+            if (storedUser?.id) {
+              // Serve the cached session; the next successful API call (or the
+              // apiService 401 interceptor) re-validates it for real.
+              const formattedUser = formatAuthUser(storedUser, undefined, storedUser);
+              setUser(formattedUser);
+              if (dispatch) {
+                dispatch(setReduxUser(formattedUser));
+              }
+              logger.warn('Auth check hit a network/server error — keeping stored session until the API is reachable.');
+            } else {
+              setError('Authentication failed');
+            }
+          }
         }
       } finally {
         if (isMounted) {

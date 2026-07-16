@@ -31,15 +31,23 @@ const HEALTH_CHECK_PATH = '/api/health';
 const TRANSIENT_HEALTH_FAILURE_LIMIT = 2;
 
 // Default configuration - PRODUCTION SAFE
+// maxRetries was 1: a single flaky /api/health on page load flipped the app
+// into a 5-minute "Backend Unavailable" circuit-breaker lockout over a
+// working backend. 3 tries with backoff still converges fast when the
+// backend is genuinely down, without false alarms on mobile networks.
 const DEFAULT_CONFIG = {
-  maxRetries: 1, // Reduced to 1 for production safety - prevents infinite loops
-  retryDelay: 2000, // 2 second delay
-  maxRetryDelay: 2000, // Max 2 seconds
-  backoffMultiplier: 1,
+  maxRetries: 3,
+  retryDelay: 2000, // 2 second first delay
+  maxRetryDelay: 8000, // cap the backoff
+  backoffMultiplier: 2,
   healthCheckInterval: 30000, // Check every 30 seconds once connected
   apiUrl: getApiUrl(), // Dynamic API URL based on environment
   forceUnavailableMode: false
 };
+
+// How long CONNECTING may run silently before the banner appears. Every
+// visitor used to see a "Connecting to Server" flash on boot.
+const CONNECTING_BANNER_GRACE_MS = 5000;
 
 interface BackendConnectionConfig {
   maxRetries: number;
@@ -638,8 +646,24 @@ const ConnectionRetryButton = styled.button`
 export const ConnectionStatusBanner = ({ connection }: { connection: ReturnType<typeof useBackendConnection> }) => {
   const { connectionState, isRetrying, retryCount, maxRetries, lastError, manualRetry } = connection;
 
+  // Grace period: suppress the CONNECTING banner unless the state persists.
+  const isConnecting = connectionState === CONNECTION_STATES.CONNECTING;
+  const [connectingLongEnough, setConnectingLongEnough] = useState(false);
+  useEffect(() => {
+    if (!isConnecting) {
+      setConnectingLongEnough(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setConnectingLongEnough(true), CONNECTING_BANNER_GRACE_MS);
+    return () => window.clearTimeout(timer);
+  }, [isConnecting]);
+
   if (connectionState === CONNECTION_STATES.CONNECTED) {
     return null; // Don't show banner when connected
+  }
+
+  if (isConnecting && !connectingLongEnough) {
+    return null; // No boot-time banner flash for a normal fast connect
   }
 
   const getBannerConfig = () => {

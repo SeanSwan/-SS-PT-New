@@ -55,7 +55,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   }
 
   &:hover {
-    color: ${({ $isOpen }) => $isOpen ? 'var(--danger, #ff6b9d)' : 'var(--accent-primary)'};
+    color: ${({ $isOpen }) => $isOpen ? 'var(--danger, #C92A54)' : 'var(--accent-primary)'};
     background: none;
     transform: scale(1.05);
 
@@ -78,7 +78,7 @@ const MobileMenuOverlay = styled(motion.div)`
   bottom: 0;
   background: var(--bg-base);
   backdrop-filter: blur(20px) saturate(1.8);
-  padding: 80px 24px 24px;
+  padding: calc(80px + env(safe-area-inset-top, 0px)) 24px 24px;
   display: flex;
   flex-direction: column;
   z-index: 1001;
@@ -92,7 +92,7 @@ const MobileMenuOverlay = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent-primary) 10%, transparent) 1px, transparent 1px),
-                radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent-secondary, #ff4081) 10%, transparent) 1px, transparent 1px),
+                radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent) 1px, transparent 1px),
                 radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary) 8%, transparent) 1px, transparent 1px);
     background-size: 50px 50px, 80px 80px, 60px 60px;
     animation: ${starTwinkle} 4s ease-in-out infinite alternate;
@@ -100,11 +100,11 @@ const MobileMenuOverlay = styled(motion.div)`
   }
 
   @media (max-width: 480px) {
-    padding: 70px 20px 20px;
+    padding: calc(70px + env(safe-area-inset-top, 0px)) 20px 20px;
   }
 
   @media (max-width: 375px) {
-    padding: 64px 12px 12px;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 12px 12px;
   }
 `;
 
@@ -124,7 +124,7 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
 
   background: ${({ $isActive }) =>
     $isActive
-      ? `linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #ff4081) 6%, transparent) 100%)`
+      ? `linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent) 100%)`
       : 'transparent'
   };
 
@@ -135,7 +135,7 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     top: 50%;
     width: ${({ $isActive }) => $isActive ? '4px' : '0px'};
     height: 60%;
-    background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary, #ff6b9d) 100%);
+    background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary, #8B5CF6) 100%);
     transform: translateY(-50%);
     border-radius: 2px;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -144,7 +144,7 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
 
   &:hover {
     color: var(--accent-primary);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #ff4081) 9%, transparent) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 9%, transparent) 100%);
     text-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 70%, transparent);
     transform: translateX(8px);
 
@@ -189,7 +189,7 @@ const MobileLogoutButton = styled(motion.button)`
   position: relative;
 
   &:hover {
-    color: var(--danger, #ff6b9d);
+    color: var(--danger, #C92A54);
     background: linear-gradient(135deg, rgba(255, 64, 129, 0.18) 0%, rgba(244, 67, 54, 0.09) 100%);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateX(8px);

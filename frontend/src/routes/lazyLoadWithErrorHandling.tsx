@@ -30,6 +30,35 @@ const waitForRetry = (retryDelayMs: number) => (
   new Promise((resolve) => globalThis.setTimeout(resolve, retryDelayMs))
 );
 
+/**
+ * Post-deploy recovery: a tab holding a pre-deploy index.html points at hashed
+ * chunk URLs that no longer exist, so in-place retries can NEVER succeed.
+ * A full reload fetches the new index.html and fixes it invisibly. The
+ * sessionStorage guard makes this one-shot per minute so a genuinely down
+ * server falls through to the manual retry UI instead of a reload loop.
+ */
+const CHUNK_RELOAD_GUARD_KEY = 'swan:chunk-reload-at';
+const CHUNK_RELOAD_MIN_INTERVAL_MS = 60_000;
+
+const tryOneShotReloadForStaleChunk = (error: unknown): boolean => {
+  if (!isRetryableLazyImportError(error)) return false;
+
+  try {
+    const last = Number(globalThis.sessionStorage?.getItem(CHUNK_RELOAD_GUARD_KEY) ?? 0);
+    if (Number.isFinite(last) && Date.now() - last < CHUNK_RELOAD_MIN_INTERVAL_MS) {
+      return false;
+    }
+    globalThis.sessionStorage?.setItem(CHUNK_RELOAD_GUARD_KEY, String(Date.now()));
+  } catch {
+    // Storage unavailable (private mode edge cases) — don't risk a reload loop.
+    return false;
+  }
+
+  logger.warn('[Route Loader] Stale-chunk import failure — reloading once to pick up the new bundle.');
+  globalThis.location?.reload();
+  return true;
+};
+
 const getLazyRouteErrorMessage = (error: unknown): string => (
   error instanceof Error ? error.message : 'Route still could not load.'
 );
@@ -156,6 +185,10 @@ export async function resolveLazyRouteModule(
   try {
     return await loadLazyRouteModule(importFn, componentName, fallbackImportFn, options);
   } catch (error) {
+    if (tryOneShotReloadForStaleChunk(error)) {
+      // The page is about to reload — render nothing instead of an error flash.
+      return { default: () => null };
+    }
     return createErrorRouteModule(componentName, importFn, fallbackImportFn, options);
   }
 }

@@ -220,7 +220,7 @@ export const MobileDashboardSafeArea = styled.div`
   @media (max-width: 1024px) {
     display: block;
     position: fixed;
-    top: 56px;
+    top: calc(var(--header-height, 60px) + env(safe-area-inset-top, 0px));
     left: 0;
     right: 0;
     height: 60px;

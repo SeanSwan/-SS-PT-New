@@ -19,17 +19,9 @@
   padding-top: 30px !important;
 }
 
-/* Fix iOS 100vh bug */
-@supports (-webkit-touch-callout: none) {
-  .auth-layout-container {
-    height: -webkit-fill-available;
-  }
-}
-
-/* Prevent scroll-chaining so upward scroll always works */
-.auth-layout-content {
-  overscroll-behavior-y: contain;
-}
+/* (Removed: -webkit-fill-available height pin and overscroll-behavior
+   containment — AuthLayout.tsx now uses min-height + document scrolling,
+   so viewport pins and chain-blocking here would recreate the scroll trap.) */
 
 /* Form container adjustments */
 .form-wrapper {

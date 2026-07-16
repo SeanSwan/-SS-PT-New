@@ -15,11 +15,9 @@ const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
-  margin-top: 56px; /* Account for fixed header height */
-  
-  @media (max-width: 480px) {
-    margin-top: 56px; /* Header height on mobile */
-  }
+  /* Offset for the fixed header — MUST use the shared token. A hardcoded
+     56px here vs the real 64px header hid the top 8px of every page. */
+  margin-top: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px));
 `;
 
 const Content = styled.main`
@@ -38,18 +36,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     location.pathname.startsWith('/client-dashboard') ||
     location.pathname.startsWith('/dashboard') ||
     location.pathname.startsWith('/trainer-dashboard');
-  
+
+  // Auth pages render their own CompactFooter inside AuthLayout — stacking
+  // the full marketing Footer under them produced a double footer on the
+  // first screen every new customer sees.
+  const isAuthRoute =
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/signup');
+
   return (
     <MainContainer>
       <Header />
-      
+
       <ContentWrapper data-swan-app-content-wrapper>
         <Content>
           {children}
         </Content>
       </ContentWrapper>
-      
-      {!isDashboardRoute && <Footer />}
+
+      {!isDashboardRoute && !isAuthRoute && <Footer />}
     </MainContainer>
   );
 };

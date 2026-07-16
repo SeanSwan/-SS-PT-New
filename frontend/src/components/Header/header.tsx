@@ -45,7 +45,12 @@ const HeaderContainer = styled(motion.header)<{
   right: 0;
   z-index: var(--z-header, 1250);
   padding: 0 ${({ $isMobile }) => $isMobile ? '16px' : '24px'};
-  height: ${({ $isMobile }) => $isMobile ? '60px' : '64px'};
+  /* Height comes from the shared --header-height token (tokens.css) so the
+     layout content offset can never drift out of sync with the header again.
+     safe-area padding keeps the notch/status bar from overlapping the logo
+     on installed/notched phones (index.html sets viewport-fit=cover). */
+  height: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -79,31 +84,26 @@ const HeaderContainer = styled(motion.header)<{
               box-shadow 0.4s ease;
   transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});
 
-  /* Mobile optimizations */
+  /* Mobile optimizations (heights come from the --header-height token) */
   @media (max-width: 768px) {
-    padding: 0 16px;
-    height: 60px;
+    padding: env(safe-area-inset-top, 0px) 16px 0;
   }
 
   @media (max-width: 480px) {
-    padding: 0 12px;
-    height: 56px;
+    padding: env(safe-area-inset-top, 0px) 12px 0;
   }
 
   @media (max-width: 375px) {
-    padding: 0 8px;
-    height: 56px;
+    padding: env(safe-area-inset-top, 0px) 8px 0;
   }
 
   /* Ultra-wide scaling */
   @media (min-width: 2560px) {
-    padding: 0 48px;
-    height: 72px;
+    padding: env(safe-area-inset-top, 0px) 48px 0;
   }
 
   @media (min-width: 3840px) {
-    padding: 0 64px;
-    height: 80px;
+    padding: env(safe-area-inset-top, 0px) 64px 0;
   }
 
   /* Add subtle nebula effect with better contrast */
@@ -117,7 +117,7 @@ const HeaderContainer = styled(motion.header)<{
     background: linear-gradient(45deg,
       color-mix(in srgb, var(--accent-primary) 4%, transparent) 0%,
       transparent 25%,
-      color-mix(in srgb, var(--accent-secondary, #ff4081) 3%, transparent) 50%,
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 3%, transparent) 50%,
       transparent 75%,
       color-mix(in srgb, var(--accent-primary) 4%, transparent) 100%
     );

@@ -218,8 +218,9 @@ export const initializeAllSPAFixes = () => {
 
   logger.log('[SPA Fix] Legacy routing fixes disabled - using React Router with server-side rewrites');
 
-  // Register service worker after a delay to avoid blocking initial load
-  setTimeout(registerSPAServiceWorker, 2000);
+  // NOTE: service-worker registration removed here — main.jsx's
+  // initializePWA() already registers /spa-sw.js; this second, delayed
+  // registration raced it and doubled the SW lifecycle on every boot.
 };
 
 export default {

@@ -80,7 +80,7 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     bottom: 0;
     background: linear-gradient(135deg,
       color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%,
-      color-mix(in srgb, var(--accent-secondary, #ff4081) 6%, transparent) 100%
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent) 100%
     );
     border-radius: 8px;
     opacity: ${({ $isActive }) => $isActive ? 1 : 0};

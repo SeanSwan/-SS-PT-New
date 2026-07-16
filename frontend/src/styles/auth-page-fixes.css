@@ -1,32 +1,21 @@
 /**
  * auth-page-fixes.css
  * ==================
- * 
- * Fixes for authentication pages to improve layout and spacing
+ *
+ * Fixes for authentication pages to improve layout and spacing.
+ *
+ * NOTE (2026-07-16 scroll overhaul): this file previously pinned
+ * .auth-layout-container to exactly 100vh with overflow:hidden and gave
+ * .auth-layout-content its own inner scroller. Combined with the fixed
+ * header offset that made the auth pages a nested scroll trap (gummy
+ * scroll) with a double footer below the fold. Sizing now lives in
+ * layouts/AuthLayout.tsx; the DOCUMENT owns scrolling. Do not reintroduce
+ * viewport-pinned heights or inner overflow scrollers here.
  */
 
-/* Remove extra bottom margin that creates white space */
-body {
-  margin-bottom: 0 !important;
-}
-
-/* Ensure auth container takes full height but not more */
-.auth-layout-container {
-  min-height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Ensure content doesn't overflow and create scrollbars */
+/* Content spacing (scroll/sizing handled by AuthLayout.tsx) */
 .auth-layout-content {
-  height: calc(100vh - 40px); /* 40px for the compact footer */
-  overflow-y: auto;
   padding: 40px 0 20px; /* Increased top padding */
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 /* Ensure compact footer sticks to bottom without extra space */
@@ -39,6 +28,4 @@ body {
 /* Fix for signup/login forms */
 .auth-form-wrapper {
   margin: 0 auto;
-  max-height: calc(100vh - 60px); /* Account for compact footer */
-  overflow-y: auto;
 }

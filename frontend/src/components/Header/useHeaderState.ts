@@ -10,12 +10,13 @@ import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext';
 import { logger } from '@/utils/logger';
 
-// Galaxy Theme Colors for safe theme access
-const GALAXY_THEME_COLORS = {
-  primary: '#00d9ff',
-  primaryLight: '#4de6ff',
-  accent: '#ff4081',
-  textPrimary: '#ffffff',
+// Crystalline Swan fallbacks for safe theme access
+// (previous values were the RETIRED Galaxy-Swan palette — rule 6)
+const CRYSTALLINE_FALLBACK_COLORS = {
+  primary: '#60C0F0',      /* Ice Wing */
+  primaryLight: '#8FD4F6', /* Ice Wing, lightened */
+  accent: '#8B5CF6',       /* Wing Purple */
+  textPrimary: '#E0ECF4',  /* Frost White */
 };
 
 // Theme safety utility
@@ -88,12 +89,12 @@ export const useHeaderState = () => {
   // ===================== SAFE THEME ACCESS =====================
   const theme = {
     colors: {
-      primary: getThemeValue(contextTheme, 'colors.primary', GALAXY_THEME_COLORS.primary),
-      accent: getThemeValue(contextTheme, 'colors.accent', GALAXY_THEME_COLORS.accent),
-      primaryLight: getThemeValue(contextTheme, 'colors.primaryLight', GALAXY_THEME_COLORS.primaryLight)
+      primary: getThemeValue(contextTheme, 'colors.primary', CRYSTALLINE_FALLBACK_COLORS.primary),
+      accent: getThemeValue(contextTheme, 'colors.accent', CRYSTALLINE_FALLBACK_COLORS.accent),
+      primaryLight: getThemeValue(contextTheme, 'colors.primaryLight', CRYSTALLINE_FALLBACK_COLORS.primaryLight)
     },
     text: {
-      primary: getThemeValue(contextTheme, 'text.primary', GALAXY_THEME_COLORS.textPrimary)
+      primary: getThemeValue(contextTheme, 'text.primary', CRYSTALLINE_FALLBACK_COLORS.textPrimary)
     }
   };
   

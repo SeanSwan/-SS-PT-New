@@ -50,6 +50,13 @@
   --text-disabled: rgba(var(--frost-white-rgb), 0.6);       /* ~6.6:1 on dark */
   --text-muted-icon: rgba(var(--frost-white-rgb), 0.5);     /* icons/decorative on dark */
 
+  /* ── Layout Chrome ──
+     Single source of truth for the fixed header's height. layout.tsx offsets
+     page content with this token; header.tsx sizes itself with it. They were
+     previously hardcoded separately (56px offset vs 64px header) which hid the
+     top 8px of every page under the translucent header. */
+  --header-height: 64px;
+
   /* ── Z-Index Scale ── */
   --z-dropdown: 1260;
   --z-sticky: 300;
@@ -115,6 +122,26 @@
   --obsidian-black: #0A0A0F;
   --carbon: #141419;
   --graphite: #1A1A24;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * SECTION: Header height responsive overrides
+ * Must mirror the HeaderContainer breakpoints in Header/header.tsx.
+ * ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root { --header-height: 60px; }
+}
+
+@media (max-width: 480px) {
+  :root { --header-height: 56px; }
+}
+
+@media (min-width: 2560px) {
+  :root { --header-height: 72px; }
+}
+
+@media (min-width: 3840px) {
+  :root { --header-height: 80px; }
 }
 
 /* ─────────────────────────────────────────────────────────────

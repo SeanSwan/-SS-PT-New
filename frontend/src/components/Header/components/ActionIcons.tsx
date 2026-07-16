@@ -96,7 +96,7 @@ const ProfileIconButton = styled(IconButton)<{ $hasImage?: boolean }>`
   }
 
   &:focus-visible {
-    outline: 3px solid var(--accent-secondary, #ff4081);
+    outline: 3px solid var(--accent-secondary, #8B5CF6);
     outline-offset: 2px;
   }
 
@@ -185,16 +185,16 @@ const LogoutButton = styled.button`
   }
 
   &:hover {
-    color: var(--danger, #ff4081);
+    color: var(--danger, #C92A54);
     text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
     transform: translateY(-1px);
     &::before { opacity: 1; }
   }
 
   &:focus-visible {
-    outline: 2px solid var(--danger, #ff4081);
+    outline: 2px solid var(--danger, #C92A54);
     outline-offset: 2px;
-    color: var(--danger, #ff4081);
+    color: var(--danger, #C92A54);
   }
 `;
 
@@ -247,7 +247,21 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
       {user ? (
         <motion.div variants={itemVariants} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Tooltip title={`${user?.firstName || 'User'} Profile`}>
-            <ProfileIconButton aria-label="User profile" $hasImage={hasProfileImage}>
+            <ProfileIconButton
+              aria-label="Open your dashboard"
+              $hasImage={hasProfileImage}
+              onClick={() => {
+                // The most-tapped shell control previously did nothing.
+                // Route to the same dashboard entry the mobile menu uses per role.
+                const role = user?.role;
+                const dashboardPath =
+                  role === 'admin' ? '/dashboard/default'
+                  : role === 'trainer' ? '/dashboard/trainer/overview'
+                  : role === 'client' ? '/dashboard/client/overview'
+                  : '/user-dashboard';
+                navigate(dashboardPath);
+              }}
+            >
               {hasProfileImage ? (
                 <ProfileAvatar
                   src={profileImageUrl}
