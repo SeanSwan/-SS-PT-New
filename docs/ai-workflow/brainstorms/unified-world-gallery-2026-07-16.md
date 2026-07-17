@@ -66,3 +66,13 @@ Sean delegated the pre-generation grill ("do what you recommend… you drive"), 
 
 **Hybrid worth rendering in Wave 2:** Chrome Sovereign world × Faceted Sigil chrome/logo language × Webb's Evidence Lens as the site-wide proof device × Sapphire's "circle" membership copy.
 **Awaiting Sean:** confirm/override the three finalists (+ hybrid yes/no) → Wave 2 renders finalists × 4 full dashboards.
+
+## 6. G2 CLOSED (2026-07-16 evening) — Sean's verdict + final three
+- Sean: "just get pushed? I don't see a difference" → clarified: NOTHING pushed, gallery is local-only by design until ratification.
+- Sean delegated the pick ("do what you feel is best") with ONE explicit taste signal: **"I like the Webb's evidence [lens]… I like the space theme."**
+- **Fable's final three for Wave 2 (Webb promoted per Sean's signal):**
+  1. **Swan Deep Field (HYBRID, new)** — Webb Deep Field's space world (deep field, Cygnus, Evidence Lens as site-wide proof device) × Faceted Sigil's logo-chrome (the mark + facet planes + white→ice→periwinkle→violet gradient law) × a warming layer (sodium-amber/Gilded Fern human moments every act — fixes Webb's coldness) × Sapphire's "Take your place in the circle" belonging copy.
+  2. **Chrome Sovereign** — luxury/golf magnet, "doors open" positioning.
+  3. **Faceted Sigil** — pure brand-mark language, strongest dashboard bridge.
+  (Archive Editorial drops to steal-source: accession plates live on as the proof-section device in all three.)
+- Wave 2 = 3 finalists × 4 dashboards (user/client/trainer/admin), full-page fidelity per receipts, calm caps M1–M2, SAMPLE data, lens-expressibility sketch per artifact.
