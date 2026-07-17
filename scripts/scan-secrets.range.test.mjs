@@ -38,6 +38,14 @@ function commitAll(cwd, message) {
   git(cwd, 'commit', '-m', message);
 }
 
+function installScanner(repo) {
+  const fixtureScriptDir = join(repo, 'scripts');
+  mkdirSync(fixtureScriptDir, { recursive: true });
+  const fixtureScanner = join(fixtureScriptDir, 'scan-secrets.sh');
+  copyFileSync(SCANNER, fixtureScanner);
+  return fixtureScanner.replaceAll('\\', '/');
+}
+
 test('--range scans committed candidate blobs and never prints secret content', () => {
   const repo = mkdtempSync(join(tmpdir(), 'swan-secret-range-'));
   try {
@@ -45,13 +53,14 @@ test('--range scans committed candidate blobs and never prints secret content', 
     git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
     git(repo, 'config', 'user.name', 'Scanner Test');
 
+    const fixtureScanner = installScanner(repo);
     writeFileSync(join(repo, 'baseline.txt'), 'baseline\n', 'utf8');
     commitAll(repo, 'baseline');
 
     writeFileSync(join(repo, 'candidate.txt'), 'safe candidate\n', 'utf8');
     commitAll(repo, 'safe candidate');
 
-    const clean = run(BASH, [SCANNER, '--range', 'HEAD~1'], repo);
+    const clean = run(BASH, [fixtureScanner, '--range', 'HEAD~1'], repo);
     const cleanOutput = `${clean.stdout}\n${clean.stderr}`;
     assert.equal(clean.status, 0, cleanOutput);
     assert.match(cleanOutput, /Secret scan: COMMITTED RANGE HEAD~1\.\.HEAD/);
@@ -62,7 +71,7 @@ test('--range scans committed candidate blobs and never prints secret content', 
     writeFileSync(join(repo, 'candidate.txt'), `${syntheticSecret}\n`, 'utf8');
     commitAll(repo, 'synthetic secret');
 
-    const blocked = run(BASH, [SCANNER, '--range', 'HEAD~1'], repo);
+    const blocked = run(BASH, [fixtureScanner, '--range', 'HEAD~1'], repo);
     const blockedOutput = `${blocked.stdout}\n${blocked.stderr}`;
     assert.equal(blocked.status, 1, blockedOutput);
     assert.match(blockedOutput, /openai-project-key in candidate\.txt/);
@@ -80,10 +89,7 @@ test('--range honors exact allowlist entries from a CRLF .secretignore', () => {
     git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
     git(repo, 'config', 'user.name', 'Scanner Test');
 
-    const fixtureScriptDir = join(repo, 'scripts');
-    mkdirSync(fixtureScriptDir);
-    const fixtureScanner = join(fixtureScriptDir, 'scan-secrets.sh');
-    copyFileSync(SCANNER, fixtureScanner);
+    const fixtureScanner = installScanner(repo);
     writeFileSync(join(repo, 'baseline.txt'), 'baseline\n', 'utf8');
     commitAll(repo, 'baseline');
 
@@ -92,7 +98,7 @@ test('--range honors exact allowlist entries from a CRLF .secretignore', () => {
     writeFileSync(join(repo, 'fixture.txt'), `${syntheticSecret}\n`, 'utf8');
     commitAll(repo, 'allowlisted fixture');
 
-    const allowed = run(BASH, [fixtureScanner.replaceAll('\\', '/'), '--range', 'HEAD~1'], repo);
+    const allowed = run(BASH, [fixtureScanner, '--range', 'HEAD~1'], repo);
     const allowedOutput = `${allowed.stdout}\n${allowed.stderr}`;
     assert.equal(allowed.status, 0, allowedOutput);
     assert.match(allowedOutput, /allowlisted: openai-project-key in fixture\.txt/);
@@ -110,6 +116,7 @@ test('--range processes a moderate candidate without per-file subprocess stalls'
     git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
     git(repo, 'config', 'user.name', 'Scanner Test');
 
+    const fixtureScanner = installScanner(repo);
     writeFileSync(join(repo, 'baseline.txt'), 'baseline\n', 'utf8');
     commitAll(repo, 'baseline');
 
@@ -121,7 +128,7 @@ test('--range processes a moderate candidate without per-file subprocess stalls'
     commitAll(repo, 'moderate candidate');
 
     const startedAt = Date.now();
-    const result = run(BASH, [SCANNER, '--range', 'HEAD~1'], repo);
+    const result = run(BASH, [fixtureScanner, '--range', 'HEAD~1'], repo);
     const elapsedMs = Date.now() - startedAt;
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
@@ -129,5 +136,32 @@ test('--range processes a moderate candidate without per-file subprocess stalls'
     assert.ok(elapsedMs < 20_000, `range scan took ${elapsedMs}ms`);
   } finally {
     rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('--range anchors git operations to the scanner repository', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'swan-secret-anchor-repo-'));
+  const outside = mkdtempSync(join(tmpdir(), 'swan-secret-anchor-cwd-'));
+  try {
+    git(repo, 'init');
+    git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
+    git(repo, 'config', 'user.name', 'Scanner Test');
+
+    const fixtureScanner = installScanner(repo);
+    writeFileSync(join(repo, 'baseline.txt'), 'baseline\n', 'utf8');
+    commitAll(repo, 'baseline');
+    writeFileSync(join(repo, 'candidate.txt'), 'safe candidate\n', 'utf8');
+    commitAll(repo, 'safe candidate');
+
+    const result = run(BASH, [fixtureScanner, '--range', 'HEAD~1'], outside);
+    const output = `${result.stdout}\n${result.stderr}`;
+
+    assert.equal(result.status, 0, output);
+    assert.match(output, /Secret scan: COMMITTED RANGE HEAD~1\.\.HEAD/);
+    assert.match(output, /Scanned:\s+1 files/);
+    assert.match(output, /Hits:\s+0/);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });

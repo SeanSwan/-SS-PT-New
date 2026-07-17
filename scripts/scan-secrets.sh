@@ -28,6 +28,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SECRETIGNORE="$REPO_ROOT/.secretignore"
+cd "$REPO_ROOT"
 
 # Generic patterns only. Rotated fingerprints are NOT stored here — the generic
 # regexes match them via character class. Storing historical values as literals
