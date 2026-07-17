@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowUp,
+  BookOpen,
   ClipboardList,
   Dumbbell,
   FileAudio,
@@ -19,6 +20,7 @@ import {
   MoreHorizontal,
   Volume2,
 } from 'lucide-react';
+import CoachCommandCatalogSheet from './CoachCommandCatalogSheet';
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 import CoachNotebookMenuItems from './CoachNotebookMenuItems';
 import CoachVoiceLevelMeter from './CoachVoiceLevelMeter';
@@ -99,6 +101,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   onVoice,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
   useEffect(() => {
     const el = commandTextRef.current;
     if (el) autogrowCoachTextarea(el, Boolean(commandText));
@@ -188,6 +191,10 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                 </button>
                 {moreOpen ? (
                   <div className="dock-more-menu" id={menuId} ref={menuRef} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
+                    <button type="button" role="menuitem" onClick={() => runMoreAction(() => setCatalogOpen(true))}>
+                      <BookOpen size={17} aria-hidden="true" />
+                      <span>What can I say?</span>
+                    </button>
                     {notebook ? <CoachNotebookMenuItems controls={notebook} onSelect={runMoreAction} /> : null}
                     {onReviewIntake ? (
                       <button type="button" role="menuitem" onClick={() => runMoreAction(onReviewIntake)}>
@@ -267,6 +274,14 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           </div>
         </form>
       </div>
+      <CoachCommandCatalogSheet
+        open={catalogOpen}
+        onClose={() => setCatalogOpen(false)}
+        onUsePrompt={(prompt) => {
+          onCommandTextChange(prompt);
+          window.setTimeout(() => commandTextRef.current?.focus(), 0);
+        }}
+      />
       {voiceOverlay?.isOpen ? (
         <VoiceRecordingOverlay
           isOpen={voiceOverlay.isOpen}
