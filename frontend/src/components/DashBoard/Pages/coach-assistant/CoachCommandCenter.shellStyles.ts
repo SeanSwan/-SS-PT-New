@@ -6,13 +6,17 @@
 import { css } from 'styled-components';
 
 export const coachCommandShellStyles = css`
+  /* Console-token bridge: when a console skin (e.g. the aurora-console lens)
+     defines --console-*, the whole surface re-skins; otherwise these resolve
+     to the exact previous theme-var fallbacks — fail-closed by construction. */
   --coach-bg: var(--bg-base, #030712);
   --coach-bg-2: var(--bg-secondary, #07101f);
-  --coach-surface: var(--bg-surface, rgba(14, 24, 42, 0.84));
-  --coach-surface-strong: var(--bg-elevated, rgba(20, 32, 56, 0.94));
+  --coach-surface: var(--console-surface, var(--bg-surface, rgba(14, 24, 42, 0.84)));
+  --coach-surface-strong: var(--console-surface-strong, var(--bg-elevated, rgba(20, 32, 56, 0.94)));
   --coach-soft: var(--surface-soft, rgba(255, 255, 255, 0.06));
-  --coach-line: var(--border-subtle, rgba(188, 220, 255, 0.18));
-  --coach-line-strong: var(--border-strong, rgba(96, 192, 240, 0.38));
+  --coach-line: var(--console-line, var(--border-subtle, rgba(188, 220, 255, 0.18)));
+  --coach-line-strong: var(--console-line-strong, var(--border-strong, rgba(96, 192, 240, 0.38)));
+  position: relative;
   --coach-text: var(--text-primary, #e0ecf4);
   --coach-text-soft: var(--text-secondary, #dbe8f7);
   --coach-muted: color-mix(

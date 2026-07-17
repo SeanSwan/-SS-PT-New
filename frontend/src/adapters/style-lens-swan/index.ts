@@ -28,6 +28,7 @@ import { MERIDIAN_MAGAZINE_MANIFEST } from './manifests/meridianMagazine';
 import { LUNAR_STACK_MANIFEST } from './manifests/lunarStack';
 import { CEDAR_WORKSHOP_MANIFEST } from './manifests/cedarWorkshop';
 import { CRYSTALLINE_CATHEDRAL_MANIFEST } from './manifests/crystallineCathedral';
+import { AURORA_CONSOLE_MANIFEST } from './manifests/auroraConsole';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -63,6 +64,7 @@ export const SWAN_EXPANSION_MANIFESTS = Object.freeze([
   LUNAR_STACK_MANIFEST,
   CEDAR_WORKSHOP_MANIFEST,
   CRYSTALLINE_CATHEDRAL_MANIFEST,
+  AURORA_CONSOLE_MANIFEST,
 ]);
 
 export const SWAN_STYLE_LENS_REGISTRY = createStyleLensRegistry([
