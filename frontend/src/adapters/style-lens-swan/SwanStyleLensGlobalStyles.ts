@@ -207,6 +207,26 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-sidebar-width: 300px; --lens-main-padding: clamp(28px, 3.2vw, 64px); --lens-panel-radius: 44px 44px 10px 10px; --lens-shell-gap: 16px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent), transparent 46%), linear-gradient(120deg, #071b3a, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, #071b3a) 55%, #071b3a);
   }
+  /* Aurora Console — reusable operator-console skin. The --console-* family
+     is the CONTRACT other consoles consume; every value composes from THEME
+     variables so the theme changer recolors the whole console automatically.
+     State tokens key off data-voice-state (presence as weather). */
+  [data-style-lens='aurora-console'] {
+    --lens-sidebar-width: 264px; --lens-main-padding: clamp(20px, 2.6vw, 44px); --lens-panel-radius: 18px; --lens-navigation-edge: var(--accent-primary, #60c0f0);
+    --lens-canvas: radial-gradient(ellipse at 18% -8%, color-mix(in srgb, var(--accent-primary, #60c0f0) 20%, transparent), transparent 52%), radial-gradient(ellipse at 82% -4%, color-mix(in srgb, var(--accent-secondary, #8b5cf6) 16%, transparent), transparent 48%), linear-gradient(160deg, #0a2340, color-mix(in srgb, var(--bg-base, #0a0a0f) 78%, #0a2340));
+    --console-surface: color-mix(in srgb, var(--bg-elevated, rgba(20, 32, 56, 0.94)) 74%, transparent);
+    --console-surface-strong: color-mix(in srgb, var(--bg-elevated, rgba(20, 32, 56, 0.94)) 92%, transparent);
+    --console-line: color-mix(in srgb, var(--accent-primary, #60c0f0) 24%, transparent);
+    --console-line-strong: color-mix(in srgb, var(--accent-primary, #60c0f0) 52%, transparent);
+    --console-glow: color-mix(in srgb, var(--accent-secondary, #8b5cf6) 32%, transparent);
+    --console-atmosphere-a: color-mix(in srgb, var(--accent-primary, #60c0f0) 26%, transparent);
+    --console-atmosphere-b: color-mix(in srgb, var(--accent-secondary, #8b5cf6) 22%, transparent);
+    --console-state-idle: var(--accent-primary, #60c0f0);
+    --console-state-listening: var(--error, #ff6d85);
+    --console-state-thinking: var(--accent-secondary, #8b5cf6);
+    --console-state-speaking: var(--accent-gold, #c6a84b);
+  }
+
   [data-density='compact'] {
     --lens-main-padding: 18px;
     --lens-main-padding-mobile: 10px;
