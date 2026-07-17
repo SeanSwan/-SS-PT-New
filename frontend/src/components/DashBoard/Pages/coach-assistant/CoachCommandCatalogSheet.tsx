@@ -53,7 +53,6 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
   const [failed, setFailed] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
 
-  const openerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return undefined;
     let cancelled = false;
@@ -76,20 +75,13 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
 
   useEffect(() => {
     if (!open) return undefined;
-    openerRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    panelRef.current?.focus();
-
-    return () => {
-      const opener = openerRef.current;
-      openerRef.current = null;
-      if (opener?.isConnected) opener.focus();
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
+    // Remember who opened us BEFORE stealing focus, and hand it back on close. Without this a
+    // keyboard/SR user is dumped to <body> and has to re-tab the whole dock (WCAG 2.4.3).
+    const opener = document.activeElement as HTMLElement | null;
+    // Snapshot the node now: by cleanup time panelRef.current is already null (React detaches
+    // it), so reading the ref there would be a stale-ref bug, not just a lint warning.
+    const panelNode = panelRef.current;
+    panelNode?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -119,7 +111,15 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      // Only reclaim focus if the sheet still owns it — never yank it from wherever the user
+      // has since landed (e.g. onUsePrompt stages an example and focuses the composer).
+      const active = document.activeElement;
+      const sheetStillHasFocus = !active || active === document.body
+        || Boolean(panelNode?.contains(active));
+      if (sheetStillHasFocus && opener?.isConnected) opener.focus();
+    };
   }, [open, onClose]);
 
   if (!open || typeof document === 'undefined') return null;
@@ -157,7 +157,7 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
                     >
                       <strong>{friendlyCommandName(command.type)}</strong>
                       {command.description ? <span>{command.description}</span> : null}
-                      {example ? <em>{`“${example}”`}</em> : null}
+                      {example ? <em>&ldquo;{example}&rdquo;</em> : null}
                     </SheetCommandButton>
                   );
                 })}

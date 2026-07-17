@@ -80,8 +80,8 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   );
   const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
-  const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchParams]);
-  const routeThreadId = useMemo(() => parseRouteThreadId(searchParams.get('threadId')), [searchParams]);
+  const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchKey]);
+  const routeThreadId = useMemo(() => parseRouteThreadId(searchParams.get('threadId')), [searchKey]);
   const activeThreadClientId = useMemo(
     () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
     [activeThread?.targetUserId],
@@ -101,7 +101,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),
-    [searchParams, userRole],
+    [searchKey, userRole],
   );
   const workflowReturnSource = routeSource
     || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
@@ -115,19 +115,19 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
         workflowReturnTo,
         searchParams,
       }),
-    [effectiveClientId, searchParams, userRole, workflowReturnTo],
+    [effectiveClientId, searchKey, userRole, workflowReturnTo],
   );
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = clientPin.selectedClientName || routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
-  const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchParams]);
+  const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
     () => routeTeachPrompt
       ? buildTeachPromptRouteContext(routeTeachPrompt, routeIntent)
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );
-  const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent]);
+  const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent, searchKey]);
   const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
   const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
   const chatRouteRequestContext = useMemo(
@@ -171,14 +171,12 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
   const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
-  const notebook = useCoachClientNotebook({
-    actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
-    commandText, commandTextRef, setCommandText, setSelectedStatus,
-  });
+  const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
+    commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
-  useCoachComposerDraft(activeThreadId, commandText, setCommandText, {
-    actorId, clientId: effectiveClientId, enabled: !notebook.dockControls.active,
-  });
+  // Notebook mode owns the composer while active — see useCoachComposerDraft's `enabled`.
+  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId },
+    !notebook.dockControls.active);
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,

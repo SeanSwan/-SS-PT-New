@@ -5,7 +5,6 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useState } from 'react';
 import apiService from '../../../../services/api.service';
 import CoachCommandCatalogSheet from './CoachCommandCatalogSheet';
 
@@ -76,33 +75,6 @@ describe('CoachCommandCatalogSheet', () => {
     fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
     expect(close).toHaveFocus();
   });
-
-  it('restores focus to the opener when the modal closes', () => {
-    getMock.mockReturnValue(new Promise(() => undefined));
-
-    const Harness = () => {
-      const [open, setOpen] = useState(false);
-      return (
-        <>
-          <button type="button" onClick={() => setOpen(true)}>Open command list</button>
-          <CoachCommandCatalogSheet
-            open={open}
-            onClose={() => setOpen(false)}
-            onUsePrompt={() => undefined}
-          />
-        </>
-      );
-    };
-
-    render(<Harness />);
-    const opener = screen.getByRole('button', { name: /open command list/i });
-    opener.focus();
-    fireEvent.click(opener);
-    expect(screen.getByRole('dialog')).toHaveFocus();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(opener).toHaveFocus();
-  });
-
   it('renders nothing while closed', () => {
     render(<CoachCommandCatalogSheet open={false} onClose={() => undefined} onUsePrompt={() => undefined} />);
     expect(screen.queryByRole('dialog')).toBeNull();

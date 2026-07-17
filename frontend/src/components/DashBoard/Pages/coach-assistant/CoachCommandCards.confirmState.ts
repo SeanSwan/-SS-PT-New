@@ -27,28 +27,35 @@ export function formatExpiryCountdown(remaining: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function resolveExpiryDeadline(expiresAt?: string): number {
-  if (!expiresAt) return Date.now() + (CONFIRMATION_TTL_SECONDS * 1000);
+function initialRemaining(expiresAt?: string): number {
+  if (!expiresAt) return CONFIRMATION_TTL_SECONDS;
   const expiryMs = Date.parse(expiresAt);
-  return Number.isFinite(expiryMs)
-    ? expiryMs
-    : Date.now() + (CONFIRMATION_TTL_SECONDS * 1000);
-}
-
-function remainingUntil(deadline: number): number {
-  return Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+  if (!Number.isFinite(expiryMs)) return CONFIRMATION_TTL_SECONDS;
+  return Math.max(0, Math.ceil((expiryMs - Date.now()) / 1000));
 }
 
 export function useConfirmationCardState(options: { done: boolean; expiresAt?: string; isDestructive: boolean }) {
-  const [remaining, setRemaining] = useState(() => remainingUntil(resolveExpiryDeadline(options.expiresAt)));
+  const [remaining, setRemaining] = useState(() => initialRemaining(options.expiresAt));
   const [armed, setArmed] = useState(false);
 
   useEffect(() => {
-    const deadline = resolveExpiryDeadline(options.expiresAt);
-    const syncRemaining = () => setRemaining(remainingUntil(deadline));
-    syncRemaining();
+    setRemaining(initialRemaining(options.expiresAt));
+  }, [options.expiresAt]);
+
+  useEffect(() => {
     if (options.done) return undefined;
-    const timer = window.setInterval(syncRemaining, 1000);
+    const timer = window.setInterval(() => {
+      setRemaining((value) => (
+        // With a server expiry, RECOMPUTE from the wall clock every tick — never decrement.
+        // Browsers throttle/suspend timers in background tabs (and on mobile when the app is
+        // backgrounded, which is the Coach floor workflow), so a tick count measures ticks
+        // fired, not time passed: the card would still read "1:58" on an operation the server
+        // expired minutes ago, leaving a Confirm that can only fail.
+        // Without a server expiry there is nothing to recompute against, so keep the local
+        // countdown — recomputing would pin it at the full TTL forever.
+        options.expiresAt ? initialRemaining(options.expiresAt) : (value > 0 ? value - 1 : 0)
+      ));
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [options.done, options.expiresAt]);
 

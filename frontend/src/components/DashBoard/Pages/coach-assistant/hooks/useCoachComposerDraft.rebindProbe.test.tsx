@@ -5,9 +5,12 @@
  *   :174  useCoachClientNotebook({ clientId: effectiveClientId, ..., setCommandText })
  *   :177  useCoachComposerDraft(activeThreadId, commandText, setCommandText)
  *
- * The regression occurred when client rebinding cleared the shared composer and the
- * draft writer then deleted the prior client's stored draft. This probe mirrors the
- * real controller composition so the two hooks cannot silently collide again.
+ * useCoachClientNotebook:66-71 clears the composer UNCONDITIONALLY on every clientId
+ * change. useCoachComposerDraft's write effect keys on [commandText, key], so that
+ * clear debounce-writes an empty string and removeItem()s the stored draft.
+ *
+ * Fable's P1.4 unit test only ever mounts the draft hook in isolation, so the
+ * collision is invisible to it. This probe mirrors the real controller composition.
  *
  * EXPECTED (the product contract P1.4 claims): "A trainer interrupted mid-dictation
  * must not lose their words." Rebinding the pinned client is an interruption, not a send.
