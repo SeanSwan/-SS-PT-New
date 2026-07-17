@@ -26,6 +26,12 @@ export type CoachNotebookControls = {
 };
 
 type UseCoachClientNotebookParams = {
+  /**
+   * Authenticated staff member. Load-bearing for privacy, NOT cosmetic: sessionStorage is
+   * per-TAB, not per-identity, and this surface is built for a shared floor device. Without
+   * it, staff A's unsent client note reloads into staff B's session in the same tab.
+   */
+  actorId?: string | number | null;
   clientId: number | null;
   clientLabel: string;
   commandText: string;
@@ -34,8 +40,10 @@ type UseCoachClientNotebookParams = {
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
 
-function draftKey(clientId: number): string {
-  return `${NOTE_DRAFT_PREFIX}${clientId}`;
+function draftKey(actorId: string | number | null | undefined, clientId: number): string {
+  // Mirrors coachDraftKey()'s actor:client shape so the two stores can never disagree
+  // about whose draft is whose.
+  return `${NOTE_DRAFT_PREFIX}${actorId ?? 'unknown-actor'}:${clientId}`;
 }
 
 export function buildWorkoutDraftFromNotesPrompt(): string {
@@ -49,6 +57,7 @@ export function buildWorkoutDraftFromNotesPrompt(): string {
 }
 
 export function useCoachClientNotebook({
+  actorId,
   clientId,
   clientLabel,
   commandText,
@@ -72,10 +81,10 @@ export function useCoachClientNotebook({
 
   useEffect(() => {
     if (!active || !clientId) return;
-    const key = draftKey(clientId);
+    const key = draftKey(actorId, clientId);
     if (commandText.trim()) sessionStorage.setItem(key, commandText);
     else sessionStorage.removeItem(key);
-  }, [active, clientId, commandText]);
+  }, [active, actorId, clientId, commandText]);
 
   const onToggle = useCallback(() => {
     if (!clientId) {
@@ -84,13 +93,14 @@ export function useCoachClientNotebook({
     }
     const nextActive = !active;
     setModeClientId(nextActive ? clientId : null);
-    setCommandText(nextActive ? sessionStorage.getItem(draftKey(clientId)) || '' : '');
+    setCommandText(nextActive ? sessionStorage.getItem(draftKey(actorId, clientId)) || '' : '');
     setSelectedStatus(nextActive
       ? `Client Notes mode - microphone and typing save to ${clientLabel}`
       : 'Coach Chat mode - messages stay bound to the pinned client');
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, [
     active,
+    actorId,
     clientId,
     clientLabel,
     commandTextRef,
@@ -119,6 +129,9 @@ export function useCoachClientNotebook({
       return;
     }
 
+    // Capture the actor alongside the client: an identity switch mid-save must not clear
+    // the NEW actor's draft key (same reason requestClientId is captured).
+    const requestActorId = actorId;
     const requestClientId = clientId;
     const operationId = saveOperationRef.current + 1;
     saveOperationRef.current = operationId;
@@ -134,7 +147,7 @@ export function useCoachClientNotebook({
       if (response?.data?.success === false) {
         throw new Error(response.data.message || 'Client note was not saved');
       }
-      sessionStorage.removeItem(draftKey(requestClientId));
+      sessionStorage.removeItem(draftKey(requestActorId, requestClientId));
       if (currentClientIdRef.current === requestClientId && saveOperationRef.current === operationId) {
         setCommandText('');
         setSelectedStatus(`Note saved to ${clientLabel} - ready for the next note`);
@@ -149,6 +162,7 @@ export function useCoachClientNotebook({
       if (saveOperationRef.current === operationId) setSaving(false);
     }
   }, [
+    actorId,
     clientId,
     clientLabel,
     commandText,

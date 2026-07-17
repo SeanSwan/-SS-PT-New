@@ -44,9 +44,20 @@ export function useConfirmationCardState(options: { done: boolean; expiresAt?: s
 
   useEffect(() => {
     if (options.done) return undefined;
-    const timer = window.setInterval(() => setRemaining((value) => (value > 0 ? value - 1 : 0)), 1000);
+    const timer = window.setInterval(() => {
+      setRemaining((value) => (
+        // With a server expiry, RECOMPUTE from the wall clock every tick — never decrement.
+        // Browsers throttle/suspend timers in background tabs (and on mobile when the app is
+        // backgrounded, which is the Coach floor workflow), so a tick count measures ticks
+        // fired, not time passed: the card would still read "1:58" on an operation the server
+        // expired minutes ago, leaving a Confirm that can only fail.
+        // Without a server expiry there is nothing to recompute against, so keep the local
+        // countdown — recomputing would pin it at the full TTL forever.
+        options.expiresAt ? initialRemaining(options.expiresAt) : (value > 0 ? value - 1 : 0)
+      ));
+    }, 1000);
     return () => window.clearInterval(timer);
-  }, [options.done]);
+  }, [options.done, options.expiresAt]);
 
   useEffect(() => {
     if (!armed) return undefined;
