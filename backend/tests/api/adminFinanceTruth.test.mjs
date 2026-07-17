@@ -3,6 +3,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import User from '../../models/User.mjs';
+import { TRAINER_LIST_ATTRIBUTES } from '../../routes/admin/adminFinanceRoutes.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -66,5 +69,23 @@ describe('admin finance truth contract', () => {
     expect(source).toContain('const activeCustomers = await User.count({');
     expect(source).toContain('distinct: true,');
     expect(source).toContain("col: 'User.id',");
+  });
+
+  // Regression: /trainers selected 'lastLoginAt', which the User model does not declare.
+  // Sequelize emitted it as a raw column, Postgres threw 42703, and the route 500'd —
+  // collapsing the whole admin Client-Trainer Assignments workspace.
+  it('selects only real User attributes for the admin trainer list', () => {
+    const declared = Object.keys(User.rawAttributes);
+    const drifted = TRAINER_LIST_ATTRIBUTES.filter(attr => !declared.includes(attr));
+
+    expect(drifted).toEqual([]);
+  });
+
+  it('reads the trainer last-active timestamp from the attribute list it selects', () => {
+    const source = readFileSync(resolve(__dirname, '../../routes/admin/adminFinanceRoutes.mjs'), 'utf8');
+    const [, readField] = source.match(/lastActive:\s*trainer\.(\w+)\s*\|\|/) ?? [];
+
+    expect(readField).toBeDefined();
+    expect(TRAINER_LIST_ATTRIBUTES).toContain(readField);
   });
 });
