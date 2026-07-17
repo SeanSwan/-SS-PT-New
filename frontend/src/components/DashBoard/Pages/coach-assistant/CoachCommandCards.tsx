@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import { CheckCircle, XCircle, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import { isSafeCommandDisplayKey, renderCommandParamValue } from './coachCommandFormatters';
 import { safeCommandConfirmationFailure } from './CoachIntakeOperationalText.logic';
+import { ExpiryHint, formatExpiryCountdown, useConfirmationCardState } from './CoachCommandCards.confirmState';
 export { ExecutionResultCard } from './CoachExecutionResultCard';
 
 const CardShell = styled.div<{ $destructive?: boolean }>`
@@ -175,6 +176,8 @@ export interface ConfirmationCardProps {
   isDestructive: boolean;
   onConfirm: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (operationId: string | null) => Promise<void>;
+  /** Re-sends the original operator message after server-side expiry. */
+  onReissue?: () => void;
 }
 
 export const ConfirmationCard = memo(function ConfirmationCard({
@@ -185,13 +188,16 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   isDestructive,
   onConfirm,
   onCancel,
+  onReissue,
 }: ConfirmationCardProps) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const confirmState = useConfirmationCardState({ done, isDestructive });
 
   const handleConfirm = useCallback(async () => {
     if (!operationId || busy || done) return;
+    if (!confirmState.passDestructiveGate()) return;
     setBusy(true);
     setConfirmError(null);
     const result = await onConfirm(operationId);
@@ -201,7 +207,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
       setConfirmError(safeCommandConfirmationFailure());
     }
     setBusy(false);
-  }, [operationId, busy, done, onConfirm]);
+  }, [operationId, busy, done, confirmState, onConfirm]);
 
   const handleCancel = useCallback(async () => {
     if (busy || done) return;
@@ -212,11 +218,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   }, [operationId, busy, done, onCancel]);
 
   if (done) {
-    return (
-      <CardShell>
-        <CardTitle><CheckCircle size={16} aria-hidden="true" /> Action resolved</CardTitle>
-      </CardShell>
-    );
+    return <CardShell><CardTitle><CheckCircle size={16} aria-hidden="true" /> Action resolved</CardTitle></CardShell>;
   }
 
   const clientLabel = client?.firstName
@@ -225,6 +227,20 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   const paramEntries = Object.entries(params)
     .filter(([key]) => isSafeCommandDisplayKey(key))
     .slice(0, 5);
+
+  if (confirmState.expired) {
+    return (
+      <CardShell>
+        <CardTitle><AlertTriangle size={16} aria-hidden="true" /> This request expired</CardTitle>
+        <SummaryText>Pending actions are held for about 2 minutes, then discarded for safety. Nothing was saved.</SummaryText>
+        {onReissue ? (
+          <ButtonRow>
+            <ActionBtn type="button" $variant="confirm" onClick={onReissue} aria-label="Re-issue the command"><ClipboardCheck size={14} aria-hidden="true" /> Re-issue command</ActionBtn>
+          </ButtonRow>
+        ) : null}
+      </CardShell>
+    );
+  }
 
   return (
     <CardShell $destructive={isDestructive}>
@@ -264,7 +280,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
           disabled={busy}
           aria-label="Confirm action"
         >
-          <CheckCircle size={14} aria-hidden="true" /> {busy ? 'Saving...' : isDestructive ? 'Confirm' : 'Save'}
+          <CheckCircle size={14} aria-hidden="true" /> {busy ? 'Saving...' : confirmState.armed ? 'Tap again to confirm' : isDestructive ? 'Confirm' : 'Save'}
         </ActionBtn>
         <ActionBtn
           type="button"
@@ -277,6 +293,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
         </ActionBtn>
       </ButtonRow>
       {confirmError && <ErrorText>{confirmError}</ErrorText>}
+      <ExpiryHint>Expires in {formatExpiryCountdown(confirmState.remaining)}</ExpiryHint>
     </CardShell>
   );
 });

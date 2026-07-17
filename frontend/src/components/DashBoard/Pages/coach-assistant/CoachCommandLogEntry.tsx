@@ -142,6 +142,9 @@ function CoachCommandLogEntry({
           isDestructive={confirmation.isDestructive}
           onConfirm={async () => onConfirmCommand(confirmation)}
           onCancel={async () => onCancelCommand(confirmation)}
+          onReissue={confirmation.sourceMessage && onRetryMessage
+            ? () => onRetryMessage(confirmation.sourceMessage as string)
+            : undefined}
         />
       ) : null}
 
