@@ -33,6 +33,7 @@ export type CommandResponse =
       params: Record<string, unknown>;
       client: { id?: number; firstName?: string; lastName?: string } | null;
       details: Record<string, unknown> | null;
+      expiresAt?: string;
       isDestructive: boolean;
     }
   | {
@@ -132,6 +133,7 @@ export function useCoachCommand() {
           params: data.params ?? {},
           client: data.client ?? null,
           details: data.details ?? null,
+          expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
           isDestructive: !!(data.isDestructive),
         };
       }

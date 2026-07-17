@@ -49,9 +49,11 @@ describe('appendPendingEcho', () => {
   });
 
   it('dedups when the chat lane already echoed the same user message', () => {
+    const pendingAt = '2026-07-17T12:00:00.000Z';
+    const landedAt = '2026-07-17T12:00:00.001Z';
     const result = appendPendingEcho(
-      [assistantMsg('hi'), userMsg('log squats')],
-      echo('log squats'),
+      [assistantMsg('hi'), userMsg('log squats', landedAt)],
+      echo('log squats', pendingAt),
     );
     expect(result).toHaveLength(2);
   });

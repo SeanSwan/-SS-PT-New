@@ -81,11 +81,9 @@ describe('admin finance truth contract', () => {
     expect(drifted).toEqual([]);
   });
 
-  it('reads the trainer last-active timestamp from the attribute list it selects', () => {
+it('prefers activity, then login, then profile-update time for trainer lastActive', () => {
     const source = readFileSync(resolve(__dirname, '../../routes/admin/adminFinanceRoutes.mjs'), 'utf8');
-    const [, readField] = source.match(/lastActive:\s*trainer\.(\w+)\s*\|\|/) ?? [];
-
-    expect(readField).toBeDefined();
-    expect(TRAINER_LIST_ATTRIBUTES).toContain(readField);
+    expect(TRAINER_LIST_ATTRIBUTES).toEqual(expect.arrayContaining(['lastActive', 'lastLogin', 'updatedAt']));
+    expect(source).toContain('lastActive: trainer.lastActive || trainer.lastLogin || trainer.updatedAt,');
   });
 });

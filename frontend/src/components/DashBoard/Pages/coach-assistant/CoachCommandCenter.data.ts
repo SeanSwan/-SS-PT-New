@@ -43,6 +43,7 @@ export type CommandLogConfirmation = {
   params: Record<string, unknown>;
   client: { id?: number; firstName?: string; lastName?: string } | null;
   details: Record<string, unknown> | null;
+  expiresAt?: string;
   isDestructive: boolean;
   /** Original operator text, so an expired confirmation can be re-issued one-tap. */
   sourceMessage?: string;

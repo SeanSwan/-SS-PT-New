@@ -522,6 +522,7 @@ async function stepConfirmation(ctx) {
       type: 'confirmation_required',
       message: `⚠️ **Destructive operation:** ${pending.description}\n\nThis will affect ${pending.affectedCount} record(s). The operation expires in 120 seconds.\n\nSay "confirm" or "cancel" to proceed.`,
       operationId: pending.operationId,
+      expiresAt: pending.expiresAt,
       details: pending,
     };
     return ctx;
@@ -545,6 +546,7 @@ async function stepConfirmation(ctx) {
     type: 'confirmation_required',
     message: `I'll ${ctx.command.description.toLowerCase()}${clientName ? ` for ${clientName}` : ''}. Confirm?`,
     operationId: pending.operationId,
+    expiresAt: pending.expiresAt,
     command: ctx.command.type,
     params: ctx.intent.params,
     isDestructive: false,
