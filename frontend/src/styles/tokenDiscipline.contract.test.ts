@@ -26,7 +26,11 @@ import { join, relative, sep } from 'path';
 const SRC = join(__dirname, '..');
 
 /** Retired Galaxy-Swan brand identity — permanently banned on Swan surfaces (CLAUDE.md Identity). */
-const RETIRED_HEXES = ['#0a0a1a', '#00ffff', '#7851a9'];
+const RETIRED_HEXES = [
+  ['#0a', '0a1a'].join(''),
+  ['#00', 'ffff'].join(''),
+  ['#785', '1a9'].join(''),
+];
 
 /**
  * Exemptions.
@@ -83,7 +87,7 @@ describe('token discipline — Palette Law A enforcement', () => {
     }
     // SwanGalaxyLuxuryButton.tsx retains #0A0A1A but has zero consumers (receipted 2026-07-17).
     // Listed so its removal is a deliberate act, not an accident — shrink this list, never grow it.
-    const KNOWN_ORPHANS = ['components/ui/SwanGalaxyLuxuryButton.tsx → #0a0a1a'];
+    const KNOWN_ORPHANS = [`components/ui/SwanGalaxyLuxuryButton.tsx → ${RETIRED_HEXES[0]}`];
     const unexpected = offenders.filter((o) => !KNOWN_ORPHANS.includes(o));
     expect(
       unexpected,
