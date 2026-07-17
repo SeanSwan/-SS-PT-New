@@ -141,6 +141,7 @@ const CoachCommandCenterPage: React.FC = () => {
   return (
     <CommandBridgeShell
       ref={commandCenter.shellRef}
+      data-console-root
       data-voice-state={resolveCoachPresenceState(commandCenter)}
     >
       <ConsoleAtmosphere />

@@ -62,8 +62,22 @@ describe('Aurora Console skin contract', () => {
     expect(auroraStyles).not.toContain("&[data-voice-state='idle'] .dock-form");
   });
 
+  it('scopes the --console-* family to declared console roots (no context collapse)', () => {
+    // The lens is GLOBAL but this skin is console-SPECIFIC. Defining --console-*
+    // on <html> inherits them into every element, so a future non-console
+    // surface consuming them would silently wear console chrome the moment an
+    // operator picked this lens. Scoping to [data-console-root] means a
+    // non-console consumer resolves to nothing and falls back via the bridge.
+    expect(lensCss).toContain("html[data-style-lens='aurora-console'] [data-console-root]");
+    // The console tokens must live in the SCOPED block, never the global one.
+    const globalBlock = lensCss.split("[data-style-lens='aurora-console'] {")[1]?.split('}')[0] ?? '';
+    expect(globalBlock, 'global lens block must not leak --console-* to every element').not.toContain('--console-');
+    // A console opts in with one attribute — that is the whole adoption cost.
+    expect(page).toContain('data-console-root');
+  });
+
   it('lens defines the reusable --console-* family composed from theme variables', () => {
-    const block = lensCss.split("[data-style-lens='aurora-console']")[1]?.split('}')[0] ?? '';
+    const block = lensCss.split("html[data-style-lens='aurora-console'] [data-console-root]")[1]?.split('}')[0] ?? '';
     for (const token of [
       '--console-surface', '--console-surface-strong', '--console-line', '--console-line-strong',
       '--console-glow', '--console-atmosphere-a', '--console-atmosphere-b',

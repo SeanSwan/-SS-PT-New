@@ -104,12 +104,17 @@ async function installSession(page: Page, themeId: string) {
 /** Resolve the console tokens AND the theme vars they claim to derive from. */
 async function readTokens(page: Page) {
   return page.evaluate(() => {
-    const root = getComputedStyle(document.documentElement);
+    // --console-* are scoped to [data-console-root] (anti-context-collapse), so
+    // they must be read there. Theme vars inherit down, so the same element
+    // resolves both — which is exactly what "derives from the theme" means.
+    const consoleRoot = document.querySelector('[data-console-root]') ?? document.documentElement;
+    const root = getComputedStyle(consoleRoot);
     const read = (n: string) => root.getPropertyValue(n).trim();
     const atmosphere = document.querySelector('[data-voice-state] > [aria-hidden="true"]');
     return {
       committedLens: document.documentElement.getAttribute('data-style-lens'),
       committedTheme: document.documentElement.getAttribute('data-theme'),
+      consoleRootFound: Boolean(document.querySelector('[data-console-root]')),
       atmosphereDisplay: atmosphere ? getComputedStyle(atmosphere).display : 'missing',
       // console tokens
       consoleSurface: read('--console-surface'),

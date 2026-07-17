@@ -207,13 +207,31 @@ export const SwanStyleLensGlobalStyles = createGlobalStyle`
     --lens-sidebar-width: 300px; --lens-main-padding: clamp(28px, 3.2vw, 64px); --lens-panel-radius: 44px 44px 10px 10px; --lens-shell-gap: 16px; --lens-navigation-edge: var(--gilded-fern, #c6a84b);
     --lens-canvas: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--ice-wing, #60c0f0) 24%, transparent), transparent 46%), linear-gradient(120deg, #071b3a, color-mix(in srgb, var(--wing-purple, #8b5cf6) 18%, #071b3a) 55%, #071b3a);
   }
-  /* Aurora Console — reusable operator-console skin. The --console-* family
-     is the CONTRACT other consoles consume; every value composes from THEME
-     variables so the theme changer recolors the whole console automatically.
-     State tokens key off data-voice-state (presence as weather). */
+  /* Aurora Console — the LENS half: shell geometry + canvas, global like every
+     other lens (the Style Lens OS model is "the user picks one lens app-wide"). */
   [data-style-lens='aurora-console'] {
     --lens-sidebar-width: 264px; --lens-main-padding: clamp(20px, 2.6vw, 44px); --lens-panel-radius: 18px; --lens-navigation-edge: var(--accent-primary, #60c0f0);
     --lens-canvas: radial-gradient(ellipse at 18% -8%, color-mix(in srgb, var(--accent-primary, #60c0f0) 20%, transparent), transparent 52%), radial-gradient(ellipse at 82% -4%, color-mix(in srgb, var(--accent-secondary, #8b5cf6) 16%, transparent), transparent 48%), linear-gradient(160deg, #0a2340, color-mix(in srgb, var(--bg-base, #0a0a0f) 78%, #0a2340));
+  }
+
+  /* Aurora Console — the SKIN half: the --console-* family other consoles
+     consume. Every value composes from THEME variables, so the theme changer
+     recolors the whole console automatically. State tokens key off
+     data-voice-state / data-console-state (presence as weather).
+
+     SCOPED TO [data-console-root] ON PURPOSE. The lens is global but this skin
+     is console-SPECIFIC: defining these on <html> would inherit them into every
+     element, so any future non-console surface that consumed --console-* (a
+     shared Card on a public page) would silently wear console chrome the moment
+     an operator picked this lens — "context collapse". Scoping to declared
+     console roots means a non-console consumer resolves to NOTHING and falls
+     back to its previous value via the bridge's fallback chain
+     (var(--console-x, var(--previous, <hex>))) — which is exactly why that chain
+     is load-bearing and must not be "simplified" away.
+
+     A console OPTS IN by putting data-console-root on its shell. That is the
+     whole adoption cost — no provider surgery, no per-route lens plumbing. */
+  html[data-style-lens='aurora-console'] [data-console-root] {
     --console-surface: color-mix(in srgb, var(--bg-elevated, rgba(20, 32, 56, 0.94)) 74%, transparent);
     --console-surface-strong: color-mix(in srgb, var(--bg-elevated, rgba(20, 32, 56, 0.94)) 92%, transparent);
     --console-line: color-mix(in srgb, var(--accent-primary, #60c0f0) 24%, transparent);

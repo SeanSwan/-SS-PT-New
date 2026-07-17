@@ -165,14 +165,22 @@ async function readSkinTruth(page: Page) {
     const shell = document.querySelector('[data-voice-state]');
     const atmosphere = document.querySelector('[data-voice-state] > [aria-hidden="true"]');
     const styles = atmosphere ? getComputedStyle(atmosphere) : null;
+    // --console-* are scoped to [data-console-root], NOT <html>, so a non-console
+    // surface can never inherit console chrome. Read them where they actually live.
+    const consoleRoot = document.querySelector('[data-console-root]');
     const read = (name: string) =>
+      consoleRoot ? getComputedStyle(consoleRoot).getPropertyValue(name).trim() : '';
+    const readHtml = (name: string) =>
       getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return {
       committedLens: document.documentElement.getAttribute('data-style-lens'),
       voiceState: shell?.getAttribute('data-voice-state') ?? null,
       atmosphereDisplay: styles?.display ?? 'missing',
+      consoleRootFound: Boolean(consoleRoot),
       consoleSurface: read('--console-surface'),
       consoleStateIdle: read('--console-state-idle'),
+      // Anti-context-collapse, asserted at RUNTIME: <html> must never carry it.
+      surfaceLeakedToHtml: readHtml('--console-surface'),
       overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
     };
   });
@@ -222,7 +230,12 @@ for (const viewport of VIEWPORTS) {
     console.log(`[aurora ${viewport.name}]`, JSON.stringify(truth));
     expect(truth.committedLens, 'the aurora-console lens actually committed').toBe(AURORA_LENS_ID);
     expect(truth.atmosphereDisplay, 'aurora sheet is rendering (not fail-closed)').toBe('block');
+    expect(truth.consoleRootFound, 'the coach shell declares itself a console root').toBe(true);
     expect(truth.consoleSurface, '--console-surface resolves from theme vars').not.toBe('');
+    expect(
+      truth.surfaceLeakedToHtml,
+      'CONTEXT COLLAPSE: --console-* must NOT reach <html>, or any non-console surface consuming it would inherit console chrome',
+    ).toBe('');
     expect(truth.overflowX, 'no horizontal overflow under the skin').toBe(0);
 
     await page.screenshot({
