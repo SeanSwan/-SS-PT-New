@@ -13,6 +13,7 @@ import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CommandLogConfirmation, CommandLogEntry } from './CoachCommandCenter.data';
 import CoachCommandLogEntry from './CoachCommandLogEntry';
 import CoachActiveThreadHeader from './CoachActiveThreadHeader';
+import { dayDividerIds } from './coachTranscriptDays';
 
 type CoachChatTranscriptProps = {
   activeThread: ConversationSummary | null;
@@ -67,6 +68,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
 
   // Controller prepends new entries (newest first); a chat reads oldest to newest.
   const ordered = useMemo(() => [...logs].reverse(), [logs]);
+  const dividers = useMemo(() => dayDividerIds(ordered), [ordered]);
   const latestEntry = ordered[ordered.length - 1];
   const suggestedPrompts = clientFacing ? CLIENT_PROMPTS : OPERATOR_PROMPTS;
 
@@ -134,15 +136,19 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
         {ordered.length ? (
           <>
             {ordered.map((entry) => (
-              <CoachCommandLogEntry
-                entry={entry}
-                key={entry.id}
-                onCancelCommand={onCancelCommand}
-                onConfirmCommand={onConfirmCommand}
-                onRetryMessage={onRetryMessage}
-                workoutLoggerRoute={workoutLoggerRoute}
-                workoutLoggerScopeLabel={workoutLoggerScopeLabel}
-              />
+              <React.Fragment key={entry.id}>
+                {dividers.has(entry.id) ? (
+                  <div className="transcript-day-divider" role="separator">{dividers.get(entry.id)}</div>
+                ) : null}
+                <CoachCommandLogEntry
+                  entry={entry}
+                  onCancelCommand={onCancelCommand}
+                  onConfirmCommand={onConfirmCommand}
+                  onRetryMessage={onRetryMessage}
+                  workoutLoggerRoute={workoutLoggerRoute}
+                  workoutLoggerScopeLabel={workoutLoggerScopeLabel}
+                />
+              </React.Fragment>
             ))}
             {busy ? (
               <div className="transcript-pending" role="status">

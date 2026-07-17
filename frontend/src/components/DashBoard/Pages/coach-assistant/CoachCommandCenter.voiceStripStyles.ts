@@ -91,6 +91,26 @@ export const coachCommandVoiceStripStyles = css`
     position: relative;
   }
 
+  .transcript-day-divider {
+    align-items: center;
+    color: var(--coach-muted);
+    display: flex;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    gap: 10px;
+    letter-spacing: 0.08em;
+    margin: 4px 0;
+    text-transform: uppercase;
+  }
+
+  .transcript-day-divider::before,
+  .transcript-day-divider::after {
+    background: var(--coach-line);
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+  }
+
   .transcript-pending {
     align-items: center;
     align-self: flex-start;
