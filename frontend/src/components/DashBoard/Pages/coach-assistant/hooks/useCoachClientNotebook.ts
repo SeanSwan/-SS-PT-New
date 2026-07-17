@@ -45,6 +45,8 @@ function draftKey(actorId: string | number | null | undefined, clientId: number)
   // about whose draft is whose.
   return `${NOTE_DRAFT_PREFIX}${actorId ?? 'unknown-actor'}:${clientId}`;
 }
+export { draftKey as coachNotebookDraftKey };
+
 
 export function buildWorkoutDraftFromNotesPrompt(): string {
   return [
@@ -66,18 +68,22 @@ export function useCoachClientNotebook({
   setSelectedStatus,
 }: UseCoachClientNotebookParams) {
   const [modeClientId, setModeClientId] = useState<number | null>(null);
+  const [modeActorId, setModeActorId] = useState<string | number | null>(null);
   const [saving, setSaving] = useState(false);
   const currentClientIdRef = useRef(clientId);
   const saveOperationRef = useRef(0);
   currentClientIdRef.current = clientId;
-  const active = Boolean(clientId && modeClientId === clientId);
+  const active = Boolean(clientId
+    && modeClientId === clientId
+    && modeActorId === (actorId ?? null));
 
   useEffect(() => {
     saveOperationRef.current += 1;
+    setModeActorId(null);
     setModeClientId(null);
     setSaving(false);
     setCommandText('');
-  }, [clientId, setCommandText]);
+  }, [actorId, clientId, setCommandText]);
 
   useEffect(() => {
     if (!active || !clientId) return;
@@ -92,6 +98,7 @@ export function useCoachClientNotebook({
       return;
     }
     const nextActive = !active;
+    setModeActorId(nextActive ? (actorId ?? null) : null);
     setModeClientId(nextActive ? clientId : null);
     setCommandText(nextActive ? sessionStorage.getItem(draftKey(actorId, clientId)) || '' : '');
     setSelectedStatus(nextActive
@@ -113,6 +120,7 @@ export function useCoachClientNotebook({
       setSelectedStatus('Choose a main client before drafting workouts from notes');
       return;
     }
+    setModeActorId(null);
     setModeClientId(null);
     setCommandText(buildWorkoutDraftFromNotesPrompt());
     setSelectedStatus('Workout-from-notes prompt staged - review before sending');

@@ -9,7 +9,7 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 
 const DEBOUNCE_MS = 400;
-type DraftScope = { actorId?: string | number | null; clientId?: number | null };
+type DraftScope = { actorId?: string | number | null; clientId?: number | null; enabled?: boolean };
 
 export function coachDraftKey(threadKey: string | number | null, scope: DraftScope = {}): string {
   const actor = scope.actorId ?? 'unknown-actor';
@@ -32,13 +32,14 @@ export function useCoachComposerDraft(
    */
   enabled = true,
 ) {
+  const draftEnabled = scope.enabled ?? enabled;
   const key = coachDraftKey(threadKey, scope);
   const restoreKeyRef = useRef(key);
 
   useEffect(() => {
     // Stay armed while disabled: track the key so re-enabling does not treat the first
     // render back as a scope change and clobber the composer.
-    if (!enabled) {
+    if (!draftEnabled) {
       restoreKeyRef.current = key;
       return;
     }
@@ -50,11 +51,11 @@ export function useCoachComposerDraft(
     } catch {
       // Storage unavailable (private mode/quota) - drafts just do not persist.
     }
-  }, [enabled, key, setCommandText]);
+  }, [draftEnabled, key, setCommandText]);
 
   const writeKeyRef = useRef(key);
   useEffect(() => {
-    if (!enabled) {
+    if (!draftEnabled) {
       writeKeyRef.current = key;
       return undefined;
     }
@@ -71,5 +72,5 @@ export function useCoachComposerDraft(
       }
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [commandText, enabled, key]);
+  }, [commandText, draftEnabled, key]);
 }
