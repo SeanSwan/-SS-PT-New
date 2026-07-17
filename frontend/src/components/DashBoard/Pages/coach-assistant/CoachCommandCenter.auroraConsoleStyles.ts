@@ -54,6 +54,12 @@ export const coachCommandAuroraConsoleStyles = css`
     &[data-voice-state='speaking'] .coach-presence-line { background: var(--console-state-speaking); }
     &[data-voice-state='listening'] .dock-form { border-color: color-mix(in srgb, var(--console-state-listening) 56%, transparent); }
     &[data-voice-state='thinking'] .dock-form { border-color: color-mix(in srgb, var(--console-state-thinking) 48%, transparent); }
+    /* speaking completes the set: the presence line already golds on speak, so
+       a neutral dock edge left the one state where the operator is staring at
+       the dock waiting for the reply reading as idle. On phone the dock edge —
+       not the aurora — is the legible state channel, so it must cover every
+       active state. idle stays untinted on purpose: neutral IS the resting state. */
+    &[data-voice-state='speaking'] .dock-form { border-color: color-mix(in srgb, var(--console-state-speaking) 52%, transparent); }
 
     .dock-send {
       box-shadow: 0 10px 30px var(--console-glow, color-mix(in srgb, var(--coach-cyan) 30%, transparent));

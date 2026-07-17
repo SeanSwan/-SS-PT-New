@@ -35,6 +35,33 @@ describe('Aurora Console skin contract', () => {
     }
   });
 
+  it('re-anchors the state layer to the dock on phone, where the operator looks', () => {
+    // Measured at 414px: the top-anchored sheet moved only 1.6% of pixels on a
+    // state change and 0% below the fold — the aurora was offscreen exactly
+    // where the mic and composer are. Desktop (1440/2560) reads well and must
+    // keep the top anchor, so this is a phone-tier override only.
+    const phoneTier = atmosphere.split('@media (max-width: 768px)')[1] ?? '';
+    expect(phoneTier, 'phone tier must exist').not.toBe('');
+    expect(phoneTier).toMatch(/top: auto/);
+    expect(phoneTier).toMatch(/bottom: -?\d/);
+    // The desktop anchor stays put.
+    expect(atmosphere).toContain('top: -28%');
+  });
+
+  it('every ACTIVE state tints the dock edge — the legible phone state channel', () => {
+    // The presence line already covers listening/thinking/speaking. The dock
+    // edge once covered only listening/thinking, so `speaking` — the state
+    // where the operator stares at the dock awaiting the reply — read as idle.
+    for (const state of ['listening', 'thinking', 'speaking']) {
+      expect(
+        auroraStyles,
+        `dock edge must carry the ${state} state`,
+      ).toContain(`&[data-voice-state='${state}'] .dock-form`);
+    }
+    // idle stays untinted on purpose: neutral IS the resting state.
+    expect(auroraStyles).not.toContain("&[data-voice-state='idle'] .dock-form");
+  });
+
   it('lens defines the reusable --console-* family composed from theme variables', () => {
     const block = lensCss.split("[data-style-lens='aurora-console']")[1]?.split('}')[0] ?? '';
     for (const token of [
