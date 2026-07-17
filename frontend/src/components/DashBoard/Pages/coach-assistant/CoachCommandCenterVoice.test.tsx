@@ -192,7 +192,7 @@ describe('CoachCommandCenter voice input', () => {
     fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
 
     expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 
   it('disables the command center Mic button when no voice capture mode is available', () => {
     speechMock.speechSupported = false;

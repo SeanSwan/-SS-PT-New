@@ -42,7 +42,7 @@ export const TRAINER_LIST_ATTRIBUTES = [
   'id', 'firstName', 'lastName', 'email', 'phone', 'photo',
   'specialties', 'certifications', 'bio', 'isActive', 'hourlyRate',
   'trainerType', 'defaultCompensationMode', 'defaultFlatSessionRate',
-  'createdAt', 'updatedAt', 'lastLogin'
+  'createdAt', 'updatedAt', 'lastActive', 'lastLogin'
 ];
 
 function sendInternalError(res, message) {
@@ -949,7 +949,7 @@ router.get('/trainers', async (req, res) => {
         verificationSource: 'not_tracked',
         status: trainer.isActive ? 'active' : 'inactive',
         joinedAt: trainer.createdAt,
-        lastActive: trainer.lastLogin || trainer.updatedAt,
+        lastActive: trainer.lastActive || trainer.lastLogin || trainer.updatedAt,
         hourlyRate: trainer.hourlyRate,
         trainerType: trainer.trainerType,
         defaultCompensationMode: trainer.defaultCompensationMode === 'per_session_flat' ? 'per_session_flat' : 'revenue_share',

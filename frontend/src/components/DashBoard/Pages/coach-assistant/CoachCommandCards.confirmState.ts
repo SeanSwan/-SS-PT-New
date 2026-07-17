@@ -27,9 +27,20 @@ export function formatExpiryCountdown(remaining: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-export function useConfirmationCardState(options: { done: boolean; isDestructive: boolean }) {
-  const [remaining, setRemaining] = useState(CONFIRMATION_TTL_SECONDS);
+function initialRemaining(expiresAt?: string): number {
+  if (!expiresAt) return CONFIRMATION_TTL_SECONDS;
+  const expiryMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiryMs)) return CONFIRMATION_TTL_SECONDS;
+  return Math.max(0, Math.ceil((expiryMs - Date.now()) / 1000));
+}
+
+export function useConfirmationCardState(options: { done: boolean; expiresAt?: string; isDestructive: boolean }) {
+  const [remaining, setRemaining] = useState(() => initialRemaining(options.expiresAt));
   const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    setRemaining(initialRemaining(options.expiresAt));
+  }, [options.expiresAt]);
 
   useEffect(() => {
     if (options.done) return undefined;

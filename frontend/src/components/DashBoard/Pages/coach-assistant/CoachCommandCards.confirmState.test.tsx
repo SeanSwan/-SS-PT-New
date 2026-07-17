@@ -30,6 +30,14 @@ describe('ConfirmationCard expiry + destructive gate', () => {
     expect(formatExpiryCountdown(0)).toBe('0:00');
   });
 
+  it('uses the server expiry instead of restarting a fresh two-minute clock on remount', () => {
+    vi.setSystemTime(new Date('2026-07-17T12:00:00.000Z'));
+    const onConfirm = vi.fn(async () => ({ success: true }));
+    render(<ConfirmationCard {...baseProps} expiresAt="2026-07-17T12:00:10.000Z" isDestructive={false} onConfirm={onConfirm} />);
+    expect(screen.getByText(/Expires in 0:10/)).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(11_000));
+    expect(screen.getByText(/This request expired/i)).toBeInTheDocument();
+  });
   it('shows a live countdown, then swaps to the expired state with a re-issue action', () => {
     const onConfirm = vi.fn(async () => ({ success: true }));
     const onReissue = vi.fn();
@@ -53,24 +61,24 @@ describe('ConfirmationCard expiry + destructive gate', () => {
     render(<ConfirmationCard {...baseProps} isDestructive onConfirm={onConfirm} />);
 
     const confirm = screen.getByRole('button', { name: /confirm action/i });
-    fireEvent.click(confirm);
+    await act(async () => { fireEvent.click(confirm); });
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByText(/Tap again to confirm/i)).toBeInTheDocument();
 
     // Let the arm lapse — a late second tap must re-arm, not execute.
     act(() => vi.advanceTimersByTime(3100));
-    fireEvent.click(confirm);
+    await act(async () => { fireEvent.click(confirm); });
     expect(onConfirm).not.toHaveBeenCalled();
 
     // Armed + prompt tap executes.
-    fireEvent.click(confirm);
+    await act(async () => { fireEvent.click(confirm); });
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('non-destructive confirm executes on the first tap', () => {
+  it('non-destructive confirm executes on the first tap', async () => {
     const onConfirm = vi.fn(async () => ({ success: true }));
     render(<ConfirmationCard {...baseProps} isDestructive={false} onConfirm={onConfirm} />);
-    fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /confirm action/i })); });
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });

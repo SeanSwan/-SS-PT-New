@@ -148,6 +148,7 @@ function CoachCommandLogEntry({
           params={confirmation.params}
           client={confirmation.client}
           details={confirmation.details}
+          expiresAt={confirmation.expiresAt}
           isDestructive={confirmation.isDestructive}
           onConfirm={async () => onConfirmCommand(confirmation)}
           onCancel={async () => onCancelCommand(confirmation)}

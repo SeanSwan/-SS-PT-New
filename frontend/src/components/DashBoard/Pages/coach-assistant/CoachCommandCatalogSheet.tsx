@@ -57,6 +57,7 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
     if (!open) return undefined;
     let cancelled = false;
     setFailed(false);
+    setCommands(null);
     apiService.get('/api/ai-command/commands')
       .then((res) => {
         if (cancelled) return;
@@ -75,8 +76,33 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
   useEffect(() => {
     if (!open) return undefined;
     panelRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (!focusable.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || active === panel)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

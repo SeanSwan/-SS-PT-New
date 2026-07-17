@@ -173,6 +173,7 @@ export interface ConfirmationCardProps {
   params: Record<string, unknown>;
   client: { id?: number; firstName?: string; lastName?: string } | null;
   details: Record<string, unknown> | null;
+  expiresAt?: string;
   isDestructive: boolean;
   onConfirm: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (operationId: string | null) => Promise<void>;
@@ -185,6 +186,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   command,
   params,
   client,
+  expiresAt,
   isDestructive,
   onConfirm,
   onCancel,
@@ -193,7 +195,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const confirmState = useConfirmationCardState({ done, isDestructive });
+  const confirmState = useConfirmationCardState({ done, expiresAt, isDestructive });
 
   const handleConfirm = useCallback(async () => {
     if (!operationId || busy || done) return;

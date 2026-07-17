@@ -80,6 +80,7 @@ export function commandLaneConfirmation(result: CommandLaneHandledResponse, sour
     params: result.params,
     client: result.client,
     details: result.details,
+    expiresAt: result.expiresAt,
     isDestructive: result.isDestructive,
     ...(sourceMessage ? { sourceMessage } : {}),
   };

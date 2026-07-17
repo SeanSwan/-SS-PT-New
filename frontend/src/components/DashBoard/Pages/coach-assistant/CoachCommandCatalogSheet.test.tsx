@@ -51,6 +51,30 @@ describe('CoachCommandCatalogSheet', () => {
     expect(screen.getByText(/still talk normally/i)).toBeInTheDocument();
   });
 
+  it('clears prior role-scoped commands while a reopened catalog refreshes', async () => {
+    getMock.mockResolvedValueOnce({ data: { success: true, commands: [{ type: 'admin_only', category: 'Admin', examples: ['Run admin action'] }] } });
+    const view = render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+    expect(await screen.findByText('Admin only')).toBeInTheDocument();
+    view.rerender(<CoachCommandCatalogSheet open={false} onClose={() => undefined} onUsePrompt={() => undefined} />);
+    getMock.mockReturnValueOnce(new Promise(() => undefined));
+    view.rerender(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+    expect(screen.getByText(/Loading commands/i)).toBeInTheDocument();
+    expect(screen.queryByText('Admin only')).toBeNull();
+  });
+
+  it('keeps Tab focus inside the modal sheet', () => {
+    getMock.mockReturnValue(new Promise(() => undefined));
+    render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+    const dialog = screen.getByRole('dialog');
+    const close = screen.getByRole('button', { name: 'Close' });
+    dialog.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(close).toHaveFocus();
+  });
   it('renders nothing while closed', () => {
     render(<CoachCommandCatalogSheet open={false} onClose={() => undefined} onUsePrompt={() => undefined} />);
     expect(screen.queryByRole('dialog')).toBeNull();

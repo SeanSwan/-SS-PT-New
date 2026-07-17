@@ -129,6 +129,17 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     });
   });
 
+  it('returns the authoritative server expiry for confirmation cards', async () => {
+    const expiresAt = '2026-07-17T12:02:00.000Z';
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'log_workout', params: { clientId: 42 } },
+      command: { type: 'log_workout', destructive: false },
+      result: { type: 'confirmation_required', message: 'Confirm?', operationId: 'op-42', expiresAt, command: 'log_workout', params: { clientId: 42 }, isDestructive: false },
+    });
+    const response = await request(makeApp()).post('/api/ai-command/execute').send({ message: 'log workout', selectedClientId: 42 }).expect(200);
+    expect(response.body).toMatchObject({ success: true, type: 'confirmation_required', operationId: 'op-42', expiresAt });
+  });
   it('passes through manual-only not-wired command receipts without frontend dispatch', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,

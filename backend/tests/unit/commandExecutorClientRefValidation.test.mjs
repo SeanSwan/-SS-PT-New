@@ -216,6 +216,7 @@ describe('command executor client reference validation', () => {
       type: 'confirmation_required',
       command: 'reset_client_password',
       operationId: expect.any(String),
+      expiresAt: expect.any(String),
       isDestructive: false,
     });
     expect(ctx.result.message).toMatch(/send a secure password reset email/i);

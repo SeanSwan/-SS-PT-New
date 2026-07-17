@@ -42,7 +42,7 @@ const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const authenticatedRole = normalizeCoachCommandRole(authUser?.role);
   const userRole = resolveCoachCommandDashboardRole(useLocation().pathname, authenticatedRole);
-  const commandCenter = useCoachCommandCenterController({ userRole });
+  const commandCenter = useCoachCommandCenterController({ actorId: authUser?.id, userRole });
   useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood);
   const [searchParams, setSearchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);

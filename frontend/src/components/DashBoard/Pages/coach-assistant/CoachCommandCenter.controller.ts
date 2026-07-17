@@ -38,7 +38,7 @@ import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
-export function useCoachCommandCenterController({ userRole = 'admin' }: { userRole?: CoachCommandRole } = {}) {
+export function useCoachCommandCenterController({ actorId, userRole = 'admin' }: { actorId?: string | number | null; userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat(userRole);
   const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
@@ -174,7 +174,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
   const notebook = useCoachClientNotebook({ clientId: effectiveClientId, clientLabel: selectedClientLabel,
     commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
-  useCoachComposerDraft(activeThreadId, commandText, setCommandText);
+  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId });
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,
