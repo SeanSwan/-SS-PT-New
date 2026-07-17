@@ -48,3 +48,21 @@ Sean delegated the pre-generation grill ("do what you recommend… you drive"), 
 ## 4. Q&A / decision log (append-only)
 
 - 2026-07-16 · Sean: "do what you recommend… you drive… let's make it bomb." → Wave A locked, roster locked, spend acknowledged, defaults from both master docs' §11/§8 adopted where marked recommended. Track-A copy decisions (real stats values, testimonials, 24h promise, meta-"AI") remain OPEN — needed at Track A copy phase, not for the gallery; gallery uses only safe verified facts (26+ years; 312 swimmers) and labels illustrative numbers SAMPLE.
+
+## 5. G2 — Fable's Final-Decider walk (2026-07-16 ~18:00 PT, hero screenshots @1440; Sean's verdicts pending)
+
+| Candidate | Fable verdict | One-line reason | Steal regardless |
+|---|---|---|---|
+| Chrome Sovereign | **KEEP — finalist** | "The private-client standard. Now with the doors open." = premium + benevolent in one breath; elevator floor-rail nav is unforgettable; golf-client magnet | penthouse-window video frame |
+| Faceted Sigil | **KEEP — finalist** | Built from Sean's own mark; "Health, cut with precision."; facet chrome bridges naturally to dashboards | the gradient law (white→ice→periwinkle→violet) |
+| Archive Editorial | **KEEP — finalist (restrained seat)** | "Your training belongs in the record." — the data-truth brand made visual; restraint WITH personality | accession-number plates for proof sections |
+| Alpine Apex | Borderline (4th) | "Progress, earned — and proven." + gold summit line map perfectly to the progress product; layout safest of the top tier | gold summit line under CTAs; altitude progress rail |
+| Sapphire Badge | Borderline | "Take your place in the circle." = strongest belonging line in the set; hero art doubles the mark clumsily | that headline + struck-medallion membership chrome |
+| Webb Deep Field | Kill as site language (too cold for a warm community) | most intelligent copy in the set | Evidence Lens device + "We don't promise transformations — we record them." + Cygnus easter egg |
+| Wing Current | Kill (hero too empty) | graceful but thin | S-ribbon spine + italic-serif "always." pairing; visible Pause Motion chip |
+| Glacier Cathedral | Kill (fine ≠ finalist) | elegant but dim/sparse at hero; the least differentiated natural | glacier patience copy ("impossible to fake") |
+| Evergreen Dominion | Kill (unresolved hero shape) | trail-spine idea better than its execution | mile-marker trail spine for long pages |
+| Cascade Vault | Kill (weakest hero) | abstract shapes never resolve into a place | descent rail (00 BRINK → 04 ROOMS) as section nav |
+
+**Hybrid worth rendering in Wave 2:** Chrome Sovereign world × Faceted Sigil chrome/logo language × Webb's Evidence Lens as the site-wide proof device × Sapphire's "circle" membership copy.
+**Awaiting Sean:** confirm/override the three finalists (+ hybrid yes/no) → Wave 2 renders finalists × 4 full dashboards.
