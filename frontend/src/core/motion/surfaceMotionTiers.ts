@@ -64,7 +64,7 @@ export type SurfaceId = keyof typeof SURFACE_MOTION_TIERS;
 /** Unlisted surfaces fail SAFE. A forgotten registration must never buy motion. */
 export const DEFAULT_SURFACE_TIER: MotionTier = 'M0';
 
-export function licenceFor(surface: SurfaceId | (string & {})): MotionTier {
+export function licenceFor(surface: SurfaceId | (string & Record<never, never>)): MotionTier {
   return (SURFACE_MOTION_TIERS as Record<string, MotionTier>)[surface] ?? DEFAULT_SURFACE_TIER;
 }
 
@@ -78,7 +78,10 @@ export const CAPABILITY_CEILING: Record<AnimationCapability, MotionTier> = {
 const rank = (t: MotionTier): number => MOTION_TIERS.indexOf(t);
 
 /** The effective tier is the MINIMUM of licence and capability — neither side can be overridden. */
-export function resolveMotionTier(surface: SurfaceId | (string & {}), capability: AnimationCapability): MotionTier {
+export function resolveMotionTier(
+  surface: SurfaceId | (string & Record<never, never>),
+  capability: AnimationCapability
+): MotionTier {
   const licence = licenceFor(surface);
   const ceiling = CAPABILITY_CEILING[capability] ?? DEFAULT_SURFACE_TIER;
   return rank(licence) <= rank(ceiling) ? licence : ceiling;
