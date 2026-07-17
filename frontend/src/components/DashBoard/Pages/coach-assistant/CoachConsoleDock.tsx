@@ -190,7 +190,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                   <MoreHorizontal size={20} aria-hidden="true" />
                 </button>
                 {moreOpen ? (
-                  <div className="dock-more-menu" id={menuId} ref={menuRef} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
+                  <div className="dock-more-menu" id={menuId} ref={menuRef} role="menu" aria-label="More command tools" tabIndex={-1} onKeyDown={handleMoreMenuKeyDown}>
                     <button type="button" role="menuitem" onClick={() => runMoreAction(() => setCatalogOpen(true))}>
                       <BookOpen size={17} aria-hidden="true" />
                       <span>What can I say?</span>
