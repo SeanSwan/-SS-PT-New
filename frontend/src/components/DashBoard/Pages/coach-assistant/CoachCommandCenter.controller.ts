@@ -281,6 +281,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
     setTeachMode,
     setThreadSearch,
     shellRef,
+    speakText: tts.speak,
     statusMetrics,
     summary,
     teachMode,

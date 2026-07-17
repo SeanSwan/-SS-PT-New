@@ -1,10 +1,37 @@
 /**
  * FILE: CoachCommandLogEntry.retryStyles.ts
- * PURPOSE: Retry affordance for failed Swan Coach sends (Sprint A §8: retry
- * guidance shown when execution fails). Split from CoachCommandLogEntry.styles
- * to honor the 300-line file cap.
+ * PURPOSE: Per-entry affordances — failed-send retry (Sprint A §8) and
+ * coach-reply message actions (copy / read aloud, v2 P2.1). Split from
+ * CoachCommandLogEntry.styles to honor the 300-line file cap.
  */
 import styled from 'styled-components';
+
+export const MessageActionsRow = styled.div`
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+
+  button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: var(--coach-muted, #9eb0c7);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 740;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  button:hover,
+  button:focus-visible {
+    border-color: var(--coach-line, rgba(188, 220, 255, 0.18));
+    color: var(--coach-text, #e0ecf4);
+  }
+`;
 
 export const RetryRow = styled.div`
   display: flex;

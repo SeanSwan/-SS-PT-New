@@ -25,6 +25,7 @@ type CoachChatTranscriptProps = {
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
   onRetryMessage?: (message: string) => void;
+  onSpeak?: (text: string) => void;
   onSuggestedPrompt?: (prompt: string) => void;
   /** True while a history thread is being loaded into the transcript. */
   threadLoading?: boolean;
@@ -58,6 +59,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   onCancelCommand,
   onConfirmCommand,
   onRetryMessage,
+  onSpeak,
   onSuggestedPrompt,
   threadLoading = false,
   workoutLoggerRoute,
@@ -145,6 +147,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
                   onCancelCommand={onCancelCommand}
                   onConfirmCommand={onConfirmCommand}
                   onRetryMessage={onRetryMessage}
+                  onSpeak={onSpeak}
                   workoutLoggerRoute={workoutLoggerRoute}
                   workoutLoggerScopeLabel={workoutLoggerScopeLabel}
                 />

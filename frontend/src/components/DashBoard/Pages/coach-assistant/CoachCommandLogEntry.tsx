@@ -20,7 +20,8 @@ import {
   PacketDetails,
   StyleSwitch,
 } from './CoachCommandLogEntry.styles';
-import { RetryRow } from './CoachCommandLogEntry.retryStyles';
+import { MessageActionsRow, RetryRow } from './CoachCommandLogEntry.retryStyles';
+import { Copy, Volume2 } from 'lucide-react';
 import type { CoachCommandLogEntryProps, LogStyleVariantKey } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { CoachFormattedLogContent } from './CoachFormattedLogContent';
@@ -48,9 +49,17 @@ function CoachCommandLogEntry({
   onCancelCommand,
   onConfirmCommand,
   onRetryMessage,
+  onSpeak,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
 }: CoachCommandLogEntryProps) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    void navigator.clipboard?.writeText(entry.body).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }).catch(() => undefined);
+  };
   const formatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
   const selectedVariant = formatted.variants?.find((variant) => variant.key === activeVariant) || formatted.variants?.[0];
@@ -160,6 +169,19 @@ function CoachCommandLogEntry({
           message={entry.commandResult.message}
           showAccessHandoff={false}
         />
+      ) : null}
+
+      {entry.actor === 'coach' && entry.body ? (
+        <MessageActionsRow aria-label="Message actions">
+          <button type="button" onClick={handleCopy}>
+            <Copy size={14} aria-hidden="true" /> {copied ? 'Copied' : 'Copy'}
+          </button>
+          {onSpeak ? (
+            <button type="button" onClick={() => onSpeak(entry.body)}>
+              <Volume2 size={14} aria-hidden="true" /> Read aloud
+            </button>
+          ) : null}
+        </MessageActionsRow>
       ) : null}
 
       {entry.retryMessage && onRetryMessage ? (

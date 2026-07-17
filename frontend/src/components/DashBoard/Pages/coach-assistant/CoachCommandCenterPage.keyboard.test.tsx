@@ -67,11 +67,12 @@ describe('CoachCommandCenterPage keyboard submit', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.click(screen.getByRole('button', { name: /^More command tools$/i }));
-    const reviewIntake = screen.getByRole('menuitem', { name: /^Review intake$/i });
+    // v2 P1.3: the command catalog entry is the menu's first item.
+    const firstItem = screen.getByRole('menuitem', { name: /^What can I say\?$/i });
     const composer = screen.getByRole('textbox', { name: /message swan coach/i });
 
-    await waitFor(() => expect(reviewIntake).toHaveFocus());
-    fireEvent.blur(reviewIntake, { relatedTarget: composer });
+    await waitFor(() => expect(firstItem).toHaveFocus());
+    fireEvent.blur(firstItem, { relatedTarget: composer });
     composer.focus();
 
     expect(screen.queryByRole('menu', { name: /^More command tools$/i })).not.toBeInTheDocument();

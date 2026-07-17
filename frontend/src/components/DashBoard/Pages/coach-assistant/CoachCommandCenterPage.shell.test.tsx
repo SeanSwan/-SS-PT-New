@@ -78,16 +78,17 @@ describe('CoachCommandCenterPage shell', () => {
   it('supports arrow, Home, and End keyboard movement inside the dock More menu', async () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
     const menu = openCommandTools();
+    // v2 P1.3: the command catalog entry leads the menu.
+    const catalog = within(menu).getByRole('menuitem', { name: /^What can I say\?$/i });
     const reviewIntake = within(menu).getByRole('menuitem', { name: /^Review intake$/i });
-    const importAudio = within(menu).getByRole('menuitem', { name: /^Import audio$/i });
     const buildPlan = within(menu).getByRole('menuitem', { name: /Open Workout Planner/i });
-    await waitFor(() => expect(reviewIntake).toHaveFocus());
-    fireEvent.keyDown(reviewIntake, { key: 'ArrowDown' });
-    expect(importAudio).toHaveFocus();
-    fireEvent.keyDown(importAudio, { key: 'End' });
+    await waitFor(() => expect(catalog).toHaveFocus());
+    fireEvent.keyDown(catalog, { key: 'ArrowDown' });
+    expect(reviewIntake).toHaveFocus();
+    fireEvent.keyDown(reviewIntake, { key: 'End' });
     expect(buildPlan).toHaveFocus();
     fireEvent.keyDown(buildPlan, { key: 'Home' });
-    expect(reviewIntake).toHaveFocus();
+    expect(catalog).toHaveFocus();
   });
 
   it('opens the intake review lane from the dock More menu and moves focus to the review workspace', async () => {
@@ -262,6 +263,10 @@ describe('CoachCommandCenterPage shell', () => {
     fireEvent.click(sendButton());
 
     expect(await screen.findByText(/Confirm risky action/i)).toBeInTheDocument();
+    // v2 P2.4: destructive confirms require a second tap (Sprint A §3.4).
+    fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
+    expect(confirmCommandMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/Tap again to confirm/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
 
     await waitFor(() => {

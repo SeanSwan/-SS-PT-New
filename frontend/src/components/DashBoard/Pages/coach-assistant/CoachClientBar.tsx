@@ -16,6 +16,8 @@ type CoachClientBarProps = {
   contextLabel?: string;
   newConversationLabel?: string;
   clientPin?: CoachPinnedClientBarProps;
+  /** One-tap rebind chips for the most recently coached clients. */
+  recentIds?: number[];
   onNewConversation: () => void;
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
@@ -27,6 +29,7 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   contextLabel = 'Now coaching',
   newConversationLabel = 'New chat',
   clientPin,
+  recentIds,
   onNewConversation,
   onOpenOps,
 }) => (
@@ -34,6 +37,18 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
     <div className="now-coaching" aria-label="Current coach context">
       <span className="now-label">{contextLabel}</span>
       <strong className="client-name">{selectedClientLabel}</strong>
+      {showOps && clientPin && recentIds?.length ? (
+        <div className="recent-client-chips" aria-label="Recently coached clients">
+          {recentIds.map((id) => {
+            const label = clientPin.clients.find((client) => client.id === id)?.label || `Client #${id}`;
+            return (
+              <button type="button" key={id} onClick={() => clientPin.onSelectClient(id)} aria-label={`Coach ${label}`}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {showOps && clientPin ? (
         <label className="main-client-picker">
           <span>Main client</span>
