@@ -22,6 +22,7 @@ import { coachCommandPresenceStyles } from './CoachCommandCenter.presenceStyles'
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 import { coachCommandThreadHeaderStyles } from './CoachCommandCenter.threadHeaderStyles';
 import { coachCommandVoiceStripStyles } from './CoachCommandCenter.voiceStripStyles';
+import { coachCommandAuroraConsoleStyles } from './CoachCommandCenter.auroraConsoleStyles';
 
 export const coachCommandBridgeStyles = css`
   .bridge-shell {
@@ -274,11 +275,7 @@ export const coachCommandBridgeStyles = css`
     gap: 12px;
   }
 
-  @media (max-width: 720px) {
-    .review-card-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+  @media (max-width: 720px) { .review-card-grid { grid-template-columns: 1fr; } }
 `;
 
 export const CommandBridgeShell = styled.div`
@@ -296,4 +293,5 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandBridgeMobileDockStyles}
   ${coachCommandVoiceStripStyles}
   ${coachCommandPresenceStyles}
+  ${coachCommandAuroraConsoleStyles}
 `;

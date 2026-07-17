@@ -37,6 +37,7 @@ const expectedExpansion = [
   ['lunar-stack', 'Lunar Stack'],
   ['cedar-workshop', 'Cedar Workshop'],
   ['crystalline-cathedral', 'Crystalline Cathedral'],
+  ['aurora-console', 'Aurora Console'],
 ];
 
 const luminance = (hex: string) => {

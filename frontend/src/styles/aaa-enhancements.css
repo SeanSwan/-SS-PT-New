@@ -53,7 +53,7 @@
   top: -15px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(to right, #46cdcf, #7851a9);
+  background: linear-gradient(to right, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
   color: white;
   padding: 5px 15px;
   border-radius: 15px;

@@ -17,6 +17,7 @@ import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import { resolveCoachPresenceState } from './coachPresenceState';
 import { recentClientIds } from './coachRecentClients';
+import ConsoleAtmosphere from '../../../ConsoleOS/ConsoleAtmosphere';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
 import { useCoachKeyboardInset } from './hooks/useCoachKeyboardInset';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
@@ -126,12 +127,7 @@ const CoachCommandCenterPage: React.FC = () => {
     document.getElementById('coach-tabpanel-review')?.focus({ preventScroll: true });
   }, [activeReviewSection, activeTab]);
 
-  const handleStartPlaudUpload = () => {
-    setActiveTab('review');
-    setActiveReviewSection('audio');
-    setPlaudUploadRequest((count) => count + 1);
-    requestReviewWorkspaceFocus();
-  };
+  const handleStartPlaudUpload = () => { setActiveTab('review'); setActiveReviewSection('audio'); setPlaudUploadRequest((count) => count + 1); requestReviewWorkspaceFocus(); };
 
   const openIntakeReview = () => { setActiveTab('review'); setActiveReviewSection('intake'); requestReviewWorkspaceFocus(); };
   const handleReviewIntakeFromDock = () => { openIntakeReview(); commandCenter.handleReviewIntake(); };
@@ -145,8 +141,10 @@ const CoachCommandCenterPage: React.FC = () => {
   return (
     <CommandBridgeShell
       ref={commandCenter.shellRef}
+      data-console-root
       data-voice-state={resolveCoachPresenceState(commandCenter)}
     >
+      <ConsoleAtmosphere />
       <div className={`bridge-shell ${activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
