@@ -158,4 +158,30 @@ describe('real-time schedule room privacy', () => {
       payload: { type: 'schedule:refresh' },
     });
   });
+
+  it('keeps schedule conflict details out of the broad trainer room', async () => {
+    await realTimeScheduleService.broadcastScheduleConflict({
+      type: 'double-booking',
+      sessionIds: [91, 92],
+      trainerId: 7,
+      timeSlot: '2026-07-17T18:00:00.000Z',
+      severity: 'high',
+      message: 'Private scheduling conflict',
+      suggestions: ['Move session 92'],
+    });
+
+    expect(emissionFor('trainer:7').payload.data).toMatchObject({
+      sessionIds: [91, 92],
+      message: 'Private scheduling conflict',
+    });
+
+    const broadTrainer = emissionFor('trainer');
+    expect(broadTrainer.payload.trainerId).toBeNull();
+    expect(broadTrainer.payload.data).toEqual({
+      conflictType: 'double-booking',
+      severity: 'high',
+    });
+    expect(JSON.stringify(broadTrainer.payload)).not.toContain('Private scheduling conflict');
+    expect(JSON.stringify(broadTrainer.payload)).not.toContain('Move session 92');
+  });
 });

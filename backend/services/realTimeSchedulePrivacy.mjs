@@ -7,6 +7,7 @@
  */
 const BROAD_SCHEDULE_ROOMS = new Set(['trainer', 'client', 'public']);
 const BROAD_SESSION_FIELDS = ['sessionId', 'status'];
+const BROAD_CONFLICT_FIELDS = ['conflictType', 'severity'];
 const COMPLETION_EVENT_FIELDS = ['attendanceStatus', 'actualDuration'];
 
 function selectPrimitiveFields(source, allowedFields) {
@@ -41,17 +42,23 @@ function selectBroadSessionData(eventData) {
  * Return the payload authorized for a specific Socket.IO room.
  */
 export function sanitizeSchedulePayloadForRoom(payload, room) {
-  const isBroadSessionEvent = typeof payload?.type === 'string'
-    && payload.type.startsWith('session:')
-    && BROAD_SCHEDULE_ROOMS.has(room);
+  if (!BROAD_SCHEDULE_ROOMS.has(room) || typeof payload?.type !== 'string') {
+    return payload;
+  }
 
-  if (!isBroadSessionEvent) return payload;
+  const isSessionEvent = payload.type.startsWith('session:');
+  const isConflictEvent = payload.type === 'schedule:conflict';
+  if (!isSessionEvent && !isConflictEvent) return payload;
+
+  const broadData = isConflictEvent
+    ? selectPrimitiveFields(payload.data, BROAD_CONFLICT_FIELDS)
+    : selectBroadSessionData(payload.data);
 
   return {
     ...payload,
     trainerId: null,
     clientId: null,
-    data: selectBroadSessionData(payload.data),
+    data: broadData,
   };
 }
 

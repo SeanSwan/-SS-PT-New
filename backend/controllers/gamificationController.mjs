@@ -1118,10 +1118,10 @@ const gamificationController = {
       const leaderboard = await User.findAll({
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
-          'points', 'level', 'tier'
+          'points', 'lifetimePointsEarned', 'level', 'tier'
         ],
         where: whereClause,
-        order: [['points', 'DESC']],
+        order: [['lifetimePointsEarned', 'DESC']],
         limit: normalizedLimit,
         offset
       });

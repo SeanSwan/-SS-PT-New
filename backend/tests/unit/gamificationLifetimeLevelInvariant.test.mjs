@@ -71,4 +71,10 @@ describe('HR-008-F1: spending points never lowers level/rank', () => {
     expect(progressController).toContain("orderBy = [['lifetimePointsEarned', 'DESC']]");
     expect(progressController).not.toContain("orderBy = [['points', 'DESC']]");
   });
+
+  it('keeps the legacy leaderboard contract aligned with lifetime progression', () => {
+    expect(gamController).toMatch(/getLeaderboard:\s*async/);
+    expect(gamController).toContain("'points', 'lifetimePointsEarned', 'level', 'tier'");
+    expect(gamController).toContain("order: [['lifetimePointsEarned', 'DESC']]");
+  });
 });
