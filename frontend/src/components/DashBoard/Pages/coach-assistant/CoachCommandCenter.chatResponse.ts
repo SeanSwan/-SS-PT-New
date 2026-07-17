@@ -9,6 +9,8 @@
  * plus a real next step, inside the conversation stream.
  */
 
+import type { CoachActionProposal } from './SwanCoachTypes';
+
 export type CoachChatOutcome =
   | { kind: 'superseded' }
   | {
@@ -19,7 +21,7 @@ export type CoachChatOutcome =
       status: string;
       retryMessage?: string;
     }
-  | { kind: 'reply'; body: string };
+  | { kind: 'reply'; body: string; proposals?: CoachActionProposal[] };
 
 const NETWORK_REASON = 'The message could not reach Swan Coach. Check your connection, then retry.';
 
@@ -73,7 +75,14 @@ export function interpretCoachChatResponse(response: unknown, sentMessage: strin
 
   if (typeof response === 'object' && 'content' in (response as Record<string, unknown>)) {
     const body = String((response as { content: unknown }).content ?? '').trim();
-    if (body) return { kind: 'reply', body };
+    const metadata = (response as { metadata?: { coachActionProposals?: CoachActionProposal[] } }).metadata;
+    const proposals = Array.isArray(metadata?.coachActionProposals) && metadata.coachActionProposals.length
+      ? metadata.coachActionProposals
+      : undefined;
+    if (body) return { kind: 'reply', body, ...(proposals ? { proposals } : {}) };
+    // A blank body WITH proposals is still a real, actionable reply — the
+    // confirm cards are the content. (Copy stays truthful: cards follow.)
+    if (proposals) return { kind: 'reply', body: 'Prepared an action for your review:', proposals };
   }
 
   // Unknown shape or blank content: never fabricate a coach reply. The user

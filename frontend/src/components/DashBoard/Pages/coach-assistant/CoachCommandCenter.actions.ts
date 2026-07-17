@@ -204,6 +204,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       actor: 'coach',
       label: props.clientFacing ? 'coach response' : 'coach reply',
       body: outcome.body,
+      ...(outcome.proposals ? { proposals: outcome.proposals } : {}),
     });
     props.speakCoachReply?.(outcome.body);
     props.setSelectedStatus('Swan Coach response ready');

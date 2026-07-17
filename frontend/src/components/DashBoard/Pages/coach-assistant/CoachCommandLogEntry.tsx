@@ -7,6 +7,7 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import { useState } from 'react';
+import CoachActionProposalCard from './CoachActionProposalCard';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
   AccessHandoffCard,
@@ -143,6 +144,10 @@ function CoachCommandLogEntry({
           onCancel={async () => onCancelCommand(confirmation)}
         />
       ) : null}
+
+      {entry.proposals?.map((proposal) => (
+        <CoachActionProposalCard key={proposal.id} proposal={proposal} />
+      ))}
 
       {entry.commandResult ? (
         <ExecutionResultCard

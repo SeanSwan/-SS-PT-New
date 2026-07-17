@@ -6,6 +6,8 @@
  * No entry in this file implies automatic client-facing writes.
  */
 
+import type { CoachActionProposal } from './SwanCoachTypes';
+
 export type CommandLogAccessHandoff = {
   credentialMode: 'claim_link_ready' | 'claim_link_needed' | 'reset_link_sent' | 'reset_link_ready' | 'reset_link_needed' | 'reset_link_unavailable';
   claimCode?: string | null;
@@ -31,6 +33,8 @@ export type CommandLogEntry = {
   commandConfirmation?: CommandLogConfirmation;
   commandResult?: CommandLogResult;
   accessHandoff?: CommandLogAccessHandoff;
+  /** Chat-lane action proposals (review-gated confirm cards) carried from message metadata. */
+  proposals?: CoachActionProposal[];
 };
 
 export type CommandLogConfirmation = {

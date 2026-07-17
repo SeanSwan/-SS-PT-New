@@ -20,14 +20,22 @@ export function buildConversationLogs(
   messages: Message[],
 ): CommandLogEntry[] {
   return messages
-    .filter((message) => message.content.trim().length > 0)
-    .map((message, index) => ({
-      id: `conversation-${conversationId ?? 'active'}-${index}-${message.timestamp}`,
-      actor: actorForMessage(message.role),
-      label: labelForMessage(message.role),
-      body: message.content,
-      at: message.timestamp,
-    }))
+    // Keep proposal-bearing messages even when their text body is blank —
+    // the confirm cards ARE the content.
+    .filter((message) => message.content.trim().length > 0
+      || Boolean((message as { metadata?: { coachActionProposals?: unknown[] } }).metadata?.coachActionProposals?.length))
+    .map((message, index) => {
+      const proposals = (message as { metadata?: { coachActionProposals?: CommandLogEntry['proposals'] } })
+        .metadata?.coachActionProposals;
+      return {
+        id: `conversation-${conversationId ?? 'active'}-${index}-${message.timestamp}`,
+        actor: actorForMessage(message.role),
+        label: labelForMessage(message.role),
+        body: message.content,
+        at: message.timestamp,
+        ...(Array.isArray(proposals) && proposals.length ? { proposals } : {}),
+      };
+    })
     .reverse();
 }
 
