@@ -42,11 +42,55 @@ const FITNESS_NAME_CONTEXT = '(?:about|after|assessment|check-?in|form|hip|intak
 // PURPOSE: Detect and redact common PII patterns in free text
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Luhn checksum — every real payment card satisfies it; arbitrary digit runs almost never do.
+ * Load-bearing here: SwanStudios text is FULL of digit sequences (weight progressions, set/rep
+ * schemes), and `credit_card` is severity 'critical', so a false positive 400-blocks a trainer
+ * mid-workout-log with "your message contains a credit card". Format alone cannot tell
+ * "135 135 185 185 225" from a PAN; Luhn can.
+ */
+function passesLuhn(digits) {
+  if (digits.length < 13 || digits.length > 19) return false;
+  let sum = 0;
+  let double = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let d = digits.charCodeAt(i) - 48;
+    if (d < 0 || d > 9) return false;
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
+/**
+ * Card-shaped runs only: 13-16 contiguous digits, or the standard 4-4-4-4 / Amex 4-6-5
+ * groupings. Separators are 1-3 spaces/dashes BETWEEN GROUPS ONLY — never between every
+ * digit, which is what swallowed barbell progressions ("135 135 185 185 225").
+ *
+ * The {1,3} bound is load-bearing and was found by hostile review: a single `[ -]` missed
+ * a real card pasted with double spaces ("4111  1111  1111  1111"), trading a false
+ * positive for a false negative. Groups are fixed-width \d{4}, so widening the separator
+ * cannot re-admit 2-3 digit workout numbers.
+ * A match is only critical if it ALSO passes Luhn (see `validate` below).
+ */
+const CREDIT_CARD_PATTERN = /\b(?:\d{13,16}|\d{4}[ -]{1,3}\d{4}[ -]{1,3}\d{4}[ -]{1,3}\d{1,4}|\d{4}[ -]{1,3}\d{6}[ -]{1,3}\d{5})\b/g;
+
 const PII_PATTERNS = [
   { name: 'ssn', pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[SSN-REDACTED]', severity: 'critical' },
   { name: 'email', pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, replacement: '[EMAIL-REDACTED]', severity: 'high' },
   { name: 'phone', pattern: /\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, replacement: '[PHONE-REDACTED]', severity: 'high' },
-  { name: 'credit_card', pattern: /\b(?:\d[ -]*?){13,16}\b/g, replacement: '[CC-REDACTED]', severity: 'critical' },
+  {
+    name: 'credit_card',
+    pattern: CREDIT_CARD_PATTERN,
+    replacement: '[CC-REDACTED]',
+    severity: 'critical',
+    // Gate: card-shaped AND checksum-valid. Keeps real PANs blocked, stops set logs from being.
+    validate: (match) => passesLuhn(match.replace(/[ -]/g, '')),
+  },
   { name: 'dob', pattern: /\b(DOB|date\s+of\s+birth|born\s+on|birthday)\s*:?\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/gi, replacement: '[DOB-REDACTED]', severity: 'high' },
   { name: 'address', pattern: /\b\d{1,5}\s+[A-Z][a-zA-Z]*\s+(Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Lane|Ln|Road|Rd|Court|Ct|Way|Place|Pl)\b/g, replacement: '[ADDRESS-REDACTED]', severity: 'medium' },
   { name: 'insurance_id', pattern: /\b[A-Z]{2,3}\d{7,12}\b/g, replacement: '[INSURANCE-REDACTED]', severity: 'critical' },
@@ -168,18 +212,25 @@ export function sanitizeText(text, options = {}) {
   let hasCriticalPII = false;
 
   // Apply PII regex patterns
-  for (const { name, pattern, replacement, severity } of PII_PATTERNS) {
+  for (const { name, pattern, replacement, severity, validate } of PII_PATTERNS) {
     const matches = sanitized.match(pattern);
-    if (matches) {
-      detections.push({
-        type: name,
-        severity,
-        count: matches.length,
-        // Don't log the actual PII values — just the count
-      });
-      sanitized = sanitized.replace(pattern, replacement);
-      if (severity === 'critical') hasCriticalPII = true;
-    }
+    if (!matches) continue;
+
+    // A pattern may carry a `validate` gate (e.g. Luhn for credit_card): a shape-only match
+    // is not enough to redact-and-block. Only genuinely-confirmed matches count.
+    const confirmed = validate ? matches.filter((m) => validate(m)) : matches;
+    if (confirmed.length === 0) continue;
+
+    detections.push({
+      type: name,
+      severity,
+      count: confirmed.length,
+      // Don't log the actual PII values — just the count
+    });
+    sanitized = validate
+      ? sanitized.replace(pattern, (m) => (validate(m) ? replacement : m))
+      : sanitized.replace(pattern, replacement);
+    if (severity === 'critical') hasCriticalPII = true;
   }
 
   const hintedNames = applyNameHintRedactions(sanitized, options.nameHints);
