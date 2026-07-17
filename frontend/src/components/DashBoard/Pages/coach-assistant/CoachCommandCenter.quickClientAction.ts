@@ -52,8 +52,9 @@ export function createQuickClientSubmitAction(deps: QuickClientActionDeps) {
       });
       deps.setSelectedStatus(`${createdName} - client ready`);
       void deps.coachQueue.refresh();
-    } catch (error: any) {
-      deps.setQuickClientError(error?.message || 'Client could not be added.');
+    } catch {
+      // Raw server error strings never reach the UI (safe-copy discipline).
+      deps.setQuickClientError('Client could not be added. Check the name and try again; if it keeps failing, add the client from Client Management.');
       deps.addLog({
         actor: 'system',
         label: 'client add failed',

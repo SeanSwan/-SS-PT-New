@@ -162,7 +162,10 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
         >
           <CoachVoiceLevelMeter active={listeningInline} />
           <div className="dock-status-line">
-            <span id="coach-dock-status" className="dock-status" role="status">
+            {/* No role="status": the transcript live region announces replies;
+                a second announcer here double-speaks every landing reply. The
+                id stays exposed via the textarea's aria-describedby. */}
+            <span id="coach-dock-status" className="dock-status">
               {voiceReplySpeaking ? 'Swan Coach is speaking' : selectedStatus}
             </span>
             <span id="coach-dock-trust" className="dock-trust">

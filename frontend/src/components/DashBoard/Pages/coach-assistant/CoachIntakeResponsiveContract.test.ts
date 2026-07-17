@@ -65,9 +65,10 @@ describe('Coach intake responsive contract', () => {
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab[\s\S]*height:\s*auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-content[\s\S]*flex:\s*0\s+0\s+auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-scroll[\s\S]*overflow:\s*visible/);
-    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(96px,\s*calc\(env\(safe-area-inset-bottom\) \+ 96px\)\)/);
+    // v2 P0.3: the dock only exists on the Talk tab (.chat-panel) — .tab-scroll
+    // surfaces (History/Review) get breathing room, not a dock-sized dead tail.
+    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(24px,\s*env\(safe-area-inset-bottom\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-top:\s*96px/);
-    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-bottom:\s*max\(96px,\s*var\(--mobile-dock-space,\s*132px\)\)/);
     expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-top:\s*132px/);
     expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-bottom:\s*max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
     expect(targetStyles).toMatch(/scroll-margin-block:\s*132px\s+max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);

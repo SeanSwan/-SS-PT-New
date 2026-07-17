@@ -200,12 +200,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       }
       return;
     }
-    addLog({
-      actor: 'coach',
-      label: props.clientFacing ? 'coach response' : 'coach reply',
-      body: outcome.body,
-      ...(outcome.proposals ? { proposals: outcome.proposals } : {}),
-    });
+    addLog({ actor: 'coach', label: props.clientFacing ? 'coach response' : 'coach reply', body: outcome.body, ...(outcome.proposals ? { proposals: outcome.proposals } : {}) });
     props.speakCoachReply?.(outcome.body);
     props.setSelectedStatus('Swan Coach response ready');
     void props.chat.listConversations('active', true);

@@ -94,9 +94,11 @@ export const coachCommandBridgeMobileDockStyles = css`
       white-space: normal;
     }
 
+    /* The dock renders on the Talk tab only (which uses .chat-panel, not
+       .tab-scroll) — History/Review need normal breathing room, not a
+       dock-sized dead tail. */
     .tab-scroll {
-      padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
-      scroll-padding-bottom: max(96px, var(--mobile-dock-space, 132px));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
       scroll-padding-top: 96px;
     }
 
