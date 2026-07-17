@@ -88,6 +88,7 @@ describe('EnhancedLoginModal claim handoff', () => {
     renderAt('/login');
     expect(screen.queryByText(/Account activated/)).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('swan-champion')).not.toBeInTheDocument();
+    expect(await screen.findByText(/Server Connected/)).toBeInTheDocument();
   });
 });
 

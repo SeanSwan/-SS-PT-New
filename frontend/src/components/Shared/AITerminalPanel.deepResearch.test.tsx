@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AITerminalPanel from './AITerminalPanel';
 
@@ -41,8 +41,10 @@ describe('AITerminalPanel Deep Research branding', () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
-  it('brands workout intelligence as Deep Research instead of a generic assistant', () => {
+  it('brands workout intelligence as Deep Research instead of a generic assistant', async () => {
     render(<AITerminalPanel context="workout_generation" defaultOpen />);
+
+    await act(async () => undefined);
 
     expect(screen.getByText('SwanStudios Deep Research — Workout Intelligence')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Ask Deep Research — Workout Intelligence anything...')).toBeInTheDocument();

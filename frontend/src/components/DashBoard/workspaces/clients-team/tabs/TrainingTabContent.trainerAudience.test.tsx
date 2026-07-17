@@ -58,8 +58,9 @@ const renderTrainerTraining = (props: Partial<ComponentProps<typeof TrainingTabC
 );
 
 describe('TrainingTabContent trainer audience', () => {
-  it('shows only Today and Plan workflow modes to trainers', () => {
+  it('shows only Today and Plan workflow modes to trainers', async () => {
     renderTrainerTraining();
+    expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
     const modeRail = screen.getByRole('tablist', { name: /training workflow modes/i });
     const modeTabs = Array.from(modeRail.querySelectorAll('[role="tab"]'));
     expect(modeTabs).toHaveLength(2);

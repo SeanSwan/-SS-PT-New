@@ -6,7 +6,7 @@
  * truthful empty/error states (self-hiding on denial), and 44px targets.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -90,9 +90,17 @@ describe('TrainerInterventionQueue', () => {
   });
 
   it('self-hides on fetch failure instead of guessing', async () => {
-    mockGet.mockRejectedValue(new Error('403'));
+    let rejectRequest: ((reason?: unknown) => void) | undefined;
+    mockGet.mockImplementation(() => new Promise((_resolve, reject) => {
+      rejectRequest = reject;
+    }));
     const { container } = renderQueue();
-    await vi.waitFor(() => expect(mockGet).toHaveBeenCalled());
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    await act(async () => {
+      rejectRequest?.(new Error('403'));
+    });
+
     expect(container.firstChild).toBeNull();
   });
 

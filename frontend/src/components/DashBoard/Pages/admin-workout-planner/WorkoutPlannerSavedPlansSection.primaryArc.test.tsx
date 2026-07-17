@@ -9,6 +9,10 @@ const mockAuthAxios = vi.hoisted(() => ({
 vi.mock('../../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 7, role: 'admin' }, authAxios: mockAuthAxios }),
 }));
+vi.mock('./WorkoutPlannerBackupPanel', () => ({
+  default: () => null,
+}));
+
 import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 
 const plans: SavedPlanSummary[] = [

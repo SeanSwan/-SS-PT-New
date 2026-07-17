@@ -164,6 +164,8 @@ describe('AdminTrainerPayoutsPanel', () => {
 
     // Opening a ledger again is a new action — the stale notice must retire.
     fireEvent.click(await screen.findByRole('button', { name: /toggle ledger for low owed/i }));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('/api/commissions/trainer/5'));
+    expect(await screen.findByText('Client Seven')).toBeInTheDocument();
     expect(screen.queryByText(/none were settled/i)).toBeNull();
   });
 
