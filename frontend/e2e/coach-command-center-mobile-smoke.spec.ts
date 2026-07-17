@@ -35,7 +35,7 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
 }
 
 async function mockCoachApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
     const method = route.request().method();
@@ -132,7 +132,6 @@ for (const viewport of [
   test(`coach chat works and owns the ${viewport.name} viewport (${viewport.width}x${viewport.height})`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/dashboard/admin/coach-assistant', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
 
     const composer = page.getByRole('textbox', { name: /message swan coach/i });
     // Dev-server cold transforms of the dashboard graph can take >5s.
@@ -159,7 +158,6 @@ for (const viewport of [
 test('coach chat renders and replies at desktop 1440x900', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/dashboard/admin/coach-assistant', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const composer = page.getByRole('textbox', { name: /message swan coach/i });
   await expect(composer).toBeVisible({ timeout: 45_000 });

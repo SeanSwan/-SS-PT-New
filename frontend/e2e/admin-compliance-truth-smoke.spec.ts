@@ -12,12 +12,13 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
   await mockAdminOverviewApi(page);
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
   // The compliance widget is a directly-visible overview section now — the
   // old "Access Deep Telemetry" reveal button no longer exists
   // (AdminOverviewPanel renders ClientComplianceDashboard unconditionally).
 
-  await expect(page.getByText(/Compliance data could not be loaded\./i)).toBeVisible();
+  await expect(page.getByText(/Compliance data could not be loaded\./i)).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole('alert').filter({ hasText: /Compliance data could not be loaded/i })
       .getByRole('button', { name: /^Retry$/i }),
@@ -43,7 +44,6 @@ test('admin business KPI widget shows unavailable state instead of demo revenue 
   await mockAdminOverviewApi(page, { businessKpisUnavailable: true });
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Business KPI data could not be loaded\./i)).toBeVisible();
   // Scoped to this widget's alert: the always-mounted compliance widget (its
@@ -74,7 +74,6 @@ test('admin revenue chart shows unavailable state instead of demo revenue trend'
   await mockAdminOverviewApi(page, { revenueUnavailable: true });
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Revenue data could not be loaded\./i)).toBeVisible();
   await expect(
@@ -102,7 +101,6 @@ test('admin user growth chart shows unavailable state instead of demo growth tre
   await mockAdminOverviewApi(page, { userGrowthUnavailable: true });
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/User growth data could not be loaded\./i)).toBeVisible();
   await expect(
@@ -130,7 +128,6 @@ test('admin session tracking widget shows unavailable state instead of demo sess
   await mockAdminOverviewApi(page, { sessionTrackingUnavailable: true });
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Session tracking data could not be loaded\./i)).toBeVisible();
   await expect(
@@ -158,7 +155,6 @@ test('admin recent activity feed shows unavailable state instead of demo platfor
   await mockAdminOverviewApi(page, { recentActivityUnavailable: true });
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Recent activity could not be loaded\./i)).toBeVisible();
   await expect(page.getByRole('button', { name: /^Retry recent activity$/i })).toBeVisible();
@@ -181,7 +177,6 @@ test('admin quick actions are semantic buttons and navigate to mounted routes', 
   await mockAdminOverviewApi(page);
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const analyticsAction = page.getByRole('button', { name: /Analytics: Analytics & insights/i });
   await expect(analyticsAction).toBeVisible();

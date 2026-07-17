@@ -9,9 +9,8 @@ import {
   ContentGrid,
   DashboardFrame,
   MainCanvas,
-  PrimaryStack,
-  RightRail,
 } from './ClientDashboardHome.layoutStyles';
+import { PrimaryStack, RightRail } from './ClientDashboardHome.priorityStyles';
 import { ClientProfileHero, ClientQuickActions, ClientSidebar, ClientTopNavigation, NextSessionCard } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
 import {

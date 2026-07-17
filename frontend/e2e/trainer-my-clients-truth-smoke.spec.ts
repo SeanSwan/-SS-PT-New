@@ -62,6 +62,8 @@ async function mockTrainerClientsApi(page: Page, options: { assignmentsStatus?: 
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: trainerUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: trainerUser });
     if (endpoint === '/api/client-trainer-assignments/trainer/7') {
@@ -101,7 +103,6 @@ test('trainer My Clients renders live assignments without demo wrapper data', as
   await mockTrainerClientsApi(page);
 
   await page.goto('/dashboard/trainer/clients', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('region', { name: /client roster/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /open qa assigned/i })).toBeVisible();
@@ -125,7 +126,6 @@ test('trainer My Clients shows an honest API error instead of demo clients', asy
   await mockTrainerClientsApi(page, { assignmentsStatus: 500 });
 
   await page.goto('/dashboard/trainer/clients', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const errorAlert = page.getByRole('alert');
   await expect(errorAlert).toContainText(/couldn't load your client roster/i);

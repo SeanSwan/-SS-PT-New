@@ -43,6 +43,8 @@ async function mockAllocationApi(page: Page, state: AllocationApiState) {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/sessions/allocation-health') {
@@ -164,7 +166,6 @@ test('admin session allocation renders live balances and posts quick add', async
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/session-allocation', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /session allocation manager/i })).toBeVisible();
   await expect(page.getByText(/QA Live Client/i)).toBeVisible();

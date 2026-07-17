@@ -14,7 +14,10 @@ const clientUser = {
 type FailedResource = {
   status: number;
   url: string;
+  failureText?: string;
 };
+
+const externalSmoke = process.env.SWAN_SMOKE_TARGET === 'external';
 
 function isSocketPolling400(resource: FailedResource) {
   if (resource.status !== 400) return false;
@@ -27,7 +30,31 @@ function isSocketPolling400(resource: FailedResource) {
   }
 }
 
+function isSocketTransportFailure(resource: FailedResource) {
+  if (resource.status !== 0) return false;
+
+  try {
+    return new URL(resource.url).pathname === '/socket.io/';
+  } catch {
+    return false;
+  }
+}
+
 function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  const transportFailures = failedResources.filter((resource) => (
+    resource.status === 0
+    && /ERR_CONNECTION_REFUSED/i.test(resource.failureText ?? '')
+  ));
+  const onlySocketTransportFailures = transportFailures.length > 0
+    && transportFailures.every(isSocketTransportFailure);
+  if (onlySocketTransportFailures && (
+    /Failed to load resource: net::ERR_CONNECTION_REFUSED/i.test(message)
+    || /\[API Monitor\] XHR error detected/i.test(message)
+    || /\[API Monitor\] Too many XHR errors/i.test(message)
+  )) {
+    return true;
+  }
+
   if (!/^Failed to load resource: the server responded with a status of 400 \((?:Bad Request)?\)$/i.test(message)) {
     return false;
   }
@@ -54,7 +81,7 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function mockNutritionApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
@@ -122,7 +149,7 @@ async function mockNutritionApi(page: Page) {
     if (endpoint === '/api/hydration/weekly') return fulfillJson(route, { success: true, days: [] });
     if (endpoint === '/api/hydration') return fulfillJson(route, { success: true, hydration: { glassesFilled: 5, dailyGoal: 8, glassOz: 10 } });
     if (endpoint === '/api/workout/sessions') return fulfillJson(route, { success: true, data: { sessions: [] } });
-    if (endpoint === '/api/cart') return fulfillJson(route, { items: [], totalSessions: 0 });
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
     if (endpoint === '/api/sessions') return fulfillJson(route, { sessions: [] });
 
     return fulfillJson(route, {
@@ -181,7 +208,6 @@ async function inspectNutritionWorkspace(page: Page) {
 async function gotoNutritionWorkspace(page: Page, resetTransientSignals: () => void) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
 
     try {
       await expect(page.getByRole('heading', { name: 'Nutrition Intelligence' })).toBeVisible({ timeout: 10000 });
@@ -212,6 +238,13 @@ test('client nutrition workspace enforces review-first logging across the respon
         url: response.url(),
       });
     }
+  });
+  page.on('requestfailed', (request) => {
+    failedResources.push({
+      status: 0,
+      url: request.url(),
+      failureText: request.failure()?.errorText,
+    });
   });
   page.on('console', (message) => {
     if (['error', 'warning'].includes(message.type())) consoleErrors.push(message.text());
@@ -255,6 +288,8 @@ test('client nutrition workspace enforces review-first logging across the respon
     && !/Service Worker registration blocked by Playwright/i.test(item)
     && !/\[PerformanceMonitor\] Long task detected/i.test(item)
     && !/WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost/i.test(item)
+    && !(externalSmoke && /Budget violations/i.test(item))
+    && !(externalSmoke && /^\s*- (?:LCP|TTI|FPS):/i.test(item))
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
   await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });

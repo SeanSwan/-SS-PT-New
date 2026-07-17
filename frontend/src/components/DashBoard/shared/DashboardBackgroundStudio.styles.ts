@@ -135,6 +135,10 @@ export const DashboardBackgroundSummaryMain = styled.span`
     line-height: 1.35;
     color: color-mix(in srgb, var(--text-secondary, #A8C5D8) 82%, transparent);
   }
+
+  @media (max-width: 560px) {
+    .background-summary-copy > small { display: none; }
+  }
 `;
 
 export const DashboardBackgroundSummaryMeta = styled.span`
@@ -179,6 +183,7 @@ export const DashboardBackgroundSummaryMeta = styled.span`
   }
 
   @media (max-width: 560px) {
+    flex: 0 0 auto;
     width: 100%;
     justify-content: flex-start;
   }

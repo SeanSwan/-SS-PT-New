@@ -110,7 +110,6 @@ for (const viewport of responsiveViewports) {
     await mockSharedApi(page, adminUser);
 
     await page.goto('/dashboard/admin/client-management', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
     await expect(page.locator('[data-swan-client-card="admin"]').first()).toBeVisible();
     await expect(page.getByText(/Programs, biometrics, measurements/i)).toBeVisible();
 
@@ -144,7 +143,6 @@ for (const viewport of responsiveViewports) {
     await mockSharedApi(page, adminUser);
 
     await page.goto('/dashboard/admin/client-management?clientId=501&tab=biometrics', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
     await expect(page.getByRole('tablist', { name: /client detail tabs/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /biometrics/i })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('button', { name: /open measurements/i })).toBeVisible();
@@ -168,7 +166,6 @@ for (const viewport of responsiveViewports) {
     await mockSharedApi(page, trainerUser);
 
     await page.goto('/dashboard/trainer/clients', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
     await expect(page.locator('[data-swan-client-card="trainer"]').first()).toBeVisible();
     await expect(page.locator('[data-swan-client-card="trainer"]').first().getByText(/Workout Proof/i)).toBeVisible();
 
@@ -199,7 +196,6 @@ test('admin selected client measurements expansion has no phone overflow', async
   await mockSharedApi(page, adminUser);
 
   await page.goto('/dashboard/admin/client-management?clientId=501&tab=biometrics', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
   await page.getByRole('button', { name: /open measurements/i }).click();
 
   await expect(page.getByRole('button', { name: /back to biometrics/i })).toBeVisible();
@@ -223,7 +219,6 @@ for (const viewport of responsiveViewports) {
     await mockSharedApi(page, adminUser);
 
     await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=plans', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
 
     await expect(page.getByRole('tab', { name: 'Training', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel', { name: /training plans/i })).toBeVisible();

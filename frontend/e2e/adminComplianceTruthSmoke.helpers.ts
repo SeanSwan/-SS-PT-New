@@ -94,6 +94,15 @@ export async function mockAdminOverviewApi(page: Page, options: AdminOverviewMoc
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
+    if (endpoint === '/api/cart') {
+      return fulfillJson(route, {
+        id: 1,
+        status: 'active',
+        items: [],
+        total: 0,
+        totalSessions: 0,
+      });
+    }
     if (endpoint === '/api/admin/compliance/at-risk') {
       return fulfillJson(route, { success: false, message: 'Compliance unavailable' }, 500);
     }

@@ -67,10 +67,12 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function mockPlaudApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
 
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
+
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: trainerUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: trainerUser });
@@ -192,7 +194,6 @@ test('trainer PLAUD workspace loads clip bytes into native audio playback', asyn
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/trainer/plaud?pieces=pending', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByTestId('plaud-intelligence-workspace')).toBeVisible();
   await expect(page.getByRole('list', { name: /pending plaud clips/i })).toBeVisible();

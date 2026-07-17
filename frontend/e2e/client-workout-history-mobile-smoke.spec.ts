@@ -43,7 +43,7 @@ const clientPlanVaultCatalog = {
 };
 
 async function mockWorkoutHistoryApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
     if (endpoint === '/api/auth/me') return fulfillJson(route, { user: demoUser });
@@ -137,7 +137,6 @@ test.beforeEach(async ({ page }) => {
 
 test('client workout history keeps logged workout cards usable on responsive viewports', async ({ page }, testInfo) => {
   await page.goto('/dashboard/client/workouts', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /my workouts/i })).toBeVisible();
   await expect(page.getByText(/lower body strength history entry/i)).toBeVisible();
@@ -155,7 +154,6 @@ test('client workout history keeps logged workout cards usable on responsive vie
 
 test('client plan vault card keeps arc actions usable on responsive workout route', async ({ page }, testInfo) => {
   await page.goto('/dashboard/client/workouts', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const vault = page.getByTestId('client-plan-vault-card');
   await expect(vault).toBeVisible();

@@ -60,7 +60,7 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
 }
 
 async function mockPlannerApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
     if (!endpoint.startsWith('/api/')) return route.continue();
@@ -109,7 +109,6 @@ test('rearrange command reorders the draft, shows an Undo receipt, and undo rest
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/workout-planner', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
   await expect(page.getByRole('heading', { name: /workout planner/i, level: 1 })).toBeVisible();
 
   await page.getByLabel('Select client').selectOption('91');

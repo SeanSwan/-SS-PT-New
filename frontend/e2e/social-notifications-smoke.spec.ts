@@ -67,14 +67,18 @@ function notificationsPayload(allRead: boolean) {
 }
 
 async function mockSocialApi(page: Page, state: ApiState) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
+
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
     const method = request.method();
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: clientUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: clientUser });
+    if (endpoint === '/api/profile/stats') return fulfillJson(route, { success: true, stats: { posts: 0, followers: 0, following: 0, points: 1240, level: 2, streak: 0 } });
+    if (/^\/api\/profile\/(?:[^/]+\/)?posts$/.test(endpoint)) return fulfillJson(route, { success: true, posts: [], pagination: { limit: 20, offset: 0, total: 0 } });
     if (endpoint === '/api/notifications' && method === 'GET') {
       return fulfillJson(route, notificationsPayload(state.allRead));
     }
@@ -127,7 +131,6 @@ test('social notifications route renders live unread data and mark-read action',
   );
 
   await page.goto('/social/notifications', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const notificationsPanel = page.getByLabel('Social notifications');
   await expect(notificationsPanel.getByRole('heading', { name: /^Notifications$/i })).toBeVisible();

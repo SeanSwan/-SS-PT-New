@@ -112,6 +112,8 @@ async function mockPermissionApi(page: Page, state: PermissionApiState) {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/auth/users/trainers') {
@@ -207,7 +209,6 @@ test('admin trainer permissions uses live trainers and functional controls', asy
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/trainer-permissions', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /trainer permissions manager/i })).toBeVisible();
   await expect(page.getByText(/Asha Reed/i)).toBeVisible();

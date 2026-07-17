@@ -29,7 +29,7 @@ const demoBuyer = {
 
 const liveCart = {
   id: 9901,
-  status: 'open',
+  status: 'active',
   items: [{
     id: 8801,
     quantity: 1,
@@ -215,7 +215,6 @@ test('public store renders live storefront packages and no fallback catalog', as
   });
 
   await page.goto('/store', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/QA Live Performance Pack/i)).toBeVisible();
   await expect(page.getByText(fallbackCatalogNames)).toHaveCount(0);
@@ -232,7 +231,6 @@ test('public store empty package response shows retry state instead of fallback 
   await mockStorefrontApi(page, { success: true, items: [], data: { packages: [], activeSpecials: [] } });
 
   await page.goto('/store', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/^Failed to Load Packages$/i)).toBeVisible();
   await expect(page.getByText(/we couldn't load the training packages/i)).toBeVisible();
@@ -252,7 +250,6 @@ test('authenticated mobile buyer can add a package and reach checkout handoff', 
   const purchaseApi = await mockAuthenticatedPurchaseApi(page);
 
   await page.goto('/store', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   const packageCard = page.getByRole('group', { name: /view details for qa live performance pack/i });
   await expect(packageCard).toBeVisible();

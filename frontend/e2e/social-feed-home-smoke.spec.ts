@@ -48,7 +48,7 @@ async function seedAuth(page: Page) {
 }
 
 async function mockHomeFeedApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
@@ -123,7 +123,6 @@ test('social feed alias renders the Home community feed across the dashboard vie
   for (const viewport of viewportMatrix) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/social/feed', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
 
     await expect.poll(() => new URL(page.url()).pathname, {
       message: `redirect path at ${viewport.name}`,

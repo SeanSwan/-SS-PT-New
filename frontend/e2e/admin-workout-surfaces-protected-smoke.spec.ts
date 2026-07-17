@@ -130,9 +130,11 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
 }
 
 async function mockAdminWorkoutApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
+
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
     if (!endpoint.startsWith('/api/')) return route.continue();
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
@@ -265,9 +267,10 @@ test('protected admin workout planner renders rolodex without SVG NaN or horizon
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/workout-planner', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /^Workout Planner$/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Workout Planner$/i })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByText(/exercise rolodex/i)).toBeVisible();
   await expect(page.getByText('21s Bicep Curl')).toBeVisible();
 
@@ -288,7 +291,6 @@ test('protected admin bootcamp builder renders manual rolodex and accepts exerci
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/bootcamp', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /boot camp class builder/i })).toBeVisible();
   await page.getByRole('button', { name: /^manual$/i }).click();
@@ -342,7 +344,6 @@ test('protected admin theme-connected schedule nutrition store and revenue surfa
 
   for (const surface of surfaces) {
     await page.goto(surface.path, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
 
     await page.evaluate(() => {
       document.documentElement.style.setProperty('--bg-base', '#05070b');

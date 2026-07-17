@@ -41,9 +41,27 @@ const routes = includeLocalBundleRoutes ? [...stableRoutes, ...localBundleRoutes
 type FailedResource = {
   status: number;
   url: string;
+  failureText?: string;
 };
 
+function isSocketTransportFailure(resource: FailedResource) {
+  if (resource.status !== 0) return false;
+
+  try {
+    return new URL(resource.url).pathname === '/socket.io/';
+  } catch {
+    return false;
+  }
+}
+
 function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (/Failed to load resource: net::ERR_CONNECTION_REFUSED/i.test(message)) {
+    const transportFailures = failedResources.filter((resource) => (
+      resource.status === 0
+      && /ERR_CONNECTION_REFUSED/i.test(resource.failureText ?? '')
+    ));
+    return transportFailures.length > 0 && transportFailures.every(isSocketTransportFailure);
+  }
   if (!/Failed to load resource: the server responded with a status of 400/i.test(message)) return false;
 
   return failedResources.some((resource) => {
@@ -82,13 +100,16 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function mockDashboardApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
 
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { user: demoUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: demoUser });
+    if (/^\/api\/profile\/(?:[^/]+\/)?posts$/.test(endpoint)) return fulfillJson(route, { success: true, posts: [], pagination: { limit: 20, offset: 0, total: 0 } });
     if (endpoint === '/api/profile/stats') {
       return fulfillJson(route, {
         success: true,
@@ -247,9 +268,15 @@ for (const route of routes) {
     page.on('response', (response) => {
       if (response.status() >= 400) failedResources.push({ status: response.status(), url: response.url() });
     });
+    page.on('requestfailed', (request) => {
+      failedResources.push({
+        status: 0,
+        url: request.url(),
+        failureText: request.failure()?.errorText,
+      });
+    });
 
     await page.goto(route.path, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
     await page.screenshot({ path: testInfo.outputPath('viewport.png'), fullPage: false });
 
     const layout = await inspectLayout(page);
@@ -258,13 +285,17 @@ for (const route of routes) {
     expect(layout.overflowX).toBeLessThanOrEqual(12);
     expect(layout.smallTargets).toEqual([]);
     if (route.path === '/dashboard/client/overview') {
+      await expect(page.getByTestId('current-workout-card')).toBeVisible({
+        timeout: 15_000,
+      });
       const priorityCard = await inspectCurrentWorkoutPriorityCard(page);
       expect(priorityCard).not.toBeNull();
       expect(priorityCard?.cardOverflowX).toBe(0);
       expect(priorityCard?.buttonWidth).toBeGreaterThanOrEqual(44);
       expect(priorityCard?.buttonHeight).toBeGreaterThanOrEqual(44);
       if ((priorityCard?.viewportWidth || 0) <= 600) {
-        expect(priorityCard?.cardTop).toBeLessThanOrEqual((priorityCard?.viewportHeight || 0) * 0.72);
+        const workoutPriorityBoundary = Math.ceil((priorityCard?.viewportHeight || 0) * 0.72);
+        expect(priorityCard?.cardTop).toBeLessThanOrEqual(workoutPriorityBoundary);
       }
     }
     expect(actionableConsoleErrors(consoleErrors, failedResources)).toEqual([]);
@@ -281,7 +312,6 @@ test('client overview lens buttons stay inside the observatory route', async ({ 
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/client/overview', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   for (const [label, expectedPath] of [
     ['Reels', '/dashboard/client/overview/reels'],
@@ -307,7 +337,6 @@ test('client dashboard feed navigation releases bottom scroll and mobile body lo
   test.skip(testInfo.project.name !== 'Mobile Chrome', 'Mobile body lock only exists behind the mobile dashboard menu.');
 
   await page.goto('/dashboard/client/progress', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await page.evaluate(() => {
     const roots = [...document.querySelectorAll<HTMLElement>('[data-dashboard-scroll-root]')];

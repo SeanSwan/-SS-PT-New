@@ -32,6 +32,8 @@ async function mockWorkoutLoggerApi(page: Page) {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: trainerUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: trainerUser });
     if (endpoint === '/api/workout-forms/client/77/info') {
@@ -88,7 +90,6 @@ test('trainer workout logger failed client load does not fall back to demo mode'
   });
 
   await page.goto('/dashboard/trainer/log-workout?clientId=77', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /workout logging error/i })).toBeVisible();
   await expect(page.locator('p').filter({ hasText: /client workout data could not be loaded/i })).toBeVisible();

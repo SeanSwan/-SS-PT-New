@@ -296,16 +296,3 @@ export const ContentGrid = styled.div`
     grid-template-columns: 1fr;
   }
 `;
-
-export const PrimaryStack = styled.div`
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-`;
-
-export const RightRail = styled.aside`
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  min-width: 0;
-`;

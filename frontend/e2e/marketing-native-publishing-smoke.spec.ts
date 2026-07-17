@@ -38,6 +38,8 @@ async function mockMarketingApi(page: Page) {
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/admin/marketing-readiness') {
@@ -114,7 +116,6 @@ test('admin Marketing native publishing smoke', async ({ page }, testInfo) => {
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/marketing', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText('Marketing Command Center')).toBeVisible();
   await expect(page.getByRole('tab', { name: /Approval Queue/i })).toBeVisible();

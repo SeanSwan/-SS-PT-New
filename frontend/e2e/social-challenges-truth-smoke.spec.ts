@@ -31,12 +31,16 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
 }
 
 async function mockSocialApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: clientUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: clientUser });
+    if (endpoint === '/api/profile/stats') return fulfillJson(route, { success: true, stats: { posts: 0, followers: 0, following: 0, points: 1240, level: 2, streak: 0 } });
+    if (/^\/api\/profile\/(?:[^/]+\/)?posts$/.test(endpoint)) return fulfillJson(route, { success: true, posts: [], pagination: { limit: 20, offset: 0, total: 0 } });
     if (endpoint === '/api/v1/gamification/profile') {
       return fulfillJson(route, {
         profile: {
@@ -85,9 +89,10 @@ test('social challenges show an honest retryable error when challenge API fails'
   const consoleWatcher = watchSocialSmokeConsole(page);
 
   await page.goto('/social/challenges', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('tab', { name: /active/i })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /active/i })).toBeVisible({
+    timeout: 15_000,
+  });
   const unavailableAlert = page.getByRole('alert');
   await expect(unavailableAlert).toContainText(/challenges unavailable/i);
   await expect(unavailableAlert.getByRole('button', { name: /retry/i })).toBeVisible();

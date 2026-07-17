@@ -54,9 +54,11 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function mockGamificationApi(page: Page) {
-  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+  await page.route('**/health**', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
+
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: demoUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: demoUser });
@@ -177,7 +179,6 @@ test('gamification hub renders live gamification API data', async ({ page }, tes
   });
 
   await page.goto('/gamification', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByRole('heading', { name: /train, level, rally/i })).toBeVisible();
   await expect(page.getByText('4,321')).toBeVisible();
