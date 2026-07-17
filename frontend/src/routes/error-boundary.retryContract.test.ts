@@ -12,6 +12,6 @@ describe('route ErrorBoundary retry contract', () => {
     expect(SOURCE).not.toContain('window.location.reload()');
     expect(SOURCE).toContain('useNavigate');
     expect(SOURCE).toContain("navigate('/', { replace: true })");
-    expect(SOURCE).toContain('Return Home');
+    expect(SOURCE).toContain('Return home');
   });
 });

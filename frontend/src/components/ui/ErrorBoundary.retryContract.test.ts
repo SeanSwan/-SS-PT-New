@@ -22,6 +22,6 @@ describe('shared ErrorBoundary retry contract', () => {
     expect(boundarySource).not.toContain('handleReload');
     expect(boundarySource).not.toContain('ReloadButton');
     expect(boundarySource).not.toContain('Reload Page');
-    expect(boundarySource).toContain('<RetryButton onClick={this.handleRetry}>');
+    expect(boundarySource).toContain('<RetryButton type="button" onClick={this.handleRetry}>');
   });
 });
