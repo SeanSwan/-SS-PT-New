@@ -5,7 +5,6 @@
  * reads from real models without leaking private profile details.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { formatDateOnlyInTimeZone } from '../../services/clientTrainingDateService.mjs';
 import { loadDispatcher } from './clientSelfServiceCommandDispatcherHarness.mjs';
 
 afterEach(() => {
@@ -30,9 +29,12 @@ describe('client self-service command dispatchers', () => {
   });
 
   it('summarizes the active workout plan for the authenticated client', async () => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-17T04:30:00.000Z'));
+
     const { dispatch, WorkoutPlan } = await loadDispatcher();
-    const today = formatDateOnlyInTimeZone(new Date(), 'America/Los_Angeles');
-    const assignmentKey = 'plan-1:w2:d1:' + today + ':o1:r1';
+    const assignmentKey = 'plan-1:w2:d1:2026-07-16:o1:r1';
 
     const result = await dispatch('my_workout_today', {}, {
       user: { id: 17, role: 'client', email: 'client@example.com' },

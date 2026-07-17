@@ -10,6 +10,7 @@ import { getAllModels } from '../../../models/index.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
+import { resolveClientTrainingDateContext } from '../../clientTrainingDateService.mjs';
 import {
   findPlannedAssignmentCompletionsForDate,
   findRecentPlannedAssignmentCompletions,
@@ -28,7 +29,11 @@ const toDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 };
-const todayDateOnly = () => new Date().toISOString().slice(0, 10);
+const todayDateOnly = () => resolveClientTrainingDateContext({
+  storedTimeZone: process.env.SWAN_DISPLAY_TZ,
+  storedTimeZoneConfigured: Boolean(process.env.SWAN_DISPLAY_TZ),
+  referenceDate: new Date(),
+}).localDate;
 
 const selfUserId = (ctx = {}) => toNumber(ctx.user?.id);
 
