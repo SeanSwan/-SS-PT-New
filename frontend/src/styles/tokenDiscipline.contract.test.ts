@@ -25,8 +25,25 @@ import { join, relative, sep } from 'path';
 
 const SRC = join(__dirname, '..');
 
-/** Retired Galaxy-Swan brand identity — permanently banned on Swan surfaces (CLAUDE.md Identity). */
-const RETIRED_HEXES = ['#0a0a1a', '#00ffff', '#7851a9'];
+/**
+ * Retired Galaxy-Swan brand identity — permanently banned on Swan surfaces (CLAUDE.md Identity).
+ *
+ * HOSTILE-REVIEW FIX #2 (2026-07-17) — COLOR-SPACE EVASION. The first version of this ban only
+ * matched HEX. That was a hole big enough to drive the whole retired brand through: #7851A9 is
+ * rgb(120,81,169), and the bundler minifies `rgba(120,81,169,.2)` straight back into `#7851a933`.
+ * Proof it mattered: production CSS was serving `.bg-cosmic-gradient{...#7851a933}` while this test
+ * was green, because the source writes it in rgba() form. A ban that only knows one notation is not
+ * a ban. Each retired colour is now matched in BOTH hex and rgb/rgba space.
+ */
+const RETIRED_COLORS: Array<{ name: string; hex: string; rgb: [number, number, number] }> = [
+  { name: 'Galaxy-Swan deep', hex: '#0a0a1a', rgb: [10, 10, 26] },
+  { name: 'Galaxy-Swan cyan', hex: '#00ffff', rgb: [0, 255, 255] },
+  { name: 'Galaxy-Swan purple', hex: '#7851a9', rgb: [120, 81, 169] },
+];
+
+/** Matches `rgb(120, 81, 169)` / `rgba(120,81,169,.2)` — any spacing, rgb or rgba. */
+const rgbPattern = ([r, g, b]: [number, number, number]): RegExp =>
+  new RegExp(`rgba?\\(\\s*${r}\\s*,\\s*${g}\\s*,\\s*${b}\\s*[,)]`, 'i');
 
 /**
  * Exemptions.
@@ -73,21 +90,51 @@ const read = (f: string): string => readFileSync(f, 'utf-8');
 const MOUNTED = ALL_FILES.filter((f) => !isExempt(rel(f)));
 
 describe('token discipline — Palette Law A enforcement', () => {
-  it('bans retired Galaxy-Swan hexes in mounted source', () => {
+  it('bans retired Galaxy-Swan colours in mounted source (hex AND rgb notation)', () => {
     const offenders: string[] = [];
     for (const file of MOUNTED) {
-      const lower = read(file).toLowerCase();
-      for (const hex of RETIRED_HEXES) {
-        if (lower.includes(hex)) offenders.push(`${rel(file)} → ${hex}`);
+      const src = read(file);
+      const lower = src.toLowerCase();
+      for (const colour of RETIRED_COLORS) {
+        if (lower.includes(colour.hex)) offenders.push(`${rel(file)} → ${colour.hex}`);
+        if (rgbPattern(colour.rgb).test(src)) offenders.push(`${rel(file)} → rgb(${colour.rgb.join(',')}) [= ${colour.hex}]`);
       }
     }
-    // SwanGalaxyLuxuryButton.tsx retains #0A0A1A but has zero consumers (receipted 2026-07-17).
-    // Listed so its removal is a deliberate act, not an accident — shrink this list, never grow it.
-    const KNOWN_ORPHANS = ['components/ui/SwanGalaxyLuxuryButton.tsx → #0a0a1a'];
-    const unexpected = offenders.filter((o) => !KNOWN_ORPHANS.includes(o));
+
+    /**
+     * DEBT LEDGER — retired brand colour still present, ratcheted while it is retired for real.
+     *
+     * These are NOT approved. They are the honest, receipted scope of a live problem this test
+     * uncovered on 2026-07-17: the retired Galaxy-Swan purple is SHIPPING TO PRODUCTION TODAY via
+     * rgba() notation (verified: prod `/v3/index.*.css` serves `.bg-cosmic-gradient{…#7851a933}`).
+     * An earlier claim that "the retired-hex remediation surface is 1 line" was WRONG — this is it.
+     *
+     * Removing them changes pixels on live surfaces, so it is its own slice with its own QA
+     * (rule 37: cleanup is a separate pass) — NOT smuggled into an infrastructure commit.
+     * This list may only ever SHRINK. Adding to it is a rule violation, not a workaround.
+     */
+    const KNOWN_DEBT = [
+      // Orphaned (zero consumers) — receipted 2026-07-17.
+      'components/ui/SwanGalaxyLuxuryButton.tsx → #0a0a1a',
+      // Live CSS bundled into production.
+      'styles/cosmic-elegance-utilities.css → rgb(120,81,169) [= #7851a9]',
+      'styles/cosmic-mobile-navigation.css → rgb(120,81,169) [= #7851a9]',
+      'styles/cosmic-mobile-navigation.css → rgb(10,10,26) [= #0a0a1a]',
+      'styles/visual-polish.css → rgb(120,81,169) [= #7851a9]',
+      'styles/visual-softening.css → rgb(120,81,169) [= #7851a9]',
+      // Legacy/orphaned components.
+      'components/NewsletterSignup/NewsletterSignup.jsx → rgb(120,81,169) [= #7851a9]',
+      'pages/about/About.jsx → rgb(120,81,169) [= #7851a9]',
+      'pages/about/About.jsx → rgb(10,10,26) [= #0a0a1a]',
+      'pages/HomePage/components/Hero-Section.V2.tsx → rgb(120,81,169) [= #7851a9]',
+      'pages/gallery/GalleryInfoCard.tsx → rgb(10,10,26) [= #0a0a1a]',
+      'pages/gallery/MessageModal.tsx → rgb(10,10,26) [= #0a0a1a]',
+      'styles/galaxy-swan-theme.ts → rgb(10,10,26) [= #0a0a1a]',
+    ];
+    const unexpected = offenders.filter((o) => !KNOWN_DEBT.includes(o));
     expect(
       unexpected,
-      `Retired Galaxy-Swan hex in mounted code. Use var(--token, #CrystallineFallback).\n${unexpected.join('\n')}`,
+      `Retired Galaxy-Swan colour in mounted code (hex or rgb). Use var(--token, #CrystallineFallback).\n${unexpected.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -113,16 +160,21 @@ describe('token discipline — Palette Law A enforcement', () => {
     ]);
   });
 
-  it('ratchets the competing second token owner (universal-theme-styles.css)', () => {
-    // FINDING 2026-07-17 (this test caught it; the rule-26 receipt had wrongly reported "zero importers"):
-    // universal-theme-styles.css:28-31 declares --bg-surface / --bg-elevated (#1A1F2E) / --text-primary
-    // (#E6EDF3) — NON-Swan GitHub greys — on :root, the SAME vars themeUtils.ts:187-191 owns.
-    // It IS live: App.tsx:78 imports it. Two owners of one contract.
-    // Why the app still looks right: themeUtils injects <style id="theme-variables"> into <head> at
-    // RUNTIME, so it lands after the bundled CSS and wins on document order. That is luck, not design —
-    // before injection (first paint / if injection throws) the GitHub greys paint instead.
-    // Ruled P1 for the token-cleanup slice (rule 37: cleanup is a separate pass), NOT smuggled into
-    // this infrastructure slice. This ratchet stops a SECOND importer from landing meanwhile.
+  it('ratchets importers of the duplicate fallback token block (universal-theme-styles.css)', () => {
+    // CORRECTION 2026-07-17 (an earlier revision of this comment was WRONG and is retracted):
+    // I previously recorded that universal-theme-styles.css:19-49 "competes" with themeUtils using
+    // non-Swan values. It does NOT. Verified: every var in that :root block is also declared by
+    // themeUtils, and its VALUES faithfully mirror the active `crystallineDark` theme
+    // (UniversalThemeContext.tsx:240 — deepSpace #0D1117, stardust #161B22, text #E6EDF3). The block
+    // is an intentional pre-JS FALLBACK ("will be overridden by JavaScript", :18) so first paint is
+    // not unstyled. themeUtils then wins at runtime by document order. That is the design, not luck.
+    //
+    // The REAL hazard is duplication drift: two hand-maintained copies of one palette. (It is in
+    // parity TODAY — verified by the fallback-parity test below, which is the guard that actually
+    // matters and which already caught one bad edit.) This ratchet just stops the duplicate spreading to more entry
+    // points. NOTE: the separate question of whether `crystallineDark`'s backgrounds SHOULD be the
+    // documented Crystalline Swan palette (#0A0A0F/#141419/#1A1A24) instead of GitHub-family darks is
+    // a live product decision for Sean — it would restyle the whole app and is NOT decided here.
     const KNOWN_VIOLATION = ['App.tsx'];
     const importers = MOUNTED.filter((f) => {
       if (rel(f).includes('universal-theme-styles.css')) return false;
@@ -132,6 +184,58 @@ describe('token discipline — Palette Law A enforcement', () => {
     expect(
       unexpected,
       `universal-theme-styles.css is a competing token owner. Do not add importers; the existing one (App.tsx:78) is being removed in the token-cleanup slice.\n${unexpected.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('keeps the pre-JS fallback block at parity with the crystallineDark theme', () => {
+    // THE GUARD THAT MATTERS. universal-theme-styles.css:19-49 is a hand-maintained duplicate of the
+    // active theme's palette, painted before JS injects the real one. If the theme changes and this
+    // copy doesn't, users get a first-paint flash of the OLD palette — a silent, hard-to-reproduce bug.
+    // This test makes that drift impossible. It already caught one (--text-muted 0.6 vs 0.55).
+    const css = read(join(SRC, 'styles/universal-theme-styles.css'));
+    const theme = read(join(SRC, 'context/ThemeContext/UniversalThemeContext.tsx'));
+
+    // Scope to the crystallineDark block: from its declaration to the next top-level theme const.
+    const start = theme.indexOf('const crystallineDark');
+    expect(start, 'crystallineDark theme not found — update this test to the new theme source.').toBeGreaterThan(-1);
+    const rest = theme.slice(start + 1);
+    const nextConst = rest.indexOf('\nconst ');
+    const block = nextConst === -1 ? rest : rest.slice(0, nextConst);
+
+    const cssVar = (name: string): string | null => {
+      const m = css.match(new RegExp(`--${name}\\s*:\\s*([^;]+);`));
+      return m ? m[1].trim() : null;
+    };
+    /** Reads `key: 'value'` inside a named sub-object (background/text) of the theme block. */
+    const themeVal = (group: string, key: string): string | null => {
+      const g = block.match(new RegExp(`${group}\\s*:\\s*\\{([\\s\\S]*?)\\n\\s{2}\\}`));
+      if (!g) return null;
+      const m = g[1].match(new RegExp(`\\b${key}\\s*:\\s*'([^']+)'`));
+      return m ? m[1].trim() : null;
+    };
+
+    const PARITY: Array<[string, string, string]> = [
+      // [css var, theme group, theme key]
+      ['bg-primary', 'background', 'primary'],
+      ['bg-secondary', 'background', 'secondary'],
+      ['bg-surface', 'background', 'surface'],
+      ['bg-elevated', 'background', 'elevated'],
+      ['text-primary', 'text', 'primary'],
+      ['text-secondary', 'text', 'secondary'],
+      ['text-muted', 'text', 'muted'],
+    ];
+
+    const drift: string[] = [];
+    for (const [v, group, key] of PARITY) {
+      const a = cssVar(v);
+      const b = themeVal(group, key);
+      // Only assert when BOTH sides are readable; a null means the source moved and the mismatch
+      // report would be noise, not signal.
+      if (a && b && a.toLowerCase() !== b.toLowerCase()) drift.push(`--${v}: css="${a}" vs theme.${group}.${key}="${b}"`);
+    }
+    expect(
+      drift,
+      `The pre-JS fallback in universal-theme-styles.css has drifted from the crystallineDark theme.\nUsers will see a first-paint flash of the wrong palette. Update the CSS block to match the theme.\n${drift.join('\n')}`,
     ).toEqual([]);
   });
 
