@@ -151,7 +151,7 @@ for (const themeId of THEMES) {
     await installSession(page, themeId);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dashboard/admin/coach-assistant', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
     await expect(page.getByRole('textbox', { name: /message swan coach/i })).toBeVisible({ timeout: 45_000 });
 
     const t = await readTokens(page);

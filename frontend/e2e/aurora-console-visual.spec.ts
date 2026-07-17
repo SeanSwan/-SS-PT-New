@@ -150,7 +150,7 @@ async function installSession(
 
 async function gotoCoach(page: Page) {
   await page.goto('/dashboard/admin/coach-assistant', { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
   const composer = page.getByRole('textbox', { name: /message swan coach/i });
   await expect(composer).toBeVisible({ timeout: 45_000 });
   return composer;
