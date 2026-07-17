@@ -31,6 +31,7 @@ import {
 import { buildChatRouteRequestContext, buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildTeachPromptRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 import { useCoachCommandCenterPendingFood } from './hooks/useCoachCommandCenterPendingFood';
+import { useCoachComposerDraft } from './hooks/useCoachComposerDraft';
 import { useCoachClientNotebook } from './hooks/useCoachClientNotebook';
 import { useCoachPinnedClient } from './hooks/useCoachPinnedClient';
 import type { DrawerSide } from './CoachCommandCenter.types';
@@ -164,10 +165,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
     [coachQueue.health?.nextOperatorAction?.label, coachQueue.health?.status, coachQueue.isLoading, summary],
   );
   const intakeStates = useMemo(() => buildIntakeStates(summary), [summary]);
-  const dossierTiles = useMemo(
-    () => buildDossierTiles(initialReviewMergeRequestId, selectedClientLabel, summary),
-    [initialReviewMergeRequestId, selectedClientLabel, summary],
-  );
+  const dossierTiles = useMemo(() => buildDossierTiles(initialReviewMergeRequestId, selectedClientLabel, summary), [initialReviewMergeRequestId, selectedClientLabel, summary]);
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
   const handleGuidePrompt = useCallback((prompt: string) => {
@@ -181,6 +179,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
   const notebook = useCoachClientNotebook({ clientId: effectiveClientId, clientLabel: selectedClientLabel,
     commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
+  useCoachComposerDraft(activeThreadId, commandText, setCommandText);
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,
