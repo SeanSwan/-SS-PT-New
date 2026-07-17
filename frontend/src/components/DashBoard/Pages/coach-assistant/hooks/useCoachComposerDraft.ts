@@ -9,7 +9,11 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 
 const DEBOUNCE_MS = 400;
-type DraftScope = { actorId?: string | number | null; clientId?: number | null };
+type DraftScope = {
+  actorId?: string | number | null;
+  clientId?: number | null;
+  enabled?: boolean;
+};
 
 export function coachDraftKey(threadKey: string | number | null, scope: DraftScope = {}): string {
   const actor = scope.actorId ?? 'unknown-actor';
@@ -23,19 +27,22 @@ export function useCoachComposerDraft(
   setCommandText: Dispatch<SetStateAction<string>>,
   scope: DraftScope = {},
 ) {
+  const enabled = scope.enabled ?? true;
   const key = coachDraftKey(threadKey, scope);
   const restoreKeyRef = useRef(key);
 
   useEffect(() => {
+    const keyChanged = restoreKeyRef.current !== key;
+    restoreKeyRef.current = key;
+    if (!enabled) return;
+
     try {
       const saved = window.sessionStorage.getItem(key) || '';
-      const scopeChanged = restoreKeyRef.current !== key;
-      restoreKeyRef.current = key;
-      setCommandText((current) => (scopeChanged ? saved : current.trim() ? current : saved));
+      setCommandText((current) => (keyChanged ? saved : current.trim() ? current : saved));
     } catch {
       // Storage unavailable (private mode/quota) - drafts just do not persist.
     }
-  }, [key, setCommandText]);
+  }, [enabled, key, setCommandText]);
 
   const writeKeyRef = useRef(key);
   useEffect(() => {
@@ -43,6 +50,7 @@ export function useCoachComposerDraft(
       writeKeyRef.current = key;
       return undefined;
     }
+    if (!enabled) return undefined;
     const timer = window.setTimeout(() => {
       try {
         if (commandText.trim()) window.sessionStorage.setItem(key, commandText);
@@ -52,5 +60,5 @@ export function useCoachComposerDraft(
       }
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [commandText, key]);
+  }, [commandText, enabled, key]);
 }

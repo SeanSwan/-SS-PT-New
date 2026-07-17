@@ -27,26 +27,30 @@ export function formatExpiryCountdown(remaining: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function initialRemaining(expiresAt?: string): number {
-  if (!expiresAt) return CONFIRMATION_TTL_SECONDS;
+function resolveExpiryDeadline(expiresAt?: string): number {
+  if (!expiresAt) return Date.now() + (CONFIRMATION_TTL_SECONDS * 1000);
   const expiryMs = Date.parse(expiresAt);
-  if (!Number.isFinite(expiryMs)) return CONFIRMATION_TTL_SECONDS;
-  return Math.max(0, Math.ceil((expiryMs - Date.now()) / 1000));
+  return Number.isFinite(expiryMs)
+    ? expiryMs
+    : Date.now() + (CONFIRMATION_TTL_SECONDS * 1000);
+}
+
+function remainingUntil(deadline: number): number {
+  return Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 }
 
 export function useConfirmationCardState(options: { done: boolean; expiresAt?: string; isDestructive: boolean }) {
-  const [remaining, setRemaining] = useState(() => initialRemaining(options.expiresAt));
+  const [remaining, setRemaining] = useState(() => remainingUntil(resolveExpiryDeadline(options.expiresAt)));
   const [armed, setArmed] = useState(false);
 
   useEffect(() => {
-    setRemaining(initialRemaining(options.expiresAt));
-  }, [options.expiresAt]);
-
-  useEffect(() => {
+    const deadline = resolveExpiryDeadline(options.expiresAt);
+    const syncRemaining = () => setRemaining(remainingUntil(deadline));
+    syncRemaining();
     if (options.done) return undefined;
-    const timer = window.setInterval(() => setRemaining((value) => (value > 0 ? value - 1 : 0)), 1000);
+    const timer = window.setInterval(syncRemaining, 1000);
     return () => window.clearInterval(timer);
-  }, [options.done]);
+  }, [options.done, options.expiresAt]);
 
   useEffect(() => {
     if (!armed) return undefined;

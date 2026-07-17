@@ -12,4 +12,14 @@ describe('recentClientIds (v2 P2.3)', () => {
     expect(recentClientIds([], null)).toEqual([]);
     expect(recentClientIds([{ targetUserId: -5 }, { targetUserId: 'abc' }], null)).toEqual([]);
   });
+
+  it('omits historical conversation targets outside the current authorized roster', () => {
+    const threads = [
+      { targetUserId: 84 },
+      { targetUserId: 91 },
+      { targetUserId: 33 },
+    ];
+
+    expect(recentClientIds(threads, null, 3, [84, 33])).toEqual([84, 33]);
+  });
 });

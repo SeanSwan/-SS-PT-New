@@ -11,12 +11,14 @@ export function recentClientIds(
   threads: ThreadLike[],
   excludeClientId: number | null,
   limit = 3,
+  allowedClientIds?: readonly number[],
 ): number[] {
+  const allowed = allowedClientIds ? new Set(allowedClientIds) : null;
   const seen = new Set<number>();
   const result: number[] = [];
   for (const thread of threads) {
     const id = Number(thread.targetUserId);
-    if (!Number.isSafeInteger(id) || id <= 0 || id === excludeClientId || seen.has(id)) continue;
+    if (!Number.isSafeInteger(id) || id <= 0 || id === excludeClientId || seen.has(id) || (allowed && !allowed.has(id))) continue;
     seen.add(id);
     result.push(id);
     if (result.length >= limit) break;

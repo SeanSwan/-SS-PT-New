@@ -53,6 +53,7 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
   const [failed, setFailed] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
 
+  const openerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return undefined;
     let cancelled = false;
@@ -75,8 +76,21 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
 
   useEffect(() => {
     if (!open) return undefined;
+    openerRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     panelRef.current?.focus();
-const onKeyDown = (event: KeyboardEvent) => {
+
+    return () => {
+      const opener = openerRef.current;
+      openerRef.current = null;
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
@@ -143,7 +157,7 @@ const onKeyDown = (event: KeyboardEvent) => {
                     >
                       <strong>{friendlyCommandName(command.type)}</strong>
                       {command.description ? <span>{command.description}</span> : null}
-                      {example ? <em>"{example}"</em> : null}
+                      {example ? <em>{`“${example}”`}</em> : null}
                     </SheetCommandButton>
                   );
                 })}

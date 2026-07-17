@@ -38,6 +38,20 @@ describe('ConfirmationCard expiry + destructive gate', () => {
     act(() => vi.advanceTimersByTime(11_000));
     expect(screen.getByText(/This request expired/i)).toBeInTheDocument();
   });
+
+  it('recomputes from the absolute server expiry after background timer suspension', () => {
+    vi.setSystemTime(new Date('2026-07-17T12:00:00.000Z'));
+    const onConfirm = vi.fn(async () => ({ success: true }));
+    render(<ConfirmationCard {...baseProps} expiresAt="2026-07-17T12:01:00.000Z" isDestructive={false} onConfirm={onConfirm} />);
+    expect(screen.getByText(/Expires in 1:00/)).toBeInTheDocument();
+
+    act(() => {
+      vi.setSystemTime(new Date('2026-07-17T12:02:00.000Z'));
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByText(/This request expired/i)).toBeInTheDocument();
+  });
+
   it('shows a live countdown, then swaps to the expired state with a re-issue action', () => {
     const onConfirm = vi.fn(async () => ({ success: true }));
     const onReissue = vi.fn();

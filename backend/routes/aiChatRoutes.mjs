@@ -1033,7 +1033,7 @@ router.delete('/conversations/:id', async (req, res) => {
  * Transcribe an uploaded audio file using Gemini Flash multimodal.
  * Rate limited to 10 transcriptions per hour per user.
  */
-router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (req, res) => {
+router.post('/transcribe', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, audioUpload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No audio file provided' });
@@ -1089,7 +1089,7 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
  * Fenrir — deeper, authoritative
  * Puck — playful, youthful
  */
-router.post('/tts', aiRateLimiter, async (req, res) => {
+router.post('/tts', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
   try {
     const { text, voice = 'Kore' } = req.body;
     if (!text || typeof text !== 'string') {

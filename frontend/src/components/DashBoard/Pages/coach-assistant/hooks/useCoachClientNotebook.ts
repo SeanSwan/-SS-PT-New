@@ -26,6 +26,7 @@ export type CoachNotebookControls = {
 };
 
 type UseCoachClientNotebookParams = {
+  actorId?: string | number | null;
   clientId: number | null;
   clientLabel: string;
   commandText: string;
@@ -34,8 +35,9 @@ type UseCoachClientNotebookParams = {
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
 
-function draftKey(clientId: number): string {
-  return `${NOTE_DRAFT_PREFIX}${clientId}`;
+export function coachNotebookDraftKey(actorId: string | number | null | undefined, clientId: number): string {
+  const actor = actorId ?? 'unknown-actor';
+  return `${NOTE_DRAFT_PREFIX}${actor}:${clientId}`;
 }
 
 export function buildWorkoutDraftFromNotesPrompt(): string {
@@ -49,6 +51,7 @@ export function buildWorkoutDraftFromNotesPrompt(): string {
 }
 
 export function useCoachClientNotebook({
+  actorId,
   clientId,
   clientLabel,
   commandText,
@@ -56,35 +59,35 @@ export function useCoachClientNotebook({
   setCommandText,
   setSelectedStatus,
 }: UseCoachClientNotebookParams) {
-  const [modeClientId, setModeClientId] = useState<number | null>(null);
+  const notebookKey = clientId ? coachNotebookDraftKey(actorId, clientId) : null;
+  const [modeDraftKey, setModeDraftKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const currentClientIdRef = useRef(clientId);
+  const currentNotebookKeyRef = useRef(notebookKey);
   const saveOperationRef = useRef(0);
-  currentClientIdRef.current = clientId;
-  const active = Boolean(clientId && modeClientId === clientId);
+  currentNotebookKeyRef.current = notebookKey;
+  const active = Boolean(notebookKey && modeDraftKey === notebookKey);
 
   useEffect(() => {
     saveOperationRef.current += 1;
-    setModeClientId(null);
+    setModeDraftKey(null);
     setSaving(false);
     setCommandText('');
-  }, [clientId, setCommandText]);
+  }, [notebookKey, setCommandText]);
 
   useEffect(() => {
-    if (!active || !clientId) return;
-    const key = draftKey(clientId);
-    if (commandText.trim()) sessionStorage.setItem(key, commandText);
-    else sessionStorage.removeItem(key);
-  }, [active, clientId, commandText]);
+    if (!active || !notebookKey) return;
+    if (commandText.trim()) sessionStorage.setItem(notebookKey, commandText);
+    else sessionStorage.removeItem(notebookKey);
+  }, [active, commandText, notebookKey]);
 
   const onToggle = useCallback(() => {
-    if (!clientId) {
+    if (!clientId || !notebookKey) {
       setSelectedStatus('Choose a main client before capturing profile notes');
       return;
     }
     const nextActive = !active;
-    setModeClientId(nextActive ? clientId : null);
-    setCommandText(nextActive ? sessionStorage.getItem(draftKey(clientId)) || '' : '');
+    setModeDraftKey(nextActive ? notebookKey : null);
+    setCommandText(nextActive ? sessionStorage.getItem(notebookKey) || '' : '');
     setSelectedStatus(nextActive
       ? `Client Notes mode - microphone and typing save to ${clientLabel}`
       : 'Coach Chat mode - messages stay bound to the pinned client');
@@ -94,6 +97,7 @@ export function useCoachClientNotebook({
     clientId,
     clientLabel,
     commandTextRef,
+    notebookKey,
     setCommandText,
     setSelectedStatus,
   ]);
@@ -103,7 +107,7 @@ export function useCoachClientNotebook({
       setSelectedStatus('Choose a main client before drafting workouts from notes');
       return;
     }
-    setModeClientId(null);
+    setModeDraftKey(null);
     setCommandText(buildWorkoutDraftFromNotesPrompt());
     setSelectedStatus('Workout-from-notes prompt staged - review before sending');
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
@@ -111,7 +115,7 @@ export function useCoachClientNotebook({
 
   const handleSubmit = useCallback(async (event: FormEvent) => {
     event.preventDefault();
-    if (!clientId || saving) return;
+    if (!clientId || !notebookKey || saving) return;
     const content = commandText.trim();
     if (!content) return;
     if (content.length > NOTE_MAX_CHARS) {
@@ -120,6 +124,7 @@ export function useCoachClientNotebook({
     }
 
     const requestClientId = clientId;
+    const requestNotebookKey = notebookKey;
     const operationId = saveOperationRef.current + 1;
     saveOperationRef.current = operationId;
     setSaving(true);
@@ -134,15 +139,21 @@ export function useCoachClientNotebook({
       if (response?.data?.success === false) {
         throw new Error(response.data.message || 'Client note was not saved');
       }
-      sessionStorage.removeItem(draftKey(requestClientId));
-      if (currentClientIdRef.current === requestClientId && saveOperationRef.current === operationId) {
+      sessionStorage.removeItem(requestNotebookKey);
+      if (
+        currentNotebookKeyRef.current === requestNotebookKey
+        && saveOperationRef.current === operationId
+      ) {
         setCommandText('');
         setSelectedStatus(`Note saved to ${clientLabel} - ready for the next note`);
       }
     } catch (error) {
       const message = (error as { response?: { data?: { message?: string } }; message?: string })
         ?.response?.data?.message;
-      if (currentClientIdRef.current === requestClientId && saveOperationRef.current === operationId) {
+      if (
+        currentNotebookKeyRef.current === requestNotebookKey
+        && saveOperationRef.current === operationId
+      ) {
         setSelectedStatus(message || 'Client note was not saved - your draft is still in the composer');
       }
     } finally {
@@ -152,6 +163,7 @@ export function useCoachClientNotebook({
     clientId,
     clientLabel,
     commandText,
+    notebookKey,
     saving,
     setCommandText,
     setSelectedStatus,
