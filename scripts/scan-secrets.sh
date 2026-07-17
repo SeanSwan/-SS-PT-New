@@ -13,6 +13,7 @@
 #   scripts/scan-secrets.sh --all            audit mode (entire tracked tree + hot-spots)
 #   scripts/scan-secrets.sh --hot-spots      audit known-risky gitignored paths only
 #   scripts/scan-secrets.sh --stdin          scan content piped via stdin (in-memory; used by continuity-append.mjs)
+#   scripts/scan-secrets.sh --range <base>   scan added/modified blobs in <base>..HEAD
 #   scripts/scan-secrets.sh <file>...        specific files on disk
 #
 # Allowlist via .secretignore at repo root.
@@ -53,12 +54,21 @@ PATTERNS=(
 )
 
 COMBINED_REGEX=""
+FAST_COMBINED_REGEX=""
 for entry in "${PATTERNS[@]}"; do
+  name="${entry%%|*}"
   regex="${entry#*|}"
   if [[ -z "$COMBINED_REGEX" ]]; then
     COMBINED_REGEX="($regex)"
   else
     COMBINED_REGEX="$COMBINED_REGEX|($regex)"
+  fi
+  if [[ "$name" != "rotated-password-shape" ]]; then
+    if [[ -z "$FAST_COMBINED_REGEX" ]]; then
+      FAST_COMBINED_REGEX="($regex)"
+    else
+      FAST_COMBINED_REGEX="$FAST_COMBINED_REGEX|($regex)"
+    fi
   fi
 done
 
@@ -143,12 +153,55 @@ git_grep_cached_chunked() {
   return "$found"
 }
 
+# Scan committed blobs without mutating the worktree or index. Git prefixes
+# each hit with <treeish>:<path>:<line>; callers parse that data in-memory and
+# report only the path, pattern name, and line numbers.
+git_grep_tree_chunked() {
+  local treeish="$1"
+  local regex="$2"
+  local output_file="$3"
+  shift 3
+
+  local -a batch=()
+  local file grep_rc
+  local found=1
+
+  : > "$output_file"
+
+  for file in "$@"; do
+    batch+=("$file")
+    if (( ${#batch[@]} >= 100 )); then
+      git grep -I -nE -- "$regex" "$treeish" -- "${batch[@]}" >> "$output_file"
+      grep_rc=$?
+      if (( grep_rc == 0 )); then
+        found=0
+      elif (( grep_rc != 1 )); then
+        return "$grep_rc"
+      fi
+      batch=()
+    fi
+  done
+
+  if (( ${#batch[@]} > 0 )); then
+    git grep -I -nE -- "$regex" "$treeish" -- "${batch[@]}" >> "$output_file"
+    grep_rc=$?
+    if (( grep_rc == 0 )); then
+      found=0
+    elif (( grep_rc != 1 )); then
+      return "$grep_rc"
+    fi
+  fi
+
+  return "$found"
+}
+
 is_allowlisted() {
   local file="$1"
   local pattern_name="$2"
   [[ ! -f "$SECRETIGNORE" ]] && return 1
 
   while IFS= read -r line; do
+    line="${line%$'\r'}"
     [[ -z "$line" || "$line" =~ ^# ]] && continue
 
     if [[ "$line" =~ ^@(.+)$ ]]; then
@@ -335,13 +388,131 @@ scan_staged_fast() {
   return 0
 }
 
+scan_committed_range_fast() {
+  local treeish="$1"
+  local -a range_files=()
+  local f
+
+  scanned=0
+  skipped=0
+  total_hits=0
+
+  for f in "${files[@]}"; do
+    [[ -z "$f" ]] && continue
+    if is_skipped_path "$f"; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+    range_files+=("$f")
+    scanned=$((scanned + 1))
+  done
+
+  [[ ${#range_files[@]} -eq 0 ]] && return 0
+
+  local tmp rc object file line content entry name regex key line_numbers count
+  declare -A lines_by_key=()
+
+  tmp="$(mktemp)"
+  set +e
+  git_grep_tree_chunked "$treeish" "$FAST_COMBINED_REGEX" "$tmp" "${range_files[@]}"
+  rc=$?
+  set -e
+  if (( rc != 0 && rc != 1 )); then
+    rm -f "$tmp"
+    echo "Secret scan failed while scanning committed range." >&2
+    return 2
+  fi
+
+  if (( rc == 0 )); then
+    while IFS=: read -r object file line content; do
+      [[ -z "$file" || -z "$line" ]] && continue
+      for entry in "${PATTERNS[@]}"; do
+        name="${entry%%|*}"
+        [[ "$name" == "rotated-password-shape" ]] && continue
+        regex="${entry#*|}"
+        if [[ "$content" =~ $regex ]]; then
+          key="$name|$file"
+          if [[ -z "${lines_by_key[$key]:-}" ]]; then
+            lines_by_key[$key]="$line"
+          else
+            lines_by_key[$key]="${lines_by_key[$key]},$line"
+          fi
+        fi
+      done
+    done < "$tmp"
+  fi
+  rm -f "$tmp"
+
+  # The password-context expression is intentionally broad, so retain the
+  # cheap shape prefilter used by staged mode before evaluating full context.
+  tmp="$(mktemp)"
+  set +e
+  git_grep_tree_chunked "$treeish" "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" "$tmp" "${range_files[@]}"
+  rc=$?
+  set -e
+  if (( rc != 0 && rc != 1 )); then
+    rm -f "$tmp"
+    echo "Secret scan failed while scanning committed password candidates." >&2
+    return 2
+  fi
+
+  if (( rc == 0 )); then
+    name="rotated-password-shape"
+    for entry in "${PATTERNS[@]}"; do
+      [[ "${entry%%|*}" == "$name" ]] && regex="${entry#*|}"
+    done
+    while IFS=: read -r object file line content; do
+      [[ -z "$file" || -z "$line" ]] && continue
+      if [[ "$content" =~ $regex ]]; then
+        key="$name|$file"
+        if [[ -z "${lines_by_key[$key]:-}" ]]; then
+          lines_by_key[$key]="$line"
+        else
+          lines_by_key[$key]="${lines_by_key[$key]},$line"
+        fi
+      fi
+    done < "$tmp"
+  fi
+  rm -f "$tmp"
+
+  for key in "${!lines_by_key[@]}"; do
+    name="${key%%|*}"
+    file="${key#*|}"
+    line_numbers="${lines_by_key[$key]}"
+    count="$(echo "$line_numbers" | tr ',' '\n' | grep -c .)"
+    if is_allowlisted "$file" "$name"; then
+      echo "  [allowlisted: $name in $file ($count match(es))]" >&2
+      continue
+    fi
+    echo "  [SECRET FOUND: $name in $file (lines: $line_numbers)]" >&2
+    total_hits=$((total_hits + 1))
+  done
+
+  return 0
+}
+
 mode="${1:-}"
 scan_mode="--workingtree"
+range_base=""
 case "$mode" in
   --staged)
     echo "=== Secret scan: STAGED BLOBS (pre-commit mode) ==="
     mapfile -t files < <(git diff --cached --name-only --diff-filter=ACM)
     scan_mode="--stagedblob"
+    ;;
+  --range)
+    range_base="${2:-}"
+    if [[ -z "$range_base" ]]; then
+      echo "Usage: $0 --range <base>" >&2
+      exit 2
+    fi
+    if ! git rev-parse --verify "${range_base}^{commit}" >/dev/null 2>&1; then
+      echo "Secret scan range base is not a commit: $range_base" >&2
+      exit 2
+    fi
+    echo "=== Secret scan: COMMITTED RANGE ${range_base}..HEAD ==="
+    mapfile -t files < <(git diff --name-only --diff-filter=ACM "${range_base}..HEAD")
+    scan_mode="--rangeblob"
     ;;
   --all)
     echo "=== Secret scan: entire tracked tree + hot-spots ==="
@@ -404,6 +575,7 @@ case "$mode" in
     cat <<EOF
 Usage:
   $0 --staged               Scan STAGED BLOBS (pre-commit mode). Reads from git index.
+  $0 --range <base>         Scan added/modified blobs in <base>..HEAD.
   $0 --all                  Scan every tracked file + hot-spots (gitignored risky paths)
   $0 --hot-spots            Scan ONLY known-risky gitignored paths (e.g. .claude/settings.local.json)
   $0 --stdin                Scan content piped via stdin (in-memory only). Used by continuity-append.mjs.
@@ -429,6 +601,36 @@ esac
 total_hits=0
 scanned=0
 skipped=0
+
+if [[ "$scan_mode" == "--rangeblob" ]]; then
+  scan_committed_range_fast "HEAD"
+  scan_rc=$?
+  echo ""
+  echo "=== Scan summary ==="
+  echo "Scanned:     $scanned files"
+  echo "Skipped:     $skipped files (binaries, vendor, generated)"
+  echo "Hits:        $total_hits"
+
+  if (( scan_rc != 0 )); then
+    echo ""
+    echo "SECRET SCAN FAILED. Commit/write blocked until scanner error is fixed."
+    exit "$scan_rc"
+  fi
+
+  if [[ $total_hits -gt 0 ]]; then
+    echo ""
+    echo "SECRETS DETECTED. Commit/write blocked."
+    echo "Pattern names + file paths reported above. Matched lines NOT shown."
+    echo "Open the flagged file at the listed line number to review."
+    echo ""
+    echo "To allowlist a specific file+pattern, add to .secretignore:"
+    echo "  path/to/file.md::pattern-name"
+    exit 1
+  fi
+
+  echo "CLEAN."
+  exit 0
+fi
 
 if [[ "$scan_mode" == "--stagedblob" ]]; then
   scan_staged_fast
