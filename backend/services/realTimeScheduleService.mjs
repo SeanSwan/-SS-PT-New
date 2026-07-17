@@ -31,7 +31,11 @@
 
 import { getIO } from '../socket/socketManager.mjs';
 import logger from '../utils/logger.mjs';
-import { getUser, getSession } from '../models/index.mjs';
+import {
+  sanitizeSchedulePayloadForRoom,
+  selectCancellationEventData,
+  selectCompletionEventData,
+} from './realTimeSchedulePrivacy.mjs';
 
 /**
  * Real-Time Schedule Event Service Class
@@ -75,10 +79,8 @@ class RealTimeScheduleService {
       if (!io) return;
 
       const {
-        rooms = [],
         excludeUser = null,
         priority = 'normal',
-        requireAuth = true,
         sessionId = null,
         trainerId = null,
         clientId = null
@@ -100,10 +102,11 @@ class RealTimeScheduleService {
 
       // Broadcast to each target room
       for (const room of targetRooms) {
+        const roomPayload = sanitizeSchedulePayloadForRoom(payload, room);
         if (excludeUser) {
-          io.to(room).except(excludeUser).emit('schedule:update', payload);
+          io.to(room).except(excludeUser).emit('schedule:update', roomPayload);
         } else {
-          io.to(room).emit('schedule:update', payload);
+          io.to(room).emit('schedule:update', roomPayload);
         }
         
         logger.info(`[RealTimeScheduleService] Event ${eventType} broadcasted to room: ${room}`);
@@ -113,11 +116,11 @@ class RealTimeScheduleService {
       this.eventsEmitted++;
       this.lastEventTime = new Date();
 
-      logger.info(`[RealTimeScheduleService] Event broadcasted successfully`, {
+      logger.info('[RealTimeScheduleService] Event broadcasted successfully', {
         eventType,
-        rooms: targetRooms,
-        excludeUser,
-        payload: payload.data
+        roomCount: targetRooms.length,
+        excludedUser: Boolean(excludeUser),
+        priority,
       });
 
     } catch (error) {
@@ -133,7 +136,9 @@ class RealTimeScheduleService {
    * @returns {Array} Array of room names to broadcast to
    */
   async determineTargetRooms(eventType, eventData, options) {
-    const rooms = [];
+    const rooms = Array.isArray(options.rooms)
+      ? [...options.rooms]
+      : [];
 
     try {
       // Always broadcast to admin room
@@ -293,12 +298,13 @@ class RealTimeScheduleService {
    * Broadcast session cancellation event
    */
   async broadcastSessionCancelled(sessionData, reason, cancelledBy, options = {}) {
+    const cancellationMetadata = selectCancellationEventData(reason, cancelledBy);
+
     await this.broadcastEvent('session:cancelled', {
       sessionId: sessionData.id,
       trainerId: sessionData.trainerId,
       clientId: sessionData.userId,
-      reason,
-      cancelledBy,
+      ...cancellationMetadata,
       startTime: sessionData.startTime,
       endTime: sessionData.endTime,
       cancelledAt: new Date().toISOString()
@@ -315,12 +321,14 @@ class RealTimeScheduleService {
    * Broadcast session completion event
    */
   async broadcastSessionCompleted(sessionData, completionData = {}, options = {}) {
+    const safeCompletionData = selectCompletionEventData(completionData);
+
     await this.broadcastEvent('session:completed', {
       sessionId: sessionData.id,
       trainerId: sessionData.trainerId,
       clientId: sessionData.userId,
       completedAt: new Date().toISOString(),
-      ...completionData
+      ...safeCompletionData
     }, {
       ...options,
       sessionId: sessionData.id,
