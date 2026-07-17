@@ -77,6 +77,8 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
     <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
       {visibleTabs.map(({ id, label, Icon }) => {
         const badge = reviewBadge(id, intakeCount, plaudCount, draftCount);
+        // Inactive tabpanels are unmounted — only the active tab may
+        // reference a panel id, or the aria-controls IDREF dangles.
         return (
           <button
             type="button"
@@ -86,7 +88,7 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
             }}
             className={`tab-button ${activeTab === id ? 'is-active' : ''}`}
             aria-label={badge ? `${label}, ${badge} waiting` : label}
-            aria-controls={`coach-tabpanel-${id}`}
+            aria-controls={activeTab === id ? `coach-tabpanel-${id}` : undefined}
             aria-selected={activeTab === id}
             id={`coach-tab-${id}`}
             onClick={() => onTabChange(id)}

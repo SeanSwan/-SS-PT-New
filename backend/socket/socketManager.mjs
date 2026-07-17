@@ -2,7 +2,7 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.mjs';
-import { getUser } from '../models/index.mjs';
+import { getUser, getSession } from '../models/index.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
 // Global socket.io instance
@@ -397,15 +397,51 @@ async function joinDashboardRooms(socket, userRole) {
 /**
  * Join user to a specific session room for real-time collaboration
  */
+/**
+ * Authorize a socket to subscribe to a session's real-time room. Without this
+ * check any authenticated user could `schedule:join_session` an arbitrary/guessed
+ * sessionId and receive another client's name, location, and booking changes
+ * (IDOR). Access is limited to the session's client, its assigned trainer, and
+ * admins. Fail-closed: any lookup failure or missing session denies the join.
+ */
+async function assertSessionRoomAccess(socket, sessionId) {
+  const user = socket.data?.user;
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+
+  const numericId = Number.parseInt(String(sessionId), 10);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) return false;
+
+  try {
+    const Session = getSession();
+    const session = await Session.findByPk(numericId, {
+      attributes: ['id', 'userId', 'trainerId'],
+    });
+    if (!session) return false;
+    const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+    return sameId(session.userId, user.id) || sameId(session.trainerId, user.id);
+  } catch (err) {
+    logger.warn(`[socket] session room access check failed - denying: ${err?.message}`);
+    return false;
+  }
+}
+
 async function joinSessionRoom(socket, sessionId) {
+  const allowed = await assertSessionRoomAccess(socket, sessionId);
+  if (!allowed) {
+    const err = new Error('Not authorized to join this session room');
+    err.code = 'SESSION_ROOM_FORBIDDEN';
+    throw err;
+  }
+
   const roomName = `session:${sessionId}`;
   await socket.join(roomName);
-  
+
   if (!connectionMetrics.roomMemberships.has(roomName)) {
     connectionMetrics.roomMemberships.set(roomName, new Set());
   }
   connectionMetrics.roomMemberships.get(roomName).add(socket.id);
-  
+
   logger.debug(`Socket ${socket.id} joined session room: ${roomName}`);
 }
 

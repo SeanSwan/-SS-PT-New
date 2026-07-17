@@ -80,7 +80,7 @@ export const decodeSoftAuthUserId = (req) => {
   const token = header.split(' ')[1];
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     if (decoded?.tokenType !== 'access' || !decoded?.id) return null;
     return decoded.id;
   } catch {

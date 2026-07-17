@@ -17,8 +17,10 @@ describe('admin auth JWT secret guard', () => {
     expect(source).toContain('JwtSecretConfigurationError');
   });
 
-  it('verifies admin tokens with the fail-closed secret resolver', () => {
+  it('verifies admin tokens with the fail-closed secret resolver and a pinned algorithm', () => {
     expect(runtimeSource).not.toContain('jwt.verify(token, JWT_SECRET)');
-    expect(runtimeSource.match(/jwt\.verify\(token, getJwtSecret\(\)\)/g)).toHaveLength(3);
+    // All three admin verifies must resolve the secret via getJwtSecret() AND pin HS256
+    // (algorithm-confusion defense-in-depth added in the 2026-07-16 pre-launch review).
+    expect(runtimeSource.match(/jwt\.verify\(token, getJwtSecret\(\), \{ algorithms: \['HS256'\] \}\)/g)).toHaveLength(3);
   });
 });

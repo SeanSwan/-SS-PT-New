@@ -50,6 +50,7 @@ import {
   ModernUserManagementSystem,
   TrainerClientsWorkspace,
   NotesManager,
+  OwnerSupportInboxPage,
   AdminCreateSpecialManager,
   AdminAccountAccessPage,
   NutritionPlanBuilder,
@@ -100,6 +101,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
   admin: {
     routes: [
       { path: '/overview', component: RevolutionaryAdminDashboard, title: 'Command Center', description: 'Administrative oversight' },
+      { path: '/support', component: OwnerSupportInboxPage, title: 'Report Room Inbox', description: 'Private issue triage and agent-ready repair prompts' },
       { path: '/coach-assistant', component: CoachCommandCenterPage, title: 'Coach Command Center', description: 'Review-gated Swan Coach command observatory' },
       { path: '/user-management', component: EnhancedUserDataManagement, title: 'User Data Management', description: 'Complete user data collection & lifecycle management' },
       { path: '/user-management-legacy', component: ModernUserManagementSystem, title: 'User Management (Legacy)', description: 'Traditional user management interface' },

@@ -81,7 +81,7 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(send).toBeEnabled();
   });
 
-  it('locks the composer and blocks Enter while Swan Coach is processing a request', () => {
+  it('keeps the composer typeable but blocks submit while Swan Coach is processing a request', () => {
     useAIChatMock.mockReturnValue({ ...useAIChatMock(), sending: true });
     renderPage('/dashboard/client/coach-assistant', 'client');
 
@@ -89,7 +89,9 @@ describe('CoachCommandCenterPage client mode', () => {
     fireEvent.change(composer, { target: { value: 'Show my recent training.' } });
     fireEvent.keyDown(composer, { key: 'Enter' });
 
-    expect(composer).toHaveAttribute('readonly');
+    // W3 rebuild: typing stays available during a slow request (the input must
+    // never feel dead on mobile); only submission is gated.
+    expect(composer).not.toHaveAttribute('readonly');
     expect(screen.getByRole('button', { name: /Sending to Swan Coach/i })).toBeDisabled();
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
     expect(executeCommandMock).not.toHaveBeenCalled();

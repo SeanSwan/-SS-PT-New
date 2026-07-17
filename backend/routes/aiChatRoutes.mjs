@@ -62,7 +62,7 @@ import {
   sanitizeAiFailoverTrace,
 } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
-import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
+import { stripIdentityFromMessage, stripIdentityFromResponse, scrubGenericPII } from '../services/aiPrivacyService.mjs';
 import {
   checkClientAccess,
   CLIENT_ACCESS_DENIED_MESSAGE,
@@ -713,7 +713,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     }
     let sanitizedMessage = message.trim();
     let piiStripped = false;
-    // Only strip PII when we have a target client to protect
+    // Strip client-identity terms only when we have a target client to name-map.
     if (enrichUserId) {
       try {
         const stripResult = await stripIdentityFromMessage(sanitizedMessage, enrichUserId, sequelize);
@@ -721,6 +721,19 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         piiStripped = stripResult.identitiesStripped > 0;
       } catch (stripErr) {
         logger.warn('[AIChatRoutes] PII stripping failed (non-fatal):', stripErr.message);
+        sanitizedMessage = CURRENT_MESSAGE_WITHHELD;
+        piiStripped = true;
+      }
+    } else {
+      // No selected client to name-map, but the message must STILL never carry raw
+      // contact PII (emails/phones/SSNs/cards) to an external LLM (Rule 8). Fail-closed:
+      // withhold the message if the generic scrub throws.
+      try {
+        const generic = await scrubGenericPII(sanitizedMessage);
+        sanitizedMessage = generic.sanitizedText;
+        piiStripped = generic.piiRemoved > 0;
+      } catch (scrubErr) {
+        logger.warn('[AIChatRoutes] Generic PII scrub failed (non-fatal):', scrubErr.message);
         sanitizedMessage = CURRENT_MESSAGE_WITHHELD;
         piiStripped = true;
       }

@@ -1,20 +1,16 @@
 /**
- * BUILD OPTIMIZATION: Enhanced Error Boundary with Better Logging
- * =============================================================
- * Production-ready error boundary with comprehensive error tracking
- * and automatic recovery mechanisms.
- * 
- * BUILD TIMESTAMP: August 20, 2025 - 16:50 PST
+ * BLUEPRINT: Application Error Boundary
+ * PURPOSE: Recover from render failures and offer a privacy-safe Report Room handoff.
+ * PRIVACY: Production telemetry contains only a stable error code, never messages,
+ *          stacks, full URLs, user agents, query strings, or component trees.
  */
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import styled, { css } from 'styled-components';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import styled from 'styled-components';
-import { logger } from '@/utils/logger';
+import { buildSupportErrorRoute } from '../../pages/support/supportErrorRoute';
+import { logger } from '../../utils/logger';
 
-interface Props {
-  children: ReactNode;
-}
-
+interface Props { children: ReactNode }
 interface State {
   hasError: boolean;
   error: Error | null;
@@ -31,170 +27,166 @@ export class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       retryCount: 0,
-      buildTimestamp: new Date().toISOString()
+      buildTimestamp: new Date().toISOString(),
     };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    console.error('🚨 ErrorBoundary caught error:', error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 ErrorBoundary Details:', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
-    });
-
+    logger.error('[ErrorBoundary] APP_RENDER_ERROR');
     this.setState({ error, errorInfo });
-
-    // Send error to monitoring service (if available)
     if (window.gtag) {
       window.gtag('event', 'exception', {
-        description: error.message,
-        fatal: true
+        description: 'APP_RENDER_ERROR',
+        fatal: true,
       });
     }
   }
 
   handleRetry = () => {
-    logger.log(`🔄 ErrorBoundary retry attempt ${this.state.retryCount + 1}`);
-    this.setState(prevState => ({
+    logger.log(`[ErrorBoundary] retry ${this.state.retryCount + 1}`);
+    this.setState((previous) => ({
       hasError: false,
       error: null,
       errorInfo: null,
-      retryCount: prevState.retryCount + 1
+      retryCount: previous.retryCount + 1,
     }));
   };
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <ErrorContainer>
-          <ErrorContent>
-            <ErrorIcon>⚠️</ErrorIcon>
-            <ErrorTitle>Oops! Something went wrong</ErrorTitle>
-            <ErrorMessage>
-              The application encountered an unexpected error. 
-              {this.state.retryCount > 0 && ` (Retry attempt: ${this.state.retryCount})`}
-            </ErrorMessage>
-            
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <ErrorDetails>
-                <summary>Error Details (Development Mode)</summary>
-                <pre>{this.state.error.message}</pre>
-                <pre>{this.state.error.stack}</pre>
-              </ErrorDetails>
-            )}
-            
-            <ErrorActions>
-              <RetryButton onClick={this.handleRetry}>
-                Try Again
-              </RetryButton>
-            </ErrorActions>
-            
-            <BuildInfo>
-              Build: {this.state.buildTimestamp.slice(0, 19)}
-            </BuildInfo>
-          </ErrorContent>
-        </ErrorContainer>
-      );
-    }
+    if (!this.state.hasError) return this.props.children;
 
-    return this.props.children;
+    return (
+      <ErrorContainer>
+        <ErrorContent role="alert" aria-labelledby="app-error-title">
+          <ErrorIcon aria-hidden="true">!</ErrorIcon>
+          <ErrorTitle id="app-error-title">Something interrupted this page</ErrorTitle>
+          <ErrorMessage>
+            Your session is still here. Try the page again, or send Swan Coach a private report so the issue can be investigated.
+            {this.state.retryCount > 0 && ` Retry attempt: ${this.state.retryCount}.`}
+          </ErrorMessage>
+
+          {import.meta.env.DEV && this.state.error && (
+            <ErrorDetails>
+              <summary>Error details (development only)</summary>
+              <pre>{this.state.error.message}</pre>
+              <pre>{this.state.error.stack}</pre>
+              <pre>{this.state.errorInfo?.componentStack}</pre>
+            </ErrorDetails>
+          )}
+
+          <ErrorActions>
+            <RetryButton type="button" onClick={this.handleRetry}>Try again</RetryButton>
+            <ReportLink href={buildSupportErrorRoute(window.location.pathname, 'APP_RENDER_ERROR')}>
+              Report this problem
+            </ReportLink>
+          </ErrorActions>
+
+          <BuildInfo>Incident time: {this.state.buildTimestamp.slice(0, 19)}</BuildInfo>
+        </ErrorContent>
+      </ErrorContainer>
+    );
   }
 }
 
-// Enhanced Styled Components
 const ErrorContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #002060, #003080);
-  color: white;
-  padding: 2rem;
+  padding: clamp(20px, 4vw, 32px);
+  color: var(--frost-white, #E0ECF4);
+  background: var(--error-page-bg, linear-gradient(135deg, #002060, #003080));
 `;
 
 const ErrorContent = styled.div`
+  width: min(100%, 520px);
+  padding: clamp(28px, 6vw, 48px) clamp(20px, 5vw, 32px);
+  border: 1px solid var(--border-electric, rgba(96, 192, 240, 0.28));
+  border-radius: 18px;
   text-align: center;
-  max-width: 500px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 3rem 2rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--error-card, rgba(20, 20, 25, 0.9));
+  box-shadow: 0 24px 70px var(--shadow-deep, rgba(3, 7, 18, 0.45));
 `;
 
 const ErrorIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border: 1px solid var(--gilded-fern, #C6A84B);
+  border-radius: 50%;
+  color: var(--gilded-fern, #C6A84B);
+  font: 700 32px/1 'Sora', sans-serif;
 `;
 
 const ErrorTitle = styled.h1`
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
+  margin: 0 0 14px;
+  color: var(--frost-white, #E0ECF4);
+  font: 700 clamp(24px, 5vw, 32px)/1.2 'Plus Jakarta Sans', sans-serif;
 `;
 
 const ErrorMessage = styled.p`
-  margin-bottom: 2rem;
-  opacity: 0.9;
-  line-height: 1.6;
+  margin: 0 0 28px;
+  color: var(--text-secondary, #B8C7D9);
+  font: 500 15px/1.65 'Plus Jakarta Sans', sans-serif;
 `;
 
 const ErrorDetails = styled.details`
-  margin-bottom: 2rem;
+  margin-bottom: 24px;
+  padding: 12px;
+  border-radius: 10px;
   text-align: left;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 1rem;
-  
-  summary {
-    cursor: pointer;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-  
-  pre {
-    font-size: 0.75rem;
-    overflow-x: auto;
-    margin: 0.5rem 0;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 0.5rem;
-    border-radius: 4px;
-  }
+  background: var(--graphite, #1A1A24);
+  summary { min-height: 44px; cursor: pointer; font-weight: 650; }
+  pre { max-width: 100%; margin: 8px 0; overflow-x: auto; white-space: pre-wrap; }
 `;
 
 const ErrorActions = styled.div`
   display: flex;
-  gap: 1rem;
   justify-content: center;
-  margin-bottom: 1rem;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  @media (max-width: 480px) { > * { width: 100%; } }
+`;
+
+const controlCss = css`
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 10px;
+  color: var(--frost-white, #E0ECF4);
+  font: 700 14px 'Plus Jakarta Sans', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--wing-purple, #8B5CF6); outline-offset: 3px; }
 `;
 
 const RetryButton = styled.button`
-  background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  }
+  ${controlCss}
+  border: 1px solid var(--wing-purple, #8B5CF6);
+  background: var(--midnight-sapphire, #002060);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  @media (hover: hover) { &:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--purple-glow, rgba(139, 92, 246, 0.28)); } }
+  @media (prefers-reduced-motion: reduce) { transition: none; &:hover { transform: none; } }
+`;
+
+const ReportLink = styled.a`
+  ${controlCss}
+  border: 1px solid var(--ice-wing, #60C0F0);
+  background: transparent;
 `;
 
 const BuildInfo = styled.div`
-  font-size: 0.75rem;
-  opacity: 0.6;
-  margin-top: 1rem;
+  margin-top: 16px;
+  color: var(--text-muted, #91A2B6);
+  font: 500 12px/1.5 'Fira Code', monospace;
 `;

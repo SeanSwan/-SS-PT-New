@@ -190,6 +190,21 @@ function dispatchSafeFrontendActions(actions?: FrontendAction[]) {
   }
 }
 
+/** Swap the optimistic user message for the server exchange without ever
+ * deleting a real message: remove by object identity, and skip re-appending
+ * the user message when a mid-flight reload already persisted it as the tail. */
+function mergeRealExchange(
+  messages: Message[],
+  optimistic: Message,
+  userMessage: Message,
+  assistantMessage: Message,
+): Message[] {
+  const base = messages.filter(entry => entry !== optimistic);
+  const tail = base[base.length - 1];
+  const hasUserTail = Boolean(tail && tail.role === 'user' && tail.content === userMessage.content);
+  return hasUserTail ? [...base, assistantMessage] : [...base, userMessage, assistantMessage];
+}
+
 function enrichAssistantMessageWithActionMetadata(data: any): Message {
   const enrichedAssistantMsg = { ...data.assistantMessage };
   if (
@@ -343,6 +358,7 @@ export function useAIChat(audienceRole?: AIConversationRole) {
       setFailureState('No active conversation');
       return null;
     }
+    const conversationId = activeConversation.id;
 
     // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort();
@@ -374,14 +390,15 @@ export function useAIChat(audienceRole?: AIConversationRole) {
 
       const enrichedAssistantMsg = enrichAssistantMessageWithActionMetadata(data);
 
-      // Replace optimistic message with real response
+      // Replace optimistic message with real response. Guards: conversation
+      // identity (never splice into a thread switched-to mid-flight) and
+      // object identity for the optimistic removal (never delete a real
+      // message when a reload already replaced the optimistic one).
       setActiveConversation(prev => {
-        if (!prev) return prev;
-        // Remove optimistic user message, add real user + assistant messages
-        const messagesWithoutOptimistic = prev.messages.slice(0, -1);
+        if (!prev || prev.id !== conversationId) return prev;
         return {
           ...prev,
-          messages: [...messagesWithoutOptimistic, data.userMessage, enrichedAssistantMsg],
+          messages: mergeRealExchange(prev.messages, optimisticUserMsg, data.userMessage, enrichedAssistantMsg),
           messageCount: data.messageCount,
           title: prev.title || data.userMessage.content.slice(0, 47),
           lastMessageAt: enrichedAssistantMsg.timestamp,
@@ -394,9 +411,9 @@ export function useAIChat(audienceRole?: AIConversationRole) {
     } catch (err: unknown) {
       if (isCanceledAiRequest(err)) return null;
       if (isPaywallError(err)) {
-        setActiveConversation(prev => prev ? {
+        setActiveConversation(prev => prev && prev.id === conversationId ? {
           ...prev,
-          messages: prev.messages.slice(0, -1),
+          messages: prev.messages.filter(entry => entry !== optimisticUserMsg),
         } : prev);
         return { paywallRequired: true, ...getPaywallPayload(err), originalMessage: message };
       }
@@ -405,10 +422,10 @@ export function useAIChat(audienceRole?: AIConversationRole) {
       const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
       const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
       setFailureState(msg, code, retryable);
-      // Remove optimistic message on error
-      setActiveConversation(prev => prev ? {
+      // Remove optimistic message on error (same conversation + same object only)
+      setActiveConversation(prev => prev && prev.id === conversationId ? {
         ...prev,
-        messages: prev.messages.slice(0, -1),
+        messages: prev.messages.filter(entry => entry !== optimisticUserMsg),
       } : prev);
       // Return failure indicator so component can restore input
       return buildAiSendFailure(message, apiErr);
@@ -457,11 +474,15 @@ export function useAIChat(audienceRole?: AIConversationRole) {
     setSending(true);
     clearError();
 
+    // Declared OUTSIDE the try so the catch-path cleanup (which removes the
+    // optimistic message from the same conversation) can reference them.
+    let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId, audienceRole)
+      ? activeConversation.id
+      : null;
+    const optimisticUserMsg: Message = { role: 'user', content: message, timestamp: new Date().toISOString() };
+
     try {
       // Step 1: Ensure we have a conversation (create if needed)
-      let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId, audienceRole)
-        ? activeConversation.id
-        : null;
       if (!convId) {
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (audienceRole) payload.audienceRole = audienceRole;
@@ -483,7 +504,6 @@ export function useAIChat(audienceRole?: AIConversationRole) {
       }
 
       // Step 2: Optimistic user message
-      const optimisticUserMsg: Message = { role: 'user', content: message, timestamp: new Date().toISOString() };
       setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, optimisticUserMsg] } : prev);
 
       // Step 3: Send message using the conversation ID we have (not from state)
@@ -503,12 +523,13 @@ export function useAIChat(audienceRole?: AIConversationRole) {
 
       const enrichedAssistantMsg = enrichAssistantMessageWithActionMetadata(data);
 
+      // Guards: conversation identity (never splice into a thread switched-to
+      // mid-flight) + object identity for the optimistic removal.
       setActiveConversation(prev => {
-        if (!prev) return prev;
-        const messagesWithoutOptimistic = prev.messages.slice(0, -1);
+        if (!prev || prev.id !== convId) return prev;
         return {
           ...prev,
-          messages: [...messagesWithoutOptimistic, data.userMessage, enrichedAssistantMsg],
+          messages: mergeRealExchange(prev.messages, optimisticUserMsg, data.userMessage, enrichedAssistantMsg),
           messageCount: data.messageCount,
           title: prev.title || data.userMessage.content.slice(0, 47),
           lastMessageAt: enrichedAssistantMsg.timestamp,
@@ -521,7 +542,7 @@ export function useAIChat(audienceRole?: AIConversationRole) {
     } catch (err: unknown) {
       if (isCanceledAiRequest(err)) return null;
       if (isPaywallError(err)) {
-        setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
+        setActiveConversation(prev => prev && prev.id === convId ? { ...prev, messages: prev.messages.filter(entry => entry !== optimisticUserMsg) } : prev);
         return { paywallRequired: true, ...getPaywallPayload(err), originalMessage: message };
       }
       const apiErr = toAiApiError(err, 'Failed to send message');
@@ -529,8 +550,8 @@ export function useAIChat(audienceRole?: AIConversationRole) {
       const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
       const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
       setFailureState(msg, code, retryable);
-      // Remove optimistic message on error
-      setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
+      // Remove optimistic message on error (same conversation + same object only)
+      setActiveConversation(prev => prev && prev.id === convId ? { ...prev, messages: prev.messages.filter(entry => entry !== optimisticUserMsg) } : prev);
       return buildAiSendFailure(message, apiErr);
     } finally {
       setSending(false);

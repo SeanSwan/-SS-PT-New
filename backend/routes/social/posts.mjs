@@ -885,9 +885,10 @@ router.post('/', upload.single('media'), async (req, res) => {
     }
 
     // Broadcast to all connected clients for live activity ticker.
-    // Group posts are NEVER broadcast globally — the preview would leak
-    // private-group content to every connected client.
-    if (!groupPost) {
+    // Only PUBLIC, non-group posts may be broadcast globally — the preview would
+    // otherwise leak private/friends-only or private-group content (author name +
+    // 80-char preview) to every connected socket, including unauthenticated ones.
+    if (!groupPost && visibility === 'public') {
       try {
         const io = getIO();
         if (io) {
@@ -1341,8 +1342,10 @@ router.post('/:postId/like', async (req, res) => {
       responseData.ownerPointsAwarded = likeReceivedResult.pointsAwarded;
     }
 
-    // Broadcast reaction to live activity ticker (never for group posts).
-    if (!post.groupId) {
+    // Broadcast reaction to live activity ticker — only for PUBLIC, non-group posts.
+    // Reacting to a private/friends post must not reveal that activity (or the
+    // reactor's name) to every connected socket.
+    if (!post.groupId && post.visibility === 'public') {
       try {
         const io = getIO();
         if (io) {
@@ -1486,8 +1489,9 @@ router.post('/:postId/comments', async (req, res) => {
       responseData.ownerPointsAwarded = commentReceivedResult.pointsAwarded;
     }
     
-    // Broadcast comment to live activity ticker (never for group posts).
-    if (!post.groupId) {
+    // Broadcast comment to live activity ticker — only for PUBLIC, non-group posts.
+    // A comment preview on a private/friends post must not leak to every socket.
+    if (!post.groupId && post.visibility === 'public') {
       try {
         const io = getIO();
         if (io) {

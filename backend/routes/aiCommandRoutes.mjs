@@ -387,6 +387,25 @@ router.post('/cancel', protect, async (req, res) => {
   }
 });
 
+// ── GET /metrics/summary — Command success metrics (admin-only) ──────────────
+// v2 P2.2: read-side aggregation over the append-only AiCommandAuditLog.
+// Lazy service import keeps this route's module graph unchanged for existing
+// test harnesses that mock only the execute/confirm dependencies.
+
+router.get('/metrics/summary', protect, async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required' });
+  }
+  try {
+    const { buildCoachCommandMetricsSummary } = await import('../services/ai/coachCommandMetricsSummary.mjs');
+    const summary = await buildCoachCommandMetricsSummary({ days: req.query.days });
+    res.json({ success: true, ...summary });
+  } catch (err) {
+    logAICommandRouteError('[AICommand] Metrics summary error', err, req);
+    res.status(500).json({ success: false, error: 'Failed to build command metrics summary' });
+  }
+});
+
 // ── GET /commands — List available commands for current role ─────────────────
 
 router.get('/commands', protect, (req, res) => {

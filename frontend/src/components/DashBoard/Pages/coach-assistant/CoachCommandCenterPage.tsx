@@ -16,7 +16,9 @@ import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import { resolveCoachPresenceState } from './coachPresenceState';
+import { recentClientIds } from './coachRecentClients';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
+import { useCoachKeyboardInset } from './hooks/useCoachKeyboardInset';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
@@ -62,6 +64,7 @@ const CoachCommandCenterPage: React.FC = () => {
     rightRailRef: commandCenter.rightRailRef,
     shellRef: commandCenter.shellRef,
   });
+  useCoachKeyboardInset(commandCenter.shellRef);
 
   const nextActionLabel = isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
@@ -95,10 +98,7 @@ const CoachCommandCenterPage: React.FC = () => {
     commandCenter.commandTextRef.current?.focus({ preventScroll: true });
   };
 
-  const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
-    commandCenter.handleThreadSelect(thread);
-    setActiveTab('talk');
-  };
+  const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => { commandCenter.handleThreadSelect(thread); setActiveTab('talk'); };
 
   useEffect(() => {
     if (routeForcedTab) {
@@ -133,22 +133,14 @@ const CoachCommandCenterPage: React.FC = () => {
     requestReviewWorkspaceFocus();
   };
 
-  const openIntakeReview = () => {
-    setActiveTab('review');
-    setActiveReviewSection('intake');
-    requestReviewWorkspaceFocus();
-  };
+  const openIntakeReview = () => { setActiveTab('review'); setActiveReviewSection('intake'); requestReviewWorkspaceFocus(); };
   const handleReviewIntakeFromDock = () => { openIntakeReview(); commandCenter.handleReviewIntake(); };
 
-  const handleAccountControlsToggle = () => {
-    setAccountControlsOpen((current) => !current);
-  };
+  const handleAccountControlsToggle = () => setAccountControlsOpen((current) => !current);
 
   const handleOpenIntakeFromOps = () => { openIntakeReview(); commandCenter.closeDrawer(false); };
 
-  const handleTabChange = (tab: CoachTab) => {
-    setActiveTab(coerceCoachTabForRole(tab, userRole));
-  };
+  const handleTabChange = (tab: CoachTab) => setActiveTab(coerceCoachTabForRole(tab, userRole));
 
   return (
     <CommandBridgeShell
@@ -159,6 +151,7 @@ const CoachCommandCenterPage: React.FC = () => {
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
           clientPin={commandCenter.clientPin}
+          recentIds={isClientMode ? undefined : recentClientIds(commandCenter.allCoachThreads, commandCenter.clientPin.selectedClientId)}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
@@ -182,12 +175,16 @@ const CoachCommandCenterPage: React.FC = () => {
             <div className="chat-panel" id="coach-tabpanel-talk" role="tabpanel" aria-labelledby="coach-tab-talk">
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
+                busy={commandCenter.commandBusy}
                 clientFacing={isClientMode}
                 logs={commandCenter.logs}
+                nextActionLabel={nextActionLabel}
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}
-                onReset={commandCenter.resetLogs}
+                onRetryMessage={commandCenter.handleRetryMessage}
+                onSpeak={commandCenter.speakText}
                 onSuggestedPrompt={handleSuggestedPrompt}
+                threadLoading={commandCenter.chatLoading}
                 workoutLoggerRoute={workoutLoggerRoute}
                 workoutLoggerScopeLabel={workoutLoggerScopeLabel}
               />
@@ -233,7 +230,6 @@ const CoachCommandCenterPage: React.FC = () => {
             commandFormRef={commandCenter.commandFormRef}
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
-            nextActionLabel={nextActionLabel}
             notebook={commandCenter.notebook}
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}

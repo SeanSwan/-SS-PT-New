@@ -7,6 +7,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { validationMiddleware } from '../middleware/validationMiddleware.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -124,10 +125,11 @@ router.get('/', protect, async (req, res) => {
         return res.status(400).json({ success: false, message: parsedUserId.message });
       }
 
-      // Allow trainers and admins to view other users' sessions
-      if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
-        return res.status(403).json({ 
-          message: 'You are not authorized to view this user\'s workout sessions' 
+      // Allow self, admins, and trainers with an active assignment to the target client
+      const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedUserId.value);
+      if (!authorized) {
+        return res.status(403).json({
+          message: 'You are not authorized to view this user\'s workout sessions'
         });
       }
       where.userId = parsedUserId.value;
@@ -216,8 +218,9 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
 
-    // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    // Authorization: self, admin, or trainer with an active assignment to the session's client
+    const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId);
+    if (!authorized) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to view this workout session'
@@ -271,17 +274,18 @@ router.post('/',
     try {
       const sessionData = req.body;
       
-      // Override userId with authenticated user if not admin/trainer
+      // Clients may only create for themselves. Trainers/admins may create for another
+      // user only with an active assignment to that client (admins bypass the assignment).
       if (!isPrivileged(req.user.role)) {
         sessionData.userId = req.user.id;
-      } else {
-        // Verify the target user exists if admin/trainer is creating for someone else
-        if (!sameId(sessionData.userId, req.user.id)) {
-          // FIXED: Use Sequelize findByPk instead of Mongoose findById
-          const userExists = await User.findByPk(sessionData.userId);
-          if (!userExists) {
-            return res.status(404).json({ success: false, message: 'Target user not found' });
-          }
+      } else if (!sameId(sessionData.userId, req.user.id)) {
+        const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, sessionData.userId);
+        if (!authorized) {
+          return res.status(403).json({ success: false, message: 'You are not authorized to create a session for this user' });
+        }
+        const userExists = await User.findByPk(sessionData.userId);
+        if (!userExists) {
+          return res.status(404).json({ success: false, message: 'Target user not found' });
         }
       }
       
@@ -318,8 +322,9 @@ router.put('/:id',
         return res.status(404).json({ success: false, message: 'Workout session not found' });
       }
 
-      // Check authorization - compare as integers
-      if (!sameId(existingSession.userId, req.user.id) && !isPrivileged(req.user.role)) {
+      // Authorization: self, admin, or trainer with an active assignment to the session's client
+      const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, existingSession.userId);
+      if (!authorized) {
         return res.status(403).json({
           success: false,
           message: 'You are not authorized to update this workout session'
@@ -354,8 +359,9 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
 
-    // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    // Authorization: self, admin, or trainer with an active assignment to the session's client
+    const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId);
+    if (!authorized) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this workout session'
@@ -396,14 +402,20 @@ router.post('/start', protect, async (req, res) => {
       isActive: true // Flag to indicate an active session
     };
     
-    // Override userId with authenticated user if not admin/trainer
+    // Clients may only start for themselves. Trainers/admins may start for another
+    // user only with an active assignment to that client (admins bypass the assignment).
     if (!isPrivileged(req.user.role)) {
       sessionData.userId = req.user.id;
+    } else if (!sameId(sessionData.userId, req.user.id)) {
+      const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, sessionData.userId);
+      if (!authorized) {
+        return res.status(403).json({ success: false, message: 'You are not authorized to start a session for this user' });
+      }
     }
-    
+
     // Create the session
     const session = await WorkoutSession.create(sessionData);
-    
+
     res.status(201).json({ session });
   } catch (error) {
     console.error('Error starting workout session:', error);
@@ -427,14 +439,15 @@ router.post('/:id/end', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
 
-    // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    // Authorization: self, admin, or trainer with an active assignment to the session's client
+    const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId);
+    if (!authorized) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this workout session'
       });
     }
-    
+
     // Update session data
     session.isActive = false;
     
@@ -504,10 +517,11 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: parsedUserId.message });
     }
     
-    // Check authorization
-    if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to view this user\'s statistics' 
+    // Authorization: self, admin, or trainer with an active assignment to the target client
+    const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedUserId.value);
+    if (!authorized) {
+      return res.status(403).json({
+        message: 'You are not authorized to view this user\'s statistics'
       });
     }
     

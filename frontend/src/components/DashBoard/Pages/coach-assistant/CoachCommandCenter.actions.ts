@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, MouseEvent, MutableRefObject, RefObject, SetStateAction } from 'react';
 import type { ConversationSummary, useAIChat } from '../../../../hooks/useAIChat';
-import { createQuickCoachCommandClient, type CoachCommandClientSource } from '../../../../services/coachCommandClientService';
+import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
+import { createQuickClientSubmitAction } from './CoachCommandCenter.quickClientAction';
 import {
   commandCancelledBody,
   commandLaneErrorBody,
@@ -16,9 +17,9 @@ import {
   type ConfirmCoachCommand,
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
+import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
-import { buildCommandLogAccessHandoff, commandLogAccessHandoffAttachment, commandLogAccessHandoffIntro } from './CoachCommandCenter.accessHandoff';
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
@@ -47,6 +48,7 @@ type CoachCommandActionProps = {
   routeIntent: string | null;
   routeContextPrompt: string | null;
   routeRequestContext: CoachChatRouteRequestContext | null;
+  isBusy?: () => boolean;
   speakCoachReply?: (text: string) => void;
   workoutPlannerRoute?: string | null;
   onThreadSelectRoute: (thread: ConversationSummary) => void;
@@ -64,8 +66,11 @@ type CoachCommandActionProps = {
 };
 
 export function createCoachCommandCenterActions(props: CoachCommandActionProps) {
-  const addLog = (entry: Omit<CommandLogEntry, 'id'>) => {
-    props.setLogs((current) => [{ ...entry, id: `log-${Date.now()}-${current.length}` }, ...current]);
+  const addLog = (entry: Omit<CommandLogEntry, 'id' | 'at'>) => {
+    props.setLogs((current) => [
+      { ...entry, id: `log-${Date.now()}-${current.length}`, at: new Date().toISOString() },
+      ...current,
+    ]);
   };
   const focusComposer = (value?: string, status?: string) => {
     if (value !== undefined) props.setCommandText(value);
@@ -87,6 +92,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.onThreadSelectRoute(thread);
     props.setAutoSelectSuppressed(false);
     props.setActiveThreadId(thread.id);
+    // Session bubbles and half-typed text belong to their thread — never
+    // carry X's into Y (the per-thread draft restores each side).
+    props.setLogs(INITIAL_COMMAND_LOGS);
+    props.setCommandText('');
     props.setSelectedStatus(status);
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);
@@ -113,57 +122,26 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.onNewThreadRoute();
     props.setAutoSelectSuppressed(true);
     props.setActiveThreadId(null);
+    props.setLogs(INITIAL_COMMAND_LOGS);
     closeDrawer(false);
     props.setCommandText('');
     props.setSelectedStatus(props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
     focusComposer();
   };
 
-  const handleQuickClientSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    const fullName = props.quickClientName.trim();
-    if (!fullName) {
-      props.setQuickClientError('Client name is required.');
-      props.setQuickClientMessage(null);
-      return;
-    }
+  const handleQuickClientSubmit = createQuickClientSubmitAction({
+    addLog,
+    coachQueue: props.coachQueue,
+    quickClientName: props.quickClientName,
+    quickClientSource: props.quickClientSource,
+    setQuickClientBusy: props.setQuickClientBusy,
+    setQuickClientError: props.setQuickClientError,
+    setQuickClientMessage: props.setQuickClientMessage,
+    setQuickClientName: props.setQuickClientName,
+    setSelectedStatus: props.setSelectedStatus,
+  });
 
-    props.setQuickClientBusy(true);
-    props.setQuickClientError(null);
-    props.setQuickClientMessage(null);
-    try {
-      const result = await createQuickCoachCommandClient({ fullName, clientSource: props.quickClientSource });
-      const createdName = [result.client.firstName, result.client.lastName].filter(Boolean).join(' ') || fullName;
-      const accessHandoff = buildCommandLogAccessHandoff({ result, createdName, fallbackClientSource: props.quickClientSource });
-      const status = `${createdName} - client ready`;
-      props.setQuickClientName('');
-      props.setQuickClientMessage(`${createdName} is ready for review-gated follow-up. No workout log was written.`);
-      addLog({
-        actor: 'system',
-        label: 'client added',
-        body: `${createdName} is ready for staged audio/workout review. ${commandLogAccessHandoffIntro(accessHandoff)}No workout log was written and final writes still require operator approval.`,
-        attachments: [commandLogAccessHandoffAttachment(accessHandoff)],
-        accessHandoff,
-      });
-      props.setSelectedStatus(status);
-      void props.coachQueue.refresh();
-    } catch (error: any) {
-      props.setQuickClientError(error?.message || 'Client could not be added.');
-      addLog({
-        actor: 'system',
-        label: 'client add failed',
-        body: 'Quick client add failed. No client or workout write was completed from the command rail.',
-      });
-    } finally {
-      props.setQuickClientBusy(false);
-    }
-  };
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = props.commandText.trim();
-    if (!trimmed) return;
-
+  const submitCoachMessage = async (trimmed: string) => {
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
     props.setSelectedStatus('Sending command to Swan Coach');
@@ -185,6 +163,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           label: 'command lane failed',
           body: commandLaneErrorBody(commandResult),
           attachments: ['command lane error', 'No data was changed'],
+          retryMessage: trimmed,
         });
         props.setSelectedStatus('Command lane failed');
         return;
@@ -195,7 +174,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           label: commandResult.type === 'confirmation_required' ? 'approval required' : 'command lane result',
           body: commandLaneLogBody(commandResult),
           attachments: commandLaneLogAttachments(commandResult),
-          commandConfirmation: commandLaneConfirmation(commandResult),
+          commandConfirmation: commandLaneConfirmation(commandResult, trimmed),
           commandResult: commandLaneResult(commandResult),
         });
         props.setSelectedStatus('Command lane handled');
@@ -206,23 +185,42 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const response = props.routeRequestContext
       ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
       : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
-    if (response && typeof response === 'object' && 'failed' in response) {
-      props.setSelectedStatus('Swan Coach command failed');
-      addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.' });
+    const outcome = interpretCoachChatResponse(response, trimmed, typeof navigator !== 'undefined' && navigator.onLine === false);
+    if (outcome.kind === 'superseded') return;
+    if (outcome.kind !== 'reply') {
+      props.setSelectedStatus(outcome.status);
+      addLog({
+        actor: 'system',
+        label: outcome.label,
+        body: outcome.body,
+        attachments: outcome.attachments,
+        ...(outcome.retryMessage ? { retryMessage: outcome.retryMessage } : {}),
+      });
+      // No retry button on non-retryable failures — hand the words back.
+      if (outcome.kind === 'failed' && !outcome.retryMessage) {
+        props.setCommandText((current) => (current.trim() ? current : trimmed));
+      }
       return;
     }
-    const responseBody = response && typeof response === 'object' && 'content' in response
-      ? String(response.content)
-      : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.';
-    addLog({
-      actor: 'coach',
-      label: props.clientFacing ? 'coach response' : 'prepared draft',
-      body: responseBody,
-      attachments: props.clientFacing ? ['review before logging'] : ['draft_review_packet.md', 'approval gate remains locked'],
-    });
-    props.speakCoachReply?.(responseBody);
-    props.setSelectedStatus(props.clientFacing ? 'Swan Coach response ready' : 'Prepared draft awaiting operator approval');
+    addLog({ actor: 'coach', label: props.clientFacing ? 'coach response' : 'coach reply', body: outcome.body, ...(outcome.proposals ? { proposals: outcome.proposals } : {}) });
+    props.speakCoachReply?.(outcome.body);
+    props.setSelectedStatus('Swan Coach response ready');
     void props.chat.listConversations('active', true);
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = props.commandText.trim();
+    if (!trimmed) return;
+    await submitCoachMessage(trimmed);
+  };
+
+  const handleRetryMessage = async (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    // A second send aborts the first inside useAIChat — refuse while busy.
+    if (props.isBusy?.()) return props.setSelectedStatus('Wait for the current message to finish, then retry');
+    await submitCoachMessage(trimmed);
   };
 
   const handleConfirmCommand = async (confirmation: CommandLogConfirmation): Promise<CommandConfirmationResult> => {
@@ -290,6 +288,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     handleNewThread,
     handleQuickClientSubmit,
     handleReadback,
+    handleRetryMessage,
     handleStartPlaudUpload,
     handleSubmit,
     handleThreadSelect,

@@ -25,9 +25,9 @@ describe('auth controller JWT secret guard', () => {
     expect(compactSource).toContain("jwt.sign( { id, role, tokenType: 'access'");
     expect(compactSource).toContain('getJwtSecret(), { expiresIn: JWT_EXPIRY }');
     expect(compactSource).toContain('getRefreshJwtSecret(), { expiresIn: REFRESH_TOKEN_EXPIRY }');
-    expect(compactSource).toContain('jwt.verify( refreshToken, getRefreshJwtSecret() );');
-    expect(compactSource).toContain('jwt.verify(token, getJwtSecret())');
-    expect(compactSource).toContain('jwt.verify(tempToken, getJwtSecret())');
+    expect(compactSource).toContain("jwt.verify( refreshToken, getRefreshJwtSecret(), { algorithms: ['HS256'] } );");
+    expect(compactSource).toContain("jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] })");
+    expect(compactSource).toContain("jwt.verify(tempToken, getJwtSecret(), { algorithms: ['HS256'] })");
   });
 
   it('uses a runtime password reset secret instead of a module-load snapshot', () => {

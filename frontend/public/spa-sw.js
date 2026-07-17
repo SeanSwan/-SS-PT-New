@@ -5,10 +5,11 @@
  * replace/drain any previously-installed caching service worker: it clears
  * all caches on activate and handles nothing else.
  *
- * IMPORTANT: there is deliberately NO 'fetch' listener. With no fetch
- * handler, browsers skip service-worker dispatch entirely (navigation
- * fast path) — the previous passive listener added overhead to every
- * request and logged noise in every production session.
+ * IMPORTANT: there is deliberately NO 'fetch' listener.
+ * Intentionally no event.respondWith anywhere: with no fetch handler,
+ * browsers skip service-worker dispatch entirely (navigation fast path) —
+ * the previous passive listener added overhead to every request and
+ * logged noise in every production session.
  */
 
 self.addEventListener('install', () => {

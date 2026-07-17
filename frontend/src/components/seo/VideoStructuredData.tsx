@@ -58,10 +58,18 @@ const VideoStructuredData: React.FC<VideoStructuredDataProps> = ({
     },
   };
 
+  // Escape `<`, `>`, and `&` so a value containing `</script>` cannot break out
+  // of the JSON-LD <script> block and inject executable markup (XSS). JSON.stringify
+  // does not escape these on its own; the \u-escaped forms remain valid JSON.
+  const safeJson = JSON.stringify(schema)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: safeJson }}
     />
   );
 };

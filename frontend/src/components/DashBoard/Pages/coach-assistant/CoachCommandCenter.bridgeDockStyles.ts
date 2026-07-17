@@ -62,6 +62,20 @@ export const coachCommandDockStyles = css`
     min-height: 32px;
     padding: 7px 12px;
   }
+  .transcript-empty-next {
+    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 24%, transparent);
+    border-radius: 999px;
+    color: var(--coach-text-soft);
+    font-size: 13px;
+    font-weight: 760;
+    max-width: 100%;
+    min-height: 32px;
+    overflow: hidden;
+    padding: 7px 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .transcript-empty-actions {
     display: flex;
     flex-wrap: wrap;
@@ -119,67 +133,45 @@ export const coachCommandDockStyles = css`
     border: 1px solid var(--coach-line-strong);
     border-radius: 18px;
     display: grid;
-    gap: 10px;
-    padding: 12px;
+    gap: 8px;
+    padding: 10px;
   }
-  .dock-textarea {
-    border-radius: 12px;
-    font-size: 17px;
-    line-height: 1.4;
-    max-height: 160px;
-    min-height: 64px;
-    resize: none;
-  }
-  .dock-primary-row {
-    align-items: center;
-    display: grid;
-    gap: 10px;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .dock-safety-stack {
-    align-items: center;
+  .dock-status-line {
+    align-items: baseline;
     display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+    gap: 10px;
+    justify-content: space-between;
     min-width: 0;
-  }
-  .dock-trust-pill,
-  .dock-next-pill {
-    align-items: center;
-    border-radius: 999px;
-    display: inline-flex;
-    font-size: 12px;
-    font-weight: 820;
-    min-height: 32px;
-    padding: 0 11px;
-  }
-  .dock-trust-pill {
-    background: color-mix(in srgb, var(--coach-gold) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--coach-gold) 32%, transparent);
-    color: color-mix(in srgb, var(--coach-gold) 84%, var(--coach-text));
-  }
-  .dock-next-pill {
-    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--coach-cyan) 24%, transparent);
-    color: var(--coach-text-soft);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0 4px;
   }
   .dock-status {
     color: var(--coach-muted);
-    flex-basis: 100%;
     font-size: 13px;
-    min-height: 18px;
+    min-height: 16px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .dock-main-actions {
-    align-items: center;
-    display: inline-flex;
+  .dock-trust {
+    color: color-mix(in srgb, var(--coach-gold) 78%, var(--coach-text));
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 780;
+  }
+  .dock-composer-row {
+    align-items: flex-end;
+    display: grid;
     gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+  }
+  .dock-textarea {
+    border-radius: 14px;
+    font-size: 17px;
+    line-height: 1.4;
+    max-height: 160px;
+    min-height: 52px;
+    resize: none;
   }
   .dock-more-wrap {
     position: relative;
@@ -190,11 +182,12 @@ export const coachCommandDockStyles = css`
     align-items: center;
     border-radius: 16px;
     display: inline-flex;
-    height: 56px;
+    flex: 0 0 auto;
+    height: 52px;
     justify-content: center;
-    min-height: 56px;
-    min-width: 56px;
-    width: 56px;
+    min-height: 52px;
+    min-width: 52px;
+    width: 52px;
   }
   .dock-more,
   .dock-mic {
@@ -210,10 +203,10 @@ export const coachCommandDockStyles = css`
     box-shadow: 0 18px 50px color-mix(in srgb, var(--coach-bg) 72%, transparent);
     display: grid;
     gap: 6px;
+    left: 0;
     min-width: 216px;
     padding: 8px;
     position: absolute;
-    right: 0;
     z-index: 35;
   }
   .dock-more-menu button,

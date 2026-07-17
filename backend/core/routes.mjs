@@ -55,6 +55,8 @@ import notificationsApiRoutes from '../routes/notificationRoutes.mjs';
 import smsRoutes from '../routes/smsRoutes.mjs';
 import smsWebhookRoutes from '../routes/smsWebhookRoutes.mjs';
 import automationRoutes from '../routes/automationRoutes.mjs';
+import supportIssueRoutes from '../routes/supportIssueRoutes.mjs';
+import adminSupportIssueRoutes from '../routes/adminSupportIssueRoutes.mjs';
 
 // ===================== FITNESS & WELLNESS =====================
 import workoutRoutes from '../routes/workoutRoutes.mjs';
@@ -347,6 +349,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/sms/webhooks', smsWebhookRoutes);
   app.use('/api/sms', smsRoutes);
   app.use('/api/automation', automationRoutes);
+  app.use('/api/support/issues', supportIssueRoutes);
+  app.use('/api/admin/support/issues', adminSupportIssueRoutes);
 
   // ===================== FITNESS & WELLNESS ROUTES =====================
   // IMPORTANT: /api/workout/plans MUST mount BEFORE /api/workout to prevent route shadowing

@@ -27,7 +27,7 @@ export const coachCommandShellStyles = css`
   --coach-success: var(--success, #47e89a);
   --coach-danger: var(--error, #ff6d85);
   --coach-warn: var(--warning, #ffb86b);
-  --mobile-dock-space: 232px;
+  --mobile-dock-space: 132px;
   color: var(--coach-text);
   font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
   max-width: 100%;

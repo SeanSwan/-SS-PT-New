@@ -88,6 +88,8 @@ const setupAssociations = async () => {
     const NotificationSettingsModule = await import('./NotificationSettings.mjs');
     const AdminSettingsModule = await import('./AdminSettings.mjs');
     const ContactModule = await import('./contact.mjs');
+    const SupportIssueModule = await import('./SupportIssue.mjs');
+    const SupportIssueEventModule = await import('./SupportIssueEvent.mjs');
     
     // Financial Models (Sequelize)
     const FinancialTransactionModule = await import('./financial/FinancialTransaction.mjs');
@@ -304,6 +306,8 @@ const setupAssociations = async () => {
     const NotificationSettings = NotificationSettingsModule.default;
     const AdminSettings = AdminSettingsModule.default;
     const Contact = ContactModule.default;
+    const SupportIssue = SupportIssueModule.default;
+    const SupportIssueEvent = SupportIssueEventModule.default;
     
     // Financial Models
     const FinancialTransaction = FinancialTransactionModule.default;
@@ -503,7 +507,7 @@ const setupAssociations = async () => {
         Streak, GoalSupporter, GoalComment, GoalLike, GoalMilestone,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutLog, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
-        Orientation, Notification, NotificationSettings, AdminSettings, Contact,
+        Orientation, Notification, NotificationSettings, AdminSettings, Contact, SupportIssue, SupportIssueEvent,
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, WorkoutPlanCompletionReceipt, ClientOnboardingQuestionnaire,
         PersonalRecord, RecoveryCompletion, HistoryBackfillRun,
@@ -883,6 +887,19 @@ const setupAssociations = async () => {
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
     Notification.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+
+    // REPORT ROOM SUPPORT ASSOCIATIONS
+    // ================================
+    User.hasMany(SupportIssue, { foreignKey: 'reporterUserId', as: 'reportedSupportIssues' });
+    SupportIssue.belongsTo(User, { foreignKey: 'reporterUserId', as: 'reporter' });
+    User.hasMany(SupportIssue, { foreignKey: 'assignedOwnerUserId', as: 'assignedSupportIssues' });
+    SupportIssue.belongsTo(User, { foreignKey: 'assignedOwnerUserId', as: 'assignedOwner' });
+    SupportIssue.belongsTo(SupportIssue, { foreignKey: 'duplicateOfIssueId', as: 'duplicateOf' });
+    SupportIssue.hasMany(SupportIssue, { foreignKey: 'duplicateOfIssueId', as: 'duplicates' });
+    SupportIssue.hasMany(SupportIssueEvent, { foreignKey: 'issueId', as: 'events' });
+    SupportIssueEvent.belongsTo(SupportIssue, { foreignKey: 'issueId', as: 'issue' });
+    User.hasMany(SupportIssueEvent, { foreignKey: 'actorUserId', as: 'supportIssueEvents' });
+    SupportIssueEvent.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
 
     // AUTOMATION ASSOCIATIONS
     // =======================
@@ -1456,6 +1473,8 @@ const setupAssociations = async () => {
       NotificationSettings,
       AdminSettings,
       Contact,
+      SupportIssue,
+      SupportIssueEvent,
       
       // Financial Models
       FinancialTransaction,

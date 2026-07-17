@@ -25,70 +25,85 @@ const fadeIn = keyframes`
 const Container = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 16, 48, 0.92);
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--overlay-deep, rgba(0, 16, 48, 0.92));
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  animation: ${fadeIn} 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: ${fadeIn} 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 const Card = styled.div`
-  background: #003080;
-  border: 1px solid #60C0F0;
+  width: min(100%, 480px);
+  box-sizing: border-box;
+  background: var(--royal-depth, #003080);
+  border: 1px solid var(--ice-wing, #60C0F0);
   border-radius: 12px;
-  padding: 48px;
-  max-width: 480px;
+  padding: clamp(28px, 8vw, 48px);
+  color: var(--frost-white, #E0ECF4);
   text-align: center;
-  box-shadow: 0 8px 32px rgba(96, 192, 240, 0.3);
+  box-shadow: 0 8px 32px var(--ice-glow, rgba(96, 192, 240, 0.3));
 `;
 
 const Spinner = styled.svg`
   width: 64px;
   height: 64px;
+  color: var(--ice-wing, #60C0F0);
   animation: ${smoothSpin} 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  filter: drop-shadow(0 0 8px rgba(96, 192, 240, 0.4));
+  filter: drop-shadow(0 0 8px var(--ice-glow, rgba(96, 192, 240, 0.4)));
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 const StatusText = styled.p`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
-  color: #E0ECF4;
   margin: 24px 0 16px;
+  color: var(--frost-white, #E0ECF4);
+  font: 600 18px/1.5 'Plus Jakarta Sans', sans-serif;
 `;
 
 const TransactionId = styled.code`
-  font-family: 'Fira Code', monospace;
-  font-size: 14px;
-  color: #50A0F0;
   display: block;
   margin-top: 8px;
+  color: var(--arctic-cyan, #50A0F0);
+  font: 500 14px/1.5 'Fira Code', monospace;
+  overflow-wrap: anywhere;
 `;
 
 const EscapeButton = styled.button`
+  min-height: 44px;
   margin-top: 32px;
-  background: transparent;
-  color: #E0ECF4;
-  border: 1px solid #C6A84B;
   padding: 12px 24px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  border-radius: 6px;
+  border: 1px solid var(--gilded-fern, #C6A84B);
+  border-radius: 8px;
+  color: var(--frost-white, #E0ECF4);
+  background: transparent;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: ${fadeIn} 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  font: 700 16px 'Plus Jakarta Sans', sans-serif;
+  transition: background-color 200ms ease, transform 120ms ease;
+  animation: ${fadeIn} 500ms cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: rgba(198, 168, 75, 0.1);
+    background: var(--gold-wash, rgba(198, 168, 75, 0.1));
   }
+
+  &:active { transform: scale(0.98); }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.6);
+    outline: 2px solid var(--wing-purple, #8B5CF6);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
   }
 `;
-
 const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
   transactionId,
   onContactSupport,
@@ -132,7 +147,7 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
           <circle
             cx="32" cy="32" r="28"
             fill="none"
-            stroke="#60C0F0"
+            stroke="currentColor"
             strokeWidth="3"
             strokeDasharray="140 40"
           />
@@ -142,7 +157,7 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
           <TransactionId>TXN-{transactionId}</TransactionId>
         )}
         {showEscape && (
-          <EscapeButton onClick={onContactSupport || (() => window.location.href = '/contact')}>
+          <EscapeButton onClick={onContactSupport || (() => window.location.href = '/support')}>
             Contact Support
           </EscapeButton>
         )}

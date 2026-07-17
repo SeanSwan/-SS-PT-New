@@ -64,10 +64,12 @@ describe('CoachCommandCenterPage thread identity', () => {
     expect(composerInput()).toHaveValue('');
   });
 
-  it('labels loaded conversation messages as thread history provenance', () => {
+  it('carries thread-history provenance as message timestamps, not noise pills', () => {
     setCoachCommandCenterActiveConversation();
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
-    expect(screen.getAllByText('Loaded thread history').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Loaded thread history')).toBeNull();
+    const transcript = screen.getByRole('region', { name: /conversation with swan coach/i });
+    expect(transcript.querySelectorAll('time').length).toBeGreaterThan(0);
   });
 });

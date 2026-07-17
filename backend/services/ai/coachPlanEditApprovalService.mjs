@@ -107,30 +107,46 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
 
   // Ownership in the QUERY (same IDOR posture as the client plan read): the plan
   // must belong to the client named in the proposal — a swapped planId cannot
-  // reach another client's program.
+  // reach another client's program. Archived/completed plans are not editable:
+  // approving a lingering proposal must not mutate a plan that was archived
+  // after the proposal was created.
   const plan = await WorkoutPlan.findOne({
-    where: { id: planId, userId: clientId },
+    where: { id: planId, userId: clientId, status: 'active' },
   });
   if (!plan) return { ok: false, code: 'PLAN_EDIT_PLAN_NOT_FOUND' };
 
   const planRecord = toPlain(plan);
-  const planData = JSON.parse(JSON.stringify(planRecord.planData || {}));
 
-  const outcomes = items.map((item) => (
+  // Dry-run against the pre-read copy first: validates targets/fields and
+  // decides whether a write is needed at all, without holding the row lock.
+  const previewData = JSON.parse(JSON.stringify(planRecord.planData || {}));
+  let outcomes = items.map((item) => (
     approvedSet.has(String(item.id))
-      ? applyItem(planData, item)
+      ? applyItem(previewData, item)
       : { id: item.id, outcome: 'skipped_not_approved', field: item.field }
   ));
 
-  const appliedCount = outcomes.filter((entry) => entry.outcome === 'applied').length;
+  let appliedCount = outcomes.filter((entry) => entry.outcome === 'applied').length;
   if (appliedCount > 0) {
+    // Re-apply the approved subset onto the LOCKED row's planData inside the
+    // boundary. Rebuilding from the pre-read copy would wholesale-overwrite
+    // progress markers a client wrote between pre-read and lock (completion
+    // writes don't bump contentRevision by design, so the revision gate
+    // cannot catch that race).
     await mutateWorkoutPlanRecord({
       sequelize,
       WorkoutPlan,
       planId: planRecord.id,
       expectedRevision: planRecord.contentRevision,
-      updates: {
-        planData: normalizeWorkoutPlanDataForPersistence(planData),
+      updates: (lockedPlan) => {
+        const lockedData = JSON.parse(JSON.stringify(toPlain(lockedPlan)?.planData || {}));
+        outcomes = items.map((item) => (
+          approvedSet.has(String(item.id))
+            ? applyItem(lockedData, item)
+            : { id: item.id, outcome: 'skipped_not_approved', field: item.field }
+        ));
+        appliedCount = outcomes.filter((entry) => entry.outcome === 'applied').length;
+        return { planData: normalizeWorkoutPlanDataForPersistence(lockedData) };
       },
       pdfDerivativeIntent: {
         requestedBy: req.user?.id ?? null,

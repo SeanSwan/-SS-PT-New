@@ -114,7 +114,7 @@ function requireGalleryAccess(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     if (decoded.type !== 'gallery_access') {
       return res.status(403).json({ success: false, error: 'Invalid gallery token' });
     }

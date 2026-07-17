@@ -257,7 +257,7 @@ export async function requireAdmin(req, res, next) {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, getJwtSecret());
+      decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
         return res.status(401).json({
@@ -358,7 +358,7 @@ export async function requireTrainerOrAdmin(req, res, next) {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, getJwtSecret());
+      decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
         return res.status(401).json({
@@ -433,7 +433,7 @@ export async function optionalAuth(req, res, next) {
 
     // Try to verify token
     try {
-      const decoded = jwt.verify(token, getJwtSecret());
+      const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
       const user = await User.findByPk(decoded.id);
 
       if (user && user.status !== 'suspended' && user.status !== 'deleted') {

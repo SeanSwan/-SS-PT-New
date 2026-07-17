@@ -147,7 +147,7 @@ describe('applyPlanEditProposal — per-item approval', () => {
     });
     expect(out.ok).toBe(false);
     expect(out.code).toBe('PLAN_EDIT_PLAN_NOT_FOUND');
-    expect(findOne.mock.calls[0][0].where).toMatchObject({ id: PLAN_ID, userId: 42 });
+    expect(findOne.mock.calls[0][0].where).toMatchObject({ id: PLAN_ID, userId: 42, status: 'active' });
   });
 
   it('a vanished target is a per-item failure, not a crash — other items still apply', async () => {

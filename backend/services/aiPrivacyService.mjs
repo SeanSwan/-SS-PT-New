@@ -160,6 +160,25 @@ export async function stripIdentityFromMessage(message, targetUserId, sequelize)
   return { sanitizedMessage: sanitized, identitiesStripped: count, strippedTerms: stripped };
 }
 
+/**
+ * Generic outbound PII scrub (emails, phones, SSNs, credit cards) that does NOT
+ * require a target client identity. Used when an outbound message has no selected
+ * client to name-map but must still never carry raw contact PII to an external LLM
+ * (Rule 8) — e.g. a trainer typing "call Jane at 555-123-4567" in a general
+ * conversation. Callers should treat a throw as fail-closed and withhold the message.
+ *
+ * @param {string} text - outbound text to scrub
+ * @returns {{ sanitizedText: string, piiRemoved: number }}
+ */
+export async function scrubGenericPII(text) {
+  if (!text) return { sanitizedText: text || '', piiRemoved: 0 };
+  const piiResult = await piiManager.sanitizeContent(text, { context: 'ai_outbound' });
+  return {
+    sanitizedText: piiResult.sanitizedContent ?? text,
+    piiRemoved: piiResult.piiRemoved || 0,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Inbound Stripping (AI Response → User)
 // PURPOSE: Scrub AI responses in case the model hallucinated

@@ -57,13 +57,18 @@ describe('Coach intake responsive contract', () => {
     // The talk-first shell renamed the tab id 'chat' → 'talk'; the CSS class
     // contract (is-chat-tab / is-workspace-tab) is unchanged.
     expect(pageSource).toContain("activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'");
-    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*max\(480px,\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\)\)\)/);
+    // W3 rebuild: chat height honors the visualViewport keyboard inset so the
+    // composer is never hidden behind the iOS keyboard.
+    // The 420px floor is itself keyboard-aware — a fixed floor would re-grow
+    // the shell past the visible area while the keyboard is open.
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*max\(calc\(420px - var\(--coach-kb-inset, 0px\)\),\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\) - var\(--coach-kb-inset, 0px\)\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab[\s\S]*height:\s*auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-content[\s\S]*flex:\s*0\s+0\s+auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-scroll[\s\S]*overflow:\s*visible/);
-    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(96px,\s*calc\(env\(safe-area-inset-bottom\) \+ 96px\)\)/);
+    // v2 P0.3: the dock only exists on the Talk tab (.chat-panel) — .tab-scroll
+    // surfaces (History/Review) get breathing room, not a dock-sized dead tail.
+    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(24px,\s*env\(safe-area-inset-bottom\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-top:\s*96px/);
-    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
     expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-top:\s*132px/);
     expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-bottom:\s*max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
     expect(targetStyles).toMatch(/scroll-margin-block:\s*132px\s+max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);

@@ -958,7 +958,8 @@ export const refreshToken = async (req, res) => {
     // Verify refresh token
     const decoded = jwt.verify(
       refreshToken,
-      getRefreshJwtSecret()
+      getRefreshJwtSecret(),
+      { algorithms: ['HS256'] }
     );
 
     // Check token type
@@ -1309,7 +1310,7 @@ export const validateToken = async (req, res) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
 
     // Check token type
     if (decoded.tokenType !== 'access') {
@@ -1466,7 +1467,7 @@ export const changePasswordForced = async (req, res) => {
     // Verify the temp token
     let decoded;
     try {
-      decoded = jwt.verify(tempToken, getJwtSecret());
+      decoded = jwt.verify(tempToken, getJwtSecret(), { algorithms: ['HS256'] });
     } catch (tokenErr) {
       if (tokenErr.name === 'JwtSecretConfigurationError') {
         return res.status(500).json({

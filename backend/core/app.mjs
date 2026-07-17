@@ -275,11 +275,18 @@ export const createApp = async () => {
     contentSecurityPolicy: isProduction ? {
       directives: {
         defaultSrc: ["'self'"],
+        // NOTE: scriptSrc still allows 'unsafe-inline' — removing it neutralizes a
+        // whole XSS class but requires nonce/hash migration of any inline scripts and
+        // browser QA before it can ship, so it is intentionally deferred (see security notes).
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev", "https://*.cloudflare.com"],
         connectSrc: ["'self'", "https://api.stripe.com", "https://ss-pt-new.onrender.com", "https://sswanstudios.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        // Defense-in-depth hardening (safe — no legitimate use in this SPA):
+        baseUri: ["'self'"],        // block <base> tag injection redirecting relative URLs
+        objectSrc: ["'none'"],      // block <object>/<embed>/<applet> plugin content
+        frameAncestors: ["'self'"], // clickjacking protection (modern X-Frame-Options)
       }
     } : false, // Disable CSP in dev (Vite HMR needs inline scripts)
     crossOriginEmbedderPolicy: false,

@@ -7,6 +7,7 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import { useState } from 'react';
+import CoachActionProposalCard from './CoachActionProposalCard';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
   AccessHandoffCard,
@@ -19,6 +20,8 @@ import {
   PacketDetails,
   StyleSwitch,
 } from './CoachCommandLogEntry.styles';
+import { MessageActionsRow, RetryRow } from './CoachCommandLogEntry.retryStyles';
+import { Copy, Volume2 } from 'lucide-react';
 import type { CoachCommandLogEntryProps, LogStyleVariantKey } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { CoachFormattedLogContent } from './CoachFormattedLogContent';
@@ -34,13 +37,29 @@ import {
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
+function formatLogTime(at?: string): string | null {
+  if (!at) return null;
+  const parsed = new Date(at);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 function CoachCommandLogEntry({
   entry,
   onCancelCommand,
   onConfirmCommand,
+  onRetryMessage,
+  onSpeak,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
 }: CoachCommandLogEntryProps) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    void navigator.clipboard?.writeText(entry.body).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }).catch(() => undefined);
+  };
   const formatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
   const selectedVariant = formatted.variants?.find((variant) => variant.key === activeVariant) || formatted.variants?.[0];
@@ -60,8 +79,13 @@ function CoachCommandLogEntry({
   return (
     <LogEntry $actor={entry.actor}>
       <LogMeta>
-        <span>{entry.actor}</span>
-        <span>{entry.label}</span>
+        {/* Coach/operator labels already name the speaker ("Swan Coach", "You",
+            "operator command") — the raw actor tag only adds signal for system rows. */}
+        {entry.actor === 'system' ? <span>{entry.actor}</span> : <span aria-hidden="true" />}
+        <span>
+          {entry.label}
+          {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}
+        </span>
       </LogMeta>
 
       <LogBody>
@@ -127,8 +151,15 @@ function CoachCommandLogEntry({
           isDestructive={confirmation.isDestructive}
           onConfirm={async () => onConfirmCommand(confirmation)}
           onCancel={async () => onCancelCommand(confirmation)}
+          onReissue={confirmation.sourceMessage && onRetryMessage
+            ? () => onRetryMessage(confirmation.sourceMessage as string)
+            : undefined}
         />
       ) : null}
+
+      {entry.proposals?.map((proposal) => (
+        <CoachActionProposalCard key={proposal.id} proposal={proposal} />
+      ))}
 
       {entry.commandResult ? (
         <ExecutionResultCard
@@ -138,6 +169,29 @@ function CoachCommandLogEntry({
           message={entry.commandResult.message}
           showAccessHandoff={false}
         />
+      ) : null}
+
+      {entry.actor === 'coach' && entry.body && !entry.commandResult && !confirmation ? (
+        <MessageActionsRow aria-label="Message actions">
+          {typeof navigator !== 'undefined' && navigator.clipboard ? (
+            <button type="button" onClick={handleCopy}>
+              <Copy size={14} aria-hidden="true" /> {copied ? 'Copied' : 'Copy'}
+            </button>
+          ) : null}
+          {onSpeak ? (
+            <button type="button" onClick={() => onSpeak(entry.body)}>
+              <Volume2 size={14} aria-hidden="true" /> Read aloud
+            </button>
+          ) : null}
+        </MessageActionsRow>
+      ) : null}
+
+      {entry.retryMessage && onRetryMessage ? (
+        <RetryRow>
+          <button type="button" onClick={() => onRetryMessage(entry.retryMessage as string)}>
+            Retry message
+          </button>
+        </RetryRow>
       ) : null}
 
       {entry.attachments?.length ? (

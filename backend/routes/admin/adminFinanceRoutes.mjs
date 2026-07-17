@@ -36,6 +36,14 @@ const TIME_RANGE_MS = Object.freeze({
 const TIME_RANGES = Object.keys(TIME_RANGE_MS);
 const TRANSACTION_STATUSES = ['all', 'pending_manual_payment', 'paid', 'unpaid', 'failed', 'cancelled', 'refunded', 'no_payment_required'];
 const TRANSACTION_SORT_FIELDS = ['lastCheckoutAttempt', 'completedAt', 'createdAt', 'updatedAt', 'total', 'paymentStatus', 'status'];
+// Every entry must be a real User attribute — a name the model does not declare is emitted
+// as a raw column and fails the query at runtime (guarded by adminFinanceTruth.test.mjs).
+export const TRAINER_LIST_ATTRIBUTES = [
+  'id', 'firstName', 'lastName', 'email', 'phone', 'photo',
+  'specialties', 'certifications', 'bio', 'isActive', 'hourlyRate',
+  'trainerType', 'defaultCompensationMode', 'defaultFlatSessionRate',
+  'createdAt', 'updatedAt', 'lastLogin'
+];
 
 function sendInternalError(res, message) {
   return res.status(500).json({
@@ -904,12 +912,7 @@ router.get('/trainers', async (req, res) => {
       where: {
         role: { [Op.in]: ['trainer', 'admin'] }
       },
-      attributes: [
-        'id', 'firstName', 'lastName', 'email', 'phone', 'photo',
-        'specialties', 'certifications', 'bio', 'isActive', 'hourlyRate',
-        'trainerType', 'defaultCompensationMode', 'defaultFlatSessionRate',
-        'createdAt', 'updatedAt', 'lastLoginAt'
-      ],
+      attributes: TRAINER_LIST_ATTRIBUTES,
       order: [['createdAt', 'DESC']]
     });
 
@@ -946,7 +949,7 @@ router.get('/trainers', async (req, res) => {
         verificationSource: 'not_tracked',
         status: trainer.isActive ? 'active' : 'inactive',
         joinedAt: trainer.createdAt,
-        lastActive: trainer.lastLoginAt || trainer.updatedAt,
+        lastActive: trainer.lastLogin || trainer.updatedAt,
         hourlyRate: trainer.hourlyRate,
         trainerType: trainer.trainerType,
         defaultCompensationMode: trainer.defaultCompensationMode === 'per_session_flat' ? 'per_session_flat' : 'revenue_share',

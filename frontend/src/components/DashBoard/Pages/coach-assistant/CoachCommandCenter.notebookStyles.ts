@@ -5,6 +5,35 @@
 import { css } from 'styled-components';
 
 export const coachCommandNotebookStyles = css`
+  .recent-client-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .recent-client-chips button {
+    background: color-mix(in srgb, var(--coach-cyan) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 20%, var(--coach-line));
+    border-radius: 999px;
+    color: var(--coach-text-soft);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 760;
+    max-width: 160px;
+    min-height: 44px;
+    overflow: hidden;
+    padding: 0 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recent-client-chips button:hover,
+  .recent-client-chips button:focus-visible {
+    border-color: color-mix(in srgb, var(--coach-cyan) 44%, var(--coach-line));
+    color: var(--coach-text);
+  }
+
   .main-client-picker {
     align-items: center;
     display: grid;
@@ -51,9 +80,8 @@ export const coachCommandNotebookStyles = css`
     border-color: color-mix(in srgb, var(--coach-gold) 44%, var(--coach-line-strong));
   }
 
-  .dock-form.is-notebook .dock-trust-pill {
-    background: color-mix(in srgb, var(--coach-gold) 18%, transparent);
-    border-color: color-mix(in srgb, var(--coach-gold) 44%, transparent);
+  .dock-form.is-notebook .dock-trust {
+    color: color-mix(in srgb, var(--coach-gold) 88%, var(--coach-text));
   }
 
   @media (max-width: 720px) {
