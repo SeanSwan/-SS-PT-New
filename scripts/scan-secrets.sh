@@ -107,7 +107,7 @@ SKIP_PATH_PATTERNS=(
 is_skipped_path() {
   local path="$1"
   for pat in "${SKIP_PATH_PATTERNS[@]}"; do
-    if echo "$path" | grep -Eq "$pat"; then
+    if [[ "$path" =~ $pat ]]; then
       return 0
     fi
   done

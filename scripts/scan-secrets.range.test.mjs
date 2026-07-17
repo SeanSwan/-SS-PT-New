@@ -102,3 +102,32 @@ test('--range honors exact allowlist entries from a CRLF .secretignore', () => {
     rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test('--range processes a moderate candidate without per-file subprocess stalls', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'swan-secret-performance-'));
+  try {
+    git(repo, 'init');
+    git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
+    git(repo, 'config', 'user.name', 'Scanner Test');
+
+    writeFileSync(join(repo, 'baseline.txt'), 'baseline\n', 'utf8');
+    commitAll(repo, 'baseline');
+
+    const candidateDir = join(repo, 'candidate');
+    mkdirSync(candidateDir);
+    for (let index = 0; index < 100; index += 1) {
+      writeFileSync(join(candidateDir, `safe-${index}.txt`), `safe candidate ${index}\n`, 'utf8');
+    }
+    commitAll(repo, 'moderate candidate');
+
+    const startedAt = Date.now();
+    const result = run(BASH, [SCANNER, '--range', 'HEAD~1'], repo);
+    const elapsedMs = Date.now() - startedAt;
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert.equal(result.status, 0, output);
+    assert.match(output, /Scanned:\s+100 files/);
+    assert.ok(elapsedMs < 20_000, `range scan took ${elapsedMs}ms`);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
