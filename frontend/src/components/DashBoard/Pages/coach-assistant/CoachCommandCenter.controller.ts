@@ -172,19 +172,12 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   }, []);
   const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
   const notebook = useCoachClientNotebook({
-    actorId,
-    clientId: effectiveClientId,
-    clientLabel: selectedClientLabel,
-    commandText,
-    commandTextRef,
-    setCommandText,
-    setSelectedStatus,
+    actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
+    commandText, commandTextRef, setCommandText, setSelectedStatus,
   });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
   useCoachComposerDraft(activeThreadId, commandText, setCommandText, {
-    actorId,
-    clientId: effectiveClientId,
-    enabled: !notebook.dockControls.active,
+    actorId, clientId: effectiveClientId, enabled: !notebook.dockControls.active,
   });
   const actions = createCoachCommandCenterActions({
     activeThread,
