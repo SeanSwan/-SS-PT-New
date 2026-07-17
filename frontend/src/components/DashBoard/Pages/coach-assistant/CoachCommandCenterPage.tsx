@@ -151,7 +151,7 @@ const CoachCommandCenterPage: React.FC = () => {
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
           clientPin={commandCenter.clientPin}
-          recentIds={isClientMode ? undefined : recentClientIds(commandCenter.coachThreads, commandCenter.routeClientId)}
+          recentIds={isClientMode ? undefined : recentClientIds(commandCenter.allCoachThreads, commandCenter.clientPin.selectedClientId)}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}

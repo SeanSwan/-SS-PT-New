@@ -12,7 +12,10 @@ function labelForMessage(role: Message['role']): string {
 }
 
 function logKey(entry: CommandLogEntry): string {
-  return `${entry.actor}:${entry.body.trim()}`;
+  // Blank-body proposal entries key on their proposal ids so two different
+  // proposal replies never collide (and live/history copies of one reply do).
+  const body = entry.body.trim() || entry.proposals?.map((proposal) => proposal.id).join(',') || '';
+  return `${entry.actor}:${body}`;
 }
 
 export function buildConversationLogs(

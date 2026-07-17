@@ -11,7 +11,9 @@ export const SheetScrim = styled.button`
   cursor: pointer;
   inset: 0;
   position: fixed;
-  z-index: 60;
+  /* Above the ops drawer stack (scrim 10040 / rail 10050), below the voice
+     overlay (10060) — a sheet hidden under the drawer scrim is a dead UI. */
+  z-index: 10052;
 `;
 
 export const SheetPanel = styled.section`
@@ -30,7 +32,7 @@ export const SheetPanel = styled.section`
   position: fixed;
   transform: translateX(-50%);
   width: min(560px, 100vw);
-  z-index: 61;
+  z-index: 10053;
 `;
 
 export const SheetHeader = styled.header`

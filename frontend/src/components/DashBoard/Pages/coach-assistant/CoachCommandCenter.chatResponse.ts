@@ -81,8 +81,9 @@ export function interpretCoachChatResponse(response: unknown, sentMessage: strin
       : undefined;
     if (body) return { kind: 'reply', body, ...(proposals ? { proposals } : {}) };
     // A blank body WITH proposals is still a real, actionable reply — the
-    // confirm cards are the content. (Copy stays truthful: cards follow.)
-    if (proposals) return { kind: 'reply', body: 'Prepared an action for your review:', proposals };
+    // confirm cards ARE the content. Body stays blank so the live entry and
+    // the persisted history copy dedupe to one card (logKey parity).
+    if (proposals) return { kind: 'reply', body: '', proposals };
   }
 
   // Unknown shape or blank content: never fabricate a coach reply. The user

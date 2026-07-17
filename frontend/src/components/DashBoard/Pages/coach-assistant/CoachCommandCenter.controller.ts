@@ -156,12 +156,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
   const summary = useMemo(() => buildQueueSummary(coachQueue.summary), [coachQueue.summary]);
   const selectedClientLabel = buildSelectedClientLabel(effectiveClientLabel, activeThreadTitle, Boolean(activeThread));
   const statusMetrics = useMemo(
-    () => buildStatusMetrics(
-      summary,
-      coachQueue.health?.status,
-      coachQueue.isLoading,
-      coachQueue.health?.nextOperatorAction?.label,
-    ),
+    () => buildStatusMetrics(summary, coachQueue.health?.status, coachQueue.isLoading, coachQueue.health?.nextOperatorAction?.label),
     [coachQueue.health?.nextOperatorAction?.label, coachQueue.health?.status, coachQueue.isLoading, summary],
   );
   const intakeStates = useMemo(() => buildIntakeStates(summary), [summary]);
@@ -231,6 +226,7 @@ export function useCoachCommandCenterController({ userRole = 'admin' }: { userRo
     activeIntakeId: searchParams.get('intake'),
     activeThread,
     activeThreadId,
+    allCoachThreads,
     chatLoading: chat.loading,
     clientContextTiles,
     clientPin: clientPin.barProps,

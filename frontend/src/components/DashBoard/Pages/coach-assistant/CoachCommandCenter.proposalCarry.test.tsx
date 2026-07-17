@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
-import { buildConversationLogs } from './CoachCommandCenter.chatLogs';
+import { buildConversationLogs, mergeTranscriptLogs } from './CoachCommandCenter.chatLogs';
 import CoachCommandLogEntry from './CoachCommandLogEntry';
 import type { CoachActionProposal } from './SwanCoachTypes';
 
@@ -40,8 +40,26 @@ describe('chat-lane proposal carry (canonical Command Center)', () => {
     expect(outcome.kind).toBe('reply');
     if (outcome.kind === 'reply') {
       expect(outcome.proposals).toEqual([proposal]);
-      expect(outcome.body.length).toBeGreaterThan(0);
+      // Body stays blank so the live entry and its persisted copy share a
+      // dedup key — one card, not two.
+      expect(outcome.body).toBe('');
     }
+  });
+
+  it('live and history copies of one blank-body proposal reply dedupe to a single card', () => {
+    const live = [{ id: 'live-1', actor: 'coach' as const, label: 'coach reply', body: '', proposals: [proposal] }];
+    const history = buildConversationLogs(501, [
+      { role: 'assistant', content: '', timestamp: '2026-07-17T00:00:01.000Z', metadata: { coachActionProposals: [proposal] } } as never,
+    ]);
+    const merged = mergeTranscriptLogs(live, history);
+    const proposalEntries = merged.filter((entry) => entry.proposals?.length);
+    expect(proposalEntries).toHaveLength(1);
+    // Two DIFFERENT blank-body proposal replies must NOT collide.
+    const other = { ...proposal, id: 'prop-2' };
+    const historyTwo = buildConversationLogs(501, [
+      { role: 'assistant', content: '', timestamp: '2026-07-17T00:00:02.000Z', metadata: { coachActionProposals: [other] } } as never,
+    ]);
+    expect(mergeTranscriptLogs(live, historyTwo).filter((entry) => entry.proposals?.length)).toHaveLength(2);
   });
 
   it('loaded thread history carries proposals (including blank-body proposal messages)', () => {

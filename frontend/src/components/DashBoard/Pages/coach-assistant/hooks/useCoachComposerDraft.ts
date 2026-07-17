@@ -7,7 +7,7 @@
  * only, cleared automatically when the text is sent (composer empties) or
  * the browser tab closes. Never fights a non-empty composer.
  */
-import { useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 
 const DEBOUNCE_MS = 400;
 
@@ -33,7 +33,14 @@ export function useCoachComposerDraft(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, setCommandText]);
 
+  const writeKeyRef = useRef(key);
   useEffect(() => {
+    // Never write the PREVIOUS thread's lingering text under the new key —
+    // the first pass after a key change only re-arms; edits then write.
+    if (writeKeyRef.current !== key) {
+      writeKeyRef.current = key;
+      return undefined;
+    }
     const timer = window.setTimeout(() => {
       try {
         if (commandText.trim()) window.sessionStorage.setItem(key, commandText);

@@ -92,8 +92,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.onThreadSelectRoute(thread);
     props.setAutoSelectSuppressed(false);
     props.setActiveThreadId(thread.id);
-    // Session bubbles belong to their thread — never render X's under Y.
+    // Session bubbles and half-typed text belong to their thread — never
+    // carry X's into Y (the per-thread draft restores each side).
     props.setLogs(INITIAL_COMMAND_LOGS);
+    props.setCommandText('');
     props.setSelectedStatus(status);
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);

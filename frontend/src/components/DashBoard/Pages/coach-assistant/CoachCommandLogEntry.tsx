@@ -171,11 +171,13 @@ function CoachCommandLogEntry({
         />
       ) : null}
 
-      {entry.actor === 'coach' && entry.body ? (
+      {entry.actor === 'coach' && entry.body && !entry.commandResult && !confirmation ? (
         <MessageActionsRow aria-label="Message actions">
-          <button type="button" onClick={handleCopy}>
-            <Copy size={14} aria-hidden="true" /> {copied ? 'Copied' : 'Copy'}
-          </button>
+          {typeof navigator !== 'undefined' && navigator.clipboard ? (
+            <button type="button" onClick={handleCopy}>
+              <Copy size={14} aria-hidden="true" /> {copied ? 'Copied' : 'Copy'}
+            </button>
+          ) : null}
           {onSpeak ? (
             <button type="button" onClick={() => onSpeak(entry.body)}>
               <Volume2 size={14} aria-hidden="true" /> Read aloud

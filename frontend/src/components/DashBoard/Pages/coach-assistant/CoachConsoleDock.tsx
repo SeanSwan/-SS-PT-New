@@ -276,7 +276,10 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
       </div>
       <CoachCommandCatalogSheet
         open={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
+        onClose={() => {
+          setCatalogOpen(false);
+          window.setTimeout(() => moreButtonRef.current?.focus(), 0);
+        }}
         onUsePrompt={(prompt) => {
           onCommandTextChange(prompt);
           window.setTimeout(() => commandTextRef.current?.focus(), 0);
