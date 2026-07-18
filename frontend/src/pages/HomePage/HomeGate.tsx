@@ -22,12 +22,24 @@ class GateBoundary extends React.Component<{ fallback: ReactNode; children: Reac
 function ContractCheck({ onFail, children }: { onFail(): void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const shell = ref.current?.querySelector('.home-vnext-shell');
-    if (!shell) return;
-    const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();
-    const scoped = shell.closest('[data-style-lens-shell]');
-    if (!accent || !scoped) onFail();
-  });
+    let raf = 0;
+    let tries = 0;
+    // The shell mounts asynchronously (lazy chunk). Poll a few frames for it, THEN check the contract —
+    // so a genuinely broken lens (present shell, no --world-accent) fails CLOSED, while the lazy-load race
+    // (shell not mounted yet) simply keeps waiting rather than false-failing.
+    const check = () => {
+      const shell = ref.current?.querySelector('.home-vnext-shell');
+      if (!shell) {
+        if (tries++ < 30) raf = requestAnimationFrame(check);
+        return; // still loading — the Suspense fallback (current Home) is showing
+      }
+      const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();
+      const scoped = shell.closest('[data-style-lens-shell]');
+      if (!accent || !scoped) onFail();
+    };
+    raf = requestAnimationFrame(check);
+    return () => cancelAnimationFrame(raf);
+  }, [onFail]);
   return <div ref={ref}>{children}</div>;
 }
 

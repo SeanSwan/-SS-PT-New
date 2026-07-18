@@ -139,22 +139,30 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
     [active],
   );
 
-  // charge once on first mount-in-view
+  // charge once on first in-view (IntersectionObserver, not a blind timer — so scroll-restored loads
+  // don't fire the signature moment offscreen). reduced/essential already start charged (static frame).
   useEffect(() => {
-    if (fired.current || !active) return;
-    fired.current = true;
-    const t = window.setTimeout(() => {
-      setCharged(true);
-      crystallizeTo(() => setIgnited(true), { settleAnnouncement: 'SwanStudios' });
-    }, 120);
-    return () => window.clearTimeout(t);
+    const host = hostRef.current;
+    if (fired.current || !active || !host) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || fired.current) return;
+        fired.current = true;
+        io.disconnect();
+        setCharged(true);
+        crystallizeTo(() => setIgnited(true), { settleAnnouncement: 'SwanStudios' });
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(host);
+    return () => io.disconnect();
   }, [active, crystallizeTo]);
 
   return (
     <Section ref={hostRef} onPointerMove={onPointerMove} data-testid="home-hero-optics">
       <OpticsCanvas hostRef={hostRef} active={active && charged} />
       <FacetLayer ref={facetLayerRef}>
-        <Facets state={charged ? 'aligned' : 'scattered'} />
+        <Facets state={charged ? 'aligned' : 'scattered'} animateIn={active} />
       </FacetLayer>
       <Scrim />
       <Content>

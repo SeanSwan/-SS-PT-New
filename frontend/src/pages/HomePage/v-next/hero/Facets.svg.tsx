@@ -46,7 +46,7 @@ const facetVariants: Variants = {
   }),
 };
 
-export function Facets({ state }: { state: 'scattered' | 'aligned' }) {
+export function Facets({ state, animateIn }: { state: 'scattered' | 'aligned'; animateIn: boolean }) {
   return (
     <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
       <defs>
@@ -68,7 +68,9 @@ export function Facets({ state }: { state: 'scattered' | 'aligned' }) {
           strokeWidth={0.4}
           custom={f}
           variants={facetVariants}
-          initial="scattered"
+          // animateIn=false (reduced-motion / essential tier) → render directly at the aligned state with
+          // NO framer entrance (the CSS reduced-motion guard can't stop framer's JS-driven animation).
+          initial={animateIn ? 'scattered' : false}
           animate={state}
         />
       ))}
