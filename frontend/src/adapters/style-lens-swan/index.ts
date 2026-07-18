@@ -101,6 +101,14 @@ export {
 } from './viewport/useLensViewport';
 export { lensViewportCss } from './styles/lensViewportStyles';
 
+// ── Swan Lens Slice-3 (surfaces + Victory bridge) — additive, ready-to-wire ──
+export { lensSurfaceCss, LensSurfaceGlobalStyles } from './styles/lensSurfaceStyles';
+export {
+  resolveLensVictoryTheme,
+  SWAN_CHROME_FALLBACKS,
+  type LensVictoryThemeBundle,
+} from './charts/victoryLensTheme';
+
 // F16 — dev/CI fail-closed integrity gate (never runs in production). Asserts that every STYLED
 // lens (the 27 named manifests; the DEFAULT safety lens renders via always-present core, so it is
 // intentionally outside this set) has a Crystalline-clean world-values entry AND a style-allowlist
