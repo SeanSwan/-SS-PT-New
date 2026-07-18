@@ -16,6 +16,7 @@ router.get('/public-flags', (_req, res) => {
   res.json({
     dashboardV2: isTrue(process.env.DASHBOARD_V2_ENABLED),
     dashboardV2Finance: isTrue(process.env.DASHBOARD_V2_FINANCE),
+    storeV4: isTrue(process.env.STORE_V4_ENABLED),
   });
 });
 

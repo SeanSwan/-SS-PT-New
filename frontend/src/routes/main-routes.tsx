@@ -17,6 +17,7 @@ import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
 // Dashboards v2 seam: flag-gated wrapper; renders V1 (children) when off (default), the v2 shell when on.
 import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGate';
+import StoreGate from '../pages/shop/StoreGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -150,6 +151,14 @@ const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/StoreV3'),
   'SwanStudios Store V3',
   () => import('../pages/shop/StoreV2')
+);
+
+// Store V4 seam (KIMI-STORE-CORRECTED F2): StoreGate flag-gates V4 in front of V3 for all three store
+// routes at once. Flag off/unresolved/contract-fail → StoreV3 renders untouched (fail-closed).
+const GatedSwanStudiosStore = () => (
+  <StoreGate>
+    <SwanStudiosStore />
+  </StoreGate>
 );
 
 // 🏔️ ASCENSION — Tier comparison landing page
@@ -506,7 +515,7 @@ const MainRoutes: RouteObject = {
       path: 'store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
+          <GatedSwanStudiosStore />
         </Suspense>
       )
     },
@@ -514,7 +523,7 @@ const MainRoutes: RouteObject = {
       path: 'swanstudios-store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
+          <GatedSwanStudiosStore />
         </Suspense>
       )
     },
@@ -522,7 +531,7 @@ const MainRoutes: RouteObject = {
       path: 'shop',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
+          <GatedSwanStudiosStore />
         </Suspense>
       )
     },
