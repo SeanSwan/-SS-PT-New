@@ -114,6 +114,10 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
   const todayPoint = allPoints.find((p) => p.isToday) || null; // honest null; never a prior value
   const todayE1rm = todayPoint ? todayPoint.e1rm : null;
 
+  // DATA-TRUTH NOTE: pr / isFirstEver are computed over the LOADED window (PROOF_LOAD_LIMIT sessions) —
+  // a RECENT best, not guaranteed all-time for very tenured users whose true best predates the window.
+  // UI copy therefore says "a new best" (not "all-time PR"); the eyebrow states "LAST N SESSIONS" for
+  // honest context. True all-time = a follow-up exercise-scoped MAX query (out of Slice-2 scope).
   const priorE1rms = allPoints.filter((p) => !p.isToday).map((p) => p.e1rm);
   const priorBest = priorE1rms.length ? Math.max(...priorE1rms) : null;
   const pr = todayE1rm !== null && priorBest !== null && todayE1rm > priorBest;

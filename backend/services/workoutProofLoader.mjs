@@ -17,7 +17,7 @@
 import { normalizeExerciseName } from '../utils/exerciseIdentity.mjs';
 
 export const EPLEY_MAX_REPS = 36;   // Epley validity cap
-export const PROOF_LOAD_LIMIT = 60; // deep enough for a 12-pt window + all-time PR (capped: documented risk)
+export const PROOF_LOAD_LIMIT = 60; // window for the chart + a RECENT best — NOT all-time (see proof-service note)
 
 // Free-text logger ⇒ drop junk rows so they never poison a chart.
 const isValidSet = (w, r) => {
