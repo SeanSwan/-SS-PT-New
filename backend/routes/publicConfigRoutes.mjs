@@ -18,6 +18,7 @@ router.get('/public-flags', (_req, res) => {
     dashboardV2Finance: isTrue(process.env.DASHBOARD_V2_FINANCE),
     storeV4: isTrue(process.env.STORE_V4_ENABLED),
     homeVNext: isTrue(process.env.HOME_VNEXT_ENABLED),
+    aboutVNext: isTrue(process.env.ABOUT_VNEXT_ENABLED),
   });
 });
 

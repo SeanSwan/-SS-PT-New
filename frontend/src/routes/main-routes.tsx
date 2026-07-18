@@ -19,6 +19,7 @@ import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
 import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGate';
 import StoreGate from '../pages/shop/StoreGate';
 import HomeGate from '../pages/HomePage/HomeGate';
+import AboutGate from '../pages/about/AboutGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -105,6 +106,14 @@ const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About.V4'),
   'About Page V4',
   () => import('../pages/about/About.V3')
+);
+
+// About V-next seam: AboutGate flag-gates the caustic swan-occluder hero in front of the current About.
+// Flag off/unresolved/contract-fail → AboutPage (V4→V3) renders untouched (fail-closed).
+const GatedAboutPage = () => (
+  <AboutGate>
+    <AboutPage />
+  </AboutGate>
 );
 
 // Account Claiming (Crystalline Link Protocol — SWAN-XXXXXXXX invite codes)
@@ -396,7 +405,7 @@ const MainRoutes: RouteObject = {
       path: 'about',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <AboutPage />
+          <GatedAboutPage />
         </Suspense>
       )
     },

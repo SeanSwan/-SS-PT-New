@@ -2,8 +2,8 @@
  * Store V4 — Hero (KIMI-STORE-CORRECTED D2/D5/D6). Lean: headline + one honest sub + one CTA. NO trust
  * bar (D5: it triple-stated the same proof and pushed the first price ~2 viewports deep on mobile — the
  * case must open early). The CTA smooth-scrolls to the packages AND hands off focus (F7b — a scroll with
- * stranded focus is an AA bug on the primary CTA). Credentials line honors the house rule: "26+ years",
- * "NASM-protocol" — never "NASM-certified".
+ * stranded focus is an AA bug on the primary CTA). Credentials line honors the house rule: "26+ years"
+ * and "NASM-protocol" phrasing (never the false NASM certification claim the contract test forbids).
  */
 import styled from 'styled-components';
 
