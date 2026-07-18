@@ -117,4 +117,11 @@ describe('AT-11 — matrix CSS assertions (string)', () => {
     const retired = new RegExp(['#0a0a' + '1a', '#00ff' + 'ff', '#7851' + 'a9'].join('|'), 'i');
     expect(retired.test(lensViewportCss)).toBe(false);
   });
+
+  it('Codex#3: root-scale selector puts data-viewport on the :root compound, not a descendant', () => {
+    expect(lensViewportCss).toContain(":root[data-viewport='desk']");
+    expect(lensViewportCss).toContain(":root[data-viewport='lap']");
+    // the broken descendant form (data-viewport looked up below :root) must be gone
+    expect(lensViewportCss).not.toContain(":where([data-viewport='desk'], [data-viewport='lap']) #root");
+  });
 });

@@ -208,3 +208,51 @@ describe('AT-6/7 — fail-closed exceptions', () => {
     expect(commit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Triangle-review fixes (Codex findings)', () => {
+  it('Codex#1: busy-flush of a throwing old commit does NOT propagate + clears attrs; new proceeds', () => {
+    vi.useFakeTimers();
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const bad = vi.fn(() => {
+      throw new Error('old boom');
+    });
+    const good = vi.fn();
+    const { result } = renderHook(() => useCrystallizeTransition({ motionMode: 'auto' }));
+    act(() => result.current.crystallizeTo(bad));
+    act(() => vi.advanceTimersByTime(50)); // mid-charge, bad not yet committed
+    expect(() => act(() => result.current.crystallizeTo(good))).not.toThrow(); // flush must not propagate
+    expect(bad).toHaveBeenCalledTimes(1);
+    expect(errSpy).toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(480));
+    expect(good).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.getAttribute('data-lens-transition')).toBeNull();
+    errSpy.mockRestore();
+  });
+
+  it('Codex#2: unmount with a throwing pending commit does NOT throw + clears <html> attrs', () => {
+    vi.useFakeTimers();
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const bad = vi.fn(() => {
+      throw new Error('unmount boom');
+    });
+    const { result, unmount } = renderHook(() => useCrystallizeTransition({ motionMode: 'auto' }));
+    act(() => result.current.crystallizeTo(bad)); // charging, attrs set
+    expect(document.documentElement.getAttribute('data-lens-transition')).toBe('charging');
+    expect(() => unmount()).not.toThrow();
+    expect(bad).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.getAttribute('data-lens-transition')).toBeNull();
+    expect(errSpy).toHaveBeenCalled();
+    errSpy.mockRestore();
+  });
+
+  it('Codex#4: legacy MediaQueryList (addListener only, no addEventListener) does not crash', () => {
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: false,
+        media: query,
+        addListener() {},
+        removeListener() {},
+      }) as unknown as MediaQueryList) as typeof window.matchMedia;
+    expect(() => renderHook(() => useCrystallizeTransition({ motionMode: 'auto' }))).not.toThrow();
+  });
+});

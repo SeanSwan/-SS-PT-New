@@ -69,8 +69,20 @@ function usePrefersReducedMotionFailClosed(): boolean {
     }
     const onChange = () => setReduced(read());
     onChange();
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
+    // Legacy MediaQueryList (Safari <14, some test shims) expose addListener but not addEventListener.
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    }
+    const legacy = mql as unknown as {
+      addListener?: (cb: () => void) => void;
+      removeListener?: (cb: () => void) => void;
+    };
+    if (typeof legacy.addListener === 'function') {
+      legacy.addListener(onChange);
+      return () => legacy.removeListener?.(onChange);
+    }
+    return undefined;
   }, []);
   return reduced;
 }
@@ -139,8 +151,16 @@ export function useCrystallizeTransition(options?: {
     () => () => {
       mounted.current = false;
       clearTimers();
-      runPending(); // no half-applied lens on unmount
-      clearHtmlAttrs();
+      try {
+        runPending(); // no half-applied lens on unmount
+      } catch (error) {
+        // A throwing commit must NOT propagate out of React's unmount cleanup — swallow + surface,
+        // and still clear global attrs in finally so <html> is never left dirty (Codex HIGH #2).
+        // eslint-disable-next-line no-console
+        console.error('[SwanLens] Crystallize commit failed during unmount cleanup.', error);
+      } finally {
+        clearHtmlAttrs();
+      }
     },
     [clearTimers, runPending, clearHtmlAttrs],
   );
@@ -152,17 +172,29 @@ export function useCrystallizeTransition(options?: {
     const announcement = opts?.settleAnnouncement ?? '';
 
     // Complete any in-flight transition synchronously first — no commit dropped or doubled.
+    // A throwing OLD commit must not block the NEW transition or leave attrs stuck (Codex HIGH #1).
     if (pending.current && !pending.current.done) {
       clearTimers();
-      runPending();
-      clearHtmlAttrs();
+      try {
+        runPending();
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[SwanLens] previous Crystallize commit failed during flush; continuing.', error);
+      } finally {
+        clearHtmlAttrs();
+      }
     }
     pending.current = { commit, done: false };
 
     if (v === 'static') {
       setOverlay({ phase: 'idle', variant: 'static', chargeMs, settleMs, announcement });
-      runPending(); // synchronous commit — Lane A's Apply try/catch owns any throw
-      clearHtmlAttrs();
+      // Synchronous commit — Lane A's Apply try/catch owns any throw. finally clears attrs even
+      // when the commit throws, then the error propagates to Lane A as intended (Codex LOW #5).
+      try {
+        runPending();
+      } finally {
+        clearHtmlAttrs();
+      }
       return;
     }
 

@@ -56,15 +56,16 @@ export const lensViewportCss = `
     }
   }
 
-  /* ROOT SCALE — sweep variant, desk/lap only; drives off the transition attributes on <html> */
+  /* ROOT SCALE — sweep variant, desk/lap only. data-viewport is written on <html> (:root) itself,
+     so it must be part of the :root compound, NOT a descendant combinator (Codex MED #3). */
   @media (prefers-reduced-motion: no-preference) {
-    :root:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='charging']
-      :where([data-viewport='desk'], [data-viewport='lap']) #root {
+    :root[data-viewport='desk']:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='charging'] #root,
+    :root[data-viewport='lap']:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='charging'] #root {
       transform: scale(0.995);
       transition: transform var(--lens-crystallize-charge-ms, 120ms) var(--lens-ease-crystallize, cubic-bezier(0.16,1,0.3,1));
     }
-    :root:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='settling']
-      :where([data-viewport='desk'], [data-viewport='lap']) #root {
+    :root[data-viewport='desk']:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='settling'] #root,
+    :root[data-viewport='lap']:not([data-motion='off'])[data-lens-transition-variant='sweep'][data-lens-transition='settling'] #root {
       transform: scale(1);
       transition: transform var(--lens-crystallize-settle-ms, 360ms) var(--lens-ease-crystallize, cubic-bezier(0.16,1,0.3,1));
     }

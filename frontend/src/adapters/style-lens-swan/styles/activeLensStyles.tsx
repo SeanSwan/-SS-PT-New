@@ -110,6 +110,16 @@ export function ActiveLensGlobalStyles(): ReactElement {
   const ids = useStyleLensIds();
   const known = selectActiveLensIds(ids);
   if (process.env.NODE_ENV !== 'production') warnOncePerUnknownId(ids, known);
+  // CORE is inside the keyed fragment DELIBERATELY (lens-first, core-last): on a lens change the
+  // pair remounts so styled-components re-inserts lens-then-core, keeping the monolith's
+  // density-over-lens outcome at equal specificity (§3). Rendering core OUTSIDE the fragment
+  // (always-mounted-first) would reverse that — lens rules would then win over the [data-density]
+  // block, so a compact-density user would lose compact padding on any lens that sets it.
+  // Triangle P1 (Gemini): the core remount is NOT a visible flicker — React applies all commit-phase
+  // DOM mutations (styled-components injects via useInsertionEffect) BEFORE the browser paints and
+  // before any layout effect reads getComputedStyle, so no frame or measurement ever observes the
+  // --console-* skin absent. Empirical no-flicker + computed-cascade verification is the deferred
+  // Playwright pass (Kimi §11.4); Codex's injection review found no blocker here.
   return (
     <Fragment key={known.length ? known.join('|') : 'core-only'}>
       {known.map((id) => {
