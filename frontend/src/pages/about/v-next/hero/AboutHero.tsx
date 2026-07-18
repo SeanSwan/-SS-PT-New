@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAnimationTier } from '../../../../hooks/useAnimationTier';
 import { YEARS_EXPERIENCE_CLAIM } from '../../../../content/marketingStats';
 import { useCrystallizeTransition, CrystallizeOverlay } from '../lensBindings';
-import { SwanMark } from './SwanMark.svg';
+import { SwanMark } from './SwanMark';
 import { CausticCanvas } from './CausticCanvas';
 
 const Section = styled.section`

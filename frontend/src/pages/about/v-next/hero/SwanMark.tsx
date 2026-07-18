@@ -6,6 +6,7 @@
  * never neon fill). On charge the rim draws + brightens; the clear body is where the name/credential reveal.
  * aria-hidden — decorative; the real h1 lives in the hero. Transform/opacity + stroke-dashoffset only.
  */
+import { useId } from 'react';
 import { motion } from 'framer-motion';
 
 // Stylized swan silhouette (graceful S-neck + body), viewBox 0 0 200 200.
@@ -15,14 +16,18 @@ const SWAN =
   'C117,163 74,161 52,158 Z';
 
 export function SwanMark({ charged }: { charged: boolean }) {
+  // per-instance SVG def ids (useId) — never document-global, so two marks can't collide (Codex).
+  const uid = useId();
+  const bodyId = `about-swan-body-${uid}`;
+  const glowId = `about-swan-glow-${uid}`;
   return (
     <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <radialGradient id="about-swan-body" cx="46%" cy="42%" r="70%">
+        <radialGradient id={bodyId} cx="46%" cy="42%" r="70%">
           <stop offset="0%" stopColor="var(--about-caustic-lo)" />
           <stop offset="100%" stopColor="var(--about-bg)" />
         </radialGradient>
-        <filter id="about-swan-glow" x="-30%" y="-30%" width="160%" height="160%">
+        <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="2.4" result="b" />
           <feMerge>
             <feMergeNode in="b" />
@@ -32,7 +37,7 @@ export function SwanMark({ charged }: { charged: boolean }) {
       </defs>
 
       {/* the absence: dark glass body that occludes the caustics inside the swan */}
-      <path d={SWAN} fill="url(#about-swan-body)" />
+      <path d={SWAN} fill={`url(#${bodyId})`} />
 
       {/* the rim: bright caustic filament along the contour, "drawn" on charge */}
       <motion.path
@@ -41,7 +46,7 @@ export function SwanMark({ charged }: { charged: boolean }) {
         stroke="var(--about-ice)"
         strokeWidth={1.4}
         strokeLinecap="round"
-        filter="url(#about-swan-glow)"
+        filter={`url(#${glowId})`}
         initial={false}
         animate={{
           pathLength: charged ? 1 : 0.06,
