@@ -38,3 +38,19 @@ Add `clientRequestId STRING(64) NULL` + a unique partial index (`WHERE clientReq
 
 ## 7. What is already DONE + verified in Slice 1 (do not redo)
 Pure proof-series (Epley e1RM, dup-row aggregation, all-time PR, ISO-week streak), NBA 4-rule resolver + fail-CLOSED `enforceClientSafety` allowlist, the `PostSaveHandoff` UI (3 zones, Victory proof, NBA card, share stub) with real modal a11y (focus trap/Esc/restore), Dual-Button-Glow + AA contrast, reduced-motion, tokenized colors, feature-flag-dark. Coverage: backend node-harness green; frontend vitest 25/25; scoped tsc 0 errors. Three hostile-review rounds.
+
+---
+## KIMI REVISE (2026-07-18) — BINDING REVISIONS + STEP-0 RESULTS
+Kimi solo review verdict = **REVISE** (full: `KIMI-SLICE2-PLAN-REVIEW-2026-07-18.md`; workout-section enhancements: `KIMI-WORKOUT-SECTION-ENHANCEMENTS-2026-07-18.md`). These are binding:
+
+**STEP-0 (traced, [VERIFIED]):**
+- Client hero save = **`POST /api/workout-forms`** (`dailyWorkoutFormRoutes` → creates WorkoutSession + `WorkoutLog.bulkCreate`). MCP/structured save = `POST /api/workout/sessions` (`workoutSessionController` → WorkoutExercise/Set). **The assembler MUST fire from BOTH** (shared `assembleHandoff`), or the client hero moment never shows.
+- `assertAssignmentOrAdmin` → `backend/middleware/verifyClientAccess.mjs` (confirm bool-vs-throw at build). Analytics sink = **`useAnalytics`** hook. `SafeChart` = `frontend/src/components/Charts/SafeChart.tsx`.
+
+**DATA-SOURCE FIX (headline — corrects Slice 1):** new `workoutProofLoader.mjs` reads BOTH `logs` (WorkoutLog) + `exercises→sets`, maps to `{sessionId, performedAt, nameKey, displayName, setNumber, weight, reps, source}`. Identity = `normalizeExerciseName` (trim→lowercase→collapse spaces, **exact match, NO fuzzy** — false-merge fabricates PRs). Precedence: within `(sessionId,nameKey)`, **if any `logs` rows exist prefer `logs`, else `exercises→sets`** (Set rows can be plan/template placeholders → never render planned as performed). Dedupe by `setNumber`. Guards: drop `weight<=0|null`, `reps<=0|null|>36`. Proof identity keys on `nameKey` (not exerciseId); display = latest raw name. `isFirstEver` = first session with ≥1 eligible set (either source), + empty-series headline guard.
+
+**MONEY-PATH:** catch-and-replay on `SequelizeUniqueConstraintError` (assemble handoff on replay too, return 200 deduplicated); deduction stays INSIDE the create tx; **server-side kill switch `ENABLE_POST_SAVE_HANDOFF` env (default false)** — assembler returns null when off (VITE flag alone insufficient on a money path). Assembler per-zone best-effort (proof/nba/share each try/catch → null; never blocks the save).
+
+**OTHER BINDING:** re-entry route re-keyed to `GET /api/workout/sessions/:id/handoff` (404 for miss AND unauthorized); `pendingSync` moves OUT of the backend assembler INTO the client view-model; analytics contract = `handoff_shown|nba_cta_tapped|proof_share_tapped` with zero-PII payload (roles/headline/ruleId/booleans only — NEVER exerciseName/ids); viewer-role-aware headline copy (trainer "your client hit a PR" vs client "you hit a PR"); migration = fixed index name + down drops index then column + off-peak note + `[Op.ne]:null`; frontend portal + lazy + skeleton min-height (CLS) + body scroll-lock + focus-trap tests against the portal mount. Paste-ready fold-ins F1–F7 in the review doc are the implementation.
+
+**BUILD ORDER (Kimi §e):** Step 0 (done) → backend: exerciseIdentity → migration → workoutProofLoader → proof service edit (nameKey) → assembler → wire controller + dailyWorkoutFormRoutes → re-entry route → backend tests → frontend: types (pendingSync out) → analytics → portal/lazy mount → shells → frontend tests.

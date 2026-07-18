@@ -19,7 +19,8 @@ export interface ProofPoint {
 }
 
 export interface ProofSeries {
-  exerciseId: string;
+  /** Normalized exercise name that unifies the dual data sources (WorkoutLog + Set). */
+  nameKey: string;
   exerciseName: string;
   points: ProofPoint[];
   todayE1rm: number | null;

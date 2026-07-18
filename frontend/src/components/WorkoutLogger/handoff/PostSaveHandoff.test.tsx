@@ -12,7 +12,7 @@ const baseData = (over: Partial<HandoffData> = {}): HandoffData => ({
   share: { eligible: true, reason: 'owner' },
   nba: { kind: 'DO_NEXT_WORKOUT', title: 'Next up: Wednesday', ctaLabel: 'View next workout', href: '/schedule', trainerOnly: false },
   proof: {
-    exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat',
+    nameKey: 'barbell back squat', exerciseName: 'Barbell Back Squat',
     points: [{ sessionId: 's1', dateISO: '2026-07-06T10:00:00Z', e1rm: 245 }, { sessionId: 's2', dateISO: '2026-07-11T10:00:00Z', e1rm: 263, isToday: true }],
     todayE1rm: 263, pr: false, prDeltaLbs: 0,
     totalVolumeLbs: 6840, exerciseCount: 5, durationMin: 52,

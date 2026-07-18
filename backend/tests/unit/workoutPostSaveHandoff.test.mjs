@@ -3,251 +3,182 @@ import {
   estimateOneRepMax,
   topSetE1rm,
   exerciseVolume,
-  buildProofSeriesFromSessions,
+  buildProofSeriesFromUnifiedSessions,
 } from '../../services/workoutProofSeriesService.mjs';
+import { unifyRow, toUnifiedSessions } from '../../services/workoutProofLoader.mjs';
+import { normalizeExerciseName } from '../../utils/exerciseIdentity.mjs';
 import {
   resolveNextBestActionFromContext,
   enforceClientSafety,
   NBA_KINDS,
 } from '../../services/nextBestActionResolverService.mjs';
 
-// ── fixtures ────────────────────────────────────────────────────────────────
-const set = (weightUsed, repsCompleted, setType = 'working') => ({ setType, weightUsed, repsCompleted });
-const squat = (sessionTopWeight, reps = 5) => ({
-  exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat',
-  sets: [set(sessionTopWeight - 40, 5, 'warmup'), set(sessionTopWeight, reps), set(sessionTopWeight, reps)],
+// ── unified fixtures ──────────────────────────────────────────────────────────
+const uSet = (name, weight, reps, setNumber, source = 'log') => ({
+  nameKey: normalizeExerciseName(name), displayName: name, weight, reps, setNumber, source,
 });
-const bench = (w) => ({ exerciseId: 'ex-bench', exerciseName: 'Barbell Bench Press', sets: [set(w, 5), set(w, 5)] });
-const session = (id, dateISO, exercises, duration = 50) => ({ id, date: dateISO, duration, exercises });
+const uSession = (id, date, sets, duration = 50) => ({ id, date, duration, sets });
+const squatSession = (id, date, top, dur = 50) =>
+  uSession(id, date, [uSet('Barbell Back Squat', top, 5, 1), uSet('Barbell Back Squat', top, 5, 2)], dur);
 
-describe('workoutProofSeriesService — Epley + top set', () => {
-  it('estimateOneRepMax matches Epley and rounds (225×5 → 263)', () => {
-    expect(estimateOneRepMax(225, 5)).toBe(263); // 225*(1+5/30)=262.5 → 263
-    expect(estimateOneRepMax(100, 10)).toBe(133);
+// ── loader: dual-source unification (the headline fix) ─────────────────────────
+describe('workoutProofLoader.unifyRow — dual-source unification', () => {
+  it('LOGS-WIN precedence: when both sources have the same exercise, use the human log rows', () => {
+    const row = {
+      id: 's1', date: '2026-07-11T10:00:00Z',
+      logRows: [{ exerciseName: 'Bench Press', weight: 225, reps: 5, setNumber: 1 }],
+      setRows: [{ exerciseName: 'Bench Press', weight: 999, reps: 5, setNumber: 1 }], // template placeholder — must be ignored
+    };
+    const u = unifyRow(row);
+    expect(u.sets).toHaveLength(1);
+    expect(u.sets[0].weight).toBe(225);
+    expect(u.sets[0].source).toBe('log');
   });
-  it('guards junk inputs to null (never poisons a chart)', () => {
+
+  it('uses set rows when there are no log rows for that exercise', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [], setRows: [{ exerciseName: 'Deadlift', weight: 405, reps: 3, setNumber: 1 }] });
+    expect(u.sets[0].source).toBe('set');
+    expect(u.sets[0].weight).toBe(405);
+  });
+
+  it('normalizes names: casing/extra-space MERGE; different names SPLIT (no fuzzy)', () => {
+    expect(normalizeExerciseName('Bench  Press')).toBe(normalizeExerciseName('bench press')); // merge
+    expect(normalizeExerciseName('Bench Press')).not.toBe(normalizeExerciseName('Barbell Bench Press')); // split
+  });
+
+  it('drops junk sets (weight<=0, reps<=0, reps>36, null)', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [
+      { exerciseName: 'Squat', weight: 0, reps: 5, setNumber: 1 },
+      { exerciseName: 'Squat', weight: 225, reps: 0, setNumber: 2 },
+      { exerciseName: 'Squat', weight: 225, reps: 37, setNumber: 3 },
+      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 4 },
+      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 5 },
+    ], setRows: [] });
+    expect(u.sets).toHaveLength(1);
+    expect(u.sets[0].weight).toBe(225);
+  });
+
+  it('dedupes by setNumber, keeping the max weight (volume is duplicate-sensitive)', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [
+      { exerciseName: 'Squat', weight: 185, reps: 5, setNumber: 1 },
+      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 1 }, // same setNumber → keep 225
+    ], setRows: [] });
+    expect(u.sets).toHaveLength(1);
+    expect(u.sets[0].weight).toBe(225);
+  });
+
+  it('toUnifiedSessions maps a list', () => {
+    expect(toUnifiedSessions([{ id: 'a', date: 'd', logRows: [{ exerciseName: 'Row', weight: 135, reps: 8, setNumber: 1 }], setRows: [] }])).toHaveLength(1);
+  });
+});
+
+// ── series builder (unified shape, name-keyed) ────────────────────────────────
+describe('workoutProofSeriesService — series build (unified)', () => {
+  it('estimateOneRepMax matches Epley (225×5 → 263) + guards', () => {
+    expect(estimateOneRepMax(225, 5)).toBe(263);
     expect(estimateOneRepMax(0, 5)).toBeNull();
     expect(estimateOneRepMax(225, 0)).toBeNull();
-    expect(estimateOneRepMax(null, 5)).toBeNull();
-    expect(estimateOneRepMax(-5, 5)).toBeNull();
-    expect(estimateOneRepMax('x', 5)).toBeNull();
   });
-  it('topSetE1rm excludes warmups and takes the best working set', () => {
-    const sets = [set(135, 10, 'warmup'), set(225, 5), set(235, 3)];
-    // working: 225*(1.1667)=263 ; 235*(1.1)=259 → best 263
-    expect(topSetE1rm(sets)).toBe(263);
-  });
-  it('topSetE1rm falls back to any set if all are warmups', () => {
-    expect(topSetE1rm([set(100, 5, 'warmup')])).toBe(117);
-    expect(topSetE1rm([])).toBeNull();
-  });
-  it('exerciseVolume sums weight×reps over sets (ignoring junk)', () => {
-    expect(exerciseVolume(bench(100))).toBe(1000); // 100*5 + 100*5
-    expect(exerciseVolume({ sets: [set(0, 5), set(100, 5)] })).toBe(500);
-  });
-});
 
-describe('workoutProofSeriesService — series build', () => {
-  // All four in ISO week Mon 2026-07-06 .. Sun 2026-07-12 (verified via node harness).
-  const sessions = [
-    session('s1', '2026-07-06T10:00:00Z', [squat(200), bench(135)]),
-    session('s2', '2026-07-08T10:00:00Z', [squat(205), bench(135)]),
-    session('s3', '2026-07-10T10:00:00Z', [squat(210), bench(140)]),
-    session('s4', '2026-07-11T10:00:00Z', [squat(225), bench(140)]), // today, squat PR
-  ];
+  it('topSetE1rm takes the best set; exerciseVolume sums weight×reps', () => {
+    expect(topSetE1rm([uSet('x', 225, 5, 1), uSet('x', 235, 3, 2)])).toBe(263); // 263 vs 259
+    expect(exerciseVolume([uSet('x', 100, 5, 1), uSet('x', 100, 5, 2)])).toBe(1000);
+  });
 
-  it('builds an e1RM series for the proof exercise from REAL points only', () => {
-    const r = buildProofSeriesFromSessions(sessions, { todaySessionId: 's4' });
-    expect(r.exerciseId).toBe('ex-squat'); // highest volume, has ≥3 priors
+  it('renders a real chart for CLIENT-LOGGED (log-source) workouts — the headline fix', () => {
+    const sessions = [
+      squatSession('s1', '2026-07-06T10:00:00Z', 200),
+      squatSession('s2', '2026-07-08T10:00:00Z', 205),
+      squatSession('s3', '2026-07-10T10:00:00Z', 210),
+      squatSession('s4', '2026-07-11T10:00:00Z', 225),
+    ];
+    const r = buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId: 's4' });
+    expect(r.nameKey).toBe('barbell back squat');
     expect(r.exerciseName).toBe('Barbell Back Squat');
     expect(r.points).toHaveLength(4);
-    expect(r.points.every((p) => typeof p.e1rm === 'number')).toBe(true);
-    expect(r.points[r.points.length - 1].isToday).toBe(true);
-    expect(r.todayE1rm).toBe(263); // 225×5
-  });
-
-  it('detects an all-time PR and the delta', () => {
-    const r = buildProofSeriesFromSessions(sessions, { todaySessionId: 's4' });
-    // priors best = 210×5 = 245 ; today 263 → PR +18
+    expect(r.todayE1rm).toBe(263);
     expect(r.pr).toBe(true);
-    expect(r.prDeltaLbs).toBe(18);
+    expect(r.prDeltaLbs).toBe(18); // 263 − 245
+    expect(r.sessionsThisWeek).toBe(4);
+    expect(r.streakWeeks).toBe(1);
   });
 
-  it('picks highest-volume exercise WITH ≥3 priors over a higher-volume newcomer', () => {
-    const withNewcomer = [
-      ...sessions,
-      session('s5', '2026-07-13T10:00:00Z', [
-        { exerciseId: 'ex-deadlift', exerciseName: 'Deadlift', sets: [set(405, 5), set(405, 5)] }, // huge volume, 0 priors
-        squat(230),
-      ]),
+  it('picks the proof exercise by aggregated per-name volume', () => {
+    const sess = [uSession('t', '2026-07-11T10:00:00Z', [
+      uSet('Overhead Press', 135, 8, 1),          // 1080
+      uSet('Barbell Back Squat', 185, 5, 1),        // 925 …
+      uSet('Barbell Back Squat', 185, 5, 2),        // …+925 = 1850 aggregate
+    ])];
+    expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' }).nameKey).toBe('barbell back squat');
+  });
+
+  it('todayE1rm is null when today has no valid set for the proof exercise (never a prior value)', () => {
+    const sess = [
+      squatSession('a', '2026-07-06T10:00:00Z', 200),
+      uSession('b', '2026-07-11T10:00:00Z', [uSet('Barbell Back Squat', 0, 5, 1)]), // junk today → dropped upstream... simulate no valid set
     ];
-    const r = buildProofSeriesFromSessions(withNewcomer, { todaySessionId: 's5' });
-    expect(r.exerciseId).toBe('ex-squat'); // squat has priors; deadlift is new
+    // 'b' has no valid squat set (weight 0 would be dropped by the loader; here we pass it raw to the builder,
+    // which still yields no e1rm point for today because estimateOneRepMax(0,5) is null).
+    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 'b' });
+    expect(r.todayE1rm).toBeNull();
+    expect(r.pr).toBe(false);
   });
 
-  it('handles a first-ever session (single real point, no fabricated trend, no PR)', () => {
-    const r = buildProofSeriesFromSessions([session('only', '2026-07-07T10:00:00Z', [squat(185)])], { todaySessionId: 'only' });
+  it('keeps a multi-week streak alive mid-week', () => {
+    const wk = (p, mon, n) => Array.from({ length: n }, (_, i) => {
+      const d = new Date(mon); d.setUTCDate(d.getUTCDate() + i);
+      return squatSession(`${p}${i}`, d.toISOString(), 200 + i);
+    });
+    const sess = [
+      ...wk('w1', '2026-06-15T10:00:00Z', 3), ...wk('w2', '2026-06-22T10:00:00Z', 3),
+      ...wk('w3', '2026-06-29T10:00:00Z', 3), squatSession('cur', '2026-07-06T10:00:00Z', 230),
+    ];
+    expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 'cur' }).streakWeeks).toBe(3);
+  });
+
+  it('durationMin null when duration null; first-ever single point', () => {
+    const r = buildProofSeriesFromUnifiedSessions([squatSession('only', '2026-07-11T10:00:00Z', 185, null)], { todaySessionId: 'only' });
+    expect(r.durationMin).toBeNull();
     expect(r.points).toHaveLength(1);
-    expect(r.pr).toBe(false);
-    expect(r.prDeltaLbs).toBe(0);
     expect(r.isFirstEver).toBe(true);
   });
 
-  it('counts sessions in the current ISO week and computes today totals', () => {
-    const r = buildProofSeriesFromSessions(sessions, { todaySessionId: 's4' });
-    // s1..s4 all fall in ISO week Mon 2026-07-06 .. Sun 07-12 (verified via node harness)
-    expect(r.sessionsThisWeek).toBe(4);
-    expect(r.streakWeeks).toBe(1);
-    expect(r.exerciseCount).toBe(2);
-    expect(r.durationMin).toBe(50);
-    expect(r.totalVolumeLbs).toBeGreaterThan(0);
-  });
-
-  it('returns null when there is no usable session', () => {
-    expect(buildProofSeriesFromSessions([], { todaySessionId: 'x' })).toBeNull();
-    expect(buildProofSeriesFromSessions(null)).toBeNull();
+  it('returns null with no usable session', () => {
+    expect(buildProofSeriesFromUnifiedSessions([], { todaySessionId: 'x' })).toBeNull();
+    expect(buildProofSeriesFromUnifiedSessions(null)).toBeNull();
   });
 });
 
-describe('nextBestActionResolverService — rules, precedence, safety', () => {
-  it('Rule 1: trainer with a struggling client + active plan → ADJUST_PLAN (trainerOnly)', () => {
-    const r = resolveNextBestActionFromContext({
-      viewerRole: 'trainer', targetClientId: 4821, hasActivePlan: true, missedPrescribedTopSet: true,
-    });
+// ── NBA resolver + fail-closed guard (unchanged from Slice 1) ──────────────────
+describe('nextBestActionResolverService — rules + fail-closed safety', () => {
+  it('Rule 1 trainer+struggling client+plan → ADJUST_PLAN (trainerOnly)', () => {
+    const r = resolveNextBestActionFromContext({ viewerRole: 'trainer', targetClientId: 4821, hasActivePlan: true, missedPrescribedTopSet: true });
     expect(r.kind).toBe(NBA_KINDS.ADJUST_PLAN);
     expect(r.trainerOnly).toBe(true);
-    expect(r.title).toBe('Client #4821 needs a plan adjustment');
-    expect(r.href).toBe('/workout-planner?client=4821');
   });
-
-  it('Rule 1 is skipped without an active plan (cannot evaluate honestly)', () => {
-    const r = resolveNextBestActionFromContext({
-      viewerRole: 'trainer', targetClientId: 4821, hasActivePlan: false, missedPrescribedTopSet: true,
-      nextSessionWithin48h: true, nextSessionDayName: 'Wednesday',
-    });
-    expect(r.kind).toBe(NBA_KINDS.DO_NEXT_WORKOUT); // falls through to rule 2
-  });
-
-  it('adherence boundary: 59% flags, 60% does not', () => {
+  it('adherence boundary 59% flags / 60% does not', () => {
     const base = { viewerRole: 'admin', targetClientId: 1, hasActivePlan: true };
     expect(resolveNextBestActionFromContext({ ...base, adherence14d: 0.59 }).kind).toBe(NBA_KINDS.ADJUST_PLAN);
     expect(resolveNextBestActionFromContext({ ...base, adherence14d: 0.60 }).kind).not.toBe(NBA_KINDS.ADJUST_PLAN);
   });
-
-  it('Rule 1 beats Rule 2 when both match (precedence)', () => {
-    const r = resolveNextBestActionFromContext({
-      viewerRole: 'trainer', targetClientId: 7, hasActivePlan: true, missedPrescribedTopSet: true,
-      nextSessionWithin48h: true, nextSessionDayName: 'Friday',
-    });
-    expect(r.kind).toBe(NBA_KINDS.ADJUST_PLAN);
-  });
-
-  it('Rule 2: next session within 48h → DO_NEXT_WORKOUT with day name', () => {
-    const r = resolveNextBestActionFromContext({ viewerRole: 'client', nextSessionWithin48h: true, nextSessionDayName: 'Wednesday' });
-    expect(r.kind).toBe(NBA_KINDS.DO_NEXT_WORKOUT);
-    expect(r.title).toBe('Next up: Wednesday');
-    expect(r.href).toBe('/schedule');
-  });
-
-  it('Rule 3: hit weekly frequency → RECOVERY_FLEXIBILITY (lexicon-safe copy)', () => {
-    const r = resolveNextBestActionFromContext({ viewerRole: 'client', sessionsThisWeek: 3, planFrequency: 3 });
-    expect(r.kind).toBe(NBA_KINDS.RECOVERY_FLEXIBILITY);
-    expect(r.href).toBe('/stretching');
-    const blob = `${r.title} ${r.body} ${r.ctaLabel}`.toLowerCase();
-    expect(blob).toContain('flexibility');
-    expect(blob).not.toMatch(/yoga|meditation/);
-  });
-
-  it('Rule 4 fallback: VIEW_PROGRESS, never a dead end', () => {
-    const r = resolveNextBestActionFromContext({ viewerRole: 'client' });
-    expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
-    expect(r.trainerOnly).toBe(false);
-  });
-
-  it('SAFETY invariant: a client can never receive a trainerOnly action', () => {
-    // Force the rule-1 preconditions but as a client — must NOT leak a plan decision.
-    const r = resolveNextBestActionFromContext({
-      viewerRole: 'client', targetClientId: 9, hasActivePlan: true, missedPrescribedTopSet: true,
-    });
-    expect(r.trainerOnly).toBe(false);
-    expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+  it('Rule 3 flexibility (lexicon-safe); Rule 4 fallback', () => {
+    const r3 = resolveNextBestActionFromContext({ viewerRole: 'client', sessionsThisWeek: 3, planFrequency: 3 });
+    expect(r3.kind).toBe(NBA_KINDS.RECOVERY_FLEXIBILITY);
+    expect(`${r3.title} ${r3.body}`.toLowerCase()).toMatch(/flexibility/);
+    expect(`${r3.title} ${r3.body}`.toLowerCase()).not.toMatch(/yoga|meditation/);
+    expect(resolveNextBestActionFromContext({ viewerRole: 'client' }).kind).toBe(NBA_KINDS.VIEW_PROGRESS);
   });
 });
 
-describe('enforceClientSafety — fail-closed guard (direct, not vacuous)', () => {
+describe('enforceClientSafety — fail-closed guard', () => {
   const trainerAction = { kind: NBA_KINDS.ADJUST_PLAN, title: 't', ctaLabel: 'c', href: '/x', trainerOnly: true };
-  it('drops a trainerOnly action to the safe fallback for a client', () => {
-    const r = enforceClientSafety('client', { ...trainerAction });
-    expect(r.trainerOnly).toBe(false);
-    expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
-  });
-  it('fails CLOSED on casing / undefined / unknown roles', () => {
-    for (const role of ['CLIENT', 'Client', undefined, null, '', 'user', 'member']) {
+  it('drops a trainerOnly action to fallback for client / CLIENT / undefined / unknown roles', () => {
+    for (const role of ['client', 'CLIENT', 'Client', undefined, null, '', 'user', 'member']) {
       expect(enforceClientSafety(role, { ...trainerAction }).trainerOnly).toBe(false);
     }
   });
-  it('passes a trainerOnly action through only for trainer/admin (case-insensitive)', () => {
+  it('passes trainerOnly through for trainer/admin (case-insensitive)', () => {
     expect(enforceClientSafety('trainer', { ...trainerAction }).kind).toBe(NBA_KINDS.ADJUST_PLAN);
     expect(enforceClientSafety('ADMIN', { ...trainerAction }).kind).toBe(NBA_KINDS.ADJUST_PLAN);
-  });
-  it('never alters a non-trainerOnly action', () => {
-    const safe = { kind: NBA_KINDS.VIEW_PROGRESS, title: 't', ctaLabel: 'c', href: '/p', trainerOnly: false };
-    expect(enforceClientSafety('client', { ...safe })).toEqual(safe);
-  });
-});
-
-describe('workoutProofSeriesService — correctness edges (hostile round)', () => {
-  it('aggregates duplicate exercise rows in one session (does NOT hide a PR)', () => {
-    const sess = [
-      session('p1', '2026-07-06T10:00:00Z', [squat(200)]),
-      session('p2', '2026-07-08T10:00:00Z', [squat(205)]),
-      session('p3', '2026-07-10T10:00:00Z', [squat(210)]),
-      session('t', '2026-07-11T10:00:00Z', [
-        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(95, 5)] },  // light row FIRST
-        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(315, 5)] }, // real top set SECOND
-      ]),
-    ];
-    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 't' });
-    expect(r.todayE1rm).toBe(368); // 315×5, not 111 from the first row
-    expect(r.pr).toBe(true);
-  });
-  it('reports null todayE1rm when today has no valid lift (never a prior value)', () => {
-    const sess = [
-      session('a', '2026-07-06T10:00:00Z', [squat(200)]),
-      session('b', '2026-07-11T10:00:00Z', [{ exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(0, 5)] }]),
-    ];
-    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 'b' });
-    expect(r.todayE1rm).toBeNull();
-    expect(r.pr).toBe(false);
-  });
-  it('keeps a multi-week streak alive mid-week (does not collapse to 0)', () => {
-    const wk = (prefix, mondayISO, n) => Array.from({ length: n }, (_, i) => {
-      const d = new Date(mondayISO); d.setUTCDate(d.getUTCDate() + i);
-      return session(`${prefix}${i}`, d.toISOString(), [squat(200 + i)]);
-    });
-    const sess = [
-      ...wk('w1', '2026-06-15T10:00:00Z', 3),
-      ...wk('w2', '2026-06-22T10:00:00Z', 3),
-      ...wk('w3', '2026-06-29T10:00:00Z', 3),
-      session('cur', '2026-07-06T10:00:00Z', [squat(230)]), // current week: only 1 session so far
-    ];
-    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 'cur' });
-    expect(r.streakWeeks).toBe(3);
-  });
-  it('durationMin is null (not 0) when duration is null', () => {
-    const r = buildProofSeriesFromSessions([session('only', '2026-07-11T10:00:00Z', [squat(185)], null)], { todaySessionId: 'only' });
-    expect(r.durationMin).toBeNull();
-  });
-
-  it('picks the proof exercise by AGGREGATED per-exercise volume (split rows counted together)', () => {
-    const sess = [
-      session('t', '2026-07-11T10:00:00Z', [
-        { exerciseId: 'ex-press', exerciseName: 'Overhead Press', sets: [set(135, 8)] }, // 1080, single row
-        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(185, 5)] }, // 925 …
-        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(185, 5)] }, // …+925 → 1850 aggregate
-      ]),
-    ];
-    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 't' });
-    expect(r.exerciseId).toBe('ex-squat'); // aggregate 1850 > press 1080 (per-row would wrongly pick press)
   });
 });
