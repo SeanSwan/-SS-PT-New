@@ -23,6 +23,12 @@ const Wrap = styled.div`
   height: var(--dash-dial-r, 132px);
   display: grid;
   place-items: center;
+  /* VictoryPie renders a fixed 160-viewBox SVG; scale it to the dial size (--dash-dial-r 120–176). */
+  & svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 `;
 const Center = styled.div`
   position: absolute;
