@@ -69,6 +69,18 @@ Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). 
   wrapped `<UniversalDashboardLayout/>` in `<DashboardV2RouteGate>` (derives role from URL) + one import in
   `main-routes.tsx`; V1 untouched. Vite build PASSES (DashboardShell lazy chunk 22kB emitted). Flag off by
   default → V1. **Dashboards v2 FRONTEND is complete + mounted + build-verified.**
+- **BACKEND PART 1 DONE (10 commits ahead, node --check clean):** migration
+  `20260718120000-create-achievement-crystallizations.cjs` (additive, FK→"Users"/"Achievements", UNIQUE, down NO-OP),
+  `routes/publicConfigRoutes.mjs` (GET /api/config/public-flags), mounted in `core/routes.mjs`. **Backend is built by
+  CLAUDE, NOT Kimi** (consult-kimi is design-scoped; provider policy forbids auth/finance/PII to it) — triangle-review
+  (Codex/Gemini, allowed) before the gated push.
+- **Verified backend patterns:** auth = `backend/middleware/adminAuth.mjs` exports `protect`, `adminOnly`,
+  `authorize(roles)`; `req.user.role` after protect. Composable services EXIST: `adminUserAnalyticsService`
+  (`generateUserAnalytics`, `generateWorkoutStatistics`), `adminSystemAnalyticsService` (`buildExecutiveSummary`,
+  `buildSystemHealthSnapshot`). But `analyticsUserRoutes`/`analyticsRevenueRoutes` are MODEL-INLINE (no service) →
+  thin-query models (Session, WorkoutLog, User, Achievement, UserAchievement[userId INT, achievementId UUID]) where
+  no service exists. Routes mount in `backend/core/routes.mjs` via `app.use('/api/...')`.
+- **NEXT — Slice-3 BACKEND part 2 (highest-stakes):**
 - **NEXT — Slice-3 BACKEND (higher-stakes; the flag-on dashboard needs it for real data):**
   `backend/routes/dashboardV2Routes.mjs` + `controllers/dashboardV2Controller.mjs` +
   `services/dashboardV2Service.mjs` (COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`,
