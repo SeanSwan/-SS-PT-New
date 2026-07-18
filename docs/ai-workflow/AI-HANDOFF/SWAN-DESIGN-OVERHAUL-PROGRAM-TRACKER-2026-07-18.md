@@ -26,7 +26,7 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | # | Surface | Blueprint | Reground | Build | Triangle | Pushed |
 |---|---|---|---|---|---|---|
 | 1 | Swan Lens (keystone) | — | ✅ x4 | ✅ | ✅ (5 bugs fixed) | ✅ cba39192b |
-| 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS | 🔄 running (b7w4nb2rv → KIMI-DASHBOARDS-CORRECTED) | — | — | — |
+| 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS-CORRECTED + INTEGRATION-GAPFIX | ✅ done | 🔄 Slice-1 foundation built (0de2e32a3) | — | — |
 | 3 | Store (StoreV4, money-path UNTOUCHED) | KIMI-STORE | — | — | — | — |
 | 4 | Home (SEND-BACK, full re-pass, RF backup hero) | KIMI-HOME | — | — | — | — |
 | 5 | About (SEND-BACK, light-caustic swan mark) | KIMI-ABOUT | — | — | — | — |
@@ -47,5 +47,29 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
   the wrapper's echo — read the real redirected output. Worktree node_modules junction via PowerShell not mklink.
   Honest tsc = real exit code. styled-components speedy insertRule hides CSS text in jsdom (test the contract).
 
+## Dashboards (#2) precise resume state — 2026-07-18
+Both design docs are final: `KIMI-DASHBOARDS-CORRECTED-2026-07-18.md` (full blueprint) +
+`KIMI-DASHBOARDS-INTEGRATION-GAPFIX-2026-07-18.md` (the corrected §2.2 shell-through-gate + §4
+Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). Build VERBATIM.
+- **Built + committed (0de2e32a3), tsc-clean:** `DashBoard/v2/{lensBindings,flags,types}.ts` +
+  `v2/shell/{dashboardManifests,DashboardShell.theme}.ts`. Foundation only; nothing mounts it yet.
+- **Verified integration facts:** SurfaceLensGate = `{manifest,ariaLabel,children}` (use `makeLensFrame`,
+  NOT `surfaceId`); manifest needs `{surfaceId,hostId,version,profiles:CONTAINER_PROFILES,slots:{},templates:{}}`
+  (empty slots valid — look comes from `[data-style-lens-shell]` world scoping). `CrystallizeOverlay` takes
+  NO children → overlay+panel are SIBLINGS, panel owns focus-trap/Esc/testid. Achievement/Milestone models
+  EXIST (`backend/models/`). `resolveMotionTier`/`useAnimationTier` are the motion source.
+- **NEXT files (Slice-1 remainder):** `v2/useWorldKey.ts`, `v2/motion/useDensityMotion.ts`,
+  `v2/shell/{DashboardShell.tsx, DashboardShell.grid.ts, DashboardShell.nav.tsx, DashboardShell.a11y.tsx,
+  useDashboardSummary.ts}`, `v2/DashboardGate.tsx`, `v2/densities/AdminDensity.tsx`, `v2/sections/*`
+  (StatCard, SparkChart via resolveLensVictoryTheme, DataTable, AlertList, SectionHeader, EmptyState),
+  then the ONE seam `frontend/src/routes/main-routes.tsx` (lazy+gate, ≤15-line diff).
+- **Then Slice-2** densities (trainer/client/user + charts + responsive matrix). **Then Slice-3** backend
+  (`backend/routes/dashboardV2Routes.mjs` etc. + `crystallizeRoutes` + migration `achievement_crystallizations`,
+  down=NO-OP; COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`, `adminCompliance` services;
+  HMAC PII masking `MASK_SALT`; finance flag server-enforced) → hostile → triangle → gate push (Sean).
+- **Higher-stakes flags:** money-adjacent (`DASHBOARD_V2_FINANCE`) + DB migration + PII → the push gate is
+  where Sean reviews the backend before it deploys.
+
 ## Resume procedure (fresh session)
-Read this tracker → find the first surface not ✅-pushed → follow "the discipline" above → update the board + Hermes.
+Read this tracker → find the first surface not ✅-pushed → for Dashboards read the two design docs +
+"precise resume state" above → follow "the discipline" → update the board + Hermes.
