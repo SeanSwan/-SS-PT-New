@@ -121,8 +121,11 @@ describe('PostSaveHandoff', () => {
   });
 
   it('does not render an NBA CTA for a non-internal href (open-redirect guard)', () => {
-    renderHandoff(baseData({ nba: { kind: 'DO_NEXT_WORKOUT', title: 'x', ctaLabel: 'Go', href: '//evil.example', trainerOnly: false } }));
-    expect(screen.queryByRole('button', { name: 'Go' })).not.toBeInTheDocument();
+    for (const href of ['//evil.example', '/\\evil.com', 'javascript:alert(1)', 'https://evil.example', '']) {
+      const { unmount } = renderHandoff(baseData({ nba: { kind: 'DO_NEXT_WORKOUT', title: 'x', ctaLabel: 'Go', href, trainerOnly: false } }));
+      expect(screen.queryByRole('button', { name: 'Go' })).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('withholds share when eligible but not owner (double-guard)', () => {

@@ -239,6 +239,8 @@ export async function buildProofSeries({ targetUserId, todaySessionId, models, w
   return buildProofSeriesFromSessions(sessions, { todaySessionId, windowSize });
   } catch (err) {
     // Loader failure (e.g. limit + ordered-hasMany sub-query surprise) → degrade to null, never crash the save.
+    // Observable when a logger is injected via models (Slice-2 wiring) so a future drift here isn't silent.
+    models?.logger?.warn?.('[workoutProofSeries] series load failed; degrading to null', err?.message);
     return null;
   }
 }

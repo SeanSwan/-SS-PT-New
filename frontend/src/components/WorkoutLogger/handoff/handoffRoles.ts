@@ -8,6 +8,9 @@ const TRAINER_ROLES = new Set(['trainer', 'admin']);
 export const isTrainerRole = (role?: string | null): boolean =>
   TRAINER_ROLES.has(String(role ?? '').toLowerCase());
 
-/** Internal path only: starts with a single "/", never "//" (protocol-relative) or "javascript:". */
+/**
+ * Internal path only: starts with a single "/", never "//" (protocol-relative), never a backslash
+ * (browsers normalize "\" → "/", so "/\evil.com" → "//evil.com" = open redirect), never "javascript:".
+ */
 export const isInternalHref = (href?: string | null): boolean =>
-  typeof href === 'string' && href.startsWith('/') && !href.startsWith('//');
+  typeof href === 'string' && href.startsWith('/') && !href.startsWith('//') && !href.includes('\\');

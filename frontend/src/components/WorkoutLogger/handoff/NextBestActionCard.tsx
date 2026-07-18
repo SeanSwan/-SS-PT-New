@@ -17,6 +17,8 @@ interface NextBestActionCardProps {
 }
 
 const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ nba, viewerRole, onNavigate, onEvent }) => {
+  // Null-guard first — a missing nba must not throw and take down the whole modal.
+  if (!nba) return null;
   // Fail-CLOSED: a trainerOnly action renders only for a provably trainer/admin viewer.
   // A leaked plan decision (client, 'CLIENT', undefined role) is worse than no card.
   if (nba.trainerOnly && !isTrainerRole(viewerRole)) return null;
