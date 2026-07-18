@@ -19,11 +19,15 @@ import { normalizeExerciseName } from '../utils/exerciseIdentity.mjs';
 export const EPLEY_MAX_REPS = 36;   // Epley validity cap
 export const PROOF_LOAD_LIMIT = 60; // window for the chart + a RECENT best — NOT all-time (see proof-service note)
 
-// Free-text logger ⇒ drop junk rows so they never poison a chart.
+// Free-text logger ⇒ drop rows with no usable weight/reps so they never poison volume or the chart.
+// The Epley rep cap (≤36) is deliberately NOT applied here: a high-rep set is REAL volume and must agree
+// with the session's canonical totalWeight (which is uncapped). Epley-validity (the ≤36 cap) lives in
+// estimateOneRepMax instead — so a high-rep set counts toward VOLUME/exerciseCount but yields no e1RM
+// chart point. (EPLEY_MAX_REPS stays exported for that chart-side guard.)
 const isValidSet = (w, r) => {
   const weight = Number(w);
   const reps = Number(r);
-  return Number.isFinite(weight) && Number.isFinite(reps) && weight > 0 && reps > 0 && reps <= EPLEY_MAX_REPS;
+  return Number.isFinite(weight) && Number.isFinite(reps) && weight > 0 && reps > 0;
 };
 
 const toRows = (arr, source) => {

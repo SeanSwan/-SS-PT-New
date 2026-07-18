@@ -36,8 +36,10 @@ function subline(
       // "a new best" (NOT "personal best"): pr is computed over the recent loaded window, not all-time
       // (the eyebrow states "LAST N SESSIONS"). See the data-truth note in workoutProofSeriesService.
       return `A new best — +${p.prDeltaLbs} lbs over your previous mark.`;
-    case 'streak':
-      return `${p.sessionsThisWeek} sessions this week — your strongest run in ${Math.max(p.streakWeeks, 1)} weeks.`;
+    case 'streak': {
+      const weeks = Math.max(p.streakWeeks, 1);
+      return `${p.sessionsThisWeek} sessions this week — your strongest run in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}.`;
+    }
     case 'first':
       // isFirstEver is per-EXERCISE (first proof-eligible log of THIS lift in the window), not the first
       // workout ever — so scope the copy to the exercise; never claim "first flight on record".
@@ -95,7 +97,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   if (!proof) return null;
   const chips = [
     proof.totalVolumeLbs ? `VOL ${fmt(proof.totalVolumeLbs)} LB` : null,
-    proof.exerciseCount ? `${proof.exerciseCount} EXERCISES` : null,
+    proof.exerciseCount ? `${proof.exerciseCount} ${proof.exerciseCount === 1 ? 'EXERCISE' : 'EXERCISES'}` : null,
     proof.durationMin ? `${proof.durationMin} MIN` : null,
   ].filter(Boolean) as string[];
 

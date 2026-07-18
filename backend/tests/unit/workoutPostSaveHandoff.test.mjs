@@ -46,16 +46,16 @@ describe('workoutProofLoader.unifyRow — dual-source unification', () => {
     expect(normalizeExerciseName('Bench Press')).not.toBe(normalizeExerciseName('Barbell Bench Press')); // split
   });
 
-  it('drops junk sets (weight<=0, reps<=0, reps>36, null)', () => {
+  it('drops junk sets (weight<=0, reps<=0, null) but KEEPS high-rep sets (real volume; Epley cap is chart-only)', () => {
     const u = unifyRow({ id: 's', date: 'd', logRows: [
-      { exerciseName: 'Squat', weight: 0, reps: 5, setNumber: 1 },
-      { exerciseName: 'Squat', weight: 225, reps: 0, setNumber: 2 },
-      { exerciseName: 'Squat', weight: 225, reps: 37, setNumber: 3 },
-      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 4 },
-      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 5 },
+      { exerciseName: 'Squat', weight: 0, reps: 5, setNumber: 1 },     // dropped: no weight
+      { exerciseName: 'Squat', weight: 225, reps: 0, setNumber: 2 },   // dropped: no reps
+      { exerciseName: 'Squat', weight: 135, reps: 37, setNumber: 3 },  // KEPT: real volume (no e1RM point)
+      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 4 },  // dropped: no weight
+      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 5 },   // kept
     ], setRows: [] });
-    expect(u.sets).toHaveLength(1);
-    expect(u.sets[0].weight).toBe(225);
+    expect(u.sets).toHaveLength(2);
+    expect(u.sets.map((s) => s.setNumber).sort((a, b) => a - b)).toEqual([3, 5]);
   });
 
   it('dedupes by setNumber, keeping the max weight (volume is duplicate-sensitive)', () => {
@@ -74,10 +74,12 @@ describe('workoutProofLoader.unifyRow — dual-source unification', () => {
 
 // ── series builder (unified shape, name-keyed) ────────────────────────────────
 describe('workoutProofSeriesService — series build (unified)', () => {
-  it('estimateOneRepMax matches Epley (225×5 → 263) + guards', () => {
+  it('estimateOneRepMax matches Epley (225×5 → 263) + guards (incl. >36-rep Epley-invalid → null)', () => {
     expect(estimateOneRepMax(225, 5)).toBe(263);
     expect(estimateOneRepMax(0, 5)).toBeNull();
     expect(estimateOneRepMax(225, 0)).toBeNull();
+    expect(estimateOneRepMax(135, 37)).toBeNull();      // beyond Epley-valid range → no e1RM point
+    expect(estimateOneRepMax(135, 36)).not.toBeNull();  // 36 is the inclusive cap
   });
 
   it('topSetE1rm takes the best set; exerciseVolume sums weight×reps', () => {
@@ -112,16 +114,42 @@ describe('workoutProofSeriesService — series build (unified)', () => {
     expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' }).nameKey).toBe('barbell back squat');
   });
 
-  it('todayE1rm is null when today has no valid set for the proof exercise (never a prior value)', () => {
+  it('counts high-rep volume but never picks an all-high-rep (unchartable) exercise for the e1RM chart', () => {
+    const sess = [uSession('t', '2026-07-11T10:00:00Z', [
+      uSet('Bodyweight Lunge', 45, 40, 1),    // 1800 vol, reps>36 → NOT chartable
+      uSet('Barbell Back Squat', 225, 5, 1),  // 1125 vol, chartable
+    ])];
+    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' });
+    expect(r.nameKey).toBe('barbell back squat');       // chartable lift chosen despite lower volume
+    expect(r.totalVolumeLbs).toBe(45 * 40 + 225 * 5);   // high-rep volume still counted (matches totalWeight)
+    expect(r.exerciseCount).toBe(2);
+  });
+
+  it('returns null when today has only unchartable (all-high-rep) work — no e1RM proof to show', () => {
+    const sess = [uSession('t', '2026-07-11T10:00:00Z', [uSet('Bodyweight Lunge', 45, 40, 1)])];
+    expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' })).toBeNull();
+  });
+
+  it('suppresses pr when today is not the newest loaded session (window-anchor honesty)', () => {
+    const sess = [
+      squatSession('old', '2026-07-06T10:00:00Z', 200),
+      squatSession('mid', '2026-07-08T10:00:00Z', 300), // beats "old", but is not the newest
+      squatSession('new', '2026-07-10T10:00:00Z', 210),
+    ];
+    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 'mid' });
+    expect(r.pr).toBe(false);
+    expect(r.todayE1rm).toBe(350); // 300×5 Epley — the chart/number stays honest; only the claim is withheld
+  });
+
+  it('returns null when today has no chartable set — never fabricates todayE1rm from a prior value', () => {
     const sess = [
       squatSession('a', '2026-07-06T10:00:00Z', 200),
-      uSession('b', '2026-07-11T10:00:00Z', [uSet('Barbell Back Squat', 0, 5, 1)]), // junk today → dropped upstream... simulate no valid set
+      uSession('b', '2026-07-11T10:00:00Z', [uSet('Barbell Back Squat', 0, 5, 1)]), // junk-only today (weight 0)
     ];
-    // 'b' has no valid squat set (weight 0 would be dropped by the loader; here we pass it raw to the builder,
-    // which still yields no e1rm point for today because estimateOneRepMax(0,5) is null).
-    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 'b' });
-    expect(r.todayE1rm).toBeNull();
-    expect(r.pr).toBe(false);
+    // 'b' has no chartable set (estimateOneRepMax(0,5) is null), so pickProofExercise finds no chartable
+    // exercise and the builder suppresses the whole series. Invariant preserved: todayE1rm is NEVER a prior
+    // session's value — a non-null series always carries today's own e1rm.
+    expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 'b' })).toBeNull();
   });
 
   it('keeps a multi-week streak alive mid-week', () => {

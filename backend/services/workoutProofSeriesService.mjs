@@ -10,16 +10,19 @@
  * ║  DATA-TRUTH: never fabricates a point; empty history → null, never mock.         ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
-import { loadUnifiedSessions, PROOF_LOAD_LIMIT } from './workoutProofLoader.mjs';
+import { loadUnifiedSessions, PROOF_LOAD_LIMIT, EPLEY_MAX_REPS } from './workoutProofLoader.mjs';
 
 export const EPLEY_REP_DIVISOR = 30;
 export const PROOF_WINDOW = 12;
 
-/** Estimated 1-rep max for one set (Epley). null for junk (defensive; loader already guards). */
+/** Estimated 1-rep max for one set (Epley). null for non-positive inputs OR reps beyond the Epley-valid
+ *  range (> EPLEY_MAX_REPS): Epley wildly overestimates a 1RM at very high reps, so such sets earn NO
+ *  e1RM point. This is the ONLY home of the rep cap — high-rep sets still count toward VOLUME (loader no
+ *  longer drops them), so the chart stays honest while totalVolumeLbs matches the canonical totalWeight. */
 export function estimateOneRepMax(weight, reps) {
   const w = Number(weight);
   const r = Number(reps);
-  if (!Number.isFinite(w) || !Number.isFinite(r) || w <= 0 || r <= 0) return null;
+  if (!Number.isFinite(w) || !Number.isFinite(r) || w <= 0 || r <= 0 || r > EPLEY_MAX_REPS) return null;
   return Math.round(w * (1 + r / EPLEY_REP_DIVISOR));
 }
 
@@ -67,11 +70,16 @@ function pickProofExercise(todaySession, priorSessions) {
   }
   const agg = new Map();
   todaySets.forEach((set, idx) => {
+    // Volume counts EVERY logged set (matches the session's canonical totalWeight), but only sets with a
+    // valid Epley estimate make an exercise "chartable". The proof screen must never pick an exercise whose
+    // e1RM series would be empty — e.g. an all-high-rep finisher that out-volumes the working lifts.
+    const chartable = estimateOneRepMax(set.weight, set.reps) !== null;
     const cur = agg.get(set.nameKey);
-    if (cur) cur.vol += exerciseVolume([set]);
-    else agg.set(set.nameKey, { nameKey: set.nameKey, idx, vol: exerciseVolume([set]), priors: priorCount.get(set.nameKey) || 0 });
+    if (cur) { cur.vol += exerciseVolume([set]); cur.chartable = cur.chartable || chartable; }
+    else agg.set(set.nameKey, { nameKey: set.nameKey, idx, vol: exerciseVolume([set]), priors: priorCount.get(set.nameKey) || 0, chartable });
   });
-  const ranked = [...agg.values()].sort((a, b) => b.vol - a.vol || a.idx - b.idx);
+  const ranked = [...agg.values()].filter((r) => r.chartable).sort((a, b) => b.vol - a.vol || a.idx - b.idx);
+  if (ranked.length === 0) return null; // no chartable exercise today → no e1RM proof to show
   const chosen = ranked.find((r) => r.priors >= 3) || ranked[0];
   return chosen.nameKey;
 }
@@ -106,6 +114,12 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
     ? sorted.find((s) => s.id === todaySessionId)
     : sorted[sorted.length - 1];
   if (!today) return null;
+  // Window-anchor honesty: the loader loads the newest ≤60 sessions OVERALL, not "≤60 up to today". So for
+  // a NON-newest `today` (re-entry on an older session, or a backdated save with newer sessions already
+  // logged), the window may omit the user's true prior best → pr/isFirstEver would be unreliable. Suppress
+  // those CLAIMS when today isn't the newest loaded session; the chart itself (progression up to today,
+  // and the honest todayE1rm) stays truthful — only the "new best"/"first" headlines are withheld.
+  const isNewestSession = today.id === sorted[sorted.length - 1].id;
   const prior = sorted.filter((s) => s.id !== today.id && new Date(s.date) <= new Date(today.date));
 
   const nameKey = pickProofExercise(today, prior);
@@ -129,7 +143,7 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
   // honest context. True all-time = a follow-up exercise-scoped MAX query (out of Slice-2 scope).
   const priorE1rms = allPoints.filter((p) => !p.isToday).map((p) => p.e1rm);
   const priorBest = priorE1rms.length ? Math.max(...priorE1rms) : null;
-  const pr = todayE1rm !== null && priorBest !== null && todayE1rm > priorBest;
+  const pr = isNewestSession && todayE1rm !== null && priorBest !== null && todayE1rm > priorBest;
   const prDeltaLbs = pr ? todayE1rm - priorBest : 0;
 
   const todayWeek = isoWeekKey(now || today.date);
@@ -147,8 +161,9 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
     durationMin: today.duration != null && Number.isFinite(Number(today.duration)) ? Math.round(Number(today.duration)) : null,
     sessionsThisWeek,
     streakWeeks: countStreakWeeks(upToToday, todayWeek),
-    // "first session with >=1 proof-eligible set" (either source) — guards the 'first' headline.
-    isFirstEver: allPoints.length <= 1 && prior.every((s) => topSetE1rm(setsForKey(s, nameKey)) === null),
+    // "first session (in the window) with a proof-eligible set for this exercise" — guards the 'first'
+    // headline. Also gated on isNewestSession: a non-newest today can't truthfully claim a first.
+    isFirstEver: isNewestSession && allPoints.length <= 1 && prior.every((s) => topSetE1rm(setsForKey(s, nameKey)) === null),
   };
 }
 
