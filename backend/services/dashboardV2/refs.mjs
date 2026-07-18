@@ -25,8 +25,10 @@ export const maskClient = (id) => maskRef(id, 'C');
 export const maskTrainer = (id) => maskRef(id, 'T');
 
 // ---- formatters (server-authoritative) ----
-export const fmtMoney = (cents) =>
-  `$${(Number(cents || 0)).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+// Order.totalAmount is DECIMAL(10,2) — a DOLLAR amount (Sequelize may return it as a string). We format
+// as-is (no /100); the live revenue route sums the same column without dividing.
+export const fmtMoney = (dollars) =>
+  `$${(Number(dollars || 0)).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
 export const fmtInt = (n) => Number(n || 0).toLocaleString('en-US');
 

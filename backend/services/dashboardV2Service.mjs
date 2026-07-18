@@ -60,7 +60,7 @@ async function buildAdminSummary({ finance }) {
     safe(() => Session.count({ where: { sessionDate: { [Op.gte]: today0 } } }), 0),
     safe(() => WorkoutSession.count({ where: { date: { [Op.gte]: week0 } } }), 0),
     finance ? safe(() => Order.sum('totalAmount', { where: { status: 'completed', createdAt: { [Op.gte]: today0 } } }), 0) : Promise.resolve(null),
-    safe(() => User.count({ where: { role: 'client', isActive: true, updatedAt: { [Op.lt]: dayStart(14) } } }), 0),
+    safe(() => User.count({ where: { role: 'client', isActive: true, lastActive: { [Op.lt]: dayStart(14) } } }), 0),
   ]);
 
   const stats = [
