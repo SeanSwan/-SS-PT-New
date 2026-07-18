@@ -24,26 +24,33 @@ function qaOverride(): boolean | null {
 }
 
 export function useStoreV4Flag(): { storeV4: boolean; resolved: boolean } {
-  const [storeV4, setStoreV4] = useState<boolean>(() => qaOverride() ?? ENV_FALLBACK);
+  const [storeV4, setStoreV4] = useState<boolean>(ENV_FALLBACK); // fail-closed until resolved
   const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
-    const override = qaOverride();
-    if (override !== null) {
-      setStoreV4(override);
-      setResolved(true);
-      return;
-    }
     let alive = true;
+    // Always consult the runtime flag so the central kill switch stays ABSOLUTE. An explicit runtime
+    // `false` wins over the QA override (emergency-off must beat a reviewer's local toggle). The QA
+    // override can only force V4 ON when the central switch hasn't deliberately killed it.
     fetch('/api/config/public-flags', { credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
       .then((json: { storeV4?: unknown } | null) => {
         if (!alive) return;
-        if (json && typeof json.storeV4 === 'boolean') setStoreV4(Boolean(json.storeV4));
+        const runtime = json && typeof json.storeV4 === 'boolean' ? Boolean(json.storeV4) : null;
+        const override = qaOverride();
+        let effective: boolean;
+        if (runtime === false) effective = false; // kill switch absolute
+        else if (override !== null) effective = override; // reviewer preview
+        else effective = runtime ?? ENV_FALLBACK;
+        setStoreV4(effective);
         setResolved(true);
       })
       .catch(() => {
-        if (alive) setResolved(true); // network fail → keep fail-closed env fallback
+        // runtime unreachable → the QA override may preview, else fail-closed env fallback
+        if (alive) {
+          setStoreV4(qaOverride() ?? ENV_FALLBACK);
+          setResolved(true);
+        }
       });
     return () => {
       alive = false;

@@ -33,9 +33,8 @@ export const StoreV4Tokens = createGlobalStyle`
     /* D4 WCAG fix: wing-as-TEXT (small eyebrows) needs ≥4.5:1 on card-hi — the raw action tone was ~4.47:1.
        A brightened tint clears it; borders/graphics keep the full-saturation --store-wing. */
     --store-wing-text: color-mix(in oklab, var(--world-action, var(--world-accent)) 62%, var(--world-text) 38%);
-    --store-gold: #C6A84B;          /* store-local luxury literal — the ONLY hex accent, spent twice */
+    --store-gold: #C6A84B;          /* store-local luxury literal — the ONLY hex in v4, spent twice */
     --store-gold-28: color-mix(in oklab, #C6A84B 28%, transparent);
-    --store-ink-on-gold: #0A0A0F;   /* dark ink for the gold tag/ring, ≥4.5:1 on gold */
 
     /* chrome edge (crystal card border) ← derived from accent, zero invention */
     --store-chrome-edge: color-mix(in oklab, var(--world-accent) 34%, transparent);
