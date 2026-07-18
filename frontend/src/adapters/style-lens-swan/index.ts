@@ -84,6 +84,23 @@ export { buildWorldValuesRegistry, CRYSTALLINE_DEFAULT_WORLD_VALUES } from './co
 export { safeResolveLensId, ANNOUNCE_COPY } from './contract/safeResolveLensId';
 export { LENS_STYLE_ALLOWLIST } from './styles/lenses';
 
+// ── Swan Lens Slice-2 (Crystallize + viewport) — ready-to-wire for Lane A ──
+export {
+  useCrystallizeTransition,
+  CRYSTALLIZE_SURFACE_ID,
+  CRYSTALLIZE_TIMING,
+  type CrystallizeController,
+  type CrystallizeOverlayProps,
+} from './motion/useCrystallizeTransition';
+export { CrystallizeOverlay, CRYSTALLIZE_OVERLAY_Z, crystallizeOverlayCss } from './motion/CrystallizeOverlay';
+export {
+  useLensViewport,
+  layoutProfileForViewport,
+  LENS_VIEWPORT_QUERIES,
+  type LensViewport,
+} from './viewport/useLensViewport';
+export { lensViewportCss } from './styles/lensViewportStyles';
+
 // F16 — dev/CI fail-closed integrity gate (never runs in production). Asserts that every STYLED
 // lens (the 27 named manifests; the DEFAULT safety lens renders via always-present core, so it is
 // intentionally outside this set) has a Crystalline-clean world-values entry AND a style-allowlist
