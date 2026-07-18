@@ -18,6 +18,7 @@ import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
 // Dashboards v2 seam: flag-gated wrapper; renders V1 (children) when off (default), the v2 shell when on.
 import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGate';
 import StoreGate from '../pages/shop/StoreGate';
+import HomeGate from '../pages/HomePage/HomeGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -62,6 +63,14 @@ const HomePage = lazyLoadWithErrorHandling(
   () => import('../pages/HomePage/components/HomePage.V4'),
   'Home Page V4',
   () => import('../pages/HomePage/components/HomePage.V3')
+);
+
+// Home V-next seam: HomeGate flag-gates the optics hero in front of the current Home. Flag off/unresolved/
+// contract-fail → HomePage (V4→V3) renders untouched (fail-closed).
+const GatedHomePage = () => (
+  <HomeGate>
+    <HomePage />
+  </HomeGate>
 );
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
@@ -339,7 +348,7 @@ const MainRoutes: RouteObject = {
       index: true,
       element: (
         <Suspense fallback={<PageLoader />}>
-          <HomePage />
+          <GatedHomePage />
         </Suspense>
       )
     },
