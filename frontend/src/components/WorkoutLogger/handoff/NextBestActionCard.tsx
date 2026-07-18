@@ -10,7 +10,9 @@ import { isTrainerRole, isInternalHref } from './handoffRoles';
 import type { LoggerRole, NextBestAction } from './workoutHandoff.types';
 
 interface NextBestActionCardProps {
-  nba: NextBestAction;
+  // Nullable to match the assembler (nba can be null on the degraded/create path). The component
+  // already fail-closes on null (below), so the prop type admits it rather than lying to callers.
+  nba: NextBestAction | null;
   viewerRole: LoggerRole;
   onNavigate: (href: string) => void;
   onEvent?: (event: string, payload?: Record<string, unknown>) => void;

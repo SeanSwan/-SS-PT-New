@@ -83,6 +83,9 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   if (!active) return null;
 
   const { proof, nba, share, headline, pendingSync } = data;
+  // `active` (line above) already gated on data.proof, but a stored boolean doesn't flow TS narrowing
+  // back to `proof` (now ProofSeries | null). Re-assert so the proof zone is null-safe for tsc + runtime.
+  if (!proof) return null;
   const chips = [
     proof.totalVolumeLbs ? `VOL ${fmt(proof.totalVolumeLbs)} LB` : null,
     proof.exerciseCount ? `${proof.exerciseCount} EXERCISES` : null,

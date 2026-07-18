@@ -356,6 +356,12 @@ router.post('/',
       }
 
       // ← save committed. The handoff is BEST-EFFORT and never blocks/duplicates/rolls back the save.
+      // NOTE (create-path handoff is currently proof-null by construction): this route persists ONLY the
+      // WorkoutSession aggregate — it does not write WorkoutExercise/Set or WorkoutLog rows (the validated
+      // `exercises` array is dropped by Sequelize, no nested create). So buildProofSeries has no per-set data
+      // for `session.id` and the handoff comes back proof-null → the UI suppresses it. Wired anyway (fail-
+      // closed, harmless) so it lights up automatically once a structured writer persists per-set rows. The
+      // dominant HUMAN handoff runs on the form path (POST /api/workout-forms), which DOES persist WorkoutLog.
       const handoff = await safeAssemble({
         viewerUserId: req.user.id, viewerRole: req.user.role,
         targetUserId: session.userId, todaySessionId: session.id, models,

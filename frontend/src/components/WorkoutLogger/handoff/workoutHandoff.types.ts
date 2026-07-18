@@ -49,13 +49,19 @@ export interface ShareEligibility {
   reason: 'owner' | 'not-owner';
 }
 
-/** The full server-assembled handoff payload the UI renders. */
+/**
+ * The full server-assembled handoff payload the UI renders.
+ * proof/nba are nullable to match the assembler exactly (postSaveHandoffAssembler returns
+ * `proof ?? null` / `nba ?? null` — e.g. first workout, all-bodyweight day, or the create/degraded
+ * path). headline + share are always emitted. `pendingSync` is a CLIENT concern (offline-queue state),
+ * injected by the shell — the server never sends it — so it's optional here (Chunk C passes it as a prop).
+ */
 export interface HandoffData {
   headline: HeadlineKind;
-  proof: ProofSeries;
-  nba: NextBestAction;
+  proof: ProofSeries | null;
+  nba: NextBestAction | null;
   share: ShareEligibility;
-  pendingSync: boolean;
+  pendingSync?: boolean;
 }
 
 export interface PostSaveHandoffProps {

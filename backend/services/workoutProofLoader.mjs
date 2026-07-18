@@ -6,7 +6,7 @@
  * ║   • logs (WorkoutLog): exerciseName/weight/reps/setNumber — the CLIENT FORM     ║
  * ║     logger (POST /api/workout-forms). The dominant HUMAN path.                  ║
  * ║   • exercises→sets (WorkoutExercise→Set): Exercise.name/weightUsed/repsCompleted║
- * ║     — the MCP/structured/plan path (POST /api/workout/sessions).                ║
+ * ║     — the MCP/structured/plan path (structured Set writer).                     ║
  * ║  Slice-1 read only exercises→sets → BLANK chart for client-logged workouts.     ║
  * ║  This reads BOTH and unifies to one per-set shape keyed by NORMALIZED name.      ║
  * ║  PRECEDENCE: within (session, nameKey) prefer `log` rows if any exist — Set rows ║
@@ -83,12 +83,18 @@ export async function loadUnifiedSessions({ targetUserId, models, limit = PROOF_
       order: [['date', 'DESC']],
       limit,
       include: [
-        { model: WorkoutLog, as: 'logs', required: false, attributes: ['exerciseName', 'weight', 'reps', 'setNumber'] },
+        // separate:true → each hasMany runs as a batched follow-up query, NOT a JOIN. Without it,
+        // eager-loading BOTH sibling hasMany collections (logs AND exercises→sets) on one parent
+        // cartesian-explodes to logs×sets rows for any session that has both populated (planner
+        // placeholders + form logs on the SAME findOrCreate'd session — the loader's mainline case):
+        // ~logs×sets×limit rows over the wire on the save path. Hydration stayed correct (Sequelize
+        // de-dups by PK) but the DB/wire cost did not. Splitting logs + the nested sets kills it.
+        { model: WorkoutLog, as: 'logs', required: false, separate: true, attributes: ['exerciseName', 'weight', 'reps', 'setNumber'] },
         {
           model: WorkoutExercise, as: 'exercises', required: false,
           include: [
             { model: Exercise, as: 'exercise', attributes: ['name'] },
-            { model: Set, as: 'sets', attributes: ['weightUsed', 'repsCompleted', 'setNumber'] },
+            { model: Set, as: 'sets', separate: true, attributes: ['weightUsed', 'repsCompleted', 'setNumber'] },
           ],
         },
       ],

@@ -78,13 +78,16 @@ describe('legacy workoutSessionRoutes enforces trainer assignment (no role bypas
     mocks.create.mockResolvedValue({ id: 'session-new' });
   });
 
-  it('denies an UNASSIGNED trainer reading another user\'s session by id (403)', async () => {
+  it('denies an UNASSIGNED trainer reading another user\'s session by id (404 — no existence oracle)', async () => {
     mocks.assertAssignmentOrAdmin.mockResolvedValue(false);
     const res = await request(buildApp())
       .get('/api/workout/sessions/5')
       .set('x-test-user-id', '42')
       .set('x-test-user-role', 'trainer');
-    expect(res.status).toBe(403);
+    // GET /:id returns 404 (not 403) on an unauthorized read so a non-owner can't distinguish
+    // "exists-not-yours" from "doesn't-exist" — matches the miss branch + /:id/handoff. Denial is
+    // still enforced (assertAssignmentOrAdmin gates it); only the status code hides existence.
+    expect(res.status).toBe(404);
     expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(42, 'trainer', 999);
   });
 
