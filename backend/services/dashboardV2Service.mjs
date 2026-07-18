@@ -19,9 +19,13 @@ import Achievement from '../models/Achievement.mjs';
 import UserAchievement from '../models/UserAchievement.mjs';
 import sequelize from '../database.mjs';
 import {
-  maskClient, maskTrainer, fmtMoney, fmtInt, fmtPct, fmtTime, fmtAge,
+  maskClient, maskTrainer, maskId, fmtMoney, fmtInt, fmtTime, fmtAge,
   sessionRowStatus, dayStart,
 } from './dashboardV2/refs.mjs';
+
+// Achievement.rarity ENUM('common','rare','epic','legendary') → the 3 milestone tiers (no migration;
+// the field already exists). Replaces the arbitrary index-mod tier (Codex/Gemini triangle finding).
+const RARITY_TIER = { common: 'facet', rare: 'prism', epic: 'crown', legendary: 'crown' };
 
 const nowIso = () => new Date().toISOString();
 const safe = async (fn, fallback) => { try { return await fn(); } catch { return fallback; } };
@@ -30,7 +34,7 @@ function toSessionRow(s) {
   const start = s.sessionDate ? new Date(s.sessionDate) : null;
   const end = start && s.duration ? new Date(start.getTime() + s.duration * 60000) : null;
   return {
-    id: String(s.id),
+    id: maskId(s.id), // opaque handle, not the raw sequential PK (privacy contract)
     clientRef: maskClient(s.userId),
     trainerRef: maskTrainer(s.trainerId),
     startLabel: fmtTime(start),
@@ -57,7 +61,7 @@ async function buildAdminSummary({ finance }) {
   const today0 = dayStart(0), week0 = dayStart(7);
   const [activeClients, sessionsTodayCt, workoutsWeek, revenueCents, staleCt] = await Promise.all([
     safe(() => User.count({ where: { role: 'client', isActive: true } }), 0),
-    safe(() => Session.count({ where: { sessionDate: { [Op.gte]: today0 } } }), 0),
+    safe(() => Session.count({ where: { sessionDate: { [Op.gte]: today0, [Op.lt]: dayStart(-1) } } }), 0), // today only — matches sessionsToday[]
     safe(() => WorkoutSession.count({ where: { date: { [Op.gte]: week0 } } }), 0),
     finance ? safe(() => Order.sum('totalAmount', { where: { status: 'completed', createdAt: { [Op.gte]: today0 } } }), 0) : Promise.resolve(null),
     safe(() => User.count({ where: { role: 'client', isActive: true, lastActive: { [Op.lt]: dayStart(14) } } }), 0),
@@ -158,16 +162,20 @@ async function buildMilestones(userId) {
       { replacements: { userId, ids: achIds }, type: sequelize.QueryTypes.SELECT },
     ), []),
   ]);
-  const titleOf = new Map(achievements.map((a) => [String(a.id), a.title || a.name || 'Achievement']));
+  const metaOf = new Map(
+    achievements.map((a) => [String(a.id), { title: a.title || a.name || 'Achievement', rarity: a.rarity }]),
+  );
   const crystalSet = new Set(crystals.map((c) => String(c.achievementId)));
-  const tiers = ['facet', 'prism', 'crown'];
-  return earned.map((e, i) => ({
-    id: String(e.achievementId),
-    tier: tiers[i % 3],
-    title: titleOf.get(String(e.achievementId)) || 'Achievement',
-    earnedLabel: e.createdAt ? fmtAge(e.createdAt) : null,
-    crystallized: crystalSet.has(String(e.achievementId)),
-  }));
+  return earned.map((e) => {
+    const meta = metaOf.get(String(e.achievementId));
+    return {
+      id: String(e.achievementId),
+      tier: RARITY_TIER[meta?.rarity] || 'facet', // real rarity → tier, deterministic per achievement
+      title: meta?.title || 'Achievement',
+      earnedLabel: e.createdAt ? fmtAge(e.createdAt) : null,
+      crystallized: crystalSet.has(String(e.achievementId)),
+    };
+  });
 }
 
 async function progressSeries(userId) {

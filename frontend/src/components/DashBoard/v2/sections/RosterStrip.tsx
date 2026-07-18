@@ -68,7 +68,11 @@ export function RosterStrip({ roster }: { roster: RosterEntry[] }) {
         <Card key={r.clientRef}>
           <Ref>{r.clientRef}</Ref>
           <Meta>Last: {r.lastSessionLabel}</Meta>
-          <Bar $pct={r.adherencePct} aria-label={`Adherence ${Math.round(r.adherencePct)}%`} />
+          {r.adherencePct > 0 ? (
+            <Bar $pct={r.adherencePct} aria-label={`Adherence ${Math.round(r.adherencePct)}%`} />
+          ) : (
+            <Meta>Adherence: no data yet</Meta>
+          )}
         </Card>
       ))}
     </Strip>

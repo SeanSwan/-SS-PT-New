@@ -24,6 +24,13 @@ export function maskRef(id, kind = 'C') {
 export const maskClient = (id) => maskRef(id, 'C');
 export const maskTrainer = (id) => maskRef(id, 'T');
 
+// Opaque, collision-safe row handle (16 hex) for React keys — never the raw sequential PK. Not shown
+// to the user, so length is unconstrained; wide enough to avoid list-key collisions unlike the 4-digit ref.
+export function maskId(id, kind = 'sess') {
+  if (id === null || id === undefined) return `${kind}-none`;
+  return crypto.createHmac('sha256', MASK_SALT).update(`${kind}:${id}`).digest('hex').slice(0, 16);
+}
+
 // ---- formatters (server-authoritative) ----
 // Order.totalAmount is DECIMAL(10,2) — a DOLLAR amount (Sequelize may return it as a string). We format
 // as-is (no /100); the live revenue route sums the same column without dividing.
@@ -31,8 +38,6 @@ export const fmtMoney = (dollars) =>
   `$${(Number(dollars || 0)).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
 export const fmtInt = (n) => Number(n || 0).toLocaleString('en-US');
-
-export const fmtPct = (n) => `${Math.round(Number(n || 0))}%`;
 
 /** Short clock label from a Date (e.g. "9:30 AM"). */
 export function fmtTime(d) {
