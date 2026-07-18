@@ -7,6 +7,10 @@
  */
 export type Role = 'admin' | 'trainer' | 'client' | 'user';
 
+/** Lane-A motion-tier key (DOTTED) — for resolveMotionTier / useCrystallizeTransition ONLY.
+ *  Distinct from the kebab manifest surfaceId ('dashboard-admin') used for the lens frame. */
+export type MotionSurfaceId = 'dashboard.admin' | 'dashboard.trainer' | 'dashboard.client' | 'dashboard.user';
+
 export interface StatDef {
   key: string;
   label: string;
