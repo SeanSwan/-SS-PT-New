@@ -65,11 +65,21 @@ Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). 
   TrendChart[Victory via `theme` prop, not `style=`]), DashboardGate, densities/AdminDensity (real) +
   Trainer/Client/User (Slice-2 placeholders). Victory colors flow through the `theme` prop (the inline-
   `style=` ban forbids per-mark style). react-refresh warning on DashboardShell (DENSITY_CONFIG export) is benign.
-- **NEXT — the ONE V1 seam (careful, production routing):** `frontend/src/routes/main-routes.tsx` — wrap the
-  4 dashboard route elements: `element: <DashboardGate role="admin"><V1El/></DashboardGate>` (import
-  DashboardGate lazily/normally; V1 element stays as children, untouched). Read the file fully first; verify
-  the wrap doesn't disturb existing route structure. Then Slice-2 real densities (RosterStrip, LogSessionHero,
-  ProgressRing, MilestoneTile, SparkChart) + the responsive/floor tests, then Slice-3 backend/migration/crystallize.
+- **SEAM DONE + build-verified (8 commits ahead):** reality = ONE `dashboard/*` catch-all (not 4 routes);
+  wrapped `<UniversalDashboardLayout/>` in `<DashboardV2RouteGate>` (derives role from URL) + one import in
+  `main-routes.tsx`; V1 untouched. Vite build PASSES (DashboardShell lazy chunk 22kB emitted). Flag off by
+  default → V1. **Dashboards v2 FRONTEND is complete + mounted + build-verified.**
+- **NEXT — Slice-3 BACKEND (higher-stakes; the flag-on dashboard needs it for real data):**
+  `backend/routes/dashboardV2Routes.mjs` + `controllers/dashboardV2Controller.mjs` +
+  `services/dashboardV2Service.mjs` (COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`,
+  `adminCompliance` services — do NOT re-query; verify their exact exports first) returning the
+  `DashboardSummary` union per §2.3 with server-side HMAC ref masking (`maskRef(id)=HMAC(id, env MASK_SALT)
+  →C-1042/T-07`), `revenue_today` ONLY when `DASHBOARD_V2_FINANCE=true` (server-enforced), `?as={role}`
+  admin-only + audit-logged; `GET /api/config/public-flags`; `POST /api/achievements/:id/crystallize`
+  (owner/admin, idempotent on UNIQUE(user,achievement), confirm-first) + `crystallizeRoutes/Controller/Service`
+  + migration `achievement_crystallizations` (down = NO-OP). Rule 42 pre-push audit. Rule 50: money/PII → the
+  push gate is Sean's review. **Then Slice-2 real densities** (RosterStrip, LogSessionHero, ProgressRing,
+  MilestoneTile, SparkChart replacing the 3 placeholder densities). **Then hostile → triangle → gate push.**
 - **Then Slice-2** densities (trainer/client/user + charts + responsive matrix). **Then Slice-3** backend
   (`backend/routes/dashboardV2Routes.mjs` etc. + `crystallizeRoutes` + migration `achievement_crystallizations`,
   down=NO-OP; COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`, `adminCompliance` services;
