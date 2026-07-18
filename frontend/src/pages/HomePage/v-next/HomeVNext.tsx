@@ -7,6 +7,7 @@
  * the only live call is NewsletterSection's existing POST. Same SeoHead + OrientationForm as V4.
  */
 import { useState } from 'react';
+import styled from 'styled-components';
 import SeoHead from '../../../components/seo/SeoHead';
 import { useAnimationTier, useTierFlags } from '../../../hooks/useAnimationTier';
 import { SectionTransition } from '../../../components/ui/animations';
@@ -28,6 +29,13 @@ import SocialSection from '../components/sections/SocialSection';
 import NewsletterSection from '../components/sections/NewsletterSection';
 import CTASection from '../components/sections/CTASection';
 
+// Restores V4's <main> landmark + page background, but token-driven (--home-bg → --world-bg), not the
+// legacy --bg-base — so no transparent gaps between the reused sections and it re-skins with the world.
+const MainWrapper = styled.main`
+  position: relative;
+  background: var(--home-bg);
+`;
+
 export default function HomeVNext() {
   const tier = useAnimationTier();
   const { isFull, showGlow } = useTierFlags(tier);
@@ -43,6 +51,7 @@ export default function HomeVNext() {
           path="/"
         />
 
+        <MainWrapper>
         <HeroOptics onOpenOrientation={() => setShowOrientation(true)} />
         <CapsuleRail />
         <SectionTransition animate={isFull} showGlow={showGlow} />
@@ -68,6 +77,7 @@ export default function HomeVNext() {
         <NewsletterSection tier={tier} />
         <SectionTransition animate={isFull} showGlow={showGlow} />
         <CTASection tier={tier} />
+        </MainWrapper>
 
         {showOrientation && <OrientationForm onClose={() => setShowOrientation(false)} />}
       </div>
