@@ -26,7 +26,7 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | # | Surface | Blueprint | Reground | Build | Triangle | Pushed |
 |---|---|---|---|---|---|---|
 | 1 | Swan Lens (keystone) | — | ✅ x4 | ✅ | ✅ (5 bugs fixed) | ✅ cba39192b |
-| 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS-CORRECTED + INTEGRATION-GAPFIX | ✅ done | ✅ FULL (S1 frontend+mount, S2 real densities, S3 backend) | ✅ Codex+Gemini (2 confirmed fixed, false-positive rejected) | ⏳ AWAITING SEAN GATE (17 commits, tsc/eslint/build clean) |
+| 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS-CORRECTED + INTEGRATION-GAPFIX | ✅ done | ✅ FULL (S1 frontend+mount, S2 real densities, S3 backend) | ✅ Codex+Gemini (2 confirmed fixed, false-positive rejected) | ✅ SHIPPED main 8a8545605 (flag off → V1 until DASHBOARD_V2_ENABLED=true) |
 | 3 | Store (StoreV4, money-path UNTOUCHED) | KIMI-STORE | — | — | — | — |
 | 4 | Home (SEND-BACK, full re-pass, RF backup hero) | KIMI-HOME | — | — | — | — |
 | 5 | About (SEND-BACK, light-caustic swan mark) | KIMI-ABOUT | — | — | — | — |
