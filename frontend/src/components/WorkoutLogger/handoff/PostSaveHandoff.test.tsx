@@ -53,12 +53,12 @@ describe('PostSaveHandoff', () => {
 
   it('shows the PR subline on a personal best', () => {
     renderHandoff(baseData({ headline: 'pr', proof: { ...baseData().proof, pr: true, prDeltaLbs: 18 } }));
-    expect(screen.getByText('A new personal best — +18 lbs over your previous mark.')).toBeInTheDocument();
+    expect(screen.getByText('A new best — +18 lbs over your previous mark.')).toBeInTheDocument();
   });
 
   it('shows the first-ever subline', () => {
     renderHandoff(baseData({ headline: 'first' }));
-    expect(screen.getByText('First flight on record — every chart starts with one point.')).toBeInTheDocument();
+    expect(screen.getByText('First Barbell Back Squat on record — every chart starts with one point.')).toBeInTheDocument();
   });
 
   it('omits chips whose values are null (no fabricated facts)', () => {

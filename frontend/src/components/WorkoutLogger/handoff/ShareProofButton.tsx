@@ -25,8 +25,9 @@ const ShareProofButton: React.FC<ShareProofButtonProps> = ({ share, exerciseName
     return <ShareNote>Sharing is available to the client.</ShareNote>;
   }
 
+  // "New best" (not "personal best"): the pr flag is windowed to recent sessions, not all-time.
   const shareText = pr && todayE1rm
-    ? `New personal best on ${exerciseName}: ${todayE1rm} lb estimated 1-rep max. Logged on SwanStudios.`
+    ? `New best on ${exerciseName}: ${todayE1rm} lb estimated 1-rep max. Logged on SwanStudios.`
     : `Logged a ${exerciseName} session on SwanStudios.`;
 
   const handleShare = async () => {

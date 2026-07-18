@@ -27,14 +27,21 @@ import type { PostSaveHandoffProps } from './workoutHandoff.types';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-function subline(headline: string, p: { prDeltaLbs: number; sessionsThisWeek: number; streakWeeks: number }): string {
+function subline(
+  headline: string,
+  p: { prDeltaLbs: number; sessionsThisWeek: number; streakWeeks: number; exerciseName: string },
+): string {
   switch (headline) {
     case 'pr':
-      return `A new personal best — +${p.prDeltaLbs} lbs over your previous mark.`;
+      // "a new best" (NOT "personal best"): pr is computed over the recent loaded window, not all-time
+      // (the eyebrow states "LAST N SESSIONS"). See the data-truth note in workoutProofSeriesService.
+      return `A new best — +${p.prDeltaLbs} lbs over your previous mark.`;
     case 'streak':
       return `${p.sessionsThisWeek} sessions this week — your strongest run in ${Math.max(p.streakWeeks, 1)} weeks.`;
     case 'first':
-      return 'First flight on record — every chart starts with one point.';
+      // isFirstEver is per-EXERCISE (first proof-eligible log of THIS lift in the window), not the first
+      // workout ever — so scope the copy to the exercise; never claim "first flight on record".
+      return `First ${p.exerciseName} on record — every chart starts with one point.`;
     default:
       return `Session ${p.sessionsThisWeek} this week — logged and proven.`;
   }
@@ -95,7 +102,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   const chartLabel = `${proof.exerciseName} estimated one-rep max`
     + (proof.todayE1rm != null ? `, ${proof.todayE1rm} pounds today` : '')
     + `, across ${proof.points.length} logged ${proof.points.length === 1 ? 'session' : 'sessions'}`
-    + (proof.pr ? ' — a new personal best.' : '.');
+    + (proof.pr ? ' — a new best.' : '.');
 
   return (
     <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>

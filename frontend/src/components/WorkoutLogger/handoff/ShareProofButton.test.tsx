@@ -30,7 +30,7 @@ describe('ShareProofButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Share this win' }));
     expect(onEvent).toHaveBeenCalledWith('proof_share_tapped', { pr: true });
     await waitFor(() => expect(shareSpy).toHaveBeenCalled());
-    expect(shareSpy.mock.calls[0][0].text).toMatch(/personal best on Barbell Back Squat: 263 lb/);
+    expect(shareSpy.mock.calls[0][0].text).toMatch(/New best on Barbell Back Squat: 263 lb/);
   });
 
   it('falls back to clipboard when navigator.share is unavailable, showing the copied state', async () => {

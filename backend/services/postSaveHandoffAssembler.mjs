@@ -57,5 +57,16 @@ export async function assembleHandoff(a = {}) {
   return { proof: proof ?? null, nba: nba ?? null, headline: resolveHeadline(proof), share };
 }
 
-/** Never-throws wrapper for call sites on the money path. */
-export const safeAssemble = (a) => assembleHandoff(a).catch(() => null);
+// Never-throws + TIME-BOUNDED wrapper for money-path call sites. assembleHandoff is best-effort and
+// runs strictly AFTER the workout save commits, but it issues fresh reads (proof load + NBA resolve),
+// so a slow/contended DB must never stretch the save's response latency. Cap it: if assembly outruns the
+// budget, resolve null (the UI suppresses; the client can still pull it via GET /:id/handoff). Bounding
+// it HERE covers every call site (form save, create, re-entry) uniformly. Happy path is unaffected.
+const HANDOFF_ASSEMBLE_BUDGET_MS = 2500;
+export const safeAssemble = (a) => {
+  let timer;
+  const budget = new Promise((resolve) => { timer = setTimeout(() => resolve(null), HANDOFF_ASSEMBLE_BUDGET_MS); });
+  return Promise.race([assembleHandoff(a), budget])
+    .catch(() => null)
+    .finally(() => clearTimeout(timer));
+};

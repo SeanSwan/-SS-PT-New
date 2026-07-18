@@ -96,7 +96,16 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
     .sort((a, b) => new Date(a.date) - new Date(b.date));
   if (sorted.length === 0) return null;
 
-  const today = sorted.find((s) => s.id === todaySessionId) || sorted[sorted.length - 1];
+  // Honesty guard: if a specific session was requested but it is OUTSIDE the loaded window (≤60 recent
+  // sessions — e.g. re-entry via GET /:id/handoff on an old session, or a BACKDATED save when newer
+  // sessions already exist), do NOT silently substitute the latest session's proof under the requested
+  // id. Misattributed proof — showing session Y's PR/gold-point as session X's — is the one unforgivable
+  // failure on a screen named "proof". Return null → the handoff is honestly suppressed for that session.
+  // Only fall back to "latest" when no specific session was requested at all (todaySessionId nullish).
+  const today = todaySessionId != null
+    ? sorted.find((s) => s.id === todaySessionId)
+    : sorted[sorted.length - 1];
+  if (!today) return null;
   const prior = sorted.filter((s) => s.id !== today.id && new Date(s.date) <= new Date(today.date));
 
   const nameKey = pickProofExercise(today, prior);
