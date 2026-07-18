@@ -26,7 +26,10 @@ const motionSafe = (rules: ReturnType<typeof css>) => css`
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  /* Full-screen takeover: must clear the Workout Logger's own furniture (rest timer ~9990, sticky
+     action bar ~9989), toasts (~9999) and PostWorkoutCelebration (~9999) when wired in Slice 2.
+     Slice-2 note: render through a portal to document.body so no ancestor stacking context caps it. */
+  z-index: var(--z-post-save-handoff, 10001);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -205,7 +208,9 @@ export const CtaButton = styled.button`
 `;
 
 /* Secondary: deep-violet bg → Ice Wing glow. Deep violet (#5B21B6) keeps the "purple bg → cyan glow"
-   law while clearing 4.5:1 with Frost White (≈7:1); the lighter #8B5CF6 failed at 3.52:1. */
+   law while clearing 4.5:1 with Frost White (≈7:1); the lighter #8B5CF6 failed at 3.52:1.
+   TOKEN CONTRACT: --glow-accent-strong MUST resolve to a bg that clears 4.5:1 on Frost White.
+   Never redefine it as the lighter Wing Purple (#8B5CF6) — that silently regresses contrast below AA. */
 export const ShareButton = styled.button`
   ${buttonBase};
   background: var(--glow-accent-strong, #5B21B6);

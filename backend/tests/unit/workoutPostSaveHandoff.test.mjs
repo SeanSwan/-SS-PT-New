@@ -238,4 +238,16 @@ describe('workoutProofSeriesService — correctness edges (hostile round)', () =
     const r = buildProofSeriesFromSessions([session('only', '2026-07-11T10:00:00Z', [squat(185)], null)], { todaySessionId: 'only' });
     expect(r.durationMin).toBeNull();
   });
+
+  it('picks the proof exercise by AGGREGATED per-exercise volume (split rows counted together)', () => {
+    const sess = [
+      session('t', '2026-07-11T10:00:00Z', [
+        { exerciseId: 'ex-press', exerciseName: 'Overhead Press', sets: [set(135, 8)] }, // 1080, single row
+        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(185, 5)] }, // 925 …
+        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(185, 5)] }, // …+925 → 1850 aggregate
+      ]),
+    ];
+    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 't' });
+    expect(r.exerciseId).toBe('ex-squat'); // aggregate 1850 > press 1080 (per-row would wrongly pick press)
+  });
 });

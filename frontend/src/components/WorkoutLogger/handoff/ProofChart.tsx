@@ -32,6 +32,10 @@ const ProofChart: React.FC<ProofChartProps> = ({ points, pr, height = 220, ariaL
   );
   // Highlight ONLY a real today point — never mark a prior session as "today".
   const todayDatum = data.find((d) => d.isToday) ?? null;
+  // A single point draws no area/line; still plot the lone dot (neutral) so the chart is never blank.
+  const soloDatum = data.length === 1 ? data[0] : null;
+  const markDatum = todayDatum ?? soloDatum;
+  const markIsPr = !!(markDatum && markDatum.isToday && pr);
 
   if (data.length === 0) return null;
 
@@ -76,15 +80,15 @@ const ProofChart: React.FC<ProofChartProps> = ({ points, pr, height = 220, ariaL
             style={{ data: { stroke: DATA_ACCENT, strokeWidth: 2.5 } }}
           />
         )}
-        {todayDatum && (
+        {markDatum && (
           <VictoryScatter
-            data={[todayDatum]}
-            size={pr ? 8 : 7}
+            data={[markDatum]}
+            size={markIsPr ? 8 : 7}
             style={{
               data: {
-                fill: pr ? GOLD : ICE_WING,
-                stroke: pr ? GOLD_HALO : CYAN_HALO,
-                strokeWidth: pr ? 6 : 4,
+                fill: markIsPr ? GOLD : ICE_WING,
+                stroke: markIsPr ? GOLD_HALO : CYAN_HALO,
+                strokeWidth: markIsPr ? 6 : 4,
               },
             }}
           />

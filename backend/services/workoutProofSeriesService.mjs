@@ -78,12 +78,26 @@ function pickProofExercise(todaySession, priorSessions) {
     const seen = new Set((s.exercises || []).map((e) => e.exerciseId));
     for (const id of seen) priorCount.set(id, (priorCount.get(id) || 0) + 1);
   }
-  const ranked = [...todayExercises]
-    .map((ex, idx) => ({ ex, idx, vol: exerciseVolume(ex), priors: priorCount.get(ex.exerciseId) || 0 }))
-    // volume desc, then earliest-listed wins ties (deterministic — matches blueprint AC)
-    .sort((a, b) => b.vol - a.vol || a.idx - b.idx);
-  const withHistory = ranked.find((r) => r.priors >= 3);
-  return (withHistory || ranked[0]).ex;
+  // Aggregate today's rows by exerciseId — one exercise can be multiple rows (supersets/re-logging),
+  // so rank on the TRUE per-exercise volume, consistent with point-building (not per-row).
+  const agg = new Map();
+  todayExercises.forEach((ex, idx) => {
+    const cur = agg.get(ex.exerciseId);
+    if (cur) { cur.vol += exerciseVolume(ex); }
+    else {
+      agg.set(ex.exerciseId, {
+        exerciseId: ex.exerciseId,
+        exerciseName: ex.exerciseName,
+        idx,
+        vol: exerciseVolume(ex),
+        priors: priorCount.get(ex.exerciseId) || 0,
+      });
+    }
+  });
+  // volume desc, then earliest-listed wins ties (deterministic — matches blueprint AC)
+  const ranked = [...agg.values()].sort((a, b) => b.vol - a.vol || a.idx - b.idx);
+  const chosen = ranked.find((r) => r.priors >= 3) || ranked[0];
+  return { exerciseId: chosen.exerciseId, exerciseName: chosen.exerciseName };
 }
 
 /**
@@ -195,6 +209,7 @@ function isoWeeksInYear(year) {
 export async function buildProofSeries({ targetUserId, todaySessionId, models, windowSize = PROOF_WINDOW }) {
   const { WorkoutSession, WorkoutExercise, Set, Exercise } = models || {};
   if (!WorkoutSession) return null;
+  try {
   const rows = await WorkoutSession.findAll({
     where: { userId: targetUserId },
     // Order eager-loaded exercises by orderInWorkout so tie-breaks/first-match are deterministic,
@@ -222,4 +237,8 @@ export async function buildProofSeries({ targetUserId, todaySessionId, models, w
     })),
   }));
   return buildProofSeriesFromSessions(sessions, { todaySessionId, windowSize });
+  } catch (err) {
+    // Loader failure (e.g. limit + ordered-hasMany sub-query surprise) → degrade to null, never crash the save.
+    return null;
+  }
 }

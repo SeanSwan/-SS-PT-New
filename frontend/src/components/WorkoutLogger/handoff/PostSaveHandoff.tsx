@@ -46,6 +46,10 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   data, viewerRole, enabled, onDismiss, onNavigate, onEvent,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
+  // Keep the latest onDismiss without re-running the focus-trap effect (an inline onDismiss would
+  // otherwise thrash focus every parent render and defeat focus-restore).
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
   const headlineId = useId();
   const isOn = enabled ?? isPostSaveHandoffEnabled();
   const active = isOn && !!data?.proof;
@@ -60,7 +64,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
     (focusables()[0] || node)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onDismiss(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onDismissRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       const f = focusables();
       if (f.length === 0) return;
@@ -74,7 +78,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
       document.removeEventListener('keydown', onKey);
       previouslyFocused?.focus?.();
     };
-  }, [active, onDismiss]);
+  }, [active]);
 
   if (!active) return null;
 
@@ -102,7 +106,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
         {/* ── Zone 2 — proof ── */}
         <ZoneProof>
           <Eyebrow $tone="data">
-            {`EST. 1-REP MAX · ${proof.exerciseName.toUpperCase()} · LAST ${proof.points.length} SESSIONS`}
+            {`EST. 1-REP MAX · ${proof.exerciseName.toUpperCase()} · LAST ${proof.points.length} SESSION${proof.points.length === 1 ? '' : 'S'}`}
           </Eyebrow>
           {proof.todayE1rm != null && (
             <BigNumeral $pr={proof.pr}>
