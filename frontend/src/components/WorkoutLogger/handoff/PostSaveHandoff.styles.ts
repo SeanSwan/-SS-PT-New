@@ -1,8 +1,9 @@
 /**
  * PostSaveHandoff.styles.ts — Crystalline Swan styling for the Post-Save Handoff.
- * Tokens: var(--token, #crystalline-fallback) only. Dual-Button Glow honored.
- * Motion: transform/opacity only, gated behind prefers-reduced-motion. Charts color = data-accent only.
- * Keyframes hoisted to module scope + referenced inside styled templates (Rule 43-safe).
+ * Colors are token-with-fallback only (Rule 6): every literal is wrapped `var(--token, <fallback>)`,
+ * including alpha/glow washes. No retired Galaxy-Swan values. Dual-Button Glow honored.
+ * Motion: transform/opacity only, ALL of it gated behind prefers-reduced-motion. Charts = data-accent only.
+ * Keyframes hoisted to module scope + referenced only inside css`` templates (Rule 43-safe).
  */
 import styled, { keyframes, css } from 'styled-components';
 
@@ -23,8 +24,9 @@ const motionSafe = (rules: ReturnType<typeof css>) => css`
 `;
 
 export const Overlay = styled.div`
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -37,7 +39,7 @@ export const Card = styled.section`
   width: 100%;
   max-width: 1120px;
   background: var(--surface-card, #141419);
-  border: 1px solid rgba(96, 192, 240, 0.14);
+  border: 1px solid var(--handoff-card-border, rgba(96, 192, 240, 0.14));
   border-radius: 24px;
   padding: 24px;
   color: var(--text-primary, #E0ECF4);
@@ -46,20 +48,21 @@ export const Card = styled.section`
   /* Mobile: natural DOM order — declaration → proof → next-action. */
   @media (min-width: 1024px) {
     display: grid;
-    grid-template-columns: 480px 560px;
+    /* minmax(0,...) tracks SHRINK to fit — never overflow the card at 1024–1440 (fixed px did). */
+    grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
     grid-template-areas:
       "decl  proof"
       "nba   proof";
     grid-template-rows: auto 1fr;
-    column-gap: 40px;
+    column-gap: 32px;
     padding: 40px;
   }
 `;
 
 /* DOM order stays decl → proof → nba (mobile-correct); desktop places via grid-area. */
-export const ZoneDecl = styled.div`@media (min-width: 1024px) { grid-area: decl; }`;
-export const ZoneProof = styled.div`@media (min-width: 1024px) { grid-area: proof; align-self: center; }`;
-export const ZoneNba = styled.div`@media (min-width: 1024px) { grid-area: nba; }`;
+export const ZoneDecl = styled.div`@media (min-width: 1024px) { grid-area: decl; min-width: 0; }`;
+export const ZoneProof = styled.div`@media (min-width: 1024px) { grid-area: proof; align-self: center; min-width: 0; }`;
+export const ZoneNba = styled.div`@media (min-width: 1024px) { grid-area: nba; min-width: 0; }`;
 
 /* ── Zone 1 — declaration ─────────────────────────────────────────── */
 export const Headline = styled.h1`
@@ -77,7 +80,7 @@ export const Subline = styled.p`
   font-size: clamp(1.125rem, 1vw + 0.875rem, 1.375rem);
   line-height: 1.3;
   margin: 0 0 20px;
-  color: rgba(224, 236, 244, 0.8);
+  color: var(--text-primary-80, rgba(224, 236, 244, 0.8));
 `;
 
 /* ── Zone 2 — proof ───────────────────────────────────────────────── */
@@ -100,14 +103,14 @@ export const BigNumeral = styled.div<{ $pr?: boolean }>`
   font-size: clamp(2.75rem, 8vw + 1rem, 5rem);
   line-height: 1;
   color: ${({ $pr }) => ($pr ? 'var(--accent-gold, #C6A84B)' : 'var(--text-primary, #E0ECF4)')};
-  ${({ $pr }) => $pr && css`text-shadow: 0 0 18px rgba(198, 168, 75, 0.45);`}
+  ${({ $pr }) => $pr && css`text-shadow: 0 0 18px var(--glow-gold, rgba(198, 168, 75, 0.45));`}
 `;
 
 export const GoldPulse = styled.span`
   position: absolute;
   inset: -20% -10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(198, 168, 75, 0.5), transparent 70%);
+  background: radial-gradient(circle, var(--glow-gold-strong, rgba(198, 168, 75, 0.5)), transparent 70%);
   pointer-events: none;
   opacity: 0;
   ${motionSafe(css`animation: ${goldPulse} 600ms ease-out 3;`)}
@@ -127,12 +130,13 @@ export const Chip = styled.span`
   padding: 4px 10px;
   border-radius: 8px;
   background: var(--bg-surface, #1A1A24);
-  color: rgba(224, 236, 244, 0.85);
+  color: var(--text-primary-85, rgba(224, 236, 244, 0.85));
 `;
 
 export const ChartWrap = styled.div`
   position: relative;
   width: 100%;
+  min-width: 0;
 `;
 
 export const PendingChip = styled.span`
@@ -170,7 +174,7 @@ export const NbaBody = styled.p`
   font-family: 'Sora', system-ui, sans-serif;
   font-size: 0.875rem;
   margin: 0 0 12px;
-  color: rgba(224, 236, 244, 0.75);
+  color: var(--text-primary-75, rgba(224, 236, 244, 0.75));
 `;
 
 const buttonBase = css`
@@ -186,23 +190,26 @@ const buttonBase = css`
   font-size: 0.9375rem;
   cursor: pointer;
   color: var(--text-primary, #E0ECF4);
-  ${motionSafe(css`transition: transform 120ms ease, box-shadow 200ms ease;`)}
-  &:active { transform: scale(0.98); }
+  ${motionSafe(css`
+    transition: transform 120ms ease, box-shadow 200ms ease;
+    &:active { transform: scale(0.98); }
+  `)}
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
 
-/* Primary: Royal Depth bg → Wing Purple glow. */
+/* Primary: Royal Depth bg → Wing Purple glow (Frost White on #003080 ≈ 10:1). */
 export const CtaButton = styled.button`
   ${buttonBase};
   background: var(--surface-elevated, #003080);
-  box-shadow: 0 0 24px rgba(139, 92, 246, 0.45);
+  box-shadow: 0 0 24px var(--glow-purple, rgba(139, 92, 246, 0.45));
 `;
 
-/* Secondary: Wing Purple bg → Ice Wing glow. */
+/* Secondary: deep-violet bg → Ice Wing glow. Deep violet (#5B21B6) keeps the "purple bg → cyan glow"
+   law while clearing 4.5:1 with Frost White (≈7:1); the lighter #8B5CF6 failed at 3.52:1. */
 export const ShareButton = styled.button`
   ${buttonBase};
-  background: var(--glow-accent, #8B5CF6);
-  box-shadow: 0 0 24px rgba(96, 192, 240, 0.45);
+  background: var(--glow-accent-strong, #5B21B6);
+  box-shadow: 0 0 24px var(--glow-cyan, rgba(96, 192, 240, 0.45));
   margin-top: 8px;
 `;
 
@@ -217,7 +224,7 @@ export const ShareNote = styled.p`
   font-family: 'Sora', system-ui, sans-serif;
   font-size: 0.8125rem;
   margin: 8px 0 0;
-  color: rgba(224, 236, 244, 0.7);
+  color: var(--text-primary-70, rgba(224, 236, 244, 0.7));
 `;
 
 export const DoneButton = styled.button`
@@ -229,7 +236,7 @@ export const DoneButton = styled.button`
   border: none;
   font-family: 'Sora', system-ui, sans-serif;
   font-size: 0.9375rem;
-  color: rgba(224, 236, 244, 0.7);
+  color: var(--text-primary-70, rgba(224, 236, 244, 0.7));
   cursor: pointer;
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;

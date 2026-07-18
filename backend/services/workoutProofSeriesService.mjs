@@ -111,14 +111,21 @@ export function buildProofSeriesFromSessions(sessions, { todaySessionId, windowS
   const upToToday = sorted.filter((s) => new Date(s.date) <= new Date(today.date));
   const allPoints = [];
   for (const s of upToToday) {
-    const ex = (s.exercises || []).find((e) => e.exerciseId === exerciseId);
-    if (!ex) continue;
-    const e1rm = topSetE1rm(ex.sets);
+    // One exercise can be logged as MULTIPLE WorkoutExercise rows in a single session
+    // (supersets / circuits / re-logging — no unique (session,exercise) constraint), so aggregate
+    // ALL matching rows' sets before picking the top set. Using only the first row hides real PRs.
+    const matchingSets = (s.exercises || [])
+      .filter((e) => e.exerciseId === exerciseId)
+      .flatMap((e) => e.sets || []);
+    if (matchingSets.length === 0) continue;
+    const e1rm = topSetE1rm(matchingSets);
     if (e1rm === null) continue;
     allPoints.push({ sessionId: s.id, dateISO: new Date(s.date).toISOString(), e1rm, isToday: s.id === today.id });
   }
   const points = allPoints.slice(-windowSize);
-  const todayPoint = allPoints.find((p) => p.isToday) || allPoints[allPoints.length - 1] || null;
+  // Honest today value: null when today's proof exercise produced no real e1rm (e.g. bodyweight).
+  // NEVER fall back to a prior session's number and render it as "today."
+  const todayPoint = allPoints.find((p) => p.isToday) || null;
   const todayE1rm = todayPoint ? todayPoint.e1rm : null;
 
   // PR is ALL-TIME (not window-bounded), per blueprint.
@@ -141,7 +148,7 @@ export function buildProofSeriesFromSessions(sessions, { todaySessionId, windowS
     prDeltaLbs,
     totalVolumeLbs: Math.round(sessionVolume(today)),
     exerciseCount: Array.isArray(today.exercises) ? today.exercises.length : 0,
-    durationMin: Number.isFinite(Number(today.duration)) ? Math.round(Number(today.duration)) : null,
+    durationMin: today.duration != null && Number.isFinite(Number(today.duration)) ? Math.round(Number(today.duration)) : null,
     sessionsThisWeek,
     streakWeeks,
     isFirstEver: allPoints.length <= 1 && prior.length === 0,
@@ -155,9 +162,10 @@ function countStreakWeeks(sessions, todayWeek) {
     const k = isoWeekKey(s.date);
     if (k) perWeek.set(k, (perWeek.get(k) || 0) + 1);
   }
-  if ((perWeek.get(todayWeek) || 0) < 3) return 0;
+  // Count consecutive weeks with >=3 sessions. The current week is in-progress, so if it hasn't
+  // hit 3 yet, start from LAST week rather than collapsing a real streak of completed weeks to 0.
   let streak = 0;
-  let cursor = todayWeek;
+  let cursor = (perWeek.get(todayWeek) || 0) >= 3 ? todayWeek : prevIsoWeek(todayWeek);
   while ((perWeek.get(cursor) || 0) >= 3) {
     streak += 1;
     cursor = prevIsoWeek(cursor);
@@ -189,8 +197,12 @@ export async function buildProofSeries({ targetUserId, todaySessionId, models, w
   if (!WorkoutSession) return null;
   const rows = await WorkoutSession.findAll({
     where: { userId: targetUserId },
-    order: [['date', 'DESC']],
-    limit: 60, // deep enough for a 12-point window + all-time PR on the picked exercise
+    // Order eager-loaded exercises by orderInWorkout so tie-breaks/first-match are deterministic,
+    // not dependent on raw DB row order.
+    order: [['date', 'DESC'], [{ model: WorkoutExercise, as: 'exercises' }, 'orderInWorkout', 'ASC']],
+    // NOTE: PR is all-time over THESE sessions but capped at the newest 60. A client whose true
+    // all-time best on the picked exercise is older than 60 sessions could see a false PR. OK for v1.
+    limit: 60,
     include: [{
       model: WorkoutExercise, as: 'exercises',
       include: [

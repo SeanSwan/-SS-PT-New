@@ -108,4 +108,33 @@ describe('PostSaveHandoff', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onDismiss).toHaveBeenCalled();
   });
+
+  it('SAFETY: fail-closed for unknown role values (CLIENT / undefined), not just "client"', () => {
+    const nba = { kind: 'ADJUST_PLAN' as const, title: 'Client #9 needs a plan adjustment', ctaLabel: 'Open planner', href: '/workout-planner?client=9', trainerOnly: true };
+    for (const role of ['CLIENT', undefined]) {
+      const { unmount } = render(
+        <PostSaveHandoff data={baseData({ nba })} viewerRole={role as unknown as LoggerRole} enabled onDismiss={vi.fn()} onNavigate={vi.fn()} />,
+      );
+      expect(screen.queryByRole('button', { name: 'Open planner' })).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('does not render an NBA CTA for a non-internal href (open-redirect guard)', () => {
+    renderHandoff(baseData({ nba: { kind: 'DO_NEXT_WORKOUT', title: 'x', ctaLabel: 'Go', href: '//evil.example', trainerOnly: false } }));
+    expect(screen.queryByRole('button', { name: 'Go' })).not.toBeInTheDocument();
+  });
+
+  it('withholds share when eligible but not owner (double-guard)', () => {
+    renderHandoff(baseData({ share: { eligible: true, reason: 'not-owner' } }));
+    expect(screen.queryByRole('button', { name: 'Share this win' })).not.toBeInTheDocument();
+    expect(screen.getByText('Sharing is available to the client.')).toBeInTheDocument();
+  });
+
+  it('closes on Escape (modal machinery)', () => {
+    const onDismiss = vi.fn();
+    renderHandoff(baseData(), 'client', { onDismiss });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onDismiss).toHaveBeenCalled();
+  });
 });

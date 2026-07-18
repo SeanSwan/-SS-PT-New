@@ -8,11 +8,12 @@
  * ║           server-resolved). Pure/presentational — no fetch, no save-gate touch.║
  * ║  GATE   : feature-flagged (postSaveHandoffFlag). Ships DARK until Slice 2      ║
  * ║           wires it into each role's verified save path.                        ║
- * ║  SAFETY : trainer-indispensability enforced in NextBestActionCard; share is    ║
- * ║           owner-only. Motion transform/opacity only + reduced-motion static.   ║
+ * ║  A11Y   : real modal — initial focus, focus trap, Esc-to-close, focus restore, ║
+ * ║           aria-labelledby the headline. Motion transform/opacity + reduced-mo. ║
+ * ║  SAFETY : trainer-indispensability in NextBestActionCard; share owner-only.    ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import {
   Overlay, Card, ZoneDecl, ZoneProof, ZoneNba,
   Headline, Subline, Eyebrow, BigNumeral, GoldPulse,
@@ -39,11 +40,43 @@ function subline(headline: string, p: { prDeltaLbs: number; sessionsThisWeek: nu
   }
 }
 
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   data, viewerRole, enabled, onDismiss, onNavigate, onEvent,
 }) => {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const headlineId = useId();
   const isOn = enabled ?? isPostSaveHandoffEnabled();
-  if (!isOn || !data?.proof) return null;
+  const active = isOn && !!data?.proof;
+
+  // Real modal machinery: capture focus, trap Tab, Esc to close, restore focus on unmount.
+  useEffect(() => {
+    if (!active) return undefined;
+    const previouslyFocused = (typeof document !== 'undefined' ? document.activeElement : null) as HTMLElement | null;
+    const node = overlayRef.current;
+    const focusables = () =>
+      node ? Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute('disabled')) : [];
+    (focusables()[0] || node)?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onDismiss(); return; }
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (f.length === 0) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previouslyFocused?.focus?.();
+    };
+  }, [active, onDismiss]);
+
+  if (!active) return null;
 
   const { proof, nba, share, headline, pendingSync } = data;
   const chips = [
@@ -52,12 +85,17 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
     proof.durationMin ? `${proof.durationMin} MIN` : null,
   ].filter(Boolean) as string[];
 
+  const chartLabel = `${proof.exerciseName} estimated one-rep max`
+    + (proof.todayE1rm != null ? `, ${proof.todayE1rm} pounds today` : '')
+    + `, across ${proof.points.length} logged ${proof.points.length === 1 ? 'session' : 'sessions'}`
+    + (proof.pr ? ' — a new personal best.' : '.');
+
   return (
-    <Overlay role="dialog" aria-modal="true" aria-label="Workout logged">
+    <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>
       <Card>
         {/* ── Zone 1 — declaration ── */}
         <ZoneDecl>
-          <Headline>Flight logged.</Headline>
+          <Headline id={headlineId}>Flight logged.</Headline>
           <Subline>{subline(headline, proof)}</Subline>
         </ZoneDecl>
 
@@ -77,7 +115,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
           )}
           <ChartWrap>
             {pendingSync && <PendingChip>PENDING SYNC</PendingChip>}
-            <ProofChart points={proof.points} pr={proof.pr} />
+            <ProofChart points={proof.points} pr={proof.pr} ariaLabel={chartLabel} />
           </ChartWrap>
         </ZoneProof>
 

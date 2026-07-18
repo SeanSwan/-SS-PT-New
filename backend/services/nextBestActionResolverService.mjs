@@ -13,6 +13,9 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
+import { Op } from 'sequelize';
+import logger from '../utils/logger.mjs';
+
 export const NBA_KINDS = Object.freeze({
   ADJUST_PLAN: 'ADJUST_PLAN',
   DO_NEXT_WORKOUT: 'DO_NEXT_WORKOUT',
@@ -22,6 +25,10 @@ export const NBA_KINDS = Object.freeze({
 
 const TRAINER_ROLES = new Set(['trainer', 'admin']);
 const ADHERENCE_FLOOR = 0.6; // < 60% 14-day adherence flags a plan adjustment
+
+// Fail-CLOSED role check — anything not provably trainer/admin is treated as a non-trainer
+// (guards against 'CLIENT'/casing/undefined role drift, a documented bug class in this repo).
+const isTrainerRole = (role) => TRAINER_ROLES.has(String(role ?? '').toLowerCase());
 
 /**
  * Pure resolver. `ctx` carries already-gathered signals so this is unit-testable with no DB:
@@ -44,14 +51,14 @@ export function resolveNextBestActionFromContext(ctx = {}) {
     planFrequency = null,
   } = ctx;
 
-  const isTrainerViewer = TRAINER_ROLES.has(viewerRole);
+  const isTrainerViewer = isTrainerRole(viewerRole);
 
   // Rule 1 — trainer/admin viewing a specific client whose plan needs a human decision.
   // Skipped when there is no active plan (can't honestly evaluate adherence/prescription).
   if (isTrainerViewer && targetClientId != null && hasActivePlan) {
     const belowAdherence = typeof adherence14d === 'number' && adherence14d < ADHERENCE_FLOOR;
     if (missedPrescribedTopSet || belowAdherence) {
-      return guard(viewerRole, {
+      return enforceClientSafety(viewerRole, {
         kind: NBA_KINDS.ADJUST_PLAN,
         title: `Client #${targetClientId} needs a plan adjustment`,
         ctaLabel: 'Open planner',
@@ -63,7 +70,7 @@ export function resolveNextBestActionFromContext(ctx = {}) {
 
   // Rule 2 — the viewer has a session on the calendar within 48h.
   if (nextSessionWithin48h) {
-    return guard(viewerRole, {
+    return enforceClientSafety(viewerRole, {
       kind: NBA_KINDS.DO_NEXT_WORKOUT,
       title: nextSessionDayName ? `Next up: ${nextSessionDayName}` : 'Next up: your next session',
       ctaLabel: 'View next workout',
@@ -74,7 +81,7 @@ export function resolveNextBestActionFromContext(ctx = {}) {
 
   // Rule 3 — hit or exceeded the plan's weekly frequency → earn a recovery/flexibility day.
   if (typeof planFrequency === 'number' && planFrequency > 0 && sessionsThisWeek >= planFrequency) {
-    return guard(viewerRole, {
+    return enforceClientSafety(viewerRole, {
       kind: NBA_KINDS.RECOVERY_FLEXIBILITY,
       title: 'Recovery day tomorrow',
       body: '10-minute flexibility flow — your joints earned it.',
@@ -85,7 +92,7 @@ export function resolveNextBestActionFromContext(ctx = {}) {
   }
 
   // Rule 4 — fallback: always give an arrow, never a dead end.
-  return guard(viewerRole, {
+  return enforceClientSafety(viewerRole, {
     kind: NBA_KINDS.VIEW_PROGRESS,
     title: 'See your progress',
     ctaLabel: 'Open progress',
@@ -96,8 +103,10 @@ export function resolveNextBestActionFromContext(ctx = {}) {
 
 // Trainer-indispensability invariant: a client can never receive a trainerOnly action.
 // If logic ever tries to, we DROP to the safe fallback rather than leak a plan decision.
-function guard(viewerRole, action) {
-  if (viewerRole === 'client' && action.trainerOnly) {
+export function enforceClientSafety(viewerRole, action) {
+  // Fail-CLOSED: a trainerOnly action is allowed only for a PROVABLY trainer/admin viewer.
+  // Any other role (client, 'CLIENT', undefined, '', a new role) drops to the safe fallback.
+  if (action.trainerOnly && !isTrainerRole(viewerRole)) {
     return {
       kind: NBA_KINDS.VIEW_PROGRESS,
       title: 'See your progress',
@@ -144,7 +153,7 @@ export async function resolveNextBestAction({
         where: {
           userId: viewerUserId,
           status: ['scheduled', 'confirmed'],
-          sessionDate: { [Session.sequelize.Sequelize.Op.between]: [now, in48h] },
+          sessionDate: { [Op.between]: [now, in48h] },
         },
         order: [['sessionDate', 'ASC']],
         attributes: ['sessionDate'],
@@ -154,8 +163,10 @@ export async function resolveNextBestAction({
         ctx.nextSessionDayName = new Date(next.sessionDate).toLocaleDateString('en-US', { weekday: 'long' });
       }
     }
-  } catch {
+  } catch (err) {
     // Read failure → leave nextSessionWithin48h false; resolver falls through safely.
+    // Logged so a FUTURE schema drift here stays observable (a silent fallback would hide it).
+    logger?.warn?.('[nba] session lookup failed; using safe fallback', err?.message);
   }
 
   return resolveNextBestActionFromContext(ctx);

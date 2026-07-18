@@ -18,8 +18,10 @@ interface ShareProofButtonProps {
 const ShareProofButton: React.FC<ShareProofButtonProps> = ({ share, exerciseName, todayE1rm, pr, onEvent }) => {
   const [copied, setCopied] = useState(false);
 
-  // Not the owner (e.g. a trainer logging for a client) → no share affordance, honest note instead.
-  if (!share?.eligible) {
+  // Fail-CLOSED double-guard (defense-in-depth): share only when the server says eligible AND
+  // the reason is identity-backed ownership. A miswired flag alone can't leak a client's data
+  // off a trainer's device. Mirrors the NBA card's double-guard.
+  if (!(share?.eligible && share?.reason === 'owner')) {
     return <ShareNote>Sharing is available to the client.</ShareNote>;
   }
 

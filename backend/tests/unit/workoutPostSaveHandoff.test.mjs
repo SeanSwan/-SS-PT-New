@@ -7,6 +7,7 @@ import {
 } from '../../services/workoutProofSeriesService.mjs';
 import {
   resolveNextBestActionFromContext,
+  enforceClientSafety,
   NBA_KINDS,
 } from '../../services/nextBestActionResolverService.mjs';
 
@@ -170,5 +171,71 @@ describe('nextBestActionResolverService — rules, precedence, safety', () => {
     });
     expect(r.trainerOnly).toBe(false);
     expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+  });
+});
+
+describe('enforceClientSafety — fail-closed guard (direct, not vacuous)', () => {
+  const trainerAction = { kind: NBA_KINDS.ADJUST_PLAN, title: 't', ctaLabel: 'c', href: '/x', trainerOnly: true };
+  it('drops a trainerOnly action to the safe fallback for a client', () => {
+    const r = enforceClientSafety('client', { ...trainerAction });
+    expect(r.trainerOnly).toBe(false);
+    expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+  });
+  it('fails CLOSED on casing / undefined / unknown roles', () => {
+    for (const role of ['CLIENT', 'Client', undefined, null, '', 'user', 'member']) {
+      expect(enforceClientSafety(role, { ...trainerAction }).trainerOnly).toBe(false);
+    }
+  });
+  it('passes a trainerOnly action through only for trainer/admin (case-insensitive)', () => {
+    expect(enforceClientSafety('trainer', { ...trainerAction }).kind).toBe(NBA_KINDS.ADJUST_PLAN);
+    expect(enforceClientSafety('ADMIN', { ...trainerAction }).kind).toBe(NBA_KINDS.ADJUST_PLAN);
+  });
+  it('never alters a non-trainerOnly action', () => {
+    const safe = { kind: NBA_KINDS.VIEW_PROGRESS, title: 't', ctaLabel: 'c', href: '/p', trainerOnly: false };
+    expect(enforceClientSafety('client', { ...safe })).toEqual(safe);
+  });
+});
+
+describe('workoutProofSeriesService — correctness edges (hostile round)', () => {
+  it('aggregates duplicate exercise rows in one session (does NOT hide a PR)', () => {
+    const sess = [
+      session('p1', '2026-07-06T10:00:00Z', [squat(200)]),
+      session('p2', '2026-07-08T10:00:00Z', [squat(205)]),
+      session('p3', '2026-07-10T10:00:00Z', [squat(210)]),
+      session('t', '2026-07-11T10:00:00Z', [
+        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(95, 5)] },  // light row FIRST
+        { exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(315, 5)] }, // real top set SECOND
+      ]),
+    ];
+    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 't' });
+    expect(r.todayE1rm).toBe(368); // 315×5, not 111 from the first row
+    expect(r.pr).toBe(true);
+  });
+  it('reports null todayE1rm when today has no valid lift (never a prior value)', () => {
+    const sess = [
+      session('a', '2026-07-06T10:00:00Z', [squat(200)]),
+      session('b', '2026-07-11T10:00:00Z', [{ exerciseId: 'ex-squat', exerciseName: 'Barbell Back Squat', sets: [set(0, 5)] }]),
+    ];
+    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 'b' });
+    expect(r.todayE1rm).toBeNull();
+    expect(r.pr).toBe(false);
+  });
+  it('keeps a multi-week streak alive mid-week (does not collapse to 0)', () => {
+    const wk = (prefix, mondayISO, n) => Array.from({ length: n }, (_, i) => {
+      const d = new Date(mondayISO); d.setUTCDate(d.getUTCDate() + i);
+      return session(`${prefix}${i}`, d.toISOString(), [squat(200 + i)]);
+    });
+    const sess = [
+      ...wk('w1', '2026-06-15T10:00:00Z', 3),
+      ...wk('w2', '2026-06-22T10:00:00Z', 3),
+      ...wk('w3', '2026-06-29T10:00:00Z', 3),
+      session('cur', '2026-07-06T10:00:00Z', [squat(230)]), // current week: only 1 session so far
+    ];
+    const r = buildProofSeriesFromSessions(sess, { todaySessionId: 'cur' });
+    expect(r.streakWeeks).toBe(3);
+  });
+  it('durationMin is null (not 0) when duration is null', () => {
+    const r = buildProofSeriesFromSessions([session('only', '2026-07-11T10:00:00Z', [squat(185)], null)], { todaySessionId: 'only' });
+    expect(r.durationMin).toBeNull();
   });
 });

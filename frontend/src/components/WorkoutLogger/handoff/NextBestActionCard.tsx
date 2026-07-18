@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { Eyebrow, NbaCard, NbaTitle, NbaBody, CtaButton } from './PostSaveHandoff.styles';
+import { isTrainerRole, isInternalHref } from './handoffRoles';
 import type { LoggerRole, NextBestAction } from './workoutHandoff.types';
 
 interface NextBestActionCardProps {
@@ -16,9 +17,11 @@ interface NextBestActionCardProps {
 }
 
 const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ nba, viewerRole, onNavigate, onEvent }) => {
-  // Client + trainerOnly must never render — a leaked plan decision is worse than no card.
-  if (viewerRole === 'client' && nba.trainerOnly) return null;
-  if (!nba?.href || !nba?.ctaLabel) return null;
+  // Fail-CLOSED: a trainerOnly action renders only for a provably trainer/admin viewer.
+  // A leaked plan decision (client, 'CLIENT', undefined role) is worse than no card.
+  if (nba.trainerOnly && !isTrainerRole(viewerRole)) return null;
+  // Open-redirect defense: only ever navigate to an internal absolute path.
+  if (!nba?.ctaLabel || !isInternalHref(nba?.href)) return null;
 
   const handleClick = () => {
     onEvent?.('nba_cta_tapped', { kind: nba.kind });
