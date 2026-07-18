@@ -26,7 +26,9 @@ export const DENSITY_CONFIG: Record<Role, { motionSurfaceId: MotionSurfaceId; po
   user: { motionSurfaceId: 'dashboard.user', pollMs: 0 },
 };
 
-const DENSITIES: Record<Role, React.FC<{ summary: DashboardSummary }>> = {
+// Densities receive the ONE server summary + onRefresh (client/user use it to refetch after a
+// confirm-first Crystallize write; admin/trainer ignore it).
+const DENSITIES: Record<Role, React.FC<{ summary: DashboardSummary; onRefresh: () => void }>> = {
   admin: AdminDensity,
   trainer: TrainerDensity,
   client: ClientDensity,
@@ -63,7 +65,7 @@ export function DashboardShell({ role }: { role: Role }) {
           {mobile ? null : <DashboardNav role={role} viewport={viewport} />}
           <Main id="dash-main">
             {summary ? (
-              createElement(DENSITIES[role], { summary })
+              createElement(DENSITIES[role], { summary, onRefresh: refetch })
             ) : (
               <EmptyState icon="chart" title="Loading your dashboard" body="Pulling the latest, one moment." />
             )}

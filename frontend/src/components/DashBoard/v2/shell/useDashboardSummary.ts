@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { DashboardSummary, Role } from '../types';
+import { authHeaders } from '../authHeaders';
 
 export interface DashboardSummaryState {
   summary: DashboardSummary | null;
@@ -25,6 +26,7 @@ export function useDashboardSummary(role: Role, pollMs: number): DashboardSummar
       try {
         const res = await fetch(`/api/dashboard/v2/summary?role=${encodeURIComponent(role)}`, {
           credentials: 'same-origin',
+          headers: authHeaders(), // protect reads Bearer only — no cookie fallback
           signal,
         });
         if (!res.ok) throw new Error(String(res.status));
