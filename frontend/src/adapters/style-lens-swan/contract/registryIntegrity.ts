@@ -29,7 +29,7 @@ export function assertLensRegistryIntegrity(
         issues.push(`manifest "${id}" values rejected (${designIssues[0].rule}: ${designIssues[0].message})`);
       }
     }
-    if (styleAllowlist && !(id in styleAllowlist)) {
+    if (styleAllowlist && !Object.prototype.hasOwnProperty.call(styleAllowlist, id)) {
       issues.push(`manifest "${id}" has no style-allowlist entry`);
     }
   }
