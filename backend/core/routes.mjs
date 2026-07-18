@@ -21,6 +21,7 @@ import { existsSync } from 'fs';
 import authRoutes from '../routes/authRoutes.mjs';
 import profileRoutes from '../routes/profileRoutes.mjs';
 import healthRoutes from '../routes/healthRoutes.mjs';
+import publicConfigRoutes from '../routes/publicConfigRoutes.mjs';
 import userRoutes from '../routes/userRoutes.mjs';
 
 // ===================== USER MANAGEMENT =====================
@@ -282,6 +283,7 @@ export const setupRoutes = async (app) => {
   // Consolidated health endpoints - fixes P0 health check conflicts
   app.use('/health', healthRoutes);
   app.use('/api/health', healthRoutes);
+  app.use('/api/config', publicConfigRoutes); // Dashboards v2 public feature flags (unauthenticated booleans)
 
   // ===================== CORE API ROUTES =====================
   app.use('/api/auth', authRoutes);
