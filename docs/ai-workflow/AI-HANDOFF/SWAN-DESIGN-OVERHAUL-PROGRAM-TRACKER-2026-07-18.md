@@ -58,11 +58,18 @@ Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). 
   (empty slots valid — look comes from `[data-style-lens-shell]` world scoping). `CrystallizeOverlay` takes
   NO children → overlay+panel are SIBLINGS, panel owns focus-trap/Esc/testid. Achievement/Milestone models
   EXIST (`backend/models/`). `resolveMotionTier`/`useAnimationTier` are the motion source.
-- **NEXT files (Slice-1 remainder):** `v2/useWorldKey.ts`, `v2/motion/useDensityMotion.ts`,
-  `v2/shell/{DashboardShell.tsx, DashboardShell.grid.ts, DashboardShell.nav.tsx, DashboardShell.a11y.tsx,
-  useDashboardSummary.ts}`, `v2/DashboardGate.tsx`, `v2/densities/AdminDensity.tsx`, `v2/sections/*`
-  (StatCard, SparkChart via resolveLensVictoryTheme, DataTable, AlertList, SectionHeader, EmptyState),
-  then the ONE seam `frontend/src/routes/main-routes.tsx` (lazy+gate, ≤15-line diff).
+- **Slice-1 frontend SPINE COMPLETE + committed (tsc/eslint clean), NOT yet mounted:** all of
+  `DashBoard/v2/` — lensBindings, flags, types, useWorldKey, motion/useDensityMotion, shell/*
+  (dashboardManifests, DashboardShell.theme/.grid/.nav/.a11y, useDashboardSummary, DashboardShell),
+  sections/* (accents, SectionHeader, StatCard, EmptyState, AlertList, DataTable, NextBestActionCard,
+  TrendChart[Victory via `theme` prop, not `style=`]), DashboardGate, densities/AdminDensity (real) +
+  Trainer/Client/User (Slice-2 placeholders). Victory colors flow through the `theme` prop (the inline-
+  `style=` ban forbids per-mark style). react-refresh warning on DashboardShell (DENSITY_CONFIG export) is benign.
+- **NEXT — the ONE V1 seam (careful, production routing):** `frontend/src/routes/main-routes.tsx` — wrap the
+  4 dashboard route elements: `element: <DashboardGate role="admin"><V1El/></DashboardGate>` (import
+  DashboardGate lazily/normally; V1 element stays as children, untouched). Read the file fully first; verify
+  the wrap doesn't disturb existing route structure. Then Slice-2 real densities (RosterStrip, LogSessionHero,
+  ProgressRing, MilestoneTile, SparkChart) + the responsive/floor tests, then Slice-3 backend/migration/crystallize.
 - **Then Slice-2** densities (trainer/client/user + charts + responsive matrix). **Then Slice-3** backend
   (`backend/routes/dashboardV2Routes.mjs` etc. + `crystallizeRoutes` + migration `achievement_crystallizations`,
   down=NO-OP; COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`, `adminCompliance` services;
