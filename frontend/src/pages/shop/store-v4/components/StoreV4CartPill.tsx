@@ -6,8 +6,9 @@
  * a jeweler doesn't jump; 1.22 reads Duolingo).
  */
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
-const Pill = styled.a<{ $visible: boolean }>`
+const Pill = styled(Link)<{ $visible: boolean }>`
   position: fixed;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -62,7 +63,13 @@ export function StoreV4CartPill({ count, href = '/checkout' }: { count: number; 
       <SrOnly aria-live="polite" data-testid="store-cart-live">
         {visible ? `${count} item${count === 1 ? '' : 's'} in cart` : ''}
       </SrOnly>
-      <Pill href={href} $visible={visible} aria-hidden={!visible} data-testid="store-cart-pill">
+      <Pill
+        to={href}
+        $visible={visible}
+        aria-hidden={!visible}
+        tabIndex={visible ? undefined : -1}
+        data-testid="store-cart-pill"
+      >
         View cart <Count>{count}</Count>
       </Pill>
     </>

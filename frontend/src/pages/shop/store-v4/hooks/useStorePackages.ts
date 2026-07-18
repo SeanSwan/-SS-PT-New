@@ -22,7 +22,14 @@ function toCents(v: unknown): number {
   return Number.isFinite(cents) ? (neg ? -cents : cents) : 0;
 }
 
-const fmtMoney = (cents: number): string => `$${Math.round(cents / 100).toLocaleString('en-US')}`;
+// Whole-dollar amounts render clean ("$8,400"); cents-bearing amounts keep the cents (money surface —
+// never silently round a real price). Current SwanStudios packages are whole-dollar, so this is defensive.
+const fmtMoney = (cents: number): string => {
+  const dollars = Math.trunc(cents / 100);
+  const rem = Math.abs(cents % 100);
+  const base = dollars.toLocaleString('en-US');
+  return rem === 0 ? `$${base}` : `$${base}.${String(rem).padStart(2, '0')}`;
+};
 
 function normalize(raw: StorefrontItemRaw & Record<string, unknown>): Omit<StorePackage, 'isFlagship'> {
   // mirror V3's price precedence (displayPrice ?? totalCost ?? price) so V4 shows the SAME number (F4b/F8)
