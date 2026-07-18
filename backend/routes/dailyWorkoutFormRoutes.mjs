@@ -60,6 +60,8 @@ import {
 import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
 import { estimateBrzycki1RM } from '../services/oneRepMaxService.mjs';
 import { detectAndRecordPersonalRecords } from '../services/workout/workoutPrDetectionService.mjs';
+import { getAllModels } from '../models/index.mjs';
+import { safeAssemble } from '../services/postSaveHandoffAssembler.mjs';
 import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
 
 const router = express.Router();
@@ -1324,6 +1326,23 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
+    // ── Post-Save Handoff (Slice-2). BEST-EFFORT + FAIL-CLOSED. The workout save AND the
+    // availableSessions deduction are COMMITTED above; NOTHING in this block may throw or 500 a
+    // completed money path. safeAssemble never throws; getAllModels() is isolated inside the try;
+    // workoutSession is the const from findOrCreate (in scope, already used at :1314).
+    let handoff = null;
+    try {
+      if (workoutSession?.id) {
+        handoff = await safeAssemble({
+          viewerUserId: req.user.id,
+          viewerRole: req.user.role,
+          targetUserId: workoutSession.userId ?? parsedClientId,
+          todaySessionId: workoutSession.id,
+          models: getAllModels(),
+        });
+      }
+    } catch { handoff = null; }
+
     res.status(201).json({
       success: true,
       form: {
@@ -1342,7 +1361,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         prEvents,
         submittedAt: dailyForm.submittedAt
       },
-      message: billingDecision.message
+      message: billingDecision.message,
+      handoff
     });
 
   } catch (error) {

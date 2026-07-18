@@ -66,6 +66,8 @@ const parseDateQuery = (value, label) => {
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import WorkoutLog from '../models/WorkoutLog.mjs';
 import User from '../models/User.mjs';
+import { getAllModels } from '../models/index.mjs';
+import { safeAssemble } from '../services/postSaveHandoffAssembler.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -259,7 +261,32 @@ const workoutSessionSchema = z.object({
   notes: z.string().optional(),
   totalWeight: z.number().min(0),
   totalReps: z.number().int().min(0),
-  totalSets: z.number().int().min(0)
+  totalSets: z.number().int().min(0),
+  clientRequestId: z.string().max(64).optional() // idempotency key (offline-retry-safe save)
+});
+
+/**
+ * @route   GET /api/workout/sessions/:id/handoff
+ * @desc    Re-fetch the Post-Save Handoff for a session (re-entry / offline-sync refresh).
+ * @access  Private — self, admin, or assigned trainer. 404 for miss AND unauthorized (no existence leak).
+ */
+router.get('/:id/handoff', protect, async (req, res) => {
+  try {
+    const s = await WorkoutSession.findByPk(req.params.id, { attributes: ['id', 'userId'] });
+    if (!s) return res.sendStatus(404);
+    const isSelf = sameId(req.user.id, s.userId);
+    const authorized = isSelf || await assertAssignmentOrAdmin(req.user.id, req.user.role, s.userId);
+    if (!authorized) return res.sendStatus(404);
+    const handoff = await safeAssemble({
+      viewerUserId: req.user.id, viewerRole: req.user.role,
+      targetUserId: s.userId, todaySessionId: s.id, models: getAllModels(),
+    });
+    if (!handoff) return res.sendStatus(404);
+    return res.json({ handoff });
+  } catch (error) {
+    console.error('Error building session handoff:', error?.name, error?.message); // sanitized: no SQL/params/PII
+    return res.sendStatus(404);
+  }
 });
 
 /**
@@ -267,7 +294,7 @@ const workoutSessionSchema = z.object({
  * @desc    Create a new workout session
  * @access  Private
  */
-router.post('/', 
+router.post('/',
   protect, 
   validationMiddleware(workoutSessionSchema), 
   async (req, res) => {
@@ -289,13 +316,40 @@ router.post('/',
         }
       }
       
-      // Create the session
-      const session = await WorkoutSession.create(sessionData);
-      
-      // Update user's progress metrics (if we had a ClientProgress model)
-      // await updateClientProgress(sessionData.userId, sessionData);
-      
-      res.status(201).json({ session });
+      // Create the session (idempotent: a repeated offline retry with the same clientRequestId
+      // hits the partial unique index → we replay the original result instead of double-writing).
+      const clientRequestId = sessionData.clientRequestId || null;
+      let session;
+      try {
+        session = await WorkoutSession.create(sessionData);
+      } catch (err) {
+        // Replay ONLY on the per-user idempotency constraint — not any unique violation (a different
+        // constraint failing while the body carries a stale clientRequestId must never fake a success).
+        const isIdemConflict = err?.name === 'SequelizeUniqueConstraintError'
+          && clientRequestId
+          && err?.fields && Object.prototype.hasOwnProperty.call(err.fields, 'clientRequestId');
+        if (isIdemConflict) {
+          // Scoped to THIS user — the composite (userId, clientRequestId) index guarantees a violation
+          // is the same user's retry, so we can never return another user's session (no IDOR/read-oracle).
+          const existing = await WorkoutSession.findOne({ where: { clientRequestId, userId: sessionData.userId } });
+          if (existing) {
+            const handoff = await safeAssemble({
+              viewerUserId: req.user.id, viewerRole: req.user.role,
+              targetUserId: existing.userId, todaySessionId: existing.id, models: getAllModels(),
+            });
+            return res.status(200).json({ session: existing, handoff, deduplicated: true });
+          }
+          return res.status(409).json({ success: false, message: 'Duplicate submission conflict' });
+        }
+        throw err;
+      }
+
+      // ← save committed. The handoff is BEST-EFFORT and never blocks/duplicates/rolls back the save.
+      const handoff = await safeAssemble({
+        viewerUserId: req.user.id, viewerRole: req.user.role,
+        targetUserId: session.userId, todaySessionId: session.id, models: getAllModels(),
+      });
+      res.status(201).json({ session, handoff, deduplicated: false });
     } catch (error) {
       console.error('Error creating workout session:', error);
       res.status(500).json({ message: 'Server error' });
