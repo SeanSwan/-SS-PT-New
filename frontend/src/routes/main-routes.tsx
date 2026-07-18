@@ -15,6 +15,8 @@ import ProtectedRoute from './protected-route';
 
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
+// Dashboards v2 seam: flag-gated wrapper; renders V1 (children) when off (default), the v2 shell when on.
+import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -894,7 +896,9 @@ const MainRoutes: RouteObject = {
       element: (
         <ProtectedRoute allowedRoles={['admin', 'trainer', 'client']}>
           <Suspense fallback={<PageLoader />}>
-            <UniversalDashboardLayout />
+            <DashboardV2RouteGate>
+              <UniversalDashboardLayout />
+            </DashboardV2RouteGate>
           </Suspense>
         </ProtectedRoute>
       )
