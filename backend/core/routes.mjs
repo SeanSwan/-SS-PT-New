@@ -22,6 +22,7 @@ import authRoutes from '../routes/authRoutes.mjs';
 import profileRoutes from '../routes/profileRoutes.mjs';
 import healthRoutes from '../routes/healthRoutes.mjs';
 import publicConfigRoutes from '../routes/publicConfigRoutes.mjs';
+import crystallizeRoutes from '../routes/crystallizeRoutes.mjs';
 import userRoutes from '../routes/userRoutes.mjs';
 
 // ===================== USER MANAGEMENT =====================
@@ -284,6 +285,7 @@ export const setupRoutes = async (app) => {
   app.use('/health', healthRoutes);
   app.use('/api/health', healthRoutes);
   app.use('/api/config', publicConfigRoutes); // Dashboards v2 public feature flags (unauthenticated booleans)
+  app.use('/api/achievements', crystallizeRoutes); // Dashboards v2 Crystallize write (owner-scoped)
 
   // ===================== CORE API ROUTES =====================
   app.use('/api/auth', authRoutes);
