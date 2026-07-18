@@ -29,10 +29,10 @@ You build the EMPTY typed contract; the design lane fills the values.
 - The `signaturePhenomenon` is optional in schema, promotion-required for the 5 flagships only (§8b U10). The swan = the Crystallize artifact, one-time, reduced-safe.
 Design Brain (`design.md`) is your aesthetic source of truth; every `--world-*` / `--atmo-*` value must honor it.
 
-## HELD FOR SEAN — two gates that unblock Slice 1 (answer these and both lanes proceed)
-- **(a)** Fuse the swan-mark/logo into the DEFAULT world?  (recommend: yes, as a subtle facet/sheen so even the default has a signature — but Sean decides.)
-- **(b)** Confirm `worldId` in `AppearanceProfile` + a **World tab inside the existing Appearance Studio** (NOT a new header button)?  (recommend: yes — reuses the plumbing that already commits palette+lens+motion as one Apply.)
-Until (b) is confirmed, the runtime lane does prep only (primitive scaffolds, schema/validation types — pure, no wiring).
+## ✅ SEAN'S GATES — BOTH ANSWERED YES (2026-07-17). SLICE 1 IS UNBLOCKED.
+- **(a) YES** — fuse the swan-mark into the DEFAULT world as a **subtle crystalline facet/sheen** (ambient + restrained). The full figurative swan STILL lives only in the Crystallize artifact; the default-world swan is a subtle facet, not a silhouette — "phenomena not creatures" (§8b U1) holds.
+- **(b) YES** — `worldId` goes **inside `AppearanceProfile`** + a **"World" tab in the EXISTING Appearance Studio** (NOT a new header button). World is the 4th axis committed with palette+lens+motion in one Apply.
+Runtime lane: **Slice 1 is GO.** No prep-only restriction remains.
 
 ## DONE = ONE
 The system is converged when: one Appearance Studio commits `{paletteThemeId, styleLensId, motionMode, worldId}` as one Apply; a WorldScript from the generator becomes a live selectable world with no code change; every world is fail-closed, taste-closed, WCAG-AA composite, reduced-motion-honest; and public marketing runs cinematic worlds on their own host while in-app stays calm. No parallel systems remain — just the one brain, still growing.
