@@ -29,7 +29,7 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS-CORRECTED + INTEGRATION-GAPFIX | ✅ done | ✅ FULL (S1 frontend+mount, S2 real densities, S3 backend) | ✅ Codex+Gemini (2 confirmed fixed, false-positive rejected) | ✅ SHIPPED main 8a8545605 (flag off → V1 until DASHBOARD_V2_ENABLED=true) |
 | 3 | Store (StoreV4, money-path UNTOUCHED) | KIMI-STORE + CORRECTED | ✅ reground (SEND-BACK→pedestal+F4) | ✅ FULL (S1 gate+seam, S2 sections+money bindings) | ✅ Codex (2 fixed) + Gemini (polish deferred/rejected) | ✅ SHIPPED main bf00e721f (flag off → StoreV3 until STORE_V4_ENABLED=true) |
 | 4 | Home (was SEND-BACK → Kimi generated direction) | KIMI-HOME-DIRECTION | ✅ direction (medium-effort, transcript vision) | ✅ FULL (optics hero + capsule rail + reused sections, flag-gated) | ✅ Codex (3 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 0606edc23 (flag off → V4 until HOME_VNEXT_ENABLED=true) |
-| 5 | About (SEND-BACK, light-caustic swan mark) | KIMI-ABOUT | — | — | — | — |
+| 5 | About (was SEND-BACK → Kimi generated direction) | KIMI-ABOUT-DIRECTION | ✅ direction (caustic swan-occluder) | ✅ FULL (occluder hero + reused sections, flag-gated) | ✅ Codex (2 fixed) + Gemini (polish deferred) | ⏳ AWAITING SEAN GATE (flag off → About.V4) |
 | 6 | Video (SEND-BACK, refraction system) | KIMI-VIDEO | — | — | — | — |
 | 7 | Contact (ship-with-changes, decompose 1193L) | KIMI-CONTACT | — | — | — | — |
 | 8 | Cover/Gallery (SEND-BACK, Core-Loop rewire) | KIMI-COVER-GALLERY | — | — | — | — |
