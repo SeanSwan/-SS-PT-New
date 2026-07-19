@@ -21,12 +21,16 @@
 
 import express from 'express';
 import Stripe from 'stripe';
+import { Op } from 'sequelize';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Subscription from '../models/Subscription.mjs';
 import sequelize from '../database.mjs';
 import { TIER_DEFINITIONS as CATALOG_TIERS } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
-import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
+import {
+  buildStripeIdempotencyKey,
+  buildWindowedStripeIdempotencyKey,
+} from '../utils/stripeIdempotency.mjs';
 
 const router = express.Router();
 
@@ -38,6 +42,84 @@ const getStripe = () => {
   }
   return stripe;
 };
+
+async function ensureSubscriptionStripeCustomer(stripeClient, user, userId, tier) {
+  if (!user) {
+    throw new Error('Authenticated subscription user not found');
+  }
+
+  if (user.stripeCustomerId) {
+    try {
+      const existingCustomer = await stripeClient.customers.retrieve(user.stripeCustomerId);
+      if (existingCustomer?.deleted !== true) {
+        return existingCustomer.id;
+      }
+      logger.warn('[Subscription] Stored Stripe customer was deleted; creating a replacement', {
+        userId,
+        tier,
+      });
+    } catch (error) {
+      if (error?.code !== 'resource_missing') throw error;
+      logger.warn('[Subscription] Stored Stripe customer no longer exists; creating a replacement', {
+        userId,
+        tier,
+        errorCode: error?.code || error?.type || 'STRIPE_CUSTOMER_RETRIEVE_FAILED',
+      });
+    }
+  }
+
+  const customerIdempotencyKey = buildStripeIdempotencyKey('subscription-customer', {
+    userId,
+    previousCustomerId: user.stripeCustomerId || null,
+  });
+  const customer = await stripeClient.customers.create({
+    email: user.email,
+    name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+    metadata: { userId: String(userId), tier },
+  }, { idempotencyKey: customerIdempotencyKey });
+
+  await user.update({ stripeCustomerId: customer.id });
+  return customer.id;
+}
+
+async function claimSubscriptionCheckoutSession({
+  sessionId,
+  userId,
+  tier,
+  amount,
+  transaction,
+}) {
+  const [inserted] = await sequelize.query(
+    `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
+     VALUES (:sessionId, :userId, :tier, :amount)
+     ON CONFLICT ("sessionId") DO NOTHING
+     RETURNING id`,
+    {
+      replacements: { sessionId, userId, tier, amount },
+      type: sequelize.QueryTypes.SELECT,
+      transaction,
+    }
+  );
+
+  return Boolean(inserted);
+}
+
+function addUtcCalendarMonthsClamped(startDate, months) {
+  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
+    throw new TypeError('startDate must be a valid Date');
+  }
+  if (!Number.isInteger(months) || months < 1) {
+    throw new TypeError('months must be a positive integer');
+  }
+
+  const result = new Date(startDate);
+  const originalDay = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(originalDay, lastDay));
+  return result;
+}
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Tier Definitions — imported from central catalog
@@ -271,16 +353,7 @@ router.post('/checkout', protect, async (req, res) => {
       // Get or create Stripe customer
       const UserModel = (await import('../models/User.mjs')).default;
       const user = await UserModel.findByPk(userId);
-      let customerId = user.stripeCustomerId;
-      if (!customerId) {
-        const customer = await s.customers.create({
-          email: user.email,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-          metadata: { userId: String(userId), tier: 'pro' },
-        });
-        customerId = customer.id;
-        await user.update({ stripeCustomerId: customerId });
-      }
+      const customerId = await ensureSubscriptionStripeCustomer(s, user, userId, 'pro');
 
       const idempotencyKey = buildWindowedStripeIdempotencyKey(
         `subscription-donation-checkout:${userId}:pro`,
@@ -338,18 +411,25 @@ router.post('/checkout', protect, async (req, res) => {
     const isAnnual = billingInterval === 'year';
     const checkoutAmount = isAnnual ? tierDef.annualPrice : tierDef.price;
 
+    const activeRecurringSubscription = await Subscription.findOne({
+      where: {
+        userId,
+        stripeSubscriptionId: { [Op.ne]: null },
+        status: { [Op.in]: ['active', 'past_due', 'paused'] },
+      },
+      order: [['createdAt', 'DESC']],
+    });
+    if (activeRecurringSubscription) {
+      return res.status(409).json({
+        success: false,
+        message: 'You already have an active recurring subscription.',
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
+    }
+
     const UserModel = (await import('../models/User.mjs')).default;
     const user = await UserModel.findByPk(userId);
-    let customerId = user.stripeCustomerId;
-    if (!customerId) {
-      const customer = await s.customers.create({
-        email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-        metadata: { userId: String(userId), tier: 'elite' },
-      });
-      customerId = customer.id;
-      await user.update({ stripeCustomerId: customerId });
-    }
+    const customerId = await ensureSubscriptionStripeCustomer(s, user, userId, 'elite');
 
     const intervalLabel = isAnnual ? 'Annual' : 'Monthly';
     const savingsNote = isAnnual ? ' (save $50!)' : '';
@@ -497,32 +577,69 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const userId = parseInt(session.metadata?.userId, 10);
-        if (!userId) break;
+        if (session.payment_status !== 'paid') {
+          logger.warn('[Subscription Webhook] Skipping unpaid checkout completion', {
+            sessionId: session.id,
+            paymentStatus: session.payment_status || 'unknown',
+          });
+          break;
+        }
 
         const UserModel = (await import('../models/User.mjs')).default;
+        const metadataUserId = Number.parseInt(session.metadata?.userId, 10);
+        const stripeCustomerId = typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id;
+        if (!Number.isInteger(metadataUserId) || !stripeCustomerId) {
+          throw new Error(`Paid subscription checkout ${session.id} is missing its user/customer binding`);
+        }
+
+        // Bind fulfillment to the server-persisted Stripe customer. Metadata is
+        // editable in Stripe and can only corroborate that authoritative mapping.
+        const checkoutUser = await UserModel.findOne({
+          where: { stripeCustomerId },
+          attributes: ['id'],
+        });
+        if (!checkoutUser || checkoutUser.id !== metadataUserId) {
+          throw new Error(`Paid subscription checkout ${session.id} has an invalid user/customer binding`);
+        }
+        const userId = checkoutUser.id;
 
         // Guardian donation (mode:payment) — one-time, no recurring
         if (session.mode === 'payment') {
-          const donationAmount = parseFloat(session.metadata?.amount || '5');
+          const amountTotalCents = Number(session.amount_total);
+          if (!Number.isInteger(amountTotalCents) || amountTotalCents <= 0) {
+            throw new Error(`Paid Guardian checkout ${session.id} is missing a valid Stripe amount_total`);
+          }
+          const donationAmount = amountTotalCents / 100;
           const sessionId = session.id;
 
           // C1: Idempotency — skip if this session was already processed
-          const [inserted] = await sequelize.query(
-            `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
-             VALUES (:sessionId, :userId, 'pro', :amount)
-             ON CONFLICT ("sessionId") DO NOTHING
-             RETURNING id`,
-            { replacements: { sessionId, userId, amount: donationAmount }, type: sequelize.QueryTypes.SELECT }
-          );
-          if (!inserted) {
-            logger.info(`[Subscription Webhook] Duplicate Guardian session ${sessionId} — skipped`);
-            break;
-          }
+          let guardianApplied = false;
 
           // C3: findOne+save in transaction — no upsert, no duplicate rows
           await sequelize.transaction(async (t) => {
-            const sub = await Subscription.findOne({ where: { userId }, transaction: t, order: [['createdAt', 'DESC']] });
+            await UserModel.findByPk(userId, {
+              attributes: ['id'],
+              transaction: t,
+              lock: t.LOCK.UPDATE,
+            });
+            const claimed = await claimSubscriptionCheckoutSession({
+              sessionId,
+              userId,
+              tier: 'pro',
+              amount: donationAmount,
+              transaction: t,
+            });
+            if (!claimed) return;
+            guardianApplied = true;
+
+            const sub = await Subscription.findOne({
+              where: { userId },
+              transaction: t,
+              lock: t.LOCK.UPDATE,
+              order: [['createdAt', 'DESC']],
+            });
 
             const prevCumulative = parseFloat(sub?.cumulativeDonationAmount || 0);
             const newCumulative = Math.round((prevCumulative + donationAmount) * 100) / 100;
@@ -532,7 +649,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
               sub.status = 'active';
               sub.amount = donationAmount;
               sub.cumulativeDonationAmount = newCumulative;
-              sub.stripeCustomerId = session.customer;
+              sub.stripeCustomerId = stripeCustomerId;
               sub.stripeSubscriptionId = null;
               sub.currentPeriodStart = new Date();
               sub.currentPeriodEnd = null;
@@ -547,7 +664,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 status: 'active',
                 amount: donationAmount,
                 cumulativeDonationAmount: newCumulative,
-                stripeCustomerId: session.customer,
+                stripeCustomerId,
                 stripeSubscriptionId: null,
                 currentPeriodStart: new Date(),
                 currentPeriodEnd: null,
@@ -562,39 +679,79 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
             logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId} (cumulative: $${newCumulative})`);
           });
+          if (!guardianApplied) {
+            logger.info(`[Subscription Webhook] Duplicate Guardian session ${sessionId} was skipped`);
+          }
         }
 
         // Crystalline subscription (mode:subscription) — recurring
         if (session.mode === 'subscription') {
-          const tier = session.metadata?.tier || 'elite';
-          const amount = parseFloat(session.metadata?.amount || '24.99');
-          const interval = session.metadata?.billingInterval || 'month';
-
-          const now = new Date();
-          const periodEnd = new Date(now);
-          if (interval === 'year') {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-          } else {
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
+          const stripeSubscriptionId = typeof session.subscription === 'string'
+            ? session.subscription
+            : session.subscription?.id;
+          if (!stripeSubscriptionId) {
+            throw new Error(`Paid recurring checkout ${session.id} is missing a Stripe subscription`);
           }
 
+          // Stripe metadata is editable and is therefore routing context only,
+          // never the authority for paid tier, price, cadence, or entitlement dates.
+          const stripeSubscription = await s.subscriptions.retrieve(stripeSubscriptionId);
+          const price = stripeSubscription.items?.data?.[0]?.price;
+          const amountTotalCents = Number(price?.unit_amount);
+          const interval = price?.recurring?.interval;
+          const intervalCount = Number(price?.recurring?.interval_count || 1);
+          const periodStartSeconds = Number(stripeSubscription.current_period_start);
+          const periodEndSeconds = Number(stripeSubscription.current_period_end);
+          if (
+            !Number.isInteger(amountTotalCents)
+            || amountTotalCents <= 0
+            || !['month', 'year'].includes(interval)
+            || intervalCount !== 1
+            || !Number.isFinite(periodStartSeconds)
+            || !Number.isFinite(periodEndSeconds)
+            || periodEndSeconds <= periodStartSeconds
+          ) {
+            throw new Error(`Stripe subscription ${stripeSubscriptionId} has invalid billing details`);
+          }
+
+          const tier = 'elite';
+          const amount = amountTotalCents / 100;
           const effectiveMonthlyAmount = interval === 'year'
             ? Math.round((amount / 12) * 100) / 100
             : amount;
+          const periodStart = new Date(periodStartSeconds * 1000);
+          const periodEnd = new Date(periodEndSeconds * 1000);
 
+          let recurringApplied = false;
           await sequelize.transaction(async (t) => {
+            await UserModel.findByPk(userId, {
+              attributes: ['id'],
+              transaction: t,
+              lock: t.LOCK.UPDATE,
+            });
+            const claimed = await claimSubscriptionCheckoutSession({
+              sessionId: session.id,
+              userId,
+              tier,
+              amount,
+              transaction: t,
+            });
+            if (!claimed) return;
+            recurringApplied = true;
+
             const sub = await Subscription.findOne({
               where: { userId },
               transaction: t,
+              lock: t.LOCK.UPDATE,
               order: [['createdAt', 'DESC']],
             });
             const subscriptionValues = {
               tier,
               status: 'active',
               amount: effectiveMonthlyAmount,
-              stripeSubscriptionId: session.subscription,
-              stripeCustomerId: session.customer,
-              currentPeriodStart: now,
+              stripeSubscriptionId,
+              stripeCustomerId,
+              currentPeriodStart: periodStart,
               currentPeriodEnd: periodEnd,
               paymentMethod: 'stripe',
               cancelledAt: null,
@@ -617,7 +774,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             );
           });
 
-          logger.info(`[Subscription Webhook] Activated ${tier} for user ${userId} at $${amount}/${interval}`);
+          if (recurringApplied) {
+            logger.info(`[Subscription Webhook] Activated ${tier} for user ${userId} at $${amount}/${interval}`);
+          } else {
+            logger.info(`[Subscription Webhook] Duplicate recurring session ${session.id} was skipped`);
+          }
         }
         break;
       }
@@ -632,26 +793,24 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           });
 
           if (subscription) {
-            // Derive billing interval from Stripe subscription object
-            // Stripe sends the full subscription in invoice.subscription_details
-            // or we can check the line item period
-            const now = new Date();
-            const periodEnd = new Date(now);
             const lineItem = invoice.lines?.data?.[0];
-            const intervalFromStripe = lineItem?.plan?.interval || lineItem?.price?.recurring?.interval;
+            const periodStartSeconds = lineItem?.period?.start;
+            const periodEndSeconds = lineItem?.period?.end;
 
-            if (intervalFromStripe === 'year') {
-              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+            if (Number.isFinite(periodStartSeconds) && Number.isFinite(periodEndSeconds)) {
+              subscription.currentPeriodStart = new Date(periodStartSeconds * 1000);
+              subscription.currentPeriodEnd = new Date(periodEndSeconds * 1000);
             } else {
-              periodEnd.setMonth(periodEnd.getMonth() + 1);
+              logger.warn('[Subscription Webhook] Paid invoice omitted authoritative period timestamps', {
+                invoiceId: invoice.id,
+                subscriptionId: subId,
+              });
             }
 
             subscription.status = 'active';
-            subscription.currentPeriodStart = now;
-            subscription.currentPeriodEnd = periodEnd;
             await subscription.save();
 
-            logger.info(`[Subscription Webhook] Renewal payment succeeded for sub ${subId} (interval: ${intervalFromStripe || 'month'})`);
+            logger.info(`[Subscription Webhook] Renewal payment succeeded for sub ${subId}`);
           }
         }
         break;
@@ -733,44 +892,87 @@ router.get('/admin/all', protect, adminOnly, async (req, res) => {
 router.post('/admin/grant', protect, adminOnly, async (req, res) => {
   try {
     const { userId, tier, amount, paymentMethod, durationMonths = 1 } = req.body;
+    const parsedUserId = Number(userId);
+    const parsedDurationMonths = Number(durationMonths);
+    const parsedAmount = amount == null ? TIER_DEFINITIONS[tier]?.price : Number(amount);
+    const normalizedPaymentMethod = paymentMethod || 'manual';
 
-    if (!userId || !tier || !['pro', 'elite'].includes(tier)) {
+    if (
+      !Number.isInteger(parsedUserId)
+      || parsedUserId <= 0
+      || !['pro', 'elite'].includes(tier)
+      || !Number.isInteger(parsedDurationMonths)
+      || parsedDurationMonths < 1
+      || parsedDurationMonths > 120
+      || !Number.isFinite(parsedAmount)
+      || parsedAmount < 0
+      || !['zelle', 'venmo', 'manual'].includes(normalizedPaymentMethod)
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'userId and tier (pro/elite) are required',
+        message: 'A valid userId, tier, amount, payment method, and duration are required',
       });
     }
 
     const now = new Date();
-    const periodEnd = new Date(now);
-    periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
+    const periodEnd = addUtcCalendarMonthsClamped(now, parsedDurationMonths);
 
-    const [subscription] = await Subscription.upsert({
-      userId: parseInt(userId, 10),
-      tier,
-      status: 'active',
-      amount: amount || TIER_DEFINITIONS[tier].price,
-      paymentMethod: paymentMethod || 'manual',
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-      cancelledAt: null,
-      cancelReason: null,
-    });
-
-    // Update user tier cache
     const UserModel = (await import('../models/User.mjs')).default;
-    await UserModel.update(
-      { subscriptionTier: tier },
-      { where: { id: userId } }
-    );
+    const subscription = await sequelize.transaction(async (t) => {
+      const user = await UserModel.findByPk(parsedUserId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!user) {
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const existing = await Subscription.findOne({
+        where: { userId: parsedUserId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+        order: [['createdAt', 'DESC']],
+      });
+      if (
+        existing?.stripeSubscriptionId
+        && ['active', 'past_due', 'paused'].includes(existing.status)
+      ) {
+        const error = new Error('Cannot manually overwrite an active Stripe subscription');
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const values = {
+        tier,
+        status: 'active',
+        amount: parsedAmount,
+        paymentMethod: normalizedPaymentMethod,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        cancelledAt: null,
+        cancelReason: null,
+      };
+      const granted = existing
+        ? Object.assign(existing, values)
+        : Subscription.build({ userId: parsedUserId, ...values });
+
+      await granted.save({ transaction: t });
+      await user.update({ subscriptionTier: tier }, { transaction: t });
+      return granted;
+    });
 
     res.json({
       success: true,
-      message: `Granted ${tier} subscription to user ${userId} for ${durationMonths} month(s)`,
+      message: `Granted ${tier} subscription to user ${parsedUserId} for ${parsedDurationMonths} month(s)`,
       subscription,
     });
   } catch (error) {
     logger.error('[Subscription Admin] Grant error:', error);
+    if (error.statusCode === 404 || error.statusCode === 409) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: 'Error granting subscription' });
   }
 });

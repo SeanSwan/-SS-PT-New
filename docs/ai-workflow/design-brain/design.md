@@ -18,7 +18,7 @@
 
 - Lifecycle: **LIQUID → CRYSTALLIZED → (thaw) → LIQUID.**
 - LIQUID: proposal in `canon/liquid/`, experimental tokens namespaced `--x-*`, expires 14 days after opening. Expired LIQUID is deleted, not extended.
-- CRYSTALLIZED: merged here + `tokens.css` regenerated, versioned, lint-enforced. Canon contains zero "pending," "TBD," "proposed," or "OR pick one." Undecided = not canon.
+- CRYSTALLIZED: merged here + `tokens.css` regenerated, versioned, lint-enforced. Canon contains zero pending, proposed, placeholder, or pick-one markers. Undecided = not canon.
 - Thaw: PR naming one law, the measured failure (numbers, not feelings), and the revert plan.
 - Every law names its enforcement mechanism (lint / CI / generated / crystallization review). A law with no mechanism is deleted at review. Policy is hope; mechanism is law.
 
@@ -141,6 +141,7 @@ Faces unchanged: Plus Jakarta Sans (headings/UI), Cormorant Garamond Italic (dra
 ## §8 Two-speed law — SNAP or DRIFT, nothing between
 
 Everything that changes state does so at exactly one of two speeds. No third speed exists; there is no "medium."
+Runtime quality ships as Full/Lean/Still; Reduced Motion is a separate accessibility override across every quality mode, never a fourth quality tier.
 
 - **SNAP (response):** {120, 160, 200}ms, `--ease-snap: cubic-bezier(0.16,1,0.3,1)`. Hovers, presses, toggles, focus, toasts, tab switches.
 - **DRIFT (narrative/ambient):** transitions {600, 720, 900}ms, `--ease-drift: cubic-bezier(0.4,0,0.2,1)`; ambient loop periods {4000, 6000, 8000}ms.

@@ -29,6 +29,12 @@ import logger from '../utils/logger.mjs';
 import { getModel } from '../models/index.mjs';
 
 const getSessionTypeModel = () => getModel('SessionType');
+const parseCreditsRequired = (value, fallback) => {
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
+
 
 export const listSessionTypes = async (req, res) => {
   try {
@@ -92,7 +98,8 @@ export const createSessionType = async (req, res) => {
       color,
       price,
       isActive,
-      sortOrder
+      sortOrder,
+      creditsRequired
     } = req.body;
 
     if (!name || typeof name !== 'string') {
@@ -104,6 +111,14 @@ export const createSessionType = async (req, res) => {
 
     const maxSortOrder = await SessionType.max('sortOrder');
     const nextSortOrder = Number.isFinite(maxSortOrder) ? maxSortOrder + 1 : 1;
+    const normalizedCreditsRequired = parseCreditsRequired(creditsRequired, 1);
+    if (normalizedCreditsRequired === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Credits required must be a non-negative integer'
+      });
+    }
+
 
     const sessionType = await SessionType.create({
       name,
@@ -114,7 +129,8 @@ export const createSessionType = async (req, res) => {
       color: color ?? '#00FFFF',
       price: price ?? null,
       isActive: isActive ?? true,
-      sortOrder: sortOrder ?? nextSortOrder
+      sortOrder: sortOrder ?? nextSortOrder,
+      creditsRequired: normalizedCreditsRequired
     });
 
     return res.status(201).json({
@@ -151,8 +167,17 @@ export const updateSessionType = async (req, res) => {
       color,
       price,
       isActive,
-      sortOrder
+      sortOrder,
+      creditsRequired
     } = req.body;
+
+    const normalizedCreditsRequired = parseCreditsRequired(creditsRequired, sessionType.creditsRequired);
+    if (normalizedCreditsRequired === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Credits required must be a non-negative integer'
+      });
+    }
 
     await sessionType.update({
       name: name ?? sessionType.name,
@@ -163,7 +188,8 @@ export const updateSessionType = async (req, res) => {
       color: color ?? sessionType.color,
       price: price ?? sessionType.price,
       isActive: isActive ?? sessionType.isActive,
-      sortOrder: sortOrder ?? sessionType.sortOrder
+      sortOrder: sortOrder ?? sessionType.sortOrder,
+      creditsRequired: normalizedCreditsRequired
     });
 
     return res.status(200).json({

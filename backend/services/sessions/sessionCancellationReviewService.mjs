@@ -7,10 +7,11 @@
 import sequelize from '../../database.mjs';
 import Session from '../../models/Session.mjs';
 import User from '../../models/User.mjs';
-import { getOrder, getOrderItem, getStorefrontItem } from '../../models/index.mjs';
+import { getOrder, getOrderItem, getSessionType, getStorefrontItem } from '../../models/index.mjs';
 import { computeCancellationCharge, getClientPackagePricing } from '../../utils/cancellationPricing.mjs';
 import logger from '../../utils/logger.mjs';
 import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';
+import { getSessionCreditsToRestore } from './sessionCreditReceiptService.mjs';
 
 const ALLOWED_DECISIONS = new Set(['charged', 'waived']);
 const ALLOWED_CHARGE_TYPES = new Set(['none', 'late_fee', 'full', 'partial', 'custom']);
@@ -155,10 +156,16 @@ async function restoreWaivedCreditIfNeeded(session, transaction) {
     return false;
   }
 
-  await client.increment('availableSessions', { by: 1, transaction });
-  client.availableSessions = Number(client.availableSessions || 0) + 1;
+  const creditsToRestore = await getSessionCreditsToRestore(session, {
+    SessionType: getSessionType(),
+    transaction
+  });
+  if (creditsToRestore > 0) {
+    await client.increment('availableSessions', { by: creditsToRestore, transaction });
+    client.availableSessions = Number(client.availableSessions || 0) + creditsToRestore;
+  }
   session.sessionCreditRestored = true;
-  return true;
+  return creditsToRestore > 0;
 }
 
 function buildReviewResponse({ session, decision, actualChargeAmount, packageInfo, creditRestored }) {

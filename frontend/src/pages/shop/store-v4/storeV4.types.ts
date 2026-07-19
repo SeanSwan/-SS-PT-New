@@ -12,6 +12,8 @@ export interface StorefrontItemRaw {
   name: string;
   description?: string | null;
   price?: string | number | null;
+  displayPrice?: string | number | null;
+  totalCost?: string | number | null;
   pricePerSession?: string | number | null;
   sessions?: number | null;
   months?: number | null;

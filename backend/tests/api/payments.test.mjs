@@ -125,6 +125,19 @@ describe('Payment Flow API', () => {
       expect(source).toContain('if (user.stripeCustomerId)');
     });
 
+    it('recovers deleted Stripe customers and makes replacement creation retry-safe', () => {
+      const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
+
+      expect(source).toContain('if (stripeCustomer?.deleted === true)');
+      expect(source).toContain('const customerIdempotencyKey = buildStripeIdempotencyKey');
+      expect(source).toMatch(
+        /stripe\.customers\.create\(\{[\s\S]*?\},\s*\{\s*idempotencyKey:\s*customerIdempotencyKey\s*\}\)/
+      );
+      expect(source).toContain('previousCustomerId: user.stripeCustomerId || null');
+      expect(source).toContain("if (error?.code !== 'resource_missing') throw error");
+      expect(source).toContain('Existing Stripe customer no longer exists; creating a replacement');
+    });
+
     it('scopes checkout session creation to the submitted cartId', () => {
       const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
 

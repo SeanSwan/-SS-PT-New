@@ -58,16 +58,20 @@ const Count = styled.span`
 `;
 
 export function CollectionsStrip({ collections }: { collections: CollectionItem[] }) {
-  if (!collections.length) return null;
+  const linkedCollections = collections.flatMap((collection) => {
+    const path = getCollectionPath(collection.slug);
+    return path ? [{ collection, path }] : [];
+  });
+  if (!linkedCollections.length) return null;
   return (
     <Section aria-label="Collections">
       <Head>Collections</Head>
       <Strip>
-        {collections.map((c) => (
-          <li key={c.id}>
-            <Chip to={getCollectionPath(c.slug)}>
-              <Name>{c.title}</Name>
-              <Count>{c.videoCount} video{c.videoCount === 1 ? '' : 's'}</Count>
+        {linkedCollections.map(({ collection, path }) => (
+          <li key={collection.id}>
+            <Chip to={path}>
+              <Name>{collection.title}</Name>
+              <Count>{collection.videoCount} video{collection.videoCount === 1 ? '' : 's'}</Count>
             </Chip>
           </li>
         ))}

@@ -84,6 +84,16 @@ const stripeWebhookHandler = async (req, res) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
 
+        // A valid Stripe signature authenticates the event, but fulfillment
+        // still requires confirmed payment. Never grant sessions, inventory,
+        // donations, or VIP access for an unpaid Checkout Session.
+        if (session.payment_status !== 'paid') {
+          logger.warn('[Webhook] Skipping unpaid checkout completion', {
+            paymentStatus: session.payment_status || 'unknown',
+          });
+          break;
+        }
+
         // ── Gallery Credit / VIP Fulfillment ──────────────────────────
         if (session.metadata?.type === 'gallery_credits') {
           await fulfillGalleryCredits(session);

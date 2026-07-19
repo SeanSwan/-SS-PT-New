@@ -35,23 +35,23 @@ import { useAuth } from '../context/AuthContext';
 
 export const queryKeys = {
   social: {
-    feed: (params?: Record<string, unknown>) => ['social', 'feed', params] as const,
-    challenges: () => ['social', 'challenges'] as const,
+    feed: (userId: string, params?: Record<string, unknown>) => ['social', 'feed', userId, params] as const,
+    challenges: (userId: string) => ['social', 'challenges', userId] as const,
     posts: () => ['social', 'posts'] as const,
     trendingTags: (params?: Record<string, unknown>) => ['social', 'trendingTags', params] as const,
   },
   notifications: {
-    summary: () => ['notifications', 'summary'] as const,
+    summary: (userId: string) => ['notifications', 'summary', userId] as const,
   },
   messaging: {
-    summary: () => ['messaging', 'summary'] as const,
+    summary: (userId: string) => ['messaging', 'summary', userId] as const,
   },
   gamification: {
-    leaderboard: (params?: Record<string, unknown>) => ['gamification', 'leaderboard', params] as const,
+    leaderboard: (userId: string, params?: Record<string, unknown>) => ['gamification', 'leaderboard', userId, params] as const,
     profile: (userId?: string) => ['gamification', 'profile', userId] as const,
   },
   workouts: {
-    sessions: (params?: Record<string, unknown>) => ['workouts', 'sessions', params] as const,
+    sessions: (userId: string, params?: Record<string, unknown>) => ['workouts', 'sessions', userId, params] as const,
     history: (userId?: string) => ['workouts', 'history', userId] as const,
   },
   clients: {
@@ -60,8 +60,8 @@ export const queryKeys = {
     measurements: (id: string) => ['clients', 'measurements', id] as const,
   },
   admin: {
-    systemHealth: () => ['admin', 'systemHealth'] as const,
-    pendingOrders: () => ['admin', 'pendingOrders'] as const,
+    systemHealth: (userId: string) => ['admin', 'systemHealth', userId] as const,
+    pendingOrders: (userId: string) => ['admin', 'pendingOrders', userId] as const,
     analytics: (type: string) => ['admin', 'analytics', type] as const,
   },
 } as const;
@@ -90,7 +90,7 @@ export function useSocialFeed(params: FeedParams = {}) {
   if (params.hashtag) queryParams.hashtag = params.hashtag;
 
   return useQuery({
-    queryKey: queryKeys.social.feed(queryParams),
+    queryKey: queryKeys.social.feed(String(user?.id || ''), queryParams),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/social/posts/feed', { params: queryParams, signal });
       return res.data?.posts || res.data?.data || [];
@@ -102,7 +102,7 @@ export function useSocialFeed(params: FeedParams = {}) {
 export function useSocialChallenges() {
   const { authAxios, user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.social.challenges(),
+    queryKey: queryKeys.social.challenges(String(user?.id || '')),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/social/challenges/active', { signal });
       return res.data?.data || res.data?.challenges || [];
@@ -181,7 +181,7 @@ export function useNotificationSummary() {
   const { authAxios, user } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.notifications.summary(),
+    queryKey: queryKeys.notifications.summary(String(user?.id || '')),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/notifications', { signal });
       return res.data;
@@ -196,7 +196,7 @@ export function useMessageSummary(options: { enabled?: boolean } = {}) {
   const { authAxios, user } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.messaging.summary(),
+    queryKey: queryKeys.messaging.summary(String(user?.id || '')),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/messaging/conversations', { signal });
       return res.data;
@@ -221,7 +221,7 @@ interface LeaderboardParams {
 export function useLeaderboard(params: LeaderboardParams = {}) {
   const { authAxios, user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.gamification.leaderboard(params as Record<string, unknown>),
+    queryKey: queryKeys.gamification.leaderboard(String(user?.id || ''), params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/v1/gamification/leaderboard', {
         params: { limit: params.limit || 5 },
@@ -246,7 +246,7 @@ interface WorkoutSessionParams {
 export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
   const { authAxios, user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.workouts.sessions(params as Record<string, unknown>),
+    queryKey: queryKeys.workouts.sessions(String(user?.id || ''), params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/workout/sessions', {
         params: { limit: params.limit || 50, page: params.page || 1 },
@@ -271,7 +271,7 @@ export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
 export function useSystemHealth() {
   const { authAxios, user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.admin.systemHealth(),
+    queryKey: queryKeys.admin.systemHealth(String(user?.id || '')),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/admin/system-health', { signal });
       return res.data?.data || res.data;
@@ -285,7 +285,7 @@ export function useSystemHealth() {
 export function usePendingOrders() {
   const { authAxios, user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.admin.pendingOrders(),
+    queryKey: queryKeys.admin.pendingOrders(String(user?.id || '')),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/admin/pending-orders', { signal });
       return res.data?.data || res.data?.orders || [];

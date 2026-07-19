@@ -31,7 +31,7 @@ const fmtMoney = (cents: number): string => {
   return rem === 0 ? `$${base}` : `$${base}.${String(rem).padStart(2, '0')}`;
 };
 
-function normalize(raw: StorefrontItemRaw & Record<string, unknown>): Omit<StorePackage, 'isFlagship'> {
+function normalize(raw: StorefrontItemRaw): Omit<StorePackage, 'isFlagship'> {
   // mirror V3's price precedence (displayPrice ?? totalCost ?? price) so V4 shows the SAME number (F4b/F8)
   const priceCents = toCents(raw.displayPrice ?? raw.totalCost ?? raw.price);
   const perSessionCents = toCents(raw.pricePerSession);

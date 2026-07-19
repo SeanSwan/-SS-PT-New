@@ -89,6 +89,10 @@ SessionType.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1,
+      validate: {
+        isInt: true,
+        min: 0
+      },
       comment: 'Number of session credits consumed when booking'
     },
     isActive: {

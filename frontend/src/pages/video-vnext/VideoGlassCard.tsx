@@ -125,6 +125,7 @@ const StretchedLink = styled(Link)`
 
 export function VideoGlassCard({ video }: { video: VideoItem }) {
   const duration = video.durationSeconds ? formatDuration(video.durationSeconds) : null;
+  const watchPath = getVideoWatchPath(video.slug);
   return (
     <Card $locked={video.locked} data-testid={`video-card-${video.id}`}>
       <Clip>
@@ -139,7 +140,7 @@ export function VideoGlassCard({ video }: { video: VideoItem }) {
         </Body>
       </Clip>
       {/* ONE stretched link — the watch page owns the gate for locked content */}
-      <StretchedLink to={getVideoWatchPath(video.slug)}>{video.title}</StretchedLink>
+      {watchPath && <StretchedLink to={watchPath}>{video.title}</StretchedLink>}
     </Card>
   );
 }

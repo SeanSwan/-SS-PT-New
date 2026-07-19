@@ -38,7 +38,7 @@ export function VideoPagination({
   onPage: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
-  const pages = getVisiblePaginationPages(page, totalPages);
+  const pages = getVisiblePaginationPages({ page, totalPages, total: 0 });
   return (
     <Row aria-label="Pagination">
       <Pill $active={false} onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Previous page">

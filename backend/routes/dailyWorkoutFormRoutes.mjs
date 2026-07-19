@@ -1166,6 +1166,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || scheduledSessionCompletionDate,
         noShowReason: null,
         sessionDeducted: billingDecision.sessionDeducted,
+        creditsDeducted: billingDecision.shouldDeduct
+          ? billingDecision.creditsToDeduct
+          : linkedScheduledSession.creditsDeducted,
         deductionDate: shouldStampScheduledSessionDeduction ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate
       }, { transaction });
     }

@@ -88,7 +88,7 @@
  * │ ENDPOINT          WINDOW       MAX REQUESTS    RATIONALE   │
  * ├────────────────────────────────────────────────────────────┤
  * │ /register         60 min       10/IP           Anti-spam   │
- * │ /login            15 min       10/IP           Brute force │
+ * │ /login            15 min       100/IP          Flood ceiling│
  * │ /refresh-token    15 min       20/IP           UX balance  │
  * └────────────────────────────────────────────────────────────┘
  *
@@ -368,7 +368,9 @@ router.post(
  */
 router.post(
   '/login', 
-  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }), // 10 attempts per 15 minutes per IP
+  // Broad shared-network flood ceiling. The controller separately enforces
+  // 10 failed attempts per normalized identity and the User row locks at 10.
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 100 }),
   validate('login'),
   login
 );
@@ -507,6 +509,7 @@ router.put(
       
       // Update password
       user.password = newPassword; // Will be hashed by model hooks
+      user.refreshTokenHash = null;
       await user.save();
       
       res.status(200).json({

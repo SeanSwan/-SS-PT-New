@@ -12,7 +12,7 @@ import UserAchievement from '../models/UserAchievement.mjs';
 
 /** True if the user actually holds this achievement (guards against crystallizing an unowned one). */
 async function userOwnsAchievement(userId, achievementId) {
-  const row = await UserAchievement.findOne({ where: { userId, achievementId } });
+  const row = await UserAchievement.findOne({ where: { userId, achievementId, isCompleted: true } });
   return Boolean(row);
 }
 

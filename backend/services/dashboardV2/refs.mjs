@@ -9,9 +9,14 @@
  */
 import crypto from 'crypto';
 
-// Display-only salt. A static fallback is acceptable because refs are non-reversible display codes,
-// not a security boundary; set MASK_SALT in prod to rotate the ref space. Never logged, never returned.
-const MASK_SALT = process.env.MASK_SALT || process.env.DASHBOARD_MASK_SALT || 'swan-dashboard-v2-ref';
+// Dedicated salts win. Production's required auth secret supplies a domain-separated stable fallback so
+// multiple server instances produce the same display refs. Local tools with no secrets get process-local refs.
+const configuredSalt = process.env.MASK_SALT || process.env.DASHBOARD_MASK_SALT;
+const platformSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+const MASK_SALT = configuredSalt
+  || (platformSecret
+    ? crypto.createHmac('sha256', platformSecret).update('dashboard-v2-display-refs').digest('hex')
+    : crypto.randomBytes(32).toString('hex'));
 
 /** Non-reversible display ref: HMAC(id) → 4-digit code with a role-kind prefix. */
 export function maskRef(id, kind = 'C') {
@@ -61,13 +66,18 @@ export function fmtAge(d) {
 }
 
 /** Map a raw Session.status to the client-facing SessionRow status union. */
-export function sessionRowStatus(raw, sessionDate, attendance) {
+export function sessionRowStatus(raw, sessionDate, attendance, sessionEnd) {
   // no-shows live in Session.attendanceStatus, NOT status — check it first so a no-show reads as "missed".
   if (attendance === 'no_show') return 'missed';
   if (raw === 'completed') return 'done';
   if (raw === 'cancelled') return 'missed';
   const when = sessionDate ? new Date(sessionDate).getTime() : 0;
-  if (when && when <= Date.now() && (raw === 'confirmed' || raw === 'scheduled')) return 'active';
+  if (raw === 'confirmed' || raw === 'scheduled') {
+    if (when > Date.now()) return 'upcoming';
+    const end = sessionEnd ? new Date(sessionEnd).getTime() : 0;
+    if (end && end <= Date.now()) return 'missed';
+    if (when) return 'active';
+  }
   return 'upcoming';
 }
 

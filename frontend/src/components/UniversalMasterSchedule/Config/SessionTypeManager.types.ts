@@ -6,6 +6,7 @@ export interface SessionTypeFormState {
   duration: number;
   bufferBefore: number;
   bufferAfter: number;
+  creditsRequired: number;
   color: string;
   price: string;
   isActive: boolean;
@@ -18,6 +19,7 @@ export type SessionTypePayload = Partial<SessionType> & {
   duration: number;
   bufferBefore: number;
   bufferAfter: number;
+  creditsRequired: number;
   color: string;
   isActive: boolean;
 };

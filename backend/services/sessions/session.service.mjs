@@ -48,6 +48,7 @@ import {
 import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
 import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
+import { getSessionCreditsToRestore } from './sessionCreditReceiptService.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -1729,15 +1730,21 @@ class UnifiedSessionService {
               userId: client.id
             });
           } else {
-            await client.increment('availableSessions', { by: 1, transaction });
+            const creditsToRestore = await getSessionCreditsToRestore(session, {
+              SessionType: this.SessionType,
+              transaction
+            });
+            if (creditsToRestore > 0) {
+              await client.increment('availableSessions', { by: creditsToRestore, transaction });
+              creditRestored = true;
+            }
             // in-memory sync only — the atomic increment above is the source of truth.
-            client.availableSessions = (client.availableSessions || 0) + 1;
+            client.availableSessions = (client.availableSessions || 0) + creditsToRestore;
 
             // Mark credit as restored (idempotency flag for canonical restoreSessionCredit)
             session.sessionCreditRestored = true;
-            creditRestored = true;
 
-            logger.info(`[UnifiedSessionService] Restored 1 session to user ${client.id} balance after cancellation`);
+            logger.info(`[UnifiedSessionService] Restored ${creditsToRestore} session credits to user ${client.id} balance after cancellation`);
           }
         }
       }

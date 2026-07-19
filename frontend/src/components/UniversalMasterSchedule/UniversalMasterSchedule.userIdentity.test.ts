@@ -58,13 +58,14 @@ describe('UniversalMasterSchedule user identity parsing', () => {
     expect(scheduleSource).toContain('const trainerIdForPayload = normalizeScheduleOptionalId(formData.trainerId);');
     expect(scheduleSource).toContain('const clientIdForPayload = normalizeScheduleOptionalId(formData.clientId);');
     expect(scheduleSource).toContain('const sessionTypeIdForPayload = normalizeScheduleOptionalId(formData.sessionTypeId);');
-    expect(scheduleSource).toContain('if (trainerIdForPayload === null) {');
-    expect(scheduleSource).toContain('if (!useManualClient && clientIdForPayload === null) {');
-    expect(scheduleSource).toContain('if (sessionTypeIdForPayload === null) {');
+    expect(scheduleSource).toContain('if (trainerIdForPayload == null) {');
+    expect(scheduleSource).toContain('if (!useManualClient && clientIdForPayload == null) {');
+    expect(scheduleSource).toContain('if (sessionTypeIdForPayload == null) {');
     expect(scheduleSource).toContain('sessionTypeId: sessionTypeIdForPayload,');
     expect(scheduleSource).toContain('const quickBookClientId = normalizeScheduleOptionalId(clientId);');
     expect(scheduleSource).toContain('const quickBookTrainerId = normalizeScheduleOptionalId(quickBookSlot.trainerId);');
-    expect(scheduleSource).toContain('if (quickBookClientId === null || quickBookClientId === undefined) {');
+    expect(scheduleSource).toContain('if (quickBookClientId == null) {');
+    expect(scheduleSource).toContain('if (quickBookTrainerId == null) {');
     expect(scheduleSource).not.toContain('userId: formData.clientId?.toString()');
     expect(scheduleSource).not.toContain('userId: clientId.toString()');
     expect(scheduleSource).not.toContain('sessionTypeId: formData.sessionTypeId');
