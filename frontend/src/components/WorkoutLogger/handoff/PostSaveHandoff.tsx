@@ -81,6 +81,10 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
         isFirstEver: !!data.proof?.isFirstEver,
       });
     }
+    // Body scroll-lock while the modal owns the screen (restored on close/unmount) — no background
+    // scroll behind the takeover; pairs with the Overlay's overscroll-behavior: contain.
+    const prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const previouslyFocused = (typeof document !== 'undefined' ? document.activeElement : null) as HTMLElement | null;
     const node = overlayRef.current;
     const focusables = () =>
@@ -100,6 +104,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevBodyOverflow;
       previouslyFocused?.focus?.();
     };
   }, [active]);

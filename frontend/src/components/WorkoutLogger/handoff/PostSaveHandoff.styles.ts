@@ -34,6 +34,7 @@ export const Overlay = styled.div`
   justify-content: center;
   align-items: flex-start;
   overflow-y: auto;
+  overscroll-behavior: contain; /* a fling to the scroll boundary must not chain into the logger body behind */
   background: var(--bg-base, #0A0A0F);
   padding: 16px;
 `;

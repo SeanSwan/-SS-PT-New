@@ -56,7 +56,10 @@ const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
   if (!handoff || dismissed) return null;
 
   return (
-    <HandoffErrorBoundary>
+    // Key on saveKey: a NEW successful save (even one landing while a prior handoff is still open, e.g.
+    // via the AI_SUBMIT_WORKOUT bridge) forces a full remount → fresh handoff_shown + mount animation,
+    // and resets the boundary if a prior render had failed.
+    <HandoffErrorBoundary key={saveKey ?? 'handoff'}>
       <PostSaveHandoff
         data={handoff}
         viewerRole={mapRole(userRole)}
