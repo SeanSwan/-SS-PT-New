@@ -29,26 +29,22 @@ export function useStoreV4Flag(): { storeV4: boolean; resolved: boolean } {
 
   useEffect(() => {
     let alive = true;
-    // Always consult the runtime flag so the central kill switch stays ABSOLUTE. An explicit runtime
-    // `false` wins over the QA override (emergency-off must beat a reviewer's local toggle). The QA
-    // override can only force V4 ON when the central switch hasn't deliberately killed it.
+    // Runtime flag is authoritative: when the endpoint answers with a boolean it WINS (kill switch absolute —
+    // an explicit false always closes). The QA override only previews when runtime is absent (key missing);
+    // a fetch failure fails closed to env (the override cannot bypass an unreachable kill switch).
     fetch('/api/config/public-flags', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => { if (!r.ok) throw new Error('public-flags unavailable'); return r.json(); })
       .then((json: { storeV4?: unknown } | null) => {
         if (!alive) return;
         const runtime = json && typeof json.storeV4 === 'boolean' ? Boolean(json.storeV4) : null;
-        const override = qaOverride();
-        let effective: boolean;
-        if (runtime === false) effective = false; // kill switch absolute
-        else if (override !== null) effective = override; // reviewer preview
-        else effective = runtime ?? ENV_FALLBACK;
+        // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
+        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
         setStoreV4(effective);
         setResolved(true);
       })
       .catch(() => {
-        // runtime unreachable → the QA override may preview, else fail-closed env fallback
         if (alive) {
-          setStoreV4(qaOverride() ?? ENV_FALLBACK);
+          setStoreV4(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
           setResolved(true);
         }
       });

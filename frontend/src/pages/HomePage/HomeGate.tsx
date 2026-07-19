@@ -31,6 +31,7 @@ function ContractCheck({ onFail, children }: { onFail(): void; children: ReactNo
       const shell = ref.current?.querySelector('.home-vnext-shell');
       if (!shell) {
         if (tries++ < 30) raf = requestAnimationFrame(check);
+        else onFail(); // exhausted: shell never rendered → fail closed to V-prev
         return; // still loading — the Suspense fallback (current Home) is showing
       }
       const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();

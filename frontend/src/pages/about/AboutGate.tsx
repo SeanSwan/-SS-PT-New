@@ -27,6 +27,7 @@ function ContractCheck({ onFail, children }: { onFail(): void; children: ReactNo
       const shell = ref.current?.querySelector('.about-vnext-shell');
       if (!shell) {
         if (tries++ < 30) raf = requestAnimationFrame(check);
+        else onFail(); // exhausted: shell never rendered → fail closed to V-prev
         return;
       }
       const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();

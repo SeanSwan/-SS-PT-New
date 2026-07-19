@@ -22,7 +22,7 @@ import { StoreV4PackageGrid } from './components/StoreV4PackageGrid';
 import { StoreV4CartPill } from './components/StoreV4CartPill';
 import { StoreV4Skeleton } from './components/StoreV4Skeleton';
 
-const Shell = styled.div`
+const Shell = styled.main`
   min-height: 100vh;
   background: var(--store-bg);
   color: var(--store-ink);
