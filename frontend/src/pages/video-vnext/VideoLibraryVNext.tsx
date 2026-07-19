@@ -15,6 +15,7 @@ import { VideoRefractionHero } from './VideoRefractionHero';
 import { VideoControls } from './VideoControls';
 import { VideoGlassCard } from './VideoGlassCard';
 import { VideoPagination } from './VideoPagination';
+import { CollectionsStrip } from './CollectionsStrip';
 
 const HERO_SUB = 'Find the right movement demo, coaching lesson, or member story before the next set starts.';
 
@@ -70,6 +71,8 @@ export default function VideoLibraryVNext() {
             onContentType={lib.setContentType}
             onSearch={lib.submitSearch}
           />
+
+          <CollectionsStrip collections={lib.collections} />
 
           {lib.loading ? (
             <Grid aria-hidden="true">

@@ -51,6 +51,7 @@ export function useVideoLibrary(): VideoLibraryState {
       } catch (err) {
         setError(videoLibraryErrorMeta(err).message);
         setVideos([]);
+        setPagination(DEFAULT_VIDEO_PAGINATION); // don't retain misleading page/total; refetch → page 1 (Codex)
       } finally {
         setLoading(false);
       }
