@@ -4,7 +4,7 @@
  * 44px target, AA labelling (`aria-invalid` + `aria-describedby`). The ONE primary on this surface
  * (Dual-Button Glow: Ice-Wing field, submit carries the glow).
  */
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { PRISM_COPY } from './prismCopy';
 
@@ -94,6 +94,13 @@ export function PrismBeam({ submitting, invalid, onSubmit }: PrismBeamProps) {
   const [email, setEmail] = useState('');
   const inputId = useId();
   const errId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // On a validation error, move focus back to the field so the user can correct it (the error is also announced
+  // via role="alert" below). Keyed on `invalid` so it fires on each fresh invalid submit.
+  useEffect(() => {
+    if (invalid) inputRef.current?.focus();
+  }, [invalid]);
 
   return (
     <Form
@@ -106,6 +113,7 @@ export function PrismBeam({ submitting, invalid, onSubmit }: PrismBeamProps) {
       <Field htmlFor={inputId}>
         <Hint>{PRISM_COPY.emailLabel}</Hint>
         <Input
+          ref={inputRef}
           id={inputId}
           type="email"
           name="email"

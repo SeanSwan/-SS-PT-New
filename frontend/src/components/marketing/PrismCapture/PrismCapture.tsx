@@ -3,13 +3,18 @@
  * FAIL-CLOSED, flag-gated: the house gate is INSIDE — when the flag is off/unresolved, or a render throws, this
  * returns `null` so the LIVE hero is untouched (the whole surface ships dark and reverts with an env/flag flip).
  * State machine (usePrismCapture): idle/error → PrismBeam; refracted → PrismRefraction. Motion decision is made
- * in JS (usePrefersReducedMotion) and passed down; the refraction signature beat fires once, never on reduced
- * motion. Pure token consumer (prismTokens) — renders on today's palette, re-skins when worlds land.
+ * in JS (usePrefersReducedMotion). Pure token consumer (prismTokens) — renders on today's palette, re-skins when
+ * worlds land.
+ *
+ * Hardened after hostile review: the network error is now VISIBLE + announced (role=alert); when the build opted
+ * in (PRISM_ENV_FALLBACK) a fixed-height placeholder reserves space during flag resolution to avoid CLS on the
+ * hero; internal links use React Router.
  */
 import React from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { PrismCaptureTokens } from './prismTokens';
-import { usePrismCaptureFlag } from './flags';
+import { usePrismCaptureFlag, PRISM_ENV_FALLBACK } from './flags';
 import { usePrismCapture } from './usePrismCapture';
 import { usePrefersReducedMotion } from './prismMotion';
 import { PrismBeam } from './PrismBeam';
@@ -49,6 +54,14 @@ const Shell = styled.section`
   isolation: isolate; /* keep the spectrum's z-index local */
 `;
 
+// Fixed-height placeholder shown only while the flag resolves AND the build opted in — reserves the card's space
+// so enabling PRISM doesn't shove the page down after the flags round-trip (CLS on the primary marketing page).
+const Placeholder = styled.div`
+  width: 100%;
+  max-width: 620px;
+  min-height: 232px;
+`;
+
 const Inner = styled.div`
   position: relative;
   z-index: 1;
@@ -79,7 +92,7 @@ const Sub = styled.p`
   max-width: 44ch;
 `;
 
-const TrainerLink = styled.a`
+const TrainerLink = styled(Link)`
   align-self: flex-start;
   font-size: 13px;
   color: var(--prism-ink-2);
@@ -102,6 +115,12 @@ const Consent = styled.p`
   max-width: 46ch;
 `;
 
+const NetError = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: var(--prism-danger);
+`;
+
 const Retry = styled.button`
   align-self: flex-start;
   min-height: 44px;
@@ -115,15 +134,14 @@ const Retry = styled.button`
 `;
 
 function PrismCaptureInner() {
-  const { state, error, shareCode, submit, reset } = usePrismCapture();
+  const { state, error, shareCode, submittedEmail, submit, reset } = usePrismCapture();
   const reduced = usePrefersReducedMotion();
-  const [email, setEmail] = React.useState('');
 
   const active = state === 'beaming' || state === 'refracted';
   const invalid = state === 'error' && error === 'invalid';
+  const networkError = state === 'error' && error === 'network';
 
   const onSubmit = (value: string) => {
-    setEmail(value);
     void submit(value, 'spectrum');
   };
 
@@ -139,16 +157,19 @@ function PrismCaptureInner() {
             {state !== 'refracted' ? <Sub>{PRISM_COPY.sub}</Sub> : null}
 
             {state === 'refracted' ? (
-              <PrismRefraction email={email} shareCode={shareCode} />
+              <PrismRefraction email={submittedEmail} shareCode={shareCode} />
             ) : (
               <>
                 <PrismBeam submitting={state === 'beaming'} invalid={invalid} onSubmit={onSubmit} />
-                {state === 'error' && error === 'network' ? (
-                  <Retry type="button" onClick={reset}>
-                    {PRISM_COPY.retry}
-                  </Retry>
+                {networkError ? (
+                  <>
+                    <NetError role="alert">{PRISM_COPY.errorNetwork}</NetError>
+                    <Retry type="button" onClick={reset}>
+                      {PRISM_COPY.retry}
+                    </Retry>
+                  </>
                 ) : null}
-                <TrainerLink href="/contact?intent=trainer">{PRISM_COPY.trainerLink} →</TrainerLink>
+                <TrainerLink to="/contact?intent=trainer">{PRISM_COPY.trainerLink} →</TrainerLink>
                 <Consent>{PRISM_COPY.consent}</Consent>
               </>
             )}
@@ -161,7 +182,16 @@ function PrismCaptureInner() {
 
 export function PrismCapture() {
   const { prismCapture, resolved } = usePrismCaptureFlag();
-  if (!resolved || !prismCapture) return null; // fail-closed: nothing renders until the flag resolves true
+  if (!resolved) {
+    // Reserve the card's space ONLY when the build opted in, so enabling PRISM doesn't cause CLS; off-builds
+    // render nothing (no wasted space on every homepage load).
+    return PRISM_ENV_FALLBACK ? (
+      <Band aria-hidden="true">
+        <Placeholder />
+      </Band>
+    ) : null;
+  }
+  if (!prismCapture) return null; // fail-closed: nothing renders unless the flag resolves true
   return (
     <GateBoundary>
       <PrismCaptureInner />

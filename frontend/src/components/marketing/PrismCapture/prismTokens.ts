@@ -45,4 +45,16 @@ export const PrismCaptureTokens = createGlobalStyle`
     outline: 2px solid var(--prism-ice);
     outline-offset: 2px;
   }
+
+  /* Reduced-motion: the keyframe is already gated in JS (prismMotion), but the one-shot hover/focus/state
+     TRANSITIONS (border-color/box-shadow/transform/opacity) must also be honored for an opted-out user. Zero
+     them all so an off effect truly costs nothing. Focus outline (above) is unaffected — it is not a transition. */
+  @media (prefers-reduced-motion: reduce) {
+    .prism-capture *,
+    .prism-capture *::before,
+    .prism-capture *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
 `;

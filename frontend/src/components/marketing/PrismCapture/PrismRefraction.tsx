@@ -2,10 +2,14 @@
  * PrismRefraction — "spectrum out": the success state. One beam (email) has split into three rays, each exactly
  * one tap, none gating the others (Kimi). Book is the ONE primary; Trainer + Share are secondary. Book routes to
  * the existing consultation flow with the email prefilled via query (no OrientationForm changes this epic);
- * Trainer deep-links `/contact?intent=trainer` (the canonical path records itself); Share copies the referral
- * link built from the 201's share code (native share sheet on mobile, clipboard elsewhere).
+ * Trainer deep-links `/contact?intent=trainer`; Share copies the referral link from the response share code.
+ *
+ * Hardened after hostile review: internal routes use React Router <Link> (NOT raw <a> → no full-page reload on
+ * the primary Book CTA); success is announced + focused for screen readers (role=status + focus move); the
+ * navigator.share cancel (AbortError) is NOT treated as a failure; the "copied" setTimeout is cleaned up.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { PRISM_COPY } from './prismCopy';
 
@@ -31,7 +35,7 @@ const rayBase = `
   &:active { transform: translateY(1px); }
 `;
 
-const RayPrimary = styled.a`
+const RayPrimary = styled(Link)`
   ${rayBase}
   border: 0;
   background: var(--prism-ice);
@@ -40,7 +44,7 @@ const RayPrimary = styled.a`
   &:hover { box-shadow: 0 0 0 1px var(--prism-ice), 0 14px 40px -12px var(--prism-wing); }
 `;
 
-const RaySecondaryLink = styled.a`
+const RaySecondaryLink = styled(Link)`
   ${rayBase}
   border: 1px solid var(--prism-ice-14);
   background: var(--prism-glass);
@@ -66,6 +70,9 @@ const Title = styled.p`
   margin: 0 0 4px;
   font: 600 17px/1.2 var(--prism-font-display);
   color: var(--prism-ink);
+  &:focus {
+    outline: none;
+  }
 `;
 
 interface PrismRefractionProps {
@@ -77,6 +84,15 @@ interface PrismRefractionProps {
 
 export function PrismRefraction({ email, shareCode, bookHref = '/contact' }: PrismRefractionProps) {
   const [copied, setCopied] = useState(false);
+  const titleRef = useRef<HTMLParagraphElement>(null);
+  const copiedTimer = useRef<number | undefined>(undefined);
+
+  // Move focus to the success heading so a keyboard/SR user is taken to the new content (it was on the now-
+  // unmounted submit button) and the region (role=status) announces "You're in".
+  useEffect(() => {
+    titleRef.current?.focus();
+    return () => window.clearTimeout(copiedTimer.current);
+  }, []);
 
   const bookUrl = `${bookHref}?intent=book&email=${encodeURIComponent(email)}`;
   const shareUrl =
@@ -87,28 +103,33 @@ export function PrismRefraction({ email, shareCode, bookHref = '/contact' }: Pri
     try {
       if (navigator.share) {
         await navigator.share({ title: 'SwanStudios', url: shareUrl });
-        return;
+        return; // shared via the native sheet — done
       }
-    } catch {
-      /* user dismissed the native sheet — fall through to copy */
+    } catch (err) {
+      // The user DISMISSING the native sheet rejects with AbortError — that is not a failure, do not fall back.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      /* any other share error → fall through to clipboard */
     }
     try {
       await navigator.clipboard?.writeText(shareUrl);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard blocked — no-op; the link is still shown to the user by the browser share UI when available */
+      /* clipboard blocked — no-op */
     }
   };
 
   return (
-    <Rays>
-      <Title>{PRISM_COPY.successTitle}</Title>
-      <RayPrimary href={bookUrl}>
+    <Rays role="status" aria-live="polite">
+      <Title ref={titleRef} tabIndex={-1}>
+        {PRISM_COPY.successTitle}
+      </Title>
+      <RayPrimary to={bookUrl}>
         {PRISM_COPY.rayBook}
         <Sub>{PRISM_COPY.rayBookSub}</Sub>
       </RayPrimary>
-      <RaySecondaryLink href="/contact?intent=trainer">
+      <RaySecondaryLink to="/contact?intent=trainer">
         {PRISM_COPY.rayTrainer}
         <Sub>{PRISM_COPY.rayTrainerSub}</Sub>
       </RaySecondaryLink>

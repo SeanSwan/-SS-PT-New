@@ -37,27 +37,65 @@ for (const k of ['SENDGRID_API_KEY', 'OWNER_EMAIL', 'OWNER_PHONE', 'TWILIO_ACCOU
   if (!process.env[k]) logger.warn(`[prism] env ${k} not set — a PRISM alert/ref channel will degrade when enabled`);
 }
 
-/** Synthetic first name from an email local-part (Decision D). Tagged `name:derived`; real name overwrites via CRM. */
+/**
+ * Synthetic first name from an email local-part (Decision D). Tagged `name:derived`; real name overwrites via CRM.
+ * HARDENED: strip to ALPHANUMERIC (EMAIL_RE permits `<>"'/(){}` in the local part — a raw segment could carry an
+ * XSS payload into the CRM admin UI or overflow `Lead.firstName varchar(100)` → INSERT throw → silent lead loss).
+ * Alphanumeric-only + a 40-char cap makes it safe by construction and always ≤ the column width.
+ */
 export function deriveFirstName(email) {
-  const local = email.split('@')[0].split('+')[0];
-  const seg = local.split(/[._-]/).filter(Boolean)[0] || '';
+  const local = String(email).split('@')[0].split('+')[0];
+  const raw = local.split(/[._-]/).filter(Boolean)[0] || '';
+  const seg = raw.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40); // alnum only, capped well under varchar(100)
   return seg.length >= 2 && /[a-z]/i.test(seg) ? seg[0].toUpperCase() + seg.slice(1) : 'Friend';
 }
 
-/** Deterministic, unguessable, stable share code from the lead id (Decision B — no column). */
+/**
+ * Deterministic, unguessable, stable share code from the lead id (Decision B — no column).
+ * FAIL-CLOSED: when `REF_CODE_PEPPER` is unset we return null (NOT the raw id). Emitting `String(leadId)` in the
+ * public 201 would leak the sequential DB primary key — an enumeration + pipeline-volume oracle that defeats the
+ * opaque-response goal. Null simply hides the share ray; capture still succeeds.
+ */
 export function refCodeFor(leadId) {
   const pepper = process.env.REF_CODE_PEPPER;
-  if (!pepper) return String(leadId); // fallback: raw id (warned at boot). Still stable + returnable.
+  if (!pepper) return null; // fail-closed: no pepper → no public code (share ray hidden), never the raw id
   return crypto.createHmac('sha256', pepper).update(String(leadId)).digest('hex').slice(0, 10);
+}
+
+// Global owner-alert budget — caps external SMS/email cost + owner-phone DoS when a distributed flood of UNIQUE
+// emails each creates a new lead (the per-IP contactLimiter can't stop a botnet with rotating IPs). In-process:
+// on multi-instance Render the cap is per-instance — a shared store (Redis) is the follow-up. In-app admin
+// notifications are NOT capped (they cost nothing). CRM-row creation is inherent to any public capture (same
+// exposure as the existing contact form); a CAPTCHA/PoW is the real defense there and is tracked separately.
+const ALERT_WINDOW_MS = 60 * 60 * 1000;
+const ALERT_MAX_PER_WINDOW = 30;
+let alertWindowStart = 0;
+let alertCount = 0;
+function externalAlertBudgetOk() {
+  const now = Date.now();
+  if (now - alertWindowStart > ALERT_WINDOW_MS) {
+    alertWindowStart = now;
+    alertCount = 0;
+  }
+  if (alertCount >= ALERT_MAX_PER_WINDOW) return false;
+  alertCount += 1;
+  return true;
 }
 
 /** Fire the canonical owner-alert trio. All non-critical; never blocks the response. Email goes to the OWNER only. */
 async function fireOwnerAlerts({ email, intent, referred }) {
   const label = intent === 'trainer' ? 'TRAINER' : intent || 'lead';
   const summary = `New Prism lead (${label})${referred ? ' — referred' : ''}: ${email}`;
+  // In-app admin notification is free — always fire (an honest per-lead trail Sean can see even during a flood).
   try {
     await createAdminNotification({ title: 'New Prism Capture', message: summary, type: 'admin' });
   } catch { /* non-critical */ }
+
+  // External (paid) channels are budgeted: a flood is visible in-app + CRM but can't run up Twilio/SendGrid spend.
+  if (!externalAlertBudgetOk()) {
+    logger.warn('[prism] external owner-alert budget exhausted this window — suppressing SMS/email (CRM + in-app unaffected)');
+    return;
+  }
 
   const emails = [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean);
   if (emails.length && process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) {
@@ -109,9 +147,14 @@ router.post('/capture', contactLimiter, async (req, res) => {
     let code = null;
     if (result?.leadId) {
       code = refCodeFor(result.leadId);
-      const prismTags = ['prism', `prism:refcode:${code}`, 'name:derived'];
+      const prismTags = ['prism', 'name:derived'];
+      if (code) prismTags.push(`prism:refcode:${code}`); // omit when pepper unset (code null)
       if (intent) prismTags.push(`prism:intent:${intent}`);
       if (ref) prismTags.push(`prism:refby:${ref}`);
+      // utm_campaign is dropped by the shared deriveChannel (source/medium only) — keep it as a tag so
+      // campaign attribution isn't lost. Sanitized to a safe token.
+      const campaign = typeof utm.campaign === 'string' ? utm.campaign.replace(/[^a-z0-9_-]/gi, '').slice(0, 40) : '';
+      if (campaign) prismTags.push(`prism:utm_campaign:${campaign}`);
       try {
         const { default: Lead } = await import('../models/Lead.mjs');
         const lead = await Lead.findByPk(result.leadId);
@@ -122,14 +165,18 @@ router.post('/capture', contactLimiter, async (req, res) => {
       // Alert only on a NEWLY created lead so repeat opt-ins from the same email don't spam the owner.
       // Fire-and-forget: the 201 returns immediately (speed-to-lead), the alert completes in-process.
       if (result.created) fireOwnerAlerts({ email, intent, referred: !!ref }).catch(() => {});
-    } else {
-      // captureLeadFromContact returns {error}/{skipped} instead of throwing — a DB failure here would
-      // otherwise return an opaque 201 while the lead is silently LOST. Log loud (no PII) so it's observable.
-      logger.error(`[prism] capture produced no leadId (lead may be lost): ${result?.error || result?.skipped || 'unknown'}`);
+
+      // OPAQUE 201: identical shape whether the lead was CREATED or already EXISTED (result.created true|false) —
+      // anti-enumeration. `code` is null when the pepper is unset (share ray hidden), same for both cases.
+      return res.status(201).json({ ok: true, ref: code });
     }
 
-    // OPAQUE: identical shape whether the lead was created, existed, or the service skipped — anti-enumeration.
-    return res.status(201).json({ ok: true, ref: code });
+    // No leadId → captureLeadFromContact returned {error}/{skipped} (it returns, doesn't throw). Returning an
+    // opaque 201 here would silently LOSE the lead. Fail LOUD (500, no PII) so the frontend shows Retry and the
+    // lead is recoverable. Enumeration is not leaked: created-vs-existing both go through the 201 branch above;
+    // only a genuine backend failure reaches here.
+    logger.error(`[prism] capture produced no leadId (lead not saved): ${result?.error || result?.skipped || 'unknown'}`);
+    return res.status(500).json({ ok: false });
   } catch (err) {
     logger.error('[prism] capture error:', err?.message); // message only — never the email (Rule 59)
     return res.status(500).json({ ok: false });
