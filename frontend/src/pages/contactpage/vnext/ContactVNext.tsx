@@ -52,8 +52,10 @@ const Sub = styled.p`
   font-size: clamp(15px, 2.2vw, 18px);
   color: var(--contact-ink-2);
 `;
-const Methods = styled.dl`
+const Methods = styled.ul`
   margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -88,8 +90,12 @@ export default function ContactVNext() {
               <Title>Let’s start your training.</Title>
               <Sub>Tell us your goals and we’ll match you with the right coach. We usually reply within a day.</Sub>
               <Methods>
-                <Method href="mailto:loveswanstudios@protonmail.com">✉ loveswanstudios@protonmail.com</Method>
-                <Method href="tel:+17144853950">✆ (714) 485-3950</Method>
+                <li>
+                  <Method href="mailto:loveswanstudios@protonmail.com">✉ loveswanstudios@protonmail.com</Method>
+                </li>
+                <li>
+                  <Method href="tel:+17144853950">✆ (714) 485-3950</Method>
+                </li>
               </Methods>
             </Intro>
             <ContactForm />
