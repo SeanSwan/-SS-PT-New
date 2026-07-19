@@ -11,6 +11,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import PostSaveHandoff from './PostSaveHandoff';
 import type { HandoffData, LoggerRole } from './workoutHandoff.types';
 
+/**
+ * Frontend mirror of the backend `safeAssemble` fail-closed contract: a handoff RENDER error must never
+ * crash the logger AFTER a committed save. On any error it degrades to null (SaveSuccessPanel shows) —
+ * the save is already safe; the terminal proof is best-effort, exactly like the server side.
+ */
+class HandoffErrorBoundary extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { /* swallow — best-effort; the save UX must not break on a handoff render error */ }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 interface WorkoutLoggerHandoffMountProps {
   /** The server-assembled handoff for the just-saved session (null/undefined → nothing renders). */
   handoff: HandoffData | null | undefined;
@@ -44,14 +56,16 @@ const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
   if (!handoff || dismissed) return null;
 
   return (
-    <PostSaveHandoff
-      data={handoff}
-      viewerRole={mapRole(userRole)}
-      pendingSync={!isOnline}
-      onDismiss={() => setDismissed(true)}
-      onNavigate={onNavigate}
-      onEvent={onEvent}
-    />
+    <HandoffErrorBoundary>
+      <PostSaveHandoff
+        data={handoff}
+        viewerRole={mapRole(userRole)}
+        pendingSync={!isOnline}
+        onDismiss={() => setDismissed(true)}
+        onNavigate={onNavigate}
+        onEvent={onEvent}
+      />
+    </HandoffErrorBoundary>
   );
 };
 
