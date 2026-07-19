@@ -49,18 +49,6 @@ const toRows = (arr, source) => {
   return rows;
 };
 
-// Keep max weight per setNumber (volume is duplicate-sensitive); null setNumbers can't dedupe → keep all.
-const dedupeBySetNumber = (rows) => {
-  const byNum = new Map();
-  const noNum = [];
-  for (const r of rows) {
-    if (r.setNumber == null) { noNum.push(r); continue; }
-    const cur = byNum.get(r.setNumber);
-    if (!cur || r.weight > cur.weight) byNum.set(r.setNumber, r);
-  }
-  return [...byNum.values(), ...noNum];
-};
-
 /** Pure: raw dual-source row → one unified session { id, date, duration, sets:[unifiedSet] }. */
 export function unifyRow(row) {
   const logRows = toRows(row.logRows, 'log');
@@ -70,8 +58,15 @@ export function unifyRow(row) {
   for (const key of keys) {
     const logsForKey = logRows.filter((r) => r.nameKey === key);
     const setsForKey = setRows.filter((r) => r.nameKey === key);
-    const winner = logsForKey.length ? logsForKey : setsForKey; // logs-win precedence
-    sets.push(...dedupeBySetNumber(winner));
+    // logs-win precedence: prefer the human log rows for a nameKey (a Set placeholder never mixes in).
+    // Push the winning source's rows AS-IS — every row is a genuinely-performed set. Do NOT dedupe by
+    // setNumber: the form numbers sets PER exercise-block (setIndex+1), so the SAME exercise logged as two
+    // blocks (a burnout / second attempt / superset card) legitimately REUSES setNumber 1,2… across real
+    // sets. A setNumber-keyed dedupe would DROP those real sets and make totalVolumeLbs disagree with the
+    // session's canonical totalWeight (which counts every row). Precedence already yields a single source
+    // per nameKey, so there is no cross-source double-count to guard against.
+    const winner = logsForKey.length ? logsForKey : setsForKey;
+    sets.push(...winner);
   }
   return { id: row.id, date: row.date, duration: row.duration, sets };
 }
