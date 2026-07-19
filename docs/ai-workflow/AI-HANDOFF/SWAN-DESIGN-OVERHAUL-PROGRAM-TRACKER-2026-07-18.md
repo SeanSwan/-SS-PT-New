@@ -102,3 +102,12 @@ Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). 
 ## Resume procedure (fresh session)
 Read this tracker → find the first surface not ✅-pushed → for Dashboards read the two design docs +
 "precise resume state" above → follow "the discipline" → update the board + Hermes.
+
+## RESUME NOTE (2026-07-18) — 7 surfaces SHIPPED; #8 Gallery is billing-critical → recommend fresh session
+**Shipped to main (all flag-off, gated):** lens cba39192b, Dashboards 8a8545605, Store bf00e721f, Home 0606edc23, About 816cce70e, Video 7b2b84184, Contact 4e116d3c6. Each: reground/direction → build reversible → hostile → triangle (Codex+Gemini) → Sean-gated push. Env flags to activate: DASHBOARD_V2_ENABLED / STORE_V4_ENABLED / HOME_VNEXT_ENABLED / ABOUT_VNEXT_ENABLED / VIDEO_VNEXT_ENABLED / CONTACT_VNEXT_ENABLED.
+
+**#8 Cover/Gallery — DO CAREFULLY (billing-critical):** `GalleryPage.tsx` (~2000L) runs an enhancement-CREDIT PURCHASE system (`/api/gallery/credits`), VIP conversion modal, checkout-return feedback, referral modal, support actions — all money-path with truth tests (`gallery/*.truth.test.ts`). SEND-BACK + "Core-Loop rewire" (architectural). Approach when resumed: study the credit/checkout/referral/VIP logic FIRST; a visual reskin must keep ALL of it BIND-ONLY (money-path untouched, like Store); the "Core-Loop rewire" architectural part needs Sean's explicit scoping. Recommend a FRESH session (full context) for this one — do not rush a billing surface at the tail of a long session.
+
+**Remaining after #8:** #9 Photography (2219L decompose, non-billing), #10/11 Design Skill/Brain (review+propose only, not builds).
+
+**Reusable per-surface recipe (proven x7):** foundation = lensBindings/flags/tokens(ZERO-hex or one sanctioned literal)/manifest/gate (mirror any shipped surface) + backend flag in publicConfigRoutes.mjs; SEND-BACK surfaces → `consult-kimi --effort medium` for creative direction (high-effort empties the budget); data/money surfaces → reuse the pure logic helpers + reimplement fetch/state in vNext (V-prev untouched, same API path); Gemini is a design AUTHOR not the gate (Rule 46 — reject "delete the token bridge / use theme-provider hex").
