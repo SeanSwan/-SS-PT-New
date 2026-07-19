@@ -103,6 +103,9 @@ export async function completeAiLinkedScheduledSession({
     attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || completedAt,
     noShowReason: null,
     sessionDeducted: billingDecision.sessionDeducted,
+    creditsDeducted: billingDecision.shouldDeduct
+      ? billingDecision.creditsToDeduct
+      : linkedScheduledSession.creditsDeducted,
     deductionDate: shouldStampDeduction ? completedAt : linkedScheduledSession.deductionDate,
   }, { transaction });
 }

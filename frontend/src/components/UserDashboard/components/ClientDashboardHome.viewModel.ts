@@ -98,13 +98,13 @@ export function buildTodaySnapshot({
     const time = sessionTime(session);
     return Number.isFinite(time) && time >= todayStart.getTime() && time <= now.getTime();
   }).length;
-  const calories = macroLoading ? 'Loading' : macroSummary ? `${safeWhole(macroSummary.totalCalories)} cal` : 'Not available';
+  const calories = macroLoading ? 'Loading' : macroSummary ? `${safeWhole(macroSummary.totalCalories).toLocaleString()} cal` : 'Not available';
   return {
     dateLabel: now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
     rows: [
       { label: 'Workouts Logged', value: String(todayCount), meta: todayCount ? 'Today' : 'No log yet' },
       { label: 'Total Workout Time', value: `${proof.minutesThisWeek || 0} min`, meta: 'This week' },
-      { label: 'Calories Burned', value: calories, meta: macroSummary ? 'Nutrition log' : 'No live burn source' },
+      { label: 'Calories Logged', value: calories, meta: macroSummary ? 'Nutrition log' : 'No calorie log yet' },
       { label: 'Average Heart Rate', value: 'Not available', meta: 'No wearable source' },
     ],
     weeklyCompleted: Math.min(proof.thisWeekCount, WEEKLY_GOAL),

@@ -87,6 +87,7 @@ export const SessionTypeTable: React.FC<SessionTypeTableProps> = ({
           <th>Duration</th>
           <th>Buffer Before</th>
           <th>Buffer After</th>
+          <th>Credits</th>
           <th>Color</th>
           <th>Actions</th>
         </tr>
@@ -103,6 +104,7 @@ export const SessionTypeTable: React.FC<SessionTypeTableProps> = ({
             <td data-label="Duration">{type.duration} min</td>
             <td data-label="Buffer Before">{type.bufferBefore} min</td>
             <td data-label="Buffer After">{type.bufferAfter} min</td>
+            <td data-label="Credits">{type.creditsRequired}</td>
             <td data-label="Color">
               <ColorSwatch $color={type.color} />
             </td>
@@ -137,7 +139,7 @@ export const SessionTypeTable: React.FC<SessionTypeTableProps> = ({
         ))}
         {!loading && sessionTypes.length === 0 && (
           <tr>
-            <td colSpan={6}>
+            <td colSpan={7}>
               <EmptyState>No session types found. Add your first type.</EmptyState>
             </td>
           </tr>
@@ -230,6 +232,17 @@ export const SessionTypeEditorModal: React.FC<SessionTypeEditorProps> = ({
             <ColorPreview $color={form.color} />
             <SmallText>{form.color}</SmallText>
           </ColorPicker>
+        </FormField>
+        <FormField>
+          <Label htmlFor="sessionTypeCreditsRequired" required>Credits Required</Label>
+          <StyledInput
+            id="sessionTypeCreditsRequired"
+            type="number"
+            min={0}
+            step={1}
+            value={form.creditsRequired}
+            onChange={(event) => onFormChange({ creditsRequired: Number(event.target.value) })}
+          />
         </FormField>
         <FormField>
           <Label htmlFor="sessionTypePrice">Price (optional)</Label>

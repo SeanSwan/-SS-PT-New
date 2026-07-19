@@ -118,7 +118,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
 
 ```ts
 // useWorldLens.ts
-export function useWorldLens(): { worldKey: string } 
+export function useWorldLens(): { worldKey: string }
 // Reads documentElement.dataset.world ?? 'crystalline-swan'.
 // MutationObserver on <html> attributes; re-renders shell on world switch
 // within 1 animation frame (200ms cross-fade, §4). No other side effects.
@@ -198,7 +198,7 @@ LogSessionHero:   { now: SessionRow|null; next: SessionRow|null; minutesUntilNex
 ### 2.5 The FOUR role densities (section order is fixed — this IS the spec)
 
 **ADMIN — ops-density.** Scan cost < 5s to "is the studio healthy?"
-1. `StatBand` — 4 StatCards: `sessions_today` (ice), `active_clients` (ice), `trainers_on_floor` (ice), `open_alerts` (gold — admin's one gold). 
+1. `StatBand` — 4 StatCards: `sessions_today` (ice), `active_clients` (ice), `trainers_on_floor` (ice), `open_alerts` (gold — admin's one gold).
 2. `AlertList` (severity-sorted server-side) — left 5 cols; `TrendChart weeklySessions area` — right 7 cols.
 3. `DataTable sessionsToday` (full 12 cols, row status chip).
 4. `TrendChart trainerLoad bar` (6) + `NextBestActionCard` for ops (6, e.g., "2 sessions unassigned").

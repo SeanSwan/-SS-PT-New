@@ -18,6 +18,7 @@ export interface SessionType {
   name: string;
   description?: string;
   duration: number;
+  creditsRequired: number;
   bufferBefore: number;
   bufferAfter: number;
   color: string;
@@ -45,6 +46,7 @@ const normalizeSessionType = (payload: any): SessionType => ({
   duration: Number(payload.duration ?? 60),
   bufferBefore: Number(payload.bufferBefore ?? 0),
   bufferAfter: Number(payload.bufferAfter ?? 0),
+  creditsRequired: Number(payload.creditsRequired ?? 1),
   color: payload.color ?? '#8B5CF6',
   price: payload.price ?? undefined,
   isActive: Boolean(payload.isActive ?? true),

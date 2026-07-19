@@ -286,7 +286,7 @@ Selectors key off `[data-viewport="hand"]` etc. — no bespoke `@media` breakpoi
 
 ### 6.3 Reversibility (exact)
 
-- **Seam:** one file — `main-routes.tsx`. V1 components imported by the gate as children; `React.lazy` loads the v2 shell only when the flag resolves true. Chunk-load failure → error boundary → V1. 
+- **Seam:** one file — `main-routes.tsx`. V1 components imported by the gate as children; `React.lazy` loads the v2 shell only when the flag resolves true. Chunk-load failure → error boundary → V1.
 - **Revert:** set `DASHBOARD_V2_ENABLED=false` (or flip the flags payload; ≤60s propagation). V1 renders. No migration rollback (down is NO-OP by design), no code removal, zero data loss; crystallizations persist for re-enable.
 - **Decommission** of V1 only after 30 stable days, separate PR.
 

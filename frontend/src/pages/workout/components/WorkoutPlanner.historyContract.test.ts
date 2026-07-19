@@ -1,5 +1,9 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import {
+  buildWorkoutSessionPayload,
+  createBlankWorkoutSession,
+} from './WorkoutPlanner.logic';
 
 const plannerSource = readFileSync(
   resolve(process.cwd(), 'src/pages/workout/components/WorkoutPlanner.tsx'),
@@ -46,6 +50,7 @@ describe('WorkoutPlanner workout history contract', () => {
 
     expect(saveBlock).toContain('buildWorkoutSessionPayload');
     expect(payloadBlock).toContain('userId: clientId');
+    expect(payloadBlock).toContain('clientRequestId: currentSession?.clientRequestId');
     expect(payloadBlock).toContain('sessionDate');
     expect(payloadBlock).toContain('notes');
     expect(payloadBlock).toContain('sets: Array.from');
@@ -54,6 +59,23 @@ describe('WorkoutPlanner workout history contract', () => {
     expect(payloadBlock).not.toContain('trainerNotes');
     expect(payloadBlock).not.toContain('setDetails');
     expect(payloadBlock).not.toContain('setsCompleted');
+  });
+
+  it('reuses one client request id for retries of the same unsaved draft', () => {
+    const currentSession = createBlankWorkoutSession('2026-07-19');
+    const input = {
+      clientId: '42',
+      currentSession,
+      notes: '',
+      selectedExercises: [],
+      sessionDate: '2026-07-19',
+    };
+
+    const firstPayload = buildWorkoutSessionPayload(input);
+    const retryPayload = buildWorkoutSessionPayload(input);
+
+    expect(firstPayload.clientRequestId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(retryPayload.clientRequestId).toBe(firstPayload.clientRequestId);
   });
 
   it('wires the workout session card actions to real handlers', () => {

@@ -278,6 +278,39 @@ class UniversalMasterScheduleService {
   }
 
   /**
+   * Create a client-assigned session through the atomic admin booking route.
+   * Unlike slot creation, this route locks and deducts the paid client's credit.
+   */
+  async bookSessionForClient(data: {
+    clientId: string | number;
+    sessionDate: string;
+    trainerId?: string | number;
+    duration?: number;
+    notes?: string;
+    location?: string;
+    sessionTypeId?: string | number;
+    notifyClient?: boolean;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    session: Session;
+    client?: {
+      id: string | number;
+      firstName?: string;
+      lastName?: string;
+      availableSessions?: number;
+    };
+  }> {
+    try {
+      const response = await this.api.post('/api/sessions/admin/book', data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('Error booking session for client:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Book a session
    */
   async bookSession(sessionId: string, bookingData?: JsonRecord): Promise<{ success: boolean; message: string; session: Session }> {

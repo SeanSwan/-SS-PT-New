@@ -224,7 +224,7 @@ import bcrypt from 'bcryptjs';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
-import { Op } from 'sequelize';
+import { Op, col, fn, where as sqlWhere } from 'sequelize';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
@@ -470,9 +470,12 @@ export const register = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       await transaction.rollback();
       logger.warn('Registration attempt with invalid email format');
       return res.status(400).json({
@@ -497,8 +500,14 @@ export const register = async (req, res) => {
     const existingUser = await User.findOne({
       where: {
         [Op.or]: [
-          { email },
-          { username }
+          sqlWhere(
+            fn('LOWER', col('email')),
+            normalizedEmail
+          ),
+          sqlWhere(
+            fn('LOWER', col('username')),
+            normalizedUsername
+          )
         ]
       },
       transaction
@@ -563,7 +572,7 @@ export const register = async (req, res) => {
       {
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         username,
         password, // will be hashed via User model hooks
         phone,
@@ -715,7 +724,7 @@ export const login = async (req, res) => {
     });
 
     const { username, password } = req.body;
-    const ipAddress = req.ip;
+    const normalizedIdentity = typeof username === 'string' ? username.trim().toLowerCase() : '';
 
     // Input validation
     if (!username || !password) {
@@ -726,8 +735,9 @@ export const login = async (req, res) => {
       });
     }
 
-    // 🚀 ENHANCED: Simplified rate limiting check
-    if (checkAndRecordAttempt(ipAddress) || checkAndRecordAttempt(username)) {
+    // Per-identity throttling complements the route's broader IP flood ceiling
+    // without locking every customer on a shared gym or household connection.
+    if (checkAndRecordAttempt(normalizedIdentity)) {
       logger.warn('Rate limited login attempt');
       return res.status(429).json({
         success: false,
@@ -743,8 +753,14 @@ export const login = async (req, res) => {
       user = await User.findOne({
         where: {
           [Op.or]: [
-            { username },
-            { email: username } // Allow login with email too
+            sqlWhere(
+              fn('LOWER', col('username')),
+              normalizedIdentity
+            ),
+            sqlWhere(
+              fn('LOWER', col('email')),
+              normalizedIdentity
+            )
           ]
         }
       });
@@ -818,6 +834,10 @@ export const login = async (req, res) => {
         message: 'Invalid credentials'
       });
     }
+
+    // A successful credential check must not accumulate toward a future
+    // customer lockout. Failed attempts remain bounded by the identity bucket.
+    loginAttempts.delete(normalizedIdentity);
 
     // Force password change check (admin-created accounts)
     if (user.forcePasswordChange) {
@@ -1244,6 +1264,7 @@ export const updateProfile = async (req, res) => {
 
       // Set new password (will be hashed by model hooks)
       user.password = newPassword;
+      user.refreshTokenHash = null;
     }
 
     // Update user fields
@@ -1601,6 +1622,7 @@ export const forgotPassword = async (req, res) => {
  * @access  Public
  */
 export const resetPassword = async (req, res) => {
+  let transaction = null;
   try {
     const { token, newPassword } = req.body;
     const resetToken = typeof token === 'string' ? token.trim() : '';
@@ -1624,28 +1646,33 @@ export const resetPassword = async (req, res) => {
     // Compute HMAC hash of provided token for O(1) indexed lookup
     const hashedToken = hashPasswordResetToken(resetToken);
 
-    const User = getUser();
-    const user = await User.findOne({
-      where: {
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: { [Op.gt]: new Date() },
-        isActive: true
-      }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token'
-      });
-    }
-
-    // Validate password strength
+    // Reject weak passwords before locking the one-time credential.
     const passwordValidation = validatePasswordStrength(newPassword);
     if (!passwordValidation.success) {
       return res.status(400).json({
         success: false,
         message: passwordValidation.message
+      });
+    }
+
+    const User = getUser();
+    transaction = await sequelize.transaction();
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { [Op.gt]: new Date() },
+        isActive: true
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!user) {
+      await transaction.rollback();
+      transaction = null;
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
       });
     }
 
@@ -1660,7 +1687,10 @@ export const resetPassword = async (req, res) => {
       accountStatus: 'active',
       claimTokenHash: null,
       claimTokenExpires: null
-    });
+    }, { transaction });
+
+    await transaction.commit();
+    transaction = null;
 
     logger.info(`Password reset successful for user ID ${user.id}`);
 
@@ -1668,6 +1698,13 @@ export const resetPassword = async (req, res) => {
       success: true,
       message: 'Password has been reset successfully. Please log in with your new password.'
     });
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Reset password rollback error:', { error: rollbackError.message });
+      }
+    }
   } catch (error) {
     logger.error('Reset password error:', { error: error.message });
     return res.status(500).json({

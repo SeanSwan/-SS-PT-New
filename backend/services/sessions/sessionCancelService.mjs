@@ -37,10 +37,12 @@ import {
   trainerSessionNotificationEmail,
 } from '../../utils/emailTemplates.mjs';
 import logger from '../../utils/logger.mjs';
+import sequelize from '../../database.mjs';
 import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
+import { getSessionCreditsToRestore } from './sessionCreditReceiptService.mjs';
 const CANCELLABLE_STATUSES = ['scheduled', 'confirmed', 'requested'];
 
 // ── Main export ──────────────────────────────────────────────────────────────
@@ -60,7 +62,7 @@ export async function cancelSessionForAI(sessionId, user) {
   const Session = getSession();
   const User    = getUser();
 
-  const session = await Session.findByPk(sessionId, {
+  let session = await Session.findByPk(sessionId, {
     include: [
       {
         model: User, as: 'client',
@@ -99,17 +101,41 @@ export async function cancelSessionForAI(sessionId, user) {
   // ── Late cancellation detection ───────────────────────────────────────────
   // Mirrors the live route's hoursUntilSession calculation
 
-  const hoursUntilSession = session.sessionDate
-    ? (new Date(session.sessionDate).getTime() - Date.now()) / (1000 * 60 * 60)
-    : null;
-  const isLateCancellation = hoursUntilSession !== null && hoursUntilSession < 24;
-
-  // MindBody parity: non-admin late cancellation queued for admin review
-  const needsAdminReview = isLateCancellation && !isAdmin;
 
   // ── Update session ────────────────────────────────────────────────────────
 
-  session.status = 'cancelled';
+  const transaction = await sequelize.transaction();
+  let creditRestored = false;
+  let isLateCancellation = false;
+  let needsAdminReview = false;
+  try {
+    const lockedSession = await Session.findByPk(sessionId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!lockedSession || !CANCELLABLE_STATUSES.includes(lockedSession.status)) {
+      throw new Error(`Session #${sessionId} is no longer available for cancellation.`);
+    }
+    const lockedIsTrainer = user.role === 'trainer' && lockedSession.trainerId === user.id;
+    const lockedIsOwner = lockedSession.userId === user.id;
+    if (!isAdmin && !lockedIsTrainer && !lockedIsOwner) {
+      throw new Error('You do not have permission to cancel this session.');
+    }
+    // Keep the eager-loaded notification recipients while all mutable billing
+    // fields come from the row-locked instance.
+    lockedSession.client = session.client;
+    lockedSession.trainer = session.trainer;
+    session = lockedSession;
+    session.status = 'cancelled';
+    const hoursUntilSession = session.sessionDate
+      ? (new Date(session.sessionDate).getTime() - Date.now()) / (1000 * 60 * 60)
+      : null;
+    isLateCancellation = hoursUntilSession !== null && hoursUntilSession < 24;
+
+    // MindBody parity: non-admin late cancellation queued for admin review.
+    needsAdminReview = isLateCancellation && !isAdmin;
+
+
   session.cancellationReason = isLateCancellation
     ? 'Late cancellation (via Swan Coach)'
     : 'Cancelled by trainer via Swan Coach';
@@ -122,11 +148,20 @@ export async function cancelSessionForAI(sessionId, user) {
     session.cancellationDecision = 'pending';   // surfaced in admin review queue
   }
 
-  await session.save();
+  await session.save({ transaction });
 
   // ── Restore session credit (idempotent) ───────────────────────────────────
 
-  const creditRestored = await restoreCredit(session, User);
+    creditRestored = await restoreCredit(session, User, transaction);
+    await transaction.commit();
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error('[SessionCancelService] Rollback failed', { sessionId, error: rollbackError.message });
+    }
+    throw error;
+  }
 
   // ── Notifications (async, non-blocking) ──────────────────────────────────
 
@@ -167,7 +202,7 @@ export async function cancelSessionForAI(sessionId, user) {
  * @param {object} User    - Sequelize User model class
  * @returns {Promise<boolean>} true if credit was restored, false if skipped
  */
-async function restoreCredit(session, User) {
+async function restoreCredit(session, User, transaction) {
   if (session.sessionCreditRestored === true) {
     logger.info(`[SessionCancelService] Session ${session.id} credit already restored, skipping`);
     return false;
@@ -180,7 +215,10 @@ async function restoreCredit(session, User) {
 
   if (!session.userId) return false;
 
-  const client = await User.findByPk(session.userId);
+  const client = await User.findByPk(session.userId, {
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
   if (!client) return false;
 
   if (isNonDeductingClient(client)) {
@@ -191,14 +229,20 @@ async function restoreCredit(session, User) {
     return false;
   }
 
-  const newBalance = (client.availableSessions || 0) + 1;
-  await client.update({ availableSessions: newBalance });
+  const creditsToRestore = await getSessionCreditsToRestore(session, {
+    transaction
+  });
+  const newBalance = (client.availableSessions || 0) + creditsToRestore;
+  if (creditsToRestore > 0) {
+    await client.increment('availableSessions', { by: creditsToRestore, transaction });
+    client.availableSessions = newBalance;
+  }
 
   session.sessionCreditRestored = true;
-  await session.save();
+  await session.save({ transaction });
 
-  logger.info(`[SessionCancelService] Restored 1 credit for user ${session.userId}. New balance: ${newBalance}`);
-  return true;
+  logger.info(`[SessionCancelService] Restored ${creditsToRestore} credits for user ${session.userId}. New balance: ${newBalance}`);
+  return creditsToRestore > 0;
 }
 
 /**

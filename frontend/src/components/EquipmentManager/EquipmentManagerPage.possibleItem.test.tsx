@@ -137,7 +137,7 @@ describe('EquipmentManagerPage possible scan candidate promotion', () => {
     fireEvent.change(galleryInput, { target: { files: [new File(['gym-bytes'], 'gym.jpg', { type: 'image/jpeg' })] } });
 
     const tray = await screen.findByLabelText('Latest equipment scan review');
-    expect(within(tray).getByText('Foam Roller')).toBeTruthy();
+    expect(within(tray).getAllByText('Foam Roller').length).toBeGreaterThanOrEqual(1);
     expect(within(tray).getByText(/42% confidence/)).toBeTruthy();
     fireEvent.click(within(tray).getByRole('button', { name: /add foam roller to inventory/i }));
 

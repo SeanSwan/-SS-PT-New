@@ -22,7 +22,9 @@ describe('session deduction trainer access guard', () => {
 
   it('scopes clients-needing-payment to the requesting trainer assignments', () => {
     expect(routeSource).toContain("getClientsNeedingPayment({ id: req.user.id, role: req.user.role })");
-    expect(serviceSource).toContain('import { getClientTrainerAssignment, getSession, getUser, Op }');
+    expect(serviceSource).toMatch(
+      /import \{[^}]*getClientTrainerAssignment[^}]*getSessionType[^}]*\} from '\.\.\/models\/index\.mjs';/
+    );
     expect(serviceSource).toContain("if (requesterRole === 'trainer') {");
     expect(serviceSource).toContain("where: { trainerId: requesterId, status: 'active' }");
     expect(serviceSource).toContain("where.id = { [Op.in]: assignedClientIds };");

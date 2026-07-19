@@ -251,12 +251,22 @@ describe('session booking clientSource boundary', () => {
     expect(source).toContain('const shouldDeductPaidCredit = !isNonDeductingClient(client);');
     expect(source).not.toContain('This client account does not have session booking. They track training via the Workout Logger.');
     expect(source).toContain('if (shouldDeductPaidCredit && (!client.availableSessions || client.availableSessions <= 0))');
+    expect(source).toContain("const trainer = await User.findByPk(parsedTrainerId, { transaction, lock: transaction.LOCK.UPDATE });");
+    expect(source.indexOf('lock: transaction.LOCK.UPDATE')).toBeLessThan(source.indexOf('const trainerConflict = await Session.findOne'));
     expect(source).toContain('let deductionResult = null;');
     expect(source).toContain('if (shouldDeductPaidCredit) {');
     expect(source).toContain('processSessionDeduction(session, client, transaction)');
     expect(source).toContain('unifiedSessionService.sendBookingNotifications(session, client).catch');
     expect(source).toContain('if (deductionResult?.creditsDeducted > 0)');
     expect(source).toContain('sendDeductionNotification(session, client)');
+    expect(source).toContain('sessionTypeId, notifyClient');
+    expect(source).toContain('const parsedSessionTypeId =');
+    expect(source).toContain('const parsedNotifyClient =');
+    expect(source).toContain('SessionType.findByPk(parsedSessionTypeId');
+    expect(source).toContain('sessionTypeId: parsedSessionTypeId');
+    expect(source).toContain('notifyClient: parsedNotifyClient');
+    expect(source).toContain('Invalid sessionTypeId');
+    expect(source).toContain('Session type is unavailable');
     expect(source).not.toContain('error: error.message');
   });
 

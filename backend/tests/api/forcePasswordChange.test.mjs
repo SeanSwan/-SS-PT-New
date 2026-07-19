@@ -17,7 +17,7 @@ const AUTH_CONTROLLER_SOURCE = readFileSync(
   'utf8'
 );
 
-const { mockUser, mockUserModel } = vi.hoisted(() => {
+const { mockUser, mockUserModel, mockTransaction } = vi.hoisted(() => {
   const mockUser = {
     id: 42,
     role: 'client',
@@ -38,7 +38,12 @@ const { mockUser, mockUserModel } = vi.hoisted(() => {
     findOne: vi.fn(),
     findByPk: vi.fn(),
   };
-  return { mockUser, mockUserModel };
+  const mockTransaction = {
+    LOCK: { UPDATE: 'UPDATE' },
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+  };
+  return { mockUser, mockUserModel, mockTransaction };
 });
 
 vi.mock('../../models/index.mjs', () => ({
@@ -56,7 +61,7 @@ vi.mock('../../utils/apiResponse.mjs', () => ({
 }));
 
 vi.mock('../../database.mjs', () => ({
-  default: { transaction: vi.fn() },
+  default: { transaction: vi.fn().mockResolvedValue(mockTransaction) },
 }));
 
 vi.mock('../../services/auth/passwordResetEmailService.mjs', () => ({
@@ -252,6 +257,8 @@ describe('Force Password Change Flow', () => {
         resetPasswordToken: 'hashed-raw-reset-token',
         isActive: true,
       }),
+      transaction: mockTransaction,
+      lock: mockTransaction.LOCK.UPDATE,
     }));
     expect(resetUser.update).toHaveBeenCalledWith(expect.objectContaining({
       password: 'NewSecurePassword123!',
@@ -262,7 +269,7 @@ describe('Force Password Change Flow', () => {
       accountStatus: 'active',
       claimTokenHash: null,
       claimTokenExpires: null,
-    }));
+    }), { transaction: mockTransaction });
     expect(res.status).toHaveBeenCalledWith(200);
   });
   it('password must meet minimum length requirement', () => {

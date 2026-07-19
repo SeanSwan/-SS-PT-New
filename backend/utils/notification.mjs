@@ -8,6 +8,10 @@ import { sendEmail, isEmailServiceConfigured } from '../emailService.mjs';
 import logger from './logger.mjs';
 import { isTwilioEnabled } from './apiKeyChecker.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import {
+  resolveSessionCreditCost,
+  stampSessionCreditsDeducted,
+} from '../services/sessions/sessionCreditReceiptService.mjs';
 
 dotenv.config();
 
@@ -478,6 +482,7 @@ export const processSessionDeduction = async (session, client, transaction = nul
 
     if (isNonDeductingClient(client)) {
       session.sessionDeducted = true;
+      stampSessionCreditsDeducted(session, 0);
       session.deductionDate = new Date();
       const saveOptions = transaction ? { transaction } : {};
       await session.save(saveOptions);
@@ -489,28 +494,14 @@ export const processSessionDeduction = async (session, client, transaction = nul
       };
     }
 
-    // Determine credits to deduct from session type (default: 1)
-    let creditsToDeduct = 1;
-    if (session.sessionTypeId) {
-      try {
-        const { getSessionType } = await import('../models/index.mjs');
-        const SessionType = getSessionType();
-        const sessionType = await SessionType.findByPk(session.sessionTypeId, {
-          ...(transaction ? { transaction } : {})
-        });
-        if (sessionType && typeof sessionType.creditsRequired === 'number') {
-          creditsToDeduct = sessionType.creditsRequired;
-        }
-      } catch (err) {
-        logger.warn(`[processSessionDeduction] Could not resolve session type ${session.sessionTypeId}, defaulting to 1 credit:`, err.message);
-      }
-    }
+    const creditsToDeduct = await resolveSessionCreditCost(session, { transaction });
 
     // 0-credit session types (e.g. Assessment, Orientation) skip deduction entirely
     if (creditsToDeduct === 0) {
       session.sessionDeducted = true;
       session.deductionDate = new Date();
       const saveOptions = transaction ? { transaction } : {};
+      stampSessionCreditsDeducted(session, 0);
       await session.save(saveOptions);
       return {
         success: true,
@@ -523,21 +514,22 @@ export const processSessionDeduction = async (session, client, transaction = nul
     const rawAvailableSessions = Number(client.availableSessions ?? 0);
     const availableSessionCount = Number.isFinite(rawAvailableSessions) ? rawAvailableSessions : 0;
 
+    // Idempotency must be checked before the post-deduction balance. A retry
+    // can legitimately find fewer credits than the original cost.
+    if (session.sessionDeducted) {
+      return {
+        success: true,
+        deducted: false,
+        creditsDeducted: Number(session.creditsDeducted || 0),
+        message: 'Session already deducted'
+      };
+    }
     // Check if client has enough available sessions
     if (availableSessionCount < creditsToDeduct) {
       return {
         success: false,
         deducted: false,
         message: `Insufficient session credits (need ${creditsToDeduct}, have ${availableSessionCount})`
-      };
-    }
-
-    // Check if session was already deducted
-    if (session.sessionDeducted) {
-      return {
-        success: true,
-        deducted: false,
-        message: 'Session already deducted'
       };
     }
 
@@ -556,6 +548,7 @@ export const processSessionDeduction = async (session, client, transaction = nul
       await session.save(saveOptions);
     
     // NOTE: Email notification moved OUTSIDE this function to avoid
+    stampSessionCreditsDeducted(session, creditsToDeduct);
     // external API calls inside database transactions (ARCH-1 pattern).
     // Callers should send deduction emails AFTER transaction.commit().
 

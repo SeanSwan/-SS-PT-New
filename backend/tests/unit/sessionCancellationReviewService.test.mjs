@@ -23,11 +23,11 @@ vi.mock('../../models/User.mjs', () => ({
     findByPk: vi.fn()
   }
 }));
-
 vi.mock('../../models/index.mjs', () => ({
   getOrder: vi.fn(() => ({})),
   getOrderItem: vi.fn(() => ({})),
-  getStorefrontItem: vi.fn(() => ({}))
+  getStorefrontItem: vi.fn(() => ({})),
+  getSessionType: vi.fn(() => ({ findByPk: vi.fn() }))
 }));
 
 vi.mock('../../utils/cancellationPricing.mjs', () => ({
@@ -66,6 +66,7 @@ const buildSession = (overrides = {}) => ({
   sessionDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
   duration: 60,
   sessionDeducted: true,
+  creditsDeducted: 2,
   sessionCreditRestored: false,
   cancellationDecision: null,
   cancellationChargeType: null,
@@ -95,7 +96,7 @@ describe('recordCancellationBillingDecision', () => {
     sequelize.transaction.mockResolvedValue(mockTransaction);
   });
 
-  it('records a waiver and restores one deducted paid credit in a locked transaction', async () => {
+  it('records a waiver and restores the exact deducted paid-credit receipt in a locked transaction', async () => {
     const session = buildSession();
     const client = buildClient();
     Session.findByPk.mockResolvedValue(session);
@@ -121,7 +122,7 @@ describe('recordCancellationBillingDecision', () => {
       lock: mockTransaction.LOCK.UPDATE
     });
     expect(client.increment).toHaveBeenCalledWith('availableSessions', {
-      by: 1,
+      by: 2,
       transaction: mockTransaction
     });
     expect(session.sessionCreditRestored).toBe(true);

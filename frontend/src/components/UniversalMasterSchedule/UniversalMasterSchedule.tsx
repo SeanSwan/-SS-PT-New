@@ -315,7 +315,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const canCreateSessions = mode === 'admin';
   const canCreateRecurring = mode === 'admin';
   const canBlockTime = mode === 'admin' || mode === 'trainer';
-  const canQuickBook = mode === 'client';
+  const canQuickBook = mode === 'admin';
   const canReschedule = mode === 'admin' || mode === 'trainer';
   const canOverrideConflicts = mode === 'admin';
   const canManageAvailability = mode === 'admin' || mode === 'trainer';
@@ -408,17 +408,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     const clientIdForPayload = normalizeScheduleOptionalId(formData.clientId);
     const sessionTypeIdForPayload = normalizeScheduleOptionalId(formData.sessionTypeId);
 
-    if (trainerIdForPayload === null) {
+    if (trainerIdForPayload == null) {
       warning('Select a valid trainer before creating this session.');
       return;
     }
 
-    if (!useManualClient && clientIdForPayload === null) {
+    if (!useManualClient && clientIdForPayload == null) {
       warning('Select a valid client or switch to manual client entry.');
       return;
     }
 
-    if (sessionTypeIdForPayload === null) {
+    if (sessionTypeIdForPayload == null) {
       warning('Select a valid session type before creating this session.');
       return;
     }
@@ -427,19 +427,29 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     try {
       new Date(startDate.getTime() + formData.duration * 60000);
 
-      const result = await universalMasterScheduleService.createAvailableSessions([{
-        start: startDate.toISOString(),
-        duration: formData.duration,
-        trainerId: trainerIdForPayload ? String(trainerIdForPayload) : undefined,
-        userId: clientIdForPayload ? String(clientIdForPayload) : undefined,
-        clientName: useManualClient ? formData.manualClientName : undefined,
-        location: formData.location,
-        notes: formData.notes,
-        sessionTypeId: sessionTypeIdForPayload,
-        notifyClient: formData.notifyClient
-      }]);
+      const result = useManualClient
+        ? await universalMasterScheduleService.createAvailableSessions([{
+            start: startDate.toISOString(),
+            duration: formData.duration,
+            trainerId: String(trainerIdForPayload),
+            clientName: formData.manualClientName,
+            location: formData.location,
+            notes: formData.notes,
+            sessionTypeId: sessionTypeIdForPayload,
+            notifyClient: formData.notifyClient
+          }])
+        : await universalMasterScheduleService.bookSessionForClient({
+            clientId: clientIdForPayload as number,
+            sessionDate: startDate.toISOString(),
+            duration: formData.duration,
+            trainerId: trainerIdForPayload,
+            location: formData.location,
+            notes: formData.notes,
+            sessionTypeId: sessionTypeIdForPayload,
+            notifyClient: formData.notifyClient
+          });
 
-      if (result.sessions || result) {
+      if (result) {
         success('Session created successfully!');
         setShowCreateDialog(false);
         setIsSlotSelected(false);
@@ -661,12 +671,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     const quickBookClientId = normalizeScheduleOptionalId(clientId);
     const quickBookTrainerId = normalizeScheduleOptionalId(quickBookSlot.trainerId);
 
-    if (quickBookClientId === null || quickBookClientId === undefined) {
+    if (quickBookClientId == null) {
       toastError('Select a valid client before booking this session.');
       return;
     }
 
-    if (quickBookTrainerId === null) {
+    if (quickBookTrainerId == null) {
       toastError('Select a valid trainer before booking this session.');
       return;
     }
@@ -674,14 +684,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setIsQuickBooking(true);
     try {
       const slotDate = quickBookSlot.date;
-      await universalMasterScheduleService.createAvailableSessions([{
-        start: slotDate.toISOString(),
+      await universalMasterScheduleService.bookSessionForClient({
+        clientId: quickBookClientId,
+        sessionDate: slotDate.toISOString(),
         duration: quickBookSlot.duration,
-        trainerId: quickBookTrainerId ? String(quickBookTrainerId) : undefined,
-        userId: String(quickBookClientId),
+        trainerId: quickBookTrainerId,
         location: quickBookSlot.location,
         notifyClient: true,
-      }]);
+      });
       success('Session booked!');
       setShowQuickBookDrawer(false);
       setQuickBookSlot(null);

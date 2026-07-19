@@ -222,6 +222,7 @@ describe('submitAiWorkoutLogAsDailyForm scheduled-session truth', () => {
       attendanceRecordedAt: expect.any(Date),
       noShowReason: null,
       sessionDeducted: true,
+      creditsDeducted: 2,
       deductionDate: expect.any(Date),
     }), { transaction: tx });
     expect(activePlan.update).toHaveBeenCalledWith(expect.objectContaining({

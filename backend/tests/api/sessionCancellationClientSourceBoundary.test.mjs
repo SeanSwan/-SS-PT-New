@@ -74,7 +74,9 @@ describe('session cancellation clientSource restore boundary', () => {
     expect(aiCancelServiceSource).toContain("import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';");
     expect(source).toContain('isNonDeductingClient(client)');
     expect(source.indexOf('isNonDeductingClient(client)'))
-      .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
+      .toBeLessThan(source.indexOf("await client.increment('availableSessions'"));
+    expect(source).toContain('getSessionCreditsToRestore(');
+    expect(source).toContain("by: creditsToRestore");
   });
 
   it('does not restore credits for free-tracking clients in the legacy restore helper', () => {
@@ -90,7 +92,9 @@ describe('session cancellation clientSource restore boundary', () => {
     expect(legacyRouteSource).not.toContain('NON_DEDUCTING_CLIENT_SOURCES');
     expect(source).toContain('isNonDeductingClient(client)');
     expect(source.indexOf('isNonDeductingClient(client)'))
-      .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
+      .toBeLessThan(source.indexOf("await client.increment('availableSessions'"));
+    expect(source).toContain('getSessionCreditsToRestore(');
+    expect(source).toContain("by: creditsToRestore");
   });
 
   it('does not bulk-restore recurring cancellation credits unless a real paid session deduction happened', () => {
@@ -107,5 +111,10 @@ describe('session cancellation clientSource restore boundary', () => {
     expect(source).toContain('!session.sessionCreditRestored &&');
     expect(source).toContain('shouldRestoreRecurringCredits');
     expect(source).not.toContain('session.sessionCreditRestored = true;\n      await session.save({ transaction });\n      sessionsRestored++;');
+    expect(source).toContain('getSessionCreditsToRestore(session, {');
+    expect(source).toContain("await user.increment('availableSessions', { by: creditsRestored, transaction })");
+    expect(source).toContain('cancelledCount: sessions.length');
+    expect(source).toContain('creditsRestored,');
+    expect(source).not.toContain('availableSessions = (user.availableSessions || 0) + sessionsRestored');
   });
 });

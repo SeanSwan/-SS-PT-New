@@ -242,6 +242,18 @@ review (Codex hostile pass; **Gemini as design AUTHOR, not the gate** — REFINE
 4: reject any Gemini directive to delete the token bridge, remove the gate, or
 hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture win).
 
+## World Engine fail-closed compatibility
+
+- Deterministic selection uses the exact `world-roulette.v1` algorithm: normalize
+  the UTF-8 seed to NFC, apply SHA-256 rejection sampling, and sort candidates by
+  ASCII before recent-use, family-balance, and replay-receipt rules. Platform PRNG
+  substitution is refused.
+- Palette Law B is non-Swan: its output must never be branded or represented as a
+  Swan product surface.
+- Live M4 is refused on every product and Hermes operations surface.
+- B0 semantic structure, navigation, and the primary action always survive every
+  renderer failure; B1-B3 are progressive enhancement only.
+
 ---
 
 ## References — load on demand (this skill is the law; these are the library)
