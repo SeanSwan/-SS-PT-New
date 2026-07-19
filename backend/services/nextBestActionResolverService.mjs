@@ -146,12 +146,16 @@ export async function resolveNextBestAction({
 
   try {
     const { Session } = models || {};
-    if (Session && viewerUserId != null) {
+    // The handoff describes the SUBJECT of the save. Scope the next-session lookup to that subject's
+    // calendar: for a trainer logging FOR a client, that's the CLIENT's calendar (targetClientId), not the
+    // trainer's — else "Next up: <day>" would describe the wrong person's session next to the client's proof.
+    const calendarUserId = targetClientId ?? viewerUserId;
+    if (Session && calendarUserId != null) {
       const now = new Date();
       const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
       const next = await Session.findOne({
         where: {
-          userId: viewerUserId,
+          userId: calendarUserId,
           status: ['scheduled', 'confirmed'],
           sessionDate: { [Op.between]: [now, in48h] },
         },

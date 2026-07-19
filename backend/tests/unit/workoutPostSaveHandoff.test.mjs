@@ -9,6 +9,7 @@ import { unifyRow, toUnifiedSessions } from '../../services/workoutProofLoader.m
 import { normalizeExerciseName } from '../../utils/exerciseIdentity.mjs';
 import {
   resolveNextBestActionFromContext,
+  resolveNextBestAction,
   enforceClientSafety,
   NBA_KINDS,
 } from '../../services/nextBestActionResolverService.mjs';
@@ -195,6 +196,28 @@ describe('nextBestActionResolverService — rules + fail-closed safety', () => {
     expect(`${r3.title} ${r3.body}`.toLowerCase()).toMatch(/flexibility/);
     expect(`${r3.title} ${r3.body}`.toLowerCase()).not.toMatch(/yoga|meditation/);
     expect(resolveNextBestActionFromContext({ viewerRole: 'client' }).kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+  });
+});
+
+describe('resolveNextBestAction — next-session calendar is scoped to the SAVE SUBJECT (Kimi MED-2)', () => {
+  const makeModels = (captured) => ({
+    Session: { findOne: async (q) => { captured.where = q.where; return null; } },
+  });
+  it('trainer logging FOR a client scopes to the CLIENT calendar (targetClientId), not the trainer', async () => {
+    const captured = {};
+    await resolveNextBestAction({ viewerRole: 'trainer', viewerUserId: 5, targetClientId: 4821, models: makeModels(captured), proofSeries: null });
+    expect(captured.where.userId).toBe(4821); // client's calendar, never the trainer's (5)
+  });
+  it('client self-log scopes to self (no targetClientId)', async () => {
+    const captured = {};
+    await resolveNextBestAction({ viewerRole: 'client', viewerUserId: 91, targetClientId: null, models: makeModels(captured), proofSeries: null });
+    expect(captured.where.userId).toBe(91);
+  });
+  it('degrades to the safe fallback (never throws) when the Session lookup rejects', async () => {
+    const models = { Session: { findOne: async () => { throw new Error('db down'); } } };
+    const r = await resolveNextBestAction({ viewerRole: 'client', viewerUserId: 91, targetClientId: null, models, proofSeries: null });
+    expect(r.kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+    expect(r.trainerOnly).toBe(false);
   });
 });
 

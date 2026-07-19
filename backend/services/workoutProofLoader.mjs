@@ -15,6 +15,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { normalizeExerciseName } from '../utils/exerciseIdentity.mjs';
+import logger from '../utils/logger.mjs';
 
 export const EPLEY_MAX_REPS = 36;   // Epley validity cap
 export const PROOF_LOAD_LIMIT = 60; // window for the chart + a RECENT best — NOT all-time (see proof-service note)
@@ -114,7 +115,10 @@ export async function loadUnifiedSessions({ targetUserId, models, limit = PROOF_
     }));
     return toUnifiedSessions(rawRows);
   } catch (err) {
-    models?.logger?.warn?.('[workoutProofLoader] dual-source load failed; degrading to empty', err?.message);
+    // Use the REAL app logger (not models?.logger — a model registry has no logger, so the old call was a
+    // silent no-op). This is the ONLY signal that a prod association-alias drift has killed the feature:
+    // the load fails -> [] -> proof null -> UI suppresses, invisibly. name+message only, never SQL/rows.
+    logger?.warn?.('[workoutProofLoader] dual-source load failed; degrading to empty', err?.name, err?.message);
     return [];
   }
 }
