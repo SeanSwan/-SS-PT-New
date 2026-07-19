@@ -67,6 +67,9 @@ export interface HandoffData {
 export interface PostSaveHandoffProps {
   data: HandoffData;
   viewerRole: LoggerRole;
+  /** Offline-queue state, injected by the shell (the server never sends it). Shows the PENDING SYNC
+   *  chip when true. Falls back to data.pendingSync for back-compat if the prop is omitted. */
+  pendingSync?: boolean;
   /** Feature-flag gate — the component renders null unless enabled (default reads the env flag). */
   enabled?: boolean;
   /** Dismiss (the "Done" affordance) — returns to the logger / route home. */

@@ -174,6 +174,37 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
     expect(result.message).toBe('Client has no available sessions remaining');
   });
 
+  it('threads the server top-level `handoff` sibling onto ApiResponse.data (Slice-2 Chunk C)', async () => {
+    // The backend returns handoff as a sibling of `form`; the mapper must re-attach it onto the form so
+    // lastSaveResponse.handoff carries the payload into the logger.
+    const handoff = {
+      headline: 'pr',
+      proof: null,
+      nba: null,
+      share: { eligible: false, reason: 'not-owner' },
+    };
+    postMock.mockResolvedValue({
+      status: 201,
+      data: { success: true, form: { id: 'form-h', clientId: 91 }, message: 'ok', handoff },
+    });
+
+    const result = await dailyWorkoutFormService.submitWorkoutForm(basePayload);
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ id: 'form-h', clientId: 91, handoff });
+  });
+
+  it('threads handoff:null when the server sends it (feature flag off)', async () => {
+    postMock.mockResolvedValue({
+      status: 201,
+      data: { success: true, form: { id: 'form-null-h', clientId: 91 }, message: 'ok', handoff: null },
+    });
+
+    const result = await dailyWorkoutFormService.submitWorkoutForm(basePayload);
+
+    expect(result.data).toEqual({ id: 'form-null-h', clientId: 91, handoff: null });
+  });
+
   it('normalizes Axios 409 duplicate-form responses into success=false instead of throwing', async () => {
     postMock.mockRejectedValue({
       response: {

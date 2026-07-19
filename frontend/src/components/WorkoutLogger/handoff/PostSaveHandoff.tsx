@@ -14,6 +14,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Overlay, Card, ZoneDecl, ZoneProof, ZoneNba,
   Headline, Subline, Eyebrow, BigNumeral, GoldPulse,
@@ -52,13 +53,16 @@ function subline(
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
-  data, viewerRole, enabled, onDismiss, onNavigate, onEvent,
+  data, viewerRole, pendingSync, enabled, onDismiss, onNavigate, onEvent,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
-  // Keep the latest onDismiss without re-running the focus-trap effect (an inline onDismiss would
+  // Keep the latest onDismiss/onEvent without re-running the focus-trap effect (an inline callback would
   // otherwise thrash focus every parent render and defeat focus-restore).
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
+  const shownRef = useRef(false); // fire handoff_shown exactly once per mount
   const headlineId = useId();
   const isOn = enabled ?? isPostSaveHandoffEnabled();
   const active = isOn && !!data?.proof;
@@ -66,6 +70,17 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   // Real modal machinery: capture focus, trap Tab, Esc to close, restore focus on unmount.
   useEffect(() => {
     if (!active) return undefined;
+    // Analytics: fire exactly once when the handoff first becomes visible. Zero-PII — enums/booleans
+    // only, never the free-text exercise name.
+    if (!shownRef.current) {
+      shownRef.current = true;
+      onEventRef.current?.('handoff_shown', {
+        headline: data.headline,
+        viewerRole,
+        pr: !!data.proof?.pr,
+        isFirstEver: !!data.proof?.isFirstEver,
+      });
+    }
     const previouslyFocused = (typeof document !== 'undefined' ? document.activeElement : null) as HTMLElement | null;
     const node = overlayRef.current;
     const focusables = () =>
@@ -90,11 +105,14 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   }, [active]);
 
   if (!active) return null;
+  if (typeof document === 'undefined') return null; // portal target unavailable (SSR)
 
-  const { proof, nba, share, headline, pendingSync } = data;
+  const { proof, nba, share, headline } = data;
   // `active` (line above) already gated on data.proof, but a stored boolean doesn't flow TS narrowing
   // back to `proof` (now ProofSeries | null). Re-assert so the proof zone is null-safe for tsc + runtime.
   if (!proof) return null;
+  // pendingSync is a CLIENT concern injected by the shell; fall back to data.pendingSync for back-compat.
+  const showPendingSync = pendingSync ?? data.pendingSync ?? false;
   const chips = [
     proof.totalVolumeLbs ? `VOL ${fmt(proof.totalVolumeLbs)} LB` : null,
     proof.exerciseCount ? `${proof.exerciseCount} ${proof.exerciseCount === 1 ? 'EXERCISE' : 'EXERCISES'}` : null,
@@ -106,7 +124,9 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
     + `, across ${proof.points.length} logged ${proof.points.length === 1 ? 'session' : 'sessions'}`
     + (proof.pr ? ' — a new best.' : '.');
 
-  return (
+  // Portal to <body> so the modal layers cleanly OVER SaveSuccessPanel regardless of any ancestor
+  // transform/stacking context in the logger tree (translateZ traps fixed overlays — CLAUDE.md gotcha).
+  return createPortal(
     <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>
       <Card>
         {/* ── Zone 1 — declaration ── */}
@@ -130,7 +150,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
             <ChipRow>{chips.map((c) => <Chip key={c}>{c}</Chip>)}</ChipRow>
           )}
           <ChartWrap>
-            {pendingSync && <PendingChip>PENDING SYNC</PendingChip>}
+            {showPendingSync && <PendingChip>PENDING SYNC</PendingChip>}
             <ProofChart points={proof.points} pr={proof.pr} ariaLabel={chartLabel} />
           </ChartWrap>
         </ZoneProof>
@@ -148,7 +168,8 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
           <DoneButton type="button" onClick={onDismiss}>Done</DoneButton>
         </ZoneNba>
       </Card>
-    </Overlay>
+    </Overlay>,
+    document.body,
   );
 };
 
