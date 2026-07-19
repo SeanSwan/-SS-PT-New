@@ -20,6 +20,7 @@ import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGat
 import StoreGate from '../pages/shop/StoreGate';
 import HomeGate from '../pages/HomePage/HomeGate';
 import AboutGate from '../pages/about/AboutGate';
+import VideoGate from '../pages/VideoGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -144,6 +145,14 @@ const VideoLibrary = lazyLoadWithErrorHandling(
   () => import('../pages/VideoLibraryV3'),
   'Video Library V3',
   () => import('../pages/VideoLibraryV2')
+);
+
+// Video V-next seam: VideoGate flag-gates the refraction library in front of V3. Flag off/unresolved/
+// contract-fail → VideoLibraryV3 renders untouched (fail-closed). Catalog/auth logic reused, never edited.
+const GatedVideoLibrary = () => (
+  <VideoGate>
+    <VideoLibrary />
+  </VideoGate>
 );
 
 // Video Watch page (public with gated content)
@@ -477,7 +486,7 @@ const MainRoutes: RouteObject = {
       path: 'video-library',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <VideoLibrary />
+          <GatedVideoLibrary />
         </Suspense>
       )
     },

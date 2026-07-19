@@ -19,6 +19,7 @@ router.get('/public-flags', (_req, res) => {
     storeV4: isTrue(process.env.STORE_V4_ENABLED),
     homeVNext: isTrue(process.env.HOME_VNEXT_ENABLED),
     aboutVNext: isTrue(process.env.ABOUT_VNEXT_ENABLED),
+    videoVNext: isTrue(process.env.VIDEO_VNEXT_ENABLED),
   });
 });
 
