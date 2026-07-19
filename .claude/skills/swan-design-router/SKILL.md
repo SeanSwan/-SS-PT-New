@@ -1,300 +1,290 @@
 ---
 name: swan-design-router
-description: The only default-exposed design brain for SwanStudios. Routes all UI/visual work through the Swan Cinematic Design System and Asset Storyboarding source-of-truth docs. Enforces styled-components-first, Crystalline Swan palette, Dual-Button Glow rule, and anti-template discipline. Use for any component build, page design, redesign, or visual audit. Also handles Seedance 2.0 asset brief generation. Invoke at the start of any task that creates or modifies visible UI.
+description: >-
+  The SwanStudios design brain and taste law. Load for ANY SwanStudios UI or
+  front-end work — pages, components, dashboards, marketing surfaces, themes,
+  motion, charts, generated assets, redesigns, or visual audits — and before
+  writing any styled-component, choosing a color, or approving a pixel.
+  Encodes the Enchantment Ratio, the gold allowlist, optics-not-creatures,
+  the Crystallize signature moment, two-speed motion law, Dual-Button Glow
+  protocol, world/lens token contract, build-exact / full-stack-real /
+  reversible discipline, the responsive matrix, and the kill-list. This skill
+  is the law; the reference docs are the library.
 ---
 
-# Swan Design Router
+# SWAN DESIGN BRAIN
 
-**Role:** strict-model single default design brain for SS-PT. This is the ONLY skill that should auto-steer design work. All other design skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are explicit-invocation-only.
+You are not decorating software. You are building a crystalline training
+universe that happens to ship as a web app. Every surface either proves that
+or betrays it.
 
-## Strict-model architecture (Phase 3 landed 2026-04-12)
-**Default-exposed design surface = `swan-design-router` ONLY.**
+**North star:** realism as substrate, exactly one impossible phenomenon per
+surface, zero decoration without meaning. If a screen could pass for a
+template screenshot, it fails.
 
-As of Phase 3:
-- `.claude/skills/` does **not** contain `frontend-design` or `ui-ux-pro-max`. Their former junction entries have been removed from the default-exposed surface.
-- The canonical source locations for both are at `.agents/skills/`. This router loads them **by file path** from there.
-- The 8 quarantined aesthetic/review skills have been relocated to `archive/quarantined-skills/2026-04-12/` and are no longer on the default-exposed surface. They remain reversible via `git mv` back.
-- If either reference-library path is not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
+> Adopted 2026-07-19 (Sean-confirmed) from KIMI-DESIGN-SKILL-REDO, hardened with
+> 6 refinements proven across 7 shipped design-overhaul surfaces (lens, Dashboards,
+> Store, Home, About, Video, Contact) + their cross-cutting review. Prior router
+> version preserved at `SKILL.md.pre-redo`; its ideation gate + pattern library
+> survive as the Appendix below.
 
-## Load order (authoritative)
-1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
-2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
-3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts), 40-41 (design + closeout routing)
-4. **`docs/ai-workflow/design-brain/index.md`** — the Design Brain (rule 40, added 2026-07-03). `design.md` is canonical; `design.html` is its visual mirror and design.md wins on any conflict. Load `design.md` plus only the topic files the task needs (`motion.md`, `components.md`, `anti-patterns.md`, `qa-gates.md`, `website-archetypes.md`, `cinematic-pages.md`, `external-reference-mcp.md`, the matching `adapters/` file). Query the World Engine progressively: read `worlds.md` metadata first; load full world entries only after suitability filtering; load `techniques.md`, `psychology.md`, and `experience-mode.md` only when the selected licence or WFX IDs require them. The Design Brain is **subordinate** to SWAN-CINEMATIC-DESIGN-SYSTEM.md — on any conflict, item 1 wins. Adapters never coin tokens; semantic colors are success=Ice Wing / warn=Gilded Fern / info=Swan Lavender / danger=#E5484D.
-5. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
-6. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
+---
 
-If `docs/ai-workflow/design-brain/` is missing at runtime, fall back to items 1-3 and report the missing Design Brain explicitly in the task thread rather than silently degrading (same policy as the reference libraries).
+## LAW 1 — The Enchantment Ratio
 
-For net-new pages, major redesigns, Fable/Village design implementation, or Sean-requested reference-backed work, complete the receipt in `external-reference-mcp.md` before proposing directions. If no connector is callable, record `[MOBBIN UNAVAILABLE]` and proceed from Swan's canonical docs. Small polish, bugfix, and backend-only work may mark the gate not applicable.
+Every surface = **believable substrate + exactly ONE impossible phenomenon.**
 
-If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
+- Substrate: physics-honest light, plausible depth, real material behavior.
+  Nothing glows, floats, or drifts without cause.
+- The ONE impossible phenomenon must be **load-bearing** — it encodes state
+  or meaning (a PR, an executed action, a living world). Never confetti.
+- Zero impossible phenomena → engineer-built. Reject.
+- Two or more → AI slop. Reject.
+- Taste is **exclusion, ratio, and pairing** — what you refuse, in what
+  proportion, beside what. It is never a noun list of "premium" adjectives.
 
-## Ideation gate — 2-3 concept directions before coding (MANDATORY for net-new surfaces and major redesigns)
-Before writing any styled-components for a **net-new page, new surface, or major redesign**, produce 2-3 distinct concept directions in the task thread. Sean steers which one becomes the implementation. This is the ideation gate — Sean's first look at the design, before any file is touched.
+## LAW 2 — Gold is an allowlist, not a palette member
 
-### When the ideation gate applies
-- New marketing pages or landing pages
-- New dashboard pages or new dashboard sections that occupy >50% of a surface
-- Any redesign of an existing surface where the visual direction may change
-- Any surface build where Sean has not already approved a direction
+Gold renders ONLY as: (1) a PR numeral + its delta, (2) a filigree line ≤ 1px,
+(3) a focus ring, (4) one badge per scene, maximum. Gold anywhere else is a
+defect — not "used sparingly," **nowhere else.** Scarcity is the whole
+mechanism: every unearned gold pixel devalues the PR bloom. (Shipped proof: gold
+appeared only as the Store pedestal light + the Contact crystallize seam.)
 
-### When the ideation gate can be skipped (small polish tasks)
-- Typo fixes
-- Single-property CSS adjustments (color, spacing, one radius)
-- Single-component bug fixes (chart NaN error, mapper shape correction)
-- Work explicitly scoped as "do this specific fix, do not redesign"
-- Any task where Sean has already explicitly named the direction
+## LAW 3 — Kill-list (reject on sight)
 
-If in doubt, run the gate. The cost of running it is one paragraph per concept. The cost of skipping it on something that needed it is a redesigned page Sean did not ask for.
+Iridescent unicorn gradients (incl. purple→cyan diagonal washes) · lens flare ·
+star-bokeh soup / causeless particle fields · glass-on-glass (frosted on frosted) ·
+"AI fantasy wallpaper" energy · literal creature silhouettes (LAW 4) · generic
+dark-mode glassmorphism-plus-gradient (the #1 failure mode) · glow on everything
+(glow is allocated, LAW 7). If you reach for one of these, stop — that is defaults
+wearing a costume.
 
-### Mandatory output for the ideation gate
-Produce 2-3 concept directions, each with this exact structure:
+## LAW 4 — Optics, not creatures
+
+Nature enters as **light behavior only**: refraction, caustics, dispersion,
+interference, sonar rings. Never literal animal form.
+- The system has no arbitrary-geometry primitive; a creature silhouette is
+  therefore unauthorable. Do not add one.
+- Rainbow = real dispersion physics (red outside, violet inside, ~40–42°
+  antisolar). Never a striped arc.
+- The swan lives in the Crystallize and nowhere else. Facets imply the bird; you
+  never draw the bird. (Shipped proof: About's swan is a dark *occluder* in a
+  caustic field — the swan is bent light, never a drawn silhouette.)
+
+## LAW 5 — The Crystallize (the one ownable signature)
+
+When a member **executes** (logs a set, finishes a workout, sets a PR), the action
+condenses into a **faceted crystalline record artifact.** Spec once, reuse
+everywhere:
+- **States:** `pending → forming → formed → resting`
+- **Motion:** FLIP/transform + opacity only, ~400ms
+- **Numerals:** `font-variant-numeric: tabular-nums`, always
+- **PR:** gold bloom on numeral + delta (allowlist slot 1)
+- **Reduced motion:** instant swap, no transition
+- Never invent a second celebration (no confetti, no badge rain). Everything
+  records through the Crystallize. Consume the shipped `useCrystallizeTransition`
+  / `CrystallizeOverlay` (no children) — do NOT re-time or re-implement it.
+- **REFINEMENT 1 (reduced-motion is a JS concern, not just CSS):** framer-motion's
+  JS-driven entrances are NOT stopped by the `@media (prefers-reduced-motion)`
+  guard. Disable them in JS too — `initial={false}`, or seed state to the settled
+  frame — so reduced-motion users get the designed static frame with no entrance.
+  This was a load-bearing bug on every animated hero; the CSS guard alone is a lie.
+
+## LAW 6 — Two-speed motion
+
+| Surface class | Motion budget |
+|---|---|
+| PUBLIC (marketing, landing, scroll-story) | Cinematic, full enchantment budget |
+| IN-APP (dashboards, tables, charts, tools) | Calm atmosphere. GPU-safe. Honors reduced-motion. **Never motion under data surfaces.** |
+
+In-app distraction caps — mechanized, testable, not vibes: per-layer luminance
+oscillation OKLCH ΔL ≤ 0.05 · drift cycle ≥ 20s · particulate ≤ 10px/s · opacity
+oscillation Δ ≤ 0.03. A layer exceeding any cap is a bug. Canvas atmospheres pause
+on IntersectionObserver offscreen AND `document.visibilitychange`, cap DPR ≤ 2,
+never mount when inactive, and paint a low-res buffer upscaled (no per-pixel).
+
+## LAW 7 — Dual-Button Glow protocol
+
+Glow is **allocated per surface and re-validated every time** — never inherited.
+Blue bg → wing-purple glow · purple bg → ice-cyan glow · label vs fill ≥ 4.5:1 ·
+glow boundary vs scene ≥ 3:1 · boundary unreachable → add a 1px border, **never
+change the hue.** Danger/destructive buttons: no glow, ever.
+
+## LAW 8 — World/Lens token contract
+
+Every surface binds to the Swan lens through tokens so the Appearance Studio can
+switch palette + lens + world and re-skin everything with zero code change.
+- Consume `--world-*` and `--lens-*`. Worlds are **data, not code** (a token map,
+  not a branch in a component).
+- **Fail-closed:** missing token → base Swan tokens. `var(--token, <crystalline
+  fallback>)`; never a raw hex primary, never a Galaxy value in a fallback.
+- **REFINEMENT 6 (consumer vs emitter boundary):** a design surface is a pure
+  CONSUMER of `--world-*` — it READS them via a single `*.tokens.ts` bridge. It
+  must NEVER emit/modify `--world-*` names, `SurfaceLensGate`, `makeLensFrame`, or
+  `AppearanceProfile` — those belong to the World-Engine / Lane-A. (The 7-surface
+  money-path audit confirmed the whole program is a pure consumer: 0 violations.)
+
+## LAW 9 — Hard build rules (non-negotiable)
+
+- **styled-components only.** No MUI, Tailwind, CSS modules, or inline `style={}`
+  (the JSX `style=` ban hits framer too — route color via `theme`/`colorScale`
+  props or CSS vars, never a `style={{}}` attribute).
+- **Tokens-with-fallback; no raw hex** outside the ONE tokens/theme file per surface.
+- **RETIRED Galaxy-Swan banned** (`#0a0a1a`, `#00FFFF`, `#7851A9`) — incl. inside
+  `var()` fallbacks and disguised channel forms (`rgba(0,255,255,·)` etc.). Scan
+  fallbacks, not just declarations.
+- 300-line cap/file · 44px targets · WCAG AA · Victory-only charts · zero PII (IDs/roles).
+- **REFINEMENT 2 (the proven reversibility scaffold — reuse it, don't reinvent):**
+  a redesign ships as `<X>vNext` behind an `<X>Gate` = `React.lazy` + ErrorBoundary
+  + an **rAF-retry** world-contract probe (poll a few frames for the `.<x>-shell`,
+  then require `--world-accent` resolves + a `[data-style-lens-shell]` ancestor;
+  **on retry exhaustion → fail closed to V-prev**). Its flag hook: runtime
+  `/api/config/public-flags.<key>` present WINS (kill switch absolute — explicit
+  `false` always closes; runtime-true is never beaten by the QA override);
+  override/env only when runtime is absent; a non-200 or failed fetch → env (the
+  override can NEVER bypass an unreachable kill switch). Add the flag key to
+  `publicConfigRoutes.mjs`. Battle-tested across 6 gates + the cross-cutting review.
+
+## LAW 10 — Content law
+
+- "Stretching" / "flexibility" — never "yoga" / "meditation."
+- "26+ years" / "NASM-protocol" / "NCEP-certified" — never "NASM-certified."
+- **REFINEMENT 3:** the credential contract test scans source files for the
+  literal `NASM-certified` **including inside comments** — never write the
+  forbidden phrase anywhere, not even in a comment that bans it. (Pre-commit
+  secret-scans but does NOT run vitest, so a broken contract test can ship silently.)
+
+## LAW 11 — Anti-generic
+
+The default failure is "engineer-built, not designed." Before code, write down:
+(1) a **named visual direction** (one sentence), (2) **one signature moment**
+(usually the Crystallize — else justify), (3) IA that narrates the **member's
+journey**, not the component's capabilities. Nav labels, empty states, and section
+order tell the story of a member getting stronger.
+
+---
+
+## Decision procedure — every UI task
+
+**Step 0 — Classify:** NET-NEW / REDESIGN / AUDIT / ASSET.
+**Step 1 — Locate:** surface class (public vs in-app), route, data contract — real
+API + model, or flag **NEW BACKEND**.
+**Step 2 — Direction (Gate 0):** for NET-NEW pages + major redesigns, run the
+**Ideation Gate** (Appendix) — 2-3 named concept directions, Sean steers. Small
+polish skips it. If you cannot write the direction sentence + the ONE phenomenon +
+the signature moment, do not build — ask.
+**Step 3 — Bind:** world/lens tokens, palette slots, type scale, spacing. Confirm
+zero kill-list material in the plan.
+**Step 4 — Blueprint:** BUILD-EXACT (below).
+**Step 5 — Build, then pass Gates 1–3.**
+
+### Task-type notes
+- **REDESIGN:** name which LAW the current surface violates; ship as next-version
+  component + flag (LAW 9 scaffold).
+- **AUDIT:** findings cite laws, not taste: `[LAW n] violation — evidence — fix`.
+  No "consider," no "maybe."
+- **ASSET:** load `SWAN-ASSET-STORYBOARDING.md`; optics-not-creatures + two-speed
+  bind generated media too.
+- **Design generation via Kimi:** `consult-kimi.mjs --document <seed> --effort
+  medium --max-tokens 26000` (REFINEMENT 5 — `--effort high` burns the budget on
+  reasoning and returns EMPTY). RELATIVE paths only; serialize consults; a `*/`
+  inside a JS block comment prematurely closes it.
+
+## BUILD-EXACT blueprint format
+
+A builder must make **zero decisions.** Specify: file paths + next-version names ·
+styled-component names, props, token bindings with fallbacks · every state
+(default/hover/focus/active/disabled/loading/empty/error/reduced-motion) · behavior
+at each responsive row · copy verbatim (LAW 10) · exact API endpoint + model fields
+(flag NEW BACKEND if absent) · feature flag name + kill path. If the builder can ask
+a question, the blueprint is incomplete.
+
+## FULL-STACK REAL & REVERSIBLE
+No mocks/lorem/invented shapes — every datum traces to a named API + model. New
+backend is additive only (new endpoints, nullable columns; no destructive
+migrations, no renames). Next-version component + flag always; the old path
+survives until the new one ships clean.
+
+---
+
+## Responsive matrix
+
+| px | Role | Rules |
+|---|---|---|
+| 320 | Floor | Nothing breaks. No horizontal scroll. Minimums hold. |
+| 375 / 414 | Primary phone | One column. 44px targets. Primary action in thumb reach. |
+| 768 | Tablet | Two-column only where earned. Atmosphere reduced. |
+| 1024 | Small desktop | Full nav. Data surfaces get air. |
+| 1440 | Reference desktop | Design in-app surfaces here first. |
+| 2560 | Wide | Content max-widths engage. No stretched soup. |
+| 3840 | 4K | Type/atmosphere scale; max-widths hold; motion cost capped. |
+
+Never changes at any width: contrast ratios, 44px targets, token discipline,
+reduced-motion path (use `svh`/`dvh`, not `100vh`, for full-height mobile heroes).
+
+---
+
+## Gates
+
+**Gate 0 — Direction (pre-code):** direction sentence? one impossible phenomenon?
+signature moment? surface class? Missing any → stop.
+**Gate 1 — Taste:** gold only in allowlist · kill-list scan zero hits · no creature
+geometry · no raw hex / no Galaxy values (fallbacks scanned) · no glass-on-glass.
+**Gate 2 — Contrast & motion:** Dual-Button Glow revalidated on THIS surface ·
+in-app layers within caps · reduced-motion path exists in JS (LAW 5 R1) · AA pass ·
+one `<h1>` per page, decorative/duplicated text `aria-hidden`, `<main>` landmark
+present, no nested interactives (one stretched link per card).
+**Gate 3 — Ship:** builder made zero decisions · every datum → named API/model,
+NEW BACKEND flagged · flag + next-version naming + additive backend · 300-line cap,
+44px, zero PII, Victory-only · matrix spot-checked at 320/375/768/1440 · triangle
+review (Codex hostile pass; **Gemini as design AUTHOR, not the gate** — REFINEMENT
+4: reject any Gemini directive to delete the token bridge, remove the gate, or
+hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture win).
+
+---
+
+## References — load on demand (this skill is the law; these are the library)
+
+| Doc | Load when |
+|---|---|
+| `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
+| `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
+| `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon (design.md wins over design.html) |
+| `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
+
+**Precedence on conflict:** this skill > reference docs > existing components >
+library defaults. Old components are not precedent — most predate the law.
+
+---
+
+## Appendix — Ideation Gate + Pattern Library (preserved from the router)
+
+**Ideation Gate (MANDATORY for net-new pages + major redesigns; skip for typo/
+single-property/single-component-bug/explicitly-scoped-fix).** Before any
+styled-components, produce 2-3 distinct concept directions in the thread; Sean
+steers which becomes the implementation. Each concept:
 
 ```
 === CONCEPT DIRECTION [N] ===
-
-NAME: [short evocative name — e.g. "Glacier Cathedral" or "Rainforest Ledger"]
-
-WORLD ID: [stable ID from worlds.md, or NONE for M0-M3 product work]
-WORLD CATALOG VERSION: [version/date from worlds.md]
-SELECTION SEED: [recorded deterministic seed, or MANUAL]
+NAME: [evocative — "Glacier Cathedral"]
+WORLD ID: [stable id from worlds.md, or NONE for M0-M3 product work]
+DIRECTION: [one sentence — mood, hierarchy, the ONE impossible phenomenon]
+SIGNATURE MOMENT: [usually the Crystallize; else justify]
 PALETTE LAW: [A Swan-native | B world-native non-Swan]
-EXPERIENCE LICENCE: [M0 | M1 | M2 | M3 | M4]
-WFX SET: [WFX-01...WFX-13 IDs actually proposed]
-PSYCHOLOGY HYPOTHESES: [PSY IDs, evidence signals, and falsifiers]
-RENDER BACKENDS: [B0 semantic/poster | B1 CSS/media | B2 WebGL2 | B3 WebGPU experimental]
-
-PAGE STORY ARC: [from SWAN-CINEMATIC-DESIGN-SYSTEM.md B2]
-  - Act 1: [what act 1 feels like in this direction]
-  - Act 2: [what act 2 feels like in this direction]
-  - Act 3: [what act 3 feels like in this direction]
-  - Act 4: [what act 4 feels like in this direction]
-  (for dashboards, use the 4-phase arc: orientation / current state / progress-insight / next-best-action)
-
-SECTION PATTERN STACK:
-  Act 1 → [C1/C4/etc.]
-  Act 2 → [C3/C6/C8/etc.]
-  Act 3 → [C2/C5/C9/etc.]
-  Act 4 → [C7/C10/etc.]
-
-EMOTIONAL JOBS PER ACT:
-  Act 1 → [awe/curiosity/etc.]
-  Act 2 → [trust/curiosity/etc.]
-  Act 3 → [momentum/aspiration/etc.]
-  Act 4 → [celebration/intimacy/etc.]
-
-SIGNATURE MOMENT: [the one memorable visual move this direction is built around]
-
-ASSET TYPE NEEDED:
-  [A1 video loop / A2 scroll-scrubbed sequence / A3 hero still / A4 carousel / A5 illustration / A6 3D / A7 letterform-embedded / A8 chart-as-narrative]
-  per act or per section as appropriate
-
-MOTION BUDGET: [M0 restrained | M1 expressive | M2 cinematic-section | M3 launch-cinema | M4 experience]
-RUNTIME QUALITY: [Full | Lean | Still; Reduced Motion is an accessibility override, not a quality tier]
-
-WHY IT FITS THE PAGE STORY: [2-3 sentences naming what this direction does that the other directions do not]
-
-WHY IT COULD BE WRONG: [one explicit tradeoff or risk — "heavier on motion, may not preserve the Lean/Still story", "asset-heavy, requires Seedance run first", etc.]
+KILL-LIST CHECK: [confirm zero LAW-3 material]
 ```
 
-### Rules for the 2-3 directions
-1. **They must be meaningfully different.** Three variations of the same hero pattern with different palettes is not three directions. Three directions must disagree about the *story structure*, *pattern stack*, or *signature moment*.
-2. **At least one must be on the more restrained side.** Do not present three maximalist directions. One of the 2-3 must be lower-motion, lower-asset-weight, faster-to-ship — so Sean has a real tradeoff space.
-3. **At least one must use Act 1's emotional target of "awe"** (for marketing) or "orientation clarity" (for dashboards). The opening beat is where Swan wins or loses the user.
-4. **No direction may violate CLAUDE.md rules 1-11, 22-25, or the Dual-Button Glow rule.** All three must be valid Swan directions.
-5. **Each direction must be implementable end-to-end.** Do not present an exploratory fragment as a concept direction. If it cannot be built with the existing pattern library (C1-C12), name the new pattern it would require.
+Mobbin MCP reference gate applies to net-new pages / major redesigns (see
+`docs/ai-workflow/design-brain/external-reference-mcp.md`); mark `[MOBBIN
+UNAVAILABLE]` and proceed from Swan docs if absent. External references are
+research only — Swan source docs win.
 
-### World roulette and M4 routing
-World selection is suitability-filtered before it is random. Filter by surface licence, audience, content density, emotional job, proof/action needs, asset availability, and runtime budget. Then run the exact `world-roulette.v1` algorithm in `worlds.md` with its NFC/UTF-8 seed, SHA-256 rejection sampling, ASCII sorting, recent-use rules, family balancing, tie-break, and replay receipt. Substituting a platform PRNG or merely recording a different algorithm is rejected.
-
-- **M0-M3 product surfaces:** `WORLD ID: NONE` unless a world contributes only a static, pausable, prerecorded M2 preview that obeys the host product licence. Live M4 runtimes are refused.
-- **M4-eligible non-product surfaces:** marketing pages, launch campaigns, brand films, editorial experiments, and approved showcase galleries may promote M4 to the host licence after explicit Sean approval.
-- **Palette Law A:** Swan-native; canonical Crystalline Swan tokens remain authoritative.
-- **Palette Law B:** world-native non-Swan; the output must not be branded or represented as a Swan product surface.
-- **Accessibility:** B0 is always present. Still mode, Pause Effects, semantic navigation, and the primary action cannot depend on canvas meaning.
-- **Evidence:** record the world catalog version, selection seed, WFX set, render backends, PSY hypotheses, and outcome signals in the direction receipt.
-
-If no world survives the filters, use no world. The catalog is a creative option space, not a requirement to force spectacle into every surface.
-
-### After Sean picks a direction
-Once Sean responds with "go with direction 2" (or similar):
-- Echo back which direction he picked and which he rejected
-- Produce the mandatory pre-task receipt (below) for the chosen direction only
-- Then implementation may begin
-
-If Sean asks for a hybrid ("take the shelf pattern from direction 1 but the dashboard arc from direction 3"), produce a fourth combined direction and wait for explicit sign-off on that one before coding.
-
-### Do not skip the gate under time pressure
-The existence of this gate is the single strongest tool against "Claude built something Sean did not actually want." Running it costs 5 minutes of planning. Skipping it costs a redesign.
+**Pattern library:** the C1-C12 layout/interaction patterns live in
+`SWAN-CINEMATIC-DESIGN-SYSTEM.md`; use them as the composition vocabulary. The
+full pre-redo router (pre-task receipt template, C1-C12 detail, 2026 surface
+standard) is preserved verbatim at `SKILL.md.pre-redo` for reference.
 
 ---
 
-## Mandatory pre-task receipt
-Before writing any design code, produce a mini-receipt in the task thread:
-
-```
-SURFACE: [component name or page path]
-SECTION TYPE: [C1-C12 from pattern library]
-EMOTIONAL JOB: [awe|trust|momentum|calm|aspiration|celebration|intimacy|curiosity]
-SIGNATURE MOMENT: [the one memorable visual move this section gets]
-STACK CHECK: styled-components-first confirmed | Victory for any chart | no Tailwind
-PALETTE CHECK: Crystalline Swan tokens only | no Galaxy-Swan | Dual-Button Glow if buttons present
-EXTERNAL REFERENCE RECEIPT: [link/hash/reference, or MOBBIN UNAVAILABLE / N-A with reason]
-WORLD RECEIPT: [world ID + catalog version + seed, or NONE]
-PALETTE LAW: [A Swan-native | B world-native non-Swan]
-EXPERIENCE LICENCE: [M0-M4]
-WFX / PSY RECEIPT: [IDs + measurable hypotheses/falsifiers, or N-A]
-RENDER LADDER: B0 [semantic/poster] | B1 [CSS/media] | B2 [WebGL2] | B3 [WebGPU experimental or N-A]
-RUNTIME MODES: Full | Lean | Still | Reduced Motion override
-ASSETS NEEDED: [Seedance brief required? Y/N — if Y, produce brief per SWAN-ASSET-STORYBOARDING.md E1-E2]
-```
-
-No design code before this receipt.
-
-## 2026 surface standard (hard gate)
-Before implementation, every major UI/redesign task must pass this gate in the task thread. If any item is unknown, inspect the live surface before coding.
-
-```
-PRIMARY JOB: [one sentence: what the user came here to finish]
-PRIMARY ACTION: [the one action that should be most visually and functionally prominent]
-SECONDARY ACTIONS: [max 3 visible priority actions; extras move to menu/drawer/toolbar; each must execute, navigate, open a real detail surface, or toggle state]
-DEAD-CONTROL SWEEP: [Y/N - every button/icon/tab has a wired handler, route, or state change]
-DESKTOP SCALE PLAN: [how 1440, 1920, 2560/4K avoid tiny centered islands]
-SCROLL MODEL: [one page scroll | one panel scroll | justified nested scroll; name sticky regions]
-MOBILE COLLISION PLAN: [tabs/actions wrap, scroll, collapse, or become menu; no overlap]
-REAL-DATA STRESS CASE: [longest labels, empty state, error state, high count, low count]
-```
-
-Hard rules:
-- Dashboard content must use monitor-class space intentionally. On 2560px+ widths, do not leave the primary task trapped in a small low-density island unless the surrounding canvas has a real information job.
-- Primary dashboard body text must remain readable at desktop scale: normal labels generally 15-18px, key status 18-28px, hero/decision copy larger. Do not solve density by shrinking text below professional operator-console readability.
-- One primary scroll owner per region. Nested scrollbars are rejected unless the inner scroll is a deliberate virtualized list, transcript, code/log panel, or table with a stated reason and tested wheel/touch behavior.
-- Every interactive element must have a purpose. Buttons without handlers, routes, state transitions, or disabled explanations are removed or rendered as plain status text.
-- Tabs and segmented controls must preserve 44px targets and cannot depend on a single no-wrap row on mobile. Use wrap, horizontal scroll with snap, or an overflow/menu pattern.
-- Cards must not clip their own content at common data lengths. If equal-height cards are used, lock the grid rhythm with min/max constraints and test long labels; if content meaning differs, use intentional hierarchy instead of false uniformity.
-- A "premium" dashboard is not more chrome. It is clear information architecture, crisp scale, disciplined actions, responsive states, and one memorable visual decision.
-
-## Swan binding rules this router enforces
-### Palette (from CLAUDE.md)
-- Midnight Sapphire `#002060`, Royal Depth `#003080`, Ice Wing `#60C0F0`, Arctic Cyan `#50A0F0` (**data-only, not buttons/glow**), Gilded Fern `#C6A84B`, Frost White `#E0ECF4`, Swan Lavender `#4070C0`, Wing Purple `#8B5CF6`, Obsidian Black `#0A0A0F`, Carbon `#141419`, Graphite `#1A1A24`
-- Retired, **banned**: Galaxy-Swan `#0a0a1a`, `#00FFFF`, `#7851A9`
-
-### Dual-Button Glow rule (mandatory)
-- Blue bg → Purple glow
-- Purple bg → Cyan glow
-- Any library suggestion that conflicts (including `design-taste-frontend`'s LILA BAN) is **rejected**, not adapted
-
-### Typography
-- Plus Jakarta Sans (headings/UI), Cormorant Garamond Italic (drama/editorial), Fira Code (data/code), Sora (gaming-adjacent UI)
-- Never Inter/Roboto/Arial/Helvetica as display faces
-
-### Stack
-- styled-components-first, CSS Grid + Flexbox composition, Framer Motion default, GSAP only when scroll choreography genuinely benefits. For M0-M3, R3F remains limited to small surgical moments with `<Suspense>` and B0/B1 fallbacks. M4 may license a broader experience runtime only through `experience-mode.md`; it never changes the host licence automatically.
-- No Tailwind classes in new code. When `ui-ux-pro-max` suggests a Tailwind idiom, translate it to styled-components idiom or reject it.
-- No MUI (CLAUDE.md rule 1)
-- Victory only for charts (rule 10)
-
-### Composition discipline
-- Grid must break — no `grid-template-columns: repeat(4, 1fr)` as default
-- One signature moment per section
-- Asymmetry > symmetry
-- Editorial hierarchy: headlines 64-120px, stats 96-160px, body 16-18px
-- 10 explicit bans from SWAN-CINEMATIC-DESIGN-SYSTEM.md section B — apply all
-
-## When the router says no
-The router actively rejects these outputs even if an underlying reference library suggests them:
-
-1. **Equal 4-up box grid as the default layout** — rejected, require asymmetry or shelf/editions pattern (C5)
-2. **Empty hero with centered heading + 2 buttons + abstract blob** — rejected, every hero needs a media surface co-lead (C1)
-3. **KPI row without media anchors** — rejected, use C9 media-first KPI block
-4. **Generic chart cards with identical framing** — rejected, use C11 premium dashboard chart environment
-5. **Tailwind class strings in styled-components files** — rejected, rewrite as styled-components composition
-6. **Centered everything for every section in sequence** — rejected, break the cadence with left-aligned editorial moments
-7. **Stock photography for full-bleed backgrounds** — rejected, require Seedance-generated asset aligned to the page's story
-8. **Decorative motion without an information job** — rejected, every motion beat must communicate
-9. **Galaxy-Swan color tokens** — hard rejected, retired theme
-10. **Purple button glow banned by LILA BAN** — rejected, Dual-Button Glow rule wins
-11. **Tiny desktop command centers** - rejected when 4K/fullscreen turns the workflow into a miniature widget with empty dead space around it
-12. **Nested scrollbar mazes** - rejected unless each scroll container has a named job and was wheel/touch tested
-13. **Dead or vague controls** - rejected; every button must do something concrete or be removed
-14. **Mobile tab collisions** - rejected; tabs/actions must wrap, scroll, collapse, or overflow without overlap
-15. **Equal-card cargo culting** - rejected when uniform cards hide hierarchy, clip content, or create fake parity between unlike items
-16. **Unreadable operator density** - rejected when primary dashboard labels, status text, or actions are too small to read comfortably on QHD/4K
-17. **Live M4 on product or Hermes operations surfaces** - rejected; only static or pausable prerecorded previews may appear under the host's M0-M3 licence
-18. **Law B output branded as Swan** - rejected; world-native non-Swan palettes cannot masquerade as Swan product surfaces
-19. **Canvas-only meaning or action** - rejected; B0 semantic structure and the primary action must survive every renderer failure
-20. **WebGPU-only delivery** - rejected; B3 is experimental enhancement and must have a tested B2 or B1 fallback
-
-## Pattern library (C1-C12 quick reference)
-Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
-
-| Pattern | When to use |
-|---|---|
-| C1 Cinematic hero + video header | top-of-funnel declaration |
-| C2 Parallax story section | mid-page story beats (60-70% scroll) |
-| C3 Sticky foreground / changing background | 3-5 feature explanation |
-| C4 Embedded-media wordmark/letterform | signature brand moment |
-| C5 Shelf / editions / poster wall | storefront, content library, lineups |
-| C6 Flippable detail card | front/back content pairs |
-| C7 Hover tilt / depth card | gallery grids, storefront |
-| C8 Clustered / orbiting media nodes | feature discovery, "what can Swan do" |
-| C9 Media-first KPI / counter block | impact sections, about pages |
-| C10 Narrative section divider | every major section boundary |
-| C11 Premium dashboard chart environment | every Victory chart in dashboards |
-| C12 Subtle electric / glass panel system | underlying card/modal/drawer treatment |
-
-## Asset flow (when a task needs generated media)
-1. Identify the section type (C1-C12)
-2. Identify the emotional job (awe/trust/momentum/calm/aspiration/celebration/intimacy/curiosity)
-3. Identify the asset archetype from SWAN-ASSET-STORYBOARDING.md section A (A1-A8)
-4. Produce a Seedance brief using the master template (E1) and the matching vertical variant (E2)
-5. Include: scene, style, palette (with hex tokens named explicitly), motion, duration, aspect ratio, fallback still description, negative prompts
-6. Remind Seedance in the negative prompt to avoid retired Galaxy-Swan tones
-7. Document the brief in the task thread for Sean to run through Seedance 2.0
-8. Provision Full/Lean/Still in the same surface: Full video where licensed, Lean poster/encoded media, and Still static composition; Reduced Motion removes nonessential movement across all three
-
-## Responsive audit matrix (required before closeout)
-Per CLAUDE.md rule 24, verify layouts at:
-- `320px` minimum handset
-- `375px` small iPhone
-- `414px` iPhone XR / Plus-class portrait
-- `768px` tablet portrait
-- `1024px` tablet landscape / small laptop
-- `1280px` laptop
-- `1440px` desktop
-- `1920px` 1080p desktop
-- `2560px` QHD / scaled 4K
-- `3840px` native 4K when Sean reports fullscreen/4K defects or when a dashboard/command center is redesigned
-- `3440px` ultrawide
-
-## Dual-pass design critique (required, CLAUDE.md rule 23)
-
-After the first-pass build, run the hostile design critique checklist from CLAUDE.md's Premium Design Critique Loop before declaring the task complete:
-- generic/template feel
-- weak hierarchy or unclear CTA
-- inconsistent spacing rhythm
-- cheap-looking shadows, borders, or icon treatment
-- flat backgrounds with no depth or atmosphere
-- unreadable density or squeeze on mobile
-- motion that feels dead, noisy, or excessive
-- weak contrast or muddy dark-mode presentation
-- acceptable-but-not-premium components
-- 2026 surface gate failures: tiny 4K scale, inert controls, nested scroll traps, mobile tab collisions, clipped cards, fake equal-card grids
-
-Fix the weakest areas before closeout. Report what was improved and which viewport widths were actually checked.
-
-## Interaction with other Swan skills
-
-- **`swan-orchestrator`** may call this router as part of task dispatch
-- **`canonical-surface-audit`** may be called before this router if the task is to fix an existing surface (rule 26 receipt first, design work second)
-- **`closeout-evidence-lock`** runs at the end of every task that used this router, to enforce the claim-to-evidence lock and the dual-pass design critique
-- **`swan-world-factory`** may batch approved M4 experiments. It is a manual-only thin orchestrator, writes only ignored experiment output, delegates single-site composition to `adapters/cinematic-site-generator.md`, and never promotes output into production
-
-## Non-goals
-
-- This skill does not produce non-visual code
-- This skill does not perform route tracing or schema audits — that is `canonical-surface-audit`
-- This skill does not perform repo hygiene — that is `repo-hygiene-scan`
-- This skill does not write commits
-- This skill does not invoke quarantined aesthetic skills without explicit user request
+Hold the line: scarcity, physics, one miracle per screen.

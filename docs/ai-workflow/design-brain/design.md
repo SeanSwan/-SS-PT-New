@@ -1,238 +1,238 @@
-# design.md — SwanStudios Canonical Design System (Design Brain core)
+> **Crystalline Canon — adopted 2026-07-19 (Sean-confirmed)** from KIMI-DESIGN-BRAIN-ENHANCED,
+> the decisive rewrite of the prior Design Brain (killed the hedged "OR" laws; added z/duration/
+> density scales + a `canon:contrast` CI trigger + the SOLID/LIQUID canon lifecycle). Prior version
+> preserved at `design.md.pre-redo`. This canon is the source of truth; `design.html` mirrors it and
+> loses on any conflict. The 6 builder-validated refinements (reduced-motion-in-JS, the fail-closed
+> gate/flag scaffold, content-law-scans-comments, Gemini-is-author-not-gate, consult-kimi --effort
+> medium, consumer-vs-emitter world-token boundary) live in the swan-design-router LAWs — canon +
+> law are complementary. Validated by 7 shipped design-overhaul surfaces + their cross-cutting review.
 
-- **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (within its scope)
-- **Source of truth it adapts:** `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` (wins all conflicts) + `SWAN-ASSET-STORYBOARDING.md`
-- **Mirror:** `design.html` shows this visually. If they disagree, THIS file wins; update both together.
+# design.md — SwanStudios Design Brain (Crystalline Canon)
 
----
+- **Crystal:** v2.0 · **Status:** CRYSTALLIZED — frozen; change only via §16 thaw · **Date:** 2026-07-04 · **Review pass:** Kimi K3
+- **Supersedes:** Fable draft 2026-07-03. Survives: T0–T4 tiers, dual-glow concept, C11 chart environments, data-only Arctic Cyan, low-motion data cards, 44px discipline. Changes: everything vibes-based is now mechanized or deleted.
+- **Mirror:** `design.html` is GENERATED from this file (`pnpm canon:build`). Hand edits are reverted by CI. One source, one truth.
+- **Enforcement files:** `canon/tokens.json` · `canon/route-manifest.json` · `canon/signature-moments.json` · `canon/motion-caps.json` · `canon/copy-lexicon.json` · `stylelint-config-swan` · gates: `canon:check`, `canon:contrast`, `canon:build`.
 
-## 1. Design principles
+## §1 How canon works — Crystallization
 
-1. **Dark-first, colorful within dark.** Default theme `crystalline-dark`. "Dark room lit by glowing objects," never grayscale minimalism (source §B atmospheric rules).
-2. **Story before sections.** Every page fits a narrative arc — B2.1 (marketing: Hook → Proof → Momentum → Conversion) or B2.2 (dashboard: Orientation → Current state → Insight → Next best action). Name the arc before coding (source §B2).
-3. **Real data or labeled draft.** Charts and metrics come from real logs; mock data is a gap, never dressed as truth (Product Core Loop).
-4. **Editorial asymmetry.** Grids break; negative space is a component; the biggest thing on screen is the biggest idea (source §B composition).
-5. **One signature moment per page/section**, budgeted (see `motion.md`). Everything else stays calm.
-6. **Premium ≠ noisy.** Glow, glass, and motion are discipline systems with recipes — not decoration sprinkled until it "feels fancy."
-7. **Tokens with fallbacks, always.** `var(--token, #hex)` (rule 6). New tokens are proposals to Sean, never inventions in a component.
-8. **44px minimum touch targets** (rule 2); WCAG 4.5:1 contrast (rule 7); reduced-motion honored everywhere (rule 25).
+- Lifecycle: **LIQUID → CRYSTALLIZED → (thaw) → LIQUID.**
+- LIQUID: proposal in `canon/liquid/`, experimental tokens namespaced `--x-*`, expires 14 days after opening. Expired LIQUID is deleted, not extended.
+- CRYSTALLIZED: merged here + `tokens.css` regenerated, versioned, lint-enforced. Canon contains zero "pending," "TBD," "proposed," or "OR pick one." Undecided = not canon.
+- Thaw: PR naming one law, the measured failure (numbers, not feelings), and the revert plan.
+- Every law names its enforcement mechanism (lint / CI / generated / crystallization review). A law with no mechanism is deleted at review. Policy is hope; mechanism is law.
 
-## 2. Brand feel — Enchanted Apex: Crystalline Swan
+## §2 Taste Bible
 
-Frozen enchanted forest meets deep-ocean luxury vault. Sapphire depths, ice-glow accents, gilded luxury edges, obsidian ground. Typography carries drama (Cormorant italic beats) against precise UI faces. The RETIRED Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) is banned everywhere.
+North star: **a dark vault where light does the work.** Every surface is obsidian depth; every accent is light that entered crystal and came out changed — refracted, split, edged in gold. Nothing decorates; everything refracts.
 
-## 3. The two modes
+Five tests, run at every crystallization review, screenshots attached to PR:
 
-| Mode | Where | Tokens |
-|---|---|---|
-| **Crystalline Swan** (canonical) | ALL product surfaces: marketing, storefront, user/client/trainer/admin dashboards, Swan Coach, Coach Command Center, onboarding | Full palette §4, unmodified |
-| **Crystalline Cyberforest** (operator-only) | Hermes operator surfaces ONLY (Sean-only tooling, per `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` §10) | Same token system + the forest/aurora extension layer below. **Never on client-facing UI.** Product rules (44px, dark-first, reduced-motion, 4.5:1) still apply |
+1. **Mute test** — motion off, the frame still reads premium. If it needs animation to feel expensive, it's cheap.
+2. **Grayscale test** — desaturated, hierarchy survives on value alone. Color is emphasis, not structure.
+3. **320 test** — designed at 320px first; nothing critical clips; nothing needs hover.
+4. **Screenshot test** — a stranger names the one big idea in 3 seconds. If they list three, cut two.
+5. **Jeweler's test** — would a jeweler ship this edge? Glow, border, facet, grain: crisp, deliberate, placed. Slop is a smeared edge.
 
-**Cyberforest extension layer** (additive; base palette unchanged):
+Positive canon (what we steal from): cut crystal, black sapphire water, ice caustics, museum-vault lighting, watchmaker typography, ledger discipline. We admire restraint with one violent flourish per page — budgeted, registered (§8).
 
+Copy taste: short declaratives; numerals over adjectives; ≤1 exclamation per view; banned lexicon in §14; drama = one Cormorant italic beat per **viewport**, never per component.
+
+## §3 Optics, not creatures
+
+- The swan is never drawn. No illustration, no mascot, no feather motif, no swan emoji, no AI-generated bird. The ONLY creature asset is the registered wordmark/logomark lockup, used 1:1, never re-rendered.
+- Brand is expressed through optical physics: refraction, dispersion, caustics, internal reflection, facet edges, frost bloom, depth light. A surface that wants "more brand" gets better optics, never a bird.
+- Imagery law: macro crystal / ice / water-caustic photography or physically rendered caustics; sapphire-grade duotone; grain per §9. Real training photography allowed in `mkt` world only, graded; no stock gym tropes (high-fives, avocados, pastel wellness).
+- Iconography: geometric stroke icons, 1.5px stroke on a 24px grid, 20/24 sizes; no filled cartoons, no emoji-as-icon, no creature glyphs.
+- Enforcement: asset CI scans filenames/alt/imports against the creature lexicon; violations fail the build; final call at crystallization review.
+
+## §4 Dispersion law — rainbows are physics or they are nothing
+
+Multi-hue rendering is legal ONLY as dispersion: one pale source, split by an edge. Four conditions, all mechanized:
+
+1. **Spectral order.** Gradient stops must be monotonic in wavelength, either direction. Canon wavelengths (nm, approx): Wing Purple 420 · Swan Lavender 450 · Arctic Cyan 470 · Ice Wing 488 · Gilded Fern 580. Danger red is never part of a spectrum — alarm is not light-play.
+2. **Refractive geometry.** Spectra live on facet edges (≤2px), caustic spots (≤24px), or one split band (≤64px tall). Never fills, never text, never conic border loops, never full-bleed washes.
+3. **Intensity budget.** Total spectral coverage ≤2% of viewport, shared across all spectral elements; spectral opacity ≤0.6; caustic band ≤0.14.
+4. **Reduced-motion → static.** Spectra never loop; hover-brighten is SNAP opacity only.
+
+Crystallized consequences:
+
+- **Legendary rarity** = faceted edge: 1.5px spectral fringe along the card's top facet, ordered violet→blue→cyan→gold, 0.5 alpha; hover → 0.8 at SNAP. The old cyan→purple→gold animated wash is BANNED (order reversal = physically illiterate light).
+- **Ops aurora** = caustic band: off-canvas pale source top-left, refracted monotonic violet→blue→cyan with gold only as the terminal warm stop, ≤64px, ≤0.14 alpha, static. Old order banned.
+- Enforcement: `swan/dispersion-order` maps every gradient stop to nearest canon wavelength and fails non-monotonic sequences; multi-hue gradients outside `.spectral-fringe` / `.caustic-band` are rejected. This is the rainbow lint.
+
+## §5 Worlds & lenses — the `--world-` tie
+
+- **World** = where a surface lives. Three worlds: `mkt` (marketing, storefront, onboarding) · `pro` (client/trainer/admin dashboards, Swan Coach, Coach Command Center) · `ops` (Hermes operator cockpit, Sean-only).
+- **Lens** = how a world is viewed. Two lenses: `density` (comfort | compact | cockpit) and `motion` (full | calm). Permitted subsets: mkt = comfort · full · pro = comfort|compact · calm (+1 registered signature/route) · ops = compact|cockpit · calm (zero signatures, zero ambient loops).
+- **The tie:** every route declares its world in `canon/route-manifest.json`; the shell sets `<body data-world data-lens-density data-lens-motion>`. Components NEVER set `data-world`; they may only narrow density within world allowance.
+- **Consumer vs emitter boundary (proven across 7 shipped surfaces):** a design surface is a pure CONSUMER of `--world-*` — it READS them through a single `*.tokens.ts` bridge and re-skins for free when the world switches. It must NEVER emit or modify `--world-*` names, `SurfaceLensGate`, `makeLensFrame`, or `AppearanceProfile` — those belong to the World-Engine / Lane-A. (The design-overhaul money-path audit confirmed 0 violations of this boundary; the Living Worlds lanes EMIT the world tokens, the surfaces CONSUME them.)
+- **Token mechanics:** components consume world-scoped semantics only — `--world-bg`, `--world-surface`, `--world-panel`, `--world-edge`, `--world-text`, `--world-wash`. Raw palette tokens are legal only inside `tokens.css` and the world layer:
+
+```css
+[data-world="mkt"], [data-world="pro"] {
+  --world-bg:#0A0A0F; --world-surface:#141419; --world-panel:#1A1A24;
+  --world-edge:rgba(96,192,240,.22); --world-text:#E0ECF4; --world-wash:none;
+}
+[data-world="ops"] {
+  --world-bg:#0E2A1E; --world-surface:#123527; --world-panel:#1A4032;
+  --world-edge:rgba(96,192,240,.22); --world-text:#E0ECF4; --world-wash:var(--caustic-band);
+}
 ```
---cf-forest-deep:  #0E2A1E;   /* deep forest bg — replaces Obsidian as page base on operator surfaces */
---cf-forest-mid:   #1A4032;   /* elevated operator panels — replaces Carbon/Graphite card layer */
---cf-aurora: linear-gradient(120deg,
-  rgba(96, 192, 240, 0.18) 0%,     /* Ice Wing shimmer */
-  rgba(139, 92, 246, 0.14) 45%,    /* Wing Purple mid-band */
-  rgba(198, 168, 75, 0.10) 100%);  /* Gilded Fern horizon */
-```
 
-Aurora is a top-edge/header wash or divider treatment at low opacity — never a full-page animated background. Text, buttons, glow discipline, and tier badges use the standard palette. If a component works in Swan mode, it works in Cyberforest mode by swapping only the bg/surface layer tokens.
+Ops keeps text/edge/glow identical — Cyberforest is a bg-layer swap, nothing more. Kill-switch panel, tier badges, receipts: unchanged law, rendered through the same semantics.
+- **Leakage is a build error:** eslint bans `--world-ops-*`, `data-world="ops"`, and `ops/*.css` imports under `frontend/src/**`; route manifest is CI-checked against the bundle. The old "please don't" policy is deleted — replaced by mechanism.
 
-## 4. Color tokens (Crystalline Swan — active palette)
+## §6 Color, contrast & Dual-Button Glow — revalidated per surface
 
-Always consumed as `var(--token, #fallback)`:
+Palette (crystallized here in full — the brain knows, it does not point):
 
 | Token | Hex | Role |
 |---|---|---|
-| `--midnight-sapphire` | `#002060` | Primary — button backgrounds |
-| `--royal-depth` | `#003080` | Surface — elevated cards |
-| `--ice-wing` | `#60C0F0` | Cyan glow — gaming accents, XP bars, glow rings |
-| `--arctic-cyan` | `#50A0F0` | **DATA ONLY** — chart series. NOT buttons, NOT glow |
-| `--gilded-fern` | `#C6A84B` | Luxury accent — gold borders, rare-tier, deltas |
+| `--midnight-sapphire` | `#002060` | Primary fills |
+| `--royal-depth` | `#003080` | Elevated surfaces |
+| `--ice-wing` | `#60C0F0` | Cyan glow, XP, focus |
+| `--arctic-cyan` | `#50A0F0` | DATA ONLY (charts). Lint-blocked elsewhere |
+| `--gilded-fern` | `#C6A84B` | Gold edges, rare-tier, deltas |
 | `--frost-white` | `#E0ECF4` | Text primary |
-| `--swan-lavender` | `#4070C0` | Tertiary, common-tier |
-| `--wing-purple` | `#8B5CF6` | Glow accent — purple buttons, focus rings, epic-tier |
-| `--obsidian-black` | `#0A0A0F` | Deep dark — primary page bg |
-| `--carbon` | `#141419` | Card dark |
-| `--graphite` | `#1A1A24` | Surface dark — modals, drawers |
+| `--swan-lavender` | `#4070C0` | Badge fills/graphics — NOT text-bearing fills |
+| `--swan-lavender-deep` | `#3560B0` | NEW — text-bearing lavender fills |
+| `--wing-purple` | `#8B5CF6` | Glow/graphics/epic-tier — NOT text-bearing fills |
+| `--wing-purple-deep` | `#6D3FD1` | NEW — text-bearing purple fills (Accent button) |
+| `--lavender-text` / `--purple-text` / `--danger-text` | `#8FB2EE` / `#B49CFA` / `#F0938A` | NEW — small text on dark (the "pending" tints, now crystallized) |
+| `--obsidian-black` `#0A0A0F` · `--carbon` `#141419` · `--graphite` `#1A1A24` | — | Ground layers |
+| `--danger` | `#E5484D` | Destructive/T4 only; ≤1 red element per view unless erroring |
 
-Base bg fallback in components: `var(--bg-base, #030712)` (rule 3).
+Contrast table (WCAG formula, ≈ computed; `canon:contrast` recomputes exactly on every token change and fails regressions):
 
-### Semantic colors (on-palette picks)
-
-| Semantic | Token pick | Notes |
+| Pair | Ratio | Verdict |
 |---|---|---|
-| `--success` | Ice Wing `#60C0F0` at full for icon/border, 12% tint for bg | Swan celebrates in ice-cyan, not generic green |
-| `--info` | Swan Lavender `#4070C0` | Neutral notices |
-| `--warn` | Gilded Fern `#C6A84B` | Gold reads "attention, not alarm" |
-| `--danger` | `#E5484D` (restrained red — the ONE off-palette semantic) | Destructive/T4 only. Never decorative, never a glow color, never >1 red element per view unless erroring |
+| Frost White / Midnight Sapphire | ≈12.7:1 | any text |
+| Frost White / Royal Depth | ≈10.1:1 | any text |
+| Frost White / Swan Lavender Deep | ≈5.1:1 | any text |
+| Frost White / Wing Purple Deep | ≈5.3:1 | any text |
+| Frost White / Swan Lavender | ≈4.1:1 | **BANNED (text)** |
+| Frost White / Wing Purple | ≈3.5:1 | **BANNED (text)** |
+| Gilded Fern / Graphite | ≈7.4:1 | any text |
+| Ice Wing / Obsidian | ≈9.7:1 | any text |
+| lavender/purple/danger-text / Carbon | ≈8.5 / 7.9 / 8.0:1 | small text |
+| Arctic Cyan / Carbon | ≈6.7:1 | data only |
 
-### Rarity (gamification)
+Semantics: success = Ice Wing · info = lavender-text · warn = Gilded Fern · danger = `--danger`/`--danger-text`. Rarity: common lavender · rare gold · epic purple · legendary = §4 faceted edge.
 
-Common = Swan Lavender · Rare = Gilded Fern · Epic = Wing Purple · Legendary = animated gradient (Ice Wing → Wing Purple → Gilded Fern, slow, reduced-motion → static gradient).
+**Dual-Button Glow — law stands** (blue bg → Wing Purple glow; purple bg → Ice Wing glow), **now surface-relative.** Focus/hover indication must clear 3:1 non-text contrast against the surface beneath. Crystallized matrix:
 
-## 5. Dual-Button Glow rule (mandatory, source §B)
-
-- **Blue bg → Purple glow:** Midnight Sapphire / Royal Depth button gets Wing Purple outer glow + focus ring.
-- **Purple bg → Cyan glow:** Wing Purple button gets Ice Wing outer glow + focus ring.
-
-Any library/skill suggestion conflicting with this (e.g. the quarantined LILA BAN) is **rejected, not adapted**.
-
-## 6. Typography
-
-| Face | Role | Scale |
+| Surface | Blue button (purple halo) | Purple button (cyan halo) |
 |---|---|---|
-| Plus Jakarta Sans | Headings, UI labels, primary text | Hero 64–120px · H1 40–56 · H2 28–36 · H3 20–24 · body 16–18 · small 13–14 |
-| Cormorant Garamond Italic | Drama: editorial quotes, hero subheads, section dividers, empty-state prose | 20–48px, sparing — one drama beat per section max |
-| Fira Code | Data: KPI values, stats, code, receipts | KPI 96–160px on marketing, 28–48px in dashboards; tabular figures |
-| Sora | UI in gaming-adjacent surfaces, button labels there, uppercase micro-labels | Labels 11–12px, letter-spaced 0.08em |
+| Obsidian page | alpha ≥0.60 (0.5 ≈ 2.8:1 — fail), blur 24px | alpha ≥0.55, blur 24px |
+| Carbon card | ≥0.55, blur 20px | ≥0.50, blur 20px |
+| Graphite modal | ≥0.55, blur 20px | ≥0.50, blur 20px |
+| Ops forest-mid | halo fails at ALL alphas → 2px solid `--purple-text` stroke (≈5.0:1) | 2px solid Ice Wing stroke (≈5.6:1) |
 
-Never Inter/Roboto/Arial/Helvetica as display faces (source §B). Line length ≤ ~72ch for body prose.
+Caps: ≤2 shadow layers, blur ≤32px, spread ≤8px, decorative glow ≤0.5 alpha. **Revalidation trigger:** any PR adding a surface token or placing a button on a surface not in this matrix MUST extend the matrix in the same PR; `canon:contrast` fails otherwise. Forced-colors: glows removed, 2px outlines. Danger button: no glow, ever — destruction is not celebrated.
 
-## 7. Spacing, radius, elevation
+## §7 Typography
 
-- **Spacing scale (modular, source §B):** `4, 8, 12, 16, 24, 32, 48, 72, 108, 160, 240` px. Section gaps 160–240 desktop / 72–108 mobile. No arbitrary values.
-- **Radius:** cards/panels `20px` (C12 recipe) · buttons/inputs `12px` · pills/badges `999px` · modals `24px`.
-- **Elevation = glass + glow, not gray shadows.** Use exactly the three C12 baselines (sapphire glass, luxury gold-border, obsidian) — quoted in full in source §C12; do not invent a fourth. Shadows are cyan/purple-tinted, never flat gray. Electric borders: `rgba(96,192,240,0.2–0.25)` base → `0.5` hover; gold variant `rgba(198,168,75,0.3–0.35)`.
-- **Grain:** 2–5% opacity SVG noise on large dark surfaces kills the "plastic AI gradient" look.
+Faces unchanged: Plus Jakarta Sans (headings/UI), Cormorant Garamond Italic (drama), Fira Code (data, tabular), Sora (micro-labels, gaming-surface UI). Scale unchanged (hero 64–120 · H1 40–56 · body 16–18 · micro 11–12 @0.08em). New law:
 
-## 8. Layout grids
+- Cormorant budget = **one italic beat per viewport**. The old per-section rule let dashboards accumulate six drama lines. Full-phase empty states may spend the beat; inline empties use Sora micro-label + one plain sentence.
+- Numerals never in Cormorant. Body prose ≤72ch. Never Inter/Roboto/Arial/Helvetica as display.
 
-- CSS Grid primary; Flexbox for intra-component rows only (source §A).
-- **Weighted columns, never `repeat(4, 1fr)` as default** — e.g. `minmax(200px,2fr) minmax(400px,5fr) minmax(180px,1fr)`.
-- Three z-stacks minimum on hero surfaces: background media / midground glass / foreground type+CTA.
-- Dashboards: Phase-2 (current state) gets the most real estate; density rises with role (admin > trainer > client) but the arc stays.
+## §8 Two-speed law — SNAP or DRIFT, nothing between
 
-## 9. Panels & cards
+Everything that changes state does so at exactly one of two speeds. No third speed exists; there is no "medium."
 
-- **SheenCard (sell/showcase):** full C12 sapphire or luxury glass + chrome edge + metallic sheen + premium glints + hover motion. For storefront, feature, ascension — anything meant to SELL.
-- **Data card (client/trainer/admin/biometrics/program/workout-log):** same geometry, dark-blue gradient surface, chrome edge, pill/metric/button language — but **low-motion**: no pointer tracking, no animation loops, no hover-only actions, no hidden controls (Swan Card/Button Standard). Compact grouped facts; never duplicate the same fact twice on one card; 44px icon buttons; wrap/stack responsively.
-- Never cards-inside-cards (see `anti-patterns.md`).
+- **SNAP (response):** {120, 160, 200}ms, `--ease-snap: cubic-bezier(0.16,1,0.3,1)`. Hovers, presses, toggles, focus, toasts, tab switches.
+- **DRIFT (narrative/ambient):** transitions {600, 720, 900}ms, `--ease-drift: cubic-bezier(0.4,0,0.2,1)`; ambient loop periods {4000, 6000, 8000}ms.
+- Tokens only: `--speed-snap[-fast|-slow]`, `--speed-drift[-loop]`. Raw time values in transition/animation shorthand are a lint error (`swan/two-speed`). Transform + opacity only; layout-animating properties banned.
 
-## 10. Buttons — GlowButton
+Mechanized caps (`canon/motion-caps.json`, CI-enforced):
 
-- ≥44px height always; 12px radius; Plus Jakarta Sans (Sora on gaming surfaces).
-- Variants: **Primary** (Midnight Sapphire bg → Wing Purple glow) · **Accent** (Wing Purple bg → Ice Wing glow) · **Luxury** (Graphite bg, Gilded Fern border/text, gold glow on focus) · **Ghost** (transparent, electric border) · **Danger** (`--danger` bg, no glow — destruction is not celebrated).
-- States: default / hover (glow intensifies + 1–2% scale) / active (scale 0.98) / focus-visible (2px glow-color ring, offset 2px) / disabled (40% opacity, no glow, `not-allowed`) / loading (inline spinner, label persists).
+- Signature moments: ≤1 per route, marked `data-signature`, registered in `canon/signature-moments.json` WITH its reduced-motion fallback. CI fails a route with 2 moments or a fallback-less registration.
+- Ambient loops: ≤2 per viewport; opacity delta ≤0.15; transform delta ≤8px or 2%. Sheen duty cycle ≤25%.
+- Ops world: ambient 0, signature 0, SNAP only.
+- Reduced motion (CSS + JS gates): SNAP→0ms, DRIFT→static end-state, loops stopped. Not a degraded experience — the same design, still.
+- The two speeds also govern process: UI changes move at SNAP (flagged, one-revert); canon moves at DRIFT (crystallization cycle, §16). Nothing ships at a third speed.
 
-## 11. Inputs & forms
+## §9 Space, elevation, z — recipes crystallized inline
 
-- Field: Graphite bg, electric border, Frost White text, 44px min height, 12px radius; focus → Ice Wing border + soft cyan ring (or Wing Purple on purple-accent surfaces — pick one per form).
-- Label above (never placeholder-as-label); helper/error text 13px below; error state = `--danger` border + message + `aria-describedby`.
-- Group related fields on one glass panel; one primary action per form; destructive actions never adjacent to submit.
+- Spacing scale: 4 8 12 16 24 32 48 72 108 160 240 px. Section gaps 160–240 desktop / 72–108 mobile. Arbitrary values are lint errors.
+- Radius: 20 cards · 12 controls · 999 pills · 24 modals.
+- Elevation = glass + glow. Three recipes, now living IN the brain (the "quoted in source §C12" pointer is dead):
+  1. **Sapphire glass:** `linear-gradient(160deg, rgba(0,48,128,.55), rgba(10,10,15,.75)); backdrop-filter: blur(14px); border: 1px solid rgba(96,192,240,.22); box-shadow: 0 8px 32px rgba(96,192,240,.10), inset 0 1px 0 rgba(224,236,244,.06);`
+  2. **Luxury gold-edge:** sapphire glass + `border-color: rgba(198,168,75,.32); box-shadow: 0 8px 32px rgba(198,168,75,.08), inset 0 1px 0 rgba(198,168,75,.12);`
+  3. **Obsidian:** `rgba(20,20,25,.72); backdrop-filter: blur(10px); border: 1px solid rgba(96,192,240,.14); box-shadow: 0 4px 16px rgba(0,0,0,.5);`
+  No fourth recipe. New elevation need = LIQUID proposal.
+- Grain: ≤1 layer per viewport, ≤5% opacity, static asset — no per-frame turbulence.
+- z-scale (tokens; raw z-index banned by `swan/z-scale`): `--z-base 0 · --z-raised 10 · --z-sticky 100 · --z-overlay 200 · --z-modal 300 · --z-toast 400 · --z-max 500`. `translateZ(0)` parents carry position + z-index.
 
-## 12. Tables
+## §10 Layout & density
 
-- Header row: Sora uppercase 11–12px letter-spaced, Frost White 70%.
-- Rows: Carbon bg, 1px `rgba(96,192,240,0.08)` separators, hover → `rgba(96,192,240,0.06)` wash; row height ≥48px.
-- Numeric columns Fira Code, right-aligned. Mobile: tables collapse to stacked data cards, never horizontal-squeeze below 768px.
+- Grid primary; flex for intra-component rows. Weighted columns always; `repeat(N,1fr)` N>2 warns, N=4 errors (equal 4-up is the generic-AI tell). Three z-stacks minimum on hero surfaces.
+- Wide law (decisive — the OR is dead): add weighted columns up to 6 as width grows; content CAPS at 2240px centered; cards never stretch to fill 4K. Heroes may full-bleed; type caps at §7 max.
+- Mobile: 320 first, verify 375/414; stack > squeeze; shelf scroll needs visible affordance; primary CTA in thumb zone; targets ≥44px with ≥8px gaps.
+- Density lens reconciles 44px with the cockpit: comfort = 44px rows · compact = 36px · cockpit = 32px floor, `@media (pointer:fine)` only. Coarse pointers force ≥44px regardless of lens — mechanized in the density layer, not per-component.
+- Dashboards: Phase-2 current state owns the area; role density (admin > trainer > client) is expressed through the density lens, never through ad-hoc squeezing.
 
-## 13. Charts (Victory only — rule 10)
+## §11 Components
 
-- Series color: **Arctic Cyan `#50A0F0`** primary; secondary series Wing Purple, Gilded Fern. Theme from `frontend/src/components/Charts/chartTheme.ts`.
-- Every chart lives in a **C11 chart environment**: narrative headline, insight line (Cormorant italic), delta in Gilded Fern/Wing Purple, annotation on the moment that matters, next-action CTA footer. Chart 60–70% width, narrative column 30–40% (source §C11).
-- Empty state = Cormorant italic sentence explaining why, never "No data."
-- Lazy-load via `React.lazy()` + SafeChart boundary (gotcha list).
+- **Cards:** SheenCard (sell/showcase, full recipe, hover motion) vs Data card (truth surfaces: low-motion, no pointer tracking, no loops, no hover-only controls, grouped facts never duplicated). Nesting depth ≤1: a card in a layout panel is legal; a card in a card is not. The chat stream is a stream, not a card — T1 DRAFT cards inside it are legal.
+- **Buttons (GlowButton):** ≥44px, 12px radius. Primary = Midnight Sapphire → purple glow · Accent = `--wing-purple-deep` fill (600-weight label) → cyan halo · Luxury = Graphite + Gilded Fern · Ghost = transparent + electric border · Danger = `--danger`, no glow. States: hover (+1–2% scale at SNAP) / active 0.98 / focus-visible per §6 matrix / disabled 40% no glow / loading spinner + persistent label.
+- **Inputs:** label above always; Graphite field, electric border; focus = ONE accent per form (law, not a pick); error = danger border + message + `aria-describedby`; destructive never adjacent to submit.
+- **Tables:** Sora uppercase header 70% white; Carbon rows, cyan 8% separators, ≥48px rows; numerals Fira right-aligned; <768px collapse to stacked data cards.
+- **Charts:** Victory + `chartTheme.ts` only; Arctic Cyan primary series; every chart in a C11 environment (headline, Cormorant insight line if budget allows, gold/purple delta, annotation, next-action footer); lazy + SafeChart.
+- **Chat:** user right/Royal Depth, coach left/Graphite + Ice Wing edge; proposals = labeled T1 DRAFT cards with ≥44px approve/dismiss; streaming without layout shift; user-facing name is "Swan Coach," never "AI."
+- **Modals/drawers:** Graphite obsidian glass, 24px radius; focus-trapped, ESC closes (not mid-T4), focus returns to trigger; T3 confirm names action+target+tier with a verb on the button; T4 = two-step arm + rollback line; never stacked.
+- **Nav:** left rail (72px collapsed), Ice Wing active edge; mobile bottom tabs ≤5; breadcrumbs ≥3 levels only; progress/workout never buried below social/profile.
+- **Tier badges T0–T4:** ice/lavender/gold/purple/red, text+color always, ambiguity rounds UP, chains show max; badge small text uses §6 text tokens.
 
-## 14. Chat surfaces (Swan Coach)
+## §12 States & onboarding
 
-- User bubbles: Royal Depth glass, right-aligned. Coach bubbles: Graphite/obsidian glass, left, Ice Wing accent edge.
-- Proposals/drafts inside chat are **T1 cards** clearly labeled DRAFT with approve/dismiss actions ≥44px (writes only land through approval-gated endpoints — operator bridge §3).
-- Streaming text: no layout shift; typing indicator is a calm 3-dot pulse (response-tier motion).
-- Never call it "AI" user-facing — "Swan Coach."
+Every data component ships four states. Empty = Cormorant beat (if §7 budget available) + one CTA that creates a real thing; never "No data," never mock-filled. Loading = geometry-matched skeletons (static under reduced-motion). Error = plain words + retry, one danger accent. Success = inline confirmation; celebration is a SNAP beat, not a loop. Onboarding: one question per screen on mobile, persistent progress, role activation targets (trainer: first template + invite; trainee: first log + proof), next-best-action visible without scrolling.
 
-## 15. Command surfaces & tier badges (T0–T4)
+## §13 Build law — build-exact / full-stack-real / reversible
 
-Every operator command element (queue rows, command dock entries, confirmation modals) carries exactly one tier badge (tiers defined in `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` §4):
+1. **Build-exact.** Implement exactly the spec: this doc + route manifest + component contract. No speculative props, no might-need variants, no unused tokens. Dead-token/dead-code CI. Spec ambiguous? STOP — open a LIQUID proposal. Keyboard improvisation is how generic happens.
+2. **Full-stack-real.** Every rendered value traces to a real endpoint or query. Mocks exist only with `data-mock` + visible DRAFT badge + linked ticket; production build FAILS on `data-mock`. Loading/error/empty are real states of the same query, never separate fake screens.
+3. **Reversible.** Every change ships as a single revertable unit; risky UI behind a flag; destructive actions carry an undo path (T4 two-step arm + rollback note stands); schema-bound UI ships expand-contract; every canon thaw names its revert plan. If you can't undo it in one step, you may not ship it in one step.
 
-| Tier | Badge color | Treatment |
-|---|---|---|
-| **T0** read-only | Ice Wing `#60C0F0` | Quiet pill, 12% tint bg |
-| **T1** draft/propose | Swan Lavender `#4070C0` | Pill + "DRAFT" label where output-bearing |
-| **T2** bounded write | Gilded Fern `#C6A84B` | Pill; row shows allowlist source |
-| **T3** external-visible | Wing Purple `#8B5CF6` | Pill + confirm modal required |
-| **T4** destructive/irreversible | Danger `#E5484D` | Pill + two-step arm modal + rollback note |
+## §14 Anti-generic bans — each with its mechanism (no mechanism, no ban)
 
-Ambiguity rounds UP; chains display the max tier. Badges are text+color (never color alone — a11y). **Small badge/label text on dark:** raw Swan Lavender (`#4070C0`) computes ~4.0:1 as small text — badge FILLS/BORDERS use the raw tokens, small TEXT uses lightened tints (proposed tint tokens pending Sean's approval: lavender-text `#8FB2EE`, purple-text `#B49CFA`, danger-text `#F0938A`).
+| Ban | Mechanism |
+|---|---|
+| Galaxy-Swan hexes `#0A0A1A` `#00FFFF` `#7851A9` | stylelint hex ban |
+| MUI / Tailwind imports | eslint import ban |
+| Raw durations, raw z-index, arbitrary spacing | `swan/two-speed`, `swan/z-scale`, `swan/spacing` |
+| Hand-written token fallbacks | `tokens.css` generated from `canon/tokens.json`; `swan/fallback-match` autofixes drifted hexes |
+| Non-dispersion multi-hue; holographic foil text; rainbow conic borders | `swan/dispersion-order` (§4) |
+| Arctic Cyan outside `chartTheme.ts` | token-usage lint |
+| `repeat(4,1fr)`, equal-N grids, cards-in-cards | stylelint pattern + VR snapshot |
+| Creature imagery, swan illustration, feather motifs, emoji-as-icon, ✨ glyphs | asset CI scan + crystallization review |
+| Copy slop: "delve, unlock, elevate, seamless, journey, empower, supercharge," yoga/meditation lexicon, user-facing "AI," >1 "!" per view | copy CI grep (`canon/copy-lexicon.json`) |
+| Placeholder-as-label, hover-only controls | jsx-a11y lint + VR |
+| Lorem ipsum, fake metrics, dressed-up mocks | CI grep + `data-mock` build gate (§13) |
+| Stacked modals, centered-everything, plastic gradient fills, glass off-recipe | crystallization review with a named reviewer — what isn't mechanized is judged, by name, on record |
 
-## 16. Onboarding surfaces
+## §15 Accessibility floor
 
-- Marketing arc (B2.1) energy but form-first: one question/step per screen on mobile, progress indicator persistent, Cormorant drama line per act transition.
-- Role-specific activation targets (rule 62): trainer → first template + first client invite; trainee → first workout logged + progress proof; keep the "next best action" CTA visible without scrolling.
+4.5:1 text per §6 crystallized table (CI-recomputed) · 3:1 non-text for focus indication per §6 matrix · focus-visible everywhere, logical order, restoration on close · no hover-only controls · targets per §10 density law · reduced-motion per §8 · color never sole signal · forced-colors = outlines, no glows.
 
-## 17. Trainer / client surfaces
+## §16 Crystallization protocol
 
-- Data cards (§9 low-motion) + C11 chart environments; Phase-1 orientation header (name, role, streak/momentum) before any KPI.
-- Trainer live-session flows are low-tap: find client → start → log → save → show progress; every control 44px, no hover-dependence (touch-first).
-- Client progress = real logged data; deltas annotated; Phase-4 always ends in a next action.
+1. Open LIQUID in `canon/liquid/`: law text, mechanism, `--x-*` tokens, 14-day expiry.
+2. Mechanize enforcement BEFORE review. A law whose lint lands "later" is rejected.
+3. Review: five taste tests with screenshots, `canon:contrast` recompute, dispersion check, manifest/registry diffs.
+4. Merge = crystal version bump + tokens.css + mirror + fallback map regenerated — one commit, one revert.
+5. Thaw requires measured failure (numbers) + revert plan. One thaw = one law.
 
-## 18. Coach Command Center
+## §17 Implementation notes
 
-- Crystalline Swan mode (it is a PRODUCT surface — operator bridge §3, T2 within the signed-in role).
-- Layout: navigation rail + approval queue (tier-badged rows) + proposal detail panel + receipt ledger. Calm-motion zone (see `motion.md` §6): response-tier only.
-- Dictation/PLAUD review drafts render as T1 DRAFT cards until trainer-approved.
+- React 18 + TS + styled-components. Any interpolated shared style fragment uses the `` css`` `` helper (mount crash is real — kept from the old rule 43).
+- 300-line file cap; blueprint header beyond 100 lines. Performance tiers (full/lean/reduced) ship in the same file as the component.
+- Victory + `chartTheme.ts` only; lazy + SafeChart; cursor pagination on feeds.
+- `tokens.css` is generated, never hand-edited; component fallbacks come from the generated map.
+- `1440px` width ≠ 1440p. QA matrix classes: 320/375/414 · 768 · 1440 · 2560×1440 · 3840×2160.
 
-## 19. Hermes Agentic OS surfaces (Cyberforest mode)
+---
 
-- Page bg `--cf-forest-deep`, panels `--cf-forest-mid`, aurora wash on the header band only.
-- Kill switches are a first-class panel (bridge §9), tier badges per §15, receipts per bridge §8.
-- Data-dense and CALM: ambient motion banned, response motion ≤200ms, no signature moments. This is a cockpit, not a brand page.
-- Sean-only: no Cyberforest token may appear in `frontend/src` client-facing components.
-
-## 20. Modals & drawers
-
-- Surface: Graphite glass (C12 obsidian variant), 24px radius, overlay `rgba(10,10,15,0.7)` + 8px blur.
-- Focus-trapped; ESC closes (except mid-destructive-flow); **focus returns to the trigger on close** (WCAG 2.4.3).
-- Confirm modal (T3): names exact action + target + tier badge; confirm button carries the action verb, never "OK."
-- Two-step arm modal (T4): step 1 arm (typed target or explicit toggle) → step 2 execute; shows rollback plan line; danger button only enabled after arming.
-- Drawers for non-blocking detail; modals for decisions. Never stack two modals.
-
-## 21. Navigation
-
-- Dashboard: left rail (icons + labels, collapsible to 72px icon rail; active item = Ice Wing edge + tint). Marketing: top bar over hero, glass on scroll.
-- Mobile: bottom tab bar, ≤5 items, 44px+ targets, active = glow dot. Progress/workout visibility never buried below social/profile (Product Core Loop).
-- Breadcrumbs only ≥3 levels deep, Sora micro-label style.
-
-## 22. States (every data-bearing component ships all four)
-
-- **Empty:** Cormorant italic explanation + one CTA to create the first real thing. Never a bare "No data" or a mock-filled chart.
-- **Loading:** skeletons matching final geometry (shimmer = ambient-tier, reduced-motion → static). No spinners for >400ms full-panel loads.
-- **Error:** what failed in plain words + retry action; `--danger` accent used once; never a dead end.
-- **Success:** inline confirmation (toast or state morph); celebration motion allowed as a response beat, not a loop.
-
-## 23. Mobile rules (320 / 375 / 414 first)
-
-- Design at 320px first; verify 375 and 414 before wider. Cards/tabs/buttons/action rows must not overlap, clip critical text, or need hover at phone width (Swan Card/Button Standard).
-- Stack > squeeze; horizontal scroll only for shelf patterns (C5) with visible affordance.
-- Thumb-zone: primary CTA in the lower half on mobile flows; 44px targets with ≥8px between adjacent targets.
-
-## 24. Wide-monitor rules (2560×1440, 3840×2160)
-
-- Max content width: prose ~72ch; dashboards cap grid at ~1920px centered OR add columns — **never stretch cards to fill 4K**.
-- Density scales up with width: more columns, not bigger cards. 4K may show 4–6 weighted columns where 1440p shows 3.
-- Hero/cinematic surfaces MAY go full-bleed at any width (media scales; type caps at the §6 hero max).
-- Remember: `1440px` width ≠ 1440p. 1440p = 2560×1440 viewport class (QA matrix in `qa-gates.md`).
-
-## 25. Motion (summary — full rules in `motion.md`)
-
-Three tiers (ambient/response/narrative); transform+opacity only; reduced-motion gated in BOTH CSS and JS; one signature moment per page; operator/data-dense panels stay calm.
-
-## 26. Accessibility (summary — full gates in `qa-gates.md`)
-
-WCAG 4.5:1 text contrast; `:focus-visible` rings on everything interactive; logical focus order + restoration; no hover-only controls; 44px targets; reduced-motion; color never the sole signal; forced-colors fallback sane.
-
-## 27. Anti-patterns (summary — full list in `anti-patterns.md`)
-
-No MUI/Tailwind, no Galaxy-Swan, no equal 4-up grids, no centered-everything, no hero-dashboards, no fake metrics, no Arctic Cyan buttons, no cards-in-cards, no hover-only, no lorem ipsum, no yoga/meditation language.
-
-## 28. Implementation notes (repo stack)
-
-- **React 18 + TypeScript + styled-components.** NO MUI (rule 1), NO Tailwind for new Swan UI (source §A bans).
-- **Rule 43:** any shared style fragment with `${}` interpolation composed into a styled component MUST use the `` css`` `` tagged helper — plain template strings crash styled-components at mount (error #12).
-- **300-line file cap (rule 4):** extract styles/hooks/types when approaching. Blueprint header on components >100 lines (rule 5).
-- Grid via styled-components; tokens via `var(--token, #fallback)`; Full/Lean/Still runtime-quality modes ship together per source §A; Reduced Motion is a separate accessibility override.
-- Charts: Victory + `chartTheme.ts`; lazy + SafeChart. Sockets/feeds: cursor pagination (gotchas).
-- `translateZ(0)` creates stacking contexts — give parents `position: relative; z-index` (gotchas).
+**Bottom line.** The old doc told people what Swan looks like. This one makes it mechanically difficult to ship anything else: the purple button passes contrast because the failing hex can no longer hold text; the rainbow is physics because the lint rejects reversed wavelengths; Cyberforest can't leak because the import doesn't resolve; motion has two speeds because no third duration compiles; and canon has no holes because "pending" is a build error. Taste is still human — but it now judges at crystallization, on record, with the five tests in front of it.
