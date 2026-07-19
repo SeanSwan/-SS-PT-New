@@ -172,10 +172,11 @@ router.post('/capture', contactLimiter, async (req, res) => {
     }
 
     // No leadId → captureLeadFromContact returned {error}/{skipped} (it returns, doesn't throw). Returning an
-    // opaque 201 here would silently LOSE the lead. Fail LOUD (500, no PII) so the frontend shows Retry and the
-    // lead is recoverable. Enumeration is not leaked: created-vs-existing both go through the 201 branch above;
-    // only a genuine backend failure reaches here.
-    logger.error(`[prism] capture produced no leadId (lead not saved): ${result?.error || result?.skipped || 'unknown'}`);
+    // opaque 201 here would silently LOSE the lead. Fail LOUD (500) so the frontend shows Retry and the lead is
+    // recoverable. Enumeration is not leaked: created-vs-existing both go through the 201 branch above; only a
+    // genuine backend failure reaches here. Log a CLASSIFIER only, never `result.error` — a driver-level Postgres
+    // message can embed the email value (`Key (email)=(…)`), which would break the "email never logged" guarantee.
+    logger.error(`[prism] capture produced no leadId — lead not saved (${result?.skipped ? 'skipped' : 'backend_error'})`);
     return res.status(500).json({ ok: false });
   } catch (err) {
     logger.error('[prism] capture error:', err?.message); // message only — never the email (Rule 59)

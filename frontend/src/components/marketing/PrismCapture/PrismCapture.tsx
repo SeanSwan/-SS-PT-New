@@ -134,7 +134,7 @@ const Retry = styled.button`
 `;
 
 function PrismCaptureInner() {
-  const { state, error, shareCode, submittedEmail, submit, reset } = usePrismCapture();
+  const { state, error, shareCode, submittedEmail, attempt, submit, reset } = usePrismCapture();
   const reduced = usePrefersReducedMotion();
 
   const active = state === 'beaming' || state === 'refracted';
@@ -160,7 +160,7 @@ function PrismCaptureInner() {
               <PrismRefraction email={submittedEmail} shareCode={shareCode} />
             ) : (
               <>
-                <PrismBeam submitting={state === 'beaming'} invalid={invalid} onSubmit={onSubmit} />
+                <PrismBeam submitting={state === 'beaming'} invalid={invalid} attempt={attempt} onSubmit={onSubmit} />
                 {networkError ? (
                   <>
                     <NetError role="alert">{PRISM_COPY.errorNetwork}</NetError>

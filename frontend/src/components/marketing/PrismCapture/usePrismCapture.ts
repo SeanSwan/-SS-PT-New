@@ -44,6 +44,8 @@ export interface PrismCaptureApi {
   shareCode: string | null;
   /** The CLEANED (trimmed + lowercased) email that was submitted — for downstream prefill parity. */
   submittedEmail: string;
+  /** Increments on every submit attempt — lets the beam re-focus + re-announce a REPEATED identical invalid submit. */
+  attempt: number;
   submit: (email: string, intent?: PrismIntent) => Promise<void>;
   reset: () => void;
   isValidEmail: (email: string) => boolean;
@@ -54,6 +56,7 @@ export function usePrismCapture(): PrismCaptureApi {
   const [error, setError] = useState<PrismError>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [attempt, setAttempt] = useState(0);
   const inFlight = useRef(false); // synchronous re-entrancy guard (state is async — can't gate on it)
   const attribution = useMemo(readAttribution, []);
 
@@ -62,6 +65,7 @@ export function usePrismCapture(): PrismCaptureApi {
   const submit = useCallback(
     async (email: string, intent?: PrismIntent) => {
       if (inFlight.current) return; // ignore a second submit while one is in flight (Enter-repeat / double click)
+      setAttempt((n) => n + 1); // bump every attempt so a repeated identical invalid still re-focuses + re-announces
       const clean = email.trim().toLowerCase();
       if (!EMAIL_RE.test(clean)) {
         setError('invalid');
@@ -106,5 +110,5 @@ export function usePrismCapture(): PrismCaptureApi {
     setShareCode(null);
   }, []);
 
-  return { state, error, shareCode, submittedEmail, submit, reset, isValidEmail };
+  return { state, error, shareCode, submittedEmail, attempt, submit, reset, isValidEmail };
 }

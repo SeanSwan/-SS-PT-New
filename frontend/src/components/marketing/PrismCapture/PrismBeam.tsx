@@ -87,20 +87,22 @@ const Error = styled.p`
 interface PrismBeamProps {
   submitting: boolean;
   invalid: boolean;
+  /** Bumps on each submit attempt so a REPEATED identical invalid still re-focuses + re-announces. */
+  attempt: number;
   onSubmit: (email: string) => void;
 }
 
-export function PrismBeam({ submitting, invalid, onSubmit }: PrismBeamProps) {
+export function PrismBeam({ submitting, invalid, attempt, onSubmit }: PrismBeamProps) {
   const [email, setEmail] = useState('');
   const inputId = useId();
   const errId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // On a validation error, move focus back to the field so the user can correct it (the error is also announced
-  // via role="alert" below). Keyed on `invalid` so it fires on each fresh invalid submit.
+  // On a validation error, move focus back to the field so the user can correct it. Keyed on `attempt` too, so a
+  // repeated identical invalid submit (invalid stays true, no prop change) still re-fires the focus move.
   useEffect(() => {
     if (invalid) inputRef.current?.focus();
-  }, [invalid]);
+  }, [invalid, attempt]);
 
   return (
     <Form
@@ -132,7 +134,9 @@ export function PrismBeam({ submitting, invalid, onSubmit }: PrismBeamProps) {
         {submitting ? PRISM_COPY.submitting : PRISM_COPY.submit}
       </Submit>
       {invalid ? (
-        <Error id={errId} role="alert">
+        // key={attempt} re-mounts the alert on every invalid submit so screen readers re-announce it even when
+        // the message text is unchanged (a live region only announces on insertion/mutation).
+        <Error key={attempt} id={errId} role="alert">
           {PRISM_COPY.errorInvalid}
         </Error>
       ) : null}

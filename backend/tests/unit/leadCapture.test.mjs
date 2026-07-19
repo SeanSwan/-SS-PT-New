@@ -68,7 +68,9 @@ describe('PRISM CAPTURE — POST /api/leads/capture', () => {
     expect(captureMock).not.toHaveBeenCalled();
   });
 
-  it('is PUBLIC — an unauthenticated POST is never 401/403 (mount-order guard)', async () => {
+  // NOTE: this proves the capture route is not self-auth-walled (public). The real /api/leads mount ORDER
+  // (leadCaptureRoutes before the protected leadRoutes) is verified in core/routes.mjs, not exercisable here.
+  it('is PUBLIC — an unauthenticated POST is never 401/403', async () => {
     const res = await request(await loadApp()).post('/api/leads/capture').send({ email: 'a@b.com' });
     expect([401, 403]).not.toContain(res.status);
     expect(res.status).toBe(201);
@@ -119,11 +121,40 @@ describe('PRISM CAPTURE — POST /api/leads/capture', () => {
     expect(res.body).toEqual({ ok: false });
   });
 
-  it('pepper missing → ref is null (never the raw sequential id), capture still 201', async () => {
+  it('pepper missing → ref is null (never the raw sequential id), no refcode tag, capture still 201', async () => {
     delete process.env.REF_CODE_PEPPER;
     const res = await request(await loadApp()).post('/api/leads/capture').send({ email: 'y@swan.com' });
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ ok: true, ref: null });
+    // N3: the conditional refcode tag must be OMITTED (never `prism:refcode:` / `prism:refcode:null`).
+    const tags = updateMock.mock.calls[0][0].tags;
+    expect(tags.some((t) => t.startsWith('prism:refcode:'))).toBe(false);
+  });
+
+  it('external owner-alert budget caps SMS/email under a flood; in-app notification is uncapped (N2)', async () => {
+    // Fresh module → counter starts at 0 (the budget is module-level state; isolate it here for a deterministic cap).
+    vi.resetModules();
+    process.env.OWNER_PHONE = '+15550001111';
+    process.env.OWNER_EMAIL = 'owner@swan.com';
+    process.env.SENDGRID_API_KEY = 'k';
+    process.env.SENDGRID_FROM_EMAIL = 'from@swan.com';
+    adminMock.mockClear();
+    emailMock.mockClear();
+    const app = await loadApp();
+    for (let i = 0; i < 31; i += 1) {
+      captureMock.mockResolvedValueOnce({ leadId: 100 + i, created: true });
+      // eslint-disable-next-line no-await-in-loop
+      await request(app).post('/api/leads/capture').send({ email: `flood${i}@swan.com` });
+      // eslint-disable-next-line no-await-in-loop
+      await flush(); // let the fire-and-forget alert run before the next request
+    }
+    expect(adminMock).toHaveBeenCalledTimes(31); // in-app is free — every lead alerts
+    expect(emailMock).toHaveBeenCalledTimes(30); // external (paid) is capped at 30/window — the 31st is suppressed
+
+    delete process.env.OWNER_PHONE;
+    delete process.env.OWNER_EMAIL;
+    delete process.env.SENDGRID_API_KEY;
+    delete process.env.SENDGRID_FROM_EMAIL;
   });
 
   it('passes email AND derived name to the canonical service (contract lock)', async () => {

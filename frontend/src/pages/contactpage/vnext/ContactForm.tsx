@@ -119,11 +119,25 @@ const BookCta = styled(Link)`
 
 type Phase = 'form' | 'done';
 
+// Seed email/subject from a deep link (e.g. PrismCapture's `/contact?intent=book&email=…`) so the field is
+// prefilled — parity with ContactV3.prefillFromUrl (the flag-off default). URLSearchParams, no react-router dep.
+function prefillFromUrl() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const email = (p.get('email') || '').slice(0, 255);
+    const intent = p.get('intent');
+    const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
+    return { email, subject };
+  } catch {
+    return { email: '', subject: '' };
+  }
+}
+
 export function ContactForm() {
   const prefersReduced = useReducedMotion();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
+  const [email, setEmail] = useState(() => prefillFromUrl().email);
+  const [subject, setSubject] = useState(() => prefillFromUrl().subject);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
