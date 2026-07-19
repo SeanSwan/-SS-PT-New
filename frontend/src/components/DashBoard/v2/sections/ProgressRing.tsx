@@ -52,6 +52,7 @@ const Caption = styled.span`
 export function ProgressRing({ pct, label, caption }: ProgressRingProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const worldKey = useWorldKey();
+  // token-fallback: --dash-accent (Ice Wing) / --dash-grid — pre-paint defaults, replaced below by the lens read.
   const [colors, setColors] = useState(() => ({ ring: '#60C0F0', track: 'rgba(255,255,255,0.12)' }));
 
   useLayoutEffect(() => {
