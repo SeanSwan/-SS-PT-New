@@ -1,9 +1,22 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8');
+
+// S1-C split: the lens CSS moved out of SwanStyleLensGlobalStyles.ts (now a re-export shell) into
+// always-present core + active-only per-lens files. These contract assertions read the LIVE split
+// output (core + every lens file) so they still verify the shipping CSS, not the legacy fixture.
+const LENS_DIR = 'src/adapters/style-lens-swan/styles/lenses';
+const splitStyles = (): string => {
+  const core = source('src/adapters/style-lens-swan/styles/lensCoreStyles.ts');
+  const lenses = readdirSync(resolve(process.cwd(), LENS_DIR))
+    .filter((f) => f.endsWith('.ts') && f !== 'index.ts')
+    .map((f) => source(`${LENS_DIR}/${f}`))
+    .join('\n');
+  return `${core}\n${lenses}`;
+};
 
 const promotedLensIds = [
   'quiet-meridian',
@@ -45,9 +58,7 @@ describe('Swan Style Lens runtime binding', () => {
   });
 
   it('binds every promoted lens to scoped structural CSS variables', () => {
-    const styles = source(
-      'src/adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts',
-    );
+    const styles = splitStyles();
 
     promotedLensIds.forEach((id) => {
       expect(styles).toContain("data-style-lens='" + id + "'");
@@ -59,9 +70,7 @@ describe('Swan Style Lens runtime binding', () => {
   });
 
   it('preserves the Dual-Button Glow contract through semantic action tones', () => {
-    const styles = source(
-      'src/adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts',
-    );
+    const styles = splitStyles();
     const preview = source(
       'src/context/ThemeContext/AppearanceStudio/AppearanceStudioPreview.tsx',
     );
@@ -80,9 +89,7 @@ describe('Swan Style Lens runtime binding', () => {
     // carrying a different lens, or the global lens contaminates Compare
     // panes / the Style Explorer stage (e.g. analog-flight-recorder forcing
     // monospace into a quiet-meridian preview).
-    const styles = source(
-      'src/adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts',
-    );
+    const styles = splitStyles();
 
     const lensDescendantRules = styles.match(
       /\[data-style-lens='[a-z-]+'\][^{,]*\[data-(?:style-lens-shell|dashboard-scroll-root)\][^{]*\{/g,

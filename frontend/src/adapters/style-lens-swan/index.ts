@@ -29,6 +29,9 @@ import { LUNAR_STACK_MANIFEST } from './manifests/lunarStack';
 import { CEDAR_WORKSHOP_MANIFEST } from './manifests/cedarWorkshop';
 import { CRYSTALLINE_CATHEDRAL_MANIFEST } from './manifests/crystallineCathedral';
 import { AURORA_CONSOLE_MANIFEST } from './manifests/auroraConsole';
+import { assertLensRegistryIntegrity } from './contract/registryIntegrity';
+import { buildWorldValuesRegistry } from './contract/values';
+import { LENS_STYLE_ALLOWLIST } from './styles/lenses';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -73,4 +76,53 @@ export const SWAN_STYLE_LENS_REGISTRY = createStyleLensRegistry([
   ...SWAN_SENTINEL_MANIFESTS,
   ...SWAN_EXPANSION_MANIFESTS,
 ]);
+
+// ── Swan Lens Slice-1 contract surface (S1-A/B/C) ──
+export { validateLensDesignValues, validateDesignThenRecipe } from './contract/designValueGuard';
+export { assertLensRegistryIntegrity } from './contract/registryIntegrity';
+export { buildWorldValuesRegistry, CRYSTALLINE_DEFAULT_WORLD_VALUES } from './contract/values';
+export { safeResolveLensId, ANNOUNCE_COPY } from './contract/safeResolveLensId';
+export { LENS_STYLE_ALLOWLIST } from './styles/lenses';
+
+// ── Swan Lens Slice-2 (Crystallize + viewport) — ready-to-wire for Lane A ──
+export {
+  useCrystallizeTransition,
+  CRYSTALLIZE_SURFACE_ID,
+  CRYSTALLIZE_TIMING,
+  type CrystallizeController,
+  type CrystallizeOverlayProps,
+} from './motion/useCrystallizeTransition';
+export { CrystallizeOverlay, CRYSTALLIZE_OVERLAY_Z, crystallizeOverlayCss } from './motion/CrystallizeOverlay';
+export {
+  useLensViewport,
+  layoutProfileForViewport,
+  LENS_VIEWPORT_QUERIES,
+  type LensViewport,
+} from './viewport/useLensViewport';
+export { lensViewportCss } from './styles/lensViewportStyles';
+
+// ── Swan Lens Slice-3 (surfaces + Victory bridge) — additive, ready-to-wire ──
+export { lensSurfaceCss, LensSurfaceGlobalStyles } from './styles/lensSurfaceStyles';
+export {
+  resolveLensVictoryTheme,
+  SWAN_CHROME_FALLBACKS,
+  type LensVictoryThemeBundle,
+} from './charts/victoryLensTheme';
+
+// F16 — dev/CI fail-closed integrity gate (never runs in production). Asserts that every STYLED
+// lens (the 27 named manifests; the DEFAULT safety lens renders via always-present core, so it is
+// intentionally outside this set) has a Crystalline-clean world-values entry AND a style-allowlist
+// entry, with no orphans. A drift here throws at adapter init — before any render.
+if (process.env.NODE_ENV !== 'production') {
+  const styledLensIds = [
+    SWAN_FLAGSHIP_MANIFEST,
+    ...SWAN_SENTINEL_MANIFESTS,
+    ...SWAN_EXPANSION_MANIFESTS,
+  ].map((manifest) => manifest.id);
+  assertLensRegistryIntegrity(
+    styledLensIds,
+    buildWorldValuesRegistry(styledLensIds),
+    LENS_STYLE_ALLOWLIST,
+  );
+}
 
