@@ -66,6 +66,8 @@ const parseDateQuery = (value, label) => {
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import WorkoutLog from '../models/WorkoutLog.mjs';
 import User from '../models/User.mjs';
+import { getAllModels } from '../models/index.mjs';
+import { safeAssemble } from '../services/postSaveHandoffAssembler.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -221,10 +223,9 @@ router.get('/:id', protect, async (req, res) => {
     // Authorization: self, admin, or trainer with an active assignment to the session's client
     const authorized = await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId);
     if (!authorized) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to view this workout session'
-      });
+      // 404 (not 403) so a non-owner cannot distinguish "exists-not-yours" from "doesn't-exist"
+      // (matches the miss branch above + the /:id/handoff route — no existence oracle).
+      return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
 
     res.json({ success: true, session });
@@ -259,7 +260,34 @@ const workoutSessionSchema = z.object({
   notes: z.string().optional(),
   totalWeight: z.number().min(0),
   totalReps: z.number().int().min(0),
-  totalSets: z.number().int().min(0)
+  totalSets: z.number().int().min(0),
+  clientRequestId: z.string().max(64).optional() // idempotency key (offline-retry-safe save)
+});
+
+/**
+ * @route   GET /api/workout/sessions/:id/handoff
+ * @desc    Re-fetch the Post-Save Handoff for a session (re-entry / offline-sync refresh).
+ * @access  Private — self, admin, or assigned trainer. 404 for miss AND unauthorized (no existence leak).
+ */
+router.get('/:id/handoff', protect, async (req, res) => {
+  try {
+    const s = await WorkoutSession.findByPk(req.params.id, { attributes: ['id', 'userId'] });
+    if (!s) return res.sendStatus(404);
+    const isSelf = sameId(req.user.id, s.userId);
+    const authorized = isSelf || await assertAssignmentOrAdmin(req.user.id, req.user.role, s.userId);
+    if (!authorized) return res.sendStatus(404);
+    let models = null;
+    try { models = getAllModels(); } catch { models = null; }
+    const handoff = await safeAssemble({
+      viewerUserId: req.user.id, viewerRole: req.user.role,
+      targetUserId: s.userId, todaySessionId: s.id, models,
+    });
+    if (!handoff) return res.sendStatus(404);
+    return res.json({ handoff });
+  } catch (error) {
+    console.error('Error building session handoff:', error?.name, error?.message); // sanitized: no SQL/params/PII
+    return res.sendStatus(404);
+  }
 });
 
 /**
@@ -267,7 +295,7 @@ const workoutSessionSchema = z.object({
  * @desc    Create a new workout session
  * @access  Private
  */
-router.post('/', 
+router.post('/',
   protect, 
   validationMiddleware(workoutSessionSchema), 
   async (req, res) => {
@@ -289,15 +317,58 @@ router.post('/',
         }
       }
       
-      // Create the session
-      const session = await WorkoutSession.create(sessionData);
-      
-      // Update user's progress metrics (if we had a ClientProgress model)
-      // await updateClientProgress(sessionData.userId, sessionData);
-      
-      res.status(201).json({ session });
+      // Resolve the model registry ONCE, guarded — a corrupt/uninitialized registry must never throw
+      // into the create/replay path and 500 a committed save (mirrors the form-path guard).
+      let models = null;
+      try { models = getAllModels(); } catch { models = null; }
+
+      // Create the session (idempotent: a repeated offline retry with the same clientRequestId
+      // hits the partial unique index → we replay the original result instead of double-writing).
+      const clientRequestId = sessionData.clientRequestId || null;
+      let session;
+      try {
+        session = await WorkoutSession.create(sessionData);
+      } catch (err) {
+        // Replay ONLY on the per-user idempotency constraint — not any unique violation (a different
+        // constraint failing while the body carries a stale clientRequestId must never fake a success).
+        // Match by column key OR the constraint/index name (locale-proof + survives a future field-map).
+        const IDEM_INDEX = 'workout_sessions_user_client_request_uidx';
+        const isIdemConflict = err?.name === 'SequelizeUniqueConstraintError' && clientRequestId && (
+          (err?.fields && Object.prototype.hasOwnProperty.call(err.fields, 'clientRequestId'))
+          || err?.original?.constraint === IDEM_INDEX
+          || err?.parent?.constraint === IDEM_INDEX
+        );
+        if (isIdemConflict) {
+          // IDOR is closed by the user-SCOPING here (+ the userId-forcing above), NOT by the index — the
+          // composite index only provides idempotency integrity. This findOne is scoped to THIS user, so
+          // it can never return another user's session even with a known clientRequestId.
+          const existing = await WorkoutSession.findOne({ where: { clientRequestId, userId: sessionData.userId } });
+          if (existing) {
+            const handoff = await safeAssemble({
+              viewerUserId: req.user.id, viewerRole: req.user.role,
+              targetUserId: existing.userId, todaySessionId: existing.id, models,
+            });
+            return res.status(200).json({ session: existing, handoff, deduplicated: true });
+          }
+          return res.status(409).json({ success: false, message: 'Duplicate submission conflict' });
+        }
+        throw err;
+      }
+
+      // ← save committed. The handoff is BEST-EFFORT and never blocks/duplicates/rolls back the save.
+      // NOTE (create-path handoff is currently proof-null by construction): this route persists ONLY the
+      // WorkoutSession aggregate — it does not write WorkoutExercise/Set or WorkoutLog rows (the validated
+      // `exercises` array is dropped by Sequelize, no nested create). So buildProofSeries has no per-set data
+      // for `session.id` and the handoff comes back proof-null → the UI suppresses it. Wired anyway (fail-
+      // closed, harmless) so it lights up automatically once a structured writer persists per-set rows. The
+      // dominant HUMAN handoff runs on the form path (POST /api/workout-forms), which DOES persist WorkoutLog.
+      const handoff = await safeAssemble({
+        viewerUserId: req.user.id, viewerRole: req.user.role,
+        targetUserId: session.userId, todaySessionId: session.id, models,
+      });
+      res.status(201).json({ session, handoff, deduplicated: false });
     } catch (error) {
-      console.error('Error creating workout session:', error);
+      console.error('Error creating workout session:', error?.name, error?.message); // sanitized: no SQL/params
       res.status(500).json({ message: 'Server error' });
     }
   }

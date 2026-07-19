@@ -41,6 +41,7 @@ import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
 import SaveSuccessPanel from './SaveSuccessPanel';
+import WorkoutLoggerHandoffMount from './handoff/WorkoutLoggerHandoffMount';
 import './workoutLoggerSubmitPayload';
 import './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
@@ -806,6 +807,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         ) : (
           <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
         )}
+        {/* Post-Save Handoff (Slice-2, Chunk C): terminal proof moment, portaled OVER the panel above. */}
+        <WorkoutLoggerHandoffMount
+          handoff={lastSaveResponse?.handoff}
+          saveKey={lastSaveResponse?.id ?? lastSaveResponse?.formId ?? null}
+          userRole={user?.role}
+          isOnline={offlineQueue.isOnline}
+          onNavigate={navigate}
+        />
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>

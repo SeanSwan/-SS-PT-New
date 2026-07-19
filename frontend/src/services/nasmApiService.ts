@@ -17,6 +17,7 @@
  */
 
 import apiService from './api.service';
+import type { HandoffData } from '../components/WorkoutLogger/handoff/workoutHandoff.types';
 
 // ==================== TYPE DEFINITIONS ====================
 
@@ -239,6 +240,13 @@ export interface DailyWorkoutForm {
   challengeProgress?: ChallengeProgressImpactReceipt;
   /** Launch charter 4a: server-detected personal records from THIS save. */
   prEvents?: WorkoutPrEvent[];
+  /**
+   * Post-Save Handoff payload (Slice-2). Server-assembled AFTER commit, best-effort — null when the
+   * feature flag is off or the save produced no chartable proof. The API returns it as a TOP-LEVEL
+   * sibling of `form`; submitWorkoutForm re-attaches it here. Client-only fields (e.g. pendingSync)
+   * are injected by the shell, never by the server.
+   */
+  handoff?: HandoffData | null;
   submittedAt: string;
   mcpProcessedAt?: string;
   processingErrors?: any;
@@ -706,16 +714,25 @@ export class DailyWorkoutFormService {
             success: boolean;
             form: DailyWorkoutForm;
             message?: string;
+            handoff?: HandoffData | null;
           }>('/api/workout-forms', data, requestConfig)
         : await this.api.post<{
             success: boolean;
             form: DailyWorkoutForm;
             message?: string;
+            handoff?: HandoffData | null;
           }>('/api/workout-forms', data);
       const payload = response.data;
+      // `handoff` is a TOP-LEVEL sibling of `form` on the wire — re-attach it onto the form so
+      // WorkoutLogger's lastSaveResponse.handoff carries it (else this mapper silently drops it).
+      // Guard both edges: keep `data: undefined` when there's no form (error bodies), and only attach
+      // handoff when the server actually sent it (never inject a phantom key when it didn't).
+      const mappedData = payload.form
+        ? (payload.handoff !== undefined ? { ...payload.form, handoff: payload.handoff } : payload.form)
+        : payload.form;
       return {
         success: payload.success,
-        data: payload.form,
+        data: mappedData,
         message: payload.message
       };
     } catch (error) {

@@ -47,6 +47,13 @@ WorkoutSession.init({
     defaultValue: DataTypes.NOW,
     comment: 'Date when the workout was performed'
   },
+  clientRequestId: {
+    // Idempotency key for offline-retry-safe saves. DB column + partial unique index added in
+    // migration 20260718120000; declared here so Sequelize actually persists it. Nullable (legacy rows).
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    comment: 'Idempotency key: unique-per-non-null so an offline retry cannot double-write a session'
+  },
   duration: {
     type: DataTypes.INTEGER,
     allowNull: false,
