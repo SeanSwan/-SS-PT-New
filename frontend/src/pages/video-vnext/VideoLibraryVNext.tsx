@@ -46,6 +46,18 @@ const Skeleton = styled.div`
   background: var(--video-glass);
   border: 1px solid var(--video-ice-14);
 `;
+// Visually-hidden results heading so the outline is h1 (hero) → h2 (results) → h3 (cards) with no skip.
+const SrHeading = styled.h2`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 export default function VideoLibraryVNext() {
   const lib = useVideoLibrary();
@@ -86,6 +98,7 @@ export default function VideoLibraryVNext() {
             <State data-testid="video-empty">No videos match your search yet. Try clearing the filters.</State>
           ) : (
             <>
+              <SrHeading>Videos</SrHeading>
               <Grid data-testid="video-grid">
                 {lib.videos.map((v) => (
                   <VideoGlassCard key={v.id} video={v} />

@@ -24,12 +24,25 @@ class GateBoundary extends React.Component<{ fallback: ReactNode; children: Reac
 function ContractCheck({ onFail, children }: { onFail(): void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const shell = ref.current?.querySelector('.store-v4-shell');
-    if (!shell) return; // still resolving
-    const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();
-    const scoped = shell.closest('[data-style-lens-shell]');
-    if (!accent || !scoped) onFail();
-  });
+    let raf = 0;
+    let tries = 0;
+    // rAF-retry (backported from Home/About/Video/Contact): the shell mounts async (lazy chunk). Poll a few
+    // frames for it, THEN check — a genuinely broken lens (present shell, no --world-accent) fails CLOSED,
+    // while the lazy-load race just keeps waiting rather than false-failing (the old single-run failed OPEN).
+    const check = () => {
+      const shell = ref.current?.querySelector('.store-v4-shell');
+      if (!shell) {
+        if (tries++ < 30) raf = requestAnimationFrame(check);
+        else onFail(); // exhausted: shell never rendered → fail closed to V-prev
+        return;
+      }
+      const accent = getComputedStyle(shell).getPropertyValue('--world-accent').trim();
+      const scoped = shell.closest('[data-style-lens-shell]');
+      if (!accent || !scoped) onFail();
+    };
+    raf = requestAnimationFrame(check);
+    return () => cancelAnimationFrame(raf);
+  }, [onFail]);
   return <div ref={ref}>{children}</div>;
 }
 

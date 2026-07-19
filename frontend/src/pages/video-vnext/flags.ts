@@ -26,21 +26,18 @@ export function useVideoVNextFlag(): { videoVNext: boolean; resolved: boolean } 
   useEffect(() => {
     let alive = true;
     fetch('/api/config/public-flags', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => { if (!r.ok) throw new Error('public-flags unavailable'); return r.json(); })
       .then((json: { videoVNext?: unknown } | null) => {
         if (!alive) return;
         const runtime = json && typeof json.videoVNext === 'boolean' ? Boolean(json.videoVNext) : null;
-        const override = qaOverride();
-        let effective: boolean;
-        if (runtime === false) effective = false;
-        else if (override !== null) effective = override;
-        else effective = runtime ?? ENV_FALLBACK;
+        // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
+        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
         setVideoVNext(effective);
         setResolved(true);
       })
       .catch(() => {
         if (alive) {
-          setVideoVNext(qaOverride() ?? ENV_FALLBACK);
+          setVideoVNext(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
           setResolved(true);
         }
       });

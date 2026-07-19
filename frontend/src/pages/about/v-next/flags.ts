@@ -26,21 +26,18 @@ export function useAboutVNextFlag(): { aboutVNext: boolean; resolved: boolean } 
   useEffect(() => {
     let alive = true;
     fetch('/api/config/public-flags', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => { if (!r.ok) throw new Error('public-flags unavailable'); return r.json(); })
       .then((json: { aboutVNext?: unknown } | null) => {
         if (!alive) return;
         const runtime = json && typeof json.aboutVNext === 'boolean' ? Boolean(json.aboutVNext) : null;
-        const override = qaOverride();
-        let effective: boolean;
-        if (runtime === false) effective = false;
-        else if (override !== null) effective = override;
-        else effective = runtime ?? ENV_FALLBACK;
+        // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
+        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
         setAboutVNext(effective);
         setResolved(true);
       })
       .catch(() => {
         if (alive) {
-          setAboutVNext(qaOverride() ?? ENV_FALLBACK);
+          setAboutVNext(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
           setResolved(true);
         }
       });

@@ -1,7 +1,8 @@
 /**
  * publicConfigRoutes — Dashboards v2 (Slice-3) public feature flags (KIMI-DASHBOARDS §6.2).
  *
- * GET /api/config/public-flags → { dashboardV2, dashboardV2Finance }. Unauthenticated, non-sensitive
+ * GET /api/config/public-flags → { dashboardV2, dashboardV2Finance, storeV4, homeVNext, aboutVNext,
+ * videoVNext, contactVNext } (one boolean per flag-gated surface). Unauthenticated, non-sensitive
  * (only booleans), fail-closed defaults (env unset → false). The client uses these to hide UI; the
  * finance flag is ALSO enforced server-side in the summary controller (this is not the security gate).
  */
