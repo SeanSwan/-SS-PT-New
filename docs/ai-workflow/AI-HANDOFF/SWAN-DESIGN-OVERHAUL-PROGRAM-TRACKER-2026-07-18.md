@@ -34,8 +34,8 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | 7 | Contact (ship-with-changes) | KIMI-CONTACT | ✅ blueprint (Crystallize Submit) | ✅ FULL (crystallize-submit form + gate, /api/contact reused) | ✅ Codex (1 fixed) + Gemini (REJECTED per rule 46) | ✅ SHIPPED main 4e116d3c6 (flag off → V3 until CONTACT_VNEXT_ENABLED=true) |
 | 8 | Cover/Gallery (SEND-BACK, Core-Loop rewire) | KIMI-COVER-GALLERY | — | — | — | — |
 | 9 | Photography (decompose 2219L, rename Cosmic Gate) | KIMI-PHOTOGRAPHY | — | — | — | — |
-| 10 | Design Skill redo (swap on Sean confirm) | KIMI-DESIGN-SKILL-REDO | — | review+propose only | — | — |
-| 11 | Design Brain enhance (swap on Sean confirm) | KIMI-DESIGN-BRAIN-ENHANCED | — | review+propose only | — | — |
+| 10 | Design Skill redo | KIMI-DESIGN-SKILL-REDO | ✅ reviewed | ✅ ADOPTED (laws + 6 refinements, ideation-gate preserved) | — | ✅ swan-design-router/SKILL.md (Sean-confirmed, .pre-redo backup) |
+| 11 | Design Brain enhance | KIMI-DESIGN-BRAIN-ENHANCED | ✅ reviewed | ✅ ADOPTED (Crystalline Canon + consumer/emitter refinement) | — | ✅ design-brain/design.md (Sean-confirmed, .pre-redo backup) |
 
 ## Cross-cutting DEFERRED (need Sean/Lane-A rulings; do not block surfaces)
 - Lane-A wiring of the lens (Crystallize into Apply handler; viewport/surface CSS mounts; motion licences).
