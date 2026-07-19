@@ -59,13 +59,24 @@ describe('workoutProofLoader.unifyRow — dual-source unification', () => {
     expect(u.sets.map((s) => s.setNumber).sort((a, b) => a - b)).toEqual([3, 5]);
   });
 
-  it('dedupes by setNumber, keeping the max weight (volume is duplicate-sensitive)', () => {
+  it('keeps EVERY real logged set — the form numbers sets PER block, so 2 blocks of one lift reuse setNumber; both are performed sets and both must count (no dedupe under-count vs canonical totalWeight)', () => {
     const u = unifyRow({ id: 's', date: 'd', logRows: [
-      { exerciseName: 'Squat', weight: 185, reps: 5, setNumber: 1 },
-      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 1 }, // same setNumber → keep 225
+      { exerciseName: 'Squat', weight: 185, reps: 5, setNumber: 1 }, // block 1
+      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 1 }, // block 2 — setNumber collides, distinct real set
     ], setRows: [] });
-    expect(u.sets).toHaveLength(1);
-    expect(u.sets[0].weight).toBe(225);
+    expect(u.sets).toHaveLength(2); // dropping either would under-count volume vs the session's canonical totalWeight
+  });
+
+  it('totalVolumeLbs counts every set across duplicate blocks (matches canonical totalWeight — regression for the dedupe under-count)', () => {
+    // Same lift logged as 2 blocks of 2 sets @ 100x10 → 4 real sets → volume 4000 (was 2000 under dedupe).
+    const unified = toUnifiedSessions([{ id: 't', date: '2026-07-11T10:00:00Z', duration: 40, logRows: [
+      { exerciseName: 'Bench', weight: 100, reps: 10, setNumber: 1 },
+      { exerciseName: 'Bench', weight: 100, reps: 10, setNumber: 2 },
+      { exerciseName: 'Bench', weight: 100, reps: 10, setNumber: 1 }, // block 2 (setNumber collides)
+      { exerciseName: 'Bench', weight: 100, reps: 10, setNumber: 2 },
+    ], setRows: [] }]);
+    const r = buildProofSeriesFromUnifiedSessions(unified, { todaySessionId: 't' });
+    expect(r.totalVolumeLbs).toBe(4 * 100 * 10);
   });
 
   it('toUnifiedSessions maps a list', () => {
