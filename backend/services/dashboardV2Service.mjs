@@ -39,7 +39,7 @@ function toSessionRow(s) {
     trainerRef: maskTrainer(s.trainerId),
     startLabel: fmtTime(start),
     endLabel: fmtTime(end),
-    status: sessionRowStatus(s.status, s.sessionDate),
+    status: sessionRowStatus(s.status, s.sessionDate, s.attendanceStatus),
   };
 }
 
@@ -149,8 +149,15 @@ async function buildTrainerSummary({ userId }) {
 
 // ---------------------------------------------------------------- milestones (client + user)
 async function buildMilestones(userId) {
+  // only EARNED badges (isCompleted) belong in the trophy case — a UserAchievement row is created at
+  // progress-start, so an unfiltered query surfaces in-progress/never-earned badges as if earned.
   const earned = await safe(
-    () => UserAchievement.findAll({ where: { userId }, order: [['createdAt', 'DESC']], limit: 8, raw: true }),
+    () => UserAchievement.findAll({
+      where: { userId, isCompleted: true },
+      order: [['earnedAt', 'DESC']],
+      limit: 8,
+      raw: true,
+    }),
     [],
   );
   if (!earned.length) return [];
@@ -172,7 +179,8 @@ async function buildMilestones(userId) {
       id: String(e.achievementId),
       tier: RARITY_TIER[meta?.rarity] || 'facet', // real rarity → tier, deterministic per achievement
       title: meta?.title || 'Achievement',
-      earnedLabel: e.createdAt ? fmtAge(e.createdAt) : null,
+      earnedLabel: e.earnedAt ? fmtAge(e.earnedAt) : null, // the EARN moment, not the progress-start row date
+
       crystallized: crystalSet.has(String(e.achievementId)),
     };
   });
@@ -205,10 +213,12 @@ async function buildClientSummary({ userId }) {
   );
   const doneSet = new Set(doneDays.map((d) => new Date(d.date).toDateString()));
   const todayStr = new Date().toDateString();
+  // getDay()-i walks Sun→Sat (i=0 → this week's Sunday … i=6 → Saturday); NO reverse — reversing it
+  // rendered the strip Sat-first with future days on the left.
   const planWeek = Array.from({ length: 7 }, (_, i) => {
     const d = dayStart(new Date().getDay() - i);
     return { dayLabel: d.toLocaleDateString('en-US', { weekday: 'narrow' }), done: doneSet.has(d.toDateString()), today: d.toDateString() === todayStr };
-  }).reverse();
+  });
 
   return {
     role: 'client', generatedAt: nowIso(),

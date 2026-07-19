@@ -61,9 +61,11 @@ export function fmtAge(d) {
 }
 
 /** Map a raw Session.status to the client-facing SessionRow status union. */
-export function sessionRowStatus(raw, sessionDate) {
+export function sessionRowStatus(raw, sessionDate, attendance) {
+  // no-shows live in Session.attendanceStatus, NOT status — check it first so a no-show reads as "missed".
+  if (attendance === 'no_show') return 'missed';
   if (raw === 'completed') return 'done';
-  if (raw === 'cancelled' || raw === 'no_show') return 'missed';
+  if (raw === 'cancelled') return 'missed';
   const when = sessionDate ? new Date(sessionDate).getTime() : 0;
   if (when && when <= Date.now() && (raw === 'confirmed' || raw === 'scheduled')) return 'active';
   return 'upcoming';

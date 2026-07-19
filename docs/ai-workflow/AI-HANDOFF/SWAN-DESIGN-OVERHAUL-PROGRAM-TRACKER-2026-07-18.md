@@ -34,8 +34,8 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | 7 | Contact (ship-with-changes) | KIMI-CONTACT | ✅ blueprint (Crystallize Submit) | ✅ FULL (crystallize-submit form + gate, /api/contact reused) | ✅ Codex (1 fixed) + Gemini (REJECTED per rule 46) | ✅ SHIPPED main 4e116d3c6 (flag off → V3 until CONTACT_VNEXT_ENABLED=true) |
 | 8 | Cover/Gallery (SEND-BACK, Core-Loop rewire) | KIMI-COVER-GALLERY | — | — | — | — |
 | 9 | Photography (decompose 2219L, rename Cosmic Gate) | KIMI-PHOTOGRAPHY | — | — | — | — |
-| 10 | Design Skill redo (swap on Sean confirm) | KIMI-DESIGN-SKILL-REDO | — | review+propose only | — | — |
-| 11 | Design Brain enhance (swap on Sean confirm) | KIMI-DESIGN-BRAIN-ENHANCED | — | review+propose only | — | — |
+| 10 | Design Skill redo | KIMI-DESIGN-SKILL-REDO | ✅ reviewed | ✅ ADOPTED (laws + 6 refinements, ideation-gate preserved) | — | ✅ swan-design-router/SKILL.md (Sean-confirmed, .pre-redo backup) |
+| 11 | Design Brain enhance | KIMI-DESIGN-BRAIN-ENHANCED | ✅ reviewed | ✅ ADOPTED (Crystalline Canon + consumer/emitter refinement) | — | ✅ design-brain/design.md (Sean-confirmed, .pre-redo backup) |
 
 ## Cross-cutting DEFERRED (need Sean/Lane-A rulings; do not block surfaces)
 - Lane-A wiring of the lens (Crystallize into Apply handler; viewport/surface CSS mounts; motion licences).
@@ -111,3 +111,15 @@ Read this tracker → find the first surface not ✅-pushed → for Dashboards r
 **Remaining after #8:** #9 Photography (2219L decompose, non-billing), #10/11 Design Skill/Brain (review+propose only, not builds).
 
 **Reusable per-surface recipe (proven x7):** foundation = lensBindings/flags/tokens(ZERO-hex or one sanctioned literal)/manifest/gate (mirror any shipped surface) + backend flag in publicConfigRoutes.mjs; SEND-BACK surfaces → `consult-kimi --effort medium` for creative direction (high-effort empties the budget); data/money surfaces → reuse the pure logic helpers + reimplement fetch/state in vNext (V-prev untouched, same API path); Gemini is a design AUTHOR not the gate (Rule 46 — reject "delete the token bridge / use theme-provider hex").
+
+## CORRECTION (2026-07-19) — #8 Cover/Gallery and #9 Photography are the SAME FILE (GalleryPage.tsx)
+Both `KIMI-COVER-GALLERY-BLUEPRINT` and `KIMI-PHOTOGRAPHY-BLUEPRINT` target `frontend/src/pages/GalleryPage.tsx`
+(2219 lines). There is NO separate non-billing "Photography" page — the earlier "#9 non-billing" note was WRONG.
+This ONE surface is billing-critical (enhancement-credit purchase `/api/gallery/credits`, VIP conversion,
+referral, donations) AND requires a NEW additive backend (photo dimension columns + thumb/preview/full
+rendition pipeline, or expose existing media metadata) or it violates Rule 1 (justified grid needs intrinsic
+ratios before load). KIMI-PHOTOGRAPHY is SHIP-WITH-CHANGES with a full ~19-file decomposition map + THE key
+change (d): make the Crystallize REVEAL the hero, gate-as-setup (email = unlock achievement), photos-first IA,
+rename off "Cosmic Gate". Approach: careful, fresh, focused session; visual reskin with credit/checkout/VIP/
+referral/donation logic BIND-ONLY (money-path untouched, like Store); scope the new backend rendition slice
+with Sean first. Remaining after this: #10/#11 Design Skill/Brain (review+propose only, not builds).
