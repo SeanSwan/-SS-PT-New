@@ -30,7 +30,7 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | 3 | Store (StoreV4, money-path UNTOUCHED) | KIMI-STORE + CORRECTED | ✅ reground (SEND-BACK→pedestal+F4) | ✅ FULL (S1 gate+seam, S2 sections+money bindings) | ✅ Codex (2 fixed) + Gemini (polish deferred/rejected) | ✅ SHIPPED main bf00e721f (flag off → StoreV3 until STORE_V4_ENABLED=true) |
 | 4 | Home (was SEND-BACK → Kimi generated direction) | KIMI-HOME-DIRECTION | ✅ direction (medium-effort, transcript vision) | ✅ FULL (optics hero + capsule rail + reused sections, flag-gated) | ✅ Codex (3 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 0606edc23 (flag off → V4 until HOME_VNEXT_ENABLED=true) |
 | 5 | About (was SEND-BACK → Kimi generated direction) | KIMI-ABOUT-DIRECTION | ✅ direction (caustic swan-occluder) | ✅ FULL (occluder hero + reused sections, flag-gated) | ✅ Codex (2 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 816cce70e (flag off → About.V4 until ABOUT_VNEXT_ENABLED=true) |
-| 6 | Video (SEND-BACK, refraction system) | KIMI-VIDEO | — | — | — | — |
+| 6 | Video (was SEND-BACK → Kimi direction) | KIMI-VIDEO-DIRECTION | ✅ direction (refraction=access) | ✅ FULL (channel-split hero + semantic glass cards, catalog/auth reused) | ✅ Codex (1 fixed) + Gemini (polish deferred) | ⏳ AWAITING SEAN GATE (flag off → VideoLibraryV3) |
 | 7 | Contact (ship-with-changes, decompose 1193L) | KIMI-CONTACT | — | — | — | — |
 | 8 | Cover/Gallery (SEND-BACK, Core-Loop rewire) | KIMI-COVER-GALLERY | — | — | — | — |
 | 9 | Photography (decompose 2219L, rename Cosmic Gate) | KIMI-PHOTOGRAPHY | — | — | — | — |
