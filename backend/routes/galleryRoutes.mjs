@@ -363,7 +363,7 @@ router.get('/events/:slug/photos', requireGalleryAccess, async (req, res) => {
 
     const [photos] = await sequelize.query(
       `SELECT id, photo_number as "photoNumber", display_name as "displayName", url,
-              thumbnail_url as "thumbnailUrl", width, height,
+              thumbnail_url as "thumbnailUrl", medium_url as "mediumUrl", width, height,
               enhanced_url as "enhancedUrl", enhancement_request_count as "enhancementRequestCount"
        FROM gallery_photos WHERE event_id = :eventId ORDER BY photo_number ASC`,
       { replacements: { eventId: req.galleryAccess.eventId } }
