@@ -20,6 +20,7 @@ router.get('/public-flags', (_req, res) => {
     homeVNext: isTrue(process.env.HOME_VNEXT_ENABLED),
     aboutVNext: isTrue(process.env.ABOUT_VNEXT_ENABLED),
     videoVNext: isTrue(process.env.VIDEO_VNEXT_ENABLED),
+    contactVNext: isTrue(process.env.CONTACT_VNEXT_ENABLED),
   });
 });
 

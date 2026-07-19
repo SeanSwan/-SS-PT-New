@@ -21,6 +21,7 @@ import StoreGate from '../pages/shop/StoreGate';
 import HomeGate from '../pages/HomePage/HomeGate';
 import AboutGate from '../pages/about/AboutGate';
 import VideoGate from '../pages/VideoGate';
+import ContactGate from '../pages/contactpage/ContactGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -102,6 +103,14 @@ const ContactPage = lazyLoadWithErrorHandling(
   () => import('../pages/contactpage/ContactV3'),
   'Contact Page V3',
   () => import('../pages/contactpage/ContactV2')
+);
+
+// Contact V-next seam: ContactGate flag-gates the Crystallize-Submit contact page in front of V3. Flag
+// off/unresolved/contract-fail → ContactV3 renders untouched (fail-closed). /api/contact POST reused.
+const GatedContactPage = () => (
+  <ContactGate>
+    <ContactPage />
+  </ContactGate>
 );
 const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About.V4'),
@@ -406,7 +415,7 @@ const MainRoutes: RouteObject = {
       path: 'contact',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <ContactPage />
+          <GatedContactPage />
         </Suspense>
       )
     },
