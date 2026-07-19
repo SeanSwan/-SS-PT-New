@@ -27,8 +27,19 @@ class GateBoundary extends React.Component<{ children: React.ReactNode }, { fail
   }
 }
 
+// Self-contained outer band so the host can mount `<PrismCapture />` bare: when the flag is off the component
+// returns null and NOTHING renders (no empty padded band). When on, this centers + spaces the card into the page.
+const Band = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 48px) clamp(16px, 5vw, 32px);
+`;
+
 const Shell = styled.section`
   position: relative;
+  width: 100%;
+  max-width: 620px;
   overflow: hidden;
   border-radius: var(--prism-r);
   padding: clamp(20px, 4vw, 32px);
@@ -119,7 +130,7 @@ function PrismCaptureInner() {
   return (
     <>
       <PrismCaptureTokens />
-      <div className="prism-capture">
+      <Band className="prism-capture">
         <Shell aria-labelledby="prism-headline">
           <PrismSpectrum active={active} animate={!reduced} />
           <Inner>
@@ -143,7 +154,7 @@ function PrismCaptureInner() {
             )}
           </Inner>
         </Shell>
-      </div>
+      </Band>
     </>
   );
 }
