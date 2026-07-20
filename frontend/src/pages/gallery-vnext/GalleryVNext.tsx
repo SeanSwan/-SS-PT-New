@@ -3,7 +3,7 @@
  * `[data-style-lens-shell]` exists for the gate's contract probe), then the `.gallery-vnext-shell` token scope.
  *
  * DESIGN-ONLY: it binds the real money path (`/api/gallery/*` via the vNext hooks) and NEVER redesigns it.
- * The detail/lightbox and every money modal are REUSED bind-only from `pages/gallery/*` (Sean's scope call).
+ * The detail/lightbox and the money modals are REUSED bind-only from `pages/gallery/*` (Sean's scope call).
  *
  * Kimi's IA: photos-first. The gate is the SETUP for the reveal — on successful unlock the shipped
  * Crystallize fires ONCE (LAW 5: consume `useCrystallizeTransition`/`CrystallizeOverlay`, never re-time it),
@@ -11,7 +11,6 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import PhotoDetailModal from '../gallery/PhotoDetailModal';
 import { CheckoutToast } from './CheckoutToast';
 import { CreditPill } from './CreditPill';
@@ -25,105 +24,22 @@ import { useGalleryCredits } from './useGalleryCredits';
 import { useGallerySession } from './useGallerySession';
 import { useGalleryToast } from './useGalleryToast';
 import { useGalleryVotes } from './useGalleryVotes';
+import {
+  Content,
+  EventCard,
+  EventList,
+  EventMeta,
+  EventName,
+  GateWrap,
+  Masthead,
+  Shell,
+  State,
+  Sub,
+  Title,
+  UpgradeBtn,
+  UpgradePanel,
+} from './GalleryVNext.styles';
 import type { CreditPackage, GalleryEventSummary, GalleryPhoto } from './gallery.types';
-
-const Shell = styled.main`
-  min-height: 100dvh;
-  background: var(--gallery-bg);
-  color: var(--gallery-ink);
-  padding: 0 var(--gallery-pad, 16px) 96px;
-`;
-
-const Content = styled.div`
-  max-width: 1600px;
-  margin: 0 auto;
-`;
-
-const Masthead = styled.header`
-  padding: 40px 0 24px;
-`;
-
-const Title = styled.h1`
-  margin: 0 0 8px;
-  font-family: var(--gallery-font-display);
-  font-size: clamp(1.7rem, 4vw, 2.6rem);
-  line-height: 1.1;
-`;
-
-const Sub = styled.p`
-  margin: 0;
-  color: var(--gallery-ink-2);
-  max-width: 60ch;
-`;
-
-const EventList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-`;
-
-const EventCard = styled.button`
-  position: relative;
-  min-height: 148px;
-  padding: 16px;
-  text-align: left;
-  border-radius: var(--gallery-r-card, 12px);
-  border: 1px solid var(--gallery-chrome-edge);
-  background: var(--gallery-surface-1);
-  color: var(--gallery-ink);
-  cursor: pointer;
-  box-shadow: var(--gallery-elev-1);
-`;
-
-const EventName = styled.span`
-  display: block;
-  font-weight: 600;
-  margin-bottom: 4px;
-`;
-
-const EventMeta = styled.span`
-  display: block;
-  color: var(--gallery-ink-2);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-`;
-
-const GateWrap = styled.div`
-  display: flex;
-  justify-content: center;
-  padding: 32px 0 48px;
-`;
-
-const State = styled.p`
-  margin: 12vh auto;
-  text-align: center;
-  color: var(--gallery-ink-2);
-`;
-
-const UpgradePanel = styled.div`
-  position: fixed;
-  inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto;
-  z-index: var(--gallery-z-overlay, 50);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: var(--gallery-r-card, 12px);
-  background: var(--gallery-surface-1);
-  border: 1px solid var(--gallery-chrome-edge);
-  box-shadow: var(--gallery-elev-3);
-`;
-
-const UpgradeBtn = styled.button`
-  min-height: var(--gallery-target, 48px);
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--gallery-line);
-  background: var(--gallery-surface-2);
-  color: var(--gallery-ink);
-  cursor: pointer;
-  font-size: 0.92rem;
-`;
 
 const PACKAGES: Array<{ key: CreditPackage; label: string }> = [
   { key: 'single', label: 'Single enhancement' },
@@ -151,10 +67,7 @@ export default function GalleryVNext() {
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 0;
-      setContainerWidth(w);
-    });
+    const ro = new ResizeObserver((entries) => setContainerWidth(entries[0]?.contentRect.width ?? 0));
     ro.observe(el);
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -192,12 +105,26 @@ export default function GalleryVNext() {
     [session.photos],
   );
 
+  const handleEnhance = useCallback(
+    (photoId: number) => {
+      void credits.enhance([photoId]).then((outcome) => {
+        if (outcome === 'credits_required') setShowUpgrade(true);
+      });
+    },
+    [credits],
+  );
+
+  const handleDownload = useCallback(
+    (photoId: number) => {
+      const target = session.photos.find((p) => p.id === photoId);
+      if (target && session.galleryToken) void downloadPhoto(session.galleryToken, target);
+    },
+    [session.photos, session.galleryToken],
+  );
+
   const activePhoto = lightboxIndex !== null ? session.photos[lightboxIndex] ?? null : null;
   const gated = Boolean(session.galleryToken);
-  const heading = useMemo(
-    () => session.selectedEvent?.name ?? 'Photography',
-    [session.selectedEvent],
-  );
+  const heading = useMemo(() => session.selectedEvent?.name ?? 'Photography', [session.selectedEvent]);
 
   return (
     <GalleryLensFrame>
@@ -215,9 +142,7 @@ export default function GalleryVNext() {
             </Masthead>
 
             {session.error && !session.loading && <State role="alert">{session.error}</State>}
-
             {!slug && session.loading && <State>Loading galleries…</State>}
-
             {!slug && !session.loading && session.events.length === 0 && !session.error && (
               <State>No galleries are published yet. Check back soon.</State>
             )}
@@ -305,15 +230,8 @@ export default function GalleryVNext() {
           onNext={() =>
             setLightboxIndex((i) => (i !== null && i < session.photos.length - 1 ? i + 1 : i))
           }
-          onDownloadOriginal={(photoId: number) => {
-            const target = session.photos.find((p) => p.id === photoId);
-            if (target && session.galleryToken) void downloadPhoto(session.galleryToken, target);
-          }}
-          onRequestEnhancement={(photoId: number) => {
-            void credits.enhance([photoId]).then((outcome) => {
-              if (outcome === 'credits_required') setShowUpgrade(true);
-            });
-          }}
+          onDownloadOriginal={handleDownload}
+          onRequestEnhancement={handleEnhance}
           onVote={votes.vote}
           onUpgrade={() => setShowUpgrade(true)}
           downloadUrl={activePhoto?.url ?? ''}
