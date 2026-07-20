@@ -22,12 +22,17 @@ export const GalleryVNextTokens = createGlobalStyle`
     --gallery-ink: var(--world-text);
     --gallery-ink-2: var(--world-muted);
 
-    /* accents: ice = accent, wing = action, gold = local literal (LAW 2 allowlist only) */
+    /* accents: ice = accent, wing = action, gold = local literal (LAW 2 allowlist only).
+       SANCTIONED THIRD BUTTON VARIANT (Kimi c1 ruling 2026-07-20): the hero primary is a "surface" variant —
+       panel-surface background + wing-purple glow (resting 14px, hover 28px). Documented here so it is a
+       deliberate variant, not silent glow-law drift. */
     --gallery-ice: var(--world-accent);
     --gallery-ice-soft: color-mix(in oklab, var(--world-accent) 18%, transparent);
     --gallery-wing: var(--world-action, var(--world-accent));
     --gallery-wing-22: color-mix(in oklab, var(--world-action, var(--world-accent)) 22%, transparent);
-    --gallery-gold: #C6A84B;          /* gallery-local luxury literal — the ONLY brand hex; reveal facet + focus */
+    /* Kimi ruling 2026-07-20: gold is RESERVED for Phase-2 PR/reveal moments only — do NOT consume elsewhere
+       (not the focus ring: ice stays the focus color; gold focus would read as a warning state). */
+    --gallery-gold: #C6A84B;
     --gallery-gold-28: color-mix(in oklab, #C6A84B 28%, transparent);
 
     /* chrome edge (crystal card border) ← derived from accent, zero invention */

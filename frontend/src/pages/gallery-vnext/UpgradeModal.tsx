@@ -64,7 +64,8 @@ const PriceCard = styled.button<{ $highlighted?: boolean }>`
   background: var(--gallery-surface-2);
   color: var(--gallery-ink);
   cursor: pointer;
-  box-shadow: ${(p) => (p.$highlighted ? '0 0 18px var(--gallery-ice-soft)' : 'none')};
+  /* Kimi b4: the ice border alone reads "recommended" — glow trimmed so it never competes with the CTA */
+  box-shadow: ${(p) => (p.$highlighted ? '0 0 8px var(--gallery-ice-soft)' : 'none')};
   &:disabled { opacity: 0.65; cursor: progress; }
 `;
 

@@ -36,6 +36,15 @@ console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOve
 | 10 | Design Skill redo | KIMI-DESIGN-SKILL-REDO | ✅ reviewed | ✅ ADOPTED (laws + 6 refinements, ideation-gate preserved) | — | ✅ swan-design-router/SKILL.md (Sean-confirmed, .pre-redo backup) |
 | 11 | Design Brain enhance | KIMI-DESIGN-BRAIN-ENHANCED | ✅ reviewed | ✅ ADOPTED (Crystalline Canon + consumer/emitter refinement) | — | ✅ design-brain/design.md (Sean-confirmed, .pre-redo backup) |
 
+## Gallery flag-ON QA — Kimi's BINDING veto probes (run before GALLERY_VNEXT_ENABLED=true; fail on 1/2/5 = veto)
+1. 320px + 3840px justified rows: no sliver tiles, 1600px cap holds, zero horizontal scroll at 320/375/414/768/1024/1440/2560/3840.
+2. Scrim AA probe: brightest (white/snow-dominant) cover; name/date/badge contrast ≥4.5:1 at 375 + 1440; fail → deepen scrim to `.72 → .45 55% → transparent 85%`.
+3. Checkout-return stack at 320px: toast + credit pill + safe-area — no overlap, both reachable one-handed.
+4. Gate form with a password manager installed: no autofill UI hijacks the email field (`current-password` verified NON-orphaned — real event-password field exists).
+5. Reduced-motion ON: full unlock flow static (hero sheen gone, crystallize instant, tile crossfades clamped, no card hover motion).
+6. Keyboard-only: events → gate → photos → lightbox → upgrade modal; visible focus ring every stop; Esc/backdrop correct; focus returns to trigger.
+(Source: KIMI build review 2026-07-20, verdict SHIP-WITH-CHANGES — all 6 fixes applied same day.)
+
 ## Cross-cutting DEFERRED (need Sean/Lane-A rulings; do not block surfaces)
 - Lane-A wiring of the lens (Crystallize into Apply handler; viewport/surface CSS mounts; motion licences).
 - Chart Charter multi-series `--world-data-*` tokens; `--world-z-*` promotion.

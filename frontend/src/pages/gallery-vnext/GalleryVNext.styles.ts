@@ -4,6 +4,7 @@
  * contains ZERO raw hex (CI-enforced by check-token-discipline).
  */
 import styled from 'styled-components';
+import { EventCover } from './GalleryVNext.chrome.styles';
 
 export const Shell = styled.main`
   min-height: 100dvh;
@@ -47,16 +48,15 @@ export const EventCard = styled.button`
   color: var(--gallery-ink);
   cursor: pointer;
   box-shadow: var(--gallery-elev-1);
-  transition: transform 180ms var(--gallery-ease-standard), box-shadow 180ms var(--gallery-ease-standard);
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--gallery-elev-2);
+  /* Kimi b3: the chrome stays STILL; the photograph breathes inside its frame (scale-in-frame, transform-only).
+     translateY+shadow-lift was the template-tell — removed. */
+  &:hover ${EventCover}, &:focus-visible ${EventCover} {
+    transform: scale(1.03);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover { transform: none; }
+    &:hover ${EventCover}, &:focus-visible ${EventCover} { transform: none; }
   }
 `;
 

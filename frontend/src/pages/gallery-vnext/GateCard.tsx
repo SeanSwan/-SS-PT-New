@@ -154,7 +154,7 @@ export function GateCard({ eventName, loading, error, onSubmit, onBack }: GateCa
   return (
     <Card className="gallery-gate-card">
       <Title>{eventName ? `Unlock ${eventName}` : 'Unlock the gallery'}</Title>
-      <Sub>Add your email and the photos crystallize into view. We will send your download link too.</Sub>
+      <Sub>Add your email and the photos crystallize into view. Your download link arrives by email.</Sub>
 
       <form onSubmit={handleSubmit} noValidate>
         <Field>

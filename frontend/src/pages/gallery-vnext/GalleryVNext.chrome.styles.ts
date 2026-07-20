@@ -45,7 +45,8 @@ export const HeroActions = styled.div`
   margin-top: 10px;
 `;
 
-/** The ONLY primary on the events surface (LAW 7: blue surface → wing-purple glow). */
+/** The ONLY primary on the events surface — the sanctioned "surface" variant (see gallery.tokens.ts).
+ *  Kimi b2: resting glow is quiet (14px); the 28px bloom is EARNED on hover/focus, never resting. */
 export const HeroPrimary = styled.button`
   min-height: var(--gallery-target, 48px);
   padding: 0 22px;
@@ -56,9 +57,45 @@ export const HeroPrimary = styled.button`
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 0 0 1px var(--gallery-chrome-edge), 0 8px 28px var(--gallery-wing-22);
-  transition: transform 160ms var(--gallery-ease-standard);
-  &:hover { transform: translateY(-1px); }
+  box-shadow: 0 0 0 1px var(--gallery-chrome-edge), 0 4px 14px var(--gallery-wing-22);
+  transition: transform 160ms var(--gallery-ease-standard), box-shadow 160ms var(--gallery-ease-standard);
+  &:hover, &:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px var(--gallery-chrome-edge), 0 8px 28px var(--gallery-wing-22);
+  }
+`;
+
+/** Kimi (d): the ONE brand beat on the pre-gate hero — a crystalline refraction on a single h1 word.
+ *  Static ice→wing gradient clip on the word; an aria-hidden overlay duplicate carries a brighter clip whose
+ *  OPACITY oscillates (6s) — no background-position animation (banned), transform/opacity only.
+ *  Reduced-motion: the sheen is removed entirely; the static gradient word remains. */
+export const ShimmerWord = styled.span`
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(100deg, var(--gallery-ice), var(--gallery-wing), var(--gallery-ice));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  .sheen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, var(--gallery-ink) 50%, transparent 70%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    opacity: 0;
+    animation: gallery-sheen 6s var(--gallery-ease-standard) infinite;
+  }
+
+  @keyframes gallery-sheen {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.55; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheen { animation: none; opacity: 0; }
+  }
 `;
 
 export const HeroSecondary = styled.a`
@@ -84,6 +121,12 @@ export const EventCover = styled.div<{ $src: string | null }>`
   background-size: cover;
   background-position: center;
   overflow: hidden;
+  /* Kimi b3: on hover the PHOTOGRAPH breathes inside its still frame (scale-in-frame), the chrome never moves */
+  transition: transform 300ms var(--gallery-ease-standard);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   /* text-over-imagery scrim (Kimi b8) so the badges hold AA over any photograph */
   &::after {

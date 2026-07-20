@@ -16,6 +16,7 @@ import {
   HeroPrimary,
   HeroSecondary,
   HeroSub,
+  ShimmerWord,
   SkeletonRow,
   SkeletonTile,
 } from './GalleryVNext.chrome.styles';
@@ -40,10 +41,18 @@ export function EventsView({ events, loading, error, onOpenEvent, onRetry }: Eve
     <>
       <Hero aria-label="SwanStudios Photography">
         <HeroEyebrow>SwanStudios Photography</HeroEyebrow>
-        <HeroHeadline>Every moment, immortalized.</HeroHeadline>
+        <HeroHeadline>
+          Every moment,{' '}
+          <ShimmerWord>
+            immortalized
+            <span className="sheen" aria-hidden="true">
+              immortalized
+            </span>
+          </ShimmerWord>
+          .
+        </HeroHeadline>
         <HeroSub>
-          Premium photography for life&apos;s defining moments — events, portraits, fitness
-          transformations, and everything in between. Preserved securely in the SwanStudios vault.
+          Competition, portrait, and transformation photography — preserved in the SwanStudios vault.
         </HeroSub>
         <HeroActions>
           <HeroPrimary
