@@ -38,14 +38,27 @@ const findLook = (id: string) => WORKOUT_DESIGN_STYLE_LENSES.find((lens) => lens
 
 const CrownHeader: React.FC = () => {
   const auth = useAuth();
-  const { state, beginPreview, cancelPreview, commitPreview } = useStyleLensAppearance();
+  const { state, registry, beginPreview, cancelPreview, commitPreview } =
+    useStyleLensAppearance();
   const committedId = state.committed.styleLensId;
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{ message: string; token: number } | null>(null);
 
+  // Fresh users commit nothing — committedId is the runtime-only
+  // 'default-safety' (NOT in the catalog). Synthesize their committed card
+  // from the registry so the WORN badge + a REAL name always exist (R2-1).
+  const committedManifest = useMemo(
+    () => findLook(committedId) ?? registry?.resolve?.(committedId) ?? null,
+    [committedId, registry],
+  );
   const activeId = previewId ?? committedId;
-  const activeLook = findLook(activeId) ?? findLook(committedId);
-  const looks = useMemo(() => orderedLooks(committedId), [committedId]);
+  const activeLook = findLook(activeId) ?? committedManifest;
+  const looks = useMemo(() => {
+    const catalog = orderedLooks(committedId);
+    return findLook(committedId) || !committedManifest
+      ? catalog
+      : [committedManifest, ...catalog];
+  }, [committedId, committedManifest]);
   const visual = SWAN_STYLE_LENS_VISUALS[activeId];
   const v2Entry = V2_RECIPE_BY_CATALOG_ID[activeId];
 
@@ -53,17 +66,18 @@ const CrownHeader: React.FC = () => {
   useEffect(() => () => cancelPreview(), [cancelPreview]);
 
   const previewLook = (id: string) => {
-    if (id === activeId) return;
-    setPreviewId(id === committedId ? null : id);
-    if (id !== committedId) {
-      beginPreview({
-        ...state.committed,
-        styleLensId: id,
-        updatedAt: new Date().toISOString(),
-      });
-    } else {
+    // Tap the previewed card AGAIN (or the committed card) = dismiss (R2-1).
+    if ((previewId && id === previewId) || id === committedId) {
+      setPreviewId(null);
       cancelPreview();
+      return;
     }
+    setPreviewId(id);
+    beginPreview({
+      ...state.committed,
+      styleLensId: id,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   const wearLook = async () => {
@@ -91,7 +105,9 @@ const CrownHeader: React.FC = () => {
           <Kicker>YOUR LOOK</Kicker>
           {!auth?.user ? <SignInLine>Sign in to keep your look on every device.</SignInLine> : null}
         </CrownTopRow>
-        <LookName>{activeLook?.name ?? 'Swan Flagship'}</LookName>
+        {/* Name always comes from a REAL manifest (catalog or registry) —
+            never invented copy (R2-1); raw id is the honest last resort. */}
+        <LookName>{activeLook?.name ?? activeId}</LookName>
         <LookDescription>{activeLook?.description ?? ''}</LookDescription>
         <LooksCarousel
           looks={looks}

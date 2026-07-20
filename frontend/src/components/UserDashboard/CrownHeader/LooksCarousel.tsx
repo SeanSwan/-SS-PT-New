@@ -11,6 +11,7 @@ import React, { useRef } from 'react';
 import type { StyleLensManifest } from '../../../core/style-lens-os';
 import { SWAN_STYLE_LENS_VISUALS } from '../../../adapters/style-lens-swan';
 import { V2_RECIPE_BY_CATALOG_ID } from '../../../adapters/style-lens-swan/v2/catalogV2Map';
+import { LensDot } from '../../DashBoard/Pages/workout-design-lab/WorkoutDesignLabAtmosphere.styles';
 import {
   ArrowButton,
   CardMetaRow,
@@ -60,6 +61,11 @@ const LooksCarousel: React.FC<LooksCarouselProps> = ({
                 onClick={() => onPreview(look.id)}
               >
                 <CardMetaRow>
+                  <LensDot
+                    aria-hidden="true"
+                    $canvas={visual?.backgroundFallback ?? '#0A0A0F'}
+                    $accent={visual?.accentFallback ?? '#60C0F0'}
+                  />
                   {look.id === committedId ? <WornBadge>WORN</WornBadge> : null}
                   {look.emotionalJob}
                   {V2_RECIPE_BY_CATALOG_ID[look.id] ? <V2Tag>v2</V2Tag> : null}

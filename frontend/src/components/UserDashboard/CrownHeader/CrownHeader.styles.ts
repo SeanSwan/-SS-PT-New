@@ -16,7 +16,7 @@ export const CrownShell = styled.section`
   border-radius: 20px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   background: var(--bg-elevated, #141419);
-  min-height: clamp(148px, 24vh, 260px);
+  min-height: clamp(180px, 24vh, 260px); /* desktop clamp per 02-wireframes §2 */
   @media (max-width: 1023px) { min-height: clamp(148px, 26vh, 220px); }
   @media (max-height: 700px) { min-height: 148px; }
 `;

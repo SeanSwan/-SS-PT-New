@@ -55,4 +55,15 @@ describe('serverAppearanceSync', () => {
     (apiService.put as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('offline'));
     await expect(pushProfile(PROFILE)).resolves.toBe(false);
   });
+
+  it('R2-2 poison guard: pushProfile sends the picked 6-key projection — stray keys never reach the strict server', async () => {
+    (apiService.put as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { success: true } });
+    const poisoned = { ...PROFILE, legacyJunk: 'boom' } as typeof PROFILE;
+    await expect(pushProfile(poisoned)).resolves.toBe(true);
+    const [, body] = (apiService.put as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect(Object.keys(body.profile).sort()).toEqual([
+      'density', 'motionMode', 'paletteThemeId', 'profileSchemaVersion', 'styleLensId', 'updatedAt',
+    ]);
+    expect(body.profile).not.toHaveProperty('legacyJunk');
+  });
 });

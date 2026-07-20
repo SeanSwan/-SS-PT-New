@@ -37,7 +37,19 @@ vi.mock('../../../core/style-lens-os', async (importOriginal) => {
       commitPreview,
       setPersistenceSuppressed: vi.fn(),
       persistenceSuppressed: false,
-      registry: { available: vi.fn(), get: vi.fn(), resolve: vi.fn(), issues: vi.fn() },
+      // Mirrors the real registry: resolve() NEVER returns undefined — unknown
+      // ids resolve to the default-safety manifest (fail-closed).
+      registry: {
+        available: vi.fn(),
+        get: vi.fn(),
+        issues: vi.fn(),
+        resolve: (id: string) => ({
+          id: id === 'default-safety' ? 'default-safety' : 'default-safety',
+          name: 'Crystalline Default',
+          description: 'The always-safe Crystalline Swan baseline.',
+          emotionalJob: 'calm baseline',
+        }),
+      },
     }),
   };
 });
@@ -126,6 +138,41 @@ describe('CrownHeader (F2)', () => {
     render(<CrownHeader />);
     expect(screen.getByText('Sign in to keep your look on every device.')).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Looks carousel' })).toBeTruthy();
+  });
+
+  it('R2-1 fresh-user state (default-safety): WORN card synthesized from the registry, real name, no invented copy', () => {
+    mockAppearance.committedId = 'default-safety';
+    render(<CrownHeader />);
+    // Band shows the REGISTRY name — never the invented 'Swan Flagship'.
+    expect(screen.getByRole('heading', { name: 'Crystalline Default' })).toBeTruthy();
+    expect(screen.queryByText('Swan Flagship')).toBeNull();
+    const carousel = screen.getByRole('list', { name: 'Looks carousel' });
+    const first = within(carousel).getAllByRole('button')[0];
+    expect(first.getAttribute('data-look-id')).toBe('default-safety');
+    expect(within(first).getByText('WORN')).toBeTruthy();
+  });
+
+  it('R2-1 tap-again dismisses the preview (frame returns to committed, preview canceled)', () => {
+    const { container } = render(<CrownHeader />);
+    const frame = () =>
+      container.querySelector('[data-crown-frame] [data-scoped-lens-frame]') as HTMLElement;
+    fireEvent.click(screen.getByRole('button', { name: /Candy Glass Arcade/ }));
+    expect(frame().getAttribute('data-style-lens')).toBe('candy-glass-arcade');
+    fireEvent.click(screen.getByRole('button', { name: /Candy Glass Arcade/ }));
+    expect(frame().getAttribute('data-style-lens')).toBe('quiet-meridian');
+    expect(cancelPreview).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Wear this' })).toBeNull();
+  });
+
+  it('R2-6 source contract: CrownHeader renders BEFORE the tab bar inside the V3 home branch', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const v3 = readFileSync(resolve(__dirname, '../UserDashboard.V3.tsx'), 'utf8');
+    const crownIndex = v3.indexOf('<CrownHeader />');
+    const tabBarIndex = v3.indexOf('<UserDashboardTabBarV3');
+    expect(crownIndex).toBeGreaterThan(-1);
+    expect(tabBarIndex).toBeGreaterThan(-1);
+    expect(crownIndex).toBeLessThan(tabBarIndex);
   });
 
   it('unmount cancels any in-flight preview (never leaks a staged preview)', () => {
