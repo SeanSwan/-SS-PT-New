@@ -54,9 +54,13 @@ export const theme = {
    */
   colors: {
     brand: {
-      cyan: '#60c0f0',    // Ice Wing — gaming/data accent
-      purple: '#8b5cf6',  // Wing Purple — primary glow/interactive accent
-      gradient: 'linear-gradient(135deg, #8b5cf6, #60c0f0)' // Cosmic Nebula gradient (purple → cyan)
+      /* Theme-aware bridge (2026-07-20): brand/glow/primary-text express as
+         var(--token, #previous-hex) so importers re-skin with the 18-theme runtime
+         (the static palette was invisible to the Appearance Studio — PREREQ-SLICE
+         2026-07-16 §2.2). Fallbacks keep the exact prior value when vars are absent. */
+      cyan: 'var(--accent-primary, #60c0f0)',    // Ice Wing — gaming/data accent
+      purple: 'var(--accent-secondary, #8b5cf6)',  // Wing Purple — primary glow/interactive accent
+      gradient: 'linear-gradient(135deg, var(--accent-secondary, #8b5cf6), var(--accent-primary, #60c0f0))' // Cosmic Nebula gradient (purple → cyan)
     },
     surface: {
       midnightSapphire: '#002060', // Primary surfaces
@@ -64,10 +68,10 @@ export const theme = {
       abyssalNavy: '#001840',      // WCAG-compliant dark backgrounds
     },
     glow: {
-      primary: '#8b5cf6',   // Wing Purple — glow on blue buttons, focus rings, active nav
-      cyan: '#60c0f0',      // Ice Wing Cyan — glow on purple buttons, XP bars, gaming accents
-      secondary: '#50a0f0', // Arctic Cyan — charts, data viz, cold metrics only
-      luxury: '#c6a84b',    // Gilded Fern — gold borders, luxury accents
+      primary: 'var(--accent-secondary, #8b5cf6)',   // Wing Purple — glow on blue buttons, focus rings, active nav
+      cyan: 'var(--accent-primary, #60c0f0)',      // Ice Wing Cyan — glow on purple buttons, XP bars, gaming accents
+      secondary: '#50a0f0', // Arctic Cyan — charts, data viz, cold metrics only (data-only law: stays static)
+      luxury: 'var(--accent-gold, #c6a84b)',    // Gilded Fern — gold borders, luxury accents
     },
     semantic: {
       success: '#22c55e', // Green - success states
@@ -84,7 +88,7 @@ export const theme = {
       blocked: '#f59e0b'     // Orange - time blocked
     },
     text: {
-      primary: '#ffffff',                  // White - main text
+      primary: 'var(--text-primary, #ffffff)', // Runtime text token (falls back to white)
       secondary: 'rgba(255, 255, 255, 0.7)', // 70% white - secondary text
       disabled: 'rgba(255, 255, 255, 0.5)',  // 50% white - disabled text
       frost: '#e0ecf4',                      // Frost White — headings, emphasis
