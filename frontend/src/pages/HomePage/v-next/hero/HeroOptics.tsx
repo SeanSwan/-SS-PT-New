@@ -15,6 +15,7 @@ import { useAnimationTier } from '../../../../hooks/useAnimationTier';
 import { useCrystallizeTransition, CrystallizeOverlay } from '../lensBindings';
 import { Facets } from './Facets.svg';
 import { OpticsCanvas } from './OpticsCanvas';
+import { VIDEO } from '../../../../config/videoAssets';
 
 const HEADLINE = 'Health First. Community Always.'; // FROZEN copy
 
@@ -26,6 +27,66 @@ const Section = styled.section`
   overflow: hidden;
   padding: clamp(48px, 10vh, 120px) var(--home-pad, 24px);
   background: radial-gradient(120% 100% at 50% 0%, var(--home-facet-lo), var(--home-bg) 70%);
+`;
+// Swan video (back-most). Dimmed so the frozen headline stays legible; the caustic canvas + crystal sit over it.
+const VideoLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.52) saturate(1.06);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--home-bg) 28%, transparent),
+      color-mix(in oklab, var(--home-bg) 60%, transparent)
+    );
+  }
+`;
+// Reduced-motion / essential tier: a dimmed swan still instead of an autoplaying video (no motion, no fetch).
+const PosterLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/images/parallax/hero-swan-bg.png') center / cover no-repeat, var(--home-bg);
+  filter: brightness(0.52);
+`;
+// The caustic canvas is now dimmed so the Swan video reads through it (Sean: "more transparent, see the video").
+const CanvasWrap = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.5;
+  pointer-events: none;
+`;
+// The giant Swan mark that RESOLVES in after the crystal aligns (the "form the crystal became").
+// mix-blend-mode: screen drops the logo's dark disc out over the video, leaving the luminous swan floating.
+// Above the scrim (z-index 2) so the swan glows over the DARKENED center — screen-blend over a dark
+// backdrop shows the swan's true luminous colours instead of washing out against the bright video.
+const SwanLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate3d(var(--hero-px, 0px), var(--hero-py, 0px), 0);
+  transition: transform 260ms var(--home-ease-standard);
+`;
+const SwanMark = styled(motion.img)`
+  width: min(54vmin, 440px);
+  height: auto;
+  mix-blend-mode: screen;
+  filter: brightness(1.18) contrast(1.05) drop-shadow(0 0 46px var(--home-ice-soft))
+    drop-shadow(0 0 96px var(--home-wing-24));
 `;
 const FacetLayer = styled.div`
   position: absolute;
@@ -66,12 +127,14 @@ const Headline = styled(motion.h1)`
   letter-spacing: -0.01em;
   color: var(--home-ink);
   text-wrap: balance;
+  text-shadow: 0 2px 30px var(--home-bg), 0 1px 6px var(--home-bg); /* readable over the luminous swan */
 `;
 const Sub = styled.p`
   margin: 0;
   font-size: clamp(15px, 2.4vw, 19px);
   color: var(--home-ink-2);
   max-width: 54ch;
+  text-shadow: 0 1px 16px var(--home-bg), 0 1px 4px var(--home-bg); /* readable over the swan's bright wing */
 `;
 const CtaRow = styled.div`
   display: flex;
@@ -117,7 +180,6 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
   const active = tier !== 'essential' && !prefersReduced;
 
   const hostRef = useRef<HTMLElement>(null);
-  const facetLayerRef = useRef<HTMLDivElement>(null);
   const [charged, setCharged] = useState(!active); // reduced/essential → start already resolved (static frame)
   const [ignited, setIgnited] = useState(!active);
   const fired = useRef(false);
@@ -128,13 +190,14 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (e.pointerType !== 'mouse' || !active) return;
-      const r = hostRef.current?.getBoundingClientRect();
-      const layer = facetLayerRef.current;
-      if (!r || !layer) return;
+      const host = hostRef.current;
+      if (!host) return;
+      const r = host.getBoundingClientRect();
       const dx = ((e.clientX - r.left) / r.width - 0.5) * 16;
       const dy = ((e.clientY - r.top) / r.height - 0.5) * 16;
-      layer.style.setProperty('--hero-px', `${dx.toFixed(1)}px`);
-      layer.style.setProperty('--hero-py', `${dy.toFixed(1)}px`);
+      // set on the host so BOTH the crystal and the swan mark refract together (inherited CSS vars)
+      host.style.setProperty('--hero-px', `${dx.toFixed(1)}px`);
+      host.style.setProperty('--hero-py', `${dy.toFixed(1)}px`);
     },
     [active],
   );
@@ -160,11 +223,32 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
 
   return (
     <Section ref={hostRef} onPointerMove={onPointerMove} data-testid="home-hero-optics">
-      <OpticsCanvas hostRef={hostRef} active={active && charged} />
-      <FacetLayer ref={facetLayerRef}>
+      {active ? (
+        <VideoLayer aria-hidden="true">
+          <video autoPlay muted loop playsInline preload="auto" poster="/images/parallax/hero-swan-bg.png">
+            <source src={VIDEO.swan} type="video/mp4" />
+          </video>
+        </VideoLayer>
+      ) : (
+        <PosterLayer aria-hidden="true" />
+      )}
+      <CanvasWrap>
+        <OpticsCanvas hostRef={hostRef} active={active && charged} />
+      </CanvasWrap>
+      <FacetLayer>
         <Facets state={charged ? 'aligned' : 'scattered'} animateIn={active} />
       </FacetLayer>
       <Scrim />
+      <SwanLayer>
+        <SwanMark
+          src="/Logo.png"
+          alt=""
+          aria-hidden="true"
+          initial={active ? { opacity: 0, scale: 0.92 } : false}
+          animate={charged ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.92 }}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.95 }}
+        />
+      </SwanLayer>
       <Content>
         <Headline
           initial={active ? { opacity: 0, filter: 'blur(8px)' } : false}
