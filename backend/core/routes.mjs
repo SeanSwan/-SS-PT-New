@@ -23,6 +23,7 @@ import profileRoutes from '../routes/profileRoutes.mjs';
 import appearanceProfileRoutes from '../routes/appearanceProfileRoutes.mjs';
 import healthRoutes from '../routes/healthRoutes.mjs';
 import publicConfigRoutes from '../routes/publicConfigRoutes.mjs';
+import adminFlagRoutes from '../routes/adminFlagRoutes.mjs';
 import crystallizeRoutes from '../routes/crystallizeRoutes.mjs';
 import dashboardV2Routes from '../routes/dashboardV2Routes.mjs';
 import userRoutes from '../routes/userRoutes.mjs';
@@ -451,6 +452,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/creators', creatorEconomyRoutes);
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
+  app.use('/api/admin/flags', adminFlagRoutes); // Launch Control (admin-only; self-gates protect+authorize)
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', adminDebugRoutes);
 

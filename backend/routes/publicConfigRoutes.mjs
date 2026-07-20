@@ -1,30 +1,39 @@
 /**
- * publicConfigRoutes — Dashboards v2 (Slice-3) public feature flags (KIMI-DASHBOARDS §6.2).
+ * publicConfigRoutes — public feature flags (KIMI-DASHBOARDS §6.2) + Launch Control overlay.
  *
  * GET /api/config/public-flags → { dashboardV2, dashboardV2Finance, storeV4, homeVNext, aboutVNext,
- * videoVNext, contactVNext, galleryVNext, prismCapture } (one boolean per flag-gated surface). Unauthenticated, non-sensitive
- * (only booleans), fail-closed defaults (env unset → false). The client uses these to hide UI; the
- * finance flag is ALSO enforced server-side in the summary controller (this is not the security gate).
+ * videoVNext, contactVNext, galleryVNext, prismCapture } (one boolean per flag-gated surface). Unauthenticated,
+ * non-sensitive (only booleans), fail-closed defaults (env unset → false). The client uses these to hide UI;
+ * the finance flag is ALSO enforced server-side in the summary controller (this is not the security gate).
+ *
+ * The env values below are the BASELINE. Launch Control (admin) overlays runtime overrides from the
+ * `flag_overrides` table so a surface can be flipped with no redeploy. `overlayOverrides` NEVER throws and
+ * returns the exact env baseline when there is no override / the DB is unreachable — so this endpoint behaves
+ * identically to before until an admin writes an override.
+ *
+ * POST /api/config/flag-health → append-only fail-closed telemetry from each surface Gate's ErrorBoundary.
  */
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { envBaseline, overlayOverrides, recordHealth } from '../services/launchControlService.mjs';
 
 const router = express.Router();
 
-const isTrue = (value) => value === 'true' || value === '1';
+router.get('/public-flags', async (req, res) => {
+  // 30s so an admin flip propagates quickly; the DB overlay is a tiny indexed read and fails safe.
+  res.set('Cache-Control', 'public, max-age=30');
+  const flags = await overlayOverrides(envBaseline(), req.user);
+  res.json(flags);
+});
 
-router.get('/public-flags', (_req, res) => {
-  res.set('Cache-Control', 'public, max-age=60');
-  res.json({
-    dashboardV2: isTrue(process.env.DASHBOARD_V2_ENABLED),
-    dashboardV2Finance: isTrue(process.env.DASHBOARD_V2_FINANCE),
-    storeV4: isTrue(process.env.STORE_V4_ENABLED),
-    homeVNext: isTrue(process.env.HOME_VNEXT_ENABLED),
-    aboutVNext: isTrue(process.env.ABOUT_VNEXT_ENABLED),
-    videoVNext: isTrue(process.env.VIDEO_VNEXT_ENABLED),
-    contactVNext: isTrue(process.env.CONTACT_VNEXT_ENABLED),
-    galleryVNext: isTrue(process.env.GALLERY_VNEXT_ENABLED),
-    prismCapture: isTrue(process.env.PRISM_CAPTURE_ENABLED), // PRISM: public email-only speed-to-lead capture
-  });
+// Fail-closed telemetry: a surface Gate that falls back to its old page POSTs here (public, best-effort).
+const healthLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+router.post('/flag-health', healthLimiter, async (req, res) => {
+  const { flag, surface, err } = req.body || {};
+  if (typeof flag === 'string' && flag.length > 0 && flag.length < 80) {
+    void recordHealth(flag, surface, err, req.get('user-agent'));
+  }
+  res.status(204).end(); // never blocks the client
 });
 
 export default router;
