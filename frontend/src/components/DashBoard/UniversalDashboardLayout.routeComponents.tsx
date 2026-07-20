@@ -24,6 +24,7 @@ export const AdminClientProgressView = React.lazy(() => import('./Pages/admin-cl
 export const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'));
 export const AdminCreateSpecialManager = React.lazy(() => import('./Pages/admin-specials/AdminCreateSpecialManager'));
 export const AdminAccountAccessPage = React.lazy(() => import('./Pages/admin-account-access/AdminAccountAccessPage'));
+export const LaunchControlPage = React.lazy(() => import('./Pages/admin-launch-control/LaunchControlPage'));
 export const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
 export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
 export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));

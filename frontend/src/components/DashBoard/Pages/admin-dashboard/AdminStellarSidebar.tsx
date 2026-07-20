@@ -49,7 +49,7 @@ import {
 import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig } from '../../../../config/dashboard-tabs';
-import { Shield, Users, Calendar, Dumbbell, Gamepad2, DollarSign, CreditCard, Video, BarChart3, Settings, Globe, ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound, Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature, Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote } from 'lucide-react';
+import { Shield, Users, Calendar, Dumbbell, Gamepad2, DollarSign, CreditCard, Video, BarChart3, Settings, Globe, ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound, Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature, Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote, Rocket } from 'lucide-react';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
   Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote,
-  UsersRound, UserCircle,
+  UsersRound, UserCircle, Rocket,
 };
 
 const getIcon = (name: string, size = 20) => {
