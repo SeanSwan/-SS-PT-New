@@ -9,6 +9,7 @@ export const createEmptySessionTypeForm = (): SessionTypeFormState => ({
   duration: 60,
   bufferBefore: 0,
   bufferAfter: 0,
+  creditsRequired: 1,
   color: DEFAULT_SESSION_TYPE_COLOR,
   price: '',
   isActive: true
@@ -24,6 +25,7 @@ export const buildFormFromSessionType = (sessionType: SessionType): SessionTypeF
   bufferBefore: sessionType.bufferBefore,
   bufferAfter: sessionType.bufferAfter,
   color: sessionType.color || DEFAULT_SESSION_TYPE_COLOR,
+  creditsRequired: sessionType.creditsRequired ?? 1,
   price: sessionType.price !== undefined && sessionType.price !== null ? String(sessionType.price) : '',
   isActive: sessionType.isActive
 });
@@ -39,6 +41,9 @@ export const validateSessionTypeForm = (form: SessionTypeFormState): string | nu
   if (form.bufferBefore < 0 || form.bufferAfter < 0) {
     return 'Buffer values cannot be negative.';
   }
+  if (!Number.isInteger(form.creditsRequired) || form.creditsRequired < 0) {
+    return 'Credits required must be a non-negative whole number.';
+  }
   return null;
 };
 
@@ -50,5 +55,6 @@ export const buildSessionTypePayload = (form: SessionTypeFormState): SessionType
   bufferAfter: Number(form.bufferAfter),
   color: form.color || DEFAULT_SESSION_TYPE_COLOR,
   price: form.price ? Number(form.price) : undefined,
-  isActive: form.isActive
+  isActive: form.isActive,
+  creditsRequired: Number(form.creditsRequired)
 });

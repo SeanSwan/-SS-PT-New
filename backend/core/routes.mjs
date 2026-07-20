@@ -233,6 +233,7 @@ import immigrationRoutes from '../routes/immigrationRoutes.mjs';
 
 // ===================== CRM LEAD MANAGEMENT =====================
 import leadRoutes from '../routes/leadRoutes.mjs';
+import leadCaptureRoutes from '../routes/leadCaptureRoutes.mjs'; // PRISM: public email-only capture (POST /capture)
 
 // ===================== DEVELOPMENT & DEBUG =====================
 import debugRoutes from '../routes/debug.mjs';
@@ -705,6 +706,9 @@ export const setupRoutes = async (app) => {
   app.use('/api/immigration', immigrationRoutes);
 
   // ===================== CRM LEAD MANAGEMENT =====================
+  // PRISM public capture MUST mount before the protected leadRoutes: it defines only POST /capture
+  // (flag-gated, public); every other /api/leads/* falls through to the protected router below.
+  app.use('/api/leads', leadCaptureRoutes);
   app.use('/api/leads', leadRoutes);
 
   // ===================== NASM PROTOCOL ROUTES =====================

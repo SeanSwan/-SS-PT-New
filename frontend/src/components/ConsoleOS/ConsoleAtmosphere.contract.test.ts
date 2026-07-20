@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 const atmosphere = read('./ConsoleAtmosphere.tsx');
-const lensCss = read('../../adapters/style-lens-swan/SwanStyleLensGlobalStyles.ts');
+const lensCss = read('../../adapters/style-lens-swan/styles/lensCoreStyles.ts');
 const shellStyles = read('../DashBoard/Pages/coach-assistant/CoachCommandCenter.shellStyles.ts');
 const auroraStyles = read('../DashBoard/Pages/coach-assistant/CoachCommandCenter.auroraConsoleStyles.ts');
 const page = read('../DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx');

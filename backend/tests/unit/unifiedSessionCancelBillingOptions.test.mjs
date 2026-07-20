@@ -73,6 +73,7 @@ const buildSession = (overrides = {}) => {
     status: 'scheduled',
     sessionDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
     sessionDeducted: true,
+    creditsDeducted: 2,
     sessionCreditRestored: false,
     cancellationChargeType: null,
     cancellationChargeAmount: null,
@@ -126,8 +127,8 @@ describe('UnifiedSessionService.cancelSession cancellation billing choices', () 
     expect(session.cancellationReviewedBy).toBe(42);
     expect(session.cancellationReviewedAt).toBeInstanceOf(Date);
     expect(session.sessionCreditRestored).toBe(true);
-    expect(client.availableSessions).toBe(1);
-    expect(client.increment).toHaveBeenCalledWith('availableSessions', { by: 1, transaction: mockTransaction });
+    expect(client.availableSessions).toBe(2);
+    expect(client.increment).toHaveBeenCalledWith('availableSessions', { by: 2, transaction: mockTransaction });
     expect(client.save).not.toHaveBeenCalled();
     expect(sessionModel.findByPk).toHaveBeenCalledWith(
       77,

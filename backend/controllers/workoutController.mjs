@@ -297,11 +297,21 @@ export async function getWorkoutSessionById(req, res) {
  */
 export async function createWorkoutSession(req, res) {
   try {
+    const { clientRequestId } = req.body;
+    if (clientRequestId !== undefined && (
+      typeof clientRequestId !== 'string'
+      || clientRequestId.length === 0
+      || clientRequestId.length > 64
+    )) {
+      return errorResponse(res, 400, 'Invalid workout retry key');
+    }
+
     // Whitelist allowed fields to prevent mass assignment
     const allowedFields = [
       'title', 'description', 'plannedStartTime', 'actualStartTime', 'actualEndTime',
       'status', 'notes', 'workoutPlanId', 'exercises', 'duration', 'sessionDate',
-      'nasmPhase', 'targetMuscleGroups', 'difficulty', 'type'
+      'nasmPhase', 'targetMuscleGroups', 'difficulty', 'type', 'intensity',
+      'clientRequestId'
     ];
     const sessionData = { userId: req.body.userId || req.user.id };
     for (const field of allowedFields) {

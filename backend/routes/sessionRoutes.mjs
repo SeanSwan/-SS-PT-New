@@ -32,6 +32,7 @@ import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
+import { getSessionCreditsToRestore } from '../services/sessions/sessionCreditReceiptService.mjs';
 
 const router = express.Router();
 
@@ -112,54 +113,65 @@ const shouldNotifyClient = ({ user, channel, notifyClient = true, force = false 
 async function restoreSessionCredit(session, User, options = {}) {
   const { chargeType = 'none', restoreCredit = true, logger: log } = options;
 
-  // Idempotency guard - prevent double-crediting
-  if (session.sessionCreditRestored === true) {
-    if (log) log.info(`[CreditRestore] Session ${session.id} already restored, skipping`);
-    return { restored: false, newBalance: null, reason: 'already_restored' };
-  }
-
-  // Only restore for no-charge cancellations
   if (chargeType !== 'none') {
     return { restored: false, newBalance: null, reason: 'charged' };
   }
-
-  // Must explicitly want restoration
   if (restoreCredit === false) {
     return { restored: false, newBalance: null, reason: 'opted_out' };
   }
 
-  // Only restore if a credit was actually deducted when the session was booked
-  if (!session.sessionDeducted) {
-    if (log) log.info(`[CreditRestore] Session ${session.id} never deducted a credit, skipping restore`);
-    return { restored: false, newBalance: null, reason: 'no_deduction' };
-  }
-
-  // Must have a client assigned
-  if (!session.userId) {
-    return { restored: false, newBalance: null, reason: 'no_client' };
-  }
-
-  const client = await User.findByPk(session.userId);
-  if (!client) {
-    return { restored: false, newBalance: null, reason: 'client_not_found' };
-  }
-
-  if (isNonDeductingClient(client)) {
-    if (log) {
-      log.info(`[CreditRestore] Session ${session.id} belongs to non-deducting client source ${client.clientSource}, skipping restore`);
+  const Session = getSession();
+  return sequelize.transaction(async (transaction) => {
+    const lockedSession = await Session.findByPk(session.id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!lockedSession) {
+      return { restored: false, newBalance: null, reason: 'session_not_found' };
     }
-    return { restored: false, newBalance: null, reason: 'non_deducting_client_source' };
-  }
+    if (lockedSession.sessionCreditRestored === true) {
+      if (log) log.info(`[CreditRestore] Session ${session.id} already restored, skipping`);
+      return { restored: false, newBalance: null, reason: 'already_restored' };
+    }
+    if (!lockedSession.sessionDeducted) {
+      if (log) log.info(`[CreditRestore] Session ${session.id} never deducted a credit, skipping restore`);
+      return { restored: false, newBalance: null, reason: 'no_deduction' };
+    }
+    if (!lockedSession.userId) {
+      return { restored: false, newBalance: null, reason: 'no_client' };
+    }
 
-  const newBalance = (client.availableSessions || 0) + 1;
-  await client.update({ availableSessions: newBalance });
+    const client = await User.findByPk(lockedSession.userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!client) {
+      return { restored: false, newBalance: null, reason: 'client_not_found' };
+    }
+    if (isNonDeductingClient(client)) {
+      if (log) {
+        log.info(`[CreditRestore] Session ${session.id} belongs to non-deducting client source ${client.clientSource}, skipping restore`);
+      }
+      return { restored: false, newBalance: null, reason: 'non_deducting_client_source' };
+    }
 
-  session.sessionCreditRestored = true;
-  await session.save();
+    const creditsToRestore = await getSessionCreditsToRestore(lockedSession, {
+      SessionType: getSessionType(),
+      transaction
+    });
+    const newBalance = (client.availableSessions || 0) + creditsToRestore;
+    if (creditsToRestore > 0) {
+      await client.increment('availableSessions', { by: creditsToRestore, transaction });
+      client.availableSessions = newBalance;
+    }
 
-  if (log) log.info(`[CreditRestore] Restored 1 credit for user ${session.userId}. New balance: ${newBalance}`);
+    lockedSession.sessionCreditRestored = true;
+    await lockedSession.save({ transaction });
+    session.sessionCreditRestored = true;
 
-  return { restored: true, newBalance };
+    if (log) log.info(`[CreditRestore] Restored ${creditsToRestore} credits for user ${lockedSession.userId}. New balance: ${newBalance}`);
+    return { restored: creditsToRestore > 0, newBalance, creditsRestored: creditsToRestore };
+  });
 }
 
 const buildRecurrenceDates = ({ startDate, recurrenceRule }) => {
@@ -1715,7 +1727,7 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
     const shouldRestoreRecurringCredits = !isNonDeductingClient(user);
 
     // Cancel sessions and restore only credits that were actually deducted.
-    let sessionsRestored = 0;
+    let creditsRestored = 0;
     for (const session of sessions) {
       session.status = 'cancelled';
       session.cancellationReason = reason || 'Recurring series cancelled by client';
@@ -1726,16 +1738,20 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
         !session.sessionCreditRestored &&
         shouldRestoreRecurringCredits
       ) {
+        const sessionCreditsToRestore = await getSessionCreditsToRestore(session, {
+          SessionType: getSessionType(),
+          transaction
+        });
         session.sessionCreditRestored = true;
-        sessionsRestored++;
+        creditsRestored += sessionCreditsToRestore;
       }
       await session.save({ transaction });
     }
 
     // Restore session credits to user
-    if (sessionsRestored > 0) {
-      user.availableSessions = (user.availableSessions || 0) + sessionsRestored;
-      await user.save({ transaction });
+    if (creditsRestored > 0) {
+      await user.increment('availableSessions', { by: creditsRestored, transaction });
+      user.availableSessions = (user.availableSessions || 0) + creditsRestored;
     }
 
     await transaction.commit();
@@ -1753,18 +1769,19 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
     if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient: true })) {
       await sendEmailNotification({
         to: user.email,
-        subject: `Recurring Sessions Cancelled - ${sessionsRestored} sessions`,
-        text: `Your recurring sessions have been cancelled. ${sessionsRestored} session credits have been restored to your account.`,
+        subject: `Recurring Sessions Cancelled - ${sessions.length} sessions`,
+        text: `Your recurring sessions have been cancelled. ${creditsRestored} session credits have been restored to your account.`,
         html: `<p>Your recurring sessions have been cancelled.</p>
-               <p><strong>${sessionsRestored} session credits</strong> have been restored to your account.</p>
+               <p><strong>${creditsRestored} session credits</strong> have been restored to your account.</p>
                <p>You now have ${user.availableSessions} available sessions.</p>`
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Cancelled ${sessionsRestored} recurring sessions. Session credits restored.`,
-      cancelledCount: sessionsRestored,
+      message: `Cancelled ${sessions.length} recurring sessions. ${creditsRestored} session credits restored.`,
+      cancelledCount: sessions.length,
+      creditsRestored,
       availableSessions: user.availableSessions
     });
   } catch (error) {
@@ -4730,21 +4747,11 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     session.cancellationReviewReason = reason || null;
 
     // If waived, restore session credit if applicable
-    if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored) {
-      const client = await User.findByPk(session.userId);
-      if (client) {
-        if (isNonDeductingClient(client)) {
-          logger.info(`Skipped waived cancellation credit restore for non-deducting client source ${client.clientSource}`, {
-            sessionId: session.id,
-            userId: client.id
-          });
-        } else {
-          const currentSessions = client.availableSessions || 0;
-          await client.update({ availableSessions: currentSessions + 1 });
-          session.sessionCreditRestored = true;
-          logger.info(`Session credit restored for user ${session.userId} due to waived cancellation`);
-        }
-      }
+    if (decision === 'waived') {
+      await restoreSessionCredit(session, User, {
+        chargeType: 'none',
+        logger
+      });
     }
 
     await session.save();

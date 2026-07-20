@@ -1,9 +1,9 @@
 # Unified Swan Brain + Workout Planner — Slice 0–1 Evidence
 
-**Date:** 2026-07-15  
-**Branch:** `codex/unified-brain-20260715`  
-**Baseline:** `origin/main@df08bd556`  
-**Status:** evidence and reproduction gate; no product behavior changed  
+**Date:** 2026-07-15
+**Branch:** `codex/unified-brain-20260715`
+**Baseline:** `origin/main@df08bd556`
+**Status:** evidence and reproduction gate; no product behavior changed
 **Fable ruling:** `LOCK-WITH-CHANGES`; canonical route and failing boundary must be proven before implementation
 
 ## 1. Goal and evidence limitations

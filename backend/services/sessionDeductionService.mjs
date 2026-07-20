@@ -5,12 +5,16 @@
  * after sessions are completed or the scheduled time has passed.
  */
 
-import { getClientTrainerAssignment, getSession, getUser, Op } from '../models/index.mjs';
+import { getClientTrainerAssignment, getSession, getSessionType, getUser, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateRecoveryOrderNumber } from '../utils/orderNumber.mjs';
 import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 import { accrueFlatSessionEarning } from './trainerSessionEarningService.mjs';
+import {
+  resolveSessionCreditCost,
+  stampSessionCreditsDeducted,
+} from './sessions/sessionCreditReceiptService.mjs';
 import { getSessionSettlementDecision } from './sessions/sessionSettlementPolicy.mjs';
 import {
   VALID_PAYMENT_METHODS,
@@ -76,6 +80,7 @@ export async function processSessionDeductions() {
   const Session = getSession();
   const User = getUser();
 
+  const SessionType = getSessionType();
   const results = {
     processed: 0,
     deducted: 0,
@@ -175,36 +180,45 @@ export async function processSessionDeductions() {
 
         const rawCurrentCredits = Number(client.availableSessions ?? 0);
         const currentCredits = Number.isFinite(rawCurrentCredits) ? Math.max(0, Math.floor(rawCurrentCredits)) : 0;
-        const totalSessions = group.sessions.length;
-        const deductible = Math.min(totalSessions, currentCredits);
+        let remainingCredits = currentCredits;
+        let totalCreditsDeducted = 0;
 
-        for (let i = 0; i < deductible; i++) {
-          const session = group.sessions[i];
-          session.status = 'completed';
-          session.sessionDeducted = true;
-          session.deductionDate = new Date();
-          session.notes = appendNoteOnce(session.notes, '[Auto] Session credit deducted automatically');
-          await session.save({ transaction });
-          savedCompletedSessions.push(session);
-          results.deducted++;
-        }
-
-        if (deductible > 0) {
-          await client.decrement('availableSessions', { by: deductible, transaction });
-        }
-
-        for (let i = deductible; i < totalSessions; i++) {
-          const session = group.sessions[i];
-          results.noCredits.push({
-            sessionId: session.id,
-            clientId,
-            clientName: group.clientName,
-            reason: 'No available session credits'
+        for (const session of group.sessions) {
+          const creditsRequired = await resolveSessionCreditCost(session, {
+            SessionType,
+            transaction
           });
+          const canSettle = creditsRequired === 0 || remainingCredits >= creditsRequired;
+
           session.status = 'completed';
-          session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No credits to deduct');
+          if (canSettle) {
+            stampSessionCreditsDeducted(session, creditsRequired);
+            session.sessionDeducted = true;
+            session.deductionDate = new Date();
+            session.notes = appendNoteOnce(
+              session.notes,
+              creditsRequired > 0
+                ? '[Auto] Session credit deducted automatically'
+                : '[Auto] No session credit required for this session type'
+            );
+            remainingCredits -= creditsRequired;
+            totalCreditsDeducted += creditsRequired;
+            if (creditsRequired > 0) results.deducted++;
+          } else {
+            results.noCredits.push({
+              sessionId: session.id,
+              clientId,
+              clientName: group.clientName,
+              reason: `Insufficient session credits (need ${creditsRequired}, have ${remainingCredits})`
+            });
+            session.notes = appendNoteOnce(session.notes, '[Auto] Session completed - No credits to deduct');
+          }
           await session.save({ transaction });
           savedCompletedSessions.push(session);
+        }
+
+        if (totalCreditsDeducted > 0) {
+          await client.decrement('availableSessions', { by: totalCreditsDeducted, transaction });
         }
       } catch (error) {
         for (const session of group.sessions) {

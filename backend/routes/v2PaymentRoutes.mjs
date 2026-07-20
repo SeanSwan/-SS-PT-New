@@ -488,17 +488,30 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     if (user.stripeCustomerId) {
       try {
         stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-        logger.info('[v2 Payment] Using existing Stripe customer', {
-          userId,
-          hasStripeCustomerId: true
-        });
+        if (stripeCustomer?.deleted === true) {
+          logger.warn('[v2 Payment] Stored Stripe customer was deleted; creating a replacement', {
+            userId,
+            hasStripeCustomerId: true
+          });
+          stripeCustomer = null;
+        } else {
+          logger.info('[v2 Payment] Using existing Stripe customer', {
+            userId,
+            hasStripeCustomerId: true
+          });
+        }
       } catch (error) {
-        logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
+        if (error?.code !== 'resource_missing') throw error;
+        logger.warn('[v2 Payment] Existing Stripe customer no longer exists; creating a replacement');
         stripeCustomer = null;
       }
     }
 
     if (!stripeCustomer) {
+      const customerIdempotencyKey = buildStripeIdempotencyKey('checkout-customer', {
+        userId,
+        previousCustomerId: user.stripeCustomerId || null,
+      });
       stripeCustomer = await stripe.customers.create({
         email: customerInfo?.email || user.email,
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
@@ -507,13 +520,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           userId: userId.toString(),
           source: 'genesis_checkout'
         }
-      });
+      }, { idempotencyKey: customerIdempotencyKey });
 
-      // Update user with Stripe Customer ID (write-if-empty rule)
+      // Checkout contact fields belong to this order only. Changing account
+      // identity requires the authenticated profile verification flow.
       await user.update({
-        ...(!user.stripeCustomerId ? { stripeCustomerId: stripeCustomer.id } : {}),
-        ...(customerInfo?.email && { email: customerInfo.email }),
-        ...(customerInfo?.phone && { phone: customerInfo.phone })
+        stripeCustomerId: stripeCustomer.id
       });
 
       logger.info('[v2 Payment] Created new Stripe customer', {
@@ -543,6 +555,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
+    const checkoutReturnBaseUrl = (process.env.FRONTEND_URL || 'https://sswanstudios.com').replace(/\/+$/, '');
+
     let session;
     let checkoutFinalized = false;
     try {
@@ -551,8 +565,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         payment_method_types: ['card'],
         mode: 'payment',
         line_items: lineItems,
-        success_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/cancel?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${checkoutReturnBaseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${checkoutReturnBaseUrl}/checkout/cancel?session_id={CHECKOUT_SESSION_ID}`,
         metadata: {
           userId: userId.toString(),
           cartId: cart.id.toString(),

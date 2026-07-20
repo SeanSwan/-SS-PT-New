@@ -152,6 +152,7 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true');
     expect(submitRoute).toContain('creditsRequired: scheduledSessionCreditsRequired');
     expect(submitRoute).toContain('if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0)');
+    expect(submitRoute).toContain('creditsDeducted: billingDecision.shouldDeduct');
     expect(submitRoute).toContain("await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct");
     expect(submitRoute).toContain('if (billingDecision.sessionDeducted)');
     expect(submitRoute).toContain('await dailyForm.update({ sessionDeducted: true }');

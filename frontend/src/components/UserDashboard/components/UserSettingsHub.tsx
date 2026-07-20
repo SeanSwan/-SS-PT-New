@@ -133,9 +133,12 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
     };
 
     try {
-      const res = await apiService.put('/api/profile', payload, { validateStatus: status => status < 500 });
-      if (res.status < 200 || res.status >= 300) throw new Error(res.data?.message || 'Unable to save settings');
-      if (onUpdateProfile) await onUpdateProfile(payload).catch(() => undefined);
+      if (onUpdateProfile) {
+        await onUpdateProfile(payload);
+      } else {
+        const res = await apiService.put('/api/profile', payload, { validateStatus: status => status < 500 });
+        if (res.status < 200 || res.status >= 300) throw new Error(res.data?.message || 'Unable to save settings');
+      }
       setSaveStatus('Saved');
       window.setTimeout(() => setSaveStatus(null), 3000);
     } catch {

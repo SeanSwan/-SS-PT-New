@@ -29,6 +29,7 @@ import unifiedSessionService from "../services/sessions/session.service.mjs";
 import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
+import SessionType from "../models/SessionType.mjs";
 import User from "../models/User.mjs";
 import AdminAccountAuditLog from "../models/AdminAccountAuditLog.mjs";
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
@@ -1030,10 +1031,15 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
   const transaction = await Session.sequelize.transaction();
 
   try {
-    const { clientId, sessionDate, trainerId, duration = 60, notes, location } = req.body || {};
+    const {
+      clientId, sessionDate, trainerId, duration = 60, notes, location, sessionTypeId, notifyClient
+    } = req.body || {};
     const parsedClientId = parseStrictPositiveInteger(clientId);
     const parsedTrainerId = trainerId ? parseStrictPositiveInteger(trainerId) : null;
     const parsedDuration = parseBoundedPositiveInteger(duration, 480) || 60;
+    const parsedSessionTypeId = sessionTypeId == null || sessionTypeId === ''
+      ? null : parseStrictPositiveInteger(sessionTypeId);
+    const parsedNotifyClient = typeof notifyClient === 'boolean' ? notifyClient : true;
 
     if (!parsedClientId) {
       await transaction.rollback();
@@ -1081,10 +1087,31 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     }
 
     if (parsedTrainerId) {
-      const trainer = await User.findByPk(parsedTrainerId, { transaction });
+      const trainer = await User.findByPk(parsedTrainerId, { transaction, lock: transaction.LOCK.UPDATE });
       if (!trainer || !['trainer', 'admin'].includes(trainer.role)) {
         await transaction.rollback();
         return res.status(404).json({ success: false, message: "Trainer not found" });
+      }
+    }
+
+    if (sessionTypeId != null && sessionTypeId !== '' && !parsedSessionTypeId) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Invalid sessionTypeId" });
+    }
+
+    if (notifyClient !== undefined && typeof notifyClient !== 'boolean') {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "notifyClient must be a boolean" });
+    }
+
+    if (parsedSessionTypeId) {
+      const sessionType = await SessionType.findByPk(parsedSessionTypeId, { transaction });
+      if (!sessionType || sessionType.isActive === false) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Session type is unavailable"
+        });
       }
     }
 
@@ -1151,6 +1178,8 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       status: 'scheduled',
       notes: notes || null,
       location: location || 'Main Studio',
+      sessionTypeId: parsedSessionTypeId,
+      notifyClient: parsedNotifyClient,
       bookedByAdminId: req.user.id,
       bookingDate: new Date(),
       isBlocked: false,

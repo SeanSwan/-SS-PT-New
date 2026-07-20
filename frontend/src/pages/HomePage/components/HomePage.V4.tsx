@@ -15,6 +15,7 @@ import { useAnimationTier, useTierFlags } from '../../../hooks/useAnimationTier'
 import { ScrollProgress } from '../../../components/ui/animations';
 import { SectionTransition } from '../../../components/ui/animations';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
+import { PrismCapture } from '../../../components/marketing/PrismCapture'; // self-gates → null when flag off
 
 // Section components
 import HeroSection from './sections/HeroSection';
@@ -70,6 +71,8 @@ const HomePageV4: React.FC = () => {
           prefersReduced={tier === 'essential'}
           onOpenOrientation={() => setShowOrientation(true)}
         />
+        {/* PRISM speed-to-lead capture — self-gates to null when PRISM_CAPTURE_ENABLED/flag is off (zero impact) */}
+        <PrismCapture />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <MissionSection tier={tier} />

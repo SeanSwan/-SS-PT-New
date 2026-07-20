@@ -850,11 +850,26 @@ const faqData = [
   },
 ];
 
+// Seed email/subject from the URL so a deep link like `/contact?intent=book&email=you@x.com` (e.g. the PrismCapture
+// "Book a free consultation" ray) lands with the field prefilled — honoring the "no retyping" promise. Uses
+// URLSearchParams (not react-router) to match this file's existing URL-param style (readAcquisitionParams).
+function prefillFromUrl() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const email = (p.get('email') || '').slice(0, 255);
+    const intent = p.get('intent');
+    const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
+    return { email, subject };
+  } catch {
+    return { email: '', subject: '' };
+  }
+}
+
 const ContactV3: React.FC = () => {
-  // Form state
+  // Form state (email/subject may be prefilled from a deep link — see prefillFromUrl)
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
+  const [email, setEmail] = useState(() => prefillFromUrl().email);
+  const [subject, setSubject] = useState(() => prefillFromUrl().subject);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);

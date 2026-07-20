@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 
 export interface PlannerWorkoutSession {
   id: string;
+  clientRequestId?: string;
   date: string | null;
   status: string;
   title: string;
@@ -48,6 +49,7 @@ export const formatEditableSessionDate = (date: string | null): string => {
 
 export const createBlankWorkoutSession = (sessionDate: string): PlannerWorkoutSession => ({
   id: '',
+  clientRequestId: globalThis.crypto.randomUUID(),
   date: sessionDate,
   status: 'planned',
   title: 'New Workout Session',
@@ -77,6 +79,7 @@ export const buildWorkoutSessionPayload = ({
   sessionDate
 }: BuildWorkoutSessionPayloadParams) => ({
   userId: clientId,
+  clientRequestId: currentSession?.clientRequestId,
   sessionDate,
   title: currentSession?.title || 'Workout Session',
   status: currentSession?.status || 'planned',

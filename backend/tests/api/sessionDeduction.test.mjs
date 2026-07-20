@@ -15,6 +15,7 @@ const {
   mockTransaction,
   mockUserModel,
   mockSessionModel,
+  mockSessionTypeModel,
   mockAssignmentModel,
   mockSequelize,
 } = vi.hoisted(() => {
@@ -33,6 +34,10 @@ const {
     findAll: vi.fn(),
   };
 
+  const mockSessionTypeModel = {
+    findByPk: vi.fn(),
+  };
+
   const mockAssignmentModel = {
     findAll: vi.fn(),
   };
@@ -43,7 +48,7 @@ const {
     models: {},
   };
 
-  return { mockTransaction, mockUserModel, mockSessionModel, mockAssignmentModel, mockSequelize };
+  return { mockTransaction, mockUserModel, mockSessionModel, mockSessionTypeModel, mockAssignmentModel, mockSequelize };
 });
 
 vi.mock('../../database.mjs', () => ({
@@ -53,6 +58,7 @@ vi.mock('../../database.mjs', () => ({
 vi.mock('../../models/index.mjs', () => ({
   getClientTrainerAssignment: () => mockAssignmentModel,
   getSession: () => mockSessionModel,
+  getSessionType: () => mockSessionTypeModel,
   getUser: () => mockUserModel,
   Op: {
     in: Symbol('in'),
@@ -877,6 +883,27 @@ describe('SessionDeductionService', () => {
         transaction: mockTransaction,
       });
       expect(mockTransaction.commit).toHaveBeenCalled();
+    });
+
+    it('deducts and persists the configured multi-credit session cost', async () => {
+      const client = makeClient(3, { availableSessions: 3 });
+      const session = makeDueAttendedSession(11, {
+        client,
+        sessionTypeId: 22,
+      });
+      mockSessionModel.findAll.mockResolvedValue([session]);
+      mockUserModel.findByPk.mockResolvedValue(client);
+      mockSessionTypeModel.findByPk.mockResolvedValue({ id: 22, creditsRequired: 2 });
+
+      const result = await processSessionDeductions();
+
+      expect(result.deducted).toBe(1);
+      expect(client.decrement).toHaveBeenCalledWith('availableSessions', {
+        by: 2,
+        transaction: mockTransaction,
+      });
+      expect(session.sessionDeducted).toBe(true);
+      expect(session.creditsDeducted).toBe(2);
     });
 
     it('marks session completed but tracks no-credit clients', async () => {

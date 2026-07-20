@@ -10,10 +10,10 @@ import apiService from '../../services/api.service';
 import type { CollectionItem, VideoItem, VideoPagination } from '../VideoLibraryV3.types';
 import {
   DEFAULT_VIDEO_PAGINATION,
+  VIDEO_LIBRARY_LOAD_ERROR,
   buildVideoListPath,
   normalizeCollectionCatalogResponse,
   normalizeVideoCatalogResponse,
-  videoLibraryErrorMeta,
 } from '../VideoLibraryV3.logic';
 
 export interface VideoLibraryState {
@@ -46,10 +46,11 @@ export function useVideoLibrary(): VideoLibraryState {
       try {
         const res = await apiService.get(buildVideoListPath(page, contentType, activeSearch));
         const catalog = normalizeVideoCatalogResponse(res.data);
+        if (!catalog) throw new Error('video_catalog_unavailable');
         setVideos(catalog.videos);
         setPagination(catalog.pagination);
-      } catch (err) {
-        setError(videoLibraryErrorMeta(err).message);
+      } catch {
+        setError(VIDEO_LIBRARY_LOAD_ERROR);
         setVideos([]);
         setPagination(DEFAULT_VIDEO_PAGINATION); // don't retain misleading page/total; refetch → page 1 (Codex)
       } finally {
@@ -68,7 +69,9 @@ export function useVideoLibrary(): VideoLibraryState {
     (async () => {
       try {
         const res = await apiService.get('/api/v2/videos/collections?limit=6');
-        if (alive) setCollections(normalizeCollectionCatalogResponse(res.data).collections);
+        const nextCollections = normalizeCollectionCatalogResponse(res.data);
+        if (!nextCollections) throw new Error('video_collections_unavailable');
+        if (alive) setCollections(nextCollections);
       } catch {
         if (alive) setCollections([]);
       }

@@ -175,6 +175,16 @@ Session.init({
     defaultValue: false,
     comment: 'Whether a session was deducted from client package'
   },
+  creditsDeducted: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Exact number of package credits deducted for this session',
+    validate: {
+      min: 0,
+      isInt: true
+    }
+  },
   deductionDate: {
     type: DataTypes.DATE,
     allowNull: true,

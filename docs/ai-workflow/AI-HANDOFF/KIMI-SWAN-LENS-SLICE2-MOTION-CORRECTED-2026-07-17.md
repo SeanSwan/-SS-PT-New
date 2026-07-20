@@ -86,7 +86,7 @@ M3 gets nothing beyond M2 — the two-speed law caps the Crystallize at its auth
 **Semantics (exact):**
 - **static:** `commit()` runs synchronously inside `crystallizeTo`; overlay sheen never mounts; announcement set immediately; elapsed 0ms; no timers created.
 - **fade/sweep:** phase `charging` → at `chargeMs` `commit()` runs (attribute swap masked mid-transition) → phase `settling` → at `totalMs` phase `idle`. Announcement revealed at settle start (commit moment).
-- **Exactly-once:** a `committedRef` guards `commit()`. 
+- **Exactly-once:** a `committedRef` guards `commit()`.
 - **Exception fail-closed:** every timer callback is try/catch-wrapped; on throw → clear all timers → force `idle` → run `commit()` synchronously (once). If `commit()` itself throws: force `idle`, then rethrow (Lane A's Apply catch owns the safety-lens fallback + its Slice-1 failure announcement).
 - **Busy call:** `crystallizeTo` while non-idle → complete the in-flight transition synchronously (run its commit now), then start the new one from `idle`. No commit is ever dropped or doubled.
 - **Unmount mid-transition:** timers cleared; pending `commit()` runs synchronously once — no half-applied lens.

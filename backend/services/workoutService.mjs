@@ -235,6 +235,7 @@ async function createWorkoutSession(sessionData) {
   // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
   const models = getAllModels();
   const { WorkoutSession, WorkoutExercise, Set } = models;
+  const clientRequestId = sessionData.clientRequestId || null;
   
   // Start a transaction to ensure all operations succeed or fail together
   const transaction = await sequelize.transaction();
@@ -245,8 +246,12 @@ async function createWorkoutSession(sessionData) {
       userId: sessionData.userId,
       workoutPlanId: sessionData.workoutPlanId,
       title: sessionData.title,
-      description: sessionData.description,
-      plannedStartTime: sessionData.plannedStartTime,
+      date: sessionData.sessionDate || sessionData.date || sessionData.plannedStartTime,
+      duration: sessionData.duration,
+      intensity: sessionData.intensity,
+      clientRequestId: sessionData.clientRequestId || null,
+      startedAt: sessionData.actualStartTime,
+      completedAt: sessionData.actualEndTime,
       status: sessionData.status || 'planned',
       notes: sessionData.notes
     }, { transaction });
@@ -288,6 +293,26 @@ async function createWorkoutSession(sessionData) {
     return getWorkoutSessionById(workoutSession.id);
   } catch (error) {
     await transaction.rollback();
+
+    // The canonical /api/workout/sessions path must replay only the composite
+    // per-user retry-key conflict. Other unique failures remain real errors.
+    const IDEM_INDEX = 'workout_sessions_user_client_request_uidx';
+    const isIdempotencyConflict = error?.name === 'SequelizeUniqueConstraintError'
+      && clientRequestId
+      && (
+        Object.prototype.hasOwnProperty.call(error?.fields || {}, 'clientRequestId')
+        || error?.original?.constraint === IDEM_INDEX
+        || error?.parent?.constraint === IDEM_INDEX
+      );
+    if (isIdempotencyConflict) {
+      const existing = await WorkoutSession.findOne({
+        where: { userId: sessionData.userId, clientRequestId }
+      });
+      if (existing) {
+        return getWorkoutSessionById(existing.id);
+      }
+    }
+
     throw error;
   }
 }

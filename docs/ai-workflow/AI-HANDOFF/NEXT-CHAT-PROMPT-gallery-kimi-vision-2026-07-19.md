@@ -89,3 +89,18 @@ design AUTHOR not the gate, Rule 46) → Rule 42 backend audit → **gate the pr
 tracker → SHIPPED, Hermes memo, run the money/credit/VIP/referral/donation truth tests (they must stay green).
 
 **Do NOT auto-start the build** — Gemini-analyze + get Sean's scope on the new backend rendition slice first.
+
+---
+
+## 6. WHAT'S AFTER THE GALLERY (so nothing gets dropped)
+The Gallery is the LAST surface of the design-overhaul program — but it is NOT the end of the queue. The full
+downstream roadmap (Kimi-overhauled, in Kimi's vision) lives at
+**`SWAN-WHATS-NEXT-MASTER-ROADMAP-2026-07-19.md`**. Headline order after the Gallery:
+1. **FIRST LIGHT (Activation)** — Lane-A lens wiring → activation gate → staged flag-on. *The one next build*:
+   it turns on the 8 shipped-but-dark surfaces. (Kimi dissolved the "Unified World" program into this + a
+   World-Pack content track.)
+2. **PRISM CAPTURE** — email-only speed-to-lead epic (Sean's #1 money focus); zero Lane-A dependency, may run
+   parallel to activation.
+3. **Swan Guide build** → **Cortex Phase 1 "The Rulebook" (Progression Engine v0)** → **World-Pack v1.5**.
+Read the master roadmap for the full 3-wave plan, the batched Sean Decision Pack, and the marketing + Cortex
+build specs.
