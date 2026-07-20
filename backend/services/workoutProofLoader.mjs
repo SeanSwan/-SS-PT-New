@@ -26,9 +26,14 @@ export const PROOF_LOAD_LIMIT = 60; // window for the chart + a RECENT best — 
 // estimateOneRepMax instead — so a high-rep set counts toward VOLUME/exerciseCount but yields no e1RM
 // chart point. (EPLEY_MAX_REPS stays exported for that chart-side guard.)
 const isValidSet = (w, r) => {
-  const weight = Number(w);
+  const weight = Number(w ?? 0); // null/absent weight = BODYWEIGHT, not junk
   const reps = Number(r);
-  return Number.isFinite(weight) && Number.isFinite(reps) && weight > 0 && reps > 0;
+  // Keep any set that is REAL WORK (reps > 0). Bodyweight sets (~24% of logged sets) must count toward
+  // exerciseCount, or the proof screen under-reports what the client actually did ("2 EXERCISES" for a
+  // Bench+Pull-ups+Squats session). Load-dependent math self-handles them: exerciseVolume adds 0 (no
+  // external load), estimateOneRepMax returns null for weight<=0 (no bogus e1RM point), and
+  // pickProofExercise's chartable filter never features an unchartable bodyweight lift.
+  return Number.isFinite(weight) && weight >= 0 && Number.isFinite(reps) && reps > 0;
 };
 
 const toRows = (arr, source) => {
@@ -40,7 +45,7 @@ const toRows = (arr, source) => {
     rows.push({
       nameKey,
       displayName: String(x.exerciseName ?? '').trim() || 'Exercise',
-      weight: Number(x.weight),
+      weight: Number(x.weight ?? 0), // absent/null = bodyweight (0), never NaN
       reps: Number(x.reps),
       setNumber: Number.isFinite(Number(x.setNumber)) ? Number(x.setNumber) : null,
       source,
