@@ -148,7 +148,7 @@ function PrismCaptureInner() {
   return (
     <>
       <PrismCaptureTokens />
-      <Band className="prism-capture">
+      <Band className="prism-capture" data-feature="prism-capture">
         <Shell aria-labelledby="prism-headline">
           <PrismSpectrum active={active} animate={!reduced} />
           <Inner>
