@@ -31,6 +31,13 @@ export interface ResolvedLensPlan {
   variants: Partial<Record<RecipeSlot, string>>;
   chartFamiliarity: 'conservative' | 'expressive';
   degradations: readonly string[];
+  /** F0: normalized atmosphere — present ONLY when the recipe carries a
+   *  structurally-valid atmosphere (drop-not-fail law). Key is ABSENT
+   *  otherwise, so pre-F0 plans stay byte-identical (zero-delta). */
+  atmosphere?: {
+    layers: readonly { kind: string; assetId: string; opacity: number; animated: boolean }[];
+    stillPoster: { assetId: string };
+  };
 }
 
 export type CompileResult =
@@ -41,7 +48,11 @@ export const compileRecipe = (
   recipe: RecipeV2,
   manifest: HostCapabilityManifest,
 ): CompileResult => {
-  const issues = validateRecipeV2(recipe);
+  // Drop-not-fail law (F0): atmosphere-path issues degrade the atmosphere
+  // away; they never hard-fail an otherwise-sound recipe.
+  const allIssues = validateRecipeV2(recipe);
+  const issues = allIssues.filter(({ path }) => !path.startsWith('atmosphere'));
+  const atmosphereInvalid = allIssues.length !== issues.length;
 
   for (const slot of recipe.compatibility.requires) {
     if (!manifest.slots[slot]) {
@@ -101,6 +112,20 @@ export const compileRecipe = (
     cssVariables[`lens2-${name}`] = value;
   }
 
+  if (atmosphereInvalid) degradations.push('atmosphere invalid — dropped');
+  const atmosphere =
+    recipe.atmosphere && !atmosphereInvalid
+      ? {
+          layers: recipe.atmosphere.layers.map((layer) => ({
+            kind: layer.kind,
+            assetId: layer.assetId,
+            opacity: layer.opacity,
+            animated: layer.animated === true,
+          })),
+          stillPoster: { assetId: recipe.atmosphere.stillPoster.assetId },
+        }
+      : undefined;
+
   return {
     ok: true,
     degradations,
@@ -114,6 +139,8 @@ export const compileRecipe = (
       chartFamiliarity:
         recipe.components['chart.progress']?.familiarity ?? 'conservative',
       degradations,
+      // conditional spread keeps the key ABSENT for pre-F0 recipes (zero-delta)
+      ...(atmosphere ? { atmosphere } : {}),
     },
   };
 };

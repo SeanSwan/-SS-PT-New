@@ -11,12 +11,13 @@
  * children UNSTYLED with a visible receipt (fail-closed, never guesses).
  * ============================================================================
  */
-import React, { useMemo, type ReactNode } from "react";
+import React, { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import styled, { type RuleSet } from "styled-components";
 import { compileRecipe } from "../../../../core/style-lens-os/v2/compileRecipe";
 import type { HostCapabilityManifest } from "../../../../core/style-lens-os/v2/hostCapabilityManifest";
 import type { RecipeV2 } from "../../../../core/style-lens-os/v2/recipeV2";
 import { LAB_HOST_MANIFEST } from "../../../../adapters/style-lens-swan/v2/labRecipes";
+import { ATMOSPHERE_ASSET_CATALOG } from "../../../../adapters/style-lens-swan/v2/atmosphereCatalog";
 import { lensRepresentationStyles } from "./lensRepresentationStyles";
 import { StyledBox } from '@/components/ui/StyledBox';
 
@@ -26,6 +27,38 @@ const FrameRoot = styled.div<{ $representation?: RuleSet<object> }>`
   container-type: inline-size;
   ${({ $representation }) => $representation ?? lensRepresentationStyles};
 `;
+
+/* F0 atmosphere layer: decorative, STATIC (firewall H1 — product never
+ * animates atmosphere), never intercepts input, never owns meaning. */
+const AtmosphereLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  contain: paint;
+`;
+
+const AtmosphereContent = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const canQueryMotion = () => typeof window !== "undefined" && typeof window.matchMedia === "function";
+const subscribeReducedMotion = (onChange: () => void) => {
+  if (!canQueryMotion()) return () => {};
+  const mql = window.matchMedia(REDUCED_MOTION_QUERY);
+  mql.addEventListener?.("change", onChange);
+  return () => mql.removeEventListener?.("change", onChange);
+};
+const useStillMode = (): boolean =>
+  useSyncExternalStore(
+    subscribeReducedMotion,
+    () =>
+      (canQueryMotion() && window.matchMedia(REDUCED_MOTION_QUERY).matches) ||
+      document.documentElement.getAttribute("data-motion") === "off",
+    () => true,
+  );
 
 const CompileReceipt = styled.p`
   margin: 8px 0;
@@ -67,6 +100,7 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
     () => (recipe ? compileRecipe(recipe, manifest) : null),
     [recipe, manifest],
   );
+  const stillMode = useStillMode();
 
   if (!recipe || !result) {
     return (
@@ -96,6 +130,23 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
     style[`--${name.replace(/^lens2-/, "")}`] = value;
   }
 
+  // F0 atmosphere: catalog-resolved STATIC background stack; still/off mode
+  // renders the stillPoster only; unknown assetIds skip fail-closed.
+  const atmo = plan.atmosphere;
+  const atmoLayers = atmo
+    ? (stillMode ? [{ assetId: atmo.stillPoster.assetId, opacity: 1 }] : atmo.layers)
+        .map((layer) => ({ asset: ATMOSPHERE_ASSET_CATALOG[layer.assetId], opacity: layer.opacity }))
+        .filter((entry) => Boolean(entry.asset))
+    : [];
+  const atmoStyle: React.CSSProperties | undefined = atmo
+    ? {
+        backgroundImage: atmoLayers.map(({ asset }) => asset!.css).join(", "),
+        opacity: atmoLayers.length
+          ? Math.min(1, Math.max(...atmoLayers.map(({ opacity }) => opacity)) * 4)
+          : 0,
+      }
+    : undefined;
+
   return (
     <StyledBox as={FrameRoot}
       aria-label={ariaLabel}
@@ -107,9 +158,16 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
       data-lens2-collection={plan.variants["collection.exercise"]}
       data-lens2-action={plan.variants["action.primary"]}
       data-lens2-chart={plan.variants["chart.progress"]}
-      $style={style as React.CSSProperties}
+      $style={{ ...(style as React.CSSProperties), ...(atmo ? { position: "relative" as const } : {}) }}
     >
-      {children}
+      {atmo ? (
+        <AtmosphereLayer
+          aria-hidden="true"
+          data-atmo-mode={stillMode ? "still" : "static"}
+          style={atmoStyle}
+        />
+      ) : null}
+      {atmo ? <AtmosphereContent>{children}</AtmosphereContent> : children}
     </StyledBox>
   );
 };

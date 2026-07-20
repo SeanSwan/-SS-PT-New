@@ -40,6 +40,28 @@ export interface RecipeComponentChoice {
   familiarity?: ChartFamiliarity;
 }
 
+/** FUSION F0 — atmosphere axis (data-only; assets resolve adapter-side). */
+export const ATMOSPHERE_LAYER_KINDS = ['gradient', 'pattern', 'grain'] as const;
+export type AtmosphereLayerKind = (typeof ATMOSPHERE_LAYER_KINDS)[number];
+export interface AtmosphereLayer {
+  kind: AtmosphereLayerKind;
+  /** id into the adapter's ATMOSPHERE_ASSET_CATALOG. NEVER a URL. */
+  assetId: string;
+  /** 0.01–0.12 — restrained product envelope (validator rejects outside). */
+  opacity: number;
+  /** MARKETING-LANE ONLY (firewall H1): product surfaces render static regardless. */
+  animated?: boolean;
+}
+export interface RecipeAtmosphere {
+  /** max 3 total, max 2 animated (M2 caps; product renders 0 animated). */
+  layers: readonly AtmosphereLayer[];
+  /** REQUIRED zero-motion story — the sole layer under reduced-motion/off. */
+  stillPoster: { assetId: string };
+}
+/** Sanctioned chart token name: recipes MAY carry `world-chart-secondary`;
+ *  the chart seam falls back to Swan Wing Purple when absent (F6 contrast-gates it). */
+export const CHART_SECONDARY_TOKEN = 'world-chart-secondary';
+
 export interface RecipeV2 {
   schema: 'smart-lens/recipe-v2';
   id: string;
@@ -52,6 +74,8 @@ export interface RecipeV2 {
   tokens: RecipeTokens;
   composition: Partial<Record<ContainerProfile, { template: string }>>;
   components: Partial<Record<RecipeSlot, RecipeComponentChoice>>;
+  /** optional — absent on every pre-F0 recipe (zero-delta law). */
+  atmosphere?: RecipeAtmosphere;
   constraints: {
     minimumTouchTargetPx: number;
     reducedMotionFallback: 'required';
@@ -117,6 +141,36 @@ export const validateRecipeV2 = (recipe: RecipeV2): RecipeIssue[] => {
   }
   if (recipe.constraints.reducedMotionFallback !== 'required') {
     issues.push({ path: 'constraints.reducedMotionFallback', message: 'must be "required"' });
+  }
+  if (recipe.atmosphere) issues.push(...validateAtmosphere(recipe.atmosphere));
+  return issues;
+};
+
+/** F0: atmosphere structural validation. Exported separately so the compiler
+ *  can apply the drop-not-fail law (atmosphere issues degrade; they never
+ *  hard-fail an otherwise-sound recipe). */
+export const validateAtmosphere = (atmosphere: RecipeAtmosphere): RecipeIssue[] => {
+  const issues: RecipeIssue[] = [];
+  if (!Array.isArray(atmosphere.layers) || atmosphere.layers.length > 3) {
+    issues.push({ path: 'atmosphere.layers', message: 'max 3 layers' });
+  }
+  const animated = (atmosphere.layers ?? []).filter((l) => l.animated === true).length;
+  if (animated > 2) {
+    issues.push({ path: 'atmosphere.layers.animated', message: 'max 2 animated layers' });
+  }
+  (atmosphere.layers ?? []).forEach((layer, index) => {
+    if (!ATMOSPHERE_LAYER_KINDS.includes(layer.kind)) {
+      issues.push({ path: `atmosphere.layers.${index}.kind`, message: 'unknown layer kind' });
+    }
+    if (!NAME_PATTERN.test(layer.assetId)) {
+      issues.push({ path: `atmosphere.layers.${index}.assetId`, message: 'invalid asset id' });
+    }
+    if (typeof layer.opacity !== 'number' || layer.opacity < 0.01 || layer.opacity > 0.12) {
+      issues.push({ path: `atmosphere.layers.${index}.opacity`, message: 'opacity outside [0.01, 0.12]' });
+    }
+  });
+  if (!atmosphere.stillPoster || !NAME_PATTERN.test(atmosphere.stillPoster.assetId)) {
+    issues.push({ path: 'atmosphere.stillPoster', message: 'stillPoster.assetId required' });
   }
   return issues;
 };
