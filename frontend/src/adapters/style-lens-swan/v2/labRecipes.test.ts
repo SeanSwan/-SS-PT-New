@@ -12,7 +12,13 @@ import {
   LAB_HOST_MANIFEST,
   PRISM_TERMINAL_RECIPE,
 } from './labRecipes';
-import { V2_RECIPE_BY_CATALOG_ID } from './catalogV2Map';
+import {
+  buildV2OnlyAllowlistExemptions,
+  V2_RECIPE_BY_CATALOG_ID,
+  type CatalogV2Entry,
+} from './catalogV2Map';
+import { assertLensRegistryIntegrity } from '../contract/registryIntegrity';
+import { buildWorldValuesRegistry } from '../contract/values';
 import {
   BOOTCAMP_BUILDER_MANIFEST,
   CLIENTS_WORKSPACE_MANIFEST,
@@ -112,4 +118,54 @@ describe('ADD-A-STYLE pipeline gates (every catalog v2 entry)', () => {
       expect(typeof entry.dashboardChrome).toBe('boolean');
     },
   );
+});
+
+/**
+ * F16 carve-out (post-Wave-1 reconciliation): the dev/CI registry-integrity
+ * gate requires a style-allowlist entry per promoted manifest — but v2-only
+ * styles (dashboardChrome: false) deliberately ship NO v1 chrome. Without
+ * this exemption, the LENS-ADD-A-STYLE five-entry pipeline crashes every
+ * dashboard surface at adapter init for style #27+.
+ */
+describe('F16 registry-integrity carve-out for v2-only styles', () => {
+  const FAKE_V2_ONLY: Record<string, CatalogV2Entry> = {
+    'pipeline-proof': {
+      recipe: { ...CANDY_GLASS_ARCADE_RECIPE, id: 'swan.pipeline-proof.v2' },
+      dashboardChrome: false,
+    },
+  };
+
+  it('exempts ONLY dashboardChrome:false entries (current shipped map yields zero exemptions)', () => {
+    expect(buildV2OnlyAllowlistExemptions(V2_RECIPE_BY_CATALOG_ID)).toEqual({});
+    expect(Object.keys(buildV2OnlyAllowlistExemptions(FAKE_V2_ONLY))).toEqual(['pipeline-proof']);
+  });
+
+  it('a v2-only promoted id passes the REAL integrity gate via the exemptions; without them it throws', () => {
+    const ids = ['pipeline-proof'];
+    const values = buildWorldValuesRegistry(ids);
+    // Without the carve-out: the gate throws exactly the style-#27 crash.
+    expect(() =>
+      assertLensRegistryIntegrity(ids, values, {}),
+    ).toThrow(/has no style-allowlist entry/);
+    // With the carve-out merged (the index.ts composition): passes.
+    expect(() =>
+      assertLensRegistryIntegrity(ids, values, {
+        ...buildV2OnlyAllowlistExemptions(FAKE_V2_ONLY),
+      }),
+    ).not.toThrow();
+  });
+
+  it('the carve-out does NOT weaken the gate for chrome styles (no allowlist entry still throws)', () => {
+    const ids = ['some-chrome-style'];
+    const values = buildWorldValuesRegistry(ids);
+    // A chrome style (dashboardChrome:true → no exemption) with a missing
+    // allowlist entry must still fail — Wave-1's invariant keeps its teeth.
+    const exemptions = buildV2OnlyAllowlistExemptions({
+      'some-chrome-style': { recipe: CANDY_GLASS_ARCADE_RECIPE, dashboardChrome: true },
+    });
+    expect(exemptions).toEqual({});
+    expect(() =>
+      assertLensRegistryIntegrity(ids, values, { ...exemptions }),
+    ).toThrow(/has no style-allowlist entry/);
+  });
 });

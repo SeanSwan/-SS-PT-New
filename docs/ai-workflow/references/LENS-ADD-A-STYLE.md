@@ -1,11 +1,21 @@
 # LENS ADD-A-STYLE — the 30-minute recipe (Smart Lens OS, Lab v6)
 
 > Source of truth: A-PACK `docs/ai-workflow/brainstorms/lens-finish-pack-2026-07-14.md` §5 Phase A4.
-> **New styles are v2-only from this pack forward.** The v1 chrome route is deprecated
-> for new styles (appendix at the bottom explains how the original 25 were made).
+> **New styles are v2-only from this pack forward.** The v1 chrome route is NOT deprecated-and-gone —
+> it is the heavier, lane-owner route (see the appendix: `aurora-console` #26 took it) — but the
+> five-entry v2-only pipeline below is the recommended default.
 > Target: style #N live in the Lab, gates green, **zero CSS, zero code — five data entries.**
 > Proven: the `pipeline-proof` dry-run (2026-07-14) shipped chip #26 through this exact
-> list in **5 minutes 47 seconds**, all 136 tests green, chip live on the v2 stage path.
+> list in **5 minutes 47 seconds**, all tests green, chip live on the v2 stage path.
+>
+> **Since Wave-1 S1-C/F16 (2026-07-16):** the adapter barrel runs a dev/CI registry-integrity gate
+> at init (`assertLensRegistryIntegrity` in `adapters/style-lens-swan/index.ts`) requiring a
+> `LENS_STYLE_ALLOWLIST` entry per promoted manifest. **v2-only styles are exempted automatically**
+> via `buildV2OnlyAllowlistExemptions(V2_RECIPE_BY_CATALOG_ID)` — the exemption keys off
+> `dashboardChrome: false` in your step-5 map entry, so the five-entry recipe still works with no
+> extra files. If your new chip crashes dev with `has no style-allowlist entry`, your map entry is
+> missing or says `dashboardChrome: true` without a chrome block — fix the map entry, don't touch
+> the gate.
 
 ## The FIVE entries (all data — no other file changes)
 
@@ -84,10 +94,31 @@ Render the Lab (route `/dashboard/admin/workout-design-lab`), select the new chi
 verify the `v2` mini-tag, the gold `v2 · full restyle` badge, the chrome-less footer
 line, and the stage repaint. Screenshot at **414** and **1440**.
 
-## Appendix — how the original 25 were made (v1 chrome route, DEPRECATED for new styles)
+## Appendix — the v1 chrome route (heavier, lane-owner path; how #1–25 AND #26 were made)
 
-The original catalog styles were "manifest + visuals + 1 scoped CSS chrome block in
-`SwanStyleLensGlobalStyles.ts`" — trim-only restyles of the dashboard chrome. That
-route is retired for new work: it cannot restructure surfaces, and its honesty story
-("applied across the dashboard") only holds because those blocks exist. New styles
-get full-restyle v2 recipes and honest Lab-first labeling instead.
+The original catalog styles were "manifest + visuals + 1 scoped CSS chrome block" —
+trim-only restyles of the dashboard chrome. **`aurora-console` (#26, Wave-1, commit
+`4df80aa58`) took this route too**, and post-Wave-1 it requires MORE than the original
+trio. The honest full checklist for a v1 chrome style today:
+
+1. Manifest file + `SWAN_EXPANSION_MANIFESTS` append (same as v2 steps 1–2) — but v1
+   styles typically **extend the closed renderer unions** (`core/style-lens-os/types.ts`
+   + `constants.ts`: new `<name>-shell` / `<name>-navigation` / `<name>-recipe` ids).
+   That is a CORE edit reserved for the lens lane owner — the five-entry v2 route
+   never touches core.
+2. A per-lens chrome file at `adapters/style-lens-swan/styles/lenses/<name>.ts` and a
+   `LENS_STYLE_ALLOWLIST` entry in `styles/lenses/index.ts` (the F16 gate requires it
+   for chrome styles).
+3. The monolith-contract fixture (`styles/__tests__/fixtures/…legacy.css` + the
+   reconstruction count law in `monolithContract.test.ts`) must account for the new
+   file — coordinate with the Wave-1 monolith-contract owner; do not casually edit a
+   "Do not edit" fixture.
+4. `visuals.ts` entry (with `moodFamily`) + `swanStyleLensRegistry.test.ts`
+   `expectedExpansion` append — same as the v2 route.
+5. NO `labRecipes.ts` recipe and NO `catalogV2Map.ts` entry → the Lab badge honestly
+   reads `v1 · chrome system` and Apply's "applied across the dashboard" copy is true
+   because the chrome block exists.
+
+Why v2-only stays the recommended default: it cannot restructure core, needs no union
+extension, no chrome file, no allowlist entry, no fixture negotiation — five data
+entries, gates green, honest "Lab preview today — dashboard rollout pending" labeling.

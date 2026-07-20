@@ -260,6 +260,26 @@ describe("Workout Design Lab Style axis", () => {
     expect(explorer).toMatch(/\$flow \? "static" : "sticky"/);
   });
 
+  it("catalog listbox supports the ARIA keyboard pattern: Arrow/Home/End roving focus", () => {
+    render(<WorkoutDesignLabPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
+    const listbox = screen.getByRole("listbox", { name: /choose a style lens/i });
+    const options = within(listbox).getAllByRole("option");
+    options[0].focus();
+    expect(document.activeElement).toBe(options[0]);
+    fireEvent.keyDown(listbox, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(options[1]);
+    fireEvent.keyDown(listbox, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options[0]);
+    fireEvent.keyDown(listbox, { key: "End" });
+    expect(document.activeElement).toBe(options[options.length - 1]);
+    fireEvent.keyDown(listbox, { key: "Home" });
+    expect(document.activeElement).toBe(options[0]);
+    // ArrowUp at the first option stays put (no wrap surprise for SR users).
+    fireEvent.keyDown(listbox, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(options[0]);
+  });
+
   it("mobile: CURRENT pseudo-group header does not vertically overlap its pinned chip", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
