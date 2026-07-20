@@ -114,14 +114,29 @@ const ErrorText = styled.p`
   font-size: 0.9rem;
 `;
 
+const BackRow = styled.button`
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 0;
+  background: none;
+  color: var(--gallery-ink-2);
+  font-size: 0.9rem;
+  cursor: pointer;
+  &:hover { color: var(--gallery-ink); }
+`;
+
 export interface GateCardProps {
   eventName?: string | null;
   loading: boolean;
   error: string;
   onSubmit(input: GateSubmitInput): void;
+  /** "Back to events" escape hatch (parity with the shipped gate) */
+  onBack?(): void;
 }
 
-export function GateCard({ eventName, loading, error, onSubmit }: GateCardProps) {
+export function GateCard({ eventName, loading, error, onSubmit, onBack }: GateCardProps) {
   const uid = useId();
   const errorId = `${uid}-gate-error`;
   const [firstName, setFirstName] = useState('');
@@ -214,6 +229,12 @@ export function GateCard({ eventName, loading, error, onSubmit }: GateCardProps)
           </ErrorText>
         )}
       </form>
+
+      {onBack && (
+        <BackRow type="button" onClick={onBack}>
+          Back to events
+        </BackRow>
+      )}
     </Card>
   );
 }

@@ -1,69 +1,68 @@
 /**
  * Gallery vNext — orchestrator. Renders THROUGH the lens frame (so `--world-*`/`--lens-*` resolve and
- * `[data-style-lens-shell]` exists for the gate's contract probe), then the `.gallery-vnext-shell` token scope.
+ * `[data-style-lens-shell]` exists for the gate's contract probe), then the `.gallery-vnext-shell` scope.
  *
- * DESIGN-ONLY: it binds the real money path (`/api/gallery/*` via the vNext hooks) and NEVER redesigns it.
- * The detail/lightbox and the money modals are REUSED bind-only from `pages/gallery/*` (Sean's scope call).
- *
- * Kimi's IA: photos-first. The gate is the SETUP for the reveal — on successful unlock the shipped
- * Crystallize fires ONCE (LAW 5: consume `useCrystallizeTransition`/`CrystallizeOverlay`, never re-time it),
- * then the justified grid reveals per-tile. Per Q4, NO credit/VIP UI renders before the gate.
+ * DESIGN-ONLY + FULL PARITY: binds the real money path (`/api/gallery/*` via the vNext hooks) and reuses
+ * every money/support modal bind-only. Behavior parity with the shipped page: vip=success return,
+ * signup-redirect state, browser-back closes the lightbox, 24-per-batch progressive load, download-all,
+ * the post-enhancement support chain, and the VIP branch for signed-in clients with sessions (→ /store).
+ * Kimi's IA: photos-first; the gate is the setup; the shipped Crystallize fires once on unlock (LAW 5).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import PhotoDetailModal from '../gallery/PhotoDetailModal';
 import { CheckoutToast } from './CheckoutToast';
 import { CreditPill } from './CreditPill';
 import { downloadPhoto } from './downloadPhoto';
+import { downloadAllUrl } from './gallery.api';
+import { EventsView } from './EventsView';
+import { PhotosView } from './PhotosView';
 import { GalleryLensFrame } from './galleryManifest';
+import { GalleryVNextModals } from './GalleryVNextModals';
 import { GateCard } from './GateCard';
 import { GalleryVNextTokens } from './gallery.tokens';
-import { JustifiedGrid } from './JustifiedGrid';
 import { CrystallizeOverlay, useCrystallizeTransition } from './lensBindings';
 import { useGalleryCredits } from './useGalleryCredits';
 import { useGallerySession } from './useGallerySession';
 import { useGalleryToast } from './useGalleryToast';
 import { useGalleryVotes } from './useGalleryVotes';
-import {
-  Content,
-  EventCard,
-  EventList,
-  EventMeta,
-  EventName,
-  GateWrap,
-  Masthead,
-  Shell,
-  State,
-  Sub,
-  Title,
-  UpgradeBtn,
-  UpgradePanel,
-} from './GalleryVNext.styles';
-import type { CreditPackage, GalleryEventSummary, GalleryPhoto } from './gallery.types';
+import { useLightboxHistory } from './useLightboxHistory';
+import { Content, GateWrap, Shell } from './GalleryVNext.styles';
 
-const PACKAGES: Array<{ key: CreditPackage; label: string }> = [
-  { key: 'single', label: 'Single enhancement' },
-  { key: 'bundle5', label: '5-pass bundle' },
-  { key: 'vip', label: 'VIP — unlimited' },
-];
+const PHOTOS_PER_BATCH = 24; // parity with the shipped grid loader
+
+interface RootState {
+  auth?: { user?: { availableSessions?: number } };
+}
 
 export default function GalleryVNext() {
   const { slug = '' } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authUser = useSelector((state: RootState) => state.auth?.user);
   const session = useGallerySession(slug);
   const toast = useGalleryToast();
   const credits = useGalleryCredits(session.galleryToken, toast.showToast);
   const votes = useGalleryVotes(slug, session.galleryToken);
   const { overlayProps, crystallizeTo } = useCrystallizeTransition({ surfaceId: 'gallery.reveal' });
+  const { lightboxIndex, setLightboxIndex, openPhoto, closeLightbox } = useLightboxHistory();
 
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PHOTOS_PER_BATCH);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showVip, setShowVip] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1440 : window.innerWidth,
   );
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Container/viewport measurement for the justified row math.
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
@@ -77,13 +76,21 @@ export default function GalleryVNext() {
     };
   }, []);
 
-  const openEvent = useCallback(
-    (event: GalleryEventSummary) => {
-      session.openEvent(event);
-      navigate(`/gallery/${event.slug}`, { replace: true });
-    },
-    [navigate, session],
-  );
+  // VIP checkout return + signup-redirect state (parity: GalleryPage.tsx:1214-1227).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('vip') === 'success') setShowVip(true);
+    const state = location.state as { showVipModal?: boolean } | null;
+    if (state?.showVipModal) {
+      setShowVip(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // New event → reset the progressive batch.
+  useEffect(() => {
+    setVisibleCount(PHOTOS_PER_BATCH);
+  }, [session.selectedEvent?.id]);
 
   const handleGateSubmit = useCallback(
     async (input: Parameters<typeof session.submitGate>[0]) => {
@@ -97,18 +104,11 @@ export default function GalleryVNext() {
     [session, crystallizeTo, toast],
   );
 
-  const openPhoto = useCallback(
-    (photo: GalleryPhoto) => {
-      const idx = session.photos.findIndex((p) => p.id === photo.id);
-      if (idx >= 0) setLightboxIndex(idx);
-    },
-    [session.photos],
-  );
-
   const handleEnhance = useCallback(
     (photoId: number) => {
       void credits.enhance([photoId]).then((outcome) => {
         if (outcome === 'credits_required') setShowUpgrade(true);
+        if (outcome === 'ok') setShowSupport(true); // parity: post-enhancement support chain
       });
     },
     [credits],
@@ -122,9 +122,44 @@ export default function GalleryVNext() {
     [session.photos, session.galleryToken],
   );
 
+  // Whole-event ZIP via direct anchor navigation (parity: GalleryPage.tsx:1694-1711).
+  const handleDownloadAll = useCallback(() => {
+    const eventSlug = session.selectedEvent?.slug || slug || session.gateSlug;
+    if (!session.galleryToken || downloadingAll || !eventSlug) return;
+    setDownloadingAll(true);
+    try {
+      const link = document.createElement('a');
+      link.href = downloadAllUrl(eventSlug, session.galleryToken);
+      link.download = `${eventSlug}-photos.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      window.setTimeout(() => setDownloadingAll(false), 4000);
+    }
+  }, [session.selectedEvent, session.galleryToken, session.gateSlug, slug, downloadingAll]);
+
+  // VIP entry: signed-in clients with available sessions route to the store (parity: :1912-1918).
+  const handleOpenVip = useCallback(() => {
+    if (authUser?.availableSessions && authUser.availableSessions > 0) navigate('/store');
+    else setShowVip(true);
+  }, [authUser, navigate]);
+
+  const handleBack = useCallback(() => {
+    session.exitGallery();
+    setLightboxIndex(null);
+    setShowSupport(false);
+    navigate('/gallery', { replace: true });
+  }, [session, navigate, setLightboxIndex]);
+
+  const totalPhotos = session.photos.length;
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((c) => Math.min(c + PHOTOS_PER_BATCH, totalPhotos));
+  }, [totalPhotos]);
+
   const activePhoto = lightboxIndex !== null ? session.photos[lightboxIndex] ?? null : null;
   const gated = Boolean(session.galleryToken);
-  const heading = useMemo(() => session.selectedEvent?.name ?? 'Photography', [session.selectedEvent]);
+  const eventSlug = session.selectedEvent?.slug || slug || session.gateSlug;
 
   return (
     <GalleryLensFrame>
@@ -132,83 +167,67 @@ export default function GalleryVNext() {
       <div className="gallery-vnext-shell" data-testid="gallery-vnext-shell">
         <Shell>
           <Content ref={contentRef}>
-            <Masthead>
-              <Title>{heading}</Title>
-              <Sub>
-                {gated
-                  ? 'Your gallery is open. Tap any frame to view, download, or enhance it.'
-                  : 'Real moments from the floor. Pick an event to unlock its gallery.'}
-              </Sub>
-            </Masthead>
-
-            {session.error && !session.loading && <State role="alert">{session.error}</State>}
-            {!slug && session.loading && <State>Loading galleries…</State>}
-            {!slug && !session.loading && session.events.length === 0 && !session.error && (
-              <State>No galleries are published yet. Check back soon.</State>
+            {/* The gate REPLACES the list (parity with the shipped overlay: the unlock is the whole moment,
+                never a card buried below the fold). */}
+            {!gated && !session.showGate && (
+              <EventsView
+                events={session.events}
+                loading={session.loading}
+                error={session.error}
+                onOpenEvent={(event) => {
+                  session.openEvent(event);
+                  navigate(`/gallery/${event.slug}`, { replace: true });
+                }}
+                onRetry={session.reloadEvents}
+              />
             )}
 
-            {!slug && session.events.length > 0 && (
-              <EventList>
-                {session.events.map((event) => (
-                  <EventCard key={event.id} type="button" onClick={() => openEvent(event)}>
-                    <EventName>{event.name}</EventName>
-                    <EventMeta>
-                      {event.photoCount} {event.photoCount === 1 ? 'photo' : 'photos'}
-                      {event.location ? ` · ${event.location}` : ''}
-                    </EventMeta>
-                  </EventCard>
-                ))}
-              </EventList>
-            )}
-
-            {session.showGate && (
+            {!gated && session.showGate && (
               <GateWrap>
                 <GateCard
                   eventName={session.selectedEvent?.name}
                   loading={session.gateLoading}
                   error={session.gateError}
                   onSubmit={handleGateSubmit}
+                  onBack={() => {
+                    session.dismissGate();
+                    navigate('/gallery', { replace: true });
+                  }}
                 />
               </GateWrap>
             )}
 
-            {gated && session.photos.length > 0 && (
-              <JustifiedGrid
+            {gated && (
+              <PhotosView
+                event={session.selectedEvent}
                 photos={session.photos}
+                photosLoaded={session.photosLoaded}
+                visibleCount={visibleCount}
                 containerWidth={containerWidth}
                 viewportWidth={viewportWidth}
-                onOpen={openPhoto}
+                error={session.error}
+                freeCredits={credits.credits.freeRemaining}
+                downloadingAll={downloadingAll}
+                showSupport={showSupport}
+                onLoadMore={handleLoadMore}
+                onOpenPhoto={(photo) => openPhoto(photo, session.photos)}
+                onBack={handleBack}
+                onDownloadAll={handleDownloadAll}
+                onOpenMessage={() => setShowMessage(true)}
+                onOpenDonation={() => setShowDonation(true)}
+                onOpenVip={handleOpenVip}
+                onSupportRefer={() => { setShowSupport(false); setShowReferral(true); }}
+                onSupportTip={() => { setShowSupport(false); setShowDonation(true); }}
+                onSupportDismiss={() => setShowSupport(false)}
+                onRetry={session.retryPhotos}
               />
-            )}
-
-            {gated && session.photos.length === 0 && !session.error && (
-              <State>This gallery has no photos yet.</State>
             )}
           </Content>
         </Shell>
 
-        {/* Credits are a post-gate concept only (Kimi Q4) — no anonymous credit state. */}
-        {gated && (
-          <CreditPill
-            credits={credits.credits}
-            hasCredits={credits.hasCredits}
-            onUpgrade={() => setShowUpgrade((v) => !v)}
-          />
-        )}
-
-        {gated && showUpgrade && (
-          <UpgradePanel role="dialog" aria-label="Add enhancement passes">
-            {PACKAGES.map((p) => (
-              <UpgradeBtn
-                key={p.key}
-                type="button"
-                disabled={credits.purchaseLoading !== null}
-                onClick={() => void credits.purchase(p.key)}
-              >
-                {credits.purchaseLoading === p.key ? 'Opening checkout…' : p.label}
-              </UpgradeBtn>
-            ))}
-          </UpgradePanel>
+        {/* Credits are a post-gate concept only (Kimi Q4); pill hides while the lightbox is open (parity). */}
+        {gated && lightboxIndex === null && (
+          <CreditPill credits={credits.credits} onUpgrade={() => setShowUpgrade(true)} />
         )}
 
         <CheckoutToast
@@ -218,6 +237,29 @@ export default function GalleryVNext() {
           onDismiss={toast.dismiss}
         />
 
+        {gated && (
+          <GalleryVNextModals
+            email={session.gateEmail}
+            galleryToken={session.galleryToken || ''}
+            eventSlug={eventSlug}
+            showUpgrade={showUpgrade}
+            showVip={showVip}
+            showMessage={showMessage}
+            showDonation={showDonation}
+            showReferral={showReferral}
+            purchaseLoading={credits.purchaseLoading}
+            onPurchase={(pkg) => void credits.purchase(pkg)}
+            onCloseUpgrade={() => setShowUpgrade(false)}
+            onUpgradeVip={() => { setShowUpgrade(false); setShowVip(true); }}
+            onUpgradeReferral={() => { setShowUpgrade(false); setShowReferral(true); }}
+            onCloseVip={() => setShowVip(false)}
+            onCloseMessage={() => setShowMessage(false)}
+            onCloseDonation={() => setShowDonation(false)}
+            onCloseReferral={() => setShowReferral(false)}
+            onCreditsRefresh={() => void credits.refresh()}
+          />
+        )}
+
         <PhotoDetailModal
           isOpen={activePhoto !== null}
           photo={activePhoto}
@@ -225,7 +267,7 @@ export default function GalleryVNext() {
           totalPhotos={session.photos.length}
           credits={credits.credits}
           voteData={activePhoto ? votes.votesMap[activePhoto.id] || null : null}
-          onClose={() => setLightboxIndex(null)}
+          onClose={closeLightbox}
           onPrev={() => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
           onNext={() =>
             setLightboxIndex((i) => (i !== null && i < session.photos.length - 1 ? i + 1 : i))

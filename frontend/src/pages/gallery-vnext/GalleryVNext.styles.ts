@@ -17,10 +17,6 @@ export const Content = styled.div`
   margin: 0 auto;
 `;
 
-export const Masthead = styled.header`
-  padding: 40px 0 24px;
-`;
-
 export const Title = styled.h1`
   margin: 0 0 8px;
   font-family: var(--gallery-font-display);
@@ -42,8 +38,8 @@ export const EventList = styled.div`
 
 export const EventCard = styled.button`
   position: relative;
-  min-height: 148px;
-  padding: 16px;
+  padding: 0;
+  overflow: hidden;
   text-align: left;
   border-radius: var(--gallery-r-card, 12px);
   border: 1px solid var(--gallery-chrome-edge);
@@ -51,6 +47,29 @@ export const EventCard = styled.button`
   color: var(--gallery-ink);
   cursor: pointer;
   box-shadow: var(--gallery-elev-1);
+  transition: transform 180ms var(--gallery-ease-standard), box-shadow 180ms var(--gallery-ease-standard);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--gallery-elev-2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
+  }
+`;
+
+export const RetryBtn = styled.button`
+  min-height: 44px;
+  margin-left: 8px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gallery-line);
+  background: var(--gallery-surface-2);
+  color: var(--gallery-ink);
+  cursor: pointer;
+  font-size: 0.9rem;
 `;
 
 export const EventName = styled.span`
@@ -78,27 +97,3 @@ export const State = styled.p`
   color: var(--gallery-ink-2);
 `;
 
-export const UpgradePanel = styled.div`
-  position: fixed;
-  inset: auto 16px calc(76px + env(safe-area-inset-bottom, 0px)) auto;
-  z-index: var(--gallery-z-overlay, 50);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: var(--gallery-r-card, 12px);
-  background: var(--gallery-surface-1);
-  border: 1px solid var(--gallery-chrome-edge);
-  box-shadow: var(--gallery-elev-3);
-`;
-
-export const UpgradeBtn = styled.button`
-  min-height: var(--gallery-target, 48px);
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--gallery-line);
-  background: var(--gallery-surface-2);
-  color: var(--gallery-ink);
-  cursor: pointer;
-  font-size: 0.92rem;
-`;

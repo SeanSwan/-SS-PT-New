@@ -71,8 +71,12 @@ export interface PhotoTileProps {
 
 export function PhotoTile({ photo, ratio, priority = false, revealed, tileRef, onOpen }: PhotoTileProps) {
   const [sharpLoaded, setSharpLoaded] = useState(false);
-  const placeholder = photo.thumbnailUrl || photo.url;
-  const sharp = photo.mediumUrl || photo.url;
+  // Rendition fallback chain mirrors the shipped grid (GalleryPage.tsx:1958-1967): a failed thumb/medium
+  // falls back to the full URL rather than leaving a dead tile.
+  const [placeholderFailed, setPlaceholderFailed] = useState(false);
+  const [sharpFailed, setSharpFailed] = useState(false);
+  const placeholder = (!placeholderFailed && photo.thumbnailUrl) || photo.url;
+  const sharp = (!sharpFailed && (photo.mediumUrl || photo.url)) || photo.url;
   const showSharp = revealed && sharpLoaded;
 
   return (
@@ -84,6 +88,7 @@ export function PhotoTile({ photo, ratio, priority = false, revealed, tileRef, o
         $visible={!showSharp}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        onError={() => setPlaceholderFailed(true)}
       />
       <Layer
         src={sharp}
@@ -93,6 +98,7 @@ export function PhotoTile({ photo, ratio, priority = false, revealed, tileRef, o
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
         onLoad={() => setSharpLoaded(true)}
+        onError={() => setSharpFailed(true)}
       />
       <OpenControl
         type="button"

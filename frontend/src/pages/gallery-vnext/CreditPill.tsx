@@ -35,17 +35,26 @@ const Dot = styled.span<{ $active: boolean }>`
 
 export interface CreditPillProps {
   credits: EnhancementCredits;
-  hasCredits: boolean;
   onUpgrade(): void;
 }
 
-export function CreditPill({ credits, hasCredits, onUpgrade }: CreditPillProps) {
-  const total = totalCredits(credits);
-  const label = credits.isVip ? 'VIP — unlimited enhancements' : `${total} enhancement ${total === 1 ? 'pass' : 'passes'}`;
+/** Label parity with the shipped pill (GalleryPage.tsx:1718-1723): VIP → free passes → purchased → zero. */
+function pillText(credits: EnhancementCredits): string {
+  if (credits.isVip) return 'VIP - Unlimited Enhancements';
+  if (credits.freeRemaining > 0)
+    return `${credits.freeRemaining} Free Enhancement Pass${credits.freeRemaining !== 1 ? 'es' : ''}`;
+  if (credits.purchasedCredits > 0)
+    return `${credits.purchasedCredits} Enhancement Credit${credits.purchasedCredits !== 1 ? 's' : ''}`;
+  return '0 Enhancement Credits';
+}
+
+export function CreditPill({ credits, onUpgrade }: CreditPillProps) {
+  const active = credits.isVip || totalCredits(credits) > 0;
+  const label = pillText(credits);
 
   return (
     <Pill type="button" onClick={onUpgrade} data-testid="gallery-credit-pill" aria-label={label}>
-      <Dot $active={hasCredits} aria-hidden="true" />
+      <Dot $active={active} aria-hidden="true" />
       {label}
     </Pill>
   );

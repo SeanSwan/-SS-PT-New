@@ -43,6 +43,9 @@ export function JustifiedGrid({ photos, containerWidth, viewportWidth, onOpen }:
   const [revealedIds, setRevealedIds] = useState<Set<number>>(() => new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const pendingRef = useRef<number[]>([]);
+  /** tiles mounted BEFORE the observer exists — callback refs fire during render commit, the observer is
+   *  created in an effect (after). Without this queue the initial viewport never reveals (stays blurred). */
+  const preObserverQueue = useRef<HTMLElement[]>([]);
 
   // Flush revealed ids in capped batches so no more than REVEAL_BATCH tiles crossfade at once.
   const flush = useCallback(() => {
@@ -57,6 +60,11 @@ export function JustifiedGrid({ photos, containerWidth, viewportWidth, onOpen }:
   }, []);
 
   useEffect(() => {
+    // Fallback: no IntersectionObserver (old WebView / jsdom) → reveal everything, never strand a blur.
+    if (typeof IntersectionObserver === 'undefined') {
+      setRevealedIds(new Set(photos.map((p) => p.id)));
+      return;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         let queued = false;
@@ -73,11 +81,21 @@ export function JustifiedGrid({ photos, containerWidth, viewportWidth, onOpen }:
       { rootMargin: '200px' },
     );
     observerRef.current = observer;
-    return () => observer.disconnect();
+    // Observe every tile that mounted before the observer existed (the initial render batch).
+    preObserverQueue.current.forEach((el) => observer.observe(el));
+    preObserverQueue.current = [];
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+    };
+    // photos identity changes re-arm the fallback path only; live tiles re-attach via callback refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flush]);
 
   const attachTile = useCallback((el: HTMLElement | null) => {
-    if (el && observerRef.current) observerRef.current.observe(el);
+    if (!el) return;
+    if (observerRef.current) observerRef.current.observe(el);
+    else preObserverQueue.current.push(el);
   }, []);
 
   return (
