@@ -42,16 +42,17 @@ export function resolveFlagValue(envBaseline, row, user) {
   if (!row) return envBaseline;
   if (row.mode === 'force') return Boolean(row.value);
 
-  // rollout mode
+  // rollout mode — schedule, role, and percent COMPOSE (all present gates must pass), so
+  // {roles:['trainer'], pct:10} means "10% of trainers", not "100% of trainers" (F4).
   if (row.starts_at && new Date(row.starts_at).getTime() > Date.now()) return false;
   if (Array.isArray(row.roles) && row.roles.length > 0) {
     const role = user?.role;
-    return Boolean(role && row.roles.includes(role) && row.value);
+    if (!role || !row.roles.includes(role)) return false; // anonymous / non-matching role → false
   }
   if (row.pct != null) {
     const uid = user?.id;
     if (uid == null) return false; // anonymous can't be bucketed
-    return stableBucket(uid, row.flag) < row.pct && Boolean(row.value);
+    if (stableBucket(uid, row.flag) >= row.pct) return false;
   }
   return Boolean(row.value);
 }

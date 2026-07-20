@@ -23,7 +23,6 @@ export interface FlagRow {
   envBase: boolean;
   hasOverride: boolean;
   resolved: boolean;
-  locked: boolean;
 }
 
 export interface VerifyResult {
@@ -59,20 +58,11 @@ export async function getBoard(): Promise<FlagRow[]> {
   }
 }
 
-/** Set a force override to `value`. Pass force=true to override the health lock. Returns {unhealthy} on 409. */
-export async function setFlag(
-  flag: string,
-  value: boolean,
-  force = false,
-): Promise<{ ok: boolean; unhealthy?: boolean; fail24h?: number }> {
+/** Set a force override to `value` (P0 = force only; affects everyone). Health is advisory, never a gate. */
+export async function setFlag(flag: string, value: boolean): Promise<void> {
   try {
-    await apiService.put(`${BASE}/${encodeURIComponent(flag)}`, { value, mode: 'force', force });
-    return { ok: true };
+    await apiService.put(`${BASE}/${encodeURIComponent(flag)}`, { value, mode: 'force' });
   } catch (err) {
-    const e = err as { response?: { status?: number; data?: { error?: string; fail24h?: number } } };
-    if (e?.response?.status === 409 && e.response.data?.error === 'unhealthy') {
-      return { ok: false, unhealthy: true, fail24h: e.response.data.fail24h };
-    }
     throw new Error(messageFrom(err, 'Failed to update flag'));
   }
 }

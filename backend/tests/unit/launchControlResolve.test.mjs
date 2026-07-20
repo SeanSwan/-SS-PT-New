@@ -60,6 +60,16 @@ describe('rollout — percentage (stable + anonymous-safe)', () => {
   });
 });
 
+describe('rollout — roles + percentage COMPOSE (F4: pct must not be dropped when roles set)', () => {
+  const base = { flag: 'dashboardV2', value: true, mode: 'rollout', roles: ['trainer'] };
+  it('requires the role AND the bucket — "N% of trainers", not "100% of trainers"', () => {
+    expect(resolveFlagValue(false, { ...base, pct: 100 }, { id: 1, role: 'trainer' })).toBe(true);   // role ok + pct 100 → in
+    expect(resolveFlagValue(false, { ...base, pct: 0 }, { id: 1, role: 'trainer' })).toBe(false);     // role ok but pct 0 → out (pct honored)
+    expect(resolveFlagValue(false, { ...base, pct: 100 }, { id: 1, role: 'client' })).toBe(false);    // wrong role → out regardless of pct
+    expect(resolveFlagValue(false, { ...base, pct: 100 }, null)).toBe(false);                          // anonymous → out
+  });
+});
+
 describe('stableBucket', () => {
   it('is in [0,99] and deterministic', () => {
     for (const id of [1, 42, 9999, 'abc']) {

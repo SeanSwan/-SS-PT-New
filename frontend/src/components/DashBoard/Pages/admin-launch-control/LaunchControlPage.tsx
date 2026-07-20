@@ -70,17 +70,9 @@ export default function LaunchControlPage() {
 
   const toggle = useCallback(
     async (row: FlagRow) => {
-      const next = !row.resolved;
       setBusy(row.flag);
       try {
-        const res = await setFlag(row.flag, next);
-        if (res.unhealthy) {
-          const ok = window.confirm(
-            `"${row.flag}" has ${res.fail24h} fail-closed error(s) in 24h. Turn it ON anyway?`,
-          );
-          if (ok) await setFlag(row.flag, next, true);
-          else return;
-        }
+        await setFlag(row.flag, !row.resolved);
         await load();
       } catch (e) {
         setError((e as Error).message);

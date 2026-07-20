@@ -69,7 +69,6 @@ export async function getBoard() {
       hasOverride,
       // "everyone" resolved value (anonymous visitor) — what the public site shows now.
       resolved: resolveFlagValue(Boolean(base[f.flag]), overrideRow, null),
-      locked: Number(f.fail24h) > Number(f.health_threshold),
     };
   });
 }
@@ -86,34 +85,27 @@ async function audit(flag, oldState, newState, actor, source) {
   );
 }
 
-/** UPSERT an override. Returns { ok } or { error }. Health-gates a force-ON when a surface is erroring. */
-export async function upsertOverride(flag, body, actor, { allowUnhealthy = false } = {}) {
+/**
+ * UPSERT an override. Returns { ok } or { error }. P0 supports ONLY `force` (a plain on/off for everyone):
+ * rollout writes are rejected until the targeting drawer ships (P1), so a hand-crafted rollout row can't
+ * confuse the board or leak through the anonymous public endpoint. Health is ADVISORY (a red chip on the
+ * board), never a write gate — an admin's intentional flip must not be blockable by anonymous telemetry.
+ */
+export async function upsertOverride(flag, body, actor) {
   if (!(await flagExists(flag))) return { error: 'unknown_flag', status: 404 };
-  const { value, mode = 'force', roles = null, pct = null, starts_at = null } = body;
+  const { value, mode = 'force' } = body || {};
   if (typeof value !== 'boolean') return { error: 'value_required', status: 400 };
-  if (!['force', 'rollout'].includes(mode)) return { error: 'bad_mode', status: 400 };
-  if (pct != null && (pct < 1 || pct > 99)) return { error: 'bad_pct', status: 400 };
-
-  if (value === true && !allowUnhealthy) {
-    const [[{ fail24h, threshold }]] = await sequelize.query(
-      `SELECT (SELECT COUNT(*) FROM flag_health h WHERE h.flag = :flag AND h.created_at > now() - interval '24 hours') AS fail24h,
-              (SELECT health_threshold FROM flags WHERE flag = :flag) AS threshold`,
-      { replacements: { flag } },
-    );
-    if (Number(fail24h) > Number(threshold)) {
-      return { error: 'unhealthy', status: 409, allowOverride: true, fail24h: Number(fail24h) };
-    }
-  }
+  if (mode !== 'force') return { error: 'rollout_not_enabled', status: 400 };
 
   const [existing] = await sequelize.query(`SELECT * FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
   await sequelize.query(
     `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
-     VALUES (:flag, :value, :mode, :roles, :pct, :starts_at, :actor, now())
-     ON CONFLICT (flag) DO UPDATE SET value = :value, mode = :mode, roles = :roles, pct = :pct,
-       starts_at = :starts_at, updated_by = :actor, updated_at = now()`,
-    { replacements: { flag, value, mode, roles, pct, starts_at, actor } },
+     VALUES (:flag, :value, 'force', NULL, NULL, NULL, :actor, now())
+     ON CONFLICT (flag) DO UPDATE SET value = :value, mode = 'force', roles = NULL, pct = NULL,
+       starts_at = NULL, updated_by = :actor, updated_at = now()`,
+    { replacements: { flag, value, actor } },
   );
-  await audit(flag, existing[0] || null, { value, mode, roles, pct, starts_at }, actor, 'manual');
+  await audit(flag, existing[0] || null, { value, mode: 'force' }, actor, 'manual');
   return { ok: true };
 }
 
@@ -126,15 +118,17 @@ export async function deleteOverride(flag, actor, source = 'manual') {
   return { ok: true };
 }
 
-/** Panic button: force every redesign flag OFF. Returns count. */
+/** Panic button: force every redesign flag OFF in ONE atomic statement (all-or-nothing — no half-kill). */
 export async function killAllRedesigns(actor) {
-  const [redesigns] = await sequelize.query(`SELECT flag FROM flags WHERE grp = 'redesign'`);
-  let count = 0;
-  for (const { flag } of redesigns) {
-    await upsertOverride(flag, { value: false, mode: 'force' }, actor, { allowUnhealthy: true });
-    count++;
-  }
-  await audit('*', null, { killAll: true }, actor, 'kill_all');
+  const [, meta] = await sequelize.query(
+    `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
+     SELECT flag, false, 'force', NULL, NULL, NULL, :actor, now() FROM flags WHERE grp = 'redesign'
+     ON CONFLICT (flag) DO UPDATE SET value = false, mode = 'force', roles = NULL, pct = NULL,
+       starts_at = NULL, updated_by = :actor, updated_at = now()`,
+    { replacements: { actor } },
+  );
+  const count = meta?.rowCount ?? 0;
+  await audit('*', null, { killAll: true, count }, actor, 'kill_all');
   return count;
 }
 
@@ -147,13 +141,16 @@ export async function getAudit(flag, limit = 50) {
   return rows;
 }
 
-/** Called by every surface Gate's ErrorBoundary (public, rate-limited). Silently ignores unknown flags. */
-export async function recordHealth(flag, surface, errMsg, ua) {
+/**
+ * Called by every surface Gate's ErrorBoundary (public, rate-limited). Advisory only — never gates a write.
+ * No user-agent / IP / identifying fields are stored (Rule 8 zero-PII): flag + surface + truncated err only.
+ */
+export async function recordHealth(flag, surface, errMsg) {
   try {
     if (!(await flagExists(flag))) return;
     await sequelize.query(
-      `INSERT INTO flag_health (flag, surface, err_msg, ua) VALUES (:flag, :surface, :err, :ua)`,
-      { replacements: { flag, surface: surface || null, err: (errMsg || '').slice(0, 500), ua: (ua || '').slice(0, 300) } },
+      `INSERT INTO flag_health (flag, surface, err_msg) VALUES (:flag, :surface, :err)`,
+      { replacements: { flag, surface: surface || null, err: (errMsg || '').slice(0, 500) } },
     );
   } catch (err) {
     logger.warn('[LaunchControl] recordHealth failed: %s', err.message);

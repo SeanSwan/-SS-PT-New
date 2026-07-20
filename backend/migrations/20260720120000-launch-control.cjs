@@ -60,7 +60,6 @@ module.exports = {
         flag        TEXT NOT NULL,
         surface     TEXT NULL,
         err_msg     TEXT NULL,
-        ua          TEXT NULL,
         created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
       );
     `);

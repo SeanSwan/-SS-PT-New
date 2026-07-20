@@ -20,8 +20,12 @@ import { envBaseline, overlayOverrides, recordHealth } from '../services/launchC
 const router = express.Router();
 
 router.get('/public-flags', async (req, res) => {
-  // 30s so an admin flip propagates quickly; the DB overlay is a tiny indexed read and fails safe.
-  res.set('Cache-Control', 'public, max-age=30');
+  // Cache contract enforced in CODE, not convention: only cache PUBLICLY when the response is user-invariant.
+  // Today no middleware attaches req.user here (anonymous, force-only), so `public` is safe. If a future change
+  // (e.g. global optionalAuth for preview-as) ever attaches a user, per-user rollout results must NOT land in a
+  // shared/CDN cache — so downgrade to private/no-store the moment a user is present.
+  if (req.user) res.set('Cache-Control', 'private, no-store');
+  else res.set('Cache-Control', 'public, max-age=30');
   const flags = await overlayOverrides(envBaseline(), req.user);
   res.json(flags);
 });
@@ -31,7 +35,7 @@ const healthLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders:
 router.post('/flag-health', healthLimiter, async (req, res) => {
   const { flag, surface, err } = req.body || {};
   if (typeof flag === 'string' && flag.length > 0 && flag.length < 80) {
-    void recordHealth(flag, surface, err, req.get('user-agent'));
+    void recordHealth(flag, surface, err); // no user-agent / IP stored (Rule 8 zero-PII)
   }
   res.status(204).end(); // never blocks the client
 });

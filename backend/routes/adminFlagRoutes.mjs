@@ -18,7 +18,8 @@ const router = express.Router();
 router.use(protect);
 router.use(authorize(['admin']));
 
-const actorOf = (req) => req.user?.username || req.user?.email || String(req.user?.id ?? 'admin');
+// Audit actor — username or admin#<id>, never the email (keep the append-only ledger PII-lean, Rule 8).
+const actorOf = (req) => req.user?.username || `admin#${req.user?.id ?? '?'}`;
 
 /** GET /api/admin/flags — the launch board (registry + override + health + resolved live value). */
 router.get('/', async (_req, res) => {
@@ -30,12 +31,10 @@ router.get('/', async (_req, res) => {
   }
 });
 
-/** PUT /api/admin/flags/:flag — set/replace an override. `{ value, mode?, roles?, pct?, starts_at?, force? }` */
+/** PUT /api/admin/flags/:flag — set/replace a force override. `{ value: boolean }` (P0 = force only). */
 router.put('/:flag', async (req, res) => {
   try {
-    const result = await upsertOverride(req.params.flag, req.body || {}, actorOf(req), {
-      allowUnhealthy: req.body?.force === true,
-    });
+    const result = await upsertOverride(req.params.flag, req.body || {}, actorOf(req));
     if (result.error) return res.status(result.status || 400).json({ success: false, ...result });
     res.json({ success: true });
   } catch (err) {

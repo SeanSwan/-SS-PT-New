@@ -50,6 +50,7 @@ export const Btn = styled.button<{ $danger?: boolean }>`
   color: ${(p) => (p.$danger ? 'var(--world-danger, #ff6b8a)' : 'var(--world-text, #e0ecf4)')};
   font-size: 0.9rem;
   cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 2px; }
   &:disabled { opacity: 0.55; cursor: progress; }
 `;
 
@@ -108,7 +109,7 @@ export const Chip = styled.span<{ $tone: 'ok' | 'warn' | 'muted' }>`
   gap: 5px;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   white-space: nowrap;
   color: ${(p) => (p.$tone === 'warn' ? 'var(--world-danger, #ff6b8a)' : p.$tone === 'ok' ? 'var(--world-accent, #60c0f0)' : 'var(--world-muted, #9fb0c8)')};
   background: color-mix(in srgb, currentColor 14%, transparent);
@@ -158,7 +159,11 @@ export const Toggle = styled.button<{ $on: boolean }>`
     background: #fff;
     transition: left 160ms ease;
   }
+  &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 3px; border-radius: 16px; }
   &:disabled { opacity: 0.5; cursor: progress; }
+  @media (prefers-reduced-motion: reduce) {
+    &::before, &::after { transition: none; }
+  }
 `;
 
 export const ResetBtn = styled.button`
@@ -171,6 +176,7 @@ export const ResetBtn = styled.button`
   font-size: 0.82rem;
   cursor: pointer;
   &:hover { color: var(--world-text, #e0ecf4); }
+  &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 2px; }
 `;
 
 export const Strip = styled.div`
