@@ -56,7 +56,11 @@ export function GalleryGate({ children }: { children: ReactNode }) {
 
   return (
     <GateBoundary fallback={<>{children}</>}>
-      <Suspense fallback={<>{children}</>}>
+      {/* Suspense fallback is NULL, not the old page: mounting the old page live during the chunk load
+          double-runs its side effects — its checkout-return handler fires and STRIPS the ?credits/?donation
+          params, eating the vNext's toast (caught by Kimi probe P3). Flag-off / chunk error / contract-fail
+          still fall back to the untouched old page via the branches above and GateBoundary. */}
+      <Suspense fallback={null}>
         <ContractCheck onFail={() => setContractOk(false)}>
           <div data-testid="gallery-vnext-root">
             <LazyGalleryVNext />

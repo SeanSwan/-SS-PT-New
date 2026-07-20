@@ -18,6 +18,15 @@ import {
 /** `credits_required` is the backend's explicit signal; the caller opens the upgrade modal on it. */
 export type EnhancementOutcome = 'ok' | 'credits_required' | 'error';
 
+/**
+ * Checkout returns are FULL-PAGE redirects (Stripe → back), so the return params arrive with the page load.
+ * ENTRY_SEARCH is captured in flags.ts at ROUTE-CHUNK evaluation — before the old page (mounted live during
+ * flag resolution) or StrictMode's throwaway first mount can strip the URL and eat the toast (Kimi probe P3).
+ */
+import { ENTRY_SEARCH } from './flags';
+
+const RETURN_KEYS = ['credits', 'donation', 'print'] as const;
+
 export interface GalleryCredits {
   credits: EnhancementCredits;
   hasCredits: boolean;
@@ -86,11 +95,13 @@ export function useGalleryCredits(
   );
 
   // Checkout return — mirrors GalleryPage.tsx:1276-1309 verbatim (same params, copy, and URL cleanup).
-  // Guarded so it fires once per mount even though it depends on token/refresh.
+  // Reads the LIVE search when it still carries return keys, else the module-captured ENTRY_SEARCH (so a
+  // remount after the URL strip still delivers the toast). Ref-guarded once per mount.
   const handledReturn = useRef(false);
   useEffect(() => {
     if (handledReturn.current) return;
-    const params = new URLSearchParams(window.location.search);
+    const live = new URLSearchParams(window.location.search);
+    const params = RETURN_KEYS.some((k) => live.has(k)) ? live : new URLSearchParams(ENTRY_SEARCH);
     const creditStatus = params.get('credits');
     const donationStatus = params.get('donation');
     const printStatus = params.get('print');

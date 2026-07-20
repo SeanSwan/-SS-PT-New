@@ -97,8 +97,8 @@ export function EventsView({ events, loading, error, onOpenEvent, onRetry }: Eve
             {events.map((event) => (
               <EventCard key={event.id} type="button" onClick={() => onOpenEvent(event)}>
                 <EventCover $src={event.coverPhotoUrl}>
-                  {event.sport && <CoverBadge>{event.sport}</CoverBadge>}
-                  <CoverCount>
+                  {event.sport && <CoverBadge data-testid="event-cover-badge">{event.sport}</CoverBadge>}
+                  <CoverCount data-testid="event-cover-count">
                     {event.photoCount} {event.photoCount === 1 ? 'photo' : 'photos'}
                   </CoverCount>
                 </EventCover>

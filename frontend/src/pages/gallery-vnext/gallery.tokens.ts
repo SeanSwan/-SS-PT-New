@@ -41,9 +41,11 @@ export const GalleryVNextTokens = createGlobalStyle`
 
     /* text-over-photo scrim + frost (Kimi (b)8 — hold AA over an arbitrary photograph; the scrim/frost are
        the only non-brand raw colors, and they live here in the sole allowed color site) */
-    --gallery-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.32) 42%, rgba(0, 0, 0, 0) 100%);
+    /* Deepened per Kimi b5 after the P2 probe MEASURED 3.96:1 on a pure-white cover (veto class) —
+       these are Kimi's binding replacement numbers; frost-white text now clears 4.5:1 on any photograph. */
+    --gallery-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0) 85%);
     --gallery-frost: color-mix(in oklab, var(--world-bg) 72%, transparent);
-    --gallery-scrim-solid: rgba(0, 0, 0, 0.55); /* no-backdrop-filter fallback */
+    --gallery-scrim-solid: rgba(0, 0, 0, 0.72); /* no-backdrop-filter fallback — matches the deepened base */
 
     /* shape / elevation / z ← REAL lens slots */
     --gallery-r-panel: var(--lens-panel-radius);
@@ -66,9 +68,22 @@ export const GalleryVNextTokens = createGlobalStyle`
     --gallery-target: max(48px, var(--world-target-size, 48px));
   }
 
-  /* focus ring — never removed */
-  .gallery-vnext-shell :where(a, button, [role='button'], input, select, textarea, [tabindex]):focus-visible {
-    outline: 2px solid var(--gallery-ice);
+  /* focus ring — never removed. Full-specificity selectors on purpose: the app carries global
+     outline-none resets (CosmicEleganceGlobalStyle.ts:461, mobile CSS) that beat a zero-specificity
+     :where() ring — probe P6 measured 0px on a keyboard-focused tile before this. NOTE: no backtick
+     characters in this comment — stylis silently swallows the rule that follows them. */
+  .gallery-vnext-shell a:focus-visible,
+  .gallery-vnext-shell button:focus-visible,
+  .gallery-vnext-shell [role='button']:focus-visible,
+  .gallery-vnext-shell input:focus-visible,
+  .gallery-vnext-shell select:focus-visible,
+  .gallery-vnext-shell textarea:focus-visible,
+  .gallery-vnext-shell [tabindex]:focus-visible {
+    /* LONGHANDS on purpose: an important SHORTHAND carrying var() computed to 0px/black in Chromium
+       (invalid-at-computed-value) — probe P6 measured it. Longhands + fallback are immune. */
+    outline-width: 2px !important;
+    outline-style: solid !important;
+    outline-color: var(--gallery-ice, #60C0F0) !important;
     outline-offset: 2px;
   }
 

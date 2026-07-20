@@ -20,6 +20,13 @@ import type { GalleryPhoto } from './gallery.types';
 /** Legacy rows may predate the dimension columns (both nullable) — fall back to 3:2 rather than crash. */
 const FALLBACK_RATIO = 1.5;
 
+/**
+ * Kimi's no-sliver law, enforced on WIDTH, not just count: `maxPerRow` alone still let a 2:3 portrait
+ * beside a 16:9 wide justify down to ~85px at 375vw (measured by probe P1). Any justified row whose
+ * narrowest box would render under this floor is split instead.
+ */
+const MIN_RENDER_WIDTH = 104;
+
 export interface GridConfig {
   rowHeight: number;
   gap: number;
@@ -96,13 +103,23 @@ export function computeJustifiedRows(
     return { boxes, height: Math.round(height), ragged };
   };
 
-  for (const photo of photos) {
+  const queue = [...photos];
+  while (queue.length > 0) {
+    const photo = queue.shift()!;
     current.push(photo);
     sumRatios += photoRatio(photo);
     const gaps = gap * (current.length - 1);
     const justifiedHeight = (contentWidth - gaps) / sumRatios;
 
     if (justifiedHeight <= rowHeight || current.length >= maxPerRow) {
+      // No-sliver floor: if justifying THIS row would render its narrowest frame under the floor,
+      // return the last frame to the stream and close the row without it (count 1 always closes).
+      const minBox = Math.min(...current.map((p) => photoRatio(p) * justifiedHeight));
+      if (minBox < MIN_RENDER_WIDTH && current.length > 1) {
+        const popped = current.pop()!;
+        sumRatios -= photoRatio(popped);
+        queue.unshift(popped);
+      }
       rows.push(closeRow(current, sumRatios, false));
       current = [];
       sumRatios = 0;

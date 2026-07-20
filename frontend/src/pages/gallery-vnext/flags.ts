@@ -7,6 +7,14 @@
  */
 import { useEffect, useState } from 'react';
 
+/**
+ * Entry-URL search params, captured at ROUTE-CHUNK evaluation — before ANY component mounts. The gate
+ * renders the old GalleryPage during flag resolution and StrictMode double-mounts in dev; both strip the
+ * checkout-return params (?credits/?donation/?print) before the lazy vNext evaluates, eating its toast
+ * (Kimi probe P3). This module is imported by GalleryGate, so it evaluates first and preserves them.
+ */
+export const ENTRY_SEARCH = typeof window !== 'undefined' ? window.location.search : '';
+
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_GALLERY_VNEXT);

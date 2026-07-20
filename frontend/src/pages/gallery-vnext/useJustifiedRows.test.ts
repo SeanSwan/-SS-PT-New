@@ -71,6 +71,25 @@ describe('computeJustifiedRows', () => {
     }
   });
 
+  it('never renders a sub-floor sliver when a tall portrait shares a row with a wide frame (probe P1 regression)', () => {
+    // 2:3 portrait + 16:9 wide at 375-class width justified to ~85px portrait before the width floor.
+    const mixed = [
+      photo(1, 2000, 3000), // 0.667
+      photo(2, 3200, 1800), // 1.78
+      photo(3, 2000, 3000),
+      photo(4, 3200, 1800),
+      photo(5, 3000, 2000),
+    ];
+    const config = resolveGridConfig(375);
+    const contentWidth = 375 - 32 - config.pad * 2; // shell pad + grid pad, as rendered
+    const rows = computeJustifiedRows(mixed, contentWidth, config);
+    for (const row of rows) {
+      for (const box of row.boxes) {
+        expect(box.width, `no sub-floor tile (row of ${row.boxes.length})`).toBeGreaterThan(100);
+      }
+    }
+  });
+
   it('never produces sliver tiles at 320px (falls back to 2-up)', () => {
     const config = resolveGridConfig(320);
     const contentWidth = 320 - config.pad * 2;
