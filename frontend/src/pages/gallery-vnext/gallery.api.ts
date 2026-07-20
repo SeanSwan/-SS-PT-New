@@ -11,6 +11,7 @@ import type {
   GalleryEventSummary,
   GalleryPhoto,
   GateSubmitInput,
+  PhotoVoteData,
 } from './gallery.types';
 
 const API_BASE =
@@ -108,6 +109,36 @@ export async function getDownloadUrl(token: string, photoId: number): Promise<Do
 /** The whole-event ZIP is a direct browser navigation; the token rides as a query param (backend accepts it). */
 export function downloadAllUrl(slug: string, token: string): string {
   return `${API_BASE}/api/gallery/events/${encodeURIComponent(slug)}/download-all?token=${encodeURIComponent(token)}`;
+}
+
+// ── Photo votes (Bearer galleryToken) ─────────────────────────────────────
+export interface VotesResponse {
+  success: boolean;
+  votes?: Record<number, PhotoVoteData>;
+  error?: string;
+}
+export async function listVotes(slug: string, token: string, signal?: AbortSignal): Promise<VotesResponse> {
+  const res = await fetch(`${API_BASE}/api/gallery/events/${slug}/votes`, {
+    headers: authHeaders(token),
+    signal,
+  });
+  return res.json();
+}
+
+export interface VoteResponse {
+  success: boolean;
+  thumbsUp?: number;
+  thumbsDown?: number;
+  userVote?: 1 | -1 | null;
+  error?: string;
+}
+export async function castVote(token: string, photoId: number, voteType: 1 | -1): Promise<VoteResponse> {
+  const res = await fetch(`${API_BASE}/api/gallery/vote`, {
+    method: 'POST',
+    headers: { ...jsonHeaders, ...authHeaders(token) },
+    body: JSON.stringify({ photoId, voteType }),
+  });
+  return res.json();
 }
 
 export { API_BASE };

@@ -3,7 +3,9 @@
  * ONLY hex site (one gold literal + the text scrim). Every other gallery-vnext file references bare
  * `var(--gallery-*)` only. `--gallery-*` aliases the REAL shipped lens/world slots so the Appearance Studio
  * re-worlds the gallery for free. Gold has no world slot → gallery-local literal, spent only on the ONE
- * reveal facet + focus (LAW 2 allowlist). Never the retired Galaxy trio (#0a0a1a / #00FFFF / #7851A9).
+ * reveal facet + focus (LAW 2 allowlist). The RETIRED Galaxy palette is banned on this surface — including
+ * inside var() fallbacks and disguised rgba()/hsl() channel forms. (Literals intentionally not written here:
+ * the de-Galaxy CI scan matches them even inside comments.)
  */
 import { createGlobalStyle } from 'styled-components';
 

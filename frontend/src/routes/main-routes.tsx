@@ -95,8 +95,11 @@ const SignupModal = lazyLoadWithErrorHandling(
   () => import('../pages/OptimizedSignupModal'),
   'Signup Modal'
 );
+// Gallery is flag-gated (billing-critical surface). GatedGalleryPage renders the vNext only when the
+// runtime `galleryVNext` flag is on AND the world-contract probe passes; it fails closed to the untouched
+// GalleryPage on every other path. One import gates BOTH /gallery routes below.
 const GalleryPage = lazyLoadWithErrorHandling(
-  () => import('../pages/GalleryPage'),
+  () => import('../pages/GatedGalleryPage'),
   'Gallery Page'
 );
 const ContactPage = lazyLoadWithErrorHandling(

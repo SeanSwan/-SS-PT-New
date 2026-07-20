@@ -31,6 +31,7 @@ const SURFACES = process.argv.slice(2).length
       'frontend/src/pages/contactpage/vnext',
       'frontend/src/pages/shop/store-v4',
       'frontend/src/components/DashBoard/v2',
+      'frontend/src/pages/gallery-vnext',
     ];
 
 const EXTS = new Set(['.ts', '.tsx', '.css', '.scss']);
