@@ -15,6 +15,7 @@ import { StyleSheetManager, type ShouldForwardProp } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
+import AppearanceSyncBridge from './components/appearance/AppearanceSyncBridge';
 import { SocketProvider } from './context/SocketContext';
 import { ToastProvider } from './hooks/use-toast'; // FIXED: Use correct ToastProvider with toast() function
 import { SwanToastProvider } from './components/ui/Toast/ToastContainer';
@@ -251,6 +252,8 @@ const App = () => {
                       <ToastProvider>
                         <SwanToastProvider>
                         <CartProvider>
+                          {/* FUSION F1: server appearance sync — inside Auth+Toast (B4), renders null */}
+                          <AppearanceSyncBridge />
                           <SessionProvider>
                             <TouchGestureProvider>
                               <CelebrationProvider>

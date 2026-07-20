@@ -20,6 +20,7 @@ import { existsSync } from 'fs';
 // ===================== CORE ROUTES =====================
 import authRoutes from '../routes/authRoutes.mjs';
 import profileRoutes from '../routes/profileRoutes.mjs';
+import appearanceProfileRoutes from '../routes/appearanceProfileRoutes.mjs';
 import healthRoutes from '../routes/healthRoutes.mjs';
 import publicConfigRoutes from '../routes/publicConfigRoutes.mjs';
 import crystallizeRoutes from '../routes/crystallizeRoutes.mjs';
@@ -293,6 +294,7 @@ export const setupRoutes = async (app) => {
   // ===================== CORE API ROUTES =====================
   app.use('/api/auth', authRoutes);
   app.use('/api/profile', profileRoutes);
+  app.use('/api/appearance', appearanceProfileRoutes); // FUSION F1: per-user Smart Lens appearance (GET/PUT /profile, auth-scoped)
   app.use('/api/user', userRoutes);
 
   // ===================== USER MANAGEMENT ROUTES =====================
