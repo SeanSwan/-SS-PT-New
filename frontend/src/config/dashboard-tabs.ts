@@ -563,7 +563,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'feature-access', section: 'system', label: 'Feature Access', icon: 'Unlock', prefix: '/dashboard/admin/feature-access', description: 'Grant per-user feature flags — incl. store-prices to reveal catalog pricing for a specific client' },
   { id: 'trainer-permissions', section: 'system', label: 'Trainer Permissions', icon: 'ShieldCheck', prefix: '/dashboard/admin/trainer-permissions', description: 'Grant/revoke granular trainer capabilities (edit workouts, schedules, analytics)' },
   { id: 'system', section: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
-  { id: 'workout-design-lab', section: 'system', label: 'Workout Design Lab', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-design-lab', description: 'Explore 25 workout Worlds and 25 Style Lenses' },
+  { id: 'workout-design-lab', section: 'system', label: 'Workout Design Lab', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-design-lab', description: 'Explore 25 workout Worlds and the full Style Lens catalog' },
   { id: 'badge-creator', section: 'system', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
   { id: 'immigration', section: 'system', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },
   { id: 'my-home', section: 'system', label: 'My Home', icon: 'Home', prefix: '/dashboard/admin/my-home', description: '3D avatar home — unlocks at Level 10' },

@@ -23,6 +23,10 @@ const chipSlideUp = keyframes`
   }
 `;
 
+/* Z-LANE CONTRACT: chip z 95 · LiveReceipt z 90 (bottom-right) · Wave-1's
+ * CrystallizeOverlay sheen is fixed z 300 — if a future slice wires the
+ * sheen to lens commits on the Lab route it will sweep OVER this chip for
+ * ~480ms; that wiring must decide the layering deliberately, not inherit it. */
 const ChipLane = styled.div`
   position: fixed;
   left: 50%;

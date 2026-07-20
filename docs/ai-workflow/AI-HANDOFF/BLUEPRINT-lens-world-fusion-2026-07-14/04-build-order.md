@@ -42,10 +42,18 @@ inserts `<CrownHeader/>` as the first child above existing content. DO NOT restr
 
 ## F3 — rollout (3 files)
 **The runtime caller that flips (know this before editing):** the ONLY production consumer is
-`SurfaceLensGate.tsx:29` → `resolveRecipeForStyleLens(appearance?.state.committed.styleLensId)`,
-which feeds all six `*LensFrame` bindings. It already passes the committed CATALOG id, so putting
-the flag + catalog-map resolution INSIDE `resolveRecipeForStyleLens` gates every surface at once
-(no per-surface edits). Flag OFF → returns null → host defaults; ON → returns the recipe.
+`SurfaceLensGate.tsx:29` → `resolveRecipeForStyleLens(appearance?.state.committed.styleLensId)`.
+**BLAST RADIUS (updated 2026-07-16 after Wave-1): `makeLensFrame` now has SIXTEEN call sites,
+not six** — the original 6 coach/product surfaces PLUS Wave-1's 4 dashboard shells
+(`DashBoard/v2/shell/dashboardManifests.ts`) and 6 public v-next pages (Home, About, Store-v4,
+Gallery-vnext, Video-vnext, Contact manifests). Flipping the flag restyles ALL of them for any
+signed-in user with a committed catalog lens. Before building F3: re-enumerate `makeLensFrame`
+call sites (`rg -n "makeLensFrame" frontend/src`), list them in the receipt, and include the
+v-next/public pages in the viewport spot-checks; the F3 checkpoint + Sean ping must see the
+FULL surface list. The gate mechanism is unchanged: flag + catalog-map resolution INSIDE
+`resolveRecipeForStyleLens` gates every consumer at once. Flag OFF → null → host defaults;
+ON → the recipe. Also re-verify the 4-assertion enumeration below at build time — parallel
+lanes keep adding suites (re-run `rg -n "resolveRecipeForStyleLens" frontend/src --glob "*.test.*"`).
 `adapters/style-lens-swan/v2/recipeResolution.ts` edit: **make `resolveRecipeForStyleLens` resolve
 via the single catalog-keyed map `V2_RECIPE_BY_CATALOG_ID`** (M2 — today it keys by recipe id
 `swan.*.v2` while the committed `styleLensId` is the catalog id, so it can never match; retire the

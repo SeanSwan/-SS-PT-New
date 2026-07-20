@@ -7,8 +7,9 @@
    `/api/appearance/*` route exists in `backend/routes/`). Your look does not follow you. → F1.
 2. **No user-facing surface.** The only lens surface is the admin Lab route
    (`/dashboard/admin/workout-design-lab`). Regular users never discover styles. → F2.
-3. **Thin v2 promise.** 2 of 25 catalog styles are full restyles; 23 are chrome trims. Honesty
-   labels exist (Lens pack A3) but the wardrobe is thin. → F5 adds 6 world-distilled v2 styles.
+3. **Thin v2 promise.** 2 catalog styles are full restyles; the rest (24 of the 26 as of
+   2026-07-16 — the catalog GROWS, re-count at build time) are chrome trims. Honesty labels
+   exist (Lens pack A3) but the wardrobe is thin. → F5 adds 6 world-distilled v2 styles.
 4. **Production inertness.** `adapters/style-lens-swan/v2/recipeResolution.ts` never resolves a
    committed style on the six production surfaces — and note the drift it fixes: today
    `resolveRecipeForStyleLens` keys its map by RECIPE id (`swan.candy-glass-arcade.v2`) while the

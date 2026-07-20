@@ -159,6 +159,24 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
       .filter(({ id }) => SWAN_STYLE_LENS_VISUALS[id]?.moodFamily === family)
       .sort((a, b) => rowIndex(family, a.id) - rowIndex(family, b.id))
       .map((lens) => renderChip(lens));
+  // ARIA listbox keyboard pattern: Arrow/Home/End move focus among options
+  // (roving focus; Enter/Space activate natively — options are buttons).
+  const onCatalogKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    const options = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="option"]'),
+    );
+    if (options.length === 0) return;
+    const current = options.indexOf(document.activeElement as HTMLElement);
+    const next =
+      event.key === "Home" ? 0
+      : event.key === "End" ? options.length - 1
+      : event.key === "ArrowDown" ? Math.min(current + 1, options.length - 1)
+      : Math.max(current - 1, 0);
+    event.preventDefault();
+    options[next]?.focus();
+  };
 
   return (
     <StyleExplorer aria-label="Style Lens explorer">
@@ -178,7 +196,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
         </PinnedSearch>
         {/* Pinning law; outside the listbox (ARIA: option/group children only) */}
         {!isSearching && !committedLens && <NeutralCurrentLine>Current: Swan Flagship (system)</NeutralCurrentLine>}
-        <CatalogList role="listbox" aria-label="Choose a Style Lens">
+        <CatalogList role="listbox" aria-label="Choose a Style Lens" onKeyDown={onCatalogKeyDown}>
           {isSearching ? (
             /* Search law: an active query REPLACES groups — flat list, no pin. */
             filtered.map((lens) => renderChip(lens))
