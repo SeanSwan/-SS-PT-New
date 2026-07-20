@@ -18,6 +18,13 @@ Contact.init(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
+      // Server-side backstop. The public contact endpoint is reachable by direct POST, and the v-next form sets
+      // `noValidate` (so the browser's native type="email" check never runs there) — without this, malformed
+      // addresses reach the CRM and the owner has no way to reply. Validation must not live only in one branch
+      // of a flag gate.
+      validate: {
+        isEmail: { msg: 'A valid email address is required.' },
+      },
     },
     message: {
       type: DataTypes.TEXT,

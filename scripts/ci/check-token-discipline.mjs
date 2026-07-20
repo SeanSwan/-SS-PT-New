@@ -82,13 +82,15 @@ function walk(dir, out) {
   return out;
 }
 
+// A guard that scans nothing must NEVER report success — a missing surface dir is a config bug (renamed/moved
+// surface, or wrong cwd), not something to skip past with a green check. See the twin guard in check-degalaxy.
 const violations = [];
 let scanned = 0;
 let missing = 0;
 for (const surface of SURFACES) {
   if (!existsSync(surface)) {
     missing++;
-    console.warn(`  · skip (not present): ${surface}`);
+    console.error(`✖ surface MISSING (config bug — renamed/moved dir, or wrong cwd): ${surface}`);
     continue;
   }
   for (const file of walk(surface, [])) {
@@ -102,10 +104,16 @@ for (const surface of SURFACES) {
     }
     const lines = text.split(/\r?\n/);
     lines.forEach((line, i) => {
-      // Explicit, greppable escape hatch for a JS pre-paint fallback (the JS twin of `var(--token, #fallback)`):
-      // an annotation `// token-fallback: <token>` on the hex line OR the line directly above marks a documented
-      // default immediately replaced by a token read. Audit them with `rg "token-fallback" frontend/src`.
-      if (/token-fallback/.test(line) || (i > 0 && /token-fallback/.test(lines[i - 1]))) return;
+      // Explicit, greppable escape hatch for a JS pre-paint fallback (the JS twin of `var(--token, #fallback)`).
+      // The annotation must name its token: `// token-fallback: --some-token`.
+      // TIGHTENED: the look-above only counts when the line above is a STANDALONE annotation carrying no hex of
+      // its own. Previously any line containing "token-fallback" silenced the following line too, so a single
+      // annotated violation also hid an unrelated one beneath it — an audit would under-count by 2x.
+      const ANN = /token-fallback:\s*--[\w-]+/;
+      const prev = i > 0 ? lines[i - 1] : '';
+      HEX.lastIndex = 0;
+      const annotatedAbove = ANN.test(prev) && !HEX.test(prev);
+      if (ANN.test(line) || annotatedAbove) return;
       HEX.lastIndex = 0;
       const m = stripCompliantHex(line).match(HEX);
       if (m) violations.push({ file: rel, line: i + 1, hex: m.join(', '), text: line.trim().slice(0, 120) });

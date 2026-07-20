@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -289,6 +289,14 @@ const Form = styled.form`
 
 const InputGroup = styled.div`
   position: relative;
+`;
+
+// Shown only when the email field still holds a value seeded from the URL — see prefillFromUrl's security note.
+const SeededHint = styled.p`
+  margin: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--swan-ink-2, #9fb4cc);
 `;
 
 const FloatingLabel = styled.label`
@@ -853,23 +861,37 @@ const faqData = [
 // Seed email/subject from the URL so a deep link like `/contact?intent=book&email=you@x.com` (e.g. the PrismCapture
 // "Book a free consultation" ray) lands with the field prefilled — honoring the "no retyping" promise. Uses
 // URLSearchParams (not react-router) to match this file's existing URL-param style (readAcquisitionParams).
+// SECURITY: the seeded email is attacker-controllable. A crafted link like
+// `/contact?intent=book&email=attacker@evil.com` would otherwise let someone put THEIR address in a victim's
+// inquiry — the victim types their name/message, and the owner's reply goes to the attacker. The floating-label
+// CSS makes a seeded value look identical to browser autofill, so it is easy to miss. Two mitigations:
+//   1. only accept a value that actually parses as an email (stops junk + most spoofing payloads), and
+//   2. `seeded` is returned so the UI can show a "we filled this from your link — check it's you" hint, which is
+//      the part that actually defeats the attack.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 function prefillFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
-    const email = (p.get('email') || '').slice(0, 255);
+    const raw = (p.get('email') || '').slice(0, 254);
+    const email = EMAIL_RE.test(raw) ? raw : '';
     const intent = p.get('intent');
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    return { email, subject };
+    return { email, subject, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '' };
+    return { email: '', subject: '', seeded: false };
   }
 }
 
 const ContactV3: React.FC = () => {
-  // Form state (email/subject may be prefilled from a deep link — see prefillFromUrl)
+  // Form state (email/subject may be prefilled from a deep link — see prefillFromUrl).
+  // Read the URL ONCE so both fields and the "seeded" hint come from a single atomic parse.
+  const seedRef = useRef(prefillFromUrl());
   const [name, setName] = useState('');
-  const [email, setEmail] = useState(() => prefillFromUrl().email);
-  const [subject, setSubject] = useState(() => prefillFromUrl().subject);
+  const [email, setEmail] = useState(seedRef.current.email);
+  const [subject, setSubject] = useState(seedRef.current.subject);
+  // True only while the field still holds the value we seeded from the link — once the user edits it, the hint goes.
+  const emailWasSeeded = seedRef.current.seeded && email === seedRef.current.email;
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -1003,6 +1025,14 @@ const ContactV3: React.FC = () => {
                       autoComplete="email"
                     />
                     <FloatingLabel htmlFor="contact-email">Email *</FloatingLabel>
+                    {emailWasSeeded && (
+                      // Anti-spoof affordance: a seeded value looks exactly like browser autofill, so we say
+                      // plainly that it came from the link. Without this, a crafted ?email= could route the
+                      // owner's reply to an attacker while the visitor assumes it's their own address.
+                      <SeededHint role="note">
+                        We filled this in from your link — please check it&rsquo;s your address.
+                      </SeededHint>
+                    )}
                   </InputGroup>
 
                   <InputGroup>

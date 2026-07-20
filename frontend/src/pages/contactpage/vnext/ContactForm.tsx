@@ -6,12 +6,13 @@
  * a 150ms crossfade to the static glyph. BIND-ONLY: the POST is the SAME `/api/contact` V3 uses (via
  * resolveContactApiBase) — the contact pipeline is untouched. Fields/validation frozen from V3.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import styled from 'styled-components';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { resolveContactApiBase } from '../contactApiBase';
+import { readAcquisitionParams } from '../../../utils/acquisitionAttribution';
 import { useCrystallizeTransition, CrystallizeOverlay } from './lensBindings';
 
 const Wrap = styled.div`
@@ -29,6 +30,14 @@ const Form = styled(motion.form)`
   border: 1px solid var(--contact-ice-14);
   box-shadow: var(--contact-elev-2);
 `;
+// Shown only while the email field still holds a value seeded from the URL — see prefillFromUrl's security note.
+const SeededHint = styled.p`
+  margin: -4px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--contact-ink-2, var(--world-muted, #9fb4cc));
+`;
+
 const Field = styled.input`
   min-height: var(--contact-target, 48px);
   padding: 0 14px;
@@ -121,23 +130,32 @@ type Phase = 'form' | 'done';
 
 // Seed email/subject from a deep link (e.g. PrismCapture's `/contact?intent=book&email=…`) so the field is
 // prefilled — parity with ContactV3.prefillFromUrl (the flag-off default). URLSearchParams, no react-router dep.
+// SECURITY (same as V3): the seeded email is attacker-controllable — a crafted link could route the owner's
+// reply to an attacker's inbox while the visitor believes it's their own address. Only accept a well-formed
+// email, and surface a "from your link" hint so the substitution is visible.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 function prefillFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
-    const email = (p.get('email') || '').slice(0, 255);
+    const raw = (p.get('email') || '').slice(0, 254);
+    const email = EMAIL_RE.test(raw) ? raw : '';
     const intent = p.get('intent');
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    return { email, subject };
+    return { email, subject, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '' };
+    return { email: '', subject: '', seeded: false };
   }
 }
 
 export function ContactForm() {
   const prefersReduced = useReducedMotion();
+  // Read the URL ONCE so both fields and the "seeded" hint come from a single atomic parse.
+  const seedRef = useRef(prefillFromUrl());
   const [name, setName] = useState('');
-  const [email, setEmail] = useState(() => prefillFromUrl().email);
-  const [subject, setSubject] = useState(() => prefillFromUrl().subject);
+  const [email, setEmail] = useState(seedRef.current.email);
+  const [subject, setSubject] = useState(seedRef.current.subject);
+  const emailWasSeeded = seedRef.current.seeded && email === seedRef.current.email;
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -153,6 +171,13 @@ export function ContactForm() {
         setError('Please fill in your name, email, and message.');
         return;
       }
+      // This form sets noValidate, so the browser's native type="email" check never runs — without this the
+      // flag-ON branch would accept malformed addresses the flag-OFF branch (ContactV3) rejects. Same-class
+      // gate divergence as the Gate Rule, one layer down.
+      if (!EMAIL_RE.test(email.trim())) {
+        setError('Please enter a valid email address.');
+        return;
+      }
       setSubmitting(true);
       try {
         const base = resolveContactApiBase(window.location.hostname);
@@ -160,6 +185,9 @@ export function ContactForm() {
           name,
           email,
           message: message + (subject ? `\n\nSubject: ${subject}` : ''),
+          // Parity with ContactV3: without this the v-next branch silently drops UTM/referrer attribution, so
+          // flipping contactVNext would null out channel attribution for every contact lead with no error.
+          ...readAcquisitionParams(),
         });
         setIgnited(true);
         // confirm-first: the Crystallize Submit plays only after the send succeeds
@@ -204,6 +232,11 @@ export function ContactForm() {
       <Form onSubmit={onSubmit} data-testid="contact-form" noValidate>
         <Field type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name" />
         <Field type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" aria-label="Email" autoComplete="email" />
+        {emailWasSeeded && (
+          // Anti-spoof affordance (parity with ContactV3): a seeded value is indistinguishable from autofill,
+          // so say plainly it came from the link.
+          <SeededHint role="note">We filled this in from your link — please check it&rsquo;s your address.</SeededHint>
+        )}
         <Field type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject (optional)" aria-label="Subject" />
         <Area value={message} onChange={(e) => setMessage(e.target.value)} placeholder="How can we help?" aria-label="Message" />
         {error && <ErrorText role="alert">{error}</ErrorText>}

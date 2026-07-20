@@ -35,11 +35,20 @@ const EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.mjs']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage', '__snapshots__']);
 
 // Retired Galaxy-Swan fingerprints. Hex forms are matched with an optional 8-digit alpha too (#00FFFFxx).
+// rgb()/rgba()/hsl() notation is matched too: a retired colour most realistically returns as a TRANSLUCENT
+// glow/shadow written `rgba(0, 255, 255, 0.4)`, which no hex pattern would ever catch.
 const PATTERNS = [
   { label: 'retired hex #0a0a1a', re: /#0a0a1a(?:[0-9a-f]{2})?\b/gi },
   { label: 'retired hex #00FFFF (cyan)', re: /#00ffff(?:[0-9a-f]{2})?\b/gi },
   { label: 'retired hex #7851A9 (purple)', re: /#7851a9(?:[0-9a-f]{2})?\b/gi },
   { label: 'retired name "Galaxy-Swan"', re: /galaxy[-\s]?swan/gi },
+  // same three colours in rgb()/rgba() form
+  { label: 'retired rgb(10,10,26) = #0a0a1a', re: /rgba?\(\s*10\s*,\s*10\s*,\s*26\b/gi },
+  { label: 'retired rgb(0,255,255) = #00FFFF', re: /rgba?\(\s*0\s*,\s*255\s*,\s*255\b/gi },
+  { label: 'retired rgb(120,81,169) = #7851A9', re: /rgba?\(\s*120\s*,\s*81\s*,\s*169\b/gi },
+  // hsl equivalents of the retired cyan + purple
+  { label: 'retired hsl cyan = #00FFFF', re: /hsla?\(\s*180\s*,\s*100%\s*,\s*50%/gi },
+  { label: 'retired hsl purple = #7851A9', re: /hsla?\(\s*265\s*,\s*3[0-9]%\s*,\s*4[0-9]%/gi },
 ];
 
 /** This scanner file itself contains the fingerprints as patterns — never flag it. */
@@ -50,14 +59,18 @@ const SELF = 'scripts/ci/check-degalaxy.mjs';
  * contract), the *.tokens.ts bridges (which name the trio only in "never use these" comments), and guard/
  * contract files that BAN them. A file that ENFORCES de-galaxy must be allowed to name the retired tokens.
  */
+// ANCHORED on purpose. An earlier version used /guard/i and /\.contract\./ as loose substring matches on the
+// basename — which silently exempted ORDINARY components like `GuardBanner.tsx`, `Safeguard.tsx`, `RouteGuard.tsx`
+// and `Hero.contract.tsx` from the ENTIRE scan (whole-file, permanently, with a green check). These patterns now
+// only match true enforcement files.
 const isExempt = (b) =>
   /\.test\./.test(b) ||
   /\.stories\./.test(b) ||
   /\.d\.ts$/.test(b) ||
   /\.snap$/.test(b) ||
   /\.tokens\.ts$/.test(b) ||
-  /guard/i.test(b) ||
-  /\.contract\./.test(b);
+  /\.guard\.[jt]sx?$/.test(b) ||
+  /\.contract\.test\./.test(b);
 
 function walk(dir, out) {
   let entries;
@@ -83,13 +96,26 @@ function walk(dir, out) {
   return out;
 }
 
+// A guard that scans nothing must NEVER report success. A missing scope is a config bug (renamed/moved/deleted
+// surface dir, or the wrong cwd) — treat it as a hard failure, not a soft skip. Previously this warned and then
+// printed a green "clean" with 0 files scanned, so one directory rename would silently disable the guard forever.
 const files = [];
+let missingScopes = 0;
 for (const scope of SCOPES) {
   if (!existsSync(scope)) {
-    console.warn(`  · skip (not present): ${scope}`);
+    console.error(`✖ scope MISSING (config bug — renamed/moved dir, or wrong cwd): ${scope}`);
+    missingScopes += 1;
     continue;
   }
   walk(scope, files);
+}
+if (missingScopes) {
+  console.error(`\n✖ check-degalaxy: ${missingScopes} of ${SCOPES.length} scope(s) missing — refusing to report clean.\n`);
+  process.exit(1);
+}
+if (!files.length) {
+  console.error('\n✖ check-degalaxy: scanned 0 files — scope config is broken. Refusing to report clean.\n');
+  process.exit(1);
 }
 const hits = [];
 for (const file of files) {

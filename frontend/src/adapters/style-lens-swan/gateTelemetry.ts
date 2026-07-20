@@ -60,7 +60,16 @@ function viewportBucket(): GateEvent['vw'] {
 export function emitGateEvent(evt: Pick<GateEvent, 'surface' | 'outcome'>): void {
   try {
     if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
-    const detail: GateEvent = { ...evt, vw: viewportBucket(), ts: Date.now() };
+    // DESTRUCTURED, never spread. TypeScript's excess-property check only applies to object LITERALS, so
+    // `emitGateEvent(someObjectWithUserId)` compiles fine — and a spread would copy `userId`/`email` straight
+    // into the dispatched event, breaking the zero-PII guarantee this file's header promises (Rule 8).
+    // Listing the fields explicitly makes that guarantee structural instead of advisory.
+    const detail: GateEvent = {
+      surface: evt.surface,
+      outcome: evt.outcome,
+      vw: viewportBucket(),
+      ts: Date.now(),
+    };
     window.dispatchEvent(new CustomEvent<GateEvent>(GATE_EVENT_NAME, { detail }));
   } catch {
     /* telemetry is expendable — never surface an error into a fail-closed gate */

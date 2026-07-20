@@ -54,12 +54,16 @@ const Shell = styled.section`
   isolation: isolate; /* keep the spectrum's z-index local */
 `;
 
-// Fixed-height placeholder shown only while the flag resolves AND the build opted in — reserves the card's space
-// so enabling PRISM doesn't shove the page down after the flags round-trip (CLS on the primary marketing page).
+// Placeholder shown only while the flag resolves AND the build opted in — reserves the card's space so enabling
+// PRISM doesn't shove the page down after the flags round-trip (CLS on the primary marketing page).
+// It renders the REAL Shell content with `visibility: hidden` rather than a guessed min-height: the card is
+// content-sized (headline wraps to 3 lines at 375px, sub to 4, plus field + link + consent), so any fixed number
+// is wrong at some breakpoint and still shoves the page — just less.
 const Placeholder = styled.div`
   width: 100%;
   max-width: 620px;
-  min-height: 232px;
+  visibility: hidden;
+  pointer-events: none;
 `;
 
 const Inner = styled.div`
@@ -148,7 +152,7 @@ function PrismCaptureInner() {
   return (
     <>
       <PrismCaptureTokens />
-      <Band className="prism-capture" data-feature="prism-capture">
+      <Band className="prism-capture" data-feature="prism-capture" data-state="live">
         <Shell aria-labelledby="prism-headline">
           <PrismSpectrum active={active} animate={!reduced} />
           <Inner>
@@ -186,8 +190,18 @@ export function PrismCapture() {
     // Reserve the card's space ONLY when the build opted in, so enabling PRISM doesn't cause CLS; off-builds
     // render nothing (no wasted space on every homepage load).
     return PRISM_ENV_FALLBACK ? (
-      <Band aria-hidden="true">
-        <Placeholder />
+      // Marker present in BOTH states (data-state distinguishes) so an E2E selector can't race flag resolution.
+      <Band aria-hidden="true" data-feature="prism-capture" data-state="pending">
+        <Placeholder>
+          <Shell>
+            <Inner>
+              <Eyebrow>{PRISM_COPY.eyebrow}</Eyebrow>
+              <Headline>{PRISM_COPY.headline}</Headline>
+              <Sub>{PRISM_COPY.sub}</Sub>
+              <Consent>{PRISM_COPY.consent}</Consent>
+            </Inner>
+          </Shell>
+        </Placeholder>
       </Band>
     ) : null;
   }
