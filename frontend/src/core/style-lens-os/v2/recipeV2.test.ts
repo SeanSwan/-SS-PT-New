@@ -157,3 +157,89 @@ describe('golden pair gate', () => {
     expect(changedAxisCount(whatChanged(a.plan, b.plan))).toBe(0);
   });
 });
+
+/** FUSION F0 — atmosphere axis (BLUEPRINT-lens-world-fusion 03-contracts §1). */
+describe('atmosphere validation (fail-closed schema)', () => {
+  const layer = (over: object = {}) => ({
+    kind: 'gradient' as const, assetId: 'aurora-band', opacity: 0.08, ...over,
+  });
+  const withAtmo = (atmosphere: object) =>
+    baseRecipe({ atmosphere } as Partial<RecipeV2>);
+
+  it('accepts a sound atmosphere (and recipes WITHOUT atmosphere stay valid)', () => {
+    expect(validateRecipeV2(baseRecipe({}))).toEqual([]);
+    expect(
+      validateRecipeV2(withAtmo({
+        layers: [layer(), layer({ assetId: 'grain-03', kind: 'grain', opacity: 0.03 })],
+        stillPoster: { assetId: 'aurora-band' },
+      })),
+    ).toEqual([]);
+  });
+
+  it('rejects 4 layers, >2 animated, opacity outside [0.01, 0.12], bad assetId, missing stillPoster', () => {
+    const paths = (a: object) => validateRecipeV2(withAtmo(a)).map(({ path }) => path);
+    expect(paths({ layers: [layer(), layer(), layer(), layer()], stillPoster: { assetId: 'aurora-band' } }))
+      .toContain('atmosphere.layers');
+    expect(paths({
+      layers: [layer({ animated: true }), layer({ animated: true }), layer({ animated: true })],
+      stillPoster: { assetId: 'aurora-band' },
+    })).toContain('atmosphere.layers.animated');
+    expect(paths({ layers: [layer({ opacity: 0.2 })], stillPoster: { assetId: 'aurora-band' } }))
+      .toContain('atmosphere.layers.0.opacity');
+    expect(paths({ layers: [layer({ opacity: 0.001 })], stillPoster: { assetId: 'aurora-band' } }))
+      .toContain('atmosphere.layers.0.opacity');
+    expect(paths({ layers: [layer({ assetId: 'Bad Id!' })], stillPoster: { assetId: 'aurora-band' } }))
+      .toContain('atmosphere.layers.0.assetId');
+    expect(paths({ layers: [layer()] })).toContain('atmosphere.stillPoster');
+  });
+});
+
+describe('compileRecipe atmosphere (drop-not-fail law)', () => {
+  it('valid atmosphere lands on the plan; component tokens unaffected', () => {
+    const result = compileRecipe(
+      baseRecipe({
+        atmosphere: {
+          layers: [{ kind: 'gradient', assetId: 'aurora-band', opacity: 0.08 }],
+          stillPoster: { assetId: 'aurora-band' },
+        },
+      } as Partial<RecipeV2>),
+      manifest,
+    );
+    if (!result.ok) throw new Error('must compile');
+    expect(result.plan.atmosphere).toEqual({
+      layers: [{ kind: 'gradient', assetId: 'aurora-band', opacity: 0.08, animated: false }],
+      stillPoster: { assetId: 'aurora-band' },
+    });
+    expect(result.plan.cssVariables['lens2-display-weight']).toBe('800');
+  });
+
+  it('structurally-invalid atmosphere is DROPPED with a degradation — recipe still compiles', () => {
+    const result = compileRecipe(
+      baseRecipe({
+        atmosphere: { layers: [{ kind: 'gradient', assetId: 'aurora-band', opacity: 0.2 }], stillPoster: { assetId: 'aurora-band' } },
+      } as Partial<RecipeV2>),
+      manifest,
+    );
+    if (!result.ok) throw new Error('atmosphere problems must not hard-fail the recipe');
+    expect(result.plan.atmosphere).toBeUndefined();
+    expect(result.degradations).toContain('atmosphere invalid — dropped');
+    expect(result.plan.cssVariables['lens2-display-weight']).toBe('800');
+  });
+
+  it('non-atmosphere issues still hard-fail exactly as before', () => {
+    const result = compileRecipe(baseRecipe({ id: 'Bad Id!' } as Partial<RecipeV2>), manifest);
+    expect(result.ok).toBe(false);
+  });
+
+  it('ZERO-DELTA LOCK: atmosphere-free plans carry NO atmosphere key and stay deterministic', () => {
+    const a = compileRecipe(candyGlassArcade, manifest);
+    const b = compileRecipe(candyGlassArcade, manifest);
+    if (!a.ok || !b.ok) throw new Error('fixtures must compile');
+    expect('atmosphere' in a.plan).toBe(false);
+    expect(a.plan).toEqual(b.plan);
+    expect(a.plan.cssVariables).toEqual({
+      'lens2-display-weight': '800',
+      'lens2-surface-radius': '26px',
+    });
+  });
+});
