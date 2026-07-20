@@ -14,7 +14,10 @@
  */
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../../context/authContextState';
-import { useToast } from '../../context/ToastContext';
+// The MOUNTED toast system (hooks/use-toast — App wraps us in its provider).
+// NOT context/ToastContext.jsx: that legacy provider is mounted nowhere and
+// its useToast returns undefined — a silent no-op (F0/F1 review, F1-1).
+import { useToast } from '../../hooks/use-toast';
 import { useStyleLensAppearance, type AppearanceProfile } from '../../core/style-lens-os';
 import { fetchProfile, pushProfile } from '../../adapters/style-lens-swan/serverAppearanceSync';
 
@@ -24,26 +27,42 @@ export const OFFLINE_RECEIPT_COPY =
 const AppearanceSyncBridge: React.FC = () => {
   const auth = useAuth();
   const toast = useToast();
-  const { state, beginPreview, commitPreview } = useStyleLensAppearance();
+  const { state, registry, beginPreview, cancelPreview, commitPreview } =
+    useStyleLensAppearance();
   const userId = auth?.user?.id ?? null;
 
   const fetchedForUserRef = useRef<number | string | null>(null);
+  const previousUserRef = useRef<number | string | null>(null);
   // Seeded with the mount-time stamp so the initial committed state never pushes.
   const lastPushedRef = useRef<string | null>(state.committed.updatedAt ?? null);
   const pendingRemoteRef = useRef<AppearanceProfile | null>(null);
+  // Live committed stamp — read at fetch-RESOLVE time, never from a stale
+  // effect closure (F1-4: a commit landing mid-fetch must win LWW).
+  const committedStampRef = useRef<string | null>(state.committed.updatedAt ?? null);
+  committedStampRef.current = state.committed.updatedAt ?? null;
 
   // Sync-IN phase 1: fetch once per authenticated user; STAGE the remote
   // profile. (beginPreview -> immediate commitPreview would read a stale
   // snapshot before the reducer flushes — the commit happens in phase 2.)
   useEffect(() => {
     if (!userId || fetchedForUserRef.current === userId) return;
+    // User SWITCH on a shared browser: the server value is authoritative for
+    // the new user regardless of the previous user's residual local stamp.
+    const isUserSwitch =
+      previousUserRef.current !== null && previousUserRef.current !== userId;
     fetchedForUserRef.current = userId;
+    previousUserRef.current = userId;
     void (async () => {
       const remote = await fetchProfile();
       if (!remote?.profile?.updatedAt) return;
-      const localStamp = Date.parse(state.committed.updatedAt ?? '') || 0;
+      // Version-skew guard (F1-3): an id this bundle cannot resolve would
+      // wedge the provider in a rejected state — skip sync-in, keep local.
+      if (registry?.resolve?.(remote.profile.styleLensId)?.id !== remote.profile.styleLensId) {
+        return;
+      }
+      const localStamp = Date.parse(committedStampRef.current ?? '') || 0;
       const remoteStamp = Date.parse(remote.profile.updatedAt) || 0;
-      if (remoteStamp <= localStamp) return;
+      if (!isUserSwitch && remoteStamp <= localStamp) return;
       // Guard BEFORE the commit so the push effect skips this stamp (M3).
       lastPushedRef.current = remote.profile.updatedAt;
       pendingRemoteRef.current = remote.profile;
@@ -59,8 +78,13 @@ const AppearanceSyncBridge: React.FC = () => {
     const pending = pendingRemoteRef.current;
     if (!pending || state.preview?.updatedAt !== pending.updatedAt) return;
     pendingRemoteRef.current = null;
-    queueMicrotask(() => void commitPreview());
-  }, [state.preview, commitPreview]);
+    queueMicrotask(() =>
+      void commitPreview().then((applied) => {
+        // Never leave a wedged phantom preview if validation rejects (F1-3).
+        if (!applied) cancelPreview();
+      }),
+    );
+  }, [state.preview, commitPreview, cancelPreview]);
 
   // Push-OUT user-originated commits (fires on committed changes).
   useEffect(() => {
@@ -68,7 +92,7 @@ const AppearanceSyncBridge: React.FC = () => {
     if (!userId || !stamp || stamp === lastPushedRef.current) return;
     lastPushedRef.current = stamp;
     void pushProfile(state.committed).then((ok) => {
-      if (!ok) toast?.addToast?.(OFFLINE_RECEIPT_COPY, 'info');
+      if (!ok) toast.info(OFFLINE_RECEIPT_COPY);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.committed.updatedAt, userId]);

@@ -23,11 +23,27 @@ const MOTION_MODES = ['auto', 'reduced', 'off'];
 const DENSITIES = ['comfortable', 'compact'];
 const STYLE_LENS_ID_PATTERN = /^[a-z][a-z0-9-]{1,64}$/;
 
-/** Pure, exported for tests: mirrors validateAppearanceProfile client-side. */
+const PROFILE_KEYS = [
+  'profileSchemaVersion', 'paletteThemeId', 'styleLensId', 'motionMode', 'density', 'updatedAt',
+];
+const MAX_PROFILE_BYTES = 4096;
+
+/** Pure, exported for tests: mirrors validateAppearanceProfile client-side —
+ *  PLUS server-only hardening: unknown keys REJECTED (never stored) and a
+ *  4KB serialized cap, so this table can never become arbitrary-JSON/PII
+ *  storage (F0/F1 review, F1-2). */
 export const validateAppearanceProfilePayload = (profile) => {
   const issues = [];
-  if (!profile || typeof profile !== 'object') {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
     return [{ path: 'profile', message: 'profile object required' }];
+  }
+  for (const key of Object.keys(profile)) {
+    if (!PROFILE_KEYS.includes(key)) {
+      issues.push({ path: `profile.${key}`, message: 'unknown key rejected' });
+    }
+  }
+  if (JSON.stringify(profile).length > MAX_PROFILE_BYTES) {
+    issues.push({ path: 'profile', message: `serialized profile exceeds ${MAX_PROFILE_BYTES} bytes` });
   }
   if (profile.profileSchemaVersion !== 1) {
     issues.push({ path: 'profileSchemaVersion', message: 'must be the number 1' });

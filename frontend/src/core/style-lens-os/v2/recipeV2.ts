@@ -151,14 +151,16 @@ export const validateRecipeV2 = (recipe: RecipeV2): RecipeIssue[] => {
  *  hard-fail an otherwise-sound recipe). */
 export const validateAtmosphere = (atmosphere: RecipeAtmosphere): RecipeIssue[] => {
   const issues: RecipeIssue[] = [];
-  if (!Array.isArray(atmosphere.layers) || atmosphere.layers.length > 3) {
+  // JSON-seed lane guard (F5): a truthy non-array must degrade, never throw.
+  const layers = Array.isArray(atmosphere.layers) ? atmosphere.layers : [];
+  if (!Array.isArray(atmosphere.layers) || layers.length > 3) {
     issues.push({ path: 'atmosphere.layers', message: 'max 3 layers' });
   }
-  const animated = (atmosphere.layers ?? []).filter((l) => l.animated === true).length;
+  const animated = layers.filter((l) => l.animated === true).length;
   if (animated > 2) {
     issues.push({ path: 'atmosphere.layers.animated', message: 'max 2 animated layers' });
   }
-  (atmosphere.layers ?? []).forEach((layer, index) => {
+  layers.forEach((layer, index) => {
     if (!ATMOSPHERE_LAYER_KINDS.includes(layer.kind)) {
       issues.push({ path: `atmosphere.layers.${index}.kind`, message: 'unknown layer kind' });
     }

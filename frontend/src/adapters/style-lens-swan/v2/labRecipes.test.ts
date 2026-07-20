@@ -134,6 +134,30 @@ describe('ADD-A-STYLE pipeline gates (every catalog v2 entry)', () => {
 });
 
 /**
+ * F0-1 regression gate: SVG data-URI assets must decode to VALID SVG paint
+ * values — the double-encoding class (`%2523`) rendered 3 of 8 assets
+ * empty/black/none before this gate existed.
+ */
+describe('atmosphere catalog asset integrity', () => {
+  it('every svg data-URI decodes to literal # colors and resolvable fragment refs', async () => {
+    const { ATMOSPHERE_ASSET_CATALOG } = await import('./atmosphereCatalog');
+    const entries = Object.values(ATMOSPHERE_ASSET_CATALOG);
+    expect(entries.length).toBeGreaterThanOrEqual(8);
+    for (const asset of entries) {
+      expect(asset.css).not.toContain('%2523'); // the double-encoding tell
+      const match = asset.css.match(/^url\("data:image\/svg\+xml,(.+)"\)$/);
+      if (match) {
+        const decoded = decodeURIComponent(match[1]);
+        expect(decoded, asset.id).not.toContain('%23'); // decoded exactly once
+        // every color/fragment reference survives as a literal #
+        if (/stroke=|fill=/.test(decoded)) expect(decoded, asset.id).toMatch(/#[0-9A-Fa-f]{6}/);
+        if (decoded.includes('filter=')) expect(decoded, asset.id).toContain("url(#");
+      }
+    }
+  });
+});
+
+/**
  * F16 carve-out (post-Wave-1 reconciliation): the dev/CI registry-integrity
  * gate requires a style-allowlist entry per promoted manifest — but v2-only
  * styles (dashboardChrome: false) deliberately ship NO v1 chrome. Without

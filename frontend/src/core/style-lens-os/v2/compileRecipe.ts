@@ -51,7 +51,9 @@ export const compileRecipe = (
   // Drop-not-fail law (F0): atmosphere-path issues degrade the atmosphere
   // away; they never hard-fail an otherwise-sound recipe.
   const allIssues = validateRecipeV2(recipe);
-  const issues = allIssues.filter(({ path }) => !path.startsWith('atmosphere'));
+  const issues = allIssues.filter(
+    ({ path }) => !(path === 'atmosphere' || path.startsWith('atmosphere.')),
+  );
   const atmosphereInvalid = allIssues.length !== issues.length;
 
   for (const slot of recipe.compatibility.requires) {

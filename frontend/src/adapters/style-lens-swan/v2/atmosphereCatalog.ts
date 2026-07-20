@@ -60,7 +60,7 @@ export const ATMOSPHERE_ASSET_CATALOG: Readonly<Record<string, AtmosphereAsset>>
       id: 'frost-weave',
       kind: 'pattern',
       css: svg(
-        `<path d='M0 40h80M40 0v80' stroke='%23E0ECF4' stroke-opacity='0.5' stroke-width='0.6'/><path d='M0 0l80 80M80 0L0 80' stroke='%2360C0F0' stroke-opacity='0.35' stroke-width='0.4'/>`,
+        `<path d='M0 40h80M40 0v80' stroke='#E0ECF4' stroke-opacity='0.5' stroke-width='0.6'/><path d='M0 0l80 80M80 0L0 80' stroke='#60C0F0' stroke-opacity='0.35' stroke-width='0.4'/>`,
       ),
       inspiration: 'Crystalline Swan frozen-forest weave (house DNA)',
     },
@@ -68,7 +68,7 @@ export const ATMOSPHERE_ASSET_CATALOG: Readonly<Record<string, AtmosphereAsset>>
       id: 'deep-field',
       kind: 'pattern',
       css: svg(
-        `<circle cx='12' cy='18' r='0.9' fill='%23E0ECF4' fill-opacity='0.65'/><circle cx='52' cy='9' r='0.6' fill='%2360C0F0' fill-opacity='0.6'/><circle cx='70' cy='44' r='0.8' fill='%23E0ECF4' fill-opacity='0.5'/><circle cx='30' cy='62' r='0.5' fill='%238B5CF6' fill-opacity='0.55'/><circle cx='62' cy='73' r='0.7' fill='%23E0ECF4' fill-opacity='0.4'/>`,
+        `<circle cx='12' cy='18' r='0.9' fill='#E0ECF4' fill-opacity='0.65'/><circle cx='52' cy='9' r='0.6' fill='#60C0F0' fill-opacity='0.6'/><circle cx='70' cy='44' r='0.8' fill='#E0ECF4' fill-opacity='0.5'/><circle cx='30' cy='62' r='0.5' fill='#8B5CF6' fill-opacity='0.55'/><circle cx='62' cy='73' r='0.7' fill='#E0ECF4' fill-opacity='0.4'/>`,
       ),
       inspiration: 'world.cosmic.webb-deep-field (sparse star field, no glitter)',
     },
@@ -76,7 +76,7 @@ export const ATMOSPHERE_ASSET_CATALOG: Readonly<Record<string, AtmosphereAsset>>
       id: 'grain-03',
       kind: 'grain',
       css: svg(
-        `<filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='80' height='80' filter='url(%23g)' opacity='0.5'/>`,
+        `<filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='80' height='80' filter='url(#g)' opacity='0.5'/>`,
       ),
       inspiration: 'worlds.md universal 2-3% film grain discipline',
     },

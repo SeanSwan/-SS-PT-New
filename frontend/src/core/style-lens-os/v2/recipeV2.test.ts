@@ -237,9 +237,36 @@ describe('compileRecipe atmosphere (drop-not-fail law)', () => {
     if (!a.ok || !b.ok) throw new Error('fixtures must compile');
     expect('atmosphere' in a.plan).toBe(false);
     expect(a.plan).toEqual(b.plan);
-    expect(a.plan.cssVariables).toEqual({
-      'lens2-display-weight': '800',
-      'lens2-surface-radius': '26px',
+    // FULL pre-F0 plan literal (F0-3): a delta introduced by any future
+    // compile change fails HERE, not just determinism-vs-itself.
+    expect(a.plan).toEqual({
+      lensId: 'fixture.candy-glass-arcade',
+      lensVersion: '1.0.0',
+      hostId: 'workout-design-lab',
+      cssVariables: {
+        'lens2-display-weight': '800',
+        'lens2-surface-radius': '26px',
+      },
+      templates: {
+        'mobile-minimal': 'default',
+        tablet: 'default',
+        'desktop-enhanced': 'playfield-stack',
+      },
+      variants: {
+        'text.display': 'rounded-athletic',
+        'text.body': 'soft-sans',
+        'surface.card': 'floating-candy',
+        'collection.exercise': 'arcade-cards',
+        'action.primary': 'glass-dock',
+        'chart.progress': 'arcade-meter',
+      },
+      chartFamiliarity: 'expressive',
+      degradations: [],
     });
+    const p = compileRecipe(prismTerminal, manifest);
+    if (!p.ok) throw new Error('prism fixture must compile');
+    expect('atmosphere' in p.plan).toBe(false);
+    expect(p.plan.templates['desktop-enhanced']).toBe('operator-grid');
+    expect(p.plan.variants['action.primary']).toBe('command-rail');
   });
 });
