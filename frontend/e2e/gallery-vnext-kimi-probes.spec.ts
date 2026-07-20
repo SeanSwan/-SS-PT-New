@@ -55,36 +55,12 @@ async function json(route: Route, body: unknown, status = 200) {
 }
 
 /**
- * SIMULATED LANE-A ACTIVATION (test-only). Verified blocker (FLAG-LIFECYCLE-DOCTRINE.md §BLOCKER):
- * nothing in the app renders `data-style-lens-shell` as a DOM attribute yet, and `--world-*` emits only for
- * a committed lens recipe — so the gate fails closed for EVERY visitor until Lane-A lands. These probes test
- * KIMI'S DESIGN CONTRACT, so the harness injects what Lane-A will provide: the shell attribute on <html> and
- * Crystalline `--world-*` values on :root. This is test scaffolding only — product code emits neither (LAW 8 R6).
+ * NO SIMULATION: since the Lane-A activation landed (SurfaceLensGate wraps every frame in WorldContractRoot
+ * — the `data-style-lens-shell` carrier + default Crystalline `--world-*`), these probes run against the
+ * REAL product contract. The earlier harness injection is deliberately deleted; if these probes fail-closed
+ * again, the activation regressed.
  */
-async function simulateLaneAActivation(page: Page) {
-  await page.addInitScript(() => {
-    // Init scripts can run BEFORE documentElement exists (it is null pre-parse) — retry until it does.
-    const apply = () => {
-      const root = document.documentElement;
-      if (!root) {
-        setTimeout(apply, 0);
-        return;
-      }
-      root.setAttribute('data-style-lens-shell', '');
-      const style = document.createElement('style');
-      style.textContent = `:root{
-        --world-bg:#0A0A0F;--world-panel:#141419;--world-text:#E0ECF4;--world-muted:#9FB0C8;
-        --world-accent:#60C0F0;--world-action:#8B5CF6;--world-title-font:'Plus Jakarta Sans',sans-serif;
-      }`;
-      root.appendChild(style);
-    };
-    apply();
-  });
-}
-
-/** Flag-ON world: runtime galleryVNext=true + the full mocked gallery API. */
 async function mockGalleryWorld(page: Page) {
-  await simulateLaneAActivation(page);
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     const p = url.pathname;

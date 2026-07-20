@@ -10,6 +10,7 @@
  */
 import React, { useMemo } from 'react';
 import LensPlanFrame from '../../../components/DashBoard/Pages/workout-design-lab/LensPlanFrame';
+import { WorldContractRoot } from './worldDefaults';
 import { useOptionalStyleLensAppearance } from '../../../core/style-lens-os/StyleLensProvider';
 import {
   validateSurfaceCapabilityManifest,
@@ -33,14 +34,19 @@ const SurfaceLensGate: React.FC<SurfaceLensGateProps> = ({ manifest, ariaLabel, 
   );
 
   return (
-    <LensPlanFrame
-      recipe={recipe}
-      manifest={manifest}
-      representationStyles={surfaceRepresentationStyles}
-      aria-label={ariaLabel}
-    >
-      {children}
-    </LensPlanFrame>
+    /* LANE-A ACTIVATION: the contract carrier every surface gate probes for — data-style-lens-shell +
+       default Crystalline --world-* (recipe inline vars on LensPlanFrame still override). display:contents,
+       so it adds no layout/paint; mounts only inside flag-ON vNext frames. See worldDefaults.ts. */
+    <WorldContractRoot data-style-lens-shell="">
+      <LensPlanFrame
+        recipe={recipe}
+        manifest={manifest}
+        representationStyles={surfaceRepresentationStyles}
+        aria-label={ariaLabel}
+      >
+        {children}
+      </LensPlanFrame>
+    </WorldContractRoot>
   );
 };
 
