@@ -47,16 +47,29 @@ describe('workoutProofLoader.unifyRow — dual-source unification', () => {
     expect(normalizeExerciseName('Bench Press')).not.toBe(normalizeExerciseName('Barbell Bench Press')); // split
   });
 
-  it('drops junk sets (weight<=0, reps<=0, null) but KEEPS high-rep sets (real volume; Epley cap is chart-only)', () => {
+  it('drops ONLY sets with no reps; KEEPS bodyweight (weight 0/null) and high-rep sets as real work', () => {
     const u = unifyRow({ id: 's', date: 'd', logRows: [
-      { exerciseName: 'Squat', weight: 0, reps: 5, setNumber: 1 },     // dropped: no weight
-      { exerciseName: 'Squat', weight: 225, reps: 0, setNumber: 2 },   // dropped: no reps
+      { exerciseName: 'Squat', weight: 0, reps: 5, setNumber: 1 },     // KEPT: bodyweight IS real work
+      { exerciseName: 'Squat', weight: 225, reps: 0, setNumber: 2 },   // dropped: no reps = not work
       { exerciseName: 'Squat', weight: 135, reps: 37, setNumber: 3 },  // KEPT: real volume (no e1RM point)
-      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 4 },  // dropped: no weight
+      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 4 },  // KEPT: absent weight = bodyweight
       { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 5 },   // kept
     ], setRows: [] });
-    expect(u.sets).toHaveLength(2);
-    expect(u.sets.map((s) => s.setNumber).sort((a, b) => a - b)).toEqual([3, 5]);
+    expect(u.sets).toHaveLength(4);
+    expect(u.sets.map((s) => s.setNumber).sort((a, b) => a - b)).toEqual([1, 3, 4, 5]);
+  });
+
+  it('exerciseCount counts BODYWEIGHT exercises — a mixed session must not under-report what the client did', () => {
+    // ~24% of real logged sets are bodyweight; dropping them showed "1 EXERCISE" for a 3-exercise session.
+    const unified = toUnifiedSessions([{ id: 't', date: '2026-07-11T10:00:00Z', duration: 40, logRows: [
+      { exerciseName: 'Bench Press', weight: 185, reps: 5, setNumber: 1 },  // weighted (chartable)
+      { exerciseName: 'Pull-ups', weight: 0, reps: 10, setNumber: 1 },      // bodyweight
+      { exerciseName: 'Push-ups', weight: null, reps: 20, setNumber: 1 },   // bodyweight (absent weight)
+    ], setRows: [] }]);
+    const r = buildProofSeriesFromUnifiedSessions(unified, { todaySessionId: 't' });
+    expect(r.exerciseCount).toBe(3);            // was 1 before this fix
+    expect(r.nameKey).toBe('bench press');      // still features the CHARTABLE lift
+    expect(r.totalVolumeLbs).toBe(185 * 5);     // bodyweight adds no external load — volume unchanged
   });
 
   it('keeps EVERY real logged set — the form numbers sets PER block, so 2 blocks of one lift reuse setNumber; both are performed sets and both must count (no dedupe under-count vs canonical totalWeight)', () => {
