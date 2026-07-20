@@ -1,0 +1,71 @@
+name: Swan Lens Guards
+
+# Runs the design-system "entropy firewall" + the Gate Rule contract on every PR/push that
+# touches the frontend. WHY THIS EXISTS: the guards were shipped as npm scripts wired to
+# NOTHING — no workflow, no hook, no build step — so they only ran if a human remembered to
+# type them. A guard nobody runs is not a guard. This makes them enforcing.
+#
+#   lint:degalaxy          — blocks the RETIRED Galaxy-Swan palette from the redesign surfaces
+#   lint:token-discipline  — blocks BARE hex (colors must come from the *.tokens.ts bridge)
+#   gate-parity test       — blocks a feature being mounted in only ONE branch of a flag gate
+#                            (a real defect: PrismCapture once existed only on the old home and
+#                             would have silently vanished the first time the redesign flipped on)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/src/**'
+      - 'scripts/ci/**'
+      - 'package.json'
+      - '.github/workflows/swan-lens-guards.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/src/**'
+      - 'scripts/ci/**'
+      - 'package.json'
+      - '.github/workflows/swan-lens-guards.yml'
+  workflow_dispatch:
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    name: Design-system guards + Gate Rule
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The scanners are dependency-free (node:fs + regex) — no install needed for this step,
+      # which keeps the guard fast and immune to dependency breakage.
+      - name: De-Galaxy firewall (retired palette)
+        run: node scripts/ci/check-degalaxy.mjs
+
+      - name: Token discipline (no bare hex in consumer surfaces)
+        run: node scripts/ci/check-token-discipline.mjs
+
+      - name: Install frontend deps (for the Gate Rule contract test)
+        working-directory: frontend
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Gate Rule — features must render under every flag state
+        working-directory: frontend
+        run: npx vitest run src/components/marketing/PrismCapture/prismGateParity.test.ts
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "## ❌ Swan Lens guards failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "One of the design-system contracts was violated:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **de-galaxy** — a RETIRED Galaxy-Swan colour (#0a0a1a / #00FFFF / #7851A9) reached a redesign surface. Use the Crystalline palette via \`var(--token, #fallback)\`." >> $GITHUB_STEP_SUMMARY
+          echo "- **token-discipline** — a bare hex literal was emitted by a component. Move it into that surface's \`*.tokens.ts\` bridge." >> $GITHUB_STEP_SUMMARY
+          echo "- **gate-parity** — a feature is mounted in only ONE branch of a flag gate. It must render under every flag state, or it silently disappears when the flag flips." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Reproduce locally: \`npm run lint:swan-lens\`" >> $GITHUB_STEP_SUMMARY
