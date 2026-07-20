@@ -14,6 +14,7 @@
  * ║  the one unforgivable failure on a screen called "proof".                        ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
+import { Op } from 'sequelize';
 import { normalizeExerciseName } from '../utils/exerciseIdentity.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -25,28 +26,43 @@ export const PROOF_LOAD_LIMIT = 60; // window for the chart + a RECENT best — 
 // with the session's canonical totalWeight (which is uncapped). Epley-validity (the ≤36 cap) lives in
 // estimateOneRepMax instead — so a high-rep set counts toward VOLUME/exerciseCount but yields no e1RM
 // chart point. (EPLEY_MAX_REPS stays exported for that chart-side guard.)
-const isValidSet = (w, r) => {
-  const weight = Number(w ?? 0); // null/absent weight = BODYWEIGHT, not junk
-  const reps = Number(r);
-  // Keep any set that is REAL WORK (reps > 0). Bodyweight sets (~24% of logged sets) must count toward
-  // exerciseCount, or the proof screen under-reports what the client actually did ("2 EXERCISES" for a
-  // Bench+Pull-ups+Squats session). Load-dependent math self-handles them: exerciseVolume adds 0 (no
-  // external load), estimateOneRepMax returns null for weight<=0 (no bogus e1RM point), and
-  // pickProofExercise's chartable filter never features an unchartable bodyweight lift.
-  return Number.isFinite(weight) && weight >= 0 && Number.isFinite(reps) && reps > 0;
+// Weight coercion contract: ONLY null/undefined mean "bodyweight" (0). Empty/whitespace strings,
+// booleans, and other junk coerce to NaN → dropped — junk must never inflate exerciseCount by
+// masquerading as a bodyweight set. (Unreachable from the DB caller — FLOAT columns — but these
+// helpers are exported via unifyRow/toUnifiedSessions, so the contract is enforced, not assumed.)
+const toWeight = (w) => {
+  if (w == null) return 0;
+  if (typeof w === 'number') return w;
+  if (typeof w === 'string' && w.trim() !== '') return Number(w);
+  return NaN;
+};
+
+const isValidSet = (weight, reps, source) => {
+  // reps > 0 = real work happened. The Epley rep cap (≤36) is deliberately NOT applied here — a
+  // high-rep set is REAL volume and must agree with the session's canonical totalWeight; Epley
+  // validity lives in estimateOneRepMax (chart-side only).
+  if (!Number.isFinite(weight) || !Number.isFinite(reps) || reps <= 0) return false;
+  // LOG rows: bodyweight (weight 0, ~24% of prod sets) is real human-logged work — keep, or the proof
+  // screen under-reports ("2 EXERCISES" for a Bench+Pull-ups+Squats session).
+  // SET rows: require performed LOAD (weight > 0). A structured Set row with null weightUsed cannot be
+  // distinguished from a planner placeholder whose repsCompleted was prefilled — fail toward never
+  // fabricating a phantom "bodyweight exercise" on the proof screen from a placeholder.
+  return source === 'log' ? weight >= 0 : weight > 0;
 };
 
 const toRows = (arr, source) => {
   const rows = [];
   for (const x of arr || []) {
-    if (!isValidSet(x.weight, x.reps)) continue;
+    const weight = toWeight(x.weight);
+    const reps = Number(x.reps);
+    if (!isValidSet(weight, reps, source)) continue;
     const nameKey = normalizeExerciseName(x.exerciseName);
     if (!nameKey) continue;
     rows.push({
       nameKey,
       displayName: String(x.exerciseName ?? '').trim() || 'Exercise',
-      weight: Number(x.weight ?? 0), // absent/null = bodyweight (0), never NaN
-      reps: Number(x.reps),
+      weight,
+      reps,
       setNumber: Number.isFinite(Number(x.setNumber)) ? Number(x.setNumber) : null,
       source,
     });
@@ -63,14 +79,23 @@ export function unifyRow(row) {
   for (const key of keys) {
     const logsForKey = logRows.filter((r) => r.nameKey === key);
     const setsForKey = setRows.filter((r) => r.nameKey === key);
-    // logs-win precedence: prefer the human log rows for a nameKey (a Set placeholder never mixes in).
-    // Push the winning source's rows AS-IS — every row is a genuinely-performed set. Do NOT dedupe by
-    // setNumber: the form numbers sets PER exercise-block (setIndex+1), so the SAME exercise logged as two
-    // blocks (a burnout / second attempt / superset card) legitimately REUSES setNumber 1,2… across real
-    // sets. A setNumber-keyed dedupe would DROP those real sets and make totalVolumeLbs disagree with the
-    // session's canonical totalWeight (which counts every row). Precedence already yields a single source
-    // per nameKey, so there is no cross-source double-count to guard against.
-    const winner = logsForKey.length ? logsForKey : setsForKey;
+    // Precedence (chartable-aware, one source per key — never mixed, so no cross-source double-count):
+    //  • logs win when they carry any CHARTABLE (weighted, Epley-valid) row — a human log of load is the
+    //    strongest truth, and a planner placeholder never survives the validity filter (no repsCompleted).
+    //  • but a bodyweight-ONLY log scribble must NOT suppress same-key WEIGHTED Set rows: surviving 'set'
+    //    rows always claim performed load (repsCompleted>0 AND weightUsed>0). Without this, a stray
+    //    bodyweight log note would erase a prior weighted e1RM point and fabricate "A new best" —
+    //    executed-and-proven failure mode from the go-live hostile review.
+    // Push the winning source's rows AS-IS — no setNumber dedupe: the form numbers sets PER exercise-block,
+    // so the same lift logged as two blocks legitimately reuses setNumber across REAL sets; deduping made
+    // totalVolumeLbs disagree with the session's canonical totalWeight.
+    let winner;
+    if (logsForKey.length === 0) winner = setsForKey;
+    else if (setsForKey.length === 0) winner = logsForKey;
+    else {
+      const logsChartable = logsForKey.some((r) => r.weight > 0 && r.reps <= EPLEY_MAX_REPS);
+      winner = logsChartable ? logsForKey : setsForKey;
+    }
     sets.push(...winner);
   }
   return { id: row.id, date: row.date, duration: row.duration, sets };
@@ -84,7 +109,15 @@ export async function loadUnifiedSessions({ targetUserId, models, limit = PROOF_
   if (!WorkoutSession) return [];
   try {
     const rows = await WorkoutSession.findAll({
-      where: { userId: targetUserId },
+      where: {
+        userId: targetUserId,
+        // PERFORMED sessions only. Plan generation creates status:'planned' rows (dated NOW when no date
+        // is passed), so without this filter a 12-session plan generated Monday makes Tuesday's one real
+        // workout read "Session 13 this week", fires a phantom streak headline, and can suppress a genuine
+        // PR via the isNewestSession gate. Real saves are 'completed' (form path reconciles planned →
+        // completed); 'in_progress' is a live session being logged. skipped/cancelled never count.
+        status: { [Op.in]: ['completed', 'in_progress'] },
+      },
       order: [['date', 'DESC']],
       limit,
       include: [
@@ -94,12 +127,15 @@ export async function loadUnifiedSessions({ targetUserId, models, limit = PROOF_
         // placeholders + form logs on the SAME findOrCreate'd session — the loader's mainline case):
         // ~logs×sets×limit rows over the wire on the save path. Hydration stayed correct (Sequelize
         // de-dups by PK) but the DB/wire cost did not. Splitting logs + the nested sets kills it.
-        { model: WorkoutLog, as: 'logs', required: false, separate: true, attributes: ['exerciseName', 'weight', 'reps', 'setNumber'] },
+        // Explicit ORDER on the separate child queries: without it row order is Postgres-plan-dependent,
+        // making pickProofExercise's first-seen-index tie-break (and latestDisplayName casing) flip
+        // between the save-path handoff and a later GET /:id/handoff re-entry on exact volume ties.
+        { model: WorkoutLog, as: 'logs', required: false, separate: true, order: [['setNumber', 'ASC'], ['id', 'ASC']], attributes: ['exerciseName', 'weight', 'reps', 'setNumber'] },
         {
           model: WorkoutExercise, as: 'exercises', required: false,
           include: [
             { model: Exercise, as: 'exercise', attributes: ['name'] },
-            { model: Set, as: 'sets', separate: true, attributes: ['weightUsed', 'repsCompleted', 'setNumber'] },
+            { model: Set, as: 'sets', separate: true, order: [['setNumber', 'ASC'], ['id', 'ASC']], attributes: ['weightUsed', 'repsCompleted', 'setNumber'] },
           ],
         },
       ],
@@ -118,7 +154,10 @@ export async function loadUnifiedSessions({ targetUserId, models, limit = PROOF_
     // Use the REAL app logger (not models?.logger — a model registry has no logger, so the old call was a
     // silent no-op). This is the ONLY signal that a prod association-alias drift has killed the feature:
     // the load fails -> [] -> proof null -> UI suppresses, invisibly. name+message only, never SQL/rows.
-    logger?.warn?.('[workoutProofLoader] dual-source load failed; degrading to empty', err?.name, err?.message);
+    // Object meta, NOT extra primitive args: this logger has no format.splat(), so trailing primitives
+    // land under Symbol(splat) and are DROPPED by json()/simple() — the "which alias broke" payload
+    // would never reach a transport. Object meta serializes.
+    logger?.warn?.('[workoutProofLoader] dual-source load failed; degrading to empty', { name: err?.name, message: err?.message });
     return [];
   }
 }

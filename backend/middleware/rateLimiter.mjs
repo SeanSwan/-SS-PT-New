@@ -152,6 +152,29 @@ export const orientationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Post-Save Handoff re-entry rate limiter (30 req / 5 min per IP).
+ *
+ * GET /api/workout/sessions/:id/handoff is authenticated but triggers a real
+ * assembly (60-session proof load + NBA resolve, up to 2500ms of DB work) on
+ * every hit with no cache. A legit user re-opens a handoff a handful of times;
+ * 30/5min is generous for humans and kills scripted hammering of the endpoint
+ * as a DB-load amplification vector (flagged by the Kimi go-live review).
+ * 404-shaped body on purpose: the route 404s for miss AND unauthorized (no
+ * existence oracle), so the throttle response must not leak anything either.
+ */
+export const handoffLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: {
+    success: false,
+    message: 'Too many requests. Please try again in a few minutes.',
+    retryAfter: '5 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
@@ -160,4 +183,5 @@ export default {
   waiverLimiter,
   contactLimiter,
   orientationLimiter,
+  handoffLimiter,
 };

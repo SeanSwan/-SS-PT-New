@@ -41,6 +41,23 @@ describe('PostSaveHandoff', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('LITE: a proof-null handoff still lands the terminal moment — declaration + NBA, no chart, no share, no fabricated numbers', () => {
+    renderHandoff(baseData({ proof: null }));
+    expect(screen.getByText('Flight logged.')).toBeInTheDocument();
+    expect(screen.getByText(/Session saved and counted/)).toBeInTheDocument();
+    expect(screen.getByText('Next up: Wednesday')).toBeInTheDocument(); // NBA still lands
+    expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+    expect(screen.queryByTestId('proof-chart')).toBeNull();             // no chart to fabricate
+    expect(screen.queryByRole('button', { name: 'Share this win' })).toBeNull(); // share needs a number
+    expect(screen.queryByText(/EST\. 1-REP MAX/)).toBeNull();
+  });
+
+  it('LITE: proof-null with nba ALSO null degrades to declaration + Done only (never crashes)', () => {
+    renderHandoff(baseData({ proof: null, nba: null }));
+    expect(screen.getByText('Flight logged.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+  });
+
   it('renders the declaration, proof numeral, eyebrow, and chips', () => {
     renderHandoff(baseData());
     expect(screen.getByText('Flight logged.')).toBeInTheDocument();
