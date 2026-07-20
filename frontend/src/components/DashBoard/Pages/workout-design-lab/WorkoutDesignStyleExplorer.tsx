@@ -127,6 +127,12 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
     const to = compileRecipe(selEntry.recipe, LAB_HOST_MANIFEST);
     return from.ok && to.ok ? whatChanged(from.plan, to.plan) : null;
   }, [committedId, selected.id]);
+  // Roving tabindex (full ARIA listbox pattern): ONE tab stop — the selected
+  // option (or the first rendered one when search filters selection out);
+  // arrows move focus among the rest. The pinned duplicate is never the stop.
+  const tabbableLensId = isSearching
+    ? (filtered.some(({ id }) => id === selected.id) ? selected.id : filtered[0]?.id)
+    : selected.id;
   const renderChip = (lens: StyleLensManifest, pinned = false) => {
     const rowVisual = SWAN_STYLE_LENS_VISUALS[lens.id];
     const catalogIndex = lenses.findIndex(({ id }) => id === lens.id);
@@ -135,6 +141,7 @@ const WorkoutDesignStyleExplorer: React.FC<WorkoutDesignStyleExplorerProps> = ({
         key={pinned ? `current-${lens.id}` : lens.id}
         type="button"
         role="option"
+        tabIndex={!pinned && lens.id === tabbableLensId ? 0 : -1}
         aria-label={pinned ? `Current style: ${lens.name}` : `${lens.name} style lens`}
         {...(pinned ? {} : { "aria-selected": lens.id === selected.id })}
         $active={!pinned && lens.id === selected.id}

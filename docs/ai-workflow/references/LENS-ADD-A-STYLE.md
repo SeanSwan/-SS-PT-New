@@ -5,8 +5,9 @@
 > it is the heavier, lane-owner route (see the appendix: `aurora-console` #26 took it) — but the
 > five-entry v2-only pipeline below is the recommended default.
 > Target: style #N live in the Lab, gates green, **zero CSS, zero code — five data entries.**
-> Proven: the `pipeline-proof` dry-run (2026-07-14) shipped chip #26 through this exact
-> list in **5 minutes 47 seconds**, all tests green, chip live on the v2 stage path.
+> Proven: the `pipeline-proof` dry-run (2026-07-14) shipped a throwaway 26th chip through this
+> exact list in **5 minutes 47 seconds**, all tests green, chip live on the v2 stage path — then
+> reverted. (Distinct from `aurora-console`, the real #26, which later took the v1 chrome route.)
 >
 > **Since Wave-1 S1-C/F16 (2026-07-16):** the adapter barrel runs a dev/CI registry-integrity gate
 > at init (`assertLensRegistryIntegrity` in `adapters/style-lens-swan/index.ts`) requiring a

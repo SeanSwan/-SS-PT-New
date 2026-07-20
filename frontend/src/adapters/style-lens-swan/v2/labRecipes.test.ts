@@ -19,6 +19,7 @@ import {
 } from './catalogV2Map';
 import { assertLensRegistryIntegrity } from '../contract/registryIntegrity';
 import { buildWorldValuesRegistry } from '../contract/values';
+import { LENS_STYLE_ALLOWLIST } from '../styles/lenses';
 import {
   BOOTCAMP_BUILDER_MANIFEST,
   CLIENTS_WORKSPACE_MANIFEST,
@@ -116,6 +117,18 @@ describe('ADD-A-STYLE pipeline gates (every catalog v2 entry)', () => {
       expect(validateRecipeV2(entry.recipe)).toEqual([]);
       expect(entry.recipe.id).toMatch(/^swan\.[a-z][a-z0-9-]{1,64}\.v2$/);
       expect(typeof entry.dashboardChrome).toBe('boolean');
+    },
+  );
+
+  it.each(MAP_ENTRIES)(
+    '%s dashboardChrome matches allowlist reality (the flag may never lie in either direction)',
+    (catalogId, entry) => {
+      // false-flagged chrome style => Lab copy lies "rollout pending" while
+      // chrome restyles the dashboard AND the id silently skips the F16 gate;
+      // true-flagged v2-only style => F16 crashes adapter init. Bidirectional.
+      expect(entry.dashboardChrome).toBe(
+        Object.prototype.hasOwnProperty.call(LENS_STYLE_ALLOWLIST, catalogId),
+      );
     },
   );
 });

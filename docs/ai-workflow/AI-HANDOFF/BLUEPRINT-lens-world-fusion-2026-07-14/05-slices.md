@@ -56,15 +56,16 @@ STOP.
 
 ## F3 — v2 production rollout
 Accept when ALL of:
-1. With flag ON + committed `candy-glass-arcade`: the six production surfaces render
+1. With flag ON + committed `candy-glass-arcade`: ALL makeLensFrame surfaces (16 as of 2026-07-16 — re-enumerate per 04-build-order §F3, incl. the 4 dashboard shells + 6 public v-next pages) render
    `data-lens2-*` attrs (paste one DOM query per surface from the running app or targeted tests).
-2. With the per-browser OVERRIDE OFF (`localStorage['swan-lens-v2-rollout']='off'` + reload): all
-   six surfaces render host defaults — override proof screenshot/DOM paste. State in the receipt
+2. With the per-browser OVERRIDE OFF (`localStorage['swan-lens-v2-rollout']='off'` + reload):
+   ALL enumerated makeLensFrame surfaces render host defaults — override proof screenshot/DOM
+   paste. State in the receipt
    that this is a per-tester override, and name the real production rollback (git revert / env
    default), NOT "kill switch" (M1).
 3. Chrome-only committed ids still resolve null; and resolution now goes through
    `V2_RECIPE_BY_CATALOG_ID` (M2) — a source-contract assert that the recipe-id map is retired.
-4. Full frontend suite for the six surface folders green (re-count; no stale target). The FOUR
+4. Full frontend suite for ALL enumerated lens-frame surface folders green (16 as of 2026-07-16; re-count both). The FOUR
    sanctioned F3 contract-test changes (N1 — two per file) applied and enumerated in the receipt:
    the two rewritten asserts in `WorkoutDesignLab.styleAxis.test.tsx` A3 (+rename) and the two
    catalog-id lookups in `surfaceManifests.test.ts`. If any OTHER test goes RED, STOP — do not edit
@@ -113,7 +114,8 @@ Accept when ALL of:
    Lighthouse or web-vitals spot on Home with atmosphere ON: LCP ≤2.5s p75-equivalent local note,
    CLS ≤0.1 (paste numbers, label `[LOCAL-LAB]`).
 5. Full program regression: the whole lens suite (re-count — do not target a fixed number),
-   six-surface folders, backend appearance tests — one combined green run pasted. Rule 48 audit
+   ALL enumerated lens-frame surface folders, backend appearance tests — one combined green run
+   pasted. Rule 48 audit
    record for the program filed at
    `docs/ai-workflow/AI-HANDOFF/LENS-WORLD-FUSION-AUDIT-RECORD-<date>.md`.
 DONE — program closeout (Rule 41 + 57 + 60).

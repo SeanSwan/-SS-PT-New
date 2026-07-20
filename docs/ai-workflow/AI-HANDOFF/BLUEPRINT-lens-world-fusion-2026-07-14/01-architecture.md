@@ -11,7 +11,7 @@
    2026-07-16 — the catalog GROWS, re-count at build time) are chrome trims. Honesty labels
    exist (Lens pack A3) but the wardrobe is thin. → F5 adds 6 world-distilled v2 styles.
 4. **Production inertness.** `adapters/style-lens-swan/v2/recipeResolution.ts` never resolves a
-   committed style on the six production surfaces — and note the drift it fixes: today
+   committed style on ANY makeLensFrame surface (16 as of 2026-07-16 — 6 original product surfaces + 4 dashboard shells + 6 public v-next pages; re-enumerate with rg makeLensFrame at build time) — and note the drift it fixes: today
    `resolveRecipeForStyleLens` keys its map by RECIPE id (`swan.candy-glass-arcade.v2`) while the
    committed `styleLensId` is the CATALOG/manifest id (`candy-glass-arcade`), so nothing matches by
    construction. F3 makes it resolve via the single catalog-keyed map `V2_RECIPE_BY_CATALOG_ID`
@@ -135,8 +135,8 @@ The shipped `MotionMode` (`core/style-lens-os/types.ts`) is **`auto | reduced | 
 product dashboards, ONLY an **inert B0 poster** or a **user-started, pausable** M2 gallery preview —
 NOT an always-on autoplay ambient band. Therefore on PRODUCT surfaces the atmosphere layer defaults
 to **STATIC (the `stillPoster`) even under `motionMode:'auto'`.** `animated: true` layers are for
-the **marketing/factory lane only**; shipping an autoplay animated atmosphere on any of the six
-product surfaces requires an explicit, logged `experience-mode.md` §3 amendment with Sean's
+the **marketing/factory lane only**; shipping an autoplay animated atmosphere on ANY of the (16+, re-enumerate)
+lens-wearing product/dashboard/public surfaces requires an explicit, logged `experience-mode.md` §3 amendment with Sean's
 per-surface approval. The blueprint does NOT claim "verbatim" — it defaults product atmosphere to
 inert and quarantines motion to marketing. `prefers-reduced-motion: reduce` and `data-motion="off"`
 always force static regardless. Non-negotiable product caps if motion is ever licensed:
