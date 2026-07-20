@@ -82,3 +82,23 @@ Rules 4 (all new files <300 ln), 6 (token+fallback), 8 (zero PII), 17 (dual-pass
 - Deploy VERIFIED live 2026-07-19: `clientRequestId` column + partial index present, migration recorded in SequelizeMeta, `/api/health` healthy. Server proof data confirmed (848 eligible `workout_logs`, associations match real columns).
 - **Open (post-ship):** client-render confirmation (Sean's UI save / VITE flag) — auth boundary, not headless-verifiable; test-user DB cleanup (prepped + backed up, Sean paused).
 - Next action pointer: enable client flag + one UI save → then work the deferred LOW backlog (§10).
+
+---
+
+## ADDENDUM 2026-07-20 — Fable full-power round (post-launch, both flags LIVE)
+
+**Commits:** `42fbec2bb` (round batch) + comment-truth fix; pushed `f63b82181..7fbee8fde` → main; deploy health-verified.
+**Trigger:** Sean directive — hostile-review every fix in the arc until dry + close vision gaps. Two fresh reviewers (one with executed probes) → **9 findings (1 HIGH, 3 MED, 5 LOW), all fixed**; confirmation round → **1 LOW (doc-comment only), fixed** → converged.
+
+**Data-truth fixes (update §4/§6):**
+- Loader now filters `status IN ('completed','in_progress')` — planned plan-generation rows (dated NOW, default status) no longer inflate `sessionsThisWeek`/streaks or suppress genuine PRs via `isNewestSession`. Prod was 53/53 completed → zero-loss.
+- Dual-source precedence is CHARTABLE-AWARE: a bodyweight-only log scribble can no longer suppress same-key weighted Set rows (executed probe had shown a fabricated "A new best"). Logs win outright when they carry any chartable row.
+- `priors` counts chartable history only; `isFirstEver` requires the lift never appeared in ANY form (weighted-after-bodyweight = progression, not a first).
+- SET-source bodyweight rows dropped (placeholder-with-prefilled-reps indistinguishability); `toWeight` contract (only null/undefined = bodyweight; ''/booleans = junk); deterministic ORDER BY on separate includes; `useSessionStats.completedSets` counts reps>0 (sibling sweep).
+
+**Hardening (update §4):** `safeAssemble` circuit breaker (real in-flight gauge, decrements when WORK settles, sheds at 4 concurrent — kills DB-stress self-amplification); `handoffLimiter` 30/5min per IP mounted BEFORE `protect` on `GET /:id/handoff` (standard 429; count-based keying leaks nothing); winston calls use OBJECT META (no `format.splat()` → trailing primitives were silently dropped — house rule); migration `addIndex` idempotency guard + honest lock comment.
+
+**Vision (update §6 — the bodyweight/cardio non-goal is now CLOSED):** LITE handoff — proof-null saves render declaration + next-best-action + Done (no chart/share fabrication); subline is the activation nudge toward the proof chart; `handoff_shown` gains zero-PII `lite` boolean. Every save now lands a terminal moment.
+
+**Verification:** tsc 0 · WorkoutLogger suite 80 files / **460** tests pass · node --check clean · Rule 42 clean · deploy 200/healthy.
+**New review hooks:** breaker cap (4) vs future multi-instance scaling; `POST /start`/`/:id/end` legacy sessions stay 'planned' forever (dormant service — candidate for cleanup); watch `handoff_shown{lite:true}` rate as the bodyweight-experience signal.

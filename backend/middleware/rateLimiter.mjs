@@ -160,8 +160,10 @@ export const orientationLimiter = rateLimit({
  * every hit with no cache. A legit user re-opens a handoff a handful of times;
  * 30/5min is generous for humans and kills scripted hammering of the endpoint
  * as a DB-load amplification vector (flagged by the Kimi go-live review).
- * 404-shaped body on purpose: the route 404s for miss AND unauthorized (no
- * existence oracle), so the throttle response must not leak anything either.
+ * Response shape: standard 429 + generic JSON body (express-rate-limit default). This leaks nothing
+ * about the target session: the limiter keys on per-IP REQUEST COUNT before auth, independent of
+ * whether the session exists — so a 429 cannot function as an existence oracle. (The route itself
+ * still 404s identically for miss AND unauthorized.)
  */
 export const handoffLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
