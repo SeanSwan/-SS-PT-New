@@ -300,6 +300,18 @@ land **only** in the private DB, main DB checksum unchanged · non-interactive f
 volume is ToS-risky, that does not merely gate the pilot — it removes D-E, and with it the entire throughput
 solution. Sean should read Mobbin's terms directly, or ask Mobbin support, before W1.
 
+### 5.1 RESOLUTIONS (2026-07-20 — Sean: "do what is recommended")
+
+| ID | Resolution | Evidence |
+|---|---|---|
+| **D1** | **GO — documented, conservative posture retained.** Mobbin's MCP is the *official product* "for AI tools and coding agents" (their words), offered on Pro/Team/Enterprise with published client guides for Claude Code, Codex, Cursor, Devin et al. **Rate limit DOCUMENTED: 60 requests / 60 seconds per user (MCP), HTTP 429 + Retry-After on exceed** (`docs.mobbin.com/rate-limits.md`, fetched 2026-07-20). Our caps (12 runs/wk, 3–5 queries/run) sit orders of magnitude below it. ToS restrictions (via secondary sources; the raw `/terms` page 403s unauthenticated): no AI/ML **training/indexing/benchmarking** on content, no derivative works via AI beyond permitted use, no resale/competitive service, "personal or internal business use" — all of which the engine's principles-not-pixels / no-screenshots / ≤25-char-verbatim / anti-clone posture was designed around. An "AI Credits" metering system exists; per-plan numbers **[UNKNOWN]** — observe usage in-product. **Residual:** Sean eyeballs `mobbin.com/terms` in his logged-in browser once (2 min) to confirm the secondary-source reading; 429 = immediate cool-down remains policy; never probe limits. |
+| **D2** | Default stands: retrofit when convenient (SKIP-OK). | — |
+| **D3** | **CONFIRMED.** Deep = workout-logging · marketing-landing-conversion · progress-analytics; scheduling shallow. Already the default in `scripts/design-brain/config/domains.json`; revert = flip two fields. | — |
+| **D4** | Default stands: `~/design-brain` (WSL), set via `SWAN_DESIGN_BRAIN_ROOT`. | — |
+| **D5** | Plan at 1.5 hr/wk; 45-min fallback tier is first-class and documented. | — |
+| **Capture-target** | **DECIDED: BOTH.** Local per-client records (shipped, `scripts/hermes/clientNotes/`) remain the private-notes layer; a next slice wires dictation into SwanStudios `WorkoutLog` (the existing `log_workout` command path) so dashboards/charts reflect dictated sessions. Build queued — needs a scoped auth path from Hermes → SwanStudios API before code. |
+| **Atticking** | **EXECUTED with Sean's Rule-34 approval** (this commit): 5 mythos doc surfaces → `docs/_attic/2026-07-wiki-mythos/`, tombstones at every original path, `docs/brain/REALITY.md` created as the canonical what-exists page. Inbound references (CLAUDE.md/AGENTS.md tables, design-brain index) resolve to tombstones that redirect — flagged as follow-up doc polish, not breakage. |
+
 ---
 
 ## 6. WHAT WAS ACTUALLY DONE THIS SESSION
