@@ -111,8 +111,9 @@ describe("Workout Design Lab 25-view contract", () => {
     const tabs = read("../../../../config/dashboard-tabs.ts");
     const page = read("./WorkoutDesignLabPage.tsx");
 
-    expect(routes).toContain("25 workout Worlds plus 25 Style Lenses");
-    expect(tabs).toContain("Explore 25 workout Worlds and 25 Style Lenses");
+    expect(routes).toContain("25 workout Worlds plus the full Style Lens catalog");
+    // Style count is a growing catalog (26+); nav copy stays count-proof.
+    expect(tabs).toContain("Explore 25 workout Worlds and the full Style Lens catalog");
     expect(page).toContain("{WORKOUT_DESIGN_CONCEPT_COUNT} Worlds");
     expect(page).toContain("{WORKOUT_DESIGN_STYLE_COUNT} Styles");
     expect(page).toContain("WORKOUT_DESIGN_CONCEPT_COUNT");

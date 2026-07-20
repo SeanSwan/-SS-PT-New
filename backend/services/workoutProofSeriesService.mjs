@@ -66,7 +66,13 @@ function pickProofExercise(todaySession, priorSessions) {
   const priorCount = new Map();
   for (const s of priorSessions) {
     const seen = new Set((s.sets || []).map((x) => x.nameKey));
-    for (const k of seen) priorCount.set(k, (priorCount.get(k) || 0) + 1);
+    // Count a prior only when it holds a CHARTABLE set for the key. The ≥3-priors preference exists to
+    // feature a lift with history to DRAW A LINE; bodyweight-only history yields zero chart points, so it
+    // must not steer the pick (else 5 bodyweight-Dips sessions out-prefer a first weighted Bench and the
+    // chart opens with one point on a lift the window "knows" — reviewed failure mode).
+    for (const k of seen) {
+      if (topSetE1rm(setsForKey(s, k)) !== null) priorCount.set(k, (priorCount.get(k) || 0) + 1);
+    }
   }
   const agg = new Map();
   todaySets.forEach((set, idx) => {
@@ -161,9 +167,11 @@ export function buildProofSeriesFromUnifiedSessions(sessions, { todaySessionId, 
     durationMin: today.duration != null && Number.isFinite(Number(today.duration)) ? Math.round(Number(today.duration)) : null,
     sessionsThisWeek,
     streakWeeks: countStreakWeeks(upToToday, todayWeek),
-    // "first session (in the window) with a proof-eligible set for this exercise" — guards the 'first'
-    // headline. Also gated on isNewestSession: a non-newest today can't truthfully claim a first.
-    isFirstEver: isNewestSession && allPoints.length <= 1 && prior.every((s) => topSetE1rm(setsForKey(s, nameKey)) === null),
+    // "First X on record" must mean X truly never appeared before in the window: ANY prior set of the
+    // key — even bodyweight/unchartable — falsifies the claim (weighted Dips after 5 bodyweight-Dips
+    // sessions is progression, not a first). Also gated on isNewestSession: a non-newest today can't
+    // truthfully claim a first.
+    isFirstEver: isNewestSession && allPoints.length <= 1 && prior.every((s) => setsForKey(s, nameKey).length === 0),
   };
 }
 

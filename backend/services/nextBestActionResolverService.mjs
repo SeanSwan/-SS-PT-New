@@ -170,7 +170,9 @@ export async function resolveNextBestAction({
   } catch (err) {
     // Read failure → leave nextSessionWithin48h false; resolver falls through safely.
     // Logged so a FUTURE schema drift here stays observable (a silent fallback would hide it).
-    logger?.warn?.('[nba] session lookup failed; using safe fallback', err?.message);
+    // Object meta, not a trailing primitive — this logger has no format.splat(), so extra primitive
+    // args are dropped by the transports and the message payload would never land.
+    logger?.warn?.('[nba] session lookup failed; using safe fallback', { name: err?.name, message: err?.message });
   }
 
   return resolveNextBestActionFromContext(ctx);

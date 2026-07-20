@@ -8,6 +8,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { validationMiddleware } from '../middleware/validationMiddleware.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import { handoffLimiter } from '../middleware/rateLimiter.mjs';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -269,7 +270,9 @@ const workoutSessionSchema = z.object({
  * @desc    Re-fetch the Post-Save Handoff for a session (re-entry / offline-sync refresh).
  * @access  Private — self, admin, or assigned trainer. 404 for miss AND unauthorized (no existence leak).
  */
-router.get('/:id/handoff', protect, async (req, res) => {
+// handoffLimiter BEFORE protect: throttle even unauthenticated hammering (each hit past auth triggers
+// up to 2500ms of assembly DB work — a load-amplification vector flagged by the go-live review).
+router.get('/:id/handoff', handoffLimiter, protect, async (req, res) => {
   try {
     const s = await WorkoutSession.findByPk(req.params.id, { attributes: ['id', 'userId'] });
     if (!s) return res.sendStatus(404);

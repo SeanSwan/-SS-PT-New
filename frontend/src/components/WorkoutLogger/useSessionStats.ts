@@ -21,7 +21,7 @@ export interface PersonalRecord {
 export interface SessionStats {
   /** Sum of (weight × reps) across all sets */
   totalVolume: number;
-  /** Number of sets with weight > 0 and reps > 0 */
+  /** Number of sets with reps > 0 — bodyweight sets (weight 0) are REAL completed work (~24% of prod sets) */
   completedSets: number;
   /** Total set slots */
   totalSets: number;
@@ -53,10 +53,17 @@ export function useSessionStats(exercises: ExerciseEntry[]): SessionStats {
       for (const set of exercise.sets) {
         totalSets++;
 
+        // A set is COMPLETED when real work happened (reps > 0) — bodyweight sets (weight 0, e.g.
+        // pull-ups/push-ups) count. Mirrors the server-side proof loader's contract so the SaveSuccess
+        // "N sets" and the handoff's exercise count never disagree about the same session.
+        if (set.reps > 0) {
+          completedSets++;
+        }
+
+        // Volume + PR math stay LOAD-gated: bodyweight adds no external load.
         if (set.weight > 0 && set.reps > 0) {
           const setVolume = set.weight * set.reps;
           totalVolume += setVolume;
-          completedSets++;
 
           // Track max weight for this exercise
           const currentMax = maxWeightPerExercise.get(exercise.exerciseName) || 0;

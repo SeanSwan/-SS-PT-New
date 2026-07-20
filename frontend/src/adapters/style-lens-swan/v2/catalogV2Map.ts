@@ -14,3 +14,20 @@ export const V2_RECIPE_BY_CATALOG_ID: Readonly<Record<string, CatalogV2Entry>> =
   'candy-glass-arcade': { recipe: CANDY_GLASS_ARCADE_RECIPE, dashboardChrome: true },
   'prism-terminal': { recipe: PRISM_TERMINAL_RECIPE, dashboardChrome: true },
 });
+
+/** F16 carve-out: v2-only styles (dashboardChrome: false) deliberately ship NO
+ * v1 chrome/allowlist entry — they render through the recipe path and say so
+ * in the Lab ("dashboard rollout pending"). The adapter barrel merges these
+ * into the registry-integrity allowlist arg so the LENS-ADD-A-STYLE five-entry
+ * pipeline never crashes adapter init for style #27+. Chrome styles get NO
+ * exemption — the Wave-1 gate still bites them. */
+export const buildV2OnlyAllowlistExemptions = (
+  map: Readonly<Record<string, CatalogV2Entry>>,
+): Readonly<Record<string, string>> =>
+  Object.freeze(
+    Object.fromEntries(
+      Object.entries(map)
+        .filter(([, entry]) => entry.dashboardChrome === false)
+        .map(([id]) => [id, 'v2-only — renders via recipe path, no v1 chrome']),
+    ),
+  );

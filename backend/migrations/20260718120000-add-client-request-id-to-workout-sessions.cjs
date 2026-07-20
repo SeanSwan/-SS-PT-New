@@ -10,12 +10,16 @@
  * Column casing: this model is NOT `underscored` and declares no `field:` maps, so its columns are
  * camelCase (userId, clientRequestId) — matching the attributes. Do NOT snake_case them.
  *
- * Build strategy (reconciles two review lenses): the partial index is EMPTY at build time — every
- * existing row has clientRequestId = NULL, excluded by `WHERE clientRequestId IS NOT NULL` — so the
- * index scan is trivial and holds no meaningful write-lock. We therefore build it NON-CONCURRENTLY
- * inside the same transaction as the column add: this is ATOMIC (the prod safe-migrate runner cannot
- * mark a half-built index "done" and silently drop the uniqueness guarantee, which CONCURRENTLY risked),
- * and the usual CONCURRENTLY justification (avoid locking a large table) does not apply to an empty index.
+ * Build strategy (reconciles two review lenses): the partial index has ZERO ENTRIES at build time —
+ * every existing row has clientRequestId = NULL, excluded by `WHERE clientRequestId IS NOT NULL`.
+ * Lock honesty (post-ship review correction): a non-CONCURRENT CREATE INDEX still takes a SHARE lock
+ * and full-table-scans workout_sessions to evaluate the predicate, briefly blocking writes (new saves)
+ * for the scan duration — sub-second at current scale, NOT free at large scale. We build NON-CONCURRENTLY
+ * inside the same transaction as the column add because atomicity wins here: the prod safe-migrate runner
+ * cannot mark a half-built CONCURRENTLY index "done" and silently drop the uniqueness guarantee. If this
+ * table is ever large when a similar migration is written, prefer CONCURRENTLY outside a tx + a re-check.
+ * (This migration already ran in prod 2026-07-19; edits below are comment/idempotency-only — sequelize
+ * tracks migrations by filename, so comment edits are inert.)
  *
  * @type {import('sequelize-cli').Migration}
  */
@@ -35,12 +39,18 @@ module.exports = {
           defaultValue: null,
         }, { transaction });
       }
-      await queryInterface.addIndex(TABLE, ['userId', COLUMN], {
-        name: INDEX,
-        unique: true,
-        where: { [COLUMN]: { [Sequelize.Op.ne]: null } }, // → "IS NOT NULL"; PG + SQLite >= 3.8
-        transaction,
-      });
+      // Idempotency guard (post-ship hardening): a bare re-run after a committed success — only possible
+      // if SequelizeMeta drifts out of sync with the DB — must not throw "index already exists" and fail
+      // the deploy. Symmetric with the describeTable guard on the column above.
+      const existingIndexes = await queryInterface.showIndex(TABLE, { transaction }).catch(() => []);
+      if (!existingIndexes.some((ix) => ix.name === INDEX)) {
+        await queryInterface.addIndex(TABLE, ['userId', COLUMN], {
+          name: INDEX,
+          unique: true,
+          where: { [COLUMN]: { [Sequelize.Op.ne]: null } }, // → "IS NOT NULL"; PG + SQLite >= 3.8
+          transaction,
+        });
+      }
       await transaction.commit();
       console.log(`✅ ${TABLE}.${COLUMN} + composite partial unique index ${INDEX} added (atomic).`);
     } catch (error) {

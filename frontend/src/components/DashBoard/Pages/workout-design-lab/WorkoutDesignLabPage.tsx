@@ -2,7 +2,8 @@
  * ============================================================================
  * WORKOUT DESIGN LAB v5 — the transforming vision, made visible
  * ============================================================================
- * BLUEPRINT: 25 Worlds × 25 Style Lenses with one shared prototype session.
+ * BLUEPRINT: 25 Worlds × the full Style Lens catalog (growing; count is
+ * derived from WORKOUT_DESIGN_STYLE_COUNT) with one shared prototype session.
  * v5 makes the lens axis REAL: the stage below is always wrapped in a
  * ScopedLensFrame wearing the currently browsed lens (instant preview on
  * click — no Apply needed to SEE), Compare renders two live stages side by

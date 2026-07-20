@@ -65,7 +65,9 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   const shownRef = useRef(false); // fire handoff_shown exactly once per mount
   const headlineId = useId();
   const isOn = enabled ?? isPostSaveHandoffEnabled();
-  const active = isOn && !!data?.proof;
+  // Active on ANY handoff payload — proof-null saves (bodyweight/cardio-only) get the LITE variant below.
+  // The Core Loop promises a terminal moment after EVERY save, not only chartable ones.
+  const active = isOn && !!data;
 
   // Real modal machinery: capture focus, trap Tab, Esc to close, restore focus on unmount.
   useEffect(() => {
@@ -79,6 +81,7 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
         viewerRole,
         pr: !!data.proof?.pr,
         isFirstEver: !!data.proof?.isFirstEver,
+        lite: !data.proof, // proof-null (bodyweight/cardio-only) terminal moment — zero-PII boolean
       });
     }
     // Body scroll-lock while the modal owns the screen (restored on close/unmount) — no background
@@ -113,9 +116,27 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   if (typeof document === 'undefined') return null; // portal target unavailable (SSR)
 
   const { proof, nba, share, headline } = data;
-  // `active` (line above) already gated on data.proof, but a stored boolean doesn't flow TS narrowing
-  // back to `proof` (now ProofSeries | null). Re-assert so the proof zone is null-safe for tsc + runtime.
-  if (!proof) return null;
+  // LITE handoff (vision: EVERY save deserves a terminal moment). Bodyweight/cardio-only saves have no
+  // chartable e1RM series (proof null), but the declaration + next-best-action still land. The chart zone
+  // and share (both need a lift + a number) are OMITTED — never fabricated. The subline doubles as the
+  // activation nudge toward the proof chart. This branch also narrows `proof` non-null for the full path.
+  if (!proof) {
+    return createPortal(
+      <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>
+        <Card>
+          <ZoneDecl>
+            <Headline id={headlineId}>Flight logged.</Headline>
+            <Subline>Session saved and counted. Log a weighted lift to light up your est-1RM proof chart.</Subline>
+          </ZoneDecl>
+          <ZoneNba>
+            <NextBestActionCard nba={nba} viewerRole={viewerRole} onNavigate={onNavigate} onEvent={onEvent} />
+            <DoneButton type="button" onClick={onDismiss}>Done</DoneButton>
+          </ZoneNba>
+        </Card>
+      </Overlay>,
+      document.body,
+    );
+  }
   // pendingSync is a CLIENT concern injected by the shell; fall back to data.pendingSync for back-compat.
   const showPendingSync = pendingSync ?? data.pendingSync ?? false;
   const chips = [

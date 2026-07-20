@@ -57,16 +57,25 @@ export async function assembleHandoff(a = {}) {
   return { proof: proof ?? null, nba: nba ?? null, headline: resolveHeadline(proof), share };
 }
 
-// Never-throws + TIME-BOUNDED wrapper for money-path call sites. assembleHandoff is best-effort and
-// runs strictly AFTER the workout save commits, but it issues fresh reads (proof load + NBA resolve),
-// so a slow/contended DB must never stretch the save's response latency. Cap it: if assembly outruns the
-// budget, resolve null (the UI suppresses; the client can still pull it via GET /:id/handoff). Bounding
-// it HERE covers every call site (form save, create, re-entry) uniformly. Happy path is unaffected.
+// Never-throws + TIME-BOUNDED + LOAD-SHEDDING wrapper for money-path call sites. assembleHandoff is
+// best-effort and runs strictly AFTER the workout save commits, but it issues fresh reads (proof load +
+// NBA resolve), so a slow/contended DB must never stretch the save's response latency:
+//  • 2500ms budget: if assembly outruns it, resolve null (UI suppresses; GET /:id/handoff can re-fetch).
+//  • circuit breaker: the race does NOT cancel the losing queries, so under DB-pool stress every save
+//    would stack up to 2500ms of extra work — self-amplifying during exactly the incident you least
+//    want. Track REAL in-flight work (decremented when the WORK settles, not when the race times out)
+//    and shed once saturated: excess saves get handoff:null instantly. Bounding it HERE covers every
+//    call site uniformly. Happy path (flag off = instant null; healthy DB) is unaffected.
 const HANDOFF_ASSEMBLE_BUDGET_MS = 2500;
+const MAX_CONCURRENT_ASSEMBLIES = 4;
+let inFlightAssemblies = 0;
 export const safeAssemble = (a) => {
+  if (inFlightAssemblies >= MAX_CONCURRENT_ASSEMBLIES) return Promise.resolve(null); // shed load
+  inFlightAssemblies += 1;
+  const work = assembleHandoff(a)
+    .catch(() => null)
+    .finally(() => { inFlightAssemblies -= 1; });
   let timer;
   const budget = new Promise((resolve) => { timer = setTimeout(() => resolve(null), HANDOFF_ASSEMBLE_BUDGET_MS); });
-  return Promise.race([assembleHandoff(a), budget])
-    .catch(() => null)
-    .finally(() => clearTimeout(timer));
+  return Promise.race([work, budget]).finally(() => clearTimeout(timer));
 };

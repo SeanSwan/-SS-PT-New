@@ -1,6 +1,7 @@
 /**
  * Workout Design Lab Style axis.
- * Only the 25 promoted Swan lenses belong here; safety and flagship fallbacks stay runtime-only.
+ * Only the promoted Swan lenses belong here (a growing catalog — 26 as of
+ * 2026-07-16); safety and flagship fallbacks stay runtime-only.
  */
 import type { StyleLensManifest } from "../../../../core/style-lens-os";
 import {

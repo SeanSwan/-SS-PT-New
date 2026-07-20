@@ -32,6 +32,7 @@ import { AURORA_CONSOLE_MANIFEST } from './manifests/auroraConsole';
 import { assertLensRegistryIntegrity } from './contract/registryIntegrity';
 import { buildWorldValuesRegistry } from './contract/values';
 import { LENS_STYLE_ALLOWLIST } from './styles/lenses';
+import { buildV2OnlyAllowlistExemptions, V2_RECIPE_BY_CATALOG_ID } from './v2/catalogV2Map';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -113,6 +114,9 @@ export {
 // lens (the 27 named manifests; the DEFAULT safety lens renders via always-present core, so it is
 // intentionally outside this set) has a Crystalline-clean world-values entry AND a style-allowlist
 // entry, with no orphans. A drift here throws at adapter init — before any render.
+// Carve-out: v2-only styles (dashboardChrome:false in V2_RECIPE_BY_CATALOG_ID) intentionally have
+// NO v1 chrome/allowlist entry — the LENS-ADD-A-STYLE five-entry pipeline stays crash-free for
+// style #27+ while chrome styles still require a real allowlist entry.
 if (process.env.NODE_ENV !== 'production') {
   const styledLensIds = [
     SWAN_FLAGSHIP_MANIFEST,
@@ -122,7 +126,7 @@ if (process.env.NODE_ENV !== 'production') {
   assertLensRegistryIntegrity(
     styledLensIds,
     buildWorldValuesRegistry(styledLensIds),
-    LENS_STYLE_ALLOWLIST,
+    { ...LENS_STYLE_ALLOWLIST, ...buildV2OnlyAllowlistExemptions(V2_RECIPE_BY_CATALOG_ID) },
   );
 }
 

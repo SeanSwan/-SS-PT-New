@@ -5,7 +5,7 @@ import {
   exerciseVolume,
   buildProofSeriesFromUnifiedSessions,
 } from '../../services/workoutProofSeriesService.mjs';
-import { unifyRow, toUnifiedSessions } from '../../services/workoutProofLoader.mjs';
+import { unifyRow, toUnifiedSessions, loadUnifiedSessions } from '../../services/workoutProofLoader.mjs';
 import { normalizeExerciseName } from '../../utils/exerciseIdentity.mjs';
 import {
   resolveNextBestActionFromContext,
@@ -95,6 +95,50 @@ describe('workoutProofLoader.unifyRow — dual-source unification', () => {
   it('toUnifiedSessions maps a list', () => {
     expect(toUnifiedSessions([{ id: 'a', date: 'd', logRows: [{ exerciseName: 'Row', weight: 135, reps: 8, setNumber: 1 }], setRows: [] }])).toHaveLength(1);
   });
+
+  it('PRECEDENCE: a bodyweight-only log scribble must NOT suppress same-key WEIGHTED Set rows (fabricated-PR guard)', () => {
+    // Executed-probe scenario from the go-live hostile review: prior session had Set 225x5 (e1RM 263)
+    // plus a weight-null log note for the same lift. If the scribble wins, the 263 point vanishes and a
+    // later 251 fabricates "A new best". The weighted Set rows must win.
+    const u = unifyRow({ id: 'p1', date: 'd', logRows: [
+      { exerciseName: 'Squat', weight: null, reps: 5, setNumber: 1 },   // bodyweight-only log note
+    ], setRows: [
+      { exerciseName: 'Squat', weight: 225, reps: 5, setNumber: 1 },     // real performed load
+    ] });
+    expect(u.sets).toHaveLength(1);
+    expect(u.sets[0].source).toBe('set');
+    expect(u.sets[0].weight).toBe(225);
+  });
+
+  it('PRECEDENCE: logs with ANY chartable row still win outright over Set rows (human log of load = strongest truth)', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [
+      { exerciseName: 'Squat', weight: 0, reps: 10, setNumber: 1 },     // bodyweight log row
+      { exerciseName: 'Squat', weight: 205, reps: 5, setNumber: 2 },    // chartable log row → logs win
+    ], setRows: [
+      { exerciseName: 'Squat', weight: 999, reps: 5, setNumber: 1 },    // must be ignored
+    ] });
+    expect(u.sets).toHaveLength(2);
+    expect(u.sets.every((s) => s.source === 'log')).toBe(true);
+  });
+
+  it('SET-source bodyweight rows are DROPPED (indistinguishable from a placeholder with prefilled reps — no phantom exercises)', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [], setRows: [
+      { exerciseName: 'Ghost Lift', weight: null, reps: 10, setNumber: 1 }, // weightUsed null + repsCompleted>0
+    ] });
+    expect(u.sets).toHaveLength(0);
+  });
+
+  it('weight coercion contract: only null/undefined mean bodyweight; "", "  ", and booleans are junk (dropped)', () => {
+    const u = unifyRow({ id: 's', date: 'd', logRows: [
+      { exerciseName: 'A', weight: '', reps: 10, setNumber: 1 },     // junk, not bodyweight
+      { exerciseName: 'B', weight: '  ', reps: 10, setNumber: 1 },   // junk
+      { exerciseName: 'C', weight: false, reps: 10, setNumber: 1 },  // junk
+      { exerciseName: 'D', weight: undefined, reps: 10, setNumber: 1 }, // bodyweight — kept
+    ], setRows: [] });
+    expect(u.sets).toHaveLength(1);
+    expect(u.sets[0].nameKey).toBe('d');
+    expect(u.sets[0].weight).toBe(0);
+  });
 });
 
 // ── series builder (unified shape, name-keyed) ────────────────────────────────
@@ -155,6 +199,34 @@ describe('workoutProofSeriesService — series build (unified)', () => {
     expect(buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' })).toBeNull();
   });
 
+  it('priors preference counts CHARTABLE history only — 5 bodyweight-Dips sessions must not steer the pick', () => {
+    // Reviewed failure mode: bodyweight history created "priors" with zero chart points, so the >=3-priors
+    // preference featured Dips and claimed "First Dips on record" past 5 visible prior sessions.
+    const bwDips = (id, date) => uSession(id, date, [uSet('Dips', 0, 12, 1)]);
+    const sess = [
+      bwDips('p1', '2026-07-01T10:00:00Z'), bwDips('p2', '2026-07-03T10:00:00Z'),
+      bwDips('p3', '2026-07-05T10:00:00Z'), bwDips('p4', '2026-07-07T10:00:00Z'),
+      bwDips('p5', '2026-07-09T10:00:00Z'),
+      uSession('t', '2026-07-11T10:00:00Z', [
+        uSet('Bench Press', 185, 5, 1),  // first ever Bench — higher volume (925)
+        uSet('Dips', 45, 8, 1),          // first WEIGHTED Dips (360) — but 5 prior bodyweight sessions
+      ]),
+    ];
+    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' });
+    expect(r.nameKey).toBe('bench press');   // volume winner among chartable, no phantom priors steering
+    expect(r.isFirstEver).toBe(true);        // Bench truly never appeared before — claim is TRUE
+  });
+
+  it('isFirstEver is FALSE when the lift appeared before in ANY form (weighted Dips after bodyweight Dips = progression, not a first)', () => {
+    const sess = [
+      uSession('p1', '2026-07-09T10:00:00Z', [uSet('Dips', 0, 12, 1)]),   // prior bodyweight Dips
+      uSession('t', '2026-07-11T10:00:00Z', [uSet('Dips', 45, 8, 1)]),     // first WEIGHTED Dips
+    ];
+    const r = buildProofSeriesFromUnifiedSessions(sess, { todaySessionId: 't' });
+    expect(r.nameKey).toBe('dips');
+    expect(r.isFirstEver).toBe(false); // "First Dips on record" would be literally false
+  });
+
   it('suppresses pr when today is not the newest loaded session (window-anchor honesty)', () => {
     const sess = [
       squatSession('old', '2026-07-06T10:00:00Z', 200),
@@ -169,7 +241,7 @@ describe('workoutProofSeriesService — series build (unified)', () => {
   it('returns null when today has no chartable set — never fabricates todayE1rm from a prior value', () => {
     const sess = [
       squatSession('a', '2026-07-06T10:00:00Z', 200),
-      uSession('b', '2026-07-11T10:00:00Z', [uSet('Barbell Back Squat', 0, 5, 1)]), // junk-only today (weight 0)
+      uSession('b', '2026-07-11T10:00:00Z', [uSet('Barbell Back Squat', 0, 5, 1)]), // bodyweight-only today (real work, unchartable — no e1RM)
     ];
     // 'b' has no chartable set (estimateOneRepMax(0,5) is null), so pickProofExercise finds no chartable
     // exercise and the builder suppresses the whole series. Invariant preserved: todayE1rm is NEVER a prior
@@ -220,6 +292,19 @@ describe('nextBestActionResolverService — rules + fail-closed safety', () => {
     expect(`${r3.title} ${r3.body}`.toLowerCase()).toMatch(/flexibility/);
     expect(`${r3.title} ${r3.body}`.toLowerCase()).not.toMatch(/yoga|meditation/);
     expect(resolveNextBestActionFromContext({ viewerRole: 'client' }).kind).toBe(NBA_KINDS.VIEW_PROGRESS);
+  });
+});
+
+describe('loadUnifiedSessions — DB contract', () => {
+  it('queries PERFORMED sessions only (status filter) — planned plan-generation rows must not inflate streaks', () => {
+    // Reviewed failure mode: generate-plan creates status:'planned' rows dated NOW; without the filter a
+    // 12-session plan generated Monday makes Tuesday's one real workout read "Session 13 this week".
+    const captured = {};
+    const models = { WorkoutSession: { findAll: async (q) => { captured.where = q.where; return []; } } };
+    return loadUnifiedSessions({ targetUserId: 1, models }).then(() => {
+      expect(captured.where.userId).toBe(1);
+      expect(captured.where.status).toBeDefined(); // performed-only filter present (completed/in_progress)
+    });
   });
 });
 
