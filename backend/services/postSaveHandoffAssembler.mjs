@@ -6,13 +6,16 @@
  * ║  per-zone resilient: proof/nba/share each degrade to null independently, and    ║
  * ║  `safeAssemble` NEVER throws — a handoff failure must never block, duplicate, or ║
  * ║  roll back the save, or touch session-deduction (money-path fail-closed).        ║
- * ║  Server-side kill switch `ENABLE_POST_SAVE_HANDOFF` (default off) — the VITE      ║
- * ║  build-time flag alone is insufficient on a money path.                          ║
+ * ║  Server-side gate: Launch Control `postSaveHandoff` — env baseline               ║
+ * ║  `ENABLE_POST_SAVE_HANDOFF` (default off) overlaid with the admin board's        ║
+ * ║  runtime override (flip with no redeploy). The VITE build-time flag alone is     ║
+ * ║  insufficient on a money path.                                                   ║
  * ║  Trainer-indispensability + zero-PII are enforced downstream (resolver + UI).    ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { buildProofSeries } from './workoutProofSeriesService.mjs';
 import { resolveNextBestAction } from './nextBestActionResolverService.mjs';
+import { envBaseline, overlayOverrides } from './launchControlService.mjs';
 
 const zone = async (fn) => { try { return await fn(); } catch { return null; } };
 
@@ -41,8 +44,13 @@ export const resolveShare = ({ viewerUserId, targetUserId } = {}) =>
  * @returns {Promise<HandoffData|null>}
  */
 export async function assembleHandoff(a = {}) {
-  if (process.env.ENABLE_POST_SAVE_HANDOFF !== 'true') return null; // server kill switch
   const { viewerUserId, viewerRole, targetUserId, todaySessionId, models } = a;
+  // Launch Control gate: env baseline overlaid with the admin board's runtime override. overlayOverrides
+  // NEVER throws and returns the plain env baseline when the override table is unreachable — so with no
+  // override this line behaves exactly like the old `ENABLE_POST_SAVE_HANDOFF !== 'true'` kill switch.
+  // Viewer is passed so role/percent rollout modes resolve correctly (force mode ignores it).
+  const flags = await overlayOverrides(envBaseline(), { id: viewerUserId, role: viewerRole });
+  if (!flags.postSaveHandoff) return null;
   // Trainer/admin logging FOR a client → pass that client id so the NBA can offer ADJUST_PLAN.
   // Self-log (viewer === target) → no targetClientId, so no "client #id" framing.
   const targetClientId = (viewerUserId != null && String(viewerUserId) !== String(targetUserId))

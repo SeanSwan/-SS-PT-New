@@ -55,6 +55,16 @@ describe('validateAppearanceProfilePayload (mirrors client validation.ts)', () =
     expect(issues({ ...VALID_PROFILE, updatedAt: 'not-a-date' })).toContain('updatedAt');
     expect(issues(null)).toContain('profile');
   });
+
+  it('F1-2 hardening: unknown keys and oversized payloads are REJECTED, never stored', () => {
+    const issues = (profile) => validateAppearanceProfilePayload(profile).map(({ path }) => path);
+    expect(issues({ ...VALID_PROFILE, junk: 'x' })).toContain('profile.junk');
+    expect(issues({ ...VALID_PROFILE, notes: 'sensitive stuff' })).toContain('profile.notes');
+    expect(issues({ ...VALID_PROFILE, styleLensId: 'a'.repeat(60) })).not.toContain('profile');
+    const bloated = { ...VALID_PROFILE, paletteThemeId: 'crystalline-dark' };
+    const big = { ...bloated, junk: 'z'.repeat(5000) };
+    expect(issues(big)).toContain('profile'); // size cap
+  });
 });
 
 describe('GET /api/appearance/profile (controller)', () => {
@@ -128,9 +138,24 @@ describe('route + mount source contract (own-user-only by construction)', () => 
 
   it('the route derives identity from auth ONLY — no userId params exist', () => {
     const route = read('../../routes/appearanceProfileRoutes.mjs');
-    expect(route).toContain("import { protect }");
+    // protect must be APPLIED to each verb, not merely imported (F1-5).
+    expect(route).toMatch(/router\.get\('\/profile', protect,/);
+    expect(route).toMatch(/router\.put\('\/profile', protect,/);
     expect(route).not.toMatch(/req\.params\.userId|req\.query\.userId/);
     expect(route).not.toMatch(/:userId/);
+  });
+
+  it('F1-5: unauthenticated requests get 401 through the REAL router + protect chain', async () => {
+    const express = (await import('express')).default;
+    const request = (await import('supertest')).default;
+    const router = (await import('../../routes/appearanceProfileRoutes.mjs')).default;
+    const app = express();
+    app.use(express.json());
+    app.use('/api/appearance', router);
+    const getRes = await request(app).get('/api/appearance/profile');
+    expect(getRes.status).toBe(401);
+    const putRes = await request(app).put('/api/appearance/profile').send({ profile: VALID_PROFILE });
+    expect(putRes.status).toBe(401);
   });
 
   it('mounts at /api/appearance in the route index', () => {

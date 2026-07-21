@@ -49,7 +49,14 @@ const subscribeReducedMotion = (onChange: () => void) => {
   if (!canQueryMotion()) return () => {};
   const mql = window.matchMedia(REDUCED_MOTION_QUERY);
   mql.addEventListener?.("change", onChange);
-  return () => mql.removeEventListener?.("change", onChange);
+  // Also watch the provider's global motion kill attr so the snapshot can
+  // never go stale outside a React commit (review LOW-5).
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-motion"] });
+  return () => {
+    mql.removeEventListener?.("change", onChange);
+    observer.disconnect();
+  };
 };
 const useStillMode = (): boolean =>
   useSyncExternalStore(
@@ -133,8 +140,14 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
   // F0 atmosphere: catalog-resolved STATIC background stack; still/off mode
   // renders the stillPoster only; unknown assetIds skip fail-closed.
   const atmo = plan.atmosphere;
+  // Still mode inherits the LOUDEST browsing layer's opacity, never more —
+  // reduced-motion users must not get amplified atmosphere (review F0-2);
+  // the stillPoster stays inside the recipe's own 0.01–0.12 envelope.
+  const stillOpacity = atmo
+    ? Math.max(0.01, ...atmo.layers.map((layer) => layer.opacity))
+    : 0.01;
   const atmoLayers = atmo
-    ? (stillMode ? [{ assetId: atmo.stillPoster.assetId, opacity: 1 }] : atmo.layers)
+    ? (stillMode ? [{ assetId: atmo.stillPoster.assetId, opacity: stillOpacity }] : atmo.layers)
         .map((layer) => ({ asset: ATMOSPHERE_ASSET_CATALOG[layer.assetId], opacity: layer.opacity }))
         .filter((entry) => Boolean(entry.asset))
     : [];

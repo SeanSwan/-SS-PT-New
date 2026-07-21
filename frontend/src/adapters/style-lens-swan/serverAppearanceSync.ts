@@ -32,10 +32,21 @@ export const fetchProfile = async (): Promise<RemoteAppearance | null> => {
   }
 };
 
-/** PUT the committed appearance. Resolves false on any failure (offline story). */
+/** PUT the committed appearance. Resolves false on any failure (offline story).
+ *  Sends a PICKED 6-key projection — the server strict-rejects unknown keys,
+ *  and a stray 7th key (legacy row, skewed bundle, hand-edited storage) must
+ *  not poison every future sync into a permanent 422 loop (review R2-2). */
 export const pushProfile = async (profile: AppearanceProfile): Promise<boolean> => {
   try {
-    const response = await apiService.put('/api/appearance/profile', { profile });
+    const projected = {
+      profileSchemaVersion: profile.profileSchemaVersion,
+      paletteThemeId: profile.paletteThemeId,
+      styleLensId: profile.styleLensId,
+      motionMode: profile.motionMode,
+      density: profile.density,
+      updatedAt: profile.updatedAt,
+    };
+    const response = await apiService.put('/api/appearance/profile', { profile: projected });
     return response?.data?.success === true;
   } catch {
     return false;

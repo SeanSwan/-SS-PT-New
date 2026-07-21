@@ -22,9 +22,11 @@ vi.mock('../../context/authContextState', () => ({
   useAuth: () => mockAuth,
 }));
 
-const addToast = vi.fn();
-vi.mock('../../context/ToastContext', () => ({
-  useToast: () => ({ addToast }),
+// Mock the REAL mounted toast system (hooks/use-toast) — F1-1: mocking the
+// orphan context/ToastContext proved only copy, not wiring.
+const toastInfo = vi.fn();
+vi.mock('../../hooks/use-toast', () => ({
+  useToast: () => ({ info: toastInfo, success: vi.fn(), error: vi.fn(), warning: vi.fn(), toast: vi.fn(), dismiss: vi.fn(), dismissAll: vi.fn() }),
 }));
 
 import { StyleLensProvider, useStyleLensAppearance } from '../../core/style-lens-os';
@@ -106,11 +108,53 @@ describe('AppearanceSyncBridge', () => {
     expect(pushProfile).toHaveBeenCalledWith(
       expect.objectContaining({ styleLensId: 'candy-glass-arcade' }),
     );
-    expect(addToast).toHaveBeenCalledWith(
+    expect(toastInfo).toHaveBeenCalledWith(
       "Saved on this device — will sync when you're back online.",
-      'info',
     );
     expect(screen.getByTestId('committed-lens').textContent).toBe('candy-glass-arcade');
+  });
+
+  it('F1-3: a remote styleLensId this bundle cannot resolve is SKIPPED (no wedge, local kept)', async () => {
+    fetchProfile.mockResolvedValue({
+      profile: { ...remoteProfile, styleLensId: 'style-from-the-future' },
+      overlay: null,
+      updatedAt: REMOTE_STAMP,
+    });
+    mount();
+    await waitFor(() => expect(fetchProfile).toHaveBeenCalled());
+    await act(async () => {});
+    expect(screen.getByTestId('committed-lens').textContent).toBe('default-safety');
+    expect(pushProfile).not.toHaveBeenCalled();
+  });
+
+  it('F1-4: switching USERS makes the server value authoritative even with an older stamp', async () => {
+    // First user: server has nothing.
+    fetchProfile.mockResolvedValueOnce({ profile: null, overlay: null, updatedAt: null });
+    const view = mount();
+    await waitFor(() => expect(fetchProfile).toHaveBeenCalledTimes(1));
+    // Residual local commit with a NEWER stamp than user B's server value.
+    await act(async () => {
+      screen.getByRole('button', { name: 'stage' }).click();
+    });
+    await act(async () => {
+      screen.getByRole('button', { name: 'user commit' }).click();
+    });
+    // Switch to user B whose server look is OLDER than A's residual local stamp.
+    fetchProfile.mockResolvedValueOnce({
+      profile: { ...remoteProfile, updatedAt: '2026-07-16T01:00:00.000Z' },
+      overlay: null,
+      updatedAt: '2026-07-16T01:00:00.000Z',
+    });
+    mockAuth.user = { id: 77 };
+    view.rerender(
+      <StyleLensProvider registry={SWAN_STYLE_LENS_REGISTRY} sourceId="bridge-test">
+        <AppearanceSyncBridge />
+        <CommitButton />
+      </StyleLensProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('committed-lens').textContent).toBe('prism-terminal'),
+    );
   });
 
   it('anonymous: no fetch, no push', async () => {

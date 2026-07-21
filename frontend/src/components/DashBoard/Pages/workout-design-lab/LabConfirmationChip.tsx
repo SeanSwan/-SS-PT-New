@@ -4,9 +4,12 @@
  * ============================================================================
  * BLUEPRINT: bottom-CENTER fixed lane — the bottom-right lane is reserved for
  * receipt toasts (LiveReceipt) and the in-card stage hint stays clear. Fired
- * ONLY by WorkoutDesignLabPage's applyLens success path; a failed apply never
- * fires it (nothing lies). 300ms slide-up, killed under reduced motion; the
- * lane stays mounted so aria-live="assertive" announces reliably.
+ * ONLY on a commitPreview SUCCESS path; a failed apply never fires it
+ * (nothing lies). Consumers: WorkoutDesignLabPage (Lab Apply) and
+ * CrownHeader (dashboard "Wear this" — FUSION F2). 300ms slide-up, killed
+ * under reduced motion; the lane stays mounted so aria-live="assertive"
+ * announces reliably. Lane clearances were reasoned against the Lab's
+ * LiveReceipt; a composed-Home mobile check rides the next visual pass.
  * ============================================================================
  */
 import React from "react";
