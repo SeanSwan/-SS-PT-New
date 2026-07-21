@@ -40,6 +40,7 @@ import {
 } from './HomeTabViewModel';
 import ClientDashboardHome from './ClientDashboardHome';
 import ClientProgramShelf from '../../DashBoard/Pages/client-dashboard/plan/ClientProgramShelf';
+import RestoreCard from './RestoreToday/RestoreCard';
 import TodayTrainingModule from '../../DashBoard/shared/client-training/TodayTrainingModule';
 import { clientTodayTrainingModuleEnabled } from '../../DashBoard/shared/client-training/todayTrainingFeatureFlag';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
@@ -209,6 +210,10 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
               assignment={assignment}
               onNavigate={navigate}
             />
+            {/* Restore (off-day recovery ritual) — slot priority per Kimi H5:
+                assignment card wins; Restore renders full only on off-days,
+                a collapsed cooldown strip on training days (decided by API). */}
+            <RestoreCard userId={user?.id} onNavigate={navigate} />
           </>
         )}
         logoSrc={brandLogo}

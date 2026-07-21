@@ -110,7 +110,10 @@ export class GamificationEngine {
       form_improvement: 75,
       helped_community: 50,
       profile_updated: 25,
-      check_in_logged: 15
+      check_in_logged: 15,
+      // Restore (off-day recovery) — per-item + full-ritual bonus (2026-07-21)
+      recovery_activity: 15,
+      recovery_ritual_complete: 40
     };
     
     // Level thresholds
