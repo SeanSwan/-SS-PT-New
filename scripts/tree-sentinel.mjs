@@ -99,7 +99,10 @@ for (const [idx, wt] of worktrees.entries()) {
     const wtDirty = sh('git status --porcelain', wt.path);
     wt.dirty = wtDirty === null ? -1 : wtDirty ? wtDirty.split('\n').length : 0;
   }
-  if (wt.isPrimary || norm(wt.path) === norm(ROOT)) wt.klass = 'MAIN-TREE';
+  // Positional ONLY: the primary tree is always listed first by git. Do NOT also match
+  // cwd — running from a linked worktree would mislabel that worktree MAIN-TREE and
+  // hide its branch from the UNMERGED list (bug caught 2026-07-21 final audit).
+  if (wt.isPrimary) wt.klass = 'MAIN-TREE';
   else if (wt.detached) wt.klass = wt.dirty > 0 ? 'DETACHED-DIRTY' : 'DETACHED';
   else if (wt.ahead === 0)
     // dirty unknown (--fast) → plain MERGED, never claim CLEAN without checking (Rule 19)
@@ -128,8 +131,9 @@ for (const agent of ['claude', 'codex']) {
 const summary = {
   generatedAt: new Date().toISOString(),
   originMainRef: fetched,
-  mainTreeDirty: dirty.length,
-  mainTreeDirtyByDir: byDir,
+  currentTreePath: ROOT,
+  currentTreeDirty: dirty.length,
+  currentTreeDirtyByDir: byDir,
   worktreeCount: worktrees.length,
   worktreesByClass: worktrees.reduce((acc, w) => {
     acc[w.klass] = (acc[w.klass] ?? 0) + 1;
@@ -146,7 +150,9 @@ if (JSON_MODE) {
 } else {
   console.log(`# tree-sentinel digest — ${summary.generatedAt}`);
   console.log(`origin/main ref: ${fetched}`);
-  console.log(`\nMain tree dirty files: ${summary.mainTreeDirty}`);
+  // Section 1 scans the CURRENT tree (cwd) — name it honestly; it is the main tree
+  // only when the sentinel is run from the primary checkout.
+  console.log(`\nCurrent tree (${ROOT}) dirty files: ${summary.currentTreeDirty}`);
   for (const [dir, n] of Object.entries(byDir).sort((a, b) => b[1] - a[1]).slice(0, 10)) {
     console.log(`  ${String(n).padStart(5)}  ${dir}`);
   }
