@@ -4,6 +4,7 @@
  * (renders About.V4). An explicit runtime `false` is an ABSOLUTE kill switch over the QA `ff_aboutVNext`.
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_ABOUT_VNEXT);
@@ -31,7 +32,7 @@ export function useAboutVNextFlag(): { aboutVNext: boolean; resolved: boolean } 
         if (!alive) return;
         const runtime = json && typeof json.aboutVNext === 'boolean' ? Boolean(json.aboutVNext) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('aboutVNext') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setAboutVNext(effective);
         setResolved(true);
       })

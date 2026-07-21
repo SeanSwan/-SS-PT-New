@@ -4,6 +4,7 @@
  * Explicit runtime `false` = ABSOLUTE kill switch over QA `ff_contactVNext`.
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_CONTACT_VNEXT);
@@ -31,7 +32,7 @@ export function useContactVNextFlag(): { contactVNext: boolean; resolved: boolea
         if (!alive) return;
         const runtime = json && typeof json.contactVNext === 'boolean' ? Boolean(json.contactVNext) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('contactVNext') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setContactVNext(effective);
         setResolved(true);
       })

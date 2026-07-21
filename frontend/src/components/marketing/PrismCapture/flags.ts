@@ -13,6 +13,7 @@
  * repo-wide shared flags cache across all ~8 surface `flags.ts` files is a separate cross-cutting follow-up.)
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_PRISM_CAPTURE);
@@ -58,7 +59,7 @@ export function usePrismCaptureFlag(): { prismCapture: boolean; resolved: boolea
         if (!alive) return;
         const runtime = json && typeof json.prismCapture === 'boolean' ? Boolean(json.prismCapture) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : qaOverride() ?? ENV_FALLBACK;
+        const effective = previewOverride('prismCapture') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setPrismCapture(effective);
         setResolved(true);
       })

@@ -8,6 +8,7 @@
  * per-role/%/schedule rollout drawer, one-click retirement.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { PREVIEW_OK_KEY } from '../../../../config/previewFlags';
 import {
   clearOverride,
   getBoard,
@@ -25,6 +26,7 @@ import {
   GroupTitle,
   Header,
   Page,
+  PreviewBtn,
   ResetBtn,
   Row,
   RowMain,
@@ -45,6 +47,18 @@ const GROUP_LABELS: Record<string, string> = {
   experiment: 'Experiments',
 };
 const GROUP_ORDER = ['redesign', 'feature', 'experiment'];
+
+// Surfaces with a standalone route to preview. The link forces the vNext for THIS browser only
+// (?swanpreview) — everyone else still sees the surface's real resolved state.
+const PREVIEW_ROUTE: Record<string, string> = {
+  homeVNext: '/',
+  contactVNext: '/contact',
+  aboutVNext: '/about',
+  storeV4: '/store',
+  videoVNext: '/video-library',
+  galleryVNext: '/gallery',
+  dashboardV2: '/dashboard',
+};
 
 export default function LaunchControlPage() {
   const [rows, setRows] = useState<FlagRow[]>([]);
@@ -67,6 +81,16 @@ export default function LaunchControlPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Mark this browser as an admin who has opened Launch Control → its "👁 Preview" links may reveal a
+  // dark vNext for this browser only (see config/previewFlags.ts). Random visitors never get this marker.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREVIEW_OK_KEY, '1');
+    } catch {
+      /* private mode — preview links simply won't work, which is fine */
+    }
+  }, []);
 
   const toggle = useCallback(
     async (row: FlagRow) => {
@@ -174,6 +198,16 @@ export default function LaunchControlPage() {
                   <Chip $tone="ok">❤ healthy</Chip>
                 ) : (
                   <Chip $tone="muted">— no signal</Chip>
+                )}
+                {PREVIEW_ROUTE[r.flag] && (
+                  <PreviewBtn
+                    href={`${PREVIEW_ROUTE[r.flag]}?swanpreview=${r.flag}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open this surface for you only — it stays dark for everyone else"
+                  >
+                    👁 Preview
+                  </PreviewBtn>
                 )}
                 {r.hasOverride && (
                   <ResetBtn type="button" onClick={() => void reset(r.flag)} disabled={busy === r.flag}>

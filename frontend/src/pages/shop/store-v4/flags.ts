@@ -6,6 +6,7 @@
  * public-flags endpoint (no new flag system — the reground killed the assumed config/featureFlags.ts).
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 
@@ -38,7 +39,7 @@ export function useStoreV4Flag(): { storeV4: boolean; resolved: boolean } {
         if (!alive) return;
         const runtime = json && typeof json.storeV4 === 'boolean' ? Boolean(json.storeV4) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('storeV4') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setStoreV4(effective);
         setResolved(true);
       })

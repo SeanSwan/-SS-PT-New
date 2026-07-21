@@ -4,6 +4,7 @@
  * **false** (renders VideoLibraryV3). Explicit runtime `false` = ABSOLUTE kill switch over QA `ff_videoVNext`.
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_VIDEO_VNEXT);
@@ -31,7 +32,7 @@ export function useVideoVNextFlag(): { videoVNext: boolean; resolved: boolean } 
         if (!alive) return;
         const runtime = json && typeof json.videoVNext === 'boolean' ? Boolean(json.videoVNext) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('videoVNext') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setVideoVNext(effective);
         setResolved(true);
       })

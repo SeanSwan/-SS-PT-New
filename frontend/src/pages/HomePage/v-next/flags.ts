@@ -5,6 +5,7 @@
  * over the QA `localStorage.ff_homeVNext` override (that exact bug was caught on Store).
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 const envBool = (value: unknown): boolean => value === 'true' || value === true;
 const ENV_FALLBACK = envBool((import.meta as { env?: Record<string, unknown> }).env?.VITE_HOME_VNEXT);
@@ -32,7 +33,7 @@ export function useHomeVNextFlag(): { homeVNext: boolean; resolved: boolean } {
         if (!alive) return;
         const runtime = json && typeof json.homeVNext === 'boolean' ? Boolean(json.homeVNext) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('homeVNext') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setHomeVNext(effective);
         setResolved(true);
       })

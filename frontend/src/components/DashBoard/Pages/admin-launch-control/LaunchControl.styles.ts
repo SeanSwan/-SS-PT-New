@@ -179,6 +179,26 @@ export const ResetBtn = styled.button`
   &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 2px; }
 `;
 
+/** Preview-as link — opens the surface in a new tab with ?swanpreview, dark for everyone else. */
+export const PreviewBtn = styled.a`
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--world-accent, #60c0f0);
+  font-size: 0.82rem;
+  text-decoration: none;
+  white-space: nowrap;
+  &:hover {
+    text-decoration: underline;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--world-accent, #60c0f0);
+    outline-offset: 2px;
+  }
+`;
+
 export const Strip = styled.div`
   margin-top: 18px;
   padding: 10px 14px;

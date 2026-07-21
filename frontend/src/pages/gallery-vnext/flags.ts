@@ -6,6 +6,7 @@
  * endpoint (no new flag system). Billing-critical surface: runtime `false` is an ABSOLUTE kill switch.
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../config/previewFlags';
 
 /**
  * Entry-URL search params, captured at ROUTE-CHUNK evaluation — before ANY component mounts. The gate
@@ -46,7 +47,7 @@ export function useGalleryVNextFlag(): { galleryVNext: boolean; resolved: boolea
         if (!alive) return;
         const runtime = json && typeof json.galleryVNext === 'boolean' ? Boolean(json.galleryVNext) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const effective = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK);
+        const effective = previewOverride('galleryVNext') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK));
         setGalleryVNext(effective);
         setResolved(true);
       })

@@ -7,6 +7,7 @@
  * server-side; the client value only hides UI (no QA override needed — it can never turn money on client-side).
  */
 import { useEffect, useState } from 'react';
+import { previewOverride } from '../../../config/previewFlags';
 
 export interface DashboardV2Flags {
   v2: boolean;
@@ -45,7 +46,7 @@ export function useDashboardV2Flags(): DashboardV2Flags & { resolved: boolean } 
         if (!alive) return;
         const runtime = json && typeof json.dashboardV2 === 'boolean' ? Boolean(json.dashboardV2) : null;
         // runtime present (true/false) WINS — kill switch absolute; override/env only when runtime is absent.
-        const v2 = runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK.v2);
+        const v2 = previewOverride('dashboardV2') || (runtime !== null ? runtime : (qaOverride() ?? ENV_FALLBACK.v2));
         setFlags({ v2, finance: Boolean(json?.dashboardV2Finance) }); // finance: server value only
         setResolved(true);
       })
