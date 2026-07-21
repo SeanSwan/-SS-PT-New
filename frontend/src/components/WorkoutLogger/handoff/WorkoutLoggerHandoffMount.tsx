@@ -33,13 +33,16 @@ interface WorkoutLoggerHandoffMountProps {
   /** Offline-queue online flag; drives the PENDING SYNC chip when false. */
   isOnline: boolean;
   onNavigate: (href: string) => void;
+  /** Viewer personalization (owner-scoped downstream; rendered client-side only — zero-PII posture). */
+  viewerFirstName?: string | null;
+  viewerHandle?: string | null;
 }
 
 const mapRole = (role: string | undefined): LoggerRole =>
   role === 'trainer' ? 'trainer' : role === 'admin' ? 'admin' : 'client';
 
 const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
-  handoff, saveKey, userRole, isOnline, onNavigate,
+  handoff, saveKey, userRole, isOnline, onNavigate, viewerFirstName, viewerHandle,
 }) => {
   const [dismissed, setDismissed] = useState(false);
   // Reset on each new save (keyed on the form id, not object identity) so the next handoff shows.
@@ -67,6 +70,8 @@ const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
         onDismiss={() => setDismissed(true)}
         onNavigate={onNavigate}
         onEvent={onEvent}
+        viewerFirstName={viewerFirstName}
+        viewerHandle={viewerHandle}
       />
     </HandoffErrorBoundary>
   );

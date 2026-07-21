@@ -78,4 +78,9 @@ export interface PostSaveHandoffProps {
   onNavigate: (href: string) => void;
   /** Optional analytics sink (defaults to a no-op). */
   onEvent?: (event: string, payload?: Record<string, unknown>) => void;
+  /** OWNER-scoped personalization (Convergence v1, P2 named congrats). Rendered client-side only,
+   *  never sent anywhere; applied only when share.reason === 'owner'. Absent → legacy copy. */
+  viewerFirstName?: string | null;
+  /** Owner's @handle for the proof-card chrome row (P1). Owner-scoped like viewerFirstName. */
+  viewerHandle?: string | null;
 }

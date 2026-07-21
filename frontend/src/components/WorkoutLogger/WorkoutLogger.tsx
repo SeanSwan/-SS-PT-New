@@ -814,6 +814,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           userRole={user?.role}
           isOnline={offlineQueue.isOnline}
           onNavigate={navigate}
+          viewerFirstName={user?.firstName ?? null}
+          viewerHandle={user?.username ?? null}
         />
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}

@@ -23,10 +23,24 @@ import {
 import ProofChart from './ProofChart';
 import NextBestActionCard from './NextBestActionCard';
 import ShareProofButton from './ShareProofButton';
+import StreakGoalModule from './StreakGoalModule';
+import { ProofCardShell, ChromeRow, ChromeBrand, ChromeHandle, CardDateLine } from './ProofCardShell.styles';
 import { isPostSaveHandoffEnabled } from './postSaveHandoffFlag';
 import type { PostSaveHandoffProps } from './workoutHandoff.types';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
+
+/** P2 named congrats (CLM-b212): personalize the declaration for the record's OWNER only —
+ *  a trainer saving a client's session keeps the neutral line (their name would be wrong, the
+ *  client's name on a trainer's screen adds nothing). Absent name → identical legacy copy. */
+const headlineText = (isOwner: boolean, firstName?: string | null): string => {
+  const name = typeof firstName === 'string' ? firstName.trim() : '';
+  return isOwner && name ? `Flight logged, ${name}.` : 'Flight logged.';
+};
+
+/** Card footer date (the save is always "now" at render — the 201 just landed). */
+const cardDate = (): string =>
+  new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 
 function subline(
   headline: string,
@@ -54,6 +68,7 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 
 const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   data, viewerRole, pendingSync, enabled, onDismiss, onNavigate, onEvent,
+  viewerFirstName, viewerHandle,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   // Keep the latest onDismiss/onEvent without re-running the focus-trap effect (an inline callback would
@@ -120,12 +135,15 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   // chartable e1RM series (proof null), but the declaration + next-best-action still land. The chart zone
   // and share (both need a lift + a number) are OMITTED — never fabricated. The subline doubles as the
   // activation nudge toward the proof chart. This branch also narrows `proof` non-null for the full path.
+  // Named congrats is owner-scoped: identity-backed ownership, same signal the share guard trusts.
+  const isOwner = !!(data.share?.eligible && data.share?.reason === 'owner');
+
   if (!proof) {
     return createPortal(
       <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>
         <Card>
           <ZoneDecl>
-            <Headline id={headlineId}>Flight logged.</Headline>
+            <Headline id={headlineId}>{headlineText(isOwner, viewerFirstName)}</Headline>
             <Subline>Session saved and counted. Log a weighted lift to light up your est-1RM proof chart.</Subline>
           </ZoneDecl>
           <ZoneNba>
@@ -157,32 +175,40 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
       <Card>
         {/* ── Zone 1 — declaration ── */}
         <ZoneDecl>
-          <Headline id={headlineId}>Flight logged.</Headline>
+          <Headline id={headlineId}>{headlineText(isOwner, viewerFirstName)}</Headline>
           <Subline>{subline(headline, proof)}</Subline>
         </ZoneDecl>
 
-        {/* ── Zone 2 — proof ── */}
+        {/* ── Zone 2 — proof, framed as the branded shareable artifact (P1, C12 chrome) ── */}
         <ZoneProof>
-          <Eyebrow $tone="data">
-            {`EST. 1-REP MAX · ${proof.exerciseName.toUpperCase()} · LAST ${proof.points.length} SESSION${proof.points.length === 1 ? '' : 'S'}`}
-          </Eyebrow>
-          {proof.todayE1rm != null && (
-            <BigNumeral $pr={proof.pr}>
-              {proof.pr && <GoldPulse aria-hidden="true" />}
-              {fmt(proof.todayE1rm)}
-            </BigNumeral>
-          )}
-          {chips.length > 0 && (
-            <ChipRow>{chips.map((c) => <Chip key={c}>{c}</Chip>)}</ChipRow>
-          )}
-          <ChartWrap>
-            {showPendingSync && <PendingChip>PENDING SYNC</PendingChip>}
-            <ProofChart points={proof.points} pr={proof.pr} ariaLabel={chartLabel} />
-          </ChartWrap>
+          <ProofCardShell>
+            <ChromeRow>
+              <ChromeBrand>◆ Swan Studios</ChromeBrand>
+              {isOwner && viewerHandle && <ChromeHandle>@{viewerHandle}</ChromeHandle>}
+            </ChromeRow>
+            <Eyebrow $tone="data">
+              {`EST. 1-REP MAX · ${proof.exerciseName.toUpperCase()} · LAST ${proof.points.length} SESSION${proof.points.length === 1 ? '' : 'S'}`}
+            </Eyebrow>
+            {proof.todayE1rm != null && (
+              <BigNumeral $pr={proof.pr}>
+                {proof.pr && <GoldPulse aria-hidden="true" />}
+                {fmt(proof.todayE1rm)}
+              </BigNumeral>
+            )}
+            {chips.length > 0 && (
+              <ChipRow>{chips.map((c) => <Chip key={c}>{c}</Chip>)}</ChipRow>
+            )}
+            <ChartWrap>
+              {showPendingSync && <PendingChip>PENDING SYNC</PendingChip>}
+              <ProofChart points={proof.points} pr={proof.pr} ariaLabel={chartLabel} />
+            </ChartWrap>
+            <CardDateLine>{cardDate()}</CardDateLine>
+          </ProofCardShell>
         </ZoneProof>
 
-        {/* ── Zone 3 — next best action + share ── */}
+        {/* ── Zone 3 — streak/next-goal (P3) + next best action + share ── */}
         <ZoneNba>
+          <StreakGoalModule sessionsThisWeek={proof.sessionsThisWeek} streakWeeks={proof.streakWeeks} />
           <NextBestActionCard nba={nba} viewerRole={viewerRole} onNavigate={onNavigate} onEvent={onEvent} />
           <ShareProofButton
             share={share}
