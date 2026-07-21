@@ -1,0 +1,13 @@
+{
+  "$comment": "Novelty + auto-corroboration thresholds (Kimi design 2026-07-20). ALL knobs live here — the engine hardcodes none, so a cold-client install retunes without touching code. TUNING PASS 1 (2026-07-20, on real pilot pairs): overlap raised to primary and AUTO.S to 0.82 because trigram-Dice-on-raw-strings penalizes legitimate compression (a 6th app writing the SHORT form of an accepted principle is a perfect token subset, O=1.0, but the length gap held S<0.85). Overlap is the reliable subset detector AND a conjunctive co-gate, so weighting it primary matches design intent. Precision preserved: disjoint paraphrase scores ~0.13, nowhere near the 0.82 gate, and AUTO still requires O>=0.60 AND margin>=0.10.",
+  "auto": { "S": 0.82, "O": 0.60, "margin": 0.10, "minTokens": 3 },
+  "mergeBand": { "low": 0.55 },
+  "weights": { "jaccard": 0.35, "overlap": 0.5, "trigram": 0.15 },
+  "novelty": {
+    "window": 3,
+    "productive": 0.25,
+    "tappedOut": 0.10,
+    "minKnownClaims": 6,
+    "minWindowReceipts": 12
+  }
+}

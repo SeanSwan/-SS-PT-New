@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { resolveDataRoot } from './paths.mjs';
-import { readJsonl } from './synthesize.mjs';
+import { readJsonl, loadClaims } from './synthesize.mjs';
 
 /** Render one accepted claim as a searchable text document. */
 export function renderClaimDoc(c) {
@@ -75,7 +75,7 @@ function main() {
     console.error('usage: emit-vault --root <root> --vault <brain-vault> [--build] (vault must have collections/)');
     return 2;
   }
-  const claims = readJsonl(join(root, 'claims.jsonl'));
+  const claims = loadClaims(join(root, 'claims.jsonl')); // fold: emit the latest rev per claim
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
   const { emitted, collectionRoot } = emitCollection(claims, vault, { nowStamp: stamp });
   console.log(`emitted ${emitted} accepted claim(s) -> ${collectionRoot}`);

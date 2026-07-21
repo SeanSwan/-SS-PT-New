@@ -88,6 +88,23 @@ export function readJsonl(path) {
   return readFileSync(path, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 }
 
+/**
+ * The FOLD (Kimi design §4) — claims.jsonl is append-authoritative: an update is an append of the
+ * full record with the same claimId and rev+1. Every reader (adjudicate, packet, emit-vault,
+ * renderIndex, corroborate) loads through this so they all see the latest rev per claim. The full
+ * pre-image of every state stays in one ordered file; any historical state is recoverable by folding
+ * at rev <= n. This is what lets auto-corroboration mutate an accepted claim without ever rewriting
+ * the ledger.
+ */
+export function loadClaims(path) {
+  const map = new Map();
+  for (const c of readJsonl(path)) {
+    const prev = map.get(c.claimId);
+    if (!prev || (c.rev ?? 1) >= (prev.rev ?? 1)) map.set(c.claimId, c);
+  }
+  return [...map.values()];
+}
+
 function main() {
   const i = process.argv.indexOf('--root');
   const root = resolveDataRoot(i !== -1 ? process.argv[i + 1] : undefined);
