@@ -1,7 +1,7 @@
 # CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches `git ls-files -s <path>` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via `node scripts/catalog-regen.mjs`. Regeneration is T2 (reads repo, writes only this file).
-> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (482 files) · Regenerated 2026-07-21 by scripts/catalog-regen.mjs.
+> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (483 files) · Regenerated 2026-07-21 by scripts/catalog-regen.mjs.
 > **Usage:** `rg -i "<topic>" docs/ai-workflow/CATALOG.md` — grep, do not load wholesale.
 
 ## AI-HANDOFF (paths relative to docs/ai-workflow/AI-HANDOFF/)
@@ -456,6 +456,7 @@
 | WORKOUT-DESIGN-LAB-25VIEW-RECEIPT-2026-07-10.md | 2026-07-10 | codex | Pre-implementation canonical surface receipt for the 25-view Workout Design Lab registry/selector/render chain before build; no API/model modified in this slice | open | 7c45e24c98a1 |
 | WORKOUT-SYSTEM-OVERHAUL-CATALOG-2026-04-30.md | 2026-04-30 | sean | Catalog of workout-system UI bugs, architecture items (AI Village pass), sports-specific content, and workflow automation, sequenced UI-fixes-first then architecture then content; several items await Sean's design calls | open | 176b76597910 |
 | WORKOUTS-CURRENT-500-TRIAGE-SLICE-2-RECEIPT-2026-04-30.md | 2026-04-30 | claude | Root cause of GET /api/workouts/:id/current 500 verified as missing WorkoutPlanDay association eager-load against JSONB-based WorkoutPlan; fix proposed as backend-side response adapter, not yet implemented | open | 1b865d36baed |
+| WORKTREE-HYGIENE-SCAN-2026-07-20.md | 2026-07-20 | claude | 111 worktrees inventoried: 47 merged+clean likely removable pending Phase 2 approval, 41 ambiguous dirty/missing, 23 unmerged kept. Non-destructive Rule 32 scan. | open | 51eedaf8a1ab |
 | WORLD-ENGINE-LIVING-ENVIRONMENT-BUILD-BLUEPRINT-2026-07-17.md | 2026-07-17 | fable | Unified build blueprint for Living-Environment world system (WorldAtmosphere layer stack, WorldScript schema, phenomena-not-creatures primitive set); 3-slice build order gated on Sean's confirmation of slice 1 | open | 664194f8fc34 |
 | brain-cockpit-panel-2026-07-08/01-rendering.md | 2026-07-08 | kimi | Recommends hybrid hand-rolled WebGL particle field behind + crisp DOM/SVG label layer in front sharing one camera, rejecting Three.js and canvas text | consensus | acb7814d07b7 |
 | brain-cockpit-panel-2026-07-08/02-dataviz.md | 2026-07-08 | kimi | Highest-value move is wiring existing receipt-digest analytics into the brain-view (triples density, zero new backend compute); Replay-the-Day is runner-up | consensus | 9aa9e2dbb7d9 |
