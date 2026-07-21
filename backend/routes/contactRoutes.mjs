@@ -86,9 +86,20 @@ router.post("/", contactLimiter, async (req, res) => {
     // Validate required fields
     if (!name || !email || !message) {
       console.log('❌ Validation failed - missing required fields');
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Missing required fields: name, email, and message are required." 
+        message: "Missing required fields: name, email, and message are required."
+      });
+    }
+
+    // Validate email FORMAT here → return a clean 400. Without this, a malformed email reaches Contact.create,
+    // the model's isEmail validator throws SequelizeValidationError, and the catch-all below returns a generic
+    // 500 — a server-error status for what is really a client input error (the v-next form sets noValidate, so
+    // the browser check doesn't run there either). Mirrors the frontend EMAIL_RE.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address.",
       });
     }
 

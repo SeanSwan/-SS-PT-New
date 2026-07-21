@@ -45,7 +45,7 @@ export function useStoreV4Flag(): { storeV4: boolean; resolved: boolean } {
       })
       .catch(() => {
         if (alive) {
-          setStoreV4(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
+          setStoreV4(ENV_FALLBACK); // endpoint unreachable → ENV_FALLBACK (fail-closed ONLY while the build env VITE_*_VNEXT is unset/false)
           setResolved(true);
         }
       });

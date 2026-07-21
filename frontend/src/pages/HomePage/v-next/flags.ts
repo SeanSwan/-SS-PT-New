@@ -1,7 +1,7 @@
 /**
  * Home V-next — feature flag. Mirrors the shipped Store/Dashboards pattern. Resolution: runtime
  * `/api/config/public-flags.homeVNext` (wins → instant revert, no rebuild) → build-time `VITE_HOME_VNEXT`
- * → **false** (renders the current HomePage.V4). An explicit runtime `false` is an ABSOLUTE kill switch
+ * → **false** (renders the current HomePage.V4). An explicit runtime `false` is a kill switch (absolute ONLY while the build env stays false — an unreachable flags endpoint falls back to env)
  * over the QA `localStorage.ff_homeVNext` override (that exact bug was caught on Store).
  */
 import { useEffect, useState } from 'react';
@@ -39,7 +39,7 @@ export function useHomeVNextFlag(): { homeVNext: boolean; resolved: boolean } {
       })
       .catch(() => {
         if (alive) {
-          setHomeVNext(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
+          setHomeVNext(ENV_FALLBACK); // endpoint unreachable → ENV_FALLBACK (fail-closed ONLY while the build env VITE_*_VNEXT is unset/false)
           setResolved(true);
         }
       });

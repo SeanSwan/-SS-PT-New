@@ -55,7 +55,10 @@ function isExempt(file) {
 function stripCompliantHex(line) {
   return line
     .replace(/var\(\s*--[\w-]+\s*,\s*[^)]*\)/g, 'var(--t)') // var() fallbacks (hex or rgba inside)
-    .replace(/--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}\b/g, '--t:def'); // custom-property definitions
+    .replace(/--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}\b/g, '--t:def') // custom-property definitions
+    // mask / -webkit-mask stencils use #000 / #fff as compositing ALPHA (opaque vs cut-out), not brand colour —
+    // strip the whole mask declaration value so those achromatic stencils don't read as a palette violation.
+    .replace(/(-webkit-)?mask[a-z-]*\s*:\s*[^;{}]*/gi, 'mask:stencil');
 }
 
 function walk(dir, out) {
@@ -119,6 +122,17 @@ for (const surface of SURFACES) {
       if (m) violations.push({ file: rel, line: i + 1, hex: m.join(', '), text: line.trim().slice(0, 120) });
     });
   }
+}
+
+// FAIL CLOSED (the twin guard already does this; this file only warned before — a real miss caught on re-review):
+// a missing surface, or a run that scanned zero files, is a config bug and must NOT print a green "clean".
+if (missing) {
+  console.error(`\n✖ check-token-discipline: ${missing} of ${SURFACES.length} surface(s) missing — refusing to report clean.\n`);
+  process.exit(1);
+}
+if (!scanned) {
+  console.error('\n✖ check-token-discipline: scanned 0 files — scope config is broken. Refusing to report clean.\n');
+  process.exit(1);
 }
 
 if (violations.length) {

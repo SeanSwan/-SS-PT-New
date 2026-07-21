@@ -1,7 +1,7 @@
 /**
  * Video V-next — feature flag. Mirrors the shipped Home/Store/About/Dashboards pattern. Resolution:
  * runtime `/api/config/public-flags.videoVNext` (wins → instant revert) → build-time `VITE_VIDEO_VNEXT` →
- * **false** (renders VideoLibraryV3). Explicit runtime `false` = ABSOLUTE kill switch over QA `ff_videoVNext`.
+ * **false** (renders VideoLibraryV3). Explicit runtime `false` = kill switch (absolute ONLY while the build env stays false) over QA `ff_videoVNext`.
  */
 import { useEffect, useState } from 'react';
 import { previewOverride } from '../../config/previewFlags';
@@ -38,7 +38,7 @@ export function useVideoVNextFlag(): { videoVNext: boolean; resolved: boolean } 
       })
       .catch(() => {
         if (alive) {
-          setVideoVNext(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
+          setVideoVNext(ENV_FALLBACK); // endpoint unreachable → ENV_FALLBACK (fail-closed ONLY while the build env VITE_*_VNEXT is unset/false)
           setResolved(true);
         }
       });

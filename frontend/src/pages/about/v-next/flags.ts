@@ -1,7 +1,7 @@
 /**
  * About V-next — feature flag. Mirrors the shipped Home/Store/Dashboards pattern. Resolution: runtime
  * `/api/config/public-flags.aboutVNext` (wins → instant revert) → build-time `VITE_ABOUT_VNEXT` → **false**
- * (renders About.V4). An explicit runtime `false` is an ABSOLUTE kill switch over the QA `ff_aboutVNext`.
+ * (renders About.V4). An explicit runtime `false` is a kill switch (absolute ONLY while the build env stays false — an unreachable flags endpoint falls back to env) over the QA `ff_aboutVNext`.
  */
 import { useEffect, useState } from 'react';
 import { previewOverride } from '../../../config/previewFlags';
@@ -38,7 +38,7 @@ export function useAboutVNextFlag(): { aboutVNext: boolean; resolved: boolean } 
       })
       .catch(() => {
         if (alive) {
-          setAboutVNext(ENV_FALLBACK); // endpoint unreachable → fail-closed; override cannot bypass the kill
+          setAboutVNext(ENV_FALLBACK); // endpoint unreachable → ENV_FALLBACK (fail-closed ONLY while the build env VITE_*_VNEXT is unset/false)
           setResolved(true);
         }
       });
