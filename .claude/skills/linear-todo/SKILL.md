@@ -38,6 +38,10 @@ tiers (`T0 Read`…), owners (`Human`/`Codex`/`Hermes`), readiness (`Agent Ready
 5. **Privacy (Rules 8/44/59):** Linear is an external service — IDs/roles only, no
    client PII, no secrets, no `.env` values, no raw transcripts.
 6. Reply to Sean with the issue identifier + URL, one line.
+7. **Branch naming = free auto-linking:** when starting work on an issue, name the
+   branch with the issue's `gitBranchName` or embed `swa-N` (agent prefix fine:
+   `claude/swa-N-slug`). Once GitHub↔Linear integration lands (SWA-7), commits/PRs
+   auto-attach to the issue — zero-click traceability.
 
 ## Mode 2 — VERIFY ("is this todo still relevant?")
 
@@ -59,9 +63,12 @@ For a given issue (or the whole Todo column when asked), an agent must produce a
 
 ## Mode 3 — SENTINEL ("check the tree", periodic hygiene)
 
-`node scripts/tree-sentinel.mjs [--json]` — **read-only** digest: main-tree dirty
-files grouped by dir, all worktrees classified (MERGED-CLEAN / MERGED-DIRTY /
-UNMERGED / UNMERGED-DIRTY / DETACHED), Rule-67 lane locks. Interpretation contract:
+`node scripts/tree-sentinel.mjs [--json] [--fast]` — **read-only** digest: main-tree
+dirty files grouped by dir, all worktrees classified (MERGED-CLEAN / MERGED-DIRTY /
+MERGED (dirty-unknown, `--fast`) / UNMERGED / UNMERGED-DIRTY / DETACHED), Rule-67
+lane locks. `--fast` for session-start orientation; full mode before pushes/cleanup
+decisions. Recurring digests post as comments on standing issue **SWA-27**.
+Interpretation contract:
 
 - **UNMERGED\*** = real WIP. Before starting ANY new slice, check this list + lanes:
   if a branch already carries the work, resume it — do not re-build (anti-duplication

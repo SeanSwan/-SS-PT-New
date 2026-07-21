@@ -14,7 +14,9 @@
  *     MERGED/UNMERGED/STALE classification.
  *  3. Rule-67 lane locks (who has files claimed right now).
  *
- * Usage:  node scripts/tree-sentinel.mjs [--json]
+ * Usage:  node scripts/tree-sentinel.mjs [--json] [--fast]
+ *   --fast  skip per-worktree dirty checks (1 git call per worktree instead of 2) —
+ *           use for session-start orientation; full mode before pushes/cleanup decisions.
  * Exit codes: 0 = ran (digest printed). 2 = git unavailable. Never fails on findings.
  */
 import { execSync } from 'node:child_process';
@@ -22,6 +24,9 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const ROOT = process.cwd();
 const JSON_MODE = process.argv.includes('--json');
+const FAST = process.argv.includes('--fast');
+/** Windows-safe path identity: forward slashes + lowercase drive/case-insensitive FS. */
+const norm = (p) => p.replace(/\\/g, '/').toLowerCase();
 
 const sh = (cmd, cwd = ROOT) => {
   try {
@@ -76,12 +81,17 @@ for (const wt of worktrees) {
     wt.behind = behind;
     wt.ahead = ahead;
   }
-  const wtDirty = sh('git status --porcelain', wt.path);
-  wt.dirty = wtDirty === null ? -1 : wtDirty ? wtDirty.split('\n').length : 0;
-  if (wt.path.replace(/\\/g, '/') === ROOT.replace(/\\/g, '/')) wt.klass = 'MAIN-TREE';
+  if (FAST) {
+    wt.dirty = -1; // not checked in fast mode
+  } else {
+    const wtDirty = sh('git status --porcelain', wt.path);
+    wt.dirty = wtDirty === null ? -1 : wtDirty ? wtDirty.split('\n').length : 0;
+  }
+  if (norm(wt.path) === norm(ROOT)) wt.klass = 'MAIN-TREE';
   else if (wt.detached) wt.klass = wt.dirty > 0 ? 'DETACHED-DIRTY' : 'DETACHED';
-  else if (wt.ahead === 0 && wt.dirty === 0) wt.klass = 'MERGED-CLEAN';
-  else if (wt.ahead === 0) wt.klass = 'MERGED-DIRTY';
+  else if (wt.ahead === 0)
+    // dirty unknown (--fast) → plain MERGED, never claim CLEAN without checking (Rule 19)
+    wt.klass = wt.dirty === 0 ? 'MERGED-CLEAN' : wt.dirty > 0 ? 'MERGED-DIRTY' : 'MERGED';
   else wt.klass = wt.dirty > 0 ? 'UNMERGED-DIRTY' : 'UNMERGED';
 }
 
@@ -133,7 +143,8 @@ if (JSON_MODE) {
   if (summary.unmergedWorktrees.length) {
     console.log(`\nUNMERGED (real WIP — do not touch, coordinate via Linear/lanes):`);
     for (const w of summary.unmergedWorktrees) {
-      console.log(`  +${w.ahead} ahead, ${w.dirty} dirty  ${w.branch}  ${w.path}`);
+      const d = w.dirty < 0 ? 'dirty ?' : `${w.dirty} dirty`;
+      console.log(`  +${w.ahead} ahead, ${d}  ${w.branch}  ${w.path}`);
     }
   }
   console.log(`\nLane locks:`);

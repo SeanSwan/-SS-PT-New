@@ -39,6 +39,8 @@ At session start, after loading normal Codex instructions and before exploring t
    - **Mutual hostile review (Sean's #1 ask):** when you finish a substantial slice, append a review request to `review-queue.md`; when Claude requests a review of its work, pick it up and write back APPROVE/REVISE/REJECT + findings (rule 17 + rule 41 + the HANDOFF-PROTOCOL Business-Logic Audit).
    - **Lanes:** Codex owns the storefront purchase path + Coach Command Center + Social; Claude owns admin product/catalog UI + money-path safety tests + cross-cutting infra; `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, and the coordination dir are SHARED — coordinate. Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
+7. **Linear to-do spine (2026-07-21 — ALL agents).** There is no to-do folder: **Linear (team `SwanStudios`/SWA) is the to-do system.** "Add this to the todo" → dedup-search first, then file an agent-ready issue with an anchor commit; "is SWA-N still relevant" → evidence verdict (STILL-RELEVANT / DONE-BY sha / SUPERSEDED / STALE-CONTEXT) as an issue comment; run `node scripts/tree-sentinel.mjs --fast` at build-session start (UNMERGED worktrees = resume, never rebuild). When starting work on an issue, use its `gitBranchName` (or embed `swa-N`) so GitHub↔Linear auto-links. Full contract: `docs/ai-workflow/references/LINEAR-TODO-WORKFLOW.md`. Lanes (rule 67) still win for "right now"; Linear wins for "still to do".
+
 Full spec: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`.
 
 --- project-doc mirror from CLAUDE.md ---
