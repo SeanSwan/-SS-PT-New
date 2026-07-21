@@ -3,7 +3,17 @@
  * override → exact env baseline" guarantee and the anonymous-safety of role/percent rollouts are locked here.
  */
 import { describe, expect, it } from 'vitest';
-import { resolveFlagValue, stableBucket } from '../../services/launchControlResolve.mjs';
+import { envBaseline, resolveFlagValue, stableBucket } from '../../services/launchControlResolve.mjs';
+
+describe('envBaseline — features only', () => {
+  it('exposes exactly the three approved feature switches', () => {
+    expect(Object.keys(envBaseline()).sort()).toEqual([
+      'dashboardV2Finance',
+      'postSaveHandoff',
+      'prismCapture',
+    ]);
+  });
+});
 
 describe('resolveFlagValue — no override = exact env baseline (zero behavior change)', () => {
   it('returns the env baseline unchanged when there is no override row', () => {

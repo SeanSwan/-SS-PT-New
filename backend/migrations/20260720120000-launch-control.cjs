@@ -65,19 +65,11 @@ module.exports = {
     `);
     await sql.query(`CREATE INDEX IF NOT EXISTS idx_flag_health_flag_ts ON flag_health (flag, created_at DESC);`);
 
-    // Seed the registry with the flags that exist today (idempotent). Env-var mapping stays in
-    // publicConfigRoutes; this table only drives the admin board (labels/grouping/health).
+    // Seed only operational feature switches. Design concepts live in the admin Design Studio and never gate.
     await sql.query(`
       INSERT INTO flags (flag, label, grp, parent_flag) VALUES
-        ('homeVNext',          'Home page redesign',                 'redesign', NULL),
-        ('dashboardV2',        'Dashboards (admin/trainer/client)',  'redesign', NULL),
-        ('dashboardV2Finance', 'Dashboard finance data',             'redesign', 'dashboardV2'),
-        ('storeV4',            'Store — Crystal Case',               'redesign', NULL),
-        ('aboutVNext',         'About page redesign',                'redesign', NULL),
-        ('videoVNext',         'Video library redesign',             'redesign', NULL),
-        ('contactVNext',       'Contact page redesign',              'redesign', NULL),
-        ('galleryVNext',       'Photography gallery redesign',       'redesign', NULL),
-        ('prismCapture',       'Speed-to-lead lead capture',         'feature',  NULL)
+        ('dashboardV2Finance', 'Dashboard finance data',     'feature', NULL),
+        ('prismCapture',       'Speed-to-lead lead capture', 'feature', NULL)
       ON CONFLICT (flag) DO NOTHING;
     `);
   },

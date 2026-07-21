@@ -111,7 +111,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-management', component: ClientsWorkspace, title: 'Client Hub', description: 'Unified client management with selector, cards, and detail tabs' },
       { path: '/client-management/view-as/:userId', component: AdminViewAsWrapper, title: 'View As Client', description: 'Read-only admin impersonation view of a single client profile, workouts, sessions, and gamification' },
       { path: '/account-access', component: AdminAccountAccessPage, title: 'Account Access', description: 'Log in as any client or trainer (audited), plus block, deactivate, reactivate, and force-logout' },
-      { path: '/launch-control', component: LaunchControlPage, title: 'Launch Control', description: 'Flip redesigned surfaces on/off from inside the app — instant, no redeploy, with health gating and kill-all' },
+      { path: '/launch-control', component: LaunchControlPage, title: 'Launch Control', description: 'Manage approved feature switches from inside the app — instant, no redeploy' },
       { path: '/client-details', component: AdminClientDetailsRedirect, title: 'Client Hub', description: 'Redirects legacy client details to the canonical Client Hub' },
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },

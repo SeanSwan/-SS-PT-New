@@ -1,17 +1,16 @@
 /**
  * publicConfigRoutes — public feature flags (KIMI-DASHBOARDS §6.2) + Launch Control overlay.
  *
- * GET /api/config/public-flags → { dashboardV2, dashboardV2Finance, storeV4, homeVNext, aboutVNext,
- * videoVNext, contactVNext, galleryVNext, prismCapture, postSaveHandoff } (one boolean per flag-gated surface). Unauthenticated,
+ * GET /api/config/public-flags -> { dashboardV2Finance, prismCapture, postSaveHandoff }. Unauthenticated,
  * non-sensitive (only booleans), fail-closed defaults (env unset → false). The client uses these to hide UI;
  * the finance flag is ALSO enforced server-side in the summary controller (this is not the security gate).
  *
  * The env values below are the BASELINE. Launch Control (admin) overlays runtime overrides from the
- * `flag_overrides` table so a surface can be flipped with no redeploy. `overlayOverrides` NEVER throws and
+ * `flag_overrides` table so a feature can be flipped with no redeploy. `overlayOverrides` NEVER throws and
  * returns the exact env baseline when there is no override / the DB is unreachable — so this endpoint behaves
  * identically to before until an admin writes an override.
  *
- * POST /api/config/flag-health → append-only fail-closed telemetry from each surface Gate's ErrorBoundary.
+ * POST /api/config/flag-health -> append-only fail-closed feature telemetry.
  */
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -30,7 +29,7 @@ router.get('/public-flags', async (req, res) => {
   res.json(flags);
 });
 
-// Fail-closed telemetry: a surface Gate that falls back to its old page POSTs here (public, best-effort).
+// Fail-closed feature telemetry (public, best-effort).
 const healthLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 router.post('/flag-health', healthLimiter, async (req, res) => {
   const { flag, surface, err } = req.body || {};

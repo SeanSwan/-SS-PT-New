@@ -1,18 +1,13 @@
 /**
- * Launch Control — admin board (Phase 0). Flip any surface flag from inside the app, no Render, no redeploy.
- * Each toggle writes a force override (affects everyone); "Default" clears it back to the env baseline.
- * Health chip is ADVISORY: a live surface erroring shows a red chip, a dark surface shows "no signal" — it
- * never blocks a flip. Verify purges the Cloudflare edge so a flip shows immediately.
- *
- * P0 scope. Deferred (P1/P2, per the blueprint): preview-as (needs an admin-wins client-precedence change),
- * per-role/%/schedule rollout drawer, one-click retirement.
+ * Launch Control: admin-only operations board for approved feature switches.
+ * Each toggle writes a force override; Default clears it back to the feature's environment baseline.
+ * Health is advisory, while Verify purges the edge cache so a feature change appears immediately.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { PREVIEW_OK_KEY } from '../../../../config/previewFlags';
 import {
   clearOverride,
   getBoard,
-  killAll,
   setFlag,
   verify,
   type FlagRow,
@@ -26,7 +21,6 @@ import {
   GroupTitle,
   Header,
   Page,
-  PreviewBtn,
   ResetBtn,
   Row,
   RowMain,
@@ -42,30 +36,17 @@ import {
 } from './LaunchControl.styles';
 
 const GROUP_LABELS: Record<string, string> = {
-  redesign: 'Redesign surfaces',
   feature: 'Feature flags',
   experiment: 'Experiments',
 };
-const GROUP_ORDER = ['redesign', 'feature', 'experiment'];
-
-// Surfaces with a standalone route to preview. The link forces the vNext for THIS browser only
-// (?swanpreview) — everyone else still sees the surface's real resolved state.
-const PREVIEW_ROUTE: Record<string, string> = {
-  homeVNext: '/',
-  contactVNext: '/contact',
-  aboutVNext: '/about',
-  storeV4: '/store',
-  videoVNext: '/video-library',
-  galleryVNext: '/gallery',
-  dashboardV2: '/dashboard',
-};
+const GROUP_ORDER = ['feature', 'experiment'];
 
 export default function LaunchControlPage() {
   const [rows, setRows] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [strip, setStrip] = useState('Flips are instant on the server; hard-refresh (or Verify) to beat the CDN cache.');
+  const [strip, setStrip] = useState('Feature switches update immediately; hard-refresh (or Verify) to beat the CDN cache.');
 
   const load = useCallback(async () => {
     try {
@@ -82,13 +63,12 @@ export default function LaunchControlPage() {
     void load();
   }, [load]);
 
-  // Mark this browser as an admin who has opened Launch Control → its "👁 Preview" links may reveal a
-  // dark vNext for this browser only (see config/previewFlags.ts). Random visitors never get this marker.
+  // Mark this admin browser so an explicitly requested approved-feature preview can resolve locally.
   useEffect(() => {
     try {
       localStorage.setItem(PREVIEW_OK_KEY, '1');
     } catch {
-      /* private mode — preview links simply won't work, which is fine */
+      /* Private mode: browser-only feature preview remains unavailable. */
     }
   }, []);
 
@@ -122,20 +102,6 @@ export default function LaunchControlPage() {
     [load],
   );
 
-  const doKillAll = useCallback(async () => {
-    if (!window.confirm('Force ALL redesign surfaces OFF (revert to the old pages)?')) return;
-    setBusy('__kill__');
-    try {
-      const n = await killAll();
-      setStrip(`Killed ${n} redesign flags → old pages. Verify to propagate.`);
-      await load();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }, [load]);
-
   const doVerify = useCallback(async () => {
     setBusy('__verify__');
     try {
@@ -160,14 +126,11 @@ export default function LaunchControlPage() {
       <Header>
         <TitleWrap>
           <Title>◆ Launch Control</Title>
-          <Sub>Flip redesigned surfaces on/off — instant, no redeploy.</Sub>
+          <Sub>Manage approved feature switches — instant, no redeploy.</Sub>
         </TitleWrap>
         <Actions>
           <Btn type="button" onClick={doVerify} disabled={busy === '__verify__'}>
             {busy === '__verify__' ? 'Verifying…' : '↻ Verify live'}
-          </Btn>
-          <Btn type="button" $danger onClick={doKillAll} disabled={busy === '__kill__'}>
-            ⚠ Kill all redesigns
           </Btn>
         </Actions>
       </Header>
@@ -198,16 +161,6 @@ export default function LaunchControlPage() {
                   <Chip $tone="ok">❤ healthy</Chip>
                 ) : (
                   <Chip $tone="muted">— no signal</Chip>
-                )}
-                {PREVIEW_ROUTE[r.flag] && (
-                  <PreviewBtn
-                    href={`${PREVIEW_ROUTE[r.flag]}?swanpreview=${r.flag}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open this surface for you only — it stays dark for everyone else"
-                  >
-                    👁 Preview
-                  </PreviewBtn>
                 )}
                 {r.hasOverride && (
                   <ResetBtn type="button" onClick={() => void reset(r.flag)} disabled={busy === r.flag}>

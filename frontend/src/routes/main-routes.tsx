@@ -15,13 +15,6 @@ import ProtectedRoute from './protected-route';
 
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
-// Dashboards v2 seam: flag-gated wrapper; renders V1 (children) when off (default), the v2 shell when on.
-import DashboardV2RouteGate from '../components/DashBoard/v2/DashboardV2RouteGate';
-import StoreGate from '../pages/shop/StoreGate';
-import HomeGate from '../pages/HomePage/HomeGate';
-import AboutGate from '../pages/about/AboutGate';
-import VideoGate from '../pages/VideoGate';
-import ContactGate from '../pages/contactpage/ContactGate';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -68,13 +61,6 @@ const HomePage = lazyLoadWithErrorHandling(
   () => import('../pages/HomePage/components/HomePage.V3')
 );
 
-// Home V-next seam: HomeGate flag-gates the optics hero in front of the current Home. Flag off/unresolved/
-// contract-fail → HomePage (V4→V3) renders untouched (fail-closed).
-const GatedHomePage = () => (
-  <HomeGate>
-    <HomePage />
-  </HomeGate>
-);
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
   'Login Modal'
@@ -95,11 +81,8 @@ const SignupModal = lazyLoadWithErrorHandling(
   () => import('../pages/OptimizedSignupModal'),
   'Signup Modal'
 );
-// Gallery is flag-gated (billing-critical surface). GatedGalleryPage renders the vNext only when the
-// runtime `galleryVNext` flag is on AND the world-contract probe passes; it fails closed to the untouched
-// GalleryPage on every other path. One import gates BOTH /gallery routes below.
 const GalleryPage = lazyLoadWithErrorHandling(
-  () => import('../pages/GatedGalleryPage'),
+  () => import('../pages/GalleryPage'),
   'Gallery Page'
 );
 const ContactPage = lazyLoadWithErrorHandling(
@@ -108,25 +91,10 @@ const ContactPage = lazyLoadWithErrorHandling(
   () => import('../pages/contactpage/ContactV2')
 );
 
-// Contact V-next seam: ContactGate flag-gates the Crystallize-Submit contact page in front of V3. Flag
-// off/unresolved/contract-fail → ContactV3 renders untouched (fail-closed). /api/contact POST reused.
-const GatedContactPage = () => (
-  <ContactGate>
-    <ContactPage />
-  </ContactGate>
-);
 const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About.V4'),
   'About Page V4',
   () => import('../pages/about/About.V3')
-);
-
-// About V-next seam: AboutGate flag-gates the caustic swan-occluder hero in front of the current About.
-// Flag off/unresolved/contract-fail → AboutPage (V4→V3) renders untouched (fail-closed).
-const GatedAboutPage = () => (
-  <AboutGate>
-    <AboutPage />
-  </AboutGate>
 );
 
 // Account Claiming (Crystalline Link Protocol — SWAN-XXXXXXXX invite codes)
@@ -159,14 +127,6 @@ const VideoLibrary = lazyLoadWithErrorHandling(
   () => import('../pages/VideoLibraryV2')
 );
 
-// Video V-next seam: VideoGate flag-gates the refraction library in front of V3. Flag off/unresolved/
-// contract-fail → VideoLibraryV3 renders untouched (fail-closed). Catalog/auth logic reused, never edited.
-const GatedVideoLibrary = () => (
-  <VideoGate>
-    <VideoLibrary />
-  </VideoGate>
-);
-
 // Video Watch page (public with gated content)
 const VideoWatch = lazyLoadWithErrorHandling(
   () => import('../pages/VideoWatch'),
@@ -190,14 +150,6 @@ const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/StoreV3'),
   'SwanStudios Store V3',
   () => import('../pages/shop/StoreV2')
-);
-
-// Store V4 seam (KIMI-STORE-CORRECTED F2): StoreGate flag-gates V4 in front of V3 for all three store
-// routes at once. Flag off/unresolved/contract-fail → StoreV3 renders untouched (fail-closed).
-const GatedSwanStudiosStore = () => (
-  <StoreGate>
-    <SwanStudiosStore />
-  </StoreGate>
 );
 
 // 🏔️ ASCENSION — Tier comparison landing page
@@ -378,7 +330,7 @@ const MainRoutes: RouteObject = {
       index: true,
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedHomePage />
+          <HomePage />
         </Suspense>
       )
     },
@@ -418,7 +370,7 @@ const MainRoutes: RouteObject = {
       path: 'contact',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedContactPage />
+          <ContactPage />
         </Suspense>
       )
     },
@@ -426,7 +378,7 @@ const MainRoutes: RouteObject = {
       path: 'about',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedAboutPage />
+          <AboutPage />
         </Suspense>
       )
     },
@@ -498,7 +450,7 @@ const MainRoutes: RouteObject = {
       path: 'video-library',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedVideoLibrary />
+          <VideoLibrary />
         </Suspense>
       )
     },
@@ -554,7 +506,7 @@ const MainRoutes: RouteObject = {
       path: 'store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedSwanStudiosStore />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -562,7 +514,7 @@ const MainRoutes: RouteObject = {
       path: 'swanstudios-store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedSwanStudiosStore />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -570,7 +522,7 @@ const MainRoutes: RouteObject = {
       path: 'shop',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GatedSwanStudiosStore />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -944,9 +896,7 @@ const MainRoutes: RouteObject = {
       element: (
         <ProtectedRoute allowedRoles={['admin', 'trainer', 'client']}>
           <Suspense fallback={<PageLoader />}>
-            <DashboardV2RouteGate>
-              <UniversalDashboardLayout />
-            </DashboardV2RouteGate>
+            <UniversalDashboardLayout />
           </Suspense>
         </ProtectedRoute>
       )

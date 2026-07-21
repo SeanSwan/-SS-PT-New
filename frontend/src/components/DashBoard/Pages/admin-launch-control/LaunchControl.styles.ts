@@ -41,13 +41,13 @@ export const Actions = styled.div`
   flex-wrap: wrap;
 `;
 
-export const Btn = styled.button<{ $danger?: boolean }>`
+export const Btn = styled.button`
   min-height: 44px;
   padding: 0 16px;
   border-radius: 12px;
-  border: 1px solid ${(p) => (p.$danger ? 'var(--world-danger, #c92a54)' : 'var(--world-line, rgba(96,192,240,0.25))')};
-  background: ${(p) => (p.$danger ? 'color-mix(in srgb, var(--world-danger, #c92a54) 16%, transparent)' : 'var(--world-panel, #141419)')};
-  color: ${(p) => (p.$danger ? 'var(--world-danger, #ff6b8a)' : 'var(--world-text, #e0ecf4)')};
+  border: 1px solid var(--world-line, rgba(96, 192, 240, 0.25));
+  background: var(--world-panel, #141419);
+  color: var(--world-text, #e0ecf4);
   font-size: 0.9rem;
   cursor: pointer;
   &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 2px; }
@@ -177,26 +177,6 @@ export const ResetBtn = styled.button`
   cursor: pointer;
   &:hover { color: var(--world-text, #e0ecf4); }
   &:focus-visible { outline: 2px solid var(--world-accent, #60c0f0); outline-offset: 2px; }
-`;
-
-/** Preview-as link — opens the surface in a new tab with ?swanpreview, dark for everyone else. */
-export const PreviewBtn = styled.a`
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--world-accent, #60c0f0);
-  font-size: 0.82rem;
-  text-decoration: none;
-  white-space: nowrap;
-  &:hover {
-    text-decoration: underline;
-  }
-  &:focus-visible {
-    outline: 2px solid var(--world-accent, #60c0f0);
-    outline-offset: 2px;
-  }
 `;
 
 export const Strip = styled.div`

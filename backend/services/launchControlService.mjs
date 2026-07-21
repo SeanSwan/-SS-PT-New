@@ -1,7 +1,7 @@
 /**
  * Launch Control — flag resolution + control-plane data access.
  *
- * SAFETY CONTRACT (this gates billing/dashboard surfaces): the public resolver must NEVER throw and must
+ * SAFETY CONTRACT (this gates operational features): the public resolver must NEVER throw and must
  * return the exact env baseline when no override row exists or the DB is unreachable. `resolveFlagValue` is
  * a PURE function (unit-tested) so the precedence logic is verifiable without a DB. Raw parameterized queries
  * (same pattern as galleryRoutes/authMiddleware) — no new Sequelize model registration on this hot path.
@@ -125,20 +125,6 @@ export async function deleteOverride(flag, actor, source = 'manual') {
   return { ok: true };
 }
 
-/** Panic button: force every redesign flag OFF in ONE atomic statement (all-or-nothing — no half-kill). */
-export async function killAllRedesigns(actor) {
-  const [, meta] = await sequelize.query(
-    `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
-     SELECT flag, false, 'force', NULL, NULL, NULL, :actor, now() FROM flags WHERE grp = 'redesign'
-     ON CONFLICT (flag) DO UPDATE SET value = false, mode = 'force', roles = NULL, pct = NULL,
-       starts_at = NULL, updated_by = :actor, updated_at = now()`,
-    { replacements: { actor } },
-  );
-  const count = meta?.rowCount ?? 0;
-  await audit('*', null, { killAll: true, count }, actor, 'kill_all');
-  return count;
-}
-
 export async function getAudit(flag, limit = 50) {
   const [rows] = await sequelize.query(
     `SELECT flag, old_state, new_state, actor, source, created_at FROM flag_audit
@@ -149,7 +135,7 @@ export async function getAudit(flag, limit = 50) {
 }
 
 /**
- * Called by every surface Gate's ErrorBoundary (public, rate-limited). Advisory only — never gates a write.
+ * Records public feature-health reports (rate-limited). Advisory only; never gates an admin write.
  * No user-agent / IP / identifying fields are stored (Rule 8 zero-PII): flag + surface + truncated err only.
  */
 export async function recordHealth(flag, surface, errMsg) {
@@ -171,7 +157,6 @@ export default {
   getBoard,
   upsertOverride,
   deleteOverride,
-  killAllRedesigns,
   getAudit,
   recordHealth,
 };

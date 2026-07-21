@@ -11,14 +11,7 @@ export const isTrue = (value) => value === 'true' || value === '1';
  * public response and the admin board agree). Shape is the public API contract; do not reorder/rename keys.
  */
 export const envBaseline = () => ({
-  dashboardV2: isTrue(process.env.DASHBOARD_V2_ENABLED),
   dashboardV2Finance: isTrue(process.env.DASHBOARD_V2_FINANCE),
-  storeV4: isTrue(process.env.STORE_V4_ENABLED),
-  homeVNext: isTrue(process.env.HOME_VNEXT_ENABLED),
-  aboutVNext: isTrue(process.env.ABOUT_VNEXT_ENABLED),
-  videoVNext: isTrue(process.env.VIDEO_VNEXT_ENABLED),
-  contactVNext: isTrue(process.env.CONTACT_VNEXT_ENABLED),
-  galleryVNext: isTrue(process.env.GALLERY_VNEXT_ENABLED),
   prismCapture: isTrue(process.env.PRISM_CAPTURE_ENABLED),
   postSaveHandoff: isTrue(process.env.ENABLE_POST_SAVE_HANDOFF),
 });
