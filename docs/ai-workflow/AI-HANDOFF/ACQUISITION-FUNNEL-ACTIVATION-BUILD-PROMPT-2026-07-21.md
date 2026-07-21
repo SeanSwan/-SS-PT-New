@@ -57,9 +57,30 @@
 
 ---
 
-## 2. THE TASKS (do in this order)
+## 1c. NORTH STAR (what "done" means for the whole funnel)
+A stranger goes **landing → captured → first human/automated touch within the SLA → booked**, and every step is
+**measurable**. If you finish tasks but cannot answer "how many captured leads got a touch within 24h, and how
+many booked," the funnel is not done. Instrument as you go (Task P0-4).
 
-### ⭐ P0 — safe, code-only, highest value-per-effort (do these first)
+## 2. THE TASKS (do in this order — sequence corrected after a self-critique of an earlier draft)
+
+> **Order:** V1 → **P0-0 (deliverability is a prerequisite for the whole funnel)** → P0-1 → **P1-1 (booking is the
+> conversion path — do it before referral)** → P0-4 (instrument) → P0-2 → P0-3 → P2/P3. Rationale: nothing that
+> sends email/SMS is worth building until delivery is proven; the booking page is far higher value than referral
+> attribution (which is data with no reward until Sean approves a rewards economy).
+
+### ⭐ P0-0 · PREREQUISITE — prove email/SMS actually get delivered (verify before building anything that sends)
+- **Problem:** P0-1's owner alerts, P1-1's booking alerts, AND the P3 nurture drip ALL depend on email/SMS
+  actually arriving. If SPF/DKIM/DMARC aren't set or the sender lands in spam, every downstream task is silently
+  worthless — worse than nothing, because the dashboard says "sent."
+- **Do (verification, not code):** confirm in the Render env that the owner-alert vars are set — `OWNER_PHONE` /
+  `OWNER_WIFE_PHONE`, `OWNER_EMAIL` / `OWNER_WIFE_EMAIL`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, Twilio creds.
+  Send one real inbox test through the production sender and confirm it lands in the inbox (not spam) with passing
+  SPF/DKIM/DMARC (check the received-headers). Record the result.
+- **Acceptance:** a written pass/fail on deliverability + a list of any missing prod env var. If it fails, that is
+  the #1 blocker and everything else waits. **Gate:** none to verify; fixing DNS/env is a Sean action.
+
+### ⭐ P0 — safe, code-only, highest value-per-effort
 
 #### P0-1 · Set `nextFollowUpAt` at capture, so the "leads needing follow-up" dashboard stops lying
 - **Problem:** `Lead.nextFollowUpAt` is READ by the follow-up dashboard filter + KPI (`leadRoutes.mjs:54,120`) but
@@ -67,10 +88,15 @@
   every un-touched lead, and the "needs follow-up" count is **structurally ~always 0**. The dashboard reports
   "all clear" while the pipeline rots.
 - **Do:** in `backend/services/leadCaptureService.mjs`, when a lead is CREATED (not on dedupe-update of an existing
-  lead), default `nextFollowUpAt = now + 24h`. Only set it when it's currently null (never stomp an admin's date).
-- **Acceptance:** a new lead from the contact form (and from PRISM) has `nextFollowUpAt` ~24h out; a unit test
-  proves a freshly created lead has it set and an existing lead's value is not overwritten; the `followupsDue`
-  count becomes non-zero as leads age past 24h.
+  lead), default `nextFollowUpAt` — **tiered by intent, not a flat 24h:** a hot lead (`score >= 70`, e.g. a
+  consult/booking) → **now + 2h** (speed-to-lead: the first touch should be minutes-to-hours, not a day); everyone
+  else → now + 24h. Only set when currently null (never stomp an admin's date).
+- **Also (one-time backfill):** every lead captured BEFORE this change has `nextFollowUpAt = null` forever, so the
+  dashboard keeps under-reporting historicals. Add an idempotent backfill (a `scripts/` one-off or a guarded
+  migration) that sets `nextFollowUpAt = createdAt + 24h` for open leads (`status NOT IN ('converted','lost')`)
+  where it is null.
+- **Acceptance:** a new hot lead gets ~2h, a normal lead ~24h; an existing lead's value is not overwritten
+  (unit-tested); the backfill runs idempotently and the `followupsDue` count reflects real aging leads.
 - **Effort:** S. **Gate:** none — safe internal field.
 
 #### P0-2 · Stop fabricating trainer credentials
@@ -87,13 +113,17 @@
 - **Problem:** PRISM writes `prism:refcode:<code>` and `prism:refby:<code>` into `Lead.tags`
   (`backend/routes/leadCaptureRoutes.mjs` ~151-153) but there is **no reader** — the share ray credits nobody, and
   `Lead.referredByUserId` (`Lead.mjs:45`) is unused.
-- **Do:** at capture, when an inbound `?ref=<code>` is present, resolve it back to the referring Lead (whose tags
-  contain `prism:refcode:<code>`) and record the relationship — populate `referredByUserId` if the referrer maps
-  to a user, else store a `prism:refby-lead:<id>` tag. **Attribution only — no rewards economy yet** (that's a
-  money decision for Sean). Keep the deterministic code scheme; do not change how codes are generated.
-- **Acceptance:** capturing with `?ref=<validCode>` links the new lead to the referrer (queryable), and a
-  self-referral / unknown code is ignored safely. Unit test both.
-- **Effort:** S–M. **Gate:** none for attribution; rewards = Sean decision.
+- **Do:** at capture, when an inbound `?ref=<code>` is present, resolve it to the referring Lead via a JSONB
+  containment query — `Lead.findOne({ where: { tags: { [Op.contains]: ['prism:refcode:'+code] } } })` (Postgres
+  `@>`). **Add a GIN index on `Lead.tags`** (`CREATE INDEX ... USING gin (tags)`) or this scans the table as leads
+  grow. Then record the relationship — populate `referredByUserId` if the referrer maps to a user, else a
+  `prism:refby-lead:<id>` tag. **Handle the edge cases explicitly:** unknown code → ignore; >1 match (code
+  collision) → ignore (don't guess); self-referral (referrer resolves to the same email) → ignore. **Attribution
+  only — no rewards economy** (Sean decision). Don't change how codes are generated.
+- **Acceptance:** `?ref=<validCode>` links the new lead to the referrer (queryable); unknown/duplicate/self codes
+  are safely ignored; the GIN index exists. Unit-test each edge case.
+- **Effort:** S–M. **Gate:** none for attribution; rewards = Sean decision. **Note:** attribution alone changes no
+  behavior for the user — its value is realized only once a reward is attached, so it ranks below booking.
 
 ### P1 — the biggest missing surface
 
@@ -101,18 +131,35 @@
 - **Problem:** there is **no** `/book`, `/schedule`, or `/consult` route in `frontend/src/routes/main-routes.tsx`.
   PRISM's primary "Book a free consultation" ray and Contact's `?intent=book` both dead-end at the generic contact
   message box — the single highest-intent action a stranger can take goes nowhere specific.
-- **Reuse, don't rebuild:** a backend already exists — `backend/routes/consultRequestRoutes.mjs` (`POST /`,
-  rate-limited). Check where it's mounted in `backend/core/routes.mjs` and what body it expects. Also
-  `backend/services/availabilityService.mjs` + the `Session` model exist if you want to show real open slots;
-  `Lead.mjs:26-36` already has unused `status:'scheduled'` + `scheduledSessionId` columns for this exact purpose.
-- **Do:** a `/book` page (styled-components, Crystalline palette via tokens, 44px targets, mobile-first) that
-  submits a consult request through the existing endpoint AND creates/updates a `Lead` (`status:'scheduled'`,
-  `scheduledSessionId` when a slot is chosen). Point PRISM's `bookHref` and Contact's `?intent=book` at `/book`.
-  Fire the owner alert on a booking (reuse the existing alert path).
-- **Acceptance:** a logged-out visitor can request a consult from `/book` end-to-end; a Lead lands with
-  `status:'scheduled'`; the owner is alerted; the two existing "book" CTAs route here. Mobile 320/375/414 clean.
-- **Effort:** M. **Gate:** ship behind a flag if you want a staged rollout; otherwise it's a net-new additive page
-  (no old version to fail-closed to), so it's lower-risk than the redesign flips.
+- **Reuse, don't rebuild:** `backend/routes/consultRequestRoutes.mjs` (`POST /`, rate-limited) already exists.
+  READ it first — confirm where it's mounted (`backend/core/routes.mjs`), what body it accepts, and **whether it
+  already creates a Lead**. If it does, bind to it; if not, have it call `captureLeadFromContact` +
+  `status:'scheduled'`. `Lead.mjs:26-36` has unused `status:'scheduled'` + `scheduledSessionId` for this.
+- **SCOPE — MVP is "capture intent to book," NOT a self-serve calendar (this was over-scoped in an earlier draft):**
+  the `/book` page collects name + email + a free-text "preferred time / goal", submits through the existing
+  endpoint, creates a `Lead` with `status:'scheduled'`, and fires the owner alert (reuse the existing alert path;
+  rate-limit with `contactLimiter`). **Do NOT** couple it to `availabilityService` / the `Session` model / live
+  slots in v1 — a real-calendar slot picker touches trainer scheduling + auth and is a separate follow-up
+  (document it as "P1-1b: live-slot booking"). The win is that the highest-intent CTA stops dead-ending, not a
+  full scheduler.
+- **Do:** the `/book` page (styled-components, Crystalline palette via tokens, 44px targets, mobile-first,
+  real `<form>` + AA a11y like PrismCapture). Point PRISM's `bookHref` and Contact's `?intent=book` at `/book`.
+- **Acceptance:** a logged-out visitor completes a consult request from `/book`; a Lead lands with
+  `status:'scheduled'`; the owner is alerted (verified against P0-0); both "book" CTAs route here; mobile
+  320/375/414 clean; spam-rate-limited.
+- **Effort:** M (MVP) — much smaller than the calendar version. **Gate:** net-new additive page (no old version to
+  fail closed to), so lower-risk than a redesign flip. Ship behind a flag only if you want a staged rollout.
+
+#### P0-4 · Instrument the funnel so lift is measurable (the North Star depends on this)
+- **Problem:** none of P0-1/P1-1/P3 can be judged without funnel numbers. `MEASUREMENT-CHARTER.md` defines the
+  taxonomy but nothing emits it.
+- **Do:** emit the canonical events (`lead_captured`, `booking_started`/`scheduled`, `first_touch`, `converted`)
+  per `MEASUREMENT-CHARTER.md` — server-side where possible, no PII/exact amounts (bucket amounts, allowlist
+  fields, drop unknowns). One weekly number Sean can say out loud: visits → captures → touched-within-SLA →
+  booked → joined.
+- **Acceptance:** the four events fire on the real paths; a query returns last-7-day counts; zero PII in the event
+  stream (Rule 8).
+- **Effort:** S–M. **Gate:** none.
 
 ### P2 — trust / legal (verify before changing)
 
@@ -137,8 +184,11 @@
   `backend/services/automationService.mjs:72-77` seeds `isActive:false` "ON PURPOSE so capture creates ZERO sends
   until Sean explicitly ARMS it", and all delivery is gated on `SWAN_AUTOMATION_CRON_ENABLED === 'true'`
   (`automationArmState.mjs:14`). Leads ARE being captured today (contact form) and receive no follow-up.
-- **Why gated:** arming sends real email to real people. That requires (a) Sean's explicit go, (b) proven email
-  deliverability (SPF/DKIM/DMARC — send a real inbox test), and (c) confirmed unsubscribe/consent handling.
+- **Why gated:** arming sends real email to real people. Requires (a) Sean's explicit go; (b) P0-0 deliverability
+  proven; (c) **lawful basis + one-click unsubscribe in EVERY nurture email** — a contact-form submission may be
+  transactional, but a day-0/1/3/7 *drip* is marketing (CAN-SPAM / GDPR): every send needs a working unsubscribe
+  and must honor `marketingSuppression` + `smsConsentStatus`. Verify the sequence templates carry an unsubscribe
+  link and the suppression check runs before each send.
 - **A builder may:** run the automation backend tests, do the deliverability inbox test on a staging sender, and
   PREPARE the arming steps. **A builder may NOT:** flip `isActive=true` or set `SWAN_AUTOMATION_CRON_ENABLED` in
   production. Present the readiness evidence and stop.
@@ -158,9 +208,12 @@
 
 ---
 
-## 3. SUGGESTED SEQUENCE FOR ONE BUILDER
-V1 (warm up + confirm the base is sound) → P0-1 → P0-2 → P0-3 → P1-1 → hand P2-1 + P3-1 to Sean with the evidence
-you gathered. P0-1 through P0-3 are each a small, independently-shippable commit; P1-1 is the one real feature.
+## 3. SUGGESTED SEQUENCE FOR ONE BUILDER (corrected)
+**V1** (confirm the base is sound) → **P0-0** (deliverability — gate everything on this) → **P0-1** (follow-up SLA
++ backfill) → **P1-1** (booking MVP — the conversion path) → **P0-4** (instrument) → **P0-2** (credential
+fallback) → **P0-3** (referral attribution) → hand **P2-1** + **P3-1** to Sean with the evidence you gathered.
+Each of P0-0..P0-4 and P2-1 is a small, independently-shippable unit; P1-1 is the one real feature.
+Deferred follow-up: **P1-1b** live-slot calendar booking (couples to trainer scheduling — separate slice).
 
 ## 4. FOR SEAN ONLY (not the builder's to decide)
 - **Arm nurture?** (P3-1) — the single highest-money flip once P0-1 + P1-1 land.
