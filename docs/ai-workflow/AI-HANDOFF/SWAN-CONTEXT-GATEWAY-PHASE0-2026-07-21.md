@@ -16,7 +16,7 @@ supersedes: none
 ## 1. Local-only launcher inventory `[VERIFIED 2026-07-21]`
 
 Tracked on origin/main: `consult-codex.mjs`, `consult-gemini.mjs`, `consult-codex-via-openrouter.mjs` (+ review variants).
-**Local-only, absent from origin/main:** `consult-fable.mjs` (121 lines), `consult-kimi.mjs` (132), `consult-sol.mjs` (120). Repo docs/skills reference them; a clean checkout cannot run them. Phase 2 must migrate them into committed adapters.
+**Local-only, absent from origin/main:** `consult-fable.mjs` (120 lines), `consult-kimi.mjs` (131), `consult-sol.mjs` (119). Repo docs/skills reference them; a clean checkout cannot run them. Phase 2 must migrate them into committed adapters.
 
 ### Shared core (identical across all three — extract to `scripts/lib/`)
 | Concern | Behavior worth preserving |
