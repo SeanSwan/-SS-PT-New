@@ -18,6 +18,7 @@ function resolveSrcRoot(): string {
 
 const SRC_ROOT = resolveSrcRoot();
 const routes = readFileSync(resolve(SRC_ROOT, 'routes/main-routes.tsx'), 'utf8');
+const appSlice = readFileSync(resolve(SRC_ROOT, 'store/slices/appSlice.ts'), 'utf8');
 const REMOVED_GATES = [
   'HomeGate',
   'StoreGate',
@@ -61,5 +62,10 @@ describe("Sean's law: design surfaces never gate", () => {
     for (const file of REMOVED_GATE_FILES) {
       expect(existsSync(resolve(SRC_ROOT, file)), `${file} must be retired`).toBe(false);
     }
+  });
+
+  it('does not seed a dashboard design choice from a build environment variable', () => {
+    const retiredEnv = ['VITE', 'ENABLE', 'NEW', 'DASHBOARD'].join('_');
+    expect(appSlice, 'Design surfaces never gate. Use the Design Studio.').not.toContain(retiredEnv);
   });
 });

@@ -17,8 +17,7 @@ import { HomeLensFrame } from './homeManifest';
 import { HomeVNextTokens } from './home.tokens';
 import { HeroOptics } from './hero/HeroOptics';
 import { CapsuleRail } from './CapsuleRail';
-// GATE RULE: PrismCapture must be mounted in BOTH branches of HomeGate (here and HomePage.V4) — otherwise the
-// lead-capture silently disappears the moment HOME_VNEXT_ENABLED flips. Enforced by prismGateParity.test.ts.
+// FEATURE PARITY: Keep lead capture in this parked preview so a future promotion cannot drop it.
 import { PrismCapture } from '../../../components/marketing/PrismCapture';
 import MissionSection from '../components/sections/MissionSection';
 import TrainersSection from '../components/sections/TrainersSection';
@@ -58,7 +57,7 @@ export default function HomeVNext() {
         <HeroOptics onOpenOrientation={() => setShowOrientation(true)} />
         <CapsuleRail />
         {/* PRISM speed-to-lead capture — self-gates to null when its own flag is off (zero impact).
-            Mounted here AND in HomePage.V4 per the Gate Rule (see prismGateParity.test.ts). */}
+            Retained in this parked preview so a future promotion preserves lead capture parity. */}
         <PrismCapture />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 

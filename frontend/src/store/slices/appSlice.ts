@@ -19,7 +19,6 @@ const initialState: AppState = {
   environment: (import.meta.env.MODE as 'development' | 'staging' | 'production') || 'development',
   features: {
     // Feature flags
-    enableNewDashboard: import.meta.env.VITE_ENABLE_NEW_DASHBOARD === 'true',
     enableAdvancedAnalytics: import.meta.env.VITE_ENABLE_ADVANCED_ANALYTICS === 'true'
   }
 };
