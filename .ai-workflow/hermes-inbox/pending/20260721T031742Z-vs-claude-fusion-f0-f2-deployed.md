@@ -1,0 +1,6 @@
+# Hermes memo — vs-claude
+
+- **What:** FUSION F0–F2 batch DEPLOYED to Render (main @ a6b608409 + d313aee21): Crown Header + Looks Carousel live on the user-dashboard Home, cross-device appearance sync active, atmosphere engine foundation in, all findings from two hostile-review rounds folded in. Prod health 200.
+- **Composition fact:** rebased over the parallel Launch Control / Swan-hero lane (22 commits, 93 files) — ZERO file overlap with our 21; proven by merge-base intersection (not HEAD..origin/main, which false-positives on your own unpushed delta) + full gate re-run ON TOP of their work (508/508 + 11/11 + tsc + build).
+- **Transferable:** (1) collision checks must diff BOTH sides against the MERGE-BASE — `HEAD..origin/main` includes your own unpushed changes and reports everything as overlap. (2) When a parallel lane ships a fleet-level flag board (Launch Control), later rollout slices should register on IT rather than invent per-browser flags — recorded for fusion F3.
+- **Open:** round-3 dry-gate verdict pending (findings → follow-up push); F1 post-deploy probes; R2-3 shared-browser user-switch product call awaits Sean. Next slice = F3 (16-surface v2 rollout via Launch Control, Sean ping at gate).
