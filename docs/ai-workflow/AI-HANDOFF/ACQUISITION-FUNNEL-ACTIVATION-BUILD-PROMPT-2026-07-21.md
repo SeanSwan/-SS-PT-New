@@ -208,6 +208,46 @@ many booked," the funnel is not done. Instrument as you go (Task P0-4).
 
 ---
 
+## 2b. KIMI ENHANCEMENT PASS — close the loop to automated revenue (2026-07-21)
+> Kimi's thesis after reviewing the plan: **every task above terminates at "alert the owner" or "set a field for
+> a human to read." Sean is the bottleneck the plan pretends to remove.** These 9 gaps fix that — ranked by money,
+> almost all S-effort folded into the existing tasks. A ⚑ marks a Sean business decision, not a builder default.
+
+- **G1 · ⚑ Pay-to-hold at the booking moment (BIGGEST money).** The plan ends at `status:'scheduled'` = a free
+  consult, which no-shows 30–50%. The repo already has Stripe + the $175 price. Offer, in P1-1's confirmation, a
+  **paid intro / deposit-to-hold via a Stripe payment link** — this is *binding to* the money path (permitted),
+  not rewriting it. A lead who pays shows up. **Sean decides the shape:** free consult · $50 deposit credited to a
+  package · $175 paid intro. One paid conversion out-earns dozens of nurtured free leads. → new **P1-1a**.
+- **G2 · Automated instant first-touch (fold into P0-1).** `nextFollowUpAt` only *tells Sean he's late*; it
+  doesn't make the lead not-late. On capture of a hot/`scheduled` lead, fire an **immediate transactional
+  acknowledgment** ("Got it — Sean will reach out within [window]; tap to lock a time"). This is a transactional
+  reply to an inbound request, **NOT the P3-1 marketing drip — it does not need the arming gate**, but it DOES
+  depend on P0-0 deliverability. A follow-up SLA without an automated first touch is instrumentation of failure.
+- **G3 · Chain PRISM → /book with prefill (fold into P1-1).** Today the two are silos: capture → "thanks" → funnel
+  resets. Give PRISM's success state one button → `/book?email=<captured>` prefilled. **Tap count: ~6 taps + dead
+  end → 3 taps + 1 typing session, booked.** This is the minimal-click win; it only exists if the two features are
+  specced together.
+- **G4 · Consult reminders + no-show recovery → new P1-2 (outranks P0-3 referral).** T-24h / T-2h transactional
+  SMS+email reminders + a no-show → auto-reschedule link. Twilio creds are already in the P0-0 checklist. Each
+  recovered no-show ≈ $840+ EV at 10% package close.
+- **G5 · Shareable milestone cards → new P2-tier (retention/referral flywheel).** The core loop ends in a
+  *shareable milestone* but nothing GENERATES the artifact. Auto-make a milestone card (PR/streak/transformation)
+  with the member's `?ref=` embedded — the thing a client posts that sends a warm stranger to PRISM. Existing
+  clients are the cheapest acquisition channel; today the plan gives them nothing to share.
+- **G6 · SLA-breach escalation (fold into P0-4).** When a hot lead crosses `nextFollowUpAt` untouched, re-alert
+  the owner (+ wife per existing env). Otherwise P0-1 just produces a higher-fidelity view of leads rotting.
+- **G7 · Trust assets on /book (fold into P1-1).** A stranger deciding to book sees a bare form. Add 2–3 client
+  result quotes, the **"26+ years experience / NASM protocol"** phrasing (never "NASM-certified"), and one
+  risk-reversal line. S-effort multiplier on all of P1-1's output.
+- **G8 · Backlog reactivation (fold into P3-1 arming).** P3-1 arms nurture for NEW captures; the existing null-date
+  backlog (that P0-1 backfills) still gets nothing. When Sean arms nurture, include a one-time reactivation
+  campaign to open, non-converted leads older than N days — the cheapest already-paid-for revenue in the repo.
+- **G9 · Source→revenue attribution (fold into P0-4).** UTM is captured but nothing ties `source → booked → paid`,
+  so Sean can't tell which channel produces *clients*, not leads. One more column on the P0-4 weekly number.
+
+**Revised priority:** G1 → G2 → G3 → G4 → G6 → G7 → G5 → G8 → G9. Everything except G5 folds into an existing task
+as S-effort. The skeleton was right; it just stopped one step short of money at every step.
+
 ## 3. SUGGESTED SEQUENCE FOR ONE BUILDER (corrected)
 **V1** (confirm the base is sound) → **P0-0** (deliverability — gate everything on this) → **P0-1** (follow-up SLA
 + backfill) → **P1-1** (booking MVP — the conversion path) → **P0-4** (instrument) → **P0-2** (credential
