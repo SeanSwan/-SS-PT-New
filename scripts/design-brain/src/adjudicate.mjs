@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { resolveDataRoot } from './paths.mjs';
 import { safeWriteText, appendJsonl } from './writer.mjs';
-import { readJsonl } from './synthesize.mjs';
+import { readJsonl, loadClaims } from './synthesize.mjs';
 
 const LETTER_STATUS = { a: 'accepted', r: 'rejected', t: 'trial' };
 
@@ -97,7 +97,7 @@ function main() {
 
   const decisions = parseDecisions(readFileSync(batchPath, 'utf8'));
   const proposed = readJsonl(join(root, 'claims-proposed.jsonl'));
-  const existing = readJsonl(join(root, 'claims.jsonl'));
+  const existing = loadClaims(join(root, 'claims.jsonl')); // fold: latest rev per claim (corroboration-aware)
   const nowIso = new Date().toISOString();
   const batchId = batchPath.replace(/\\/g, '/').split('/').pop();
 

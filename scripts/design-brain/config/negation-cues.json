@@ -1,0 +1,7 @@
+{
+  "$comment": "STRONG action-negator cues that mark a principle as possibly the OPPOSITE of an existing one (Kimi §6, hardened 2026-07-20). Deliberately dumb literal substrings. Hardening: a bare 'not'/'no' is NOT here — real positive principles routinely contain an incidental 'not' in a contrast clause ('log inline, NOT on a separate screen'), and Kimi's original 'candidate has cue AND accepted lacks cue' rule let a true contradiction slip into AUTO corroboration when BOTH principles contained 'not'. Only a STRONG negator that the accepted claim LACKS, plus >=50% token overlap (same subject), flags a contradiction. Contradictions are NEVER auto-resolved — the cue only surfaces the pair for Sean.",
+  "cues": [
+    "do not", "don't", "never", "avoid", "avoids", "instead", "rather than",
+    "without", "hides", "hide", "blocks", "forces", "opposite", "no longer"
+  ]
+}
