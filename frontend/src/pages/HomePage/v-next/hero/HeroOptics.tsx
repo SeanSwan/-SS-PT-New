@@ -16,6 +16,7 @@ import { useCrystallizeTransition, CrystallizeOverlay } from '../lensBindings';
 import { Facets } from './Facets.svg';
 import { OpticsCanvas } from './OpticsCanvas';
 import { VIDEO } from '../../../../config/videoAssets';
+import { SwanVideoBackdrop } from '../../../../components/ui-kit/cinematic/SwanVideoBackdrop';
 
 const HEADLINE = 'Health First. Community Always.'; // FROZEN copy
 
@@ -27,37 +28,6 @@ const Section = styled.section`
   overflow: hidden;
   padding: clamp(48px, 10vh, 120px) var(--home-pad, 24px);
   background: radial-gradient(120% 100% at 50% 0%, var(--home-facet-lo), var(--home-bg) 70%);
-`;
-// Swan video (back-most). Dimmed so the frozen headline stays legible; the caustic canvas + crystal sit over it.
-const VideoLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: brightness(0.52) saturate(1.06);
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--home-bg) 28%, transparent),
-      color-mix(in oklab, var(--home-bg) 60%, transparent)
-    );
-  }
-`;
-// Reduced-motion / essential tier: a dimmed swan still instead of an autoplaying video (no motion, no fetch).
-const PosterLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: url('/images/parallax/hero-swan-bg.png') center / cover no-repeat, var(--home-bg);
-  filter: brightness(0.52);
 `;
 // The caustic canvas is now dimmed so the Swan video reads through it (Sean: "more transparent, see the video").
 const CanvasWrap = styled.div`
@@ -74,7 +44,7 @@ const CanvasWrap = styled.div`
 const SwanLayer = styled.div`
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3; /* explicitly above the scrim (2); Content is 4 — no DOM-order tiebreak the swan can lose */
   display: grid;
   place-items: center;
   pointer-events: none;
@@ -87,6 +57,12 @@ const SwanMark = styled(motion.img)`
   mix-blend-mode: screen;
   filter: brightness(1.18) contrast(1.05) drop-shadow(0 0 46px var(--home-ice-soft))
     drop-shadow(0 0 96px var(--home-wing-24));
+  /* No screen-blend support → soft-mask the logo disc into a circle so no hard box shows over the video. */
+  @supports not (mix-blend-mode: screen) {
+    mix-blend-mode: normal;
+    -webkit-mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
+    mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
+  }
 `;
 const FacetLayer = styled.div`
   position: absolute;
@@ -113,7 +89,7 @@ const Scrim = styled.div`
 `;
 const Content = styled.div`
   position: relative;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -180,6 +156,7 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
   const active = tier !== 'essential' && !prefersReduced;
 
   const hostRef = useRef<HTMLElement>(null);
+  const rafRef = useRef(0);
   const [charged, setCharged] = useState(!active); // reduced/essential → start already resolved (static frame)
   const [ignited, setIgnited] = useState(!active);
   const fired = useRef(false);
@@ -191,13 +168,17 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
     (e: React.PointerEvent) => {
       if (e.pointerType !== 'mouse' || !active) return;
       const host = hostRef.current;
-      if (!host) return;
-      const r = host.getBoundingClientRect();
-      const dx = ((e.clientX - r.left) / r.width - 0.5) * 16;
-      const dy = ((e.clientY - r.top) / r.height - 0.5) * 16;
-      // set on the host so BOTH the crystal and the swan mark refract together (inherited CSS vars)
-      host.style.setProperty('--hero-px', `${dx.toFixed(1)}px`);
-      host.style.setProperty('--hero-py', `${dy.toFixed(1)}px`);
+      if (!host || rafRef.current) return; // coalesce to ONE write per frame — no forced recalc per mousemove
+      const { clientX, clientY } = e;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = 0;
+        const r = host.getBoundingClientRect();
+        const dx = ((clientX - r.left) / r.width - 0.5) * 16;
+        const dy = ((clientY - r.top) / r.height - 0.5) * 16;
+        // set on the host so BOTH the crystal and the swan mark refract together (inherited CSS vars)
+        host.style.setProperty('--hero-px', `${dx.toFixed(1)}px`);
+        host.style.setProperty('--hero-py', `${dy.toFixed(1)}px`);
+      });
     },
     [active],
   );
@@ -207,31 +188,31 @@ export function HeroOptics({ onOpenOrientation }: { onOpenOrientation?: () => vo
   useEffect(() => {
     const host = hostRef.current;
     if (fired.current || !active || !host) return;
+    const charge = () => {
+      if (fired.current) return;
+      fired.current = true;
+      setCharged(true);
+      crystallizeTo(() => setIgnited(true), { settleAnnouncement: 'SwanStudios' });
+    };
     const io = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0]?.isIntersecting || fired.current) return;
-        fired.current = true;
-        io.disconnect();
-        setCharged(true);
-        crystallizeTo(() => setIgnited(true), { settleAnnouncement: 'SwanStudios' });
-      },
-      { threshold: 0.35 },
+      (entries) => { if (entries[0]?.isIntersecting) { io.disconnect(); charge(); } },
+      { threshold: 0.15 },
     );
     io.observe(host);
-    return () => io.disconnect();
+    // Never leave the headline invisible: if the section never crosses the threshold (short / landscape
+    // viewports where 88vh never reaches 15% visibility), force the charge after 1.2s.
+    const fallback = window.setTimeout(() => { io.disconnect(); charge(); }, 1200);
+    return () => { io.disconnect(); window.clearTimeout(fallback); };
   }, [active, crystallizeTo]);
 
   return (
     <Section ref={hostRef} onPointerMove={onPointerMove} data-testid="home-hero-optics">
-      {active ? (
-        <VideoLayer aria-hidden="true">
-          <video autoPlay muted loop playsInline preload="auto" poster="/images/parallax/hero-swan-bg.png">
-            <source src={VIDEO.swan} type="video/mp4" />
-          </video>
-        </VideoLayer>
-      ) : (
-        <PosterLayer aria-hidden="true" />
-      )}
+      <SwanVideoBackdrop
+        active={active}
+        videoSrc={VIDEO.swan}
+        poster="/images/parallax/hero-swan-bg.png"
+        hostRef={hostRef}
+      />
       <CanvasWrap>
         <OpticsCanvas hostRef={hostRef} active={active && charged} />
       </CanvasWrap>
