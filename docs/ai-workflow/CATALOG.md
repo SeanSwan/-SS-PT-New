@@ -1,4 +1,4 @@
-# CATALOG — distilled recall layer (Rule 71)
+# CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches `git ls-files -s <path>` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via `node scripts/catalog-regen.mjs`. Regeneration is T2 (reads repo, writes only this file).
 > **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (246 files) · Regenerated 2026-07-21 by scripts/catalog-regen.mjs.

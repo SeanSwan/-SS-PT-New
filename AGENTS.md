@@ -1,4 +1,4 @@
-﻿# AGENTS.md - Codex Operating Mirror for SwanStudios
+# AGENTS.md - Codex Operating Mirror for SwanStudios
 
 This is Codex's project-instruction file for the SwanStudios repo. It intentionally mirrors `CLAUDE.md` so Codex follows the same project standards Sean established for Claude.
 
@@ -8,11 +8,9 @@ This is Codex's project-instruction file for the SwanStudios repo. It intentiona
 - The detailed project rules below are copied from the current `CLAUDE.md` source of truth.
 - Wherever the mirrored text says "Claude must", "Claude MUST", or otherwise assigns an agent obligation to Claude, Codex must apply that obligation to itself unless the sentence is explicitly historical, names a file/path, or describes Claude's new hostile-review role.
 - Dual-summary rule for Codex: for any substantial user-facing summary, closeout, review result, architecture explanation, or "what changed" answer, provide `Plain-English Summary` first and `Technical Summary` second unless Sean explicitly asks for only one.
-- Current post-handoff role order for this Codex surface: Codex builds -> Gemini reviews -> Claude performs hostile review/gate. If mirrored Rule 46 below still describes the older Claude-builds/Codex-gate loop, this adapter note and `docs/ai-workflow/AI-HANDOFF/CODEX-PRIMARY-BUILDER-HANDOFF-2026-05-05.md` override it for Codex-led work.
+- Review-chain roles (Rule 46 as amended 2026-06-10): whoever builds, Gemini reviews, Codex runs the hostile review as MANDATORY INPUT, and **Fable (claude-fable-5) is the Final Decider and commit gate** (fallback: next best Claude model). Codex's verdict is advisory to the Final Decider, never the gate itself. `docs/ai-workflow/AI-HANDOFF/CODEX-PRIMARY-BUILDER-HANDOFF-2026-05-05.md` describes the Codex-led build lane inside this chain.
+- Mirror maintenance: the body below the mirror marker is REGENERATED, never hand-edited — `node scripts/sync-agents-mirror.mjs` (add `--check` to verify without writing). Hand edits below the marker will be overwritten on the next sync.
 - Do not push to `main` without Sean's explicit approval. Render auto-deploys from `main`.
-- Codex Taste Skill install: `design-taste-frontend` is installed at `.agents/skills/design-taste-frontend/SKILL.md`. Use it only when Sean explicitly asks for Taste Skill / design taste / high-taste / anti-slop design help. It is an additive design lens under `swan-design-router`, not a default design brain.
-- Taste Skill precedence for SwanStudios: `AGENTS.md`, `swan-design-router`, `SWAN-CINEMATIC-DESIGN-SYSTEM.md`, `SWAN-ASSET-STORYBOARDING.md`, styled-components-first, Crystalline Swan tokens, WCAG, and Dual-Button Glow override Taste Skill whenever they conflict. Reject Taste Skill's Tailwind/default-library/icon/palette guidance and any LILA-ban guidance that contradicts Swan's approved purple/cyan glow language.
-- Taste Skill scope: its own file says it is mainly for landing pages, portfolios, and redesigns, not dense dashboards or multi-step product UI. For Swan dashboards, borrow only the useful anti-template/audit/hierarchy/motion critique while preserving product workflow density and real-data truth.
 
 # Codex Startup Instructions - SwanStudios Continuity Bridge
 
@@ -44,39 +42,41 @@ At session start, after loading normal Codex instructions and before exploring t
 Full spec: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`.
 
 --- project-doc mirror from CLAUDE.md ---
+
 # CLAUDE.md - SwanStudios Project Intelligence
 
 ## Identity
 SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.com).
 - **Stack:** React 18 + TypeScript + styled-components (frontend), Node.js + Express + Sequelize + PostgreSQL (backend)
 - **Theme:** Enchanted Apex: Crystalline Swan (dark-first, frozen enchanted forest + deep-ocean luxury vault)
-- **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) â€” do NOT use
+- **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use
 
-- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Codex and Claude code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** / Codex Startup step 6 — read the other agent's lane in `.ai-workflow/coordination/` first (read `claude.lane.md`), claim your files in `codex.lane.md`, and never `git add -A` while the other has files locked. A fresh session re-enters cheaply by reading the two tiny lane files + `review-queue.md`. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
+- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Claude and Codex code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** — read the other agent's lane in `.ai-workflow/coordination/` first (read-before-edit), claim your files in your own lane, and never `git add -A` while the other has files locked. A fresh session re-enters cheaply by reading the two tiny lane files + `review-queue.md`. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
-- **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode â€” see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
+- **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
 ## Four-C Router (second brain — where everything lives)
-> Navigation layer (Nate Herk "CLAUDE.md = router" model). This points to content that lives elsewhere in this file and the repo — it does not restate it. **Tool-agnostic:** CLAUDE.md carries the identical map so Claude and Codex orient the same way. Fresh-session orientation: read this router → `ACTIVE-INDEX.md` → `.ai-workflow/continuity/rolling-last-done.md` (per the Source-of-Truth load order below).
+> Navigation layer (Nate Herk "CLAUDE.md = router" model). This points to content that lives elsewhere in this file and the repo — it does not restate it. **Tool-agnostic:** AGENTS.md carries the identical map so Codex and Claude orient the same way. Fresh-session orientation: read this router → `ACTIVE-INDEX.md` → `.ai-workflow/continuity/rolling-last-done.md` (per the Source-of-Truth load order below).
 
-- **C1 — Context** (who/what we are): Identity + Product Core Loop + Active Palette (above); the 68 MANDATORY rules + dual-pass disciplines (below); vision/strategy in `docs/ai-workflow/references/` (BEST-IN-CLASS-TRAINING-APP-STRATEGY, SWANSTUDIOS-FULL-VISION, SWANSTUDIOS-MASTER-PROMPT) and `AI-HANDOFF/`. **Orient here first**, then `ACTIVE-INDEX.md` + the continuity bridge.
+- **C1 — Context** (who/what we are): Identity + Product Core Loop + Active Palette (above); the 66 MANDATORY rules + dual-pass disciplines (below); vision/strategy in `docs/ai-workflow/references/` (BEST-IN-CLASS-TRAINING-APP-STRATEGY, SWANSTUDIOS-FULL-VISION, SWANSTUDIOS-MASTER-PROMPT) and `AI-HANDOFF/`. **Orient here first**, then `ACTIVE-INDEX.md` + the continuity bridge.
 - **C2 — Connections** (live data the brain reaches): LIVE = Render PostgreSQL, Cloudflare R2, `scripts/consult-gemini.mjs`/`consult-codex.mjs`, Hermes bridge (Sean-only, gated), Swan Oracle/SerpAPI. PLANNED (Stripe-read, calendar, accounting, Plaud, wearables) → `docs/ai-workflow/references/FOUR-C-CONNECTIONS-CADENCE-ROADMAP.md`.
 - **C3 — Capabilities** (what we can do): 20 `.claude/skills/` (see Swan Visual Operating System below), AI Village (`scripts/validation-orchestrator.mjs`), repo `scripts/`.
 - **C4 — Cadence** (runs on trigger/schedule, not just manually): LIVE = continuity bridge, pre-commit secret scan, `prompt-watcher` UserPromptSubmit hook (rule 66). PLANNED (nightly admin briefing, stale-client alert, deploy-health watch) → same roadmap doc. Automation must earn trust: keys-not-prompts, owner, kill switch (rule 48/50).
 
-## Fable Control Layer (added 2026-07-03 — canonical routing for agents & operators)
-- **Fable usage policy:** when to spend Fable vs Codex/Claude/Hermes/Village → `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md`
+## Fable Control Layer (added 2026-07-03 - canonical routing for agents & operators)
+- **Fable usage policy:** when to spend Fable vs Codex/Claude/Hermes/Village -> `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md`
 - **Fable token-economy / context compression:** startup-visible cost-control rule for bulky Fable context; compact tool output, semantic-compress safe handoffs, query large logs, run the local estimator before image-rendered context, and keep unreviewed API/base-URL proxies blocked -> `docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`
-- **Hermes ↔ SwanStudios boundary + T0–T4 command effect tiers** (T0 read · T1 draft · T2 bounded internal write · T3 external-visible · T4 destructive/financial/irreversible; T3/T4 = explicit approval + audit receipt; T4 is human-executed) → `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` (this file previously appeared in these docs as a dangling reference; it now exists)
-- **AI skill & operator registry** (who owns what, at which tier; unregistered command = BLOCKED; deterministic-vs-agentic boundary) → `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`
-- **Hermes Agentic OS** (workflow-audit → skills → automations → loops → memory → command center → distribution; approval gates, audit receipts, kill switches, channels, headless runner) → `docs/ai-workflow/hermes-agentic-os/index.md`
-- **Design Brain** (callable design system; `design.md` is canonical, `design.html` mirrors it — design.md wins on conflict; adapters per agent; website archetypes; cinematic factory; QA gates; Mobbin MCP reference gate via `external-reference-mcp.md`) → `docs/ai-workflow/design-brain/index.md`. Subordinate to `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; loaded by `swan-design-router`.
-- **AI Village modes** (LIGHT/FULL/HOSTILE/DESIGN/SAFETY_GOVERNANCE/PRODUCT/IMPLEMENTATION/AGENTIC_OS/GRAPHIFY_OBSIDIAN/FABLE_WORKFLOW; paid modes stay rule-16 gated) → `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/130-fable-ai-village-review-packet.md`
-- **Browser Harness:** read-only by default; supervised admin audits (human authenticates, harness observes); any interaction = per-run approval + receipt (bridge §6).
-- **Obsidian/Karpathy routing + Graphify quarantine:** raw/wiki/outputs/runs/graph-imports/references/templates, index.md law, quarantine-first imports → `docs/ai-workflow/design-brain/obsidian/` + `docs/ai-workflow/design-brain/graphify/` + `docs/ai-workflow/hermes-agentic-os/memory-and-state.md`
-- **Naming note:** "Paybolt" was a 2026-07 transcription error for "Fable" — it is not canonical anywhere and must not be reintroduced (see `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/101-paybolt-mishearing-cleanup.md`).
+- **Fable-mode portable discipline + model/effort routing (rule 71):** the Fable method as a loadable skill for fallback Final Deciders (five gates + standing habits) + the cost/intelligence/taste routing table (orchestrator-smart / executor-cheap) for subagent fleets -> `.claude/skills/fable-mode/SKILL.md`; consult review + ARMS/Four-C second-brain gap analysis -> `docs/ai-workflow/AI-HANDOFF/HERMES-OS-SECOND-BRAIN-CONSULT-REVIEW-2026-07-07.md`
+- **Hermes / SwanStudios boundary + T0-T4 command effect tiers** (T0 read; T1 draft; T2 bounded internal write; T3 external-visible; T4 destructive/financial/irreversible; T3/T4 = explicit approval + audit receipt; T4 is human-executed) -> `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`
+- **AI skill & operator registry** (who owns what, at which tier; unregistered command = BLOCKED; deterministic-vs-agentic boundary) -> `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`
+- **Hermes Agentic OS** (workflow-audit -> skills -> automations -> loops -> memory -> command center -> distribution; approval gates, audit receipts, kill switches, channels, headless runner) -> `docs/ai-workflow/hermes-agentic-os/index.md`
+- **Design Brain** (callable design system; `design.md` is canonical, `design.html` mirrors it - design.md wins on conflict; adapters per agent; website archetypes; cinematic factory; QA gates) -> `docs/ai-workflow/design-brain/index.md`. Subordinate to `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; loaded by `swan-design-router`.
+- **AI Village modes** (LIGHT/FULL/HOSTILE/DESIGN/SAFETY_GOVERNANCE/PRODUCT/IMPLEMENTATION/AGENTIC_OS/GRAPHIFY_OBSIDIAN/FABLE_WORKFLOW; paid modes stay rule-16 gated) -> `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/130-fable-ai-village-review-packet.md`
+- **Browser Harness:** read-only by default; supervised admin audits (human authenticates, harness observes); any interaction = per-run approval + receipt (bridge section 6).
+- **Obsidian/Karpathy routing + Graphify quarantine:** raw/wiki/outputs/runs/graph-imports/references/templates, index.md law, quarantine-first imports -> `docs/ai-workflow/design-brain/obsidian/` + `docs/ai-workflow/design-brain/graphify/` + `docs/ai-workflow/hermes-agentic-os/memory-and-state.md`
+- **Naming note:** "Paybolt" was a 2026-07 transcription error for "Fable" - it is not canonical anywhere and must not be reintroduced (see `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/101-paybolt-mishearing-cleanup.md`).
 
-- **Sean Human-AI Task OS** (capture -> one visible work state -> agent-ready dispatch -> eval -> batched human QA) -> `docs/ai-workflow/hermes-agentic-os/task-operating-system.md`
+
 ## Product Core Loop
 SwanStudios is workout-progress-first. The main product loop is: log the workout -> save the workout diary entry -> turn it into charts/progress proof -> help the user, trainer, and admin decide the next training action -> make meaningful milestones shareable with the community.
 
@@ -87,27 +87,27 @@ SwanStudios is workout-progress-first. The main product loop is: log the workout
 - **Best-in-class strategy:** SwanStudios is a trainer-led B2B2C operating system, not a generic fitness social network. The product combines coach workflow depth, first-party workout/progress data, AI-assisted accountability, payments, and community belonging around one canonical user/client record. Full compact strategy: `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`.
 
 ## Build & Run
-- **Local dev:** `npm run dev` (from root â€” backend:10000 + frontend:5173 concurrently, auto-opens browser)
+- **Local dev:** `npm run dev` (from root — backend:10000 + frontend:5173 concurrently, auto-opens browser)
 - **Frontend build:** `cd frontend && npm run build` (Vite)
 - **Tests:** `cd frontend && npx vitest run --reporter verbose` | `cd backend && npm test`
 - **Type check:** `cd frontend && npx tsc --noEmit`
-- **Local dev uses production DB** via `DATABASE_URL` â€” if it works locally, it works in production
+- **Local dev uses production DB** via `DATABASE_URL` — if it works locally, it works in production
 - **MANDATORY:** Test locally before committing. No pushing broken code.
 - **Bugfix standard:** For bug fixes, write a targeted failing regression test first when feasible. If not feasible, explicitly say why and verify from the real caller path instead of a local happy path only.
 
 ## Active Palette
-- Midnight Sapphire `#002060` (Primary â€” buttons bg)
-- Royal Depth `#003080` (Surface â€” elevated cards)
-- Ice Wing `#60C0F0` (Cyan Glow â€” gaming accents, XP bars)
-- Arctic Cyan `#50A0F0` (Data Only â€” charts. NOT for buttons/glow)
-- Gilded Fern `#C6A84B` (Luxury Accent â€” gold)
-- Frost White `#E0ECF4` (Text â€” primary light)
+- Midnight Sapphire `#002060` (Primary — buttons bg)
+- Royal Depth `#003080` (Surface — elevated cards)
+- Ice Wing `#60C0F0` (Cyan Glow — gaming accents, XP bars)
+- Arctic Cyan `#50A0F0` (Data Only — charts. NOT for buttons/glow)
+- Gilded Fern `#C6A84B` (Luxury Accent — gold)
+- Frost White `#E0ECF4` (Text — primary light)
 - Swan Lavender `#4070C0` (Tertiary)
-- Wing Purple `#8B5CF6` (Glow Accent â€” purple buttons, focus rings)
-- Obsidian Black `#0A0A0F` (Deep Dark â€” primary dark bg)
+- Wing Purple `#8B5CF6` (Glow Accent — purple buttons, focus rings)
+- Obsidian Black `#0A0A0F` (Deep Dark — primary dark bg)
 - Carbon `#141419` (Card Dark)
-- Graphite `#1A1A24` (Surface Dark â€” modals, drawers)
-- **Dual-Button Glow:** Blue bg â†’ Purple glow | Purple bg â†’ Cyan glow
+- Graphite `#1A1A24` (Surface Dark — modals, drawers)
+- **Dual-Button Glow:** Blue bg → Purple glow | Purple bg → Cyan glow
 - **Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming)
 - **Rarity:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient
 
@@ -122,29 +122,33 @@ SwanStudios is workout-progress-first. The main product loop is: log the workout
 
 These four principles distill common LLM coding pitfalls (per Andrej Karpathy's 2026 observations on agent failure modes, codified by `forrestchang/andrej-karpathy-skills`). They cross-cut the numbered MANDATORY rules below; the framing here is a memory aid for application.
 
-1. **Think Before Coding.** Don't assume. Don't hide confusion. Surface tradeoffs. State assumptions explicitly. If multiple interpretations exist, present them â€” don't pick silently. If ambiguity affects behavior, security, or data and cannot be resolved from repo context, stop and ask. *(Reinforces: Rule 15 recursive planning, Rule 51 confidence tags, Rule 52 anti-rework burden of proof.)*
+1. **Think Before Coding.** Don't assume. Don't hide confusion. Surface tradeoffs. State assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If ambiguity affects behavior, security, or data and cannot be resolved from repo context, stop and ask. *(Reinforces: Rule 15 recursive planning, Rule 51 confidence tags, Rule 52 anti-rework burden of proof.)*
 2. **Simplicity First.** Minimum code that solves the problem. Nothing speculative. If you write 200 lines and it could be 50, rewrite it. Self-check: "would a senior engineer say this is overcomplicated?" If yes, simplify. *(Reinforces: Rule 4 line cap, Rule 18 existing-pattern-first.)*
-3. **Surgical Changes.** Touch only what you must. Don't "improve" adjacent code, comments, or formatting. Don't refactor what isn't broken. Match existing style even if you'd do it differently. If you notice unrelated dead code, mention it â€” don't delete it. The test: every changed line should trace directly to the user's request. *(Reinforces: Rule 20 sibling sweep stays narrow, Rule 37 cleanup-is-separate-pass.)*
-4. **Goal-Driven Execution.** Define success criteria. Loop until verified. Transform tasks into verifiable goals: "add validation" â†’ "write tests for invalid inputs, then make them pass." "Fix the bug" â†’ "write a test that reproduces it, then make it pass." Strong success criteria let you loop independently; weak criteria ("make it work") require constant clarification. *(Reinforces: Rule 17 dual-pass, Bugfix standard, test-driven-development skill.)*
+3. **Surgical Changes.** Touch only what you must. Don't "improve" adjacent code, comments, or formatting. Don't refactor what isn't broken. Match existing style even if you'd do it differently. If you notice unrelated dead code, mention it — don't delete it. The test: every changed line should trace directly to the user's request. *(Reinforces: Rule 20 sibling sweep stays narrow, Rule 37 cleanup-is-separate-pass.)*
+4. **Goal-Driven Execution.** Define success criteria. Loop until verified. Transform tasks into verifiable goals: "add validation" → "write tests for invalid inputs, then make them pass." "Fix the bug" → "write a test that reproduces it, then make it pass." Strong success criteria let you loop independently; weak criteria ("make it work") require constant clarification. *(Reinforces: Rule 17 dual-pass, Bugfix standard, test-driven-development skill.)*
 
 Trivial polish tasks may bypass formal planning overhead using judgment, but surgical scope, safety, and evidence requirements still apply. Anything that touches production data, security, auth, billing, shared infrastructure, or PII gets no bypass at all.
 
+## Prompt Reconstruction + Hostile Review Protocol
+Before creating anything substantial (docs, specs, plans, code slices): reconstruct the goal, audit the prompt, identify weak assumptions, improve the prompt/plan, execute the improved version, prove completion with evidence. Give the why; say what NOT to do; act when enough information exists; say less where possible; never reveal or request private reasoning.
+Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW-PROTOCOL.md`.
+
 ## MANDATORY Rules (Apply to ALL Tasks)
-1. **No Material-UI** â€” styled-components only with CSS custom properties + dark-theme fallbacks
+1. **No Material-UI** — styled-components only with CSS custom properties + dark-theme fallbacks
 2. **44px min touch targets** on all interactive elements
-3. **Dark-first design** â€” default theme is `crystalline-dark`. var(--bg-base, #030712), var(--accent-primary, #60C0F0)
-4. **Max 300 lines per file** â€” extract hooks, utils, styles, types when approaching limit
-5. **Blueprint header on components >100 lines** â€” see `docs/ai-workflow/references/BLUEPRINT-PROTOCOL.md`
-6. **No hardcoded colors** â€” use `var(--token, #fallback)` pattern with Crystalline Swan fallbacks
-7. **WCAG 4.5:1 contrast minimum** â€” test text against background
-8. **Zero PII to LLMs** â€” client IDs only, names mapped client-side. See `docs/ai-workflow/references/PRIVACY-PROXY.md`
-9. **No yoga/meditation** language â€” use "stretching"/"flexibility" instead
+3. **Dark-first design** — default theme is `crystalline-dark`. var(--bg-base, #030712), var(--accent-primary, #60C0F0)
+4. **Max 300 lines per file** — extract hooks, utils, styles, types when approaching limit
+5. **Blueprint header on components >100 lines** — see `docs/ai-workflow/references/BLUEPRINT-PROTOCOL.md`
+6. **No hardcoded colors** — use `var(--token, #fallback)` pattern with Crystalline Swan fallbacks
+7. **WCAG 4.5:1 contrast minimum** — test text against background
+8. **Zero PII to LLMs** — client IDs only, names mapped client-side. See `docs/ai-workflow/references/PRIVACY-PROXY.md`
+9. **No yoga/meditation** language — use "stretching"/"flexibility" instead
 10. **Victory only** for charts (no Recharts for new work)
 11. **Render is PAID Professional plan** (~$60/month), NOT free tier. No cold starts.
 12. **No Grok/X-AI models** anywhere. Hard permanent no.
-13. **Commit style:** `type(scope): description` â†’ push to main for Render auto-deploy
-14. **7-Star documentation** on all new files â€” see `docs/ai-workflow/references/DOCUMENTATION-STANDARD.md`
-15. **Recursive planning BEFORE building** â€” NO code without a plan. See `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`
+13. **Commit style:** `type(scope): description` → push to main for Render auto-deploy
+14. **7-Star documentation** on all new files — see `docs/ai-workflow/references/DOCUMENTATION-STANDARD.md`
+15. **Recursive planning BEFORE building** — NO code without a plan. See `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`
 16. **AI Village (15-brain) requires Sean's permission** - NEVER run without asking. Use Opus (free) or Gemini CTO (cheap) for most planning. Village is for CRITICAL decisions only (~$0.33/run).
 
 17. **Dual-pass completion required** - for bug fixes, production incidents, and reviews, Claude must act as BOTH builder and hostile reviewer before declaring success.
@@ -157,84 +161,84 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 24. **Responsive audit matrix required** - verify layouts against the viewport matrix below, including `414px` for iPhone XR, `2560x1440` for Sean's 1440p/QHD monitor class, and `3840x2160` for 4K. Use CSS viewport widths plus explicit monitor-class dimensions; do not stop at `1920px`.
 25. **Motion must stay premium and accessible** - motion should feel modern and intentional, but must stay GPU-safe and respect `prefers-reduced-motion`.
 
-26. **Canonical Surface Receipt (MANDATORY)** â€” Before any UI or data-truth bug fix, produce a written receipt with file:line evidence for: (a) route file that actually mounts the target URL, (b) mounted JSX page/component â€” a lazy `import()` declaration is NOT proof of mount, JSX usage is, (c) consumer hook/service, (d) exact frontend API path string literal, (e) backend route match, (f) authoritative model fields from the model file (not from nearby mapper code). No code may be written until the receipt exists in the task thread.
+26. **Canonical Surface Receipt (MANDATORY)** — Before any UI or data-truth bug fix, produce a written receipt with file:line evidence for: (a) route file that actually mounts the target URL, (b) mounted JSX page/component — a lazy `import()` declaration is NOT proof of mount, JSX usage is, (c) consumer hook/service, (d) exact frontend API path string literal, (e) backend route match, (f) authoritative model fields from the model file (not from nearby mapper code). No code may be written until the receipt exists in the task thread.
 
-27. **Surface Classification Table (MANDATORY)** â€” If more than one file/component/route/endpoint appears to serve the same product surface, classify each as:
-    - **canonical** â€” proven mounted in the live route tree, with file:line evidence
-    - **legacy** â€” not rendered by the currently verified canonical route tree for this surface
-    - **dormant** â€” exists but has no consumer (new-but-not-yet-wired, or intentional placeholder)
-    - **competing/ambiguous** â€” two or more surfaces may both be active; resolution required
+27. **Surface Classification Table (MANDATORY)** — If more than one file/component/route/endpoint appears to serve the same product surface, classify each as:
+    - **canonical** — proven mounted in the live route tree, with file:line evidence
+    - **legacy** — not rendered by the currently verified canonical route tree for this surface
+    - **dormant** — exists but has no consumer (new-but-not-yet-wired, or intentional placeholder)
+    - **competing/ambiguous** — two or more surfaces may both be active; resolution required
     Every row must include file:line evidence. If classification is ambiguous, stop and resolve with Sean before coding.
 
-28. **Claim-to-Evidence Lock (MANDATORY)** â€” Any closeout phrase of the form "end-to-end fixed," "live surface fixed," "truth restored," or "canonical surface patched" requires a Canonical Surface Receipt (rule 26) in the same report. Fixing a dormant or legacy path does not justify a canonical-surface claim â€” narrow the claim to "schema drift in legacy/orphaned file" and explicitly state which surface the fix does and does not reach.
+28. **Claim-to-Evidence Lock (MANDATORY)** — Any closeout phrase of the form "end-to-end fixed," "live surface fixed," "truth restored," or "canonical surface patched" requires a Canonical Surface Receipt (rule 26) in the same report. Fixing a dormant or legacy path does not justify a canonical-surface claim — narrow the claim to "schema drift in legacy/orphaned file" and explicitly state which surface the fix does and does not reach.
 
-29. **Schema Cross-Check Artifact (MANDATORY)** â€” For any fix that touches a Sequelize (or equivalent ORM) model, the report must include: (a) real column list quoted from the model file with file:line, (b) repo-wide grep across `backend/routes`, `backend/controllers`, `backend/services` for the model name, (c) for every hit, the full list of fields that caller references on the model, (d) a drift table: `caller field â†’ real model column â†’ match | drift`. Memory-based "I think these fields exist" assumptions are forbidden.
+29. **Schema Cross-Check Artifact (MANDATORY)** — For any fix that touches a Sequelize (or equivalent ORM) model, the report must include: (a) real column list quoted from the model file with file:line, (b) repo-wide grep across `backend/routes`, `backend/controllers`, `backend/services` for the model name, (c) for every hit, the full list of fields that caller references on the model, (d) a drift table: `caller field → real model column → match | drift`. Memory-based "I think these fields exist" assumptions are forbidden.
 
-30. **Subagent Skepticism Rule (MANDATORY)** â€” Subagent output is a hypothesis, not root cause. For UI or data-truth work, a subagent's findings are not authoritative unless its output contains a Canonical Surface Receipt. If a subagent lacks that receipt, either re-prompt it with the Receipt requirement or construct the Receipt manually before acting.
+30. **Subagent Skepticism Rule (MANDATORY)** — Subagent output is a hypothesis, not root cause. For UI or data-truth work, a subagent's findings are not authoritative unless its output contains a Canonical Surface Receipt. If a subagent lacks that receipt, either re-prompt it with the Receipt requirement or construct the Receipt manually before acting.
 
-31. **Backend Route Ownership / Shadow Audit (MANDATORY)** â€” When mapping a frontend API path to a backend handler, list every Express `app.use(...)` and `router.(get|post|put|delete)(...)` that could match the **touched path** and any **overlapping sibling paths revealed by the route walk**, in mount order. If overlapping mounts exist (e.g. `/api/workout` and `/api/workout/sessions` both mounted), the shadowing condition must be called out explicitly before the handler is considered verified. Default scope is narrow â€” do NOT run a whole-repo mount-order audit on every task.
+31. **Backend Route Ownership / Shadow Audit (MANDATORY)** — When mapping a frontend API path to a backend handler, list every Express `app.use(...)` and `router.(get|post|put|delete)(...)` that could match the **touched path** and any **overlapping sibling paths revealed by the route walk**, in mount order. If overlapping mounts exist (e.g. `/api/workout` and `/api/workout/sessions` both mounted), the shadowing condition must be called out explicitly before the handler is considered verified. Default scope is narrow — do NOT run a whole-repo mount-order audit on every task.
 
-32. **Repo Hygiene Scan Trigger (MANDATORY)** â€” Run a non-destructive hygiene scan before: major refactors or architecture changes, dashboard audits, route-tracing or debugging tasks with competing surfaces, and any fresh session where Sean says the repo feels confusing or cluttered. Also run after any large workstream that created many artifacts or planning docs. The scan must include root-level file inventory, competing-surface inventory, duplicate-route / duplicate-feature inventory, and a candidate archive/move list. **No files are moved or deleted during the scan.** Full workflow in `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`.
+32. **Repo Hygiene Scan Trigger (MANDATORY)** — Run a non-destructive hygiene scan before: major refactors or architecture changes, dashboard audits, route-tracing or debugging tasks with competing surfaces, and any fresh session where Sean says the repo feels confusing or cluttered. Also run after any large workstream that created many artifacts or planning docs. The scan must include root-level file inventory, competing-surface inventory, duplicate-route / duplicate-feature inventory, and a candidate archive/move list. **No files are moved or deleted during the scan.** Full workflow in `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`.
 
-33. **Active vs Archive vs Planned Classification (MANDATORY)** â€” Any non-trivial file discovered in a hygiene scan must be classified as exactly one of: active runtime code, active reference doc, planned/unimplemented blueprint, legacy but still referenced, orphaned candidate, archive-only historical record, QA artifact / screenshot / temp output. If classification is uncertain, mark it **ambiguous** and do not move it.
+33. **Active vs Archive vs Planned Classification (MANDATORY)** — Any non-trivial file discovered in a hygiene scan must be classified as exactly one of: active runtime code, active reference doc, planned/unimplemented blueprint, legacy but still referenced, orphaned candidate, archive-only historical record, QA artifact / screenshot / temp output. If classification is uncertain, mark it **ambiguous** and do not move it.
 
-34. **No Blind Cleanup Rule (MANDATORY)** â€” No file may be archived, moved, or deleted until imports/references are grep-checked, route mounts/usages are checked where relevant, and Sean's explicit approval is obtained for the cleanup execution. Fresh-chat cleanup is non-destructive by default. Never auto-clean by assumption. The phrases "safe to delete," "guaranteed deletable," and "nothing to lose" are forbidden â€” use "likely deletion candidate pending Phase 2 approval," "appears unreferenced based on current grep," or "requires final reference check before destructive action."
+34. **No Blind Cleanup Rule (MANDATORY)** — No file may be archived, moved, or deleted until imports/references are grep-checked, route mounts/usages are checked where relevant, and Sean's explicit approval is obtained for the cleanup execution. Fresh-chat cleanup is non-destructive by default. Never auto-clean by assumption. The phrases "safe to delete," "guaranteed deletable," and "nothing to lose" are forbidden — use "likely deletion candidate pending Phase 2 approval," "appears unreferenced based on current grep," or "requires final reference check before destructive action."
 
-35. **Root Directory Minimalism Rule (MANDATORY)** â€” The repo root stays intentionally lean. `CLAUDE.md` and `ACTIVE-INDEX.md` are the two operating files at root. Root-level screenshots, QA exports, temp logs, ad hoc markdown notes, and one-off artifacts should not accumulate indefinitely at root. But: do not move blindly. Classify first (rule 33), propose relocation into existing archive/QA folders (or a new approved structure), then execute only after approval.
+35. **Root Directory Minimalism Rule (MANDATORY)** — The repo root stays intentionally lean. `CLAUDE.md` and `ACTIVE-INDEX.md` are the two operating files at root. Root-level screenshots, QA exports, temp logs, ad hoc markdown notes, and one-off artifacts should not accumulate indefinitely at root. But: do not move blindly. Classify first (rule 33), propose relocation into existing archive/QA folders (or a new approved structure), then execute only after approval.
 
-36. **Repo Index Requirement (MANDATORY)** â€” Maintain a lightweight index at `ACTIVE-INDEX.md` (repo root) that tells future sessions where active, planned, and archived material lives. The index must distinguish: active operating docs, active handoff docs, compact references, planned/unimplemented blueprints, archives (and what's in each), QA artifact locations. Target read time: under 2 minutes.
+36. **Repo Index Requirement (MANDATORY)** — Maintain a lightweight index at `ACTIVE-INDEX.md` (repo root) that tells future sessions where active, planned, and archived material lives. The index must distinguish: active operating docs, active handoff docs, compact references, planned/unimplemented blueprints, archives (and what's in each), QA artifact locations. Target read time: under 2 minutes.
 
-37. **Cleanup Execution Is a Separate Pass (MANDATORY)** â€” Protocol creation/inventory and physical cleanup are separate passes. Do not mix new feature implementation, bug fixing, and repo cleanup in the same unbounded task unless explicitly approved by Sean.
+37. **Cleanup Execution Is a Separate Pass (MANDATORY)** — Protocol creation/inventory and physical cleanup are separate passes. Do not mix new feature implementation, bug fixing, and repo cleanup in the same unbounded task unless explicitly approved by Sean.
 
-38. **Post-Task Hygiene Check (MANDATORY)** â€” At the end of any substantial task, report whether the work created new temp artifacts, new screenshots, new debate docs, or new obsolete files. If yes, add them to the cleanup backlog or archive plan explicitly.
+38. **Post-Task Hygiene Check (MANDATORY)** — At the end of any substantial task, report whether the work created new temp artifacts, new screenshots, new debate docs, or new obsolete files. If yes, add them to the cleanup backlog or archive plan explicitly.
 
-39. **Artifact Recurrence / .gitignore Rule (MANDATORY)** â€” If a hygiene scan identifies a recurring temp/log/build-artifact class (e.g. `combined.log`, `tsc-errors.txt`, ad hoc root `.png` QA dumps), Claude must propose the matching `.gitignore` update in the same cleanup plan so the same clutter does not repopulate the repo root after cleanup. The `.gitignore` proposal is part of Phase 1 planning output; the actual `.gitignore` edit happens only with Sean's explicit approval in Phase 2.
+39. **Artifact Recurrence / .gitignore Rule (MANDATORY)** — If a hygiene scan identifies a recurring temp/log/build-artifact class (e.g. `combined.log`, `tsc-errors.txt`, ad hoc root `.png` QA dumps), Claude must propose the matching `.gitignore` update in the same cleanup plan so the same clutter does not repopulate the repo root after cleanup. The `.gitignore` proposal is part of Phase 1 planning output; the actual `.gitignore` edit happens only with Sean's explicit approval in Phase 2.
 
-40. **Design work routes through `swan-design-router` by default (MANDATORY)** â€” All UI/visual work auto-routes through the Swan design router. The router is the only default-exposed design brain. It loads `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` as its source-of-truth docs, and treats `frontend-design` + `ui-ux-pro-max` as reference libraries (not co-equal steering brains). `design-taste-frontend` is installed for Codex as an explicit add-on reference library only when Sean asks for Taste Skill. The 7 narrow aesthetic skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are **explicit-invocation-only** â€” they do not steer default design work. For net-new pages and major redesigns, the router's 2-3 concept-direction ideation gate is mandatory before coding; small polish tasks can skip it. Mobbin MCP reference gate: net-new pages, major redesigns, Fable/Village design-implementation slices, and Sean-requested reference-backed work must first check the Mobbin/Mobbin-like MCP and run the `docs/ai-workflow/design-brain/external-reference-mcp.md` receipt before directions; if unavailable, mark `[MOBBIN UNAVAILABLE]` and proceed from Swan docs. Small polish, bugfix, and backend-only tasks may mark the gate not applicable. External references are research only and never override Swan source docs. See `.claude/skills/swan-design-router/SKILL.md`. The router also loads `docs/ai-workflow/design-brain/` (design.md canonical, design.html visual mirror); the Design Brain is subordinate to SWAN-CINEMATIC-DESIGN-SYSTEM.md.
+40. **Design work routes through `swan-design-router` by default (MANDATORY)** — All UI/visual work auto-routes through the Swan design router. The router is the only default-exposed design brain. It loads `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` as its source-of-truth docs, and treats `frontend-design` + `ui-ux-pro-max` as reference libraries (not co-equal steering brains). The 7 narrow aesthetic skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are **explicit-invocation-only** — they do not steer default design work. For net-new pages and major redesigns, the router's 2-3 concept-direction ideation gate is mandatory before coding; small polish tasks can skip it. See `.claude/skills/swan-design-router/SKILL.md`. The router also loads `docs/ai-workflow/design-brain/` (design.md canonical, design.html visual mirror); the Design Brain is subordinate to SWAN-CINEMATIC-DESIGN-SYSTEM.md.
 
-41. **Closeout routes through `closeout-evidence-lock` by default (MANDATORY)** â€” End-of-task closeout for any substantial task auto-routes through the Swan closeout skill. It enforces the Claim-to-Evidence Lock (rule 28), the dual-pass hostile review (rule 17), the post-task hygiene check (rule 38), and the forbidden-language filter (rule 34). It preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from the retired `requesting-code-review` skill. The `requesting-code-review` skill is **removed from default use** â€” it depends on a missing `superpowers:code-reviewer` subagent and silently fails. Do NOT dispatch to `requesting-code-review` from any new code path. See `.claude/skills/closeout-evidence-lock/SKILL.md`.
+41. **Closeout routes through `closeout-evidence-lock` by default (MANDATORY)** — End-of-task closeout for any substantial task auto-routes through the Swan closeout skill. It enforces the Claim-to-Evidence Lock (rule 28), the dual-pass hostile review (rule 17), the post-task hygiene check (rule 38), and the forbidden-language filter (rule 34). It preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from the retired `requesting-code-review` skill. The `requesting-code-review` skill is **removed from default use** — it depends on a missing `superpowers:code-reviewer` subagent and silently fails. Do NOT dispatch to `requesting-code-review` from any new code path. See `.claude/skills/closeout-evidence-lock/SKILL.md`.
 
-42. **Pre-Push Backend Audit (MANDATORY)** â€” Before pushing ANY backend change, run BOTH audit commands and commit anything they surface:
+42. **Pre-Push Backend Audit (MANDATORY)** — Before pushing ANY backend change, run BOTH audit commands and commit anything they surface:
     ```bash
     git ls-files --others --exclude-standard backend/   # untracked (crashes Render with ERR_MODULE_NOT_FOUND)
     git diff --name-only HEAD backend/                  # modified-uncommitted (crashes with SyntaxError: does not provide an export named 'X')
     ```
-    Both classes of drift crash Render identically at boot. Incident 2026-04-12: a series of crash-loops caused by 10 untracked Swan Coach files + 9 modified-but-uncommitted files whose new exports were missing on the remote. Each check takes under a second â€” run both every time, no exceptions. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (Backend Rules + Pre-Commit Mental Checklist #7).
+    Both classes of drift crash Render identically at boot. Incident 2026-04-12: a series of crash-loops caused by 10 untracked Swan Coach files + 9 modified-but-uncommitted files whose new exports were missing on the remote. Each check takes under a second — run both every time, no exceptions. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (Backend Rules + Pre-Commit Mental Checklist #7).
 
-43. **styled-components `css` helper required for shared style chunks (MANDATORY)** â€” Any shared animation, mixin, or style fragment that contains `${}` interpolation AND will be composed into a styled component MUST be wrapped with the `` css`` `` tagged template helper, never a plain JS template string. Plain strings call `toString()` on `keyframes` / helper objects and bake the generated class name into the CSS output, crashing styled-components at mount with error #12 (`An error occurred. Args: <hash>`). The build passes, types check, nothing warns at dev time â€” it only crashes on mount. Incident 2026-04-12: `AdminOverviewPanel.tsx` `bentoItemAnimation` took down the entire admin dashboard this way. Rule of thumb: if a template literal interpolates a styled-components primitive, it is `` css`` ``, not a plain string. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (React Component Rules + Pre-Commit Mental Checklist #8).
+43. **styled-components `css` helper required for shared style chunks (MANDATORY)** — Any shared animation, mixin, or style fragment that contains `${}` interpolation AND will be composed into a styled component MUST be wrapped with the `` css`` `` tagged template helper, never a plain JS template string. Plain strings call `toString()` on `keyframes` / helper objects and bake the generated class name into the CSS output, crashing styled-components at mount with error #12 (`An error occurred. Args: <hash>`). The build passes, types check, nothing warns at dev time — it only crashes on mount. Incident 2026-04-12: `AdminOverviewPanel.tsx` `bentoItemAnimation` took down the entire admin dashboard this way. Rule of thumb: if a template literal interpolates a styled-components primitive, it is `` css`` ``, not a plain string. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (React Component Rules + Pre-Commit Mental Checklist #8).
 
-44. **Secret scanning covers writes, not only shell commands (MANDATORY)** â€” After the 2026-04-19 credential incident, Bash deny patterns are not enough. Before writing or committing any docs, handoffs, scripts, config, or code that may mention credentials, scan the output for API keys, JWTs, DB URLs, PEM/private keys, and known rotated-secret fingerprints. The Codex-caught re-leak was in a Markdown handoff file, not a shell command.
+44. **Secret scanning covers writes, not only shell commands (MANDATORY)** — After the 2026-04-19 credential incident, Bash deny patterns are not enough. Before writing or committing any docs, handoffs, scripts, config, or code that may mention credentials, scan the output for API keys, JWTs, DB URLs, PEM/private keys, and known rotated-secret fingerprints. The Codex-caught re-leak was in a Markdown handoff file, not a shell command.
 
-45. **No amend/rewrite without Sean (MANDATORY)** â€” Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
+45. **No amend/rewrite without Sean (MANDATORY)** — Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
 
-46. **3-Brain Review Loop (MANDATORY; AMENDED 2026-06-10: Fable is the Final Decider. Codex's verdict is advisory input; Fable (or the fallback Final Decider) arbitrates all verdicts and owns the commit decision. Full amendment text: CLAUDE.md rule 46.)** â€” For any substantial change (feature, refactor, bug fix, production incident, architectural work), the review order is fixed:
-    1. **Claude builds** â€” implementation + tests, narrow scope
-    2. **Gemini reviews** â€” invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
-    3. **Codex reviews both** â€” Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
-    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's verdict is advisory; **Fable's APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
+46. **3-Brain Review Loop (MANDATORY) — AMENDED 2026-06-10: Fable is the Final Decider.** Sean's directive 2026-06-10: "Fable is the final decider in everything; if Fable is not available, use the next best model." Effect on this rule: the review ORDER below still runs for substantial changes (Claude builds → Gemini reviews → Codex reviews), but **Codex's verdict is now advisory input, not the commit gate — Fable (or the fallback Final Decider) arbitrates all verdicts and owns the commit decision.** Codex's hostile-review value is preserved (its catch record below is why it stays mandatory input); its authority is not. If Codex is unavailable, Fable may proceed with Gemini review + its own hostile pass, recording the gap in the commit message. Original rule text follows for the review procedure:
+    1. **Claude builds** — implementation + tests, narrow scope
+    2. **Gemini reviews** — invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
+    3. **Codex reviews both** — Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
+    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's **APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
 
     This ordering is mandatory because Codex has consistently caught what Claude and Gemini both missed:
-    - Credential re-leak in handoff doc (2026-04-19) â€” Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
-    - Script arg parser bug (2026-04-21) â€” `consult-gemini.mjs --review --file X` fed "--file" as code to review; Gemini hallucinated a phantom component; Codex diagnosed via argv trace.
-    - Phase 18.A Gemini contradiction (2026-04-21) â€” Gemini proposed theme-provider tokens that violate rule 6; Codex killed it, kept the two valid fixes.
-    - Cross-platform preflight bug (2026-04-20) â€” Claude shelled out to `bash` which resolves to WSL on Windows; Codex flagged it from the Windows path.
+    - Credential re-leak in handoff doc (2026-04-19) — Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
+    - Script arg parser bug (2026-04-21) — `consult-gemini.mjs --review --file X` fed "--file" as code to review; Gemini hallucinated a phantom component; Codex diagnosed via argv trace.
+    - Phase 18.A Gemini contradiction (2026-04-21) — Gemini proposed theme-provider tokens that violate rule 6; Codex killed it, kept the two valid fixes.
+    - Cross-platform preflight bug (2026-04-20) — Claude shelled out to `bash` which resolves to WSL on Windows; Codex flagged it from the Windows path.
 
-    Sub-rules:
+    Sub-rules (as amended 2026-06-10):
     - **Gemini review is mandatory before Codex** so Codex has the third perspective to cross-check. Skipping Gemini leaves Codex with only Claude's self-view.
-    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is a hostile reviewer; Fable is the gate.
-    - **CLAUDE.md rules win.** When Gemini suggests anything contradicting an existing rule, Codex rejects Gemini's suggestion and logs the contradiction.
+    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is a hostile reviewer; **Fable is the gate.**
+    - **CLAUDE.md rules win.** When Gemini or Codex suggests anything contradicting an existing rule, the Final Decider rejects the suggestion and logs the contradiction.
     - **Village (15-brain) is a separate escalation track** for major architectural decisions. 3-brain per-fix; Village per-phase.
     - **If Codex service is unavailable** (rate limit, outage), Fable may proceed with Gemini review + its own documented hostile pass; the skipped Codex input is recorded in the commit message for post-hoc review.
 
     Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
 
-47. **Supervised Read-Only Launcher Pattern (MANDATORY for all remote/Pi/production work)** â€” Established 2026-04-25 after the W1.0 manual-command workflow proved too fragile for Sean. Any semi-automated work that touches a remote system (Pi, Hermes, Render, third-party server) MUST run via a local launcher. Long copy-paste shell command sequences are forbidden; Claude does not hand Sean a wall of commands to run by hand.
+47. **Supervised Read-Only Launcher Pattern (MANDATORY for all remote/Pi/production work)** — Established 2026-04-25 after the W1.0 manual-command workflow proved too fragile for Sean. Any semi-automated work that touches a remote system (Pi, Hermes, Render, third-party server) MUST run via a local launcher. Long copy-paste shell command sequences are forbidden; Claude does not hand Sean a wall of commands to run by hand.
 
     **Required launcher properties:**
     - Lives locally at `c:/tmp/<task-name>.ps1` (or `scripts/launchers/<task>.ps1` if persistent).
-    - Tees all output to a local Windows file at `c:/tmp/<task-name>.out.txt`. Output path is local-only â€” never on the remote.
+    - Tees all output to a local Windows file at `c:/tmp/<task-name>.out.txt`. Output path is local-only — never on the remote.
     - Embeds the remote script (typically base64-encoded) and runs it via SSH stdin or single-command argv.
-    - Performs redaction at the remote source BEFORE output reaches stdout. Required redactions: 8+ digit numeric IDs â†’ `<REDACTED-NUM>`; emails â†’ `<REDACTED-EMAIL>`; key/token shapes (`sk-`, `sk_live_`, `sk_test_`, `rk_live_`, `whsec_`, `xoxb-`, `AIza`, JWT `eyJ...`, Telegram bot tokens) â†’ `<REDACTED-KEY>`; env values â†’ `KEY=<REDACTED>` or `KEY=<N chars>`.
+    - Performs redaction at the remote source BEFORE output reaches stdout. Required redactions: 8+ digit numeric IDs → `<REDACTED-NUM>`; emails → `<REDACTED-EMAIL>`; key/token shapes (`sk-`, `sk_live_`, `sk_test_`, `rk_live_`, `whsec_`, `xoxb-`, `AIza`, JWT `eyJ...`, Telegram bot tokens) → `<REDACTED-KEY>`; env values → `KEY=<REDACTED>` or `KEY=<N chars>`.
     - Read-only by default. **No remote writes.** Forbidden remote operations: `tee`, `>`, `>>`, `touch`, `sed -i`, editor saves, `cat >`, `mkdir`, `rm`, `mv`, `cp <to-remote>`, package installs, `git add|commit|push|checkout|reset|rebase`, `systemctl restart|reload|daemon-reload|enable|disable|start|stop`, env file edits, Telegram bot config changes, feature flag toggles, test mode toggles.
     - Prompts Sean for SSH/sudo credentials interactively only. Never embeds passwords, never hardcodes credentials, never reads `.env` files for SSH auth.
     - Exits cleanly. Sean types `done` in chat; Claude reads the local output file and continues the task.
@@ -245,13 +249,13 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - Confirmation the output path is local Windows only.
     - The STOP rule: if any raw secret (chat_id digits, API key, JWT, email, token shape, password) appears in the output file, Claude halts and tells Sean immediately. Don't continue parsing or filling receipts with leaked output.
 
-    **Why:** 2026-04-25 incident â€” the W1.0 runtime-layout discovery was first delivered as a 10-step manual command sequence with copy-paste blocks for Sean to run interactively over SSH. Sean called this "too much work on my end and I am not up for it" and required the workflow be revised to a launcher pattern. The fragility of long manual sequences is its own security risk: tired hands paste wrong commands, skip redaction steps, paste raw secrets back into the chat. A launcher pattern enforces redaction at the source, captures output mechanically, and lets Sean focus on credentials only.
+    **Why:** 2026-04-25 incident — the W1.0 runtime-layout discovery was first delivered as a 10-step manual command sequence with copy-paste blocks for Sean to run interactively over SSH. Sean called this "too much work on my end and I am not up for it" and required the workflow be revised to a launcher pattern. The fragility of long manual sequences is its own security risk: tired hands paste wrong commands, skip redaction steps, paste raw secrets back into the chat. A launcher pattern enforces redaction at the source, captures output mechanically, and lets Sean focus on credentials only.
 
-    **How to apply:** Any task that says "SSH into the Pi" / "run this on Render" / "check this on the server" â†’ build a launcher first. Show the disclosure block. Then hand Sean one command. Wait for `done`. The W1.0 launcher at `c:/tmp/wiki-w1.0-discovery.ps1` is the canonical first instance.
+    **How to apply:** Any task that says "SSH into the Pi" / "run this on Render" / "check this on the server" → build a launcher first. Show the disclosure block. Then hand Sean one command. Wait for `done`. The W1.0 launcher at `c:/tmp/wiki-w1.0-discovery.ps1` is the canonical first instance.
 
     **Exception:** A single one-shot read-only command Sean explicitly asks for ("just run `git log` for me on the Pi") is fine without a launcher. The trigger for the launcher pattern is multi-step / multi-section discovery, not one-liners.
 
-48. **Phase Completion Audit Record (MANDATORY at the close of every phase, sprint, feature, fix, or substantial workstream)** â€” Established 2026-04-25. After any phase is finalized and considered good-to-go, before declaring the work fully done, Claude MUST produce a single self-contained Markdown audit record documenting that phase's files, logic, security posture, best-practices applied, and explicit re-review hooks. The intent is permanent: Sean (or Codex / Gemini / a future AI) returns weeks or months later to look for security gaps, data-leak risks, performance wins, UX improvements, or "loopholes a malicious actor could exploit." Memory is not enough. Skill outputs are not enough. The audit record is the load-bearing artifact.
+48. **Phase Completion Audit Record (MANDATORY at the close of every phase, sprint, feature, fix, or substantial workstream)** — Established 2026-04-25. After any phase is finalized and considered good-to-go, before declaring the work fully done, Claude MUST produce a single self-contained Markdown audit record documenting that phase's files, logic, security posture, best-practices applied, and explicit re-review hooks. The intent is permanent: Sean (or Codex / Gemini / a future AI) returns weeks or months later to look for security gaps, data-leak risks, performance wins, UX improvements, or "loopholes a malicious actor could exploit." Memory is not enough. Skill outputs are not enough. The audit record is the load-bearing artifact.
 
     **File location + naming:**
     - `docs/ai-workflow/AI-HANDOFF/<PHASE-NAME>-AUDIT-RECORD-<YYYY-MM-DD>.md`
@@ -259,18 +263,18 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - One file per phase. Self-contained: a future reviewer should be able to read this single file and produce useful security/perf/UX feedback without re-reading 20 other docs.
 
     **Required sections (in this order):**
-    1. **Phase header** â€” phase name, scope, start/end dates, who reviewed (Codex / Gemini / Village / Sean), final verdict (APPROVED / SHIPPED / SUPERSEDED).
-    2. **Files involved** â€” every file created, modified, or deleted, organized by repo location. Include line counts and one-line purpose for each. New + modified runtime code is the priority; docs/handoffs as supporting context.
-    3. **Architecture & runtime flow** â€” how the feature actually works end-to-end. Diagrams in ASCII or markdown tables are fine. A reader who has never seen the phase should be able to trace UI â†’ API â†’ service â†’ DB â†’ response from this section alone.
-    4. **Security logic & posture** â€” explicit list of every security control: zero-PII patterns used, secret-handling, redaction patterns, allowlists, fail-closed gates, rate limits, audit logs, input validation, path-escape prevention, symlink protections, operator gates, kill switches, env var guards, default-off flags. For each control: WHAT it blocks, WHY it was added, and HOW it can be bypassed if implemented wrong (so future reviewers know what to attack).
-    5. **Best practices applied** â€” explicit reference to which CLAUDE.md rules and which industry standards were followed (e.g. "Rule 6 token-with-fallback; Rule 8 zero PII to LLMs; Rule 26 canonical surface receipt; OWASP A01 access control via fail-closed operator gate").
-    6. **Known limitations / non-goals** â€” what was deliberately NOT done and why. This prevents future reviewers from flagging "missing" features that were intentionally deferred.
-    7. **Performance & UX considerations** â€” minimum clicks, latency budget, mobile responsiveness, accessibility, keyboard navigation, loading/empty/error states. UX choices made and rejected (e.g. "considered modal flow, picked inline confirm because 1 fewer click on mobile").
-    8. **Test coverage summary** â€” what tests exist, what they prove, what was NOT tested and why. Include test file paths.
-    9. **Rollback plan** â€” exact steps to revert this phase if a problem emerges later (kill-switch flag, git revert range, env var to flip, systemd restart command, DB migration to roll back). A reviewer should be able to roll back without paging Sean.
-    10. **Future review hooks** â€” **the most important section.** A bullet list of explicit prompts for the next reviewer: "re-examine the redaction regex against new key formats published since 2026-04," "audit rate-limit window for DoS feasibility," "check if `wiki/clients/` gating still aligns with privacy policy when client count grows past 50," "verify the kill-switch still disables all six tools after future toolset additions." Each hook is one specific thing to look at, not vague handwaving.
-    11. **Codex / AI review log** â€” chronological list of every review pass, verdict, and what changed in response. Captures the dialectic that produced the final state (Rev 1 â†’ Rev 2 â†’ Rev 3 â†’ APPROVE).
-    12. **Sign-off** â€” Sean's explicit "this phase is complete" timestamp, the commit SHA(s) that ship the phase, and the next-action pointer (next phase / parking / monitoring window).
+    1. **Phase header** — phase name, scope, start/end dates, who reviewed (Codex / Gemini / Village / Sean), final verdict (APPROVED / SHIPPED / SUPERSEDED).
+    2. **Files involved** — every file created, modified, or deleted, organized by repo location. Include line counts and one-line purpose for each. New + modified runtime code is the priority; docs/handoffs as supporting context.
+    3. **Architecture & runtime flow** — how the feature actually works end-to-end. Diagrams in ASCII or markdown tables are fine. A reader who has never seen the phase should be able to trace UI → API → service → DB → response from this section alone.
+    4. **Security logic & posture** — explicit list of every security control: zero-PII patterns used, secret-handling, redaction patterns, allowlists, fail-closed gates, rate limits, audit logs, input validation, path-escape prevention, symlink protections, operator gates, kill switches, env var guards, default-off flags. For each control: WHAT it blocks, WHY it was added, and HOW it can be bypassed if implemented wrong (so future reviewers know what to attack).
+    5. **Best practices applied** — explicit reference to which CLAUDE.md rules and which industry standards were followed (e.g. "Rule 6 token-with-fallback; Rule 8 zero PII to LLMs; Rule 26 canonical surface receipt; OWASP A01 access control via fail-closed operator gate").
+    6. **Known limitations / non-goals** — what was deliberately NOT done and why. This prevents future reviewers from flagging "missing" features that were intentionally deferred.
+    7. **Performance & UX considerations** — minimum clicks, latency budget, mobile responsiveness, accessibility, keyboard navigation, loading/empty/error states. UX choices made and rejected (e.g. "considered modal flow, picked inline confirm because 1 fewer click on mobile").
+    8. **Test coverage summary** — what tests exist, what they prove, what was NOT tested and why. Include test file paths.
+    9. **Rollback plan** — exact steps to revert this phase if a problem emerges later (kill-switch flag, git revert range, env var to flip, systemd restart command, DB migration to roll back). A reviewer should be able to roll back without paging Sean.
+    10. **Future review hooks** — **the most important section.** A bullet list of explicit prompts for the next reviewer: "re-examine the redaction regex against new key formats published since 2026-04," "audit rate-limit window for DoS feasibility," "check if `wiki/clients/` gating still aligns with privacy policy when client count grows past 50," "verify the kill-switch still disables all six tools after future toolset additions." Each hook is one specific thing to look at, not vague handwaving.
+    11. **Codex / AI review log** — chronological list of every review pass, verdict, and what changed in response. Captures the dialectic that produced the final state (Rev 1 → Rev 2 → Rev 3 → APPROVE).
+    12. **Sign-off** — Sean's explicit "this phase is complete" timestamp, the commit SHA(s) that ship the phase, and the next-action pointer (next phase / parking / monitoring window).
 
     **When this triggers (mandatory):**
     - Sean says any of: "phase complete," "ship and close," "we're good," "consider this done," "wrap this up," "log this and close."
@@ -291,15 +295,15 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - [ ] Are the "Future review hooks" specific enough to act on without follow-up questions?
     - [ ] Is the rollback plan executable by someone who didn't build the phase?
 
-    **Why:** Sean's words 2026-04-25 â€” "I'm always gonna want to come back and analyze and relook at logic and code to make sure that everything is running in best practices to prevent data leaks and security break-ins and hackersâ€¦ or even just as an overall better way to code the logic so that it could be allowed to run fasterâ€¦ and have better features for the logic which would make everything more convenient and easy to use because we want everything to be as easy to use as possible and we want everything to take the least amount of time as possible and we want everything to have the least amount of clicks as possible." A phase that ships without this artifact is a phase whose security posture cannot be re-audited later â€” that is unacceptable for a production SaaS handling client PII, payment data, and (via Hermes) family/medical/immigration data.
+    **Why:** Sean's words 2026-04-25 — "I'm always gonna want to come back and analyze and relook at logic and code to make sure that everything is running in best practices to prevent data leaks and security break-ins and hackers… or even just as an overall better way to code the logic so that it could be allowed to run faster… and have better features for the logic which would make everything more convenient and easy to use because we want everything to be as easy to use as possible and we want everything to take the least amount of time as possible and we want everything to have the least amount of clicks as possible." A phase that ships without this artifact is a phase whose security posture cannot be re-audited later — that is unacceptable for a production SaaS handling client PII, payment data, and (via Hermes) family/medical/immigration data.
 
     **How to apply:**
     - When Sean signals phase close, draft the audit record FIRST, then declare the work done.
     - Land the audit record in `docs/ai-workflow/AI-HANDOFF/`. Add a one-line pointer in `ACTIVE-INDEX.md` if the phase is significant enough to be discoverable from the index.
-    - The closeout-evidence-lock skill (rule 41) is the per-task closeout gate; this rule 48 audit record is the per-phase permanent artifact. They are complementary, not duplicative â€” closeout runs at every task close; the audit record runs at every phase close.
+    - The closeout-evidence-lock skill (rule 41) is the per-task closeout gate; this rule 48 audit record is the per-phase permanent artifact. They are complementary, not duplicative — closeout runs at every task close; the audit record runs at every phase close.
     - Future re-review: Sean re-opens the audit record, runs through "Future review hooks," and either invokes Codex/Gemini/Village or works the items down himself.
 
-49. **No Manual Code Inspection by Sean (MANDATORY)** â€” Established 2026-04-26. Claude MUST NEVER ask Sean to manually open, read, paste, eyeball, or inspect code from the codebase to answer a structural question about it. If a question can be answered by automated structural analysis â€” Python `ast` parsing, scoped grep, file inventory, callsite enumeration, return-statement analysis, import graph walk, etc. â€” Claude builds a narrow Rule 47 supervised read-only launcher that produces a structural digest. Sean's role is to RUN the launcher, not to read the file.
+49. **No Manual Code Inspection by Sean (MANDATORY)** — Established 2026-04-26. Claude MUST NEVER ask Sean to manually open, read, paste, eyeball, or inspect code from the codebase to answer a structural question about it. If a question can be answered by automated structural analysis — Python `ast` parsing, scoped grep, file inventory, callsite enumeration, return-statement analysis, import graph walk, etc. — Claude builds a narrow Rule 47 supervised read-only launcher that produces a structural digest. Sean's role is to RUN the launcher, not to read the file.
 
     **Disallowed phrasings (Claude must never produce these):**
     - "please open this file in your editor and tell me what line X says"
@@ -312,55 +316,55 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     **Required substitution:** any of the above is replaced with a tiny Rule 47 launcher (`c:/tmp/<task>-<slice>.{ps1,sh,out.txt}`) that uses `ast.parse` / scoped `grep` / file metadata to answer the structural question with redacted, structural-digest-only output (file:line, function names, boolean signals, counts, return-statement analysis). Sean runs the launcher, types `done`, Claude reads the output. Total Sean interaction: one launcher invocation, not a code-reading session.
 
     **Categories of structural questions answerable by launcher (non-exhaustive):**
-    - "What does this function return when env var X is unset?" â†’ AST walk for `Return` nodes inside the function, classify each return value as constant True/False/None or non-literal expression.
-    - "Where is helper X called?" â†’ walk all `.py` files (with scoped exclusions), find every `Call` node where the resolved name matches X, output `file:enclosing_function:line`.
-    - "Is this gate fail-open or fail-closed?" â†’ walk the function's top-level body, examine early `Return` constants, classify by branch.
-    - "How many handlers match pattern Y?" â†’ AST count, no body content.
-    - "Does this module import X?" â†’ inspect `Import`/`ImportFrom` nodes only.
-    - "Is variable Z set in the running process?" â†’ `/proc/$PID/environ` presence check, value reported as count/length only.
+    - "What does this function return when env var X is unset?" → AST walk for `Return` nodes inside the function, classify each return value as constant True/False/None or non-literal expression.
+    - "Where is helper X called?" → walk all `.py` files (with scoped exclusions), find every `Call` node where the resolved name matches X, output `file:enclosing_function:line`.
+    - "Is this gate fail-open or fail-closed?" → walk the function's top-level body, examine early `Return` constants, classify by branch.
+    - "How many handlers match pattern Y?" → AST count, no body content.
+    - "Does this module import X?" → inspect `Import`/`ImportFrom` nodes only.
+    - "Is variable Z set in the running process?" → `/proc/$PID/environ` presence check, value reported as count/length only.
 
-    **Why:** Sean's words 2026-04-26 â€” "I don't want to ever have to manually inspect code." Manual inspection is slow, error-prone, and creates new risk (Sean copy-pastes code into chat â†’ leaks sensitive content into LLM context, which has caused upstream API content-policy refusals during this session). Launchers are auditable, deterministic, fail-safe, and don't depend on human grep skill or willingness to scroll through unfamiliar files. The W1.0c â†’ W1.0d â†’ W1.0e chain established that any structural question about Hermes runtime code can be answered with a 30-80 line digest from a 50-line launcher.
+    **Why:** Sean's words 2026-04-26 — "I don't want to ever have to manually inspect code." Manual inspection is slow, error-prone, and creates new risk (Sean copy-pastes code into chat → leaks sensitive content into LLM context, which has caused upstream API content-policy refusals during this session). Launchers are auditable, deterministic, fail-safe, and don't depend on human grep skill or willingness to scroll through unfamiliar files. The W1.0c → W1.0d → W1.0e chain established that any structural question about Hermes runtime code can be answered with a 30-80 line digest from a 50-line launcher.
 
-    **How to apply:** Whenever Claude is about to write a sentence like "could you check..." / "manually verify..." / "read lines X-Y and tell me..." / "what does this function return when..." â€” STOP, build the launcher instead. Show the disclosure block per Rule 47, hand Sean one command, wait for `done`, read the digest. The only acceptable Sean-as-reader role is for Markdown documentation Claude has produced (where Sean reviews FINDINGS or PLANS, not raw source code).
+    **How to apply:** Whenever Claude is about to write a sentence like "could you check..." / "manually verify..." / "read lines X-Y and tell me..." / "what does this function return when..." — STOP, build the launcher instead. Show the disclosure block per Rule 47, hand Sean one command, wait for `done`, read the digest. The only acceptable Sean-as-reader role is for Markdown documentation Claude has produced (where Sean reviews FINDINGS or PLANS, not raw source code).
 
-    **Exception:** Sean may CHOOSE to inspect code on his own initiative â€” for his own learning, sanity-check, or to volunteer information. That's fine. The rule prohibits Claude from REQUESTING manual inspection as a protocol step. If Sean offers manual inspection unprompted, Claude accepts that input but does not normalize it into a future protocol â€” the next similar question must still go through a launcher.
+    **Exception:** Sean may CHOOSE to inspect code on his own initiative — for his own learning, sanity-check, or to volunteer information. That's fine. The rule prohibits Claude from REQUESTING manual inspection as a protocol step. If Sean offers manual inspection unprompted, Claude accepts that input but does not normalize it into a future protocol — the next similar question must still go through a launcher.
 
-50. **Three-Layer QA Pipeline (MANDATORY)** â€” Every change passes through up to three review/verification layers, picked by scope:
-    - **Tier A â€” Deterministic tooling.** Type-check, linter, formatter, unit/integration tests, secret scan, repo-hygiene scan. Always-on; cheap; runs first.
-    - **Tier B â€” AI cross-review.** The 3-Brain pipeline (Claude builds â†’ Gemini reviews â†’ Codex is final gate, per rule 46). Mandatory for substantial changes; not optional.
-    - **Tier C â€” AI Village (14-Brain).** Episodic, paid, reserved. Only invoked when one of six binary triggers fires (auth/authz, Stripe webhook, multi-tenant scoping, Sean-declared pre-launch hardening, minor's-data path, cross-service architectural change). Even when a trigger fires, requires Sean's explicit per-run permission (rule 16).
+50. **Three-Layer QA Pipeline (MANDATORY)** — Every change passes through up to three review/verification layers, picked by scope:
+    - **Tier A — Deterministic tooling.** Type-check, linter, formatter, unit/integration tests, secret scan, repo-hygiene scan. Always-on; cheap; runs first.
+    - **Tier B — AI cross-review.** The 3-Brain pipeline (Claude builds → Gemini reviews → Codex is final gate, per rule 46). Mandatory for substantial changes; not optional.
+    - **Tier C — AI Village (14-Brain).** Episodic, paid, reserved. Only invoked when one of six binary triggers fires (auth/authz, Stripe webhook, multi-tenant scoping, Sean-declared pre-launch hardening, minor's-data path, cross-service architectural change). Even when a trigger fires, requires Sean's explicit per-run permission (rule 16).
 
     QA tier (review/verification) is **orthogonal** to workflow path (Fast / Standard / Deploy execution shape). A Fast-Path change still passes Tier-A; a Deploy-Path change passes A + B + (when triggered) C. Full doctrine: `docs/ai-workflow/references/QA-PIPELINE.md`. Workflow paths: `docs/ai-workflow/references/WORKFLOW-PATHS.md`.
 
-51. **Confidence-Tag Discipline (MANDATORY)** â€” Non-trivial factual or causal claims about the codebase or system behavior carry exactly one tag: `[VERIFIED]` (confirmed by file read, executed test, observed network response, or other reproducible evidence in the current session), `[LIKELY]` (high confidence based on consistent evidence; not directly verified for the current claim), `[HYPOTHESIS]` (reasoned guess; could be wrong; must be verified before acting on it), `[UNKNOWN]` (don't know, haven't checked, no usable evidence yet).
+51. **Confidence-Tag Discipline (MANDATORY)** — Non-trivial factual or causal claims about the codebase or system behavior carry exactly one tag: `[VERIFIED]` (confirmed by file read, executed test, observed network response, or other reproducible evidence in the current session), `[LIKELY]` (high confidence based on consistent evidence; not directly verified for the current claim), `[HYPOTHESIS]` (reasoned guess; could be wrong; must be verified before acting on it), `[UNKNOWN]` (don't know, haven't checked, no usable evidence yet).
 
-    **Scoping â€” what these tags do NOT apply to:**
+    **Scoping — what these tags do NOT apply to:**
     - **Routine status updates** ("file edited successfully," "test passes," "commit created at SHA abc123").
     - **Tool call results.** Tool output speaks for itself; no tag needed.
     - **Basic acknowledgments** ("understood," "proceeding with the slice you approved," "noted").
-    - **Direct file reads quoted with file:line citation** â€” the citation IS the evidence; the read result is `[VERIFIED]` by construction.
+    - **Direct file reads quoted with file:line citation** — the citation IS the evidence; the read result is `[VERIFIED]` by construction.
 
-    The tags exist to surface uncertainty about **claims** â€” assertions that the reader might act on. They are not a label that goes on every sentence. Burying uncertainty inside confident prose ("the storage is likely safe but I'm not sure") = doctrine violation; either tag explicitly or rewrite with concrete evidence. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 5.
+    The tags exist to surface uncertainty about **claims** — assertions that the reader might act on. They are not a label that goes on every sentence. Burying uncertainty inside confident prose ("the storage is likely safe but I'm not sure") = doctrine violation; either tag explicitly or rewrite with concrete evidence. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 5.
 
-52. **Anti-Rework Burden of Proof (MANDATORY)** â€” Before flagging code as broken, check git history and context. The area is "recently-passed gate" if EITHER condition is true:
+52. **Anti-Rework Burden of Proof (MANDATORY)** — Before flagging code as broken, check git history and context. The area is "recently-passed gate" if EITHER condition is true:
 
     - **Closeout artifact exists:** any file under `docs/ai-workflow/AI-HANDOFF/` whose filename contains the literal substring `CLOSEOUT` (case-insensitive).
     - **Codex APPROVE within 14 days:** file matching `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-*.md` that names the file/area AND contains literal token `APPROVE` or `APPROVED` AND has filesystem mtime within 14 calendar days.
 
-    If recently-passed-gate, burden of proof to re-flag is HIGH: failing test exercising the actual code path, specific file:line evidence, OR citation of the rule/contract being violated. Sean-relayed external claims ("Codex says X is broken") are treated as `[HYPOTHESIS]` until verified â€” first response is "Before I change this, I need to verify. What's the reproduction?" Sean may explicitly override the verification gate; the override is on him and the change carries `[UNVERIFIED]` annotation. The 14-day clock is filesystem mtime, not Sean's last-touched-this-conversation date. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 3.
+    If recently-passed-gate, burden of proof to re-flag is HIGH: failing test exercising the actual code path, specific file:line evidence, OR citation of the rule/contract being violated. Sean-relayed external claims ("Codex says X is broken") are treated as `[HYPOTHESIS]` until verified — first response is "Before I change this, I need to verify. What's the reproduction?" Sean may explicitly override the verification gate; the override is on him and the change carries `[UNVERIFIED]` annotation. The 14-day clock is filesystem mtime, not Sean's last-touched-this-conversation date. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 3.
 
-53. **Adjacent-Doc Wording-Class Sweep (MANDATORY for hostile review)** â€” Established 2026-04-28 after Codex caught the same "read-only" wording contradiction in the Phase 18.B receipt that Third Eye had caught on the P1-O slice. Third Eye was scope-locked to the slice and missed the parallel doc instance. When a hostile review surfaces a wording-class contradiction in a slice (e.g. "read-only" copy on a surface that has edit affordance, "end-to-end fixed" without a Canonical Surface Receipt, "guaranteed deletable" without grep evidence), the reviewer MUST sweep same-day adjacent docs (receipts, handoffs, audit records, runbooks shipped within Â±48h) for the same string class before issuing the verdict. **Why:** contradictions of this class travel in clusters â€” the same author writes the same wrong wording in multiple files in the same session. **How to apply:** at the moment a wording-class blocker is identified, run `rg -n "<offending string>" docs/ai-workflow/AI-HANDOFF/` (use `grep -rn` only if `rg` is unavailable) across adjacent doc directories; either fix all instances in the same review or list the un-fixed instances explicitly as REVISE blockers on the parent docs.
+53. **Adjacent-Doc Wording-Class Sweep (MANDATORY for hostile review)** — Established 2026-04-28 after Codex caught the same "read-only" wording contradiction in the Phase 18.B receipt that Third Eye had caught on the P1-O slice. Third Eye was scope-locked to the slice and missed the parallel doc instance. When a hostile review surfaces a wording-class contradiction in a slice (e.g. "read-only" copy on a surface that has edit affordance, "end-to-end fixed" without a Canonical Surface Receipt, "guaranteed deletable" without grep evidence), the reviewer MUST sweep same-day adjacent docs (receipts, handoffs, audit records, runbooks shipped within ±48h) for the same string class before issuing the verdict. **Why:** contradictions of this class travel in clusters — the same author writes the same wrong wording in multiple files in the same session. **How to apply:** at the moment a wording-class blocker is identified, run `rg -n "<offending string>" docs/ai-workflow/AI-HANDOFF/` (use `grep -rn` only if `rg` is unavailable) across adjacent doc directories; either fix all instances in the same review or list the un-fixed instances explicitly as REVISE blockers on the parent docs.
 
-54. **Sibling-Sweep Grep Evidence Requirement (MANDATORY)** â€” Established 2026-04-28 after Codex found 8+ frontend consumers of `/api/workout/sessions` that the Phase 19 receipt's Â§7 didn't enumerate; Third Eye accepted the receipt because cited consumers checked out, missing that the grep had been narrow. When a slice or receipt claims "Rule 20 sibling sweep complete," the artifact MUST include the literal search command(s) used and a numerically complete enumeration of consumer files. File:line evidence on cited consumers is necessary but not sufficient â€” the reviewer must be able to verify the search ran wide enough. **Why:** sibling sweeps fail by under-scope, not by miscitation. **How to apply:** receipts must show `rg -n '<symbol>' <scope>` output (or `grep -rn` equivalent if `rg` is unavailable) and classify every hit; reviewers must verify the search scope was wide enough (typically `frontend/src` + `backend/`, not just one subtree).
+54. **Sibling-Sweep Grep Evidence Requirement (MANDATORY)** — Established 2026-04-28 after Codex found 8+ frontend consumers of `/api/workout/sessions` that the Phase 19 receipt's §7 didn't enumerate; Third Eye accepted the receipt because cited consumers checked out, missing that the grep had been narrow. When a slice or receipt claims "Rule 20 sibling sweep complete," the artifact MUST include the literal search command(s) used and a numerically complete enumeration of consumer files. File:line evidence on cited consumers is necessary but not sufficient — the reviewer must be able to verify the search ran wide enough. **Why:** sibling sweeps fail by under-scope, not by miscitation. **How to apply:** receipts must show `rg -n '<symbol>' <scope>` output (or `grep -rn` equivalent if `rg` is unavailable) and classify every hit; reviewers must verify the search scope was wide enough (typically `frontend/src` + `backend/`, not just one subtree).
 
-55. **Diagnostic Probe Requirement (MANDATORY)** â€” Established 2026-04-28 after Codex used local Express/supertest to diagnose: `clientAnalyticsRoutes.mjs` set `req.params.userId` inside `router.use(...)`, Express then reset `req.params` for the later paramless route layer, and `chartDataController.mjs:87` read an empty `req.params.userId`. The Playwright doc had blamed the wrong endpoint family. Before accepting a diagnostic prescription that targets a specific layer ("the endpoint family is wrong," "the mapper is stripping," "the auth gate is wrong"), the reviewer MUST require either (a) an executed probe (supertest, curl, browser network panel, vitest assertion that fails on the cited cause) or (b) the doc must explicitly tag the prescription `[HYPOTHESIS]` and require probe verification before code lands. Reading the source file is necessary but not sufficient when adapter middleware, mount-order shadows, role-conditional handlers, or runtime env are in play. **Why:** file-reading produces plausible-but-wrong root cause when middleware composition is non-trivial; only an actual probe disambiguates. **How to apply:** any prescription with the form "switch from X to Y" or "the canonical layer is Z, not W" needs probe evidence in the same artifact.
+55. **Diagnostic Probe Requirement (MANDATORY)** — Established 2026-04-28 after Codex used local Express/supertest to diagnose: `clientAnalyticsRoutes.mjs` set `req.params.userId` inside `router.use(...)`, Express then reset `req.params` for the later paramless route layer, and `chartDataController.mjs:87` read an empty `req.params.userId`. The Playwright doc had blamed the wrong endpoint family. Before accepting a diagnostic prescription that targets a specific layer ("the endpoint family is wrong," "the mapper is stripping," "the auth gate is wrong"), the reviewer MUST require either (a) an executed probe (supertest, curl, browser network panel, vitest assertion that fails on the cited cause) or (b) the doc must explicitly tag the prescription `[HYPOTHESIS]` and require probe verification before code lands. Reading the source file is necessary but not sufficient when adapter middleware, mount-order shadows, role-conditional handlers, or runtime env are in play. **Why:** file-reading produces plausible-but-wrong root cause when middleware composition is non-trivial; only an actual probe disambiguates. **How to apply:** any prescription with the form "switch from X to Y" or "the canonical layer is Z, not W" needs probe evidence in the same artifact.
 
-56. **Tier-A Baseline Disclosure (MANDATORY)** â€” Established 2026-04-28 after Codex flagged that "tsc --noEmit clean for slice files" understated the broader baseline non-cleanliness. The rule scopes to **broad/global quality claims** â€” phrases like "Tier-A green," "tsc --noEmit clean," "lint clean," "all tests pass," "build is clean." It does NOT apply to narrowly reported exact commands and their outputs (e.g. "ran `npx vitest run path/to/file.test.tsx` â†’ 7/7 pass" is fine on its own). When a slice makes a broad/global claim, the artifact MUST distinguish slice-clean from baseline-clean. If the full repo baseline is not clean, the artifact must say so explicitly and either (a) confirm the slice introduces zero new errors, with the comparison-against-baseline disclosed as `[VERIFIED]` or `[UNVERIFIED]`, or (b) avoid the global claim entirely and report only the targeted command results. **Why:** future readers conflate slice-clean with baseline-clean and assume the repo is in good shape when it isn't. **How to apply:** "Tier-A green" alone is not enough; require "Tier-A green for slice files; full baseline status: [clean | N pre-existing errors of class X | UNVERIFIED]." Targeted command outputs do not need this framing.
+56. **Tier-A Baseline Disclosure (MANDATORY)** — Established 2026-04-28 after Codex flagged that "tsc --noEmit clean for slice files" understated the broader baseline non-cleanliness. The rule scopes to **broad/global quality claims** — phrases like "Tier-A green," "tsc --noEmit clean," "lint clean," "all tests pass," "build is clean." It does NOT apply to narrowly reported exact commands and their outputs (e.g. "ran `npx vitest run path/to/file.test.tsx` → 7/7 pass" is fine on its own). When a slice makes a broad/global claim, the artifact MUST distinguish slice-clean from baseline-clean. If the full repo baseline is not clean, the artifact must say so explicitly and either (a) confirm the slice introduces zero new errors, with the comparison-against-baseline disclosed as `[VERIFIED]` or `[UNVERIFIED]`, or (b) avoid the global claim entirely and report only the targeted command results. **Why:** future readers conflate slice-clean with baseline-clean and assume the repo is in good shape when it isn't. **How to apply:** "Tier-A green" alone is not enough; require "Tier-A green for slice files; full baseline status: [clean | N pre-existing errors of class X | UNVERIFIED]." Targeted command outputs do not need this framing.
 
-57. **Dual-Tier Summary for Substantial Work (MANDATORY)** â€” Established 2026-04-30; tightened 2026-05-07 for Codex-led work. At substantial user-facing handoffs, explanations, review results, or workstream summaries, the active builder/reviewer MUST provide a two-part inline summary in chat: a **plain-English summary** (outcome-framed, no jargon) and a **technical summary** (files, commits, tests, deferred items). Both must appear in the same response, plain-English first.
+57. **Dual-Tier Summary for Substantial Work (MANDATORY)** — Established 2026-04-30; tightened 2026-05-07 for Codex-led work. At substantial user-facing handoffs, explanations, review results, or workstream summaries, the active builder/reviewer MUST provide a two-part inline summary in chat: a **plain-English summary** (outcome-framed, no jargon) and a **technical summary** (files, commits, tests, deferred items). Both must appear in the same response, plain-English first.
 
     **When this triggers:**
-    - After a phase ships to production (regardless of whether the rule-48 audit record has landed yet â€” that's a separate file artifact).
+    - After a phase ships to production (regardless of whether the rule-48 audit record has landed yet — that's a separate file artifact).
     - After a deploy goes live and is health-verified.
     - When Sean explicitly asks for a summary, recap, "what did we do," or similar.
     - When Sean asks how an architecture, workflow, UX, or feature changed.
@@ -384,21 +388,21 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - **Rule 48 audit record** is a per-phase permanent FILE artifact at `docs/ai-workflow/AI-HANDOFF/`. Rule 57 is the inline-readable CHAT narrative Sean can scroll back to without opening a file.
     - **Continuity bridge `rolling-last-done.md`** is auto-trimmed cross-session log written only on Sean's explicit "log this and close." Rule 57 is unprompted at the moments above.
 
-    **Why:** Sean's words 2026-04-30 â€” "we're getting so much work done now that it's easy to get lost and I need to be able to look at my prompts etcetera and see what it was that we actually did so I can continue to make the best decisions or where we move next." The Phase A workout-builder slice that triggered this rule shipped in one session with a dense pre-code receipt (3 revisions), 3 test suites, a 3-brain review chain (REVISE round 1, REVISE round 2, APPROVE), a deploy lag, and 4 deferred follow-up phases â€” exactly the density where Sean needs an inline narrative to stay oriented.
+    **Why:** Sean's words 2026-04-30 — "we're getting so much work done now that it's easy to get lost and I need to be able to look at my prompts etcetera and see what it was that we actually did so I can continue to make the best decisions or where we move next." The Phase A workout-builder slice that triggered this rule shipped in one session with a dense pre-code receipt (3 revisions), 3 test suites, a 3-brain review chain (REVISE round 1, REVISE round 2, APPROVE), a deploy lag, and 4 deferred follow-up phases — exactly the density where Sean needs an inline narrative to stay oriented.
 
     **How to apply:** When a trigger fires, write the dual-tier summary BEFORE moving to the next task or pausing. The goal: "Sean opens this chat in two weeks and reconstructs what happened in 90 seconds."
 
-58. **Proactive Schema-Drift Detection (MANDATORY)** â€” Established 2026-05-01 after multiple cascading 403/500 bugs in one session, all rooted in schema drift. Schema drift is a recurring root-cause class in this codebase: model files declare one shape, the production DB has another, and the drift only surfaces at runtime when a code path actually executes. Sean's words: "we're gonna have to make sure that we make a rule to search for schema drift because this is a issue that I see a lot." Whenever Claude reads, edits, or reasons about ANY Sequelize model, raw SQL, or DB-aware code, Claude MUST proactively check for these drift classes â€” not just when fixing a known bug.
+58. **Proactive Schema-Drift Detection (MANDATORY)** — Established 2026-05-01 after multiple cascading 403/500 bugs in one session, all rooted in schema drift. Schema drift is a recurring root-cause class in this codebase: model files declare one shape, the production DB has another, and the drift only surfaces at runtime when a code path actually executes. Sean's words: "we're gonna have to make sure that we make a rule to search for schema drift because this is a issue that I see a lot." Whenever Claude reads, edits, or reasons about ANY Sequelize model, raw SQL, or DB-aware code, Claude MUST proactively check for these drift classes — not just when fixing a known bug.
 
     **Drift classes to look for (any of these is a confirmed bug class observed in this codebase):**
 
-    1. **Column-name case drift** â€” Model declares `field: 'snake_case_name'` mapping to a snake_case DB column, but the real DB column is camelCase (or vice versa). Symptom: `column "snake_case_name" does not exist`. Example incident 2026-05-01: `TrainerPermissions.mjs` mapped `field: 'trainer_id'` but DB has `trainerId`.
-    2. **Table-name drift (PascalCase vs snake_case)** â€” Code references `"ClientTrainerAssignments"` (PascalCase, the model class name) but the real table is `client_trainer_assignments` (snake_case). Symptom: `relation "ClientTrainerAssignments" does not exist`. Example incidents 2026-05-01: `authMiddleware.mjs:842` raw SQL + earlier `workoutBuilderRoutes.mjs` raw SQL.
-    3. **FK target table drift** â€” FK constraint references `users` (lowercase, stale duplicate) but the canonical user table is `"Users"` (PascalCase). Symptom: `violates foreign key constraint` when inserting a row that references a user that exists in `"Users"` but not in `users`. CLAUDE.md gotcha: "Dual `users`/`"Users"` table in production â€” FK constraints must reference `"Users"`."
-    4. **Field existence drift** â€” Model declares column X (e.g. `deactivatedBy`, `deactivatedAt`, `reason`) but DB has different columns serving the same purpose (e.g. `revokedAt`, `notes`). Symptom: `column "deactivatedBy" does not exist` OR silent `null` writes that lose data.
-    5. **Field-type drift** â€” Model declares `INTEGER` but DB has `STRING` (or vice versa). Less common but happens â€” Sequelize sometimes coerces silently. Symptom: type-coercion bugs at the JS level (`req.user.id === parseInt(x)` always false because one is string, one is number).
-    6. **Wrong field name in caller** â€” Caller (route, controller, service) uses `assignment.isActive` but the real model field is `assignment.status` (`'active'|'inactive'|'pending'`). Symptom: filter/check always returns falsy â†’ silent denial. Example incident 2026-05-01: `MyClientsView.tsx` filter on `assignment.isActive` while API returns `status: 'active'`.
-    7. **Frontend response-shape drift** â€” Frontend normalizer expects `data.data.assignments` (nested) but backend returns `data.assignments` (flat at root). Symptom: dropdowns / lists silently render empty. Example incident 2026-05-01: `GlobalClientContext.tsx:108`.
+    1. **Column-name case drift** — Model declares `field: 'snake_case_name'` mapping to a snake_case DB column, but the real DB column is camelCase (or vice versa). Symptom: `column "snake_case_name" does not exist`. Example incident 2026-05-01: `TrainerPermissions.mjs` mapped `field: 'trainer_id'` but DB has `trainerId`.
+    2. **Table-name drift (PascalCase vs snake_case)** — Code references `"ClientTrainerAssignments"` (PascalCase, the model class name) but the real table is `client_trainer_assignments` (snake_case). Symptom: `relation "ClientTrainerAssignments" does not exist`. Example incidents 2026-05-01: `authMiddleware.mjs:842` raw SQL + earlier `workoutBuilderRoutes.mjs` raw SQL.
+    3. **FK target table drift** — FK constraint references `users` (lowercase, stale duplicate) but the canonical user table is `"Users"` (PascalCase). Symptom: `violates foreign key constraint` when inserting a row that references a user that exists in `"Users"` but not in `users`. CLAUDE.md gotcha: "Dual `users`/`"Users"` table in production — FK constraints must reference `"Users"`."
+    4. **Field existence drift** — Model declares column X (e.g. `deactivatedBy`, `deactivatedAt`, `reason`) but DB has different columns serving the same purpose (e.g. `revokedAt`, `notes`). Symptom: `column "deactivatedBy" does not exist` OR silent `null` writes that lose data.
+    5. **Field-type drift** — Model declares `INTEGER` but DB has `STRING` (or vice versa). Less common but happens — Sequelize sometimes coerces silently. Symptom: type-coercion bugs at the JS level (`req.user.id === parseInt(x)` always false because one is string, one is number).
+    6. **Wrong field name in caller** — Caller (route, controller, service) uses `assignment.isActive` but the real model field is `assignment.status` (`'active'|'inactive'|'pending'`). Symptom: filter/check always returns falsy → silent denial. Example incident 2026-05-01: `MyClientsView.tsx` filter on `assignment.isActive` while API returns `status: 'active'`.
+    7. **Frontend response-shape drift** — Frontend normalizer expects `data.data.assignments` (nested) but backend returns `data.assignments` (flat at root). Symptom: dropdowns / lists silently render empty. Example incident 2026-05-01: `GlobalClientContext.tsx:108`.
 
     **When this triggers (mandatory):**
     - Reading or editing ANY Sequelize model file (`backend/models/*.mjs`).
@@ -406,19 +410,19 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - Reading or editing ANY route or controller that hits the DB.
     - Reading or editing ANY frontend normalizer / adapter / shape mapper.
     - When a 403, 500, or unexplained empty list surfaces during runtime testing.
-    - Before claiming a model or query "looks correct" â€” actively cross-check.
+    - Before claiming a model or query "looks correct" — actively cross-check.
     - When a fix touches the SAME model, table, or response shape that another file in the same workstream just touched (sibling-sweep angle).
 
     **How to apply (the proactive cross-check):**
     1. **Open the model file.** Note: declared field names, declared `field:` mappings, declared column types, declared associations.
     2. **Open the migration files.** Confirm the migrations match the model's declared shape (or note the divergence).
     3. **Run a real-DB schema check when in doubt.** Use a quick read-only diagnostic: `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'X' ORDER BY ordinal_position`. The real DB is the source of truth. (Pattern: see `backend/scripts/inspect-trainer-permissions-schema.mjs` and `inspect-trainer-permissions-fks.mjs`.)
-    4. **Cross-reference all callers.** Every code path that touches the model must use the field names the real DB has. If a sibling caller uses different field names, that's drift â€” flag it in the same pass (rule 20 sibling sweep).
+    4. **Cross-reference all callers.** Every code path that touches the model must use the field names the real DB has. If a sibling caller uses different field names, that's drift — flag it in the same pass (rule 20 sibling sweep).
     5. **Cross-reference frontend response shapes.** When backend returns `{ assignments: [...] }` but the frontend normalizer reads `data.data.assignments`, the dropdown silently breaks. Verify both ends.
     6. **For FK constraints, verify the target table.** `REFERENCES "users"` vs `REFERENCES "Users"` is a real bug class. Run `SELECT ... FROM information_schema.table_constraints` to confirm FK targets.
-    7. **Surface the finding even when not asked.** If Claude is reading a model file for any reason and notices drift, mention it. Don't wait for a bug report â€” drift compounds.
+    7. **Surface the finding even when not asked.** If Claude is reading a model file for any reason and notices drift, mention it. Don't wait for a bug report — drift compounds.
 
-    **Why:** schema drift hides at runtime, breaks live users not local tests, and travels in clusters (one drift in a model file means siblings have likely drifted too). The 2026-05-01 session shipped 5+ schema-drift fixes in one chain â€” `clientTrainerAssignmentRoutes` raw SQL, `workoutBuilderRoutes` raw SQL, `authMiddleware:842` raw SQL, `TrainerPermissions` model fields, `GlobalClientContext` normalizer shape â€” all the same root pattern. Proactive detection collapses these from "discover at runtime, fix in production" to "catch at read time, fix in the same slice."
+    **Why:** schema drift hides at runtime, breaks live users not local tests, and travels in clusters (one drift in a model file means siblings have likely drifted too). The 2026-05-01 session shipped 5+ schema-drift fixes in one chain — `clientTrainerAssignmentRoutes` raw SQL, `workoutBuilderRoutes` raw SQL, `authMiddleware:842` raw SQL, `TrainerPermissions` model fields, `GlobalClientContext` normalizer shape — all the same root pattern. Proactive detection collapses these from "discover at runtime, fix in production" to "catch at read time, fix in the same slice."
 
     **What this rule does NOT require:**
     - It does NOT require running a full schema audit on every task. Only the touched models / tables / shapes.
@@ -427,7 +431,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Cross-references:** Rule 26 (Canonical Surface Receipt) gates UI/data-truth fixes; Rule 27 (Surface Classification) handles competing surfaces; Rule 29 (Schema Cross-Check Artifact) is the artifact for shipped fixes; Rule 51 (`[VERIFIED]` confidence tags) requires evidence; Rule 20 (Sibling Sweep) ensures all parallel callers get checked. This rule (58) is the proactive trigger that surfaces drift before any of those other rules fire.
 
-59. **Read-Time Secret Exposure Prevention (MANDATORY)** â€” Established 2026-05-04 after a Claude `Grep` tool call surfaced the live `OPENROUTER_API_KEY` value from `.env` line 132 into chat context while diagnosing a script's API-key load failure. Rule 44 only covers WRITES (commits, edits, doc generation). This rule (59) covers READS â€” any tool result that could surface a secret VALUE into chat output, even when the secret is already present in the user's local files.
+59. **Read-Time Secret Exposure Prevention (MANDATORY)** — Established 2026-05-04 after a Claude `Grep` tool call surfaced the live `OPENROUTER_API_KEY` value from `.env` line 132 into chat context while diagnosing a script's API-key load failure. Rule 44 only covers WRITES (commits, edits, doc generation). This rule (59) covers READS — any tool result that could surface a secret VALUE into chat output, even when the secret is already present in the user's local files.
 
     **What "secret-bearing files" means:** any of the following, no matter what the file contents look like, are PRESUMED to contain secrets and must be treated under this rule:
     - `.env`, `.env.*`, `.env.local`, `.env.production`, `.env.development`, `.env.staging`, `.env.test`
@@ -439,29 +443,29 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - Outputs from `cat /proc/*/environ`, `env`, `printenv`, `set` (process env dumps)
 
     **Forbidden actions on secret-bearing files (will surface values to chat):**
-    - `Grep` with `output_mode: "content"` â€” emits matching lines including the value
-    - `Grep` with `-A`, `-B`, `-C` context flags â€” same risk
+    - `Grep` with `output_mode: "content"` — emits matching lines including the value
+    - `Grep` with `-A`, `-B`, `-C` context flags — same risk
     - `Read` tool on the whole file (or a range that covers a secret line)
     - `Bash` commands that pipe file content to stdout: `cat .env`, `head .env`, `tail .env`, `awk '/PATTERN/' .env`, `grep PATTERN .env` (the bare grep CLI, not the Grep tool)
     - `Bash` with `echo $SECRET_VAR`, `echo ${VAR}`, `printenv VAR`
     - Any tool that returns the value through its result channel
 
     **Required substitutes (verify presence without exposing value):**
-    - `Grep` with `output_mode: "files_with_matches"` â€” confirms the file contains the pattern, returns only the file path
-    - `Grep` with `output_mode: "count"` â€” returns the match count, not the matching content
+    - `Grep` with `output_mode: "files_with_matches"` — confirms the file contains the pattern, returns only the file path
+    - `Grep` with `output_mode: "count"` — returns the match count, not the matching content
     - `Bash` with redacting transformations: `grep -c '^OPENROUTER_API_KEY=' .env` (count only), `awk -F= '/^OPENROUTER_API_KEY=/{print "found, "length($2)" chars"}' .env`, `[ -n "$VAR" ] && echo "set, ${#VAR} chars" || echo "missing"`
-    - When a script needs the value, load it INSIDE the script (script reads file or `process.env`, never echoes to stdout) â€” example: `export OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' .env | cut -d= -f2) && node script.mjs` is acceptable because the value goes to env, not to stdout (no `echo`, no `set -x`)
-    - When configuring `Edit` to modify a secret-bearing file, never include the secret VALUE in `old_string` or `new_string` â€” use unique non-secret context lines as anchors
+    - When a script needs the value, load it INSIDE the script (script reads file or `process.env`, never echoes to stdout) — example: `export OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' .env | cut -d= -f2) && node script.mjs` is acceptable because the value goes to env, not to stdout (no `echo`, no `set -x`)
+    - When configuring `Edit` to modify a secret-bearing file, never include the secret VALUE in `old_string` or `new_string` — use unique non-secret context lines as anchors
 
     **Mandatory response when a secret leaks anyway** (mistake, hook output, system reminder, or unanticipated tool behavior):
     1. **STOP** the current workflow.
-    2. **Flag the exposure to the user IMMEDIATELY** â€” name the specific tool call, the specific value class (API key / JWT / DB URL), and the source file.
-    3. **Recommend rotation** â€” provide the rotation procedure for that specific secret class.
-    4. **Log the incident** in the closeout audit record (Rule 48) â€” incident date, secret type, exposure path, rotation status.
-    5. **Do not re-emit** â€” never quote the leaked value again in the same conversation, even when the user asks "what was the value?" Tell them to look at their `.env` directly.
+    2. **Flag the exposure to the user IMMEDIATELY** — name the specific tool call, the specific value class (API key / JWT / DB URL), and the source file.
+    3. **Recommend rotation** — provide the rotation procedure for that specific secret class.
+    4. **Log the incident** in the closeout audit record (Rule 48) — incident date, secret type, exposure path, rotation status.
+    5. **Do not re-emit** — never quote the leaked value again in the same conversation, even when the user asks "what was the value?" Tell them to look at their `.env` directly.
     6. **Continue work only after** the user acknowledges the rotation plan or explicitly defers it.
 
-    **Why:** Chat context is persistent. Anthropic's chat history, Claude Code transcripts, telemetry, and any conversation-replay or memory feature creates new copies of any secret that enters chat. Even if the secret is in the user's gitignored `.env`, exposing it to chat creates a new copy in a less-controlled location. The 2026-05-04 incident â€” Claude grepped `OPENROUTER_API_KEY` from `.env` with `output_mode: "content"` while diagnosing a script's env-load failure â€” established this gap in Rule 44 (which only covers writes). The previous-day AI Village runs Sean references did NOT trigger this because they used the orchestrator's own internal `.env` loading (Node.js `process.env`, never grep), not a Claude tool call.
+    **Why:** Chat context is persistent. Anthropic's chat history, Claude Code transcripts, telemetry, and any conversation-replay or memory feature creates new copies of any secret that enters chat. Even if the secret is in the user's gitignored `.env`, exposing it to chat creates a new copy in a less-controlled location. The 2026-05-04 incident — Claude grepped `OPENROUTER_API_KEY` from `.env` with `output_mode: "content"` while diagnosing a script's env-load failure — established this gap in Rule 44 (which only covers writes). The previous-day AI Village runs Sean references did NOT trigger this because they used the orchestrator's own internal `.env` loading (Node.js `process.env`, never grep), not a Claude tool call.
 
     **How to apply:**
     - Whenever Claude is about to grep, read, or `cat` a `.env`-class file: STOP and use the presence-only substitutes above.
@@ -469,7 +473,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - Whenever Claude is about to run an env dump (`printenv`, `set`, `env`): redact secret-shaped values BEFORE displaying, OR use targeted checks instead.
     - Whenever the user pastes a tool output (e.g. Render shell session) that may contain secrets: scan the paste, redact secret-shaped values from your response, and tell the user the redacted version.
 
-    **Cross-references:** Rule 44 (write-time secret scanning â€” companion rule); Rule 47 (Supervised Read-Only Launcher Pattern â€” its redaction-at-source rule applies the same principle to remote shells); Rule 48 (Phase Completion Audit Record â€” closeout records secret-handling posture).
+    **Cross-references:** Rule 44 (write-time secret scanning — companion rule); Rule 47 (Supervised Read-Only Launcher Pattern — its redaction-at-source rule applies the same principle to remote shells); Rule 48 (Phase Completion Audit Record — closeout records secret-handling posture).
 
 60. **Next-Slice Closeout Disclosure (MANDATORY)** - Established 2026-05-08 by Sean, CEO Orchestrator. Every completed slice, fix, review cycle, phase, or substantial task closeout MUST explicitly tell Sean what the recommended next slice is. If there is no active next slice, the closeout MUST say that the current workstream is complete and Codex/Claude is ready for Sean's next direction.
 
@@ -497,7 +501,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Allowed progress updates:** Short working updates are allowed while implementation and review are in progress, but they must not claim the slice is complete or summarize the slice outcome before the hostile review and fixes are done.
 
-62. **Best-in-Class Product Strategy Gate (MANDATORY for product/UX/roadmap work)** â€” Established 2026-05-25 from the GPT Pro personal-training/community strategy analysis and Sean's SwanStudios vision. Any product, dashboard, onboarding, workout/progress, community, monetization, integration, or roadmap change MUST pass the SwanStudios strategy gate before implementation. Read `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md` when planning these changes. The gate:
+62. **Best-in-Class Product Strategy Gate (MANDATORY for product/UX/roadmap work)** — Established 2026-05-25 from the GPT Pro personal-training/community strategy analysis and Sean's SwanStudios vision. Any product, dashboard, onboarding, workout/progress, community, monetization, integration, or roadmap change MUST pass the SwanStudios strategy gate before implementation. Read `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md` when planning these changes. The gate:
     - Preserve the wedge: trainer-led coaching + first-party workout/progress record + paid accountability/community loops, not generic social media.
     - Ask the north-star questions: what is the trainee's next best action, which client needs coach intervention, what progress can be shown, and what reason brings the group back this week?
     - Keep coaching records first-party: programs, assignments, workout logs, coach notes, adherence, progress, and session history cannot be treated as secondary integration artifacts.
@@ -529,7 +533,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Cross-references:** Rule 4 (300-line cap), Rules 32-39 (repo hygiene and cleanup approval), Rule 50 (Tier-A deterministic tooling), Rule 56 (baseline disclosure), and Rule 61 (slice-internal hostile review).
 
-64. **Intent-Extraction Gate via `grill-me` (MANDATORY for net-new building and planning)** — Established 2026-06-09 by Sean from the Matt PCO "grill me" skill + Nate Herk's checkpointing version. Everyone using Claude Opus 4.8 gets the same model; what makes a SwanStudios output sound like *Sean* is his context — his taste, voice, and decisions. The hardest part of building a good operating system is getting that knowledge out of Sean's head and into the system. A 5-minute brain-dump is never enough. Before planning or building anything net-new, the AI (Codex included) MUST relentlessly interview Sean to extract his thought process, and checkpoint every answer to a durable brainstorm doc.
+64. **Intent-Extraction Gate via `grill-me` (MANDATORY for net-new building and planning)** — Established 2026-06-09 by Sean from the Matt PCO "grill me" skill + Nate Herk's checkpointing version. Everyone using Claude Opus 4.8 gets the same model; what makes a SwanStudios output sound like *Sean* is his context — his taste, voice, and decisions. The hardest part of building a good operating system is getting that knowledge out of Sean's head and into the system. A 5-minute brain-dump is never enough. Before planning or building anything net-new, the AI MUST relentlessly interview Sean to extract his thought process, and checkpoint every answer to a durable brainstorm doc.
 
     **When this auto-routes (mandatory):**
     - Any **net-new component, page, dashboard surface, or feature** where Sean's preferences aren't already captured in a brainstorm doc or reference doc.
@@ -541,7 +545,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **When this does NOT trigger:** trivial bug fixes, typo/comment/formatting edits, read-only exploration with no build planned, or any surface whose brainstorm doc already exists and is current (read it instead, then offer a re-grill only for new gaps).
 
-    **The method (preserve all five):** (1) interview relentlessly until no gaps remain; (2) **one question at a time** — never a batch; (3) walk the design tree depth-first, resolving dependencies in order; (4) **always lead with a recommended answer + one-line reason** so Sean confirms or corrects fast; (5) **explore the codebase instead of asking** whenever the answer is discoverable from the repo (honors Rule 18 existing-pattern-first and Rule 49 no-manual-inspection). Use discrete-option prompts for choices (with `preview` mockups for UI/layout choices) and one-message-at-a-time chat for open-ended ones.
+    **The method (preserve all five):** (1) interview relentlessly until no gaps remain; (2) **one question at a time** — never a batch; (3) walk the design tree depth-first, resolving dependencies in order; (4) **always lead with a recommended answer + one-line reason** so Sean confirms or corrects fast; (5) **explore the codebase instead of asking** whenever the answer is discoverable from the repo (honors Rule 18 existing-pattern-first and Rule 49 no-manual-inspection). Use the `AskUserQuestion` tool for discrete-option questions (with `preview` mockups for UI/layout choices) and plain one-message-at-a-time chat for open-ended ones.
 
     **Two phases — Extract, then Synthesize & Advise:** grill-me is not just a stenographer. **Phase 1 (Extract)** is the grill above — and it always starts at the *vision tier*: what the app/feature/component **is**, what it's **supposed to do**, and where it sits (is this the **parent** surface or a **child** of one?) — before descending into layout/data/states. **Phase 2 (Synthesize & Advise, MANDATORY before closeout)** steps back to the whole-system view and proactively produces, grounded in what it explored of the **parent component, its children, and the app-as-a-whole**: (a) features that are needed but not yet in Sean's plan, each tied to the Product Core Loop / next-best-action / Rule 62 strategy; (b) **minimal-click enhancements** with concrete before→after tap counts (Sean's standing least-clicks/least-time mandate); (c) parent/children/whole observations (duplicated facts across cards, a child that should be promoted to the parent, missing shared state, app-level coherence); (d) recommendations that may tune the plan, the build, or the skills themselves. Phase 2 is advisory — Sean accepts/modifies/rejects each suggestion, and his verdicts are captured back into the doc. Suggestions never invent scope for its own sake — they must strengthen coaching, adherence, progress proof, community, revenue, or trust.
 
@@ -575,31 +579,49 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Why:** Sean's words 2026-06-11 — "I want every prompt I give to be the best that it could possibly be," with the AI telling SIMPLE apart from "an idea I'm trying to bring into reality," enhancing silently for least clicks / least tokens. Full procedure: `.claude/skills/prompt-watcher/SKILL.md`.
 
-67. **Live Pair-Coding Coordination (MANDATORY while Claude + Codex run in parallel)** - The Codex-specific execution contract is startup step 6 above; it mirrors CLAUDE.md Rule 67.
-    - Read both lane files and `review-queue.md`; prune; re-read the other lane before every edit; claim/release only the Codex lane; respect locks; stage exact paths; request mutual hostile review.
-    - Full protocol: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`. Coordination state prevents collisions; it is not the task board.
+67. **Live Pair-Coding Coordination (MANDATORY while Claude + Codex run in parallel)** — Established 2026-06-13 by Sean. Claude and Codex code the SAME working tree at the same time; without a live channel they collide (a commit once swept in 63 of the other agent's WIP files). The fix is a **Live Coordination Ledger** of gitignored, same-machine files at `.ai-workflow/coordination/` — both agents share Sean's filesystem, so they see each other instantly with zero git churn. (Gitignored on purpose: a committed "editing now" file would itself cause merge conflicts.) This is the real-time, 2-agent layer on top of the cross-session continuity bridge (`.ai-workflow/continuity/`) and the per-phase debate files; it does not replace them.
+    - **Session start:** read `claude.lane.md` + `codex.lane.md` + `review-queue.md`; run `node scripts/coordination-prune.mjs`.
+    - **R1 read-before-edit:** before editing ANY file, read the other agent's lane; if your target is in their **🔒 EDITING NOW**, don't edit it — pick another, queue a review request, or ask Sean.
+    - **R2/R3 claim/release:** overwrite your OWN `*.lane.md` (status, 🔒 EDITING NOW, timestamp) when you start a slice; clear it when done. Never write the other agent's lane file.
+    - **R5 staleness:** a lane `Updated:` > 30 min old + still `in-progress` may be abandoned — flag to Sean, don't silently seize.
+    - **R6 commit safety:** no `git add -A` while the other agent has any file locked; stage explicit paths; Codex coordinates commit timing on shared slices.
+    - **R7 mutual hostile review (Sean's #1 ask):** finishing a substantial slice → append a request to `review-queue.md`; the other agent runs a hostile review (rule 17 + rule 41 + the HANDOFF-PROTOCOL Business-Logic Audit) and writes back APPROVE/REVISE/REJECT + findings.
+    - **R8 lanes:** keep a standing "owned area" in your lane file; current split — Codex = storefront purchase path + Coach + Social; Claude = admin product/catalog UI + money-path safety tests + cross-cutting infra; shared = `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, the coordination dir.
+    - **Retention:** lane files overwrite in place (no growth); `review-queue.md`/`activity.log.md` pruned to 30 days / 256 KB by `scripts/coordination-prune.mjs` (gitignored+local → no history loss). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`. **Why:** Sean 2026-06-13 — tight real-time Claude↔Codex communication to avoid collisions, build faster, and catch each other's work via mutual hostile review, for the ~month until Fable 5 returns.
 
-68. **Human-AI Task Operating System (MANDATORY for substantial multi-step, delegated, or asynchronous work)** - Established 2026-07-14 by Sean. Route this work through `docs/ai-workflow/hermes-agentic-os/task-operating-system.md`.
-    - The chosen persistent board owns task status, priority, owner, blocker, next review, and output pointers. Until phase 1 exists, the initiating task carries the temporary card fields and must not be described as cross-task truth. Chat threads, coordination lanes, continuity logs, approval queues, Git, tests, and Postgres retain only their narrower truths.
-    - Canonical states are `INBOX -> READY -> DOING -> REVIEW -> NEEDS_SEAN -> DONE`, with `BLOCKED` reserved for a named external dependency.
-    - An AI task may start only after the Agent-Ready Contract names outcome, scope/non-goals, source context, effect tier, acceptance evidence, budget/stop condition, and collision-safe ownership.
-    - Before Sean reviews an output, it must pass the universal eval (at least 8/10, no zero, plus every domain hard gate). Two failed self-revision cycles move it to `NEEDS_SEAN` with one precise decision request.
-    - Sean reviews in batches and remains the final taste/quality gate. Accepting work never substitutes for a separate T3/T4 approval.
-    - Tailscale may provide private reach to approved machines; it never expands command authority, approval scope, or secret access.
+68. **Fable-Grade Plan → Worker-Bot Build → Hermes Learning Loop (MANDATORY routing for major "Fable vision" initiatives)** — Established 2026-07-05 by Sean. Fable is expensive, so its highest-leverage use is producing **plans so complete a lower-tier worker-bot executes them verbatim in Fable's exact vision** — not hand-writing every line. The standing pipeline for any major remake/vision initiative:
+    ```
+    Opus 4.8 enhances the prompt + runs a grounded deep audit  →  AI Village 15-brain synthesis (paid, Rule 16 gated)
+      →  Fable synthesis = the FINAL ultra-comprehensive plan (mermaid + wireframes desktop&mobile + per-field data/API contract + numbered independently-shippable slices, each executable with ZERO further questions)
+      →  worker-bot builds slice-by-slice with recursive hostile review (Rule 17/41/61) until zero errors  →  push to Render
+      →  Hermes Learning Packet emitted from the Fable-tier output
+    ```
+    - **Fable's output contract** (11 required parts per workstream) lives in `docs/ai-workflow/brainstorms/FABLE-VISION-MASTER-BRIEF-2026-07-05.md §2`; the grounded reality it plans against lives in `docs/ai-workflow/AI-HANDOFF/FABLE-VISION-REBUILD-DEEP-AUDIT-2026-07-05.md`. A plan a worker-bot would have to ask Fable about is **incomplete** — that is the detail bar.
+    - **Hermes learns from Fable ONLY.** After any substantial workstream/phase/Fable synthesis, emit a **Hermes Learning Packet** via the `hermes-learning-packet` skill (`.claude/skills/hermes-learning-packet/SKILL.md`) so Hermes evolves without Sean re-typing. **Source gate is fail-closed to Fable-tier** (`claude-fable-5` or a future model Sean designates at/near Fable's level) — Opus 4.8, Codex, Gemini, and anything below Fable route to quarantine, NEVER the learning corpus. Because Sean has **subscriptions, not API keys**, tier is a stamped/trusted `originating_model` provenance tag, not an API check. Packets are privacy-safe (IDs/roles only, two-layer secret scan reusing `continuity-append.mjs` plumbing), **durable/compounding** at `docs/ai-workflow/hermes-learning-packets/` (not the 30 KB-trimmed continuity log), and delivered over the **already-proven** Pi daemon SSH/cat read path (`HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md`) — extend that read list; do not invent a new transport. Trigger is manual by default ("feed Hermes"); auto-after-Fable is opt-in via the `prompt-watcher` hook model.
+    - **Guardrails:** AI Village stays Rule-16 paid/gated; the Karpathy Wiki (intended long-term Hermes corpus) is BLOCKED on Pi SSD/power hardware, so packets compound in-repo until it clears; never touch the Pi without Sean. **Why:** Sean 2026-07-05 — "have Fable give us as much plans as possible… so we can build it as though Fable were going to build it, but a worker bot builds it… and give Hermes a summary at the end of everything worth it so Hermes can learn and evolve without me typing it in all the time — from Fable and Fable only."
 
-71. **The Catalog — distilled recall layer (MANDATORY)** — Established 2026-07-20 (brain-review packet verdict, Fable Final Decider). Swan's recall layer is a **generated markdown catalog**, NOT vector RAG. One catalog file per trust boundary:
+69. **Hermes Inbox — any-agent → Hermes working channel (MANDATORY at substantial terminal task/session close)** — Established 2026-07-06 by Sean. A lot of real context is produced **outside** Hermes — Claude or Codex in a VS Code terminal, the local Qwen model, a one-off script — and without a channel it never reaches Hermes unless Sean re-types it. The fix is a low-friction drop box. At the close of any substantial task/slice/phase done outside Hermes (or any time you learn something Hermes should carry — a decision + why, a new/changed surface, a live-state fact, a risk, a Sean-owned blocker), drop a short memo into `.ai-workflow/hermes-inbox/pending/`. **One file per memo** named `<UTC-YYYYMMDDThhmmssZ>-<surface>-<slug>.md` (never append to a shared file — concurrent agents would clobber; a backlog is just N files). Hermes reads all pending memos at its next session start (via the proven daemon repo-read path — extend the read list, do NOT invent transport), absorbs what it needs, then memos are **archived to `consumed/<YYYY-MM>/` — never hard-deleted (Rule 34)** so the record survives while `pending/` stays fresh. Because the Pi runs read-only (Rule 47) and is currently SSD-power BLOCKED (`MEMORY.md`), Hermes records a high-water mark and reports "consumed through `<ts>`"; the physical archive move is done in-repo by a terminal agent / prune step (mirror `scripts/coordination-prune.mjs`) — Hermes never git-writes from the Pi. **Privacy (Rules 8/44/59):** committed + LLM-read → IDs/roles only, secret-scan every memo (`scripts/scan-secrets.sh`); no PII, keys, tokens, DB URLs, or absolute paths. **Distinct from Rule 68** (Fable-tier-only, durable, compounding *lessons*) **and the continuity bridge** (Sean-triggered *closeout log* for the next terminal session): this is the **any-agent, ephemeral, drained daily working memo**; a memo may be *promoted* to a learning-packet if it proves a permanent Fable-tier lesson. **Guaranteed to fire, not "maybe":** (1) this rule in boot context, (2) the `hermes-inbox` skill (`.claude/skills/hermes-inbox/SKILL.md`) carries write + drain procedure, (3) folded into `closeout-evidence-lock` (Rule 41) so it recurs at every substantial task close, (4) a `SessionStart` hook (`scripts/hooks/hermes-inbox-reminder.mjs`, wired in `.claude/settings.json`) injects a once-per-session reminder + pending count — harness-executed = the deterministic layer, once/session over a per-turn `Stop` hook to avoid token-noise *(amended 2026-07-11: Sean opted in to a per-turn deterministic `Stop` command hook as layer (5) — see "Rules 68-69 automatic closeout override" at the end of this file; the hook is Claude-harness enforcement only — Codex remains bound by this rule as convention)*. Protocol: `.ai-workflow/hermes-inbox/README.md`. **Why:** Sean 2026-07-06 — "write a file that's gonna always be looked at by Hermes… Hermes reads everything, learns what it needs about the day of the project, takes it in memory, and then [clears] it… so codex and all the other AIs, even Qwen, will write information here for the case that it wasn't done inside of Hermes."
+
+70. **Batch-Push Cadence — no per-slice deploy waits (MANDATORY)** — Established 2026-07-06 by Sean during the Fable vision /loop: "no need to wait that long… go back to back… I would rather just do the work and then push everything at the end. that waiting takes too long." Multi-slice working sessions run **back-to-back**: build slice → run ALL local gates per slice (affected vitest, tsc true-exit from `frontend/`, vite build, `node --check` + import-execution smoke on touched backend modules, Rule 42 audit, secret scan) → **commit per slice locally (explicit paths — clean history, per-slice revertability) → do NOT push → start the next slice immediately.** Push the WHOLE batch once at session/batch end (rebase onto origin/main if it moved, re-verify the rebased tree), which triggers ONE Render deploy, then run ONE §4.9-style deploy verification (backend health + release-marker chunk walk; do the targeted chunk-name hunt — local dist names the chunk, find its reference in the deployed graph — before declaring a marker absent). Waiting/sleeping between slices is justified ONLY when a deploy is actually in flight AND its verification blocks the next decision. Exceptions that still push immediately: production-outage fixes (boot crash, revenue-path down) and anything Sean explicitly asks to ship now. Why: the per-slice push→wait→probe cadence turned most loop ticks into deploy-babysitting and multiplied Render deploys; batching removes the wait and the churn without giving up per-slice gates or verification truth.
+
+71. **Fable-Mode Continuity + Model/Effort Routing (MANDATORY)** — Established 2026-07-07 by Sean from the Fable-extraction transcript ("you can't keep the model's intelligence, but you can keep its process"). Two disciplines:
+    - **Fable-mode:** `.claude/skills/fable-mode/SKILL.md` packages Fable's working discipline — five gates (scope adversarially → evidence before reasoning → attack your own reasoning → verify before declaring → report calibrated) plus the standing habits distilled from Fable's system prompt (training memory ≠ current knowledge — verify it; a prompt implying a file exists doesn't mean it does — check; answer even an ambiguous query first, then at most ONE clarifying question; own mistakes plainly and stay on the problem) — into one loadable mode. **Any non-Fable model acting as Final Decider (Co-Orchestrator fallback chain) MUST load it at session start.** Any model may load it for genuinely hard problems or when Sean says "fable mode." It packages rules 15/17/19/26/51/61 into a working mode; it bypasses no gate. **Provenance guard:** fable-mode does NOT elevate rule-68 tier — Opus-in-fable-mode output is still Opus provenance and routes to quarantine, never the Hermes learning corpus.
+    - **Model/effort routing:** before spawning subagents/Workflows, pick the cheapest model+effort tier that meets the task's intelligence/taste bar (routing table lives in the skill). Default shape: the SMART model scopes, writes worker prompts with acceptance criteria, and verifies/arbitrates; CHEAP models (Sonnet/Haiku) execute the bounded stages — transcript-verified twice (Fable+Sonnet ≈ Fable+Fable; Opus+Haiku ≈ Opus+Opus at ~3× less cost). Don't default to xhigh/max effort — it runs longer, costs more, second-guesses itself, and can produce WORSE output than high on routine work; reserve top effort for judge/verify stages and security cores. Rules 12 (no Grok) and 16 (Village spend gate) still govern every routing choice.
+
+72. **The Catalog — distilled recall layer (MANDATORY)** — Established 2026-07-20 (brain-review packet verdict, Fable Final Decider). Swan's recall layer is a **generated markdown catalog**, NOT vector RAG. One catalog file per trust boundary:
     - `docs/ai-workflow/CATALOG.md` — tracked; indexes only already-committed docs (AI-HANDOFF, brainstorms, references).
     - `.ai-workflow/CATALOG.local.md` — gitignored; indexes the gitignored operational stores. Never merge the two — a merged index is how gitignored content leaks into git (Rules 8/44/59).
-    - Row format: `path | date | author | decision | status | source-SHA` (git blob SHA of the source file).
+    - Row format: `path | date | author | decision | status | source-SHA12` (git blob SHA of the source file).
 
     **Usage law:**
     - Before answering any "what did we decide / where is X / has this been done before" question, **grep the catalogs first** (`rg "<topic>" docs/ai-workflow/CATALOG.md .ai-workflow/CATALOG.local.md`). Grep — do NOT load the whole catalog into context by default.
-    - **Rows are pointers, never canon.** Acting on a row requires opening the source file. A row may never be cited as doctrine (L6/L7 promotion is untouched and human-only).
-    - A row whose `source-SHA` no longer matches the file is **STALE** and must not be trusted — regenerate.
+    - **Rows are pointers, never canon.** Acting on a row requires opening the source file. A row may never be cited as doctrine (Mobbin L6/L7 promotion is untouched and human-only).
+    - A row whose `source-SHA` no longer matches the file is **STALE** and must not be trusted — regenerate via `node scripts/catalog-regen.mjs` (sole writer; deterministic; never calls an LLM; `--check` exits 2 when re-distillation is needed).
     - The catalog is **generated only; hand-edits are forbidden.** If a row is wrong, fix the source document and regenerate.
     - Regeneration is **T2**: may read anything already in the repo, writes exactly the catalog file(s), never writes into `wiki/`, `docs/ai-workflow/references/`, or any L6/L7 surface. Incremental regen via the SHA manifest — only re-distill files whose blob SHA changed.
     - **New handoff/brainstorm docs must carry frontmatter** `decision:`, `status:` (open|shipped|superseded), and `supersedes:` (path or none) — so new docs are born catalog-ready and the distiller degrades into a parser.
     - **Standing prohibition with a re-decision gate:** no vector/embedding/RAG infra, no autonomous external ingestion (email/Slack/Gmail ingest = T3, refused), no knowledge graph for flat lookups (per graphify policy). Re-open ONLY if the non-archived catalog exceeds ~2,000 rows or a single operational store exceeds ~5,000 items — and record that re-decision explicitly; do not drift into it. This reaffirms the anti-RAG table in `HERMES-WIKI-MYTHOS-MASTER-PLAN.md`.
+
 
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
@@ -687,27 +709,28 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
    Name the design weaknesses found, what was improved, and which viewport widths were actually checked.
 
 ## Key Directories
-- `frontend/src/components/` â€” React components (styled-components, NO MUI)
-- `backend/routes/` â€” Express API routes
-- `backend/models/` â€” Sequelize models (PostgreSQL)
-- `docs/ai-workflow/` â€” AI coordination docs, blueprints, handoffs, references
+- `frontend/src/components/` — React components (styled-components, NO MUI)
+- `backend/routes/` — Express API routes
+- `backend/models/` — Sequelize models (PostgreSQL)
+- `docs/ai-workflow/` — AI coordination docs, blueprints, handoffs, references
 
 ## Active Continuity Handoffs
-- `docs/ai-workflow/AI-HANDOFF/SECURITY-REMEDIATION-2026-04-19.md` â€” credential leak incident closeout: `.claude/settings.local.json` tracked in public GitHub since 2025-10-29, all creds rotated (Render PG, Gemini, JWT x2, local PG), 2,179 commits rewritten via `git-filter-repo`, force-pushed to `origin/main`, `.gitignore` hardened. Post-rewrite HEAD = `302c6fa3`. Read before any future git-history or secrets work. Includes verification grep commands, Hermes Pi cleanup notes, and deferred follow-ups (repoâ†’private, Secret Scanning, `vickievaldez` test-user delete, Hermes `request_dump` redaction).
-- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-3-BRAIN-PIPELINE-V3-2026-04-19.md` â€” Codex Round 1 review of the v3 3-Brain Pipeline plan. Status: REVISE before Week 1 permission rollout. Key blocker: credential prevention must scan Write/Edit/pre-commit outputs, not only Bash commands.
-- `docs/ai-workflow/AI-HANDOFF/3-BRAIN-PIPELINE-v3-PATCH-LIST-2026-04-19.md` â€” ROUND 2 synthesis: 9 targeted patches addressing Codex's CRITICAL/HIGH/MEDIUM/LOW findings on v3. Patches 1â€“5 match Sean's explicit list (secret scanner, permission pattern syntax verify, `.ai-workflow/audit/` gitignore, enumerate safe scripts vs blanket `node scripts/*`, lint gate defer). Patches 6â€“9 cover remaining Codex findings. Includes ordered apply sequence + 4 open questions back to Sean. Not yet applied â€” specifies what to do, doesn't do it.
-- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-RUNTIME-DRIFT-21639730.md` â€” Phase 16 residual/runtime-drift debate. ROUND 3 marks consensus after `a3bd6dd3`; remaining follow-ups are socket URL unification, production `avatar_homes` inspection before repair migration, and gamification migration test polish.
-- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-CURRENT-COMPLETION-STATE-2026-04-19.md` â€” compact current ship state: Phase 16/16.2 smoke, commit order, Phase 17/revenue/legal next priorities, and low-token master-plan pointers
-- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-MASTER-EXECUTION-PLAN-2026-04-19.md` â€” authoritative Village-ratified master roadmap v2; load only the relevant section after reading the compact current-state handoff
-- `docs/ai-workflow/AI-HANDOFF/HERMES-REMOTE-CODING-BRIDGE-PLAN-2026-04-19.md` â€” Hermes Telegram â†” VS Code (Claude Code + Codex) remote coding bridge. HIGH priority per Sean ("extremely important"). 3-5 day effort. Currently awaiting Village review + Sean approval before Phase R1 implementation.
-- `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md` â€” broader Swan Studios product vision, revenue priorities, premium-gating intent, and sequencing
-- `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` â€” Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
+- `docs/ai-workflow/AI-HANDOFF/SECURITY-REMEDIATION-2026-04-19.md` — credential leak incident closeout: `.claude/settings.local.json` tracked in public GitHub since 2025-10-29, all creds rotated (Render PG, Gemini, JWT x2, local PG), 2,179 commits rewritten via `git-filter-repo`, force-pushed to `origin/main`, `.gitignore` hardened. Post-rewrite HEAD = `302c6fa3`. Read before any future git-history or secrets work. Includes verification grep commands, Hermes Pi cleanup notes, and deferred follow-ups (repo→private, Secret Scanning, `vickievaldez` test-user delete, Hermes `request_dump` redaction).
+- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-3-BRAIN-PIPELINE-V3-2026-04-19.md` — Codex Round 1 review of the v3 3-Brain Pipeline plan. Status: REVISE before Week 1 permission rollout. Key blocker: credential prevention must scan Write/Edit/pre-commit outputs, not only Bash commands.
+- `docs/ai-workflow/AI-HANDOFF/3-BRAIN-PIPELINE-v3-PATCH-LIST-2026-04-19.md` — ROUND 2 synthesis: 9 targeted patches addressing Codex's CRITICAL/HIGH/MEDIUM/LOW findings on v3. Patches 1–5 match Sean's explicit list (secret scanner, permission pattern syntax verify, `.ai-workflow/audit/` gitignore, enumerate safe scripts vs blanket `node scripts/*`, lint gate defer). Patches 6–9 cover remaining Codex findings. Includes ordered apply sequence + 4 open questions back to Sean. Not yet applied — specifies what to do, doesn't do it.
+- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-RUNTIME-DRIFT-21639730.md` — Phase 16 residual/runtime-drift debate. ROUND 3 marks consensus after `a3bd6dd3`; remaining follow-ups are socket URL unification, production `avatar_homes` inspection before repair migration, and gamification migration test polish.
+- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-CURRENT-COMPLETION-STATE-2026-04-19.md` — compact current ship state: Phase 16/16.2 smoke, commit order, Phase 17/revenue/legal next priorities, and low-token master-plan pointers
+- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-MASTER-EXECUTION-PLAN-2026-04-19.md` — authoritative Village-ratified master roadmap v2; load only the relevant section after reading the compact current-state handoff
+- `docs/ai-workflow/AI-HANDOFF/HERMES-REMOTE-CODING-BRIDGE-PLAN-2026-04-19.md` — Hermes Telegram ↔ VS Code (Claude Code + Codex) remote coding bridge. HIGH priority per Sean ("extremely important"). 3-5 day effort. Currently awaiting Village review + Sean approval before Phase R1 implementation.
+- `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md` — broader Swan Studios product vision, revenue priorities, premium-gating intent, and sequencing
+- `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
 ## Co-Orchestrator Hierarchy
-- **Fable 5 (FINAL DECIDER)** - Established by Sean 2026-06-10: Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING - plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 verdict and Gemini's design authority. Fallback when Fable is unavailable: the next best available Claude model assumes the role (Opus 4.8 -> Opus 4.x -> Sonnet 4.6). Sean remains the human owner above all models.
-- **Opus 4.6 (CEO)** â€” Deputy / first fallback Final Decider when Fable is unavailable.
-- **Gemini 3.1 Pro (CTO)** â€” Lead Design Authority. Authoritative on aesthetics, Opus can override.
-- **Sonnet 4.6 (VP Eng)** â€” Premium code quality. Used in AI Village debates.
+- **Fable 5 (FINAL DECIDER)** — Established by Sean 2026-06-10: **Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING** — plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 gate verdict and Gemini's design authority. **Fallback chain when Fable is unavailable:** the next best available Claude model assumes the Final Decider role (Opus 4.8 → Opus 4.x → Sonnet 4.6). Sean remains the human owner above all models.
+- **Opus 4.x (Deputy/CEO when Fable unavailable)** — first fallback Final Decider.
+- **Gemini 3.1 Pro (CTO)** — Lead Design Authority. Authoritative on aesthetics; Fable can override.
+- **Codex (Hostile Reviewer)** — rule-46 review remains mandatory input for substantial changes, but its verdict is advisory to Fable (see rule 46 amendment).
+- **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
 - **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
 - **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.
 - Consult: `node scripts/consult-gemini.mjs --plan|--design|--review|--ask`
@@ -715,38 +738,39 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - **IMPORTANT:** Do NOT use Flash 2.5 or any other model's design vision. Gemini 3.1 Pro creates from scratch.
 
 ## AI Collaboration — Fusion Tiers (DEFAULT coding mode, added 2026-06-16)
-> How we work by default. The `fusion-router` skill auto-picks the tier at the start of substantial tasks (like `swan-orchestrator`); `ai-village-fusion` runs it. Tiers 0-2 are **$0** (flat-rate Claude/Codex/Gemini subscriptions); Tier 3 spends OpenRouter credits and is spend-gated (Rule 16). This mechanizes the Rule 46 3-Brain loop and makes the free triangle the everyday default - paid is the exception.
-- **Tier 0 - pair-code** (Claude+Codex, Rule 67): trivial/mechanical work - just do it, no fusion.
-- **Tier 1 - duo fusion** (Claude+Codex via the board): a quick 2-way second opinion.
-- **Tier 2 - TRIANGLE fusion (Claude+Codex+Gemini) = DEFAULT WORKHORSE** for every substantial call (architecture, plan review, "is this right", risky refactor, hard bug). Free. Runs `scripts/fusion-triangle.mjs` (shared-folder polling board, Gemini Pro-first chain). **Proceeds with >=2 if any agent times out - so if the Gemini API is down it degrades to Claude+Codex automatically; no separate "duo fallback" path is needed.**
-- **Tier 3 - paid AI Village** (`scripts/validation-orchestrator.mjs`, ~13 brains + recursive debates + Opus/Fable synthesis judge): must-be-right / high-stakes ONLY (auth, billing, Stripe, multi-tenant scoping, minors' data, legal, irreversible migration, pre-launch hardening). **ALWAYS ask Sean first (Rule 16)**; spend-gated (`SWAN_VILLAGE_MAX_USD` hard cap, pre-run estimate + confirm, per-model `cost-summary.md`). Used least.
-  - **Tier 3 ALWAYS chains into Tier 2 (Sean's rule, 2026-06-16):** the Village synthesis is a deep draft, NOT the final word - it is then ratified by a (free) **triangle** pass whose synthesis is the **FINAL verdict** (flow: **Village -> triangle -> final**, closed by the Decider chain). The Village never closes a high-stakes call alone. Tiers 0-2 do not chain.
-- Synthesis contract (consensus / contradictions / unique insights / blind spots / fused recommendation) is identical across all fusion tiers - only the brains + cost differ. Final Decider chain (Fable->Opus/Claude->Codex) governs the judge in every tier. Privacy: IDs/roles only (Rule 8); the fusion board is gitignored/local-only. Self-tuning is propose-only.
+> How we work by default. The `fusion-router` skill auto-picks the tier at the start of substantial tasks (like `swan-orchestrator`); `ai-village-fusion` runs it. Tiers 0–2 are **$0** (flat-rate Claude/Codex/Gemini subscriptions); Tier 3 spends OpenRouter credits and is spend-gated (Rule 16). This mechanizes the Rule 46 3-Brain loop and makes the free triangle the everyday default — paid is the exception.
+- **Tier 0 — pair-code** (Claude+Codex, Rule 67): trivial/mechanical work — just do it, no fusion.
+- **Tier 1 — duo fusion** (Claude+Codex via the board): a quick 2-way second opinion.
+- **Tier 2 — TRIANGLE fusion (Claude+Codex+Gemini) = DEFAULT WORKHORSE** for every substantial call (architecture, plan review, "is this right", risky refactor, hard bug). Free. Runs `scripts/fusion-triangle.mjs` (shared-folder polling board, Gemini Pro-first chain). **Proceeds with ≥2 if any agent times out — so if the Gemini API is down it degrades to Claude+Codex automatically; no separate "duo fallback" path is needed.**
+- **Tier 3 — paid AI Village** (`scripts/validation-orchestrator.mjs`, ~13 brains + recursive debates + Opus/Fable synthesis judge): must-be-right / high-stakes ONLY (auth, billing, Stripe, multi-tenant scoping, minors' data, legal, irreversible migration, pre-launch hardening). **ALWAYS ask Sean first (Rule 16)**; spend-gated (`SWAN_VILLAGE_MAX_USD` hard cap, pre-run estimate + confirm, per-model `cost-summary.md`). Used least.
+  - **Tier 3 ALWAYS chains into Tier 2 (Sean's rule, 2026-06-16):** the Village synthesis is a deep draft, NOT the final word — it is then ratified by a (free) **triangle** pass whose synthesis is the **FINAL verdict** (flow: **Village → triangle → final**, closed by the Decider chain). The Village never closes a high-stakes call alone. Tiers 0–2 do not chain.
+- Synthesis contract (consensus / contradictions / unique insights / blind spots / fused recommendation) is identical across all fusion tiers — only the brains + cost differ. Final Decider chain (Fable→Opus/Claude→Codex) governs the judge in every tier. Privacy: IDs/roles only (Rule 8); the fusion board is gitignored/local-only. Self-tuning is propose-only.
 - Skills: `.claude/skills/fusion-router/SKILL.md` (tier auto-select + permission gate), `.claude/skills/ai-village-fusion/SKILL.md` (runs the four tiers). Retention: `node scripts/fusion-prune.mjs` (90-day).
 
 ## Git Workflow
-- **Batch-push cadence (Rule 70, Sean 2026-07-06):** in multi-slice sessions, commit per slice locally, push ONCE at batch end -> one deploy, one verification. NEVER wait per push. (Full rule text lands via next pull from main @ 8f4d3eb1e.)
+- **Batch-push cadence (Rule 70):** in multi-slice sessions, commit per slice locally, push ONCE at batch end → one deploy, one verification. Never wait per push.
 - Deploy: Render auto-deploys from `main` branch
 - Commit: `type(scope): description` (e.g., `fix(schedule): enterprise audit P0 fixes`)
 - Always push to trigger Render deploy after commits
 
 ## Common Gotchas
-- `translateZ(0)` creates stacking contexts â€” add `position: relative; z-index` to parent
-- Vite env vars (`VITE_*`) are build-time only â€” not changeable at runtime
+- `translateZ(0)` creates stacking contexts — add `position: relative; z-index` to parent
+- Vite env vars (`VITE_*`) are build-time only — not changeable at runtime
 - Render deploys take 2-5 min; users may see cached old bundles
-- Windows dev â€” forward slashes in imports, `.cjs` for CommonJS migrations
+- Windows dev — forward slashes in imports, `.cjs` for CommonJS migrations
 - Gamification: always use idempotency keys to prevent double-award
-- Chart lazy loading: `React.lazy()` + SafeChart error boundary â€” never eagerly load full gallery
+- Chart lazy loading: `React.lazy()` + SafeChart error boundary — never eagerly load full gallery
 - Social feed: cursor-based pagination (not offset)
-- Dual `users`/`"Users"` table in production â€” FK constraints must reference `"Users"`
+- Dual `users`/`"Users"` table in production — FK constraints must reference `"Users"`
 
 ## Token Optimization (SELF-ENFORCING)
-- **CLAUDE.md is an INDEX** â€” detailed specs live in reference docs, loaded on-demand
+- **CLAUDE.md is an INDEX** — detailed specs live in reference docs, loaded on-demand
 - Use sub-agents (Haiku) for exploration/research tasks requiring 3+ files
 - Don't reload reference docs already in context
 - Compact at 60% context capacity, not 95%
 - Start fresh (/clear) between unrelated tasks
-- Be surgical with file references â€” specify exact file/function, don't say "find the bug"
+- **Fresh sessions are encouraged to save tokens** (long threads cost more per turn). With two agents (Rule 67), a fresh session re-enters CHEAPLY: read the tiny `.ai-workflow/coordination/*.lane.md` + `review-queue.md` + `rolling-last-done.md` — not the full debate/handoff history. Offer a continuity closeout (`"log this and close"`) before Sean restarts meaningful work so the new session is cheap + lossless.
+- Be surgical with file references — specify exact file/function, don't say "find the bug"
 - Batch multi-step instructions into single messages
 
 - Prefer compact refs in `docs/ai-workflow/references/` over heavyweight docs in `AI-Village-Documentation/`
@@ -764,16 +788,17 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 7. Archives are reference-only, never default reading.
 8. Side-project, internal-only, or experimental plans are never part of default context unless Sean explicitly requests them by name.
 9. If docs conflict: `CLAUDE.md` > compact reference doc in `docs/ai-workflow/references/` > current task/debate file > latest validation outputs > heavyweight handbook/onboarding docs > archives.
-10. **Continuity bridge (Phase B, added 2026-04-22 â€” applies to all 4 agent surfaces):**
+10. **Continuity bridge (Phase B, added 2026-04-22 — applies to all 4 agent surfaces):**
     - At session start, after CLAUDE.md + ACTIVE-INDEX.md but before exploring the task, read:
-      - `.ai-workflow/continuity/rolling-last-done.md` (rolling closeout log, â‰¤30 KB, auto-trimmed)
+      - `.ai-workflow/continuity/rolling-last-done.md` (rolling closeout log, ≤30 KB, auto-trimmed)
       - `docs/ai-workflow/AI-HANDOFF/CONTINUITY-GOOD-IDEAS.md` (curated promotions)
-    - Then run `bash scripts/continuity-promotions.sh --count`; if output > 0, mention the backlog in your session opening (e.g. "N pending promotion markers â€” review via `scripts/continuity-promotions.sh`").
+    - Then run `bash scripts/continuity-promotions.sh --count`; if output > 0, mention the backlog in your session opening (e.g. "N pending promotion markers — review via `scripts/continuity-promotions.sh`").
     - To **append a closeout** (ONLY when Sean explicitly says `"log this and close"` or `"session closeout"`):
       `node scripts/continuity-append.mjs --topic "..." --outcome "..." [--files "a,b,c"] [--notes "..."]`
       The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script reads gitignored `scripts/continuity-config.local.json` when present, otherwise the tracked template, and hard-fails if placeholders remain in the loaded config.
-    - **Closeouts are explicit-trigger-only.** Do not auto-append â€” the discipline is that Sean decides when a session is meaningful enough to log.
+    - **Closeouts are explicit-trigger-only.** Do not auto-append — the discipline is that Sean decides when a session is meaningful enough to log.
     - Full spec + review chain: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`. Directory README: `.ai-workflow/continuity/README.md`.
+11. **Live Pair-Coding Coordination Ledger (Rule 67, added 2026-06-13 — while Claude + Codex run in parallel):** at session start, also read `.ai-workflow/coordination/claude.lane.md` + `codex.lane.md` (what the other agent is editing right now) + `review-queue.md` (open review requests for me), then run `node scripts/coordination-prune.mjs`. Before editing ANY file, re-check the other agent's lane (read-before-edit). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 ## Reference Docs (Read ONLY when needed for current task)
 | Topic | File | When to Read |
@@ -798,44 +823,44 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Site Transformation Prompt | `docs/ai-workflow/references/SWANSTUDIOS-SITE-TRANSFORMATION-PROMPT.md` | Piece-by-piece premium site modernization |
 | Theme Compatibility | `docs/ai-workflow/references/THEME-CHANGER-COMPAT.md` | Theme/CSS variable work |
 | Build Hardening | `docs/ai-workflow/references/BUILD-HARDENING.md` | Pre-commit review |
-| Seedance Workflow Rules | `docs/ai-workflow/references/SEEDANCE-WORKFLOW-RULES.md` | **MANDATORY** for any Seedance 2.0 exercise/workout video prompt work. 2499-char hard cap (target ~2400), two-layer CLEAN/TAGGED pairing, 8s single-angle default / 15s expanded optional, five-beat Setupâ†’Actionâ†’Signatureâ†’Proofâ†’Reset teaching rhythm, clinical-language moderation dodge, reusable base prefix, regression-first for 40â€“70 clients. Triggered by PIRIFORMIS misspelling + quadruped moderation rejection incidents 2026-04-12. |
+| Seedance Workflow Rules | `docs/ai-workflow/references/SEEDANCE-WORKFLOW-RULES.md` | **MANDATORY** for any Seedance 2.0 exercise/workout video prompt work. 2499-char hard cap (target ~2400), two-layer CLEAN/TAGGED pairing, 8s single-angle default / 15s expanded optional, five-beat Setup→Action→Signature→Proof→Reset teaching rhythm, clinical-language moderation dodge, reusable base prefix, regression-first for 40–70 clients. Triggered by PIRIFORMIS misspelling + quadruped moderation rejection incidents 2026-04-12. |
 | Seedance Cinematic Video Rules | `docs/ai-workflow/references/SEEDANCE-CINEMATIC-VIDEO-RULES.md` | **MANDATORY** for Seedance 2.0 hero loops, store/card loops, icon micro-loops, ambient b-roll, and non-exercise brand films. Separates cinematic multi-shot work from workout rules with loop integrity, surface-specific duration modes, signature visual beats, and Swan brand-motion discipline. |
 | Anti-AI-Tells | `docs/ai-workflow/references/ANTI-AI-TELLS.md` | UI component design |
 | Visual Diff Loop | `docs/ai-workflow/references/VISUAL-DIFF-LOOP.md` | UI QA screenshots |
 | File Cleanup | `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` | Cleanup tasks |
-| Repo Hygiene Protocol | `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` | **MANDATORY** â€” before refactors, audits, route-tracing with competing surfaces, or fresh sessions where the repo feels cluttered. Drives rules 32-39. |
-| Swan Cinematic Design System | `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` | **MANDATORY** â€” source of truth for every Swan visual task. Stack truth, page-level narrative arc (B2), C1-C12 pattern library, generic-pattern bans. Loaded by `swan-design-router`. Supersedes legacy `AI-Village-Documentation/design/CINEMATIC-WEB-DESIGN-SYSTEM.md`. |
+| Repo Hygiene Protocol | `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` | **MANDATORY** — before refactors, audits, route-tracing with competing surfaces, or fresh sessions where the repo feels cluttered. Drives rules 32-39. |
+| Swan Cinematic Design System | `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` | **MANDATORY** — source of truth for every Swan visual task. Stack truth, page-level narrative arc (B2), C1-C12 pattern library, generic-pattern bans. Loaded by `swan-design-router`. Supersedes legacy `AI-Village-Documentation/design/CINEMATIC-WEB-DESIGN-SYSTEM.md`. |
 | Swan Asset Storyboarding | `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` | **MANDATORY** for any task that needs generated media. Asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates. Loaded by `swan-design-router`. |
 | Auto Research | `docs/ai-workflow/references/AUTO-RESEARCH.md` | Running skill optimization |
 | App AI Hive Mind | `docs/ai-workflow/references/APP-AI-HIVE-MIND.md` | AI chat features |
 | Hermes + Wiki + Mythos | `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md` | AI command center, Hermes Agent, Karpathy Wiki, Mythos planning |
-| Hermes â†” SwanStudios Operator Bridge | `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` | **Boundary clarifier.** Distinguishes public Swan Coach (in-app product feature) from Sean-only Hermes Operator Mode (Pi+Telegram). Read when scoping any task that crosses Hermes/SwanStudios. Reaffirms: SwanStudios production stability outranks Hermes polish unless Sean names Hermes the active task; Hermes assists rule-46 review loop but never bypasses Codex final gate. |
+| Hermes ↔ SwanStudios Operator Bridge | `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` | **Boundary clarifier.** Distinguishes public Swan Coach (in-app product feature) from Sean-only Hermes Operator Mode (Pi+Telegram). Read when scoping any task that crosses Hermes/SwanStudios. Reaffirms: SwanStudios production stability outranks Hermes polish unless Sean names Hermes the active task; Hermes assists rule-46 review loop but never bypasses Codex final gate. |
 | Plaud Audio Intelligence | `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` | Voice logging, Plaud NotePin, audio import, transcript parsing, session recap |
-| PLAUD Applaud Runbook | `docs/ai-workflow/references/PLAUD-APPLAUD-RUNBOOK.md` | Phase 5 Slice 5.8 â€” operational setup for PLAUD Auto-Ingestion: Applaud install, Cloudflare Tunnel, Render env vars, troubleshooting, day-2 ops, rotation procedures. Read before first staging activation (Slice 5.9) or when a webhook ingest fails in production. |
-| OpenClaw (SUPERSEDED) | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | SUPERSEDED by Hermes plan â€” kept for reference only |
+| PLAUD Applaud Runbook | `docs/ai-workflow/references/PLAUD-APPLAUD-RUNBOOK.md` | Phase 5 Slice 5.8 — operational setup for PLAUD Auto-Ingestion: Applaud install, Cloudflare Tunnel, Render env vars, troubleshooting, day-2 ops, rotation procedures. Read before first staging activation (Slice 5.9) or when a webhook ingest fails in production. |
+| OpenClaw (SUPERSEDED) | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | SUPERSEDED by Hermes plan — kept for reference only |
 | Skills Reference | `docs/ai-workflow/references/SKILLS-REFERENCE.md` | Skill management |
-| QA Pipeline | `docs/ai-workflow/references/QA-PIPELINE.md` | **MANDATORY** â€” defines the three-layer review/verification pipeline (Tier-A deterministic tooling, Tier-B AI cross-review, Tier-C AI Village). Read before invoking Tier-C, before designing a Tier-B review checklist, or when uncertain which tier a change requires. Encodes rules 50â€“52. |
-| Reviewer Discipline | `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` | **MANDATORY** when writing a review (Tier-B), responding to a user-relayed claim ("the other AI said X is broken"), or before any non-trivial factual/causal claim leaves your output. Six anti-sycophancy doctrines. Encodes rules 50â€“52. |
-| Workflow Paths | `docs/ai-workflow/references/WORKFLOW-PATHS.md` | Choosing how to run a change end-to-end (Fast / Standard / Deploy execution shape). **Orthogonal** to QA tier â€” see QA-PIPELINE.md for the review/verification layers. |
+| QA Pipeline | `docs/ai-workflow/references/QA-PIPELINE.md` | **MANDATORY** — defines the three-layer review/verification pipeline (Tier-A deterministic tooling, Tier-B AI cross-review, Tier-C AI Village). Read before invoking Tier-C, before designing a Tier-B review checklist, or when uncertain which tier a change requires. Encodes rules 50–52. |
+| Reviewer Discipline | `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` | **MANDATORY** when writing a review (Tier-B), responding to a user-relayed claim ("the other AI said X is broken"), or before any non-trivial factual/causal claim leaves your output. Six anti-sycophancy doctrines. Encodes rules 50–52. |
+| Workflow Paths | `docs/ai-workflow/references/WORKFLOW-PATHS.md` | Choosing how to run a change end-to-end (Fast / Standard / Deploy execution shape). **Orthogonal** to QA tier — see QA-PIPELINE.md for the review/verification layers. |
+| AI Pair-Coding Protocol | `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md` | **MANDATORY (Rule 67)** while Claude + Codex run in parallel. Live Coordination Ledger (`.ai-workflow/coordination/`): read-before-edit, lane claims, commit safety, mutual hostile review. Read at session start with the continuity bridge. |
 | ESLint Setup | `docs/ai-workflow/references/ESLINT-SETUP.md` | Tier-A linter install/config (deferred install slice). |
-| Claude Permission Syntax | `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` | `.claude/settings.json` permission patterns â€” read when editing allow/deny rules. |
+| Claude Permission Syntax | `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` | `.claude/settings.json` permission patterns — read when editing allow/deny rules. |
 | Karpathy Wiki Operations | `docs/ai-workflow/references/KARPATHY-WIKI-OPERATIONS.md` | Hermes Wiki Bridge runtime ops, ingest, redaction posture. |
 | SwanStudios Full Vision | `docs/ai-workflow/references/SWANSTUDIOS-FULL-VISION.md` | Long-form product/business vision. Read for "where is this going" framing; for sequencing, defer to `SWANSTUDIOS-EXECUTION-ROADMAP.md`. |
+| SwanStudios Master Prompt | `docs/ai-workflow/references/SWANSTUDIOS-MASTER-PROMPT.md` | **Canonical compact vision loader** (2026-06-10) — ready-to-paste prompt giving any AI the complete vision in one shot. Supersedes all archived "MASTER PROMPT" docs. Use when briefing a fresh AI/session; FULL-VISION.md stays the deep reference. |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
-| Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** â€” read before ANY implementation task |
+| Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 | Four-C Connections/Cadence Roadmap | `docs/ai-workflow/references/FOUR-C-CONNECTIONS-CADENCE-ROADMAP.md` | Planned C2 (live-data connections) + C4 (scheduled/triggered automations) build-out. Pointed to by the Four-C Router. Read when scoping a connection or automation; loaded on demand to keep the operating files lean. |
 | Fable Workflow Integration | `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md` | Deciding whether/how to use Fable; writing Fable handoffs |
 | AI Skill & Operator Registry | `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md` | **MANDATORY** before granting any agent/automation a new capability; unregistered = BLOCKED |
-| Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work — approval gates, receipts, kill switches, T0–T4 |
-| Sean Human-AI Task OS | `docs/ai-workflow/hermes-agentic-os/task-operating-system.md` | **MANDATORY (Rule 68)** for substantial delegated/async work; one board, Agent-Ready Contract, eval before `NEEDS_SEAN`, batched human QA |
+| Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
-| Design Brain External Reference MCP | `docs/ai-workflow/design-brain/external-reference-mcp.md` | Default Mobbin/Mobbin-like reference gate for major UI direction; principles only, source docs win |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11, `.claude/skills/` count = 20)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` documented count = 23)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 20 entries
+### Default-exposed `.claude/skills/` = 23 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -846,15 +871,18 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (6):**
+**Swan orchestration (9):**
 | Skill | Role |
 |---|---|
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
+| `fable-mode` | Portable Fable working discipline (rule 71). Five gates (scope adversarially / evidence first / attack own reasoning / verify before declaring / report calibrated) + the model/effort routing table (orchestrator-smart, executor-cheap). MANDATORY load for any fallback Final Decider acting in Fable's absence; on-demand for hard problems ("fable mode"). Does NOT elevate rule-68 provenance. |
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
-| `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md + Design Brain, including the Mobbin reference gate when relevant. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
+| `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
+| `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
+| `hermes-inbox` | Any-agent → Hermes working channel (rule 69). Work done OUTSIDE Hermes (terminal Claude/Codex, local Qwen, scripts) drops a short IDs-only memo in `.ai-workflow/hermes-inbox/pending/`; Hermes reads at session start, absorbs, then memos archive to `consumed/` (Rule 34). Ephemeral + any-agent — distinct from the Fable-tier-only durable learning-packet and the Sean-triggered continuity bridge. Fires via rule 69 + closeout-evidence-lock fold + a SessionStart hook. |
 
 **KEEP core (9):**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-workout-video`, `seedance-swan-cinematic-video`
@@ -862,23 +890,21 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 ### Reference libraries loaded by `swan-design-router`, NOT default-exposed
 `frontend-design` and `ui-ux-pro-max` live at `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` respectively. They are **not** in `.claude/skills/`. They are loaded on-demand by the router from their `.agents/skills/` paths. They are not archived and not treated as quarantined.
 
-`design-taste-frontend` lives at `.agents/skills/design-taste-frontend/SKILL.md`. It is installed for Codex as an explicit-invocation add-on, not as a default-exposed Swan design brain and not as a co-equal authority. Use it when Sean asks for Taste Skill / high-taste / anti-slop design direction, then filter it through Swan rules: no Tailwind migration, no new default design-system package, no non-Swan palette, no icon-family churn, and no LILA-ban override of Dual-Button Glow.
+`seedance-loop-prompt` (v2.0, 2026-04-12 AI Village consensus pass) lives at `.agents/skills/seedance-loop-prompt/SKILL.md`. It is the **general-purpose** Seedance 2.0 shot-by-shot prompt builder (4-section structured output: Timeline / Effects Inventory / Density Map / Energy Arc). It is **not** in `.claude/skills/` — treat it as a reference library for cinematic prompt construction. `seedance-swan-workout-video` is the default-exposed workout branch for exercise demos, anatomy-overlay workflow, and regression-first coaching clips. `seedance-swan-cinematic-video` is the default-exposed cinematic branch for hero loops, card loops, icon motion, ambient b-roll, and brand films. Use `seedance-loop-prompt` when a video needs the full effects-breakdown discipline; use the two Swan split skills for normal SwanStudios production work.
 
-`seedance-loop-prompt` (v2.0, 2026-04-12 AI Village consensus pass) lives at `.agents/skills/seedance-loop-prompt/SKILL.md`. It is the **general-purpose** Seedance 2.0 shot-by-shot prompt builder (4-section structured output: Timeline / Effects Inventory / Density Map / Energy Arc). It is **not** in `.claude/skills/` â€” treat it as a reference library for cinematic prompt construction. `seedance-swan-workout-video` is the default-exposed workout branch for exercise demos, anatomy-overlay workflow, and regression-first coaching clips. `seedance-swan-cinematic-video` is the default-exposed cinematic branch for hero loops, card loops, icon motion, ambient b-roll, and brand films. Use `seedance-loop-prompt` when a video needs the full effects-breakdown discipline; use the two Swan split skills for normal SwanStudios production work.
-
-### Quarantined skills â€” explicit-invocation-only (8, relocated to `archive/quarantined-skills/2026-04-12/`)
+### Quarantined skills — explicit-invocation-only (8, relocated to `archive/quarantined-skills/2026-04-12/`)
 These skills have been moved off the default-exposed surface. Their sources now live at `archive/quarantined-skills/2026-04-12/<name>/`. Do NOT auto-load them. Invoke only when Sean explicitly requests the specific aesthetic or review behavior by slash-command. The move is reversible via `git mv` back.
 
 | Skill | Why quarantined |
 |---|---|
-| `minimalist-ui` | Narrow aesthetic â€” warm monochrome + flat bento + no gradients. Conflicts with Swan's dark-luxury direction. |
-| `industrial-brutalist-ui` | Narrow aesthetic â€” Swiss typographic + military terminal. Conflicts with Swan's cinematic direction. |
+| `minimalist-ui` | Narrow aesthetic — warm monochrome + flat bento + no gradients. Conflicts with Swan's dark-luxury direction. |
+| `industrial-brutalist-ui` | Narrow aesthetic — Swiss typographic + military terminal. Conflicts with Swan's cinematic direction. |
 | `high-end-visual-design` | Rigid "Absolute Zero" bans + opinionated "Awwwards-tier" persona. Useful occasionally, not as default. |
-| `design-taste-frontend` | Installed at `.agents/skills/design-taste-frontend/SKILL.md` for Codex as an explicit add-on lens. Useful for anti-template critique and alternate concept directions, but its LILA BAN and Tailwind/default-library guidance conflict with Swan rules. Swan router, Crystalline Swan tokens, styled-components, and Dual-Button Glow always win. |
+| `design-taste-frontend` | Contains "THE LILA BAN" that **directly contradicts** the Dual-Button Glow rule (bans purple button glows and neon gradients). Hard doctrinal conflict with Swan brand. |
 | `stitch-design-taste` | Niche to Google Stitch DESIGN.md output. |
-| `redesign-existing-projects` | Audit-focused, niche â€” useful when explicitly asked for a redesign audit, noisy otherwise. |
+| `redesign-existing-projects` | Audit-focused, niche — useful when explicitly asked for a redesign audit, noisy otherwise. |
 | `web-design-guidelines` | Review-only, overlaps with `verification-before-completion` + rules 22-23 design dual-pass. |
-| `requesting-code-review` | **Broken** â€” depends on a missing `superpowers:code-reviewer` subagent. Substantive checklist preserved in `closeout-evidence-lock`. Do NOT dispatch to this skill from any new code path. |
+| `requesting-code-review` | **Broken** — depends on a missing `superpowers:code-reviewer` subagent. Substantive checklist preserved in `closeout-evidence-lock`. Do NOT dispatch to this skill from any new code path. |
 
 ## Opus-Codex Recursive Debate Protocol (MANDATORY)
 - **Debate directory:** `docs/ai-workflow/AI-HANDOFF/`
@@ -886,24 +912,24 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Purpose:** Claude (Opus) and Codex debate plans/fixes recursively until consensus
 - **Flow:**
   1. Claude writes analysis/plan/AI Village results into a **per-phase debate file** (e.g., `OPUS-CODEX-DEBATE-TIER1-2026-04-07.md`)
-  2. Claude asks Sean: "Would you like Codex to review this?" â€” **Sean decides yes or no**
+  2. Claude asks Sean: "Would you like Codex to review this?" — **Sean decides yes or no**
   3. If yes: Claude provides Sean a prompt to give Codex, pointing to the debate file
   4. Sean pastes Codex's response back to Claude (or notifies file was updated)
   5. Claude reads Codex's response, writes Round N reply into the debate file
   6. Repeat until BOTH parties write "CONSENSUS REACHED"
   7. Final consensus becomes the implementation plan
 - **Token Management (MANDATORY):**
-  - **One debate file per phase/tier** â€” NEVER append to a multi-thousand-line mega-file
+  - **One debate file per phase/tier** — NEVER append to a multi-thousand-line mega-file
   - **On CONSENSUS REACHED:** Move full transcript to `debate-archive/`, replace original with a <30 line summary (outcomes + key decisions only)
   - **Max file size:** If a debate file exceeds 500 lines mid-debate, summarize earlier rounds in-place (keep last 2 rounds full, compress older rounds to bullet summaries)
-  - **Codex prompt must say:** "Read ONLY this debate file" â€” never point Codex at the archive
+  - **Codex prompt must say:** "Read ONLY this debate file" — never point Codex at the archive
 - **Rules:**
   - Claude NEVER starts without asking Sean's permission for Codex review
-  - Polling ownership: Sean manages â€” Codex does NOT self-poll
+  - Polling ownership: Sean manages — Codex does NOT self-poll
   - All AI Village final results go INTO the debate file for Codex review
-  - Max 25 rounds per debate â€” Opus CEO makes final call if no consensus
-  - Codex autonomous scope: bug fixes, error resolution ONLY â€” no feature work, no UI redesign
-  - Codex MUST read CLAUDE.md first â€” violations (MUI, README in prod, retired theme) have broken production
+  - Max 25 rounds per debate — Opus CEO makes final call if no consensus
+  - Codex autonomous scope: bug fixes, error resolution ONLY — no feature work, no UI redesign
+  - Codex MUST read CLAUDE.md first — violations (MUI, README in prod, retired theme) have broken production
 
 ## AI Coordination
 - Multi-AI Swarm (see `.clinerules` for full protocol)
@@ -911,26 +937,26 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Handoff protocol:** `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
 - **Master handbook:** `docs/MASTER-HANDBOOK.md`
 
-## Open Items â€” Session Continuity Index
+## Open Items — Session Continuity Index
 > Read the linked handoff docs for full context. This section is the quick-reference only.
 > Full vision: `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md`
 > Swan Coach command state: `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md`
 > Current production/stability priorities: `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
 
 ### Swan Coach Command Lane (ACTIVE TRACK)
-- **v1â€“v14 CONFIRMED LIVE** (repo-verified 2026-04-11): 20 commands live, commandDispatcher.mjs 214 lines
-- **v15 NEXT** â†’ `view_available_slots` â€” clean read, no destructive risk, builds on v14 availability work
+- **v1–v14 CONFIRMED LIVE** (repo-verified 2026-04-11): 20 commands live, commandDispatcher.mjs 214 lines
+- **v15 NEXT** → `view_available_slots` — clean read, no destructive risk, builds on v14 availability work
 - **Blocked/deferred:** `set_availability` (full-week destructive replace), `reschedule_session` (409 conflict path), `schedule_session` (wrong semantics in live code), `FRONTEND_DISPATCH` (browser-local state)
-- **After v15:** trainer workout logging â†’ client dashboard visibility audit (revenue-critical proof-of-value chain)
-- **After trainer workflow:** PLAUD transcript ingestion â†’ Swan Coach logging, then premium gating/tier alignment
+- **After v15:** trainer workout logging → client dashboard visibility audit (revenue-critical proof-of-value chain)
+- **After trainer workflow:** PLAUD transcript ingestion → Swan Coach logging, then premium gating/tier alignment
   - **Reality check (2026-04-14):** Plaud now has an official Developer Platform, but it is still private beta and official OAuth pull from existing Plaud user accounts is still in progress / waitlist-only. Swan already has a live upload+parse path (`/api/workout-logs/upload` + `workoutLogParserService.mjs`), so near-term planning should assume manual export/direct upload first, unofficial Plaud web API only as an internal bridge, and official Plaud OAuth/webhooks later.
 
-### Hermes on Raspberry Pi (BLOCKED â€” SSD POWER)
+### Hermes on Raspberry Pi (BLOCKED — SSD POWER)
 - **Done:** Telegram bot running as systemd service, dense Swan Coach system prompt, google-genai SDK with 3-model fallback, systemd auto-restart
 - **Pi model in use:** whichever `models/gemini-2.5-flash` variant responded (fallback to `gemini-flash-latest`)
-- **BLOCKER â€” SSD power issue:** All SSDs tested were running too slow / crashing when connected directly to Pi 4 USB port. Pi USB does not supply enough power for full SSD speed. Currently running on SD card which WILL fail eventually.
-  - **Resolution:** Need a **powered USB hub** (one that has its own power adapter AND connects to Pi). Sean already owns a USB hub but can't locate the power cord. Once found â†’ plug SSD into powered hub â†’ plug hub into Pi â†’ USB-boot from SSD.
-  - When ready: re-image SSD, re-run setup. DO NOT re-setup on SD card again â€” do it right once.
+- **BLOCKER — SSD power issue:** All SSDs tested were running too slow / crashing when connected directly to Pi 4 USB port. Pi USB does not supply enough power for full SSD speed. Currently running on SD card which WILL fail eventually.
+  - **Resolution:** Need a **powered USB hub** (one that has its own power adapter AND connects to Pi). Sean already owns a USB hub but can't locate the power cord. Once found → plug SSD into powered hub → plug hub into Pi → USB-boot from SSD.
+  - When ready: re-image SSD, re-run setup. DO NOT re-setup on SD card again — do it right once.
   - **Remind Sean** when he returns to Pi work: find the USB hub power cord first, confirm it's a powered hub (not bus-powered), THEN proceed.
 - **Still needed after SSD is resolved:**
   - Karpathy Wiki directory structure on Pi (`~/karpathy-wiki/`)
@@ -938,41 +964,45 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Full plan:** `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md`
 
 ### Storefront Packages (PENDING CONFIRMATION)
-- **Seeder corrected 2026-04-11** â†’ 5 packages, $175/session flat (NO volume discounts), 30-min 10-pack $110
+- **Seeder corrected 2026-04-11** → 5 packages, $175/session flat (NO volume discounts), 30-min 10-pack $110
 - **NEEDS:** Run `FORCE_RESEED=true node seeders/20260407-seed-storefront-packages.mjs` in Render shell to wipe bad data
-- **Unresolved:** `/api/cart/add` returning 404 in production â€” not yet root-caused
-- **Packages:** Single ($175) Â· 3-Month ($8,400) Â· 6-Month ($16,800) Â· 12-Month ($33,600) Â· 30-min pack ($1,100)
+- **Unresolved:** `/api/cart/add` returning 404 in production — not yet root-caused
+- **Packages:** Single ($175) · 3-Month ($8,400) · 6-Month ($16,800) · 12-Month ($33,600) · 30-min pack ($1,100)
 
 ### Deferred UI / Code Quality
-- `MeasurementEntry.tsx` â€” 300-line refactor into sub-hooks (not a bug, safe to defer)
-- `ActivitySection.tsx` â€” all violations fixed and committed 2026-04-11 âœ“
-- `StorefrontItem.mjs` Sequelize validator bug â€” fixed and deployed 2026-04-10 âœ“
+- `MeasurementEntry.tsx` — 300-line refactor into sub-hooks (not a bug, safe to defer)
+- `ActivitySection.tsx` — all violations fixed and committed 2026-04-11 ✓
+- `StorefrontItem.mjs` Sequelize validator bug — fixed and deployed 2026-04-10 ✓
 
-### Content Studio â€” Seedance 2.0 + Exercise Videos (ACTIVE GOAL)
-- **Goal:** Create exercise demo videos with anatomy overlays â€” muscle activation highlighted as Sean performs perfect-form reps
+### Content Studio — Seedance 2.0 + Exercise Videos (ACTIVE GOAL)
+- **Goal:** Create exercise demo videos with anatomy overlays — muscle activation highlighted as Sean performs perfect-form reps
 - **Seedance skills split 2026-04-12:**
-  - `.agents/skills/seedance-swan-workout-video/SKILL.md` â€” invoke with `/seedance-swan-workout-video` for exercise demos, anatomy-overlay workflow, and regression-first workout clips
-  - `.agents/skills/seedance-swan-cinematic-video/SKILL.md` â€” invoke with `/seedance-swan-cinematic-video` for hero loops, store/card loops, icon motion, ambient b-roll, and brand films
-- **AI Village refinement PENDING** â€” skill was written from first principles; schedule a planning/research Village run next session to research Seedance 2.0 prompt engineering best practices and refine
-- **Workflow:** NanoBanana/key.ai for reference image â†’ Seedance 2.0 (via key.ai API or interface) â†’ Claude Code for website integration â†’ anatomy overlay in post (Capcut Pro / DaVinci)
-- **Scroll-activated video technique** (from YouTube research 2026-04-11): Extract frames from video â†’ map to scroll position â†’ `<canvas>` + `requestAnimationFrame`. Claude Code can do this end-to-end from a video file. Very high priority for homepage hero.
+  - `.agents/skills/seedance-swan-workout-video/SKILL.md` — invoke with `/seedance-swan-workout-video` for exercise demos, anatomy-overlay workflow, and regression-first workout clips
+  - `.agents/skills/seedance-swan-cinematic-video/SKILL.md` — invoke with `/seedance-swan-cinematic-video` for hero loops, store/card loops, icon motion, ambient b-roll, and brand films
+- **AI Village refinement PENDING** — skill was written from first principles; schedule a planning/research Village run next session to research Seedance 2.0 prompt engineering best practices and refine
+- **Workflow:** NanoBanana/key.ai for reference image → Seedance 2.0 (via key.ai API or interface) → Claude Code for website integration → anatomy overlay in post (Capcut Pro / DaVinci)
+- **Scroll-activated video technique** (from YouTube research 2026-04-11): Extract frames from video → map to scroll position → `<canvas>` + `requestAnimationFrame`. Claude Code can do this end-to-end from a video file. Very high priority for homepage hero.
 - **Full plan:** `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` (content side) + new Seedance skill
 
-### Claude Code Skills â€” Status (2026-04-11)
-- **32 skills from skills.sh** installed via `.agents/skills/` â†’ symlinked into `.claude/skills/`
-- **Official Claude Code plugin (`/frontend-design`)** â€” `installed_plugins.json` is EMPTY. NOT installed yet.
-  - The `frontend-design` you see is the skills.sh community version â€” good but different
-  - **ACTION NEEDED:** Open Claude Code terminal â†’ type `/plugins` â†’ search `frontend-design` â†’ install globally. This gives plan-mode-specific first-party design intelligence on top of the skills.sh version
+### Claude Code Skills — Status (2026-04-11)
+- **32 skills from skills.sh** installed via `.agents/skills/` → symlinked into `.claude/skills/`
+- **Official Claude Code plugin (`/frontend-design`)** — `installed_plugins.json` is EMPTY. NOT installed yet.
+  - The `frontend-design` you see is the skills.sh community version — good but different
+  - **ACTION NEEDED:** Open Claude Code terminal → type `/plugins` → search `frontend-design` → install globally. This gives plan-mode-specific first-party design intelligence on top of the skills.sh version
   - Also check `/plugins` for any other first-party plugins you may be missing (look for `ui`, `react`, `accessibility`)
-- **New skills added:** `seedance-swan-workout-video`, `seedance-swan-cinematic-video` â€” retired unified `seedance-swan-video`
+- **New skills added:** `seedance-swan-workout-video`, `seedance-swan-cinematic-video` — retired unified `seedance-swan-video`
 
 ### Business Priority Order (do not scatter)
 Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`.
 
-1. **Now:** v15 `view_available_slots` Swan Coach slice â†’ verify end-to-end
-2. **Then:** trainer workout logging â†’ client dashboard visibility (retention/upsell proof)
+1. **Now:** v15 `view_available_slots` Swan Coach slice → verify end-to-end
+2. **Then:** trainer workout logging → client dashboard visibility (retention/upsell proof)
 3. **Then:** chart/KPI truthfulness audit (workout, weight, measurements, schedule)
-4. **Then:** PLAUD voice transcript ingestion â†’ Swan Coach log_workout
+4. **Then:** PLAUD voice transcript ingestion → Swan Coach log_workout
    - Use the existing Swan upload/parse pipeline as the default starting point; do not assume official Plaud account sync is ready yet.
 5. **Then:** Swan Coach premium gating aligned to package tiers
-6. **Then:** client dashboard audit â†’ user/social dashboard audit â†’ broader site polish
+6. **Then:** client dashboard audit → user/social dashboard audit → broader site polish
+
+### Rules 68-69 automatic closeout override (Sean opted in 2026-07-11)
+
+The earlier manual-default wording is superseded. A deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs` — heuristic, fail-open, zero model calls; replaced the original prompt-type hook 2026-07-11 after live-fire smoke showed the classifier blocked 100% of trivial turns) evaluates every completed turn. Substantial terminal work must emit a privacy-safe Hermes Inbox memo before the agent stops. A substantial permanent lesson with verified Fable-tier provenance must also emit a durable Hermes Learning Packet. Trivial work, incomplete work, already-emitted closeouts, and `stop_hook_active` continuations pass without emission. The durable Fable-tier gate remains fail-closed.
