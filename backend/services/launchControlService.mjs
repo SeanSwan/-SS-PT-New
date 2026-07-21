@@ -8,7 +8,13 @@
  */
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
-import { envBaseline, resolveFlagValue, stableBucket } from './launchControlResolve.mjs';
+import {
+  APPROVED_FEATURE_FLAGS,
+  envBaseline,
+  isApprovedFeatureFlag,
+  resolveFlagValue,
+  stableBucket,
+} from './launchControlResolve.mjs';
 
 // Re-export the pure logic so existing importers (publicConfigRoutes) keep a single import site.
 export { envBaseline, resolveFlagValue, stableBucket };
@@ -53,7 +59,9 @@ export async function getBoard() {
             (SELECT COUNT(*) FROM flag_health h WHERE h.flag = f.flag AND h.created_at > now() - interval '7 days')  AS fail7d
        FROM flags f
        LEFT JOIN flag_overrides o ON o.flag = f.flag
+      WHERE f.flag IN (:approvedFlags)
        ORDER BY f.grp, f.parent_flag NULLS FIRST, f.flag`,
+    { replacements: { approvedFlags: APPROVED_FEATURE_FLAGS } },
   );
   const base = envBaseline();
   return flags.map((f) => {
@@ -74,6 +82,7 @@ export async function getBoard() {
 }
 
 async function flagExists(flag) {
+  if (!isApprovedFeatureFlag(flag)) return false;
   const [rows] = await sequelize.query(`SELECT 1 FROM flags WHERE flag = :flag`, { replacements: { flag } });
   return rows.length > 0;
 }

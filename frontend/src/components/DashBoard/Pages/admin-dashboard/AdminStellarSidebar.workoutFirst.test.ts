@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { ADMIN_DASHBOARD_TABS, WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
+import dashboardTabs, { WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const source = readFileSync(resolve(__dirname, './AdminStellarSidebar.tsx'), 'utf8');
+const sidebarSource = readFileSync(resolve(__dirname, './AdminStellarSidebar.tsx'), 'utf8');
+const configSource = readFileSync(resolve(__dirname, '../../../../config/dashboard-tabs.ts'), 'utf8');
 
 describe('AdminStellarSidebar workout-first navigation', () => {
   it('keeps daily workout logging inside the single Clients & Team workspace', () => {
@@ -21,22 +22,14 @@ describe('AdminStellarSidebar workout-first navigation', () => {
   });
 
   it('keeps Clients & Team active for log-workout intent routes', () => {
-    expect(source).toContain("const [basePath, query = ''] = prefix.split('?');");
-    expect(source).toContain("currentParams.get(key) === value");
-    expect(source).not.toContain("currentParams.get('intent') === 'log_workout'");
-  });
-
-  it('keeps deprecated workout-plan config pointed at the client-first planner flow', () => {
-    const workoutPlans = ADMIN_DASHBOARD_TABS.find((tab) => tab.key === 'workout-plans');
-
-    expect(workoutPlans?.route).toBe('/dashboard/admin/client-management?intent=plan_next');
-    expect(ADMIN_DASHBOARD_TABS.map((tab) => tab.route)).not.toContain('/dashboard/admin/workouts');
+    expect(sidebarSource).toContain("const [basePath, query = ''] = prefix.split('?');");
+    expect(sidebarSource).toContain('currentParams.get(key) === value');
+    expect(sidebarSource).not.toContain("currentParams.get('intent') === 'log_workout'");
   });
 
   it('keeps manual payment recovery reachable from the active business nav', () => {
     const businessItems = WORKSPACE_CONFIG.filter((item) => item.section === 'business');
     const pendingOrders = businessItems.find((item) => item.id === 'pending-orders');
-    const deprecatedPendingOrders = ADMIN_DASHBOARD_TABS.find((tab) => tab.key === 'pending-orders');
 
     expect(businessItems.map((item) => item.label).slice(0, 3)).toEqual([
       'Store & Revenue',
@@ -44,7 +37,11 @@ describe('AdminStellarSidebar workout-first navigation', () => {
       'Analytics',
     ]);
     expect(pendingOrders?.prefix).toBe('/dashboard/admin/pending-orders');
-    expect(deprecatedPendingOrders?.route).toBe('/dashboard/admin/pending-orders');
-    expect(deprecatedPendingOrders?.status).toBe('real');
+  });
+
+  it('has one admin navigation source of truth', () => {
+    const retiredName = ['ADMIN', 'DASHBOARD', 'TABS'].join('_');
+    expect(configSource).not.toContain(retiredName);
+    expect(Object.keys(dashboardTabs)).not.toContain(retiredName);
   });
 });

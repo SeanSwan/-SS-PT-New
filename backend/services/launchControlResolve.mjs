@@ -6,6 +6,17 @@
 
 export const isTrue = (value) => value === 'true' || value === '1';
 
+export const APPROVED_FEATURE_FLAGS = Object.freeze([
+  'dashboardV2Finance',
+  'postSaveHandoff',
+  'prismCapture',
+]);
+
+const APPROVED_FEATURE_FLAG_SET = new Set(APPROVED_FEATURE_FLAGS);
+
+/** Launch Control is for risky product capabilities, never alternate visual surfaces. */
+export const isApprovedFeatureFlag = (flag) => APPROVED_FEATURE_FLAG_SET.has(flag);
+
 /**
  * The env→flag BASELINE map — the single source of the env-var mapping (imported by publicConfigRoutes so the
  * public response and the admin board agree). Shape is the public API contract; do not reorder/rename keys.
