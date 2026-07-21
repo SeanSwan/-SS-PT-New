@@ -1,7 +1,7 @@
 # CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches `git ls-files -s <path>` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via `node scripts/catalog-regen.mjs`. Regeneration is T2 (reads repo, writes only this file).
-> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (484 files) · Regenerated 2026-07-22 by scripts/catalog-regen.mjs.
+> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (485 files) · Regenerated 2026-07-22 by scripts/catalog-regen.mjs.
 > **Usage:** `rg -i "<topic>" docs/ai-workflow/CATALOG.md` — grep, do not load wholesale.
 
 ## AI-HANDOFF (paths relative to docs/ai-workflow/AI-HANDOFF/)
@@ -255,7 +255,7 @@
 | MASTER-FIX-PLAN-2026-04-06.md | 2026-04-06 | multi | Master fix plan (Opus CEO + 15-brain Village + Codex debate consensus) enumerating P0 blockers: workout planner save 500 (route shadowing+schema drift), movement analysis 500 (enum mismatch), sessions 404 (missing routes), equipment scan 500, RemotionTemplateGallery crash | consensus | 21529ae13ca6 |
 | MASTER-ISSUE-REGISTRY-2026-04-07.md | 2026-04-07 | multi | Single-source registry of every issue found during Sean's iPhone XR field test cross-referenced with Codex's source audit; catalogs BROKEN/BLOCKED/DEGRADED/MISSING items including workout planner save 500 and assessment submit 500 | open | ed4ba1b6f837 |
 | MASTER-ONBOARDING-PROMPT.md | 2026-02-15 | multi | v3.3 master onboarding prompt for AI Village teammates: mandatory read order, coordination rules (file locking, write authorization limited to Codex/Claude Code), two operating modes (prompt enhancement / review ingestion) | open | 8accf1ba967a |
-| MASTER-PROMPT-ADW-FUSION-UPGRADE-2026-07-21.md | 2026-07-21 | fable | ADW Fusion Upgrade build package (SWA-32): Slice 0 guard pack, swan-gate validator-first pattern, swan-debate, Rule 73 (twice=codify, harness ruling — PI/Antigravity rejected as replacements) | shipped | ceea7977ec2e |
+| MASTER-PROMPT-ADW-FUSION-UPGRADE-2026-07-21.md | 2026-07-21 | unknown | NEEDS DISTILLATION | stale | ceea7977ec2e |
 | MASTER-PROMPT-APP-WIDE-HOSTILE-UPGRADE-2026-07-16.md | 2026-07-16 | fable | Master prompt v3: app-wide hostile review plan covering scroll fixes, shell criticals, 30-phone pixel-perfect, vision-gap build, carried workstreams | open | f4ecf916691d |
 | MINMAX-V2-STATUS.md | 2025-11-03 | multi | MinMax V2 status tracker, idle/ready for assignment; lists completed gamification system design and Personal Training Master Blueprint v3.0 deliverables | archived | 56f7b8fba920 |
 | NASM-GROWTH-PLAN-INTEGRATION-ANALYSIS-V2.md | 2026-01-16 | claude | V2 analysis refactors NASM growth plan integration after Sean's correction that store (not homepage) is the pricing source of truth; compatibility score raised to 90/100, homepage becomes outcome-focused not pricing-focused | superseded | 0446115c4adb |
@@ -397,6 +397,7 @@
 | SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md | 2026-04-11 | claude | Swan Coach command lane confirmed live through v15 (view_available_slots); next priority is trainer workout logging to client dashboard visibility audit. | shipped | e68500b7b3ec |
 | SWAN-COACH-F1-COMMAND-LANE-SECURITY-PLAN-2026-06-10.md | 2026-06-10 | claude | Plan (awaiting Sean gate) for immutable command audit trail, kill switches, and rate limiting on the Swan Coach command lane; no code written yet. | open | 56f6ec55477c |
 | SWAN-COACH-HIVE-MIND-MASTER-PROMPT-2026-06-10.md | 2026-06-10 | claude | Canonical master prompt defining the Swan Coach hive-mind upgrade workstreams (A-H); ground truth updated 2026-06-11 showing F1/A1/H already closed/stale. | open | f22185e5e7b3 |
+| SWAN-CONTEXT-GATEWAY-PHASE0-2026-07-21.md | 2026-07-21 | fable | Phase 0 of the Swan Context Gateway (Fable APPROVE-WITH-AMENDMENTS): local-only consult-launcher inventory, 12-row threat model, A0-A5 authority map, 24-case historical retrieval benchmark; Phase 1 = dry-run compile with safe-read jail. | open | 0a49c5c546c8 |
 | SWAN-CORTEX-P0-SAFETY-AUDIT-RECORD-2026-07-12.md | 2026-07-12 | fable | Cortex Phase 1 P0 safety fixes (pain-context truth, blocking safety gate, chat dispatch eligibility, bootcamp gating repair) shipped to main and deploy-verified | shipped | 3d30722d4772 |
 | SWAN-CORTEX-UNIFIED-BRAIN-MASTER-DIRECTIVE-2026-07-12.md | 2026-07-12 | fable | Ratified master directive unifying Swan Coach into one NASM-governed brain, cataloguing P0 safety defects to fix before any new intelligence work | consensus | 4390039fbbbe |
 | SWAN-DESIGN-OVERHAUL-PROGRAM-TRACKER-2026-07-18.md | 2026-07-18 | claude | Tracks the 14-surface Crystalline redesign program; 7 surfaces shipped flag-off to main, Gallery surface pushed dark pending triangle QA | open | 3b4c133d9d4b |
