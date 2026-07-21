@@ -422,18 +422,6 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Living style guide and design system',
     isNew: true,
   },
-  // Design Playground tab — only visible when VITE_DESIGN_PLAYGROUND=true (dev only)
-  ...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
-    key: 'design-playground',
-    label: 'Design Playground',
-    icon: 'Palette',
-    order: 22,
-    status: 'new' as TabStatus,
-    section: 'system' as const,
-    route: '/dashboard/design-playground',
-    description: 'Homepage redesign concepts for owner review',
-    isNew: true,
-  }] : []),
 ];
 
 // Trainer-specific tabs
@@ -560,7 +548,8 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   // ── SYSTEM — infrastructure, personal, tools ──
   { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
   { id: 'account-access', section: 'system', label: 'Account Access', icon: 'KeyRound', prefix: '/dashboard/admin/account-access', description: 'Log in as any client or trainer (audited); block, deactivate, reactivate, force-logout' },
-  { id: 'launch-control', section: 'system', label: 'Launch Control', icon: 'Rocket', prefix: '/dashboard/admin/launch-control', description: 'Flip redesigned surfaces on/off from inside the app — instant, no redeploy, with health gating and kill-all' },
+  { id: 'launch-control', section: 'system', label: 'Launch Control', icon: 'Rocket', prefix: '/dashboard/admin/launch-control', description: 'Manage approved feature switches from inside the app — instant, no redeploy' },
+  { id: 'design-studio', section: 'system', label: 'Design Studio', icon: 'Sparkles', prefix: '/dashboard/admin/design-playground', description: 'Preview parked redesigns and legacy concepts without changing live routes' },
   { id: 'feature-access', section: 'system', label: 'Feature Access', icon: 'Unlock', prefix: '/dashboard/admin/feature-access', description: 'Grant per-user feature flags — incl. store-prices to reveal catalog pricing for a specific client' },
   { id: 'trainer-permissions', section: 'system', label: 'Trainer Permissions', icon: 'ShieldCheck', prefix: '/dashboard/admin/trainer-permissions', description: 'Grant/revoke granular trainer capabilities (edit workouts, schedules, analytics)' },
   { id: 'system', section: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },

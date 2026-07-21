@@ -305,13 +305,17 @@ const SocialPostRedirect: React.FC = () => {
   return <Navigate to={postId ? buildSocialPostDashboardRedirect(postId) : '/user-dashboard'} replace />;
 };
 
-// Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
-const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
-  ? lazyLoadWithErrorHandling(
-      () => import('../pages/DesignPlayground/DesignPlaygroundLayout'),
-      'Design Playground Viewer'
-    )
-  : (() => null);
+// Design Studio full-page viewers — admin-only routes below; never build-time gated.
+const LegacyConceptPreviewPage = lazyLoadWithErrorHandling(
+  () => import('../pages/DesignPlayground/LegacyConceptPreviewPage'),
+  'Legacy Design Concept Preview'
+);
+const ParkedPreviewPage = lazyLoadWithErrorHandling(
+  () => import('../pages/DesignPlayground/DesignPlaygroundLayout').then((module) => ({
+    default: module.ParkedPreviewPage,
+  })),
+  'Parked Design Preview'
+);
 
 /**
  * Main application routes configuration
@@ -862,17 +866,27 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Design Playground - Full-page concept viewer (admin-only, build-time gated)
-    ...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
+    // Design Studio full-page viewers — admin-only and always registered.
+    {
       path: 'designs/:id',
       element: (
         <ProtectedRoute requiredRole="admin">
           <Suspense fallback={<PageLoader />}>
-            <DesignPlaygroundLayout />
+            <LegacyConceptPreviewPage />
           </Suspense>
         </ProtectedRoute>
       )
-    }] : []),
+    },
+    {
+      path: 'design-previews/:id',
+      element: (
+        <ProtectedRoute requiredRole="admin">
+          <Suspense fallback={<PageLoader />}>
+            <ParkedPreviewPage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
 
     // Phase 3 Slice 3.13: PLAUD multi-clip merge — admin/trainer only.
     // Mounted BEFORE the dashboard/* catch-all so React Router matches this
