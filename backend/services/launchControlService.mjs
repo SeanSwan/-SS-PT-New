@@ -78,10 +78,10 @@ async function flagExists(flag) {
   return rows.length > 0;
 }
 
-async function audit(flag, oldState, newState, actor, source) {
+async function audit(flag, oldState, newState, actor, source, transaction) {
   await sequelize.query(
     `INSERT INTO flag_audit (flag, old_state, new_state, actor, source) VALUES (:flag, :o, :n, :actor, :source)`,
-    { replacements: { flag, o: JSON.stringify(oldState), n: JSON.stringify(newState), actor, source } },
+    { replacements: { flag, o: JSON.stringify(oldState), n: JSON.stringify(newState), actor, source }, transaction },
   );
 }
 
@@ -97,15 +97,22 @@ export async function upsertOverride(flag, body, actor) {
   if (typeof value !== 'boolean') return { error: 'value_required', status: 400 };
   if (mode !== 'force') return { error: 'rollout_not_enabled', status: 400 };
 
-  const [existing] = await sequelize.query(`SELECT * FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
-  await sequelize.query(
-    `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
-     VALUES (:flag, :value, 'force', NULL, NULL, NULL, :actor, now())
-     ON CONFLICT (flag) DO UPDATE SET value = :value, mode = 'force', roles = NULL, pct = NULL,
-       starts_at = NULL, updated_by = :actor, updated_at = now()`,
-    { replacements: { flag, value, actor } },
-  );
-  await audit(flag, existing[0] || null, { value, mode: 'force' }, actor, 'manual');
+  // Atomic: the upsert and its audit row commit together (a crash between them left an unaudited flip).
+  // FOR UPDATE serializes concurrent flips of the same flag so the audit's before-state is truthful.
+  await sequelize.transaction(async (t) => {
+    const [existing] = await sequelize.query(
+      `SELECT * FROM flag_overrides WHERE flag = :flag FOR UPDATE`,
+      { replacements: { flag }, transaction: t },
+    );
+    await sequelize.query(
+      `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
+       VALUES (:flag, :value, 'force', NULL, NULL, NULL, :actor, now())
+       ON CONFLICT (flag) DO UPDATE SET value = :value, mode = 'force', roles = NULL, pct = NULL,
+         starts_at = NULL, updated_by = :actor, updated_at = now()`,
+      { replacements: { flag, value, actor }, transaction: t },
+    );
+    await audit(flag, existing[0] || null, { value, mode: 'force' }, actor, 'manual', t);
+  });
   return { ok: true };
 }
 

@@ -1,8 +1,8 @@
 /**
  * Launch Control — admin board (Phase 0). Flip any surface flag from inside the app, no Render, no redeploy.
  * Each toggle writes a force override (affects everyone); "Default" clears it back to the env baseline.
- * Health chip surfaces fail-closed events; a live surface erroring shows a red chip and locks the toggle
- * (open with the ⚠ confirm to override). Verify purges the Cloudflare edge so a flip shows immediately.
+ * Health chip is ADVISORY: a live surface erroring shows a red chip, a dark surface shows "no signal" — it
+ * never blocks a flip. Verify purges the Cloudflare edge so a flip shows immediately.
  *
  * P0 scope. Deferred (P1/P2, per the blueprint): preview-as (needs an admin-wins client-precedence change),
  * per-role/%/schedule rollout drawer, one-click retirement.
@@ -170,8 +170,10 @@ export default function LaunchControlPage() {
                 </RowMain>
                 {r.fail24h > 0 ? (
                   <Chip $tone="warn">✖ {r.fail24h} err/24h</Chip>
+                ) : r.resolved ? (
+                  <Chip $tone="ok">❤ healthy</Chip>
                 ) : (
-                  <Chip $tone="muted">❤ healthy</Chip>
+                  <Chip $tone="muted">— no signal</Chip>
                 )}
                 {r.hasOverride && (
                   <ResetBtn type="button" onClick={() => void reset(r.flag)} disabled={busy === r.flag}>
