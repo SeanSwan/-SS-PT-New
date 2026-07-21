@@ -82,6 +82,19 @@ Interpretation contract:
   **Hermes native cron** (the automation home) posting the digest to Telegram/Linear —
   that wiring is a Sean-gated config on the Hermes desktop (tracked on the board).
 
+## Mode 4 — BRIEF ("what's on my board?", "brief me", "board status")
+
+Zero-click standup for Sean, in chat — never make him open the app to know his queue:
+
+1. `list_issues` (team `SwanStudios`, states Todo + In Progress + Backlog).
+2. Report in THIS order, compact one-liners (`SWA-N — title — one-line why-it-matters`):
+   **DECISIONS waiting on Sean** (title `DECISION:` or label `Human Approval`) →
+   **In Progress** → **Todo by priority** → count of Backlog ("N parked").
+3. Flag anything suspicious inline: an issue whose anchor commit is >2 weeks old gets
+   "(stale anchor — want me to verify?)"; an In Progress issue with no recent activity
+   gets "(no movement — still real?)". Offer, don't auto-run, the Mode-2 verify.
+4. Keep the whole brief under ~20 lines. This is a glance, not a report.
+
 ## Boundaries (what this skill does NOT change)
 
 - Rule-67 lane files remain the real-time same-machine collision authority; Linear is

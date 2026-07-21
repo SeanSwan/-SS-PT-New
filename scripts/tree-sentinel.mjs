@@ -14,9 +14,12 @@
  *     MERGED/UNMERGED/STALE classification.
  *  3. Rule-67 lane locks (who has files claimed right now).
  *
- * Usage:  node scripts/tree-sentinel.mjs [--json] [--fast]
- *   --fast  skip per-worktree dirty checks (1 git call per worktree instead of 2) —
- *           use for session-start orientation; full mode before pushes/cleanup decisions.
+ * Usage:  node scripts/tree-sentinel.mjs [--json] [--fast] [--no-fetch]
+ *   --fast      skip per-worktree dirty checks (1 git call per worktree instead of 2) —
+ *               use for session-start orientation; full mode before pushes/cleanup decisions.
+ *   --no-fetch  skip the freshness fetch of origin/main (offline / speed). Without a fresh
+ *               origin/main the MERGED/UNMERGED classification can be WRONG — a merged
+ *               branch reads UNMERGED against a stale ref. The digest reports which mode ran.
  * Exit codes: 0 = ran (digest printed). 2 = git unavailable. Never fails on findings.
  */
 import { execSync } from 'node:child_process';
@@ -40,6 +43,12 @@ if (sh('git rev-parse --git-dir') === null) {
   console.error('tree-sentinel: not a git repository (or git unavailable)');
   process.exit(2);
 }
+
+/* Freshness: classification diffs against origin/main — refresh the ref unless opted out.
+   `git fetch` updates remote-tracking refs only (no worktree/index writes) → still read-only
+   in the Rule-34 sense. Failure (offline) degrades gracefully and is disclosed. */
+const NO_FETCH = process.argv.includes('--no-fetch');
+const fetched = NO_FETCH ? 'skipped (--no-fetch)' : sh('git fetch origin main --quiet') !== null ? 'fresh' : 'FAILED (offline?) — counts may be stale';
 
 /* ---------- 1. main-tree dirty files, grouped ---------- */
 const porcelain = sh('git status --porcelain') ?? '';
@@ -67,7 +76,10 @@ for (const line of wtRaw.split('\n')) {
 }
 if (cur) worktrees.push(cur);
 
-for (const wt of worktrees) {
+for (const [idx, wt] of worktrees.entries()) {
+  // git worktree list always emits the primary tree first — positional, not cwd-dependent,
+  // so the label is correct even when the sentinel runs from inside a linked worktree.
+  wt.isPrimary = idx === 0;
   wt.exists = existsSync(wt.path);
   if (!wt.exists) {
     wt.klass = 'MISSING-DIR';
@@ -87,7 +99,7 @@ for (const wt of worktrees) {
     const wtDirty = sh('git status --porcelain', wt.path);
     wt.dirty = wtDirty === null ? -1 : wtDirty ? wtDirty.split('\n').length : 0;
   }
-  if (norm(wt.path) === norm(ROOT)) wt.klass = 'MAIN-TREE';
+  if (wt.isPrimary || norm(wt.path) === norm(ROOT)) wt.klass = 'MAIN-TREE';
   else if (wt.detached) wt.klass = wt.dirty > 0 ? 'DETACHED-DIRTY' : 'DETACHED';
   else if (wt.ahead === 0)
     // dirty unknown (--fast) → plain MERGED, never claim CLEAN without checking (Rule 19)
@@ -115,6 +127,7 @@ for (const agent of ['claude', 'codex']) {
 /* ---------- output ---------- */
 const summary = {
   generatedAt: new Date().toISOString(),
+  originMainRef: fetched,
   mainTreeDirty: dirty.length,
   mainTreeDirtyByDir: byDir,
   worktreeCount: worktrees.length,
@@ -132,6 +145,7 @@ if (JSON_MODE) {
   console.log(JSON.stringify(summary, null, 2));
 } else {
   console.log(`# tree-sentinel digest — ${summary.generatedAt}`);
+  console.log(`origin/main ref: ${fetched}`);
   console.log(`\nMain tree dirty files: ${summary.mainTreeDirty}`);
   for (const [dir, n] of Object.entries(byDir).sort((a, b) => b[1] - a[1]).slice(0, 10)) {
     console.log(`  ${String(n).padStart(5)}  ${dir}`);

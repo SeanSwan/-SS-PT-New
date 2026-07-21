@@ -36,6 +36,10 @@ Every verdict cites sha or file:line. Sean-authored issues never silently closed
 - MERGED-CLEAN → feeds the standing Sean-gated cleanup decision (SWA-11). The sentinel never deletes (Rule 34).
 - Recurring digests post as comments on the standing issue **SWA-27 (Tree Sentinel — rolling digest)**; the scheduled runner belongs in Hermes native cron (Sean-gated wiring).
 
+## Mode 4 — BRIEF (trigger: "what's on my board?", "brief me")
+
+Zero-click standup in chat: list open issues and report **DECISIONS waiting on Sean first**, then In Progress, then Todo by priority, then a Backlog count. One line per issue (`SWA-N — title — why it matters`). Flag stale anchors (>2 weeks) and motionless In-Progress items inline; OFFER the Mode-2 verify, don't auto-run it. Under ~20 lines total.
+
 ## Branch naming = free auto-linking
 
 Every Linear issue exposes a `gitBranchName` (e.g. `ogpswan/swa-26-merge-claudedry-loop-fixes…`). **When starting work on an issue, name your branch with that value** (or at minimum embed `swa-N` in the branch name / PR title). Once the GitHub↔Linear integration is configured (SWA-7), commits/PRs then auto-attach to the issue and state can auto-advance — zero-click traceability. Agent-prefix conventions (`claude/…`, `codex/…`) may be kept by appending: `claude/swa-N-slug`.
