@@ -20,6 +20,7 @@ export const envBaseline = () => ({
   contactVNext: isTrue(process.env.CONTACT_VNEXT_ENABLED),
   galleryVNext: isTrue(process.env.GALLERY_VNEXT_ENABLED),
   prismCapture: isTrue(process.env.PRISM_CAPTURE_ENABLED),
+  postSaveHandoff: isTrue(process.env.ENABLE_POST_SAVE_HANDOFF),
 });
 
 /** Deterministic 0..99 bucket for stable % rollout — same user+flag always lands in the same bucket. */

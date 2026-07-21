@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import PostSaveHandoff from './PostSaveHandoff';
+import { usePostSaveHandoffFlag } from './usePostSaveHandoffFlag';
 import type { HandoffData, LoggerRole } from './workoutHandoff.types';
 
 /**
@@ -45,6 +46,9 @@ const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
   handoff, saveKey, userRole, isOnline, onNavigate, viewerFirstName, viewerHandle,
 }) => {
   const [dismissed, setDismissed] = useState(false);
+  // Runtime Launch Control flag (admin board) → QA override → VITE build fallback. Passing it as
+  // `enabled` means the admin switch works with NO rebuild; the server gates the payload regardless.
+  const flagOn = usePostSaveHandoffFlag();
   // Reset on each new save (keyed on the form id, not object identity) so the next handoff shows.
   useEffect(() => { setDismissed(false); }, [saveKey]);
 
@@ -65,6 +69,7 @@ const WorkoutLoggerHandoffMount: React.FC<WorkoutLoggerHandoffMountProps> = ({
     <HandoffErrorBoundary key={saveKey ?? 'handoff'}>
       <PostSaveHandoff
         data={handoff}
+        enabled={flagOn}
         viewerRole={mapRole(userRole)}
         pendingSync={!isOnline}
         onDismiss={() => setDismissed(true)}

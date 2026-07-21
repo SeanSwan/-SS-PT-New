@@ -2,7 +2,7 @@
  * publicConfigRoutes — public feature flags (KIMI-DASHBOARDS §6.2) + Launch Control overlay.
  *
  * GET /api/config/public-flags → { dashboardV2, dashboardV2Finance, storeV4, homeVNext, aboutVNext,
- * videoVNext, contactVNext, galleryVNext, prismCapture } (one boolean per flag-gated surface). Unauthenticated,
+ * videoVNext, contactVNext, galleryVNext, prismCapture, postSaveHandoff } (one boolean per flag-gated surface). Unauthenticated,
  * non-sensitive (only booleans), fail-closed defaults (env unset → false). The client uses these to hide UI;
  * the finance flag is ALSO enforced server-side in the summary controller (this is not the security gate).
  *
