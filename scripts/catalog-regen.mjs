@@ -1,5 +1,5 @@
 /**
- * catalog-regen.mjs — deterministic regenerator for docs/ai-workflow/CATALOG.md (Rule 71).
+ * catalog-regen.mjs — deterministic regenerator for docs/ai-workflow/CATALOG.md (Rule 72).
  *
  * The catalog is GENERATED ONLY. This script is the sole writer. It never calls an LLM:
  * SHAs come from `git ls-files -s`, decision text comes from existing rows or a --rows
@@ -11,7 +11,7 @@
  *   node scripts/catalog-regen.mjs                  # rewrite catalog: keep fresh rows, flag stale/new, drop deleted
  *   node scripts/catalog-regen.mjs --rows <file.md> # merge distilled replacement rows (path-keyed), then rewrite
  *
- * Contract (Rule 71): a changed source file makes its row STALE — the old decision text is
+ * Contract (Rule 72): a changed source file makes its row STALE — the old decision text is
  * kept but status becomes `stale` and the OLD sha is kept as evidence until a distillation
  * pass supplies a fresh row via --rows. New files get a NEEDS-DISTILLATION placeholder.
  */
@@ -61,7 +61,10 @@ for (const path of [...manifest.keys()].sort()) {
   const old = existing.get(path);
   if (upd) {
     rows.push({ path, ...upd, sha }); // sha ALWAYS re-stamped from git, never trusted from input
+  } else if (old && old.sha === sha && old.status !== 'stale') {
+    rows.push({ path, ...old });
   } else if (old && old.sha === sha) {
+    needsDistill.push(path); // placeholder/stale row from a prior regen — still awaiting distillation
     rows.push({ path, ...old });
   } else if (old) {
     needsDistill.push(path);
@@ -75,7 +78,7 @@ for (const path of [...manifest.keys()].sort()) {
 for (const path of existing.keys()) if (!manifest.has(path)) dropped.push(path);
 
 const today = new Date().toISOString().slice(0, 10);
-const header = `# CATALOG — distilled recall layer (Rule 71)
+const header = `# CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches \`git ls-files -s <path>\` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via \`node scripts/catalog-regen.mjs\`. Regeneration is T2 (reads repo, writes only this file).
 > **Scope this generation:** ${SCOPE} tracked *.md (${manifest.size} files) · Regenerated ${today} by scripts/catalog-regen.mjs.
