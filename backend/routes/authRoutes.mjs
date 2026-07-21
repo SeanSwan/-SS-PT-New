@@ -345,6 +345,7 @@ import logger from '../utils/logger.mjs';
 const router = express.Router();
 const adminAccountListLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 120 });
 const adminAccountCommandLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+const changePasswordLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 const CLIENT_ROLE_CONVERSION_MESSAGE = 'Client accounts must be created through Client Hub onboarding so access is handed off with a secure reset link.';
 
 /**
@@ -483,6 +484,7 @@ router.post(
 router.put(
   '/password',
   protect,
+  changePasswordLimiter,
   validate('changePassword'),
   async (req, res) => {
     try {
@@ -507,11 +509,22 @@ router.put(
         });
       }
       
-      // Update password
-      user.password = newPassword; // Will be hashed by model hooks
+      // Reject reusing the current password
+      const isSamePassword = await user.checkPassword(newPassword);
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password must be different from your current password'
+        });
+      }
+
+      // Update password + revoke refresh sessions (hashed by model hooks)
+      user.password = newPassword;
       user.refreshTokenHash = null;
       await user.save();
-      
+
+      logger.info('Password changed via self-serve profile', { userId: req.user.id });
+
       res.status(200).json({
         success: true,
         message: 'Password updated successfully'
