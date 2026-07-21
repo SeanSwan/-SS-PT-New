@@ -65,34 +65,41 @@ export function parseTranscript(raw) {
   return entries;
 }
 
-/** Signals from the current turn: build activity + whether the marker appears in assistant text. */
+/** Signals from the current turn: build activity + whether the marker closes the turn.
+ * The marker counts ONLY in the LAST assistant message that carries text — a mid-turn
+ * mention (status update quoting the marker, or a doc written containing it) must NOT
+ * waive the gate (hole caught in the 2026-07-21 dry run on the gate itself). */
 export function analyzeTurn(entries) {
   const lastUserIdx = entries.reduce((acc, e, i) => (isRealUserLine(e) ? i : acc), -1);
   const turn = entries.slice(lastUserIdx + 1);
   const signals = { fileWrites: 0, gitActivity: false, markerSeen: false };
+  let lastAssistantText = '';
 
   for (const entry of turn) {
     if (entry?.type !== 'assistant') continue;
     const content = entry.message?.content;
     if (typeof content === 'string') {
-      if (MARKER_RE.test(content)) signals.markerSeen = true;
+      if (content.trim()) lastAssistantText = content;
       continue;
     }
     if (!Array.isArray(content)) continue;
+    const textHere = content
+      .filter((c) => c?.type === 'text')
+      .map((c) => String(c.text ?? ''))
+      .join('\n');
+    if (textHere.trim()) lastAssistantText = textHere;
     for (const item of content) {
-      if (item?.type === 'tool_use') {
-        const input = item.input ?? {};
-        const target = String(input.file_path ?? input.path ?? '');
-        if (WRITE_TOOLS.has(item.name)) {
-          if (target && !EMISSION_PATH_RE.test(target)) signals.fileWrites += 1;
-        } else if (item.name === 'Bash' && GIT_ACTIVITY_RE.test(String(input.command ?? ''))) {
-          signals.gitActivity = true;
-        }
-      } else if (item?.type === 'text' && MARKER_RE.test(String(item.text ?? ''))) {
-        signals.markerSeen = true;
+      if (item?.type !== 'tool_use') continue;
+      const input = item.input ?? {};
+      const target = String(input.file_path ?? input.path ?? '');
+      if (WRITE_TOOLS.has(item.name)) {
+        if (target && !EMISSION_PATH_RE.test(target)) signals.fileWrites += 1;
+      } else if (item.name === 'Bash' && GIT_ACTIVITY_RE.test(String(input.command ?? ''))) {
+        signals.gitActivity = true;
       }
     }
   }
+  signals.markerSeen = MARKER_RE.test(lastAssistantText);
   return signals;
 }
 
