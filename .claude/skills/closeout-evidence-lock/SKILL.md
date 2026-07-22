@@ -182,6 +182,15 @@ Fable-tier permanent lesson? [Y/N + originating model]
 Hermes Learning Packet: [path | not required | QUARANTINE]
 Privacy/secret scan: [command + result | not applicable]
 
+=== SECTION 6.6 — Linear Board Sync (linear-todo Mode 1/2) ===
+Does this task have (or deserve) a SWA issue? [Y/N]
+  - If it advanced/finished an EXISTING issue: update that issue THIS turn — final state,
+    commit range, evidence, Done/Todo transition. Do NOT wait for Sean to ask (the whole
+    system exists so he never has to). SWA issue: [SWA-N updated | none applies + why]
+  - If it was substantial NET-NEW work with no issue: capture one (Mode 1, dedup first).
+  - New Sean-gated findings surfaced this turn (Rule 34 / DECISION / spend): [SWA-N each | none]
+Board synced? [Y — SWA-N | N/A — trivial/no-issue task]
+
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:
   - [explicit list]

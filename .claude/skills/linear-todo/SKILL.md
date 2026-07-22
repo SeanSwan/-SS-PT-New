@@ -104,5 +104,8 @@ Zero-click standup for Sean, in chat — never make him open the app to know his
   should NAME its SWA issue so Hermes and the board never diverge.
 - Closeout integration: substantial workstreams reference a SWA issue at closeout
   (SWA-23's ask). Until the Stop-hook wiring lands, this skill's capture step at
-  closeout IS the interim implementation.
+  closeout IS the interim implementation. **The board sync is UNPROMPTED** — a task
+  that advanced or finished a SWA issue updates it at closeout WITHOUT Sean asking
+  (closeout-evidence-lock Section 6.6). "Did you add this to Linear?" should never
+  need to be asked; if it is, that's a closeout miss to fix, not a request to fill.
 - Cleanup/deletion of anything the sentinel finds stays Sean-gated (Rule 34).
