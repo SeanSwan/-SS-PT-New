@@ -15,6 +15,7 @@ import { register as registerClient } from './clientCommands.mjs';
 import { register as registerWorkout } from './workoutCommands.mjs';
 import { register as registerPlannerSequence } from './plannerSequenceCommands.mjs';
 import { register as registerBootcamp } from './bootcampCommands.mjs';
+import { register as registerPainChart } from './painChartCommands.mjs';
 import { register as registerSchedule } from './scheduleCommands.mjs';
 import { register as registerHealth } from './healthCommands.mjs';
 import { register as registerNutrition } from './nutritionCommands.mjs';
@@ -53,6 +54,7 @@ export function initializeRegistry() {
   registerWorkout();
   registerPlannerSequence();
   registerBootcamp();
+  registerPainChart();
   registerSchedule();
   registerHealth();
   registerNutrition();

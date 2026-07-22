@@ -6,6 +6,7 @@ import BodyMapEvidenceSection from './BodyMapEvidenceSection';
 import BodyMapClientTargetSelector from './BodyMapClientTargetSelector';
 import PainEntryPanel from './PainEntryPanel';
 import PainChartInsightPanel from './PainChartInsightPanel';
+import PainChartCoachDockMount from '../CoachDock/PainChartCoachDockMount';
 import { getSeverityColor } from './bodyRegions';
 import { createPainEntryService, type PainEntry, type CreatePainEntryPayload } from '../../services/painEntryService';
 import { useAuth } from '../../context/AuthContext';
@@ -391,6 +392,8 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
           isClientMode={isClientMode}
         />
       )}
+      {/* CC-4: Swan Coach dock — trainer/admin conversational pain-chart review + region-select tool. */}
+      {isTrainerOrAdmin && <PainChartCoachDockMount contextChip={userId ? `client: #${userId}` : null} selectedClientId={userId ?? null} onSelectRegion={(regionId) => setSelectedRegion(regionId)} />}
     </BodyMapSection>
   );
 };

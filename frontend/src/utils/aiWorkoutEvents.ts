@@ -59,6 +59,11 @@ export const AI_BOOTCAMP_EVENTS = [
   AI_BOOTCAMP_LOAD_TEMPLATE,
 ] as const;
 
+// Additive AI_PAINCHART_* family (Pain Chart surface, CC-4) — same acknowledge contract.
+export const AI_PAINCHART_SELECT_REGION = 'AI_PAINCHART_SELECT_REGION';
+
+export const AI_PAINCHART_EVENTS = [AI_PAINCHART_SELECT_REGION] as const;
+
 // ─── Event Payloads ──────────────────────────────────────────
 
 export interface AILoadTemplatePayload {
@@ -164,6 +169,11 @@ for (const plannerEvent of AI_PLANNER_EVENTS) {
 // re-validate payloads against BootcampBuilderConstants option sets before applying.
 for (const bootcampEvent of AI_BOOTCAMP_EVENTS) {
   dispatchers[bootcampEvent] = (p) => dispatchWithAcknowledgement(bootcampEvent, p as object);
+}
+
+// Pain-chart events (CC-4): handlers validate region ids against ALL_BODY_REGIONS.
+for (const painChartEvent of AI_PAINCHART_EVENTS) {
+  dispatchers[painChartEvent] = (p) => dispatchWithAcknowledgement(painChartEvent, p as object);
 }
 
 /**
