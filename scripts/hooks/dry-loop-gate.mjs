@@ -29,6 +29,12 @@ const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-pa
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 const MARKER_RE = /DRY-LOOP:\s*(CLEAN\s*[×x]\s*2|N\/A)/i;
+// Rule 73 (Proof-Before-Done, Sean 2026-07-22): a build-shaped closeout must also
+// carry a PROOF token — current-session evidence for the completion claim, or an
+// explicit `PROOF: N/A — <reason>` when the work is genuinely unproveable in-session
+// (disclosed, not claimed done). The dry-loop marker proves the hostile loop ran;
+// the PROOF token proves the WORK itself was verified.
+const PROOF_RE = /PROOF:\s*\S/i;
 
 const BLOCK_REASON =
   'Dry-Loop Law (Sean 2026-07-21): this turn changed code/files or committed, but the closeout ' +
@@ -41,6 +47,18 @@ const BLOCK_REASON =
   'the literal marker `DRY-LOOP: CLEAN×2 (rounds: N)`. If this turn was genuinely not ' +
   'build-shaped (docs-only, partial WIP, Q&A), state `DRY-LOOP: N/A — <reason>` instead. ' +
   'Never fabricate the marker without the rounds behind it.';
+
+const PROOF_BLOCK_REASON =
+  'Proof-Before-Done (Rule 73, Sean 2026-07-22): this turn changed code/committed and the ' +
+  'hostile loop ran, but the closeout carries NO proof of the work itself. You may not claim ' +
+  'done/fixed/passing without current-session, reproducible evidence in the SAME closeout. End ' +
+  'with a `PROOF:` line stating the evidence you actually ran this turn — e.g. `PROOF: npm test ' +
+  '842 passed, tsc --noEmit exit 0, npm run build ok` or the exact vitest file + N/N, or a ' +
+  'Canonical Surface Receipt / live-probe observed value for UI/data-truth. If the work genuinely ' +
+  'cannot be proven in-session (e.g. a live authed browser journey needs a backend that will not ' +
+  'run here), DISCLOSE it: `PROOF: N/A — <what could not be proven, why, and the lower-tier ' +
+  'evidence that stands in>` and scope your claim to only the proven part (Rule 28). Asserting ' +
+  'evidence you did not run is a rule 19/28 violation.';
 
 export function isRealUserLine(entry) {
   if (!entry || entry.type !== 'user') return false;
@@ -100,14 +118,19 @@ export function analyzeTurn(entries) {
     }
   }
   signals.markerSeen = MARKER_RE.test(lastAssistantText);
+  signals.proofSeen = PROOF_RE.test(lastAssistantText);
   return signals;
 }
 
 export function decide(hookInput, transcriptRaw) {
   if (hookInput?.stop_hook_active) return null;
   const s = analyzeTurn(parseTranscript(transcriptRaw));
-  if (s.markerSeen) return null;
-  if (s.fileWrites >= 2 || s.gitActivity) return BLOCK_REASON;
+  const buildShaped = s.fileWrites >= 2 || s.gitActivity;
+  if (!buildShaped) return null;
+  // Rule 73: a build-shaped turn must carry BOTH the dry-loop marker (hostile loop
+  // ran to dry) AND the PROOF token (the work itself was verified this session).
+  if (!s.markerSeen) return BLOCK_REASON;
+  if (!s.proofSeen) return PROOF_BLOCK_REASON;
   return null;
 }
 
