@@ -1028,26 +1028,47 @@ router.post('/referral', requireGalleryAccess, referralLimiter, async (req, res)
     const cleanReferralPhone = referralPhone.trim();
     const cleanReferralEmail = referralEmail?.trim() || null;
 
-    const existingReferral = await GalleryReferral.findOne({
-      where: { visitorId, eventId, referralPhone: cleanReferralPhone },
-    });
-    if (existingReferral) {
-      return res.status(409).json({ success: false, error: 'This referral has already been submitted for this event.' });
+    // Normalize phone (digits only) so formatting tricks ("555-1234" vs "5551234") can't bypass dedup (fix #1).
+    const normPhone = cleanReferralPhone.replace(/\D/g, '');
+    if (normPhone.length < 10) {
+      return res.status(400).json({ success: false, error: 'A valid phone number is required' });
     }
 
-    const referral = await GalleryReferral.create({
-      visitorId,
-      eventId,
-      referralName: cleanReferralName,
-      referralPhone: cleanReferralPhone,
-      referralEmail: cleanReferralEmail,
-    });
-
-    // Award 5 enhancement credits for the referral
-    await GalleryVisitor.increment('enhancementCredits', {
-      by: 5,
-      where: { id: visitorId },
-    });
+    const REFERRAL_CREDIT = 5;
+    const MAX_REFERRAL_CREDITS = 25; // lifetime cap per visitor (5 referrals × 5) — anti credit-farming (survey #1)
+    let referral;
+    let creditsAwarded = 0;
+    try {
+      await sequelize.transaction(async (t) => {
+        // The DB partial-unique index (visitor, event, norm-phone) throws on a dup; the referral row still
+        // persists at cap (it's a real lead) — only the credit grant is gated.
+        referral = await GalleryReferral.create(
+          {
+            visitorId,
+            eventId,
+            referralName: cleanReferralName,
+            referralPhone: cleanReferralPhone,
+            referralPhoneNorm: normPhone,
+            referralEmail: cleanReferralEmail,
+          },
+          { transaction: t },
+        );
+        // Atomic conditional grant — fails closed once the lifetime cap is hit; concurrent-safe (no
+        // read-then-write race). Real column is enhancement_credits (snake_case), not the camelCase attribute.
+        const [, meta] = await sequelize.query(
+          `UPDATE gallery_visitors SET enhancement_credits = enhancement_credits + :credit
+             WHERE id = :visitorId AND enhancement_credits < :cap
+           RETURNING id`,
+          { replacements: { credit: REFERRAL_CREDIT, visitorId, cap: MAX_REFERRAL_CREDITS }, transaction: t },
+        );
+        creditsAwarded = (meta?.rowCount ?? 0) > 0 ? REFERRAL_CREDIT : 0;
+      });
+    } catch (e) {
+      if (e?.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ success: false, error: 'This referral has already been submitted for this event.' });
+      }
+      throw e;
+    }
     const visitor = await GalleryVisitor.findByPk(visitorId);
     try {
       await createAdminNotification({
@@ -1080,9 +1101,11 @@ router.post('/referral', requireGalleryAccess, referralLimiter, async (req, res)
 
     return res.json({
       success: true,
-      message: 'Thank you for the referral! You earned 5 enhancement credits.',
+      message: creditsAwarded > 0
+        ? 'Thank you for the referral! You earned 5 enhancement credits.'
+        : 'Thank you for the referral! Your maximum referral credits have already been reached.',
       referralId: referral.id,
-      creditsAwarded: 5,
+      creditsAwarded,
       totalCredits: visitor ? visitor.enhancementCredits : 0,
     });
   } catch (err) {

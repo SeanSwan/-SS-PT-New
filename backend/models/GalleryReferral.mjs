@@ -10,6 +10,9 @@ GalleryReferral.init(
     eventId: { type: DataTypes.INTEGER, allowNull: false, field: 'event_id' },
     referralName: { type: DataTypes.STRING(200), allowNull: false, field: 'referral_name' },
     referralPhone: { type: DataTypes.STRING(50), allowNull: false, field: 'referral_phone' },
+    // Digits-only normalization of referralPhone — DB has a partial UNIQUE index on
+    // (visitor_id, event_id, referral_phone_norm) so formatting tricks can't bypass dedup (survey fix #1).
+    referralPhoneNorm: { type: DataTypes.STRING(20), allowNull: true, field: 'referral_phone_norm' },
     referralEmail: { type: DataTypes.STRING(255), allowNull: true, field: 'referral_email' },
     contacted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     converted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
