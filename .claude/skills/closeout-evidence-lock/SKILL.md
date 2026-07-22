@@ -38,6 +38,12 @@ Canonical Surface Receipt present? [Y/N — link to artifact if Y]
 If claim says "end-to-end" / "live surface fixed" / "truth restored" / "canonical":
   The receipt MUST be present. If missing, narrow the claim to what was actually verified.
 
+=== SECTION 1b — Gate Evidence (rule 73) ===
+If the slice was substantial (Rule 61/73 bar): paste the passing gate.mjs output
+(gate path + git hash-object at authoring AND at closeout). Hash mismatch between
+the two = the builder touched the gate = automatic REVISE, regardless of output.
+If exempt (trivial/doc-only): state "Gate Evidence: exempt — <reason>".
+
 === SECTION 2 — Forbidden-Language Filter (rule 34) ===
 Scan the closeout text for these forbidden phrases:
   [ ] "should be fixed"
