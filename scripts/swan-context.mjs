@@ -104,11 +104,14 @@ if (cmd === 'compile') {
       console.log(`[swan-context] loop: ${r.iterations} iters, ${r.toolTrace.length} tool calls, $${r.totalCost.toFixed(4)}, stop=${r.stopReason}`);
       console.log(`[swan-context] citations: ${r.audit?.valid ?? 0} valid / ${r.audit?.invalid.length ?? 0} invalid${r.audit?.uncited ? ' — UNCITED' : ''}`);
       console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
-      // Fail on uncited too, not just invalid — a zero-citation (hallucinated) answer is not success.
-      process.exitCode = r.answer && !r.audit?.invalid.length && !r.audit?.uncited ? 0 : 3;
+      // Exit codes consistent with the single-shot/consult lanes (hostile pass 5, finding 6):
+      // 2 = refused for budget (same bucket as a thrown SPEND_CAP/NO_CAP), 3 = answered-but-unverified
+      // (invalid/uncited citations) or ran out of iterations, 0 = clean cited answer.
+      if (r.stopReason === 'spend_cap') process.exitCode = 2;
+      else process.exitCode = r.answer && !r.audit?.invalid.length && !r.audit?.uncited ? 0 : 3;
     } else {
       const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
-      const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
+      const spend = assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens); // T8 — fail-closed without cap
       console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
       const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort'), manifest: saved.manifest });
       const audit = packet.auditAnswer(result.text);

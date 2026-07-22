@@ -156,7 +156,9 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       const kept = rows.filter((r) => !(sensitive(r.file) || (ceiling !== 'standard' && SENSITIVE_PATH_RE.test(r.row.decision))));
       const withheld = rows.length - kept.length;
       log('catalog_search', { topic }, true, { rows: kept.length, withheld, truncated });
-      return { topic, rows: kept.map((r) => ({ file: r.file, decision: r.row.decision, status: r.row.status, sha: r.row.sha })), truncated, withheldByCeiling: withheld };
+      // Redact secret VALUES from the decision cell too — a secret pasted into a catalog decision
+      // otherwise egressed raw in a standard session (hostile pass 5, finding 3).
+      return { topic, rows: kept.map((r) => ({ file: r.file, decision: redactSecrets(r.row.decision).text, status: r.row.status, sha: r.row.sha })), truncated, withheldByCeiling: withheld };
     },
 
     /** git_context(paths) — recent commit SUBJECTS touching the given paths (no diffs, no content). */
@@ -176,9 +178,9 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       try {
         out = execFileSync('git', ['-C', root, 'log', `-n${Math.min(limit, 25)}`, '--oneline', '--', ...list], { maxBuffer: 4 * 1024 * 1024 }).toString('utf8');
       } catch { out = ''; }
-      // Redact commit SUBJECTS too — a secret accidentally committed into a commit message is a
-      // tool-result egress lane like any other (hostile pass 4, finding 8).
-      const commits = out.split('\n').filter(Boolean).map((l) => redactSecrets(l.slice(0, 120)).text);
+      // Redact commit SUBJECTS too (hostile pass 4, finding 8). Redact BEFORE slicing (hostile pass
+      // 5, finding 5): slicing first could cut a secret below its min-match length and leak a prefix.
+      const commits = out.split('\n').filter(Boolean).map((l) => redactSecrets(l).text.slice(0, 120));
       log('git_context', { paths: list }, true, { commits: commits.length });
       return { paths: list, commits };
     },

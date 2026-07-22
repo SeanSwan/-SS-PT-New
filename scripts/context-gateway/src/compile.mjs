@@ -137,7 +137,10 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   // MUST redact like every other evidence lane: a Linear issue body is EXTERNAL content that could
   // hold a pasted secret (DB URL, key) — this lane bypassing egress was a T3 gap (hostile pass 4).
   if (issueNotes && issue) {
-    const red = redactSecrets(String(issueNotes).slice(0, 4000));
+    // Redact BEFORE slicing (hostile pass 5, finding 5) so a secret straddling the 4000-char cut
+    // can't survive as a truncated prefix; the redaction marker is shorter than any secret.
+    const red = redactSecrets(String(issueNotes));
+    red.text = red.text.slice(0, 4000);
     if (red.redactions) { secretsRedacted += red.redactions; notes.push(`redacted ${red.redactions} secret(s) [${red.kinds.join(',')}] in linear/${issue}.md`); }
     const content = red.text;
     const lineCount = content.split('\n').length;

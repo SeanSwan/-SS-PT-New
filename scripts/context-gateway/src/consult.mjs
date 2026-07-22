@@ -17,6 +17,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
+import { DENY_PATTERNS } from './safeRead.mjs';
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -46,10 +47,21 @@ async function runConsultInner(providerName, defaultRemit, defaultOut) {
 
   loadEnv(process.cwd());
   const provider = getProvider(providerName);
-  // Redact inline secrets from BOTH document and seed before they egress to the provider (T3).
-  // The consult wrappers send whole author-supplied docs — an uncommitted doc could carry a key.
-  const docR = redactSecrets(readFileSync(docPath, 'utf-8'));
   const seedPath = arg('seed');
+
+  // DENY jail (Rule 59 / hostile pass 5, finding 2): the consult lane read arbitrary files — a
+  // .env/secrets.*/*.pem passed as --document or --seed would egress with only best-effort shape
+  // redaction. Refuse secret-bearing paths outright, like the safeRead lane does.
+  for (const pth of [docPath, seedPath].filter(Boolean)) {
+    const rel = String(pth).replaceAll('\\', '/');
+    if (DENY_PATTERNS.some((re) => re.test(rel))) { console.error(`[consult-${providerName}] REFUSED secret-bearing path: ${rel}`); process.exit(2); }
+  }
+  // Ceiling screen BOTH paths — the old pseudoManifest only screened --document, so a design
+  // provider (Kimi) would accept a sensitive --seed (hostile pass 5, finding 1: seed bypass).
+  const pseudoManifest = { evidence: [docPath, seedPath].filter(Boolean).map((p, i) => ({ id: `E00${i + 1}`, path: String(p).replaceAll('\\', '/') })) };
+
+  // Redact inline secret VALUES from BOTH document and seed before egress (T3).
+  const docR = redactSecrets(readFileSync(docPath, 'utf-8'));
   const seedR = redactSecrets(seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '');
   const doc = docR.text;
   const seed = seedR.text;
@@ -60,9 +72,7 @@ async function runConsultInner(providerName, defaultRemit, defaultOut) {
   const effort = arg('effort', process.env[`SWAN_${providerName.toUpperCase()}_EFFORT`] || (provider.supportsEffort ? 'high' : null));
 
   const prompt = `${remit}\n\n=====================  DOCUMENT UNDER REVIEW  =====================\n\n${doc}\n\n=====================  SEED CONTEXT (optional)  =====================\n\n${seed || '(no seed provided)'}\n\n=====================  END CONTEXT — PRODUCE YOUR REVIEW NOW  =====================`;
-  // Ceiling screen: treat the document itself as the evidence being egressed.
-  const pseudoManifest = { evidence: [{ id: 'E001', path: docPath.replaceAll('\\', '/') }] };
-  const spend = assertSpend(provider, prompt.length, maxTokens);
+  const spend = assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens);
 
   console.log(`[consult-${providerName}] model=${provider.model}${effort ? ` effort=${effort}` : ''}`);
   console.log(`[consult-${providerName}] prompt ~${Math.round(prompt.length / 4)} tok — est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);

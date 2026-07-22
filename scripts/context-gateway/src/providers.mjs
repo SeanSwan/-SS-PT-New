@@ -82,20 +82,26 @@ export function enforceCeiling(provider, manifest) {
   return offending;
 }
 
-/** Conservative cost estimate for one turn: chars/3 input tokens + full maxTokens output. */
-export function estimateCost(provider, promptChars, maxTokens) {
-  return (promptChars / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
+/**
+ * Conservative cost estimate for one turn: input-token proxy = UTF-8 BYTES/3 (not chars/3) so
+ * CJK content — a 3-byte char ≈ 1 token — isn't 3× under-counted, which would let the T8 cap be
+ * overshot on the design/Kimi lane most likely to carry CJK (hostile pass 5, finding 7). ASCII
+ * (1 byte/char) is unchanged. Output side assumes the full maxTokens (an exact ceiling).
+ * Callers pass a UTF-8 byte length.
+ */
+export function estimateCost(provider, promptBytes, maxTokens) {
+  return (promptBytes / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
 }
 
 /**
  * Spend gate (threat T8). Fail-closed: SWAN_CONTEXT_MAX_USD must be set to spend at all.
  */
-export function assertSpend(provider, promptChars, maxTokens, env = process.env) {
+export function assertSpend(provider, promptBytes, maxTokens, env = process.env) {
   const cap = Number(env.SWAN_CONTEXT_MAX_USD);
   if (!Number.isFinite(cap) || cap <= 0) {
     throw new ProviderError('NO_CAP', 'SWAN_CONTEXT_MAX_USD is not set — network spend is fail-closed (dry-run commands need no cap)');
   }
-  const estimate = estimateCost(provider, promptChars, maxTokens);
+  const estimate = estimateCost(provider, promptBytes, maxTokens);
   if (estimate > cap) {
     throw new ProviderError('SPEND_CAP', `estimated ~$${estimate.toFixed(4)} exceeds SWAN_CONTEXT_MAX_USD=$${cap}`, { estimate, cap });
   }

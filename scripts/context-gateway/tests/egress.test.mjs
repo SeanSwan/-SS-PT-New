@@ -49,6 +49,17 @@ test('redactSecrets: catches key/token/PEM/DB-URL shapes, reports count+kind, ke
   assert.equal(redactSecrets(code).text, code);
 });
 
+test('finding 4: http(s) basic-auth credential URLs are redacted', () => {
+  const S = (...p) => p.join('');
+  const url = S('https://', 'admin:', 'hunter2SuperSecret', '@internal.example.com/api');
+  const r = redactSecrets(`const ENDPOINT = "${url}";`);
+  assert.equal(r.redactions, 1);
+  assert.ok(r.kinds.includes('HTTP_AUTH_URL'));
+  assert.ok(!r.text.includes('hunter2'));
+  // a normal URL without credentials must survive
+  assert.equal(redactSecrets('https://sswanstudios.com/api/health').redactions, 0);
+});
+
 test('redactSecrets: multiple secrets in one blob all redacted', () => {
   const blob = `a ${FAKE.stripe} and ${FAKE.google} here`;
   const r = redactSecrets(blob);

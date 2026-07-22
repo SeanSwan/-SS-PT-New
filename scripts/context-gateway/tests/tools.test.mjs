@@ -84,6 +84,27 @@ test('finding 1: STANDARD trace_symbol redacts secret VALUES in matched-line tex
   assert.ok(blob.includes('<REDACTED-STRIPE>'), 'redaction marker present');
 });
 
+test('finding 3 (pass 5): STANDARD catalog_search redacts secret values in the decision cell', () => {
+  const S = (...p) => p.join('');
+  const secret = S('sk', '_live_', 'ABCDEFGHIJKLMNOP1234567890');
+  const { root, tracked } = (() => {
+    const r = join(mkdtempSync(join(tmpdir(), 'swan-f3b-')), 'repo');
+    mkdirSync(join(r, 'docs', 'ai-workflow'), { recursive: true });
+    const git = (...a) => execFileSync('git', ['-C', r, ...a], { stdio: 'pipe' });
+    git('init', '-q');
+    writeFileSync(join(r, 'docs', 'ai-workflow', 'CATALOG.md'), [
+      '| path | date | author | decision | status | source-SHA12 |', '|---|---|---|---|---|---|',
+      `| NOTE.md | 2026-05-20 | fable | hero redesign; leaked key ${secret} in notes | shipped | x |`,
+    ].join('\n'));
+    git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'c');
+    return { root: r, tracked: gitTrackedFiles(r) };
+  })();
+  const s = createToolSession({ root, tracked }).catalog_search('hero redesign');
+  const blob = JSON.stringify(s.rows);
+  assert.ok(!blob.includes('sk' + '_live_'), 'secret value redacted from decision cell');
+  assert.ok(blob.includes('<REDACTED-STRIPE>'));
+});
+
 test('finding 2: design catalog_search withholds sensitive rows (path or decision intent)', () => {
   const { root, tracked } = (() => {
     const r = join(mkdtempSync(join(tmpdir(), 'swan-f2-')), 'repo'); mkdirSync(join(r, 'docs/ai-workflow/AI-HANDOFF'), { recursive: true });

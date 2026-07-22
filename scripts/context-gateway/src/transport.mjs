@@ -47,7 +47,7 @@ REPO HEAD: ${manifest.headSha}${manifest.issue ? `\nLINEAR ISSUE: ${manifest.iss
  * Returns { text, inTok, outTok, cost, wallMs, model }.
  */
 export async function callProvider(provider, prompt, { maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env, manifest = null } = {}) {
-  assertSpend(provider, prompt.length, maxTokens, env); // defense in depth (T8)
+  assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens, env); // defense in depth (T8)
   // Ceiling is enforced HERE too, not only in the CLI — a direct importer must not be able to
   // route sensitive evidence to a design-ceiling provider (hostile-review finding 2026-07-22).
   if (provider.ceiling !== 'standard') {

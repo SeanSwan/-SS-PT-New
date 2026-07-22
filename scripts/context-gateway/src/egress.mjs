@@ -23,6 +23,7 @@ const RULES = [
   ['SLACK', /\bxox[baprs]-[A-Za-z0-9-]{10,}/g],
   ['TELEGRAM', /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g],
   ['DB_URL', /\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+/g],
+  ['HTTP_AUTH_URL', /\bhttps?:\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+/g], // user:pass@host basic-auth (finding 4)
   ['AWS_AKID', /\bAKIA[0-9A-Z]{16}\b/g],
   ['GITHUB', /\bgh[pousr]_[A-Za-z0-9]{36,}/g],
   ['GITHUB_PAT', /\bgithub_pat_[A-Za-z0-9_]{22,}/g], // fine-grained PATs (finding 10)
