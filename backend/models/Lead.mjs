@@ -110,6 +110,32 @@ Lead.init(
       beforeCreate: (lead) => {
         lead.nextFollowUpAt = resolveFollowUpAt(lead.nextFollowUpAt, lead.score);
       },
+      /**
+       * P0-4 (SWA-29): emit the canonical funnel events server-side from the model, so ALL
+       * lead-create/convert paths feed the ONE funnel stream (MEASUREMENT-CHARTER.md) without
+       * every caller remembering to. recordFunnelEvent is fail-soft (never throws) + writes on
+       * its own connection, so a telemetry failure can never break or roll back lead capture /
+       * conversion. Only non-identifying `source` is passed — NO name/email/id (Rule 8).
+       */
+      afterCreate: async (lead) => {
+        const { recordFunnelEvent } = await import('../services/acquisitionTelemetry.mjs');
+        await recordFunnelEvent('lead_captured', { source: lead.source });
+        // A checkout creates a lead BORN converted (leadCaptureCheckout.mjs:68) — that path
+        // fires afterCreate, not afterUpdate, so the converted event must be emitted here too
+        // or the highest-value conversion goes uncounted (Rule-61 hostile-review catch).
+        if (lead.status === 'converted') {
+          await recordFunnelEvent('converted', { source: lead.source });
+        }
+      },
+      afterUpdate: async (lead) => {
+        // Existing-lead conversions go through instance .update() (leadCaptureCheckout.mjs:85,
+        // leadRoutes.mjs admin PUT) → afterUpdate fires. Emit only on the transition INTO
+        // converted so a later save of an already-converted lead never double-counts.
+        if (lead.previous('status') !== 'converted' && lead.status === 'converted') {
+          const { recordFunnelEvent } = await import('../services/acquisitionTelemetry.mjs');
+          await recordFunnelEvent('converted', { source: lead.source });
+        }
+      },
     },
   }
 );
