@@ -35,9 +35,17 @@ const Band = styled.section`
 `;
 
 const LensFigure = styled.figure`
-  position: relative;
   width: clamp(150px, 22vw, 220px);
   margin: 0 auto;
+`;
+
+/* The ring overlays ONLY this square stage — the caption lives BELOW it (live QA
+   2026-07-21 caught the figcaption flowing inside the circle and colliding with
+   the bottom arc; the gallery original always seated the caption under the ring). */
+const RingStage = styled.div`
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
 `;
@@ -71,11 +79,10 @@ const ProofNumber = styled.span`
   font-size: clamp(2.4rem, 6vw, 3.6rem);
   color: var(--text-primary, #e0ecf4);
   line-height: 1;
-  padding: clamp(46px, 7vw, 64px) 0;
 `;
 
 const Caption = styled.figcaption`
-  margin-top: 14px;
+  margin-top: 18px;
   font-family: 'Fira Code', monospace;
   font-size: 0.62rem;
   letter-spacing: 0.16em;
@@ -107,17 +114,19 @@ export function EvidenceLensBand(): React.JSX.Element {
   return (
     <Band aria-label="Evidence: recorded coaching outcomes">
       <LensFigure>
-        <LensRing viewBox="0 0 120 120" aria-hidden="true">
-          <circle cx="60" cy="60" r="54" fill="none" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1.4" />
-          <line x1="60" y1="0" x2="60" y2="12" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
-          <line x1="60" y1="108" x2="60" y2="120" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
-          <line x1="0" y1="60" x2="12" y2="60" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
-          <line x1="108" y1="60" x2="120" y2="60" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
-        </LensRing>
-        <ProofNumber>
-          {exerciseLibrary.value}
-          {exerciseLibrary.suffix}
-        </ProofNumber>
+        <RingStage>
+          <LensRing viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1.4" />
+            <line x1="60" y1="0" x2="60" y2="12" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
+            <line x1="60" y1="108" x2="60" y2="120" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
+            <line x1="0" y1="60" x2="12" y2="60" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
+            <line x1="108" y1="60" x2="120" y2="60" stroke="var(--accent-gold, #C6A84B)" strokeWidth="1" />
+          </LensRing>
+          <ProofNumber>
+            {exerciseLibrary.value}
+            {exerciseLibrary.suffix}
+          </ProofNumber>
+        </RingStage>
         <Caption>
           Evidence lens
           <br />
