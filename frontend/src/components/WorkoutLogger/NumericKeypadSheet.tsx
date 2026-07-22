@@ -30,7 +30,8 @@ export interface NumericKeypadSheetProps {
   /** Ghost narrative quick-chip: one tap commits last session's value. */
   lastSessionValue?: number | null;
   onCommit: (next: number) => void;
-  onClose: () => void;
+  /** reason 'done' = committed completion (advance allowed); 'dismiss' = Esc/backdrop (never advance). */
+  onClose: (reason?: 'done' | 'dismiss') => void;
   onUseSystemKeyboard?: () => void;
 }
 
@@ -58,12 +59,12 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
 
   if (!open || typeof document === 'undefined') return null;
 
-  const commitIfDirty = () => {
+  const commitIfDirty = (reason: 'done' | 'dismiss') => {
     if (entry !== '' && entry !== '.') {
       const parsed = Number(entry);
       if (Number.isFinite(parsed)) { vibrate(20); onCommit(parsed); }
     }
-    onClose();
+    onClose(reason);
   };
 
   const press = (digit: string) => {
@@ -79,7 +80,7 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
 
   return createPortal(
     <>
-      <Backdrop data-testid="keypad-backdrop" onClick={commitIfDirty} />
+      <Backdrop data-testid="keypad-backdrop" onClick={() => commitIfDirty('dismiss')} />
       <Sheet
         ref={sheetRef}
         role="dialog"
@@ -87,11 +88,11 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
         aria-label={`${label} keypad`}
         tabIndex={-1}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') { e.preventDefault(); commitIfDirty(); }
+          if (e.key === 'Escape') { e.preventDefault(); commitIfDirty('dismiss'); }
           if (e.key >= '0' && e.key <= '9') press(e.key);
           if (e.key === '.' && allowDecimal) press('.');
           if (e.key === 'Backspace') setEntry((p) => p.slice(0, -1));
-          if (e.key === 'Enter') { e.preventDefault(); commitIfDirty(); }
+          if (e.key === 'Enter') { e.preventDefault(); commitIfDirty('done'); }
         }}
       >
         <Handle aria-hidden="true" />
@@ -102,7 +103,7 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
         {lastSessionValue != null && (
           <QuickChip
             type="button"
-            onClick={() => { vibrate(20); onCommit(lastSessionValue); onClose(); }}
+            onClick={() => { vibrate(20); onCommit(lastSessionValue); onClose('done'); }}
           >
             Last: {lastSessionValue}
           </QuickChip>
@@ -114,11 +115,11 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
           <Key type="button" aria-label="Backspace" onClick={() => { vibrate(10); setEntry((p) => p.slice(0, -1)); }}>
             <Delete size={20} aria-hidden="true" />
           </Key>
-          <DoneKey type="button" onClick={commitIfDirty}>Done</DoneKey>
+          <DoneKey type="button" onClick={() => commitIfDirty('done')}>Done</DoneKey>
         </KeyGrid>
         <FooterRow>
           {onUseSystemKeyboard && (
-            <SystemKeyboardBtn type="button" onClick={() => { onUseSystemKeyboard(); onClose(); }}>
+            <SystemKeyboardBtn type="button" onClick={() => { onUseSystemKeyboard(); onClose('dismiss'); }}>
               Use system keyboard
             </SystemKeyboardBtn>
           )}

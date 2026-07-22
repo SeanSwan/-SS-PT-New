@@ -33,9 +33,10 @@ export function useKeypadField(commit: (field: KeypadFieldKind, value: number) =
     commit(openFor, value);
   }, [commit, openFor]);
 
-  const onClose = useCallback(() => {
-    // One-hop advance: weight → reps keypad; reps → done (no RPE focus theft).
-    setOpenFor((prev) => (prev === 'weight' ? 'reps' : null));
+  const onClose = useCallback((reason: 'done' | 'dismiss' = 'done') => {
+    // One-hop advance ONLY on committed completion (Done / quick-chip): weight → reps keypad;
+    // reps → closed. A dismissal (Esc/backdrop) means "let me out" — never reopen a sheet.
+    setOpenFor((prev) => (reason === 'done' && prev === 'weight' ? 'reps' : null));
   }, []);
 
   const useSystemKeyboard = useCallback(() => {

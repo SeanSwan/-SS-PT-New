@@ -82,6 +82,11 @@ const FloatingRestTimer: React.FC<FloatingRestTimerProps> = ({ onClose }) => {
   // L3 (Kimi-binding): aria-live announcements at the 30/10/0 marks + skip; end haptic pulse.
   const [announcement, setAnnouncement] = useState('');
   const announcedRef = useRef<Set<number>>(new Set());
+  // Hostile-round fix: a NEW countdown must re-announce its marks — reset the set whenever the
+  // timer refills above the first mark (fresh start/reset), else rest #2+ goes silent.
+  useEffect(() => {
+    if (secondsLeft > 30) announcedRef.current.clear();
+  }, [secondsLeft]);
   useEffect(() => {
     if (!isRunning) return;
     if ((secondsLeft === 30 || secondsLeft === 10) && !announcedRef.current.has(secondsLeft)) {
