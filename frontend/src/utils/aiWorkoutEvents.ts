@@ -185,3 +185,9 @@ export function dispatchAIWorkoutEvent(eventName: string, payload: unknown): boo
   if (!dispatch) return false;
   return dispatch(payload as AIEventPayload);
 }
+
+// Rest-timer voice intents (Arc L / L3 — Kimi: existing command family, no parallel registry).
+export const AI_REST_SKIP = 'AI_REST_SKIP';
+export const AI_REST_ADJUST = 'AI_REST_ADJUST';
+dispatchers[AI_REST_SKIP] = (p) => dispatchWithAcknowledgement(AI_REST_SKIP, p as object);
+dispatchers[AI_REST_ADJUST] = (p) => dispatchWithAcknowledgement(AI_REST_ADJUST, p as object);

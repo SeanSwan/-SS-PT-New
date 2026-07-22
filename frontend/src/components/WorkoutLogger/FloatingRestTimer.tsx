@@ -16,9 +16,10 @@
  *   - Start/Pause and Reset control the current countdown.
  */
 
-import React, { useCallback, useState } from 'react';
-import { Minus, Pause, Play, Plus, RotateCcw, Timer, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Minus, Pause, Play, Plus, RotateCcw, SkipForward, Timer, X } from 'lucide-react';
 import { useRestTimer } from './useRestTimer';
+import { AI_REST_ADJUST, AI_REST_SKIP, type AIWorkoutEventAck } from '../../utils/aiWorkoutEvents';
 import {
   AdjustBtn,
   ControlBtn,
@@ -78,6 +79,54 @@ const FloatingRestTimer: React.FC<FloatingRestTimerProps> = ({ onClose }) => {
     start();
   };
 
+  // L3 (Kimi-binding): aria-live announcements at the 30/10/0 marks + skip; end haptic pulse.
+  const [announcement, setAnnouncement] = useState('');
+  const announcedRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!isRunning) return;
+    if ((secondsLeft === 30 || secondsLeft === 10) && !announcedRef.current.has(secondsLeft)) {
+      announcedRef.current.add(secondsLeft);
+      setAnnouncement(`${secondsLeft} seconds of rest left`);
+    }
+    if (secondsLeft === 0 && !announcedRef.current.has(0)) {
+      announcedRef.current.add(0);
+      setAnnouncement('Rest complete — back to work');
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
+        && typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches) {
+        navigator.vibrate([30, 50, 30]);
+      }
+    }
+  }, [secondsLeft, isRunning]);
+
+  const handleSkip = useCallback(() => {
+    stop();
+    announcedRef.current.clear();
+    setAnnouncement('Rest skipped — back to work');
+  }, [stop]);
+
+  // Voice lane (existing AI event family — no parallel registry): skip + validated ±15..±60 adjust.
+  const adjustRef = useRef(adjustDuration);
+  adjustRef.current = adjustDuration;
+  const skipRef = useRef(handleSkip);
+  skipRef.current = handleSkip;
+  useEffect(() => {
+    const ack = (e: Event, handled: boolean) =>
+      ((e as CustomEvent<AIWorkoutEventAck>).detail)?.acknowledgeAIWorkoutEvent?.(handled);
+    const onSkip = (e: Event) => { skipRef.current(); ack(e, true); };
+    const onAdjust = (e: Event) => {
+      const delta = Number((e as CustomEvent<{ deltaSeconds?: unknown }>).detail?.deltaSeconds);
+      if (!Number.isFinite(delta) || Math.abs(delta) < 15 || Math.abs(delta) > 60) return ack(e, false);
+      adjustRef.current(delta);
+      ack(e, true);
+    };
+    window.addEventListener(AI_REST_SKIP, onSkip);
+    window.addEventListener(AI_REST_ADJUST, onAdjust);
+    return () => {
+      window.removeEventListener(AI_REST_SKIP, onSkip);
+      window.removeEventListener(AI_REST_ADJUST, onAdjust);
+    };
+  }, []);
+
   if (minimized) {
     return (
       <MinimizedPill
@@ -133,10 +182,20 @@ const FloatingRestTimer: React.FC<FloatingRestTimerProps> = ({ onClose }) => {
         <ControlBtn type="button" onClick={handleToggle} $primary aria-label={isRunning ? 'Pause' : 'Start'}>
           {isRunning ? <Pause size={18} /> : <Play size={18} />}
         </ControlBtn>
+        <ControlBtn type="button" onClick={handleSkip} aria-label="Skip rest">
+          <SkipForward size={16} />
+        </ControlBtn>
         <ControlBtn type="button" onClick={reset} aria-label="Reset timer">
           <RotateCcw size={16} />
         </ControlBtn>
       </ControlRow>
+      <span
+        data-testid="rest-live-region"
+        aria-live="polite"
+        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' }}
+      >
+        {announcement}
+      </span>
     </FloatingContainer>
   );
 };

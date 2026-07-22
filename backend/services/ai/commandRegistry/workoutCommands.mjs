@@ -419,6 +419,31 @@ const commands = [
     requiresClientRef: false, category: 'B',
     frontendEvent: 'AI_PLANNER_GENERATE',
   },
+  // Arc L / L3 rest-timer voice intents (Kimi: existing family, no parallel registry).
+  {
+    type: 'rest_skip',
+    description: 'Skip the current rest period in the open workout logger',
+    naturalLanguagePatterns: ['skip rest', 'skip the rest timer', 'back to work'],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_REST_SKIP',
+    inputSchema: z.object({}).strict(),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_REST_SKIP',
+  },
+  {
+    type: 'rest_adjust',
+    description: 'Adjust the rest timer duration in the open workout logger',
+    naturalLanguagePatterns: ['add fifteen seconds of rest', 'plus fifteen', 'shorten the rest by 15'],
+    method: 'FRONTEND_DISPATCH', endpoint: 'AI_REST_ADJUST',
+    inputSchema: z.object({
+      deltaSeconds: z.number().int().refine((v) => Math.abs(v) >= 15 && Math.abs(v) <= 60),
+    }).strict(),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'B',
+    frontendEvent: 'AI_REST_ADJUST',
+  },
 ];
 
 export function register() {
