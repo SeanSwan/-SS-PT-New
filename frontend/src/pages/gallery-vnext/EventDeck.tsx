@@ -81,7 +81,9 @@ const Strip = styled.div<{ $src: string | null; $pos: number }>`
   }
 `;
 
-/** Bottom scrim bar — name/meta hold AA over any photograph; meta row rises on deck hover. */
+/** Bottom scrim bar — name/meta hold AA over any photograph; meta row rises on deck hover.
+ *  Dry-loop R2 fix: the gradient reaches higher (48px head-start, solid by 62%) and the name is clamped to
+ *  2 lines — an extreme-length name can no longer climb out of the dark zone onto a bright sky. */
 const NameBar = styled.span`
   position: absolute;
   inset: auto 0 0 0;
@@ -89,22 +91,29 @@ const NameBar = styled.span`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 28px 16px 14px;
-  background: linear-gradient(180deg, transparent, var(--gallery-scrim-solid) 78%);
+  padding: 48px 16px 14px;
+  background: linear-gradient(180deg, transparent, var(--gallery-scrim-solid) 48%);
   pointer-events: none;
 `;
 
 const DeckName = styled.span`
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-family: var(--gallery-font-display);
   font-size: clamp(1.05rem, 2.2vw, 1.45rem);
   font-weight: 700;
   line-height: 1.15;
+  /* R4: halo (home-hero pattern) — the name holds AA over ANY photograph, not just dark ones */
+  text-shadow: 0 2px 18px var(--gallery-bg), 0 1px 4px var(--gallery-bg);
 `;
 
 const DeckMeta = styled.span`
   color: var(--gallery-ink-2);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 12px var(--gallery-bg), 0 1px 3px var(--gallery-bg);
   transform: translateY(4px);
   opacity: 0.85;
   transition: transform 300ms var(--gallery-ease-standard), opacity 300ms var(--gallery-ease-standard);
