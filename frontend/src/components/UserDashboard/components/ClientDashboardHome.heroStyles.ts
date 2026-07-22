@@ -132,3 +132,19 @@ export const StatIcon = styled.span<{ $tone?: 'teal' | 'purple' | 'gold' }>`
   )};
   background: color-mix(in srgb, currentColor 17%, transparent);
 `;
+
+/* Momentum lens row — the crystal signature ring beside the level readout.
+   Ring leads on desktop; stacks (ring on top, centered) on narrow handsets. */
+export const MomentumLens = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+`;

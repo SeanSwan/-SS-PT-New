@@ -25,10 +25,12 @@ import {
   HeroPanel,
   HeroPill,
   HeroTitle,
+  MomentumLens,
   StatIcon,
   StatGrid,
   StatTile,
 } from './ClientDashboardHome.heroStyles';
+import CrystalProgressRing from './CrystalProgressRing';
 import type { ClientDashboardAction, ClientDashboardHomeProps, ClientDashboardTarget } from './ClientDashboardHome.types';
 
 type PickProps = Pick<ClientDashboardHomeProps, 'onNavigate' | 'onTarget'>;
@@ -165,13 +167,16 @@ export function ClientProfileHero(props: Pick<ClientDashboardHomeProps,
           <HeroStat icon={<Award size={18} />} label="Momentum Tier" value={`Level ${props.level}`} tone="purple" />
           <HeroStat icon={<Flame size={18} />} label="Day Streak" value={String(props.streakDays)} tone="gold" />
         </StatGrid>
-        <div>
-          <TinyText>Momentum lens</TinyText>
-          <MutedText>{props.tierName}. {props.pointsToNext > 0 ? `${props.pointsToNext.toLocaleString()} points to next unlock.` : props.rankLabel}</MutedText>
-          <ProgressTrack aria-label="Level progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={props.progressPercent}>
-            <ProgressFill $pct={props.progressPercent} />
-          </ProgressTrack>
-        </div>
+        <MomentumLens>
+          <CrystalProgressRing pct={props.progressPercent} level={props.level} size={116} />
+          <div>
+            <TinyText>Momentum lens</TinyText>
+            <MutedText>{props.tierName}. {props.pointsToNext > 0 ? `${props.pointsToNext.toLocaleString()} points to next unlock.` : props.rankLabel}</MutedText>
+            <ProgressTrack aria-label="Level progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={props.progressPercent}>
+              <ProgressFill $pct={props.progressPercent} />
+            </ProgressTrack>
+          </div>
+        </MomentumLens>
       </HeroContent>
       <HeroMedia aria-hidden="true"><img src={props.swanHeroSrc} alt="" /></HeroMedia>
     </HeroPanel>
