@@ -23,14 +23,16 @@ const DRY_RUN = process.env.SWAN_BACKFILL_DRYRUN === '1';
 async function main() {
   await sequelize.authenticate();
 
-  const [[{ count: eligible }]] = [
-    await sequelize.query(
-      `SELECT COUNT(*)::int AS count FROM leads
-       WHERE next_follow_up_at IS NULL
-         AND status NOT IN ('converted','lost')
-         AND deleted_at IS NULL`
-    ),
-  ];
+  // sequelize.query(SELECT) returns [rows, metadata]; rows is [{ count }]. Destructure the
+  // FIRST row's count (the earlier `[[{count}]] = [await ...]` form pulled `count` off the
+  // rows-array itself → undefined; caught in the P0-2 hostile review 2026-07-22).
+  const [countRows] = await sequelize.query(
+    `SELECT COUNT(*)::int AS count FROM leads
+     WHERE next_follow_up_at IS NULL
+       AND status NOT IN ('converted','lost')
+       AND deleted_at IS NULL`
+  );
+  const eligible = Number(countRows?.[0]?.count ?? 0);
   console.log(`Eligible open leads with NULL next_follow_up_at: ${eligible}`);
 
   if (DRY_RUN) {
