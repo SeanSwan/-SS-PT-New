@@ -91,3 +91,33 @@ export async function callProvider(provider, prompt, { maxTokens = 8000, effort 
     model: provider.model,
   };
 }
+
+/**
+ * One tools-capable network turn (Phase 4 slice 2). Sends a message array + tool definitions and
+ * returns the raw assistant message (content + tool_calls) plus usage. The caller (toolLoop) runs
+ * the spend gate per turn and enforces the cumulative cap; ceiling is verified here too (the
+ * evidence in `messages` already egresses). Injectable fetch for offline tests.
+ */
+export async function callWithTools(provider, messages, tools, { maxTokens = 4000, fetchImpl = fetch, env = process.env, manifest = null } = {}) {
+  if (provider.ceiling !== 'standard') {
+    if (!manifest) throw new ProviderError('CEILING', `${provider.name} is ${provider.ceiling}-ceiling; callWithTools requires the packet manifest`);
+    enforceCeiling(provider, manifest);
+  }
+  const apiKey = env.OPENROUTER_API_KEY || env.OPEN_ROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not found in env or .env files');
+  const res = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, 'HTTP-Referer': 'https://sswanstudios.com', 'X-Title': provider.title },
+    body: JSON.stringify({ model: provider.model, messages, tools, tool_choice: 'auto', max_tokens: maxTokens, temperature: provider.temperature }),
+    signal: AbortSignal.timeout(provider.timeoutMs),
+  });
+  if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text().catch(() => '')).slice(0, 1000)}`);
+  const data = await res.json();
+  if (data.error) throw new Error(`OpenRouter API error: ${JSON.stringify(data.error).slice(0, 500)}`);
+  const inTok = data.usage?.prompt_tokens ?? 0, outTok = data.usage?.completion_tokens ?? 0;
+  return {
+    message: data.choices?.[0]?.message ?? { role: 'assistant', content: '(empty)' },
+    inTok, outTok,
+    cost: (inTok / 1e6) * provider.priceInPerM + (outTok / 1e6) * provider.priceOutPerM,
+  };
+}

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * swan-context.mjs — CLI for the Swan Context Gateway (dry-run commands only in Phase 1).
- * ========================================================================================
+ * swan-context.mjs — CLI for the Swan Context Gateway.
+ * =====================================================
  * Commands:
- *   compile "<question>" [--issue SWA-123] [--budget <chars>] [--out <packet.json>] [--full]
- *       Deterministic dry-run: question → immutable evidence packet. NO network, NO provider
- *       call, $0 by construction. Prints the manifest summary; --out writes the full packet
- *       (windows included) as JSON for later `ask --packet` (Phase 2). --full prints windows.
- *   bench [--case <id>]
- *       Run the Phase 0 historical benchmark against this checkout and print gate verdicts.
- *
- * Provider calls (`ask`, `verify`) are Phase 2 — this file intentionally has no transport.
+ *   compile "<q>" [--issue SWA-N] [--issue-notes f] [--budget n] [--out packet.json] [--full]
+ *       Deterministic dry-run: question → immutable evidence packet. $0, no network.
+ *   bench [--case id]                     Historical benchmark vs the release gates.
+ *   ask --packet p.json --provider fable|sol|kimi [--max-tokens n] [--effort e]
+ *       Single-shot answer from the packet. SPENDS — needs SWAN_CONTEXT_MAX_USD.
+ *       Add --tools [--max-iter n] to let the provider drive the bounded investigation
+ *       tool loop (Phase 4) instead of a single shot.
+ *   verify --packet p.json --answer a.md  Audit an answer's citations against the packet. $0.
  *
  * @module swan-context
  */
@@ -19,6 +19,8 @@ import { resolve } from 'node:path';
 import { compileContext } from './context-gateway/src/compile.mjs';
 import { gitTrackedFiles } from './context-gateway/src/safeRead.mjs';
 import { runBenchmark, runCase } from './context-gateway/src/evaluate.mjs';
+import { createToolSession } from './context-gateway/src/tools.mjs';
+import { runToolLoop } from './context-gateway/src/toolLoop.mjs';
 import { CASES, GATES } from './context-gateway/bench/cases.mjs';
 import { getProvider, enforceCeiling, assertSpend } from './context-gateway/src/providers.mjs';
 import { loadEnv, buildPrompt, callProvider } from './context-gateway/src/transport.mjs';
@@ -90,19 +92,34 @@ if (cmd === 'compile') {
     const packet = reconstructPacket(saved);             // validates manifest/evidence integrity
     enforceCeiling(provider, saved.manifest);            // T10 — throws with offending evidence listed
     const maxTokens = Number(flag('max-tokens')) || 8000;
-    const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
-    const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
-    console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
-    const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort'), manifest: saved.manifest });
-    const audit = packet.auditAnswer(result.text);
-    const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
-    const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
-    const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
-    writeFileSync(answerOut, result.text, 'utf-8');
-    console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
-    console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
-    console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
-    if (audit.invalid.length) process.exitCode = 3;
+
+    if (argv.includes('--tools')) {                      // Phase 4: interactive tool-calling loop
+      const session = createToolSession({ root: ROOT, tracked: gitTrackedFiles(ROOT), ceiling: provider.ceiling });
+      console.log(`[swan-context] ask ${provider.name} (${provider.model}) — TOOL LOOP (max ${Number(flag('max-iter')) || 6} iters, cap $${process.env.SWAN_CONTEXT_MAX_USD})`);
+      const r = await runToolLoop({ provider, packet, manifest: saved.manifest, evidence: saved.evidence, session, maxIterations: Number(flag('max-iter')) || 6, maxTokens });
+      const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
+      const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result: { model: provider.model, inTok: 0, outTok: 0, cost: r.totalCost, wallMs: 0 }, manifest: saved.manifest, audit: r.audit ?? { valid: 0, invalid: [], uncited: true }, spend: { estimate: r.totalCost, cap: Number(process.env.SWAN_CONTEXT_MAX_USD) } });
+      const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
+      writeFileSync(answerOut, r.answer ?? `(no answer — ${r.stopReason})`, 'utf-8');
+      console.log(`[swan-context] loop: ${r.iterations} iters, ${r.toolTrace.length} tool calls, $${r.totalCost.toFixed(4)}, stop=${r.stopReason}`);
+      console.log(`[swan-context] citations: ${r.audit?.valid ?? 0} valid / ${r.audit?.invalid.length ?? 0} invalid`);
+      console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
+      process.exitCode = r.answer && !r.audit?.invalid.length ? 0 : 3;
+    } else {
+      const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
+      const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
+      console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
+      const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort'), manifest: saved.manifest });
+      const audit = packet.auditAnswer(result.text);
+      const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
+      const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
+      const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
+      writeFileSync(answerOut, result.text, 'utf-8');
+      console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
+      console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
+      console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
+      if (audit.invalid.length) process.exitCode = 3;
+    }
   } catch (e) {
     // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes.
     if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) {
