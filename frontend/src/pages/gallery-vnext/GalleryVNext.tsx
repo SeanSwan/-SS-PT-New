@@ -28,7 +28,7 @@ import { useGallerySession } from './useGallerySession';
 import { useGalleryToast } from './useGalleryToast';
 import { useGalleryVotes } from './useGalleryVotes';
 import { useLightboxHistory } from './useLightboxHistory';
-import { Content, GateWrap, Shell } from './GalleryVNext.styles';
+import { Content, GalleryScrim, GateWrap, Shell, VisualizerSlot } from './GalleryVNext.styles';
 
 const PHOTOS_PER_BATCH = 24; // parity with the shipped grid loader
 
@@ -166,6 +166,10 @@ export default function GalleryVNext() {
       <GalleryVNextTokens />
       <div className="gallery-vnext-shell" data-testid="gallery-vnext-shell">
         <Shell>
+          {/* Shell contract: reserved z-0 mount point for the future music color-visualizer (empty today —
+              it slots in later with ZERO relayout; Content sits above at z-2 behind its scrim). */}
+          <VisualizerSlot aria-hidden="true" data-testid="gallery-visualizer-slot" />
+          <GalleryScrim aria-hidden="true" />
           <Content ref={contentRef}>
             {/* The gate REPLACES the list (parity with the shipped overlay: the unlock is the whole moment,
                 never a card buried below the fold). */}

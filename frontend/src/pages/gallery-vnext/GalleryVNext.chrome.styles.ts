@@ -65,37 +65,15 @@ export const HeroPrimary = styled.button`
   }
 `;
 
-/** Kimi (d): the ONE brand beat on the pre-gate hero — a crystalline refraction on a single h1 word.
- *  Static ice→wing gradient clip on the word; an aria-hidden overlay duplicate carries a brighter clip whose
- *  OPACITY oscillates (6s) — no background-position animation (banned), transform/opacity only.
- *  Reduced-motion: the sheen is removed entirely; the static gradient word remains. */
-export const ShimmerWord = styled.span`
-  position: relative;
+/** The ONE brand accent on the pre-gate hero — a STATIC ice→wing gradient clip on a single h1 word.
+ *  The old infinite sheen loop is dead (Kimi gallery review 2026-07-20: an ambient loop on the first thing
+ *  you read is the template-tell, and it competed with the Crystallize overlay — two signatures = none). */
+export const GradientWord = styled.span`
   display: inline-block;
   background: linear-gradient(100deg, var(--gallery-ice), var(--gallery-wing), var(--gallery-ice));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-
-  .sheen {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(100deg, transparent 30%, var(--gallery-ink) 50%, transparent 70%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    opacity: 0;
-    animation: gallery-sheen 6s var(--gallery-ease-standard) infinite;
-  }
-
-  @keyframes gallery-sheen {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 0.55; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .sheen { animation: none; opacity: 0; }
-  }
 `;
 
 export const HeroSecondary = styled.a`
@@ -111,65 +89,8 @@ export const HeroSecondary = styled.a`
   &:hover { color: var(--gallery-ink); border-color: var(--gallery-chrome-edge); }
 `;
 
-// ── Event cards with covers + badges (parity with the shipped listing) ────
-export const EventCover = styled.div<{ $src: string | null }>`
-  position: relative;
-  height: 160px;
-  border-radius: calc(var(--gallery-r-card, 12px) - 2px) calc(var(--gallery-r-card, 12px) - 2px) 0 0;
-  background-color: var(--gallery-surface-2);
-  background-image: ${(p) => (p.$src ? `url("${p.$src}")` : 'none')};
-  background-size: cover;
-  background-position: center;
-  overflow: hidden;
-  /* Kimi b3: on hover the PHOTOGRAPH breathes inside its still frame (scale-in-frame), the chrome never moves */
-  transition: transform 300ms var(--gallery-ease-standard);
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-
-  /* text-over-imagery scrim (Kimi b8) so the badges hold AA over any photograph */
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--gallery-scrim);
-    pointer-events: none;
-  }
-`;
-
-export const CoverBadge = styled.span`
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--gallery-frost);
-  border: 1px solid var(--gallery-line);
-  color: var(--gallery-ink);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
-export const CoverCount = styled.span`
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 1;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--gallery-scrim-solid);
-  color: var(--gallery-ink);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-`;
-
-export const EventBody = styled.span`
-  display: block;
-  padding: 14px 16px 16px;
-`;
+// Event cards are now EventDeck.tsx (Direction A cascading accordion) — the old flat cover-card styles
+// (EventCover/CoverBadge/CoverCount/EventBody) were deleted with them.
 
 // ── Gated header chrome ───────────────────────────────────────────────────
 export const BackLink = styled.button`
@@ -247,9 +168,9 @@ export const SkeletonRow = styled.div`
   margin-bottom: 12px;
 `;
 
-export const SkeletonTile = styled.div<{ $flex: number }>`
+export const SkeletonTile = styled.div<{ $flex: number; $h?: number }>`
   flex: ${(p) => p.$flex} 1 0;
-  height: 200px;
+  height: ${(p) => p.$h ?? 200}px;
   border-radius: var(--gallery-r-card, 12px);
   background: linear-gradient(135deg, var(--gallery-surface-2) 0%, var(--gallery-card-hi) 55%, var(--gallery-surface-2) 100%);
   animation: ${shimmerPulse} 1.6s var(--gallery-ease-standard) infinite;
