@@ -35,8 +35,11 @@ export const PROVIDERS = {
   },
 };
 
-/** Evidence-path classes above the 'design' ceiling. Matched case-insensitively. */
-export const SENSITIVE_PATH_RE = /auth|login|session|billing|payment|stripe|webhook|pii|privacy|secret|credential|token|migration|middleware|\.env|admin|permission|checkout|payout/i;
+/**
+ * Evidence-path classes above the 'design' ceiling. Matched case-insensitively. Includes Sean's
+ * life-critical admin-only data classes (immigration, medical) per Rule 8 (hostile pass 3 finding 2).
+ */
+export const SENSITIVE_PATH_RE = /auth|oauth|jwt|login|session|password|billing|payment|stripe|checkout|payout|refund|payroll|bank|plaid|webhook|pii|ssn|privacy|secret|credential|token|migration|middleware|\.env|admin|permission|immigration|medical|patient|health/i;
 
 export class ProviderError extends Error {
   constructor(code, message, detail = null) {
@@ -47,8 +50,9 @@ export class ProviderError extends Error {
 }
 
 const CEILING_RANK = { standard: 0, design: 1 }; // higher = more restrictive
-/** Model slugs that are ALWAYS design-ceiling regardless of which slot resolves them. */
-const RESTRICTED_MODEL_RE = /moonshotai\/|(?:^|\/)kimi|glm|qwen|deepseek|yi-|baichuan|minimax/i;
+/** Model slugs that are ALWAYS design-ceiling regardless of which slot resolves them (Chinese
+ * providers per Village policy). Widened for ernie/hunyuan/doubao/internlm/stepfun (pass 3 finding 2). */
+const RESTRICTED_MODEL_RE = /moonshotai\/|(?:^|\/)kimi|glm|qwen|deepseek|yi-|baichuan|minimax|ernie|hunyuan|doubao|(?:^|\/)seed|internlm|stepfun|z-ai\//i;
 
 export function getProvider(name) {
   const p = PROVIDERS[name];

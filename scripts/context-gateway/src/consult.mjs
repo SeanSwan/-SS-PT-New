@@ -60,12 +60,17 @@ async function runConsultInner(providerName, defaultRemit, defaultOut) {
   // provider (Kimi) would accept a sensitive --seed (hostile pass 5, finding 1: seed bypass).
   const pseudoManifest = { evidence: [docPath, seedPath].filter(Boolean).map((p, i) => ({ id: `E00${i + 1}`, path: String(p).replaceAll('\\', '/') })) };
 
-  // Redact inline secret VALUES from BOTH document and seed before egress (T3).
-  const docR = redactSecrets(readFileSync(docPath, 'utf-8'));
-  const seedR = redactSecrets(seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '');
-  const doc = docR.text;
-  const seed = seedR.text;
-  const totalRedactions = docR.redactions + seedR.redactions;
+  // Redact inline secret VALUES + neutralize the ===== fence from BOTH document and seed before
+  // egress (T3 + T12 delimiter breakout). Size-cap each read (hostile pass 3, finding 4: an
+  // unbounded doc with many un-terminated PEM markers is O(n²) for the PRIVATE_KEY regex).
+  const MAX_DOC = 512 * 1024;
+  const read1 = (p) => (p && existsSync(p) ? readFileSync(p, 'utf-8').slice(0, MAX_DOC) : '');
+  const cleanCount = (s) => redactSecrets(String(s).replaceAll(/={4,}/g, '==='));
+  const docC = cleanCount(read1(docPath));
+  const seedC = cleanCount(read1(seedPath));
+  const doc = docC.text;
+  const seed = seedC.text;
+  const totalRedactions = docC.redactions + seedC.redactions;
   if (totalRedactions) console.error(`[consult-${providerName}] redacted ${totalRedactions} inline secret(s) before egress`);
   const remit = arg('remit', defaultRemit);
   const maxTokens = Number(arg('max-tokens', process.env[`SWAN_${providerName.toUpperCase()}_MAX_TOKENS`])) || 16000;

@@ -28,6 +28,9 @@ const RULES = [
   ['GITHUB', /\bgh[pousr]_[A-Za-z0-9]{36,}/g],
   ['GITHUB_PAT', /\bgithub_pat_[A-Za-z0-9_]{22,}/g], // fine-grained PATs (finding 10)
   ['ANTHROPIC', /\bsk-ant-[A-Za-z0-9_-]{20,}/g],
+  // PII (Rule 8 is categorical — zero PII to external LLMs). High-confidence shapes only.
+  ['EMAIL', /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g],
+  ['SSN', /\b\d{3}-\d{2}-\d{4}\b/g],
 ];
 
 /**
