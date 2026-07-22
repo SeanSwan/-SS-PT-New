@@ -47,7 +47,11 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   const { head, shaByPath } = gitState(root);
   const reader = createSafeReader({ root, tracked });
   const anchors = extractAnchors(question);
-  const needles = anchorNeedles(anchors);
+  // Precision rule (real-repo probe 2026-07-21): bare content words flood git grep on a
+  // 12k-file repo (truncated hits, unrelated files) — when the question names anything
+  // concrete (path/symbol/route/quoted), terms drive only the catalog lane, not code grep.
+  const strong = [...anchors.paths, ...anchors.routes, ...anchors.quoted, ...anchors.symbols];
+  const needles = strong.length ? strong : anchorNeedles(anchors);
 
   // --- retrieval: code hits per needle, windows merged per file ---
   const windowsByFile = new Map(); // path -> [{start,end,hits}]
