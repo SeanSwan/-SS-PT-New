@@ -167,16 +167,16 @@ describe('token discipline — Palette Law A enforcement', () => {
     // I previously recorded that universal-theme-styles.css:19-49 "competes" with themeUtils using
     // non-Swan values. It does NOT. Verified: every var in that :root block is also declared by
     // themeUtils, and its VALUES faithfully mirror the active `crystallineDark` theme
-    // (UniversalThemeContext.tsx:240 — deepSpace #0D1117, stardust #161B22, text #E6EDF3). The block
+    // (UniversalThemeContext.tsx:240 — deepSpace #0A0A0F, stardust #141419, text #E0ECF4). The block
     // is an intentional pre-JS FALLBACK ("will be overridden by JavaScript", :18) so first paint is
     // not unstyled. themeUtils then wins at runtime by document order. That is the design, not luck.
     //
     // The REAL hazard is duplication drift: two hand-maintained copies of one palette. (It is in
     // parity TODAY — verified by the fallback-parity test below, which is the guard that actually
     // matters and which already caught one bad edit.) This ratchet just stops the duplicate spreading to more entry
-    // points. NOTE: the separate question of whether `crystallineDark`'s backgrounds SHOULD be the
-    // documented Crystalline Swan palette (#0A0A0F/#141419/#1A1A24) instead of GitHub-family darks is
-    // a live product decision for Sean — it would restyle the whole app and is NOT decided here.
+    // points. RESOLVED 2026-07-21 (SWA-24, Sean's ruling): crystallineDark now USES the documented
+    // Crystalline Swan palette (#0A0A0F/#141419/#1A1A24/#E0ECF4) — the GitHub-family darks were
+    // historic drift and were repainted in both this css fallback and the theme, in lockstep.
     const KNOWN_VIOLATION = ['App.tsx'];
     const importers = MOUNTED.filter((f) => {
       if (rel(f).includes('universal-theme-styles.css')) return false;
@@ -259,3 +259,5 @@ describe('token discipline — Palette Law A enforcement', () => {
     ).toBeLessThanOrEqual(CEILING);
   });
 });
+
+// guard-exemption regression marker (SWA-40 trial 1): this comment is safe to remove

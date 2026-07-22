@@ -47,9 +47,13 @@ function isExempt(file) {
 }
 
 /**
- * Strip the two COMPLIANT hex contexts from a line before scanning for a bare literal:
+ * Strip the COMPLIANT hex contexts from a line before scanning for a bare literal:
  *   1. `var(--token, #fallback)` — Rule 6's required token-with-fallback form.
  *   2. `--custom-prop: #hex`      — a token definition.
+ *   3. `mask:`/`-webkit-mask:` values — #000/#fff there are ALPHA/LUMINANCE markers
+ *      (which pixels show), not palette emissions; a mask hex can never drift the brand.
+ *      Scoped to the mask property only — `background: #000` still violates.
+ *      (Added 2026-07-21, SWA-25: 4 pre-existing mask hits were the guard's only baseline reds.)
  * Whatever hex remains is a bare literal a component emitted directly = the violation this guard catches.
  */
 function stripCompliantHex(line) {
@@ -58,6 +62,8 @@ function stripCompliantHex(line) {
     .replace(/--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}\b/g, '--t:def') // custom-property definitions
     // mask / -webkit-mask stencils use #000 / #fff as compositing ALPHA (opaque vs cut-out), not brand colour —
     // strip the whole mask declaration value so those achromatic stencils don't read as a palette violation.
+    // (Merge 2026-07-21: both lanes fixed this independently; this variant is the superset — it also covers
+    // hyphenated mask-* properties, which the #000/#fff-only variant missed.)
     .replace(/(-webkit-)?mask[a-z-]*\s*:\s*[^;{}]*/gi, 'mask:stencil');
 }
 

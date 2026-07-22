@@ -23,29 +23,30 @@
   --color-secondary: #8B5CF6;
   --color-accent: #C6A84B;
 
-  --bg-primary: #0D1117;
-  --bg-secondary: #161B22;
-  --bg-surface: rgba(22, 27, 34, 0.8);
-  --bg-elevated: #1A1F2E;
+  /* SWA-24 repaint (2026-07-21): CLAUDE.md Active Palette trio replaces GitHub-dark drift. */
+  --bg-primary: #0A0A0F;
+  --bg-secondary: #141419;
+  --bg-surface: rgba(20, 20, 25, 0.8);
+  --bg-elevated: #1A1A24;
 
-  --text-primary: #E6EDF3;
-  --text-secondary: rgba(230, 237, 243, 0.8);
+  --text-primary: #E0ECF4;
+  --text-secondary: rgba(224, 236, 244, 0.8);
   /* Parity-locked to crystallineDark.text.muted (UniversalThemeContext.tsx) by
      styles/tokenDiscipline.contract.test.ts — change both together or the test fails. */
-  --text-muted: rgba(230, 237, 243, 0.6);
-  --text-placeholder: rgba(230, 237, 243, 0.5);
-  --text-disabled: rgba(230, 237, 243, 0.6);
-  --text-heading: #E6EDF3;
+  --text-muted: rgba(224, 236, 244, 0.6);
+  --text-placeholder: rgba(224, 236, 244, 0.5);
+  --text-disabled: rgba(224, 236, 244, 0.6);
+  --text-heading: #E0ECF4;
 
   --gradient-primary: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  --gradient-secondary: linear-gradient(135deg, #161B22, #8B5CF6);
+  --gradient-secondary: linear-gradient(135deg, #141419, #8B5CF6);
   --gradient-cosmic: linear-gradient(135deg, #8B5CF6, #60C0F0);
 
   --shadow-primary: 0 0 20px rgba(96, 192, 240, 0.2);
   --shadow-elevation: 0 15px 35px rgba(0, 0, 0, 0.7);
   --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(96, 192, 240, 0.1);
 
-  --border-subtle: rgba(48, 54, 61, 0.6);
+  --border-subtle: rgba(46, 46, 61, 0.6);
   --border-elegant: rgba(96, 192, 240, 0.2);
   --border-prominent: rgba(96, 192, 240, 0.4);
 }

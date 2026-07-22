@@ -11,6 +11,8 @@
  */
 import express from 'express';
 import { captureConsultRequest } from '../services/consultRequestService.mjs';
+import { sendSpeedToLeadReply } from '../services/speedToLeadService.mjs';
+import { enrollNewLeadInNurture } from '../services/leadCaptureService.mjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
 import { rateLimiter } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
@@ -94,6 +96,14 @@ router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req,
       notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result })
         .catch((err) => logger.error(`[ConsultRequest] owner notify failed (non-critical): ${err?.message}`));
     }
+    // Speed-to-lead (SWA-40): instant branded acknowledgment to the LEAD, flag-gated
+    // (SPEED_TO_LEAD_REPLY_ENABLED), fire-and-forget — never blocks the 201.
+    sendSpeedToLeadReply({ email: cleanEmail, name, leadId: result?.leadId, source: 'consult' })
+      .catch((err) => logger.error(`[ConsultRequest] speed-to-lead failed (non-critical): ${err?.message}`));
+    // Consult leads were the one entry path NOT enrolled in nurture (Epic-1 gap) — enroll
+    // fire-and-forget; no-op until the lead_nurture sequence is armed.
+    enrollNewLeadInNurture(result?.leadId, name)
+      .catch((err) => logger.error(`[ConsultRequest] nurture enroll failed (non-critical): ${err?.message}`));
     return res.status(201).json({ success: true, message: 'Thanks! Sean will reach out to confirm your consult.' });
   } catch (err) {
     logger.error(`[ConsultRequest] error: ${err?.message}`);

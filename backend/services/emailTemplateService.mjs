@@ -124,6 +124,57 @@ const EMAIL_TEMPLATES = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// instant_reply — SPEED-TO-LEAD transactional acknowledgment (SWA-40 trial 2).
+// Sent once, immediately, in direct response to the lead's OWN inquiry — the
+// CAN-SPAM transactional/relationship class, so it uses a transactional footer
+// (no unsubscribe machinery; a one-time confirmation is not a mailing-list send).
+// Nurture emails keep the full unsubscribe fail-closed path above — unchanged.
+const INSTANT_REPLY_TEMPLATE = {
+  subject: 'Got your message, {clientName} — here is what happens next',
+  text: `Hi {clientName},\n\nThanks for reaching out to SwanStudios — your message just landed on my desk and I personally read every one.\n\nWhat happens next: I'll get back to you shortly (usually same day). If you'd like to skip ahead, you can grab a free consult slot right now: {consultUrl}\n\n— Sean, SwanStudios · 26+ years coaching\n\n{businessAddress}\nYou're receiving this one-time confirmation because you contacted SwanStudios.`,
+  body: `<h1 style="margin:0 0 12px;font-size:22px;color:${SAPPHIRE};">Got your message, {clientName}</h1>
+<p style="margin:0 0 16px;">Thanks for reaching out to SwanStudios — your message just landed on my desk, and I personally read every one.</p>
+<p style="margin:0 0 16px;"><strong>What happens next:</strong> I'll get back to you shortly — usually the same day.</p>
+<p style="margin:0 0 20px;">Want to skip ahead? Grab a free consult slot right now.</p>
+<p style="margin:0 0 8px;">${cta('Book a free consult')}</p>`,
+};
+// Registered so listing/preview surfaces see it; sendTemplatedEmail can still render it
+// for nurture-style use, but the canonical path is renderInstantReplyEmail below.
+EMAIL_TEMPLATES.instant_reply = INSTANT_REPLY_TEMPLATE;
+
+/** Transactional shell: same brand chrome as wrapHtml, transactional footer (no unsubscribe). */
+const wrapTransactionalHtml = (innerHtml) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:${SURFACE};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${SURFACE};padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:14px;border:1px solid #DCE6F0;overflow:hidden;">
+<tr><td style="background:${SAPPHIRE};padding:18px 24px;">
+<span style="font:600 18px 'Segoe UI',Arial,sans-serif;color:#FFFFFF;letter-spacing:.5px;">SwanStudios</span>
+</td></tr>
+<tr><td style="padding:24px;font:400 15px/1.6 'Segoe UI',Arial,sans-serif;color:${INK};">
+${innerHtml}
+</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #ECF1F6;font:400 12px/1.5 'Segoe UI',Arial,sans-serif;color:${MUTED};">
+You're receiving this one-time confirmation because you contacted SwanStudios.<br/>
+{businessAddress}
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+/** Render the instant-reply acknowledgment: { subject, text, html }. Pure render, no send. */
+export const renderInstantReplyEmail = ({ clientName } = {}) => {
+  const appBase = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  const vars = {
+    clientName: clientName || 'there',
+    consultUrl: process.env.SWAN_CONSULT_URL || (appBase ? `${appBase}/contact` : 'https://sswanstudios.com/contact'),
+    businessAddress: businessAddressFallback(),
+  };
+  return {
+    subject: sanitizeSubject(renderText(INSTANT_REPLY_TEMPLATE.subject, vars)),
+    text: renderText(INSTANT_REPLY_TEMPLATE.text, vars),
+    html: renderHtml(wrapTransactionalHtml(INSTANT_REPLY_TEMPLATE.body), vars),
+  };
+};
+
 export const listEmailTemplates = () => Object.entries(EMAIL_TEMPLATES).map(([name, t]) => ({ name, subject: t.subject }));
 
 const SAMPLE_VARS = {
@@ -221,4 +272,4 @@ export const verifyUnsubscribeToken = (leadId, token) => {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
-export default { listEmailTemplates, previewEmailTemplates, sendTemplatedEmail, buildNurtureEmailVars, verifyUnsubscribeToken };
+export default { listEmailTemplates, previewEmailTemplates, sendTemplatedEmail, buildNurtureEmailVars, verifyUnsubscribeToken, renderInstantReplyEmail };
