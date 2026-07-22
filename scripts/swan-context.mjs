@@ -14,12 +14,15 @@
  *
  * @module swan-context
  */
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { compileContext } from './context-gateway/src/compile.mjs';
 import { gitTrackedFiles } from './context-gateway/src/safeRead.mjs';
 import { runBenchmark, runCase } from './context-gateway/src/evaluate.mjs';
 import { CASES, GATES } from './context-gateway/bench/cases.mjs';
+import { getProvider, enforceCeiling, assertSpend } from './context-gateway/src/providers.mjs';
+import { loadEnv, buildPrompt, callProvider } from './context-gateway/src/transport.mjs';
+import { reconstructPacket, writeReceipt } from './context-gateway/src/receipt.mjs';
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -27,8 +30,18 @@ const flag = (name, def = null) => { const i = argv.indexOf(`--${name}`); return
 const ROOT = resolve(flag('root', process.cwd()));
 
 function usage() {
-  console.log('usage:\n  node scripts/swan-context.mjs compile "<question>" [--issue SWA-N] [--budget chars] [--out packet.json] [--full]\n  node scripts/swan-context.mjs bench [--case id]');
+  console.log(`usage:
+  node scripts/swan-context.mjs compile "<question>" [--issue SWA-N] [--budget chars] [--out packet.json] [--full]
+  node scripts/swan-context.mjs bench [--case id]
+  node scripts/swan-context.mjs ask --packet packet.json --provider fable|sol|kimi [--max-tokens N] [--effort low|medium|high] [--answer-out path]   (SPENDS — needs SWAN_CONTEXT_MAX_USD)
+  node scripts/swan-context.mjs verify --packet packet.json --answer answer.md   ($0)`);
   process.exit(1);
+}
+
+function loadPacketFile() {
+  const p = flag('packet');
+  if (!p) usage();
+  return { saved: JSON.parse(readFileSync(p, 'utf-8')), path: p };
 }
 
 if (cmd === 'compile') {
@@ -68,4 +81,30 @@ if (cmd === 'compile') {
     console.log(`[bench] surface recall ${metrics.surfaceRecall} (gate ≥${GATES.surfaceRecall}: ${metrics.surfaceGate}) — test recall ${metrics.testRecall} (gate ≥${GATES.testRecall}: ${metrics.testGate})`);
     process.exitCode = metrics.surfaceGate === 'PASS' && metrics.testGate === 'PASS' ? 0 : 2;
   }
+} else if (cmd === 'ask') {
+  const { saved } = loadPacketFile();
+  loadEnv(ROOT);
+  const provider = getProvider(flag('provider') ?? usage());
+  const packet = reconstructPacket(saved);             // validates manifest/evidence integrity
+  enforceCeiling(provider, saved.manifest);            // T10 — throws with offending evidence listed
+  const maxTokens = Number(flag('max-tokens')) || 8000;
+  const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
+  const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
+  console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
+  const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort') });
+  const audit = packet.auditAnswer(result.text);
+  const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
+  const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
+  const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
+  writeFileSync(answerOut, result.text, 'utf-8');
+  console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
+  console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
+  console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
+  if (audit.invalid.length) process.exitCode = 3;
+} else if (cmd === 'verify') {
+  const { saved } = loadPacketFile();
+  const answer = readFileSync(flag('answer') ?? usage(), 'utf-8');
+  const audit = reconstructPacket(saved).auditAnswer(answer);
+  console.log(JSON.stringify({ valid: audit.valid, invalid: audit.invalid, uncited: audit.uncited }, null, 2));
+  process.exitCode = audit.invalid.length || audit.uncited ? 3 : 0;
 } else usage();
