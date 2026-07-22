@@ -37,7 +37,7 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  color: ${({ theme }) => theme.text?.primary || '#fff'};
+  color: ${({ theme }) => theme.text?.primary || 'var(--text-primary, #fff)'};
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -51,8 +51,10 @@ const SummaryBadge = styled.span<{ $color: string }>`
   border-radius: 16px;
   font-size: 12px;
   font-weight: 500;
-  background: ${({ $color }) => `${$color}1A`};
-  border: 1px solid ${({ $color }) => `${$color}44`};
+  /* color-mix, not hex-concat: $color is now a var(--token, #fallback) expression (Rule 6),
+     and "var(...)1A" is invalid CSS — concat only worked when $color was a raw hex. */
+  background: ${({ $color }) => `color-mix(in srgb, ${$color} 10%, transparent)`};
+  border: 1px solid ${({ $color }) => `color-mix(in srgb, ${$color} 27%, transparent)`};
   color: ${({ $color }) => $color};
 `;
 
@@ -83,7 +85,7 @@ const DotIndicator = styled.div<{ $color: string }>`
 `;
 
 const EntryLabel = styled.span`
-  color: ${({ theme }) => theme.text?.primary || '#fff'};
+  color: ${({ theme }) => theme.text?.primary || 'var(--text-primary, #fff)'};
   font-size: 14px;
   flex: 1;
 `;
@@ -101,7 +103,7 @@ const StatusText = styled.p`
 `;
 
 const ErrorText = styled.p`
-  color: #FF5555;
+  color: var(--danger, #FF5555);
   font-size: 13px;
   text-align: center;
   padding: 12px;
@@ -290,20 +292,20 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         <SectionTitle>Body Map</SectionTitle>
         {entries.length > 0 && (
           <StyledBox as="div" $style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <SummaryBadge $color="#E0ECF4">
+            <SummaryBadge $color="var(--text-primary, #E0ECF4)">
               {activeEntries.length} active
             </SummaryBadge>
             {resolvedCount > 0 && (
-              <SummaryBadge $color="#4070C0">{resolvedCount} resolved</SummaryBadge>
+              <SummaryBadge $color="var(--tertiary, #4070C0)">{resolvedCount} resolved</SummaryBadge>
             )}
             {severeCount > 0 && (
-              <SummaryBadge $color="#C6A84B">{severeCount} severe</SummaryBadge>
+              <SummaryBadge $color="var(--accent-luxury, #C6A84B)">{severeCount} severe</SummaryBadge>
             )}
             {moderateCount > 0 && (
-              <SummaryBadge $color="#50A0F0">{moderateCount} moderate</SummaryBadge>
+              <SummaryBadge $color="var(--data-accent, #50A0F0)">{moderateCount} moderate</SummaryBadge>
             )}
             {mildCount > 0 && (
-              <SummaryBadge $color="#60C0F0">{mildCount} mild</SummaryBadge>
+              <SummaryBadge $color="var(--accent-primary, #60C0F0)">{mildCount} mild</SummaryBadge>
             )}
           </StyledBox>
         )}
