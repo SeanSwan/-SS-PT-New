@@ -7,6 +7,8 @@
  * the same CSS variable bridge without per-surface palette branches.
  */
 
+import { NEW_COLORWAY_SPECS } from './newColorwaySpecs';
+
 const fonts = {
   heading: '"Plus Jakarta Sans", "Sora", sans-serif',
   drama: '"Cormorant Garamond", Georgia, serif',
@@ -372,4 +374,14 @@ export const premiumThemeAdditions = {
     secondary: '#FF8B67', secondaryLight: '#FFC3B0', secondaryDeep: '#C2410C', accent: '#7FE0C3', accentLight: '#C2F2E3', accentWarm: '#2E9E7E',
     text: '#FFF9EC', textSecondary: 'rgba(255, 249, 236, 0.84)', muted: 'rgba(255, 249, 236, 0.62)',
   }),
+
+  /* === 2026-07-22 finishing pass — FOUR curated, code-verified colorways (Kimi's
+     "fewer/deeper" steer). Each clears the ΔE≥7 distinctness gate against all 22 kept
+     colorways + is non-cyan + passes the full WCAG contrast matrix — proven by
+     newColorwaySpecs.audit.test.ts. Authored FROM NEW_COLORWAY_SPECS (single source of
+     truth) so the picker and the audit test never drift. === */
+  'crimson-vault': makePremiumTheme(NEW_COLORWAY_SPECS[0]),
+  'verdant-signal': makePremiumTheme(NEW_COLORWAY_SPECS[1]),
+  'indigo-rite': makePremiumTheme(NEW_COLORWAY_SPECS[2]),
+  'violet-ember': makePremiumTheme(NEW_COLORWAY_SPECS[3]),
 } as const;

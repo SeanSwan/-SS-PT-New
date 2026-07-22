@@ -77,6 +77,11 @@ export const themeToggleMetadata: Record<ThemeId, {
   'orchid-veil': { description: 'Orchid Veil', icon: 'flower' },
   'deep-jade': { description: 'Deep Jade', icon: 'leaf' },
   'midnight-mango': { description: 'Midnight Mango', icon: 'sparkles' },
+  // 2026-07-22 finishing pass — four curated, code-verified colorways.
+  'crimson-vault': { description: 'Crimson Vault', icon: 'gem' },
+  'verdant-signal': { description: 'Verdant Signal', icon: 'zap' },
+  'indigo-rite': { description: 'Indigo Rite', icon: 'orbit' },
+  'violet-ember': { description: 'Violet Ember', icon: 'flame' },
 };
 
 const getThemeIcon = (themeId: ThemeId, size = 20) => {
