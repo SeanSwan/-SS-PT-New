@@ -49,6 +49,22 @@ test('redactSecrets: catches key/token/PEM/DB-URL shapes, reports count+kind, ke
   assert.equal(redactSecrets(code).text, code);
 });
 
+test('ReDoS regression: a 512KB punctuated line redacts fast (bounded EMAIL/PII regexes)', () => {
+  // The pass-3 EMAIL rule was O(n²) on long punctuated runs (no @ required) — ~111s at 500KB.
+  // RFC-bounded quantifiers must keep this well under a second.
+  const payload = 'a-b-c.d+e%f'.repeat(50000); // ~550KB of boundary-heavy punctuation, no real email
+  const t0 = Date.now();
+  const r = redactSecrets(payload);
+  const ms = Date.now() - t0;
+  assert.ok(ms < 1000, `redactSecrets on 512KB punctuated input took ${ms}ms (must be < 1000)`);
+  assert.equal(r.redactions, 0, 'no false-positive redactions on punctuation soup');
+});
+
+test('EMAIL: redacts real emails, skips retina/asset @Nx.ext patterns', () => {
+  assert.equal(redactSecrets('ping jane.doe%test+x@sub.example.co.uk today').redactions, 1);
+  assert.equal(redactSecrets('background: url(logo@2x.png); icon@3x.webp;').redactions, 0, 'retina assets not treated as emails');
+});
+
 test('finding 4: http(s) basic-auth credential URLs are redacted', () => {
   const S = (...p) => p.join('');
   const url = S('https://', 'admin:', 'hunter2SuperSecret', '@internal.example.com/api');

@@ -29,7 +29,11 @@ const RULES = [
   ['GITHUB_PAT', /\bgithub_pat_[A-Za-z0-9_]{22,}/g], // fine-grained PATs (finding 10)
   ['ANTHROPIC', /\bsk-ant-[A-Za-z0-9_-]{20,}/g],
   // PII (Rule 8 is categorical — zero PII to external LLMs). High-confidence shapes only.
-  ['EMAIL', /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g],
+  // Quantifiers are RFC-BOUNDED ({1,64}@{1,255}.{2,24}), NOT open `+`: an unbounded class with
+  // boundary punctuation backtracks O(n²) and hung the default compile lane for ~minutes on a long
+  // punctuated line (hostile pass 4, finding 1 — a ReDoS the pass-3 EMAIL rule itself introduced).
+  // The negative lookahead skips retina/asset "domains" (logo@2x.png) to cut over-redaction.
+  ['EMAIL', /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,255}\.(?!png|jpe?g|gif|webp|svg|ico|css|s?css|js|mjs|tsx?|jsx?|json|html?|woff2?|ttf|map)[A-Za-z]{2,24}\b/gi],
   ['SSN', /\b\d{3}-\d{2}-\d{4}\b/g],
 ];
 
