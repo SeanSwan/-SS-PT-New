@@ -21,9 +21,11 @@ const STOP = new Set(('a an and are as at be but by can did do does for from has
   'our so that the their this to was we what when where which who why will with you your not no yes if then than ' +
   'audit check fix look find show tell explain review path save get make').split(' '));
 
-// Bounded segments ({1,256}): the unbounded `[\w.-]+` before the required `/` backtracks O(n²) on a
-// long slash-less run and ran extractAnchors for seconds (hostile pass 5, finding 3). Paths fit 256.
-const PATH_RE = /[\w.-]{1,256}(?:\/[\w.-]{1,256})+\.\w{1,10}/g;
+// BOTH the segment length {1,256} AND the segment COUNT {1,40} are bounded: {1,256} alone fixed the
+// slash-LESS vector but a slash-DENSE path with no trailing `.ext` still backtracked O(n²) —
+// (start positions)×(tail backtrack), both O(n), independent of the length cap (hostile pass 6).
+// Real repo paths are neither 256-char segments nor 40 segments deep.
+const PATH_RE = /[\w.-]{1,256}(?:\/[\w.-]{1,256}){1,40}\.\w{1,10}/g;
 const ROUTE_RE = /(?<![\w.])\/(?:api|ws)(?:\/[\w:-]+)+/g;
 const ISSUE_RE = /\bSWA-\d+\b/g;
 const QUOTED_RE = /"([^"]{2,80})"|`([^`]{2,80})`/g;
@@ -31,7 +33,10 @@ const SYMBOL_RE = /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*|
 
 /** @param {string} question @returns {{paths:string[],symbols:string[],routes:string[],issues:string[],quoted:string[],terms:string[]}} */
 export function extractAnchors(question) {
-  const q = String(question);
+  // Defense-in-depth length cap: a question is human/agent-supplied and never legitimately huge.
+  // Capping bounds the work-unit for EVERY anchor regex against any future superlinear pattern,
+  // independent of the per-regex quantifier bounds (hostile pass 6).
+  const q = String(question).slice(0, 16384);
   const uniq = (arr) => [...new Set(arr)];
 
   const paths = uniq((q.match(PATH_RE) ?? []).map((p) => p.replaceAll('\\', '/')));
