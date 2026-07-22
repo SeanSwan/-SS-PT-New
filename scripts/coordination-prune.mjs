@@ -16,7 +16,7 @@
  * Run at session start (cheap, idempotent). Bump RETENTION_DAYS to 60 for a
  * longer window. CREATED 2026-06-13 — see .ai-workflow/coordination/README.md.
  */
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, rmSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -73,7 +73,27 @@ const pruneActivityLog = (file) => {
   return dropped;
 };
 
+// Gate dirs (.ai-workflow/gates/<slug>/ — SWA-32 Slice 1): remove task-gate dirs whose
+// newest file is older than RETENTION_DAYS. `_lib/` (shared helpers, tracked) is never touched.
+const pruneGateDirs = () => {
+  const gatesDir = path.resolve(__dirname, '..', '.ai-workflow', 'gates');
+  if (!existsSync(gatesDir)) return 0;
+  let removed = 0;
+  for (const entry of readdirSync(gatesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name === '_lib') continue;
+    const dir = path.join(gatesDir, entry.name);
+    const newest = Math.max(0, ...readdirSync(dir).map((f) => statSync(path.join(dir, f)).mtimeMs));
+    if (newest && newest < cutoff) {
+      rmSync(dir, { recursive: true, force: true });
+      removed += 1;
+    }
+  }
+  if (removed) console.log(`[coordination-prune] gates: removed ${removed} aged gate dir(s).`);
+  return removed;
+};
+
 let total = 0;
+total += pruneGateDirs();
 for (const name of ['review-queue.md', 'activity.log.md']) {
   const file = path.join(COORD_DIR, name);
   if (!existsSync(file)) continue;

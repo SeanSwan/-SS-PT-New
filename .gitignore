@@ -448,6 +448,10 @@ bearer-token.*
 !.ai-workflow/continuity/
 !.ai-workflow/coordination/
 !.ai-workflow/hermes-inbox/
+# swan-gate (SWA-32): task gates stay local; shared gate helpers are tracked
+!.ai-workflow/gates/
+.ai-workflow/gates/*
+!.ai-workflow/gates/_lib/
 .ai-workflow/audit/**
 # Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
 .ai-workflow/continuity/*
