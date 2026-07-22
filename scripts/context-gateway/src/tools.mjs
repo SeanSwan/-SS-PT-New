@@ -23,6 +23,7 @@ import { searchFiles, grepDetailed, searchCatalog } from './retrieve.mjs';
 import { parseCatalog } from './authority.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
 import { SENSITIVE_PATH_RE } from './providers.mjs';
+import { redactSecrets } from './egress.mjs';
 
 const DEF_RE = /(?:\b(?:function|class|const|let|var|def|type|interface|enum)\s+|export\s+(?:default\s+)?(?:async\s+)?(?:function\s+)?)$/;
 
@@ -87,8 +88,11 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       if (sensitive(path)) { log('repo_open', { path }, false, { reason: 'CEILING' }); throw new ToolError('CEILING', `design-ceiling session may not open sensitive path: ${path}`); }
       try {
         const w = reader.readWindow(path, startLine ?? undefined, endLine ?? undefined);
-        log('repo_open', { path, startLine: w.startLine, endLine: w.endLine }, true, { chars: w.content.length });
-        return w;
+        // T3 content half: redact inline secret VALUES from returned content (a non-DENY file can
+        // still hold a hardcoded key). Path already passed DENY + ceiling above.
+        const red = redactSecrets(w.content);
+        log('repo_open', { path, startLine: w.startLine, endLine: w.endLine }, true, { chars: red.text.length, secretsRedacted: red.redactions });
+        return { ...w, content: red.text, secretsRedacted: red.redactions };
       } catch (e) {
         log('repo_open', { path }, false, { reason: e.code ?? 'READ_ERROR' });
         throw e instanceof SafeReadError ? e : new ToolError('BAD_ARGS', String(e.message));
