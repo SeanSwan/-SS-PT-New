@@ -50,6 +50,8 @@ export interface RestoreTodayData {
   blocks: RestoreBlock[];
   coldStart?: RestoreColdStart;
   nextUpFocus?: string | null;
+  /** CC-2 client-safe "why" — plain body areas only; syndrome names never reach the client UI. */
+  focus?: { clientSummary: string | null; trainerDrivers: string[] } | null;
   completedExerciseIds: string[];
 }
 

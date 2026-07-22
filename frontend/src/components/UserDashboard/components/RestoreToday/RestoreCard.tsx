@@ -163,6 +163,11 @@ const RestoreCard: React.FC<RestoreCardProps> = ({ userId, onNavigate }) => {
         <HeaderMeta>{doneCount}/{allItems.length}</HeaderMeta>
       </HeaderRow>
 
+      {/* CC-2 "why" transparency — client-safe plain language only (two-tier copy law). */}
+      {data.focus?.clientSummary && (
+        <ProvenanceLine data-testid="restore-focus">{data.focus.clientSummary}</ProvenanceLine>
+      )}
+
       {data.blocks.map((block: RestoreBlock) => (
         <Block key={block.key}>
           <BlockLabel>{BLOCK_LABELS[block.key] || block.key}</BlockLabel>

@@ -34,6 +34,31 @@ export const COMPENSATION_TO_TAGS = {
   feet_flatten: 'pronation_distortion_syndrome',
 };
 
+/**
+ * CC-2 two-tier copy law (Kimi verdict 2026-07-22): clients NEVER see syndrome names —
+ * diagnosis-flavored language is a liability and scary copy. Tags translate to plain body
+ * areas for the client; the raw NASM vocabulary ships only in trainerDrivers for trainer UIs.
+ */
+const TAG_TO_CLIENT_AREA = {
+  upper_crossed_syndrome: 'neck and shoulders',
+  lower_crossed_syndrome: 'hips and lower back',
+  pronation_distortion_syndrome: 'knees and feet',
+};
+
+export function clientFocusFrom(correctiveTags, painEntries) {
+  const tags = [...new Set(correctiveTags || [])].filter((t) => TAG_TO_CLIENT_AREA[t]);
+  const areas = tags.map((t) => TAG_TO_CLIENT_AREA[t]);
+  const avoided = (painEntries || []).map((p) => p.bodyRegion).filter(Boolean);
+  if (areas.length === 0 && avoided.length === 0) return { clientSummary: null, trainerDrivers: tags };
+  const parts = [];
+  if (areas.length > 0) parts.push(`focused on your ${areas.join(' and ')}`);
+  if (avoided.length > 0) parts.push(`easing off your ${avoided.join(' and ')}`);
+  return {
+    clientSummary: `Built around how you move — ${parts.join(', ')}.`,
+    trainerDrivers: tags,
+  };
+}
+
 const FULL_PANEL_STATES = ['rest', 'active-recovery', 'unplanned'];
 const BLOCK_LIMITS = { inhibit: 3, lengthen: 4, activate: 3, cardio: 2 };
 const FAT_LOSS_PATTERN = /fat|lean|lose|weight.?loss|cut|slim|tone/i;
@@ -283,5 +308,11 @@ export async function composeRestoreToday({ userId, storedTimeZone, storedTimeZo
     return { ...base, mode: 'cold', coldStart: { reason: 'library-curating', showFoundations: false }, blocks: [] };
   }
 
-  return { ...base, blocks, nextUpFocus: nextUp.focus };
+  return {
+    ...base,
+    blocks,
+    nextUpFocus: nextUp.focus,
+    // CC-2: client-safe "why" (plain body areas + pain avoidance); NASM names only in trainerDrivers.
+    focus: clientFocusFrom(correctiveTagsFrom(movement.compensations), painEntries),
+  };
 }

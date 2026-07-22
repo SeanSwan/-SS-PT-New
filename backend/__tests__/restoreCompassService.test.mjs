@@ -12,6 +12,7 @@ import {
   blockedByPain,
   correctiveTagsFrom,
   composeBlocks,
+  clientFocusFrom,
 } from '../services/recovery/restoreCompassService.mjs';
 
 const exercise = (overrides = {}) => ({
@@ -184,5 +185,29 @@ describe('composeBlocks — the hard provenance law', () => {
     const keys = blocks.map((b) => b.key);
     expect(keys).toContain('inhibit');
     expect(keys).not.toContain('activate');
+  });
+});
+
+describe('CC-2 clientFocusFrom — two-tier copy law (clients NEVER see syndrome names)', () => {
+  it('maps syndrome tags to client-safe body areas', () => {
+    const focus = clientFocusFrom(['upper_crossed_syndrome'], []);
+    expect(focus.clientSummary).toMatch(/neck and shoulders/i);
+    expect(focus.clientSummary).not.toMatch(/syndrome|crossed|UCS/i);
+    expect(focus.trainerDrivers).toEqual(['upper_crossed_syndrome']);
+  });
+  it('combines multiple drivers and pain avoidance in plain language', () => {
+    const focus = clientFocusFrom(
+      ['lower_crossed_syndrome', 'pronation_distortion_syndrome'],
+      [{ bodyRegion: 'left shoulder', painLevel: 4 }],
+    );
+    expect(focus.clientSummary).toMatch(/hips and lower back/i);
+    expect(focus.clientSummary).toMatch(/knees and feet/i);
+    expect(focus.clientSummary).toMatch(/easing off your left shoulder/i);
+    expect(focus.clientSummary).not.toMatch(/syndrome/i);
+  });
+  it('returns null summary when there is nothing real to say (no fabricated insight)', () => {
+    const focus = clientFocusFrom([], []);
+    expect(focus.clientSummary).toBeNull();
+    expect(focus.trainerDrivers).toEqual([]);
   });
 });

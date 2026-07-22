@@ -139,3 +139,23 @@ describe('RestoreCard render states', () => {
     expect(await screen.findByTestId('restore-card')).toBeInTheDocument();
   });
 });
+
+describe('CC-2 focus transparency (two-tier copy law)', () => {
+  it('renders the client-safe focus line and NEVER a syndrome name', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: fullData({
+          focus: {
+            clientSummary: 'Built around how you move — focused on your hips and lower back.',
+            trainerDrivers: ['lower_crossed_syndrome'],
+          },
+        }),
+      },
+    });
+    render(<RestoreCard userId={7} onNavigate={() => {}} />);
+    const line = await screen.findByTestId('restore-focus');
+    expect(line.textContent).toMatch(/hips and lower back/i);
+    expect(document.body.textContent).not.toMatch(/syndrome/i);
+  });
+});
