@@ -21,7 +21,9 @@ const STOP = new Set(('a an and are as at be but by can did do does for from has
   'our so that the their this to was we what when where which who why will with you your not no yes if then than ' +
   'audit check fix look find show tell explain review path save get make').split(' '));
 
-const PATH_RE = /[\w.-]+(?:\/[\w.-]+)+\.\w{1,10}/g;
+// Bounded segments ({1,256}): the unbounded `[\w.-]+` before the required `/` backtracks O(n²) on a
+// long slash-less run and ran extractAnchors for seconds (hostile pass 5, finding 3). Paths fit 256.
+const PATH_RE = /[\w.-]{1,256}(?:\/[\w.-]{1,256})+\.\w{1,10}/g;
 const ROUTE_RE = /(?<![\w.])\/(?:api|ws)(?:\/[\w:-]+)+/g;
 const ISSUE_RE = /\bSWA-\d+\b/g;
 const QUOTED_RE = /"([^"]{2,80})"|`([^`]{2,80})`/g;

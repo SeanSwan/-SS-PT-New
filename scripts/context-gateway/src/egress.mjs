@@ -13,9 +13,14 @@
  * @module context-gateway/egress
  */
 
+// Every quantifier here is UPPER-BOUNDED. An unbounded `{n,}` or lazy `*?` over a delimiter-poor
+// input backtracks O(n²) and can hang the default compile lane for minutes on one long line
+// (hostile pass 4/5: EMAIL, then JWT + PRIVATE_KEY were each this class). Real secrets fit the caps.
 const RULES = [
-  ['JWT', /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g],
-  ['PRIVATE_KEY', /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g],
+  // \b anchor: a real JWT is always preceded by a boundary (space/quote/=); this collapses an
+  // `eyJeyJeyJ…` attack (no interior boundaries) to a single start position, killing the O(n·cap).
+  ['JWT', /\beyJ[A-Za-z0-9_-]{8,4096}\.[A-Za-z0-9_-]{8,4096}\.[A-Za-z0-9_-]{8,4096}/g],
+  ['PRIVATE_KEY', /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]{1,8192}?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g],
   ['STRIPE', /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}/g],
   ['STRIPE_WHSEC', /\bwhsec_[A-Za-z0-9]{16,}/g],
   ['OPENAI', /\bsk-(?:or-)?(?:proj-|v1-)?[A-Za-z0-9_-]{20,}/g],
@@ -41,12 +46,23 @@ const RULES = [
  * Redact inline secret VALUES from a string.
  * @returns {{ text: string, redactions: number, kinds: string[] }}
  */
+const PK_RULE = RULES.find(([k]) => k === 'PRIVATE_KEY')[1];
+const LINE_RULES = RULES.filter(([k]) => k !== 'PRIVATE_KEY');
+
 export function redactSecrets(input) {
-  let text = String(input);
+  // Defense-in-depth against a FUTURE unbounded rule: regex backtracking is superlinear in the
+  // length of one contiguous run, so the single-line rules run PER LINE — bounding the unit of work
+  // even if someone later adds an unbounded quantifier. PRIVATE_KEY is the only multi-line secret, so
+  // it runs once over the whole text (its gap is bounded) before the per-line pass.
   let redactions = 0;
   const kinds = new Set();
-  for (const [kind, re] of RULES) {
-    text = text.replace(re, () => { redactions += 1; kinds.add(kind); return `<REDACTED-${kind}>`; });
-  }
+  const afterPk = String(input).replace(PK_RULE, () => { redactions += 1; kinds.add('PRIVATE_KEY'); return '<REDACTED-PRIVATE_KEY>'; });
+  const text = afterPk.split('\n').map((line) => {
+    let t = line;
+    for (const [kind, re] of LINE_RULES) {
+      t = t.replace(re, () => { redactions += 1; kinds.add(kind); return `<REDACTED-${kind}>`; });
+    }
+    return t;
+  }).join('\n');
   return { text, redactions, kinds: [...kinds] };
 }

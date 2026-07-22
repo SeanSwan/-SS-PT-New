@@ -37,6 +37,15 @@ test('anchors: deterministic and stopworded', () => {
   assert.ok(!extractAnchors(q).terms.includes('what'));
 });
 
+test('anchors ReDoS regression: a long slash-less run does not hang extractAnchors', () => {
+  // PATH_RE `[\w.-]+` before the required `/` was O(n²) on a slash-less run (hostile pass 5). The
+  // {1,256} bound must keep a 200KB pathological question fast (extractAnchors runs PATH_RE twice).
+  const q = `${'a.-_'.repeat(50000)} `;
+  const t0 = Date.now();
+  extractAnchors(q);
+  assert.ok(Date.now() - t0 < 1000, `extractAnchors on a 200KB slash-less run took ${Date.now() - t0}ms`);
+});
+
 // ---------- authority ----------
 const CAT = parseCatalog([
   '| path | date | author | decision | status | source-SHA12 |',

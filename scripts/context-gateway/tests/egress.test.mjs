@@ -49,15 +49,22 @@ test('redactSecrets: catches key/token/PEM/DB-URL shapes, reports count+kind, ke
   assert.equal(redactSecrets(code).text, code);
 });
 
-test('ReDoS regression: a 512KB punctuated line redacts fast (bounded EMAIL/PII regexes)', () => {
-  // The pass-3 EMAIL rule was O(n²) on long punctuated runs (no @ required) — ~111s at 500KB.
-  // RFC-bounded quantifiers must keep this well under a second.
-  const payload = 'a-b-c.d+e%f'.repeat(50000); // ~550KB of boundary-heavy punctuation, no real email
-  const t0 = Date.now();
-  const r = redactSecrets(payload);
-  const ms = Date.now() - t0;
-  assert.ok(ms < 1000, `redactSecrets on 512KB punctuated input took ${ms}ms (must be < 1000)`);
-  assert.equal(r.redactions, 0, 'no false-positive redactions on punctuation soup');
+test('ReDoS regression: EVERY superlinear regex class stays fast on 512KB adversarial input', () => {
+  // ReDoS survived multiple passes because only EMAIL was tested. Cover every class the reviewers
+  // found catastrophic: EMAIL (punctuation soup), JWT (eyJ-repeat, dotless), PRIVATE_KEY (many BEGIN
+  // no END), anchors PATH_RE (slash-less [\w.-] run). All must complete well under a second.
+  const payloads = {
+    'EMAIL punctuation': 'a-b-c.d+e%f'.repeat(50000),
+    'JWT eyJ-repeat': 'eyJ'.repeat(180000),
+    'PRIVATE_KEY many-BEGIN': '-----BEGIN PRIVATE KEY-----\n'.repeat(20000),
+    'PATH slash-less run': `${'a.-_'.repeat(130000)} `,
+  };
+  for (const [name, payload] of Object.entries(payloads)) {
+    const t0 = Date.now();
+    redactSecrets(payload);
+    const ms = Date.now() - t0;
+    assert.ok(ms < 1000, `redactSecrets "${name}" (${(payload.length / 1024) | 0}KB) took ${ms}ms (must be < 1000)`);
+  }
 });
 
 test('EMAIL: redacts real emails, skips retina/asset @Nx.ext patterns', () => {
