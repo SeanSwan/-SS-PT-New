@@ -308,8 +308,8 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
         await lead.update({ galleryVisitorId: visitor.id });
       }
     } catch (leadErr) {
-      // Non-blocking — don't fail access if lead creation fails
-      logger.warn(`[Gallery:CRM] Lead auto-create failed for ${cleanEmail}: ${leadErr.message}`);
+      // Non-blocking — don't fail access if lead creation fails. No email in logs (Rule 8 / survey #7b).
+      logger.warn(`[Gallery:CRM] Lead auto-create failed (visitor=${visitor?.id ?? 'n/a'}): ${leadErr.message}`);
     }
 
     // Issue gallery access token (24h)

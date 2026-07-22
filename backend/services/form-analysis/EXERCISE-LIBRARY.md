@@ -201,7 +201,7 @@ Every detected compensation maps to the **NASM CES 4-Step Corrective Continuum:*
 ## Custom Exercise Training System
 
 ### The Problem
-81 exercises cover the most popular movements, but NASM-certified trainers work with hundreds of exercise variations. Trainers need to add new exercises without writing Python code.
+81 exercises cover the most popular movements, but experienced NASM-protocol trainers work with hundreds of exercise variations. Trainers need to add new exercises without writing Python code.
 
 ### AI Village Research Summary
 **Gemini 3.1 Pro (Lead Design Authority)** was consulted on the optimal approach. Full design spec saved at `AI-Village-Documentation/gemini-consults/latest.md`.
