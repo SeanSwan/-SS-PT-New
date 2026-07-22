@@ -133,7 +133,8 @@ The frame pipeline above is *what to paint*; this is *how scroll becomes time*, 
 - **Beat thresholds land on narrative moments** (membrane break, arrival), **not even 25% splits** — even splits are the generic smell.
 - **Runway (whole-page C13):** 400–800vh total, beats ~20/25/35/20, CTA at exactly the final frame, hairline `var(--ice-wing, #60C0F0)` progress indicator. (The §5 8–14vh caps are for per-scene flowing pages, not a whole-page scrub.)
 - **Mobile:** touch-scrub is the exception; default to the tier-2 autoplay loop unless the device is capable (no `saveData`, `hardwareConcurrency ≥ 6`, payload ≤2MB). Use `100dvh` not `vh` so iOS chrome-collapse doesn't re-layout the scene. Record the per-breakpoint tier in the scene ledger (§5.1).
-- **Resolution ladder:** 1280w / 1920w / 2560w frame sets (AVIF→WebP); above a 2560w viewport serve the tier-2 `<video>` (hardware-decoded scales cleaner than upscaled frames) rather than a soft-upscaled sequence.
+- **Resolution ladder:** 1280w / 1920w / 2560w frame sets (AVIF→WebP); above a 2560w viewport serve the tier-2 `<video>` (hardware-decoded scales cleaner than upscaled frames) rather than a soft-upscaled sequence. **The ≤4–6MB desktop / ≤2MB mobile payload is PER SERVED SET** (each device fetches one), not a total across the ladder.
+- **Frame budget for a whole-page C13 (NOT the §8 per-scene 60–120):** a C13 journey is one continuous shot across the 400–800vh runway, so budget it by total delivered frames per resolution set — **~180–360 frames** for the whole journey (≈ 1 frame / 2–3vh; denser through "across", sparser at the arrival). Smoothness comes from the damping + ≤3-frame clamp, not brute frame count; more frames buys travel *sharpness*, not scrub smoothness. (Canonical: §C13 "Frame budget".)
 - Gate: **if you can't state your damping constant and frame-delta clamp, you haven't built the scrub** — you've bound a video to a scrollbar.
 
 ## 9. Static image usage
@@ -198,11 +199,24 @@ Supervised, read-only (Operator Bridge §6: navigate/scroll/read/screenshot/cons
 | Concurrently animating elements per viewport | ≤3 | §5 |
 | Parallax multiplier | 0.2–0.4 (hard ceiling 0.6) | §5 / system §C2 |
 | Hero loop duration | 4–8s seamless | §6 |
-| Scrub sequence frames | 60–120 per scene | §8 |
-| Sequence payload | ≤4–6MB desktop / ≤2MB mobile | §8 |
+| Scrub sequence frames (per-scene page) | 60–120 per scene | §8 |
+| Sequence payload | ≤4–6MB desktop / ≤2MB mobile **per served resolution set** | §8 / §8.1 |
 | LCP | ≤2.5s (poster/first-frame path) | §11 |
 | R3F canvases | ≤1, DPR ≤2, <3ms/frame | §7 |
-| Text-over-media contrast | 4.5:1 at brightest frame | §12 |
+| Text-over-media contrast (per-scene) | 4.5:1 at brightest frame | §12 |
+
+**C13 whole-page scroll-scrub exceptions** (a C13 page is one continuous shot, not a scene stack — these OVERRIDE the per-scene rows above for C13; canonical §C13):
+
+| Cap (C13 only) | Value | Source |
+|---|---|---|
+| Scroll runway | 400–800vh total, beats ~20/25/35/20, CTA at exact final frame | §C13 / §8.1 |
+| Frame budget | ~180–360 frames total per served set (≈1 frame / 2–3vh) — NOT 60–120/scene | §C13 / §8.1 |
+| Scrub feel | damped target (lerp 0.085), ≤3-frame/tick clamp, native scroll, bidirectional pre-buffer | §C13 / §8.1 |
+| Smoothness | ≥60fps scrub (met by damping + clamp, not brute frame count) | §C13 |
+| Mobile | tier-2 autoplay default (scrub only if capable); `100dvh` not `vh` | §C13 / §8.1 |
+| Resolution ladder | 1280/1920/2560w (AVIF→WebP); >2560w → serve tier-2 video | §C13 / §8.1 |
+| Text-over-media contrast (C13) | persistent scrim so contrast holds at EVERY frame (not just brightest) | §C13 |
+| Deploy gate | default answer NO; requires §18 breadth pass + Seedance budget sign-off | §C13 |
 
 A build that exceeds any cap either cuts scope in the scene ledger or gets Sean's explicit written exception in the task thread — never a silent overage.
 
