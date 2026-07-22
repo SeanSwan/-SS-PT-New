@@ -29,7 +29,7 @@ const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-pa
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 const MARKER_RE = /DRY-LOOP:\s*(CLEAN\s*[×x]\s*2|N\/A)/i;
-// Rule 73 (Proof-Before-Done, Sean 2026-07-22): a build-shaped closeout must also
+// Rule 74 (Proof-Before-Done, Sean 2026-07-22): a build-shaped closeout must also
 // carry a PROOF token — current-session evidence for the completion claim, or an
 // explicit `PROOF: N/A — <reason>` when the work is genuinely unproveable in-session
 // (disclosed, not claimed done). The dry-loop marker proves the hostile loop ran;
@@ -49,7 +49,7 @@ const BLOCK_REASON =
   'Never fabricate the marker without the rounds behind it.';
 
 const PROOF_BLOCK_REASON =
-  'Proof-Before-Done (Rule 73, Sean 2026-07-22): this turn changed code/committed and the ' +
+  'Proof-Before-Done (Rule 74, Sean 2026-07-22): this turn changed code/committed and the ' +
   'hostile loop ran, but the closeout carries NO proof of the work itself. You may not claim ' +
   'done/fixed/passing without current-session, reproducible evidence in the SAME closeout. End ' +
   'with a `PROOF:` line stating the evidence you actually ran this turn — e.g. `PROOF: npm test ' +
@@ -127,7 +127,7 @@ export function decide(hookInput, transcriptRaw) {
   const s = analyzeTurn(parseTranscript(transcriptRaw));
   const buildShaped = s.fileWrites >= 2 || s.gitActivity;
   if (!buildShaped) return null;
-  // Rule 73: a build-shaped turn must carry BOTH the dry-loop marker (hostile loop
+  // Rule 74: a build-shaped turn must carry BOTH the dry-loop marker (hostile loop
   // ran to dry) AND the PROOF token (the work itself was verified this session).
   if (!s.markerSeen) return BLOCK_REASON;
   if (!s.proofSeen) return PROOF_BLOCK_REASON;
