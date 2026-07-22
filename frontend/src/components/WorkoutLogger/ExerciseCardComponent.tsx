@@ -185,6 +185,12 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                 clientId={clientId}
                 setIndex={setIndex}
                 skip={ghostSkip}
+                /* L1: 1-gesture repeat — tap the ghost to fill this set with the REAL previous values. */
+                onAccept={(ghost) => {
+                  onUpdateSet(exerciseIndex, setIndex, 'weight', ghost.weight);
+                  onUpdateSet(exerciseIndex, setIndex, 'reps', ghost.reps);
+                  if (ghost.rpe != null) onUpdateSet(exerciseIndex, setIndex, 'rpe', ghost.rpe);
+                }}
               />
             )}
             <ExerciseSetRowComponent
