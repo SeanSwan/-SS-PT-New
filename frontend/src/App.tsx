@@ -13,6 +13,9 @@ import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheetManager, type ShouldForwardProp } from 'styled-components';
 
+// Funnel telemetry (P0-4 SWA-29) — best-effort visit beacon
+import { trackVisit } from './lib/acquisition';
+
 // Context providers
 import { AuthProvider } from './context/AuthContext';
 import AppearanceSyncBridge from './components/appearance/AppearanceSyncBridge';
@@ -210,7 +213,13 @@ const AppContent = () => {
       }
     };
   }, []);
-  
+
+  // P0-4 (SWA-29): fire the funnel `visit` beacon once per page load (+ ref_landed on ?ref=).
+  // Best-effort, non-blocking; feeds the acquisition_events stream so visit→capture is measurable.
+  useEffect(() => {
+    trackVisit();
+  }, []);
+
   return (
     <>
       <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
