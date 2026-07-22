@@ -19,7 +19,24 @@ const focusRing = css`
   }
 `;
 
-export const DockWrap = styled.section`width: 100%; margin: 16px 0;`;
+/* Kimi law (CC-3): ≤768px the dock becomes a bottom sheet — a side/inline panel plus a
+   multi-panel builder at tablet width leaves ~40% usable surface. Sheet is sticky, capped,
+   and scrolls internally; desktop keeps the inline flow. */
+export const DockWrap = styled.section`
+  width: 100%;
+  margin: 16px 0;
+  @media (max-width: 768px) {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    margin: 8px 0 0;
+    max-height: 55vh;
+    overflow-y: auto;
+    background: var(--bg-elevated, #141419);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+  }
+`;
 
 export const DockBar = styled.div`
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
