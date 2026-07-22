@@ -136,6 +136,15 @@ test('T7: answer audit classifies every citation and flags uncited answers', () 
   assert.equal(p.auditAnswer('no citations here').uncited, true);
 });
 
+test('finding 3: UNbracketed fabricated citations are extracted + caught (not downgraded to uncited)', () => {
+  const p = samplePacket(); p.finalize();
+  const audit = p.auditAnswer('per E999:L1-L2 the code does X'); // no brackets, fabricated id
+  assert.equal(audit.uncited, false, 'unbracketed citation IS extracted');
+  assert.equal(audit.invalid.length, 1);
+  assert.equal(audit.invalid[0].reason, 'UNKNOWN_ID');
+  assert.equal(p.auditAnswer('E001:L10-L20 confirms it').valid, 1, 'unbracketed VALID citation also honored');
+});
+
 test('T11: packet requires provenance + rejects bad tiers/windows', () => {
   assert.throws(() => createPacket({ question: 'q', headSha: 'x', originatingModel: '' }), (e) => e.code === 'BAD_EVIDENCE');
   const p = createPacket({ question: 'q', headSha: 'x', originatingModel: 'm' });

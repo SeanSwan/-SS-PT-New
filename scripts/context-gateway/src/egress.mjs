@@ -25,6 +25,8 @@ const RULES = [
   ['DB_URL', /\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+/g],
   ['AWS_AKID', /\bAKIA[0-9A-Z]{16}\b/g],
   ['GITHUB', /\bgh[pousr]_[A-Za-z0-9]{36,}/g],
+  ['GITHUB_PAT', /\bgithub_pat_[A-Za-z0-9_]{22,}/g], // fine-grained PATs (finding 10)
+  ['ANTHROPIC', /\bsk-ant-[A-Za-z0-9_-]{20,}/g],
 ];
 
 /**

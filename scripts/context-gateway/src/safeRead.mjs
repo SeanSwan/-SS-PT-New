@@ -34,7 +34,6 @@ export const DENY_PATTERNS = [
 ];
 
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024; // 2 MB cap per evidence source
-const SNIFF_BYTES = 8192;
 
 export class SafeReadError extends Error {
   constructor(code, message) {
@@ -63,7 +62,9 @@ export function gitTrackedFiles(root) {
  * @param {number} [opts.maxBytes]    per-file size cap (default 2 MB)
  */
 export function createSafeReader({ root, tracked, maxBytes = DEFAULT_MAX_BYTES }) {
-  if (!root || !isAbsolute(resolve(root))) throw new SafeReadError('OUTSIDE_ROOT', 'absolute repo root required');
+  // Validate the CALLER passed an absolute path — resolve(root) is always absolute, so the old
+  // isAbsolute(resolve(root)) guard was dead (hostile pass 4, finding 11). Check the raw input.
+  if (!root || !isAbsolute(String(root))) throw new SafeReadError('OUTSIDE_ROOT', 'absolute repo root required');
   const rootAbs = resolve(root);
   if (!existsSync(rootAbs) || !existsSync(resolve(rootAbs, '.git'))) {
     throw new SafeReadError('OUTSIDE_ROOT', `root is not a git checkout: ${rootAbs}`);
@@ -96,7 +97,9 @@ export function createSafeReader({ root, tracked, maxBytes = DEFAULT_MAX_BYTES }
     const size = statSync(abs).size;
     if (size > maxBytes) throw new SafeReadError('TOO_LARGE', `${rel} is ${size} bytes (cap ${maxBytes})`);
     const buf = readFileSync(abs);
-    if (buf.subarray(0, SNIFF_BYTES).includes(0)) throw new SafeReadError('BINARY', `NUL byte in ${rel}`);
+    // Sniff the WHOLE buffer (bounded by maxBytes), not just the head — a text-head/binary-tail file
+    // otherwise passes and its raw bytes enter an evidence window (hostile pass 4, finding 9).
+    if (buf.includes(0)) throw new SafeReadError('BINARY', `NUL byte in ${rel}`);
     const lines = buf.toString('utf8').split(/\r?\n/);
     const start = startLine ?? 1;
     const end = endLine ?? lines.length;

@@ -51,13 +51,15 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
   const audit = [];
   let calls = 0;
 
-  const sensitive = (p) => ceiling === 'design' && SENSITIVE_PATH_RE.test(p);
-  // A matched LINE can mention sensitive code (e.g. `import { verifyToken } from './authMiddleware'`)
-  // even when its own file path is non-sensitive. A design-ceiling session therefore receives
-  // only path+line LOCATIONS from grep-backed tools, never the line text — the text is content,
-  // and the ceiling's guarantee is zero sensitive content to a design provider (hostile-review R2).
+  // Screen for ANY non-standard ceiling (matches redactText + providers.enforceCeiling) so a
+  // future restricted tier fails SAFE in the session too (hostile pass 4, finding 7).
+  const sensitive = (p) => ceiling !== 'standard' && SENSITIVE_PATH_RE.test(p);
   const redactText = ceiling !== 'standard';
-  const projectHit = (h) => (redactText ? { path: h.path, line: h.line } : h);
+  // A matched LINE can mention sensitive code (`import { verifyToken } from './authMiddleware'`) or
+  // hold a hardcoded secret. A ceiling session gets path+line LOCATIONS only; a STANDARD session
+  // still gets the text but with secret VALUES redacted — a raw grep line otherwise egressed a key
+  // with no redaction (hostile pass 4, finding 1: trace_* bypassed egress that repo_open enforces).
+  const projectHit = (h) => (redactText ? { path: h.path, line: h.line } : { ...h, text: redactSecrets(h.text).text });
   /** Filter a path list by the ceiling; return {kept, withheld}. */
   const screen = (paths) => {
     const kept = paths.filter((p) => !sensitive(p));
@@ -148,8 +150,13 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       const terms = String(topic || '').toLowerCase().match(/[a-z0-9-]{3,}/g) ?? [];
       if (!terms.length) throw new ToolError('BAD_ARGS', 'topic with a ≥3-char term required');
       const { rows, truncated } = searchCatalog(catalog, terms, { maxRows: Math.min(maxHits, 12) });
-      log('catalog_search', { topic }, true, { rows: rows.length, truncated });
-      return { topic, rows: rows.map((r) => ({ file: r.file, decision: r.row.decision, status: r.row.status, sha: r.row.sha })), truncated };
+      // Ceiling screen (hostile pass 4, finding 2): git_context/repo_open/trace all screen sensitive
+      // material, but catalog_search egressed sensitive PATHS + decision INTENT to a design provider.
+      // Withhold a row whose basename OR decision text trips SENSITIVE_PATH_RE in a ceiling session.
+      const kept = rows.filter((r) => !(sensitive(r.file) || (ceiling !== 'standard' && SENSITIVE_PATH_RE.test(r.row.decision))));
+      const withheld = rows.length - kept.length;
+      log('catalog_search', { topic }, true, { rows: kept.length, withheld, truncated });
+      return { topic, rows: kept.map((r) => ({ file: r.file, decision: r.row.decision, status: r.row.status, sha: r.row.sha })), truncated, withheldByCeiling: withheld };
     },
 
     /** git_context(paths) — recent commit SUBJECTS touching the given paths (no diffs, no content). */
@@ -169,7 +176,9 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       try {
         out = execFileSync('git', ['-C', root, 'log', `-n${Math.min(limit, 25)}`, '--oneline', '--', ...list], { maxBuffer: 4 * 1024 * 1024 }).toString('utf8');
       } catch { out = ''; }
-      const commits = out.split('\n').filter(Boolean).map((l) => l.slice(0, 120));
+      // Redact commit SUBJECTS too — a secret accidentally committed into a commit message is a
+      // tool-result egress lane like any other (hostile pass 4, finding 8).
+      const commits = out.split('\n').filter(Boolean).map((l) => redactSecrets(l.slice(0, 120)).text);
       log('git_context', { paths: list }, true, { commits: commits.length });
       return { paths: list, commits };
     },

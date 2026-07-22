@@ -67,6 +67,43 @@ test('T10: design trace_symbol excludes sensitive hits but returns design hits',
   assert.ok([...r.definitions, ...r.references].every((h) => !/authMiddleware/.test(h.path)));
 });
 
+test('finding 1: STANDARD trace_symbol redacts secret VALUES in matched-line text', () => {
+  const S = (...p) => p.join('');
+  const secret = S('sk', '_live_', 'ABCDEFGHIJKLMNOP1234567890');
+  const { root, tracked } = (() => {
+    const r = join(mkdtempSync(join(tmpdir(), 'swan-f1-')), 'repo'); mkdirSync(r, { recursive: true });
+    const git = (...a) => execFileSync('git', ['-C', r, ...a], { stdio: 'pipe' });
+    git('init', '-q');
+    writeFileSync(join(r, 'cfg.mjs'), `export const STRIPE_KEY = "${secret}";\n`);
+    git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'x');
+    return { root: r, tracked: gitTrackedFiles(r) };
+  })();
+  const r = createToolSession({ root, tracked }).trace_symbol('STRIPE_KEY'); // standard session keeps text
+  const blob = JSON.stringify(r);
+  assert.ok(!blob.includes('sk' + '_live_'), 'secret value must be redacted from trace text');
+  assert.ok(blob.includes('<REDACTED-STRIPE>'), 'redaction marker present');
+});
+
+test('finding 2: design catalog_search withholds sensitive rows (path or decision intent)', () => {
+  const { root, tracked } = (() => {
+    const r = join(mkdtempSync(join(tmpdir(), 'swan-f2-')), 'repo'); mkdirSync(join(r, 'docs/ai-workflow/AI-HANDOFF'), { recursive: true });
+    const git = (...a) => execFileSync('git', ['-C', r, ...a], { stdio: 'pipe' });
+    git('init', '-q');
+    writeFileSync(join(r, 'docs/ai-workflow/CATALOG.md'), [
+      '| path | date | author | decision | status | source-SHA12 |', '|---|---|---|---|---|---|',
+      '| STRIPE-WEBHOOK-FIX.md | 2026-05-20 | fable | Payment webhook auth-bypass fix: verify stripe signature | shipped | x |',
+      '| HERO-REDESIGN.md | 2026-05-20 | kimi | Hero section cinematic redesign, parallax layers | shipped | y |',
+    ].join('\n'));
+    git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'cat');
+    return { root: r, tracked: gitTrackedFiles(r) };
+  })();
+  const d = createToolSession({ root, tracked, ceiling: 'design' }).catalog_search('stripe payment hero redesign');
+  assert.ok(!d.rows.some((row) => /STRIPE|webhook|payment/i.test(row.file + row.decision)), 'sensitive catalog row withheld from design');
+  assert.ok(d.withheldByCeiling >= 1, 'withheld count reported');
+  const s = createToolSession({ root, tracked }).catalog_search('stripe payment');
+  assert.ok(s.rows.some((row) => /STRIPE/i.test(row.file)), 'standard session still sees it');
+});
+
 test('T10: design trace results carry NO line text (a line can mention sensitive code)', () => {
   const d = design().trace_symbol('renderGlow');
   assert.equal(d.textRedacted, true);

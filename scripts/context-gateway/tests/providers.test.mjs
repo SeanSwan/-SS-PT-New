@@ -45,6 +45,19 @@ test('ceiling: a future non-standard tier fails SAFE (screened, not silently pas
   assert.throws(() => enforceCeiling(future, MANIFEST(['backend/middleware/authMiddleware.mjs'])), (e) => e.code === 'CEILING');
 });
 
+test('finding 5: ceiling travels with the resolved MODEL, not the static slot', () => {
+  const base = getProvider('fable');
+  assert.equal(base.ceiling, 'standard');
+  // override a standard slot to a design/Chinese model → must inherit the design ceiling
+  process.env.SWAN_FUSION_JUDGE_MODEL = 'moonshotai/kimi-k3';
+  try {
+    const overridden = getProvider('fable');
+    assert.equal(overridden.model, 'moonshotai/kimi-k3');
+    assert.equal(overridden.ceiling, 'design', 'model override to a restricted slug forces design ceiling');
+    assert.throws(() => enforceCeiling(overridden, MANIFEST(['backend/routes/paymentRoutes.mjs'])), (e) => e.code === 'CEILING');
+  } finally { delete process.env.SWAN_FUSION_JUDGE_MODEL; }
+});
+
 test('ceiling: sensitive classes cover the Phase 0 list', () => {
   for (const p of ['backend/services/stripeService.mjs', 'backend/models/UserToken.mjs', 'backend/migrations/x.cjs', 'frontend/src/admin/PermissionsPanel.tsx']) {
     assert.ok(SENSITIVE_PATH_RE.test(p), `expected sensitive: ${p}`);

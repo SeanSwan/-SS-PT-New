@@ -17,7 +17,7 @@
  *
  * @module context-gateway/toolLoop
  */
-import { assertSpend, estimateCost } from './providers.mjs';
+import { estimateCost, ProviderError } from './providers.mjs';
 import { buildPrompt, callWithTools } from './transport.mjs';
 
 /** OpenAI/OpenRouter function-tool definitions exposed to the model. */
@@ -72,13 +72,15 @@ export async function runToolLoop({ provider, packet, manifest, evidence, sessio
   const trace = [];
   let totalCost = 0, totalInTok = 0, totalOutTok = 0, iterations = 0, stopReason = 'answered';
 
+  const toolsChars = JSON.stringify(TOOL_SCHEMAS).length; // sent EVERY turn — must be in the estimate
   for (iterations = 1; iterations <= maxIterations; iterations += 1) {
-    // Spend gate (T8), PRE-EMPTIVE so the cap is a hard ceiling — stop BEFORE a turn that would
-    // push cumulative cost over the cap, never after (a reactive check overshoots by a full turn).
-    const promptChars = JSON.stringify(messages).length;
-    assertSpend(provider, promptChars, maxTokens, env); // fail-closed (no cap) + single-turn guard
+    // Spend gate (T8), PRE-EMPTIVE so the cap is a hard ceiling — stop BEFORE a turn that would push
+    // cumulative cost over the cap. The estimate counts the tools payload too (finding 4).
     const cap = Number(env.SWAN_CONTEXT_MAX_USD);
-    if (totalCost + estimateCost(provider, promptChars, maxTokens) > cap) { stopReason = 'spend_cap'; break; }
+    if (!Number.isFinite(cap) || cap <= 0) throw new ProviderError('NO_CAP', 'SWAN_CONTEXT_MAX_USD is not set — network spend is fail-closed');
+    const est = estimateCost(provider, JSON.stringify(messages).length + toolsChars, maxTokens);
+    if (iterations === 1 && est > cap) throw new ProviderError('SPEND_CAP', `first turn estimate ~$${est.toFixed(4)} exceeds cap $${cap}`);
+    if (totalCost + est > cap) { stopReason = 'spend_cap'; break; } // graceful for any later turn (keeps trace)
 
     const turn = await callWithTools(provider, messages, TOOL_SCHEMAS, { maxTokens, fetchImpl, env, manifest });
     totalCost += turn.cost; totalInTok += turn.inTok; totalOutTok += turn.outTok;

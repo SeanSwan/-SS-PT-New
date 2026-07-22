@@ -19,7 +19,9 @@
  */
 
 export const AUTHORITY_TIERS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
-const CITATION_RE = /\[(E\d{3,}):L(\d+)-L(\d+)\]/g; // E001..E999 today; {3,} survives a >999-evidence packet
+// Brackets OPTIONAL — must match validateCitation, else an UNbracketed fabricated citation
+// (E999:L1-L2) is never extracted, silently downgrading to "uncited" (hostile pass 4, finding 3).
+const CITATION_RE = /\[?(E\d{3,}):L(\d+)-L(\d+)\]?/g;
 
 export class PacketError extends Error {
   constructor(code, message) {

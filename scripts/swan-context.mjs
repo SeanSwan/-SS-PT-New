@@ -102,9 +102,10 @@ if (cmd === 'compile') {
       const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
       writeFileSync(answerOut, r.answer ?? `(no answer — ${r.stopReason})`, 'utf-8');
       console.log(`[swan-context] loop: ${r.iterations} iters, ${r.toolTrace.length} tool calls, $${r.totalCost.toFixed(4)}, stop=${r.stopReason}`);
-      console.log(`[swan-context] citations: ${r.audit?.valid ?? 0} valid / ${r.audit?.invalid.length ?? 0} invalid`);
+      console.log(`[swan-context] citations: ${r.audit?.valid ?? 0} valid / ${r.audit?.invalid.length ?? 0} invalid${r.audit?.uncited ? ' — UNCITED' : ''}`);
       console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
-      process.exitCode = r.answer && !r.audit?.invalid.length ? 0 : 3;
+      // Fail on uncited too, not just invalid — a zero-citation (hallucinated) answer is not success.
+      process.exitCode = r.answer && !r.audit?.invalid.length && !r.audit?.uncited ? 0 : 3;
     } else {
       const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
       const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
@@ -118,7 +119,7 @@ if (cmd === 'compile') {
       console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
       console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
       console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
-      if (audit.invalid.length) process.exitCode = 3;
+      if (audit.invalid.length || audit.uncited) process.exitCode = 3; // uncited (hallucinated) is not success either
     }
   } catch (e) {
     // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes.

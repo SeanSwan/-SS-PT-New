@@ -46,10 +46,25 @@ export class ProviderError extends Error {
   }
 }
 
+const CEILING_RANK = { standard: 0, design: 1 }; // higher = more restrictive
+/** Model slugs that are ALWAYS design-ceiling regardless of which slot resolves them. */
+const RESTRICTED_MODEL_RE = /moonshotai\/|(?:^|\/)kimi|glm|qwen|deepseek|yi-|baichuan|minimax/i;
+
 export function getProvider(name) {
   const p = PROVIDERS[name];
   if (!p) throw new ProviderError('UNKNOWN_PROVIDER', `no adapter for "${name}" (have: ${Object.keys(PROVIDERS).join(', ')})`);
-  return { name, ...p, model: process.env[p.envModel] || p.model };
+  const model = process.env[p.envModel] || p.model;
+  // The ceiling must travel with the RESOLVED MODEL, not the static slot (hostile pass 4, finding 5):
+  // a model override (e.g. SWAN_FUSION_JUDGE_MODEL=moonshotai/kimi-k3 on the standard fable slot)
+  // must NOT route sensitive evidence to a design/Chinese model under a standard ceiling. Inherit the
+  // MOST restrictive of: the slot's ceiling, any registry slot owning this model, and the hardcoded
+  // restricted-slug list. Fail toward MORE restriction, never less.
+  let ceiling = p.ceiling;
+  for (const q of Object.values(PROVIDERS)) {
+    if (q.model === model && CEILING_RANK[q.ceiling] > CEILING_RANK[ceiling]) ceiling = q.ceiling;
+  }
+  if (RESTRICTED_MODEL_RE.test(model) && CEILING_RANK.design > CEILING_RANK[ceiling]) ceiling = 'design';
+  return { name, ...p, model, ceiling };
 }
 
 /**
