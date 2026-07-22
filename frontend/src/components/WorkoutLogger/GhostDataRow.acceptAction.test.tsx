@@ -34,7 +34,7 @@ describe('GhostDataRow accept action (L1)', () => {
     apiGet.mockResolvedValueOnce(workoutsPayload('L1 Bench Unique A'));
     const onAccept = vi.fn();
     render(<GhostDataRow exerciseName="L1 Bench Unique A" clientId={9001} setIndex={0} onAccept={onAccept} />);
-    const btn = await screen.findByRole('button', { name: /135lbs × 10 reps.*tap to use/i });
+    const btn = await screen.findByRole('button', { name: /beat this — 135 × 10/i });
     fireEvent.click(btn);
     expect(onAccept).toHaveBeenCalledWith(expect.objectContaining({ weight: 135, reps: 10, rpe: 7 }));
   });

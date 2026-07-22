@@ -185,10 +185,26 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                 clientId={clientId}
                 setIndex={setIndex}
                 skip={ghostSkip}
-                /* L1: 1-gesture repeat — tap the ghost to fill this set with the REAL previous values. */
+                /* L1 SIGNATURE: values COUNT UP current→ghost over 300ms (numerals tick);
+                   reduced-motion or no-rAF = instant fill. Final values are ALWAYS exact. */
                 onAccept={(ghost) => {
-                  onUpdateSet(exerciseIndex, setIndex, 'weight', ghost.weight);
-                  onUpdateSet(exerciseIndex, setIndex, 'reps', ghost.reps);
+                  const fill = (field: 'weight' | 'reps' | 'rpe', from: number, to: number) => {
+                    const reduced = typeof window !== 'undefined'
+                      && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+                    if (reduced || typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+                      onUpdateSet(exerciseIndex, setIndex, field, to);
+                      return;
+                    }
+                    const start = performance.now();
+                    const tick = (now: number) => {
+                      const t = Math.min(1, (now - start) / 300);
+                      onUpdateSet(exerciseIndex, setIndex, field, t >= 1 ? to : Math.round(from + (to - from) * t));
+                      if (t < 1) window.requestAnimationFrame(tick);
+                    };
+                    window.requestAnimationFrame(tick);
+                  };
+                  fill('weight', Number(set.weight) || 0, ghost.weight);
+                  fill('reps', Number(set.reps) || 0, ghost.reps);
                   if (ghost.rpe != null) onUpdateSet(exerciseIndex, setIndex, 'rpe', ghost.rpe);
                 }}
               />

@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import apiService from '../../services/api.service';
 
@@ -58,6 +58,7 @@ const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
   skip = false,
 }) => {
   const [ghostSet, setGhostSet] = useState<GhostSet | null>(null);
+  const [swept, setSwept] = useState(false); // L1 signature sweep, one-shot per mount
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -118,21 +119,30 @@ const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
 
   if (!ghostSet) return null;
 
-  // L1: actionable variant — the 1-gesture repeat (trainer/admin logging path only; the client
-  // route never reaches here because `skip` bails before fetch).
+  // L1 SIGNATURE (Kimi-binding): the identity gesture — you vs. last you. Subordinate dashed
+  // hairline (the Log button keeps the card's only glow); "Beat this" challenge copy ≥0.8rem;
+  // crystalline sweep + haptic tick on accept; reduced-motion = state change only.
   if (onAccept) {
     return (
       <GhostAcceptButton
         type="button"
-        aria-label={`Previous: ${ghostSet.weight}lbs × ${ghostSet.reps} reps — tap to use`}
-        onClick={() => onAccept(ghostSet)}
+        $swept={swept}
+        aria-label={`Beat this — ${ghostSet.weight} × ${ghostSet.reps}${ghostSet.rpe ? `, RPE ${ghostSet.rpe}` : ''} (fills this set with your last session)`}
+        onClick={() => {
+          setSwept(true);
+          if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
+            && typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches) {
+            navigator.vibrate(10);
+          }
+          onAccept(ghostSet);
+        }}
       >
         <GhostLabel>Last:</GhostLabel>
         <GhostValue>{ghostSet.weight}lbs</GhostValue>
         <GhostSep>×</GhostSep>
         <GhostValue>{ghostSet.reps} reps</GhostValue>
         {ghostSet.rpe ? (<><GhostSep>|</GhostSep><GhostValue>RPE {ghostSet.rpe}</GhostValue></>) : null}
-        <GhostUseHint aria-hidden="true">Tap to use</GhostUseHint>
+        <GhostChallenge aria-hidden="true">Beat this — {ghostSet.weight} × {ghostSet.reps}</GhostChallenge>
       </GhostAcceptButton>
     );
   }
@@ -164,9 +174,17 @@ export default GhostDataRow;
 
 // ── Styled Components ──
 
-/* L1: same visual language as GhostRow, but a real button — ≥44px target (Rule 2), full-width,
-   focus ring, press feedback via transform only (reduced-motion: none). */
-const GhostAcceptButton = styled.button`
+/* L1 SIGNATURE (Kimi-binding): SUBORDINATE to the Log CTA — dashed crystalline hairline, NO fill
+   (the Log button owns the card's only solid/glow per the hierarchy law). ≥44px target. On accept
+   ($swept) a cyan→purple gradient sweeps the hairline once — background-position/opacity keyframes
+   only; reduced-motion = border state change, zero motion. */
+const sweepEdge = keyframes`
+  from { background-position: -120% 0; opacity: 0.9; }
+  to { background-position: 220% 0; opacity: 0; }
+`;
+
+const GhostAcceptButton = styled.button<{ $swept?: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -174,26 +192,41 @@ const GhostAcceptButton = styled.button`
   min-height: 44px;
   padding: 0.25rem 0.75rem;
   margin-bottom: 0.25rem;
-  background: ${withAlpha(CS.gaming, 0.06)};
-  border: none;
+  background: transparent;
+  border: 1px dashed ${({ $swept }) => ($swept ? 'var(--accent-glow, #8B5CF6)' : withAlpha(CS.gaming, 0.35))};
   border-radius: 0.375rem;
-  border-left: 2px solid ${withAlpha(CS.gaming, 0.3)};
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   cursor: pointer;
   text-align: left;
-  &:hover { background: ${withAlpha(CS.gaming, 0.12)}; }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 0.375rem;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, var(--accent-primary, #60C0F0) 46%, var(--accent-glow, #8B5CF6) 54%, transparent 70%);
+    background-size: 50% 100%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    ${({ $swept }) => ($swept ? css`animation: ${sweepEdge} 420ms ease-out 1;` : '')}
+  }
+  &:hover { border-style: solid; }
   &:active { transform: scale(0.99); }
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
-  @media (prefers-reduced-motion: reduce) { &:active { transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    &:active { transform: none; }
+    &::after { animation: none; opacity: 0; }
+  }
 `;
 
-const GhostUseHint = styled.span`
+/* Kimi law: ≥0.8rem (never below 12px), 4.5:1 — the challenge frame, not settings-page copy. */
+const GhostChallenge = styled.span`
   margin-left: auto;
   font-family: 'Sora', sans-serif;
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   color: var(--accent-primary, #60C0F0);
 `;
 
