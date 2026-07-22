@@ -83,6 +83,17 @@ test('finding 4: http(s) basic-auth credential URLs are redacted', () => {
   assert.equal(redactSecrets('https://sswanstudios.com/api/health').redactions, 0);
 });
 
+test('PRIVATE_KEY: a well-formed multi-line PEM block is redacted (positive coverage)', () => {
+  const S = (...p) => p.join('');
+  // assembled at runtime so no literal PEM sits in this committed test (pre-commit scanner)
+  const pem = S('-----BEGIN ', 'PRIVATE KEY-----\n', 'MIIBVAIBADANBgkqhkiG9w0BAQEF\nAASCAT8wggE7AgEAAkEA\n', '-----END ', 'PRIVATE KEY-----');
+  const r = redactSecrets(`before\n${pem}\nafter`);
+  assert.ok(r.kinds.includes('PRIVATE_KEY'), 'PEM block detected');
+  assert.ok(r.text.includes('<REDACTED-PRIVATE_KEY>'));
+  assert.ok(!r.text.includes('MIIBVAIBAD'), 'key body not present');
+  assert.ok(r.text.includes('before') && r.text.includes('after'), 'surrounding text preserved');
+});
+
 test('redactSecrets: multiple secrets in one blob all redacted', () => {
   const blob = `a ${FAKE.stripe} and ${FAKE.google} here`;
   const r = redactSecrets(blob);
