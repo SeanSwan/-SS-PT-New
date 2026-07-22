@@ -17,6 +17,7 @@ import { HomeLensFrame } from './homeManifest';
 import { HomeVNextTokens } from './home.tokens';
 import { HeroOptics } from './hero/HeroOptics';
 import { CapsuleRail } from './CapsuleRail';
+import { EvidenceLensBand } from './EvidenceLensBand';
 // GATE RULE: PrismCapture must be mounted in BOTH branches of HomeGate (here and HomePage.V4) — otherwise the
 // lead-capture silently disappears the moment HOME_VNEXT_ENABLED flips. Enforced by prismGateParity.test.ts.
 import { PrismCapture } from '../../../components/marketing/PrismCapture';
@@ -60,6 +61,9 @@ export default function HomeVNext() {
         {/* PRISM speed-to-lead capture — self-gates to null when its own flag is off (zero impact).
             Mounted here AND in HomePage.V4 per the Gate Rule (see prismGateParity.test.ts). */}
         <PrismCapture />
+        {/* SWA-25: ratified gold Evidence Lens — the ONE real-proof number this screen circles
+            (data from content/marketingStats.ts only; design verbatim from the ratified gallery). */}
+        <EvidenceLensBand />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <MissionSection tier={tier} />

@@ -47,15 +47,20 @@ function isExempt(file) {
 }
 
 /**
- * Strip the two COMPLIANT hex contexts from a line before scanning for a bare literal:
+ * Strip the COMPLIANT hex contexts from a line before scanning for a bare literal:
  *   1. `var(--token, #fallback)` — Rule 6's required token-with-fallback form.
  *   2. `--custom-prop: #hex`      — a token definition.
+ *   3. `mask:`/`-webkit-mask:` values — #000/#fff there are ALPHA/LUMINANCE markers
+ *      (which pixels show), not palette emissions; a mask hex can never drift the brand.
+ *      Scoped to the mask property only — `background: #000` still violates.
+ *      (Added 2026-07-21, SWA-25: 4 pre-existing mask hits were the guard's only baseline reds.)
  * Whatever hex remains is a bare literal a component emitted directly = the violation this guard catches.
  */
 function stripCompliantHex(line) {
   return line
     .replace(/var\(\s*--[\w-]+\s*,\s*[^)]*\)/g, 'var(--t)') // var() fallbacks (hex or rgba inside)
-    .replace(/--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}\b/g, '--t:def'); // custom-property definitions
+    .replace(/--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}\b/g, '--t:def') // custom-property definitions
+    .replace(/(?:-webkit-)?mask\s*:[^;]*#(?:000|fff)\b[^;]*/gi, 'mask:stripped'); // alpha-mask markers
 }
 
 function walk(dir, out) {
