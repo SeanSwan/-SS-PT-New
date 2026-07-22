@@ -101,6 +101,14 @@ test('git_context: returns commit subjects and refuses traversal', () => {
   const r = std().git_context(['backend/routes.mjs']);
   assert.ok(r.commits.length >= 1 && /fixtures/.test(r.commits[0]));
   assert.throws(() => std().git_context(['../etc/passwd']), (e) => e.code === 'BAD_ARGS');
+  assert.throws(() => std().git_context(['/etc/passwd']), (e) => e.code === 'BAD_ARGS');
+});
+
+test('git_context: T10 — refuses DENY paths and (design) sensitive-path history (bypass fix)', () => {
+  assert.throws(() => std().git_context(['.env']), (e) => e.code === 'BAD_ARGS'); // DENY even in std
+  assert.throws(() => design().git_context(['backend/middleware/authMiddleware.mjs']), (e) => e.code === 'CEILING');
+  // a design session may still read history of a non-sensitive path
+  assert.ok(design().git_context(['frontend/src/components/GlowButton.tsx']).commits.length >= 0);
 });
 
 test('repo_search: scope filter narrows results', () => {

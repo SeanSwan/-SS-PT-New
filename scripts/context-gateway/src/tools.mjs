@@ -21,6 +21,7 @@ import { execFileSync } from 'node:child_process';
 import { createSafeReader, SafeReadError } from './safeRead.mjs';
 import { searchFiles, grepDetailed, searchCatalog } from './retrieve.mjs';
 import { parseCatalog } from './authority.mjs';
+import { DENY_PATTERNS } from './safeRead.mjs';
 import { SENSITIVE_PATH_RE } from './providers.mjs';
 
 const DEF_RE = /(?:\b(?:function|class|const|let|var|def|type|interface|enum)\s+|export\s+(?:default\s+)?(?:async\s+)?(?:function\s+)?)$/;
@@ -137,12 +138,19 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       return { topic, rows: rows.map((r) => ({ file: r.file, decision: r.row.decision, status: r.row.status, sha: r.row.sha })), truncated };
     },
 
-    /** git_context(paths) — recent commit subjects touching the given tracked paths (no diffs). */
+    /** git_context(paths) — recent commit SUBJECTS touching the given paths (no diffs, no content). */
     git_context(paths, { limit = 10 } = {}) {
       guard('git_context');
       const list = (Array.isArray(paths) ? paths : [paths]).filter(Boolean).map((p) => String(p).replaceAll('\\', '/'));
       if (!list.length) throw new ToolError('BAD_ARGS', 'at least one path required');
-      if (list.some((p) => p.split('/').includes('..'))) throw new ToolError('BAD_ARGS', 'traversal refused');
+      if (list.some((p) => p.split('/').includes('..') || p.startsWith('/'))) throw new ToolError('BAD_ARGS', 'traversal/absolute path refused');
+      // git_context leaks commit SUBJECTS, which for a sensitive file can themselves disclose
+      // sensitive intent ("rotate JWT secret", "fix stripe signature bypass"). So it obeys the
+      // same DENY + ceiling screen as file reads — else it is a T10 bypass around repo_open.
+      for (const p of list) {
+        if (DENY_PATTERNS.some((re) => re.test(p))) { log('git_context', { path: p }, false, { reason: 'DENY_PATTERN' }); throw new ToolError('BAD_ARGS', `secret-bearing path refused: ${p}`); }
+        if (sensitive(p)) { log('git_context', { path: p }, false, { reason: 'CEILING' }); throw new ToolError('CEILING', `design-ceiling session may not read git history of sensitive path: ${p}`); }
+      }
       let out = '';
       try {
         out = execFileSync('git', ['-C', root, 'log', `-n${Math.min(limit, 25)}`, '--oneline', '--', ...list], { maxBuffer: 4 * 1024 * 1024 }).toString('utf8');

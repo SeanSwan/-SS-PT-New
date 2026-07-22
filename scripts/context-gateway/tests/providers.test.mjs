@@ -40,6 +40,11 @@ test('ceiling: standard providers pass sensitive evidence', () => {
   assert.deepEqual(enforceCeiling(getProvider('sol'), MANIFEST(['backend/routes/stripeWebhook.mjs'])), []);
 });
 
+test('ceiling: a future non-standard tier fails SAFE (screened, not silently passed)', () => {
+  const future = { name: 'future', ceiling: 'internal' }; // not 'standard', not 'design'
+  assert.throws(() => enforceCeiling(future, MANIFEST(['backend/middleware/authMiddleware.mjs'])), (e) => e.code === 'CEILING');
+});
+
 test('ceiling: sensitive classes cover the Phase 0 list', () => {
   for (const p of ['backend/services/stripeService.mjs', 'backend/models/UserToken.mjs', 'backend/migrations/x.cjs', 'frontend/src/admin/PermissionsPanel.tsx']) {
     assert.ok(SENSITIVE_PATH_RE.test(p), `expected sensitive: ${p}`);

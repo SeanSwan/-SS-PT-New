@@ -57,7 +57,9 @@ export function getProvider(name) {
  * CEILING listing every offending evidence path; returns the offending list (empty = pass).
  */
 export function enforceCeiling(provider, manifest) {
-  if (provider.ceiling !== 'design') return [];
+  // Screen every non-standard ceiling, not just 'design' — so a future restricted tier fails
+  // SAFE (screened) rather than silently passing. Transport gates identically (!== 'standard').
+  if (provider.ceiling === 'standard') return [];
   const offending = manifest.evidence.filter((e) => SENSITIVE_PATH_RE.test(e.path)).map((e) => `${e.id} ${e.path}`);
   if (offending.length) {
     throw new ProviderError('CEILING', `${provider.name} is design-scoped; packet contains ${offending.length} sensitive evidence item(s)`, offending);
