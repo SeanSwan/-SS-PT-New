@@ -1,6 +1,6 @@
 /**
  * PrismCapture — copy. Crystalline voice; keeps components under the 300-line cap. Credentials discipline
- * (never "NASM-certified"; "26+ years" / NASM-protocol) and Rule 9 (no yoga/meditation) apply if copy grows.
+ * and Rule 9 wellness-term exclusions apply if copy grows (see CLAUDE.md rules 9 + credentials).
  * Primary CTA strings are placeholders pending a copy-tournament pass.
  */
 export const PRISM_COPY = {
