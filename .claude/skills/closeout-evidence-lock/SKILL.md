@@ -44,6 +44,18 @@ If the slice was substantial (Rule 61/74 bar): paste the passing gate.mjs output
 the two = the builder touched the gate = automatic REVISE, regardless of output.
 If exempt (trivial/doc-only): state "Gate Evidence: exempt — <reason>".
 
+=== SECTION 1c — Trailhead-Truth Sweep (rule 75) ===
+If this task wrote/changed any README, doc, closeout, status, changelog, handoff,
+commit body, OR user-facing UI/marketing copy: sweep every present-tense capability
+statement and confirm it is true of the code AS IT EXISTS NOW (grep/trace it), not the
+intended destination. Any planned/partial/stubbed behavior MUST be tense-marked
+(`Planned:` / `Not yet wired:` / `Design intent (unbuilt):` / `Stub — returns mock`).
+  [ ] Prose describes the TRAILHEAD (what runs today), not a destination the code hasn't reached
+  [ ] Every in-app/marketing claim maps to shipping code, or the copy was downgraded to match
+If a live user-facing surface makes a claim the code doesn't back: that is a P0 —
+fix the COPY first (make the app tell the truth), then close the real gap. Never ship
+the false claim standing.
+
 === SECTION 2 — Forbidden-Language Filter (rule 34) ===
 Scan the closeout text for these forbidden phrases:
   [ ] "should be fixed"
@@ -90,6 +102,13 @@ Loop mechanics (each round, before the checklists below):
      The marker is a CLAIM: emitting it without the rounds behind it violates
      rules 19/28. NOTE: the hook can only verify the marker STRING is present — it
      CANNOT judge whether the rounds were exhaustive. That honesty is on you.
+     REVIEW-TURN COVERAGE (Sean 2026-07-22, "make it stick"): the hook now ALSO
+     gates review-only turns — if Sean asked for a hostile review (incl. the
+     dictation form "hospital review") OR you surfaced a REVISE/REJECT verdict,
+     the turn may NOT stop with a findings list and no marker. It requires the
+     `DRY-LOOP: CLEAN×2` marker (looped to dry) or an `AWAITING SEAN: <decision>`
+     escape (a Sean-gated finding, flagged to Linear). This is the mechanism that
+     makes "review until dry" automatic — Sean never re-types "do another review".
 
   7. INDEPENDENT-PASS ESCALATION (Sean, 2026-07-22 — security-critical/multi-module
      work). Self-conducted rounds have a blind spot: the reviewer is the author, and
