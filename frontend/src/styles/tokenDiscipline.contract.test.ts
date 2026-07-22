@@ -259,3 +259,5 @@ describe('token discipline — Palette Law A enforcement', () => {
     ).toBeLessThanOrEqual(CEILING);
   });
 });
+
+// guard-exemption regression marker (SWA-40 trial 1): this comment is safe to remove

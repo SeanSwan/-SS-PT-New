@@ -48,13 +48,19 @@ const RECHARTS = /from\s+['"]recharts['"]|require\(\s*['"]recharts['"]\)/;
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
 const VAR_FALLBACK = /var\(\s*--[\w-]+\s*,\s*#[0-9a-fA-F]{3,8}\s*\)/;
 
+// Test files (class-targeted, Rule 73): contract/theme tests legitimately contain banned
+// hexes AS BAN-LIST DATA — G3/G4 skip them; G1/G2 (imports) still apply everywhere.
+const TEST_FILE = /\.test\.|\.spec\.|__tests__\//;
+
 const failures = [];
 for (const { file, text } of targets) {
+  const isTestFile = TEST_FILE.test(file);
   const lines = text.split('\n');
   lines.forEach((line, i) => {
     const loc = `${file}:${i + 1}`;
     if (MUI.test(line)) failures.push(`FAIL: G1 no-MUI (Rule 1) — ${loc} — use styled-components; @mui/* is banned`);
     if (RECHARTS.test(line)) failures.push(`FAIL: G2 no-recharts (Rule 10) — ${loc} — use Victory for all new charts`);
+    if (isTestFile) return; // G3/G4 exempt: hex literals in tests are assertions, not styling
     if (GALAXY.test(line)) failures.push(`FAIL: G3 retired Galaxy-Swan palette — ${loc} — #0a0a1a/#00FFFF/#7851A9 are RETIRED; use Crystalline Swan tokens (no allowlist)`);
     if (line.includes('swan-guard-allow-hex')) return; // G4 opt-out only; G1-G3 already judged above
     const hexes = line.match(HEX);
