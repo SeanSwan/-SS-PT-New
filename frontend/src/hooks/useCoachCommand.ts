@@ -102,8 +102,8 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
-      /** Active surface for intent disambiguation (planner vs logger command family). */
-      surface?: 'workout-planner' | 'workout-logger';
+      /** Active surface for intent disambiguation (planner / logger / CC-3 dock surfaces). */
+      surface?: 'workout-planner' | 'workout-logger' | 'bootcamp-builder' | 'pain-chart';
     },
   ): Promise<CommandResponse> => {
     setExecutingCommand(true);

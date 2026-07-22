@@ -6,6 +6,7 @@ import { CUSTOM_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_EXERCISES_PER_STATION, DEFAULT
 import { PageWrapper } from './BootcampBuilderStyles';
 import { FourPane } from './BootcampModeStyles';
 import BootcampBuilderChrome from './BootcampBuilderChrome';
+import BootcampCoachDockMount from '../CoachDock/BootcampCoachDockMount';
 import BootcampBuilderErrorBoundary from './BootcampBuilderErrorBoundary'; import BootcampBuilderLensFrame from './BootcampBuilderLensFrame';
 import BootcampFloorPresentation from './BootcampFloorPresentation';
 import type { BuildMode } from './BootcampBuilderPage.constants';
@@ -22,14 +23,12 @@ import {
 } from './BootcampBuilderPlacement';
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI(), classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat;
-  const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT);
-  const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
+  const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT); const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
   const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
   const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
-  const [targetDuration, setTargetDuration] = useState(DEFAULT_BOOTCAMP_WORKOUT_MIN);
-  const [expectedParticipants, setExpectedParticipants] = useState('12');
+  const [targetDuration, setTargetDuration] = useState(DEFAULT_BOOTCAMP_WORKOUT_MIN); const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
   const [optPhase, setOptPhase] = useState(1);
   const [includeStretch, setIncludeStretch] = useState(true);
@@ -292,6 +291,7 @@ const BootcampBuilderPage: React.FC = () => {
           />
         )}
       </FourPane>
+      {!floorMode && <BootcampCoachDockMount structureSummary={`${stationCount} stations × ${exercisesPerStation} · ${targetDuration} min`} aiHandlers={{ setStationCount, setExercisesPerStation, setTargetDuration, setOptPhase }} />}{/* CC-3 Coach dock */}
     </PageWrapper>
   );
 };
