@@ -84,23 +84,33 @@ if (cmd === 'compile') {
 } else if (cmd === 'ask') {
   const { saved } = loadPacketFile();
   loadEnv(ROOT);
-  const provider = getProvider(flag('provider') ?? usage());
-  const packet = reconstructPacket(saved);             // validates manifest/evidence integrity
-  enforceCeiling(provider, saved.manifest);            // T10 — throws with offending evidence listed
-  const maxTokens = Number(flag('max-tokens')) || 8000;
-  const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
-  const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
-  console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
-  const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort') });
-  const audit = packet.auditAnswer(result.text);
-  const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
-  const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
-  const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
-  writeFileSync(answerOut, result.text, 'utf-8');
-  console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
-  console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
-  console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
-  if (audit.invalid.length) process.exitCode = 3;
+  try {
+    const provider = getProvider(flag('provider') ?? usage());
+    const packet = reconstructPacket(saved);             // validates manifest/evidence integrity
+    enforceCeiling(provider, saved.manifest);            // T10 — throws with offending evidence listed
+    const maxTokens = Number(flag('max-tokens')) || 8000;
+    const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
+    const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
+    console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
+    const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort') });
+    const audit = packet.auditAnswer(result.text);
+    const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
+    const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
+    const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
+    writeFileSync(answerOut, result.text, 'utf-8');
+    console.log(`[swan-context] ${result.inTok} in / ${result.outTok} out — $${result.cost.toFixed(4)} — ${(result.wallMs / 1000).toFixed(1)}s`);
+    console.log(`[swan-context] citations: ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' — UNCITED ANSWER' : ''}`);
+    console.log(`[swan-context] answer -> ${answerOut}\n[swan-context] receipt -> ${receiptPath}`);
+    if (audit.invalid.length) process.exitCode = 3;
+  } catch (e) {
+    // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes.
+    if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) {
+      console.error(`[swan-context] REFUSED ${e.message}`);
+      if (Array.isArray(e.detail)) for (const d of e.detail) console.error(`  - ${d}`);
+      process.exit(2);
+    }
+    throw e;
+  }
 } else if (cmd === 'verify') {
   const { saved } = loadPacketFile();
   const answer = readFileSync(flag('answer') ?? usage(), 'utf-8');
