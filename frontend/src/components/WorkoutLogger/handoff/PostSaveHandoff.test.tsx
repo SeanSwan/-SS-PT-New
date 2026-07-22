@@ -61,7 +61,8 @@ describe('PostSaveHandoff', () => {
   it('renders the declaration, proof numeral, eyebrow, and chips', () => {
     renderHandoff(baseData());
     expect(screen.getByText('Flight logged.')).toBeInTheDocument();
-    expect(screen.getByText('263')).toBeInTheDocument();
+    // 1.4a: the numeral text counts up visually; the ACCESSIBLE value is always the final number.
+    expect(screen.getByLabelText('263')).toBeInTheDocument();
     expect(screen.getByText(/EST\. 1-REP MAX · BARBELL BACK SQUAT · LAST 2 SESSIONS/)).toBeInTheDocument();
     expect(screen.getByText('VOL 6,840 LB')).toBeInTheDocument();
     expect(screen.getByText('52 MIN')).toBeInTheDocument();
