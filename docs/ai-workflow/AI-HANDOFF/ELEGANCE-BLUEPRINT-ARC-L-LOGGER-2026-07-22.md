@@ -84,3 +84,40 @@ logger draft/coach tests.
 ## Do-NOT list
 No schema changes. No touching PostSaveHandoff/celebration. No new transport (blueprint 06-bans §1).
 No MUI. No Recharts. WorkoutLogger.tsx stays ≤866 ln (net additions go to new files). No flags.
+
+## KIMI CO-SIGN DELTAS (2026-07-22 — BINDING; supersede conflicting lines above)
+
+### L1 — THE SIGNATURE GESTURE (identity: you vs. last you)
+On accept: inputs COUNT UP from current→ghost values over 300ms (numerals tick); the row flashes a
+cyan→purple gradient sweep along its hairline border (background-position/opacity keyframes ONLY);
+haptic tick on coarse pointers (`navigator.vibrate?.(10)`); affordance copy is **"Beat this — {w} × {r}"**
+(icon + label, ≥0.8rem — NEVER below 12px; 4.5:1). Reduced-motion: instant fill + border state change
+only, no count-up, no sweep. HIERARCHY LAW: the ghost row stays visually SUBORDINATE — dashed/hairline
+crystalline border, NO fill; the Log Set button keeps the card's only solid/glow treatment.
+**Dual-Button Glow law (quote to every CTA in this arc): blue bg → purple glow; purple bg → cyan glow.**
+Prefill conflict resolution: tap-accept silently overwrites prefilled set-0 values (same source data).
+
+### L2 — Keypad face + focus contract (all decisions made)
+Face: glass keys with 8px GAPS (no hairline grid), digits in Fira Code display-size, pressed state =
+`color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)` + scale 0.97 (reduced-motion: color
+only); top drag-handle + field label title; **Done = Dual-Button Glow primary (blue bg → purple glow)**;
+KILL the ±2.5 steppers — slots go to backspace + a quick-chip row showing LAST SESSION'S value (ghost
+narrative reinforcement, one-tap commit). Verify `--surface-dark` is a registered lens token before use;
+if not, use the registered Graphite token name from the lens registry — never invent token names.
+Focus: trap while open; Esc/backdrop with dirty field COMMITS (never discards); return focus to invoking
+input on close; Done → commit + auto-focus NEXT field (weight→reps ONLY — one hop); RPE gets
+scroll-into-view + polite announcement, NEVER focus theft; Log is always user-initiated. Sheet contains a
+44px tertiary "Use system keyboard" button (flips field to native input for the session — SR populations;
+`readOnly` announces as dimmed). `allowDecimal`: weight YES, reps NO. Done on empty field = keep prior
+value, close (no zero-commit). `env(safe-area-inset-bottom)` padding; landscape max-height 70dvh +
+internal scroll; portal to document.body.
+
+### L3 — Timer corrections
+Voice = TWO INTENTS IN THE EXISTING Coach dictation parser (rest_skip, rest_adjust ±15..±60) — NO new
+FRONTEND_DISPATCH registry surface (duplicate ack-contract rot). Visual = depleting CONIC PROGRESS RING
+(carries information even static under reduced-motion) + drop-shadow glow on a transform-scale pulse —
+never a border-color pulse. Haptic vocabulary: key tick (10ms), commit thud (20ms), timer-end pulse
+(30ms double) — all behind a coarse-pointer + vibrate-support check.
+
+### Nested-interactive check (verify at build): GhostDataRow's button variant must not render inside
+any other interactive wrapper in the trainer card.

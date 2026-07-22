@@ -86,3 +86,33 @@ still wraps everything; 320px + 4K checked.
 No Recharts. No bypassing lensChartPalette/chartTheme. No fake/placeholder drill data — cold starts
 speak honestly. No new endpoints this arc. No syndrome/clinical words client-side. ExerciseHistoryChart
 stays ≤493 ln. No flags.
+
+## KIMI CO-SIGN DELTAS (2026-07-22 — BINDING; supersede conflicting lines above)
+
+1. **Panel layout contract — five slots, identical for ALL 9 charts (this kills drift):**
+   (1) hero metric (value + delta chip) → (2) context sparkline/mini-viz → (3) WHY copy: plain-language
+   first sentence, technical tier behind a "How it's calculated" expander → (4) entries table →
+   (5) CTA. Register (verbatim voice): e1RM = "Your estimated one-rep max — the heaviest you could lift
+   once, today, based on your recent work. Watch it climb." RecoverySignalBars = "How ready your body is
+   to train hard. Tall bars mean go; short bars mean today is a stretching-and-technique day."
+   WHY tier-one ≤2 sentences, zero jargon, numbers framed you-vs-you.
+2. **Selection-driven persistence (biggest UX law):** the panel NEVER closes between datum taps —
+   tapping point B while viewing A swaps content in place (150ms opacity crossfade). Close is explicit only.
+3. **Breakpoints:** bottom sheet <768px; persistent side panel ≥768px, max-width 420px; overlay+scrim
+   768–1439; layout-PUSH ≥1440. 4K: panel stays 420px — never a billboard.
+4. **Hit collision rule:** nearest-datum-wins within radius; on dense series enforce min-separation —
+   never overlapping 44px targets on 320px.
+5. **Cross-link law: no dead-end panels.** Entry rows jump-link into the owning surface (history/logger
+   session). The drill INFORMS and CONNECTS.
+6. **Chart empty states:** <2 points → honest cold-start line per W0.1 contract, no drill.
+   Aggregate-only charts: CTA line copy "Tap through to your history for the full log" → /dashboard
+   history route of that data family.
+7. **LENS REACTIVITY LAWS (breakage seams, ban verbatim):** NEVER resolve lensChartPalette at module
+   scope (theme frozen at import) — resolve inside the component body/useMemo keyed on the lens version,
+   or pass `var(--token, #fallback)` strings straight through Victory style props (inline var() works in
+   SVG). React.memo deps MUST include the lens version when colors resolve in JS. BAN getComputedStyle-
+   into-constant. Gradient stops must be var() references or re-derived on theme change.
+8. **ExerciseHistoryChart extraction named:** drill wiring lives in a NEW sibling `ExerciseHistoryChart.drill.ts`
+   (events factory + datum builder); the 473-line render file gains only imports + events prop (net ≤+20).
+9. **Dual-Button Glow law on the panel CTA:** blue bg → purple glow; purple bg → cyan glow.
+10. ChartDataTable rows: real `<button>` inside `<td>` — never `<tr onClick>`.
