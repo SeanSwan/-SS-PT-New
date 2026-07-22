@@ -70,7 +70,7 @@ function runToolCall(session, call) {
 export async function runToolLoop({ provider, packet, manifest, evidence, session, maxIterations = 6, maxTokens = 4000, fetchImpl, env = process.env }) {
   const messages = [{ role: 'user', content: buildPrompt(provider, manifest, evidence) }];
   const trace = [];
-  let totalCost = 0, iterations = 0, stopReason = 'answered';
+  let totalCost = 0, totalInTok = 0, totalOutTok = 0, iterations = 0, stopReason = 'answered';
 
   for (iterations = 1; iterations <= maxIterations; iterations += 1) {
     // Spend gate (T8), PRE-EMPTIVE so the cap is a hard ceiling — stop BEFORE a turn that would
@@ -81,13 +81,13 @@ export async function runToolLoop({ provider, packet, manifest, evidence, sessio
     if (totalCost + estimateCost(provider, promptChars, maxTokens) > cap) { stopReason = 'spend_cap'; break; }
 
     const turn = await callWithTools(provider, messages, TOOL_SCHEMAS, { maxTokens, fetchImpl, env, manifest });
-    totalCost += turn.cost;
+    totalCost += turn.cost; totalInTok += turn.inTok; totalOutTok += turn.outTok;
     messages.push(turn.message);
 
     const calls = turn.message.tool_calls ?? [];
     if (!calls.length) { // final answer
       const audit = packet.auditAnswer(turn.message.content ?? '');
-      return { answer: turn.message.content ?? '', audit, iterations, totalCost, toolTrace: trace, sessionAudit: session.getAudit(), stopReason };
+      return { answer: turn.message.content ?? '', audit, iterations, totalCost, totalInTok, totalOutTok, toolTrace: trace, sessionAudit: session.getAudit(), stopReason };
     }
     for (const call of calls) {
       const { ok, payload } = runToolCall(session, call);
@@ -96,5 +96,5 @@ export async function runToolLoop({ provider, packet, manifest, evidence, sessio
     }
   }
   // ran out of iterations or budget without a final content answer
-  return { answer: null, audit: null, iterations: iterations - 1, totalCost, toolTrace: trace, sessionAudit: session.getAudit(), stopReason: stopReason === 'answered' ? 'max_iterations' : stopReason };
+  return { answer: null, audit: null, iterations: iterations - 1, totalCost, totalInTok, totalOutTok, toolTrace: trace, sessionAudit: session.getAudit(), stopReason: stopReason === 'answered' ? 'max_iterations' : stopReason };
 }

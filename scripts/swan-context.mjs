@@ -98,7 +98,7 @@ if (cmd === 'compile') {
       console.log(`[swan-context] ask ${provider.name} (${provider.model}) — TOOL LOOP (max ${Number(flag('max-iter')) || 6} iters, cap $${process.env.SWAN_CONTEXT_MAX_USD})`);
       const r = await runToolLoop({ provider, packet, manifest: saved.manifest, evidence: saved.evidence, session, maxIterations: Number(flag('max-iter')) || 6, maxTokens });
       const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
-      const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result: { model: provider.model, inTok: 0, outTok: 0, cost: r.totalCost, wallMs: 0 }, manifest: saved.manifest, audit: r.audit ?? { valid: 0, invalid: [], uncited: true }, spend: { estimate: r.totalCost, cap: Number(process.env.SWAN_CONTEXT_MAX_USD) } });
+      const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result: { model: provider.model, inTok: r.totalInTok, outTok: r.totalOutTok, cost: r.totalCost, wallMs: 0 }, manifest: saved.manifest, audit: r.audit ?? { valid: 0, invalid: [], uncited: true }, spend: { estimate: r.totalCost, cap: Number(process.env.SWAN_CONTEXT_MAX_USD) }, loop: { iterations: r.iterations, stopReason: r.stopReason, toolTrace: r.toolTrace } });
       const answerOut = flag('answer-out', receiptPath.replace(/\.md$/, '.answer.md'));
       writeFileSync(answerOut, r.answer ?? `(no answer — ${r.stopReason})`, 'utf-8');
       console.log(`[swan-context] loop: ${r.iterations} iters, ${r.toolTrace.length} tool calls, $${r.totalCost.toFixed(4)}, stop=${r.stopReason}`);

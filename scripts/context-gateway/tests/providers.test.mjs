@@ -129,6 +129,24 @@ test('reconstructPacket: roundtrips and audits; drift refused', () => {
   assert.throws(() => reconstructPacket(drifted), /drift/);
 });
 
+test('writeReceipt: tool-loop trace is summarized (counts only, no args/content)', () => {
+  const root = mkdtempSync(join(tmpdir(), 'swan-rcptl-'));
+  const saved = savedPacket();
+  const file = writeReceipt({
+    root, stamp: 'stampL', provider: getProvider('sol'),
+    result: { model: 'openai/gpt-5.6-sol', inTok: 1200, outTok: 300, cost: 0.01, wallMs: 3000 },
+    manifest: saved.manifest, audit: { valid: 2, invalid: [], uncited: false }, spend: { estimate: 0.02, cap: 1 },
+    loop: { iterations: 3, stopReason: 'answered', toolTrace: [
+      { iteration: 1, tool: 'repo_search', ok: true }, { iteration: 2, tool: 'repo_open', ok: true }, { iteration: 2, tool: 'repo_open', ok: false },
+    ] },
+  });
+  const text = readFileSync(file, 'utf-8');
+  assert.ok(/Tool loop — 3 iteration/.test(text));
+  assert.ok(/repo_open: 2 call\(s\), 1 failed/.test(text), 'per-tool counts summarized');
+  assert.ok(/repo_search: 1 call\(s\), 0 failed/.test(text));
+  assert.ok(!/"arguments"|content":/.test(text), 'no tool args/content in receipt');
+});
+
 test('writeReceipt: sanitized — windows and audit only, no evidence content', () => {
   const root = mkdtempSync(join(tmpdir(), 'swan-rcpt-'));
   const saved = savedPacket();
