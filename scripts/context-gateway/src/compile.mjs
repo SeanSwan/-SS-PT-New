@@ -42,8 +42,12 @@ function gitState(root) {
  * @param {string} [opts.issue]
  * @param {number} [opts.budgetChars=48000]  total evidence budget (~12k tokens)
  * @param {number} [opts.contextLines=20]    window radius around each code hit
+ * @param {string} [opts.issueNotes]         compact Linear issue context (Phase 3): title/status/
+ *                                           decisions fetched by the AGENT via the existing MCP
+ *                                           OAuth — the gateway itself holds no Linear credential.
+ *                                           Included as A3 evidence under a linear/ virtual path.
  */
-export function compileContext({ root, question, tracked, originatingModel, issue = null, budgetChars = 48000, contextLines = 20 }) {
+export function compileContext({ root, question, tracked, originatingModel, issue = null, budgetChars = 48000, contextLines = 20, issueNotes = null }) {
   const { head, shaByPath } = gitState(root);
   const reader = createSafeReader({ root, tracked });
   const anchors = extractAnchors(question);
@@ -128,6 +132,14 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   const packet = createPacket({ question, headSha: head, originatingModel, issue });
   const included = [], excluded = [];
   let spent = 0;
+  // Linear issue context first (small, high-signal, A3 — a plan/status source, never code truth).
+  if (issueNotes && issue) {
+    const content = String(issueNotes).slice(0, 4000);
+    const lineCount = content.split('\n').length;
+    const id = packet.addEvidence({ path: `linear/${issue}.md`, startLine: 1, endLine: lineCount, content, sha: 'linear-live', tier: 'A3' });
+    included.push({ id, path: `linear/${issue}.md`, window: `L1-L${lineCount}`, tier: 'A3' });
+    spent += content.length;
+  }
   for (const c of candidates) {
     if (c.auth.superseded) { excluded.push({ path: c.path, reason: 'SUPERSEDED' }); continue; }
     if (c.auth.stale) notes.push(`stale catalog row ignored for ${c.path}`);

@@ -136,6 +136,20 @@ test('compile: budget exclusions are explicit, never silent', () => {
   assert.ok(manifest.evidenceCount >= 1, 'top-ranked evidence still included');
 });
 
+test('compile: Linear issue notes become A3 evidence under a virtual path (Phase 3)', () => {
+  const root = fixtureRepo();
+  const { manifest } = compileContext({
+    root, question: 'workout sessions save', tracked: gitTrackedFiles(root), originatingModel: 'm',
+    issue: 'SWA-42', issueNotes: 'Title: fix save path\nStatus: In Progress\nDecision: idempotency required',
+  });
+  const lin = manifest.evidence.find((e) => e.path === 'linear/SWA-42.md');
+  assert.ok(lin, 'linear evidence present');
+  assert.equal(lin.tier, 'A3');
+  assert.equal(lin.id, 'E001', 'issue notes lead the packet');
+  const noIssue = compileContext({ root, question: 'workout sessions save', tracked: gitTrackedFiles(root), originatingModel: 'm', issueNotes: 'orphan notes' });
+  assert.ok(!noIssue.manifest.evidence.some((e) => e.path.startsWith('linear/')), 'notes without --issue are ignored');
+});
+
 test('compile: window content actually contains the hit line', () => {
   const root = fixtureRepo();
   const { packet, manifest } = compileContext({ root, question: 'trace /api/workout/sessions', tracked: gitTrackedFiles(root), originatingModel: 'm' });

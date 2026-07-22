@@ -90,6 +90,17 @@ test('callProvider: happy path via injected fetch, cost from usage', async () =>
   assert.ok(Math.abs(r.cost - (0.001 * 5 + 0.0005 * 30)) < 1e-9);
 });
 
+test('callProvider: design-ceiling provider refused without manifest, and with sensitive manifest (bypass regression)', async () => {
+  const env = { SWAN_CONTEXT_MAX_USD: '1', OPENROUTER_API_KEY: 'k' };
+  const mustNotCall = async () => { throw new Error('network must not be reached'); };
+  await assert.rejects(
+    () => callProvider(getProvider('kimi'), 'p', { fetchImpl: mustNotCall, env }),
+    (e) => e.code === 'CEILING'); // no manifest → refuse
+  await assert.rejects(
+    () => callProvider(getProvider('kimi'), 'p', { fetchImpl: mustNotCall, env, manifest: MANIFEST(['backend/middleware/authMiddleware.mjs']) }),
+    (e) => e.code === 'CEILING'); // sensitive manifest → refuse
+});
+
 test('callProvider: refuses without cap even with a key (defense in depth)', async () => {
   await assert.rejects(
     () => callProvider(getProvider('fable'), 'p', { fetchImpl: async () => { throw new Error('must not be called'); }, env: { OPENROUTER_API_KEY: 'k' } }),

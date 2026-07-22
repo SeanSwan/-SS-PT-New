@@ -16,7 +16,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { assertSpend } from './providers.mjs';
+import { assertSpend, enforceCeiling, ProviderError } from './providers.mjs';
 
 /** CRLF-aware .env loader (the '\n'-split bug class is why this is shared now — Rule 20). */
 export function loadEnv(root, env = process.env) {
@@ -46,8 +46,14 @@ REPO HEAD: ${manifest.headSha}${manifest.issue ? `\nLINEAR ISSUE: ${manifest.iss
  * Call OpenRouter. `fetchImpl` is injectable for tests — production uses global fetch.
  * Returns { text, inTok, outTok, cost, wallMs, model }.
  */
-export async function callProvider(provider, prompt, { maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env } = {}) {
+export async function callProvider(provider, prompt, { maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env, manifest = null } = {}) {
   assertSpend(provider, prompt.length, maxTokens, env); // defense in depth (T8)
+  // Ceiling is enforced HERE too, not only in the CLI — a direct importer must not be able to
+  // route sensitive evidence to a design-ceiling provider (hostile-review finding 2026-07-22).
+  if (provider.ceiling !== 'standard') {
+    if (!manifest) throw new ProviderError('CEILING', `${provider.name} is ${provider.ceiling}-ceiling; callProvider requires the packet manifest to verify egress`);
+    enforceCeiling(provider, manifest);
+  }
   const apiKey = env.OPENROUTER_API_KEY || env.OPEN_ROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not found in env or .env files');
   const body = {

@@ -53,6 +53,7 @@ if (cmd === 'compile') {
     root: ROOT, question, tracked,
     originatingModel: process.env.SWAN_CONTEXT_MODEL || 'claude-fable-5',
     issue: flag('issue'), budgetChars: Number(flag('budget')) || undefined,
+    issueNotes: flag('issue-notes') ? readFileSync(flag('issue-notes'), 'utf-8') : null,
   });
   console.log(`[swan-context] compiled in ${Date.now() - t0}ms — HEAD ${manifest.headSha.slice(0, 12)} — ${manifest.evidenceCount} evidence, ${report.spentChars}/${report.budgetChars} chars`);
   for (const e of manifest.evidence) console.log(`  ${e.id} ${e.tier} ${e.path} L${e.startLine}-L${e.endLine}`);
@@ -92,7 +93,7 @@ if (cmd === 'compile') {
     const prompt = buildPrompt(provider, saved.manifest, saved.evidence);
     const spend = assertSpend(provider, prompt.length, maxTokens); // T8 — fail-closed without cap
     console.log(`[swan-context] ask ${provider.name} (${provider.model}) — prompt ~${Math.round(prompt.length / 4)} tok, est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
-    const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort') });
+    const result = await callProvider(provider, prompt, { maxTokens, effort: flag('effort'), manifest: saved.manifest });
     const audit = packet.auditAnswer(result.text);
     const stamp = `${saved.manifest.headSha.slice(0, 12)}-${Date.now()}`;
     const receiptPath = writeReceipt({ root: ROOT, stamp, provider, result, manifest: saved.manifest, audit, spend });
