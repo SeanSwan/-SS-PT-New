@@ -6,6 +6,21 @@ supersedes: none (consumes KIMI verdicts + MOBBIN-BRAIN-BUILD-PLAN-v2 + CC recei
 
 # Master Prompt — The Elegance Program (2026-07-22)
 
+## PRIORITY ORDER (Sean, 2026-07-22, supersedes the arc order below) + BLUEPRINT MANDATE
+**Features first:** (1) Arc L logger fluidity → (2) **Arc C — client charts "on another level"**:
+Fable+Kimi hostile review of every client chart, then upgrade so EVERY element is clickable with
+drill-down (tap a point/bar/segment → deeper panel: what it is, why it matters, the underlying real
+entries — never a dead box of words); Victory-only; data-truth → (3) workout planner polish →
+(4) Arc H home preview → Store → About (preview-first approval law) → Arc R → Arc D. Linear: SWA-51.
+
+**BLUEPRINT MANDATE (Rule 68 — Sean's token insurance):** before each arc is built, forge a
+Fable-grade blueprint a CHEAPER AGENT can execute verbatim in Fable's+Kimi's vision with ZERO further
+questions: mermaid flowcharts, ASCII wireframes (desktop AND mobile), exact file paths + component/
+hook signatures, per-field data contracts, copy strings, token names, numbered independently-shippable
+slices each with executable acceptance criteria, and explicit do-NOT bans. Kimi co-signs each blueprint
+before build. A plan a worker would have to ask about is INCOMPLETE. Blueprints live beside this doc as
+`ELEGANCE-BLUEPRINT-<arc>-2026-07-XX.md`. The fable-blueprint-forge skill is the authoring procedure.
+
 Sean's directives (verbatim intent, three messages): the home page needs scroll-driven emotional
 animation, parallax backgrounds, cool pictures — the Mobbin-informed design pass the de-gate handoff
 explicitly deferred ("when we redo design properly with the Mobbin intelligence"). The readiness body
