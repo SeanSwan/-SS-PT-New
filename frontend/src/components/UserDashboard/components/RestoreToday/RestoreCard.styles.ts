@@ -68,7 +68,7 @@ export const SweepOverlay = styled.div`
     rgba(139, 92, 246, 0.6) 330deg,
     rgba(198, 168, 75, 0.9) 356deg,
     rgba(198, 168, 75, 0) 360deg);
-  mask: radial-gradient(closest-side, transparent 72%, #000 74%);
+  mask: radial-gradient(closest-side, transparent 72%, #000 74%); /* swan-guard-allow-hex mask alpha stop, not a brand color */
   animation: ${css`${sweep}`} 600ms ease-out forwards;
   @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0; }
 `;
