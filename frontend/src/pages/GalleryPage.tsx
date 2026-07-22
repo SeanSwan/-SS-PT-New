@@ -20,6 +20,7 @@ import MessageModal from './gallery/MessageModal';
 import DonationModal from './gallery/DonationModal';
 import ReferralModal from './gallery/ReferralModal';
 import { formatPhotoCount } from './galleryFormat';
+import { useGalleryViewPrefs, SIZE_MIN_PX, SIZE_LABEL, type GallerySize } from './galleryViewPrefs';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -686,11 +687,53 @@ const ErrorText = styled.p`
 `;
 
 // ── Photo Grid (Justified) ───────────────────────────────────────────────
-const GridWrapper = styled.div`
+/* $minPx drives the size preset (S/M/L/XL); $layout switches grid vs single-column list. */
+const GridWrapper = styled.div<{ $minPx?: number; $layout?: 'grid' | 'list' }>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: ${p => p.$layout === 'list'
+    ? '1fr'
+    : `repeat(auto-fill, minmax(${p.$minPx ?? 200}px, 1fr))`};
   gap: 16px;
-  @media (max-width: 480px) { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (max-width: 480px) {
+    grid-template-columns: ${p => p.$layout === 'list' ? '1fr' : 'repeat(2, 1fr)'};
+    gap: 8px;
+  }
+`;
+
+/* View + size control bar (net-new — the gallery had no view/size controls). */
+const ViewControlBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 16px;
+`;
+
+const ViewControlGroup = styled.div`
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing, #60C0F0) 22%, transparent);
+  background: color-mix(in srgb, var(--graphite, #1A1A24) 70%, transparent);
+`;
+
+const ViewControlButton = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font: 700 12px/1 'Sora', sans-serif;
+  color: ${p => p.$active ? 'var(--obsidian-black, #0A0A0F)' : 'var(--frost-white, #E0ECF4)'};
+  background: ${p => p.$active
+    ? 'linear-gradient(135deg, var(--wing-purple, #8B5CF6), var(--ice-wing, #60C0F0))'
+    : 'transparent'};
+  transition: background 0.18s ease, color 0.18s ease;
+  &:hover { background: ${p => p.$active ? '' : 'color-mix(in srgb, var(--ice-wing, #60C0F0) 16%, transparent)'}; }
+  &:focus-visible { outline: 3px solid var(--wing-purple, #8B5CF6); outline-offset: 2px; }
 `;
 
 const PhotoCardWrapper = styled.div`
@@ -1169,6 +1212,8 @@ const GalleryPage: React.FC = () => {
   const PHOTOS_PER_BATCH = 24;
   const [visiblePhotoCount, setVisiblePhotoCount] = useState(PHOTOS_PER_BATCH);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  // Net-new: persisted view layout + picture-size preset (Sean's "more views / more sizes").
+  const { layout, size, setLayout, setSize } = useGalleryViewPrefs();
 
   // Enhancement credit state
   const [credits, setCredits] = useState<EnhancementCredits>({ freeRemaining: 3, purchasedCredits: 0, isVip: false, freeUsedThisEvent: 0 });
@@ -1943,7 +1988,33 @@ const GalleryPage: React.FC = () => {
           </EventGrid>
         ) : (
           <>
-          <GridWrapper>
+          <ViewControlBar>
+            <ViewControlGroup role='group' aria-label='Gallery layout'>
+              {(['grid', 'list'] as const).map((mode) => (
+                <ViewControlButton
+                  key={mode}
+                  type='button'
+                  $active={layout === mode}
+                  aria-pressed={layout === mode}
+                  aria-label={`${mode[0].toUpperCase()}${mode.slice(1)} layout`}
+                  onClick={() => setLayout(mode)}
+                >{mode[0].toUpperCase()}{mode.slice(1)}</ViewControlButton>
+              ))}
+            </ViewControlGroup>
+            <ViewControlGroup role='group' aria-label='Picture size'>
+              {(['s', 'm', 'l', 'xl'] as GallerySize[]).map((sz) => (
+                <ViewControlButton
+                  key={sz}
+                  type='button'
+                  $active={size === sz}
+                  aria-pressed={size === sz}
+                  aria-label={`Picture size ${SIZE_LABEL[sz]}`}
+                  onClick={() => setSize(sz)}
+                >{SIZE_LABEL[sz]}</ViewControlButton>
+              ))}
+            </ViewControlGroup>
+          </ViewControlBar>
+          <GridWrapper $minPx={SIZE_MIN_PX[size]} $layout={layout}>
             {photos.slice(0, visiblePhotoCount).map((photo, index) => {
               const voteData = votesMap[photo.id];
               return (
