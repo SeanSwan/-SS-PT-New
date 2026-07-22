@@ -16,6 +16,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
+import { redactSecrets } from './egress.mjs';
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -45,9 +46,15 @@ async function runConsultInner(providerName, defaultRemit, defaultOut) {
 
   loadEnv(process.cwd());
   const provider = getProvider(providerName);
-  const doc = readFileSync(docPath, 'utf-8');
+  // Redact inline secrets from BOTH document and seed before they egress to the provider (T3).
+  // The consult wrappers send whole author-supplied docs — an uncommitted doc could carry a key.
+  const docR = redactSecrets(readFileSync(docPath, 'utf-8'));
   const seedPath = arg('seed');
-  const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
+  const seedR = redactSecrets(seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '');
+  const doc = docR.text;
+  const seed = seedR.text;
+  const totalRedactions = docR.redactions + seedR.redactions;
+  if (totalRedactions) console.error(`[consult-${providerName}] redacted ${totalRedactions} inline secret(s) before egress`);
   const remit = arg('remit', defaultRemit);
   const maxTokens = Number(arg('max-tokens', process.env[`SWAN_${providerName.toUpperCase()}_MAX_TOKENS`])) || 16000;
   const effort = arg('effort', process.env[`SWAN_${providerName.toUpperCase()}_EFFORT`] || (provider.supportsEffort ? 'high' : null));

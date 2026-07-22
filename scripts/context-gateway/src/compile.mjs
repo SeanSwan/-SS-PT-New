@@ -134,8 +134,12 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   const included = [], excluded = [];
   let spent = 0, secretsRedacted = 0;
   // Linear issue context first (small, high-signal, A3 — a plan/status source, never code truth).
+  // MUST redact like every other evidence lane: a Linear issue body is EXTERNAL content that could
+  // hold a pasted secret (DB URL, key) — this lane bypassing egress was a T3 gap (hostile pass 4).
   if (issueNotes && issue) {
-    const content = String(issueNotes).slice(0, 4000);
+    const red = redactSecrets(String(issueNotes).slice(0, 4000));
+    if (red.redactions) { secretsRedacted += red.redactions; notes.push(`redacted ${red.redactions} secret(s) [${red.kinds.join(',')}] in linear/${issue}.md`); }
+    const content = red.text;
     const lineCount = content.split('\n').length;
     const id = packet.addEvidence({ path: `linear/${issue}.md`, startLine: 1, endLine: lineCount, content, sha: 'linear-live', tier: 'A3' });
     included.push({ id, path: `linear/${issue}.md`, window: `L1-L${lineCount}`, tier: 'A3' });

@@ -85,3 +85,14 @@ test('compile: packet evidence is secret-redacted and the count is reported', ()
   assert.ok(!blob.includes('sk' + '_live_'), 'no secret value in packet');
   assert.ok(blob.includes('<REDACTED-STRIPE>'));
 });
+
+test('compile: Linear issue notes are ALSO secret-redacted (external content lane — T3)', () => {
+  const { root, tracked } = repoWithSecret();
+  const notes = `Status: In Progress\nDB: ${FAKE.db}\nkey pasted: ${FAKE.openai}`;
+  const { packet, report } = compileContext({ root, question: 'workout', tracked, originatingModel: 'm', issue: 'SWA-9', issueNotes: notes });
+  const lin = packet.getEvidence().find((e) => e.path === 'linear/SWA-9.md');
+  assert.ok(lin, 'linear evidence present');
+  assert.ok(!lin.content.includes('postgres' + '://') && !lin.content.includes('sk-'), 'issue-note secrets redacted');
+  assert.ok(lin.content.includes('<REDACTED-'), 'redaction marker present in issue notes');
+  assert.ok(report.secretsRedacted >= 2, 'issue-note redactions counted');
+});
