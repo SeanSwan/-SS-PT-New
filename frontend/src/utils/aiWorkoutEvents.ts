@@ -43,6 +43,22 @@ export const AI_PLANNER_EVENTS = [
   AI_PLANNER_UNDO,
 ] as const;
 
+// Additive AI_BOOTCAMP_* family (Bootcamp Builder surface, CC-3) — same acknowledge
+// contract; payload types below. Executed by useBootcampAiEvents in the builder.
+export const AI_BOOTCAMP_SET_FORMAT = 'AI_BOOTCAMP_SET_FORMAT';
+export const AI_BOOTCAMP_SET_STRUCTURE = 'AI_BOOTCAMP_SET_STRUCTURE';
+export const AI_BOOTCAMP_SET_DURATION = 'AI_BOOTCAMP_SET_DURATION';
+export const AI_BOOTCAMP_PLACE_EXERCISE = 'AI_BOOTCAMP_PLACE_EXERCISE';
+export const AI_BOOTCAMP_LOAD_TEMPLATE = 'AI_BOOTCAMP_LOAD_TEMPLATE';
+
+export const AI_BOOTCAMP_EVENTS = [
+  AI_BOOTCAMP_SET_FORMAT,
+  AI_BOOTCAMP_SET_STRUCTURE,
+  AI_BOOTCAMP_SET_DURATION,
+  AI_BOOTCAMP_PLACE_EXERCISE,
+  AI_BOOTCAMP_LOAD_TEMPLATE,
+] as const;
+
 // ─── Event Payloads ──────────────────────────────────────────
 
 export interface AILoadTemplatePayload {
@@ -142,6 +158,12 @@ const dispatchers: Record<string, (payload: AIEventPayload) => boolean> = {
 // backend command schema and re-checked by the planner hook's handlers.
 for (const plannerEvent of AI_PLANNER_EVENTS) {
   dispatchers[plannerEvent] = (p) => dispatchWithAcknowledgement(plannerEvent, p as object);
+}
+
+// Bootcamp events (CC-3): same contract — the builder's useBootcampAiEvents handlers
+// re-validate payloads against BootcampBuilderConstants option sets before applying.
+for (const bootcampEvent of AI_BOOTCAMP_EVENTS) {
+  dispatchers[bootcampEvent] = (p) => dispatchWithAcknowledgement(bootcampEvent, p as object);
 }
 
 /**
