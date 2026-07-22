@@ -14,6 +14,20 @@ const fonts = {
   ui: '"Sora", "Plus Jakarta Sans", sans-serif',
 };
 
+/**
+ * Colorway family — the curated-tray grouping used by the Swan Lens Color tab.
+ * (Kimi round 2/3 — "curate the tray; archive the rest".) Absent = 'heritage'.
+ */
+export type ColorwayFamily =
+  | 'apex-darks'
+  | 'jewel-gradients'
+  | 'frost-glass'
+  | 'heritage'
+  | 'archive';
+
+/** Visual character of a colorway — drives the specimen swatch treatment. */
+export type ColorwayVariety = 'gradient-forward' | 'clean-flat' | 'light-glass';
+
 type PremiumThemeSpec = {
   id: string;
   name: string;
@@ -37,6 +51,50 @@ type PremiumThemeSpec = {
   danger?: string;
   success?: string;
   warning?: string;
+
+  // ── Depth + interaction token layer (Kimi round-3 SEND-BACK fix) ──────────────
+  // ALL optional and backward-compatible: when absent, makePremiumTheme() derives
+  // the same values it always has, so the existing 38 colorways are byte-unchanged.
+  // When present, they let a colorway be genuinely gradient-forward / glassy /
+  // glowing (Sean's "some with gradients, some flat, some light-glass") without a
+  // downstream hardcoded hex (house-rule #6).
+
+  /** Curated-tray family. Absent → 'heritage'. */
+  family?: ColorwayFamily;
+  /** Visual character. Absent → 'clean-flat'. */
+  variety?: ColorwayVariety;
+
+  /** Signature gradient endpoints. Absent → derived from primaryDeep→primary. */
+  gradientFrom?: string;
+  gradientTo?: string;
+  /** Signature gradient angle in deg. Absent → 135. */
+  gradientAngle?: number;
+
+  /** Glass surface tuning (variety: 'light-glass'). Absent → no glass, flat surface. */
+  glassBlur?: number;     // px, capped at 12 by the consumer
+  glassOpacity?: number;  // 0..1 opacity of the frosted surface fill
+
+  /** Dual-Button Glow per-theme (blue bg→purple glow, purple bg→cyan glow).
+   *  Absent → derived from secondary / accent, matching legacy behavior. */
+  glowPrimary?: string;
+  glowSecondary?: string;
+
+  /** Focus ring color. Absent → derived from primary. */
+  focusRing?: string;
+  /** Hairline divider (family separators / card edges). Absent → alpha(primary,0.12). */
+  borderSubtle?: string;
+
+  /** Label color on a `primary`-filled control (Kimi R4 — the most-viewed contrast
+   *  pair; must hit ≥4.5 vs `primary`). Absent → derived (white/near-black by primary
+   *  luminance). */
+  onPrimary?: string;
+  /** Label color on an `accent`-filled control. Absent → derived by accent luminance. */
+  onAccent?: string;
+
+  /** Categorical chart series (Victory). Absent → [primary, accent, secondaryLight]. */
+  chart1?: string;
+  chart2?: string;
+  chart3?: string;
 };
 
 const alpha = (hex: string, amount: number) => {
@@ -49,15 +107,63 @@ const alpha = (hex: string, amount: number) => {
   return `rgba(${r}, ${g}, ${b}, ${amount})`;
 };
 
-const makePremiumTheme = (spec: PremiumThemeSpec) => ({
+/**
+ * Semantic role bindings (Kimi R4 — data with roles is a system, not a paint aisle):
+ *  - glowPrimary   → glow on `primary`-filled interactive controls (must be in-family).
+ *  - glowSecondary → glow on `secondary`/`primaryBlue`-filled controls (in-family).
+ *  - gradientFrom/To/Angle → the ONE signature surface only (primary CTA fill / hero
+ *    sheen), never every surface.
+ *  - borderSubtle  → hairline separators + glass rims, never decorative boxes.
+ *  - onPrimary/onAccent → label color on primary/accent-filled controls (≥4.5 contrast).
+ * Consumers must honor these roles; the specimen swatch + button tone read from them.
+ */
+
+/** Pick black/white label for a fill by WCAG relative luminance (>0.5 → dark text). */
+const onColorFor = (hex: string): string => {
+  const n = hex.replace('#', '');
+  if (n.length !== 6) return '#FFFFFF';
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const r = lin(parseInt(n.slice(0, 2), 16));
+  const g = lin(parseInt(n.slice(2, 4), 16));
+  const b = lin(parseInt(n.slice(4, 6), 16));
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return L > 0.45 ? '#0A0A0F' : '#FFFFFF';
+};
+
+const makePremiumTheme = (spec: PremiumThemeSpec) => {
+  // Depth/interaction tokens: use the explicit field when present, else derive the
+  // legacy value so every pre-existing colorway renders exactly as before.
+  const gradientAngle = spec.gradientAngle ?? 135;
+  const gradientFrom = spec.gradientFrom ?? spec.primaryDeep;
+  const gradientTo = spec.gradientTo ?? spec.primary;
+  const glowPrimary = spec.glowPrimary ?? alpha(spec.secondary, 0.48);
+  const glowSecondary = spec.glowSecondary ?? alpha(spec.accent, 0.28);
+  const focusRing = spec.focusRing ?? spec.primary;
+  const borderSubtle = spec.borderSubtle ?? alpha(spec.primary, 0.12);
+  const onPrimary = spec.onPrimary ?? onColorFor(spec.primary);
+  const onAccent = spec.onAccent ?? onColorFor(spec.accent);
+  const chartSeries = [
+    spec.chart1 ?? spec.primary,
+    spec.chart2 ?? spec.accent,
+    spec.chart3 ?? spec.secondaryLight,
+  ];
+
+  return {
   id: spec.id,
   name: spec.name,
+  family: spec.family ?? ('heritage' as ColorwayFamily),
+  variety: spec.variety ?? ('clean-flat' as ColorwayVariety),
   fonts,
   effects: {
     glassmorphism: true,
     glowIntensity: 'subtle' as const,
     cardStyle: 'glass' as const,
     borderGlow: true,
+    glassBlur: spec.glassBlur ?? 0,
+    glassOpacity: spec.glassOpacity ?? 1,
   },
   colors: {
     deepSpace: spec.bg,
@@ -94,6 +200,8 @@ const makePremiumTheme = (spec: PremiumThemeSpec) => ({
     stellar: `linear-gradient(45deg, ${spec.primary} 0%, ${spec.accent} 100%)`,
     swanCosmic: `linear-gradient(135deg, ${spec.primary}, ${spec.secondary})`,
     glass: `linear-gradient(135deg, ${alpha(spec.primaryDeep, 0.22)}, ${alpha(spec.primary, 0.08)})`,
+    // Signature gradient — the one deliberate colorway gradient (family: jewel-gradients).
+    signature: `linear-gradient(${gradientAngle}deg, ${gradientFrom}, ${gradientTo})`,
   },
   shadows: {
     primary: `0 0 24px ${alpha(spec.primary, 0.24)}`,
@@ -104,16 +212,20 @@ const makePremiumTheme = (spec: PremiumThemeSpec) => ({
     glow: '0 0 20px currentColor',
     glass: `0 10px 34px ${alpha(spec.bg, 0.54)}`,
     button: `0 8px 24px ${alpha(spec.primary, 0.22)}`,
+    // Dual-Button Glow tokens (blue bg→purple glow, purple bg→cyan glow).
+    glowPrimary: `0 0 22px ${glowPrimary}`,
+    glowSecondary: `0 0 22px ${glowSecondary}`,
   },
   borders: {
-    subtle: alpha(spec.primary, 0.1),
+    subtle: borderSubtle,
     elegant: alpha(spec.primary, 0.18),
     prominent: alpha(spec.primary, 0.34),
     glass: `1px solid ${alpha(spec.primary, 0.14)}`,
     card: `1px solid ${alpha(spec.primary, 0.12)}`,
-    focus: `2px solid ${spec.primary}`,
+    focus: `2px solid ${focusRing}`,
     glow: `1px solid ${alpha(spec.secondary, 0.2)}`,
   },
+  chart: chartSeries,
   background: {
     primary: spec.bg,
     secondary: spec.bg2,
@@ -129,8 +241,11 @@ const makePremiumTheme = (spec: PremiumThemeSpec) => ({
     body: spec.textSecondary,
     label: spec.muted,
     accent: spec.primary,
+    onPrimary,
+    onAccent,
   },
-});
+  };
+};
 
 export const premiumThemeAdditions = {
   'ruby-forge': makePremiumTheme({

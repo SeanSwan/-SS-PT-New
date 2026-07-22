@@ -10,7 +10,6 @@ import type {
   StyleLensRegistry,
 } from '../../../core/style-lens-os';
 import { themes, type ThemeId } from '../UniversalThemeContext';
-import { buildFeaturedIds } from '../UniversalThemeToggle.panel';
 import AppearanceStudioPreview, {
   type PreviewRole,
   type PreviewViewport,
@@ -21,6 +20,8 @@ import {
   ChoiceButton,
   ChoiceGrid,
   ColorChip,
+  ColorCount,
+  ColorGrid,
   FavoriteButton,
   Pane,
   PreviewColumn,
@@ -79,7 +80,14 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
   const [favorites, setFavorites] = useState<string[]>([]);
   const lenses = registry.available();
   const lens = registry.resolve(draftProfile.styleLensId);
-  const colorIds = useMemo(() => buildFeaturedIds(draftTheme), [draftTheme]);
+  // The FULL colorway catalog (all registered themes), current draft first so the active
+  // pick is always visible without scrolling. Replaces the old 12-item featured cap
+  // (buildFeaturedIds) that hid 26 colorways from the Swan Lens — the header picker had a
+  // "Show all" toggle but this panel never did, which read as "my colors disappeared".
+  const colorIds = useMemo(() => {
+    const all = Object.keys(themes) as ThemeId[];
+    return [draftTheme, ...all.filter((id) => id !== draftTheme)];
+  }, [draftTheme]);
   const { dialogRef, onDialogKeyDown } = useDialogFocusTrap(onCancel);
   const { tabProps } = useRovingTablist(TAB_IDS, tab, setTab);
 
@@ -182,14 +190,17 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
             <>
               <h3>Color identity</h3>
               <p>Color and structural style remain independent.</p>
-              <ChoiceGrid>
+              <ColorCount>Showing all {colorIds.length} colorways — scroll for more</ColorCount>
+              <ColorGrid role='listbox' aria-label='Colorways'>
                 {colorIds.map((id) => {
                   const theme = themes[id];
                   return (
                     <ChoiceButton
                       key={id}
                       type='button'
+                      role='option'
                       $active={draftTheme === id}
+                      aria-selected={draftTheme === id}
                       aria-pressed={draftTheme === id}
                       onClick={() => onThemeChange(id)}
                     >
@@ -203,7 +214,7 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
                     </ChoiceButton>
                   );
                 })}
-              </ChoiceGrid>
+              </ColorGrid>
             </>
           )}
 

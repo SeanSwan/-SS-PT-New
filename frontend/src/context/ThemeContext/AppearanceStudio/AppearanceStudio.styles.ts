@@ -69,14 +69,23 @@ export const StudioTab = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) =>
     $active
       ? 'var(--ice-wing, #60c0f0)'
-      : 'color-mix(in srgb, var(--frost-white, #e0ecf4) 14%, transparent)'};
+      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 18%, transparent)'};
+  /* Adaptive surface (--bg-elevated flips per theme) so the label never becomes
+     dark-on-dark on light themes. --carbon is a FIXED dark token (tokens.css:123,
+     not in the themeUtils var-bridge), which is why it caused invisible tab labels
+     on Arctic Dawn / light colorways — swapped to --bg-elevated. */
   background: ${({ $active }) =>
     $active
-      ? 'color-mix(in srgb, var(--midnight-sapphire, #002060) 82%, transparent)'
-      : 'var(--carbon, #141419)'};
-  color: var(--frost-white, #e0ecf4);
+      ? 'color-mix(in srgb, var(--accent-primary, var(--ice-wing, #60c0f0)) 22%, var(--bg-elevated, #1a1a24))'
+      : 'var(--bg-elevated, #1a1a24)'};
+  color: ${({ $active }) =>
+    $active
+      ? 'var(--text-primary, #e0ecf4)'
+      : 'var(--text-secondary, rgba(224, 236, 244, 0.82))'};
   cursor: pointer;
   font: 700 13px/1 'Sora', sans-serif;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  &:hover { color: var(--text-primary, #e0ecf4); }
   &:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); outline-offset: 2px; }
 `;
 
@@ -132,11 +141,11 @@ export const StyleCard = styled.article<{ $active: boolean }>`
   border: 1px solid ${({ $active }) =>
     $active
       ? 'var(--ice-wing, #60c0f0)'
-      : 'color-mix(in srgb, var(--frost-white, #e0ecf4) 14%, transparent)'};
+      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 16%, transparent)'};
   background: ${({ $active }) =>
     $active
-      ? 'color-mix(in srgb, var(--midnight-sapphire, #002060) 70%, var(--carbon, #141419))'
-      : 'var(--carbon, #141419)'};
+      ? 'color-mix(in srgb, var(--accent-primary, var(--ice-wing, #60c0f0)) 16%, var(--bg-elevated, #1a1a24))'
+      : 'var(--bg-elevated, #1a1a24)'};
   overflow: hidden;
 `;
 
@@ -146,7 +155,7 @@ export const StyleSelect = styled.button`
   padding: 14px 44px 14px 14px;
   border: 0;
   background: transparent;
-  color: var(--frost-white, #e0ecf4);
+  color: var(--text-primary, #e0ecf4);
   text-align: left;
   cursor: pointer;
 
@@ -177,15 +186,40 @@ export const ChoiceGrid = styled.div`
   gap: 10px;
 `;
 
+/* Scrollable color grid: the full colorway catalog (all 38) now shows here instead of
+   a 12 cap, so the list needs its OWN scroll region. Fixes "I had more colors" (they
+   were hidden behind the featured cap) + "it should scroll up and down". */
+export const ColorGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scroll-padding-block: 8px;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--swan-lavender, #4070c0) transparent;
+
+  @media (max-width: 420px) { grid-template-columns: 1fr; max-height: 300px; }
+`;
+
+/* Count line above the color grid ("Showing all N colorways") — adaptive text. */
+export const ColorCount = styled.p`
+  margin: 0 0 10px;
+  color: var(--text-secondary, #b8c8d8);
+  font: 600 12px/1.3 'Sora', sans-serif;
+`;
+
 export const ChoiceButton = styled.button<{ $active: boolean }>`
   min-height: 52px;
   padding: 10px 12px;
   border-radius: 13px;
-  border: 1px solid ${({ $active }) => $active ? 'var(--ice-wing, #60c0f0)' : 'color-mix(in srgb, var(--frost-white, #e0ecf4) 16%, transparent)'};
-  background: ${({ $active }) => $active ? 'var(--midnight-sapphire, #002060)' : 'var(--carbon, #141419)'};
-  color: var(--frost-white, #e0ecf4);
+  border: 1px solid ${({ $active }) => $active ? 'var(--ice-wing, #60c0f0)' : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 18%, transparent)'};
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-primary, var(--ice-wing, #60c0f0)) 20%, var(--bg-elevated, #1a1a24))' : 'var(--bg-elevated, #1a1a24)'};
+  color: var(--text-primary, #e0ecf4);
   cursor: pointer;
   font: 700 13px/1.25 'Sora', sans-serif;
+  transition: background 0.18s ease, border-color 0.18s ease;
   &:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); outline-offset: 2px; }
 `;
 
@@ -198,7 +232,7 @@ export const ColorChip = styled.span<{ $bg: string; $primary: string; $accent: s
   vertical-align: middle;
   background: ${({ $bg, $primary, $accent }) =>
     `conic-gradient(${$primary}, ${$accent}, ${$bg}, ${$primary})`};
-  border: 1px solid color-mix(in srgb, var(--frost-white, #e0ecf4) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 24%, transparent);
 `;
 
 export const PreviewColumn = styled.div`
@@ -222,12 +256,12 @@ export const PreviewControls = styled.div`
     padding: 0 12px;
     border-radius: 11px;
     border: 1px solid color-mix(in srgb, var(--swan-lavender, #4070c0) 50%, transparent);
-    background: var(--carbon, #141419);
-    color: var(--frost-white, #e0ecf4);
+    background: var(--bg-elevated, #141419);
+    color: var(--text-primary, #e0ecf4);
     cursor: pointer;
     font: 700 11px/1 'Sora', sans-serif;
   }
-  button[aria-pressed='true'] { border-color: var(--ice-wing, #60c0f0); background: var(--midnight-sapphire, #002060); }
+  button[aria-pressed='true'] { border-color: var(--ice-wing, #60c0f0); background: color-mix(in srgb, var(--accent-primary, var(--ice-wing, #60c0f0)) 22%, var(--bg-elevated, #1a1a24)); }
   button:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); }
 `;
 
@@ -253,8 +287,8 @@ export const SecondaryButton = styled.button`
   padding: 0 18px;
   border-radius: 13px;
   border: 1px solid var(--swan-lavender, #4070c0);
-  background: var(--carbon, #141419);
-  color: var(--frost-white, #e0ecf4);
+  background: var(--bg-elevated, #141419);
+  color: var(--text-primary, #e0ecf4);
   cursor: pointer;
   font: 800 13px/1 'Sora', sans-serif;
   &:focus-visible { outline: 3px solid var(--ice-wing, #60c0f0); outline-offset: 2px; }
