@@ -1,0 +1,120 @@
+/**
+ * tools.test.mjs — bounded read-only investigation tool suite (Phase 4 slice 1).
+ * Run: node --test scripts/context-gateway/tests/tools.test.mjs
+ *
+ * The security tests matter most: the interactive loop must not become a ceiling bypass (T10),
+ * must not fan out past its call budget (T8), must never leak content into the audit, and must
+ * keep every read inside the safeRead jail (T1/T2/T5).
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { gitTrackedFiles } from '../src/safeRead.mjs';
+import { createToolSession, ToolError } from '../src/tools.mjs';
+
+function fixtureRepo() {
+  const root = join(mkdtempSync(join(tmpdir(), 'swan-tools-')), 'repo');
+  mkdirSync(join(root, 'backend', 'middleware'), { recursive: true });
+  mkdirSync(join(root, 'frontend', 'src', 'components'), { recursive: true });
+  const git = (...a) => execFileSync('git', ['-C', root, ...a], { stdio: 'pipe' });
+  git('init', '-q');
+  writeFileSync(join(root, 'backend', 'middleware', 'authMiddleware.mjs'), 'export function requireAuth(req){\n  return verifyToken(req);\n}\nverifyToken();\n'); // sensitive by path
+  writeFileSync(join(root, 'frontend', 'src', 'components', 'GlowButton.tsx'), 'export const GlowButton = () => {\n  return renderGlow();\n};\nrenderGlow();\nGlowButton();\n');
+  writeFileSync(join(root, 'backend', 'routes.mjs'), "router.post('/api/workout/sessions', saveWorkout);\n// mentions /api/workout/sessions in a comment\n");
+  writeFileSync(join(root, '.env'), 'SECRET=nope');
+  git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'fixtures');
+  return { root, tracked: gitTrackedFiles(root) };
+}
+
+const { root, tracked } = fixtureRepo();
+const std = () => createToolSession({ root, tracked });
+const design = () => createToolSession({ root, tracked, ceiling: 'design' });
+
+// ---------- T8: call budget ----------
+test('T8: call budget refuses fan-out past the cap', () => {
+  const s = createToolSession({ root, tracked, callBudget: 2 });
+  s.repo_search('render'); s.repo_search('render');
+  assert.equal(s.callsRemaining(), 0);
+  assert.throws(() => s.repo_search('render'), (e) => e.code === 'BUDGET');
+});
+
+// ---------- T10: ceiling ----------
+test('T10: design session withholds sensitive paths from search, reports count', () => {
+  const r = design().repo_search('verifyToken');
+  assert.ok(!r.files.some((f) => /authMiddleware/.test(f)), 'sensitive path withheld');
+  assert.equal(r.withheldByCeiling, 1);
+});
+
+test('T10: design session hard-refuses repo_open of a sensitive path', () => {
+  assert.throws(() => design().repo_open('backend/middleware/authMiddleware.mjs', 1, 3), (e) => e.code === 'CEILING');
+});
+
+test('T10: standard session may open sensitive paths', () => {
+  const w = std().repo_open('backend/middleware/authMiddleware.mjs', 1, 2);
+  assert.ok(w.content.includes('requireAuth'));
+});
+
+test('T10: design trace_symbol excludes sensitive hits but returns design hits', () => {
+  const r = design().trace_symbol('renderGlow');
+  assert.ok(r.definitions.length + r.references.length >= 1);
+  assert.ok([...r.definitions, ...r.references].every((h) => !/authMiddleware/.test(h.path)));
+});
+
+// ---------- jail still enforced (T1/T5) ----------
+test('jail: repo_open refuses traversal and DENY paths through the tool', () => {
+  assert.throws(() => std().repo_open('../outside.txt'), (e) => e.code === 'OUTSIDE_ROOT' || e.code === 'NOT_TRACKED');
+  assert.throws(() => std().repo_open('.env'), (e) => e.code === 'DENY_PATTERN');
+});
+
+// ---------- behavior ----------
+test('trace_symbol: splits definitions from references', () => {
+  const r = std().trace_symbol('requireAuth');
+  assert.ok(r.definitions.some((h) => /export function requireAuth/.test(h.text)), 'def found');
+});
+
+test('trace_api_path: route-defining lines rank as routes, comments as mentions', () => {
+  const r = std().trace_api_path('/api/workout/sessions');
+  assert.ok(r.routes.some((h) => /router\.post/.test(h.text)), 'route line classified');
+  assert.ok(r.mentions.some((h) => /comment/.test(h.text)), 'comment classified as mention');
+});
+
+test('trace_api_path: refuses a non-path arg', () => {
+  assert.throws(() => std().trace_api_path('workout'), (e) => e.code === 'BAD_ARGS');
+});
+
+test('git_context: returns commit subjects and refuses traversal', () => {
+  const r = std().git_context(['backend/routes.mjs']);
+  assert.ok(r.commits.length >= 1 && /fixtures/.test(r.commits[0]));
+  assert.throws(() => std().git_context(['../etc/passwd']), (e) => e.code === 'BAD_ARGS');
+});
+
+test('repo_search: scope filter narrows results', () => {
+  const all = std().repo_search('export');
+  const scoped = std().repo_search('export', { scope: 'frontend/' });
+  assert.ok(scoped.files.every((f) => f.startsWith('frontend/')));
+  assert.ok(all.files.length >= scoped.files.length);
+});
+
+// ---------- audit ----------
+test('audit: logs every call, ok flag, and summary — never file content', () => {
+  const s = std();
+  s.repo_open('backend/middleware/authMiddleware.mjs', 1, 2);
+  try { s.repo_open('.env'); } catch { /* refusal logged */ }
+  const a = s.getAudit();
+  assert.equal(a.length, 2);
+  assert.equal(a[0].tool, 'repo_open');
+  assert.equal(a[0].ok, true);
+  assert.equal(a[1].ok, false);
+  assert.equal(a[1].summary.reason, 'DENY_PATTERN');
+  const blob = JSON.stringify(a);
+  assert.ok(!blob.includes('requireAuth') && !blob.includes('verifyToken'), 'no file content in audit');
+});
+
+test('errors are typed', () => {
+  assert.ok(new ToolError('BUDGET', 'x') instanceof Error);
+  assert.throws(() => std().repo_search(''), (e) => e.code === 'BAD_ARGS');
+});

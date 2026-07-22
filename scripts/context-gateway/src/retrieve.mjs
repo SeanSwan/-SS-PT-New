@@ -29,6 +29,25 @@ export function searchFiles(root, needle) {
   }
 }
 
+/** git grep -n one fixed-string needle → [{path, line, text}] (text capped). For the tool layer. */
+export function grepDetailed(root, needle, { maxHits = 60 } = {}) {
+  let out = '';
+  try {
+    out = execFileSync('git', ['-C', root, 'grep', '-n', '-I', '--fixed-strings', '-e', needle],
+      { maxBuffer: 16 * 1024 * 1024 }).toString('utf8');
+  } catch (e) {
+    if (e.status === 1) return { hits: [], truncated: false };
+    throw e;
+  }
+  const all = out.split('\n').filter(Boolean);
+  const hits = [];
+  for (const l of all.slice(0, maxHits)) {
+    const m = l.match(/^(.+?):(\d+):(.*)$/);
+    if (m) hits.push({ path: m[1].replaceAll('\\', '/'), line: Number(m[2]), text: m[3].trim().slice(0, 200) });
+  }
+  return { hits, truncated: all.length > maxHits };
+}
+
 /** Match lines for a set of needles INSIDE one file. Returns line numbers (capped, per-file). */
 export function matchLines(root, path, needles, { maxLines = 12 } = {}) {
   const lines = [];
