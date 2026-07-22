@@ -15,17 +15,33 @@ As of Phase 3:
 - `.claude/skills/` does **not** contain `frontend-design` or `ui-ux-pro-max`. Their former junction entries have been removed from the default-exposed surface.
 - The canonical source locations for both are at `.agents/skills/`. This router loads them **by file path** from there.
 - The 8 quarantined aesthetic/review skills have been relocated to `archive/quarantined-skills/2026-04-12/` and are no longer on the default-exposed surface. They remain reversible via `git mv` back.
-- If either reference-library path is not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
+- If either reference-library path is not present at runtime, the router continues with the already-loaded authoritative sources and reports the missing reference explicitly in the task thread rather than silently degrading. This fallback never overrides the stop condition for missing or stale source-of-truth files in load-order items 1-2.
 
 ## Load order (authoritative)
 
 1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
 2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
 3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts), 40-41 (design + closeout routing)
-4. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
-5. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
+4. **`docs/ai-workflow/design-brain/index.md`** — the Design Brain (rule 40, added 2026-07-03). `design.md` is canonical; `design.html` is its visual mirror and design.md wins on any conflict. Load `design.md` plus only the topic files the task needs (`motion.md`, `components.md`, `anti-patterns.md`, `qa-gates.md`, `website-archetypes.md`, `cinematic-pages.md`, `external-reference-mcp.md` for Mobbin/Mobbin-like research, the matching `adapters/` file). The Design Brain is **subordinate** to SWAN-CINEMATIC-DESIGN-SYSTEM.md — on any conflict, item 1 wins. Adapters never coin tokens; semantic colors are success=Ice Wing / warn=Gilded Fern / info=Swan Lavender / danger=#E5484D.
+5. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
+6. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
 
-If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
+Fallback precedence is deterministic:
+- If item 1 or item 2 is missing, unreadable, or older than the current `CLAUDE.md` active palette, stop and notify Sean before proceeding. The design base is out of sync, and no lower-priority fallback may continue the task.
+- If item 4 (`docs/ai-workflow/design-brain/`) is missing or unavailable while items 1-3 are valid, proceed from items 1-3 and report the missing Design Brain explicitly in the task thread.
+- If item 5 or item 6 is missing or unavailable while items 1-4 are valid, proceed from the loaded authoritative sources and report the missing reference library explicitly in the task thread.
+
+## External reference intake - Mobbin/Mobbin-like MCP
+
+For net-new pages, major redesigns, Fable/Village design-implementation slices, or any prompt asking for modern UI references, run `docs/ai-workflow/design-brain/external-reference-mcp.md` before the concept-direction gate. First check whether a Mobbin/Mobbin-like connector is callable. If it is callable, use `search screens`, `search flows`, and `search sections` as appropriate, produce the external-reference receipt, then translate the extracted principles into Swan B2/C-pattern language.
+
+If the connector is not callable in the current client, write `[MOBBIN UNAVAILABLE]` in the receipt and proceed from Swan source docs. Small polish, bugfix, and backend-only tasks can mark the gate not applicable. Never commit MCP connector URLs, OAuth URLs, screenshots, tokens, or copied external UI. External references are inputs; `SWAN-CINEMATIC-DESIGN-SYSTEM.md` still wins every conflict.
+
+### Two aesthetic lanes — Mobbin is NOT the ceiling
+
+Mobbin (and Mobbin-like real-product reference) is the lane for **conventional app-UI** — dashboards, forms, flows, settings, portals: the surfaces where the job is *task completion* and the win is convention done crisply. Do not expect Mobbin to make a surface feel *magical* — that was never its job, and mistaking it for the taste ceiling is why conventional-reference-driven work can feel "fine but not special."
+
+The **higher aesthetic ceiling** for hero/landing/showcase/brand surfaces — the surfaces whose job is *awe* — is the **Extreme Macro-Journey grammar (§B2.4)** and the **C13 scroll-bound macro-journey** pattern, produced via `cinematic-pages.md`. When a surface's job is to make a stranger stop breathing, steer to that lane, not to Mobbin. Two lanes, no conflict: Mobbin for the working surfaces, the cinematic-journey tier for the awe surfaces. A surface can even use both (a cinematic Act-1 hook over a Mobbin-crisp conversion section below).
 
 ## Ideation gate — 2-3 concept directions before coding (MANDATORY for net-new surfaces and major redesigns)
 
@@ -87,11 +103,25 @@ WHY IT FITS THE PAGE STORY: [2-3 sentences naming what this direction does that 
 WHY IT COULD BE WRONG: [one explicit tradeoff or risk — "heavier on motion, may not land on tier-3", "asset-heavy, requires Seedance run first", etc.]
 ```
 
+### Breadth pass before the directions (net-new AWE surfaces — marketing/showcase/brand)
+
+For a net-new marketing/showcase/brand surface whose Act-1 job is **awe**, and where the concept space is still open (Sean has not already handed a concept), run the **concept-breadth pass** BEFORE developing the 2-3 directions (full doctrine: `cinematic-pages.md` §18):
+
+1. Generate **8-12 radically different awe concepts** — each one line, most in the `inside → through → across → out` shape (SWAN-CINEMATIC-DESIGN-SYSTEM.md §B2.4), but **at least 3 must be non-macro or use a sanctioned variant** (reverse journey / orbit / time-lapse metamorphosis / human-scale transformation) — a field of 12 identical macro-journeys is breadth theater, one concept twelve times. Radically different = different object/scale/strategy, not palette swaps; two concepts sharing the same starting object count as one.
+2. Every concept must resolve to real Swan brand meaning AND contain a brand-ownable object (swan anatomy, wing geometry, Crystalline refraction, the vault, real training detail) — breadth is over *worlds*, not over whether it's on-brand, and an abstract-particle journey with a logo at the end is rejected.
+3. Present the field **ranked, with a one-line "why this could win" per concept** — then let Sean's taste cut it to the 2-3 worth developing. Do NOT silently pick; surface the field so the human's taste is the selector (ideas are cheap for the model, taste is the human's job).
+4. The surviving 2-3 become the full concept directions below.
+
+Skip the breadth pass when: the surface is a working/dashboard surface (awe is not its job), or Sean already handed a concept (develop his directly). This is the front of the ideation gate, not a replacement for it.
+
+**On C13 (the whole-page scroll-film): the default answer is NO.** C13 is maximalist and highest-risk — the risk is *premature* use. Offer a full C13 direction only when awe is the entire job, there is exactly one CTA, and Sean has (or will) sign off on a §18 breadth pass + Seedance budget. Absent that, the awe hook is C1/C3 (video-as-accent Act-1), not a whole-page scrub. Scarcity keeps C13 premium.
+
 ### Rules for the 2-3 directions
 
 1. **They must be meaningfully different.** Three variations of the same hero pattern with different palettes is not three directions. Three directions must disagree about the *story structure*, *pattern stack*, or *signature moment*.
 2. **At least one must be on the more restrained side.** Do not present three maximalist directions. One of the 2-3 must be lower-motion, lower-asset-weight, faster-to-ship — so Sean has a real tradeoff space.
 3. **At least one must use Act 1's emotional target of "awe"** (for marketing) or "orientation clarity" (for dashboards). The opening beat is where Swan wins or loses the user.
+   - **For marketing/showcase/brand surfaces, at least one direction's awe hook must be an Extreme Macro-Journey** (SWAN-CINEMATIC-DESIGN-SYSTEM.md §B2.4) with its four beats (inside/through/across/out) named explicitly. Awe is not left to chance. If the surface warrants the maximalist treatment, one direction may be a full **C13 Scroll-Bound Macro Journey** (the creative IS the page) — flag it as the higher-effort/higher-ceiling option with its 60fps-scrub + tour-mode gates called out.
 4. **No direction may violate CLAUDE.md rules 1-11, 22-25, or the Dual-Button Glow rule.** All three must be valid Swan directions.
 5. **Each direction must be implementable end-to-end.** Do not present an exploratory fragment as a concept direction. If it cannot be built with the existing pattern library (C1-C12), name the new pattern it would require.
 
@@ -218,6 +248,7 @@ Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
 | C10 Narrative section divider | every major section boundary |
 | C11 Premium dashboard chart environment | every Victory chart in dashboards |
 | C12 Subtle electric / glass panel system | underlying card/modal/drawer treatment |
+| C13 Scroll-bound macro journey (creative IS the page) | one flagship pure-awe surface; scroll drives the video playhead — governed by cinematic-pages.md §8, gates: 60fps scrub + tour mode |
 
 ## Asset flow (when a task needs generated media)
 

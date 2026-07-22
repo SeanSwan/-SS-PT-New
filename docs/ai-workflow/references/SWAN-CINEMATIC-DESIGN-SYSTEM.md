@@ -179,6 +179,55 @@ Before opening any styled-components file for a new page or redesign:
 
 ---
 
+## B2.4 The Extreme Macro-Journey concept grammar (the awe engine)
+
+Most Swan pages that "feel generic" fail at Act 1 — the hook is a nice hero, not an *awe* hook. This section is the repeatable grammar for manufacturing awe on demand. It is the single most important addition to the Swan taste ceiling: it is the aesthetic tier that lives **above** conventional app-UI reference (Mobbin and the like govern dashboards, forms, and flows; this grammar governs hero/landing/showcase/brand surfaces — the surfaces whose job is to make a stranger stop breathing for a second).
+
+### The formula
+
+A macro-journey Act-1 hook is **one continuous camera move that travels through scale**, following this four-beat shape:
+
+1. **START INSIDE something small.** Never open on a wide establishing shot. Open *inside* a single object at extreme macro scale — inside one bubble, on the wall of one dissolving capsule, on the hexagonal lattice of a single ice crystal, inside a single droplet, between two fibers of muscle tissue. The viewer does not yet know where they are. That disorientation is the hook.
+2. **PUSH THROUGH a membrane / boundary.** The camera moves *forward* and passes through a surface — through the bubble's skin into liquid, through the capsule wall into a cloud of powder, through the crystal's surface into its molecular interior. The "push-through" is the beat that says *this is a journey, not a photograph.*
+3. **TRAVEL through a field.** Between boundaries, the camera drifts through a populated space — rising carbonation threads, floating granules each catching light, orbiting particles, a lattice of light. This is where the scroll *earns* its length: the field is what the user scrubs through.
+4. **BREAK a surface / ARRIVE.** The journey resolves by breaking OUT — breaking the meniscus and surface tension of a glass, condensing onto skin, cresting a horizon, arriving at the product or the wordmark. The arrival is the payoff and, usually, where the first CTA becomes earned.
+
+**The through-line: `inside → through → across → out`.** Every strong macro-journey is a legible change of scale and a legible forward motion. If a viewer can't tell they moved *forward* and *through scale*, it isn't a journey — it's a pan.
+
+### Worked concept seeds (the shape, not a menu to copy)
+
+| Seed | Start inside | Push through | Travel across | Break out / arrive |
+|---|---|---|---|---|
+| Frozen-forest vault | inside a single snowflake's arm | through the ice surface | across a lattice of suspended frost particles | crest into the vault interior + wordmark |
+| Living muscle | between two muscle fibers at cellular scale | through the fascia sheath | across a field of firing motor units (light pulses) | out to the athlete mid-rep, form perfect |
+| Deep-ocean luxury | inside a single bioluminescent bubble | through the bubble skin into dark water | across drifting light-plankton | break the surface into the storefront |
+| Crystalline geode | inside one facet's internal fracture | through the crystal wall | across a cavern of slow-rotating shards | out to the product on a pedestal of light |
+
+These seeds are illustrative of the *shape*. The correct move is to generate your own against the page's mood words (§ cinematic-pages.md §1) and Swan verticals (fitness, deep-ocean, frozen-forest, cosmic) — never to clone one of these four.
+
+### Sanctioned variants (the grammar is not a monoculture)
+
+`inside → through → across → out` is the **default** awe grammar, but it only covers *ingress* (traveling in and arriving out). Two more shapes are sanctioned so every Swan hero doesn't open the same way:
+
+- **Reverse journey** — `out → across → through → in`. Open on the athlete / the landscape / the finished product, then push *into* the body, the crystal, the material. Use when the brand moment is **intimacy**, not arrival — "come closer" rather than "behold."
+- **Orbit** — `around → tightening spiral → in`. Circle a subject, spiraling closer. Use for **product-as-monument** — the piece treated as an object worth orbiting.
+- Non-macro awe hooks (a time-lapse metamorphosis, a human-scale transformation) remain legal via the §18 breadth pass. Macro is the *default* awe grammar, not the only one. (See the generic-killer rule below: a portfolio where every hook is a macro "start-inside-an-object" is itself generic at the site level.)
+
+### Rules for using the grammar
+
+- **Scope — where the grammar lives vs. where C13 lives (read this, it resolves the two scopes).** The four beats **power the Act-1 hook of any page tier** — rendered via C1 (video hero) or C3 (sticky) inside a normal full 4-act page, where the hook produces the signature moment and Acts 2-4 follow as usual. **C13 (§C13) is the rare *whole-page* deployment** where the journey IS all four acts and the arrival carries the only CTA. Decision rule: if your sitemap has **>0 sections below the fold**, you are building an Act-1 hook (C1/C3), NOT C13. C13 is only when the journey is the entire page.
+- **Scale change must be real.** "A cool video" is not a macro-journey. The camera must demonstrably move through scale (micro→macro or the reverse), passing at least one membrane. One membrane minimum; two is the sweet spot; three starts to feel like a screensaver.
+- **The arrival must land on brand meaning.** The journey resolves at something that *matters* — the product, the wordmark, the transformed user, the storefront threshold. A journey that arrives nowhere is decoration (§B ban 9).
+- **The creative must contain a brand-ownable object.** The journey must travel through or arrive at something that could not appear in any other brand's film — swan anatomy, wing geometry, Crystalline refraction, the frozen-forest vault, real training/muscle detail. A scrubbed abstract-particle field with a logo at the end is a lava lamp with a CTA — generic, and rejected at review. Awe with no brand ownership fails.
+- **Assets:** this is exactly the raw material `cinematic-pages.md` §8 (scroll-scrubbed sequence) and the Seedance cinematic skill are built to produce. The grammar is the *concept*; those docs are the *production*. Write the four beats into the Seedance brief as the shot description.
+- **When NOT to use it:** working surfaces (dashboards, portals, operator tools). A macro-journey on an admin dashboard is theater where the user wants speed. Restrict this grammar to marketing/showcase/brand Act-1 hooks — the surfaces whose job is awe, not task-completion.
+
+**Generic-killer rule (site-level):** if two consecutive Swan surfaces open at the same scale with the same beat structure, the second is generic *regardless of subject* — "inside a bubble" then "inside a crystal" is the same hook twice. Vary the awe grammar (ingress vs reverse vs orbit vs non-macro), not just the object. The macro-journey is a tool against generic heroes; over-applied identically, it becomes the new generic.
+
+**Ideation output requirement:** when a net-new marketing/showcase surface enters the router's ideation gate, at least one of the 2-3 concept directions must open with an Extreme Macro-Journey hook, and its four beats (inside/through/across/out, or a sanctioned variant) must be named explicitly. Awe is not left to chance.
+
+---
+
 ## C. Layout and interaction pattern library
 
 Each pattern below has: **name**, **what it is**, **when to use**, **mandatory tier-2/tier-3 fallbacks**, **anti-pattern to avoid**.
@@ -403,6 +452,59 @@ border: 1px solid rgba(96, 192, 240, 0.1);
 ```
 
 Use one of these three baselines on every content card. Do not invent a fourth.
+
+### C13. Scroll-Bound Macro Journey (the creative IS the page)
+
+**What it is.** The whole page is one continuous macro-journey video (§B2.4), and **scroll position drives the video's playhead** — scroll down and the camera pushes forward through the journey; scroll up and it reverses. The DOM barely moves: thin typographic beats and a single CTA fade in and out over the moving creative at chosen scroll depths. This is the inversion of C1. In C1 the video is a *background behind* a glass foreground panel; in C13 **the video is the experience and the UI is a whisper on top of it.** This is the pattern behind the Kimi-K3-class scroll-film sites — and the aesthetic tier that sits above conventional app-UI reference.
+
+**The governing idea (say it out loud before building):** *the creative is the heavy lifter.* The site looks like a lot is happening, but almost nothing in the DOM is animating — it is the video, bound to scroll, doing the work. Design effort goes into the creative (the macro-journey shot) and the smoothness of the scrub, not into a pile of DOM animations.
+
+**When to use.** Flagship brand statements, launch/reveal moments, a single hero showcase surface where awe is the entire job and there is exactly one CTA. This is a *maximalist* choice — one such page per site, at most. Never for a page that must convey a lot of information or offer many actions.
+
+**When NOT to use (hard).** Any dashboard, portal, operator tool, pricing page, or content-dense marketing page. If the page has more than one primary action or needs to be read (not felt), C13 is the wrong pattern — use C1 (video as accent) instead.
+
+**How to build.** This is the full craft in `docs/ai-workflow/design-brain/cinematic-pages.md` §8 (scroll-scrubbed frame sequences) — read it before building. In short:
+- Concept from the Extreme Macro-Journey grammar (§B2.4): inside → through → across → out (or a sanctioned variant).
+- Generate the source video (Seedance cinematic skill / the pipeline in cinematic-pages.md), then interpolate to 60fps so the scrub is not choppy (30fps scrubbing shows every frame and reads as janky — smoothness is a quality gate, not a nicety).
+- Extract frames → paint via `<canvas>` + `requestAnimationFrame`, drawing only when the computed frame index changes; map frame index to scroll progress **through the scroll-physics layer below, never raw**.
+- **Decode ahead of the playhead:** `createImageBitmap` + preload the next ±10 frames in the scroll direction so `drawImage` never blocks on decode (a decode stall reads as a freeze). Frames never block first paint.
+- A **grain overlay on the canvas** (2-5% noise, §B texture rule) hides AI-interpolation shimmer between generated frames — without it the interpolation "swims."
+- A **tour / autoplay mode** ("watch it" / flow-tour button, C13 companion control) plays the journey start-to-finish on its own for users who don't want to scroll — this is both an engagement affordance and an accessibility one.
+- Typography beats and the single CTA are `position: fixed`/`sticky` overlays that fade in at scroll thresholds; they never compete with the creative for motion. Give each beat **1-2% counter-parallax drift** (moves slightly against the journey) so the DOM doesn't feel dead-glued over a moving world.
+
+**Scroll physics — the feel layer (the entire difference between magical and broken).** This is the single most important part of C13; a build that skips it ships the "damaged video" feel no matter how good the asset is.
+- **Never bind frame index directly to `scrollY`.** Bind it to a **damped target**: each rAF tick, `current += (target - current) * 0.085` (lerp `0.07–0.12`; lower = more cinematic lag, higher = more responsive). The damping is where the cinematic feel lives.
+- **Clamp per-tick frame delta to ≤3 frames** so a momentum fling reads as a fast-forward, not a teleport through 20 frames.
+- **Native scroll only — never hijack `wheel`/`touch` events.** Smoothing lives in the *mapping*, not by intercepting input. Hijacked scroll is the #1 way these pages feel broken and trap users.
+- **Reverse travel must be as smooth as forward** — pre-buffer frames in both directions; scrolling up must not stutter.
+- **Beat thresholds land on narrative moments, not even splits.** The beat-2 text appears exactly at the membrane break, arrival text exactly at the arrival frame — not at mechanical 25% marks. Even splits are the generic smell.
+- Rule of thumb: **if you can't state your damping constant and your frame-delta clamp, you haven't built C13** — you've bound a video to a scrollbar.
+
+**Scroll runway (pacing).** C13 runway is **400–800vh** of scroll travel (4–8 viewport heights), distributed across the four beats roughly **20 / 25 / 35 / 20** (the "across" field is the longest — it's what the user scrubs). The single CTA arrives at **exactly the final frame** — not 90%, not 110%. Ship a hairline progress indicator (1–2px, `var(--ice-wing, #60C0F0)`) so the user can feel the journey's length. (The §5 8–14vh scene caps govern per-scene flowing pages, NOT a whole-page scrub — this runway rule is C13's own.)
+
+**Tiers — and mobile is a different product.**
+- **Mobile default is Tier 2 (autoplay loop), NOT scrub.** Touch-scrub without damping is unusable and iOS chrome-collapse shifts the viewport mid-scene. Promote a phone to scrub only if ALL hold: no `saveData`, `navigator.hardwareConcurrency ≥ 6`, and the DPR-adjusted frame payload stays ≤2MB. State the chosen tier per breakpoint in the scene ledger. Say it plainly: **touch scrub is the exception, autoplay is the rule.**
+- All pinned / scroll-driven scenes use **`100dvh`, never `vh`** (with `invalidateOnRefresh` / recompute on viewport-height change), or the mobile address-bar collapse visibly re-lays-out the scene.
+- **Tier 2 (lean / mobile default).** The macro-journey plays as a normal autoplaying looped `<video>` (not scroll-bound), muted + `playsinline`; scroll just moves the page past it. Overlay beats still fade in. Ships with a visible pause control (WCAG 2.2.2).
+- **Tier 3 (reduced motion).** `prefers-reduced-motion: reduce` → the single strongest composed frame as a static hero + beat + CTA, **no exceptions** (never a slower autoplay). Tour mode remains available but strictly user-initiated. The story survives as one poster (§ cinematic-pages.md §10, §14).
+
+**Resolution ladder (or the flagship upscales soft on the exact monitors Sean uses).** 60–120 frames at ≤4–6MB works at ~1440w but is NOT sharp at 2560w/3840w — a soft-upscaled 4K hero is the opposite of premium. Ship a ladder: **1280w / 1920w / 2560w** frame sets (AVIF first, WebP fallback); **above a 2560w viewport, serve the Tier-2 `<video>`** (hardware-decoded, scales cleaner than upscaled frames) instead of the frame sequence. The byte budget applies per served set; the ledger records which set each breakpoint gets.
+
+**Quality gates specific to C13.**
+- **Scrub-feel is mandatory (not just fps).** Damping + ≤3-frame clamp + bidirectional pre-buffer present, or it reads as broken. "Choppy on scroll" AND "teleporting on fling" both = not done.
+- **Smoothness ≥60fps** — interpolate the source or raise frame density (cinematic-pages.md §8 economics).
+- **Tour mode is mandatory,** not optional — a scroll-only experience excludes users who can't or won't scroll-scrub. Tour mode and any autoplay loop ship with a **visible pause control, ≥44px, keyboard-focusable, focus ring `var(--wing-purple, #8B5CF6)`** (WCAG 2.2.2).
+- **Canvas accessibility:** the canvas carries `role="img"` + an `aria-label` narrating the journey ("Camera travels through a crystalline geode, arriving at the SwanStudios wordmark"). Typographic beats are **real DOM text, never baked into the video** — so screen readers and keyboard reach them. With the scene region focused, **ArrowDown/ArrowUp step the playhead between beats** (the reason beats are DOM, not pixels).
+- **Contrast holds at EVERY frame, not the brightest.** Text beats sit on a persistent scrim — `linear-gradient(180deg, transparent, var(--obsidian, #0A0A0F) 78%)`, or a radial behind the CTA cluster — so luminance can't drown the text as the video moves. Sample-check at the three brightest beats, not one. (Supersedes the naïve "4.5:1 at the brightest frame" test.)
+- **House rules do not exempt C13:** the single CTA obeys Dual-Button Glow (blue bg → purple glow / purple bg → cyan glow); every overlay control is ≥44px; all beat/scrim/indicator colors are `var(--token, #fallback)` with Crystalline fallbacks; no hardcoded hex, no Galaxy-Swan, no Tailwind/MUI.
+- **The first painted frame must sell the page alone** (cinematic-pages.md §14) — before any scroll, the hero frame + beat + CTA is judged as a standalone poster.
+- Remaining cinematic hard caps (cinematic-pages.md §15.1) apply: LCP ≤2.5s poster-first, sequence payload ≤4–6MB desktop / ≤2MB mobile per served set.
+
+**Default answer is NO.** C13 is the maximalist, highest-risk pattern; the risk is *premature* use, not over-use. C13 requires a completed §18 breadth pass AND Seedance-budget sign-off — absent either, the answer is C1 (video-as-accent). Scarcity is what keeps it premium.
+
+**Sound (optional, mute-first).** Default silent (autoplay policy + taste both demand it); silence is never a defect, bad autoplay audio is. Doctrine claims the option: an optional user-initiated audio layer, off by default, toggle ≥44px, choice persisted; if scored, score to the beats (membrane break = sub-bass thump, arrival = resolve).
+
+**Anti-pattern.** (1) A scroll-bound video with a full conventional website stacked below it — that's C1 wearing a costume; C13's whole point is that the creative *is* the page (if you're adding feature grids/testimonials under the journey, you wanted C1 / archetype #1). (2) Shipping the scrub at 30fps, or with raw `frame = f(scrollY)` mapping, and calling the jank "cinematic" — it reads as broken, not filmic. (3) A scrubbed abstract-particle field with a logo at the end — a lava lamp with a CTA; the creative must contain a brand-ownable object (§B2.4).
 
 ---
 
