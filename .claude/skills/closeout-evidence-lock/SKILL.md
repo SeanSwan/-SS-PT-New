@@ -88,7 +88,36 @@ Loop mechanics (each round, before the checklists below):
      ledger. The closeout MUST end with the literal marker `DRY-LOOP: CLEAN×2
      (rounds: N)` — or `DRY-LOOP: N/A — <reason>` for genuinely non-build turns.
      The marker is a CLAIM: emitting it without the rounds behind it violates
-     rules 19/28.
+     rules 19/28. NOTE: the hook can only verify the marker STRING is present — it
+     CANNOT judge whether the rounds were exhaustive. That honesty is on you.
+
+  7. INDEPENDENT-PASS ESCALATION (Sean, 2026-07-22 — security-critical/multi-module
+     work). Self-conducted rounds have a blind spot: the reviewer is the author, and
+     "two clean rounds from vantages I picked" is NOT "an independent complete pass
+     finds zero." Proven 2026-07-22 on the Context Gateway — self-review declared
+     CLEAN×2 for six turns while INDEPENDENT reviewers then found 32 real defects
+     (2 HIGH secret-egress leaks, a prompt-injection breakout, a ReDoS class that hid
+     across four passes). THEREFORE, when the task touches a SECURITY BOUNDARY
+     (secret/PII egress, auth/authz, a provider/network trust boundary, spend, a
+     ceiling/allowlist) OR spans MANY MODULES:
+       a. Each dry-loop round MUST be an INDEPENDENT full-surface pass — dispatch a
+          fresh subagent reviewer (Agent tool, general-purpose or code-reviewer) that
+          reads EVERY file in the changed surface with an attacker remit, not a
+          targeted probe you steer. Independent context is the cheapest honest examiner.
+       b. Convergence requires TWO CONSECUTIVE INDEPENDENT passes returning zero
+          MATERIAL findings — not two self-picked clean rounds. The self-pass counts
+          as round 0, never toward the two-clean bar.
+       c. A fix applied in response to a finding RESETS the count: the next pass must
+          be independent and clean, then one more. (A fix can INTRODUCE a defect — the
+          EMAIL redaction fix was itself a ReDoS; only the next independent pass caught it.)
+       d. A regex/parser/ReDoS fix, or any fix to a shape-matching rule, MUST cover the
+          whole CLASS (every sibling with the same construct) AND ship a per-class
+          regression test — or the same defect resurfaces in the sibling next pass.
+       e. Cost is not a reason to stop: independent passes are ~200-250k tokens each and
+          that is the correct spend for a production security boundary. Record each pass
+          in the ledger as "Round N (independent) — CLEAN | N findings → fixed".
+     For non-security, single-module work, self-conducted rounds (items 1-5) remain
+     sufficient — do NOT burn independent passes on a one-file bugfix.
 
 Hostile review checklist (apply EVERY round):
   [ ] stale state / race conditions
