@@ -90,7 +90,7 @@ const CrystallineBody: React.FC<{ groups: ReadinessGroup[] }> = ({ groups }) => 
         {/* silhouette spine — quiet armature so sparse regions still read as one body */}
         <line x1="100" y1="46" x2="100" y2="330" stroke="var(--handoff-card-border, rgba(96,192,240,0.14))" strokeWidth="1" />
 
-        {groups.length >= 0 && FRONT_VIEW_REGIONS.map((region) => {
+        {FRONT_VIEW_REGIONS.map((region) => {
           const state = stateForRegion(region.muscleGroup, byGroup);
           const { cx, cy, rx, ry } = region.svgCoords;
           return (
@@ -114,10 +114,14 @@ const CrystallineBody: React.FC<{ groups: ReadinessGroup[] }> = ({ groups }) => 
           );
         })}
 
-        {/* one slow prismatic caustic — a light breath across the facets */}
+        {/* one slow prismatic caustic — a light breath across the facets.
+            skew lives on the PARENT g: the child's CSS translate animation would
+            override an SVG transform attribute on the same element. */}
         <g clipPath="url(#crystalClip)">
-          <rect className="sheen" x="-40" y="0" width="34" height="420"
-            fill="var(--text-primary, #E0ECF4)" transform="skewX(-18)" />
+          <g transform="skewX(-18)">
+            <rect className="sheen" x="-40" y="0" width="34" height="420"
+              fill="var(--text-primary, #E0ECF4)" />
+          </g>
         </g>
       </Svg>
     </Wrap>
