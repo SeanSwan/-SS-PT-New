@@ -44,7 +44,7 @@ export class ToolError extends Error {
  * @param {number} [opts.callBudget=24]     max total tool calls this session
  * @param {number} [opts.maxHits=60]        cap on list-shaped results
  */
-export function createToolSession({ root, tracked, ceiling = 'standard', callBudget = 24, maxHits = 60 }) {
+export function createToolSession({ root, tracked, ceiling = 'standard', callBudget = 24, maxHits = 60, maxResultChars = 8000 }) {
   const reader = createSafeReader({ root, tracked });
   const catalog = tracked.has('docs/ai-workflow/CATALOG.md')
     ? parseCatalog(reader.readWindow('docs/ai-workflow/CATALOG.md').content) : new Map();
@@ -91,8 +91,12 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
         // T3 content half: redact inline secret VALUES from returned content (a non-DENY file can
         // still hold a hardcoded key). Path already passed DENY + ceiling above.
         const red = redactSecrets(w.content);
-        log('repo_open', { path, startLine: w.startLine, endLine: w.endLine }, true, { chars: red.text.length, secretsRedacted: red.redactions });
-        return { ...w, content: red.text, secretsRedacted: red.redactions };
+        // Cap tool-result size: a model requesting a huge window must not blow context/cost in the
+        // loop. Truncation is flagged, never silent — the model can page with a narrower window.
+        const truncated = red.text.length > maxResultChars;
+        const content = truncated ? red.text.slice(0, maxResultChars) : red.text;
+        log('repo_open', { path, startLine: w.startLine, endLine: w.endLine }, true, { chars: content.length, secretsRedacted: red.redactions, truncated });
+        return { ...w, content, secretsRedacted: red.redactions, truncated };
       } catch (e) {
         log('repo_open', { path }, false, { reason: e.code ?? 'READ_ERROR' });
         throw e instanceof SafeReadError ? e : new ToolError('BAD_ARGS', String(e.message));

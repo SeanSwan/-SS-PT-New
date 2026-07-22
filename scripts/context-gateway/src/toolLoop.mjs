@@ -39,16 +39,19 @@ const DISPATCH = {
   git_context: (s, a) => s.git_context(a.paths),
 };
 
-/** Execute one model-requested tool call, returning a JSON-string result the model can read. */
+/**
+ * Execute one model-requested tool call. Returns { ok, payload } — ok is EXPLICIT (never inferred
+ * by sniffing the payload string for "error", which a legitimate tool result could contain).
+ */
 function runToolCall(session, call) {
   const name = call.function?.name;
   const fn = DISPATCH[name];
-  if (!fn) return JSON.stringify({ error: `unknown tool: ${name}` });
+  if (!fn) return { ok: false, payload: JSON.stringify({ error: `unknown tool: ${name}` }) };
   let args;
   try { args = JSON.parse(call.function.arguments || '{}'); }
-  catch { return JSON.stringify({ error: 'arguments were not valid JSON' }); }
-  try { return JSON.stringify(fn(session, args)); }
-  catch (e) { return JSON.stringify({ error: e.code ?? 'TOOL_ERROR', message: String(e.message).slice(0, 200) }); }
+  catch { return { ok: false, payload: JSON.stringify({ error: 'arguments were not valid JSON' }) }; }
+  try { return { ok: true, payload: JSON.stringify(fn(session, args)) }; }
+  catch (e) { return { ok: false, payload: JSON.stringify({ error: e.code ?? 'TOOL_ERROR', message: String(e.message).slice(0, 200) }) }; }
 }
 
 /**
@@ -87,9 +90,9 @@ export async function runToolLoop({ provider, packet, manifest, evidence, sessio
       return { answer: turn.message.content ?? '', audit, iterations, totalCost, toolTrace: trace, sessionAudit: session.getAudit(), stopReason };
     }
     for (const call of calls) {
-      const result = runToolCall(session, call);
-      trace.push({ iteration: iterations, tool: call.function?.name, ok: !result.includes('"error"') });
-      messages.push({ role: 'tool', tool_call_id: call.id, content: result });
+      const { ok, payload } = runToolCall(session, call);
+      trace.push({ iteration: iterations, tool: call.function?.name, ok });
+      messages.push({ role: 'tool', tool_call_id: call.id, content: payload });
     }
   }
   // ran out of iterations or budget without a final content answer

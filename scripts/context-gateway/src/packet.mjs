@@ -19,7 +19,7 @@
  */
 
 export const AUTHORITY_TIERS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
-const CITATION_RE = /\[(E\d{3}):L(\d+)-L(\d+)\]/g;
+const CITATION_RE = /\[(E\d{3,}):L(\d+)-L(\d+)\]/g; // E001..E999 today; {3,} survives a >999-evidence packet
 
 export class PacketError extends Error {
   constructor(code, message) {
@@ -75,7 +75,7 @@ export function createPacket({ question, headSha, originatingModel, issue = null
 
     /** Validate ONE citation string like "E014:L91-L138" (brackets optional). */
     validateCitation(cite) {
-      const m = String(cite).match(/^\[?(E\d{3}):L(\d+)-L(\d+)\]?$/);
+      const m = String(cite).match(/^\[?(E\d{3,}):L(\d+)-L(\d+)\]?$/);
       if (!m) return { ok: false, reason: 'SYNTAX' };
       const ev = evidence.find((e) => e.id === m[1]);
       if (!ev) return { ok: false, reason: 'UNKNOWN_ID' };

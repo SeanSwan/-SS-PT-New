@@ -69,6 +69,15 @@ test('happy path: model calls a tool, then answers; answer is citation-audited',
   assert.ok(fetch.bodies[1].messages.some((m) => m.role === 'tool'));
 });
 
+test('tool trace ok flag is explicit, not string-sniffed from the payload', async () => {
+  // catalog_search returns rows whose text can legitimately contain the word "error"; a successful
+  // call must still be logged ok:true (regression for the old result.includes(\"error\") heuristic).
+  const s = setup();
+  const fetch = mockFetch([toolCall('trace_symbol', { symbol: 'saveWorkout' }), { role: 'assistant', content: 'ok [E001:L1-L2]' }]);
+  const r = await runToolLoop({ provider: getProvider('sol'), ...s, fetchImpl: fetch, env: ENV });
+  assert.equal(r.toolTrace[0].ok, true, 'successful tool call logged ok:true regardless of payload text');
+});
+
 test('iteration budget: a model that never stops calling tools terminates', async () => {
   const s = setup();
   const fetch = mockFetch([toolCall('repo_search', { query: 'db' })]); // always the same tool call

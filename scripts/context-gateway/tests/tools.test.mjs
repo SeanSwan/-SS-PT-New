@@ -79,6 +79,22 @@ test('T10: design trace results carry NO line text (a line can mention sensitive
 });
 
 // ---------- jail still enforced (T1/T5) ----------
+test('repo_open: caps result size and flags truncation (no context blowout in the loop)', () => {
+  const { root, tracked } = (() => {
+    const r = join(mkdtempSync(join(tmpdir(), 'swan-cap-')), 'repo');
+    mkdirSync(r, { recursive: true });
+    const git = (...a) => execFileSync('git', ['-C', r, ...a], { stdio: 'pipe' });
+    git('init', '-q');
+    writeFileSync(join(r, 'big.mjs'), Array.from({ length: 500 }, (_, i) => `// filler line ${i} xxxxxxxxxxxxxxxxxxxx`).join('\n') + '\n');
+    git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'big');
+    return { root: r, tracked: gitTrackedFiles(r) };
+  })();
+  const s = createToolSession({ root, tracked, maxResultChars: 500 });
+  const w = s.repo_open('big.mjs', 1, 500);
+  assert.ok(w.content.length <= 500, `capped: ${w.content.length}`);
+  assert.equal(w.truncated, true);
+});
+
 test('jail: repo_open refuses traversal and DENY paths through the tool', () => {
   assert.throws(() => std().repo_open('../outside.txt'), (e) => e.code === 'OUTSIDE_ROOT' || e.code === 'NOT_TRACKED');
   assert.throws(() => std().repo_open('.env'), (e) => e.code === 'DENY_PATTERN');
