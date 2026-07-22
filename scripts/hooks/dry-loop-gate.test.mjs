@@ -1,5 +1,5 @@
 /**
- * dry-loop-gate.test.mjs — proves the Stop-hook decision logic, incl. the Rule 73
+ * dry-loop-gate.test.mjs — proves the Stop-hook decision logic, incl. the Rule 74
  * (Proof-Before-Done, Sean 2026-07-22) proof-token requirement. Run: node --test.
  */
 import { test } from 'node:test';
@@ -35,7 +35,7 @@ test('build turn WITHOUT the dry-loop marker blocks (dry-loop)', () => {
   assert.ok(r && /Dry-Loop Law/.test(r));
 });
 
-test('build turn WITH dry-loop marker but NO proof token blocks (Rule 73)', () => {
+test('build turn WITH dry-loop marker but NO proof token blocks (Rule 74)', () => {
   const r = decide({}, transcript({ writes: 2, finalText: `done. ${DRY}` }));
   assert.ok(r && /Proof-Before-Done/.test(r));
 });
