@@ -51,6 +51,7 @@ import adminPaymentSettingsRoutes from '../routes/adminPaymentSettingsRoutes.mjs
 
 // ===================== COMMUNICATION =====================
 import contactRoutes from '../routes/contactRoutes.mjs';
+import telemetryRoutes from '../routes/telemetryRoutes.mjs'; // P0-4 SWA-29 public funnel beacon
 import newsletterRoutes from '../routes/newsletterRoutes.mjs';
 import marketingUnsubscribeRoutes from '../routes/marketingUnsubscribeRoutes.mjs';
 import consultRequestRoutes from '../routes/consultRequestRoutes.mjs';
@@ -351,6 +352,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== COMMUNICATION ROUTES =====================
   app.use('/api/contact', contactRoutes);
+  app.use('/api/telemetry', telemetryRoutes); // PUBLIC funnel beacon (P0-4): client-allowlist + rate-limited
   app.use('/api/newsletter', newsletterRoutes);
   app.use('/api/marketing', marketingUnsubscribeRoutes); // PUBLIC lead-nurture one-click unsubscribe (CAN-SPAM)
   app.use('/api/consult-request', consultRequestRoutes);  // PUBLIC "book a free consult" → lead scheduled + owner confirm

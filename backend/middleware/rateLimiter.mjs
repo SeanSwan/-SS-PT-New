@@ -128,6 +128,22 @@ export const contactLimiter = rateLimit({
 });
 
 /**
+ * Public funnel-telemetry beacon limiter (POST /api/telemetry/funnel — P0-4 SWA-29).
+ * More generous than contactLimiter because a beacon costs only ONE tiny DB row (no
+ * SendGrid/Twilio spend) and a real browsing session legitimately fires several
+ * visit/ref events — but still bounded so an unauthenticated flooder can't balloon
+ * the acquisition_events table. Per-IP (trust proxy = 1). A throttled beacon just
+ * drops silently; telemetry is best-effort and never user-visible.
+ */
+export const telemetryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, error: 'rate_limited' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Public orientation / "Schedule Your Free Consultation" rate limiter
  * (5 req / 15 min per IP).
  *

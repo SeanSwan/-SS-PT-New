@@ -26,6 +26,16 @@ export const FUNNEL_EVENTS = new Set([
   'ref_converted',
 ]);
 
+/**
+ * Events a PUBLIC UNAUTHENTICATED client (the beacon route) may emit. Deliberately EXCLUDES
+ * every server-authoritative event — `lead_captured`, `converted`, `purchase`, `scheduled`,
+ * `signup`, `first_session_logged`, `ref_converted` — so a malicious client cannot inflate
+ * conversions/revenue by POSTing a fake `converted`. Those only ever come from server-side
+ * model hooks / checkout. The beacon validates against THIS set; recordFunnelEvent still
+ * re-checks the full FUNNEL_EVENTS set (defense in depth).
+ */
+export const CLIENT_FUNNEL_EVENTS = new Set(['visit', 'booking_started', 'ref_shared', 'ref_landed']);
+
 /** The ONLY meta fields allowed into the stream. Everything else is dropped. NO name/email/id. */
 const META_ALLOWLIST = ['source', 'intent', 'ref', 'kind', 'amount_bucket'];
 
