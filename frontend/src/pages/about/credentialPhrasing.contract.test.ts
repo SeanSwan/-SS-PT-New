@@ -22,17 +22,22 @@ const BACKEND_DIRS = ['services', 'routes', 'controllers'].map((d) =>
 const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py)$/;
 // Built via concat so this lock file never matches its own pattern.
 const FORBIDDEN = new RegExp('NASM' + '[-\\s]' + '[Cc]ertified');
+// P0-2 (SWA-29): a hardcoded fallback that INVENTS a credential when none is on file
+// (`trainer.certifications || 'Certified Personal Trainer'`). A cert is a verifiable claim —
+// a trainer with none must show none, never a fabricated default. Matches the `||`-default
+// pattern only, so a real trainer whose actual stored cert is that string is unaffected.
+const FABRICATED_CRED = new RegExp('\\|\\|\\s*[\'"]Certified Personal Trainer[\'"]');
 
-const walk = (dir: string, hits: string[]): void => {
+const walk = (dir: string, hits: string[], pattern: RegExp = FORBIDDEN): void => {
   for (const entry of readdirSync(dir)) {
     if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.')) continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      walk(full, hits);
+      walk(full, hits, pattern);
       continue;
     }
     if (!SOURCE_EXT.test(entry) || full === __filename) continue;
-    if (FORBIDDEN.test(readFileSync(full, 'utf8'))) hits.push(full);
+    if (pattern.test(readFileSync(full, 'utf8'))) hits.push(full);
   }
 };
 
@@ -43,6 +48,13 @@ describe('credential phrasing lock', () => {
     const hits: string[] = [];
     walk(FRONTEND_SRC, hits);
     for (const dir of BACKEND_DIRS) walk(dir, hits);
+    expect(hits).toEqual([]);
+  }, 30000);
+
+  it('no source file fabricates a "Certified Personal Trainer" credential default (P0-2)', () => {
+    const hits: string[] = [];
+    walk(FRONTEND_SRC, hits, FABRICATED_CRED);
+    for (const dir of BACKEND_DIRS) walk(dir, hits, FABRICATED_CRED);
     expect(hits).toEqual([]);
   }, 30000);
 });
