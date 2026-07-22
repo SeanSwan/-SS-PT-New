@@ -67,6 +67,17 @@ test('T10: design trace_symbol excludes sensitive hits but returns design hits',
   assert.ok([...r.definitions, ...r.references].every((h) => !/authMiddleware/.test(h.path)));
 });
 
+test('T10: design trace results carry NO line text (a line can mention sensitive code)', () => {
+  const d = design().trace_symbol('renderGlow');
+  assert.equal(d.textRedacted, true);
+  assert.ok([...d.definitions, ...d.references].every((h) => !('text' in h) && h.path && h.line), 'design hits are path+line only');
+  const s = std().trace_symbol('renderGlow');
+  assert.equal(s.textRedacted, false);
+  assert.ok([...s.definitions, ...s.references].every((h) => typeof h.text === 'string'), 'standard hits keep text');
+  const api = design().trace_api_path('/api/workout/sessions');
+  assert.ok([...api.routes, ...api.mentions].every((h) => !('text' in h)), 'design api hits are path+line only');
+});
+
 // ---------- jail still enforced (T1/T5) ----------
 test('jail: repo_open refuses traversal and DENY paths through the tool', () => {
   assert.throws(() => std().repo_open('../outside.txt'), (e) => e.code === 'OUTSIDE_ROOT' || e.code === 'NOT_TRACKED');

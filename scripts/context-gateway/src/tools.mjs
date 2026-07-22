@@ -51,6 +51,12 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
   let calls = 0;
 
   const sensitive = (p) => ceiling === 'design' && SENSITIVE_PATH_RE.test(p);
+  // A matched LINE can mention sensitive code (e.g. `import { verifyToken } from './authMiddleware'`)
+  // even when its own file path is non-sensitive. A design-ceiling session therefore receives
+  // only path+line LOCATIONS from grep-backed tools, never the line text — the text is content,
+  // and the ceiling's guarantee is zero sensitive content to a design provider (hostile-review R2).
+  const redactText = ceiling !== 'standard';
+  const projectHit = (h) => (redactText ? { path: h.path, line: h.line } : h);
   /** Filter a path list by the ceiling; return {kept, withheld}. */
   const screen = (paths) => {
     const kept = paths.filter((p) => !sensitive(p));
@@ -98,11 +104,11 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       for (const h of hits) {
         if (sensitive(h.path)) continue;
         const before = h.text.slice(0, h.text.indexOf(symbol));
-        (DEF_RE.test(before) ? defs : refs).push(h);
+        (DEF_RE.test(before) ? defs : refs).push(projectHit(h));
       }
       const withheld = hits.filter((h) => sensitive(h.path)).length;
       log('trace_symbol', { symbol }, true, { defs: defs.length, refs: refs.length, withheld, truncated });
-      return { symbol, definitions: defs, references: refs, truncated, withheldByCeiling: withheld };
+      return { symbol, definitions: defs, references: refs, truncated, withheldByCeiling: withheld, textRedacted: redactText };
     },
 
     /**
@@ -122,10 +128,10 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       for (const p of [...new Set(patterns)]) { res = grepDetailed(root, p, { maxHits }); if (res.hits.length) { matched = p; break; } }
       const routeRe = /\b(?:router|app)\s*\.\s*(?:get|post|put|delete|patch|use|all)\b|\.(get|post|put|delete|patch)\(/;
       const routes = [], mentions = [];
-      for (const h of res.hits) { if (sensitive(h.path)) continue; (routeRe.test(h.text) ? routes : mentions).push(h); }
+      for (const h of res.hits) { if (sensitive(h.path)) continue; (routeRe.test(h.text) ? routes : mentions).push(projectHit(h)); }
       const withheld = res.hits.filter((h) => sensitive(h.path)).length;
       log('trace_api_path', { apiPath, matchedPattern: matched }, true, { routes: routes.length, mentions: mentions.length, withheld, truncated: res.truncated });
-      return { apiPath, matchedPattern: matched, routes, mentions, truncated: res.truncated, withheldByCeiling: withheld };
+      return { apiPath, matchedPattern: matched, routes, mentions, truncated: res.truncated, withheldByCeiling: withheld, textRedacted: redactText };
     },
 
     /** catalog_search(topic) — A4 pointer rows (never canon; caller must open the source). */
