@@ -2,9 +2,9 @@
  * Home V-next — token chain. THE ONLY v-next file that may name `--world-*` / `--lens-*`. Every other
  * file uses bare `var(--home-*)`. Kimi direction: shadows/glow come from `--lens-elev-*` +
  * `--lens-fx-glow-primary` ONLY (no ad-hoc box-shadow); the facet palette derives from the accent/action
- * slots so the hero is the ORIGIN of the site-wide crystallize material, not a borrowed effect. ZERO hex
- * literals here — Home skins entirely off the lens, so the Appearance Studio re-worlds it for free.
- * Retired Galaxy trio impossible by construction (no hex at all).
+ * slots so the hero is the ORIGIN of the site-wide crystallize material, not a borrowed effect. The only
+ * local color is the opaque mask bridge; appearance colors still come entirely from the lens.
+ * Retired Galaxy palette values remain absent by construction.
  */
 import { createGlobalStyle } from 'styled-components';
 
@@ -28,6 +28,7 @@ export const HomeVNextTokens = createGlobalStyle`
 
     /* worst-frame contrast scrim behind hero text (Kimi (b)7) — a real color, ~65% of the dark bg */
     --home-scrim: color-mix(in oklab, var(--world-bg) 66%, transparent);
+    --home-mask-opaque: #000;
 
     /* shape / elevation / glow / z ← REAL lens slots (Kimi (b)8: no ad-hoc shadows) */
     --home-r-panel: var(--lens-panel-radius);

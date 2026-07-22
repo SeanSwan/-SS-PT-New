@@ -57,8 +57,8 @@ const SwanMark = styled.img`
   }
   @supports not (mix-blend-mode: screen) {
     mix-blend-mode: normal;
-    -webkit-mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
-    mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
+    -webkit-mask: radial-gradient(circle at 50% 50%, var(--contact-mask-opaque, #000) 58%, transparent 72%);
+    mask: radial-gradient(circle at 50% 50%, var(--contact-mask-opaque, #000) 58%, transparent 72%);
   }
 `;
 const Scrim = styled.div`

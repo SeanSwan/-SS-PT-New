@@ -1,133 +1,99 @@
-# Swan Design-Overhaul Program — 14-surface build tracker (resumable)
+---
+status: PARKED
+parked_at: 2026-07-21
+decision: design-surfaces-never-gate
+local_release_branch: codex/degate-design-overhaul-20260721
+local_degate_commit: 5bb59ace1
+---
 
-**Purpose:** Sean directed (2026-07-18) "build ALL 14 blueprints autonomously in sequence." This is the
-load-bearing tracker so any session resumes the next surface cheaply. Authoritative order:
-`PANEL-SYNTHESIS-CORRECTED-BUILD-PLAN-2026-07-17.md`. Branch: `claude/build-swan-lens` off origin/main.
+# Swan Design-Overhaul Program — PARKED Historical Tracker
 
-## The discipline (per surface — non-negotiable, it caught 5 real bugs on the lens)
-1. **Reground** the blind blueprint via `consult-kimi.mjs` with a REAL-substrate seed (relative paths — the
-   consult scripts mangle absolute Windows paths). Serialize consults (concurrency truncates responses).
-2. **Fidelity-verify** the reground against real code before building; build VERBATIM (Kimi=architect, zero
-   design decisions from the builder). Ambiguity → re-consult, don't improvise.
-3. **Build** additive + reversible (new-version dir + feature flag + fail-closed; V1 untouched; Lane-A files
-   untouched; money/PII paths untouched or runtime-config reversible).
-4. **Hostile-review until dry** (Rule 61) + **triangle** (Claude+Codex+Gemini via consult-gemini/codex on a
-   repo-RELATIVE packet) before any push. Fix all confirmed findings + regression-test.
-5. **Gate the production push with Sean** (frontend/tsc/eslint/de-Galaxy clean + Vite build passes + fast-forward).
-6. Commit per slice; Hermes memo + this tracker updated per surface.
+> **STOP:** Do not resume the former “build all 14 surfaces” program. Do not build surfaces #8–14 from this
+> document. Sean rejected the gated redesign workflow on 2026-07-21. This file is now a historical index and
+> raw-material map, not an execution queue.
 
-## The SHIPPED keystone (surface #1 — DONE, live main cba39192b)
-Swan Lens: `frontend/src/adapters/style-lens-swan/` — value spine + design guard, monolith split (27 lens files,
-console skin preserved), Crystallize (`useCrystallizeTransition`/`CrystallizeOverlay`), `useLensViewport`,
-`lensViewportCss`/`lensSurfaceCss`, `resolveLensVictoryTheme`. Real `--world-*` names only; `--world-data-*`/
-`--world-z-*` are Lane-A/Chart-Charter PROPOSALS (not emitted). All the other 13 surfaces CONSUME this.
+## Current decision
 
-## Status board
-| # | Surface | Blueprint | Reground | Build | Triangle | Pushed |
-|---|---|---|---|---|---|---|
-| 1 | Swan Lens (keystone) | — | ✅ x4 | ✅ | ✅ (5 bugs fixed) | ✅ cba39192b |
-| 2 | **Dashboards** (4 roles + backend) | KIMI-DASHBOARDS-CORRECTED + INTEGRATION-GAPFIX | ✅ done | ✅ FULL (S1 frontend+mount, S2 real densities, S3 backend) | ✅ Codex+Gemini (2 confirmed fixed, false-positive rejected) | ✅ SHIPPED main 8a8545605 (flag off → V1 until DASHBOARD_V2_ENABLED=true) |
-| 3 | Store (StoreV4, money-path UNTOUCHED) | KIMI-STORE + CORRECTED | ✅ reground (SEND-BACK→pedestal+F4) | ✅ FULL (S1 gate+seam, S2 sections+money bindings) | ✅ Codex (2 fixed) + Gemini (polish deferred/rejected) | ✅ SHIPPED main bf00e721f (flag off → StoreV3 until STORE_V4_ENABLED=true) |
-| 4 | Home (was SEND-BACK → Kimi generated direction) | KIMI-HOME-DIRECTION | ✅ direction (medium-effort, transcript vision) | ✅ FULL (optics hero + capsule rail + reused sections, flag-gated) | ✅ Codex (3 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 0606edc23 (flag off → V4 until HOME_VNEXT_ENABLED=true) |
-| 5 | About (was SEND-BACK → Kimi generated direction) | KIMI-ABOUT-DIRECTION | ✅ direction (caustic swan-occluder) | ✅ FULL (occluder hero + reused sections, flag-gated) | ✅ Codex (2 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 816cce70e (flag off → About.V4 until ABOUT_VNEXT_ENABLED=true) |
-| 6 | Video (was SEND-BACK → Kimi direction) | KIMI-VIDEO-DIRECTION | ✅ direction (refraction=access) | ✅ FULL (channel-split hero + semantic glass cards, catalog/auth reused) | ✅ Codex (1 fixed) + Gemini (polish deferred) | ✅ SHIPPED main 7b2b84184 (flag off → V3 until VIDEO_VNEXT_ENABLED=true) |
-| 7 | Contact (ship-with-changes) | KIMI-CONTACT | ✅ blueprint (Crystallize Submit) | ✅ FULL (crystallize-submit form + gate, /api/contact reused) | ✅ Codex (1 fixed) + Gemini (REJECTED per rule 46) | ✅ SHIPPED main 4e116d3c6 (flag off → V3 until CONTACT_VNEXT_ENABLED=true) |
-| 8+9 | Gallery (ONE surface — see 2026-07-19 correction) | KIMI-PHOTOGRAPHY + Kimi REGROUND (corrected substrate) | ✅ reground 2026-07-19 | ✅ FULL (gallery-vnext/, 24 files: money spine bind-only, Crystallize gate, justified grid, full parity w/ all modals; hostile-to-dry, 5 bugs fixed) | ⏳ PENDING (Sean pushed dark ahead of triangle; triangle+browser QA gate the FLAG FLIP) | ✅ pushed dark 2026-07-20 (flag off → current GalleryPage until GALLERY_VNEXT_ENABLED=true) |
-| 10 | Design Skill redo | KIMI-DESIGN-SKILL-REDO | ✅ reviewed | ✅ ADOPTED (laws + 6 refinements, ideation-gate preserved) | — | ✅ swan-design-router/SKILL.md (Sean-confirmed, .pre-redo backup) |
-| 11 | Design Brain enhance | KIMI-DESIGN-BRAIN-ENHANCED | ✅ reviewed | ✅ ADOPTED (Crystalline Canon + consumer/emitter refinement) | — | ✅ design-brain/design.md (Sean-confirmed, .pre-redo backup) |
+- Public design truth comes from the component committed to the canonical route.
+- Design surfaces never use Launch Control, Render variables, build variables, local storage, or runtime flags.
+- Unfinished/rejected design work lives in Admin → Design Studio at `/dashboard/admin/design-playground`.
+- The seven parked vNext implementations remain available for visual harvesting; none is a live-route candidate
+  without a new, explicit product decision and a normal code review.
+- Launch Control remains feature-only.
 
-## Gallery flag-ON QA — Kimi's BINDING veto probes (run before GALLERY_VNEXT_ENABLED=true; fail on 1/2/5 = veto)
-1. 320px + 3840px justified rows: no sliver tiles, 1600px cap holds, zero horizontal scroll at 320/375/414/768/1024/1440/2560/3840.
-2. Scrim AA probe: brightest (white/snow-dominant) cover; name/date/badge contrast ≥4.5:1 at 375 + 1440; fail → deepen scrim to `.72 → .45 55% → transparent 85%`.
-3. Checkout-return stack at 320px: toast + credit pill + safe-area — no overlap, both reachable one-handed.
-4. Gate form with a password manager installed: no autofill UI hijacks the email field (`current-password` verified NON-orphaned — real event-password field exists).
-5. Reduced-motion ON: full unlock flow static (hero sheen gone, crystallize instant, tile crossfades clamped, no card hover motion).
-6. Keyboard-only: events → gate → photos → lightbox → upgrade modal; visible focus ring every stop; Esc/backdrop correct; focus returns to trigger.
-(Source: KIMI build review 2026-07-20, verdict SHIP-WITH-CHANGES — all 6 fixes applied same day.)
+The local release candidate is `codex/degate-design-overhaul-20260721`. Production is not changed until Sean
+approves the batch push and the deploy completes. S0 proved the pre-release production flags were actually ON,
+so this release is a deliberate return to the original pages, not a no-op cleanup.
 
-## Cross-cutting DEFERRED (need Sean/Lane-A rulings; do not block surfaces)
-- Lane-A wiring of the lens (Crystallize into Apply handler; viewport/surface CSS mounts; motion licences).
-- Chart Charter multi-series `--world-data-*` tokens; `--world-z-*` promotion.
-- Deferred Playwright pass (computed-cascade/flicker/forced-colors).
+## Target canonical surfaces after the approved batch
 
-## Gotchas (inherit)
-- consult-*.mjs mangle absolute Windows paths → RELATIVE only. Serialize consults. Background-task "exit 0" can be
-  the wrapper's echo — read the real redirected output. Worktree node_modules junction via PowerShell not mklink.
-  Honest tsc = real exit code. styled-components speedy insertRule hides CSS text in jsdom (test the contract).
+| Public surface | Canonical component | Parked raw material |
+|---|---|---|
+| Home | `HomePage.V4` | `HomeVNext` |
+| Store | `StoreV3` | `StoreV4` |
+| About | `About.V4` | `AboutVNext` |
+| Contact | `ContactV3` | `ContactVNext` |
+| Video | `VideoLibraryV3` | `VideoLibraryVNext` |
+| Gallery | `GalleryPage` | `GalleryVNext` |
+| Admin/trainer/client dashboards | `UniversalDashboardLayout` | `DashboardShell` v2 |
 
-## Dashboards (#2) precise resume state — 2026-07-18
-Both design docs are final: `KIMI-DASHBOARDS-CORRECTED-2026-07-18.md` (full blueprint) +
-`KIMI-DASHBOARDS-INTEGRATION-GAPFIX-2026-07-18.md` (the corrected §2.2 shell-through-gate + §4
-Crystallize wiring — these OVERRIDE the corresponding sections of CORRECTED). Build VERBATIM.
-- **Built + committed (0de2e32a3), tsc-clean:** `DashBoard/v2/{lensBindings,flags,types}.ts` +
-  `v2/shell/{dashboardManifests,DashboardShell.theme}.ts`. Foundation only; nothing mounts it yet.
-- **Verified integration facts:** SurfaceLensGate = `{manifest,ariaLabel,children}` (use `makeLensFrame`,
-  NOT `surfaceId`); manifest needs `{surfaceId,hostId,version,profiles:CONTAINER_PROFILES,slots:{},templates:{}}`
-  (empty slots valid — look comes from `[data-style-lens-shell]` world scoping). `CrystallizeOverlay` takes
-  NO children → overlay+panel are SIBLINGS, panel owns focus-trap/Esc/testid. Achievement/Milestone models
-  EXIST (`backend/models/`). `resolveMotionTier`/`useAnimationTier` are the motion source.
-- **Slice-1 frontend SPINE COMPLETE + committed (tsc/eslint clean), NOT yet mounted:** all of
-  `DashBoard/v2/` — lensBindings, flags, types, useWorldKey, motion/useDensityMotion, shell/*
-  (dashboardManifests, DashboardShell.theme/.grid/.nav/.a11y, useDashboardSummary, DashboardShell),
-  sections/* (accents, SectionHeader, StatCard, EmptyState, AlertList, DataTable, NextBestActionCard,
-  TrendChart[Victory via `theme` prop, not `style=`]), DashboardGate, densities/AdminDensity (real) +
-  Trainer/Client/User (Slice-2 placeholders). Victory colors flow through the `theme` prop (the inline-
-  `style=` ban forbids per-mark style). react-refresh warning on DashboardShell (DENSITY_CONFIG export) is benign.
-- **SEAM DONE + build-verified (8 commits ahead):** reality = ONE `dashboard/*` catch-all (not 4 routes);
-  wrapped `<UniversalDashboardLayout/>` in `<DashboardV2RouteGate>` (derives role from URL) + one import in
-  `main-routes.tsx`; V1 untouched. Vite build PASSES (DashboardShell lazy chunk 22kB emitted). Flag off by
-  default → V1. **Dashboards v2 FRONTEND is complete + mounted + build-verified.**
-- **BACKEND PART 1 DONE (10 commits ahead, node --check clean):** migration
-  `20260718120000-create-achievement-crystallizations.cjs` (additive, FK→"Users"/"Achievements", UNIQUE, down NO-OP),
-  `routes/publicConfigRoutes.mjs` (GET /api/config/public-flags), mounted in `core/routes.mjs`. **Backend is built by
-  CLAUDE, NOT Kimi** (consult-kimi is design-scoped; provider policy forbids auth/finance/PII to it) — triangle-review
-  (Codex/Gemini, allowed) before the gated push.
-- **Verified backend patterns:** auth = `backend/middleware/adminAuth.mjs` exports `protect`, `adminOnly`,
-  `authorize(roles)`; `req.user.role` after protect. Composable services EXIST: `adminUserAnalyticsService`
-  (`generateUserAnalytics`, `generateWorkoutStatistics`), `adminSystemAnalyticsService` (`buildExecutiveSummary`,
-  `buildSystemHealthSnapshot`). But `analyticsUserRoutes`/`analyticsRevenueRoutes` are MODEL-INLINE (no service) →
-  thin-query models (Session, WorkoutLog, User, Achievement, UserAchievement[userId INT, achievementId UUID]) where
-  no service exists. Routes mount in `backend/core/routes.mjs` via `app.use('/api/...')`.
-- **NEXT — Slice-3 BACKEND part 2 (highest-stakes):**
-- **NEXT — Slice-3 BACKEND (higher-stakes; the flag-on dashboard needs it for real data):**
-  `backend/routes/dashboardV2Routes.mjs` + `controllers/dashboardV2Controller.mjs` +
-  `services/dashboardV2Service.mjs` (COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`,
-  `adminCompliance` services — do NOT re-query; verify their exact exports first) returning the
-  `DashboardSummary` union per §2.3 with server-side HMAC ref masking (`maskRef(id)=HMAC(id, env MASK_SALT)
-  →C-1042/T-07`), `revenue_today` ONLY when `DASHBOARD_V2_FINANCE=true` (server-enforced), `?as={role}`
-  admin-only + audit-logged; `GET /api/config/public-flags`; `POST /api/achievements/:id/crystallize`
-  (owner/admin, idempotent on UNIQUE(user,achievement), confirm-first) + `crystallizeRoutes/Controller/Service`
-  + migration `achievement_crystallizations` (down = NO-OP). Rule 42 pre-push audit. Rule 50: money/PII → the
-  push gate is Sean's review. **Then Slice-2 real densities** (RosterStrip, LogSessionHero, ProgressRing,
-  MilestoneTile, SparkChart replacing the 3 placeholder densities). **Then hostile → triangle → gate push.**
-- **Then Slice-2** densities (trainer/client/user + charts + responsive matrix). **Then Slice-3** backend
-  (`backend/routes/dashboardV2Routes.mjs` etc. + `crystallizeRoutes` + migration `achievement_crystallizations`,
-  down=NO-OP; COMPOSE existing `admin/analytics{User,Revenue}`, `adminFinance`, `adminCompliance` services;
-  HMAC PII masking `MASK_SALT`; finance flag server-enforced) → hostile → triangle → gate push (Sean).
-- **Higher-stakes flags:** money-adjacent (`DASHBOARD_V2_FINANCE`) + DB migration + PII → the push gate is
-  where Sean reviews the backend before it deploys.
+Detailed component, binding, harvest, discard, Mobbin, and local-preview notes:
+`docs/ai-workflow/AI-HANDOFF/PARKED-VNEXT-INVENTORY-2026-07-21.md`.
 
-## Resume procedure (fresh session)
-Read this tracker → find the first surface not ✅-pushed → for Dashboards read the two design docs +
-"precise resume state" above → follow "the discipline" → update the board + Hermes.
+## Additive photography lane
 
-## RESUME NOTE (2026-07-18) — 7 surfaces SHIPPED; #8 Gallery is billing-critical → recommend fresh session
-**Shipped to main (all flag-off, gated):** lens cba39192b, Dashboards 8a8545605, Store bf00e721f, Home 0606edc23, About 816cce70e, Video 7b2b84184, Contact 4e116d3c6. Each: reground/direction → build reversible → hostile → triangle (Codex+Gemini) → Sean-gated push. Env flags to activate: DASHBOARD_V2_ENABLED / STORE_V4_ENABLED / HOME_VNEXT_ENABLED / ABOUT_VNEXT_ENABLED / VIDEO_VNEXT_ENABLED / CONTACT_VNEXT_ENABLED.
+The active photoshoot workflow is not parked. `GalleryPage` and Admin -> Photo Gallery Studio remain canonical
+functional surfaces. Sean's 2026-07-21 bulk-upload, curation, sharing, storage-deletion, and download-delivery
+queue item is reconciled in:
 
-**#8 Cover/Gallery — DO CAREFULLY (billing-critical):** `GalleryPage.tsx` (~2000L) runs an enhancement-CREDIT PURCHASE system (`/api/gallery/credits`), VIP conversion modal, checkout-return feedback, referral modal, support actions — all money-path with truth tests (`gallery/*.truth.test.ts`). SEND-BACK + "Core-Loop rewire" (architectural). Approach when resumed: study the credit/checkout/referral/VIP logic FIRST; a visual reskin must keep ALL of it BIND-ONLY (money-path untouched, like Store); the "Core-Loop rewire" architectural part needs Sean's explicit scoping. Recommend a FRESH session (full context) for this one — do not rush a billing surface at the tail of a long session.
+`docs/ai-workflow/AI-HANDOFF/SWAN-PHOTOGRAPHY-CANONICAL-ADDITIVE-PLAN-2026-07-21.md`
 
-**Remaining after #8:** #9 Photography (2219L decompose, non-billing), #10/11 Design Skill/Brain (review+propose only, not builds).
+That plan is queued after the de-gate Final Decider/release gate and must branch from the resulting approved
+commit. It may harvest functional/accessibility lessons from parked Gallery vNext, but it must not restore the
+vNext public design, introduce a design flag, absorb print fulfillment, or merge progress/social photo domains.
 
-**Reusable per-surface recipe (proven x7):** foundation = lensBindings/flags/tokens(ZERO-hex or one sanctioned literal)/manifest/gate (mirror any shipped surface) + backend flag in publicConfigRoutes.mjs; SEND-BACK surfaces → `consult-kimi --effort medium` for creative direction (high-effort empties the budget); data/money surfaces → reuse the pure logic helpers + reimplement fetch/state in vNext (V-prev untouched, same API path); Gemini is a design AUTHOR not the gate (Rule 46 — reject "delete the token bridge / use theme-provider hex").
+## Historical program disposition
 
-## CORRECTION (2026-07-19) — #8 Cover/Gallery and #9 Photography are the SAME FILE (GalleryPage.tsx)
-Both `KIMI-COVER-GALLERY-BLUEPRINT` and `KIMI-PHOTOGRAPHY-BLUEPRINT` target `frontend/src/pages/GalleryPage.tsx`
-(2219 lines). There is NO separate non-billing "Photography" page — the earlier "#9 non-billing" note was WRONG.
-This ONE surface is billing-critical (enhancement-credit purchase `/api/gallery/credits`, VIP conversion,
-referral, donations) AND requires a NEW additive backend (photo dimension columns + thumb/preview/full
-rendition pipeline, or expose existing media metadata) or it violates Rule 1 (justified grid needs intrinsic
-ratios before load). KIMI-PHOTOGRAPHY is SHIP-WITH-CHANGES with a full ~19-file decomposition map + THE key
-change (d): make the Crystallize REVEAL the hero, gate-as-setup (email = unlock achievement), photos-first IA,
-rename off "Cosmic Gate". Approach: careful, fresh, focused session; visual reskin with credit/checkout/VIP/
-referral/donation logic BIND-ONLY (money-path untouched, like Store); scope the new backend rendition slice
-with Sean first. Remaining after this: #10/#11 Design Skill/Brain (review+propose only, not builds).
+| Historical item | Disposition |
+|---|---|
+| #1 Swan Lens | Retained infrastructure/reference; not a license to gate routes |
+| #2 Dashboard v2 | PARKED in Design Studio; original dashboard is canonical |
+| #3 Store v4 | PARKED; money-path code is reference material only |
+| #4 Home vNext | PARKED; original Home retains PRISM feature parity |
+| #5 About vNext | PARKED |
+| #6 Video vNext | PARKED |
+| #7 Contact vNext | PARKED |
+| #8+#9 Gallery/Photography vNext | PARKED; billing-critical work is not resumed from this tracker |
+| #10 Design Skill redo | Adopted governance/reference work; not a public surface |
+| #11 Design Brain enhancement | Adopted governance/reference work; subordinate to the cinematic design system |
+| #12–#14 | No canonical active build record; do not infer or create work from the old numbering |
+
+Historical implementation commits remain in Git for provenance:
+Dashboard `8a8545605`, Store `bf00e721f`, Home `0606edc23`, About `816cce70e`,
+Video `7b2b84184`, Contact `4e116d3c6`, and the Gallery dark-build history.
+
+## Finance feature status
+
+`dashboardV2Finance` remains one of the three approved feature switches because it protects money-adjacent
+behavior. It has no canonical V1 dashboard consumer after v2 is parked, so it is **retained but dormant**.
+Do not delete, activate, or repurpose it inside a design task. A later feature decision must prove a canonical
+consumer, server enforcement, and money-path tests first.
+
+## De-gate receipts
+
+- `docs/receipts/de-gate-2026-07-21/S0-production-probe.md`
+- `docs/receipts/de-gate-2026-07-21/S1-degate-verification.md`
+- `docs/receipts/de-gate-2026-07-21/S2-design-studio-verification.md`
+- `docs/receipts/de-gate-2026-07-21/S3-admin-parity-and-whitelist.md`
+- `docs/receipts/de-gate-2026-07-21/S4-render-environment-owner-checklist.md`
+
+## Safe future design workflow
+
+1. Research and mock inside Design Studio or an isolated branch.
+2. Preserve real data, auth, money, and feature behavior.
+3. Review the proposed replacement at all required viewports.
+4. Promote by changing the canonical route import in a normal commit.
+5. Roll back by reverting the commit—not by restoring a design flag.
+
+Any document that says to flip `*VNext`, `*V4`, `DASHBOARD_V2_ENABLED`, or a design `VITE_*` variable is
+historical and superseded by this tracker plus `FLAG-LIFECYCLE-DOCTRINE.md`.

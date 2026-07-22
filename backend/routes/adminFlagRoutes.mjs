@@ -45,7 +45,8 @@ router.put('/:flag', async (req, res) => {
 /** DELETE /api/admin/flags/:flag/override — remove override → back to env baseline. */
 router.delete('/:flag/override', async (req, res) => {
   try {
-    await deleteOverride(req.params.flag, actorOf(req));
+    const result = await deleteOverride(req.params.flag, actorOf(req));
+    if (result.error) return res.status(result.status || 400).json({ success: false, ...result });
     res.json({ success: true });
   } catch (err) {
     logger.error('[LaunchControl] delete error: %s', err.message);

@@ -127,11 +127,20 @@ export async function upsertOverride(flag, body, actor) {
 
 /** Remove an override → back to env baseline. */
 export async function deleteOverride(flag, actor, source = 'manual') {
-  const [existing] = await sequelize.query(`SELECT * FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
-  if (!existing[0]) return { ok: true, noop: true };
-  await sequelize.query(`DELETE FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
-  await audit(flag, existing[0], null, actor, source);
-  return { ok: true };
+  if (!isApprovedFeatureFlag(flag)) return { error: 'unknown_flag', status: 404 };
+  // Atomic like upsertOverride: the delete and its audit row commit together, and FOR UPDATE
+  // serializes concurrent clears so the audit's before-state is truthful.
+  let noop = false;
+  await sequelize.transaction(async (t) => {
+    const [existing] = await sequelize.query(
+      `SELECT * FROM flag_overrides WHERE flag = :flag FOR UPDATE`,
+      { replacements: { flag }, transaction: t },
+    );
+    if (!existing[0]) { noop = true; return; }
+    await sequelize.query(`DELETE FROM flag_overrides WHERE flag = :flag`, { replacements: { flag }, transaction: t });
+    await audit(flag, existing[0], null, actor, source, t);
+  });
+  return noop ? { ok: true, noop: true } : { ok: true };
 }
 
 export async function getAudit(flag, limit = 50) {

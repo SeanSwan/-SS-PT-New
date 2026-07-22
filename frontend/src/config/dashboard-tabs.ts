@@ -200,7 +200,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   // ── SYSTEM — infrastructure, personal, tools ──
   { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
   { id: 'account-access', section: 'system', label: 'Account Access', icon: 'KeyRound', prefix: '/dashboard/admin/account-access', description: 'Log in as any client or trainer (audited); block, deactivate, reactivate, force-logout' },
-  { id: 'launch-control', section: 'system', label: 'Launch Control', icon: 'Rocket', prefix: '/dashboard/admin/launch-control', description: 'Manage approved feature switches from inside the app — instant, no redeploy' },
+  { id: 'launch-control', section: 'system', label: 'Launch Control', icon: 'Rocket', prefix: '/dashboard/admin/launch-control', description: 'Manage the three approved feature controls and audited overrides' },
   { id: 'design-studio', section: 'system', label: 'Design Studio', icon: 'Sparkles', prefix: '/dashboard/admin/design-playground', description: 'Preview parked redesigns and legacy concepts without changing live routes' },
   { id: 'feature-access', section: 'system', label: 'Feature Access', icon: 'Unlock', prefix: '/dashboard/admin/feature-access', description: 'Grant per-user feature flags — incl. store-prices to reveal catalog pricing for a specific client' },
   { id: 'trainer-permissions', section: 'system', label: 'Trainer Permissions', icon: 'ShieldCheck', prefix: '/dashboard/admin/trainer-permissions', description: 'Grant/revoke granular trainer capabilities (edit workouts, schedules, analytics)' },

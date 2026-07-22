@@ -188,3 +188,29 @@ export const PreviewState = styled.div`
   color: var(--text-primary, #E0ECF4);
   text-align: center;
 `;
+
+export const PreviewReadOnlyNotice = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--accent-luxury, #C6A84B);
+  background: var(--surface-card, #141419);
+  color: var(--accent-luxury, #C6A84B);
+  font: 800 0.78rem/1.3 var(--font-ui, 'Sora', sans-serif);
+  letter-spacing: 0.08em;
+  text-align: center;
+`;
+
+/**
+ * Native inert is the primary safety boundary. Pointer blocking is the visual-browser fallback;
+ * capture handlers on the mounted page cover keyboard and submit paths where inert is unavailable.
+ */
+export const PreviewReadOnlyRoot = styled.div`
+  min-height: 100vh;
+  pointer-events: none;
+`;

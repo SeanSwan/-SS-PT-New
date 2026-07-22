@@ -60,8 +60,8 @@ const SwanMark = styled(motion.img)`
   /* No screen-blend support → soft-mask the logo disc into a circle so no hard box shows over the video. */
   @supports not (mix-blend-mode: screen) {
     mix-blend-mode: normal;
-    -webkit-mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
-    mask: radial-gradient(circle at 50% 50%, #000 58%, transparent 72%);
+    -webkit-mask: radial-gradient(circle at 50% 50%, var(--home-mask-opaque, #000) 58%, transparent 72%);
+    mask: radial-gradient(circle at 50% 50%, var(--home-mask-opaque, #000) 58%, transparent 72%);
   }
 `;
 const FacetLayer = styled.div`

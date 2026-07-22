@@ -22,10 +22,12 @@ const readSource = (path: string): string => {
 };
 
 const mainRoutes = readSource('routes/main-routes.tsx');
+const appLayout = readSource('components/Layout/layout.tsx');
 const roleRoutes = readSource('components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const routeComponents = readSource('components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
 const dashboardTabs = readSource('config/dashboard-tabs.ts');
 const studio = readSource('pages/DesignPlayground/DesignPlaygroundLayout.tsx');
+const studioStyles = readSource('pages/DesignPlayground/DesignPlaygroundLayout.styles.ts');
 const legacyViewer = readSource('pages/DesignPlayground/LegacyConceptPreviewPage.tsx');
 const parkedPreview = studio;
 const registry = readSource('pages/DesignPlayground/playgroundRegistry.ts');
@@ -64,5 +66,19 @@ describe('admin Design Studio restoration', () => {
     }
     expect(studio).toContain('/design-previews/');
     expect(parkedPreview).toContain('getPlaygroundEntry');
+  });
+
+  it('makes parked previews mechanically read-only on both iframe and direct routes', () => {
+    expect(studio).toContain('READ-ONLY PREVIEW');
+    expect(studio).toContain("setAttribute('inert', '')");
+    expect(studio).toContain('onClickCapture={blockPreviewInteraction}');
+    expect(studio).toContain('onSubmitCapture={blockPreviewInteraction}');
+    expect(studio).toMatch(/<PreviewReadOnlyBoundary>[\s\S]*?<Preview \/>[\s\S]*?<\/PreviewReadOnlyBoundary>/);
+    expect(studio).toMatch(/<PreviewReadOnlyRoot[\s\S]*?\{children\}[\s\S]*?<\/PreviewReadOnlyRoot>/);
+    expect(studioStyles).toMatch(/PreviewReadOnlyRoot[\s\S]*?pointer-events:\s*none/);
+    expect(studioStyles).toMatch(/PreviewReadOnlyNotice[\s\S]*?position:\s*sticky/);
+    expect(appLayout).toContain("location.pathname.startsWith('/design-previews/')");
+    expect(appLayout).toContain('!isDesignPreviewRoute && <Header />');
+    expect(appLayout).toContain('!isDesignPreviewRoute && <Footer />');
   });
 });

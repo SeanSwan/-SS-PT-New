@@ -14,7 +14,8 @@ baseline_ref: eb4bbdd63794d0d842f5e5c107254f8013544367
 - `[VERIFIED]` Design Studio participates in the same contract: nav entry at `dashboard-tabs.ts:204`, mounted route at `UniversalDashboardLayout.routes.tsx:116`.
 - `[VERIFIED]` the deprecated `ADMIN_DASHBOARD_TABS` runtime/config array was removed after a repo-wide consumer search found only its own export and two tests. The workout-first test now locks one admin navigation source of truth.
 - `[VERIFIED]` the Launch Control registry is exactly `dashboardV2Finance`, `postSaveHandoff`, and `prismCapture` at `launchControlResolve.mjs:9-18`.
-- `[VERIFIED]` the database-backed admin board filters with that registry at `launchControlService.mjs:62-64`, and forbidden mutation keys are rejected before database lookup at line 85.
+- `[VERIFIED]` the database-backed admin board filters with that registry at `launchControlService.mjs:62-64`.
+- `[VERIFIED]` retired-key set and clear mutations are rejected before SQL at `launchControlService.mjs:104` and `launchControlService.mjs:130`; the DELETE route returns that rejection.
 - `[VERIFIED]` CI uses the exact failure message: `Design surfaces never gate (Sean's law, 2026-07-21). Use the Design Studio.`
 
 ## Test evidence
@@ -23,7 +24,7 @@ baseline_ref: eb4bbdd63794d0d842f5e5c107254f8013544367
   - frontend: 1 intentional failure because the deprecated admin config still existed; the complete 34-entry route-parity test already passed against current code.
   - backend: 1 intentional failure because the approved registry export did not yet exist.
 - Focused green before hostile review: 8/8 frontend and 16/16 backend.
-- Hostile runtime contract: 18/18 backend across registry, board query/mutation enforcement, and de-gate migration.
+- Hostile runtime contract: 20/20 backend across registry, board query/set/clear enforcement, route rejection, and de-gate migration.
 - Expanded S1-S3 regression set: 31/31 frontend and 18/18 backend.
 - Production build: Vite 6.4.3 transformed 6,707 modules and exited 0.
 - TypeScript:

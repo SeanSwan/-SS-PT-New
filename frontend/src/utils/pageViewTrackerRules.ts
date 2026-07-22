@@ -10,6 +10,7 @@ export function shouldSkipPageViewPath(path?: string | null): boolean {
   if (!normalized) return true;
 
   const lowerPath = normalized.toLowerCase();
+  if (/^\/design-previews(?:\/|$)/.test(lowerPath)) return true;
   if (/^\/dashboard(?:\/|$)/.test(lowerPath)) return true;
   if (/^\/login(?:\/|$)/.test(lowerPath)) return true;
   if (/^\/auth\/(?:register|signup)(?:\/|$)/.test(lowerPath)) return false;

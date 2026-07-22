@@ -4,7 +4,7 @@
  * BLUEPRINT: docs/ai-workflow/AI-HANDOFF/MASTER-HANDOFF-degate-design-overhaul-2026-07-21.md, S2.
  * Designs are previewed here, never promoted by a flag. A normal route-import commit is the only promotion path.
  */
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, type SyntheticEvent, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ExternalLink, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { allConcepts } from './concepts/shared/conceptRegistry';
@@ -21,6 +21,8 @@ import {
   PreviewIdentity,
   PreviewMeta,
   PreviewPanel,
+  PreviewReadOnlyNotice,
+  PreviewReadOnlyRoot,
   PreviewStage,
   PreviewState,
   PreviewTitle,
@@ -40,6 +42,48 @@ const VIEWPORTS = [
   { id: 'tablet', label: 'Tablet', width: '768px', Icon: Tablet },
   { id: 'mobile', label: 'Mobile', width: '390px', Icon: Smartphone },
 ] as const;
+
+const PREVIEW_INTERACTION_EVENTS = ['change', 'click', 'input', 'keydown', 'pointerdown', 'submit'] as const;
+
+const blockNativePreviewInteraction = (event: Event): void => {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+};
+
+const makePreviewReadOnly = (node: HTMLDivElement | null): void => {
+  if (!node) return;
+
+  node.setAttribute('inert', '');
+  PREVIEW_INTERACTION_EVENTS.forEach((eventName) => {
+    node.addEventListener(eventName, blockNativePreviewInteraction, { capture: true });
+  });
+};
+
+const blockPreviewInteraction = (event: SyntheticEvent): void => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+export const PreviewReadOnlyBoundary: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <>
+    <PreviewReadOnlyNotice role="status">
+      READ-ONLY PREVIEW - production actions disabled.
+    </PreviewReadOnlyNotice>
+    <PreviewReadOnlyRoot
+      data-testid="preview-read-only-root"
+      ref={makePreviewReadOnly}
+      aria-disabled="true"
+      onChangeCapture={blockPreviewInteraction}
+      onClickCapture={blockPreviewInteraction}
+      onInputCapture={blockPreviewInteraction}
+      onKeyDownCapture={blockPreviewInteraction}
+      onPointerDownCapture={blockPreviewInteraction}
+      onSubmitCapture={blockPreviewInteraction}
+    >
+      {children}
+    </PreviewReadOnlyRoot>
+  </>
+);
 
 const DesignPlaygroundLayout: React.FC = () => {
   const [selectedId, setSelectedId] = useState(playgroundRegistry[0].id);
@@ -135,7 +179,9 @@ export const ParkedPreviewPage: React.FC = () => {
 
   return (
     <Suspense fallback={<PreviewState role="status">Loading {entry.title} preview…</PreviewState>}>
-      <Preview />
+      <PreviewReadOnlyBoundary>
+        <Preview />
+      </PreviewReadOnlyBoundary>
     </Suspense>
   );
 };

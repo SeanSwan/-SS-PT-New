@@ -1,103 +1,97 @@
-# Flag Lifecycle Doctrine + Flag Registry (Swan surface migrations)
-
-> **Why this exists.** We shipped 9 flag-gated surfaces and created **zero deletion tickets**. Kimi's hostile
-> review, 2026-07-19: *"A flag that never gets removed is not a feature flag, it's a fork of your own product
-> that you're paying rent on."* Two versions of a surface means every future change must be made twice or the
-> two silently diverge (that already happened once — see the Gate Rule below). This doctrine ends that.
-
+---
+status: active
+effective_at: 2026-07-21
+scope: feature-switches-only
 ---
 
-## LAW 1 — A flag is temporary scaffolding, never a permanent fork
-Every surface flag exists to make ONE migration safely reversible. Its success condition is its own deletion.
-**No flag ships without an owner and an expiry date.**
+# Feature Flag Lifecycle Doctrine
 
-## LAW 2 — The lifecycle (all six steps are mandatory)
-1. **Pre-flip.** Funnel baseline captured (`MEASUREMENT-CHARTER.md`); analytics events tagged with the active
-   flag state; Playwright smoke green; performance budget met (`PERFORMANCE-BUDGET-CHARTER.md`); **money-path
-   parity verified** for any surface touching checkout/credits/VIP/referral/donations.
-2. **Flip.** Runtime flag → true. **1–2 surfaces per week, maximum.** No deploy needed — that is what the
-   runtime kill switch is for. Blast-radius ascending (see `FLAG-FLIP-RUNBOOK.md`); money surfaces last.
-3. **Verify.** **7 days** of clean data vs the baseline: conversion, bounce, error rate, page speed. Any
-   regression past threshold → runtime `false` (instant revert, no redeploy).
-4. **DELETE — within 14 days of clean verification.** Delete the old surface file(s), delete `<X>Gate.tsx`,
-   delete the flag from `publicConfigRoutes.mjs`, delete the env var on Render, re-point imports directly at the
-   v-next component, delete dead token mappings and now-unreachable branches.
-5. **Close.** Mark the row below `RETIRED` with the deletion commit SHA.
-6. **Enforce.** A flag unflipped for **60 days** triggers a delete-or-justify review. Code we will not turn on
-   within 30 days of activation being possible should be deleted — the blueprints can rebuild it.
+## Law 1 — Design surfaces never gate
 
-## LAW 3 — THE GATE RULE (already cost us once)
-*No feature may be mounted inside a gated component unless it is mounted in **all branches** of that gate, in the
-same PR.* Prefer a mount point ABOVE the gate; if none exists, create one.
-**Precedent:** `PrismCapture` — the site's ONLY lead capture — was mounted solely in `HomePage.V4`. Flipping
-`HOME_VNEXT_ENABLED` would have silently deleted lead capture from the site. Build, types, lint, and a
-3-pass/5-reviewer hostile loop all missed it; branch divergence is invisible to every one of them.
-**Enforced by:** `frontend/src/components/marketing/PrismCapture/prismGateParity.test.ts` (extend `GATE_BRANCHES`
-for every new gated surface). Mutation-verified.
+A public or dashboard design version is selected by the canonical route committed to Git. Design choice may not
+depend on Launch Control, an environment variable, a build variable, local storage, a query parameter, or a
+database override.
 
-## LAW 4 — Token-contract scope (do not oversell it)
-`--world-*` consumption survives **re-skins** (new palette/theme flows through free; enforced by
-`npm run lint:swan-lens`). It does **NOT** survive a **structural** redesign (new IA/composition = rebuild the
-components, with color already solved). Claim the first, never the second.
+Unfinished design belongs in Admin → Design Studio. Promotion and rollback happen through reviewed commits.
 
-## LAW 5 — Dark work is worth $0 and it rots
-Shipped-but-never-activated code has a market value of exactly zero, accrues double-maintenance on every change,
-and drifts from the live site (PRISM was the first documented drift). **Deadline: every surface is either
-activated or deleted within 30 days of activation becoming possible.**
+## Law 2 — Feature flags protect behavior, not appearance
 
----
+A feature control is allowed only for a bounded capability whose operational risk warrants a separately
+observable control. Every feature key needs:
 
-## ⚠️ BLOCKER — why no flag can currently do anything (verified 2026-07-19)
-Every surface gate's `ContractCheck` requires a `[data-style-lens-shell]` ancestor:
-```js
-const scoped = shell.closest('[data-style-lens-shell]');
-if (!accent || !scoped) onFail();   // → fail closed to the CURRENT surface
-```
-**`data-style-lens-shell` exists ONLY as CSS selectors** (`adapters/style-lens-swan/styles/lensCoreStyles.ts`,
-`lensSurfaceStyles.ts`). **Nothing in the frontend ever renders it as a DOM attribute.** `LensPlanFrame` emits
-`--world-*` and `data-lens2-*` only when a recipe resolves (from the committed appearance/styleLensId), and never
-that attribute at all.
-**Consequence: setting any of the 7 surface flags to `true` today changes NOTHING — the gate fails closed to the
-old surface.** This is the exact, mechanical definition of what **Lane-A activation** must deliver:
-1. render `data-style-lens-shell` on the surface frame, 2. ensure `--world-*` actually resolves there,
-3. wire the Appearance-Studio Apply handler + viewport/surface CSS mounts + motion licences,
-4. one cross-surface smoke test proving a flag flip produces a visible change.
-**Do not flip surface flags until Lane-A lands — you will see no change and may wrongly conclude the build failed.**
+- a named consumer and owner;
+- a fail-closed baseline;
+- its actual frontend and backend enforcement paths;
+- a positive verification and rollback verification;
+- an audit trail;
+- an expiry or scheduled keep/delete review;
+- Sean approval when money, auth, PII, billing, or external messaging is involved.
 
-## Flag value parser — exact accepted values
-`publicConfigRoutes.mjs`: `const isTrue = (v) => v === 'true' || v === '1';`
-**Only the exact strings `true` or `1` work.** `yes`, `YES`, `True`, `on`, `enabled` all evaluate to **false**.
+A flag may hide behavior; it may not choose between two versions of a page. Never call a control an end-to-end
+kill switch unless every authoritative consumer reads the same resolved value.
 
----
+## Law 3 — The registry is an exact whitelist
 
-## FLAG REGISTRY
-Owner = who is accountable for retiring it. Status: `DARK` (never flipped) · `LIVE` (flipped, in verify window) ·
-`RETIRED` (old surface + gate + flag deleted).
+Launch Control contains exactly:
 
-| Flag key | Env var | Surface | Owner | Status | Blocked by | Deletion ticket |
-|---|---|---|---|---|---|---|
-| `homeVNext` | `HOME_VNEXT_ENABLED` | Home | Claude lane | DARK | Lane-A | — (open on flip) |
-| `aboutVNext` | `ABOUT_VNEXT_ENABLED` | About | Claude lane | DARK | Lane-A | — |
-| `videoVNext` | `VIDEO_VNEXT_ENABLED` | Video | Claude lane | DARK | Lane-A | — |
-| `contactVNext` | `CONTACT_VNEXT_ENABLED` | Contact | Claude lane | DARK | Lane-A | — |
-| `storeV4` | `STORE_V4_ENABLED` | Store (MONEY) | Claude lane | DARK | Lane-A + money-path parity | — |
-| `dashboardV2` | `DASHBOARD_V2_ENABLED` | Dashboards | Claude lane | DARK | Lane-A | — |
-| `dashboardV2Finance` | `DASHBOARD_V2_FINANCE` | Dashboards finance sub-gate | Claude lane | DARK | dashboardV2 | — |
-| `galleryVNext` | `GALLERY_VNEXT_ENABLED` | Gallery (MONEY, unfinished) | Gallery agent | DARK | build incomplete + Lane-A | — |
-| `prismCapture` | `PRISM_CAPTURE_ENABLED` | PRISM lead capture (net-new) | Claude lane | DARK | **none — works today** | n/a (additive; no old surface to delete) |
+| Flag key | Backend baseline | Consumer/status | Database override scope |
+|---|---|---|---|
+| `dashboardV2Finance` | `DASHBOARD_V2_FINANCE` | Retained but dormant while dashboard v2 is parked | Public flag only; server finance controller reads env directly |
+| `prismCapture` | `PRISM_CAPTURE_ENABLED` | Canonical Home UI + public lead route | UI/public flag; POST route reads env directly |
+| `postSaveHandoff` | `ENABLE_POST_SAVE_HANDOFF` | Workout completion client + assembler | Verified end-to-end |
 
-**`prismCapture` is the ONLY flag that functions today.** PrismCapture's gate checks its flag only — it has no
-world-contract probe and carries Crystalline hex fallbacks — so it renders without Lane-A. It is also **additive**
-(no predecessor), so it never needs a deletion step; it exits this registry when the last gated home is retired.
+`backend/services/launchControlResolve.mjs` is the code registry. The admin board query and mutation lookup
+consume that whitelist. CI locks the exact list and emits:
 
-### To enable PRISM (the one thing that works now)
-On Render: `PRISM_CAPTURE_ENABLED=true` (exactly `true`) **and** `REF_CODE_PEPPER=<long random string>` — without
-the pepper the referral code fails closed to null and the Share ray simply hides. Then redeploy/restart. Verify a
-test submission creates a CRM lead and fires the owner alert. Run the backend vitest suite in CI first.
+`Design surfaces never gate (Sean's law, 2026-07-21). Use the Design Studio.`
 
----
+Adding a fourth key requires an explicit doctrine change and proof that it is a feature rather than a design
+surface.
 
-## Cross-references
-`FLAG-FLIP-RUNBOOK.md` (flip order, dwell, abort criteria, rollback drill — **never yet executed in prod**) ·
-`MEASUREMENT-CHARTER.md` (baseline before any flip) · `PERFORMANCE-BUDGET-CHARTER.md` (budgets) ·
-`SWAN-WHATS-NEXT-MASTER-ROADMAP-2026-07-19.md` (program sequence).
+## Law 4 — Feature lifecycle
+
+1. **Propose:** document risk, consumer, owner, baseline, every enforcement path, verification, abort signal,
+   and review date.
+2. **Register:** add the key to the exact code whitelist, environment baseline, DB migration, and contract tests.
+3. **Ship dark:** verify fail-closed behavior and each real caller path.
+4. **Operate:** use only the control proven authoritative for that feature; preserve the append-only audit and
+   do not overstate database-override scope.
+5. **Review:** keep, retire, or extend on the scheduled date using observed evidence.
+6. **Retire:** remove consumer branches, overrides, registry row, environment key, and tests in one reviewed
+   release; preserve audit history.
+
+## Law 5 — Retired design registry
+
+The 2026-07-21 de-gate migration retires these seven keys:
+
+| Retired key | Retired backend environment key |
+|---|---|
+| `homeVNext` | `HOME_VNEXT_ENABLED` |
+| `storeV4` | `STORE_V4_ENABLED` |
+| `aboutVNext` | `ABOUT_VNEXT_ENABLED` |
+| `contactVNext` | `CONTACT_VNEXT_ENABLED` |
+| `videoVNext` | `VIDEO_VNEXT_ENABLED` |
+| `galleryVNext` | `GALLERY_VNEXT_ENABLED` |
+| `dashboardV2` | `DASHBOARD_V2_ENABLED` |
+
+The migration deletes registry rows once; the existing foreign-key cascade removes their overrides.
+`flag_audit` is deliberately untouched. The down path restores registry metadata only and does not resurrect
+historical overrides.
+
+Frontend design fallbacks and the build-gated playground are also retired. Sean's owner checklist names the
+Render keys to remove without exposing their values.
+
+## Law 6 — Feature parity survives design promotion
+
+A future design replacement must preserve every independent feature consumer mounted on the canonical surface.
+PRISM lead capture is the precedent: it stays on canonical Home, and the parked Home preview retains it so a
+future promotion cannot silently drop the feature.
+
+This is a promotion-review concern, not a reason to restore a page gate.
+
+## References
+
+- `FLAG-FLIP-RUNBOOK.md` — truthful feature operation and code-based design promotion
+- `docs/receipts/de-gate-2026-07-21/S4-render-environment-owner-checklist.md`
+- `docs/ai-workflow/AI-HANDOFF/PARKED-VNEXT-INVENTORY-2026-07-21.md`
+- `docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-OVERHAUL-PROGRAM-TRACKER-2026-07-18.md`

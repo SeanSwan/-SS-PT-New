@@ -1,7 +1,7 @@
 /**
  * Launch Control: admin-only operations board for approved feature switches.
  * Each toggle writes a force override; Default clears it back to the feature's environment baseline.
- * Health is advisory, while Verify purges the edge cache so a feature change appears immediately.
+ * Health is advisory. Verify purges the public response cache; it does not change server enforcement.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { PREVIEW_OK_KEY } from '../../../../config/previewFlags';
@@ -46,7 +46,7 @@ export default function LaunchControlPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [strip, setStrip] = useState('Feature switches update immediately; hard-refresh (or Verify) to beat the CDN cache.');
+  const [strip, setStrip] = useState('Audited overrides update the public flag response. Verify feature-specific server enforcement before relying on a toggle.');
 
   const load = useCallback(async () => {
     try {
@@ -126,7 +126,7 @@ export default function LaunchControlPage() {
       <Header>
         <TitleWrap>
           <Title>◆ Launch Control</Title>
-          <Sub>Manage approved feature switches — instant, no redeploy.</Sub>
+          <Sub>Manage the three approved feature controls and audited overrides.</Sub>
         </TitleWrap>
         <Actions>
           <Btn type="button" onClick={doVerify} disabled={busy === '__verify__'}>

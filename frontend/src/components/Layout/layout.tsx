@@ -11,13 +11,14 @@ const MainContainer = styled.div`
   min-height: 100vh;
 `;
 
-const ContentWrapper = styled.div`
+const ContentWrapper = styled.div<{ $withHeader: boolean }>`
   display: flex;
   flex-direction: column;
   flex: 1;
   /* Offset for the fixed header — MUST use the shared token. A hardcoded
      56px here vs the real 64px header hid the top 8px of every page. */
-  margin-top: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px));
+  margin-top: ({ $withHeader }) =>
+    $withHeader ? 'calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px))' : '0';
 `;
 
 const Content = styled.main`
@@ -30,6 +31,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const isDesignPreviewRoute = location.pathname.startsWith('/design-previews/');
 
   const isDashboardRoute =
     location.pathname.startsWith('/user-dashboard') ||
@@ -46,15 +48,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <MainContainer>
-      <Header />
+      {!isDesignPreviewRoute && <Header />}
 
-      <ContentWrapper data-swan-app-content-wrapper>
+      <ContentWrapper $withHeader={!isDesignPreviewRoute} data-swan-app-content-wrapper>
         <Content>
           {children}
         </Content>
       </ContentWrapper>
 
-      {!isDashboardRoute && !isAuthRoute && <Footer />}
+      {!isDashboardRoute && !isAuthRoute && !isDesignPreviewRoute && <Footer />}
     </MainContainer>
   );
 };
