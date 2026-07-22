@@ -2249,12 +2249,23 @@ router.post('/repair-raw-photos', async (req, res) => {
  */
 router.post('/reset-test-data', async (req, res) => {
   try {
+    // Fail-closed env guard: this DELETEs ALL gallery visitor/donation/referral/message rows (real CRM + PII),
+    // so it is DISABLED unless explicitly opted in on a non-production environment (survey 2026-07-22, Kimi fix #4).
+    if (process.env.NODE_ENV === 'production' || process.env.ALLOW_GALLERY_TEST_RESET !== 'true') {
+      logger.warn(`[ResetTestData] blocked by env guard (nodeEnv=${process.env.NODE_ENV})`);
+      return res.status(403).json({ success: false, error: 'Disabled in this environment' });
+    }
     // Extra safety: admin-only (already enforced by middleware, but double-check)
     if (req.user?.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Super admin access required' });
     }
+    // Typed confirmation token so a stray/misfired POST cannot wipe the tables.
+    if (req.body?.confirm !== 'RESET_GALLERY_TEST_DATA') {
+      return res.status(400).json({ success: false, error: 'Confirmation token required' });
+    }
 
-    console.warn(`[AUDIT] Admin ${req.user.id} (${req.user.email}) triggered gallery test data reset at ${new Date().toISOString()}`);
+    // Audit with actor id only — never the email (Rule 8 / survey #7b PII-in-logs).
+    logger.warn(`[AUDIT] gallery test-data reset by admin id=${req.user.id} at ${new Date().toISOString()}`);
 
     const results = {};
 
