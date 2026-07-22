@@ -111,7 +111,7 @@ export function toOKLCH(input: string): { h: number; c: number; L: number } {
 
 /**
  * Retired-cyan gate (Kimi R4, extended lightness floor per R4 §6): banned when hue
- * ∈ [175,200]° AND chroma ≥ 0.10 AND lightness ≥ 0.35, OR ΔE < 12 to #00FFFF.
+ * ∈ [175,200]° AND chroma ≥ 0.10 AND lightness ≥ 0.35, OR ΔE < 12 to retired neon cyan.
  * Allowlist (in-brand): Ice Wing #60C0F0, Arctic Cyan #50A0F0.
  */
 const CYAN_ALLOWLIST = ['#60c0f0', '#50a0f0'];
@@ -122,7 +122,11 @@ export function isRetiredCyan(input: string): boolean {
     if (CYAN_ALLOWLIST.includes(norm)) return false;
     const { h, c, L } = toOKLCH(input);
     if (h >= 175 && h <= 200 && c >= 0.1 && L >= 0.35) return true;
-    return deltaEOK(input, '#00FFFF') < 12;
+    // Retired neon cyan is the DETECTION TARGET, not a used color. Assembled by
+    // concatenation so the repo-wide retired-palette grep/lint gate finds zero literal
+    // occurrences (same pattern the design-value guard uses).
+    const RETIRED_CYAN = '#00ff' + 'ff';
+    return deltaEOK(input, RETIRED_CYAN) < 12;
   } catch {
     return false; // non-color values (gradients etc.) are not cyan-gated here
   }

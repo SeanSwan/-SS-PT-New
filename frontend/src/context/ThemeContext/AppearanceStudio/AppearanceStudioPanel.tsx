@@ -201,7 +201,6 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
                       role='option'
                       $active={draftTheme === id}
                       aria-selected={draftTheme === id}
-                      aria-pressed={draftTheme === id}
                       onClick={() => onThemeChange(id)}
                     >
                       <ColorChip
