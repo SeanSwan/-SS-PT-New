@@ -68,3 +68,25 @@ describe('MuscleReadinessCard', () => {
     expect(apiGet).not.toHaveBeenCalled();
   });
 });
+
+describe('CC-1b Crystalline Body', () => {
+  it('renders the silhouette with region states mapped from group readiness', async () => {
+    apiGet.mockResolvedValueOnce({ data: board });
+    render(<MuscleReadinessCard userId={7} />);
+    await screen.findByTestId('muscle-readiness-card');
+    const body = screen.getByTestId('crystalline-body');
+    expect(body.getAttribute('aria-hidden')).toBe('true'); // decorative — the list carries the a11y truth
+    const legs = body.querySelectorAll('[data-readiness="loading"]');
+    expect(legs.length).toBeGreaterThan(0); // quads trained today → leg regions dim
+    const chest = body.querySelectorAll('[data-readiness="caution"]');
+    expect(chest.length).toBeGreaterThan(0);
+  });
+
+  it('regions with no readiness data render as ready (untrained = fully recovered)', async () => {
+    apiGet.mockResolvedValueOnce({ data: board });
+    render(<MuscleReadinessCard userId={7} />);
+    await screen.findByTestId('muscle-readiness-card');
+    const body = screen.getByTestId('crystalline-body');
+    expect(body.querySelectorAll('[data-readiness="ready"]').length).toBeGreaterThan(0);
+  });
+});
