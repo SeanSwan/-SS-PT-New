@@ -19,6 +19,7 @@ import GalleryInfoCard from './gallery/GalleryInfoCard';
 import MessageModal from './gallery/MessageModal';
 import DonationModal from './gallery/DonationModal';
 import ReferralModal from './gallery/ReferralModal';
+import { formatPhotoCount } from './galleryFormat';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -508,37 +509,53 @@ const EventCard = styled(motion.button)`
   &:hover { border-color: rgba(139, 92, 246, 0.3); }
 `;
 
+/* Consistent token'd aspect ratio (was a fixed 200px that cropped covers unevenly).
+   Missing covers get a branded token gradient placeholder, not a hardcoded hex. */
 const EventCover = styled.div<{ $src: string | null }>`
   width: 100%;
-  height: 200px;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
   background: ${({ $src }) => {
     const safe = $src ? sanitizeImageUrl($src) : null;
-    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'linear-gradient(135deg, #1a1035, #002060)';
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover`
+      : `radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--wing-purple, #8B5CF6) 22%, transparent), transparent 55%),
+         linear-gradient(135deg, var(--graphite, #1A1A24), var(--midnight-sapphire, #002060))`;
   }};
   position: relative;
+  transition: transform 0.4s ease;
+
+  ${EventCard}:hover & { transform: scale(1.03); }
+  @media (prefers-reduced-motion: reduce) { transition: none; ${EventCard}:hover & { transform: none; } }
 `;
 
+/* Both overlays are DECORATIVE (aria-hidden + pointer-events:none) — they sit inside the
+   clickable EventCard, so making them interactive would nest interactive elements
+   (invalid DOM / touch-target trap). Kimi R2 §6. */
 const SportBadge = styled.span`
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(139, 92, 246, 0.15);
-  color: #60C0F0;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--wing-purple, #8B5CF6) 18%, rgba(10, 10, 15, 0.6));
+  color: var(--ice-wing, #60C0F0);
+  border: 1px solid color-mix(in srgb, var(--wing-purple, #8B5CF6) 34%, transparent);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
 `;
 
 const PhotoCountBadge = styled.span`
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(0, 32, 96, 0.85);
-  color: rgba(255,255,255,0.9);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--midnight-sapphire, #002060) 85%, transparent);
+  color: var(--frost-white, rgba(255, 255, 255, 0.92));
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 13px;
@@ -1798,8 +1815,8 @@ const GalleryPage: React.FC = () => {
                   onClick={() => handleEventClick(event)}
                 >
                   <EventCover $src={event.coverPhotoUrl}>
-                    {event.sport && <SportBadge>{event.sport}</SportBadge>}
-                    <PhotoCountBadge>{event.photoCount} photos</PhotoCountBadge>
+                    {event.sport && <SportBadge aria-hidden='true'>{event.sport}</SportBadge>}
+                    <PhotoCountBadge aria-hidden='true'>{formatPhotoCount(event.photoCount)}</PhotoCountBadge>
                   </EventCover>
                   <EventInfo>
                     <EventName>{event.name}</EventName>
