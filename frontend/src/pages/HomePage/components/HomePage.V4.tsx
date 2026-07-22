@@ -16,6 +16,7 @@ import { ScrollProgress } from '../../../components/ui/animations';
 import { SectionTransition } from '../../../components/ui/animations';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
 import { PrismCapture } from '../../../components/marketing/PrismCapture'; // self-gates → null when flag off
+import { EvidenceLensBand } from './EvidenceLensBand'; // SWA-25 ratified proof device — direct mount, no flag
 
 // Section components
 import HeroSection from './sections/HeroSection';
@@ -73,6 +74,9 @@ const HomePageV4: React.FC = () => {
         />
         {/* PRISM speed-to-lead capture — self-gates to null when PRISM_CAPTURE_ENABLED/flag is off (zero impact) */}
         <PrismCapture />
+        {/* SWA-25: ratified gold Evidence Lens — circles the ONE real-proof number (marketingStats
+            truth module only). Mounted DIRECTLY per Sean 2026-07-21: no toggles, no flags. */}
+        <EvidenceLensBand />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <MissionSection tier={tier} />

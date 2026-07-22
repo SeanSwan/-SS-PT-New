@@ -35,7 +35,7 @@ describe('EvidenceLensBand (SWA-25)', () => {
 
   it('does not duplicate a fact the stats strip already shows (card standard)', () => {
     // The strip (HomeData STATS) shows 6 stats; the lens must circle one it does NOT.
-    const homeData = readFileSync(join(__dirname, '../components/shared/HomeData.ts'), 'utf-8');
+    const homeData = readFileSync(join(__dirname, 'shared/HomeData.ts'), 'utf-8');
     expect(homeData).not.toContain('MARKETING_STATS.exerciseLibrary');
   });
 
@@ -51,8 +51,10 @@ describe('EvidenceLensBand (SWA-25)', () => {
     expect(src).toMatch(/animation:\s*none/);
   });
 
-  it('is mounted in HomeVNext as JSX (rule 26: import alone is not a mount)', () => {
-    const home = SRC('HomeVNext.tsx');
+  it('is mounted DIRECTLY in canonical HomePage.V4 — no flag, no toggle (Sean 2026-07-21)', () => {
+    const home = SRC('HomePage.V4.tsx');
     expect(home).toContain('<EvidenceLensBand />');
+    // The mount must be unconditional: no flag hook or && guard on the band's line.
+    expect(home).not.toMatch(/EvidenceLensBand[^\n]*&&|&&[^\n]*<EvidenceLensBand/);
   });
 });
