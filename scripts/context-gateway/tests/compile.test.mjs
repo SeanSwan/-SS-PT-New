@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 import { extractAnchors, anchorNeedles } from '../src/anchors.mjs';
 import { parseCatalog, resolveAuthority } from '../src/authority.mjs';
-import { searchCode, findTests, searchCatalog, mergeWindows } from '../src/retrieve.mjs';
+import { searchFiles, findTests, searchCatalog, mergeWindows } from '../src/retrieve.mjs';
 import { gitTrackedFiles } from '../src/safeRead.mjs';
 import { compileContext } from '../src/compile.mjs';
 

@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import { extractAnchors, anchorNeedles } from './anchors.mjs';
 import { parseCatalog, resolveAuthority, TIER_RANK } from './authority.mjs';
-import { searchCode, findTests, searchCatalog, mergeWindows } from './retrieve.mjs';
+import { searchFiles, matchLines, basenameAffinity, findTests, searchCatalog, mergeWindows } from './retrieve.mjs';
 import { createSafeReader, SafeReadError } from './safeRead.mjs';
 import { createPacket } from './packet.mjs';
 
@@ -53,19 +53,53 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   const strong = [...anchors.paths, ...anchors.routes, ...anchors.quoted, ...anchors.symbols];
   const needles = strong.length ? strong : anchorNeedles(anchors);
 
-  // --- retrieval: code hits per needle, windows merged per file ---
-  const windowsByFile = new Map(); // path -> [{start,end,hits}]
+  // --- retrieval v2 (benchmark-tuned 2026-07-21): complete file-level search first, so a
+  // hit-line cap can never hide the named file; windows fetched only for ranked winners ---
   const notes = [];
+  // Archives are reference-only (CLAUDE.md load order #7) and vendored trees are noise —
+  // excluded from retrieval unless the question names the path explicitly (anchors.paths lane).
+  const EXCLUDE_RE = /(^|\/)(archive|node_modules|venv|site-packages|dist|build|__pycache__)\//;
+  const fileScore = new Map(); // path -> { needles:Set, affinity:boolean }
   for (const needle of needles.slice(0, 24)) {
-    const { hits, truncated } = searchCode(root, needle);
-    if (truncated) notes.push(`grep truncated for needle "${needle}"`);
-    for (const h of hits) {
-      if (!windowsByFile.has(h.path)) windowsByFile.set(h.path, []);
-      windowsByFile.get(h.path).push({ start: Math.max(1, h.line - contextLines), end: h.line + contextLines, hits: 1 });
+    let files = searchFiles(root, needle).filter((p) => !EXCLUDE_RE.test(p));
+    // A needle hitting hundreds of files can't discriminate by CONTENT — but a file NAMED
+    // after it is still the strongest signal (bench: 'authMiddleware' hits 400+ importers,
+    // yet authMiddleware.mjs itself is the ground truth). Common needles keep only their
+    // basename matches; rare needles keep everything.
+    const common = files.length > 400;
+    if (common) {
+      files = needle.length >= 6 ? files.filter((p) => basenameAffinity(p, needle)) : [];
+      notes.push(`common needle "${needle}": basename matches only (${files.length})`);
+    }
+    for (const p of files) {
+      if (!fileScore.has(p)) fileScore.set(p, { needles: new Set(), affinity: false });
+      const s = fileScore.get(p);
+      s.needles.add(needle);
+      // Affinity only for discriminating needles — short generic words matching a basename
+      // ('live' → live.py) must not dominate ranking.
+      if (needle.length >= 6 && basenameAffinity(p, needle)) s.affinity = true;
     }
   }
-  // explicit path anchors: include head-of-file even without grep hits
-  for (const p of anchors.paths) if (tracked.has(p) && !windowsByFile.has(p)) windowsByFile.set(p, [{ start: 1, end: 2 * contextLines, hits: 1 }]);
+  // explicit path anchors always enter, with affinity
+  for (const p of anchors.paths) if (tracked.has(p)) {
+    if (!fileScore.has(p)) fileScore.set(p, { needles: new Set(), affinity: true });
+    fileScore.get(p).affinity = true;
+  }
+  // pre-read ranking: basename affinity dominates, then distinct-needle overlap
+  const preRanked = [...fileScore.entries()]
+    .map(([path, s]) => ({ path, score: (s.affinity ? 100 : 0) + s.needles.size * 10 }))
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
+    .slice(0, 30);
+  if (fileScore.size > 30) notes.push(`file candidates capped 30/${fileScore.size}`);
+
+  const windowsByFile = new Map(); // path -> [{start,end,hits}]
+  for (const { path } of preRanked) {
+    const lines = matchLines(root, path, needles.slice(0, 24));
+    const wins = lines.length
+      ? lines.slice(0, 3).map((l) => ({ start: Math.max(1, l - contextLines), end: l + contextLines, hits: 1 }))
+      : [{ start: 1, end: 2 * contextLines, hits: 1 }];
+    windowsByFile.set(path, wins);
+  }
 
   // --- catalog lane (A4 pointers -> open the source docs) ---
   const catalogText = tracked.has('docs/ai-workflow/CATALOG.md') ? reader.readWindow('docs/ai-workflow/CATALOG.md').content : '';
@@ -85,7 +119,7 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   const candidates = [];
   for (const [path, wins] of windowsByFile) {
     const auth = resolveAuthority(path, catalog, shaByPath);
-    const density = wins.reduce((n, w) => n + w.hits, 0);
+    const density = (fileScore.get(path)?.affinity ? 100 : 0) + (fileScore.get(path)?.needles.size ?? 0) * 10 + wins.length;
     candidates.push({ path, windows: mergeWindows(wins), auth, density });
   }
   candidates.sort((a, b) => TIER_RANK[a.auth.tier] - TIER_RANK[b.auth.tier] || b.density - a.density || a.path.localeCompare(b.path));

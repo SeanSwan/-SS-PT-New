@@ -17,23 +17,41 @@
  */
 import { execFileSync } from 'node:child_process';
 
-/** git grep one fixed-string needle. Returns { hits: [{path, line}], truncated }. */
-export function searchCode(root, needle, { maxHits = 40 } = {}) {
-  let out = '';
+/** git grep -l one fixed-string needle → COMPLETE file list (no line cap can hide a file). */
+export function searchFiles(root, needle) {
   try {
-    out = execFileSync('git', ['-C', root, 'grep', '-n', '-I', '--fixed-strings', '--', needle],
+    const out = execFileSync('git', ['-C', root, 'grep', '-I', '-l', '--fixed-strings', '--', needle],
       { maxBuffer: 16 * 1024 * 1024 }).toString('utf8');
+    return out.split('\n').filter(Boolean).map((p) => p.replaceAll('\\', '/'));
   } catch (e) {
-    if (e.status === 1) return { hits: [], truncated: false }; // no matches
+    if (e.status === 1) return [];
     throw e;
   }
-  const lines = out.split('\n').filter(Boolean);
-  const hits = [];
-  for (const l of lines.slice(0, maxHits)) {
-    const m = l.match(/^(.+?):(\d+):/);
-    if (m) hits.push({ path: m[1].replaceAll('\\', '/'), line: Number(m[2]) });
+}
+
+/** Match lines for a set of needles INSIDE one file. Returns line numbers (capped, per-file). */
+export function matchLines(root, path, needles, { maxLines = 12 } = {}) {
+  const lines = [];
+  for (const n of needles) {
+    let out = '';
+    try {
+      out = execFileSync('git', ['-C', root, 'grep', '-n', '--fixed-strings', '-e', n, '--', path],
+        { maxBuffer: 4 * 1024 * 1024 }).toString('utf8');
+    } catch (e) { if (e.status !== 1) throw e; }
+    for (const l of out.split('\n').filter(Boolean)) {
+      const m = l.match(/^.+?:(\d+):/);
+      if (m) lines.push(Number(m[1]));
+      if (lines.length >= maxLines) return [...new Set(lines)].sort((a, b) => a - b);
+    }
   }
-  return { hits, truncated: lines.length > maxHits };
+  return [...new Set(lines)].sort((a, b) => a - b);
+}
+
+/** True when the needle names the file itself (basename affinity — strongest retrieval signal). */
+export function basenameAffinity(path, needle) {
+  const base = path.split('/').pop().toLowerCase();
+  const n = needle.toLowerCase().replaceAll('\\', '/');
+  return base.includes(n.split('/').pop()) || n.includes(base.replace(/\.[^.]+$/, ''));
 }
 
 /** Sibling tests for a source path, from the tracked universe. */

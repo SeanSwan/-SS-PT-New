@@ -25,7 +25,7 @@ const PATH_RE = /[\w.-]+(?:\/[\w.-]+)+\.\w{1,10}/g;
 const ROUTE_RE = /(?<![\w.])\/(?:api|ws)(?:\/[\w:-]+)+/g;
 const ISSUE_RE = /\bSWA-\d+\b/g;
 const QUOTED_RE = /"([^"]{2,80})"|`([^`]{2,80})`/g;
-const SYMBOL_RE = /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*|[a-z0-9]+(?:_[a-z0-9]+)+)\b/g;
+const SYMBOL_RE = /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*|[a-z0-9]+(?:_[a-z0-9]+)+|[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)\b/g;
 
 /** @param {string} question @returns {{paths:string[],symbols:string[],routes:string[],issues:string[],quoted:string[],terms:string[]}} */
 export function extractAnchors(question) {
