@@ -31,7 +31,6 @@ import { buildUserDashboardTeachCoachRoute } from './UserDashboardTeachCoachRout
 import UserDashboardBackgroundControlsDisclosure from './backgrounds/UserDashboardBackgroundControlsDisclosure';
 import useUserDashboardBackgroundPreference from './backgrounds/useUserDashboardBackgroundPreference';
 import { USER_DASHBOARD_TAB_IDS, type TabId } from './types/UserDashboardTypes';
-import CrownHeader from './CrownHeader/CrownHeader';
 
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
@@ -112,9 +111,9 @@ const UserDashboardV3: React.FC = () => {
           <ContentWrapper data-user-dashboard-scroll-root $belowCover>
             {isHomeTab ? (
               <>
-              {/* FUSION F2: lens-wearing Crown Header — first HOME content child,
-                  below the cover studio (KIMI Cover/Gallery lane owns the cover). */}
-              <CrownHeader />
+              {/* CrownHeader (giant in-dashboard "YOUR LOOK" theme-swatch bar) removed 2026-07-21 (Sean):
+                  it duplicated the header Appearance Studio (UniversalThemeToggle → AppearanceStudioPanel),
+                  which is the single theming authority. Theme/color/sizing lives in the header only. */}
               <UserDashboardTabBarV3
                 activeTab={dashboard.activeTab}
                 onTabChange={handleTabChange}
