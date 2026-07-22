@@ -163,7 +163,17 @@ many booked," the funnel is not done. Instrument as you go (Task P0-4).
 
 ### P2 — trust / legal (verify before changing)
 
-#### P2-1 · Verify (do NOT blindly delete) the "NCEP-certified" claim
+#### P2-1 · ✅ DECIDED (Sean 2026-07-21): the NCEP credential is REAL + documented — claims STAND
+**Do NOT change the "NCEP-certified (National College of Exercise Professionals)" claims — Sean holds it and it
+is documented.** He also holds a **NASM *workshop* certificate.** Guardrails that still apply: phrase NASM as
+**"NASM protocol" / "completed NASM workshop"**, NEVER "NASM-certified" (a workshop cert ≠ NASM certification).
+**Still do P0-2** — `trainerService.ts:66` fabricating "Certified Personal Trainer" for OTHER trainers with no
+cert on file is a separate, unsubstantiated claim and is still a fix. Extending the credential-phrasing guard test
+to forbid "NASM-certified" is still worthwhile.
+
+<details><summary>(original verify-first note, now resolved)</summary>
+
+#### (superseded) Verify the "NCEP-certified" claim
 - **Problem:** ~10 frontend files assert Sean is **"NCEP-certified (National College of Exercise Professionals)"**
   — e.g. `pages/about/About.V3.tsx`, `About.V4.tsx`, `about/components/sections/AboutSeanSection.tsx`,
   `components/FeaturesSection/FeaturesSection.tsx` (+ `.V2`), `about/v-next/AboutVNext.tsx`,
@@ -177,9 +187,14 @@ many booked," the funnel is not done. Instrument as you go (Task P0-4).
   consistently across all of them (no half-fix), with the guard test extended.
 - **Effort:** S (once Sean rules). **Gate:** Sean confirms the credential first.
 
+</details>
+
 ### P3 — SEAN-GATED, outward-facing (a builder must NOT complete this alone)
 
-#### P3-1 · Arm the lead-nurture sequence
+#### P3-1 · Arm the lead-nurture sequence — ⏸️ DEFERRED TO LAST (Sean 2026-07-21), gated on SendGrid finalization
+- **✅ DECIDED:** this is the **LAST** thing built, and it is blocked on **finalizing SendGrid deliverability**
+  first ("needs a little bit of work"; a coworker may do the SendGrid setup). So the hard dependency chain is:
+  **SWA-13 DMARC + P0-0 deliverability + SendGrid finalization → THEN arm nurture.** Do not build/arm before that.
 - **Status:** the day-0/1/3/7 `lead_nurture` email sequence is fully built and **deliberately disarmed** —
   `backend/services/automationService.mjs:72-77` seeds `isActive:false` "ON PURPOSE so capture creates ZERO sends
   until Sean explicitly ARMS it", and all delivery is gated on `SWAN_AUTOMATION_CRON_ENABLED === 'true'`
@@ -213,11 +228,11 @@ many booked," the funnel is not done. Instrument as you go (Task P0-4).
 > a human to read." Sean is the bottleneck the plan pretends to remove.** These 9 gaps fix that — ranked by money,
 > almost all S-effort folded into the existing tasks. A ⚑ marks a Sean business decision, not a builder default.
 
-- **G1 · ⚑ Pay-to-hold at the booking moment (BIGGEST money).** The plan ends at `status:'scheduled'` = a free
-  consult, which no-shows 30–50%. The repo already has Stripe + the $175 price. Offer, in P1-1's confirmation, a
-  **paid intro / deposit-to-hold via a Stripe payment link** — this is *binding to* the money path (permitted),
-  not rewriting it. A lead who pays shows up. **Sean decides the shape:** free consult · $50 deposit credited to a
-  package · $175 paid intro. One paid conversion out-earns dozens of nurtured free leads. → new **P1-1a**.
+- **G1 · ✅ DECIDED (Sean 2026-07-21): FREE consult — NO money hold. Pay-to-hold is REJECTED.** Sean will not
+  take a deposit or charge an intro ("not gonna hold people's money"), accepting the free-consult no-show risk.
+  So there is **no Stripe pay-to-hold at booking** — `/book` stays a free consult request (`status:'scheduled'`).
+  **Because the money lever is off the table, the no-show fight is fought with G2 (instant acknowledgment) + G4
+  (reminders + no-show recovery) instead — build those harder.** Do NOT add a payment step to `/book`.
 - **G2 · Automated instant first-touch (fold into P0-1).** `nextFollowUpAt` only *tells Sean he's late*; it
   doesn't make the lead not-late. On capture of a hot/`scheduled` lead, fire an **immediate transactional
   acknowledgment** ("Got it — Sean will reach out within [window]; tap to lock a time"). This is a transactional
@@ -245,19 +260,25 @@ many booked," the funnel is not done. Instrument as you go (Task P0-4).
 - **G9 · Source→revenue attribution (fold into P0-4).** UTM is captured but nothing ties `source → booked → paid`,
   so Sean can't tell which channel produces *clients*, not leads. One more column on the P0-4 weekly number.
 
-**Revised priority:** G1 → G2 → G3 → G4 → G6 → G7 → G5 → G8 → G9. Everything except G5 folds into an existing task
-as S-effort. The skeleton was right; it just stopped one step short of money at every step.
+**Revised priority (post-decision):** G2 → G3 → G4 → G6 → G7 → G5 → G8 → G9. **G1 pay-to-hold is REMOVED** (Sean:
+free consult, no money hold). Everything except G5 folds into an existing task as S-effort. The no-show fight now
+rides entirely on G2 (instant ack) + G4 (reminders/recovery), so build those two well.
 
-## 3. SUGGESTED SEQUENCE FOR ONE BUILDER (corrected)
-**V1** (confirm the base is sound) → **P0-0** (deliverability — gate everything on this) → **P0-1** (follow-up SLA
-+ backfill) → **P1-1** (booking MVP — the conversion path) → **P0-4** (instrument) → **P0-2** (credential
-fallback) → **P0-3** (referral attribution) → hand **P2-1** + **P3-1** to Sean with the evidence you gathered.
-Each of P0-0..P0-4 and P2-1 is a small, independently-shippable unit; P1-1 is the one real feature.
+## 3. SUGGESTED SEQUENCE FOR ONE BUILDER (post-decision, 2026-07-21)
+**V1** (confirm the base is sound) → **P0-0** (deliverability — gate everything that sends) → **P0-1 + G2**
+(follow-up SLA + backfill + instant transactional ack) → **P1-1 + G3 + G7** (FREE-consult booking MVP, PRISM→book
+prefill chaining, trust assets — **no payment step**) → **P0-4 + G9** (instrument + source→booked→paid) → **P0-2**
+(trainerService fabrication fix — NOT the NCEP claims, those stand) → **P0-3** (referral attribution) → **P1-2 /
+G4** (consult reminders + no-show recovery) → **G5** (shareable milestone cards). **LAST, and only after SendGrid
+is finalized: P3-1 nurture arming + G8 backlog reactivation** (Sean-gated).
 Deferred follow-up: **P1-1b** live-slot calendar booking (couples to trainer scheduling — separate slice).
 
-## 4. FOR SEAN ONLY (not the builder's to decide)
-- **Arm nurture?** (P3-1) — the single highest-money flip once P0-1 + P1-1 land.
-- **Is the NCEP credential current/documented?** (P2-1) — determines whether ~10 files stand or get corrected.
-- **Referral rewards economy?** (beyond P0-3 attribution) — a money decision.
-- **Flip PRISM on?** — set `PRISM_CAPTURE_ENABLED=true` + `REF_CODE_PEPPER` on Render (a missing pepper hides the
-  share ray). Run the PRISM backend vitest in CI first.
+## 4. DECISIONS — RESOLVED (Sean 2026-07-21)
+- **Booking commitment:** ✅ **FREE consult, no money hold.** Pay-to-hold rejected. (G1 removed.)
+- **NCEP credential:** ✅ **Real + documented — claims STAND.** Sean also holds a NASM *workshop* certificate;
+  phrase NASM as "protocol / completed workshop", never "NASM-certified". P0-2 (fabricated fallback for OTHER
+  trainers) still applies.
+- **Arm nurture:** ⏸️ **LAST**, gated on **finalizing SendGrid** (a coworker may do that) + SWA-13 DMARC + P0-0.
+- **Flip PRISM on?** — still open: set `PRISM_CAPTURE_ENABLED=true` + `REF_CODE_PEPPER` on Render when ready (a
+  missing pepper hides the share ray); run the PRISM backend vitest in CI first.
+- **Referral rewards economy?** — still open (beyond P0-3 attribution); a money decision, not urgent.
