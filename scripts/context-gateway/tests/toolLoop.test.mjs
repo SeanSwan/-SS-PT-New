@@ -88,13 +88,24 @@ test('untrusted tool calls: unknown tool and bad JSON args become error results,
   assert.equal(r.audit.uncited, true, 'uncited answer flagged');
 });
 
-test('spend cap: cumulative cost stops the loop gracefully', async () => {
+test('spend cap: PRE-EMPTIVE — loop stops BEFORE exceeding the cap, never overshoots', async () => {
   const s = setup();
-  // high per-turn cost via big usage; cap forces a stop after the first turn's cost lands
-  const fetch = mockFetch([toolCall('repo_search', { query: 'db' })], { prompt_tokens: 200000, completion_tokens: 50000 });
-  const r = await runToolLoop({ provider: getProvider('sol'), ...s, fetchImpl: fetch, env: { ...ENV, SWAN_CONTEXT_MAX_USD: '2' }, maxIterations: 10 });
+  // per-turn estimate is dominated by maxTokens output cost: sol $30/M out * 30000 = ~$0.90/turn.
+  // cap $1.10 admits one turn's spend, then the next turn's estimate would breach → stop.
+  const fetch = mockFetch([toolCall('repo_search', { query: 'db' })], { prompt_tokens: 2000, completion_tokens: 1000 });
+  const r = await runToolLoop({ provider: getProvider('sol'), ...s, fetchImpl: fetch, env: { ...ENV, SWAN_CONTEXT_MAX_USD: '1.10' }, maxTokens: 30000, maxIterations: 10 });
   assert.equal(r.stopReason, 'spend_cap');
-  assert.ok(r.totalCost >= 2);
+  assert.ok(r.totalCost <= 1.10, `no overshoot: spent ${r.totalCost} <= cap 1.10`);
+  assert.ok(r.iterations < 10, 'stopped on spend, not iteration budget');
+});
+
+test('spend cap: single turn whose estimate exceeds the whole cap is refused up front', async () => {
+  const s = setup();
+  const fetch = mockFetch([{ role: 'assistant', content: 'x' }]);
+  await assert.rejects(
+    () => runToolLoop({ provider: getProvider('sol'), ...s, fetchImpl: fetch, env: { ...ENV, SWAN_CONTEXT_MAX_USD: '0.10' }, maxTokens: 30000 }),
+    (e) => e.code === 'SPEND_CAP');
+  assert.equal(fetch.bodies.length, 0, 'no network turn happened');
 });
 
 test('fail-closed: no SWAN_CONTEXT_MAX_USD → loop refuses before any network turn', async () => {

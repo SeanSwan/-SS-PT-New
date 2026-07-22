@@ -67,16 +67,20 @@ export function enforceCeiling(provider, manifest) {
   return offending;
 }
 
+/** Conservative cost estimate for one turn: chars/3 input tokens + full maxTokens output. */
+export function estimateCost(provider, promptChars, maxTokens) {
+  return (promptChars / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
+}
+
 /**
  * Spend gate (threat T8). Fail-closed: SWAN_CONTEXT_MAX_USD must be set to spend at all.
- * Estimate is conservative: chars/3 input tokens + full maxTokens output.
  */
 export function assertSpend(provider, promptChars, maxTokens, env = process.env) {
   const cap = Number(env.SWAN_CONTEXT_MAX_USD);
   if (!Number.isFinite(cap) || cap <= 0) {
     throw new ProviderError('NO_CAP', 'SWAN_CONTEXT_MAX_USD is not set — network spend is fail-closed (dry-run commands need no cap)');
   }
-  const estimate = (promptChars / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
+  const estimate = estimateCost(provider, promptChars, maxTokens);
   if (estimate > cap) {
     throw new ProviderError('SPEND_CAP', `estimated ~$${estimate.toFixed(4)} exceeds SWAN_CONTEXT_MAX_USD=$${cap}`, { estimate, cap });
   }

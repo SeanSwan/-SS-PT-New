@@ -17,7 +17,7 @@
  *
  * @module context-gateway/toolLoop
  */
-import { assertSpend } from './providers.mjs';
+import { assertSpend, estimateCost } from './providers.mjs';
 import { buildPrompt, callWithTools } from './transport.mjs';
 
 /** OpenAI/OpenRouter function-tool definitions exposed to the model. */
@@ -70,10 +70,12 @@ export async function runToolLoop({ provider, packet, manifest, evidence, sessio
   let totalCost = 0, iterations = 0, stopReason = 'answered';
 
   for (iterations = 1; iterations <= maxIterations; iterations += 1) {
-    // Cumulative spend gate (T8): the per-turn estimate must fit under the REMAINING budget.
+    // Spend gate (T8), PRE-EMPTIVE so the cap is a hard ceiling — stop BEFORE a turn that would
+    // push cumulative cost over the cap, never after (a reactive check overshoots by a full turn).
+    const promptChars = JSON.stringify(messages).length;
+    assertSpend(provider, promptChars, maxTokens, env); // fail-closed (no cap) + single-turn guard
     const cap = Number(env.SWAN_CONTEXT_MAX_USD);
-    assertSpend(provider, JSON.stringify(messages).length, maxTokens, env); // per-turn + fail-closed
-    if (Number.isFinite(cap) && totalCost >= cap) { stopReason = 'spend_cap'; break; }
+    if (totalCost + estimateCost(provider, promptChars, maxTokens) > cap) { stopReason = 'spend_cap'; break; }
 
     const turn = await callWithTools(provider, messages, TOOL_SCHEMAS, { maxTokens, fetchImpl, env, manifest });
     totalCost += turn.cost;
