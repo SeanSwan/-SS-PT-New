@@ -25,6 +25,36 @@ laws, all non-negotiable:
 6. Dock collapses to bottom sheet ≤768px. Zero-PII: IDs/enums to the LLM only (Rule 8). All tool actions
    T1/T2 client-side.
 
+## TRANSPORT RECEIPT (CC-3a COMPLETE — the architecture already exists; GENERALIZE, don't invent)
+
+The repo already ships a working, doctrine-locked coach dock on the admin workout planner:
+- **Dock:** `useWorkoutPlannerCoachDock.ts` (177 ln) + `WorkoutPlannerCoachDock.tsx` — dictation via
+  `useCoachBrowserSpeechInput`, Send → `useCoachCommand.executeCommand` with `surface:'workout-planner'`,
+  non-commands fall back to `useAIChat.sendMessageWithConversation`, replies render as receipt rows with
+  one-tap follow-up actions (incl. Undo). Header doc: "No new transport is created here (blueprint
+  06-bans §1)" — that ban binds CC-3 too.
+- **Surface routing:** `useCoachCommand.ts:105-118` — `surface?: 'workout-planner'|'workout-logger'`
+  flows as routeContext → backend `aiCommandRoutes normalizeRouteContext → intent surface remap`.
+- **Tool execution:** window CustomEvents. `aiChatService.mjs` system prompts already emit
+  `{"action":"frontend_dispatch","event":"AI_ADD_EXERCISE",...}`; the planner executes via
+  `useWorkoutPlannerAiEvents.ts` listeners (`AI_PLANNER_ADD_EXERCISE` etc.) with an
+  `acknowledgeAIWorkoutEvent(handled)` ack handshake feeding the receipt sink.
+
+### Exact CC-3 build list (no open questions)
+1. Extend `useCoachCommand` surface union with `'bootcamp-builder'` (+`'pain-chart'` for CC-4) and the
+   backend `normalizeRouteContext` remap + intent family.
+2. Define `AI_BOOTCAMP_*` events (SET_FORMAT, SET_ROUNDS, SET_STATIONS, SET_INTERVALS, PLACE_EXERCISE,
+   LOAD_TEMPLATE) beside the AI_PLANNER_* constants; add the bootcamp `frontend_dispatch` block to the
+   aiChatService surface prompt.
+3. `useBootcampAiEvents.ts` — listeners mapping events → `BootcampCommandDeck.logic` actions, ack
+   handshake, receipt sink (mirror useWorkoutPlannerAiEvents).
+4. Generalize the dock: lift `useWorkoutPlannerCoachDock` → `components/CoachDock/useSurfaceCoachDock.ts`
+   (parameterized by surface + receipt sink); planner keeps a thin wrapper with IDENTICAL behavior
+   (its tests must pass unchanged); `BootcampCoachDock` consumes the generic.
+5. Kimi laws on top: aggregate 44px countdown undo chip, inline-transcript invalid-tool messages,
+   traveling focus ring (reduced-motion: none), digest carries selection context, bottom-sheet ≤768.
+6. TDD throughout; planner dock regression suite green is the non-negotiable refactor gate.
+
 ## Discovery state (verified)
 - Coach-assistant transport = ASYNC intake queue (`createCoachTextIntake`, coachIntakeService.ts) — built
   for dictation intake, not synchronous tool-call round-trips.
