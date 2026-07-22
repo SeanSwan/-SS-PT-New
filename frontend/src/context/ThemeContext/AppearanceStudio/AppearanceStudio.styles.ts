@@ -210,6 +210,53 @@ export const ColorCount = styled.p`
   font: 600 12px/1.3 'Sora', sans-serif;
 `;
 
+/* Curated-tray family header (Apex Darks / Jewel Gradients / Frost Glass / Heritage). */
+export const FamilyHeader = styled.h4`
+  grid-column: 1 / -1;
+  margin: 6px 0 2px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 10%, transparent);
+  color: var(--text-secondary, #b8c8d8);
+  font: 700 10px/1.2 'Sora', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  &:first-child { border-top: 0; padding-top: 0; }
+`;
+
+/* A color option that now stacks a live specimen over its label. */
+export const SwatchButton = styled.button<{ $active: boolean }>`
+  display: grid;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 13px;
+  border: 1px solid ${({ $active }) => $active
+    ? 'var(--ice-wing, #60c0f0)'
+    : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 16%, transparent)'};
+  background: ${({ $active }) => $active
+    ? 'color-mix(in srgb, var(--accent-primary, var(--ice-wing, #60c0f0)) 18%, var(--bg-elevated, #1a1a24))'
+    : 'var(--bg-elevated, #1a1a24)'};
+  color: var(--text-primary, #e0ecf4);
+  cursor: pointer;
+  font: 700 11px/1.2 'Sora', sans-serif;
+  text-align: left;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--wing-purple, #8b5cf6) 40%, transparent);
+  }
+  ${({ $active }) => $active && `box-shadow: 0 0 18px color-mix(in srgb, var(--wing-purple, #8b5cf6) 44%, transparent);`}
+  &:focus-visible { outline: 3px solid var(--wing-purple, #8b5cf6); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: border-color 0.18s ease, background 0.18s ease;
+    &:hover { transform: none; }
+  }
+
+  span.label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+`;
+
 export const ChoiceButton = styled.button<{ $active: boolean }>`
   min-height: 52px;
   padding: 10px 12px;

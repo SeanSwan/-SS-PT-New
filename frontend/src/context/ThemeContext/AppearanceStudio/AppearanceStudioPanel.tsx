@@ -16,14 +16,17 @@ import AppearanceStudioPreview, {
 } from './AppearanceStudioPreview';
 import { useDialogFocusTrap } from './useDialogFocusTrap';
 import { useRovingTablist } from './useRovingTablist';
+import SwatchSpecimen from './SwatchSpecimen';
+import { groupByFamily, FAMILY_LABEL } from './colorwayFamilies';
 import {
   ChoiceButton,
   ChoiceGrid,
-  ColorChip,
   ColorCount,
   ColorGrid,
+  FamilyHeader,
   FavoriteButton,
   Pane,
+  SwatchButton,
   PreviewColumn,
   PreviewControls,
   PrimaryButton,
@@ -192,27 +195,28 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
               <p>Color and structural style remain independent.</p>
               <ColorCount>Showing all {colorIds.length} colorways — scroll for more</ColorCount>
               <ColorGrid role='listbox' aria-label='Colorways'>
-                {colorIds.map((id) => {
-                  const theme = themes[id];
-                  return (
-                    <ChoiceButton
-                      key={id}
-                      type='button'
-                      role='option'
-                      $active={draftTheme === id}
-                      aria-selected={draftTheme === id}
-                      onClick={() => onThemeChange(id)}
-                    >
-                      <ColorChip
-                        $bg={theme.background.primary}
-                        $primary={theme.colors.primary}
-                        $accent={theme.colors.accent}
-                        aria-hidden='true'
-                      />
-                      {theme.name}
-                    </ChoiceButton>
-                  );
-                })}
+                {groupByFamily(colorIds).map(({ family, ids }) => (
+                  <React.Fragment key={family}>
+                    <FamilyHeader aria-hidden='true'>{FAMILY_LABEL[family]}</FamilyHeader>
+                    {ids.map((id) => {
+                      const theme = themes[id];
+                      return (
+                        <SwatchButton
+                          key={id}
+                          type='button'
+                          role='option'
+                          $active={draftTheme === id}
+                          aria-selected={draftTheme === id}
+                          aria-label={`${theme.name} colorway`}
+                          onClick={() => onThemeChange(id)}
+                        >
+                          <SwatchSpecimen theme={theme} />
+                          <span className='label'>{theme.name}</span>
+                        </SwatchButton>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </ColorGrid>
             </>
           )}
