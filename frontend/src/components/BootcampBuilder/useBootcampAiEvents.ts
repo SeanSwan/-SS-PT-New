@@ -1,0 +1,109 @@
+/**
+ * HOOK: useBootcampAiEvents (CC-3b)
+ * PURPOSE: The Bootcamp Builder's executor for Swan Coach frontend_dispatch tool calls —
+ * listens for the additive AI_BOOTCAMP_* CustomEvents (dictation/chat → execution bridge),
+ * RE-VALIDATES every payload against the builder's real option sets, applies via the page's
+ * own setters, and acknowledges handled/unhandled so the dock renders truthful receipts
+ * (unhandled → the honest inline "can't do that yet" message, never a silent no-op).
+ * Mirrors useWorkoutPlannerAiEvents; no new transport (blueprint 06-bans §1).
+ */
+import { useEffect, useRef } from 'react';
+import {
+  AI_BOOTCAMP_SET_FORMAT,
+  AI_BOOTCAMP_SET_STRUCTURE,
+  AI_BOOTCAMP_SET_DURATION,
+  AI_BOOTCAMP_PLACE_EXERCISE,
+  AI_BOOTCAMP_LOAD_TEMPLATE,
+  type AIWorkoutEventAck,
+} from '../../utils/aiWorkoutEvents';
+import {
+  BOOTCAMP_STATION_COUNT_OPTIONS,
+  BOOTCAMP_EXERCISES_PER_STATION_OPTIONS,
+} from './BootcampBuilderConstants';
+
+const MIN_DURATION_MIN = 10;
+const MAX_DURATION_MIN = 120;
+const OPT_PHASES = [1, 2, 3, 4, 5] as const;
+
+export interface BootcampAiEventHandlers {
+  setStationCount: (n: number) => void;
+  setExercisesPerStation: (n: number) => void;
+  /** Builder keeps duration as a string field — the hook converts validated minutes. */
+  setTargetDuration: (minutes: string) => void;
+  setClassStyle?: (style: string) => void;
+  setOptPhase: (phase: number) => void;
+  /** Receipt sink — every applied change lands as a dock receipt line. */
+  pushReceipt?: (r: { ok: boolean; text: string }) => void;
+}
+
+type AckDetail = Record<string, unknown> & AIWorkoutEventAck;
+
+export function useBootcampAiEvents(handlers: BootcampAiEventHandlers): void {
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
+
+  useEffect(() => {
+    const ack = (e: Event, handled: boolean) => {
+      ((e as CustomEvent<AckDetail>).detail)?.acknowledgeAIWorkoutEvent?.(handled);
+    };
+
+    const onSetStructure = (e: Event) => {
+      const d = (e as CustomEvent<AckDetail>).detail || {};
+      const h = handlersRef.current;
+      const stations = d.stations == null ? null : Number(d.stations);
+      const perStation = d.exercisesPerStation == null ? null : Number(d.exercisesPerStation);
+      const stationsValid = stations == null || (BOOTCAMP_STATION_COUNT_OPTIONS as readonly number[]).includes(stations);
+      const perValid = perStation == null || (BOOTCAMP_EXERCISES_PER_STATION_OPTIONS as readonly number[]).includes(perStation);
+      if (!stationsValid || !perValid || (stations == null && perStation == null)) return ack(e, false);
+      if (stations != null) h.setStationCount(stations);
+      if (perStation != null) h.setExercisesPerStation(perStation);
+      h.pushReceipt?.({ ok: true, text: `Structure set${stations != null ? ` — ${stations} stations` : ''}${perStation != null ? ` × ${perStation} exercises` : ''}` });
+      return ack(e, true);
+    };
+
+    const onSetDuration = (e: Event) => {
+      const d = (e as CustomEvent<AckDetail>).detail || {};
+      const h = handlersRef.current;
+      const minutes = Number(d.minutes);
+      if (!Number.isFinite(minutes) || minutes < MIN_DURATION_MIN || minutes > MAX_DURATION_MIN) return ack(e, false);
+      h.setTargetDuration(String(Math.round(minutes)));
+      h.pushReceipt?.({ ok: true, text: `Class length set — ${Math.round(minutes)} minutes` });
+      return ack(e, true);
+    };
+
+    const onSetFormat = (e: Event) => {
+      const d = (e as CustomEvent<AckDetail>).detail || {};
+      const h = handlersRef.current;
+      let applied = false;
+      if (d.optPhase != null) {
+        const phase = Number(d.optPhase);
+        if (!(OPT_PHASES as readonly number[]).includes(phase)) return ack(e, false);
+        h.setOptPhase(phase);
+        applied = true;
+      }
+      if (typeof d.classStyle === 'string' && h.setClassStyle) {
+        h.setClassStyle(d.classStyle);
+        applied = true;
+      }
+      if (!applied) return ack(e, false);
+      h.pushReceipt?.({ ok: true, text: 'Format updated' });
+      return ack(e, true);
+    };
+
+    /** v1 honesty: placement/templates need the board APIs (CC-3c) — ack(false) so the dock says so. */
+    const onUnsupported = (e: Event) => ack(e, false);
+
+    window.addEventListener(AI_BOOTCAMP_SET_STRUCTURE, onSetStructure);
+    window.addEventListener(AI_BOOTCAMP_SET_DURATION, onSetDuration);
+    window.addEventListener(AI_BOOTCAMP_SET_FORMAT, onSetFormat);
+    window.addEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onUnsupported);
+    window.addEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onUnsupported);
+    return () => {
+      window.removeEventListener(AI_BOOTCAMP_SET_STRUCTURE, onSetStructure);
+      window.removeEventListener(AI_BOOTCAMP_SET_DURATION, onSetDuration);
+      window.removeEventListener(AI_BOOTCAMP_SET_FORMAT, onSetFormat);
+      window.removeEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onUnsupported);
+      window.removeEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onUnsupported);
+    };
+  }, []);
+}
