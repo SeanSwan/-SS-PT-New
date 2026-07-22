@@ -104,17 +104,27 @@ export function createToolSession({ root, tracked, ceiling = 'standard', callBud
       return { symbol, definitions: defs, references: refs, truncated, withheldByCeiling: withheld };
     },
 
-    /** trace_api_path(apiPath) — hits that look like a route mount/handler for a URL path. */
+    /**
+     * trace_api_path(apiPath) — hits that look like a route mount/handler for a URL path.
+     * Split-mount reality (verified on the real repo 2026-07-22): a route registered as
+     * router.post('/sessions') under an app.use('/api/workout', …) mount means the FULL literal
+     * '/api/workout/sessions' never appears in code. So we grep the full path, and if that is
+     * empty, fall back to progressively shorter trailing segments ('/workout/sessions', then
+     * '/sessions') — reporting which pattern actually matched so the caller isn't misled.
+     */
     trace_api_path(apiPath) {
       guard('trace_api_path');
       if (!apiPath || !apiPath.startsWith('/')) throw new ToolError('BAD_ARGS', 'api path starting with / required');
-      const { hits, truncated } = grepDetailed(root, apiPath, { maxHits });
+      const segs = apiPath.split('/').filter(Boolean);
+      const patterns = [apiPath, ...segs.map((_, i) => `/${segs.slice(i + 1).join('/')}`).filter((p) => p.length > 1)];
+      let matched = apiPath, res = { hits: [], truncated: false };
+      for (const p of [...new Set(patterns)]) { res = grepDetailed(root, p, { maxHits }); if (res.hits.length) { matched = p; break; } }
       const routeRe = /\b(?:router|app)\s*\.\s*(?:get|post|put|delete|patch|use|all)\b|\.(get|post|put|delete|patch)\(/;
       const routes = [], mentions = [];
-      for (const h of hits) { if (sensitive(h.path)) continue; (routeRe.test(h.text) ? routes : mentions).push(h); }
-      const withheld = hits.filter((h) => sensitive(h.path)).length;
-      log('trace_api_path', { apiPath }, true, { routes: routes.length, mentions: mentions.length, withheld, truncated });
-      return { apiPath, routes, mentions, truncated, withheldByCeiling: withheld };
+      for (const h of res.hits) { if (sensitive(h.path)) continue; (routeRe.test(h.text) ? routes : mentions).push(h); }
+      const withheld = res.hits.filter((h) => sensitive(h.path)).length;
+      log('trace_api_path', { apiPath, matchedPattern: matched }, true, { routes: routes.length, mentions: mentions.length, withheld, truncated: res.truncated });
+      return { apiPath, matchedPattern: matched, routes, mentions, truncated: res.truncated, withheldByCeiling: withheld };
     },
 
     /** catalog_search(topic) — A4 pointer rows (never canon; caller must open the source). */

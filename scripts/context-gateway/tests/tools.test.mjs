@@ -25,6 +25,9 @@ function fixtureRepo() {
   writeFileSync(join(root, 'backend', 'middleware', 'authMiddleware.mjs'), 'export function requireAuth(req){\n  return verifyToken(req);\n}\nverifyToken();\n'); // sensitive by path
   writeFileSync(join(root, 'frontend', 'src', 'components', 'GlowButton.tsx'), 'export const GlowButton = () => {\n  return renderGlow();\n};\nrenderGlow();\nGlowButton();\n');
   writeFileSync(join(root, 'backend', 'routes.mjs'), "router.post('/api/workout/sessions', saveWorkout);\n// mentions /api/workout/sessions in a comment\n");
+  // CRLF-content file: git grep -n emits its lines with trailing \r — the grepDetailed parse
+  // must survive it (regression for the 2026-07-22 CRLF bug found by live-probing).
+  writeFileSync(join(root, 'backend', 'crlfRoutes.mjs'), "router.get('/crlf-probe', crlfHandler);\r\ncrlfHandler();\r\n");
   writeFileSync(join(root, '.env'), 'SECRET=nope');
   git('add', '-A'); git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'fixtures');
   return { root, tracked: gitTrackedFiles(root) };
@@ -86,6 +89,14 @@ test('trace_api_path: refuses a non-path arg', () => {
   assert.throws(() => std().trace_api_path('workout'), (e) => e.code === 'BAD_ARGS');
 });
 
+test('trace_api_path: segment fallback finds a split-mounted route', () => {
+  // The fixture registers the FULL literal, but a caller may ask with an extra mount prefix
+  // that only matches on a trailing segment — the fallback must still find it and say so.
+  const r = std().trace_api_path('/api/v2/workout/sessions');
+  assert.ok(r.routes.length >= 1, 'route found via trailing-segment fallback');
+  assert.ok(r.matchedPattern.endsWith('/workout/sessions'), `matched via ${r.matchedPattern}`);
+});
+
 test('git_context: returns commit subjects and refuses traversal', () => {
   const r = std().git_context(['backend/routes.mjs']);
   assert.ok(r.commits.length >= 1 && /fixtures/.test(r.commits[0]));
@@ -112,6 +123,13 @@ test('audit: logs every call, ok flag, and summary — never file content', () =
   assert.equal(a[1].summary.reason, 'DENY_PATTERN');
   const blob = JSON.stringify(a);
   assert.ok(!blob.includes('requireAuth') && !blob.includes('verifyToken'), 'no file content in audit');
+});
+
+test('CRLF regression: grepDetailed-backed tools parse CRLF-content files', () => {
+  const r = std().trace_api_path('/crlf-probe');
+  assert.ok(r.routes.some((h) => /crlfHandler/.test(h.text)), 'CRLF route line parsed, not dropped');
+  const sym = std().trace_symbol('crlfHandler');
+  assert.ok(sym.definitions.length + sym.references.length >= 1, 'CRLF symbol lines parsed');
 });
 
 test('errors are typed', () => {

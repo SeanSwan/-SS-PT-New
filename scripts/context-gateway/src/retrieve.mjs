@@ -39,7 +39,11 @@ export function grepDetailed(root, needle, { maxHits = 60 } = {}) {
     if (e.status === 1) return { hits: [], truncated: false };
     throw e;
   }
-  const all = out.split('\n').filter(Boolean);
+  // Split on /\r?\n/ (NOT '\n'): git grep -n emits each matched line with the FILE's own line
+  // ending, so CRLF-content repos leave a trailing '\r' that a '$'-anchored parse would reject
+  // on every line (0 hits, truncated=true). Same CRLF class as the Phase 0 .env bug — caught by
+  // live-probing the real repo, invisible to LF-only fixtures.
+  const all = out.split(/\r?\n/).filter(Boolean);
   const hits = [];
   for (const l of all.slice(0, maxHits)) {
     const m = l.match(/^(.+?):(\d+):(.*)$/);
