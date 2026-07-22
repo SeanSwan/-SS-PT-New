@@ -41,6 +41,7 @@ import {
 import ClientDashboardHome from './ClientDashboardHome';
 import ClientProgramShelf from '../../DashBoard/Pages/client-dashboard/plan/ClientProgramShelf';
 import RestoreCard from './RestoreToday/RestoreCard';
+import MuscleReadinessCard from './MuscleReadiness/MuscleReadinessCard';
 import TodayTrainingModule from '../../DashBoard/shared/client-training/TodayTrainingModule';
 import { clientTodayTrainingModuleEnabled } from '../../DashBoard/shared/client-training/todayTrainingFeatureFlag';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
@@ -214,6 +215,9 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
                 assignment card wins; Restore renders full only on off-days,
                 a collapsed cooldown strip on training days (decided by API). */}
             <RestoreCard userId={user?.id} onNavigate={navigate} />
+            {/* CC-1: read-only "Recovery estimate" board (training-log estimate; trainer decides).
+                Quiet-degrades to nothing on error — never a broken-looking home. */}
+            <MuscleReadinessCard userId={user?.id} />
           </>
         )}
         logoSrc={brandLogo}

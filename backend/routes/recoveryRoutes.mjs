@@ -13,6 +13,7 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 import { composeRestoreToday } from '../services/recovery/restoreCompassService.mjs';
+import { composeReadinessBoard } from '../services/recovery/muscleReadinessService.mjs';
 import { formatDateOnlyInTimeZone, resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { gamificationEngine } from '../services/gamification/GamificationEngine.mjs';
@@ -56,6 +57,36 @@ router.get('/today', protect, async (req, res) => {
     }
     logger.error('recovery/today failed', { message: error.message });
     return res.status(500).json({ success: false, message: 'Unable to compose recovery guidance' });
+  }
+});
+
+/**
+ * GET /api/recovery/readiness — CC-1 muscle-readiness board (training-log ESTIMATE, deterministic,
+ * no LLM). Self by default; trainer/admin via ?clientId= through the same ensureClientAccess gate.
+ * Client UI is read-only ambient; the trainer makes the call (indispensability law).
+ */
+router.get('/readiness', protect, async (req, res) => {
+  try {
+    const targetId = req.query.clientId || req.user.id;
+    const access = await ensureClientAccess(req, targetId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const { clientId, client } = access;
+    const board = await composeReadinessBoard({
+      userId: clientId,
+      storedTimeZone: client?.timeZone,
+      storedTimeZoneConfigured: client?.timeZoneConfigured,
+      headerTimeZone: req.get('X-Client-Timezone'),
+      actorId: req.user.id,
+    });
+    return res.json({ success: true, data: board });
+  } catch (error) {
+    if (error?.name === 'ClientTrainingDateError') {
+      return res.status(error.statusCode || 400).json({ success: false, message: error.message });
+    }
+    logger.error('recovery/readiness failed', { message: error.message });
+    return res.status(500).json({ success: false, message: 'Unable to compose readiness board' });
   }
 });
 
