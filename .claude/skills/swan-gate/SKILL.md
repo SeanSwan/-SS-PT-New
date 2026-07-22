@@ -45,13 +45,22 @@ Paste the passing gate output into the closeout under **Gate Evidence**, with th
 export const meta = { name: 'gated-build', description: 'validator-gated build slice',
   phases: [{ title: 'Gate' }, { title: 'Build' }, { title: 'Verify' }] }
 phase('Gate')
-const gate = await agent(`Write .ai-workflow/gates/${SLUG}/gate.mjs per the swan-gate contract for these acceptance criteria:\n${CRITERIA}\nReturn the file path + its sha256.`, { effort: 'high', phase: 'Gate' })
+const gateInfo = await agent(
+  'Write .ai-workflow/gates/' + SLUG + '/gate.mjs per the swan-gate contract for these acceptance criteria:\n'
+  + CRITERIA + '\nRun it once (expect initial-red). Return the file path + its `git hash-object` value.',
+  { effort: 'high', phase: 'Gate', schema: { type: 'object', properties: { path: { type: 'string' }, hash: { type: 'string' } }, required: ['path', 'hash'] } })
 phase('Build')
 let feedback = ''
 for (let i = 0; i < 3; i++) {
-  await agent(`Build the slice. Acceptance criteria:\n${CRITERIA}\n${feedback ? `Previous gate failures to fix:\n${feedback}` : ''}\nBAN: you may not read, edit, or delete anything under .ai-workflow/gates/.`, { phase: 'Build', isolation: 'worktree' })
-  const run = await agent(`Run: node .ai-workflow/gates/${SLUG}/gate.mjs — verify the gate file hash matches ${'{'}gateHash{'}'} FIRST (fail the slice if not). Return raw output + exit code.`, { effort: 'low', phase: 'Verify' })
-  if (run.includes('exit 0')) break
+  await agent('Build the slice. Acceptance criteria:\n' + CRITERIA
+    + (feedback ? '\nPrevious gate failures to fix:\n' + feedback : '')
+    + '\nBAN: you may not read, edit, or delete anything under .ai-workflow/gates/.',
+    { phase: 'Build', isolation: 'worktree' })
+  const run = await agent('FIRST verify `git hash-object ' + gateInfo.path + '` still equals ' + gateInfo.hash
+    + ' — if not, report TAMPERED and stop. Then run `node ' + gateInfo.path + '` and return its raw output + exit code.',
+    { effort: 'low', phase: 'Verify' })
+  if (run.includes('TAMPERED')) throw new Error('gate tampered — slice fails closeout')
+  if (run.includes('exit 0') || /\bexit code[:= ]0\b/.test(run)) break
   feedback = run
 }
 ```
