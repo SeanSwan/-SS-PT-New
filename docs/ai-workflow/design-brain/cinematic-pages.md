@@ -157,7 +157,7 @@ The frame pipeline above is *what to paint*; this is *how scroll becomes time*, 
 
 ## 12. Accessibility on cinematic pages
 
-- **Contrast against moving backgrounds:** text over media sits on a vignette/scrim layer that guarantees 4.5:1 at the media's brightest frame — audit against the brightest frame, not the average.
+- **Contrast against moving backgrounds (universal — applies to C13, C1/C3 scrubs, AND autoplay video, not just whole-page journeys):** text over ANY moving media sits on a **persistent scrim/vignette layer so contrast holds at EVERY frame, not just the brightest** — because the background moves, a single-frame 4.5:1 check is insufficient (text that passes on frame 1 can drown on frame 50). Only a truly *static* background may rely on a single 4.5:1 check. A per-scene scrub is a moving background. Sample-check at the three brightest beats, never one.
 - **Focus visibility:** focus rings (Wing Purple per Dual-Button Glow) must remain visible over every scene background; test keyboard traversal at multiple scroll positions, including mid-pin.
 - **No keyboard traps:** keyboard users are never trapped in a pinned scene — pins must not hijack keyboard scroll; tab order stays linear through the act sequence.
 - **Skip affordance** ("skip intro" / skip-to-CTA link) on any scene >2vh, visible on focus even if visually quiet otherwise.
@@ -203,7 +203,8 @@ Supervised, read-only (Operator Bridge §6: navigate/scroll/read/screenshot/cons
 | Sequence payload | ≤4–6MB desktop / ≤2MB mobile **per served resolution set** | §8 / §8.1 |
 | LCP | ≤2.5s (poster/first-frame path) | §11 |
 | R3F canvases | ≤1, DPR ≤2, <3ms/frame | §7 |
-| Text-over-media contrast (per-scene) | 4.5:1 at brightest frame | §12 |
+| Text-over-media contrast — **static** background | 4.5:1 (single check is enough — the bg doesn't move) | §12 |
+| Text-over-media contrast — **any moving** background (C13, C1/C3 scrubs, autoplay video) | **persistent scrim required so contrast holds at EVERY frame, not just the brightest** — a per-scene scrub is still a moving background | §12 / §C13 |
 
 **C13 whole-page scroll-scrub exceptions** (a C13 page is one continuous shot, not a scene stack — these OVERRIDE the per-scene rows above for C13; canonical §C13):
 
@@ -215,7 +216,7 @@ Supervised, read-only (Operator Bridge §6: navigate/scroll/read/screenshot/cons
 | Smoothness | ≥60fps scrub (met by damping + clamp, not brute frame count) | §C13 |
 | Mobile | tier-2 autoplay default (scrub only if capable); `100dvh` not `vh` | §C13 / §8.1 |
 | Resolution ladder | 1280/1920/2560w (AVIF→WebP); >2560w → serve tier-2 video | §C13 / §8.1 |
-| Text-over-media contrast (C13) | persistent scrim so contrast holds at EVERY frame (not just brightest) | §C13 |
+| Text-over-media contrast | (governed by the universal "moving background" row above — persistent scrim, every frame) | §12 / §C13 |
 | Deploy gate | default answer NO; requires §18 breadth pass + Seedance budget sign-off | §C13 |
 
 A build that exceeds any cap either cuts scope in the scene ledger or gets Sean's explicit written exception in the task thread — never a silent overage.
