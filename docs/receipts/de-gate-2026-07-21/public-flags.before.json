@@ -1,0 +1,12 @@
+﻿{
+  "dashboardV2": true,
+  "dashboardV2Finance": true,
+  "storeV4": true,
+  "homeVNext": true,
+  "aboutVNext": true,
+  "videoVNext": true,
+  "contactVNext": true,
+  "galleryVNext": true,
+  "prismCapture": true,
+  "postSaveHandoff": true
+}

@@ -20,10 +20,10 @@ export type EnhancementOutcome = 'ok' | 'credits_required' | 'error';
 
 /**
  * Checkout returns are FULL-PAGE redirects (Stripe → back), so the return params arrive with the page load.
- * ENTRY_SEARCH is captured in flags.ts at ROUTE-CHUNK evaluation — before the old page (mounted live during
- * flag resolution) or StrictMode's throwaway first mount can strip the URL and eat the toast (Kimi probe P3).
+ * ENTRY_SEARCH is captured in galleryEntrySearch.ts at parked-chunk evaluation, before StrictMode's
+ * throwaway first mount can strip the URL and eat the checkout-return toast.
  */
-import { ENTRY_SEARCH } from './flags';
+import { ENTRY_SEARCH } from './galleryEntrySearch';
 
 const RETURN_KEYS = ['credits', 'donation', 'print'] as const;
 

@@ -140,6 +140,20 @@ const ClientProgramShelf: React.FC<ClientProgramShelfProps> = ({
               ? "We couldn't load your plans right now — pull back in a moment."
               : 'Your coach is building your program. It shows up here the moment it lands.'}
           </p>
+          {/* W0.1 cold-start coaching: waiting on a plan never blocks the Core Loop — self-directed
+              logging is live today, so the empty state's next best action is to log one. */}
+          {!error && onNavigate && (
+            <HeroActions>
+              <PrimaryAction
+                type="button"
+                onClick={() => onNavigate('/dashboard/client/log-workout')}
+                aria-label="Log a workout"
+              >
+                <Dumbbell size={15} aria-hidden="true" />
+                Log a workout
+              </PrimaryAction>
+            </HeroActions>
+          )}
         </EmptyCard>
       );
     }

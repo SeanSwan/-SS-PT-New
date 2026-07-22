@@ -67,21 +67,12 @@ export async function setFlag(flag: string, value: boolean): Promise<void> {
   }
 }
 
-/** Clear the override → the surface returns to its env-var baseline. */
+/** Clear the override → the feature returns to its environment baseline. */
 export async function clearOverride(flag: string): Promise<void> {
   try {
     await apiService.delete(`${BASE}/${encodeURIComponent(flag)}/override`);
   } catch (err) {
     throw new Error(messageFrom(err, 'Failed to clear override'));
-  }
-}
-
-export async function killAll(): Promise<number> {
-  try {
-    const res = await apiService.post(`${BASE}/kill-all`, {});
-    return res.data?.count ?? 0;
-  } catch (err) {
-    throw new Error(messageFrom(err, 'Failed to kill all'));
   }
 }
 

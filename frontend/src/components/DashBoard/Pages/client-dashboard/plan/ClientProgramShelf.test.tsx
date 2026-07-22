@@ -147,6 +147,20 @@ describe('ClientProgramShelf', () => {
     expect(screen.getByText(/couldn't load your plans/i)).toBeInTheDocument();
   });
 
+  it('W0.1: the no-plan empty state coaches the next action — Log a workout (self-directed logging exists today)', () => {
+    const onNavigate = vi.fn();
+    render(
+      <ClientProgramShelf
+        userId={42}
+        planVault={{ ...vault, slots: [] } as never}
+        onNavigate={onNavigate}
+      />,
+    );
+    const cta = screen.getByRole('button', { name: /log a workout/i });
+    fireEvent.click(cta);
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+  });
+
   it('DOCTRINE: gives the member no way to switch or edit a plan', () => {
     render(<ClientProgramShelf userId={42} workout={workout as never} planVault={vault as never} />);
 

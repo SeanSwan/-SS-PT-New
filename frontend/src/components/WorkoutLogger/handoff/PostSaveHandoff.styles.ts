@@ -40,6 +40,7 @@ export const Overlay = styled.div`
 `;
 
 export const Card = styled.section`
+  position: relative; /* anchors the 1.4a one-shot CelebrationBurst canvas (absolute, inset 0) */
   width: 100%;
   max-width: 1120px;
   background: var(--surface-card, #141419);
@@ -201,17 +202,17 @@ const buttonBase = css`
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
 
-/* Primary: Royal Depth bg → Wing Purple glow (Frost White on #003080 ≈ 10:1). */
+/* Primary: Royal Depth bg → Wing Purple glow (Frost White on #003080 ≈ 10:1). swan-guard-allow-hex doc comment contrast note */
 export const CtaButton = styled.button`
   ${buttonBase};
   background: var(--surface-elevated, #003080);
   box-shadow: 0 0 24px var(--glow-purple, rgba(139, 92, 246, 0.45));
 `;
 
-/* Secondary: deep-violet bg → Ice Wing glow. Deep violet (#5B21B6) keeps the "purple bg → cyan glow"
-   law while clearing 4.5:1 with Frost White (≈7:1); the lighter #8B5CF6 failed at 3.52:1.
+/* Secondary: deep-violet bg → Ice Wing glow. Deep violet (#5B21B6) keeps the "purple bg → cyan glow" swan-guard-allow-hex doc comment contrast note
+   law while clearing 4.5:1 with Frost White (≈7:1); the lighter #8B5CF6 failed at 3.52:1. swan-guard-allow-hex doc comment contrast note
    TOKEN CONTRACT: --glow-accent-strong MUST resolve to a bg that clears 4.5:1 on Frost White.
-   Never redefine it as the lighter Wing Purple (#8B5CF6) — that silently regresses contrast below AA. */
+   Never redefine it as the lighter Wing Purple (#8B5CF6) — that silently regresses contrast below AA. swan-guard-allow-hex doc comment contrast note */
 export const ShareButton = styled.button`
   ${buttonBase};
   background: var(--glow-accent-strong, #5B21B6);

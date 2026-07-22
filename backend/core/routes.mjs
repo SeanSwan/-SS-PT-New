@@ -246,6 +246,7 @@ import debugAuthRoutes from '../routes/debugAuthRoutes.mjs';
 // ===================== NASM PROTOCOL =====================
 import clientProgressRoutes from '../routes/clientProgressRoutes.mjs';
 import exerciseRoutes from '../routes/exerciseRoutes.mjs';
+import recoveryRoutes from '../routes/recoveryRoutes.mjs';
 import calculatorRoutes from '../routes/calculatorRoutes.mjs';
 import roleRoutes from '../routes/roleRoutes.mjs';
 
@@ -718,6 +719,7 @@ export const setupRoutes = async (app) => {
   // ===================== NASM PROTOCOL ROUTES =====================
   app.use('/api/client-progress', clientProgressRoutes);
   app.use('/api/exercises', exerciseRoutes);
+  app.use('/api/recovery', recoveryRoutes);
   app.use('/api/calculators', calculatorRoutes);
 
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================

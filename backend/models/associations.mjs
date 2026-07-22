@@ -170,6 +170,7 @@ const setupAssociations = async () => {
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
     const PainEntryCorrectiveExerciseModule = await import('./PainEntryCorrectiveExercise.mjs');
+    const RecoveryActivityLogModule = await import('./RecoveryActivityLog.mjs');
 
     // Form Analysis Models (Phase 2 - AI Form Analysis)
     const FormAnalysisModule = await import('./FormAnalysis.mjs');
@@ -384,6 +385,7 @@ const setupAssociations = async () => {
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntry = ClientPainEntryModule.default;
     const PainEntryCorrectiveExercise = PainEntryCorrectiveExerciseModule.default;
+    const RecoveryActivityLog = RecoveryActivityLogModule.default;
 
     // Form Analysis Models (Phase 2 - AI Form Analysis)
     const FormAnalysis = FormAnalysisModule.default;
@@ -555,7 +557,7 @@ const setupAssociations = async () => {
         // 2026-07-14 drift repair: models below existed only in the FULL
         // return literal; this early-return would have served a cache
         // missing them. Keep BOTH literals in sync when adding models.
-        ChallengeSubmission, WearableData, ClientPainEntry, PainEntryCorrectiveExercise,
+        ChallengeSubmission, WearableData, ClientPainEntry, PainEntryCorrectiveExercise, RecoveryActivityLog,
         BootcampStretch, PhotoVote, Lead, LeadActivity, AiConversation,
         ...(DailyMacroLog ? { DailyMacroLog } : {}),
         ...(DailyHydration ? { DailyHydration } : {}),
@@ -1194,6 +1196,12 @@ const setupAssociations = async () => {
     ClientPainEntry.hasMany(PainEntryCorrectiveExercise, { foreignKey: 'painEntryId', as: 'correctiveExercises' });
     PainEntryCorrectiveExercise.belongsTo(ClientPainEntry, { foreignKey: 'painEntryId', as: 'painEntry' });
     PainEntryCorrectiveExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
+
+    // Restore (off-day recovery) completion ledger (2026-07-21)
+    User.hasMany(RecoveryActivityLog, { foreignKey: 'userId', as: 'recoveryActivities' });
+    RecoveryActivityLog.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    RecoveryActivityLog.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
+    Exercise.hasMany(RecoveryActivityLog, { foreignKey: 'exerciseId', as: 'recoveryActivities' });
     Exercise.hasMany(PainEntryCorrectiveExercise, { foreignKey: 'exerciseId', as: 'correctiveUses' });
     console.log('✅ Pain/Injury Tracking models integrated');
 
@@ -1546,6 +1554,9 @@ const setupAssociations = async () => {
       // Pain/Injury Tracking
       ClientPainEntry,
       PainEntryCorrectiveExercise,
+
+      // Restore (off-day recovery)
+      RecoveryActivityLog,
 
       // Movement Analysis Models (Phase 13)
       MovementAnalysis,

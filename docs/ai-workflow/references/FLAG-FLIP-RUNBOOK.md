@@ -1,76 +1,94 @@
-# Flag-Flip Runbook — Swan Lens surface activation (Kimi roadmap #4)
+---
+status: active-feature-only
+supersedes: design-surface-flag-flip-workflow
+effective_at: 2026-07-21
+---
 
-> **Purpose.** The 7 design-overhaul surfaces shipped flag-OFF, fail-closed. This runbook makes their activation
-> *reversible-in-practice*, not just reversible-by-design: a written flip order, dwell times, abort criteria, a
-> rehearsed rollback drill, and the gate-telemetry signal that tells you a flip went wrong before a user does.
-> Read before flipping ANY `*VNext` flag on Render. Pairs with `MEASUREMENT-CHARTER.md` (baseline first) and
-> `PERFORMANCE-BUDGET-CHARTER.md` (budgets that gate the money surfaces).
+# Feature-Only Flag Runbook
 
-## 0. Preconditions (ALL must be true before the first flip)
-- [ ] Measurement baseline captured (`MEASUREMENT-CHARTER.md`) — you cannot read lift you never baselined.
-- [ ] `npm run lint:swan-lens` green on the surface (de-galaxy + token-discipline).
-- [ ] Playwright cross-surface QA green (cascade / flicker / forced-colors) for the surface being flipped.
-- [ ] Performance budgets met for the surface (`PERFORMANCE-BUDGET-CHARTER.md`); money surfaces (Store, Gallery) measured FIRST.
-- [ ] Gate telemetry wired: the surface's `*Gate.tsx` emits `emitGateEvent` at mount / contract_fail / boundary_error (see §4).
-- [ ] The current (V-prev) surface is unchanged and confirmed as the fail-closed fallback.
-- [ ] **`VITE_<SURFACE>_VNEXT` is unset/false in the Render build env.** A `true` build env DEFEATS the runtime
-      kill switch whenever the flags endpoint is unreachable (see §3) — the exact condition you'd be aborting in.
+> **Permanent boundary:** Design surfaces never gate. Use the Design Studio. A page redesign is promoted or
+> rolled back through Git and the canonical route, never through Launch Control, Render variables, build
+> variables, query parameters, or local storage.
 
-## 1. Flip order — blast-radius ASCENDING (money last)
-Flip ONE surface at a time, lowest-risk first, each with its own dwell + abort gate. Never batch flips.
-1. **About** — static, no money, no data.
-2. **Contact** — a form, no money (lead only).
-3. **Home** — high traffic, no money on the surface itself.
-4. **Video** — data-bound (library), no money.
-5. **Dashboards** — data-bound, auth-gated, no checkout.
-6. **Store** — MONEY. Flip only after 1–5 are stable and the drill (§3) has been rehearsed.
-7. **Gallery** — MONEY + identity (credits/VIP/referral/donation). Flip LAST, on a proven drill.
+## Approved Launch Control registry
 
-## 2. Dwell + abort criteria (per surface)
-- **Dwell:** hold each flip ≥ 24h (money surfaces ≥ 48h) before flipping the next. No same-day cascades.
-- **Watch (from gate telemetry, §4 + Measurement funnel):**
-  - `contract_fail` / `boundary_error` rate for the surface > **0.5%** → **ABORT** (flip back). **Denominator is
-    `mounted + contract_fail + boundary_error` — `flag_off` is EXCLUDED.** (`flag_off` is optional/sampled and its
-    volume is huge during a staged rollout, so including it dilutes the rate toward zero and the abort never fires.)
-  - Funnel step conversion for the surface drops > **relative 10%** vs baseline → **ABORT**, investigate.
-  - Any money-path regression (checkout start→success, credit purchase, VIP) → **IMMEDIATE ABORT**, no threshold.
-  - Perf budget breach on the live surface (LCP/INP over `PERFORMANCE-BUDGET-CHARTER.md`) → ABORT.
-- **Abort = flip the runtime flag OFF.** New page loads get V-prev immediately; **open sessions recover on their
-  next reload / route remount** — the flag hook is `useEffect(…, [])`, it resolves ONCE per mount and never
-  re-polls. No deploy or code change either way. Do NOT tell an incident channel the surface reverted
-  "instantly" for everyone: an operator watching the error rate fail to drop will escalate to a rollback they
-  don't need.
+Launch Control may expose exactly these three feature controls:
 
-## 3. Rollback drill (REHEARSE before the first money flip)
-The runtime flag is the kill switch. Rehearse the reversal so it's muscle memory, not improvised under load:
-1. Flip the surface flag OFF via the runtime public-flags source (`/api/config/public-flags.<key>`).
-2. Confirm V-prev renders within one cache cycle (hard-refresh; Render bundles may be cached 2–5 min).
-3. Confirm gate telemetry shows the surface back on `flag_off` decisions (no more `mounted`).
-4. Record: who flipped, when, the trigger metric, the observed recovery time. File under the phase audit (Rule 48).
-> ⚠️ **The kill switch is only absolute while the build env stays FALSE — read this before trusting it.**
-> The runtime flag wins over the **QA localStorage override**. It does NOT win over the build env: a non-200 or
-> unreachable `/api/config/public-flags` is caught and falls back to `ENV_FALLBACK` (`VITE_<SURFACE>_VNEXT`).
-> So if that env var is ever set to `true`, an unreachable flags endpoint turns the surface **ON**, not off —
-> and backend degradation is both a common *reason* to abort and the same condition that makes the flags
-> endpoint fail. The kill switch would be least reliable exactly when you need it most.
-> **Currently safe by accident, not by control:** no `VITE_*_VNEXT` is set in `render.yaml`, `frontend/.env*`,
-> or `vite.config`, so `ENV_FALLBACK` is `false` everywhere today. Do NOT "promote" a flag to the build env
-> after a successful flip — that is the natural next instinct and it springs this trap.
-> Verify on staging as part of the drill.
+| Key | Purpose | Enforcement truth |
+|---|---|---|
+| `dashboardV2Finance` | Money-adjacent dashboard finance behavior | Retained but dormant; server controller reads `DASHBOARD_V2_FINANCE` directly |
+| `prismCapture` | Speed-to-lead capture | Public flag controls UI; public POST route reads `PRISM_CAPTURE_ENABLED` directly |
+| `postSaveHandoff` | Workout completion proof card | Database override is consumed server-side and client-side |
 
-## 4. Gate telemetry contract (`adapters/style-lens-swan/gateTelemetry.ts`)
-Each `*Gate.tsx` emits one event at its decision point (a one-line add per gate — the WIRING slice):
-| Point in the gate | Call |
-|---|---|
-| V-next rendered, contract satisfied | `emitGateEvent({ surface, outcome: 'mounted' })` |
-| `ContractCheck.onFail` (world contract missing) → V-prev | `emitGateEvent({ surface, outcome: 'contract_fail' })` |
-| `GateBoundary` caught a lazy-chunk/runtime error | `emitGateEvent({ surface, outcome: 'boundary_error' })` |
-| flag off/unresolved → V-prev (optional/sampled) | `emitGateEvent({ surface, outcome: 'flag_off' })` |
-Privacy (Rule 8): surface + outcome + coarse viewport bucket ONLY. The emitter is best-effort, non-blocking, and
-swallows all errors — telemetry can never affect the fail-closed path. An app-level listener on
-`GATE_EVENT_NAME` (`swan:gate-event`) forwards to a beacon; absent a listener it is a no-op.
+The backend contract fails CI if another key is added, with:
 
-## 5. Status
-- Telemetry helper: **SHIPPED** (`gateTelemetry.ts`). Per-gate wiring: **pending** (the wiring slice).
-- CI firewall: **SHIPPED** (`npm run lint:swan-lens`). Playwright QA + Measurement/Perf baselines: **pending**.
-- No flags flipped yet. First flip is gated on the §0 preconditions.
+`Design surfaces never gate (Sean's law, 2026-07-21). Use the Design Studio.`
+
+## Control-plane truth
+
+The board's resolved value is the public flag response. It is not automatically proof that every backend
+consumer uses the database override. This release intentionally preserves existing feature behavior:
+
+- `postSaveHandoff` is the only approved key with verified end-to-end runtime override enforcement.
+- A `prismCapture=false` override hides the canonical UI immediately, but the public POST route remains governed
+  by the Render baseline until redeploy. Enabling from a false baseline also requires
+  `PRISM_CAPTURE_ENABLED=true` and a deploy.
+- `dashboardV2Finance` is dormant while dashboard v2 is parked. Its server controller remains governed by
+  `DASHBOARD_V2_FINANCE`; do not operate this switch in the de-gate release.
+
+The admin UI therefore says to verify feature-specific server enforcement and does not promise “instant,
+no redeploy” universally.
+
+## Before any feature change
+
+- [ ] Name the feature consumer and its actual server/API enforcement boundary.
+- [ ] Confirm the key is one of the three approved keys above.
+- [ ] Capture current and intended state without copying secret material into a ticket or prompt.
+- [ ] Define one positive smoke, one failure/rollback smoke, and the abort signal.
+- [ ] Confirm the owner and observation window.
+- [ ] For money, auth, PII, billing, or external-message behavior, obtain Sean's explicit approval.
+
+## Feature procedures
+
+### Post-save handoff
+
+1. Change `postSaveHandoff` in Admin → Launch Control.
+2. Verify the public response after one cache cycle or the board's Verify action.
+3. Complete a workout through the real save path.
+4. ON: proof card is returned/rendered after the save. OFF: the prior completion flow remains and saved workout
+   truth is unchanged.
+5. If the abort signal fires, restore the prior override and record the audit receipt.
+
+### PRISM capture
+
+1. To enable end-to-end from a false baseline, set the approved backend baseline
+   `PRISM_CAPTURE_ENABLED=true` through Sean's Render process and deploy.
+2. Use Launch Control for public UI visibility/preview, but do not treat its override as the server-route kill
+   switch.
+3. Verify canonical Home and submit through the existing lead route; confirm the owner-alert path without
+   exposing lead PII in logs or prompts.
+4. To disable end-to-end, hide the UI with the board for immediate containment, then set the backend baseline
+   false and deploy. Verify the public POST route returns its flag-off response.
+
+### Dashboard finance
+
+Do not flip in this release. It has no canonical dashboard consumer while v2 is parked. Any later activation
+requires a separate money-path decision, server-enforcement receipt, and finance regression suite.
+
+## Design promotion procedure
+
+1. Preview unfinished work in Admin → Design Studio.
+2. Prove data, auth, accessibility, responsive behavior, and money-path parity.
+3. Change the canonical route/component import in code.
+4. Run the full release gates and hostile review.
+5. Obtain Sean's push approval.
+6. Verify the deployed route and asset.
+7. Roll back with a Git revert if necessary.
+
+Do not add a temporary design flag “just for safety.” The reversible unit is the commit.
+
+## Environment cleanup
+
+Use `docs/receipts/de-gate-2026-07-21/S4-render-environment-owner-checklist.md`. Retired design keys are
+removed/unset, not set to false. The three backend feature baselines remain unchanged. Never manually clear
+`flag_audit`; the de-gate migration removes retired registry rows/overrides while preserving history.

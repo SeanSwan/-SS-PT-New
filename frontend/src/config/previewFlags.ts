@@ -1,22 +1,19 @@
 /**
- * Preview-as (Launch Control R3). An admin opens a dark vNext from the Launch Control board via a
- * `?swanpreview=<flag>` link. When that param names THIS surface's flag and a session token is present,
- * the surface renders for THIS browser only:
- *  - the runtime kill switch still protects everyone else (preview is per-URL, not a global flip);
- *  - the surface Gate still fail-closes a broken vNext (preview doesn't bypass the contract probe);
- *  - it is NOT a secrecy boundary — the vNext is already deployed code. It's a convenience so a surface
- *    can be perfected privately before it is flipped on for real.
+ * Per-browser preview override for the two approved feature switches.
  *
- * Gate: the visitor's browser must carry the `swan_preview_ok` marker, which ONLY the admin-gated Launch
- * Control board sets (on mount). So a link only previews for someone who has opened Launch Control — a
- * random visitor who guesses `?swanpreview=` sees nothing. (Deliberately not tied to the auth token: the
- * app clears an invalid token during startup, which would make a token check flap.)
- *
- * Precedence: preview wins over runtime/localStorage/env when active, else returns false (no effect).
+ * The Launch Control page marks an admin browser with `swan_preview_ok`. A matching
+ * `?swanpreview=prismCapture|postSaveHandoff` query may then override that feature for this browser only.
+ * Runtime behavior for everyone else is unchanged. This convenience is not an authorization boundary, and
+ * the runtime whitelist below rejects every retired design key even if it is manually placed in the URL.
  */
 export const PREVIEW_OK_KEY = 'swan_preview_ok';
 
-export function previewOverride(flagKey: string): boolean {
+export type PreviewFeatureFlag = 'prismCapture' | 'postSaveHandoff';
+
+const PREVIEWABLE_FEATURE_FLAGS: readonly PreviewFeatureFlag[] = ['prismCapture', 'postSaveHandoff'];
+
+export function previewOverride(flagKey: PreviewFeatureFlag): boolean {
+  if (!PREVIEWABLE_FEATURE_FLAGS.includes(flagKey)) return false;
   try {
     const preview = new URLSearchParams(window.location.search).get('swanpreview');
     if (!preview) return false;

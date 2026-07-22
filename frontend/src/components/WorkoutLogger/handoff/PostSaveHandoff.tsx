@@ -26,6 +26,8 @@ import ShareProofButton from './ShareProofButton';
 import StreakGoalModule from './StreakGoalModule';
 import { ProofCardShell, ChromeRow, ChromeBrand, ChromeHandle, CardDateLine } from './ProofCardShell.styles';
 import { isPostSaveHandoffEnabled } from './postSaveHandoffFlag';
+import CelebrationBurst from './CelebrationBurst';
+import { useCountUp } from './useCountUp';
 import type { PostSaveHandoffProps } from './workoutHandoff.types';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -80,6 +82,9 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   const shownRef = useRef(false); // fire handoff_shown exactly once per mount
   const headlineId = useId();
   const isOn = enabled ?? isPostSaveHandoffEnabled();
+  // 1.4a count-up: visual only — the accessible value is always the final number (hook order: must run
+  // unconditionally, before the early returns below).
+  const countUpE1rm = useCountUp(data?.proof?.todayE1rm ?? null);
   // Active on ANY handoff payload — proof-null saves (bodyweight/cardio-only) get the LITE variant below.
   // The Core Loop promises a terminal moment after EVERY save, not only chartable ones.
   const active = isOn && !!data;
@@ -173,6 +178,11 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
   return createPortal(
     <Overlay ref={overlayRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={headlineId}>
       <Card>
+        {/* ── 1.4a signature beat: one-shot crystalline burst on meaningful moments only.
+            pr/first = full, streak = light, default save = nothing (anti-slot-machine). ── */}
+        {(headline === 'pr' || headline === 'first' || headline === 'streak') && (
+          <CelebrationBurst intensity={headline === 'streak' ? 'light' : 'full'} />
+        )}
         {/* ── Zone 1 — declaration ── */}
         <ZoneDecl>
           <Headline id={headlineId}>{headlineText(isOwner, viewerFirstName)}</Headline>
@@ -190,9 +200,9 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
               {`EST. 1-REP MAX · ${proof.exerciseName.toUpperCase()} · LAST ${proof.points.length} SESSION${proof.points.length === 1 ? '' : 'S'}`}
             </Eyebrow>
             {proof.todayE1rm != null && (
-              <BigNumeral $pr={proof.pr}>
+              <BigNumeral $pr={proof.pr} aria-label={fmt(proof.todayE1rm)}>
                 {proof.pr && <GoldPulse aria-hidden="true" />}
-                {fmt(proof.todayE1rm)}
+                {fmt(countUpE1rm ?? proof.todayE1rm)}
               </BigNumeral>
             )}
             {chips.length > 0 && (

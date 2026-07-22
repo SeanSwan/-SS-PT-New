@@ -3,7 +3,37 @@
  * override → exact env baseline" guarantee and the anonymous-safety of role/percent rollouts are locked here.
  */
 import { describe, expect, it } from 'vitest';
-import { resolveFlagValue, stableBucket } from '../../services/launchControlResolve.mjs';
+import {
+  APPROVED_FEATURE_FLAGS,
+  envBaseline,
+  isApprovedFeatureFlag,
+  resolveFlagValue,
+  stableBucket,
+} from '../../services/launchControlResolve.mjs';
+
+const DESIGN_SURFACE_LAW = "Design surfaces never gate (Sean's law, 2026-07-21). Use the Design Studio.";
+
+describe('Launch Control registry — features only', () => {
+  it('contains exactly the three approved feature switches', () => {
+    expect([...APPROVED_FEATURE_FLAGS].sort(), DESIGN_SURFACE_LAW).toEqual([
+      'dashboardV2Finance',
+      'postSaveHandoff',
+      'prismCapture',
+    ]);
+    expect(isApprovedFeatureFlag('homeVNext'), DESIGN_SURFACE_LAW).toBe(false);
+    expect(isApprovedFeatureFlag('dashboardV2'), DESIGN_SURFACE_LAW).toBe(false);
+  });
+});
+
+describe('envBaseline — features only', () => {
+  it('exposes exactly the three approved feature switches', () => {
+    expect(Object.keys(envBaseline()).sort()).toEqual([
+      'dashboardV2Finance',
+      'postSaveHandoff',
+      'prismCapture',
+    ]);
+  });
+});
 
 describe('resolveFlagValue — no override = exact env baseline (zero behavior change)', () => {
   it('returns the env baseline unchanged when there is no override row', () => {

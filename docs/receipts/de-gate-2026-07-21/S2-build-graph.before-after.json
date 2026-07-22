@@ -1,0 +1,42 @@
+{
+  "baseline": {
+    "ref": "origin/main@eb4bbdd63794d0d842f5e5c107254f8013544367",
+    "vite": "6.4.3",
+    "entryBytes": 692375,
+    "sixCanonicalPageChunkBytes": 224318,
+    "entryPlusSixPageBytes": 916693,
+    "galleryRouteChunkBytes": 114942
+  },
+  "s2": {
+    "ref": "codex/degate-design-overhaul-20260721 working tree after 5bb59ace1",
+    "vite": "6.4.3",
+    "entryBytes": 680806,
+    "sixCanonicalPageChunkBytes": 154375,
+    "entryPlusSixPageBytes": 835181,
+    "galleryRouteChunkBytes": 44952,
+    "designStudioDynamicImports": [
+      "src/pages/HomePage/v-next/HomeVNext.tsx",
+      "src/pages/shop/store-v4/StoreV4.tsx",
+      "src/pages/about/v-next/AboutVNext.tsx",
+      "src/pages/contactpage/vnext/ContactVNext.tsx",
+      "src/pages/video-vnext/VideoLibraryVNext.tsx",
+      "src/pages/gallery-vnext/GalleryVNext.tsx",
+      "src/components/DashBoard/v2/shell/DashboardShell.tsx"
+    ],
+    "parkedHitsInPublicStaticClosures": {
+      "home": [],
+      "store": [],
+      "about": [],
+      "contact": [],
+      "video": [],
+      "gallery": []
+    }
+  },
+  "deltaBytes": {
+    "entry": -11569,
+    "sixCanonicalPageChunks": -69943,
+    "entryPlusSixPages": -81512,
+    "galleryRouteChunk": -69990
+  },
+  "measurement": "Raw emitted JS bytes from Vite --manifest builds; public closures traverse static imports only. Parked chunks remain emitted as Design Studio-only dynamic previews."
+}

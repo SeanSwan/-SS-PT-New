@@ -1,6 +1,6 @@
 /**
  * Contact V-next — token chain. THE ONLY vnext file that may name `--world-*` / `--lens-*`, and the ONLY
- * hex site (the single gold seam of the Crystallize Submit — the page's one gold appearance, Kimi (d)).
+ * local-color bridge (the submit gold plus an opaque mask token used only for fallback clipping).
  * Every other file uses bare `var(--contact-*)`. Mirrors the shipped Home/About/Video tokens.
  */
 import { createGlobalStyle } from 'styled-components';
@@ -18,8 +18,9 @@ export const ContactVNextTokens = createGlobalStyle`
     --contact-ice-14: color-mix(in oklab, var(--world-accent) 14%, transparent);
     --contact-wing: var(--world-action, var(--world-accent));
     --contact-chrome: color-mix(in oklab, var(--world-accent) 34%, transparent);
-    --contact-gold: #C6A84B;          /* the ONLY hex — the single gold seam of the Crystallize Submit */
+    --contact-gold: #C6A84B;          /* the single gold seam of the Crystallize Submit */
     --contact-scrim: color-mix(in oklab, var(--world-bg) 66%, transparent);
+    --contact-mask-opaque: #000;
 
     --contact-r-panel: var(--lens-panel-radius);
     --contact-pad: var(--lens-main-padding);

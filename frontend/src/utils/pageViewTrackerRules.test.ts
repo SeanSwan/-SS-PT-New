@@ -16,4 +16,10 @@ describe('page view tracker route rules', () => {
     expect(shouldSkipPageViewPath('/auth')).toBe(true);
     expect(shouldSkipPageViewPath('/auth/login')).toBe(true);
   });
+
+  it('skips admin-only parked design previews so review traffic never mutates analytics', () => {
+    expect(shouldSkipPageViewPath('/design-previews/contact')).toBe(true);
+    expect(shouldSkipPageViewPath('/design-previews/not-registered?source=studio')).toBe(true);
+    expect(shouldSkipPageViewPath('/DESIGN-PREVIEWS/dashboard')).toBe(true);
+  });
 });

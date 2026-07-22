@@ -1,14 +1,20 @@
 /**
  * Launch Control — flag resolution + control-plane data access.
  *
- * SAFETY CONTRACT (this gates billing/dashboard surfaces): the public resolver must NEVER throw and must
+ * SAFETY CONTRACT (this gates operational features): the public resolver must NEVER throw and must
  * return the exact env baseline when no override row exists or the DB is unreachable. `resolveFlagValue` is
  * a PURE function (unit-tested) so the precedence logic is verifiable without a DB. Raw parameterized queries
  * (same pattern as galleryRoutes/authMiddleware) — no new Sequelize model registration on this hot path.
  */
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
-import { envBaseline, resolveFlagValue, stableBucket } from './launchControlResolve.mjs';
+import {
+  APPROVED_FEATURE_FLAGS,
+  envBaseline,
+  isApprovedFeatureFlag,
+  resolveFlagValue,
+  stableBucket,
+} from './launchControlResolve.mjs';
 
 // Re-export the pure logic so existing importers (publicConfigRoutes) keep a single import site.
 export { envBaseline, resolveFlagValue, stableBucket };
@@ -53,7 +59,9 @@ export async function getBoard() {
             (SELECT COUNT(*) FROM flag_health h WHERE h.flag = f.flag AND h.created_at > now() - interval '7 days')  AS fail7d
        FROM flags f
        LEFT JOIN flag_overrides o ON o.flag = f.flag
+      WHERE f.flag IN (:approvedFlags)
        ORDER BY f.grp, f.parent_flag NULLS FIRST, f.flag`,
+    { replacements: { approvedFlags: APPROVED_FEATURE_FLAGS } },
   );
   const base = envBaseline();
   return flags.map((f) => {
@@ -74,6 +82,7 @@ export async function getBoard() {
 }
 
 async function flagExists(flag) {
+  if (!isApprovedFeatureFlag(flag)) return false;
   const [rows] = await sequelize.query(`SELECT 1 FROM flags WHERE flag = :flag`, { replacements: { flag } });
   return rows.length > 0;
 }
@@ -118,25 +127,20 @@ export async function upsertOverride(flag, body, actor) {
 
 /** Remove an override → back to env baseline. */
 export async function deleteOverride(flag, actor, source = 'manual') {
-  const [existing] = await sequelize.query(`SELECT * FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
-  if (!existing[0]) return { ok: true, noop: true };
-  await sequelize.query(`DELETE FROM flag_overrides WHERE flag = :flag`, { replacements: { flag } });
-  await audit(flag, existing[0], null, actor, source);
-  return { ok: true };
-}
-
-/** Panic button: force every redesign flag OFF in ONE atomic statement (all-or-nothing — no half-kill). */
-export async function killAllRedesigns(actor) {
-  const [, meta] = await sequelize.query(
-    `INSERT INTO flag_overrides (flag, value, mode, roles, pct, starts_at, updated_by, updated_at)
-     SELECT flag, false, 'force', NULL, NULL, NULL, :actor, now() FROM flags WHERE grp = 'redesign'
-     ON CONFLICT (flag) DO UPDATE SET value = false, mode = 'force', roles = NULL, pct = NULL,
-       starts_at = NULL, updated_by = :actor, updated_at = now()`,
-    { replacements: { actor } },
-  );
-  const count = meta?.rowCount ?? 0;
-  await audit('*', null, { killAll: true, count }, actor, 'kill_all');
-  return count;
+  if (!isApprovedFeatureFlag(flag)) return { error: 'unknown_flag', status: 404 };
+  // Atomic like upsertOverride: the delete and its audit row commit together, and FOR UPDATE
+  // serializes concurrent clears so the audit's before-state is truthful.
+  let noop = false;
+  await sequelize.transaction(async (t) => {
+    const [existing] = await sequelize.query(
+      `SELECT * FROM flag_overrides WHERE flag = :flag FOR UPDATE`,
+      { replacements: { flag }, transaction: t },
+    );
+    if (!existing[0]) { noop = true; return; }
+    await sequelize.query(`DELETE FROM flag_overrides WHERE flag = :flag`, { replacements: { flag }, transaction: t });
+    await audit(flag, existing[0], null, actor, source, t);
+  });
+  return noop ? { ok: true, noop: true } : { ok: true };
 }
 
 export async function getAudit(flag, limit = 50) {
@@ -149,7 +153,7 @@ export async function getAudit(flag, limit = 50) {
 }
 
 /**
- * Called by every surface Gate's ErrorBoundary (public, rate-limited). Advisory only — never gates a write.
+ * Records public feature-health reports (rate-limited). Advisory only; never gates an admin write.
  * No user-agent / IP / identifying fields are stored (Rule 8 zero-PII): flag + surface + truncated err only.
  */
 export async function recordHealth(flag, surface, errMsg) {
@@ -171,7 +175,6 @@ export default {
   getBoard,
   upsertOverride,
   deleteOverride,
-  killAllRedesigns,
   getAudit,
   recordHealth,
 };

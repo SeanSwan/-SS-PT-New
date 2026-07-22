@@ -1,10 +1,9 @@
 /**
- * Sidebar ↔ route-registry parity contracts (Dashboard batch 2026-07-13, P2-1).
+ * Sidebar ↔ route-registry parity contracts.
  *
- * The audit found ~8 registered routes per role that were invisible in the
- * nav (dead ends unless deep-linked). These locks ensure every sidebar entry
- * points at a registered route for its role, so nav items can never rot into
- * links that bounce to the role default path.
+ * Every live sidebar entry must resolve to a route registered for the same role.
+ * Admin parity deliberately walks the complete WORKSPACE_CONFIG inventory: a
+ * hand-maintained sample allowed untested links to regress into redirect/404 churn.
  */
 import { describe, expect, it } from 'vitest';
 import { roleConfigurations } from './UniversalDashboardLayout.routes';
@@ -38,6 +37,16 @@ describe('sidebar route parity', () => {
     }
   });
 
+  it('every admin sidebar entry resolves to a registered admin route', () => {
+    const registered = routePathsFor('admin');
+    expect(WORKSPACE_CONFIG.length).toBeGreaterThan(30);
+
+    for (const item of WORKSPACE_CONFIG) {
+      const routePath = navPathToRoutePath(item.prefix, 'admin');
+      expect(registered, `admin nav "${item.id}" → ${routePath}`).toContain(routePath);
+    }
+  });
+
   it('surfaces the audit-flagged trainer coaching tools in the nav', () => {
     const labels = flattenNav(trainerNavConfig).map((item) => item.label);
     expect(labels).toContain('My Earnings');
@@ -49,16 +58,5 @@ describe('sidebar route parity', () => {
     // endpoint is not assignment-scoped (security review 2026-07-13);
     // Sean's scoping ruling gates re-adding it.
     expect(labels).not.toContain('Challenges');
-  });
-
-  it('surfaces the audit-flagged admin trainer-ops tools with registered routes', () => {
-    const registered = routePathsFor('admin');
-    const requiredIds = ['trainer-payouts', 'trainers', 'assignments', 'session-allocation', 'trainer-permissions'];
-    for (const id of requiredIds) {
-      const entry = WORKSPACE_CONFIG.find((item) => item.id === id);
-      expect(entry, `WORKSPACE_CONFIG id "${id}"`).toBeTruthy();
-      const routePath = navPathToRoutePath(entry!.prefix, 'admin');
-      expect(registered, `admin nav "${id}" → ${routePath}`).toContain(routePath);
-    }
   });
 });

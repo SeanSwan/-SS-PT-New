@@ -9,7 +9,6 @@ import {
   getBoard,
   upsertOverride,
   deleteOverride,
-  killAllRedesigns,
   getAudit,
 } from '../services/launchControlService.mjs';
 import logger from '../utils/logger.mjs';
@@ -46,22 +45,12 @@ router.put('/:flag', async (req, res) => {
 /** DELETE /api/admin/flags/:flag/override — remove override → back to env baseline. */
 router.delete('/:flag/override', async (req, res) => {
   try {
-    await deleteOverride(req.params.flag, actorOf(req));
+    const result = await deleteOverride(req.params.flag, actorOf(req));
+    if (result.error) return res.status(result.status || 400).json({ success: false, ...result });
     res.json({ success: true });
   } catch (err) {
     logger.error('[LaunchControl] delete error: %s', err.message);
     res.status(500).json({ success: false, error: 'Failed to clear override' });
-  }
-});
-
-/** POST /api/admin/flags/kill-all — force every redesign flag OFF (panic button). */
-router.post('/kill-all', async (req, res) => {
-  try {
-    const count = await killAllRedesigns(actorOf(req));
-    res.json({ success: true, count });
-  } catch (err) {
-    logger.error('[LaunchControl] kill-all error: %s', err.message);
-    res.status(500).json({ success: false, error: 'Failed to kill all' });
   }
 });
 
