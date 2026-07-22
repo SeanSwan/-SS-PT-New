@@ -17,7 +17,7 @@ import { HomeLensFrame } from './homeManifest';
 import { HomeVNextTokens } from './home.tokens';
 import { HeroOptics } from './hero/HeroOptics';
 import { CapsuleRail } from './CapsuleRail';
-import { EvidenceLensBand } from './EvidenceLensBand';
+import { EvidenceLensBand } from '../components/EvidenceLensBand';
 // FEATURE PARITY: Keep lead capture in this parked preview so a future promotion cannot drop it.
 import { PrismCapture } from '../../../components/marketing/PrismCapture';
 import MissionSection from '../components/sections/MissionSection';

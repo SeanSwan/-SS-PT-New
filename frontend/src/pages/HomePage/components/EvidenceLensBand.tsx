@@ -24,6 +24,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { MARKETING_STATS } from '../../../content/marketingStats';
+// (path unchanged by the move — components/ and v-next/ sit at the same depth)
 
 const Band = styled.section`
   position: relative;
