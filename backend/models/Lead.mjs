@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
+import { resolveFollowUpAt } from '../utils/leadFollowUp.mjs';
 
 class Lead extends Model {}
 
@@ -94,6 +95,22 @@ Lead.init(
       { fields: ['converted_user_id'] },
       { fields: ['gallery_visitor_id'] },
     ],
+    hooks: {
+      /**
+       * P0-1 (SWA-29): set the initial follow-up SLA at capture so the "leads needing
+       * follow-up" dashboard (leadRoutes.mjs:54 filter + :120 KPI) stops structurally
+       * reporting ~0. Placed on the MODEL, not a single capture service, because a Rule-20
+       * sibling sweep found 7 lead-create sites (contact form, signup, PRISM, consult,
+       * checkout, gallery, admin) — a per-service edit would miss the highest-intent ones
+       * (consult/checkout) and the dashboard would keep lying for exactly the leads that
+       * matter most. Speed-to-lead: hot leads (score >= 70 — consult/booking/checkout
+       * intent) get a 2h SLA; everyone else 24h. Only fills when null, so a caller (or the
+       * admin PUT) that sets an explicit date is never overwritten.
+       */
+      beforeCreate: (lead) => {
+        lead.nextFollowUpAt = resolveFollowUpAt(lead.nextFollowUpAt, lead.score);
+      },
+    },
   }
 );
 
