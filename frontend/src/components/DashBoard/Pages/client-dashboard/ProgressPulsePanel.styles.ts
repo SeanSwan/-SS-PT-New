@@ -28,7 +28,9 @@ export const PulseWrap = styled.section`
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: clamp(1rem, 2.5vw, 1.75rem);
   overflow: hidden;
-  animation: ${rise} 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* DRIFT entrance beat — design.md §8 two-speed law (no "medium" 0.45s).
+     Tokens fall back to canon values until --speed-drift/--ease-drift land. */
+  animation: ${rise} var(--speed-drift, 600ms) var(--ease-drift, cubic-bezier(0.4, 0, 0.2, 1)) both;
 
   &::before {
     content: '';
@@ -107,7 +109,9 @@ export const CompassCta = styled.button`
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  /* SNAP response — design.md §8 (no "medium" 0.25s). transform+opacity/shadow only. */
+  transition: box-shadow var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1));
 
   &:hover {
     box-shadow: 0 0 18px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 55%, transparent);

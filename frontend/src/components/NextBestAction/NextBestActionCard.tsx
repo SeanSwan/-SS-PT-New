@@ -66,22 +66,33 @@ const CautionNote = styled.p`
   line-height: 1.5;
 `;
 
+/* Accent button — design.md §6/§11: Wing-Purple-deep fill (text-safe, ≈5.3:1
+   with Frost White) → Ice Wing halo. The prior Ice-Wing FILL put the data
+   accent on a control; purple fill + cyan halo is the canonical dual-glow. */
 const CtaButton = styled.button`
   min-height: 44px;
   width: 100%;
   padding: 10px 16px;
   border: none;
-  border-radius: 10px;
-  background: var(--accent-primary, #60c0f0);
-  color: var(--text-inverse, #030712);
+  border-radius: 12px;
+  background: var(--wing-purple-deep, #6d3fd1);
+  color: var(--text-primary, #e0ecf4);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-secondary, #8b5cf6) 35%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary, #60c0f0) 45%, transparent);
+  transition: box-shadow var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1));
 
-  &:hover { box-shadow: 0 0 24px color-mix(in srgb, var(--accent-secondary, #8b5cf6) 55%, transparent); }
-  &:focus-visible { outline: 2px solid var(--accent-secondary, #8b5cf6); outline-offset: 2px; }
-  @media (prefers-reduced-motion: reduce) { transition: none; }
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 26px color-mix(in srgb, var(--accent-primary, #60c0f0) 60%, transparent);
+  }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60c0f0); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
+  }
 `;
 
 const SecondaryRow = styled.div`

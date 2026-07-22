@@ -96,9 +96,12 @@ export const HeroPill = styled.span`
   font-weight: 900;
 `;
 
+/* Weighted, not 3×1fr (design.md §10 weighted-columns law). The headline
+   Swan Points stat leads wider so the hero reads with hierarchy on value
+   alone (grayscale test), not three interchangeable peer tiles. */
 export const StatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 9px;
 
   @media (max-width: 620px) {

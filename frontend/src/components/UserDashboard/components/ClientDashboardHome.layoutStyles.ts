@@ -15,7 +15,11 @@ export const ClientDashboardShell = styled.div<{ $embedded?: boolean }>`
   --client-line: color-mix(in srgb, var(--accent-primary, #60c0f0) 20%, transparent);
   --client-line-strong: color-mix(in srgb, var(--accent-primary, #60c0f0) 42%, transparent);
   --client-teal: var(--accent-primary, #60c0f0);
-  --client-mint: var(--accent-secondary, #21e6c1);
+  /* Ice Wing is the Crystalline accent — the prior fallback was an off-palette
+     teal-green, and --accent-secondary is Wing Purple, not mint. Repointed to
+     Ice Wing (--accent-primary) so hero fill, avatar glow, active nav edge,
+     kicker labels, and the primary-button gradient read on-brand. */
+  --client-mint: var(--accent-primary, #60c0f0);
   --client-blue: var(--accent-tertiary, #4070c0);
   --client-purple: var(--accent-purple, #8b5cf6);
   --client-gold: var(--accent-gold, #c6a84b);
