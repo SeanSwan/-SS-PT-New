@@ -18,7 +18,9 @@ const ROOT = process.cwd();
 // Load .env (same pattern as validation-orchestrator)
 for (const envPath of [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]) {
   if (existsSync(envPath)) {
-    const lines = readFileSync(envPath, 'utf-8').split('\n');
+    // Split on /\r?\n/ (NOT '\n'): CRLF .env files otherwise leave a trailing '\r' so the
+    // /^KEY=(.*)$/ anchor never matches (Rule 20 sibling fix, flagged in Phase 0 inventory).
+    const lines = readFileSync(envPath, 'utf-8').split(/\r?\n/);
     for (const line of lines) {
       const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
       if (m) {

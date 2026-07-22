@@ -1,14 +1,14 @@
 /**
- * Gallery vNext — pre-gate events view: hero (the landing moment; ONE primary + the photography-inquiry
- * lead link), the event grid with real covers/badges (parity with the shipped listing), skeletons while
- * loading, and a designed empty/error state with one recovery CTA (Kimi b7).
+ * Gallery vNext — pre-gate events view (Direction A "Cascade", Kimi ideation 2026-07-20). The hero is
+ * de-templated: the infinite ShimmerWord sheen is DEAD (two competing signature moments = none — the
+ * Crystallize overlay is THE beat); the gradient word stays as a static brand accent. Events render as
+ * cascading EventDecks (cover sliced into accordion strips) stacked in a subtle waterfall — the index IS
+ * the signature. Skeletons are deck-shaped so load-in doesn't morph the layout.
  */
 import { useRef } from 'react';
+import styled from 'styled-components';
 import {
-  CoverBadge,
-  CoverCount,
-  EventBody,
-  EventCover,
+  GradientWord,
   Hero,
   HeroActions,
   HeroEyebrow,
@@ -16,15 +16,35 @@ import {
   HeroPrimary,
   HeroSecondary,
   HeroSub,
-  ShimmerWord,
-  SkeletonRow,
   SkeletonTile,
 } from './GalleryVNext.chrome.styles';
-import { EventCard, EventList, EventMeta, EventName, RetryBtn, State, Sub, Title } from './GalleryVNext.styles';
+import { RetryBtn, State, Sub, Title } from './GalleryVNext.styles';
+import { EventDeck } from './EventDeck';
 import type { GalleryEventSummary } from './gallery.types';
 
-const formatDate = (d: string | null): string =>
-  d ? new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+/** Waterfall stack: decks overlap 12px with later decks on top; hover lifts a deck out (see EventDeck). */
+const DeckList = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+
+  > * + * {
+    margin-top: -12px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    > * + * {
+      margin-top: 14px; /* no overlap theatrics — a calm list */
+    }
+  }
+`;
+
+const DeckSkeletons = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+`;
 
 export interface EventsViewProps {
   events: GalleryEventSummary[];
@@ -42,14 +62,7 @@ export function EventsView({ events, loading, error, onOpenEvent, onRetry }: Eve
       <Hero aria-label="SwanStudios Photography">
         <HeroEyebrow>SwanStudios Photography</HeroEyebrow>
         <HeroHeadline>
-          Every moment,{' '}
-          <ShimmerWord>
-            immortalized
-            <span className="sheen" aria-hidden="true">
-              immortalized
-            </span>
-          </ShimmerWord>
-          .
+          Every moment, <GradientWord>immortalized</GradientWord>.
         </HeroHeadline>
         <HeroSub>
           Competition, portrait, and transformation photography — preserved in the SwanStudios vault.
@@ -81,11 +94,10 @@ export function EventsView({ events, loading, error, onOpenEvent, onRetry }: Eve
         )}
 
         {loading && (
-          <SkeletonRow aria-hidden="true">
-            <SkeletonTile $flex={1.4} />
-            <SkeletonTile $flex={1} />
-            <SkeletonTile $flex={1.2} />
-          </SkeletonRow>
+          <DeckSkeletons aria-hidden="true">
+            <SkeletonTile $flex={1} $h={240} />
+            <SkeletonTile $flex={1} $h={240} />
+          </DeckSkeletons>
         )}
 
         {!loading && !error && events.length === 0 && (
@@ -93,25 +105,11 @@ export function EventsView({ events, loading, error, onOpenEvent, onRetry }: Eve
         )}
 
         {!loading && events.length > 0 && (
-          <EventList>
-            {events.map((event) => (
-              <EventCard key={event.id} type="button" onClick={() => onOpenEvent(event)}>
-                <EventCover $src={event.coverPhotoUrl}>
-                  {event.sport && <CoverBadge data-testid="event-cover-badge">{event.sport}</CoverBadge>}
-                  <CoverCount data-testid="event-cover-count">
-                    {event.photoCount} {event.photoCount === 1 ? 'photo' : 'photos'}
-                  </CoverCount>
-                </EventCover>
-                <EventBody>
-                  <EventName>{event.name}</EventName>
-                  <EventMeta>
-                    {formatDate(event.eventDate)}
-                    {event.location ? ` · ${event.location}` : ''}
-                  </EventMeta>
-                </EventBody>
-              </EventCard>
+          <DeckList>
+            {events.map((event, i) => (
+              <EventDeck key={event.id} event={event} index={i} onOpen={onOpenEvent} />
             ))}
-          </EventList>
+          </DeckList>
         )}
       </div>
     </>

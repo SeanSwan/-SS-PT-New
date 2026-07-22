@@ -19,6 +19,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { contactLimiter } from '../middleware/rateLimiter.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
+import { sendSpeedToLeadReply } from '../services/speedToLeadService.mjs';
 import { mergeLeadTags } from '../services/leadCaptureShared.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { sendSmsMessage } from '../services/smsService.mjs';
@@ -143,6 +144,11 @@ router.post('/capture', contactLimiter, async (req, res) => {
       consultationType: 'prism_capture',
       attribution: { utmSource: cap(utm.source), utmMedium: cap(utm.medium), utmCampaign: cap(utm.campaign) },
     });
+
+    // Speed-to-lead (SWA-40): instant branded acknowledgment to the LEAD, flag-gated,
+    // fire-and-forget — never blocks the 201 or the tag/alert pipeline below.
+    sendSpeedToLeadReply({ email, name: firstName, leadId: result?.leadId, source: 'prism' })
+      .catch((err) => logger.warn(`[prism] speed-to-lead failed (non-critical): ${err?.message}`));
 
     let code = null;
     if (result?.leadId) {

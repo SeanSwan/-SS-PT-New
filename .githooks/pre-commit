@@ -37,4 +37,15 @@ EOF
 fi
 
 echo "[pre-commit] Secret scan: CLEAN"
+
+# Frontend design-rule guards (SWA-32 Slice 0, Rule 73 twice=codify):
+# G1 no-MUI · G2 no-recharts · G3 retired Galaxy palette · G4 hardcoded hex.
+# Staged frontend/src files only; existing violations tracked separately (Rule 34).
+echo "[pre-commit] Running frontend guards on staged files..."
+if ! node "$REPO_ROOT/scripts/hooks/frontend-guards.mjs" --staged; then
+  echo "COMMIT BLOCKED: frontend design-rule violation (see FAIL lines above)." >&2
+  echo "These rules are mechanically enforced — fix the line, do not bypass. (CLAUDE.md rules 1/6/10)" >&2
+  exit 1
+fi
+
 exit 0

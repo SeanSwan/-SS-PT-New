@@ -6,6 +6,7 @@ import { contactLimiter } from '../middleware/rateLimiter.mjs';
 import sequelize from '../database.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
+import { sendSpeedToLeadReply } from '../services/speedToLeadService.mjs';
 
 const router = express.Router();
 let contactsPriorityColumnPromise = null;
@@ -86,9 +87,20 @@ router.post("/", contactLimiter, async (req, res) => {
     // Validate required fields
     if (!name || !email || !message) {
       console.log('❌ Validation failed - missing required fields');
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Missing required fields: name, email, and message are required." 
+        message: "Missing required fields: name, email, and message are required."
+      });
+    }
+
+    // Validate email FORMAT here → return a clean 400. Without this, a malformed email reaches Contact.create,
+    // the model's isEmail validator throws SequelizeValidationError, and the catch-all below returns a generic
+    // 500 — a server-error status for what is really a client input error (the v-next form sets noValidate, so
+    // the browser check doesn't run there either). Mirrors the frontend EMAIL_RE.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address.",
       });
     }
 
@@ -141,6 +153,11 @@ router.post("/", contactLimiter, async (req, res) => {
     if (leadCaptureResult?.error) {
       console.log('CRM lead capture failed (non-critical):', leadCaptureResult.error);
     }
+
+    // Speed-to-lead (SWA-40): instant branded acknowledgment to the LEAD, flag-gated
+    // (SPEED_TO_LEAD_REPLY_ENABLED), fire-and-forget — never blocks the submission.
+    sendSpeedToLeadReply({ email: contactData.email, name: contactData.name, leadId: leadCaptureResult?.leadId, source: 'contact' })
+      .catch((err) => console.log('speed-to-lead failed (non-critical):', err?.message));
 
     // 2. SMART EXTERNAL SERVICES: Try to send notifications (but don't fail if they don't work)
     const notificationResults = {

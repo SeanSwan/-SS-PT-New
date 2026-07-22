@@ -17,6 +17,7 @@ import { HomeLensFrame } from './homeManifest';
 import { HomeVNextTokens } from './home.tokens';
 import { HeroOptics } from './hero/HeroOptics';
 import { CapsuleRail } from './CapsuleRail';
+import { EvidenceLensBand } from './EvidenceLensBand';
 // FEATURE PARITY: Keep lead capture in this parked preview so a future promotion cannot drop it.
 import { PrismCapture } from '../../../components/marketing/PrismCapture';
 import MissionSection from '../components/sections/MissionSection';
@@ -59,6 +60,9 @@ export default function HomeVNext() {
         {/* PRISM speed-to-lead capture — self-gates to null when its own flag is off (zero impact).
             Retained in this parked preview so a future promotion preserves lead capture parity. */}
         <PrismCapture />
+        {/* SWA-25: ratified gold Evidence Lens — the ONE real-proof number this screen circles
+            (data from content/marketingStats.ts only; design verbatim from the ratified gallery). */}
+        <EvidenceLensBand />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <MissionSection tier={tier} />

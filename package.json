@@ -37,6 +37,8 @@
     "code-health:fix-preview": "fallow fix --dry-run --format json",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json",
     "lint:degalaxy": "node scripts/ci/check-degalaxy.mjs",
+    "sentinel": "node scripts/tree-sentinel.mjs",
+    "sentinel:fast": "node scripts/tree-sentinel.mjs --fast",
     "lint:token-discipline": "node scripts/ci/check-token-discipline.mjs",
     "lint:swan-lens": "node scripts/ci/check-degalaxy.mjs && node scripts/ci/check-token-discipline.mjs"
   },
