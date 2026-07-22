@@ -15,6 +15,8 @@ import OverloadSuggestion from './OverloadSuggestion';
 import RestTimer from './RestTimer';
 import TempoInput from './TempoInput';
 import { getExerciseSetRowKey } from './WorkoutLogger.helpers';
+import NumericKeypadSheet from './NumericKeypadSheet';
+import { useKeypadField } from './useKeypadField';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 import type { LastWeightSuggestion } from './useLastWeightSuggestions';
 import {
@@ -80,6 +82,8 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
   // field still submits 0 unless the trainer taps the chip or types.
   const lastWeight = getLastWeight?.(exerciseName) ?? null;
   const weightUntouched = !set.weight;
+  // L2: coarse-pointer keypad — one-hop advance weight→reps; "use system keyboard" opts out per row.
+  const keypad = useKeypadField((field, value) => onUpdateSet(exerciseIndex, setIndex, field, value));
   return (
   <SetRow data-details={showDetails ? 'open' : 'closed'}>
     <SetCell data-label="Set" data-essential="cell">
@@ -89,7 +93,9 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
       <WeightInputWrapper>
         <NumberInput
           type="number"
-          inputMode="decimal"
+          inputMode={keypad.keypadActive ? 'none' : 'decimal'}
+          readOnly={keypad.keypadActive}
+          onClick={() => keypad.openKeypad('weight')}
           value={lastWeight && weightUntouched ? '' : set.weight ?? ''}
           onChange={event => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(event.target.value) || 0)}
           placeholder={lastWeight && weightUntouched ? String(lastWeight.weight) : '0'}
@@ -118,12 +124,26 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
     <SetCell data-label="Reps" data-essential="cell">
       <NumberInput
         type="number"
-        inputMode="numeric"
+        inputMode={keypad.keypadActive ? 'none' : 'numeric'}
+        readOnly={keypad.keypadActive}
+        onClick={() => keypad.openKeypad('reps')}
         value={set.reps ?? ''}
         onChange={event => onUpdateSet(exerciseIndex, setIndex, 'reps', parseInt(event.target.value) || 0)}
         placeholder="0"
         aria-label={`Set ${set.setNumber} reps`}
       />
+      {keypad.openFor && (
+        <NumericKeypadSheet
+          open
+          label={keypad.openFor === 'weight' ? `Set ${set.setNumber} — Weight (lbs)` : `Set ${set.setNumber} — Reps`}
+          value={keypad.openFor === 'weight' ? set.weight ?? 0 : set.reps ?? 0}
+          allowDecimal={keypad.openFor === 'weight'}
+          lastSessionValue={keypad.openFor === 'weight' ? lastWeight?.weight ?? null : null}
+          onCommit={keypad.onCommit}
+          onClose={keypad.onClose}
+          onUseSystemKeyboard={keypad.useSystemKeyboard}
+        />
+      )}
     </SetCell>
     <SetCell data-label="Tempo">
       <TempoInput
