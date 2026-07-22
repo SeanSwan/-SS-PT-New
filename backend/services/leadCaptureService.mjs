@@ -48,7 +48,7 @@ import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
  * and the cron is default-OFF). Dynamic import keeps leadCaptureService free of a hard
  * automationService dependency and unit-testable.
  */
-async function enrollNewLeadInNurture(leadId, firstName) {
+export async function enrollNewLeadInNurture(leadId, firstName) {
   try {
     const { triggerSequence } = await import('./automationService.mjs');
     await triggerSequence('lead_captured', null, { leadId, clientName: firstName || 'there' });
