@@ -116,6 +116,9 @@ export const RingWrap = styled.div`
     .ring-glyph-group,
     .ring-fill {
       animation: none;
+      /* release the compositor layers too — no point promoting 4 idle layers
+         per ring when nothing animates (hostile-review P5). */
+      will-change: auto;
     }
   }
 `;

@@ -46,6 +46,9 @@ export interface CrystalProgressRingProps {
   level: number;
   size?: number;
   quality?: RingQuality;
+  /** Hide the era label when the ring is wrapped by SwanRankBadge, which owns
+   *  the identity label (rank name) — avoids two taxonomies for one level. */
+  hideEraLabel?: boolean;
 }
 
 const STROKE = 8;
@@ -63,7 +66,9 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
   level,
   size = 132,
   quality = 'full',
+  hideEraLabel = false,
 }) => {
+  const reactId = React.useId().replace(/[^a-zA-Z0-9]/g, '');
   const safePct = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
   const safeLevel = Math.max(1, Math.min(1000, Number.isFinite(level) ? Math.round(level) : 1));
   const d = dialsFor(safeLevel);
@@ -100,7 +105,9 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
   const tipAngle = -Math.PI / 2 + (GAP_DEG / 2) * (Math.PI / 180) + (safePct / 100) * (sweep / circ) * TAU;
   const tip = { x: cx + r * Math.cos(tipAngle), y: cy + r * Math.sin(tipAngle) };
 
-  const uid = `cr-${size}-${d.era.key}`;
+  // useId keeps the SVG gradient ids unique even when two same-size, same-era
+  // rings render on one page (document-global ids — hostile-review LOW).
+  const uid = `cr${reactId}`;
   const gradId = `${uid}-g`;
   const fringeId = `${uid}-f`;
   const stops = d.era.spectrum;
@@ -123,7 +130,8 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
         <defs>
           <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
             {stops.map((c, i) => (
-              <stop key={i} offset={`${Math.round((i / (stops.length - 1)) * 100)}%`} stopColor={c} />
+              // guard divisor: a future single-stop spectrum would divide by 0
+              <stop key={i} offset={`${Math.round((i / Math.max(1, stops.length - 1)) * 100)}%`} stopColor={c} />
             ))}
           </linearGradient>
           <linearGradient id={fringeId} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -271,7 +279,7 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
 
       <RingScrim aria-hidden="true" />
       <RingCenter>
-        <RingEraLabel>{d.era.name}</RingEraLabel>
+        {!hideEraLabel && <RingEraLabel>{d.era.name}</RingEraLabel>}
         <RingLevelValue>{safeLevel}</RingLevelValue>
       </RingCenter>
     </RingWrap>

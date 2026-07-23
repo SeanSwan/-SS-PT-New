@@ -90,17 +90,17 @@ export const HeroTitle = styled.h1`
 export const HeroHandle = styled.span`
   width: fit-content;
   max-width: 100%;
-  min-height: 30px;
-  /* inline-block (not inline-flex) so text-overflow:ellipsis actually renders;
-     line-height centers the single-line handle within the pill. */
+  /* inline-block (not inline-flex) so text-overflow:ellipsis actually renders.
+     Padding sizes the pill and centers the single line; line-height stays
+     unitless (1.4) so it scales with font/zoom instead of a brittle px calc
+     (hostile-review P9). */
   display: inline-block;
-  line-height: calc(30px - 0.7rem);
   border-radius: 999px;
-  padding: 0.35rem 0.65rem;
+  padding: 0.4rem 0.7rem;
   color: var(--accent-secondary, #8B5CF6);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, transparent);
-  font: 800 0.75rem/1 'Sora', sans-serif;
+  font: 800 0.75rem/1.4 'Sora', sans-serif;
   /* A long @handle ellipsises, never pushes the hero column past the viewport. */
   overflow: hidden;
   white-space: nowrap;

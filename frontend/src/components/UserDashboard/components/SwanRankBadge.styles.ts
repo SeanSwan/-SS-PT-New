@@ -12,6 +12,11 @@ export const BadgeWrap = styled.div`
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
+  /* The crown (top:-6%) and rank label (bottom:-14%) overhang the box. Reserve
+     that space on the badge ITSELF so clearance holds at ANY size prop, instead
+     of depending on the parent's hand-tuned padding (hostile-review P4). */
+  margin-top: 1.6rem;
+  margin-bottom: 1.9rem;
 
   svg { display: block; }
 
@@ -55,15 +60,25 @@ export const BadgePips = styled.div`
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--frost-white, #e0ecf4) 14%, transparent);
+    /* Empty = hollow ring (border, transparent center); filled = solid fill.
+       Filled vs empty is distinguished by FILL DENSITY, not hue alone — reads
+       for colorblind/low-vision users (hostile-review P3, WCAG 1.4.1). */
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--frost-white, #e0ecf4) 28%, transparent);
     transition: background var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1));
   }
   .pip.on {
+    border-color: transparent;
     box-shadow: 0 0 4px color-mix(in srgb, var(--ice-wing, #60c0f0) 45%, transparent);
   }
 
   @media (max-width: 414px) {
     .pip { width: 4px; height: 4px; }
+  }
+
+  /* hostile-review P6: gate the pip color transition for reduced-motion users */
+  @media (prefers-reduced-motion: reduce) {
+    .pip { transition: none; }
   }
 `;
 

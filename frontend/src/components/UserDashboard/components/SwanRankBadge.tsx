@@ -91,7 +91,7 @@ const SwanRankBadge: React.FC<SwanRankBadgeProps> = ({
 
       {/* The living ring — the centerpiece, inset inside the frame. */}
       <div className="badge-ring-slot">
-        <CrystalProgressRing pct={pct} level={level} size={ringSize} quality={quality} />
+        <CrystalProgressRing pct={pct} level={level} size={ringSize} quality={quality} hideEraLabel />
       </div>
 
       {/* Crown motif — top ranks only. */}
