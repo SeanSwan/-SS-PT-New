@@ -20,6 +20,7 @@
 
 import { getModel, getUser } from '../models/index.mjs';
 import { calculateCommissionSplit, isEligibleForLoyaltyBump } from '../utils/commissionCalculator.mjs';
+import { TRAINER_TYPES, DEFAULT_TRAINER_TYPE } from '../utils/commissionRates.mjs';
 import { countCompletedPaidTrainingSessions } from './creditGrantLoyaltyService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -89,7 +90,19 @@ export async function createCommissionForPurchase({
       return null;
     }
 
-    const trainerType = trainer.trainerType || 'hired'; // Default to hired if not set
+    // Canonical enum is 'independent' | 'affiliated' (User.trainerType). If the stored type
+    // is missing/invalid we fall back to DEFAULT_TRAINER_TYPE so checkout never dies — BUT we
+    // ALERT loudly, because a NULL type on an independent trainer would silently underpay them
+    // ~20 points. Loud fallback, not silent. (S0 drift fix 2026-07-23.)
+    let trainerType = trainer.trainerType;
+    if (!TRAINER_TYPES.includes(trainerType)) {
+      logger.error(
+        `[CommissionService] Trainer ${trainerId} has missing/invalid trainerType "${trainerType}". ` +
+        `Falling back to ${DEFAULT_TRAINER_TYPE} for this commission — VERIFY this trainer's type; ` +
+        `an independent trainer defaulted here is underpaid.`,
+      );
+      trainerType = DEFAULT_TRAINER_TYPE;
+    }
 
     // Check loyalty eligibility from actual deducted/completed training evidence.
     const completedPaidSessions = await countCompletedPaidTrainingSessions(
