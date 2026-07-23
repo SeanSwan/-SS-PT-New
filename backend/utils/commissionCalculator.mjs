@@ -2,40 +2,49 @@
  * ============================================================================
  * FILE: commissionCalculator.mjs
  * PURPOSE: Trainer/business revenue split calculator with two-tier trainer model
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-23 (S0 drift fix)
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Calculates revenue splits between SwanStudios and trainers
- * based on trainer type (independent vs hired) and lead source. Supports loyalty
- * bumps for high-volume clients.
+ * based on trainer type and lead source. Supports loyalty bumps for high-volume clients.
+ * All rate literals live in `commissionRates.mjs` (single source of truth) — DO NOT
+ * hardcode rates here.
  *
- * TWO-TIER TRAINER MODEL:
- * - Independent trainers: 10% platform fee (trainer keeps 90%)
- * - Hired trainers (Sean's clients via Move Fitness etc.): 40% to business (trainer keeps 60%)
+ * TWO-TIER TRAINER MODEL (canonical, matches `User.trainerType` enum):
+ * - independent: 15% platform fee (trainer keeps 85%)
+ * - affiliated:  35% to business (trainer keeps 65%)
  *
  * LEAD SOURCE MODIFIERS (applied on top of trainer type base):
- * - Platform lead: Base rates apply as-is
- * - Trainer-brought lead: -5% from business cut (trainer reward for sourcing)
- * - Resign/renewal: -2% from business cut (retention reward)
+ * - platform:        base rates apply as-is
+ * - trainer_brought: -5% from business cut (reward for sourcing)
+ * - resign/renewal:  -3% from business cut (retention reward)
  *
- * LOYALTY BUMP: +5% to trainer for clients who completed >100 sessions
+ * LOYALTY BUMP: -5% business (→ +5% trainer) for eligible clients >100 sessions.
  */
+import {
+  baseRatesForType,
+  LEAD_SOURCE_MODIFIERS,
+  VALID_LEAD_SOURCES,
+  RATE_FLOOR,
+  LOYALTY_BUMP_REDUCTION,
+  LOYALTY_SESSION_THRESHOLD,
+  DEFAULT_TRAINER_TYPE,
+} from './commissionRates.mjs';
 
 /**
  * Calculate commission split for a purchase.
- * Uses the two-tier trainer model with lead source modifiers.
  *
  * @param {string} leadSource - 'platform', 'trainer_brought', or 'resign'
  * @param {number} grossAmount - Total package cost before tax
  * @param {number} sessionsGranted - Number of sessions in package
- * @param {boolean} applyLoyaltyBump - Whether to apply +5% loyalty bump
- * @param {Object} options - Additional options
- * @param {string} options.trainerType - 'independent' or 'hired' (default: 'hired')
+ * @param {boolean} applyLoyaltyBump - Whether to apply the loyalty bump
+ * @param {Object} options
+ * @param {string} options.trainerType - 'independent' or 'affiliated' (default: 'affiliated')
  * @returns {Object} Commission split details
  */
 export function calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false, options = {}) {
-  if (!leadSource || !['platform', 'trainer_brought', 'resign'].includes(leadSource)) {
-    throw new Error(`Invalid lead source: ${leadSource}. Must be 'platform', 'trainer_brought', or 'resign'.`);
+  if (!leadSource || !VALID_LEAD_SOURCES.includes(leadSource)) {
+    throw new Error(`Invalid lead source: ${leadSource}. Must be one of: ${VALID_LEAD_SOURCES.join(', ')}.`);
   }
 
   if (typeof grossAmount !== 'number' || grossAmount < 0) {
@@ -46,43 +55,23 @@ export function calculateCommissionSplit(leadSource, grossAmount, sessionsGrante
     throw new Error(`Invalid sessions granted: ${sessionsGranted}. Must be a positive number.`);
   }
 
-  const trainerType = options.trainerType || 'hired';
+  // ── Base rates from trainer type (throws on unknown type — no silent fallthrough on money) ──
+  const trainerType = options.trainerType || DEFAULT_TRAINER_TYPE;
+  const base = baseRatesForType(trainerType);
+  let businessRate = base.businessRate;
+  let trainerRate = base.trainerRate;
 
-  // ── Base rates from trainer type ──
-  let businessRate = 0;
-  let trainerRate = 0;
-
-  if (trainerType === 'independent') {
-    // Independent trainers: 15% platform fee, trainer keeps 85%
-    businessRate = 15;
-    trainerRate = 85;
-  } else {
-    // Hired trainers (default): 35% to business, trainer keeps 65%
-    businessRate = 35;
-    trainerRate = 65;
+  // ── Lead source modifier (data-driven from commissionRates) ──
+  const reduction = LEAD_SOURCE_MODIFIERS[leadSource] || 0;
+  if (reduction > 0) {
+    businessRate = Math.max(RATE_FLOOR, businessRate - reduction);
+    trainerRate = 100 - businessRate;
   }
 
-  // ── Lead source modifiers ──
-  switch (leadSource) {
-    case 'platform':
-      // No modifier — base rates apply
-      break;
-    case 'trainer_brought':
-      // Reward trainer for sourcing the client: -5% from business
-      businessRate = Math.max(5, businessRate - 5);
-      trainerRate = 100 - businessRate;
-      break;
-    case 'resign':
-      // Reward trainer for client retention: -3% from business
-      businessRate = Math.max(5, businessRate - 3);
-      trainerRate = 100 - businessRate;
-      break;
-  }
-
-  // Apply loyalty bump if eligible
+  // Apply loyalty bump if eligible (uses the shared threshold constant, not a magic number)
   let loyaltyBump = false;
-  if (applyLoyaltyBump && sessionsGranted > 100) {
-    businessRate = Math.max(5, businessRate - 5);
+  if (applyLoyaltyBump && sessionsGranted > LOYALTY_SESSION_THRESHOLD) {
+    businessRate = Math.max(RATE_FLOOR, businessRate - LOYALTY_BUMP_REDUCTION);
     trainerRate = 100 - businessRate;
     loyaltyBump = true;
   }
@@ -91,7 +80,9 @@ export function calculateCommissionSplit(leadSource, grossAmount, sessionsGrante
   const businessCut = parseFloat(((grossAmount * businessRate) / 100).toFixed(2));
   const trainerCut = parseFloat(((grossAmount * trainerRate) / 100).toFixed(2));
 
-  // Ensure totals match (handle rounding)
+  // Ensure totals match. The sub-cent rounding remainder (≤ $0.01/txn) is assigned to the
+  // BUSINESS cut by design — a documented, accepted directional choice (reversing it would
+  // change every historical commission). Not random; business absorbs the remainder.
   const total = businessCut + trainerCut;
   const diff = parseFloat((grossAmount - total).toFixed(2));
 

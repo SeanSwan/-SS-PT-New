@@ -1,7 +1,7 @@
 // backend/routes/adminPackageRoutes.mjs
 import express from 'express';
 import multer from 'multer';
-import { protect, rateLimiter } from '../middleware/authMiddleware.mjs';
+import { protect, rateLimiter, ownerAdminOnly, adminOnly } from '../middleware/authMiddleware.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
@@ -45,20 +45,11 @@ const parseBoundedInteger = (value, fallback, { min = 0, max = Number.MAX_SAFE_I
 // NOTE: Get model inside route handlers, not at module level
 // Module-level getModels() runs before cache initialization causing undefined model
 
-// Middleware to ensure admin access
-const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== 'admin') {
-    return res.status(403).json({ 
-      success: false,
-      message: 'Admin access required' 
-    });
-  }
-  next();
-};
-
-// Apply protection and admin requirement to all routes
+// Apply protection and admin requirement to all routes.
+// Standardized on the shared `adminOnly` middleware (S0, 2026-07-23) — was a route-local
+// `requireAdmin` with identical role logic; the shared one also emits a security log line.
 router.use(protect);
-router.use(requireAdmin);
+router.use(adminOnly);
 
 /**
  * Get all packages for admin management
@@ -322,7 +313,7 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/admin/packages/:id (NEW) and /api/admin/storefront/:id (LEGACY)
  * Admin only
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', ownerAdminOnly, async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
     const packageId = parsePositiveInteger(req.params.id);
@@ -407,7 +398,7 @@ router.get('/:id', async (req, res) => {
 // ===================== PRODUCT VARIANTS (physical products) =====================
 // A physical StorefrontItem (drink / supplements / merch) can have variants
 // (tier x size, size x color), each with its own price/stock/SKU. Admin-only
-// (whole router is protect + requireAdmin). Variants are persisted independently
+// (whole router is protect + adminOnly). Variants are persisted independently
 // of the parent item (managed from the product editor after the item exists).
 
 const VARIANT_FIELDS = ['label', 'sku', 'price', 'stockQuantity', 'attributes', 'displayOrder', 'isActive'];
@@ -593,7 +584,7 @@ router.put('/variants/:variantId', async (req, res) => {
 });
 
 /** DELETE /variants/:variantId - delete a variant (admin) */
-router.delete('/variants/:variantId', async (req, res) => {
+router.delete('/variants/:variantId', ownerAdminOnly, async (req, res) => {
   try {
     const { ProductVariant } = getAllModels();
     if (!ProductVariant) {
