@@ -103,6 +103,12 @@ const ClaimAccountPage = lazyLoadWithErrorHandling(
   'Claim Account Page'
 );
 
+// Trainer Onboarding (self-serve trainer application + contract e-sign)
+const TrainerOnboardingPage = lazyLoadWithErrorHandling(
+  () => import('../pages/TrainerOnboarding/TrainerOnboardingPage'),
+  'Trainer Onboarding Page'
+);
+
 // Public Waiver (Phase 5W-G) — V3 primary, V2 fallback
 const PublicWaiverPage = lazyLoadWithErrorHandling(
   () => import('../pages/PublicWaiverPage.V3'),
@@ -445,6 +451,16 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <TermsOfServicePage />
+        </Suspense>
+      )
+    },
+
+    // Trainer Onboarding (self-serve trainer application + contract e-sign)
+    {
+      path: 'become-a-trainer',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <TrainerOnboardingPage />
         </Suspense>
       )
     },

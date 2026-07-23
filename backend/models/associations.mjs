@@ -146,6 +146,7 @@ const setupAssociations = async () => {
     const WaiverConsentFlagsModule = await import('./WaiverConsentFlags.mjs');
     const PendingWaiverMatchModule = await import('./PendingWaiverMatch.mjs');
     const AiConsentLogModule = await import('./AiConsentLog.mjs');
+    const TrainerApplicationModule = await import('./TrainerApplication.mjs');
 
     // Movement Analysis Models (Phase 13)
     const MovementAnalysisModule = await import('./MovementAnalysis.mjs');
@@ -364,6 +365,7 @@ const setupAssociations = async () => {
     const WaiverConsentFlags = WaiverConsentFlagsModule.default;
     const PendingWaiverMatch = PendingWaiverMatchModule.default;
     const AiConsentLog = AiConsentLogModule.default;
+    const TrainerApplication = TrainerApplicationModule.default;
 
     // Movement Analysis Models (Phase 13)
     const MovementAnalysis = MovementAnalysisModule.default;
@@ -524,6 +526,8 @@ const setupAssociations = async () => {
         // Waiver + Consent Models (Phase 5W-B)
         WaiverVersion, WaiverRecord, WaiverRecordVersion,
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
+        // Trainer Onboarding
+        TrainerApplication,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
@@ -1159,6 +1163,11 @@ const setupAssociations = async () => {
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'candidateUserId', as: 'candidateUser' });
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
 
+    // Trainer Onboarding (self-serve application + contract e-sign)
+    User.hasMany(TrainerApplication, { foreignKey: 'userId', as: 'trainerApplications' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'userId', as: 'applicant' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
+
     User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
     AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiConsentLog, { foreignKey: 'actorUserId', as: 'aiConsentActions' });
@@ -1533,6 +1542,7 @@ const setupAssociations = async () => {
       WaiverRecordVersion,
       WaiverConsentFlags,
       PendingWaiverMatch,
+      TrainerApplication,
       AiConsentLog,
 
       // Video Catalog Models
