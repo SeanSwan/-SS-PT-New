@@ -30,7 +30,7 @@ import {
   StatGrid,
   StatTile,
 } from './ClientDashboardHome.heroStyles';
-import CrystalProgressRing from './CrystalProgressRing';
+import SwanRankBadge from './SwanRankBadge';
 import type { ClientDashboardAction, ClientDashboardHomeProps, ClientDashboardTarget } from './ClientDashboardHome.types';
 
 type PickProps = Pick<ClientDashboardHomeProps, 'onNavigate' | 'onTarget'>;
@@ -168,7 +168,7 @@ export function ClientProfileHero(props: Pick<ClientDashboardHomeProps,
           <HeroStat icon={<Flame size={18} />} label="Day Streak" value={String(props.streakDays)} tone="gold" />
         </StatGrid>
         <MomentumLens>
-          <CrystalProgressRing pct={props.progressPercent} level={props.level} size={116} />
+          <SwanRankBadge pct={props.progressPercent} level={props.level} size={150} />
           <div>
             <TinyText>Momentum lens</TinyText>
             <MutedText>{props.tierName}. {props.pointsToNext > 0 ? `${props.pointsToNext.toLocaleString()} points to next unlock.` : props.rankLabel}</MutedText>

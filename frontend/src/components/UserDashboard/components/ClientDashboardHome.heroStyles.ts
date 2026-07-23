@@ -133,18 +133,21 @@ export const StatIcon = styled.span<{ $tone?: 'teal' | 'purple' | 'gold' }>`
   background: color-mix(in srgb, currentColor 17%, transparent);
 `;
 
-/* Momentum lens row — the crystal signature ring beside the level readout.
-   Ring leads on desktop; stacks (ring on top, centered) on narrow handsets. */
+/* Momentum lens row — the Swan rank BADGE beside the level readout. The badge
+   overhangs its box (crown above, rank label below), so the row carries top/
+   bottom padding so neither clips against surrounding hero content. Badge leads
+   on desktop; stacks (badge on top, centered) on narrow handsets. */
 export const MomentumLens = styled.div`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
+  gap: 22px;
+  padding: 14px 0 26px; /* clearance for the badge crown (top) + rank label (bottom) */
 
   @media (max-width: 520px) {
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
-    gap: 12px;
+    gap: 16px;
   }
 `;
