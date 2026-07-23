@@ -15,6 +15,12 @@
   --carbon: #141419;
   --graphite: #1A1A24;
 
+  /* Rank-badge metals (Molt: gunmetal -> pewter -> silver -> crystalline).
+     Gunmetal is premium brushed metal, never "grey-as-disabled". */
+  --rank-gunmetal: #6B7480; /* swan-guard-allow-hex token definition (canonical palette source) */
+  --rank-pewter: #8B95A3; /* swan-guard-allow-hex token definition (canonical palette source) */
+  --rank-silver: #B8C4D4; /* swan-guard-allow-hex token definition (canonical palette source) */
+
   /* Sapphire glass (luxury layer) */
   --glass-sapphire-bg: rgba(0, 32, 96, 0.6);
   --glass-sapphire-border: rgba(198, 168, 75, 0.2);
