@@ -96,9 +96,12 @@ export const WidgetStatList = styled.div`
 `;
 
 export const WidgetStat = styled.div`
+  min-width: 0;
   min-height: 52px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* value column is minmax(0, auto) so a long value can shrink+ellipsis rather
+     than grow the row past the card (stats-falling-off fix). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   gap: 0.65rem;
   align-items: center;
   padding: 0.65rem 0.7rem;
@@ -114,8 +117,14 @@ export const WidgetStatLabel = styled.span`
 `;
 
 export const WidgetStatValue = styled.span`
+  min-width: 0;
+  max-width: 100%;
   color: var(--text-primary, #E0ECF4);
   font: 900 0.84rem/1.1 'Fira Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
 `;
 
 export const TrainerMobileDock = styled.nav`

@@ -20,11 +20,13 @@ export const KpiStrip = styled.div.attrs(() => ({ role: 'group' }))`
 `;
 
 export const KpiCard = styled.div<{ $index?: number }>`
+  min-width: 0; /* shrink inside the 4-up KPI grid instead of overflowing */
   min-height: 88px;
   display: grid;
   align-content: center;
   gap: 0.35rem;
   padding: 0.95rem;
+  overflow: hidden;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
   background:
@@ -43,8 +45,14 @@ export const KpiValue = styled.div`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0; /* long monospace value must not push the KPI card past its track */
+  max-width: 100%;
   color: var(--text-primary, #E0ECF4);
   font: 900 1.25rem/1 'Fira Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  svg { flex: 0 0 auto; }
 `;
 
 export const KpiLabel = styled.div`

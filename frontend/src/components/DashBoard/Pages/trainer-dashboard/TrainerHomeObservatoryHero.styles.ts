@@ -122,6 +122,7 @@ export const HeroStats = styled.div`
 `;
 
 export const HeroStatCard = styled.div`
+  min-width: 0;
   min-height: 72px;
   display: grid;
   align-content: center;
@@ -130,18 +131,24 @@ export const HeroStatCard = styled.div`
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   background: color-mix(in srgb, var(--surface-royal-depth, #003080) 34%, var(--bg-base, #0A0A0F));
+  overflow: hidden;
 `;
 
 export const HeroStatValue = styled.strong`
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0; /* long monospace value must not push the card wide */
   color: var(--text-primary, #E0ECF4);
   font: 900 1.05rem/1 'Fira Code', monospace;
-  svg { color: var(--accent-primary, #60C0F0); }
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  svg { color: var(--accent-primary, #60C0F0); flex: 0 0 auto; }
 `;
 
 export const HeroStatLabel = styled.span`
+  min-width: 0;
   color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 58%, transparent));
   font: 800 0.72rem/1.25 'Sora', sans-serif;
 `;
