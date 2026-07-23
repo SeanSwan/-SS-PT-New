@@ -141,6 +141,7 @@ import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
 import adminChargeCardRoutes from '../routes/adminChargeCardRoutes.mjs';
 import adminWaiverRoutes from '../routes/adminWaiverRoutes.mjs';
 import publicWaiverRoutes from '../routes/publicWaiverRoutes.mjs';
+import trainerOnboardingRoutes from '../routes/trainerOnboardingRoutes.mjs';
 import adminComplianceRoutes from '../routes/adminComplianceRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
@@ -505,6 +506,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/waivers', adminWaiverRoutes);
   // 📋 Public Waiver (Phase 5W-G: QR/header waiver submission + version text retrieval)
   app.use('/api/public/waivers', publicWaiverRoutes);
+  // 🧑‍🏫 Trainer Onboarding (self-serve application + contract e-sign; fail-closed pending_review)
+  app.use('/api/trainer-onboarding', trainerOnboardingRoutes);
   // 🔗 Account Claiming (Crystalline Link Protocol — QR/SWAN-XXXX invite codes)
   app.use('/api/claim', claimRoutes);
   // Client Compliance, Business KPIs, and Automated Check-Ins

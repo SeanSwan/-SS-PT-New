@@ -128,6 +128,7 @@ export const getSession = () => getModel('Session');
 export const getSessionType = () => getModel('SessionType');
 export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
+export const getNotificationDelivery = () => getModel('NotificationDelivery');
 export const getContact = () => getModel('Contact');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
@@ -137,6 +138,7 @@ export const getPackage = () => getModel('Package');
 // Challenge/Gamification Models
 export const getChallenge = () => getModel('Challenge');
 export const getChallengeParticipant = () => getModel('ChallengeParticipant');
+export const getChallengeSubmission = () => getModel('ChallengeSubmission');
 export const getGoal = () => getModel('Goal');
 export const getProgressData = () => getModel('ProgressData');
 export const getUserFollow = () => getModel('UserFollow');
@@ -167,6 +169,7 @@ export const getAiPrivacyProfile = () => getModel('AiPrivacyProfile');
 export const getAiInteractionLog = () => getModel('AiInteractionLog');
 export const getAiCommandAuditLog = () => getModel('AiCommandAuditLog');
 export const getAdminAccountAuditLog = () => getModel('AdminAccountAuditLog');
+export const getCommunicationAuditLog = () => getModel('CommunicationAuditLog');
 
 // AI Monitoring Models (Phase 10)
 export const getAiMetricsBucket = () => getModel('AiMetricsBucket');
@@ -182,6 +185,7 @@ export const getWaiverRecord = () => getModel('WaiverRecord');
 export const getWaiverRecordVersion = () => getModel('WaiverRecordVersion');
 export const getWaiverConsentFlags = () => getModel('WaiverConsentFlags');
 export const getPendingWaiverMatch = () => getModel('PendingWaiverMatch');
+export const getTrainerApplication = () => getModel('TrainerApplication');
 export const getAiConsentLog = () => getModel('AiConsentLog');
 
 // Body Measurement & Milestone Models (Phase 11)
@@ -200,6 +204,7 @@ export const getUserWatchHistory = () => getModel('UserWatchHistory');
 export const getVideoAccessGrant = () => getModel('VideoAccessGrant');
 export const getVideoOutboundClick = () => getModel('VideoOutboundClick');
 export const getVideoJobLog = () => getModel('VideoJobLog');
+export const getContentProject = () => getModel('ContentProject');
 
 // Form Analysis Models (Phase 2 - AI Form Analysis)
 export const getFormAnalysis = () => getModel('FormAnalysis');
@@ -212,6 +217,8 @@ export const getCustomExercise = () => getModel('CustomExercise');
 export const getEquipmentProfile = () => getModel('EquipmentProfile');
 export const getEquipmentItem = () => getModel('EquipmentItem');
 export const getEquipmentExerciseMap = () => getModel('EquipmentExerciseMap');
+export const getEquipmentScanSession = () => getModel('EquipmentScanSession');
+export const getEquipmentScanCandidate = () => getModel('EquipmentScanCandidate');
 
 // Workout Variation Engine (Phase 8)
 export const getVariationLog = () => getModel('VariationLog');

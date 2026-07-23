@@ -29,6 +29,7 @@ const setupAssociations = async () => {
     // Enhanced Gamification Models (Sequelize)
     const ChallengeModule = await import('./Challenge.mjs');
     const ChallengeParticipantModule = await import('./ChallengeParticipant.mjs');
+    const ChallengeSubmissionModule = await import('./ChallengeSubmission.mjs');
     const GoalModule = await import('./Goal.mjs');
     const ProgressDataModule = await import('./ProgressData.mjs');
     const UserFollowModule = await import('./UserFollow.mjs');
@@ -84,6 +85,7 @@ const setupAssociations = async () => {
     // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
     const NotificationModule = await import('./Notification.mjs');
+    const NotificationDeliveryModule = await import('./NotificationDelivery.mjs');
     const NotificationSettingsModule = await import('./NotificationSettings.mjs');
     const AdminSettingsModule = await import('./AdminSettings.mjs');
     const ContactModule = await import('./contact.mjs');
@@ -122,6 +124,7 @@ const setupAssociations = async () => {
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
     const AdminAccountAuditLogModule = await import('./AdminAccountAuditLog.mjs');
     const AiCommandAuditLogModule = await import('./AiCommandAuditLog.mjs');
+    const CommunicationAuditLogModule = await import('./CommunicationAuditLog.mjs');
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucketModule = await import('./AiMetricsBucket.mjs');
@@ -138,6 +141,7 @@ const setupAssociations = async () => {
     const WaiverConsentFlagsModule = await import('./WaiverConsentFlags.mjs');
     const PendingWaiverMatchModule = await import('./PendingWaiverMatch.mjs');
     const AiConsentLogModule = await import('./AiConsentLog.mjs');
+    const TrainerApplicationModule = await import('./TrainerApplication.mjs');
 
     // Movement Analysis Models (Phase 13)
     const MovementAnalysisModule = await import('./MovementAnalysis.mjs');
@@ -174,6 +178,8 @@ const setupAssociations = async () => {
     const EquipmentProfileModule = await import('./EquipmentProfile.mjs');
     const EquipmentItemModule = await import('./EquipmentItem.mjs');
     const EquipmentExerciseMapModule = await import('./EquipmentExerciseMap.mjs');
+    const EquipmentScanSessionModule = await import('./EquipmentScanSession.mjs');
+    const EquipmentScanCandidateModule = await import('./EquipmentScanCandidate.mjs');
 
     // Workout Variation Engine (Phase 8)
     const VariationLogModule = await import('./VariationLog.mjs');
@@ -208,6 +214,7 @@ const setupAssociations = async () => {
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
     const MarketingCalendarItemModule = await import('./MarketingCalendarItem.mjs');
+    const ContentProjectModule = await import('./ContentProject.mjs');
     const SocialPublishingAccountModule = await import('./SocialPublishingAccount.mjs');
     const SocialPublishingJobModule = await import('./SocialPublishingJob.mjs');
     const SocialPublishingAttemptModule = await import('./SocialPublishingAttempt.mjs');
@@ -240,6 +247,7 @@ const setupAssociations = async () => {
     // Enhanced Gamification Models
     const Challenge = ChallengeModule.default;
     const ChallengeParticipant = ChallengeParticipantModule.default;
+    const ChallengeSubmission = ChallengeSubmissionModule.default;
     const Goal = GoalModule.default;
     const ProgressData = ProgressDataModule.default;
     const UserFollow = UserFollowModule.default;
@@ -289,6 +297,7 @@ const setupAssociations = async () => {
     // Notification and Admin Models
     const Orientation = OrientationModule.default;
     const Notification = NotificationModule.default;
+    const NotificationDelivery = NotificationDeliveryModule.default;
     const NotificationSettings = NotificationSettingsModule.default;
     const AdminSettings = AdminSettingsModule.default;
     const Contact = ContactModule.default;
@@ -327,6 +336,7 @@ const setupAssociations = async () => {
     const AiInteractionLog = AiInteractionLogModule.default;
     const AdminAccountAuditLog = AdminAccountAuditLogModule.default;
     const AiCommandAuditLog = AiCommandAuditLogModule.default;
+    const CommunicationAuditLog = CommunicationAuditLogModule.default;
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucket = AiMetricsBucketModule.default;
@@ -343,6 +353,7 @@ const setupAssociations = async () => {
     const WaiverConsentFlags = WaiverConsentFlagsModule.default;
     const PendingWaiverMatch = PendingWaiverMatchModule.default;
     const AiConsentLog = AiConsentLogModule.default;
+    const TrainerApplication = TrainerApplicationModule.default;
 
     // Movement Analysis Models (Phase 13)
     const MovementAnalysis = MovementAnalysisModule.default;
@@ -376,6 +387,8 @@ const setupAssociations = async () => {
     const EquipmentProfile = EquipmentProfileModule.default;
     const EquipmentItem = EquipmentItemModule.default;
     const EquipmentExerciseMap = EquipmentExerciseMapModule.default;
+    const EquipmentScanSession = EquipmentScanSessionModule.default;
+    const EquipmentScanCandidate = EquipmentScanCandidateModule.default;
 
     // Workout Variation Engine (Phase 8)
     const VariationLog = VariationLogModule.default;
@@ -410,6 +423,7 @@ const setupAssociations = async () => {
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
     const MarketingCalendarItem = MarketingCalendarItemModule.default;
+    const ContentProject = ContentProjectModule.default;
     const SocialPublishingAccount = SocialPublishingAccountModule.default;
     const SocialPublishingJob = SocialPublishingJobModule.default;
     const SocialPublishingAttempt = SocialPublishingAttemptModule.default;
@@ -482,13 +496,13 @@ const setupAssociations = async () => {
         Streak, GoalSupporter, GoalComment, GoalLike, GoalMilestone,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutLog, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
-        Orientation, Notification, NotificationSettings, AdminSettings, Contact,
+        Orientation, Notification, NotificationDelivery, NotificationSettings, AdminSettings, Contact,
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
-        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog,
+        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, CommunicationAuditLog, AdminAccountAuditLog,
         // AI Monitoring Models (Phase 10)
         AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
@@ -496,6 +510,8 @@ const setupAssociations = async () => {
         // Waiver + Consent Models (Phase 5W-B)
         WaiverVersion, WaiverRecord, WaiverRecordVersion,
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
+        // Trainer Onboarding
+        TrainerApplication,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
@@ -508,7 +524,7 @@ const setupAssociations = async () => {
         // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
         CustomExercise,
         // Equipment Profile Manager (Phase 7)
-        EquipmentProfile, EquipmentItem, EquipmentExerciseMap,
+        EquipmentProfile, EquipmentItem, EquipmentExerciseMap, EquipmentScanSession, EquipmentScanCandidate,
         // Workout Variation Engine (Phase 8)
         VariationLog,
         // Boot Camp Class Builder (Phase 10)
@@ -519,7 +535,7 @@ const setupAssociations = async () => {
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
-        MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+        MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
@@ -738,6 +754,16 @@ const setupAssociations = async () => {
     ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participants' });
     ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
+
+    // Challenge Submissions (entitlement-gated client proposal moderation queue)
+    User.hasMany(ChallengeSubmission, { foreignKey: 'submittedByUserId', as: 'challengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'submittedByUserId', as: 'submittedBy' });
+    User.hasMany(ChallengeSubmission, { foreignKey: 'assignedTrainerId', as: 'assignedChallengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'assignedTrainerId', as: 'assignedTrainer' });
+    User.hasMany(ChallengeSubmission, { foreignKey: 'reviewedByUserId', as: 'reviewedChallengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedBy' });
+    Challenge.hasMany(ChallengeSubmission, { foreignKey: 'approvedChallengeId', as: 'sourceSubmissions' });
+    ChallengeSubmission.belongsTo(Challenge, { foreignKey: 'approvedChallengeId', as: 'approvedChallenge' });
     
     // Challenge -> Participants (Many-to-Many)
     Challenge.belongsToMany(User, {
@@ -843,6 +869,10 @@ const setupAssociations = async () => {
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
     Notification.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+    Notification.hasMany(NotificationDelivery, { foreignKey: 'notificationId', as: 'deliveries' });
+    NotificationDelivery.belongsTo(Notification, { foreignKey: 'notificationId', as: 'notification' });
+    User.hasMany(NotificationDelivery, { foreignKey: 'userId', as: 'notificationDeliveries' });
+    NotificationDelivery.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     // AUTOMATION ASSOCIATIONS
     // =======================
@@ -1056,6 +1086,12 @@ const setupAssociations = async () => {
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiCommandAuditLog, { foreignKey: 'userId', as: 'aiCommandAuditLogs' });
     AiCommandAuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(CommunicationAuditLog, { foreignKey: 'actorId', as: 'communicationAuditActions' });
+    CommunicationAuditLog.belongsTo(User, { foreignKey: 'actorId', as: 'actor' });
+    User.hasMany(CommunicationAuditLog, { foreignKey: 'recipientId', as: 'communicationAuditReceipts' });
+    CommunicationAuditLog.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
+    Notification.hasMany(CommunicationAuditLog, { foreignKey: 'notificationId', as: 'auditLogs' });
+    CommunicationAuditLog.belongsTo(Notification, { foreignKey: 'notificationId', as: 'notification' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'actorUserId', as: 'adminAccountActions' });
     AdminAccountAuditLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'targetUserId', as: 'adminAccountAuditTargets' });
@@ -1089,6 +1125,11 @@ const setupAssociations = async () => {
     PendingWaiverMatch.belongsTo(WaiverRecord, { foreignKey: 'waiverRecordId', as: 'waiverRecord' });
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'candidateUserId', as: 'candidateUser' });
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
+
+    // Trainer Onboarding (self-serve application + contract e-sign)
+    User.hasMany(TrainerApplication, { foreignKey: 'userId', as: 'trainerApplications' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'userId', as: 'applicant' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
 
     User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
     AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -1164,6 +1205,18 @@ const setupAssociations = async () => {
     EquipmentItem.hasMany(EquipmentExerciseMap, { foreignKey: 'equipmentItemId', as: 'exerciseMappings' });
     EquipmentExerciseMap.belongsTo(EquipmentItem, { foreignKey: 'equipmentItemId', as: 'equipmentItem' });
     EquipmentExerciseMap.belongsTo(CustomExercise, { foreignKey: 'customExerciseId', as: 'customExercise' });
+    User.hasMany(EquipmentScanSession, { foreignKey: 'trainerId', as: 'equipmentScanSessions' });
+    EquipmentScanSession.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    EquipmentProfile.hasMany(EquipmentScanSession, { foreignKey: 'profileId', as: 'scanSessions' });
+    EquipmentScanSession.belongsTo(EquipmentProfile, { foreignKey: 'profileId', as: 'profile' });
+    EquipmentScanSession.hasMany(EquipmentScanCandidate, { foreignKey: 'sessionId', as: 'candidates' });
+    EquipmentScanCandidate.belongsTo(EquipmentScanSession, { foreignKey: 'sessionId', as: 'session' });
+    EquipmentScanCandidate.belongsTo(EquipmentProfile, { foreignKey: 'profileId', as: 'profile' });
+    EquipmentScanCandidate.belongsTo(EquipmentItem, { foreignKey: 'equipmentItemId', as: 'createdItem', constraints: false });
+    EquipmentScanCandidate.belongsTo(EquipmentItem, { foreignKey: 'duplicateOfItemId', as: 'duplicateOfItem', constraints: false });
+    EquipmentItem.hasMany(EquipmentScanCandidate, { foreignKey: 'equipmentItemId', as: 'scanCandidates', constraints: false });
+    EquipmentScanCandidate.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer', constraints: false });
+    User.hasMany(EquipmentScanCandidate, { foreignKey: 'reviewedBy', as: 'reviewedEquipmentScanCandidates', constraints: false });
     console.log('✅ Equipment Profile Manager models integrated');
 
     // Workout Variation Engine Associations (Phase 8)
@@ -1278,6 +1331,10 @@ const setupAssociations = async () => {
 
     // Marketing Calendar Associations
     User.hasMany(MarketingCalendarItem, { foreignKey: 'createdBy', as: 'createdMarketingCalendarItems', constraints: false });
+    User.hasMany(ContentProject, { foreignKey: 'createdBy', as: 'createdContentProjects', constraints: false });
+    ContentProject.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
+    User.hasMany(ContentProject, { foreignKey: 'updatedBy', as: 'updatedContentProjects', constraints: false });
+    ContentProject.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
     User.hasMany(MarketingCalendarItem, { foreignKey: 'updatedBy', as: 'updatedMarketingCalendarItems', constraints: false });
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
@@ -1313,6 +1370,7 @@ const setupAssociations = async () => {
       // Enhanced Gamification Models
       Challenge,
       ChallengeParticipant,
+      ChallengeSubmission,
       Goal,
       ProgressData,
       UserFollow,
@@ -1375,6 +1433,7 @@ const setupAssociations = async () => {
       // Notification and Admin Models
       Orientation,
       Notification,
+      NotificationDelivery,
       NotificationSettings,
       AdminSettings,
       Contact,
@@ -1402,6 +1461,7 @@ const setupAssociations = async () => {
       AiPrivacyProfile,
       AiInteractionLog,
       AiCommandAuditLog,
+      CommunicationAuditLog,
       AdminAccountAuditLog,
 
       // AI Monitoring Models (Phase 10)
@@ -1419,6 +1479,9 @@ const setupAssociations = async () => {
       WaiverConsentFlags,
       PendingWaiverMatch,
       AiConsentLog,
+
+      // Trainer Onboarding (self-serve application + contract e-sign)
+      TrainerApplication,
 
       // Video Catalog Models
       VideoCatalog,
@@ -1455,6 +1518,8 @@ const setupAssociations = async () => {
       EquipmentProfile,
       EquipmentItem,
       EquipmentExerciseMap,
+      EquipmentScanSession,
+      EquipmentScanCandidate,
 
       // Workout Variation Engine (Phase 8)
       VariationLog,
@@ -1470,7 +1535,7 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
-      Lead, LeadActivity, MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+      Lead, LeadActivity, MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
 
       // AI Chat & Macro Logging Models
       AiConversation,
