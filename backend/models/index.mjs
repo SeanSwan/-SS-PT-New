@@ -128,6 +128,7 @@ export const getSession = () => getModel('Session');
 export const getSessionType = () => getModel('SessionType');
 export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
+export const getNotificationDelivery = () => getModel('NotificationDelivery');
 export const getContact = () => getModel('Contact');
 export const getSupportIssue = () => getModel('SupportIssue');
 export const getSupportIssueEvent = () => getModel('SupportIssueEvent');
@@ -175,6 +176,7 @@ export const getAiPrivacyProfile = () => getModel('AiPrivacyProfile');
 export const getAiInteractionLog = () => getModel('AiInteractionLog');
 export const getAiCommandAuditLog = () => getModel('AiCommandAuditLog');
 export const getAdminAccountAuditLog = () => getModel('AdminAccountAuditLog');
+export const getCommunicationAuditLog = () => getModel('CommunicationAuditLog');
 
 // AI Monitoring Models (Phase 10)
 export const getAiMetricsBucket = () => getModel('AiMetricsBucket');
@@ -190,6 +192,7 @@ export const getWaiverRecord = () => getModel('WaiverRecord');
 export const getWaiverRecordVersion = () => getModel('WaiverRecordVersion');
 export const getWaiverConsentFlags = () => getModel('WaiverConsentFlags');
 export const getPendingWaiverMatch = () => getModel('PendingWaiverMatch');
+export const getTrainerApplication = () => getModel('TrainerApplication');
 export const getAiConsentLog = () => getModel('AiConsentLog');
 
 // Body Measurement & Milestone Models (Phase 11)
