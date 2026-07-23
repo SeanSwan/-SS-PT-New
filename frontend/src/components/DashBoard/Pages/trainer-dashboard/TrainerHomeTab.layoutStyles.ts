@@ -32,7 +32,10 @@ export const TrainerHomePageShell = styled.section`
 
 export const TrainerHomeMainGrid = styled.section`
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr);
+  /* min-width: 0 on BOTH tracks so neither can force the grid past its
+     container (the dashboard content area clips overflow-x, so a hard 320px
+     rail floor pushed content off-screen on narrower desktop/tablet widths). */
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr);
   gap: 1.35rem;
   align-items: start;
 

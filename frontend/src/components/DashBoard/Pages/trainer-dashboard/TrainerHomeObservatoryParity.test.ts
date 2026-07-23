@@ -22,11 +22,11 @@ describe('Trainer home observatory parity', () => {
 
     expect(layoutSource).toContain('TrainerHomePageShell');
     expect(layoutSource).toContain('max-width: 1720px');
-    expect(layoutSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr)');
+    expect(layoutSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr)');
     expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
     expect(heroSource).toContain('<HeroGrid>');
     expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
-    expect(heroStylesSource).toContain('grid-template-columns: minmax(0, 0.88fr) minmax(260px, 0.55fr)');
+    expect(heroStylesSource).toContain('grid-template-columns: minmax(0, 0.88fr) minmax(0, 0.55fr)');
     expect(heroStylesSource).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
   });
 

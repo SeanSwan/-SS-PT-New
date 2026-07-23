@@ -27,7 +27,9 @@ export const HeroGrid = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 0.88fr) minmax(260px, 0.55fr);
+  /* both tracks minmax(0,...) so the 260px artwork floor cannot push the hero
+     past the clipped content area on mid-desktop/tablet widths. */
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 0.55fr);
   gap: 1.5rem;
   padding: 1.5rem;
   @media (max-width: 980px) { grid-template-columns: 1fr; }
@@ -73,9 +75,13 @@ export const HeroKicker = styled.p`
 
 export const HeroTitle = styled.h1`
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   color: var(--text-primary, #E0ECF4);
   font: 900 4.1rem/0.94 'Plus Jakarta Sans', sans-serif;
-  overflow-wrap: break-word;
+  /* anywhere (not just break-word) so a single very long name can't push the
+     hero column past the clipped dashboard content area. */
+  overflow-wrap: anywhere;
   @media (max-width: 980px) { font-size: 3.25rem; }
   @media (max-width: 520px) { font-size: 2.2rem; }
   @media (max-width: 360px) { font-size: 1.85rem; }
@@ -83,15 +89,22 @@ export const HeroTitle = styled.h1`
 
 export const HeroHandle = styled.span`
   width: fit-content;
+  max-width: 100%;
   min-height: 30px;
-  display: inline-flex;
-  align-items: center;
+  /* inline-block (not inline-flex) so text-overflow:ellipsis actually renders;
+     line-height centers the single-line handle within the pill. */
+  display: inline-block;
+  line-height: calc(30px - 0.7rem);
   border-radius: 999px;
   padding: 0.35rem 0.65rem;
   color: var(--accent-secondary, #8B5CF6);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, transparent);
   font: 800 0.75rem/1 'Sora', sans-serif;
+  /* A long @handle ellipsises, never pushes the hero column past the viewport. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const HeroSubline = styled.p`

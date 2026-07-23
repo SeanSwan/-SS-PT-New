@@ -24,7 +24,7 @@ describe('TrainerHomeTab responsive contract', () => {
   });
 
   it('uses a client-style proof board with responsive flow rail and actions', () => {
-    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr)');
+    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 0.42fr)');
     expect(nextActionStylesSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr))');
     expect(nextActionStylesSource).toContain('export const NextActionFlow');
@@ -68,7 +68,7 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
     expect(heroSource).not.toContain('SwanCoachDockTrainer');
     expect(layoutStylesSource).toContain('max-width: 1720px');
-    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr)');
+    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr)');
     expect(stylesSource).not.toContain('max-width: 860px');
   });
 

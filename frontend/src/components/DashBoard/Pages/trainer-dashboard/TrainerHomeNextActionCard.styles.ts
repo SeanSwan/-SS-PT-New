@@ -9,7 +9,9 @@ import styled from 'styled-components';
 
 export const NextActionCard = styled.section`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+  /* minmax(0,...) both tracks so the 320px right-column floor cannot overflow
+     the clipped content area on narrower desktop/tablet widths. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.42fr);
   align-items: center;
   gap: 1rem;
   min-width: 0;
