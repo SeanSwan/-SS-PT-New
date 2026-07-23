@@ -2,34 +2,31 @@
  * ============================================================================
  * FILE: CrystalProgressRing.tsx
  * PURPOSE: The client-home SIGNATURE MOMENT (design.md §8) — a level-indexed
- *          "living crystal ring" that evolves a little EVERY level from 1 to
- *          1000, building toward an ultimate ring. Flowing purple↔cyan gradient
- *          with electricity circling the band; escalates in depth as you climb.
+ *          "living crystal ring" that evolves every level from 1→1000 and takes
+ *          on a distinct identity every 50 levels (20 bands), building toward
+ *          the ultimate Apex ring. Flowing purple↔cyan↔gold gradient, electricity
+ *          circling the band, plus escalating FX: aura halo, orbital sparks,
+ *          faceted gems, a counter-rotating twin band, an inner glyph ring, a
+ *          progress-tip spark, and a radiant crown at Level 1000.
  * AUTHOR:  Claude Opus 4.8 | CREATED: 2026-07-22 | Kimi K3 design pass 2026-07-22
  * ============================================================================
  *
- * KIMI K3 MANDATES (all applied):
- *   1. Index to LEVEL not tier — dials are smooth functions of level (1–1000);
- *      tier boundaries (every 20) are celebration thresholds, not the only
- *      change. See crystalRing.tiers.ts.
- *   2. ONE master clock — the whole ring is phase-locked to a single rotation
- *      loop (`--ring-loop`). Escalation adds DEPTH; motion SLOWS as it deepens
- *      (loopMs grows with ascent). No independent second animator.
- *   3. Numeral sanctuary — an obsidian scrim behind the level number whose
- *      opacity scales UP with ambient light so the numeral never drowns.
- *   4. Electricity is FAKED with transform:rotate() on STATIC filament paths —
- *      never animated stroke-dashoffset/dasharray, never SVG feTurbulence
- *      filters (both are paint-bound; this is compositor-safe).
- *   5. ONE styled wrapper; ALL dynamics via CSS custom properties (the engine
- *      writes --vars); keyframes are static, defined once in the styles file.
- *   6. SVG-only (no canvas in this build). Full/Lean/Still via `quality`;
- *      reduced-motion = the engine's t=0 frame (amplitude→0), one code path.
- *   7. Responsive: dials quantize at small radii (fringe/filaments drop below
- *      ~160px render size).
+ * KIMI K3 + SEAN MANDATES (all applied):
+ *   - Index to LEVEL not tier; 20 bands (every 50 levels) give a visible new
+ *     identity ~2.5× as often as the prior 5 eras. crystalRing.tiers.ts.
+ *   - ONE master clock — every FX layer is phase-locked to a single rotation
+ *     loop; escalation adds DEPTH, motion SLOWS as it deepens. FX are layers,
+ *     NOT independent animators.
+ *   - Electricity + all rotating FX are STATIC geometry rotated by transform —
+ *     never animated stroke-dashoffset/dasharray, never SVG feTurbulence.
+ *   - ONE styled wrapper; dynamics via CSS custom properties; static keyframes.
+ *   - Numeral sanctuary scrim scales up with the light. SVG-only.
+ *   - Full/Lean/Still quality; reduced-motion = the t=0 frame. Responsive
+ *     quantization at small render sizes.
  *
- * CANON: §4 dispersion (fringe monotonic in wavelength, ≤0.7 alpha); §8 one
- *   signature/route; §2 transform/opacity only; §3 reduced-motion. Ring is
- *   decorative (aria-hidden); the accessible progressbar stays on the parent.
+ * CANON: §4 dispersion fringe (monotonic, ≤0.7α); §8 one signature/route; §2
+ *   transform/opacity only; §3 reduced-motion. Ring is decorative (aria-hidden);
+ *   the accessible progressbar stays on the parent.
  */
 
 import React from 'react';
@@ -45,44 +42,21 @@ import {
 export type RingQuality = 'full' | 'lean' | 'still';
 
 export interface CrystalProgressRingProps {
-  /** 0–100 progress toward the next level. */
   pct: number;
-  /** Level number rendered at the ring's center (1–1000). */
   level: number;
-  /** Diameter in px (default 132). */
   size?: number;
-  /** Runtime quality mode (Kimi Full/Lean/Still). Default 'full'. */
   quality?: RingQuality;
 }
 
 const STROKE = 8;
 const GAP_DEG = 4;
+const TAU = Math.PI * 2;
 
-/** Precomputed static filament segment along the ring, rotated by the loop.
- *  A short dashed arc reads as a crackle of light chasing the band. */
-function Filament({ r, circ, cx, cy, index, count, arc, opacity }: {
-  r: number; circ: number; cx: number; cy: number;
-  index: number; count: number; arc: string; opacity: number;
-}) {
-  const segLen = circ * 0.04;
-  const offset = -(circ * (index / count));
-  return (
-    <circle
-      className="ring-filament"
-      cx={cx}
-      cy={cy}
-      r={r}
-      fill="none"
-      stroke={arc}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeDasharray={`${segLen} ${circ}`}
-      strokeDashoffset={offset}
-      transform={`rotate(-90 ${cx} ${cy})`}
-      style={{ opacity }}
-    />
-  );
-}
+/** Points evenly spaced on a circle of radius `rad` about (cx,cy). */
+const onCircle = (cx: number, cy: number, rad: number, i: number, n: number, phase = 0) => {
+  const t = phase + (i / n) * TAU;
+  return { x: cx + rad * Math.cos(t), y: cy + rad * Math.sin(t) };
+};
 
 const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
   pct,
@@ -93,31 +67,42 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
   const safePct = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
   const safeLevel = Math.max(1, Math.min(1000, Number.isFinite(level) ? Math.round(level) : 1));
   const d = dialsFor(safeLevel);
+  const fx = d.fx;
 
   const r = (size - STROKE) / 2;
   const cx = size / 2;
   const cy = size / 2;
-  const circ = 2 * Math.PI * r;
+  const circ = TAU * r;
   const sweep = (circ * (360 - GAP_DEG)) / 360;
   const dash = (safePct / 100) * sweep;
 
-  // Responsive quantization (Kimi): drop fine detail at small render sizes.
+  // Responsive + quality quantization.
   const small = size < 160;
-  const showFringe = !small;
-  const showFilaments = quality !== 'still' && d.arcOpacity > 0.3;
-  const filamentCount = small ? Math.min(1, d.arcCount) : d.arcCount;
+  const still = quality === 'still';
+  const lean = quality === 'lean';
+  const ampl = quality === 'full' ? 1 : lean ? 0.5 : 0;
 
-  // Motion amplitude: 1 for full, damped for lean, 0 for still.
-  const ampl = quality === 'full' ? 1 : quality === 'lean' ? 0.5 : 0;
+  const showFringe = !small;
+  const showFilaments = !still && d.arcOpacity > 0.3;
+  const filamentCount = small ? Math.min(2, fx.filaments) : fx.filaments;
+  const showTwin = fx.twinBand && !still && !small;
+  const orbitalCount = still ? 0 : small ? Math.min(2, fx.orbitals) : (lean ? Math.min(4, fx.orbitals) : fx.orbitals);
+  const gemCount = small ? Math.min(4, fx.facetGems) : fx.facetGems;
+  const showAura = fx.auraPulse && !still;
+  const showSpark = fx.sparkTip && safePct > 0;
+  const showGlyph = fx.innerGlyph && !small;
+  const showCrown = fx.crown;
 
   const fringeLen = Math.min(sweep * 0.06, circ * 0.05);
   const fringeOffset = Math.max(0, dash - fringeLen);
 
-  const uid = `crystal-ring-${size}-${d.era.key}`;
-  const gradId = `${uid}-grad`;
-  const fringeId = `${uid}-fringe`;
+  // Leading-tip position (for the spark) at the end of the progress sweep.
+  const tipAngle = -Math.PI / 2 + (GAP_DEG / 2) * (Math.PI / 180) + (safePct / 100) * (sweep / circ) * TAU;
+  const tip = { x: cx + r * Math.cos(tipAngle), y: cy + r * Math.sin(tipAngle) };
 
-  // Build the flowing spectrum gradient from the era's ordered stops.
+  const uid = `cr-${size}-${d.era.key}`;
+  const gradId = `${uid}-g`;
+  const fringeId = `${uid}-f`;
   const stops = d.era.spectrum;
 
   return (
@@ -125,7 +110,6 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
       style={{
         width: size,
         height: size,
-        // One master clock + all dynamics as CSS vars (Kimi mandate 5).
         ['--ring-loop' as string]: `${d.loopMs}ms`,
         ['--ring-glow' as string]: String(d.glow),
         ['--ring-ampl' as string]: String(ampl),
@@ -137,14 +121,11 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" focusable="false">
         <defs>
-          {/* Flowing ring spectrum — rotated by the master clock so the
-              purple↔cyan gradient sweeps around the band. */}
           <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
             {stops.map((c, i) => (
               <stop key={i} offset={`${Math.round((i / (stops.length - 1)) * 100)}%`} stopColor={c} />
             ))}
           </linearGradient>
-          {/* §4 dispersion fringe — monotonic, warm gold at the leading tip. */}
           <linearGradient id={fringeId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--wing-purple, #8b5cf6)" />
             <stop offset="34%" stopColor="var(--swan-lavender, #4070c0)" />
@@ -152,6 +133,15 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
             <stop offset="100%" stopColor="var(--gilded-fern, #c6a84b)" />
           </linearGradient>
         </defs>
+
+        {/* Aura halo — a soft breathing ring behind everything */}
+        {showAura && (
+          <circle
+            className="ring-aura"
+            cx={cx} cy={cy} r={r * 0.98} fill="none"
+            stroke={d.era.arc} strokeWidth={STROKE * 1.6}
+          />
+        )}
 
         {/* Obsidian groove track */}
         <circle
@@ -162,21 +152,84 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
           transform={`rotate(${-90 + GAP_DEG / 2} ${cx} ${cy})`}
         />
 
-        {/* Electricity filaments — static geometry, the whole GROUP is rotated
-            by the master clock (compositor-safe; no animated path data). */}
-        {showFilaments && (
-          <g className="ring-arc-group">
-            {Array.from({ length: filamentCount }, (_, i) => (
-              <Filament
-                key={i} r={r} circ={circ} cx={cx} cy={cy}
-                index={i} count={filamentCount}
-                arc={d.era.arc} opacity={d.arcOpacity}
-              />
-            ))}
+        {/* Faceted gem nodes set into the ring — static diamonds */}
+        {gemCount > 0 && (
+          <g className="ring-gems">
+            {Array.from({ length: gemCount }, (_, i) => {
+              const p = onCircle(cx, cy, r, i, gemCount, -Math.PI / 2);
+              const s = small ? 2 : 2.6;
+              return (
+                <rect
+                  key={i} x={p.x - s} y={p.y - s} width={s * 2} height={s * 2}
+                  fill={d.era.arc} opacity={0.85}
+                  transform={`rotate(45 ${p.x} ${p.y})`}
+                />
+              );
+            })}
           </g>
         )}
 
-        {/* Progress fill — the flowing era spectrum */}
+        {/* Electricity filaments — static, whole group rotated by master clock */}
+        {showFilaments && (
+          <g className="ring-arc-group">
+            {Array.from({ length: filamentCount }, (_, i) => {
+              const seg = circ * 0.04;
+              const off = -(circ * (i / filamentCount));
+              return (
+                <circle
+                  key={i} cx={cx} cy={cy} r={r} fill="none"
+                  className="ring-filament"
+                  stroke={d.era.arc} strokeWidth={2} strokeLinecap="round"
+                  strokeDasharray={`${seg} ${circ}`} strokeDashoffset={off}
+                  transform={`rotate(-90 ${cx} ${cy})`} style={{ opacity: d.arcOpacity }}
+                />
+              );
+            })}
+          </g>
+        )}
+
+        {/* Counter-rotating twin band (inner) */}
+        {showTwin && (() => {
+          const n = Math.max(2, Math.round(filamentCount / 2));
+          const seg = circ * 0.03;
+          const innerR = r - STROKE * 1.3;
+          const innerCirc = TAU * innerR;
+          return (
+            <g className="ring-twin-group">
+              {Array.from({ length: n }, (_, i) => (
+                <circle
+                  key={i} cx={cx} cy={cy} r={innerR} fill="none"
+                  className="ring-twin"
+                  stroke="var(--ice-wing, #60c0f0)" strokeWidth={1.5} strokeLinecap="round"
+                  strokeDasharray={`${seg} ${innerCirc}`} strokeDashoffset={-(innerCirc * (i / n))}
+                  transform={`rotate(-90 ${cx} ${cy})`} opacity={0.55}
+                />
+              ))}
+            </g>
+          );
+        })()}
+
+        {/* Inner rotating facet glyph ring */}
+        {showGlyph && (
+          <g className="ring-glyph-group">
+            {Array.from({ length: 6 }, (_, i) => {
+              const p = onCircle(cx, cy, r * 0.52, i, 6, -Math.PI / 2);
+              return <circle key={i} cx={p.x} cy={p.y} r={1.4} fill="var(--gilded-fern, #c6a84b)" opacity={0.7} />;
+            })}
+          </g>
+        )}
+
+        {/* Orbital luminous dots — static positions, group rotated by the clock */}
+        {orbitalCount > 0 && (
+          <g className="ring-orbit-group">
+            {Array.from({ length: orbitalCount }, (_, i) => {
+              const p = onCircle(cx, cy, r + STROKE * 0.9, i, orbitalCount, -Math.PI / 2);
+              return <circle key={i} cx={p.x} cy={p.y} r={small ? 1.4 : 2} fill={d.era.arc} className="ring-orbital" />;
+            })}
+          </g>
+        )}
+
+        {/* Progress fill — flowing era spectrum */}
         <circle
           className="ring-fill"
           cx={cx} cy={cy} r={r} fill="none"
@@ -193,16 +246,29 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
             cx={cx} cy={cy} r={r} fill="none"
             stroke={`url(#${fringeId})`}
             strokeWidth={1.5} strokeLinecap="round"
-            strokeDasharray={`${fringeLen} ${circ}`}
-            strokeDashoffset={-fringeOffset}
+            strokeDasharray={`${fringeLen} ${circ}`} strokeDashoffset={-fringeOffset}
             transform={`rotate(${-90 + GAP_DEG / 2} ${cx} ${cy})`}
             style={{ opacity: d.fringeAlpha }}
           />
         )}
+
+        {/* Spark burst at the progress tip */}
+        {showSpark && (
+          <circle className="ring-spark" cx={tip.x} cy={tip.y} r={small ? 2.4 : 3.4} fill="var(--frost-white, #e0ecf4)" />
+        )}
+
+        {/* Radiant crown — ultimate (L1000) only: gold spikes around the ring */}
+        {showCrown && (
+          <g className="ring-crown">
+            {Array.from({ length: 12 }, (_, i) => {
+              const a = onCircle(cx, cy, r + STROKE * 0.6, i, 12, -Math.PI / 2);
+              const b = onCircle(cx, cy, r + STROKE * 2.4, i, 12, -Math.PI / 2);
+              return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--gilded-fern, #c6a84b)" strokeWidth={1.5} strokeLinecap="round" opacity={0.85} />;
+            })}
+          </g>
+        )}
       </svg>
 
-      {/* Numeral sanctuary — obsidian scrim (opacity scales up with light) so
-          the level number stays ≥4.5:1 at every era. */}
       <RingScrim aria-hidden="true" />
       <RingCenter>
         <RingEraLabel>{d.era.name}</RingEraLabel>

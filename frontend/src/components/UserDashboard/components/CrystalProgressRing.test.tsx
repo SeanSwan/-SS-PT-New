@@ -16,9 +16,9 @@ describe('CrystalProgressRing (engine)', () => {
     expect(getByText('Frost')).toBeTruthy(); // level 7 → Frost era
   });
 
-  it('shows the Ascendant era + ultimate flag at level 1000', () => {
+  it('shows the Apex era + ultimate flag at level 1000', () => {
     const { getByText, container } = render(<CrystalProgressRing pct={100} level={1000} />);
-    expect(getByText('Ascendant')).toBeTruthy();
+    expect(getByText('Apex')).toBeTruthy(); // L1000 = the ultimate Apex ring
     expect(container.querySelector('[data-ultimate="true"]')).not.toBeNull();
   });
 

@@ -18,6 +18,14 @@ const orbit = keyframes`
   to   { transform: rotate(360deg); }
 `;
 
+/* Counter-clock — the twin band drifts the opposite way at the same period.
+   Depth (two directions of light), NOT a second independent animator: same
+   --ring-loop, phase-locked. */
+const counterOrbit = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+`;
+
 /* Slow luminous breath on the fill glow — phase-locked feel via the same loop
    period. Opacity only. Sacred = slow. */
 const breathe = keyframes`
@@ -29,6 +37,16 @@ const breathe = keyframes`
    MUST use css`` (a bare string toStrings the keyframe → mount crash #12). */
 const arcMotion = css`
   animation: ${orbit} var(--ring-loop, 14000ms) linear infinite;
+`;
+/* Orbitals ride the master clock; the glyph ring drifts slower (2× period). */
+const orbitalMotion = css`
+  animation: ${orbit} var(--ring-loop, 14000ms) linear infinite;
+`;
+const glyphMotion = css`
+  animation: ${orbit} calc(var(--ring-loop, 14000ms) * 2) linear infinite;
+`;
+const twinMotion = css`
+  animation: ${counterOrbit} var(--ring-loop, 14000ms) linear infinite;
 `;
 const breatheMotion = css`
   /* period ~half the orbit so the breath reads calm against the sweep */
@@ -46,11 +64,30 @@ export const RingWrap = styled.div`
     display: block;
   }
 
-  /* Electricity — the ONE ambient loop. transform-origin center; the group
-     spins as a rigid body (static path geometry inside). */
+  /* Electricity — the master clock. transform-origin center; the group spins
+     as a rigid body (static path geometry inside). */
   .ring-arc-group {
     transform-origin: 50% 50%;
     ${arcMotion}
+    will-change: transform;
+  }
+
+  /* Depth layers — all phase-locked to the same --ring-loop (Kimi one-clock
+     law): orbitals ride it, the twin band counter-rotates, the inner glyph
+     drifts at half speed. Each spins as a rigid body of static geometry. */
+  .ring-orbit-group {
+    transform-origin: 50% 50%;
+    ${orbitalMotion}
+    will-change: transform;
+  }
+  .ring-twin-group {
+    transform-origin: 50% 50%;
+    ${twinMotion}
+    will-change: transform;
+  }
+  .ring-glyph-group {
+    transform-origin: 50% 50%;
+    ${glyphMotion}
     will-change: transform;
   }
 
@@ -73,8 +110,13 @@ export const RingWrap = styled.div`
   /* §3 CSS reduced-motion gate — collapse to the t=0 frame: no orbit, no
      breath, glow held static. (No JS motion path to also gate — mandate 6.) */
   @media (prefers-reduced-motion: reduce) {
-    .ring-arc-group { animation: none; }
-    .ring-fill { animation: none; }
+    .ring-arc-group,
+    .ring-orbit-group,
+    .ring-twin-group,
+    .ring-glyph-group,
+    .ring-fill {
+      animation: none;
+    }
   }
 `;
 

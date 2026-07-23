@@ -53,12 +53,20 @@ describe('crystalRing.tiers', () => {
 
   it('assigns named eras across the full climb and marks the ultimate', () => {
     expect(eraOf(1).key).toBe('frost');
-    expect(eraOf(1000).key).toBe('ascendant');
+    expect(eraOf(1000).key).toBe('apex'); // L1000 is the ultimate Apex era
     expect(dialsFor(1000).isUltimate).toBe(true);
     expect(dialsFor(999).isUltimate).toBe(false);
     // eras are contiguous and cover 1..1000
     expect(RING_ERAS[0].minLevel).toBe(1);
     expect(RING_ERAS[RING_ERAS.length - 1].maxLevel).toBe(MAX_LEVEL);
+  });
+
+  it('gives a distinct era identity roughly every 50 levels (20 bands, not 5)', () => {
+    // Sean's ask: a visible new ring ~every 50 levels. Distinct era keys across
+    // the sampled bands prove the identity changes far more often than 5 eras.
+    const sampled = [10, 60, 120, 180, 230, 280, 330, 380, 430, 480, 530, 620, 720, 820, 920, 1000];
+    const keys = new Set(sampled.map((l) => eraOf(l).key));
+    expect(keys.size).toBeGreaterThanOrEqual(12);
   });
 
   it('clamps out-of-range and non-finite levels safely', () => {
