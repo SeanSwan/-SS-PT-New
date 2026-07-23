@@ -38,19 +38,25 @@ export const CygnetWrap = styled.div`
 
   svg { display: block; overflow: visible; }
 
+  /* transform-box: fill-box makes transform-origin resolve against each shape's
+     OWN bounding box (Safari<=15 / older WebKit fix). Origins are therefore
+     percentages of the shape box, not viewBox pixels — the head pivots at its
+     bottom (near the neck), the eye scales from its own center. */
   .cygnet-body {
+    transform-box: fill-box;
     transform-origin: 50% 90%;
     ${bobMotion}
   }
 
-  /* Head pivots at the base of the neck for the curious tilt. */
   .cygnet-head {
-    transform-origin: 30px 30px;
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
     ${tiltMotion}
   }
 
   .cygnet-eye {
-    transform-origin: 36px 17px;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
     ${blinkMotion}
   }
 

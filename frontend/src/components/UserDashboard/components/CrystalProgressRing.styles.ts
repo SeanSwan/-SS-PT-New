@@ -67,6 +67,7 @@ export const RingWrap = styled.div`
   /* Electricity — the master clock. transform-origin center; the group spins
      as a rigid body (static path geometry inside). */
   .ring-arc-group {
+    transform-box: fill-box; /* pivot on the element's own box (Safari<=15 fix) */
     transform-origin: 50% 50%;
     ${arcMotion}
     will-change: transform;
@@ -76,16 +77,19 @@ export const RingWrap = styled.div`
      law): orbitals ride it, the twin band counter-rotates, the inner glyph
      drifts at half speed. Each spins as a rigid body of static geometry. */
   .ring-orbit-group {
+    transform-box: fill-box; /* pivot on the element's own box (Safari<=15 fix) */
     transform-origin: 50% 50%;
     ${orbitalMotion}
     will-change: transform;
   }
   .ring-twin-group {
+    transform-box: fill-box; /* pivot on the element's own box (Safari<=15 fix) */
     transform-origin: 50% 50%;
     ${twinMotion}
     will-change: transform;
   }
   .ring-glyph-group {
+    transform-box: fill-box; /* pivot on the element's own box (Safari<=15 fix) */
     transform-origin: 50% 50%;
     ${glyphMotion}
     will-change: transform;
@@ -130,6 +134,13 @@ export const RingScrim = styled.div`
   position: absolute;
   inset: 22%;
   border-radius: 50%;
+  /* PLAIN-color fallback FIRST (no color-mix) so the numeral keeps its contrast
+     backing on browsers without color-mix (Safari<16.2); the color-mix upgrade
+     overrides where supported. The scrim carries a WCAG guarantee — never let
+     it degrade to fully transparent. */
+  background: radial-gradient(circle,
+    rgba(10, 10, 15, 0.72) 55%,
+    transparent 78%);
   background: radial-gradient(circle,
     color-mix(in srgb, var(--obsidian-black, #0a0a0f) calc(var(--ring-scrim, 0.6) * 100%), transparent) 55%,
     transparent 78%);

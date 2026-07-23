@@ -154,7 +154,7 @@ const SwanRankBadge: React.FC<SwanRankBadgeProps> = ({
       {/* Companion perched on the rim (culled < 768px by the styles). */}
       {showCompanion && (
         <CompanionSlot aria-hidden="true">
-          <CrystalCygnet level={level} size={Math.round(size * 0.22)} quality={quality} />
+          <CrystalCygnet level={level} size={Math.round(size * 0.3)} quality={quality} />
         </CompanionSlot>
       )}
     </BadgeWrap>
