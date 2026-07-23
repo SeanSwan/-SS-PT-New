@@ -30,6 +30,13 @@ export const BadgeWrap = styled.div`
     filter: drop-shadow(0 0 8px color-mix(in srgb, var(--gilded-fern, #c6a84b) 55%, transparent));
   }
 
+  /* Off-viewport / hidden-tab pause: the hook sets data-paused; freeze every
+     descendant ambient loop (ring FX groups, fill breathe, cygnet idle) so the
+     badge stops compositing when the user can't see it (hostile-review perf). */
+  &[data-paused='true'] * {
+    animation-play-state: paused !important;
+  }
+
   .badge-ring-slot {
     position: absolute;
     inset: 0;

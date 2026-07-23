@@ -42,6 +42,31 @@ export interface SwanRankBadgeProps {
   showCompanion?: boolean;
 }
 
+/** Pause the badge's ambient animations when it scrolls out of view or the tab
+ *  is hidden — 7 infinite loops running off-screen is a battery/GPU drain on a
+ *  data dashboard (hostile-review perf). Returns a ref + whether to animate. */
+function useAnimateWhenVisible<T extends HTMLElement>() {
+  const ref = React.useRef<T | null>(null);
+  const [active, setActive] = React.useState(true);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    let onScreen = true;
+    const sync = () => setActive(onScreen && !document.hidden);
+    const io = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      sync();
+    }, { threshold: 0.01 });
+    io.observe(el);
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      io.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, []);
+  return { ref, active };
+}
+
 const polygonPoints = (cx: number, cy: number, r: number, sides: number, rotate = -90): string =>
   Array.from({ length: sides }, (_, i) => {
     const a = (rotate + (i / sides) * 360) * (Math.PI / 180);
@@ -61,13 +86,20 @@ const SwanRankBadge: React.FC<SwanRankBadgeProps> = ({
   const cy = size / 2;
   const frameR = size / 2 - 3;
   const ringSize = Math.round(size * 0.72);
+  const { ref, active } = useAnimateWhenVisible<HTMLDivElement>();
 
   // Crystalline facet silhouette — a polygon whose facet-count grows by rank.
   const outer = polygonPoints(cx, cy, frameR, frame.facets);
   const inner = polygonPoints(cx, cy, frameR - 8, frame.facets);
 
   return (
-    <BadgeWrap style={{ width: size, height: size }} data-rank={frame.rank} data-sovereign={b.isSovereign ? 'true' : undefined}>
+    <BadgeWrap
+      ref={ref}
+      style={{ width: size, height: size }}
+      data-rank={frame.rank}
+      data-sovereign={b.isSovereign ? 'true' : undefined}
+      data-paused={active ? undefined : 'true'}
+    >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" focusable="false">
         {/* Frame — Molt-refined material edge + inner bevel (internal glow, no
             drop shadows: shadows on the vault read as mud per the Charter). */}
@@ -129,4 +161,6 @@ const SwanRankBadge: React.FC<SwanRankBadgeProps> = ({
   );
 };
 
-export default SwanRankBadge;
+// Primitive props → memo is free correctness; avoids re-running the SVG
+// geometry when the hero re-renders for unrelated state (hostile-review perf).
+export default React.memo(SwanRankBadge);

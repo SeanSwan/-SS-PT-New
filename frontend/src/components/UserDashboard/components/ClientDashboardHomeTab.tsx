@@ -113,7 +113,15 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const progressPercent = normalizeHomePercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
   const tierName = levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(level)).name;
   const streakDays = normalizeHomeWholeNumber(gamProfile?.data?.streakDays, 0, 0);
-  const pointsToNext = normalizeHomeWholeNumber(levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints, 0, 0);
+  // "points to next unlock" must be the REMAINING distance, not the full level
+  // span. pointsNeededForNext is the span; subtract how far into the level the
+  // user already is (hostile-review data-truth fix). Fallback keeps the old
+  // source when the precise levelProgress fields are unavailable.
+  const pointsRemainingToNext =
+    levelProgress != null
+      ? Math.max(0, (levelProgress.pointsNeededForNext ?? 0) - (levelProgress.pointsIntoLevel ?? 0))
+      : (gamProfile?.data?.nextLevelPoints ?? 0);
+  const pointsToNext = normalizeHomeWholeNumber(pointsRemainingToNext, 0, 0);
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
 
