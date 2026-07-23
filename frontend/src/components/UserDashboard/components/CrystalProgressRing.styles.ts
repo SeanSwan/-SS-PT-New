@@ -1,26 +1,38 @@
 /**
  * FILE: CrystalProgressRing.styles.ts
- * PURPOSE: Styled surface for the client-home crystal level-ring signature.
- * MOTION:  §8 two-speed. The fringe facet brightens once on mount — a Response-
- *          tier SNAP opacity pulse (the "momentum beat"), NOT an ambient loop
- *          (dashboards stay calm — motion.md §4/§5). Motion is CSS-only, so the
- *          CSS @media (prefers-reduced-motion) gate is the complete reduced-
- *          motion gate (no JS motion path to also gate — §3 satisfied).
+ * PURPOSE: The single styled wrapper for the level-indexed Crystal Ring engine.
+ * KIMI K3 MANDATES: one styled component; ALL dynamics arrive as CSS custom
+ *   properties written by the engine (--ring-loop / --ring-glow / --ring-ampl /
+ *   --ring-scrim); keyframes are STATIC, defined once here (no runtime keyframe
+ *   generation → no style churn across 1000 levels). ONE master clock rotates
+ *   the electricity group; escalation deepens via the vars, not new animators.
+ *   Reduced-motion + Still mode collapse to the engine's t=0 frame.
  */
 
 import styled, { css, keyframes } from 'styled-components';
 
-/* One-shot fringe brighten: 0.55 → 0.85 → 0.7 alpha, SNAP. Opacity only. */
-const fringeBeat = keyframes`
-  0%   { opacity: 0.55; }
-  55%  { opacity: 0.85; }
-  100% { opacity: 0.7; }
+/* THE master clock — the only ambient animator. Rotates the filament group so
+   the electricity chases the band. Compositor-safe (transform only). */
+const orbit = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 `;
 
-/* Rule 43: interpolated keyframe fragment composed into a styled component
-   MUST use the css`` helper (bare string toStrings the keyframe → mount crash). */
-const fringeMotion = css`
-  animation: ${fringeBeat} var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)) 1 both;
+/* Slow luminous breath on the fill glow — phase-locked feel via the same loop
+   period. Opacity only. Sacred = slow. */
+const breathe = keyframes`
+  0%, 100% { opacity: calc(0.7 + var(--ring-ampl, 1) * 0.0); }
+  50%      { opacity: calc(0.7 + var(--ring-ampl, 1) * 0.3); }
+`;
+
+/* Rule 43: interpolated keyframe fragments composed into the styled component
+   MUST use css`` (a bare string toStrings the keyframe → mount crash #12). */
+const arcMotion = css`
+  animation: ${orbit} var(--ring-loop, 14000ms) linear infinite;
+`;
+const breatheMotion = css`
+  /* period ~half the orbit so the breath reads calm against the sweep */
+  animation: ${breathe} calc(var(--ring-loop, 14000ms) / 2) ease-in-out infinite;
 `;
 
 export const RingWrap = styled.div`
@@ -28,32 +40,56 @@ export const RingWrap = styled.div`
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
+  isolation: isolate; /* contain the glow blend to this component */
 
   svg {
     display: block;
-    transform: rotate(0deg); /* stacking-context anchor for the centered label */
   }
 
-  .ring-fringe {
-    opacity: 0.7;
-    ${fringeMotion}
+  /* Electricity — the ONE ambient loop. transform-origin center; the group
+     spins as a rigid body (static path geometry inside). */
+  .ring-arc-group {
+    transform-origin: 50% 50%;
+    ${arcMotion}
+    will-change: transform;
   }
 
+  /* Progress fill carries the era spectrum + a glow whose strength is the
+     engine's --ring-glow; the glow gently breathes on the master clock. */
   .ring-fill {
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ice-wing, #60c0f0) 45%, transparent));
+    filter: drop-shadow(0 0 calc(6px + var(--ring-glow, 0.5) * 10px)
+      color-mix(in srgb, var(--ice-wing, #60c0f0) calc(var(--ring-glow, 0.5) * 70%), transparent));
+    ${breatheMotion}
   }
 
-  /* §3 CSS reduced-motion gate — the fringe holds at its static end state,
-     the fill draws instantly (the component's JS gate kills the JS side). */
-  @media (prefers-reduced-motion: reduce) {
-    .ring-fringe {
-      animation: none;
-      opacity: 0.6;
-    }
-    .ring-fill {
-      transition: none;
-    }
+  /* Ultimate ring (level 1000): a second, gold-weighted glow ring. Still one
+     clock — same loop period, no new animator, just a richer static filter. */
+  &[data-ultimate='true'] .ring-fill {
+    filter:
+      drop-shadow(0 0 16px color-mix(in srgb, var(--gilded-fern, #c6a84b) 70%, transparent))
+      drop-shadow(0 0 26px color-mix(in srgb, var(--ice-wing, #60c0f0) 55%, transparent));
   }
+
+  /* §3 CSS reduced-motion gate — collapse to the t=0 frame: no orbit, no
+     breath, glow held static. (No JS motion path to also gate — mandate 6.) */
+  @media (prefers-reduced-motion: reduce) {
+    .ring-arc-group { animation: none; }
+    .ring-fill { animation: none; }
+  }
+`;
+
+/* Numeral sanctuary — an obsidian radial scrim behind the number. Its opacity
+   is the engine's --ring-scrim, which grows WITH the glow so the level number
+   holds ≥4.5:1 no matter how bright the era gets (Kimi mandate 3). */
+export const RingScrim = styled.div`
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--obsidian-black, #0a0a0f) calc(var(--ring-scrim, 0.6) * 100%), transparent) 55%,
+    transparent 78%);
+  pointer-events: none;
+  z-index: 1;
 `;
 
 export const RingCenter = styled.div`
@@ -62,15 +98,16 @@ export const RingCenter = styled.div`
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 1px;
+  gap: 2px;
   pointer-events: none;
+  z-index: 2;
 `;
 
-export const RingLevelLabel = styled.span`
+export const RingEraLabel = styled.span`
   font-family: 'Sora', system-ui, sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--client-teal, var(--ice-wing, #60c0f0));
 `;
@@ -81,4 +118,5 @@ export const RingLevelValue = styled.span`
   font-weight: 800;
   line-height: 1;
   color: var(--client-text, #e0ecf4);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--obsidian-black, #0a0a0f) 70%, transparent);
 `;
