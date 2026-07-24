@@ -62,14 +62,17 @@ export const observeCartAdd = async ({ storefrontItem, chargedPrice, actor } = {
     // Kill switch: ops can silence shadow observation entirely without a code change.
     if (!flags.priceShadowObserve) return;
 
-    // Resolve against the known S1 shadow floor so wouldHaveClamped is genuinely observed.
-    // `enforce` mirrors the flag (default false) — in S1 the resolved price is discarded either way.
+    // S1 is OBSERVE-ONLY. Always resolve with enforce=false — this path only logs what the floor
+    // WOULD do; it never clamps or applies a price to the cart (the cart already persisted its own
+    // price above). Even if `priceFloorEnforce` is set true early, S1 must not pretend to enforce
+    // here: enforcement is S2's job, wired at the cart's own price path, not in the observer.
+    // Resolving in observe mode also keeps the logged `source` honest ('shadow'), never 'floor_clamp'.
     const resolved = resolvePrice({
       storeFrontItem: storefrontItem,
       activeSpecials: [],
       floorConfig: { floor: S1_SHADOW_FLOOR },
       now: new Date(),
-      enforce: flags.priceFloorEnforce,
+      enforce: false,
     });
 
     // newPrice is NOT NULL in the model. Prefer the resolver's price, fall back to the charged

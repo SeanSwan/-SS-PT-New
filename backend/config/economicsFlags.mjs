@@ -8,10 +8,13 @@
  *
  * Defaults are the SAFE (observe-only) values. Each flag is overridable via an env var
  * so ops can flip enforcement on a deployed service without a code change:
- *   ECON_PRICE_FLOOR_ENFORCE=true   → S2 floor clamps carts (default: shadow-log only)
+ *   ECON_PRICE_FLOOR_ENFORCE=true   → (S2, NOT WIRED YET) will clamp carts to the floor. In S1 this
+ *                                     flag is DECLARED but has NO enforcement effect — the S1 shadow
+ *                                     observer always resolves in observe-only mode. S2 wires the
+ *                                     clamp at the cart's own price path. Default: false.
  *   ECON_PRICE_SHADOW_OBSERVE=false → S1 stops writing shadow observations (default: observing ON)
- *   ECON_FRAUD_SHADOW=false         → S8 detector leaves shadow mode (default: shadow ON)
- *   ECON_THROTTLE_ENFORCE=true      → S11 auto-throttle acts (default: metering only)
+ *   ECON_FRAUD_SHADOW=false         → (S8) detector leaves shadow mode (default: shadow ON)
+ *   ECON_THROTTLE_ENFORCE=true      → (S11) auto-throttle acts (default: metering only)
  *
  * These flags gate MONEY + AVAILABILITY behavior. Flipping any of them is a high-stakes
  * action — the change belongs in a reviewed deploy, not an ad-hoc runtime toggle.
@@ -23,13 +26,19 @@
  * @module config/economicsFlags
  */
 
-/** Parse a boolean-ish env var. Only the literal string 'true' (case-insensitive, trimmed)
- * flips a flag; anything else — unset, 'false', '1', '0', garbage — keeps the safe default.
- * Fail-safe by construction: a typo in the env var never accidentally enables enforcement. */
+/** Parse a boolean-ish env var. ONLY the literal 'true'/'false' (case-insensitive, trimmed) are
+ * recognized; anything else — unset, '1', '0', 'ture', garbage — keeps the caller's `fallback`.
+ * Fail-safe by construction in BOTH directions: a typo can neither accidentally ENABLE enforcement
+ * (default-false flags stay false) NOR accidentally DISABLE a safety flag (default-true flags like
+ * fraudShadow/priceShadowObserve stay true). Returning false for unrecognized input would silently
+ * take a default-true safety flag out of shadow mode on a typo — the exact inversion this avoids. */
 const envBool = (name, fallback) => {
   const raw = process.env[name];
   if (raw === undefined || raw === null) return fallback;
-  return String(raw).trim().toLowerCase() === 'true';
+  const normalized = String(raw).trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  return fallback;
 };
 
 /**
@@ -39,8 +48,9 @@ const envBool = (name, fallback) => {
  * @returns {{ priceFloorEnforce: boolean, priceShadowObserve: boolean, fraudShadow: boolean, throttleEnforce: boolean }}
  */
 export const getEconomicsFlags = () => ({
-  // S2: when true, the price resolver CLAMPS carts to the floor. When false (default),
-  // the resolver still RUNS but its result is discarded and only `wouldHaveClamped` is logged.
+  // S2 (NOT WIRED IN S1): will make the cart CLAMP to the floor at its own price path. In S1 this
+  // flag has no enforcement effect — the shadow observer ignores it and always resolves observe-only.
+  // Declared now so S2 can flip it without a shape change; recorded in shadow rows as context only.
   priceFloorEnforce: envBool('ECON_PRICE_FLOOR_ENFORCE', false),
   // S1: when true (default), the cart choke point writes a shadow PriceChangeLog observation per
   // add. Kill switch — set ECON_PRICE_SHADOW_OBSERVE=false to silence the observation entirely
