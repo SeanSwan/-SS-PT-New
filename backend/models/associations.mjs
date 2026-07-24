@@ -1556,6 +1556,8 @@ const setupAssociations = async () => {
       WaiverConsentFlags,
       PendingWaiverMatch,
       TrainerApplication,
+      // Trainer-Economics (SWA-62)
+      PriceChangeLog,
       AiConsentLog,
 
       // Video Catalog Models
