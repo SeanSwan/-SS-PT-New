@@ -26,6 +26,10 @@ import {
   safeFindOrCreateActiveCart,
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
+// Trainer-Economics (SWA-62) S1 — SHADOW price instrumentation. The observation logic lives in
+// its own service; the cart just calls it. The service is fully guarded and can NEVER affect
+// the cart's real behavior (zero behavior change).
+import { observeCartAdd } from '../services/economics/shadowObserver.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
 
 const router = express.Router();
@@ -488,13 +492,22 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
 
     // Update cart totals in database using helper
     const totalsResult = await updateCartTotals(cart.id);
-    
+
     if (!totalsResult.success) {
       logger.warn('Cart ADD: Failed to persist totals, continuing with calculated values', {
         cartId: cart.id,
         error: totalsResult.error
       });
     }
+
+    // Trainer-Economics (SWA-62) S1 — SHADOW price observation. Best-effort, fully guarded,
+    // never affects the cart. Awaited so the row lands before the response, but the service
+    // swallows all errors internally so this await can neither throw nor change behavior.
+    await observeCartAdd({
+      storefrontItem: snapshot.storefrontItem,
+      chargedPrice: snapshot.price,
+      actor: { userId: req.authUserId, role: req.user?.role },
+    });
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);

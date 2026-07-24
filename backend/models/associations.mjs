@@ -148,6 +148,9 @@ const setupAssociations = async () => {
     const AiConsentLogModule = await import('./AiConsentLog.mjs');
     const TrainerApplicationModule = await import('./TrainerApplication.mjs');
 
+    // Trainer-Economics Models (SWA-62) — append-only pricing audit trail (S1)
+    const PriceChangeLogModule = await import('./PriceChangeLog.mjs');
+
     // Movement Analysis Models (Phase 13)
     const MovementAnalysisModule = await import('./MovementAnalysis.mjs');
     const PendingMovementAnalysisMatchModule = await import('./PendingMovementAnalysisMatch.mjs');
@@ -367,6 +370,9 @@ const setupAssociations = async () => {
     const AiConsentLog = AiConsentLogModule.default;
     const TrainerApplication = TrainerApplicationModule.default;
 
+    // Trainer-Economics Models (SWA-62)
+    const PriceChangeLog = PriceChangeLogModule.default;
+
     // Movement Analysis Models (Phase 13)
     const MovementAnalysis = MovementAnalysisModule.default;
     const PendingMovementAnalysisMatch = PendingMovementAnalysisMatchModule.default;
@@ -528,6 +534,8 @@ const setupAssociations = async () => {
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
         // Trainer Onboarding
         TrainerApplication,
+        // Trainer-Economics (SWA-62)
+        PriceChangeLog,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
@@ -1167,6 +1175,11 @@ const setupAssociations = async () => {
     User.hasMany(TrainerApplication, { foreignKey: 'userId', as: 'trainerApplications' });
     TrainerApplication.belongsTo(User, { foreignKey: 'userId', as: 'applicant' });
     TrainerApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
+
+    // Trainer-Economics (SWA-62) — append-only pricing audit trail (S1)
+    StorefrontItem.hasMany(PriceChangeLog, { foreignKey: 'storeFrontItemId', as: 'priceChangeLogs' });
+    PriceChangeLog.belongsTo(StorefrontItem, { foreignKey: 'storeFrontItemId', as: 'storefrontItem' });
+    PriceChangeLog.belongsTo(User, { foreignKey: 'changedByUserId', as: 'changedBy' });
 
     User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
     AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
