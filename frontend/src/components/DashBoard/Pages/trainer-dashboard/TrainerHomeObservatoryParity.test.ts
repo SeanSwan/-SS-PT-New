@@ -6,28 +6,36 @@ const here = __dirname;
 const source = (file: string) => readFileSync(resolve(here, file), 'utf8');
 
 describe('Trainer home observatory parity', () => {
-  it('uses a client-home observatory composition with trainer-specific modules', () => {
+  // Rewritten 2026-07-23 (Kimi K3): assert BEHAVIOR, not anatomy. The trainer
+  // home was de-duplicated — the observatory hero (stats/actions/lens rail) was
+  // a client-dashboard copy-paste; it is now a slim identity bar, metrics own
+  // the KPI strip alone, and interventions are promoted to the primary column.
+  it('composes a slim-identity trainer home: one metrics owner, promoted interventions, no duplicate hero', () => {
     const componentSource = source('TrainerHomeTab.tsx');
     const layoutSource = source('TrainerHomeTab.layoutStyles.ts');
     const heroSource = source('TrainerHomeObservatoryHero.tsx');
-    const heroStylesSource = source('TrainerHomeObservatoryHero.styles.ts');
 
+    // still a real composition of the trainer modules
     expect(componentSource).toContain('TrainerHomeObservatoryHero');
-    expect(componentSource).toContain('TrainerHomeObservatoryWidgets');
-    expect(componentSource).toContain('TRAINER_OBSERVATORY_LENSES');
+    expect(componentSource).toContain('TrainerHomeNextActionCard');
+    expect(componentSource).toContain('KpiStrip'); // sole metrics owner
+    expect(componentSource).toContain('TrainerInterventionQueue'); // promoted radar
     expect(componentSource).toContain('TrainerHomePageShell');
     expect(componentSource).toContain('TrainerHomePrimaryColumn');
-    expect(componentSource).toContain('TrainerHomeSideColumn');
     expect(componentSource).not.toContain('PageWrap');
 
-    expect(layoutSource).toContain('TrainerHomePageShell');
-    expect(layoutSource).toContain('max-width: 1720px');
-    expect(layoutSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr)');
-    expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
-    expect(heroSource).toContain('<HeroGrid>');
-    expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
-    expect(heroStylesSource).toContain('grid-template-columns: minmax(0, 0.88fr) minmax(0, 0.55fr)');
-    expect(heroStylesSource).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
+    // de-dup: the background-theme picker was evicted from the page flow
+    expect(componentSource).not.toContain('DashboardBackgroundSettingsPanel');
+
+    // slim identity hero — no duplicate stats / actions / lens rail
+    expect(heroSource).toContain('aria-label="Trainer identity"');
+    expect(heroSource).toContain('IdentityBar');
+    expect(heroSource).not.toContain('<HeroActions');
+    expect(heroSource).not.toContain('<LensRail');
+    expect(heroSource).not.toContain('<HeroStats');
+
+    // 4K wide law: cap ~2240 (not the old 1720 island)
+    expect(layoutSource).toContain('max-width: 2240px');
   });
 
   it('declares trainer lenses and mobile dock actions instead of reusing client copy', () => {

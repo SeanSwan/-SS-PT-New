@@ -10,10 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, Brain, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
-import {
-  DashboardBackgroundSettingsPanel,
-  DashboardBackgroundSurface,
-} from '../../shared/DashboardBackgroundStudio';
+import { DashboardBackgroundSurface } from '../../shared/DashboardBackgroundStudio';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
@@ -28,7 +25,6 @@ import TrainerMyBookCard from './TrainerMyBookCard';
 import TrainerHomeObservatoryHero from './TrainerHomeObservatoryHero';
 import TrainerHomeObservatoryWidgets from './TrainerHomeObservatoryWidgets';
 import TrainerInterventionQueue from './TrainerInterventionQueue';
-import { TRAINER_OBSERVATORY_LENSES } from './TrainerHomeObservatoryData';
 import {
   buildTrainerHomeCoachPath,
   TRAINER_HOME_QUICK_ACTIONS,
@@ -100,7 +96,6 @@ const TrainerHomeTab: React.FC = () => {
     completionRate: stats.completionRate,
     hasNextActionableSession: Boolean(nextActionableSession),
   }), [nextActionableSession, stats.clientsToday, stats.completionRate, stats.sessionsToday]);
-  const nextClientName = nextActionableSession ? getClientName(nextActionableSession) : null;
 
   const kpiData = [
     { value: loading ? '-' : stats.clientsToday, label: 'Clients Today', Icon: Users, color: KPI_COLORS[0] },
@@ -119,13 +114,7 @@ const TrainerHomeTab: React.FC = () => {
         level={level}
         loading={loading}
         stats={stats}
-        nextClientName={nextClientName}
-        coachPath={trainerHomeCoachPath}
-        lenses={TRAINER_OBSERVATORY_LENSES}
-        onNavigate={navigate}
       />
-
-      <DashboardBackgroundSettingsPanel scopeLabel="Trainer" />
 
       <TrainerHomeMainGrid>
         <TrainerHomePrimaryColumn>
@@ -146,6 +135,10 @@ const TrainerHomeTab: React.FC = () => {
               </KpiCard>
             ))}
           </KpiStrip>
+
+          {/* Promoted from the rail (Kimi K3): the critical-compliance radar is
+              the trainer's real signature value, not a rail afterthought. */}
+          <TrainerInterventionQueue />
 
           <SessionsCard>
             <SessionsHeading>Today&apos;s Sessions</SessionsHeading>
@@ -224,7 +217,6 @@ const TrainerHomeTab: React.FC = () => {
 
         <TrainerHomeSideColumn>
           <TrainerMyBookCard />
-          <TrainerInterventionQueue />
           <TrainerHomeObservatoryWidgets
             stats={stats}
             loading={loading}

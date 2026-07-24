@@ -48,41 +48,40 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(heroSource).toContain('<HeroHandle>{handleLabel}</HeroHandle>');
   });
 
-  it('keeps the trainer hero action rail and lens rail mobile-safe', () => {
-    expect(heroStylesSource).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
-    expect(heroStylesSource).toContain('@media (max-width: 860px)');
-    expect(heroStylesSource).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
-    expect(heroStylesSource).toContain('overflow-x: auto');
-    expect(heroStylesSource).toContain('flex: 0 0 13rem');
+  // Rewritten 2026-07-23 (Kimi K3): the hero action rail and lens rail were
+  // removed in the de-dup. The slim identity bar owns only min-width:0 tracks so
+  // the avatar + level meta never overflow the clipped content area.
+  it('keeps the slim identity hero overflow-safe on every width', () => {
+    expect(heroStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, auto)');
+    expect(heroStylesSource).toContain('@media (max-width: 720px)');
+    expect(heroStylesSource).toContain('overflow-wrap: anywhere'); // long trainer name cannot push wide
+    expect(heroStylesSource).toContain('text-overflow: ellipsis'); // long @handle clips, never overflows
+    expect(heroStylesSource).not.toContain('LensRail');
+    expect(heroStylesSource).not.toContain('HeroActions');
   });
 
-  it('uses the client-observatory hero anatomy instead of the old narrow dock stack', () => {
+  // Rewritten 2026-07-23 (Kimi K3): assert BEHAVIOR not anatomy. Slim identity
+  // hero + de-dup; the observatory hero's stats/actions/lens rail were removed.
+  it('uses a slim identity hero and a 4K-correct shell (no duplicate hero blocks)', () => {
     expect(componentSource).toContain('TrainerHomeObservatoryHero');
-    expect(componentSource).toContain('TrainerHomeObservatoryWidgets');
+    expect(componentSource).toContain('TrainerHomeNextActionCard');
     expect(componentSource).toContain('TrainerHomePageShell');
     expect(componentSource).toContain('TrainerHomePrimaryColumn');
-    expect(componentSource).toContain('TrainerHomeSideColumn');
     expect(componentSource).not.toContain('PageWrap');
-    expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
-    expect(heroSource).toContain('<HeroGrid>');
-    expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
+    expect(heroSource).toContain('aria-label="Trainer identity"');
+    expect(heroSource).toContain('IdentityBar');
     expect(heroSource).not.toContain('SwanCoachDockTrainer');
-    expect(layoutStylesSource).toContain('max-width: 1720px');
-    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr)');
+    expect(heroSource).not.toContain('HeroActions');
+    expect(heroSource).not.toContain('LensRail');
+    expect(layoutStylesSource).toContain('max-width: 2240px'); // wide law
     expect(stylesSource).not.toContain('max-width: 860px');
   });
 
-  it('declares trainer-specific observatory lenses and phone dock actions', () => {
-    expect(componentSource).toContain('TRAINER_OBSERVATORY_LENSES');
-    expect(heroSource).toContain('Trainer observatory lenses');
+  // Rewritten 2026-07-23: the hero lens rail was removed (nav belongs in the
+  // shell). The phone dock still surfaces the trainer's quick destinations.
+  it('declares trainer-specific phone dock actions', () => {
     expect(widgetsSource).toContain('TRAINER_OBSERVATORY_MOBILE_DOCK');
     expect(widgetsStylesSource).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
-    expect(dataSource).toContain("label: 'Today'");
-    expect(dataSource).toContain("label: 'Clients'");
-    expect(dataSource).toContain("label: 'Progress'");
-    expect(dataSource).toContain("label: 'Schedule'");
-    expect(dataSource).toContain("label: 'Build Plan'");
-    expect(dataSource).toContain("label: 'Coach'");
     expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');
   });
 
@@ -131,9 +130,11 @@ describe('TrainerHomeTab responsive contract', () => {
     });
   });
 
-  it('keeps trainer lens controls as explicit non-submit buttons', () => {
-    expect(heroSource).toContain('<LensButton');
-    expect(heroSource).toContain('type="button"');
+  // Rewritten 2026-07-23: lens rail removed; the phone dock buttons remain the
+  // explicit non-submit controls.
+  it('keeps trainer phone-dock controls as explicit non-submit buttons', () => {
+    expect(widgetsSource).toContain('MobileDockButton');
+    expect(widgetsSource).toContain('type="button"');
   });
 
   it('keeps the mounted trainer home component free of inline styles', () => {
