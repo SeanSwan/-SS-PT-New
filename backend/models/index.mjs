@@ -195,6 +195,9 @@ export const getPendingWaiverMatch = () => getModel('PendingWaiverMatch');
 export const getTrainerApplication = () => getModel('TrainerApplication');
 export const getAiConsentLog = () => getModel('AiConsentLog');
 
+// Trainer-Economics Models (SWA-62)
+export const getPriceChangeLog = () => getModel('PriceChangeLog');
+
 // Body Measurement & Milestone Models (Phase 11)
 export const getBodyMeasurement = () => getModel('BodyMeasurement');
 export const getMeasurementMilestone = () => getModel('MeasurementMilestone');
