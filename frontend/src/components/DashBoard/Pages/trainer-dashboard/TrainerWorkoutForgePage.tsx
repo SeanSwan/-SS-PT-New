@@ -12,7 +12,8 @@
  * - WorkoutCopilotPanel for AI generation and approval flow.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { resolveAudienceFromPath } from '../../workspaces/clients-team/resolveAudienceFromPath';
 import { toast } from 'react-toastify';
 import { Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -41,6 +42,10 @@ import {
 
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios, user } = useAuth();
+  const location = useLocation();
+  // Build Plan is mounted for admin AND trainer; every handoff out of this page
+  // must stay inside the dashboard the actor is already in.
+  const forgeAudience = resolveAudienceFromPath(location.pathname);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clients = useTrainerForgeClients(authAxios, user);
@@ -189,13 +194,13 @@ const TrainerWorkoutForgePage: React.FC = () => {
 
   const handleLogSavedPlanToday = useCallback(() => {
     if (!lastSavedPlan) return;
-    navigate(buildTrainerForgeLoggerPath(lastSavedPlan.clientId));
-  }, [lastSavedPlan, navigate]);
+    navigate(buildTrainerForgeLoggerPath(lastSavedPlan.clientId, forgeAudience));
+  }, [forgeAudience, lastSavedPlan, navigate]);
 
   const handleOpenSavedPlanInPlanner = useCallback(() => {
     if (!lastSavedPlan) return;
-    navigate(buildTrainerForgePlannerPath(lastSavedPlan.clientId));
-  }, [lastSavedPlan, navigate]);
+    navigate(buildTrainerForgePlannerPath(lastSavedPlan.clientId, forgeAudience));
+  }, [forgeAudience, lastSavedPlan, navigate]);
 
   if (!clientId) {
     return (

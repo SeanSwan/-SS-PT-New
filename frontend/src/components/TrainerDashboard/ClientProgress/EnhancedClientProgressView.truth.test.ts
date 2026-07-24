@@ -68,8 +68,24 @@ describe('EnhancedClientProgressView truth locks', () => {
     expect(SOURCE).toContain('if (!clientId)');
     expect(SOURCE).toContain('MissingClientProgressState');
     expect(STATE_PANEL_SOURCE).toContain('Select a client first');
-    expect(SOURCE).toContain("navigate('/dashboard/trainer/clients')");
+    expect(SOURCE).toContain('navigate(clientHubBase)');
     expect(SOURCE).not.toContain("id: clientId, firstName: 'Loading'");
+  });
+
+  /**
+   * Superseded assertion (2026-07-24): this file previously locked the literal
+   * `navigate('/dashboard/trainer/clients')`. That hardcode was safe only while
+   * the view was trainer-only. Now that the admin mounts the same capability,
+   * the literal would demote an admin to the trainer shell on "back to clients"
+   * (activeRole is URL-derived — UniversalDashboardLayout.tsx:77). The lock is
+   * inverted: the hardcode is now forbidden, and the audience-resolved base is
+   * required.
+   */
+  it('resolves the back-to-clients target by audience instead of hardcoding the trainer hub', () => {
+    expect(SOURCE).not.toContain("navigate('/dashboard/trainer/clients')");
+    expect(SOURCE).toContain('resolveAudienceFromPath');
+    expect(SOURCE).toContain('getClientHubAudienceConfig');
+    expect(SOURCE).toContain('clientManagementBase');
   });
 
   it('shows an explicit loading state before mounting the progress shell', () => {

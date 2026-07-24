@@ -11,6 +11,7 @@ const {
   mockToastError,
   mockToastInfo,
   mockUser,
+  mockLocationRef,
 } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
@@ -22,6 +23,10 @@ const {
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
   mockUser: { id: 9001, role: 'trainer' },
+  // Build Plan is mounted for admin AND trainer (superset closure 2026-07-24).
+  // The page resolves its handoff targets from the CURRENT path, so the tests
+  // must be able to stand the page up on either dashboard.
+  mockLocationRef: { current: { pathname: '/dashboard/trainer/build-plan', search: '' } },
 }));
 
 vi.mock('../../../../context/AuthContext', () => ({
@@ -39,6 +44,7 @@ vi.mock('react-toastify', () => ({
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
   useSearchParams: () => [mockSearchParamsRef.current],
+  useLocation: () => mockLocationRef.current,
 }));
 
 vi.mock('../admin-clients/components/WorkoutCopilotPanel', () => ({
@@ -90,6 +96,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
     mockUser.id = 9001;
     mockUser.role = 'trainer';
     mockSearchParamsRef.current = new URLSearchParams();
+    mockLocationRef.current = { pathname: '/dashboard/trainer/build-plan', search: '' };
     mockAuthAxios.get.mockResolvedValue(TRAINER_ASSIGNMENTS_RESPONSE);
     mockAuthAxios.post.mockResolvedValue({ data: { success: true, plan: { id: 'plan-1' } } });
   });
@@ -219,5 +226,43 @@ describe('TrainerWorkoutForgePage workflow', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       '/dashboard/trainer/workout-planner?clientId=424242&source=build-plan',
     );
+  });
+
+  /**
+   * Superset closure regression (2026-07-24).
+   * Build Plan is now mounted for the admin as well. `activeRole` is derived
+   * from the URL (UniversalDashboardLayout.tsx:77), so a hardcoded
+   * `/dashboard/trainer/*` handoff would not merely navigate — it would swap
+   * the admin's entire shell (routes, sidebar, theme) into the trainer
+   * dashboard. That is exactly the "it turns me into a trainer" defect.
+   * An admin driving Build Plan must never leave /dashboard/admin/*.
+   */
+  it('keeps an admin inside the admin dashboard when handing off from Build Plan', async () => {
+    mockUser.id = 1;
+    mockUser.role = 'admin';
+    mockLocationRef.current = { pathname: '/dashboard/admin/build-plan', search: '' };
+    // Admins load the roster through the admin endpoint, not trainer assignments.
+    mockAuthAxios.get.mockResolvedValue(CLIENTS_RESPONSE);
+
+    const user = userEvent.setup();
+    render(<TrainerWorkoutForgePage />);
+
+    await user.selectOptions(await screen.findByLabelText(/select a client/i), '424242');
+    await user.type(screen.getByLabelText(/^title$/i), 'Owner Session');
+    await user.click(screen.getByRole('button', { name: /add exercise/i }));
+    await user.type(screen.getByLabelText(/exercise 1 name/i), 'Cable Row');
+    await user.click(screen.getByRole('button', { name: /save draft plan/i }));
+
+    await screen.findByRole('region', { name: /plan saved next actions/i });
+
+    await user.click(screen.getByRole('button', { name: /log today/i }));
+    await user.click(screen.getByRole('button', { name: /open workout planner/i }));
+
+    const destinations = mockNavigate.mock.calls.map(([target]) => target as string);
+    expect(destinations).toEqual([
+      '/dashboard/admin/log-workout?clientId=424242&loadPlan=today&source=build-plan',
+      '/dashboard/admin/workout-planner?clientId=424242&source=build-plan',
+    ]);
+    expect(destinations.some((target) => target.includes('/dashboard/trainer/'))).toBe(false);
   });
 });

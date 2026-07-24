@@ -161,6 +161,21 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events - Pull-ups, Push-ups, Sprint' },
       { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' },
       { path: '/waivers', component: AdminWaiversManagerPage, title: 'Waiver Management', description: 'Waiver records, match approval, revocation, and manual linking' },
+
+      // ── SUPERSET CLOSURE (2026-07-24) ──────────────────────────────
+      // Admin is a strict superset of trainer. These capabilities existed ONLY
+      // under /dashboard/trainer/*, which forced the owner onto a trainer URL
+      // to use them — and activeRole is URL-derived (UniversalDashboardLayout
+      // .tsx:77), so doing so silently swapped the whole shell (routes, sidebar,
+      // theme) into the trainer dashboard. That is the mechanism behind
+      // "it turns me into a trainer." Mounting them here removes the need to
+      // ever leave the admin dashboard. Enforced by dashboardSupersetInvariant.test.ts.
+      { path: '/build-plan', component: TrainerWorkoutForgePage, title: CANONICAL_SURFACES.buildPlan.name, description: 'Draft a client workout with the Swan Coach copilot' },
+      { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
+      { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
+      { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
+      { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
+      { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
     ],
     defaultPath: '/master-schedule',
   },
