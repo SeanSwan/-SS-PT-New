@@ -450,14 +450,16 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
-    // Trainer-Economics (SWA-62) S1 — SHADOW price observation. Best-effort, fully guarded,
-    // never affects the cart. Awaited so the row lands before the response, but the service
-    // swallows all errors internally so this await can neither throw nor change behavior.
-    await observeCartAdd({
+    // Trainer-Economics (SWA-62) S1 — SHADOW price observation. FIRE-AND-FORGET: intentionally NOT
+    // awaited so a slow/blocked audit-table write can add ZERO latency to the cart response (Codex
+    // S1 review F3 — awaiting it meant a degraded price_change_logs table could slow every cart add).
+    // The service is fully self-guarded and never throws; the trailing .catch is a belt-and-suspenders
+    // guard so an unexpected async rejection can never surface as an unhandledRejection.
+    void observeCartAdd({
       storefrontItem: snapshot.storefrontItem,
       chargedPrice: snapshot.price,
       actor: { userId: req.authUserId, role: req.user?.role },
-    });
+    }).catch(() => {});
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
