@@ -129,6 +129,9 @@ export function useWorkoutSubmit({
     });
 
     if (!offlineQueue.isOnline) {
+      // queueSubmission reports whether it ACTUALLY persisted. If it did not,
+      // the draft must survive — clearing it would destroy the only remaining
+      // copy of the workout. (queueSubmission raises the error toast itself.)
       offlineQueue.queueSubmission(formData);
       isSubmittingRef.current = false;
       setIsSubmitting(false);

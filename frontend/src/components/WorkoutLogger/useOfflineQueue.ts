@@ -10,17 +10,22 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { dailyWorkoutFormService } from '../../services/nasmApiService';
 import type { DailyWorkoutFormSubmitPayload } from '../../services/nasmApiService';
+import { recordCoachIntent } from '../../utils/coachIntentRecorder';
+import {
+  readQueue as storeReadQueue,
+  writeQueue as storeWriteQueue,
+  type QueueStorage,
+} from './offlineQueueStore';
+
+/** Intent name for a workout parked in the offline queue (C2 memory). */
+const OFFLINE_QUEUE_INTENT = 'OFFLINE_QUEUE_WORKOUT';
+/** Intent name for a queued workout that reached the server (C2 memory). */
+const OFFLINE_SYNC_INTENT = 'OFFLINE_SYNC_WORKOUT';
 
 interface QueuedWorkout {
   id: string;
   timestamp: string;
   formData: DailyWorkoutFormSubmitPayload;
-}
-
-const QUEUE_KEY_PREFIX = 'ss-workout-queue';
-
-function getQueueKey(clientId: number): string {
-  return `${QUEUE_KEY_PREFIX}-${clientId}`;
 }
 
 let offlineQueueIdFallbackCounter = 0;
@@ -30,25 +35,23 @@ function createOfflineQueueId(): string {
   return `offline-local-${Date.now()}-${offlineQueueIdFallbackCounter}`;
 }
 
-function readQueue(clientId: number): QueuedWorkout[] {
-  try {
-    const raw = localStorage.getItem(getQueueKey(clientId));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+/**
+ * Persistence lives in offlineQueueStore.ts (pure + injectable) so the case that
+ * matters most — what happens when the write FAILS — is testable without a DOM.
+ * These thin wrappers bind it to the real localStorage.
+ */
+function storage(): QueueStorage | null {
+  return typeof localStorage !== 'undefined' ? localStorage : null;
 }
 
-function writeQueue(clientId: number, queue: QueuedWorkout[]): void {
-  try {
-    if (queue.length === 0) {
-      localStorage.removeItem(getQueueKey(clientId));
-    } else {
-      localStorage.setItem(getQueueKey(clientId), JSON.stringify(queue));
-    }
-  } catch {
-    // localStorage can be full or unavailable in private browsing.
-  }
+function readQueue(clientId: number): QueuedWorkout[] {
+  const s = storage();
+  return s ? storeReadQueue<DailyWorkoutFormSubmitPayload>(s, clientId) : [];
+}
+
+function writeQueue(clientId: number, queue: QueuedWorkout[]): boolean {
+  const s = storage();
+  return s ? storeWriteQueue(s, clientId, queue) : false;
 }
 
 export function useOfflineQueue(clientId: number) {
@@ -103,15 +106,31 @@ export function useOfflineQueue(clientId: number) {
       }
     }
 
-    writeQueue(clientId, failed);
-    setPendingCount(failed.length);
+    const rewritten = writeQueue(clientId, failed);
+    // Read back rather than trusting the in-memory array — if the rewrite
+    // failed, already-synced entries may still be on disk and would re-send.
+    setPendingCount(readQueue(clientId).length);
     isFlushing.current = false;
+
+    // Each synced workout is a real server write; record it so Coach's memory
+    // can distinguish "durably queued" from "actually landed".
+    for (let i = 0; i < synced; i++) {
+      recordCoachIntent(OFFLINE_SYNC_INTENT, { clientId }, true, true);
+    }
 
     if (synced > 0) {
       toast.success(`Synced ${synced} offline workout${synced > 1 ? 's' : ''}`);
     }
     if (failed.length > 0) {
       toast.warning(`${failed.length} workout${failed.length > 1 ? 's' : ''} still pending`);
+    }
+    if (!rewritten) {
+      // The queue could not be rewritten, so synced entries may not have been
+      // cleared. Say so — a duplicate re-send is recoverable, a silent one is not.
+      toast.error(
+        'Offline queue could not be updated on this device. Some workouts may re-send.',
+        { autoClose: false },
+      );
     }
 
     return synced;
@@ -123,7 +142,13 @@ export function useOfflineQueue(clientId: number) {
     }
   }, [flush, isOnline, pendingCount]);
 
-  const queueSubmission = useCallback((formData: QueuedWorkout['formData']): void => {
+  /**
+   * Queue a submission for later sync.
+   *
+   * Returns whether it was ACTUALLY persisted. Callers must not treat a queued
+   * workout as saved without checking — see writeQueue for why.
+   */
+  const queueSubmission = useCallback((formData: QueuedWorkout['formData']): boolean => {
     const entry: QueuedWorkout = {
       id: createOfflineQueueId(),
       timestamp: new Date().toISOString(),
@@ -132,10 +157,31 @@ export function useOfflineQueue(clientId: number) {
 
     const queue = readQueue(clientId);
     queue.push(entry);
-    writeQueue(clientId, queue);
-    setPendingCount(queue.length);
+    const persisted = writeQueue(clientId, queue);
 
-    toast.info('Workout saved offline. Will sync when connected.');
+    // Count what is really on disk, not what we hoped to put there.
+    setPendingCount(readQueue(clientId).length);
+
+    // Record against the Coach memory so a queued-but-unsynced workout is never
+    // believed to have landed. `applied` here means "durably queued", not
+    // "written to the server" — the server outcome reconciles on flush.
+    recordCoachIntent(
+      OFFLINE_QUEUE_INTENT,
+      { clientId, queuedId: entry.id },
+      true,
+      persisted,
+    );
+
+    if (persisted) {
+      toast.info('Workout saved offline. Will sync when connected.');
+    } else {
+      toast.error(
+        'Could not save this workout offline — device storage is full or blocked. '
+        + 'Keep this screen open and try again once you are back online.',
+        { autoClose: false },
+      );
+    }
+    return persisted;
   }, [clientId]);
 
   return {
