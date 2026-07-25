@@ -15,6 +15,10 @@ export interface ProgressChartPulse {
   detail: string;
   target?: string;
   tone: ProgressChartPulseTone;
+  /** Next-Milestone Gravity: how close the latest value is to the best (0..1). */
+  progressToNext?: number;
+  /** Formatted gap remaining to reach/beat the best (empty when already there). */
+  remainingLabel?: string;
 }
 
 interface ProgressChartPulseOptions {
@@ -70,6 +74,30 @@ const isBestValue = (latest: number, best: number, higherIsBetter: boolean): boo
   higherIsBetter ? latest >= best : latest <= best
 );
 
+// Next-Milestone Gravity: a direction-aware pull toward the personal best. Returns
+// progressToNext in 0..1 (1 = at/past the best) and the formatted remaining gap.
+const computeGravity = (
+  latestY: number,
+  bestY: number,
+  higherIsBetter: boolean,
+  unit: string,
+): Pick<ProgressChartPulse, 'progressToNext' | 'remainingLabel'> | null => {
+  if (!Number.isFinite(latestY) || !Number.isFinite(bestY)) return null;
+  const remainingRaw = higherIsBetter
+    ? Math.max(0, bestY - latestY)
+    : Math.max(0, latestY - bestY);
+  let progress: number;
+  if (higherIsBetter) {
+    progress = bestY > 0 ? latestY / bestY : latestY >= bestY ? 1 : 0;
+  } else {
+    progress = latestY > 0 ? bestY / latestY : latestY <= bestY ? 1 : 0;
+  }
+  return {
+    progressToNext: Math.max(0, Math.min(1, progress)),
+    remainingLabel: remainingRaw > 0 ? formatPulseValue(remainingRaw, unit) : '',
+  };
+};
+
 const resolveMomentumTone = <T extends ChartPoint>(
   latest: T,
   previous: T,
@@ -105,6 +133,7 @@ const buildMomentumPulse = <T extends ChartPoint>(
       ? `Protect the new high mark: ${bestValue}.`
       : `Next target: ${bestValue}.`,
     tone,
+    ...computeGravity(latest.y, best.y, higherIsBetter, unit),
   };
 };
 

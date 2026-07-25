@@ -12,6 +12,7 @@
 import React from 'react';
 import type { ProgressChartPulse } from './progressChartPulse';
 import type { ProgressChartFact } from './progressChartFacts';
+import NextMilestoneGravity from './NextMilestoneGravity';
 import {
   FactPill,
   FactRail,
@@ -47,6 +48,13 @@ const ProgressChartInsightBar: React.FC<ProgressChartInsightBarProps> = ({
             {pulse.detail}
             {pulse.target ? ` ${pulse.target}` : ''}
           </MomentumDetail>
+          {typeof pulse.progressToNext === 'number' && (
+            <NextMilestoneGravity
+              progressToNext={pulse.progressToNext}
+              remainingLabel={pulse.remainingLabel}
+              atPeak={pulse.tone === 'record'}
+            />
+          )}
         </MomentumStrip>
       )}
       {showFacts && (
