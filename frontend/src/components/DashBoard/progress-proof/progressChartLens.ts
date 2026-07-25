@@ -1,7 +1,7 @@
 /**
  * MODULE: progressChartLens
  * OWNER: Dashboard Progress / Client Hub
- * PURPOSE: Shared lens metadata for filtering the canonical 12 progress charts.
+ * PURPOSE: Shared lens metadata for filtering the canonical 15 progress charts.
  */
 
 import type { CanonicalChartId } from '../../../hooks/analytics/useClientProgressCharts.types';

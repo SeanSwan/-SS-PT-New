@@ -1,7 +1,7 @@
 /**
  * COMPONENT: CanonicalProgressChartsGrid
  * PARENT: ClientProgressDashboardPage
- * PURPOSE: Canonical 12-chart client progress grid from logged workout data.
+ * PURPOSE: Canonical 15-chart client progress grid from logged workout data.
  */
 
 import React, { useEffect, useState } from 'react';

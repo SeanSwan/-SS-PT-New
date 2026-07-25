@@ -38,7 +38,7 @@ const achievementPost: Post = {
 
 const milestonePost: Post = {
   id: 'post-2',
-  content: 'Progress proof level: Apex. 8/12 SwanStudios charts are populated from verified logged workouts. Next unlock: 4 charts to full proof. #ProgressProof #SwanProgress #SwanStudios',
+  content: 'Progress proof level: Apex. 8/15 SwanStudios charts are populated from verified logged workouts. Next unlock: 7 charts to full proof. #ProgressProof #SwanProgress #SwanStudios',
   type: 'milestone',
   createdAt: new Date().toISOString(),
   user: {
@@ -99,9 +99,9 @@ describe('PostCard feed display contract', () => {
 
     expect(screen.getByRole('group', { name: /apex progress proof milestone/i })).toBeInTheDocument();
     expect(screen.getByText('Progress Proof')).toBeInTheDocument();
-    expect(screen.getByText('8 of 12')).toBeInTheDocument();
-    expect(screen.getByText('67%')).toBeInTheDocument();
-    expect(screen.getByText('4 charts to full proof')).toBeInTheDocument();
+    expect(screen.getByText('8 of 15')).toBeInTheDocument();
+    expect(screen.getByText('53%')).toBeInTheDocument(); // 8 / 15
+    expect(screen.getByText('7 charts to full proof')).toBeInTheDocument();
   });
 
   it('has social feed display metadata for milestone proof posts', () => {

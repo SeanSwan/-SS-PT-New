@@ -5,8 +5,13 @@
  */
 
 import { getProgressProofStatusText } from '../../../utils/progressProofStatusText';
+import { CANONICAL_CHART_IDS } from '../../../hooks/analytics/useClientProgressCharts.types';
 
-const TOTAL_PROGRESS_PROOF_CHARTS = 12;
+// G5 drift fix (2026-07-24): single-source the deck size from the canonical id
+// list (15), not a hardcoded 12. The old constant made the readiness meter clamp
+// at 12/15 and award "Legendary" prematurely — it lied about a full deck. Derived
+// here so the count can never drift from the real charts again.
+const TOTAL_PROGRESS_PROOF_CHARTS = CANONICAL_CHART_IDS.length;
 
 export type ProgressProofAudience = 'client' | 'admin';
 export type ProgressProofTone = 'empty' | 'building' | 'full' | 'unavailable';

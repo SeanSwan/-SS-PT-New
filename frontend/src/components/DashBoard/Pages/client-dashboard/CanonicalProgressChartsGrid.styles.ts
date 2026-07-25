@@ -1,7 +1,7 @@
 /**
  * COMPONENT: CanonicalProgressChartsGrid.styles
  * OWNER: Client Dashboard / Progress
- * PURPOSE: Theme-connected card, bar, and grid primitives for the 12-chart grid.
+ * PURPOSE: Theme-connected card, bar, and grid primitives for the 15-chart grid.
  */
 
 import styled from 'styled-components';

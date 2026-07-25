@@ -15,25 +15,25 @@ describe('getProgressProofStatusText', () => {
       'No saved workout proof yet - log a workout to populate charts',
     );
     expect(getProgressProofStatusText(4, 0)).toBe(
-      'Progress proof building - 4 of 12 charts populated',
+      'Progress proof building - 4 of 15 charts populated',
     );
-    expect(getProgressProofStatusText(12, 0)).toBe(
-      'Full progress proof ready - 12 charts populated',
+    expect(getProgressProofStatusText(15, 0)).toBe(
+      'Full progress proof ready - 15 charts populated',
     );
     expect(getProgressProofStatusText(4, 2)).toBe(
-      '4 of 12 charts populated - 2 feeds unavailable',
+      '4 of 15 charts populated - 2 feeds unavailable',
     );
   });
 
-  it('clamps non-finite and out-of-range values to the 12-chart contract', () => {
+  it('clamps non-finite and out-of-range values to the 15-chart contract', () => {
     expect(getProgressProofStatusText(Number.NaN, 0)).toBe(
       'No saved workout proof yet - log a workout to populate charts',
     );
     expect(getProgressProofStatusText(99, 0)).toBe(
-      'Full progress proof ready - 12 charts populated',
+      'Full progress proof ready - 15 charts populated',
     );
     expect(getProgressProofStatusText(4, 99)).toBe(
-      '4 of 12 charts populated - 12 feeds unavailable',
+      '4 of 15 charts populated - 15 feeds unavailable',
     );
   });
 });

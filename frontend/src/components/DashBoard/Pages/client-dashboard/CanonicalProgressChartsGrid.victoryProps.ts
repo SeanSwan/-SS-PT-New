@@ -1,7 +1,7 @@
 /**
  * COMPONENT: CanonicalProgressChartsGrid.victoryProps
  * OWNER: Client Dashboard / Progress
- * PURPOSE: Shared Victory style props for the canonical 12-chart grid.
+ * PURPOSE: Shared Victory style props for the canonical 15-chart grid.
  */
 
 import {

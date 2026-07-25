@@ -52,7 +52,7 @@ interface ClientDetailViewProps {
   visibleTabs?: DetailTab[];
   /** Render props for tab content — keeps this component lean */
   renderTraining?: (clientId: number | string) => React.ReactNode;
-  /** Phase 15.3: truthful 12-chart progress view for the selected client. */
+  /** Phase 15.3: truthful 15-chart progress view for the selected client. */
   renderProgress?: (clientId: number | string) => React.ReactNode;
   renderNutrition?: (clientId: number | string) => React.ReactNode;
   renderBiometrics?: (clientId: number | string) => React.ReactNode;
