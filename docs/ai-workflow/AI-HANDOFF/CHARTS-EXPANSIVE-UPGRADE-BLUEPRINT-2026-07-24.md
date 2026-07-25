@@ -6,9 +6,12 @@ supersedes: none
 
 # SwanStudios Charts — Expansive Upgrade BLUEPRINT
 
-> **Authorship:** Claude (Opus 4.8) is the author. Kimi K3 was creative CONTEXT
-> (`KIMI-CHARTS-CREATIVE-2026-07-24.md`); the 2026-07-24 chart audit is the ground
-> truth; the design decisions below are mine, made to answer the gaps Kimi flagged.
+> **Authorship (Rule 76 fusion model):** Claude (Opus 4.8) authored the FUSION. Kimi K3
+> was a **creative peer** (`KIMI-CHARTS-CREATIVE-2026-07-24.md`) — its ideas are on the
+> table alongside Claude's OWN original ideas (§12, added 2026-07-24 when Sean said "use
+> your creativity AND Kimi's, combine them both"). The 2026-07-24 chart audit is ground
+> truth. Creativity is ~50/50; authorship is Claude's. Idea provenance is tagged
+> throughout: **[K]** = Kimi's, **[C]** = Claude's original, **[F]** = fused.
 > Brief this extends: `docs/ai-workflow/brainstorms/charts-expansive-upgrade-hive-mind-2026-07-24.md`.
 
 ## Ground truth (verified, do not re-litigate)
@@ -216,3 +219,98 @@ Never three co-equal CTAs. State-driven priority:
 - **S1 (the signature — real first value):** Trophy Card component + chart token system +
   Swan Lens bridge + crystalline PR celebration, on WeightProgression only. Routes through
   `swan-design-router` (Rule 40, net-new UI). This defines the whole chart design system.
+
+---
+
+## 12. Claude's ORIGINAL ideas — all on the table (Rule 76 fusion, added 2026-07-24)
+
+Sean: "use YOUR creativity AND Kimi's — all ideas on the table." Kimi's contributions
+(trophy card, annotation budget, PR-is-not-a-toast, decimation) are already woven above.
+Here are Claude's OWN original ideas, each with a keep/defer/cut verdict. **[C]** = mine.
+
+1. **[C] Next-Milestone Gravity — KEEP (fold into S1/S2).** Every chart shows not just
+   where you are but the next milestone *pulling* you toward it: a glowing target line +
+   "8 lb to a new PR" / "3 sessions to a 30-day streak," rendered as a gradient gravity
+   well the current value drifts toward. Turns every chart into a next-best-action engine
+   — directly serves the Product Core Loop. Cheap, high retention value.
+2. **[C] "Why did this move?" one-tap explainer — KEEP (elevate S4).** Tap ANY surprising
+   jump/drop → the Coach explains it in plain language from the real data ("squat jumped:
+   +2 sessions and +3 lb bodyweight — good sign"). This is the hive-mind making the chart
+   SELF-EXPLAINING for any point — a bigger, better version of Kimi's single plateau
+   annotation. The signature "these charts are intelligent" moment.
+3. **[C] Coach/Trainer Chapter Markers — KEEP (fold into S4).** The coach drops narrative
+   markers on the timeline: "Wk3: switched to 5x5," "Wk7: deload." The chart becomes a
+   STORY with a plot, not a bare curve — the trainer-indispensability doctrine made
+   visual. Ties charts to the coaching relationship (retention + trainer value).
+4. **[C] Constellation Correlation view — KEEP (new signature, S5/S6).** Instead of 15
+   isolated charts, ONE view that connects them: sleep↑ → recovery↑ → volume↑ → 1RM↑ as a
+   node/constellation graph. "Your sleep is the star your strength orbits." The "aha" that
+   makes the whole suite feel intelligent; Coach-hive-mind-native (Coach explains the
+   correlation). Distinctive — no competitor grid ships this.
+5. **[C] Milestone → Crystal Ring FACET / Companion evolution — KEEP (deepen S5).** Deeper
+   than Kimi's "milestone→XP." A bench PR literally adds a crystal FACET to your rank ring;
+   a 90-day streak EVOLVES your Cygnet companion. Chart achievements become VISIBLE on your
+   identity — charts feed the already-built Crystal Ring / companion game system.
+6. **[C] Live-in-app / static-export Trophy Card — KEEP (fold into S1).** Refines Kimi's
+   card: IN the app it's a LIVE mini-chart that animates on view; only the EXPORTED share
+   version flattens to PNG. Alive inside, portable outside — best of both.
+7. **[C] Data-as-Light aesthetic — KEEP (fold into S1 token/visual system).** On the dark
+   Crystalline surface, the data IS the light source: the line glows and blooms a soft
+   gradient onto the card behind it, brighter where the metric is higher. Progress
+   literally lights up the card. Pure Enchanted-Apex signature; GPU-safe, reduced-motion
+   fallback = flat line.
+8. **[C] Ghost-Self overlay — KEEP (fold into S3 comparison).** A translucent "past you"
+   line (your 90-days-ago trajectory) racing current you; the GAP between them is the
+   story. Scrubbable. Gamifies vs-past-self more viscerally than a static comparison line.
+9. **[C] "Trainer's Eyes" auto-highlight toggle — KEEP (fold into S2 trainer surface).**
+   On the trainer's view of a client chart, a toggle that auto-highlights the ONE thing
+   to care about (the plateau / missed week / PR) so a 30-second glance lands right.
+   Serves the trainer dashboard proof-of-value + who-needs-intervention priority.
+10. **[C] Weekly Proof Digest pushed BY the Coach — KEEP (S5 retention track).** Don't
+    wait for the client to open the dashboard — every week the Coach delivers a 1-card
+    digest with mini-charts ("your week: +2 sessions, bench PR, sleep dipped — here's the
+    plan"). Pushes the proof; strong retention driver. Pull-not-push decision (§10.4)
+    means this is a Coach *message*, not a nag notification.
+11. **[C] Proof Reel — auto-generated progress micro-video — DEFER to S6 (replaces the
+    scrollytelling as the "cinematic" slice).** A 6-8s vertical clip that animates the
+    client's chart line drawing itself day-1→today, PR as the climax, using Swan's
+    EXISTING Seedance/video muscle. More shareable than a manual scroll-narrative and
+    cheaper to ship as an auto-artifact. This is the better "cinematic" bet than §9 S6.
+12. **[C] Community "Beside You" reassurance band — DEFER to S5 (opt-in, privacy-gated).**
+    An anonymized "others like you" trajectory band — NOT a leaderboard (which demoralizes)
+    but a "you're not alone" band. Opt-in only; ties charts to belonging without toxic
+    comparison. Needs the cohort endpoint, so it rides with the S5 cohort work.
+13. **[C] Streak-as-Climb terrain metaphor — CUT (note only).** Reframing the consistency
+    heatmap as a mountain ascent is emotionally nice but decorative; the Constellation (#4)
+    is a stronger, more intelligent "aha" for the same slot. Recorded, not built — revisit
+    only if #4 proves too heavy.
+
+## 13. REFACTORED phasing (fused — Claude's ideas + Kimi's, provenance tagged)
+
+- **S0 — Hygiene [F].** Delete `GoalProgressBullet` DEMO_DATA; fix `CHART-ANALYTICS-SYSTEM.md`
+  doc drift. (Rebuild-fresh per §10.1, so no branch salvage.)
+- **S1 — The Signature [F].** Trophy Card (live in-app / PNG on export **[C#6]**) + chart
+  token system + Swan Lens bridge **[F]** + Data-as-Light glow **[C#7]** + Next-Milestone
+  Gravity **[C#1]** + crystalline PR celebration **[K/F]**, on WeightProgression only.
+  Defines the whole design system.
+- **S2 — Consolidate + a11y + Trainer's Eyes [F].** Collapse 3 client surfaces → canonical
+  grid; tokens + voronoi touch + keyboard drill + data-table across the grid; hero-card
+  hierarchy **[K]**; "Trainer's Eyes" auto-highlight toggle **[C#9]** on the trainer view.
+- **S3 — Depth + Ghost-Self [F].** Rebuild the C1-C8 drill grammar fresh in the token
+  system **[K]** + time ranges + server decimation **[K]** + Ghost-Self overlay **[C#8]**.
+- **S4 — Coach hive-mind [F], the intelligence layer.** On-chart pull-only plateau region
+  **[K]** + **"Why did this move?" one-tap explainer for ANY point [C#2]** + Coach/Trainer
+  Chapter Markers **[C#3]** + one-tap chart→Coach (zero PII, plugs into SWA-65 intent log).
+- **S5 — Community + identity loop [F].** Trophy share to feed + per-chart privacy toggle
+  **[K]** + Milestone → Crystal-Ring FACET / companion evolution **[C#5]** + Weekly Proof
+  Digest **[C#10]** + "Beside You" opt-in band **[C#12]** (with the cohort endpoint).
+- **S6 — Cinematic [C], the awe artifact.** **Proof Reel auto-video [C#11]** replaces the
+  manual 90-day scrollytelling — more shareable, leverages Seedance, cut first if it slips.
+
+**What the fusion changed vs the original plan:** the plan gained an *intelligence* spine
+(explainer + chapter markers + constellation make the charts feel smart, not just pretty),
+a stronger *retention* pull (milestone gravity + weekly digest push proof at the client),
+a deeper *identity* tie (chart milestones become ring facets / companion evolutions), and a
+better *cinematic* bet (auto Proof Reel over manual scrollytelling). Kimi's trophy-card-first
+spine and craft gates are kept intact. Constellation **[C#4]** is the new stretch signature
+for S5/S6 if capacity allows.
