@@ -18,6 +18,10 @@ const pull = keyframes`
 `;
 
 const Wrap = styled.div`
+  /* Span the full momentum strip width (its parent is a 2-col grid, like the
+     detail row) so the bar never squishes into the narrow auto column. Harmless
+     when the parent is not a grid. */
+  grid-column: 1 / -1;
   display: grid;
   gap: 0.3rem;
   margin-top: 0.4rem;
