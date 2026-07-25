@@ -332,3 +332,56 @@ a deeper *identity* tie (chart milestones become ring facets / companion evoluti
 better *cinematic* bet (auto Proof Reel over manual scrollytelling). Kimi's trophy-card-first
 spine and craft gates are kept intact. Constellation **[C#4]** is the new stretch signature
 for S5/S6 if capacity allows.
+---
+
+## 14. GROUNDING CORRECTION (2026-07-24) — the progress-proof module ALREADY EXISTS; scope = UPGRADE, not build
+
+The 2026-07-24 deep-ground (a second Explore pass) found a large SHIPPED, LIVE module the
+first audit missed: `frontend/src/components/DashBoard/progress-proof/` (35 files),
+mounted on two live routes — client `/progress` (`CanonicalProgressChartsGrid`) and the
+admin Clients-&-Team `ProgressTabContent` (`AdminProgressChartsGrid`). Per Rule 76
+(find what exists, then make it BETTER), the slices are re-scoped from BUILD to UPGRADE.
+
+**Already built + LIVE (do NOT rebuild — upgrade in place):**
+- **Trophy Card pipeline:** `progressShareCard.ts` (`buildProgressShareCard`, PII-scrub) +
+  `progressShareCardExport.ts` (canvas PNG 1080x1350, colors from CSS custom props) +
+  `ProgressChartStudio.tsx` (focus-trapped modal: HTML preview + Copy Caption + Export PNG
+  + Share to Feed). LIVE via `ProgressChartActionBar` Share on **only 2 of ~15 client
+  charts** (WeeklyVolumeCard, SetsRepsTrendCard); NOT in the admin grid.
+- **Drill-down:** `ChartExpandModal` + `ChartExpandTrigger` + `ChartExpandDataTable`
+  (button-based tap-to-expand + SR data table). LIVE across ~all client + admin cards.
+  This is the SHIPPED drill — NOT the stranded Arc C point-tap drill (which stays unbuilt).
+- **CTA action bar:** `ProgressChartActionBar` (Range / CSV / PNG / Share / Details) —
+  flat, no hierarchy, on 2 charts only.
+- **Insight strip:** `ProgressChartInsightBar` + `progressChartPulse` + `progressChartFacts`
+  — LIVE on 6 client cards. LOCAL MATH only (tones empty/building/rising/steady/falling/
+  record); NO Coach/AI/hive-mind backend.
+- **Cockpit:** `ProgressProofCockpit` (readiness meter + visibility-lens selector + copy) —
+  LIVE both grids.
+- **Lens palette bridge:** `lensChartPalette` (`LensChartPaletteProvider`/`useLensChartPalette`,
+  re-resolves on committed-lens change) — LIVE on the client grid (NOT wrapped on admin).
+- **Social share to feed** + **branded PDF report** — both LIVE on both grids.
+
+**The REAL gaps (this is the actual build work — upgrades, provenance [C]=Claude idea):**
+- **G1 [C] PR celebration** — the `record` tone only recolors gold (`ProgressChartStudio.styles.ts:8`);
+  there is NO celebratory moment. Build the crystalline-shatter PR beat (reduced-motion →
+  static gold ribbon) on the existing `record` tone. Highest-value, self-contained UPGRADE.
+- **G2 Coverage** — Share/Trophy + full ActionBar reach only 2/15 client charts and 0 admin.
+  Extend the ActionBar (or at least Share) across the grid + wrap the admin grid in
+  `LensChartPaletteProvider`.
+- **G3 [C] Chart->Coach intelligence** (S4) — insight is local arithmetic; NO hive-mind, no
+  one-tap chart->Coach, plateau only implicit (falling/steady, no label/handoff). Add the
+  "Why did this move?" explainer + plateau label + one-tap chart->Coach (plug into SWA-65
+  intent log, zero PII). Biggest net-new value.
+- **G4 CTA hierarchy** — the flat action row gets the state-driven priority (Drill primary /
+  Share promoted on `record` / Coach chip when an insight exists).
+- **G5 minor** — reconcile the 12-vs-15 chart-count drift (`progressProofSummary` TOTAL=12
+  vs `progressChartLens` "15-chart deck").
+- **Still-net-new [C]:** Next-Milestone Gravity, Ghost-Self overlay, Constellation view,
+  milestone->Ring-facet, Weekly Proof Digest, Proof Reel video — these have no existing
+  code and remain build-from-scratch in their slices.
+
+**Re-scoped phasing:** S1 = G1 (PR celebration) + G4 (CTA hierarchy) + G2 (coverage) as
+UPGRADES to ProgressChartStudio/ActionBar, plus Next-Milestone Gravity [C] as the net-new
+overlay. S4 = G3. The Trophy Card, drill, data-table, cockpit, palette bridge, PDF, and
+feed-share are DONE — we make them better, we don't rebuild them.
