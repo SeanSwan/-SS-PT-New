@@ -15,6 +15,7 @@
  *   1 — Correctness failure, threshold failure, or drift regression (with --fail-on-drift)
  */
 import { GOLDEN_SCENARIOS } from './goldenDataset.mjs';
+import { INTENT_RESOLUTION_SCENARIOS } from './intentResolutionScenarios.mjs';
 import { runEvalSuite, computeExitCode } from './evalRunner.mjs';
 import { checkThresholds } from './evalThresholds.mjs';
 import { formatJsonReport, formatMarkdownReport } from './evalReport.mjs';
@@ -35,7 +36,9 @@ const BASELINE_PATH = resolve(__dirname, '../../docs/qa/AI-PLANNING-VALIDATION-B
 const LATEST_PATH = resolve(__dirname, '../../docs/qa/AI-PLANNING-VALIDATION-LATEST.json');
 
 // ── Run eval ──────────────────────────────────────────────────────────────────
-const results = runEvalSuite(GOLDEN_SCENARIOS);
+// C4: intent-resolution scenarios join the same suite rather than forming a
+// parallel harness — one runner, one threshold config, one drift baseline.
+const results = runEvalSuite([...GOLDEN_SCENARIOS, ...INTENT_RESOLUTION_SCENARIOS]);
 const thresholdCheck = checkThresholds(results.summary);
 
 // ── Drift detection (optional) ────────────────────────────────────────────────

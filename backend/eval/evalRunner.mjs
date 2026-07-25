@@ -7,10 +7,11 @@
 import { runValidationPipeline } from '../services/ai/outputValidator.mjs';
 import { runLongHorizonValidationPipeline } from '../services/ai/longHorizonOutputValidator.mjs';
 import { EVAL_THRESHOLDS } from './evalThresholds.mjs';
+import { classifyDeterministicCoachIntakeIntent } from '../services/ai/deterministicCoachIntakeIntent.mjs';
 import logger from '../utils/logger.mjs';
 
 /** Allowed scenario types — anything else is a dataset mistake */
-const VALID_SCENARIO_TYPES = new Set(['workout', 'long_horizon']);
+const VALID_SCENARIO_TYPES = new Set(['workout', 'long_horizon', 'intent_resolution']);
 
 // ── Runtime Dataset Validation ───────────────────────────────────────────────
 
@@ -75,8 +76,42 @@ function validateDataset(scenarios) {
  * Run a single scenario through the appropriate validator.
  * @returns {{ pass: boolean, scenarioId: string, category: string, expected: object, actual: object, reason?: string }}
  */
+/**
+ * Intent-resolution scenarios (C4) take a different shape from validator
+ * scenarios: an utterance in, a resolved {intent, clientRef} out. They run
+ * against the DETERMINISTIC router — zero imports, pure regex — so this stays
+ * offline, key-free and flake-free in CI.
+ */
+function runIntentScenario(scenario) {
+  const { id, input, expected, category } = scenario;
+  const resolved = classifyDeterministicCoachIntakeIntent(input);
+  const actualIntent = resolved ? (resolved.intent ?? null) : null;
+  const actualClientRef = resolved && resolved.clientRef !== undefined ? resolved.clientRef : null;
+  const actual = { intent: actualIntent, clientRef: actualClientRef };
+
+  if (actualIntent !== expected.intent) {
+    return {
+      pass: false, scenarioId: id, category, expected, actual,
+      reason: `Expected intent=${JSON.stringify(expected.intent)} but got ${JSON.stringify(actualIntent)}`,
+    };
+  }
+
+  // Only checked when the scenario declares it. A wrong clientRef is the
+  // catastrophic case — it decides WHOSE record an action lands on.
+  if (expected.clientRef !== undefined && actualClientRef !== expected.clientRef) {
+    return {
+      pass: false, scenarioId: id, category, expected, actual,
+      reason: `Expected clientRef=${JSON.stringify(expected.clientRef)} but got ${JSON.stringify(actualClientRef)} — a misresolved client is a write to the wrong record`,
+    };
+  }
+
+  return { pass: true, scenarioId: id, category, expected, actual };
+}
+
 function runScenario(scenario) {
   const { id, type, input, opts, expected } = scenario;
+
+  if (type === 'intent_resolution') return runIntentScenario(scenario);
 
   let actual;
   if (type === 'long_horizon') {
