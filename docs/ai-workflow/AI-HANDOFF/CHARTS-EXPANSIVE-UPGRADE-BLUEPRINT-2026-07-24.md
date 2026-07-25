@@ -86,6 +86,24 @@ Define once, in the chart theme, so 15 cards read as one system:
 --chart-cohort-band:      color-mix(in srgb, var(--accent-secondary,#8B5CF6) 14%, transparent);
 ```
 
+### 2.0 S1 GROUNDING (verified 2026-07-24 — read the real files, corrects the plan)
+Before building, grounded the S1 files (Rule 76). Findings that CHANGE the approach:
+- **WeightProgression chart:** `frontend/src/components/Charts/charts/live/WeightProgressionLive.tsx`.
+- **Victory theme:** `frontend/src/components/Charts/chartTheme.ts` — has `CHART_COLORS`
+  (19 raw hex constants) AND an EXISTING **`LensChartPalette` bridge**: Victory receives
+  RESOLVED color strings because *SVG presentation attributes cannot carry `var()`*, so
+  lens tokens are read via `getComputedStyle` from a host INSIDE the lens frame, falling
+  back to Swan defaults. Chart CHROME (axes/tooltips/labels) deliberately stays Swan-fixed;
+  only the data-series accent pair follows the lens.
+- **Swan Lens runtime:** `frontend/src/core/style-lens-os/` (`appearanceRuntime.ts`,
+  `StyleLensProvider.tsx`, `registry.ts`, `constants.ts`).
+- **Correction to §2/§2.1:** do NOT invent a fresh `--chart-*` var system and expect
+  Victory to inherit it — SVG won't. EXTEND the existing `LensChartPalette` getComputedStyle
+  bridge (add series-3/4, grid, annotation-coach/pr/pain, area-fade, cohort-band as resolved
+  strings) and make it **re-read on lens change** (subscribe to the StyleLens provider) so a
+  lens switch repaints. The §2 token names stay the design contract; the delivery mechanism
+  is the resolved-string bridge, not raw CSS var inheritance.
+
 ### 2.1 Swan Lens connection (MANDATORY — theme-change wiring, Sean 2026-07-24)
 Every chart must **recolor live with the active Swan Lens**. The chart tokens above
 derive from `--accent-*` / `--text-*` / `--surface-*`, so they MUST resolve to the
