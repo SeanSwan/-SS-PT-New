@@ -121,7 +121,7 @@ const ExportButtons: React.FC<{
     <IconActionButton
       type="button"
       $emphasis={isRecord ? 'promoted' : undefined}
-      aria-label={isRecord ? 'Share new record proof card' : undefined}
+      data-emphasis={isRecord ? 'promoted' : undefined}
       onClick={onOpenStudio}
     >
       <Share2 size={14} aria-hidden="true" />

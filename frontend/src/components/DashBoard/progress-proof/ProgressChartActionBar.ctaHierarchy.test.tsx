@@ -35,16 +35,17 @@ const baseProps = {
 };
 
 describe('ProgressChartActionBar CTA hierarchy', () => {
-  it('promotes Share only on a record tone; Details is always present', () => {
+  it('promotes Share only on a record tone; Details is always present; Share name stays stable', () => {
     const { rerender } = render(<ProgressChartActionBar {...baseProps} pulse={pulse('record')} />);
     // Details (primary drill) is always available.
     expect(screen.getByRole('button', { name: /details/i })).toBeInTheDocument();
-    // Share is promoted with a record-specific accessible label.
-    expect(screen.getByRole('button', { name: /share new record proof card/i })).toBeInTheDocument();
+    // The Share accessible name stays stable ("Share") across tones (WCAG 2.5.3);
+    // the promotion is signalled by data-emphasis, not by renaming the control.
+    const recordShare = screen.getByRole('button', { name: /^share$/i });
+    expect(recordShare).toHaveAttribute('data-emphasis', 'promoted');
 
     rerender(<ProgressChartActionBar {...baseProps} pulse={pulse('rising')} />);
-    // Non-record: the promoted label is gone; a plain Share remains.
-    expect(screen.queryByRole('button', { name: /share new record proof card/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^share$/i })).toBeInTheDocument();
+    const plainShare = screen.getByRole('button', { name: /^share$/i });
+    expect(plainShare).not.toHaveAttribute('data-emphasis');
   });
 });
