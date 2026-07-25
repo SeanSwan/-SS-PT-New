@@ -35,6 +35,21 @@
  *   ends up silent.
  *
  * PURE + DEPENDENCY-FREE so it is directly testable.
+ *
+ * ⚠ STATUS: DELIBERATELY UNCONSUMED (Rule 27 = dormant), as of 2026-07-25.
+ *   Nothing calls this yet, and that is intentional rather than an oversight.
+ *   Wiring it into the live dispatcher today would gate commands behind a
+ *   spoken confirmation that no surface can yet collect — it would BREAK the
+ *   command lane, not protect it. The tier contract has to exist BEFORE the
+ *   voice surface so each surface consumes one rule instead of inventing its
+ *   own; the consumer is the voice/intent-bar slice.
+ *
+ *   Labeled explicitly because this program has already lost weeks to an
+ *   unlabeled dormant file: `eval/coachCommandCenterGoldenScenarios.mjs` was
+ *   written with exactly the right shape, never imported, flagged as an open
+ *   item in REPO-HYGIENE-INVENTORY-2026-07-16.md, and still sat unwired when
+ *   C4 finally adopted it. A dormant file that says so is a plan; one that
+ *   doesn't is rot. Tracked on Linear so it cannot quietly repeat.
  */
 
 export const TIER_FIRE_AND_FORGET = 'fire_and_forget';
