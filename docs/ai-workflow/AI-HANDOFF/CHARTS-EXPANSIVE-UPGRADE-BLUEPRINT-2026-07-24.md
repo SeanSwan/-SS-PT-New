@@ -196,11 +196,23 @@ Never three co-equal CTAs. State-driven priority:
 
 ---
 
-## 10. Decisions that need Sean's taste-cut before Slice 1 code
-1. **Trophy Card share target:** in-app community feed only, or also export-to-Instagram/
-   external? (changes the sanitization + branding rigor).
-2. **PR celebration intensity:** full crystalline shatter vs a quieter gold-ribbon glint?
-3. **Slice 0 merge:** rescue the stranded Arc C C1-C3, or leave it and rebuild fresh
-   inside the new token system? (rescue = faster; rebuild = cleaner).
-4. **Coach insight tone:** how forward should "Coach spotted a plateau" be — proactive
-   push, or only when the client opens the chart?
+## 10. Sean's taste-cut — RESOLVED 2026-07-24 (all four locked)
+1. **Slice 0 / stranded Arc C:** REBUILD FRESH inside the new token system (do NOT rescue
+   the 51-behind branch). S0 becomes: delete `GoalProgressBullet` DEMO_DATA + fix doc
+   drift only; drill-down is rebuilt clean in S2/S3 on the new token + Trophy-Card system.
+2. **Trophy Card share target:** IN-APP COMMUNITY FEED FIRST (first-class post + per-chart
+   privacy toggle). External PNG export is deferred to S5, not S1.
+3. **PR celebration:** CRYSTALLINE SHATTER — record point shatters into shards that reform
+   as the new number + gold flash, then share prompt. `prefers-reduced-motion` → static
+   gold "New PR" ribbon.
+4. **Coach insight tone:** ON-CHART, PULL not push — the plateau region + one-line
+   conversational caption appears when the client OPENS the chart. No notifications.
+   Proactive push is a possible later opt-in, not the MVP.
+
+## 11. Next build (with decisions applied)
+- **S0 (hygiene, no design needed):** delete `GoalProgressBullet` DEMO_DATA (close the
+  prior Rule-34 breach); fix `CHART-ANALYTICS-SYSTEM.md` doc drift ("NOT YET CONNECTED" +
+  Recharts mentions are stale). Small, safe, closes audit gaps.
+- **S1 (the signature — real first value):** Trophy Card component + chart token system +
+  Swan Lens bridge + crystalline PR celebration, on WeightProgression only. Routes through
+  `swan-design-router` (Rule 40, net-new UI). This defines the whole chart design system.
