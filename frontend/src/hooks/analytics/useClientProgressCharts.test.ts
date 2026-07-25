@@ -1,7 +1,7 @@
 /**
  * useClientProgressCharts — Phase 14 canonical chart hook tests
  * ==============================================================
- * Locks the 12-chart canonical contract that powers the client
+ * Locks the 15-chart canonical contract that powers the client
  * progress route after the Phase 14 rebuild.
  *
  * Covers:

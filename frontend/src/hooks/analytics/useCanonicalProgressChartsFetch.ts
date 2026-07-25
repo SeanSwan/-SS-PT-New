@@ -2,7 +2,7 @@
  * useCanonicalProgressChartsFetch
  * ===============================
  *
- * Shared React state machine for the canonical 12-chart progress feed.
+ * Shared React state machine for the canonical 15-chart progress feed.
  * Client and admin hooks provide only their namespace-specific fetcher.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';

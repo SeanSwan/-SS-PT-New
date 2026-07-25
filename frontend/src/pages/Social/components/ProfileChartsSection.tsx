@@ -38,7 +38,7 @@ const ExerciseHistoryChart = lazy(() => import('../../../components/Charts/Exerc
 //   muscleRecovery   → RecoverySignalBars (chart-recovery-signal)
 //   rpeByExercise    → IntensityRpeTrendLine (chart-intensity-rpe-trend)
 // The `cardioEndurance` key is dropped from CHART_REGISTRY (no canonical
-// equivalent — out of the 12-chart scope) and falls through harmlessly
+// equivalent — out of the 15-chart scope) and falls through harmlessly
 // for any user who had it enabled in saved prefs.
 const WorkoutFrequencyBar = lazy(() => import('../../../components/Charts/charts/live/WorkoutFrequencyBar'));
 const WeightProgressionLive = lazy(() => import('../../../components/Charts/charts/live/WeightProgressionLive'));
