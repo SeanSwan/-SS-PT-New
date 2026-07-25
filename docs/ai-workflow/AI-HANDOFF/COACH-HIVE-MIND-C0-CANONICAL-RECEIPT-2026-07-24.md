@@ -217,6 +217,21 @@ Functionally **identical** precedence to the shared helper, inlined rather than 
 
 > Self-correction recorded per Rule 51: my first pass flagged both as unguarded. Reading the source disproved the second. Only `scheduleWriteDispatchers.mjs` is a live defect.
 
+### ⚠️ ADDENDUM (added during C0.5) — this section UNDER-COUNTED the defect class
+
+C0's detection used `grep 'params\.clientId'`. That pattern has **two blind spots**, and C0.5's RED scan (executed against this exact commit, `e57f6804a`) proved **4** unguarded dispatchers, not 2:
+
+| File | Missed because | Severity |
+|---|---|---|
+| `scheduleWriteDispatchers.mjs` | — (found in C0) | 🔴 live wrong-client **write** |
+| `workoutSessionCommandDispatchers.mjs` | — (found in C0, correctly downgraded) | 🟡 inline copy |
+| `briefClientDispatcher.mjs` | uses `params?.clientId` — **optional chaining**, which `params\.clientId` does not match | 🟡 inline copy, read-only |
+| `sessionDispatchers.mjs` | uses `const { sessionId, clientId, date } = params` — **destructuring**, no property access at all | 🔴 **DESTRUCTIVE** — picks which session to *cancel* |
+
+`sessionDispatchers.mjs` is the more serious of the two live defects: `dispatchCancelSession` is documented in-file as *"first live destructive trainer slice,"* and the classifier-supplied id fed `Session.findAll({ where: { userId: clientId } })` — the query that decides **whose session gets cancelled**.
+
+**Same false-negative class as §7's `useSupportDictation` miss:** a regex written for the shape I expected, not the shapes that exist. The C0.5 invariant test now matches **both** property access and destructuring so this cannot recur. Corrected here rather than silently, per Rule 51.
+
 ### Why C2 cannot be where this gets fixed
 
 C2 is a large slice (bus + memory + offline + client-lock + logger decomposition). This defect is **two functions and a one-line precedence change**, it is on `main`, and it is a wrong-client **write**. It should not wait behind an architecture slice.
