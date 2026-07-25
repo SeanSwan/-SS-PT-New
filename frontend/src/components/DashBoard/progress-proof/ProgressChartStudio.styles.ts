@@ -93,6 +93,8 @@ export const StudioBody = styled.div`
 `;
 
 export const PreviewCard = styled.article<{ $tone: ProgressChartPulseTone }>`
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 0.85rem;
   padding: 1rem;
