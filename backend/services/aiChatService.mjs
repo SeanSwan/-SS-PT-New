@@ -15,6 +15,7 @@ import logger from '../utils/logger.mjs';
 import { getTier, getTierDisplay } from '../utils/levelingAlgorithm.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
+import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
 import {
   isNonDeductingClient,
@@ -1122,6 +1123,22 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
                 "clientSource", "accountStatus"
          FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
       // 2. Equipment profiles
+      //
+      // SUBJECT FIX (C1, 2026-07-25): this previously read
+      //   WHERE ep."trainerId" = :userId
+      // but :userId is the CLIENT being enriched, while `trainerId` is the
+      // OWNING TRAINER ("Trainer who owns this equipment profile" —
+      // models/EquipmentProfile.mjs; sole creator sets req.user.id;
+      // unique index on (trainerId, lower(name))). A client owns no profiles,
+      // so the query returned zero rows for every client enrichment and Coach
+      // reasoned about workouts equipment-blind — silently.
+      //
+      // 20 of the 21 sources here key on "userId" = :userId; this was the lone
+      // outlier, which is what identified it as a defect rather than intent.
+      //
+      // Correct subject: the equipment owned by the trainer(s) this client is
+      // ACTIVELY assigned to. Self-owned profiles are still included so a
+      // trainer asking about themselves keeps the previous behavior.
       safeQuery(
         `SELECT ep.id, ep.name, ep."locationType", ep.description,
                 COALESCE(
@@ -1138,7 +1155,15 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
                   '[]'
                 ) as items
          FROM equipment_profiles ep
-         WHERE ep."trainerId" = :userId AND ep."isActive" = true
+         WHERE ep."isActive" = true
+           AND (
+             ep."trainerId" = :userId
+             OR ep."trainerId" IN (
+               SELECT cta."trainerId"
+               FROM client_trainer_assignments cta
+               WHERE cta."clientId" = :userId AND cta.status = 'active'
+             )
+           )
          ORDER BY ep."isDefault" DESC`, { userId }),
       // 3. Onboarding questionnaire
       safeQuery(
@@ -1818,7 +1843,38 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       }
     } catch { /* exercise analytics enrichment is non-fatal */ }
 
+    // ── INTAKE COVERAGE (C1, 2026-07-25) ───────────────────────────────────
+    //
+    // Every block above is `if (rows.length > 0) push(...)`, so an EMPTY source
+    // emits nothing at all. Coach therefore could not distinguish
+    //   "screened, no compensations found"  from  "never screened".
+    // It answered with identical confidence either way — the failure this
+    // program exists to prevent.
+    //
+    // This is not cosmetic. The client-intake inputs are populated by THREE
+    // separate surfaces: the onboarding wizard writes the questionnaire and
+    // baselines, while MovementProfile and EquipmentProfile come from the
+    // Movement Analysis wizard and the equipment surface respectively. A newly
+    // onboarded client legitimately has gaps — Coach must SAY so rather than
+    // reason into the void.
+    //
+    // Absence is stated explicitly and Coach is told what to do about it.
+    //
+    // ORDERING: this runs AFTER the empty-guard deliberately. If NOTHING
+    // resolved, the caller still gets '' and no block is appended — unchanged
+    // behavior, and honest (Coach has no data and is told nothing). The defect
+    // being fixed is PARTIAL data producing false confidence, so the marker is
+    // only meaningful when some data is actually being sent.
+    //
+    // Logic lives in services/ai/intakeCoverage.mjs — pure and dependency-free,
+    // because this module is 2200+ lines and cannot be exercised in isolation.
     if (dataParts.length === 0) return '';
+
+    try {
+      dataParts.push(buildIntakeCoverageBlock({
+        onboarding, movement, movementProfile, baseline, equipment, painEntries, goals,
+      }));
+    } catch { /* coverage summary is non-fatal */ }
 
     // PRIVACY: Prepend identity-blind instruction to AI
     const privacyHeader = `
