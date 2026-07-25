@@ -4,7 +4,13 @@
  * Merges the domain-split command registries into a unified registry.
  * Call initializeRegistry() once at server startup.
  *
- * Commands are registered across categories A-N:
+ * Commands are registered across categories A-N. The per-category counts below
+ * are hand-maintained and DRIFT — as of 2026-07-25 they sum to 119 while the
+ * registries actually define 134 commands. Treat them as a rough map, never as
+ * a figure to quote: two commit messages cited the stale 119 before anyone
+ * counted. To get the real number, count definitions rather than trusting this
+ * block.
+ *
  * A: Client Management (14)   B: Workouts (17)      C: Scheduling (10)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)
  * G: Dashboard (8)            H: Trainer Mgmt (6)    I: Goals (6)
