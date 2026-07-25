@@ -137,6 +137,61 @@ describe('projectCoachMemory', () => {
   });
 });
 
+describe('PII redaction at the recording seam (rule 8)', () => {
+  // The log is read by projectCoachMemory, whose `believed` field exposes full
+  // payloads, and summarizeCoachMemory is documented as prompt-bound. Free text
+  // is therefore stripped at RECORD time — structurally, not by convention —
+  // because a trainer dictating "Sarah's knee felt tight" produces a note, and
+  // a warning comment does not survive contact with a deadline.
+  it('strips free-text fields where client names appear', async () => {
+    const { recordCoachIntent, setCoachIntentContext, resetCoachIntentLog } =
+      await import('./coachIntentRecorder');
+    resetCoachIntentLog();
+    setCoachIntentContext({ actorId: 7, clientId: 42, inputOrigin: 'voice' });
+
+    const event = recordCoachIntent(
+      'AI_ADD_EXERCISE',
+      { exerciseName: 'Goblet Squat', sets: 3, weight: 185, notes: "Sarah's knee felt tight" },
+      true,
+      true,
+    );
+
+    expect(JSON.stringify(event?.payload)).not.toContain('Sarah');
+    // Structural training data is the point of the log — it must survive.
+    expect((event?.payload as Record<string, unknown>).exerciseName).toBe('Goblet Squat');
+    expect((event?.payload as Record<string, unknown>).weight).toBe(185);
+    // Redaction is visible, so a reader can tell "there was a note" from "no note".
+    expect((event?.payload as Record<string, unknown>).notes).toBe('[redacted:free-text]');
+  });
+
+  it('keeps clinical structure while dropping clinical prose', async () => {
+    const { recordCoachIntent, resetCoachIntentLog, setCoachIntentContext } =
+      await import('./coachIntentRecorder');
+    resetCoachIntentLog();
+    setCoachIntentContext({ clientId: 42, inputOrigin: 'voice' });
+
+    const event = recordCoachIntent(
+      'AI_PAIN',
+      { region: 'knee_left', painLevel: 6, painNote: 'personal detail' },
+      true,
+      true,
+    );
+
+    expect((event?.payload as Record<string, unknown>).region).toBe('knee_left');
+    expect((event?.payload as Record<string, unknown>).painLevel).toBe(6);
+    expect((event?.payload as Record<string, unknown>).painNote).toBe('[redacted:free-text]');
+  });
+
+  it('never breaks the hot path on unusual payloads', async () => {
+    const { recordCoachIntent, resetCoachIntentLog } = await import('./coachIntentRecorder');
+    resetCoachIntentLog();
+    expect(recordCoachIntent('X', null, true, true)).not.toBeNull();
+    expect(recordCoachIntent('X', 'str', true, true)?.payload).toBe('str');
+    // A non-string field named `notes` is data, not prose — do not coerce it.
+    expect((recordCoachIntent('X', { notes: 42 }, true, true)?.payload as Record<string, unknown>).notes).toBe(42);
+  });
+});
+
 describe('summarizeCoachMemory', () => {
   it('says nothing is KNOWN, not that nothing happened', () => {
     const s = summarizeCoachMemory(projectCoachMemory([], 7));

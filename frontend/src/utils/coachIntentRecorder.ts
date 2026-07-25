@@ -96,6 +96,43 @@ export function setCoachInputOrigin(origin: InputOrigin): void {
  * @param acknowledged whether any effector invoked the ack callback at all
  * @param handled      the value it passed (false = saw it, declined)
  */
+/**
+ * Free-text payload fields. These are where a client's NAME ends up — a trainer
+ * dictating "Sarah's knee felt tight" produces a note, not a structured field.
+ *
+ * They are dropped before the intent is recorded, so the log physically cannot
+ * carry PII (rule 8). This is deliberately structural rather than a warning
+ * comment: `projectCoachMemory` exposes `believed: IntentEvent[]` with full
+ * payloads, and `summarizeCoachMemory` is documented as prompt-bound. The next
+ * person wanting richer prompt memory will reach for `believed` — and by then
+ * the free text must already be gone, because a note in a doc does not survive
+ * contact with a deadline.
+ *
+ * Structural fields (exerciseName, sets, reps, weight) are retained: they are
+ * training data, not identity, and they are what makes the log worth keeping.
+ */
+const FREE_TEXT_FIELDS = new Set([
+  'notes', 'note', 'description', 'painNote', 'painDescription',
+  'injuryNotes', 'symptoms', 'trainerNotes', 'comment', 'message', 'transcript',
+]);
+
+/**
+ * Strip free text, keep structure. Shallow by design — payloads in this bus are
+ * flat, and a recursive walk on an unknown shape is a hot-path cost for a case
+ * that does not occur. Redacted keys are replaced with a marker rather than
+ * deleted, so a reader can tell "there was a note" from "there was no note".
+ */
+function redactPayload(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
+    out[key] = FREE_TEXT_FIELDS.has(key) && typeof value === 'string'
+      ? '[redacted:free-text]'
+      : value;
+  }
+  return out;
+}
+
 export function recordCoachIntent(
   name: string,
   payload: unknown,
@@ -105,7 +142,7 @@ export function recordCoachIntent(
   try {
     return log.record({
       name,
-      payload,
+      payload: redactPayload(payload),
       inputOrigin: context.inputOrigin,
       actorId: context.actorId,
       clientId: context.clientId,
