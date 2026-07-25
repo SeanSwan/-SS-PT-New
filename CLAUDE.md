@@ -614,6 +614,15 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
     **How to apply:** before writing or committing any README, doc, closeout, status, changelog, or in-app copy, every present-tense capability claim must map to code that actually does it now (grep/trace it) or be tense-marked as planned. On hostile review (Rule 61) and at closeout (Rule 41), sweep the prose against the code: does it describe the trailhead, or narrate the destination? A closeout that describes a destination the code hasn't reached fails BOTH the Claim-to-Evidence Lock (Rule 28) and this rule. Cross-references: Rule 26 (canonical surface receipt proves what is actually mounted), Rule 28 (claim-to-evidence), Rule 34 (forbidden-language discipline), Rule 74 (proof-before-done). **Why:** Sean, 2026-07-22 — the mistake "keeps happening; we don't wanna ever make this mistake again — let's make it on that level." Docs and UI that describe the destination while the code sits at the trailhead mislead the next agent, mislead Sean, and — in user copy — mislead the customer. Truth is the trailhead, always.
 
+76. **Create-With-Context — expert brains are CONTEXT, Claude is the AUTHOR (MANDATORY routing for all substantial creation)** — Established 2026-07-24 by Sean: *"I want you AND Kimi to be doing creation — Kimi is just context for your creation."* Every substantial creation (net-new feature / component / page / dashboard surface / system / design, or a meaningful upgrade / redesign) auto-routes through the `create-with-context` skill and its five steps:
+    1. **GROUND** — audit the REAL current state before designing anything (never create from memory; spawn an `Explore`/audit agent or run `canonical-surface-audit`; cite file:line). Honors Rules 18/26/52/58. Memory is a hypothesis; the audit is truth.
+    2. **ENHANCE** — remake Sean's prompt into a grounded brief that fills the gaps he may have missed + surgical amplifying features (Rule 62). This is the `prompt-watcher` enhancement, written down.
+    3. **EXPERT CONTEXT** — feed the brief to the RIGHT expert brain as CONTEXT: **Kimi K3** for design/front-end (`consult-kimi.mjs --effort medium --max-tokens 16000`), free **triangle fusion** or `swan-oracle` for architecture/strategy, paid **Village** for high-stakes (Rule 16, ask-first). Get creative ideas + hostile critique. If Sean names the expert, the paid consult is pre-authorized that turn; otherwise free-first, ask before paid.
+    4. **CREATE** — **CLAUDE authors the synthesis**, using the expert input as ONE raw material among Claude's own concrete, opinionated design decisions. DESIGN it — don't assert "premium/awe"; name the tokens, layout, signature moment, CTA priority, phasing; answer every gap the expert flagged. Blueprint header states "Claude authored; `<expert>` was context; `<audit>` was ground truth." Land in `docs/ai-workflow/AI-HANDOFF/` or `brainstorms/` with `decision:`/`status:` frontmatter.
+    5. **PRESENT + BUILD WITH PROOF** — blueprint + taste-cut decisions Sean must make + recommended first slice (Rule 60); then build through the normal gates with Rule 74 proof + DRY-LOOP + `closeout-evidence-lock`.
+
+    **The non-negotiable law:** NEVER relay an expert's output as the deliverable — synthesize your own. The expert makes the creation better, not different; reject expert suggestions that fight the Swan strategy or house rules (Rule 6 tokens, Rule 10 Victory, Dual-Button Glow, dark-first, 44px, ≤300 lines, reduced-motion). This is the creation spine INSIDE the pipeline (`prompt-watcher` → `grill-me`/`chromie` → `swan-orchestrator` → `swan-design-router` → build → `closeout-evidence-lock`), NOT a bypass. Fires automatically every chat via this rule (boot context) + the `prompt-watcher` VISION path. Does NOT fire for trivial edits / bugfixes / questions / status / corrections. Skill: `.claude/skills/create-with-context/SKILL.md`. **Why:** Sean 2026-07-24 — consulting an expert and pasting its answer is a failure mode; grounding in an audit + using the expert as context while Claude authors is what produced the charts-upgrade blueprint (`CHARTS-EXPANSIVE-UPGRADE-BLUEPRINT-2026-07-24.md`) this rule was born from. Memory is a hypothesis; the audit is truth; the expert is context; **Claude is the author.**
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -847,11 +856,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` documented count = 23)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24, `.claude/skills/` documented count = 24)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 23 entries
+### Default-exposed `.claude/skills/` = 24 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -862,9 +871,10 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (9):**
+**Swan orchestration (10):**
 | Skill | Role |
 |---|---|
+| `create-with-context` | The Swan creation workflow (rule 76). For any substantial creation: GROUND in a real audit (never from memory) → ENHANCE the prompt → pull an EXPERT brain (Kimi K3 for design; triangle/oracle otherwise) as CONTEXT → CLAUDE AUTHORS the synthesis (expert is context, never author) → present blueprint + build with proof. Auto-fires every chat via rule 76 + prompt-watcher VISION path. |
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
 | `fable-mode` | Portable Fable working discipline (rule 71). Five gates (scope adversarially / evidence first / attack own reasoning / verify before declaring / report calibrated) + the model/effort routing table (orchestrator-smart, executor-cheap). MANDATORY load for any fallback Final Decider acting in Fable's absence; on-demand for hard problems ("fable mode"). Does NOT elevate rule-68 provenance. |
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
