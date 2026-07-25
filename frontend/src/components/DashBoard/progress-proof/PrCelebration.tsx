@@ -28,25 +28,26 @@ const shardBurst = keyframes`
 `;
 
 const ribbonPop = keyframes`
-  0%   { opacity: 0; transform: translateY(6px) scale(0.86); }
-  60%  { transform: translateY(0) scale(1.04); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.86); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.04); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 `;
 
 const Layer = styled.div`
   position: absolute;
   inset: 0;
   z-index: 2;
-  display: grid;
-  place-items: center;
   pointer-events: none;
   overflow: hidden;
 `;
 
 const Flash = styled.span`
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: 140px;
   height: 140px;
+  margin: -70px 0 0 -70px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
@@ -59,8 +60,11 @@ const Flash = styled.span`
 
 const Shard = styled.span`
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: 3px;
   height: 16px;
+  margin: -8px 0 0 -1.5px;
   border-radius: 2px;
   background: linear-gradient(
     var(--accent-gold, #C6A84B),
@@ -77,11 +81,16 @@ const Shard = styled.span`
   @media (prefers-reduced-motion: reduce) { display: none; }
 `;
 
+/* Persistent badge — pinned TOP-CENTER so it never covers the card metrics. */
 const Ribbon = styled.span`
+  position: absolute;
+  top: 0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.75rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
   font: 800 0.74rem/1 'Sora', sans-serif;
   letter-spacing: 0.04em;
