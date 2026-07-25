@@ -10,6 +10,7 @@
  * Slice A1 — Coach Context Engine (2026-06-10)
  */
 import { buildCoachContext } from '../contextEngine/coachContextEngine.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const STALE_DAYS = 7;
 
@@ -109,7 +110,7 @@ function formatBrief(context, dataQuality) {
  * @param {Object} ctx - CommandContext (user, resolvedClient, options.sequelize)
  */
 export async function dispatchBriefClient(params, ctx) {
-  const targetClientId = ctx?.resolvedClient?.id ?? params?.clientId ?? null;
+  const targetClientId = resolveCommandClientId(params, ctx);
 
   const result = await buildCoachContext({
     user: ctx?.user,
