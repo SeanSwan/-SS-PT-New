@@ -1,5 +1,28 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import type { ProgressChartPulseTone } from './progressChartActions';
+
+/** State-driven CTA emphasis (G4): primary=drill, promoted=share-on-record, utility=export. */
+export type ActionEmphasis = 'primary' | 'promoted' | 'utility';
+
+const emphasisStyles: Record<ActionEmphasis, ReturnType<typeof css>> = {
+  primary: css`
+    border-color: var(--border-accent, color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent));
+    color: var(--text-primary, #E0ECF4);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, var(--bg-surface, #1A1A24));
+  `,
+  promoted: css`
+    border-color: var(--accent-gold, #C6A84B);
+    color: var(--accent-gold, #C6A84B);
+    background: color-mix(in srgb, var(--accent-gold, #C6A84B) 16%, var(--bg-surface, #1A1A24));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent),
+      0 4px 16px color-mix(in srgb, var(--accent-gold, #C6A84B) 26%, transparent);
+    &:hover { border-color: var(--accent-gold, #C6A84B); }
+  `,
+  utility: css`
+    opacity: 0.82;
+    font-weight: 600;
+  `,
+};
 
 export const ActionShell = styled.div`
   display: grid;
@@ -54,7 +77,7 @@ export const RangeButton = styled.button<{ $active: boolean }>`
   }
 `;
 
-export const IconActionButton = styled.button`
+export const IconActionButton = styled.button<{ $emphasis?: ActionEmphasis }>`
   min-height: 44px;
   min-width: 44px;
   display: inline-flex;
@@ -85,6 +108,9 @@ export const IconActionButton = styled.button`
     cursor: not-allowed;
     opacity: 0.52;
   }
+
+  /* State-driven emphasis (G4) applied last so it wins over the base look. */
+  ${({ $emphasis }) => ($emphasis ? emphasisStyles[$emphasis] : null)}
 `;
 
 export const SummaryText = styled.p`

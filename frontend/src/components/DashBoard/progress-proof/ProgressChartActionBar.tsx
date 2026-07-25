@@ -88,6 +88,7 @@ const ExportButtons: React.FC<{
   panelId: string;
   isOpen: boolean;
   hasRows: boolean;
+  isRecord: boolean;
   onCsvExport: () => void;
   onOpenStudio: () => void;
   onPngExport: () => void;
@@ -97,33 +98,42 @@ const ExportButtons: React.FC<{
   panelId,
   isOpen,
   hasRows,
+  isRecord,
   onCsvExport,
   onOpenStudio,
   onPngExport,
   onToggleDetails,
 }) => (
+  // CTA hierarchy (G4): Details=primary (the everyday depth action), Share=promoted
+  // only when a fresh record is worth celebrating, CSV/PNG=utility exports.
   <>
-    <IconActionButton type="button" onClick={onCsvExport}>
-      <Download size={14} aria-hidden="true" />
-      CSV
-    </IconActionButton>
-    <IconActionButton type="button" disabled={!canExportPng} onClick={onPngExport}>
-      <Download size={14} aria-hidden="true" />
-      PNG
-    </IconActionButton>
-    <IconActionButton type="button" onClick={onOpenStudio}>
-      <Share2 size={14} aria-hidden="true" />
-      Share
-    </IconActionButton>
     <IconActionButton
       type="button"
       aria-controls={panelId}
       aria-expanded={isOpen}
       disabled={!hasRows}
+      $emphasis="primary"
       onClick={onToggleDetails}
     >
       <ListTree size={14} aria-hidden="true" />
       Details
+    </IconActionButton>
+    <IconActionButton
+      type="button"
+      $emphasis={isRecord ? 'promoted' : undefined}
+      aria-label={isRecord ? 'Share new record proof card' : undefined}
+      onClick={onOpenStudio}
+    >
+      <Share2 size={14} aria-hidden="true" />
+      Share
+    </IconActionButton>
+    <IconActionButton type="button" $emphasis="utility" onClick={onCsvExport}>
+      <Download size={14} aria-hidden="true" />
+      CSV
+    </IconActionButton>
+    <IconActionButton type="button" $emphasis="utility" disabled={!canExportPng} onClick={onPngExport}>
+      <Download size={14} aria-hidden="true" />
+      PNG
     </IconActionButton>
   </>
 );
@@ -237,6 +247,7 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
           panelId={panelId}
           isOpen={isOpen}
           hasRows={hasRows}
+          isRecord={pulse?.tone === 'record'}
           onCsvExport={handleExport}
           onOpenStudio={() => setIsStudioOpen(true)}
           onPngExport={handlePngExport}
