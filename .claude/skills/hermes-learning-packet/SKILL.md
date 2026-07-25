@@ -20,6 +20,8 @@ description: Turns substantial, high-tier work — ESPECIALLY Fable-authored pla
 
 1. **Source-tier gate FIRST (fail-closed).** Establish the packet's `originating_model` — the model whose intelligence the packet captures. Because Sean has **subscriptions, not API keys** for Claude/Codex, the tier cannot be verified by an API call; it is an **agent/human-stamped provenance tag** that must be trusted and recorded honestly.
    - **Allowlist = Fable-tier or above** (`claude-fable-5`, or a future model Sean explicitly designates as at/near Fable's level).
+     - **`claude-opus-5` / `claude-opus-5[1m]` — DESIGNATED BY SEAN 2026-07-25** as at/above Fable's level ("Opus five is eligible for the durable Fable-tier learning corpus... It is superior to Fable"). Opus 5 output therefore **PASSES** the source gate. This is the rule's own designation mechanism exercised by the owner — not an exception to it.
+     - Boundary: **Opus 4.8 and below remain BLOCKED.** The designation is specific to Opus 5, not to "Opus" generally.
    - If `originating_model` is Opus 4.8, Codex, Gemini, or anything below Fable → **do NOT write to the learning corpus.** Either stop, or write to the quarantine path (`docs/ai-workflow/hermes-learning-packets/_quarantine/`) clearly labeled as non-ingested. Never let sub-Fable output enter Hermes's learning corpus.
    - When in doubt about tier, ask Sean one question: "What model authored this — is it Fable-tier?" Bias to quarantine.
 2. **Decide it's worth a packet.** Not every close deserves one. A packet is warranted when the work contains a *transferable lesson* Hermes should carry forward — a decision + its rationale, a pattern, a corrected root cause, a new capability, a risk. Skip pure status/mechanics.
