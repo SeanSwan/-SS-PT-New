@@ -30,13 +30,23 @@ status, or corrections. Bias to skipping on small work — this is for creation,
 
 ## The five steps
 
-### 1. GROUND — never create from memory
+### 1. GROUND — find what exists, then make it BETTER
 Audit the **real current state** before designing anything. Spawn an `Explore`/audit
 agent (or run `canonical-surface-audit`) to establish: what's actually shipped, what's
 stranded/half-built, what's mock vs real data, what's a genuine gap, where it mounts.
 Cite file:line. This honors Rule 18 (existing-pattern-first), Rule 26 (canonical surface),
 Rule 58 (schema drift), Rule 52 (anti-rework). **Memory is a hypothesis; the audit is
 truth.** A creation built on a wrong assumption about current state is wasted.
+
+**Grounding is not only "don't duplicate" — it's "improve what's there" (Sean 2026-07-24).**
+When grounding surfaces existing work, LOOK IT OVER FOR UPGRADES: does it match the
+vision, the house rules (tokens, Victory, dark-first, 44px, ≤300 lines, reduced-motion),
+the least-clicks bar, the premium bar? Then **EXTEND / IMPROVE it toward the vision**
+rather than rebuilding from scratch OR leaving it as-is. **Both failures are banned:**
+don't-reinvent (wasteful) AND don't-leave-it-weak (a missed upgrade). Existing code is a
+starting point to make better — the deliverable of a "create" task on an existing surface
+is usually an UPGRADE, not a greenfield build. Produce an upgrade list (what's built →
+what to improve → why it's better) as the creation's spine.
 
 ### 2. ENHANCE — remake the prompt, fill the gaps
 Take Sean's prompt and rewrite it into a grounded brief that fills the gaps he may have
