@@ -751,8 +751,8 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
    - `3840x2160` 4K monitor class
    - `3440px` ultrawide
    - If a QA tool accepts only width, use `2560px` and `3840px` widths and state the tested height separately. `1440px` width is not the same as 1440p; 1440p means a `2560x1440` viewport class.
-6. **Gemini design handoff rule**
-   If Gemini provides the concept, Claude must preserve the direction but still critique implementation fidelity, hierarchy, spacing, responsiveness, and polish. Gemini direction is not a substitute for production QA.
+6. **Design handoff rule (amended 2026-07-25 — Gemini is context, not authority)**
+   The design direction is set by **Kimi K3 or Opus 5** (the design authority). Gemini may contribute context, research, or options *into* that decision — its output is an input, never the direction itself, and it holds no veto. Whoever receives a concept must still critique implementation fidelity, hierarchy, spacing, responsiveness, and polish. No concept from any model is a substitute for production QA.
 7. **Reporting style**
    Name the design weaknesses found, what was improved, and which viewport widths were actually checked.
 
@@ -774,12 +774,13 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
 ## Co-Orchestrator Hierarchy
-- **Fable 5 (FINAL DECIDER)** — Established by Sean 2026-06-10: **Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING** — plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 gate verdict and Gemini's design authority. **Fallback chain when Fable is unavailable:** the next best available Claude model assumes the Final Decider role (Opus 4.8 → Opus 4.x → Sonnet 4.6). Sean remains the human owner above all models.
+- **Fable 5 (FINAL DECIDER)** — Established by Sean 2026-06-10: **Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING** — plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 gate verdict. (Amended 2026-07-25: design authority is **Kimi K3 + Opus 5**; Gemini is context-only.) **Fallback chain when Fable is unavailable:** the next best available Claude model assumes the Final Decider role (Opus 4.8 → Opus 4.x → Sonnet 4.6). Sean remains the human owner above all models.
 - **Opus 4.x (Deputy/CEO when Fable unavailable)** — first fallback Final Decider.
-- **Gemini 3.1 Pro (CTO)** — Lead Design Authority. Authoritative on aesthetics; Fable can override.
+- **⚠ DESIGN AUTHORITY = Kimi K3 + Opus 5 (Sean 2026-07-25).** Design arbitration belongs to **Kimi and Opus 5**. They pick the direction and own aesthetic judgment. Either may decide alone when the other is unavailable.
+- **Gemini 3.1 Pro (CTO) — CONTEXT ONLY (amended 2026-07-25).** Gemini is **NO LONGER the design authority.** It may supply context, research, and options *into* a design decision; it does **not** arbitrate, set direction, or hold veto. Sean's words: *"gemini 3 pro is no longer the authority — Kimi and Opus 5. Gemini 3.1 can only give context to the decision and that is all."*
 - **Codex (Hostile Reviewer)** — rule-46 review remains mandatory input for substantial changes, but its verdict is advisory to Fable (see rule 46 amendment).
 - **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
-- **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
+- **Design execution rule (amended 2026-07-25):** the direction is set by **Kimi or Opus 5**. Gemini output is an input to that decision, never the decision. Whoever builds still runs hostile design critique, responsive QA, and production-fidelity review before ship.
 - **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.
 - Consult: `node scripts/consult-gemini.mjs --plan|--design|--review|--ask`
 - Output: `AI-Village-Documentation/gemini-consults/latest.md`

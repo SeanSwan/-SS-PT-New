@@ -79,7 +79,7 @@ node scripts/validation-orchestrator.mjs --staged
 ### Chain of Command (MANDATORY)
 The AI Village has a strict hierarchy for decision-making:
 1. **Claude Opus 4.6 (CEO)** — FINAL authority on ALL decisions. Overrides everyone.
-2. **Gemini 3.1 Pro (CTO / Creative Director)** — Lead Design Authority. Authoritative on design, but Opus can override on engineering/business grounds.
+2. **Gemini 3.1 Pro (CTO / Creative Director) — CONTEXT ONLY (amended 2026-07-25).** ⚠ **No longer the design authority.** Design arbitration now belongs to **Kimi K3 + Opus 5**. Gemini may supply context, research, and options *into* a design decision; it does not arbitrate, set direction, or hold veto.
 3. **Claude Sonnet 4.6 (VP Engineering)** — Premium code quality analysis. Used in Phase 1 + Code Quality debate.
 4. **Mercury 2 + MiniMax M2.7 (Specialist Consultants)** — Only called in for CRITICAL findings or stalled debates. Smart-gated to avoid token waste.
 5. **Phase 1 free validators (Staff Engineers)** — Surface findings from diverse training perspectives. No decision authority.
