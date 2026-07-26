@@ -53,10 +53,10 @@ function readBounded(path) {
   return text;
 }
 
-function sanitize(value) {
+export function sanitize(value) {
   return String(value ?? '')
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '<REDACTED_EMAIL>')
-    .replace(/\+?1?[\s.(-]*\d{3}[\s.)-]*\d{3}[\s.-]*\d{4}/g, '<REDACTED_PHONE>')
+    .replace(/(?<![A-Za-z0-9])\+?1?[\s.(-]*\d{3}[\s.)-]*\d{3}[\s.-]*\d{4}(?![A-Za-z0-9])/g, '<REDACTED_PHONE>')
     .replace(/sk-or-[A-Za-z0-9_-]{8,}/g, '<REDACTED_KEY>')
     .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer <REDACTED_KEY>')
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '<REDACTED_JWT>')
@@ -69,7 +69,7 @@ function sha256(value) {
 
 function estimateUsd(prompt, maxTokens, pricing) {
   const conservativeInputTokens = Buffer.byteLength(prompt, 'utf8');
-  return (conservativeInputTokens / 1_000_000) * pricing.inpu
+  return (conservativeInputTokens / 1_000_000) * pricing.input
     + (maxTokens / 1_000_000) * pricing.output;
 }
 
@@ -170,7 +170,7 @@ ${seed || '(none; this is the independent first-pass review)'}
 
   const inputTokens = Number(data.usage?.prompt_tokens) || 0;
   const outputTokens = Number(data.usage?.completion_tokens) || 0;
-  const actualUsd = (inputTokens / 1_000_000) * config.pricing.inpu
+  const actualUsd = (inputTokens / 1_000_000) * config.pricing.input
     + (outputTokens / 1_000_000) * config.pricing.output;
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   const output = `# ${config.outputHeading}

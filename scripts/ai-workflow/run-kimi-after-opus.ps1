@@ -28,6 +28,6 @@ $arguments = @(
 )
 if ($ConfirmSpend) { $arguments += '--confirm-spend' }
 
-Push-Location $repoRoo
+Push-Location $repoRoot
 try { & node @arguments } finally { Pop-Location }
 exit $LASTEXITCODE
