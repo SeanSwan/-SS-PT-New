@@ -97,6 +97,8 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 
 | Entry | Owner | Tier | Decision | Notes |
 |---|---|---|---|---|
+| Standalone Opus first-pass review | Claude Opus 5 + Human/Sean | T1 analysis / explicit paid-run gate | CREATE | `run-opus-review.ps1`; dry-run first, exact sanitized document, pinned model, hard `$3` cap |
+| Kimi second-pass review | Kimi K3 + Human/Sean | T1 analysis / separate explicit paid-run gate | CREATE | `run-kimi-after-opus.ps1`; same document + frozen matching-hash Opus artifact, hard `$3` cap |
 | AI Village light/STORM review | AI Village | T1 | CREATE (mode def) | `130-fable-ai-village-review-packet.md`; cheap subset |
 | AI Village full review | AI Village | T1 | KEEP (rule 16 gate) | Sean approval + spend cap, always |
 | AI Village hostile review | AI Village | T1 | CREATE (mode def) | Adversarial lenses; refute-first |
