@@ -31,7 +31,6 @@ import StatsSection from './sections/StatsSection';
 import SocialSection from './sections/SocialSection';
 import CTASection from './sections/CTASection';
 import NewsletterSection from './sections/NewsletterSection';
-import { YEARS_EXPERIENCE_CLAIM } from '../../../content/marketingStats';
 
 const MainWrapper = styled.div`
   position: relative;
@@ -57,8 +56,8 @@ const HomePageV4: React.FC = () => {
   return (
     <>
       <SeoHead
-        title="SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision"
-        description={`Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with ${YEARS_EXPERIENCE_CLAIM} years experience, Swan Coach programming, serving Orange County and LA.`}
+        title="SwanStudios | Personal Training, Progress, and Community"
+        description="Personal training, practical progress tracking, and a health-first community built by SwanStudios in Anaheim Hills."
         path="/"
       />
 
