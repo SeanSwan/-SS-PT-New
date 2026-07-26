@@ -54,6 +54,11 @@ describe('VideoLibraryV3 hardening contracts', () => {
     expect(page).toContain('SearchButton');
     expect(page).toContain('ClearFiltersButton');
     expect(page).toContain('Training Video Vault');
+    expect(page).toContain('The SwanStudios Video Vault Opens Soon');
+    expect(page).toContain('https://www.youtube.com/@swanstudios2018');
+    expect(page).toContain('rel="noreferrer"');
+    expect(page).toContain('pagination.total > 0 || collections.length > 0');
+    expect(styleSource).toContain('min-height: 44px');
     expect(page).toContain('HeroStats');
     expect(page).toContain('Previous page');
     expect(page).toContain('Next page');

@@ -33,7 +33,7 @@ import CTASection from './sections/CTASection';
 import NewsletterSection from './sections/NewsletterSection';
 import { YEARS_EXPERIENCE_CLAIM } from '../../../content/marketingStats';
 
-const MainWrapper = styled.main`
+const MainWrapper = styled.div`
   position: relative;
   background: var(--bg-base, #002060);
 `;
