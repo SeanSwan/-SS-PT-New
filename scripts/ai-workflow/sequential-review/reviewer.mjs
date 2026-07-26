@@ -83,12 +83,28 @@ function assertFrozenOpusSeed(seed, documentHash) {
   }
 }
 
+export function assertReviewComplete(data, maxTokens) {
+  const choice = data.choices?.[0];
+  const finishReason = choice?.finish_reason || choice?.native_finish_reason;
+  const outputTokens = Number(data.usage?.completion_tokens) || 0;
+  const hitTokenCeiling = outputTokens >= maxTokens;
+
+  if (finishReason === 'length' || finishReason === 'max_tokens' || hitTokenCeiling) {
+    throw new Error(
+      `review response truncated at max_tokens ceiling (finish_reason=${finishReason || 'unknown'}, output_tokens=${outputTokens}, max_tokens=${maxTokens})`,
+    );
+  }
+  if (!choice?.message?.content?.trim()) {
+    throw new Error('OpenRouter returned no visible review');
+  }
+}
+
 export async function runReview(config) {
   const documentPath = arg('document');
   const seedPath = arg('seed');
   const outputPath = arg('out', config.defaultOutput);
   const effort = arg('effort', 'high');
-  const maxTokens = Number(arg('max-tokens', '16000'));
+  const maxTokens = Number(arg('max-tokens', String(config.defaultMaxTokens ?? 16000)));
   const capUsd = Number(arg('cap-usd', '3'));
   const confirmSpend = hasFlag('confirm-spend');
 
@@ -165,8 +181,8 @@ ${seed || '(none; this is the independent first-pass review)'}
   }
   const data = await response.json();
   if (data.error) throw new Error(`OpenRouter error: ${sanitize(data.error.message || 'unknown error')}`);
-  const text = data.choices?.[0]?.message?.content;
-  if (!text?.trim()) throw new Error('OpenRouter returned no visible review');
+  assertReviewComplete(data, maxTokens);
+  const text = data.choices[0].message.content;
 
   const inputTokens = Number(data.usage?.prompt_tokens) || 0;
   const outputTokens = Number(data.usage?.completion_tokens) || 0;

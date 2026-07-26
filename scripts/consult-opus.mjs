@@ -8,6 +8,7 @@ const config = {
   outputHeading: 'Claude Opus 5 - Review',
   defaultOutput: 'docs/ai-workflow/AI-HANDOFF/OPUS-STANDALONE-REVIEW.md',
   pricing: { input: 5, output: 25 },
+  defaultMaxTokens: 40000,
   requiresOpusSeed: false,
   remit: `You are Claude Opus 5 acting alone as SwanStudios' first-pass architecture reviewer.
 You have not seen another model's answer and must not simulate consensus. Perform a hostile,

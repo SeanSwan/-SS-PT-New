@@ -9,7 +9,7 @@ param(
   [Parameter(Mandatory = $true)][string]$Document,
   [string]$Out = 'docs/ai-workflow/AI-HANDOFF/OPUS-STANDALONE-REVIEW.md',
   [ValidateSet('low', 'medium', 'high')][string]$Effort = 'high',
-  [ValidateRange(1, 100000)][int]$MaxTokens = 16000,
+  [ValidateRange(1, 100000)][int]$MaxTokens = 40000,
   [ValidateRange(0.01, 3)][double]$CapUsd = 3,
   [switch]$ConfirmSpend
 )

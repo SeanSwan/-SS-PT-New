@@ -47,6 +47,7 @@ test('Kimi verifies the frozen Opus artifact against the current document hash',
     ], { cwd: ROOT, encoding: 'utf8' });
     assert.equal(accepted.status, 0, accepted.stderr);
     assert.match(accepted.stdout, /status=preflight model_calls=0 model=moonshotai\/kimi-k3/);
+    assert.match(accepted.stdout, /max_tokens=16000/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

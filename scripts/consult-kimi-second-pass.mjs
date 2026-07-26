@@ -14,7 +14,7 @@ Read both the original bounded document and the frozen standalone Opus review. I
 verify every important claim; do not defer to Opus and do not manufacture consensus. Identify
 what Opus caught, missed, overstated, or got wrong. Prioritize privacy and re-identification,
 security boundaries, data minimization, NASM workout-safety governance, provider risk,
-operational failure modes, model-routing value, and testability. Produce: VERDICT; agreemen
+operational failure modes, model-routing value, and testability. Produce: VERDICT; agreement
 and disagreement matrix; new findings; corrected architecture; phased validation plan; and
 a final recommendation on when Kimi adds enough value to justify external processing.
 Repository truth and Swan's zero-PII rule remain binding. Do not invent client facts.`,

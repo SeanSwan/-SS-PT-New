@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { sanitize } from './sequential-review/reviewer.mjs';
+import * as reviewRuntime from './sequential-review/reviewer.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const CLI = join(ROOT, 'scripts', 'consult-opus.mjs');
@@ -15,6 +16,30 @@ test('sanitizer redacts a standalone phone without corrupting SHA-256 values', (
 
   assert.match(sanitized, /phone=<REDACTED_PHONE>/);
   assert.match(sanitized, new RegExp(`digest=${digest}`));
+});
+
+test('review runtime rejects a provider response truncated by the token ceiling', () => {
+  assert.equal(typeof reviewRuntime.assertReviewComplete, 'function');
+  assert.throws(() => reviewRuntime.assertReviewComplete({
+    choices: [{ finish_reason: 'length', message: { content: 'cut off' } }],
+    usage: { completion_tokens: 16000 },
+  }, 16000), /truncated|max.tokens|length/i);
+});
+
+test('review runtime rejects a response that consumes the entire token ceiling even if the provider says stop', () => {
+  assert.equal(typeof reviewRuntime.assertReviewComplete, 'function');
+  assert.throws(() => reviewRuntime.assertReviewComplete({
+    choices: [{ finish_reason: 'stop', message: { content: 'apparently complete' } }],
+    usage: { completion_tokens: 40000 },
+  }, 40000), /truncated|max.tokens|ceiling/i);
+});
+
+test('review runtime accepts a stopped response below the token ceiling', () => {
+  assert.equal(typeof reviewRuntime.assertReviewComplete, 'function');
+  assert.doesNotThrow(() => reviewRuntime.assertReviewComplete({
+    choices: [{ finish_reason: 'stop', message: { content: 'complete review' } }],
+    usage: { completion_tokens: 39999 },
+  }, 40000));
 });
 
 test('Opus review defaults to a zero-call preflight', () => {
@@ -30,6 +55,7 @@ test('Opus review defaults to a zero-call preflight', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /status=preflight model_calls=0/);
     assert.match(result.stdout, /model=anthropic\/claude-opus-5/);
+    assert.match(result.stdout, /max_tokens=40000/);
     assert.match(result.stdout, /worst_case_usd=\$\d+\.\d{4}/);
     assert.doesNotMatch(result.stdout, /worst_case_usd=\$NaN/);
     assert.match(result.stdout, /add --confirm-spend/);
@@ -57,6 +83,7 @@ test('PowerShell Opus wrapper reaches the zero-call preflight', {
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /status=preflight model_calls=0/);
+    assert.match(result.stdout, /max_tokens=40000/);
     assert.match(result.stdout, /worst_case_usd=\$\d+\.\d{4}/);
     assert.throws(() => readFileSync(output, 'utf8'));
   } finally {

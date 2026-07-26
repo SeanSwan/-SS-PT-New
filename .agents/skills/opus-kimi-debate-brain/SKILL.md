@@ -33,7 +33,7 @@ This protocol replaces the former coupled Opus/Kimi debate. The models do not al
 7. Report Kimi's model, estimate, and cap. Add `-ConfirmSpend` only after Sean separately approves that exact Kimi run.
 8. Present Opus and Kimi findings separately, then produce a repository-grounded synthesis. Neither model is an automatic commit gate.
 
-## Safety contrac
+## Safety contract
 
 - `anthropic/claude-opus-5` is pinned for the first pass.
 - `moonshotai/kimi-k3` is pinned for the second pass.

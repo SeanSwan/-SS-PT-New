@@ -62,6 +62,7 @@ Live call only after a second approval:
 - Opus is pinned to `anthropic/claude-opus-5`; Kimi is pinned to `moonshotai/kimi-k3`.
 - The Kimi stage requires an Opus artifact whose embedded document SHA-256 matches the current original packet.
 - Changing the original packet after Opus completes invalidates the handoff and requires a new Opus review.
+- Standalone Opus deep reviews default to a 40,000-token output ceiling; a length finish or full-ceiling response is rejected as truncated.
 - Each call estimates worst-case cost conservatively and stops before network access if it exceeds its cap.
 - OpenRouter routing requests zero-data-retention providers with data collection denied.
 
