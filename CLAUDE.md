@@ -166,26 +166,19 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
 45. **No amend/rewrite without Sean (MANDATORY)** — Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
 
-46. **3-Brain Review Loop (MANDATORY) — AMENDED 2026-06-10: Fable is the Final Decider.** Sean's directive 2026-06-10: "Fable is the final decider in everything; if Fable is not available, use the next best model." Effect on this rule: the review ORDER below still runs for substantial changes (Claude builds → Gemini reviews → Codex reviews), but **Codex's verdict is now advisory input, not the commit gate — Fable (or the fallback Final Decider) arbitrates all verdicts and owns the commit decision.** Codex's hostile-review value is preserved (its catch record below is why it stays mandatory input); its authority is not. If Codex is unavailable, Fable may proceed with Gemini review + its own hostile pass, recording the gap in the commit message. Original rule text follows for the review procedure:
-    1. **Claude builds** — implementation + tests, narrow scope
-    2. **Gemini reviews** — invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
-    3. **Codex reviews both** — Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
-    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's **APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
+46. **Kimi Hostile-Review Gate (MANDATORY for substantial changes) - AMENDED 2026-07-26.** Sean retired Fable as the routine Final Decider because its cost is disproportionate for everyday work. **Kimi K3 is the standard Final Reviewer and commit gate** for substantial plans, implementations, governance changes, and release candidates. **Fable is explicit opt-in only** when Sean specifically requests it; no workflow may silently require or invoke Fable. This amendment supersedes every conflicting active Fable-gate or fallback-decider statement elsewhere in this file.
+    1. **Builder builds** - implementation and tests, with a bounded scope.
+    2. **Builder verifies and self-attacks** - run the applicable tests, security checks, browser or caller-path checks, backend drift audit, and secret scan.
+    3. **Kimi reviews** - provide a bounded privacy-safe packet plus verified evidence. Kimi returns APPROVE / REVISE / REJECT with concrete findings.
+    4. **Builder repairs and re-verifies** - REVISE repeats until clean; REJECT returns to planning.
 
-    This ordering is mandatory because Codex has consistently caught what Claude and Gemini both missed:
-    - Credential re-leak in handoff doc (2026-04-19) — Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
-    - Script arg parser bug (2026-04-21) — `consult-gemini.mjs --review --file X` fed "--file" as code to review; Gemini hallucinated a phantom component; Codex diagnosed via argv trace.
-    - Phase 18.A Gemini contradiction (2026-04-21) — Gemini proposed theme-provider tokens that violate rule 6; Codex killed it, kept the two valid fixes.
-    - Cross-platform preflight bug (2026-04-20) — Claude shelled out to `bash` which resolves to WSL on Windows; Codex flagged it from the Windows path.
-
-    Sub-rules (as amended 2026-06-10):
-    - **Gemini review is mandatory before Codex** so Codex has the third perspective to cross-check. Skipping Gemini leaves Codex with only Claude's self-view.
-    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is a hostile reviewer; **Fable is the gate.**
-    - **CLAUDE.md rules win.** When Gemini or Codex suggests anything contradicting an existing rule, the Final Decider rejects the suggestion and logs the contradiction.
-    - **Village (15-brain) is a separate escalation track** for major architectural decisions. 3-brain per-fix; Village per-phase.
-    - **If Codex service is unavailable** (rate limit, outage), Fable may proceed with Gemini review + its own documented hostile pass; the skipped Codex input is recorded in the commit message for post-hoc review.
-
-    Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
+    Sub-rules:
+    - A **matching completed Kimi review satisfies the gate** when the reviewed scope or content hash has not changed materially; do not pay to review the same packet twice.
+    - Fable absence, quota, or cost never blocks routine work. Fable requires Sean's explicit per-run request.
+    - Gemini, Codex, Opus, and other reviewers may provide advisory evidence, but they do not replace Kimi unless Sean explicitly names a replacement.
+    - Repo rules and Sean's decisions outrank every model suggestion.
+    - AI Village remains a separate Rule-16 spend-gated escalation track.
+    - If Kimi is unavailable, stop before commit unless Sean explicitly waives the external gate or names a replacement reviewer.
 
 47. **Supervised Read-Only Launcher Pattern (MANDATORY for all remote/Pi/production work)** — Established 2026-04-25 after the W1.0 manual-command workflow proved too fragile for Sean. Any semi-automated work that touches a remote system (Pi, Hermes, Render, third-party server) MUST run via a local launcher. Long copy-paste shell command sequences are forbidden; Claude does not hand Sean a wall of commands to run by hand.
 
@@ -726,11 +719,12 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
 ## Co-Orchestrator Hierarchy
-- **Fable 5 (FINAL DECIDER)** — Established by Sean 2026-06-10: **Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING** — plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 gate verdict. (Amended 2026-07-25: design authority is **Kimi K3 + Opus 5**; Gemini is context-only.) **Fallback chain when Fable is unavailable:** the next best available Claude model assumes the Final Decider role (Opus 4.8 → Opus 4.x → Sonnet 4.6). Sean remains the human owner above all models.
-- **Opus 4.x (Deputy/CEO when Fable unavailable)** — first fallback Final Decider.
+- **Sean (human owner)** - final authority above every model.
+- **Kimi K3 (STANDARD FINAL REVIEWER)** - As amended by Sean 2026-07-26, Kimi is the routine hostile-review and commit gate for substantial work. A matching completed review is reused. Normal privacy, bounded-packet, and spend controls still apply.
+- **Fable 5 (EXPLICIT OPT-IN ONLY)** - Fable is not a standing gate, fallback, or automatic expense. Invoke it only when Sean specifically requests a Fable run.
 - **⚠ DESIGN AUTHORITY = Kimi K3 + Opus 5 (Sean 2026-07-25).** Design arbitration belongs to **Kimi and Opus 5**. They pick the direction and own aesthetic judgment. Either may decide alone when the other is unavailable.
 - **Gemini 3.1 Pro (CTO) — CONTEXT ONLY (amended 2026-07-25).** Gemini is **NO LONGER the design authority.** It may supply context, research, and options *into* a design decision; it does **not** arbitrate, set direction, or hold veto. Sean's words: *"gemini 3 pro is no longer the authority — Kimi and Opus 5. Gemini 3.1 can only give context to the decision and that is all."*
-- **Codex (Hostile Reviewer)** — rule-46 review remains mandatory input for substantial changes, but its verdict is advisory to Fable (see rule 46 amendment).
+- **Codex (Builder / Hostile Reviewer)** - performs implementation, verification, and independent hostile review; its evidence feeds the Kimi gate.
 - **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
 - **Design execution rule (amended 2026-07-25):** the direction is set by **Kimi or Opus 5**. Gemini output is an input to that decision, never the decision. Whoever builds still runs hostile design critique, responsive QA, and production-fidelity review before ship.
 - **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.

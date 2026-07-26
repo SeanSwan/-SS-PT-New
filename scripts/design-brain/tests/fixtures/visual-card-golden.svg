@@ -1,0 +1,190 @@
+<svg width="100vw" height="75vw" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="visual-card-title visual-card-description">
+  <title id="visual-card-title">Swan Design Brain pattern card: Momentum Becomes Proof</title>
+  <desc id="visual-card-description">A synthetic Crystalline Swan visual-learning card showing hierarchy, evidence translation, five interface states, eight responsive widths, motion intent, and anti-copy guidance.</desc>
+
+  <g id="card-surface">
+    <rect x="12" y="12" width="1176" height="876" rx="34" fill="#0A0A0F" stroke="#60C0F0" stroke-width="2"/>
+    <rect x="28" y="28" width="1144" height="844" rx="26" fill="#141419" stroke="#003080" stroke-width="2"/>
+    <path d="M54 132H1146" stroke="#4070C0" stroke-width="2"/>
+    <path d="M54 758H1146" stroke="#003080" stroke-width="2"/>
+  </g>
+
+  <g id="header-zone">
+    <rect x="44" y="44" width="1112" height="74" rx="18" fill="#002060"/>
+    <rect x="58" y="58" width="8" height="46" rx="4" fill="#60C0F0"/>
+    <text x="82" y="73" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">SWAN-OWNED DERIVED PATTERN</text>
+    <text x="82" y="101" fill="#E0ECF4" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="28" font-weight="700">Momentum Becomes Proof</text>
+
+    <g id="lifecycle-badge">
+      <rect x="643" y="61" width="116" height="38" rx="19" fill="#1A1A24" stroke="#8B5CF6" stroke-width="2"/>
+      <circle cx="663" cy="80" r="5" fill="#8B5CF6"/>
+      <text x="677" y="85" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">PROPOSED</text>
+    </g>
+
+    <g id="confidence-separation">
+      <text x="783" y="70" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">EXTERNAL</text>
+      <text x="783" y="91" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">HIGH · 3</text>
+      <path d="M930 61V100" stroke="#4070C0" stroke-width="1"/>
+      <text x="949" y="70" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">SWAN TRIAL</text>
+      <text x="949" y="91" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">UNTRIED</text>
+    </g>
+  </g>
+
+  <g id="hierarchy-ladder">
+    <text x="58" y="162" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.5">HIERARCHY LADDER</text>
+    <rect x="58" y="178" width="620" height="72" rx="16" fill="#003080" stroke="#60C0F0" stroke-width="2"/>
+    <text x="78" y="201" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">01 · PRIMARY PROOF</text>
+    <text x="78" y="230" fill="#E0ECF4" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="25" font-weight="700">Completion proof</text>
+    <text x="430" y="219" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Make progress undeniable</text>
+
+    <rect x="58" y="260" width="508" height="58" rx="14" fill="#1A1A24" stroke="#4070C0" stroke-width="2"/>
+    <text x="78" y="282" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">02 · SUPPORTING DELTA</text>
+    <text x="78" y="305" fill="#E0ECF4" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="20" font-weight="700">Performance change</text>
+    <text x="335" y="302" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Explain what moved</text>
+
+    <rect x="58" y="328" width="390" height="48" rx="13" fill="#1A1A24" stroke="#8B5CF6" stroke-width="2"/>
+    <text x="78" y="348" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">03 · ACTION</text>
+    <text x="78" y="367" fill="#E0ECF4" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="18" font-weight="700">One next move</text>
+    <text x="262" y="365" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Keep momentum</text>
+  </g>
+
+  <g id="translation-rail">
+    <rect x="704" y="146" width="452" height="230" rx="18" fill="#1A1A24" stroke="#003080" stroke-width="2"/>
+    <text x="726" y="172" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.4">EVIDENCE → SWAN TRANSLATION</text>
+    <text x="726" y="202" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">EMOTIONAL GOAL</text>
+    <text x="726" y="224" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">Earned momentum · calm confidence</text>
+    <text x="726" y="254" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">TRANSFORM</text>
+    <text x="726" y="276" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Outcome-first → proof-first coaching</text>
+    <text x="726" y="296" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Generic celebration → faceted evidence</text>
+    <text x="726" y="326" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">REJECT</text>
+    <text x="726" y="348" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">No copied layout · confetti · source copy</text>
+    <text x="726" y="369" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">PROVENANCE · 3 PRODUCTS · SCREEN/FLOW</text>
+
+    <g id="crystalline-facet-signature" aria-label="Abstract crystalline record facet">
+      <path d="M1082 172L1128 196L1094 229L1051 201Z" fill="#002060" stroke="#60C0F0" stroke-width="2"/>
+      <path d="M1082 172L1094 229L1073 204Z" fill="#8B5CF6" fill-opacity="0.56"/>
+      <path d="M1082 172L1128 196L1094 197Z" fill="#60C0F0" fill-opacity="0.28"/>
+      <circle cx="1094" cy="201" r="5" fill="#E0ECF4"/>
+    </g>
+  </g>
+
+  <g id="state-strip">
+    <text x="58" y="408" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.5">STATE STRIP</text>
+
+    <g id="state-default">
+      <rect x="58" y="424" width="206" height="82" rx="14" fill="#1A1A24" stroke="#4070C0" stroke-width="2"/>
+      <circle cx="82" cy="450" r="8" fill="#4070C0"/>
+      <text x="99" y="455" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">DEFAULT</text>
+      <text x="78" y="485" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Proof · delta · action</text>
+    </g>
+    <g id="state-loading">
+      <rect x="276" y="424" width="206" height="82" rx="14" fill="#1A1A24" stroke="#003080" stroke-width="2"/>
+      <path d="M300 450H338M300 462H326" stroke="#60C0F0" stroke-width="5" stroke-linecap="round"/>
+      <text x="352" y="455" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">LOADING</text>
+      <text x="296" y="485" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Reserve geometry</text>
+    </g>
+    <g id="state-empty">
+      <rect x="494" y="424" width="206" height="82" rx="14" fill="#1A1A24" stroke="#4070C0" stroke-width="2"/>
+      <path d="M518 443L534 459L518 475L502 459Z" fill="none" stroke="#4070C0" stroke-width="2"/>
+      <text x="550" y="455" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">EMPTY</text>
+      <text x="514" y="485" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Name first step</text>
+    </g>
+    <g id="state-success">
+      <rect x="712" y="424" width="206" height="82" rx="14" fill="#003080" stroke="#60C0F0" stroke-width="2"/>
+      <path d="M738 458L748 468L766 446" fill="none" stroke="#60C0F0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="780" y="455" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">SUCCESS</text>
+      <text x="732" y="485" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Reveal proof</text>
+    </g>
+    <g id="state-error">
+      <rect x="930" y="424" width="226" height="82" rx="14" fill="#1A1A24" stroke="#E5484D" stroke-width="2"/>
+      <path d="M954 445L976 467M976 445L954 467" stroke="#E5484D" stroke-width="3" stroke-linecap="round"/>
+      <text x="992" y="455" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">ERROR</text>
+      <text x="950" y="485" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18">Retry with context</text>
+    </g>
+  </g>
+
+  <g id="responsive-grid">
+    <text x="58" y="540" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.5">RESPONSIVE BEHAVIOR · HOUSE WIDTHS</text>
+
+    <g id="frame-320">
+      <rect x="58" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="68" y="566" width="30" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M73 577H92M73 586H90M73 595H87" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="108" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">320</text>
+      <text x="108" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">STACK</text>
+    </g>
+    <g id="frame-375">
+      <rect x="196" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="206" y="566" width="34" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M211 577H234M211 586H232M211 595H228" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="250" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">375</text>
+      <text x="250" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">STACK</text>
+    </g>
+    <g id="frame-414">
+      <rect x="334" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="344" y="566" width="38" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M349 577H376M349 586H373M349 595H369" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="392" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">414</text>
+      <text x="392" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">WRAP</text>
+    </g>
+    <g id="frame-768">
+      <rect x="472" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="482" y="566" width="56" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M487 577H533M487 587H509M513 587H533M487 598H533" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="548" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">768</text>
+      <text x="548" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">2-COL</text>
+    </g>
+    <g id="frame-1024">
+      <rect x="610" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="620" y="566" width="62" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M625 577H677M625 587H651M655 587H677M625 598H677" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="692" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">1024</text>
+      <text x="692" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">RAIL</text>
+    </g>
+    <g id="frame-1440">
+      <rect x="748" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="758" y="566" width="66" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M763 577H819M763 587H792M796 587H819M763 598H819" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="834" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">1440</text>
+      <text x="834" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">RAIL</text>
+    </g>
+    <g id="frame-2560">
+      <rect x="886" y="556" width="126" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="896" y="566" width="70" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M901 577H961M901 587H931M935 587H961M901 598H961" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="976" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">2560</text>
+      <text x="976" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">MAX</text>
+    </g>
+    <g id="frame-3840">
+      <rect x="1024" y="556" width="132" height="72" rx="10" fill="#1A1A24" stroke="#4070C0"/>
+      <rect x="1034" y="566" width="72" height="50" rx="5" fill="#002060" stroke="#60C0F0"/>
+      <path d="M1039 577H1101M1039 587H1070M1074 587H1101M1039 598H1101" stroke="#E0ECF4" stroke-width="2"/>
+      <text x="1116" y="581" fill="#E0ECF4" font-family="Fira Code, monospace" font-size="18" font-weight="700">3840</text>
+      <text x="1116" y="601" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">MAX</text>
+    </g>
+  </g>
+
+  <g id="motion-notation">
+    <rect x="58" y="650" width="1098" height="84" rx="16" fill="#1A1A24" stroke="#003080" stroke-width="2"/>
+    <text x="78" y="675" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.5">MOTION INTENT · STATIC NOTATION</text>
+    <text x="78" y="709" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">PENDING</text>
+    <path d="M165 704H239" stroke="#4070C0" stroke-width="2"/>
+    <path d="M231 697L240 704L231 711" fill="none" stroke="#4070C0" stroke-width="2"/>
+    <text x="258" y="709" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">FORMING</text>
+    <path d="M350 704H424" stroke="#60C0F0" stroke-width="2"/>
+    <path d="M416 697L425 704L416 711" fill="none" stroke="#60C0F0" stroke-width="2"/>
+    <text x="443" y="709" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">FORMED</text>
+    <path d="M526 704H600" stroke="#8B5CF6" stroke-width="2"/>
+    <path d="M592 697L601 704L592 711" fill="none" stroke="#8B5CF6" stroke-width="2"/>
+    <text x="619" y="709" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">RESTING</text>
+    <rect x="756" y="677" width="374" height="40" rx="12" fill="#002060" stroke="#60C0F0"/>
+    <text x="774" y="701" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18"><tspan fill="#60C0F0" font-weight="700">REDUCED</tspan><tspan> · show formed state</tspan></text>
+  </g>
+
+  <g id="footer-zone">
+    <text x="58" y="789" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18" letter-spacing="1.2">VIS-CLM-SYNTH01 · VISUAL EXPLAINS, NEVER CORROBORATES</text>
+    <text x="58" y="824" fill="#E0ECF4" font-family="Sora, Arial, sans-serif" font-size="18" font-weight="700">SOURCE IMAGES NOT STORED</text>
+    <text x="58" y="848" fill="#60C0F0" font-family="Sora, Arial, sans-serif" font-size="18">REFERENCE PRINCIPLES ONLY · DO NOT COPY SOURCE PIXELS · CREATE THE SWAN TRANSLATION</text>
+    <text x="1140" y="838" text-anchor="end" fill="#60C0F0" font-family="Fira Code, monospace" font-size="18">DOCTRINE READY · NO</text>
+  </g>
+</svg>

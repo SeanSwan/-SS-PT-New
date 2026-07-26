@@ -31,6 +31,7 @@ export function computeNovelty(events, claims, domains, tuning) {
   // group events by domain → run, preserving first-seen run order
   const perDomain = new Map();
   for (const e of events) {
+    if (e.sourceClass === 'mobbin') continue; // Provider-classed records can never influence claims novelty.
     if (!e.domainId || e.domainId === '-') continue;
     if (!perDomain.has(e.domainId)) perDomain.set(e.domainId, new Map());
     const runs = perDomain.get(e.domainId);

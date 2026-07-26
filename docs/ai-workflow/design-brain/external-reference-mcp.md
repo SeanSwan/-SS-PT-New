@@ -1,149 +1,40 @@
-# External Reference MCP Protocol - Mobbin and Real-Product UI Research
+# External Reference MCP Protocol
 
-- **Date:** 2026-07-09
-- **Status:** CANONICAL within Design Brain scope
-- **Scope:** default external UI-reference gate for Mobbin/Mobbin-like MCP tools before SwanStudios UI direction, major redesign, Fable/Village design implementation, or reference-backed visual review work.
+Status: hardened after independent Opus and Kimi review on 2026-07-26. The shared runtime enum is `scripts/design-brain/src/reference-modes.mjs`. Legacy H/T/L letters and Inspect (`I`) are refused with `E_LEGACY_MODE_REFUSED`; they are never privilege-mapped.
 
----
+## Modes
 
-## 1. Purpose
+| Mode | Name | Allowed purpose | Durable write | State |
+|---|---|---|---|---|
+| P | Probe | One connector-availability check | One overwrite-only `probe.json` heartbeat | enabled |
+| S | Spec | Original Swan-authored task-local experiment | none | disabled |
+| D | Doctrine | Sean-authored canon decision based on owned Swan trials | Sean-only canon edit | gated |
+| X | Source corpus | Store provider-derived source material | none | blocked |
 
-Real shipped-product references sharpen pattern judgment before an agent designs. They do not replace Swan doctrine. This protocol turns external design libraries into a disciplined research input: study the market, extract principles, translate those principles into Swan's C1-C12 pattern grammar, and reject anything that would dilute the Crystalline Swan system.
+### P - Probe
 
-The transcript Sean supplied describes Mobbin MCP access to real UI screens and flows. The transcript's core workflow is useful: search screens, flows, and sections before designing; collect a compact visual/report-style synthesis; then design from extracted principles rather than model taste.
+Exactly one query and one result. The only retained fields are schema, day, connector, availability, and the fixed purpose `current connector availability`. Query text, result identity, product identity, timestamps, research detail, and source media are forbidden. The heartbeat overwrites the prior value; it is not an activity log. Pre-hardening `probe.log`, attestation, or timestamped write-ledger artifacts are not migrated automatically; operators must inventory them and obtain explicit cleanup approval before any purge.
 
-## 2. Connector status and setup boundary
+### S - Spec
 
-- Target connector: **Mobbin MCP**. If someone says "Mobin" in notes or transcripts, normalize it to Mobbin.
-- Transcript-proven tools: `search screens`, `search flows`, and `search sections`.
-- Requirement: Sean-owned Mobbin subscription plus the account-specific MCP/OAuth connector URL from Mobbin account settings.
-- Current Codex status on 2026-07-09: local tool discovery exposed no callable Mobbin tools in this client. Do not claim Mobbin is connected unless the tool is actually callable in the current runtime.
-- Secret rule: never commit MCP URLs, OAuth URLs, cookies, tokens, account emails, screenshots containing private account data, or customer data.
+`spec-mode.json` remains `enabled:false`. An enabled boolean is insufficient: activation requires a valid Ed25519-signed, expiring, revocable `authority/1` record, a trusted clock, evidence references, and Sean as approver. SDIR v2 permits only `owned-synthetic`, `synthetic`, or `licensed` provenance and Class 0/1 data. Production-derived data is forbidden. Safety-critical surfaces require screening, contraindication, trainer-approval, and stale-assessment states plus qualified review; prescriptive loads, reps, sets, tempo, range-of-motion, percentage, or similar instructions are rejected. There is no `design-specs` vault writer.
 
-Every design-direction task starts by checking whether the Mobbin tools are callable. If the connector is unavailable, write `[MOBBIN UNAVAILABLE]` in the reference receipt and continue from `SWAN-CINEMATIC-DESIGN-SYSTEM.md`, `SWAN-ASSET-STORYBOARDING.md`, and the rest of this Design Brain. Missing Mobbin access is not a blocker for small UI fixes or non-visual work, but the unavailable marker is required when a task would otherwise use external references.
+Activation remains blocked until all external gates exist: written clarification from Mobbin, qualified legal review, explicit Sean risk acceptance, protected-branch/CODEOWNERS enforcement, sole-path network egress enforcement, production IAM, hardware/KMS-backed authority keys, a trusted time source, and revocation operations.
 
-## 3. Authority order
+### D - Doctrine
 
-External references are research inputs only. Conflict order is:
+Only Sean changes canon. Mobbin records and SDIRs are never corroboration, novelty, or doctrine evidence. Doctrine requires owned Swan trials and an explicit human decision.
 
-1. `CLAUDE.md` / `AGENTS.md` rules, auth/data/security constraints, and mounted-surface receipts.
-2. `SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `SWAN-ASSET-STORYBOARDING.md`.
-3. `design.md`, `components.md`, `motion.md`, `anti-patterns.md`, and `qa-gates.md`.
-4. Mobbin or other external reference principles.
-5. Generic model taste.
+### X - Source-corpus
 
-A Mobbin pattern that requires Tailwind, MUI, non-Swan tokens, copied proprietary layouts, fake metrics, hover-only workflows, inaccessible density, or a non-Swan product model is rejected.
+Blocked by default. A clearance file must be `clearance/2`, limited to `source-corpus`, tied to terms `2026-05-16`, based on written permission, Ed25519-signed by Sean, time-bounded, checked against revocation, and verified using trusted time. This code contract does not claim Mobbin permission or legal approval.
 
-## 4. When to run external-reference intake
+## Egress and audit
 
-Run this before the 2-3 concept-direction gate when any of these are true:
+`egress-policy.mjs` denies by default. Only typed Class 0 fields (`taskId`, `testCount`) may be authorized for an external model. Class 1, Class 2, free text, screenshots, identifiers, URLs, tokens, customer information, and production-derived content are denied. This module is a policy primitive; production sole-path enforcement is still an external deployment gate.
 
-- Net-new page, major redesign, or new dashboard surface.
-- Implementation begins from a Fable, AI Village, Gemini, or multi-brain design plan and the target surface has visible UI consequences.
-- Checkout, onboarding, settings/profile, admin table, messaging, gallery/storefront, community feed, or command-center workflow where modern product conventions matter.
-- Sean asks for modern design examples, Mobbin, inspiration, market patterns, or multiple options.
-- A reviewer says the UI feels generic, cramped, outdated, or disconnected from modern product expectations.
+Stateful receipt-write adapters record a minimal `denial/1` receipt containing only day, a closed code, and a closed operation. The `authorizeAndAuditEgress` wrapper records denied egress attempts; the pure predicate remains test-only until production sole-path enforcement is installed. Rejected payloads are never persisted.
 
-Skip or mark not applicable for typo fixes, single-property CSS fixes, narrow bug fixes, route/schema work, backend-only work, or any task where Sean already chose the exact direction and no design exploration is wanted.
+## Source classes
 
-## 5. Research flow
-
-1. Define the surface, user role, primary job, primary action, device class, and workflow phase.
-2. Check connector availability. If unavailable, emit the receipt with `[MOBBIN UNAVAILABLE]` and stop the external-reference branch.
-3. Search 3-5 targeted queries across screens, flows, and sections. Prefer flows for multi-step tasks and sections for single-page composition patterns.
-4. Study 12-32 relevant references for major surfaces. For small redesigns, 6-12 is enough.
-5. Build a compact reference report: category, app/product, reference type, pattern observed, and the design question it answers. Keep links inside the MCP/client when possible; do not commit private screenshots.
-6. Extract principles, not pixels: information hierarchy, action placement, validation model, density rhythm, empty/error states, mobile behavior, trust cues, and restraint.
-7. Translate the winning principles into Swan language: B2 arc, C1-C12 patterns, tokens, components, motion tier, and QA risks.
-8. List rejected patterns and why they fail Swan rules or product truth.
-9. Feed the receipt into Fable's direction gate, builder receipts, and reviewer checks.
-
-## 6. Required receipt
-
-Leave this in the task thread, slice doc, or design direction doc before implementation begins:
-
-```text
-EXTERNAL REFERENCE RECEIPT - <surface>
-Status:       <Mobbin used | [MOBBIN UNAVAILABLE] | not applicable>
-Surface:      <route/component/product area>
-User job:     <one sentence>
-Primary action: <one action>
-Tools/queries: <search screens/flows/sections + query list, or unavailable reason>
-References:   <titles/apps/categories/counts only; no private URLs or screenshots committed>
-Patterns extracted:
-  - <principle 1>
-  - <principle 2>
-  - <principle 3>
-Swan translation:
-  - B2 arc: <acts/phases>
-  - C-patterns/components: <C1-C12 / components.md names>
-  - Tokens/motion: <Swan tokens + motion tier>
-Rejected patterns:
-  - <pattern> -> <why rejected>
-Design impact: <what changes in the proposed direction because of this research>
-```
-
-For major surfaces, add a short reference-report table after the receipt:
-
-```text
-Reference report:
-  - <category> | <app/product> | <screen/flow/section> | <principle learned> | <Swan translation>
-Common convergence:
-  - <pattern top products repeat>
-Anti-patterns rejected:
-  - <pattern rejected and why>
-Clarifying questions:
-  - <only questions that materially change direction>
-```
-
-## 7. Anti-clone rules
-
-- Do not ask an agent to "make it like" a named product.
-- Do not reproduce proprietary layouts, assets, copy, screenshots, or exact interaction choreography.
-- Use titles/categories and short principle summaries in repo docs; keep external screenshots inside the external tool, not in Git.
-- The correct phrasing is: "Reference X taught us principle Y; Swan applies that principle through pattern Z, tokens A/B, and our own product story."
-
-## 8. Integration with other brains
-
-- **swan-design-router:** loads this file for net-new pages, major redesigns, and design-reference requests.
-- **Fable:** uses the receipt before producing 2-3 directions; each direction names what research influenced it and what was rejected.
-- **Builders (Claude/Codex):** consume the chosen direction plus the reference receipt; they do not independently copy external screens.
-- **Reviewers:** check whether the build translated principles into Swan grammar instead of cloning or drifting generic.
-- **Knowledge layer:** only promoted principles and decisions enter Obsidian/Graphify; raw Mobbin references stay out of the repo.
-- **Hermes/operator layer:** may request a T0/T1 design-research brief and may store the distilled receipt as an output/run artifact, but cannot authorize connector secrets, install MCP connectors, write product styles, or perform external-visible design actions.
-
-## 9. Hermes UI Brain bridge
-
-Hermes can become smarter about UI design by brokering reference-backed briefs, not by becoming an unsupervised designer.
-
-1. Sean asks Hermes for a UI idea, redesign, or workflow improvement.
-2. Hermes drafts a T1 `needs_mobbin_reference` brief with surface, role, primary job, data truth, target device, and 3-5 proposed Mobbin queries.
-3. If Hermes runtime has callable Mobbin tools, Hermes runs only T0/T1 research and emits the external-reference receipt. If it does not, it queues the brief for Claude/Codex/Fable with `[MOBBIN UNAVAILABLE IN HERMES]`.
-4. Fable or the builder consumes the receipt through `swan-design-router`, produces 2-3 Swan concept directions, and waits for Sean when the ideation gate applies.
-5. Only distilled principles, Swan translations, and decisions enter Obsidian/Graphify. Raw screenshots, connector URLs, account data, and copied UI never enter the repo or wiki.
-
-## 10. Prompt template
-
-```text
-Use the Mobbin MCP before designing <surface>.
-
-Search screens, flows, and sections for <surface archetype>, <workflow phase>, and <user role>. Study at least <N> shipped references across <app categories>. Return:
-1. Connector status and tools used.
-2. Reference report grouped by design question.
-3. Common patterns top products converge on.
-4. Patterns Swan should reject and why.
-5. Swan translation: B2 arc, C-patterns/components, tokens, motion tier, QA risks.
-6. Two or three concept directions if this is net-new or a major redesign.
-Ask only clarifying questions that would materially change the direction.
-```
-
-## 11. Claude Code Desktop connector notes from transcript
-
-The transcript's setup path is client-side, not repo-side:
-
-1. In Mobbin, open account/profile settings and find the MCP tab.
-2. Copy the one-line custom MCP connector URL from Mobbin.
-3. In Claude Code/Desktop, open connector/MCP settings, add a custom connector named `Mobbin`, paste the URL, and authorize with the Mobbin account.
-4. Confirm the agent can call `search screens`, `search flows`, and `search sections` before claiming the connector is live.
-
-Do not place that connector URL in `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, env files, docs, commits, or prompts.
+New writes must use exactly `owned-synthetic`, `synthetic`, `licensed`, or `mobbin`. `owned` is a refused legacy label; any production-derived class is blocked. Mobbin remains excluded from novelty and corroboration and cannot enter the source corpus without valid X clearance.

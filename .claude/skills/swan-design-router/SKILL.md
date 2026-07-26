@@ -149,11 +149,10 @@ switch palette + lens + world and re-skin everything with zero code change.
 ## LAW 10 — Content law
 
 - "Stretching" / "flexibility" — never "yoga" / "meditation."
-- "26+ years" / "NASM-protocol" / "NCEP-certified" — never "NASM-certified."
-- **REFINEMENT 3:** the credential contract test scans source files for the
-  literal `NASM-certified` **including inside comments** — never write the
-  forbidden phrase anywhere, not even in a comment that bans it. (Pre-commit
-  secret-scans but does NOT run vitest, so a broken contract test can ship silently.)
+- "26+ years" / "NASM-protocol" / "NCEP-certified" — never the credential claim
+  formed by joining `NASM` and `-certified`.
+- **REFINEMENT 3:** assemble those fragments in the contract test and scan source including comments.
+  Never write the joined form anywhere. Pre-commit secret-scans do not run vitest.
 
 ## LAW 11 — Anti-generic
 
@@ -287,14 +286,13 @@ PALETTE LAW: [A Swan-native | B world-native non-Swan]
 KILL-LIST CHECK: [confirm zero LAW-3 material]
 ```
 
-Mobbin MCP reference gate applies to net-new pages / major redesigns (see
-`docs/ai-workflow/design-brain/external-reference-mcp.md`); mark `[MOBBIN
-UNAVAILABLE]` and proceed from Swan docs if absent. External references are
-research only — Swan source docs win.
+Mobbin MCP reference gate applies to net-new pages / major redesigns; see `docs/ai-workflow/design-brain/external-reference-mcp.md` and classify every call P/S/D/X; Inspect and legacy aliases are refused.
+I is the default for a named surface. S is ambiguous, capped, and disabled by default; D is Sean hand-edit only; X source-corpus intake is blocked absent exact clearance.
+Mark [MOBBIN UNAVAILABLE] and proceed from Swan canon/accepted claims if absent; external references are research only and Swan source docs win.
 
-**Pattern library:** the C1-C12 layout/interaction patterns live in
+**Pattern library:** the C1-C13 layout/interaction patterns live in
 `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; use them as the composition vocabulary. The
-full pre-redo router (pre-task receipt template, C1-C12 detail, 2026 surface
+full pre-redo router (pre-task receipt template, C1-C13 detail, 2026 surface
 standard) is preserved verbatim at `SKILL.md.pre-redo` for reference.
 
 ---

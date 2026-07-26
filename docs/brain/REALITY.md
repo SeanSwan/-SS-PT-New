@@ -15,7 +15,7 @@
 | MCP server | `tools/hermes2_brain_mcp_server.py` | `brain_status` · `brain_search(query, collection, limit)` · `brain_open` · `brain_daily_brief`. **No code path to any private DB** (pinned by test). |
 | **PII guard (SWA-16)** | `tools/hermes2_brain_search.py` + `tools/tests/test_private_guard.py` | `clients-private` (87 files) has **0 indexed rows**. Private builds go ONLY to a segregated `brain-vault-fts-private.sqlite`, need typed confirmation or `--yes-i-understand`, and audit to `logs/private-builds.jsonl`. |
 | Repo→vault ingester | `scripts/brain/ingest_repo_corpus.py` | Emits the vault's native ledger format; hard secret-scan gate; derived mirror (delete-and-rewrite). Rerun after doc-heavy workstreams. |
-| Design-brain MVE engine | `scripts/design-brain/` | Receipts → convergence claims → batch adjudication (Sean's letters) → `design-claims` vault collection. See its README. |
+| Design-brain engine | `scripts/design-brain/` | Permitted evidence can become adjudicated `design-claims`; hardened P/S/D/X governance refuses Inspect, keeps Spec disabled and task-local, and blocks Mobbin X writes absent signed clearance. See its README. |
 | Client dictation tooling | `scripts/hermes/clientNotes/` | Hermes `state.db` (read-only) → per-client local markdown records. Jailed outside repo + vault. |
 | Hermes runtime | `~/hermes2/.hermes/` | `state.db` (sessions/messages, FTS-indexed) · daily 03:00 backups to `Documents/HermesPortableBackups` · morning cron briefs. |
 
@@ -27,8 +27,7 @@
   ever arrives, it may *consume* generated views; nothing may depend on it.
 - **The Pi vault.** `/home/kali/swanstudios-wiki/` — the Pi is retired. Every doc that pointed
   there is in the attic.
-- **`PAUSE_NOVELTY`, resume receipts, L1–L3/L5–L8 as code.** Doctrine prose only; the implemented
-  layers are L0 control + L4 evidence-gating (`scripts/ai-workflow/mobbin-learning/`).
+- **PAUSE_NOVELTY, resume receipts, acquisition leases, and the 47-file governance engine as current mainline code.** Those mechanisms survive only on historical unmerged branches and were superseded by the present-human MVE at scripts/design-brain. The shipped novelty dial recommends; it never blocks or grants authority.
 
 ## Where the myths went
 

@@ -17,6 +17,8 @@ import { resolveDataRoot } from './paths.mjs';
 import { appendJsonl } from './writer.mjs';
 import { validateReceipt } from './validate.mjs';
 import { readJsonl } from './synthesize.mjs';
+import { validateSourceClass } from './provenance.mjs';
+import { recordDenial } from './denial-audit.mjs';
 
 function main() {
   const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i !== -1 ? process.argv[i + 1] : undefined; };
@@ -29,8 +31,22 @@ function main() {
   let receipt;
   try { receipt = JSON.parse(raw); } catch { console.error('error: input is not valid JSON'); return 2; }
 
+  try { validateSourceClass(receipt.sourceClass); }
+  catch (error) {
+    recordDenial(root, { code: error.code ?? 'E_SOURCE_CLASS_REQUIRED', operation: 'receipt-write' });
+    console.error(error.message);
+    return 2;
+  }
+
+  if (receipt.sourceClass === 'mobbin') {
+    recordDenial(root, { code: 'E_SOURCE_CLASS_BLOCKED', operation: 'receipt-write' });
+    console.error('E_SOURCE_CLASS_BLOCKED: Mobbin source-corpus writes are unavailable until external legal, IAM, key, trusted-time, and revocation gates are implemented.');
+    return 2;
+  }
+
   const v = validateReceipt(receipt);
   if (!v.ok) {
+    recordDenial(root, { code: 'E_RECEIPT_VALIDATION', operation: 'receipt-write' });
     console.error(`REFUSED — receipt fails receipt/1 (${v.errors.length} error(s)):`);
     for (const e of v.errors) console.error(`  - ${e}`);
     return 3;
