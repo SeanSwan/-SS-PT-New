@@ -11,6 +11,7 @@ import { useClientProgressCharts } from '../../../../hooks/analytics/useClientPr
 import { getProgressProofStatusText } from '../../../../utils/progressProofStatusText';
 import { WORKOUT_LOGGED_EVENT } from '../../../../utils/workoutLoggedEvent';
 import ClientExerciseMegaStats from '../../progress/ClientExerciseMegaStats';
+import MetricConstellation from '../../../Charts/MetricConstellation';
 import ExerciseCodexMatrix from '../../progress/ExerciseCodexMatrix';
 import ProgressChartCube from '../../progress/ProgressChartCube';
 import ProgressChartRecoveryObservatory from '../../progress/ProgressChartRecoveryObservatory';
@@ -91,6 +92,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
       />
       <ProgressChartWarRoomBoard charts={charts} />
       <ProgressChartRecoveryObservatory charts={charts} />
+      <MetricConstellation charts={charts} />
       <SectionHeader>
         <TrendingUp size={13} />
         <span>Progress overview - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
