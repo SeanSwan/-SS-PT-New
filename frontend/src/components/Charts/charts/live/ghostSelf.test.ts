@@ -46,6 +46,15 @@ describe('buildGhostSelf', () => {
     expect(j.improved).toBe(true); // going down is an improvement here
   });
 
+  it('renders a clean zero (no "-0", no false improvement) for a sub-rounding change', () => {
+    const j = buildGhostSelf(
+      [{ x: 'W1', y: 15.02 }, { x: 'W2', y: 15.0 }, { x: 'W3', y: 15.01 }, { x: 'W4', y: 15.0 }],
+      { unit: '%', higherIsBetter: false },
+    )!;
+    expect(j.startDeltaLabel).toBe('0 % since W1'); // -0.02 rounds to 0, no leading sign
+    expect(j.improved).toBe(false);
+  });
+
   it('drops non-finite points before splitting', () => {
     const j = buildGhostSelf(
       [{ x: 'W1', y: 100 }, { x: 'W2', y: Number.NaN }, { x: 'W3', y: 120 }, { x: 'W4', y: 130 }, { x: 'W5', y: 140 }],

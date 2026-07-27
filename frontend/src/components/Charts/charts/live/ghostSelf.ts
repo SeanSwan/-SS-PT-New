@@ -11,7 +11,9 @@
  */
 
 export interface GhostPoint {
-  x: string;
+  // string | number so the module is honestly reusable for numeric/time-index x axes
+  // (aligns with sanitizeChartData, which also keeps numeric x) - not just string x.
+  x: string | number;
   y: number;
 }
 
@@ -36,11 +38,14 @@ interface GhostSelfOptions {
   minPoints?: number;
 }
 
-const formatMagnitude = (value: number, unit: string): string => {
-  // Keep one decimal only when the value is genuinely fractional (body fat, est-1RM).
-  const rounded = Number.isInteger(value) ? value : Math.round(value * 10) / 10;
-  return `${rounded}${unit ? ` ${unit}` : ''}`;
-};
+// Round to at most one decimal (integers stay integer). Used for BOTH the sign/tone
+// decision and the display, so a change that rounds to zero can never show a signed
+// "-0" or claim a false "improvement".
+const round1 = (value: number): number => (Number.isInteger(value) ? value : Math.round(value * 10) / 10);
+
+const formatMagnitude = (value: number, unit: string): string => (
+  `${round1(value)}${unit ? ` ${unit}` : ''}`
+);
 
 /**
  * Build the journey overlay from a raw series, or null when there is not enough
@@ -51,7 +56,7 @@ export const buildGhostSelf = (
   { unit = '', higherIsBetter = true, minPoints = 4 }: GhostSelfOptions = {},
 ): GhostSelf | null => {
   const clean = (series ?? []).filter(
-    (p): p is GhostPoint => !!p && typeof p.x === 'string' && Number.isFinite(p.y),
+    (p): p is GhostPoint => !!p && p.x !== null && p.x !== undefined && p.x !== '' && Number.isFinite(p.y),
   );
   if (clean.length < minPoints) return null;
 
@@ -68,10 +73,12 @@ export const buildGhostSelf = (
     clean[0],
   );
 
-  const delta = latestPoint.y - startPoint.y;
-  const improved = higherIsBetter ? delta > 0 : delta < 0;
-  const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
-  const startDeltaLabel = `${sign}${formatMagnitude(Math.abs(delta), unit)} since ${startPoint.x}`;
+  // Decide sign + tone from the ROUNDED delta so a sub-rounding change reads as a clean
+  // "0" (no "-0", no false "improved").
+  const roundedDelta = round1(latestPoint.y - startPoint.y);
+  const improved = roundedDelta === 0 ? false : higherIsBetter ? roundedDelta > 0 : roundedDelta < 0;
+  const sign = roundedDelta > 0 ? '+' : roundedDelta < 0 ? '-' : '';
+  const startDeltaLabel = `${sign}${formatMagnitude(Math.abs(roundedDelta), unit)} since ${startPoint.x}`;
 
   return { ghost, current, startPoint, bestPoint, latestPoint, startDeltaLabel, improved };
 };

@@ -24,7 +24,8 @@ describe('WeightProgressionLive Journey overlay', () => {
       { x: 'W1', y: 180 }, { x: 'W2', y: 184 }, { x: 'W3', y: 188 }, { x: 'W4', y: 192 },
     ]));
     render(<WeightProgressionLive userId={7} />);
-    expect(screen.getByText('+12 lbs since W1')).toBeInTheDocument(); // 192 - 180
+    // substring match: the badge also carries a visually-hidden "Change:" prefix
+    expect(screen.getByText(/\+12 lbs since W1/)).toBeInTheDocument(); // 192 - 180
     expect(screen.getByText(/faded line = earlier you/i)).toBeInTheDocument();
   });
 
@@ -39,5 +40,15 @@ describe('WeightProgressionLive Journey overlay', () => {
     mockUseAnalytics.mockReturnValue(asState([]));
     render(<WeightProgressionLive userId={7} />);
     expect(screen.getByText('No measurements recorded yet')).toBeInTheDocument();
+  });
+
+  it('renders the honest empty state for a present-but-all-invalid payload', () => {
+    // raw length is truthy but sanitize drops every point -> must NOT show a blank frame
+    mockUseAnalytics.mockReturnValue(asState([
+      { x: 'W1', y: Number.NaN }, { x: 'W2', y: Number.NaN },
+    ]));
+    render(<WeightProgressionLive userId={7} />);
+    expect(screen.getByText('No measurements recorded yet')).toBeInTheDocument();
+    expect(screen.queryByText(/faded line = earlier you/i)).not.toBeInTheDocument();
   });
 });
