@@ -1,5 +1,5 @@
 /**
- * TEST: Coach Read (G3a) — local next-best-action line
+ * TEST: Coach Read (G3a) - local next-best-action line
  * PURPOSE: The pulse emits a plain-language coachAction from tone + gravity, and the
  *   insight bar renders it as the "what to do next" beat. Fully local (no backend).
  */
