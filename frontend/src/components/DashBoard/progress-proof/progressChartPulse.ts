@@ -94,11 +94,14 @@ const computeGravity = (
   } else {
     progress = latestY > 0 ? bestY / latestY : latestY <= bestY ? 1 : 0;
   }
+  const progressToNext = Math.max(0, Math.min(1, progress));
+  // Show a remaining gap ONLY while the bar is visibly below 100%. Whenever the bar
+  // rounds to full (gap within ~0.5% of best), report "at peak" (empty) so the caption
+  // and coachAction never contradict a 100% bar with "N from your best".
+  const barIsFull = Math.round(progressToNext * 100) >= 100;
   return {
-    progressToNext: Math.max(0, Math.min(1, progress)),
-    // >= 0.5 so a tiny gap that rounds to "0" is treated as "essentially there"
-    // (empty) rather than contradicting the ~100% bar with "0 from your best".
-    remainingLabel: remainingRaw >= 0.5 ? formatPulseValue(remainingRaw, unit) : '',
+    progressToNext,
+    remainingLabel: (!barIsFull && remainingRaw >= 0.5) ? formatPulseValue(remainingRaw, unit) : '',
   };
 };
 
