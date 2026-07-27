@@ -19,6 +19,8 @@ export interface ProgressChartPulse {
   progressToNext?: number;
   /** Formatted gap remaining to reach/beat the best (empty when already there). */
   remainingLabel?: string;
+  /** Plain-language next-best-action synthesized from tone + gravity (local, no LLM). */
+  coachAction?: string;
 }
 
 interface ProgressChartPulseOptions {
@@ -98,6 +100,30 @@ const computeGravity = (
   };
 };
 
+// Coach Read (G3a): a plain-language next-best-action from the LOCAL tone + gravity -
+// the "decide the next training action" beat of the Product Core Loop. No backend / no
+// LLM; deliberately self-contained so it does not depend on the in-flight SWA-65 hive
+// mind. The full one-tap chart->Coach handoff is a separate, later slice.
+const buildCoachAction = (
+  tone: ProgressChartPulseTone,
+  remainingLabel?: string,
+): string => {
+  switch (tone) {
+    case 'record':
+      return 'New personal best - keep this stimulus to lock it in.';
+    case 'rising':
+      return remainingLabel
+        ? `Trending up - ${remainingLabel} from your best. One more quality session closes the gap.`
+        : 'Trending up - hold the momentum with your next session.';
+    case 'steady':
+      return 'Holding steady - add a small progressive overload to break the plateau.';
+    case 'falling':
+      return 'Dipped from your best - check recovery, sleep, and volume this week.';
+    default:
+      return 'Log another session to build the trend.';
+  }
+};
+
 const resolveMomentumTone = <T extends ChartPoint>(
   latest: T,
   previous: T,
@@ -124,6 +150,7 @@ const buildMomentumPulse = <T extends ChartPoint>(
   const tone = resolveMomentumTone(latest, previous, best, higherIsBetter);
   const latestValue = formatPulseValue(latest.y, unit);
   const bestValue = formatPulseValue(best.y, unit);
+  const gravity = computeGravity(latest.y, best.y, higherIsBetter, unit);
 
   return {
     label,
@@ -133,7 +160,8 @@ const buildMomentumPulse = <T extends ChartPoint>(
       ? `Protect the new high mark: ${bestValue}.`
       : `Next target: ${bestValue}.`,
     tone,
-    ...computeGravity(latest.y, best.y, higherIsBetter, unit),
+    ...gravity,
+    coachAction: buildCoachAction(tone, gravity?.remainingLabel),
   };
 };
 

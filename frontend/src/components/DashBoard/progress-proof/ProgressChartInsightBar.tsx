@@ -10,10 +10,12 @@
  */
 
 import React from 'react';
+import { Compass } from 'lucide-react';
 import type { ProgressChartPulse } from './progressChartPulse';
 import type { ProgressChartFact } from './progressChartFacts';
 import NextMilestoneGravity from './NextMilestoneGravity';
 import {
+  CoachRead,
   FactPill,
   FactRail,
   InsightWrap,
@@ -44,16 +46,19 @@ const ProgressChartInsightBar: React.FC<ProgressChartInsightBarProps> = ({
         <MomentumStrip $tone={pulse.tone} aria-label={`${pulse.label}: ${pulse.value}`}>
           <MomentumLabel>{pulse.label}</MomentumLabel>
           <MomentumValue>{pulse.value}</MomentumValue>
-          <MomentumDetail>
-            {pulse.detail}
-            {pulse.target ? ` ${pulse.target}` : ''}
-          </MomentumDetail>
+          <MomentumDetail>{pulse.detail}</MomentumDetail>
           {typeof pulse.progressToNext === 'number' && (
             <NextMilestoneGravity
               progressToNext={pulse.progressToNext}
               remainingLabel={pulse.remainingLabel}
               atPeak={pulse.tone === 'record'}
             />
+          )}
+          {pulse.coachAction && (
+            <CoachRead>
+              <Compass size={13} aria-hidden="true" />
+              <span>{pulse.coachAction}</span>
+            </CoachRead>
           )}
         </MomentumStrip>
       )}

@@ -85,6 +85,21 @@ export const MomentumDetail = styled.span`
   overflow-wrap: anywhere;
 `;
 
+// Coach Read (G3a): the plain-language next-best-action line. Spans the full strip,
+// accent-tinted so it reads as the "what to do" beat, not just more description.
+export const CoachRead = styled.p`
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0.35rem 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--accent-primary, #60C0F0);
+  font: 700 0.68rem/1.4 'Sora', sans-serif;
+  overflow-wrap: anywhere;
+  svg { flex: 0 0 auto; margin-top: 1px; }
+`;
+
 export const FactRail = styled.dl`
   display: flex;
   flex-wrap: wrap;
