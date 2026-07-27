@@ -102,7 +102,6 @@ import sessionTypeRoutes from '../routes/sessionTypeRoutes.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
 // LEGACY ROUTES - Replaced by V1 API (kept for backward compatibility)
-// app.use('/api/gamification', gamificationRoutes);
 // app.use('/api/gamification', gamificationApiRoutes);
 
 // ===================== LIVE STREAMING & CREATOR ECONOMY =====================
