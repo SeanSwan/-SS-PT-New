@@ -32,8 +32,14 @@ export interface BootcampAiEventHandlers {
   setTargetDuration: (minutes: string) => void;
   setClassStyle?: (style: string) => void;
   setOptPhase: (phase: number) => void;
-  /** Receipt sink — every applied change lands as a dock receipt line. */
-  pushReceipt?: (r: { ok: boolean; text: string }) => void;
+  /**
+   * Current builder values — when provided, every applied receipt carries an Undo action
+   * restoring the REAL previous state (Kimi law: execute live, aggregate undo; never a
+   * fabricated previous). Omitted → receipts apply without Undo.
+   */
+  getCurrent?: () => { stationCount: number; exercisesPerStation: number; targetDuration: string; optPhase: number };
+  /** Receipt sink — every applied change lands as a dock receipt line (with optional Undo action). */
+  pushReceipt?: (r: { ok: boolean; text: string; action?: { label: string; eventName: string; payload?: Record<string, unknown> } }) => void;
 }
 
 type AckDetail = Record<string, unknown> & AIWorkoutEventAck;
@@ -55,9 +61,14 @@ export function useBootcampAiEvents(handlers: BootcampAiEventHandlers): void {
       const stationsValid = stations == null || (BOOTCAMP_STATION_COUNT_OPTIONS as readonly number[]).includes(stations);
       const perValid = perStation == null || (BOOTCAMP_EXERCISES_PER_STATION_OPTIONS as readonly number[]).includes(perStation);
       if (!stationsValid || !perValid || (stations == null && perStation == null)) return ack(e, false);
+      const prev = h.getCurrent?.();
       if (stations != null) h.setStationCount(stations);
       if (perStation != null) h.setExercisesPerStation(perStation);
-      h.pushReceipt?.({ ok: true, text: `Structure set${stations != null ? ` — ${stations} stations` : ''}${perStation != null ? ` × ${perStation} exercises` : ''}` });
+      h.pushReceipt?.({
+        ok: true,
+        text: `Structure set${stations != null ? ` — ${stations} stations` : ''}${perStation != null ? ` × ${perStation} exercises` : ''}`,
+        ...(prev ? { action: { label: 'Undo', eventName: AI_BOOTCAMP_SET_STRUCTURE, payload: { stations: prev.stationCount, exercisesPerStation: prev.exercisesPerStation } } } : {}),
+      });
       return ack(e, true);
     };
 
@@ -66,14 +77,20 @@ export function useBootcampAiEvents(handlers: BootcampAiEventHandlers): void {
       const h = handlersRef.current;
       const minutes = Number(d.minutes);
       if (!Number.isFinite(minutes) || minutes < MIN_DURATION_MIN || minutes > MAX_DURATION_MIN) return ack(e, false);
+      const prev = h.getCurrent?.();
       h.setTargetDuration(String(Math.round(minutes)));
-      h.pushReceipt?.({ ok: true, text: `Class length set — ${Math.round(minutes)} minutes` });
+      h.pushReceipt?.({
+        ok: true,
+        text: `Class length set — ${Math.round(minutes)} minutes`,
+        ...(prev ? { action: { label: 'Undo', eventName: AI_BOOTCAMP_SET_DURATION, payload: { minutes: Number(prev.targetDuration) } } } : {}),
+      });
       return ack(e, true);
     };
 
     const onSetFormat = (e: Event) => {
       const d = (e as CustomEvent<AckDetail>).detail || {};
       const h = handlersRef.current;
+      const prevBefore = h.getCurrent?.(); // capture BEFORE any setter runs
       let applied = false;
       if (d.optPhase != null) {
         const phase = Number(d.optPhase);
@@ -86,7 +103,11 @@ export function useBootcampAiEvents(handlers: BootcampAiEventHandlers): void {
         applied = true;
       }
       if (!applied) return ack(e, false);
-      h.pushReceipt?.({ ok: true, text: 'Format updated' });
+      h.pushReceipt?.({
+        ok: true,
+        text: 'Format updated',
+        ...(prevBefore && d.optPhase != null ? { action: { label: 'Undo', eventName: AI_BOOTCAMP_SET_FORMAT, payload: { optPhase: prevBefore.optPhase } } } : {}),
+      });
       return ack(e, true);
     };
 

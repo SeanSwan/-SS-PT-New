@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "swan-lexicon/1",
+  "properNouns": [
+    "Swan", "SwanStudios", "Crystalline", "Enchanted", "Apex",
+    "SheenCard", "GlowButton", "Victory", "Hermes", "Kimi", "Fable", "Codex"
+  ],
+  "reverseLookupExemptions": [
+    "progress", "proof", "action", "state", "screen", "flow", "section",
+    "client", "trainer", "admin", "dashboard", "workout", "training", "current",
+    "default", "loading", "empty", "success", "error", "disabled", "offline"
+  ]
+}

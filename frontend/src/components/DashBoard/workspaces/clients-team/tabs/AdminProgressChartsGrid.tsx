@@ -1,7 +1,7 @@
 /**
  * COMPONENT: AdminProgressChartsGrid
  * PARENT: ProgressTabContent, WorkoutHistoryPanel
- * PURPOSE: Admin/trainer-scoped 12-chart client progress surface.
+ * PURPOSE: Admin/trainer-scoped 15-chart client progress surface.
  */
 
 import React, { useState } from 'react';

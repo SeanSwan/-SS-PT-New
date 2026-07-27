@@ -31,8 +31,11 @@ import { readFileSync } from 'node:fs';
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-packets[\\/]|memory[\\/]/;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
-/** Linear MCP board-WRITE tools (reads like list_issues/get_issue do NOT count as a sync). */
-const LINEAR_WRITE_RE = /^mcp__linear-server__(save_issue|save_comment|save_document|save_project|save_milestone|create_)/;
+/** Linear MCP ISSUE-content writes — the sync SWA-23 is about (an issue got updated/created or
+ * commented). Reads (list_issues/get_issue) and non-issue writes (save_project/milestone/document,
+ * create_attachment/label) do NOT count — those can happen without the work's issue being synced,
+ * and accepting them would falsely waive the gate (tightened in the gate's own dry-loop 2026-07-21). */
+const LINEAR_WRITE_RE = /^mcp__linear-server__(save_issue|save_comment)\b/;
 /** Final-closeout markers: an issue id, or an explicit opt-out with a reason. */
 const ISSUE_REF_RE = /\bSWA-\d+\b/;
 const OPTOUT_RE = /LINEAR:\s*N\/A/i;

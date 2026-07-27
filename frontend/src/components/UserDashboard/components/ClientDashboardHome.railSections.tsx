@@ -30,11 +30,11 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
     <>
       <PanelCard>
         <PanelHeader><Kicker>Coach compass</Kicker></PanelHeader>
-        <NextBestActionCard bare hideHeader />
+        <CardBody><NextBestActionCard bare hideHeader /></CardBody>
       </PanelCard>
       <PanelCard>
         <PanelHeader><Kicker>Today&apos;s recovery</Kicker></PanelHeader>
-        <RecoveryBoardPanel />
+        <CardBody><RecoveryBoardPanel /></CardBody>
       </PanelCard>
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
       <RailList

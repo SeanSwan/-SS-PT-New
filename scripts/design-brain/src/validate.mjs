@@ -12,33 +12,53 @@
  * @module design-brain/validate
  */
 
+import { verifyAuthorityRecord, signablePayload } from './authority.mjs';
+import { createHash } from 'node:crypto';
+
 const DENIED_FIELDS = [
   'screenshot', 'image', 'html', 'pageCopy', 'cookie', 'token', 'oauthUrl', 'connectorUrl',
-  'accountEmail', 'customerData',
+  'accountEmail', 'customerData', 'rawProviderData', 'productionSnapshot',
 ];
+const RECEIPT_KEYS = new Set(['receiptId', 'runId', 'domainId', 'product', 'refType', 'surface', 'platform', 'stepCount', 'hierarchyNotes', 'stateNotes', 'principleCandidates', 'inspectorActorId', 'openedAtUtc', 'sourceClass', 'sourceEvidence']);
 
 const REF_TYPES = new Set(['screen', 'flow', 'section']);
 const PLATFORMS = new Set(['ios', 'android', 'web']);
 const STATUSES = new Set(['proposed', 'accepted', 'rejected', 'trial', 'merged']);
 const LEVELS = new Set(['low', 'medium', 'high']);
+const CLAIM_KEYS = new Set(['claimId', 'domainId', 'principle', 'workflowPhase', 'userRole', 'products', 'receiptRefs', 'exceptions', 'contradictions', 'swanTranslation', 'confidence', 'singleSource', 'status', 'createdUtc', 'rev', 'updatedUtc', 'humanDecision', 'autoUpdate', 'mergedInto', 'runIdSeen']);
 
 const isStr = (v, min = 1) => typeof v === 'string' && v.trim().length >= min;
 const isIso = (v) => typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
 
-function deniedFieldErrors(obj) {
+function deniedFieldErrors(value, path = '') {
   const errs = [];
-  for (const k of Object.keys(obj)) {
-    if (DENIED_FIELDS.includes(k)) errs.push(`denied field present: ${k}`);
+  if (!value || typeof value !== 'object') return errs;
+  for (const [key, nested] of Object.entries(value)) {
+    const at = path ? `${path}.${key}` : key;
+    if (DENIED_FIELDS.includes(key)) errs.push(`denied field present: ${at}`);
+    errs.push(...deniedFieldErrors(nested, at));
   }
   return errs;
 }
-
+export function receiptDigest(receipt) {
+  const { sourceEvidence: _sourceEvidence, ...payload } = receipt ?? {};
+  return createHash('sha256').update(signablePayload(payload)).digest('hex');
+}
 /** Validate a receipt/1 object. Returns { ok, errors[] }. */
-export function validateReceipt(r) {
+export function validateReceipt(r, { sourceAuthority = {} } = {}) {
   const errors = [];
   if (typeof r !== 'object' || r == null) return { ok: false, errors: ['not an object'] };
   errors.push(...deniedFieldErrors(r));
+  for (const key of Object.keys(r)) if (!RECEIPT_KEYS.has(key)) errors.push(`unknown receipt field: ${key}`);
   if (!isStr(r.receiptId) || !/^RCP-[A-Za-z0-9-]{4,}$/.test(r.receiptId)) errors.push('receiptId must match RCP-…');
+  if (!['owned-synthetic', 'synthetic', 'licensed'].includes(r.sourceClass)) errors.push('sourceClass must be owned-synthetic|synthetic|licensed; provider and production sources are forbidden');
+  const evidence = r.sourceEvidence;
+  if (evidence?.schemaVersion !== 'authority/1' || evidence?.sourceClass !== r.sourceClass) errors.push('signed sourceEvidence must match sourceClass');
+  if (evidence?.receiptDigest !== receiptDigest(r)) errors.push('signed sourceEvidence must bind the exact receipt digest');
+  if (r.sourceClass === 'licensed' && !isStr(evidence?.licenseRef, 4)) errors.push('licensed source requires licenseRef');
+  if (r.sourceClass !== 'licensed' && !isStr(evidence?.derivationRef, 4)) errors.push('synthetic source requires derivationRef');
+  const authorityResult = verifyAuthorityRecord(evidence, { ...sourceAuthority, purpose: 'source-classification' });
+  if (!authorityResult.ok) errors.push(...authorityResult.errors.map((error) => `sourceEvidence: ${error}`));
   if (!isStr(r.domainId)) errors.push('domainId required');
   if (!isStr(r.product, 2)) errors.push('product required');
   if (!REF_TYPES.has(r.refType)) errors.push('refType must be screen|flow|section');
@@ -63,6 +83,7 @@ export function validateClaim(c) {
   const errors = [];
   if (typeof c !== 'object' || c == null) return { ok: false, errors: ['not an object'] };
   errors.push(...deniedFieldErrors(c));
+  for (const key of Object.keys(c)) if (!CLAIM_KEYS.has(key)) errors.push(`unknown claim field: ${key}`);
   if (!isStr(c.claimId) || !/^CLM-[A-Za-z0-9-]{4,}$/.test(c.claimId)) errors.push('claimId must match CLM-…');
   if (!isStr(c.domainId)) errors.push('domainId required');
   if (!isStr(c.principle, 20)) errors.push('principle must be substantive (≥20 chars)');
@@ -77,6 +98,7 @@ export function validateClaim(c) {
   }
   if (!STATUSES.has(c.status)) errors.push('status must be proposed|accepted|rejected|trial|merged');
   if (c.status === 'merged' && !isStr(c.mergedInto)) errors.push('merged claims need mergedInto');
+  if (c.rev != null || c.updatedUtc != null || c.autoUpdate != null) errors.push('lifecycle revisions are disabled until a signed monotonic update adapter exists');
   if (!isIso(c.createdUtc)) errors.push('createdUtc must be a valid timestamp');
   return { ok: errors.length === 0, errors };
 }

@@ -179,9 +179,16 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'trainers', section: 'clients', label: 'Trainers', icon: 'UsersRound', prefix: '/dashboard/admin/trainer-management', description: 'Trainer roster, performance stats, and profile management' },
   { id: 'assignments', section: 'clients', label: 'Assignments', icon: 'UserCircle', prefix: '/dashboard/admin/client-trainer-assignments', description: 'Assign clients to trainers and manage active pairings' },
   { id: 'session-allocation', section: 'clients', label: 'Session Allocation', icon: 'CreditCard', prefix: '/dashboard/admin/session-allocation', description: 'Grant and track client session credits' },
+  { id: 'client-progress', section: 'clients', label: 'Client Progress', icon: 'BarChart3', prefix: '/dashboard/admin/client-progress', description: 'Comparison analytics, injury-risk assessment, and goal tracking for a selected client' },
 
   // ── TRAINING — fitness programming and health ──
   { id: 'workouts', section: 'training', label: CANONICAL_SURFACES.workoutPlanner.name, icon: 'Dumbbell', prefix: CANONICAL_SURFACES.workoutPlanner.routes.admin, description: CANONICAL_SURFACES.workoutPlanner.subtitles.admin },
+  // Superset closure (2026-07-24): these capabilities existed only on the
+  // trainer dashboard. Routes alone are not enough — an unlisted route is a
+  // dead end (same reasoning as the trainer sidebar's 2026-07-13 audit note),
+  // and a dead end is what pushes the owner back onto a trainer URL.
+  { id: 'build-plan', section: 'training', label: CANONICAL_SURFACES.buildPlan.name, icon: 'Zap', prefix: '/dashboard/admin/build-plan', description: 'Draft a client workout with the Swan Coach copilot' },
+  { id: 'assessments', section: 'training', label: 'Form Assessments', icon: 'ScanFace', prefix: '/dashboard/admin/assessments', description: 'Swan Coach form checking' },
   { id: 'bootcamp', section: 'training', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
   { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
   { id: 'pain-charts', section: 'training', label: 'Pain Charts', icon: 'Heart', prefix: '/dashboard/admin/body-map', description: 'Client pain and injury tracking (body map)' },
@@ -196,6 +203,9 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'gamification', section: 'business', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
   { id: 'content', section: 'business', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management', featureKey: 'content-studio' },
   { id: 'photo-gallery', section: 'business', label: 'Photo Galleries', icon: 'Camera', prefix: '/dashboard/admin/gallery', description: 'Passcode photoshoot galleries — upload and manage client shoots' },
+  { id: 'videos', section: 'business', label: 'Training Videos', icon: 'Video', prefix: '/dashboard/admin/videos', description: 'Training video content library' },
+  { id: 'live', section: 'business', label: 'Live Streams', icon: 'Video', prefix: '/dashboard/admin/live', description: 'Stream live workouts to clients' },
+  { id: 'creators', section: 'business', label: 'Creators', icon: 'Sparkles', prefix: '/dashboard/admin/creators', description: 'Creator program and content monetization' },
 
   // ── SYSTEM — infrastructure, personal, tools ──
   { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },

@@ -4,15 +4,23 @@
  */
 import styled from 'styled-components';
 
+/* Sapphire glass — design.md §9 elevation recipe #1. Replaces the flat 8px
+   card + gray-black shadow: 20px radius, sapphire depth gradient, cyan-alpha
+   facet border, tinted cyan glow + inset top-light highlight, backdrop blur.
+   Re-skins every card on the surface at once. */
 export const PanelCard = styled.section`
   position: relative;
   min-width: 0;
-  border: 1px solid var(--client-line);
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--client-teal) 22%, transparent);
+  border-radius: 20px;
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--client-panel-strong) 72%, transparent), transparent),
-    color-mix(in srgb, var(--client-panel) 92%, var(--client-black));
-  box-shadow: 0 18px 42px color-mix(in srgb, var(--client-black) 34%, transparent);
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--client-panel-strong) 62%, transparent),
+      color-mix(in srgb, var(--client-panel) 88%, var(--client-black)));
+  box-shadow:
+    0 8px 32px color-mix(in srgb, var(--client-teal) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--client-text) 6%, transparent);
+  backdrop-filter: blur(14px);
   overflow: hidden;
 `;
 
@@ -76,10 +84,23 @@ export const ProgressFill = styled.div<{ $pct: number }>`
   box-shadow: 0 0 16px color-mix(in srgb, var(--client-mint) 58%, transparent);
 `;
 
+/* Weighted, not equal-N (design.md §10: repeat(4,1fr) is the generic-AI tell).
+   The primary action (first child, $primary) spans two tracks so hierarchy
+   survives the grayscale test; count-agnostic via auto-fit so a variable
+   quick-action array never leaves an orphaned rigid column. */
+/* Weighted, not equal-N (design.md §10: repeat(4,1fr) is the generic-AI tell).
+   The primary action (first child, $primary) spans two tracks so hierarchy
+   survives the grayscale test; auto-fit with a real min keeps it responsive
+   for a variable-length quick-action array without an orphaned rigid column. */
 export const QuickActionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-auto-flow: dense;
   gap: 9px;
+
+  > *:first-child {
+    grid-column: span 2;
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -87,6 +108,10 @@ export const QuickActionGrid = styled.div`
 
   @media (max-width: 520px) {
     grid-template-columns: 1fr;
+
+    > *:first-child {
+      grid-column: span 1;
+    }
   }
 `;
 
@@ -99,27 +124,55 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   width: 100%;
   padding: 0 14px;
   border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'var(--client-line)')};
-  border-radius: 8px;
+  border-radius: 12px;
+  /* §6/§11 Primary: Midnight Sapphire fill (Frost White ≈12.7:1) → Wing Purple
+     glow. The prior Ice-Wing→Lavender gradient failed WCAG (~4.1:1) at its dark
+     end no matter the text color — a solid sapphire fill is the canon Primary. */
   background: ${({ $primary }) => (
-    $primary ? 'linear-gradient(135deg, var(--client-mint), var(--client-blue))' : 'color-mix(in srgb, var(--client-panel-soft) 72%, transparent)'
+    $primary ? 'var(--midnight-sapphire, #002060)' : 'color-mix(in srgb, var(--client-panel-soft) 72%, transparent)'
   )};
-  color: ${({ $primary }) => ($primary ? 'var(--client-bg)' : 'var(--client-text)')};
+  color: var(--client-text);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 900;
   cursor: pointer;
+  /* SNAP response — design.md §8. transform+shadow only, GPU-safe. */
+  transition: transform var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color var(--speed-snap, 160ms) var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1));
+  /* Dual-Button Glow (§6): blue/cyan primary bg → Wing Purple halo. */
+  box-shadow: ${({ $primary }) => ($primary
+    ? '0 0 18px color-mix(in srgb, var(--client-purple) 45%, transparent)'
+    : 'none')};
 
   &:hover,
   &:focus-visible {
     transform: translateY(-1px);
     border-color: var(--client-line-strong);
     outline: none;
+    box-shadow: ${({ $primary }) => ($primary
+      ? '0 0 26px color-mix(in srgb, var(--client-purple) 60%, transparent)'
+      : '0 0 16px color-mix(in srgb, var(--client-teal) 24%, transparent)')};
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--client-purple);
+    outline-offset: 2px;
   }
 
   &:disabled {
     cursor: not-allowed;
     opacity: 0.58;
     transform: none;
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
   }
 `;
 

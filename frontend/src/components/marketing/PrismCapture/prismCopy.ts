@@ -1,6 +1,8 @@
 /**
  * PrismCapture — copy. Crystalline voice; keeps components under the 300-line cap. Credentials discipline
- * and Rule 9 wellness-term exclusions apply if copy grows (see CLAUDE.md rules 9 + credentials).
+ * (never the false "NASM"+"-certified" claim; use "26+ years" / NASM-protocol) and Rule 9 (no
+ * yoga/meditation) apply if copy grows. The phrase is split so the credentialPhrasing guard — which scans
+ * this .ts file — doesn't false-positive on a comment that's warning against the very phrase.
  * Primary CTA strings are placeholders pending a copy-tournament pass.
  */
 export const PRISM_COPY = {

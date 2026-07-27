@@ -37,6 +37,19 @@ test('anchors: deterministic and stopworded', () => {
   assert.ok(!extractAnchors(q).terms.includes('what'));
 });
 
+test('anchors ReDoS regression: slash-LESS and slash-DENSE runs both stay fast', () => {
+  // Two distinct PATH_RE vectors: slash-less (pass 5) and slash-DENSE with no trailing .ext (pass 6,
+  // O(n²) from start-positions × tail-backtrack, independent of the length cap). Both must be fast;
+  // extractAnchors runs PATH_RE twice (match + replace). The 16384 question cap also guards this.
+  for (const q of [`${'a.-_'.repeat(50000)} `, `why does /${'seg/'.repeat(40000)}break`]) {
+    const t0 = Date.now();
+    extractAnchors(q);
+    assert.ok(Date.now() - t0 < 500, `extractAnchors took ${Date.now() - t0}ms on a ${(q.length / 1024) | 0}KB pathological question`);
+  }
+  // a normal path is still extracted after the fix
+  assert.deepEqual(extractAnchors('trace backend/routes/workoutRoutes.mjs now').paths, ['backend/routes/workoutRoutes.mjs']);
+});
+
 // ---------- authority ----------
 const CAT = parseCatalog([
   '| path | date | author | decision | status | source-SHA12 |',

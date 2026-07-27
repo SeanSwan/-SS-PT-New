@@ -22,7 +22,7 @@ import {
 } from './VideoLibraryV3.logic';
 import { CONTENT_TYPES, CollectionItem, VideoItem, VideoPagination } from './VideoLibraryV3.types';
 import {
-  BarInner, ContentSection, EmptyState, EmptyText, EmptyTitle, FilterSelect, HeroSubtitle, HeroTitle,
+  BarInner, ContentSection, EmptyState, EmptyText, EmptyTitle, ExternalVideoLink, FilterSelect, HeroSubtitle, HeroTitle,
   LoadingGrid, NoiseOverlay, PageWrapper, ResultCount, SearchGroup, SearchIcon, SearchInput,
   SectionHeading, SkeletonCard, StatusBanner, StickyBar,
 } from './VideoLibraryV3.layoutStyles';
@@ -145,11 +145,13 @@ const VideoLibraryV3: React.FC = () => {
         <HeroKicker>Training Video Vault</HeroKicker>
         <HeroTitle text="Video Library" forwardedAs="h1" speed={55} />
         <HeroSubtitle>Find the right movement demo, coaching lesson, or member story before the next set starts.</HeroSubtitle>
-        <HeroStats aria-label="Video library highlights">
-          <HeroStat><strong>{pagination.total}</strong><span>Published Videos</span></HeroStat>
-          <HeroStat><strong>{collections.length}</strong><span>Collections</span></HeroStat>
-          <HeroStat><strong>{contentLabel}</strong><span>Current Filter</span></HeroStat>
-        </HeroStats>
+        {(pagination.total > 0 || collections.length > 0) && (
+          <HeroStats aria-label="Video library highlights">
+            <HeroStat><strong>{pagination.total}</strong><span>Published Videos</span></HeroStat>
+            <HeroStat><strong>{collections.length}</strong><span>Collections</span></HeroStat>
+            <HeroStat><strong>{contentLabel}</strong><span>Current Filter</span></HeroStat>
+          </HeroStats>
+        )}
       </ParallaxHero>
 
       <SectionDivider />
@@ -236,12 +238,17 @@ const VideoLibraryV3: React.FC = () => {
         ) : videos.length === 0 ? (
           <EmptyState>
             <Video size={48} />
-            <EmptyTitle>No Videos Found</EmptyTitle>
+            <EmptyTitle>{filtersActive ? 'No Videos Found' : 'The SwanStudios Video Vault Opens Soon'}</EmptyTitle>
             <EmptyText>
               {filtersActive
                 ? 'Clear filters or try a different search to browse more of the library.'
-                : 'Videos will appear here once content is added to the library.'}
+                : 'The first comeback films are being prepared. Follow SwanStudios on YouTube for the latest training story.'}
             </EmptyText>
+            {!filtersActive && (
+              <ExternalVideoLink href="https://www.youtube.com/@swanstudios2018" target="_blank" rel="noreferrer">
+                Watch the SwanStudios comeback on YouTube
+              </ExternalVideoLink>
+            )}
           </EmptyState>
         ) : (
           <>

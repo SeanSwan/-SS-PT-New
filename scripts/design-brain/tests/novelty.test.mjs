@@ -97,3 +97,13 @@ test('renderNoveltyBlock: ≤8 lines, names the domain state', () => {
   assert.match(block, /D01/);
   assert.ok(block.split('\n').length <= 9, 'header stays compact');
 });
+test('Mobbin-classed events never affect the novelty dial', () => {
+  const events = [
+    ...runEvents('D01', 'OWNED', { fresh: 1, receipts: 2 }),
+    ...runEvents('D01', 'MOBBIN', { fresh: 20, receipts: 20 }).map((event) => ({ ...event, sourceClass: 'mobbin' })),
+  ];
+  const rows = computeNovelty(events, claimsFor('D01', 1), domains, tuning);
+  const d01 = rowFor(rows, 'D01');
+  assert.equal(d01.noveltyPer[0], 0.5, 'only the owned 1/2 run contributes');
+  assert.equal(d01.runs, 1, 'Mobbin run is excluded, not merely down-weighted');
+});

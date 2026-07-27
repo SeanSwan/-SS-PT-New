@@ -291,7 +291,7 @@ const BootcampBuilderPage: React.FC = () => {
           />
         )}
       </FourPane>
-      {!floorMode && <BootcampCoachDockMount structureSummary={`${stationCount} stations × ${exercisesPerStation} · ${targetDuration} min`} aiHandlers={{ setStationCount, setExercisesPerStation, setTargetDuration, setOptPhase }} />}{/* CC-3 Coach dock */}
+      {!floorMode && <BootcampCoachDockMount structureSummary={`${stationCount} stations × ${exercisesPerStation} · ${targetDuration} min`} aiHandlers={{ setStationCount, setExercisesPerStation, setTargetDuration, setOptPhase, getCurrent: () => ({ stationCount, exercisesPerStation, targetDuration, optPhase }) }} />}{/* CC-3 Coach dock */}
     </PageWrapper>
   );
 };

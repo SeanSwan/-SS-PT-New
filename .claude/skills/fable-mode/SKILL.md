@@ -59,6 +59,12 @@ never the Hermes learning corpus. The `originating_model` stamp tells the truth.
 - Fresh verification evidence, not memory of earlier green (verification-before-completion skill).
 - Name the exact caller path / test / command that proves it (Rule 19 — no "should be fixed").
 - For deploys: the §4.9-style probe (health + deployed-chunk marker), not local green alone.
+- **Security boundary / multi-module work → INDEPENDENT-pass dry-loop** (Sean 2026-07-22):
+  self-review is the author reviewing itself — its "CLEAN×2" is not "an independent complete
+  pass finds zero." Dispatch fresh subagent reviewers (attacker remit, read the whole surface)
+  and converge on TWO CONSECUTIVE independent zero-material passes; a fix resets the count.
+  Full procedure: closeout-evidence-lock Section 3 item 7. (Proven: self-review missed 32 real
+  defects incl. 2 HIGH leaks on the Context Gateway that independent passes then caught.)
 
 ### Gate 5 — REPORT calibrated
 - Blockers first, then what was verified, then residual risk (Dual-Pass step 6).

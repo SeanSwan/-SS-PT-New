@@ -30,6 +30,9 @@ const HINT_IDLE = 'say things like "leg press, set two, ninety pounds, eleven re
 const LoggerDictationStrip: React.FC<LoggerDictationStripProps> = ({
   active, listening, interim, text, setText, submitting, send, stopListening, receipt,
 }) => {
+  // L4 (Kimi-binding): a failed parse is never a dead end — the receipt itself becomes the
+  // "tap to type" path, focusing the always-present text input. Chip, not error wall.
+  const inputRef = React.useRef<HTMLInputElement>(null);
   if (!active) return null;
 
   return (
@@ -41,6 +44,7 @@ const LoggerDictationStrip: React.FC<LoggerDictationStripProps> = ({
           : HINT_IDLE}
       </StripHint>
       <StripInput
+        ref={inputRef}
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
@@ -61,10 +65,23 @@ const LoggerDictationStrip: React.FC<LoggerDictationStripProps> = ({
         {submitting ? 'Working…' : 'Send'}
       </StripBtn>
       {receipt ? (
-        <StripReceipt $ok={receipt.ok}>
-          <span aria-hidden="true">{receipt.ok ? '✓' : '✗'}</span>
-          {receipt.text}
-        </StripReceipt>
+        receipt.ok ? (
+          <StripReceipt $ok>
+            <span aria-hidden="true">✓</span>
+            {receipt.text}
+          </StripReceipt>
+        ) : (
+          <StripReceipt
+            as="button"
+            type="button"
+            $ok={false}
+            aria-label={`${receipt.text} — tap to type instead`}
+            onClick={() => inputRef.current?.focus()}
+          >
+            <span aria-hidden="true">✗</span>
+            {receipt.text} — tap to type
+          </StripReceipt>
+        )
       ) : null}
     </StripWrap>
   );

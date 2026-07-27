@@ -11,6 +11,7 @@
  */
 
 import { getAllModels } from '../../../models/index.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -30,7 +31,7 @@ const toIsoDateString = (value) => {
  */
 export async function dispatchCreateWorkoutSession(params = {}, ctx = {}) {
   const { WorkoutSession } = getAllModels();
-  const clientId = Number(ctx.resolvedClient?.id ?? params.clientId);
+  const clientId = resolveCommandClientId(params, ctx);
   const actorId = Number(ctx.user?.id) || null;
   const date = toIsoDateString(params.date);
   const sessionType = ['admin', 'trainer'].includes(ctx.user?.role) ? 'trainer-led' : 'solo';

@@ -1,7 +1,7 @@
 /**
  * TAB: ProgressTabContent
  * PARENT: ClientDetailView (Clients & Team)
- * PURPOSE: Truthful 12-chart canonical progress view for the selected client.
+ * PURPOSE: Truthful 15-chart canonical progress view for the selected client.
  * DATA: admin-scoped useAdminClientProgressCharts, not the JWT-derived client path.
  */
 

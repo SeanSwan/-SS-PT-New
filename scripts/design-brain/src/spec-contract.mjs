@@ -1,0 +1,72 @@
+/** Fail-closed Swan Design Intent Record (SDIR) contract. */
+import { verifyAuthorityRecord, signablePayload } from './authority.mjs';
+import { createHash } from 'node:crypto';
+export const REQUIRED_STATES = Object.freeze(['default', 'loading', 'empty', 'success', 'error', 'disabled', 'offline']);
+export const SAFETY_STATES = Object.freeze(['screening-incomplete', 'contraindication-present', 'trainer-approval-required', 'stale-assessment']);
+export const REQUIRED_WIDTHS = Object.freeze([320, 375, 414, 768, 1024, 1440, 2560, 3840]);
+export const DENIED_SPEC_KEYS = Object.freeze(['source', 'url', 'base64', 'screenshot', 'html', 'css', 'svg', 'deepLink', 'productName', 'appName', 'screenName', 'flowName', 'mobbinId', 'copyText', 'sourcePx', 'sourceHex', 'layoutGrid', 'lookupHint', 'connector', 'oauth', 'cookie', 'token', 'email']);
+const REQUIRED_KEYS = ['schemaVersion', 'specId', 'rev', 'taskId', 'swanSurface', 'swanPattern', 'job', 'designQuestion', 'hierarchy', 'states', 'responsive', 'interactionIntent', 'a11y', 'originalityConstraints', 'swanGrammar', 'informingCategories', 'singleSourceFields', 'singleSourceFlagged', 'provenanceClass', 'dataClass', 'independentDerivation', 'safetyClass', 'safetyReview', 'corroborationEligible', 'doctrineEligible', 'createdBy', 'createdAt'];
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const isText = (value, min = 1) => typeof value === 'string' && value.trim().length >= min;
+const semanticStrings = (spec) => [spec.job, spec.designQuestion, spec.interactionIntent, spec.a11y, ...Object.values(spec.hierarchy ?? {}), ...(spec.states ?? []).map((x) => x.behavior), ...(spec.responsive ?? []).map((x) => x.behavior), ...(spec.originalityConstraints ?? [])].filter((x) => typeof x === 'string');
+const sameMembers = (actual, expected) => actual.length === expected.length && expected.every((value) => actual.includes(value));
+const allStrings = (value) => {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(allStrings);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(allStrings);
+  return [];
+};export function validateSpec(spec, { tokens = {}, lexicon = {} } = {}) {
+  const errors = [];
+  if (!isObject(spec)) return { ok: false, errors: ['spec must be an object'] };
+  for (const key of REQUIRED_KEYS) if (!(key in spec)) errors.push(`required key missing: ${key}`);
+  for (const key of Object.keys(spec)) if (!REQUIRED_KEYS.includes(key) || DENIED_SPEC_KEYS.includes(key)) errors.push(`denied or unknown key: ${key}`);
+  if (spec.schemaVersion !== 'spec/2') errors.push('schemaVersion must be spec/2');
+  if (!/^SDIR-[a-z0-9-]{6,}$/.test(spec.specId ?? '')) errors.push('specId must match SDIR-...');
+  if (!Number.isInteger(spec.rev) || spec.rev < 1) errors.push('rev must be positive');
+  if (!/^TASK-[A-Za-z0-9-]{4,}$/.test(spec.taskId ?? '')) errors.push('taskId invalid');
+  if (!/^C(?:[1-9]|1[0-3])$/.test(spec.swanPattern ?? '')) errors.push('swanPattern must be C1-C13');
+  for (const key of ['swanSurface', 'job', 'designQuestion', 'interactionIntent', 'a11y', 'createdBy']) if (!isText(spec[key], 3)) errors.push(`${key} required`);
+  if (!isObject(spec.hierarchy) || !['primary', 'secondary', 'supporting'].every((key) => isText(spec.hierarchy?.[key], 3))) errors.push('hierarchy invalid');
+  const expectedStates = spec.safetyClass === 'safety-critical' ? [...REQUIRED_STATES, ...SAFETY_STATES] : REQUIRED_STATES;
+  const stateNames = Array.isArray(spec.states) ? spec.states.map((x) => x?.name) : [];
+  if (!sameMembers(stateNames, expectedStates) || !spec.states?.every((x) => isText(x.behavior, 10))) errors.push(`states must contain: ${expectedStates.join(', ')}`);
+  const widths = Array.isArray(spec.responsive) ? spec.responsive.map((x) => x?.width) : [];
+  if (!sameMembers(widths, REQUIRED_WIDTHS) || !spec.responsive?.every((x) => isText(x.behavior, 10))) errors.push('responsive widths invalid');
+  if (!Array.isArray(spec.originalityConstraints) || !spec.originalityConstraints.length) errors.push('originalityConstraints required');
+  if (!isObject(spec.swanGrammar) || !Array.isArray(spec.swanGrammar.tokens) || !Array.isArray(spec.swanGrammar.components)) errors.push('swanGrammar invalid');
+  const semanticText = semanticStrings(spec).join('\n');
+  const allowedColors = new Set(Object.values(tokens?.tokens ?? {}).map((value) => String(value).toLowerCase()));
+  for (const color of semanticText.match(/#[0-9a-f]{6}/gi) ?? []) if (!allowedColors.has(color.toLowerCase())) errors.push(`ART-1 non-token color: ${color}`);
+  const allowedPx = new Set(tokens?.spacingPx ?? []);
+  for (const match of semanticText.matchAll(/\b(\d+)px\b/gi)) if (!allowedPx.has(Number(match[1]))) errors.push(`ART-1 off-scale pixel: ${match[0]}`);  const knownTokens = new Set(Object.keys(tokens?.tokens ?? {}));
+  for (const token of spec.swanGrammar?.tokens ?? []) if (!knownTokens.has(token)) errors.push(`ART-1 unknown Swan token: ${token}`);
+  if (!Array.isArray(spec.informingCategories) || !spec.informingCategories.length) errors.push('informingCategories required');
+  if (!Array.isArray(spec.singleSourceFields) || spec.singleSourceFields.length) errors.push('singleSourceFields must be empty');
+  if (spec.singleSourceFlagged !== (spec.informingCategories?.length < 2)) errors.push('singleSourceFlagged mismatch');
+  if (!['owned-synthetic', 'synthetic', 'licensed'].includes(spec.provenanceClass)) errors.push('provenanceClass invalid');
+  if (!['class-0', 'class-1'].includes(spec.dataClass)) errors.push('dataClass invalid');
+  if (spec.independentDerivation !== true) errors.push('independentDerivation must be true');
+  if (!['standard', 'safety-critical'].includes(spec.safetyClass)) errors.push('safetyClass invalid');
+  if (spec.safetyClass === 'safety-critical' && !isText(spec.safetyReview?.reviewerRef, 5)) errors.push('safety-critical requires safetyReview.reviewerRef');
+  if (spec.safetyClass === 'standard' && spec.safetyReview !== null) errors.push('standard safetyReview must be null');
+  if (spec.safetyClass === 'safety-critical' && allStrings(spec).some((value) => /\b(?:repetitions?|reps?|sets?|rounds?|rpe|rir|tempo|cadence|frequency|dosage|duration|effort|load|weight|pounds?|lbs?|kg|bpm|percent|zone)\b/i.test(value))) errors.push('safety-critical prescriptive language is forbidden');
+  if (spec.corroborationEligible !== false || spec.doctrineEligible !== false) errors.push('spec cannot become evidence or doctrine');
+  if (Number.isNaN(new Date(spec.createdAt).getTime())) errors.push('createdAt invalid');
+  const proper = new Set(semanticStrings(spec).join(' ').match(/\b[A-Z][A-Za-z0-9-]{2,}\b/g) ?? []);
+  const allowedProper = new Set(lexicon?.properNouns ?? []);
+  for (const word of proper) if (!allowedProper.has(word)) errors.push(`ART-2 proper noun outside Swan lexicon: ${word}`);
+  if (/\b(?:like|as in|similar to|inspired by)\b/i.test(semanticStrings(spec).join(' '))) errors.push('ART-4 source-comparison phrasing is forbidden');
+  return { ok: errors.length === 0, errors };
+}
+const coded = (code, message) => { const error = new Error(`${code}: ${message}`); error.code = code; return error; };
+const SPEC_CONFIG_KEYS = new Set(['schemaVersion', 'enabled', 'termsVersion', 'activationRef']);
+export const configDigestFor = (config) => createHash('sha256').update(signablePayload(config)).digest('hex');
+export function assertSpecModeEnabled(config, authority = {}) {
+  if (config?.schemaVersion !== 'spec-mode/2' || config.enabled !== true) throw coded('E_SPEC_MODE_DISABLED', 'Spec mode is disabled');
+  if (!authority.activation) throw coded('E_SPEC_ACTIVATION_REQUIRED', 'signed activation required');
+  if (Object.keys(config).some((key) => !SPEC_CONFIG_KEYS.has(key))) throw coded('E_SPEC_ACTIVATION_INVALID', 'unknown config field');
+  const result = verifyAuthorityRecord(authority.activation, { ...authority, purpose: 'spec-enable' });
+  const bound = authority.activation.recordId === config.activationRef && authority.activation.termsVersion === config.termsVersion && authority.activation.configDigest === configDigestFor(config);
+  if (!result.ok || authority.activation.schemaVersion !== 'authority/1' || !bound) throw coded('E_SPEC_ACTIVATION_INVALID', [...result.errors, ...(!bound ? ['activation binding mismatch'] : [])].join('; '));
+  return true;
+}

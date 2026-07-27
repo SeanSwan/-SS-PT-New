@@ -39,11 +39,11 @@ export function claimIdFor(domainId, principle) {
 }
 
 /** Pure core: receipts[] → proposed claims[]. Invalid receipts are refused, never repaired. */
-export function synthesizeClaims(receipts, { nowIso = new Date().toISOString() } = {}) {
+export function synthesizeClaims(receipts, { nowIso = new Date().toISOString(), sourceAuthority = {} } = {}) {
   const refused = [];
   const valid = [];
   for (const r of receipts) {
-    const v = validateReceipt(r);
+    const v = validateReceipt(r, { sourceAuthority });
     if (v.ok) valid.push(r);
     else refused.push({ receiptId: r?.receiptId ?? '(missing id)', errors: v.errors });
   }

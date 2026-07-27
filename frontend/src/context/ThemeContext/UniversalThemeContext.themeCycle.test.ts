@@ -25,6 +25,11 @@ const premiumThemeIds = [
   'orchid-veil',
   'deep-jade',
   'midnight-mango',
+  // 2026-07-22 finishing pass — four curated, code-verified colorways
+  'crimson-vault',
+  'verdant-signal',
+  'indigo-rite',
+  'violet-ember',
 ] as const;
 
 const hexToRgb = (hex: string) => {
@@ -84,7 +89,8 @@ describe('Universal theme cycle contract', () => {
   });
 
   it('adds every premium colorway to the theme changer without hiding them from the cycle', () => {
-    expect(premiumThemeIds).toHaveLength(20);
+    // 20 original premium + 4 added in the 2026-07-22 finishing pass (all code-verified).
+    expect(premiumThemeIds).toHaveLength(24);
 
     for (const themeId of premiumThemeIds) {
       const theme = themes[themeId as keyof typeof themes];

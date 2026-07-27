@@ -166,26 +166,19 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
 45. **No amend/rewrite without Sean (MANDATORY)** — Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
 
-46. **3-Brain Review Loop (MANDATORY) — AMENDED 2026-06-10: Fable is the Final Decider.** Sean's directive 2026-06-10: "Fable is the final decider in everything; if Fable is not available, use the next best model." Effect on this rule: the review ORDER below still runs for substantial changes (Claude builds → Gemini reviews → Codex reviews), but **Codex's verdict is now advisory input, not the commit gate — Fable (or the fallback Final Decider) arbitrates all verdicts and owns the commit decision.** Codex's hostile-review value is preserved (its catch record below is why it stays mandatory input); its authority is not. If Codex is unavailable, Fable may proceed with Gemini review + its own hostile pass, recording the gap in the commit message. Original rule text follows for the review procedure:
-    1. **Claude builds** — implementation + tests, narrow scope
-    2. **Gemini reviews** — invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
-    3. **Codex reviews both** — Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
-    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's **APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
+46. **Kimi Hostile-Review Gate (MANDATORY for substantial changes) - AMENDED 2026-07-26.** Sean retired Fable as the routine Final Decider because its cost is disproportionate for everyday work. **Kimi K3 is the standard Final Reviewer and commit gate** for substantial plans, implementations, governance changes, and release candidates. **Fable is explicit opt-in only** when Sean specifically requests it; no workflow may silently require or invoke Fable. This amendment supersedes every conflicting active Fable-gate or fallback-decider statement elsewhere in this file.
+    1. **Builder builds** - implementation and tests, with a bounded scope.
+    2. **Builder verifies and self-attacks** - run the applicable tests, security checks, browser or caller-path checks, backend drift audit, and secret scan.
+    3. **Kimi reviews** - provide a bounded privacy-safe packet plus verified evidence. Kimi returns APPROVE / REVISE / REJECT with concrete findings.
+    4. **Builder repairs and re-verifies** - REVISE repeats until clean; REJECT returns to planning.
 
-    This ordering is mandatory because Codex has consistently caught what Claude and Gemini both missed:
-    - Credential re-leak in handoff doc (2026-04-19) — Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
-    - Script arg parser bug (2026-04-21) — `consult-gemini.mjs --review --file X` fed "--file" as code to review; Gemini hallucinated a phantom component; Codex diagnosed via argv trace.
-    - Phase 18.A Gemini contradiction (2026-04-21) — Gemini proposed theme-provider tokens that violate rule 6; Codex killed it, kept the two valid fixes.
-    - Cross-platform preflight bug (2026-04-20) — Claude shelled out to `bash` which resolves to WSL on Windows; Codex flagged it from the Windows path.
-
-    Sub-rules (as amended 2026-06-10):
-    - **Gemini review is mandatory before Codex** so Codex has the third perspective to cross-check. Skipping Gemini leaves Codex with only Claude's self-view.
-    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is a hostile reviewer; **Fable is the gate.**
-    - **CLAUDE.md rules win.** When Gemini or Codex suggests anything contradicting an existing rule, the Final Decider rejects the suggestion and logs the contradiction.
-    - **Village (15-brain) is a separate escalation track** for major architectural decisions. 3-brain per-fix; Village per-phase.
-    - **If Codex service is unavailable** (rate limit, outage), Fable may proceed with Gemini review + its own documented hostile pass; the skipped Codex input is recorded in the commit message for post-hoc review.
-
-    Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
+    Sub-rules:
+    - A **matching completed Kimi review satisfies the gate** when the reviewed scope or content hash has not changed materially; do not pay to review the same packet twice.
+    - Fable absence, quota, or cost never blocks routine work. Fable requires Sean's explicit per-run request.
+    - Gemini, Codex, Opus, and other reviewers may provide advisory evidence, but they do not replace Kimi unless Sean explicitly names a replacement.
+    - Repo rules and Sean's decisions outrank every model suggestion.
+    - AI Village remains a separate Rule-16 spend-gated escalation track.
+    - If Kimi is unavailable, stop before commit unless Sean explicitly waives the external gate or names a replacement reviewer.
 
 47. **Supervised Read-Only Launcher Pattern (MANDATORY for all remote/Pi/production work)** — Established 2026-04-25 after the W1.0 manual-command workflow proved too fragile for Sean. Any semi-automated work that touches a remote system (Pi, Hermes, Render, third-party server) MUST run via a local launcher. Long copy-paste shell command sequences are forbidden; Claude does not hand Sean a wall of commands to run by hand.
 
@@ -586,6 +579,43 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
     - **Harness ruling (standing):** the Swan harness of record is this repo's rules+skills+hooks stack on Claude Code, with Codex as the standing second lane. New harnesses (PI coding agent, Antigravity, etc.) may be TRIALED as additional lanes with Sean's explicit approval, but replacement of the harness of record requires a Fable-tier review + Sean sign-off recorded in the catalog. And-not-or.
 
 
+74. **Proof-Before-Done — no "done" without a passing hostile-review gate (MANDATORY, HARD RULE, applies to EVERY agent — Claude, Codex, Fable, Sonnet, subagents, workflows)** — Established 2026-07-22 by Sean after the SwanGuard shell-rebuild: an agent reported the work "all fixed / done," Sean forced a hostile review, and round 1 found **4 real defects** (command-palette shortcuts routed to the wrong screen, a phantom focus target, and a destructive-action gate that was mouse-only so keyboard users couldn't confirm). Sean's words: *"We cannot say anything is done until we can prove it… don't say nothing's done. In that case we would probably need to do a hostile review to go ahead and confirm."* This has cost Sean real time across many sessions. It is now a hard gate.
+
+    **The core law:** an agent may NOT use the words **done / complete / fixed / finished / ready / shipped / working / passing / good to go** (or any synonym asserting the work is finished/correct) UNLESS, in the SAME message, it presents **proof it generated and verified in the current session** AND states that a hostile-review pass was run and came back clean. No proof + no clean hostile pass = the work is **NOT done**, and the agent must say so plainly ("implemented but not yet proven — running the hostile-review gate now") instead of claiming completion.
+
+    **What counts as PROOF (must be current-session, reproducible, and shown — not asserted):**
+    - Executed command output pasted/summarized with the exact command (e.g. `npm test` → `X passed`, `tsc --noEmit` exit 0, `npm run build` → built, the specific vitest file → N/N).
+    - A failing→passing regression test that exercises the ACTUAL caller path (not a local happy path), or an explicit statement of why a test wasn't feasible + the real entry-path check that replaced it (Bugfix standard).
+    - For UI/data-truth: a Canonical Surface Receipt (Rule 26) or a live probe (browser network panel, computed-style read, real-DOM assertion) — file:line + observed value, not "should render."
+    - For a claim about behavior: `[VERIFIED]` per Rule 51 with the reproducible evidence inline. `[LIKELY]`/`[HYPOTHESIS]`/`[UNKNOWN]` are NOT proof and cannot accompany a "done."
+
+    **The hostile-review gate (mandatory before any completion claim on substantial work):** after implementing, the agent switches into hostile-reviewer mode (Rule 17/61) and actively tries to break its own work — then **loops: find defects → fix → re-verify → hostile-review again — and does NOT stop until a full hostile pass finds NOTHING new** (the "run dry" bar, same as Rule 61 + the DRY-LOOP discipline). Only after a clean dry pass may it report. The report MUST state: what the hostile pass looked for, what it found and fixed (even "found nothing this round"), and the proof evidence. A single implement-then-declare with no hostile loop is a **rule violation**, not a completion.
+
+    **Forbidden phrasings (categorical, like Rule 34's cleanup bans):** "it's fixed" / "all done" / "should be working now" / "that's complete" / "looks good" / "ready to ship" / "everything passes" — whenever they appear WITHOUT current-session proof + a clean hostile pass in the same message. Replace with the honest state: "implemented; hostile review + proof pending," or "verified done — [evidence]: tests N/N, tsc clean, hostile pass dry (rounds: K)."
+
+    **Applies to subagents and workflows too:** a subagent's "done" is a HYPOTHESIS (Rule 30) until the dispatching agent verifies it with its own proof + hostile pass. Never relay a subagent's completion claim to Sean as fact. Workflow stages that report success must carry the same proof; the orchestrator re-verifies before the turn's completion claim.
+
+    **The escape hatch is honesty, not silence:** if the work genuinely cannot be proven in-session (e.g. a live authenticated browser journey needs a backend that won't run here), the agent DISCLOSES the gap explicitly (what could not be proven, why, and what lower-tier evidence stands in — as done in the SwanGuard audit's "browser-journey LIMITATION" section) and does NOT claim done for the unproven part. Partial proof → partial, scoped claim only (Rule 28 Claim-to-Evidence Lock).
+
+    **Closeout enforcement:** this rule is enforced at the `closeout-evidence-lock` gate (Rule 41) — closeout must refuse to emit a completion claim that lacks proof + a clean hostile pass, and must print the proof + the dry-pass round count. Additionally the deterministic `Stop` hook `scripts/hooks/dry-loop-gate.mjs` BLOCKS any build-shaped turn (≥2 non-emission file writes OR a git commit/push) whose closeout lacks EITHER the `DRY-LOOP: CLEAN×2` marker OR a `PROOF:` token (unit-tested in `dry-loop-gate.test.mjs`). **Why:** Sean has burned countless hours catching "done" claims that weren't. The fix is structural: proof and an adversarial dry-loop are the price of the word "done." No proof, no done.
+
+75. **Trailhead-Truth — docs, READMEs, closeouts, status, and in-app copy describe what the code does NOW, never the destination (MANDATORY, HARD RULE, applies to EVERY agent — Claude, Codex, Fable, Sonnet, subagents, workflows)** — Established 2026-07-22 by Sean after an agent's own audit named the exact failure in its own words: *"I let closeout/README language describe the destination while the code was at the trailhead."* The docs — and worse, the app's own UI copy — narrated the intended, finished feature in present tense while the code was barely started: stubbed, unwired, or mocked. This is DISTINCT from a false "done" claim (Rule 74) and a claim-without-receipt (Rule 28): those govern *completion assertions*; **this governs aspirational prose stated as current reality.** A README that says "SwanStudios generates cinematic worlds from your workout data" while the generator is a stub is a lie the next reader — or the paying user — acts on.
+
+    **The core law:** every present-tense capability statement in a README, doc, closeout, status update, commit body, handoff, changelog, OR user-facing UI/marketing copy MUST be true of the code AS IT EXISTS NOW. Intended/planned/partial behavior MUST be tense-marked as such — `Planned:` / `Not yet wired:` / `Design intent (unbuilt):` / `Stub — returns mock data` — never phrased in the present indicative as though it already works. When in doubt, describe the trailhead (what runs today) and label the destination (what's designed but unbuilt) as a separate, clearly-future thing.
+
+    **The app-tells-the-truth corollary (highest stakes):** user-facing copy is the worst place for this failure — if a screen says the app does X and the code doesn't, **the app is lying to the user**, and that is a P0 correctness bug, not a wording nit. The #1 fix for any surface whose copy over-promises is ALWAYS to make the copy tell the truth FIRST (downgrade/qualify the claim to match the code), and THEN close the real correctness gap. Never leave a false claim standing on a live surface while the "real" feature is deferred to later.
+
+    **How to apply:** before writing or committing any README, doc, closeout, status, changelog, or in-app copy, every present-tense capability claim must map to code that actually does it now (grep/trace it) or be tense-marked as planned. On hostile review (Rule 61) and at closeout (Rule 41), sweep the prose against the code: does it describe the trailhead, or narrate the destination? A closeout that describes a destination the code hasn't reached fails BOTH the Claim-to-Evidence Lock (Rule 28) and this rule. Cross-references: Rule 26 (canonical surface receipt proves what is actually mounted), Rule 28 (claim-to-evidence), Rule 34 (forbidden-language discipline), Rule 74 (proof-before-done). **Why:** Sean, 2026-07-22 — the mistake "keeps happening; we don't wanna ever make this mistake again — let's make it on that level." Docs and UI that describe the destination while the code sits at the trailhead mislead the next agent, mislead Sean, and — in user copy — mislead the customer. Truth is the trailhead, always.
+
+76. **Create-With-Context — expert brains are CREATIVE PEERS whose ideas FUSE, Claude is the AUTHOR (MANDATORY routing for all substantial creation)** — Established 2026-07-24 by Sean, tightened same day: *"use your creativity AND Kimi's, combine them both together for the final creativity idea."* The split: **creativity ~50/50** (BOTH Claude and the expert generate real, original ideas — Claude must bring its OWN, not just curate the expert's), **authorship 100% Claude** (Claude owns the fusion and is accountable). Every substantial creation (net-new feature / component / page / dashboard surface / system / design, or a meaningful upgrade / redesign) auto-routes through the `create-with-context` skill and its five steps:
+    1. **GROUND — find what exists, then make it BETTER.** Audit the REAL current state before designing anything (never create from memory; spawn an `Explore`/audit agent or run `canonical-surface-audit`; cite file:line). Grounding is NOT only to avoid duplication — when it surfaces existing work, LOOK IT OVER FOR UPGRADES: does it match the vision, the house rules, the least-clicks bar, the premium bar? Then EXTEND/IMPROVE it toward the vision rather than rebuilding from scratch OR leaving it as-is. Both failures are banned: don't-reinvent AND don't-leave-it-weak. Honors Rules 18/26/52/58. Memory is a hypothesis; the audit is truth; existing code is a starting point to upgrade.
+    2. **ENHANCE** — remake Sean's prompt into a grounded brief that fills the gaps he may have missed + surgical amplifying features (Rule 62). This is the `prompt-watcher` enhancement, written down.
+    3. **EXPERT AS CREATIVE PEER** — feed the brief to the RIGHT expert: **Kimi K3** for design/front-end (`consult-kimi.mjs --effort medium --max-tokens 16000`), free **triangle fusion** or `swan-oracle` for architecture/strategy, paid **Village** for high-stakes (Rule 16, ask-first). The expert generates creative ideas + hostile critique — AND Claude generates its OWN original ideas in parallel (do not outsource creativity, match it). If Sean names the expert, the paid consult is pre-authorized that turn; otherwise free-first, ask before paid.
+    4. **FUSE** — **CLAUDE authors the fusion of BOTH idea sets**: puts its own ideas and the expert's on the table together, keeps the best of each, cuts what doesn't fit (including the expert's — a bad expert idea is rejected, not shipped), and synthesizes ONE final creation with concrete, opinionated decisions. DESIGN it — don't assert "premium/awe"; name the tokens, layout, signature moment, CTA priority, phasing. Blueprint header states "Claude authored the fusion; `<expert>` was a creative peer; `<audit>` was ground truth" + an idea-provenance note (his / mine / cut). Land in `docs/ai-workflow/AI-HANDOFF/` or `brainstorms/` with `decision:`/`status:` frontmatter.
+    5. **PRESENT + BUILD WITH PROOF** — blueprint + taste-cut decisions Sean must make + recommended first slice (Rule 60); then build through the normal gates with Rule 74 proof + DRY-LOOP + `closeout-evidence-lock`.
+
+    **The non-negotiable law:** NEVER relay an expert's output as the deliverable — and never reduce Claude to a transcriber either. Both brains create; Claude authors the fusion. Reject expert suggestions that fight the Swan strategy or house rules (Rule 6 tokens, Rule 10 Victory, Dual-Button Glow, dark-first, 44px, ≤300 lines, reduced-motion). This is the creation spine INSIDE the pipeline (`prompt-watcher` → `grill-me`/`chromie` → `swan-orchestrator` → `swan-design-router` → build → `closeout-evidence-lock`), NOT a bypass. Fires automatically every chat via this rule (boot context) + the `prompt-watcher` VISION path. Does NOT fire for trivial edits / bugfixes / questions / status / corrections. Skill: `.claude/skills/create-with-context/SKILL.md`. **Why:** Sean 2026-07-24 — consulting an expert and pasting its answer is a failure mode; so is Claude just transcribing. Grounding in an audit + FUSING Claude's creativity with the expert's produced the charts-upgrade blueprint (`CHARTS-EXPANSIVE-UPGRADE-BLUEPRINT-2026-07-24.md`) this rule was born from. Memory is a hypothesis; the audit is truth; the expert is a creative peer; **Claude authors the fusion.**
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -666,8 +696,8 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
    - `3840x2160` 4K monitor class
    - `3440px` ultrawide
    - If a QA tool accepts only width, use `2560px` and `3840px` widths and state the tested height separately. `1440px` width is not the same as 1440p; 1440p means a `2560x1440` viewport class.
-6. **Gemini design handoff rule**
-   If Gemini provides the concept, Claude must preserve the direction but still critique implementation fidelity, hierarchy, spacing, responsiveness, and polish. Gemini direction is not a substitute for production QA.
+6. **Design handoff rule (amended 2026-07-25 — Gemini is context, not authority)**
+   The design direction is set by **Kimi K3 or Opus 5** (the design authority). Gemini may contribute context, research, or options *into* that decision — its output is an input, never the direction itself, and it holds no veto. Whoever receives a concept must still critique implementation fidelity, hierarchy, spacing, responsiveness, and polish. No concept from any model is a substitute for production QA.
 7. **Reporting style**
    Name the design weaknesses found, what was improved, and which viewport widths were actually checked.
 
@@ -689,12 +719,14 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
 ## Co-Orchestrator Hierarchy
-- **Fable 5 (FINAL DECIDER)** — Established by Sean 2026-06-10: **Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING** — plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 gate verdict and Gemini's design authority. **Fallback chain when Fable is unavailable:** the next best available Claude model assumes the Final Decider role (Opus 4.8 → Opus 4.x → Sonnet 4.6). Sean remains the human owner above all models.
-- **Opus 4.x (Deputy/CEO when Fable unavailable)** — first fallback Final Decider.
-- **Gemini 3.1 Pro (CTO)** — Lead Design Authority. Authoritative on aesthetics; Fable can override.
-- **Codex (Hostile Reviewer)** — rule-46 review remains mandatory input for substantial changes, but its verdict is advisory to Fable (see rule 46 amendment).
+- **Sean (human owner)** - final authority above every model.
+- **Kimi K3 (STANDARD FINAL REVIEWER)** - As amended by Sean 2026-07-26, Kimi is the routine hostile-review and commit gate for substantial work. A matching completed review is reused. Normal privacy, bounded-packet, and spend controls still apply.
+- **Fable 5 (EXPLICIT OPT-IN ONLY)** - Fable is not a standing gate, fallback, or automatic expense. Invoke it only when Sean specifically requests a Fable run.
+- **⚠ DESIGN AUTHORITY = Kimi K3 + Opus 5 (Sean 2026-07-25).** Design arbitration belongs to **Kimi and Opus 5**. They pick the direction and own aesthetic judgment. Either may decide alone when the other is unavailable.
+- **Gemini 3.1 Pro (CTO) — CONTEXT ONLY (amended 2026-07-25).** Gemini is **NO LONGER the design authority.** It may supply context, research, and options *into* a design decision; it does **not** arbitrate, set direction, or hold veto. Sean's words: *"gemini 3 pro is no longer the authority — Kimi and Opus 5. Gemini 3.1 can only give context to the decision and that is all."*
+- **Codex (Builder / Hostile Reviewer)** - performs implementation, verification, and independent hostile review; its evidence feeds the Kimi gate.
 - **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
-- **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
+- **Design execution rule (amended 2026-07-25):** the direction is set by **Kimi or Opus 5**. Gemini output is an input to that decision, never the decision. Whoever builds still runs hostile design critique, responsive QA, and production-fidelity review before ship.
 - **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.
 - Consult: `node scripts/consult-gemini.mjs --plan|--design|--review|--ask`
 - Output: `AI-Village-Documentation/gemini-consults/latest.md`
@@ -819,11 +851,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` documented count = 23)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24, `.claude/skills/` documented count = 24)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 23 entries
+### Default-exposed `.claude/skills/` = 24 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -834,9 +866,10 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (9):**
+**Swan orchestration (10):**
 | Skill | Role |
 |---|---|
+| `create-with-context` | The Swan creation workflow (rule 76). For any substantial creation: GROUND in a real audit (never from memory) → ENHANCE the prompt → pull an EXPERT brain (Kimi K3 for design; triangle/oracle otherwise) as a CREATIVE PEER + generate your OWN ideas → CLAUDE AUTHORS the FUSION of both idea sets (creativity ~50/50, authorship 100% Claude) → present blueprint + build with proof. Auto-fires every chat via rule 76 + prompt-watcher VISION path. |
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
 | `fable-mode` | Portable Fable working discipline (rule 71). Five gates (scope adversarially / evidence first / attack own reasoning / verify before declaring / report calibrated) + the model/effort routing table (orchestrator-smart, executor-cheap). MANDATORY load for any fallback Final Decider acting in Fable's absence; on-demand for hard problems ("fable mode"). Does NOT elevate rule-68 provenance. |
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |

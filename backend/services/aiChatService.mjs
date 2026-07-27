@@ -15,6 +15,7 @@ import logger from '../utils/logger.mjs';
 import { getTier, getTierDisplay } from '../utils/levelingAlgorithm.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
+import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
 import {
   isNonDeductingClient,
@@ -1122,7 +1123,31 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
                 "clientSource", "accountStatus"
          FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
       // 2. Equipment profiles
+      //
+      // SUBJECT FIX (C1, 2026-07-25): this previously read
+      //   WHERE ep."trainerId" = :userId
+      // but :userId is the CLIENT being enriched, while `trainerId` is the
+      // OWNING TRAINER ("Trainer who owns this equipment profile" —
+      // models/EquipmentProfile.mjs; sole creator sets req.user.id;
+      // unique index on (trainerId, lower(name))). A client owns no profiles,
+      // so the query returned zero rows for every client enrichment and Coach
+      // reasoned about workouts equipment-blind — silently.
+      //
+      // 20 of the 21 sources here key on "userId" = :userId; this was the lone
+      // outlier, which is what identified it as a defect rather than intent.
+      //
+      // Correct subject: the equipment owned by the trainer(s) this client is
+      // ACTIVELY assigned to. Self-owned profiles are still included so a
+      // trainer asking about themselves keeps the previous behavior.
       safeQuery(
+        // BOUNDED (hostile-review catch, 2026-07-25): this query was unbounded,
+        // which was harmless only because the broken subject made it return ZERO
+        // rows for every client. Fixing the subject activated a latent unbounded
+        // read on the hot path of every Coach enrichment — a well-equipped gym
+        // could push hundreds of item names into every prompt.
+        // Every sibling source here is bounded (LIMIT 1 x8, 10 x5, 8, 5, 20);
+        // equipment was the lone exception. isDefault-first ordering means the
+        // cap keeps the most relevant profiles.
         `SELECT ep.id, ep.name, ep."locationType", ep.description,
                 COALESCE(
                   (SELECT json_agg(json_build_object(
@@ -1130,16 +1155,30 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
                     'category', ei.category,
                     'quantity', ei.quantity,
                     'resistanceType', ei."resistanceType"
-                  ) ORDER BY ei.category, ei.name)
-                   FROM equipment_items ei
-                   WHERE ei."profileId" = ep.id
-                     AND ei."isActive" = true
-                     AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')),
+                  ))
+                   FROM (
+                     SELECT ei.name, ei.category, ei.quantity, ei."resistanceType"
+                     FROM equipment_items ei
+                     WHERE ei."profileId" = ep.id
+                       AND ei."isActive" = true
+                       AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')
+                     ORDER BY ei.category, ei.name
+                     LIMIT 40
+                   ) ei),
                   '[]'
                 ) as items
          FROM equipment_profiles ep
-         WHERE ep."trainerId" = :userId AND ep."isActive" = true
-         ORDER BY ep."isDefault" DESC`, { userId }),
+         WHERE ep."isActive" = true
+           AND (
+             ep."trainerId" = :userId
+             OR ep."trainerId" IN (
+               SELECT cta."trainerId"
+               FROM client_trainer_assignments cta
+               WHERE cta."clientId" = :userId AND cta.status = 'active'
+             )
+           )
+         ORDER BY ep."isDefault" DESC
+         LIMIT 5`, { userId }),
       // 3. Onboarding questionnaire
       safeQuery(
         `SELECT "primaryGoal", "trainingTier", "commitmentLevel", "healthRisk",
@@ -1484,22 +1523,48 @@ You can log workouts, check progress, and manage plans for ANY of these clients.
 
         // ── Equipment Profiles: inject items so AI can plan around available gear ──
         try {
+          // SUBJECT FIX #2 (hostile-review catch, 2026-07-25): this is the SECOND
+          // instance of the same defect fixed in source #2 above, and the C1
+          // sibling sweep missed it because it lives outside the numbered
+          // Promise.all block. `userId` here is `enrichUserId` — the CLIENT
+          // being enriched (aiChatRoutes.mjs:688-690) — but it was bound to
+          // `trainerId`, which is the OWNING TRAINER. Clients own no equipment
+          // profiles, so this returned zero rows and the class-planning path
+          // reasoned equipment-blind — the very path where available gear
+          // matters most.
+          // Same resolution as source #2: the client's ACTIVE trainers, plus
+          // self-owned so a trainer asking about themselves is unchanged.
+          // Bounded for the same reason (every sibling source here is capped).
           const equipProfiles = await safeQuery(
             `SELECT ep.id, ep.name, ep."locationType",
                     COALESCE(
                       (SELECT json_agg(json_build_object(
                         'name', ei.name, 'category', ei.category,
                         'quantity', ei.quantity, 'resistanceType', ei."resistanceType"
-                      ) ORDER BY ei.category, ei.name)
-                       FROM equipment_items ei
-                       WHERE ei."profileId" = ep.id AND ei."isActive" = true
-                         AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')),
+                      ))
+                       FROM (
+                         SELECT ei.name, ei.category, ei.quantity, ei."resistanceType"
+                         FROM equipment_items ei
+                         WHERE ei."profileId" = ep.id AND ei."isActive" = true
+                           AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')
+                         ORDER BY ei.category, ei.name
+                         LIMIT 40
+                       ) ei),
                       '[]'
                     ) as items
              FROM equipment_profiles ep
-             WHERE ep."trainerId" = :trainerId AND ep."isActive" = true
-             ORDER BY ep."isDefault" DESC, ep.name`,
-            { trainerId: userId }
+             WHERE ep."isActive" = true
+               AND (
+                 ep."trainerId" = :subjectId
+                 OR ep."trainerId" IN (
+                   SELECT cta."trainerId"
+                   FROM client_trainer_assignments cta
+                   WHERE cta."clientId" = :subjectId AND cta.status = 'active'
+                 )
+               )
+             ORDER BY ep."isDefault" DESC, ep.name
+             LIMIT 5`,
+            { subjectId: userId }
           );
           if (equipProfiles.length > 0) {
             const profileLines = equipProfiles.map(ep => {
@@ -1818,7 +1883,38 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       }
     } catch { /* exercise analytics enrichment is non-fatal */ }
 
+    // ── INTAKE COVERAGE (C1, 2026-07-25) ───────────────────────────────────
+    //
+    // Every block above is `if (rows.length > 0) push(...)`, so an EMPTY source
+    // emits nothing at all. Coach therefore could not distinguish
+    //   "screened, no compensations found"  from  "never screened".
+    // It answered with identical confidence either way — the failure this
+    // program exists to prevent.
+    //
+    // This is not cosmetic. The client-intake inputs are populated by THREE
+    // separate surfaces: the onboarding wizard writes the questionnaire and
+    // baselines, while MovementProfile and EquipmentProfile come from the
+    // Movement Analysis wizard and the equipment surface respectively. A newly
+    // onboarded client legitimately has gaps — Coach must SAY so rather than
+    // reason into the void.
+    //
+    // Absence is stated explicitly and Coach is told what to do about it.
+    //
+    // ORDERING: this runs AFTER the empty-guard deliberately. If NOTHING
+    // resolved, the caller still gets '' and no block is appended — unchanged
+    // behavior, and honest (Coach has no data and is told nothing). The defect
+    // being fixed is PARTIAL data producing false confidence, so the marker is
+    // only meaningful when some data is actually being sent.
+    //
+    // Logic lives in services/ai/intakeCoverage.mjs — pure and dependency-free,
+    // because this module is 2200+ lines and cannot be exercised in isolation.
     if (dataParts.length === 0) return '';
+
+    try {
+      dataParts.push(buildIntakeCoverageBlock({
+        onboarding, movement, movementProfile, baseline, equipment, painEntries, goals,
+      }));
+    } catch { /* coverage summary is non-fatal */ }
 
     // PRIVACY: Prepend identity-blind instruction to AI
     const privacyHeader = `

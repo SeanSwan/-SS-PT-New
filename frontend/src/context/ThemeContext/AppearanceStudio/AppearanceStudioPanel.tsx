@@ -10,19 +10,23 @@ import type {
   StyleLensRegistry,
 } from '../../../core/style-lens-os';
 import { themes, type ThemeId } from '../UniversalThemeContext';
-import { buildFeaturedIds } from '../UniversalThemeToggle.panel';
 import AppearanceStudioPreview, {
   type PreviewRole,
   type PreviewViewport,
 } from './AppearanceStudioPreview';
 import { useDialogFocusTrap } from './useDialogFocusTrap';
 import { useRovingTablist } from './useRovingTablist';
+import SwatchSpecimen from './SwatchSpecimen';
+import { groupByFamily, FAMILY_LABEL } from './colorwayFamilies';
 import {
   ChoiceButton,
   ChoiceGrid,
-  ColorChip,
+  ColorCount,
+  ColorGrid,
+  FamilyHeader,
   FavoriteButton,
   Pane,
+  SwatchButton,
   PreviewColumn,
   PreviewControls,
   PrimaryButton,
@@ -79,7 +83,14 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
   const [favorites, setFavorites] = useState<string[]>([]);
   const lenses = registry.available();
   const lens = registry.resolve(draftProfile.styleLensId);
-  const colorIds = useMemo(() => buildFeaturedIds(draftTheme), [draftTheme]);
+  // The FULL colorway catalog (all registered themes), current draft first so the active
+  // pick is always visible without scrolling. Replaces the old 12-item featured cap
+  // (buildFeaturedIds) that hid 26 colorways from the Swan Lens — the header picker had a
+  // "Show all" toggle but this panel never did, which read as "my colors disappeared".
+  const colorIds = useMemo(() => {
+    const all = Object.keys(themes) as ThemeId[];
+    return [draftTheme, ...all.filter((id) => id !== draftTheme)];
+  }, [draftTheme]);
   const { dialogRef, onDialogKeyDown } = useDialogFocusTrap(onCancel);
   const { tabProps } = useRovingTablist(TAB_IDS, tab, setTab);
 
@@ -182,28 +193,31 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
             <>
               <h3>Color identity</h3>
               <p>Color and structural style remain independent.</p>
-              <ChoiceGrid>
-                {colorIds.map((id) => {
-                  const theme = themes[id];
-                  return (
-                    <ChoiceButton
-                      key={id}
-                      type='button'
-                      $active={draftTheme === id}
-                      aria-pressed={draftTheme === id}
-                      onClick={() => onThemeChange(id)}
-                    >
-                      <ColorChip
-                        $bg={theme.background.primary}
-                        $primary={theme.colors.primary}
-                        $accent={theme.colors.accent}
-                        aria-hidden='true'
-                      />
-                      {theme.name}
-                    </ChoiceButton>
-                  );
-                })}
-              </ChoiceGrid>
+              <ColorCount>Showing all {colorIds.length} colorways — scroll for more</ColorCount>
+              <ColorGrid role='listbox' aria-label='Colorways'>
+                {groupByFamily(colorIds).map(({ family, ids }) => (
+                  <React.Fragment key={family}>
+                    <FamilyHeader aria-hidden='true'>{FAMILY_LABEL[family]}</FamilyHeader>
+                    {ids.map((id) => {
+                      const theme = themes[id];
+                      return (
+                        <SwatchButton
+                          key={id}
+                          type='button'
+                          role='option'
+                          $active={draftTheme === id}
+                          aria-selected={draftTheme === id}
+                          aria-label={`${theme.name} colorway`}
+                          onClick={() => onThemeChange(id)}
+                        >
+                          <SwatchSpecimen theme={theme} />
+                          <span className='label'>{theme.name}</span>
+                        </SwatchButton>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </ColorGrid>
             </>
           )}
 

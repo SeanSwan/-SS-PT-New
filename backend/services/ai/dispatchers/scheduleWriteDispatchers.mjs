@@ -10,6 +10,7 @@
 
 import { Op } from 'sequelize';
 import { getSession, getUser } from '../../../models/index.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const WRITABLE_STATUSES = ['scheduled', 'confirmed'];
 
@@ -112,7 +113,7 @@ async function assertNoScheduleConflict(Session, { clientId, trainerId, sessionD
 export async function dispatchScheduleSession(params, ctx) {
   assertTrainerOrAdmin(ctx);
 
-  const client = await resolveClient(params.clientId);
+  const client = await resolveClient(resolveCommandClientId(params, ctx));
   const Session = getSession();
   const sessionDate = buildDateTime(params.date, params.time);
   const duration = clampDuration(params.duration);
@@ -154,7 +155,7 @@ export async function dispatchScheduleSession(params, ctx) {
 export async function dispatchRescheduleSession(params, ctx) {
   assertTrainerOrAdmin(ctx);
 
-  const client = await resolveClient(params.clientId);
+  const client = await resolveClient(resolveCommandClientId(params, ctx));
   const Session = getSession();
   const { start, end } = dayBounds(params.originalDate);
 

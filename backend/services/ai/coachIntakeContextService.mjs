@@ -1,3 +1,11 @@
+/**
+ * Coach's REVIEW QUEUE state — ⚠ NOT client fitness intake.
+ * COACH intake = PLAUD audio, review/clarification holds, retention. No clinical data.
+ * CLIENT intake = onboarding/PAR-Q/injuries/equipment → aiChatService.enrichWithUserData
+ * + ai/intakeCoverage.mjs. Want client-aware advice? That is the other one.
+ * (This collision already misdirected planning — SWA-63 lists this file as part
+ * of the client-intake pipeline; it is not.)
+ */
 const SUMMARY_KEYS = [
   'actionable',
   'readyReview',

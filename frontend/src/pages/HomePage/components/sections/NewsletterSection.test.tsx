@@ -29,7 +29,7 @@ describe('NewsletterSection (Tier 1.2 homepage)', () => {
     expect(body).toMatchObject({ email: 'jane@example.com', source: 'homepage' });
     await screen.findByText(/check your email to confirm/i);
     // Conversion: success state offers a booking CTA + a resend affordance
-    expect(screen.getByText(/Book your free assessment/i).getAttribute('href')).toBe('/contact');
+    expect(screen.getByText(/Ask about a complimentary consultation/i).getAttribute('href')).toBe('/contact?intent=consultation&utm_source=newsletter&utm_campaign=welcome');
     expect(screen.getByRole('button', { name: /resend/i })).toBeTruthy();
   });
 
@@ -38,10 +38,10 @@ describe('NewsletterSection (Tier 1.2 homepage)', () => {
     render(<NewsletterSection tier="essential" />);
     fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'jane@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: /subscribe/i }));
-    await screen.findByText(/Book your free assessment/i);
+    await screen.findByText(/Ask about a complimentary consultation/i);
     fireEvent.click(screen.getByRole('button', { name: /resend/i }));
     await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(2));
-    expect(screen.getByText(/Book your free assessment/i)).toBeTruthy(); // still on success screen
+    expect(screen.getByText(/Ask about a complimentary consultation/i)).toBeTruthy(); // still on success screen
   });
 
   it('rejects an invalid email client-side without POSTing', async () => {

@@ -30,8 +30,9 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { readJsonl, loadClaims } from './synthesize.mjs';
+import { readJsonl, loadClaims, synthesizeClaims } from './synthesize.mjs';
 import { confidenceFor } from './validate.mjs';
+import { validateClaimProvenance } from './claim-provenance.mjs';
 import { bestMatches, contentTokens } from './similarity.mjs';
 import { appendJsonl, safeWriteText } from './writer.mjs';
 
@@ -113,16 +114,9 @@ export function corroborateBatch({ proposed, accepted, pendingProposed, receipts
         continue;
       }
       if (autoGate) {
-        const target = best.target;
-        // idempotency: if every receiptRef is already on the target, this is a no-op re-run
-        const already = claim.receiptRefs.every((r) => (target.receiptRefs || []).includes(r));
-        if (already) continue;
-        const merged = applyCorroboration(target, claim, nowIso, runId);
-        claimAppends.push(merged.record);
-        emit({ kind: merged.kind, runId, domainId: claim.domainId, claimId: claim.claimId, matchedClaimId: target.claimId, receiptId: claim.receiptRefs[0], addedProducts: merged.addedProducts, prevLevel: merged.prevLevel, nextLevel: merged.nextLevel, similarity: pick(best) });
+        emit({ kind: 'corroboration-blocked', runId, domainId: claim.domainId, claimId: claim.claimId, matchedClaimId: best.target.claimId });
         continue;
-      }
-      if (best.S >= mergeLow) {
+      }      if (best.S >= mergeLow) {
         emit({ kind: 'merge-queue', runId, domainId: claim.domainId, claimId: claim.claimId, matchedClaimId: best.claimId, similarity: pick(best) });
         continue;
       }
@@ -165,38 +159,13 @@ const pick = (m) => ({ S: round(m.S), J: round(m.J), O: round(m.O), T: round(m.T
 const round = (n) => Math.round(n * 1000) / 1000;
 
 /** Build the rev+1 record for a corroborated accepted claim. Confidence moves ONLY via confidenceFor. */
-export function applyCorroboration(target, candidate, nowIso, runId) {
-  const addedProducts = candidate.products.filter((p) => !target.products.includes(p));
-  const rev = (target.rev ?? 1) + 1;
-  const record = {
-    ...target,
-    rev,
-    updatedUtc: nowIso,
-    receiptRefs: [...new Set([...target.receiptRefs, ...candidate.receiptRefs])],
-    products: [...new Set([...target.products, ...candidate.products])],
-  };
-  const prevConfidence = target.confidence;
-  if (addedProducts.length) {
-    record.confidence = confidenceFor(record.products);
-    record.singleSource = record.products.length < 2;
-    record.autoUpdate = {
-      kind: 'corroborate', actor: 'auto-corroborate/1', utc: nowIso, runId,
-      receiptRefs: candidate.receiptRefs, addedProducts,
-      prevConfidence, nextConfidence: record.confidence,
-    };
-    return { record, kind: 'corroborate', addedProducts, prevLevel: prevConfidence.level, nextLevel: record.confidence.level };
-  }
-  // same-product corroboration: evidence depth recorded, confidence & products untouched
-  record.autoUpdate = {
-    kind: 'corroborate-same-product', actor: 'auto-corroborate/1', utc: nowIso, runId,
-    receiptRefs: candidate.receiptRefs, addedProducts: [],
-    prevConfidence, nextConfidence: prevConfidence,
-  };
-  return { record, kind: 'corroborate-same-product', addedProducts: [], prevLevel: prevConfidence.level, nextLevel: prevConfidence.level };
+export function applyCorroboration() {
+  const error = new Error('E_CORROBORATION_DISABLED: signed monotonic lifecycle authority is not installed');
+  error.code = 'E_CORROBORATION_DISABLED';
+  throw error;
 }
-
 /** CLI wiring: read state, run the pure core, perform writes through the writer. */
-export function runCorroborate(root, cfgDir, { nowIso = new Date().toISOString() } = {}) {
+export function runCorroborate(root, cfgDir, { nowIso = new Date().toISOString(), sourceAuthority = {} } = {}) {
   const cfg = loadConfig(cfgDir);
   const proposedAll = readJsonl(join(root, 'claims-proposed.jsonl'));
   const runIds = [...new Set(proposedAll.map((c) => c.runIdSeen).filter(Boolean))];
@@ -205,10 +174,12 @@ export function runCorroborate(root, cfgDir, { nowIso = new Date().toISOString()
   const events = readJsonl(join(root, 'events.jsonl'));
   const seen = new Set(events.map((e) => e.eventId));
   const claimsWithEvents = new Set(events.filter((e) => e.kind === 'fresh' || e.kind === 'corroborate' || e.kind === 'merge-queue' || e.kind === 'dedup-proposed').map((e) => e.claimId));
-  const proposed = proposedAll.filter((c) => c.status === 'proposed' && !claimsWithEvents.has(c.claimId));
-  const pendingProposed = proposedAll.filter((c) => c.status === 'proposed' && claimsWithEvents.has(c.claimId));
-  const accepted = loadClaims(join(root, 'claims.jsonl')).filter((c) => c.status === 'accepted');
-  const receiptsById = new Map(readJsonl(join(root, 'receipts.jsonl')).map((r) => [r.receiptId, r]));
+  const receiptRows = readJsonl(join(root, 'receipts.jsonl'));
+  const receiptsById = new Map(receiptRows.map((r) => [r.receiptId, r]));
+  const provenanceValid = (claim) => validateClaimProvenance(claim, receiptsById, sourceAuthority);
+  const proposed = proposedAll.filter((c) => c.status === 'proposed' && !claimsWithEvents.has(c.claimId) && provenanceValid(c));
+  const pendingProposed = proposedAll.filter((c) => c.status === 'proposed' && claimsWithEvents.has(c.claimId) && provenanceValid(c));
+  const accepted = loadClaims(join(root, 'claims.jsonl')).filter((c) => c.status === 'accepted' && validateClaimProvenance(c, receiptsById, sourceAuthority));
 
   const { events: newEvents, claimAppends, pendingRewrite } = corroborateBatch({
     proposed, accepted, pendingProposed, receiptsById,

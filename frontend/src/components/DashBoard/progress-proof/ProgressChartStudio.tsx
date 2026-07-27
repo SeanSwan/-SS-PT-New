@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Clipboard, ImageDown, LockKeyhole, Send, X } from 'lucide-react';
 import type { ProgressShareCard } from './progressShareCard';
 import { downloadProgressShareCardPng } from './progressShareCardExport';
+import PrCelebration from './PrCelebration';
 import {
   CaptionBox,
   CloseButton,
@@ -173,6 +174,7 @@ const ProgressChartStudio: React.FC<ProgressChartStudioProps> = ({
 
         <StudioBody>
           <PreviewCard $tone={card.tone}>
+            {card.tone === 'record' && <PrCelebration />}
             <PreviewKicker>Shareable proof card</PreviewKicker>
             <PreviewTitle>{card.title}</PreviewTitle>
             <PreviewDetail>{card.detail}</PreviewDetail>

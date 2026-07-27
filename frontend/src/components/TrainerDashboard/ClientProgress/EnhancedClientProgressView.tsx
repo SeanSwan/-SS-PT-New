@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
+import { getClientHubAudienceConfig } from '../../DashBoard/workspaces/clients-team/clientHubAudience';
+import { resolveAudienceFromPath } from '../../DashBoard/workspaces/clients-team/resolveAudienceFromPath';
 
 import {
   type ClientData,
@@ -42,6 +44,13 @@ import { PageWrapper } from './EnhancedClientProgressView.styles';
  */
 const EnhancedClientProgressView: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Route locality: return to the Client Hub of the dashboard the actor is
+  // already in. Hardcoding the trainer path here would demote an admin —
+  // activeRole is URL-derived (UniversalDashboardLayout.tsx:77).
+  const clientHubBase = getClientHubAudienceConfig(
+    resolveAudienceFromPath(location.pathname),
+  ).clientManagementBase;
   const [searchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
   const [advancedMode, setAdvancedMode] = useState(false);
@@ -153,7 +162,7 @@ const EnhancedClientProgressView: React.FC = () => {
   if (!clientId) {
     return (
       <MissingClientProgressState
-        onBackToClients={() => navigate('/dashboard/trainer/clients')}
+        onBackToClients={() => navigate(clientHubBase)}
       />
     );
   }

@@ -1,15 +1,10 @@
-# SwanStudios - Elite Personal Training SEO Optimization
+# SwanStudios public crawl policy
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /user-dashboard/
+Disallow: /trainer-dashboard/
+Disallow: /admin/
 
-# Priority pages for local SEO
-Allow: /
-Allow: /contact
-Allow: /store
-Allow: /about
-
-# Sitemap location
-Sitemap: https://swanstudios.com/sitemap.xml
-
-# Crawl-delay for better server performance
-Crawl-delay: 1
+Sitemap: https://sswanstudios.com/sitemap.xml

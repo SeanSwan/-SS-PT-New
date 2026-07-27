@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { useMuscleReadiness } from './useMuscleReadiness';
+import CrystallineBody from './CrystallineBody';
 import {
   Card, HeaderRow, Title, EstimateTag, Explainer, Rows, Row,
   GroupName, BarTrack, BarFill, ReadySheen, StateLabel,
@@ -57,6 +58,9 @@ const MuscleReadinessCard: React.FC<MuscleReadinessCardProps> = ({ userId }) => 
           Based on your last sessions and restore work — your trainer makes the call.
         </Explainer>
       )}
+      {/* CC-1b signature: the body as faceted crystal, brightening as it recovers (decorative;
+          the list below carries the accessible truth). */}
+      <CrystallineBody groups={board.groups} />
       <Rows>
         {board.groups.map(({ group, pct, state }) => (
           <Row key={group} aria-label={`${group}: ${STATE_TEXT[state]}, ${pct} percent recovered`}>

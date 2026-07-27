@@ -13,8 +13,8 @@ describe('SwanCoachDockTrainer theme bridge', () => {
   it('keeps the dock out of the active trainer overview hero', () => {
     expect(homeSource).toContain("import TrainerHomeObservatoryHero from './TrainerHomeObservatoryHero'");
     expect(homeSource).toContain('<TrainerHomeObservatoryHero');
-    expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
-    expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
+    // hero is now the slim identity bar (2026-07-23 de-dup)
+    expect(heroSource).toContain('aria-label="Trainer identity"');
     expect(heroSource).not.toContain("import SwanCoachDockTrainer from './SwanCoachDockTrainer'");
     expect(heroSource).not.toContain('<SwanCoachDockTrainer');
   });

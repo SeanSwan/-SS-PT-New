@@ -19,6 +19,8 @@ import GalleryInfoCard from './gallery/GalleryInfoCard';
 import MessageModal from './gallery/MessageModal';
 import DonationModal from './gallery/DonationModal';
 import ReferralModal from './gallery/ReferralModal';
+import { formatPhotoCount } from './galleryFormat';
+import { useGalleryViewPrefs, SIZE_MIN_PX, SIZE_LABEL, type GallerySize } from './galleryViewPrefs';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -508,37 +510,53 @@ const EventCard = styled(motion.button)`
   &:hover { border-color: rgba(139, 92, 246, 0.3); }
 `;
 
+/* Consistent token'd aspect ratio (was a fixed 200px that cropped covers unevenly).
+   Missing covers get a branded token gradient placeholder, not a hardcoded hex. */
 const EventCover = styled.div<{ $src: string | null }>`
   width: 100%;
-  height: 200px;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
   background: ${({ $src }) => {
     const safe = $src ? sanitizeImageUrl($src) : null;
-    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'linear-gradient(135deg, #1a1035, #002060)';
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover`
+      : `radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--wing-purple, #8B5CF6) 22%, transparent), transparent 55%),
+         linear-gradient(135deg, var(--graphite, #1A1A24), var(--midnight-sapphire, #002060))`;
   }};
   position: relative;
+  transition: transform 0.4s ease;
+
+  ${EventCard}:hover & { transform: scale(1.03); }
+  @media (prefers-reduced-motion: reduce) { transition: none; ${EventCard}:hover & { transform: none; } }
 `;
 
+/* Both overlays are DECORATIVE (aria-hidden + pointer-events:none) — they sit inside the
+   clickable EventCard, so making them interactive would nest interactive elements
+   (invalid DOM / touch-target trap). Kimi R2 §6. */
 const SportBadge = styled.span`
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(139, 92, 246, 0.15);
-  color: #60C0F0;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--wing-purple, #8B5CF6) 18%, rgba(10, 10, 15, 0.6));
+  color: var(--ice-wing, #60C0F0);
+  border: 1px solid color-mix(in srgb, var(--wing-purple, #8B5CF6) 34%, transparent);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
 `;
 
 const PhotoCountBadge = styled.span`
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(0, 32, 96, 0.85);
-  color: rgba(255,255,255,0.9);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--midnight-sapphire, #002060) 85%, transparent);
+  color: var(--frost-white, rgba(255, 255, 255, 0.92));
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 13px;
@@ -669,11 +687,53 @@ const ErrorText = styled.p`
 `;
 
 // ── Photo Grid (Justified) ───────────────────────────────────────────────
-const GridWrapper = styled.div`
+/* $minPx drives the size preset (S/M/L/XL); $layout switches grid vs single-column list. */
+const GridWrapper = styled.div<{ $minPx?: number; $layout?: 'grid' | 'list' }>`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: ${p => p.$layout === 'list'
+    ? '1fr'
+    : `repeat(auto-fill, minmax(${p.$minPx ?? 200}px, 1fr))`};
   gap: 16px;
-  @media (max-width: 480px) { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  @media (max-width: 480px) {
+    grid-template-columns: ${p => p.$layout === 'list' ? '1fr' : 'repeat(2, 1fr)'};
+    gap: 8px;
+  }
+`;
+
+/* View + size control bar (net-new — the gallery had no view/size controls). */
+const ViewControlBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 16px;
+`;
+
+const ViewControlGroup = styled.div`
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing, #60C0F0) 22%, transparent);
+  background: color-mix(in srgb, var(--graphite, #1A1A24) 70%, transparent);
+`;
+
+const ViewControlButton = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font: 700 12px/1 'Sora', sans-serif;
+  color: ${p => p.$active ? 'var(--obsidian-black, #0A0A0F)' : 'var(--frost-white, #E0ECF4)'};
+  background: ${p => p.$active
+    ? 'linear-gradient(135deg, var(--wing-purple, #8B5CF6), var(--ice-wing, #60C0F0))'
+    : 'transparent'};
+  transition: background 0.18s ease, color 0.18s ease;
+  &:hover { background: ${p => p.$active ? '' : 'color-mix(in srgb, var(--ice-wing, #60C0F0) 16%, transparent)'}; }
+  &:focus-visible { outline: 3px solid var(--wing-purple, #8B5CF6); outline-offset: 2px; }
 `;
 
 const PhotoCardWrapper = styled.div`
@@ -1152,6 +1212,8 @@ const GalleryPage: React.FC = () => {
   const PHOTOS_PER_BATCH = 24;
   const [visiblePhotoCount, setVisiblePhotoCount] = useState(PHOTOS_PER_BATCH);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  // Net-new: persisted view layout + picture-size preset (Sean's "more views / more sizes").
+  const { layout, size, setLayout, setSize } = useGalleryViewPrefs();
 
   // Enhancement credit state
   const [credits, setCredits] = useState<EnhancementCredits>({ freeRemaining: 3, purchasedCredits: 0, isVip: false, freeUsedThisEvent: 0 });
@@ -1798,8 +1860,8 @@ const GalleryPage: React.FC = () => {
                   onClick={() => handleEventClick(event)}
                 >
                   <EventCover $src={event.coverPhotoUrl}>
-                    {event.sport && <SportBadge>{event.sport}</SportBadge>}
-                    <PhotoCountBadge>{event.photoCount} photos</PhotoCountBadge>
+                    {event.sport && <SportBadge aria-hidden='true'>{event.sport}</SportBadge>}
+                    <PhotoCountBadge aria-hidden='true'>{formatPhotoCount(event.photoCount)}</PhotoCountBadge>
                   </EventCover>
                   <EventInfo>
                     <EventName>{event.name}</EventName>
@@ -1926,7 +1988,33 @@ const GalleryPage: React.FC = () => {
           </EventGrid>
         ) : (
           <>
-          <GridWrapper>
+          <ViewControlBar>
+            <ViewControlGroup role='group' aria-label='Gallery layout'>
+              {(['grid', 'list'] as const).map((mode) => (
+                <ViewControlButton
+                  key={mode}
+                  type='button'
+                  $active={layout === mode}
+                  aria-pressed={layout === mode}
+                  aria-label={`${mode[0].toUpperCase()}${mode.slice(1)} layout`}
+                  onClick={() => setLayout(mode)}
+                >{mode[0].toUpperCase()}{mode.slice(1)}</ViewControlButton>
+              ))}
+            </ViewControlGroup>
+            <ViewControlGroup role='group' aria-label='Picture size'>
+              {(['s', 'm', 'l', 'xl'] as GallerySize[]).map((sz) => (
+                <ViewControlButton
+                  key={sz}
+                  type='button'
+                  $active={size === sz}
+                  aria-pressed={size === sz}
+                  aria-label={`Picture size ${SIZE_LABEL[sz]}`}
+                  onClick={() => setSize(sz)}
+                >{SIZE_LABEL[sz]}</ViewControlButton>
+              ))}
+            </ViewControlGroup>
+          </ViewControlBar>
+          <GridWrapper $minPx={SIZE_MIN_PX[size]} $layout={layout}>
             {photos.slice(0, visiblePhotoCount).map((photo, index) => {
               const voteData = votesMap[photo.id];
               return (

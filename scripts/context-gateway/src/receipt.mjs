@@ -31,8 +31,23 @@ export function reconstructPacket(saved) {
   return p;
 }
 
-/** Write a sanitized markdown receipt; returns its path. `stamp` is caller-supplied (no Date.now here). */
-export function writeReceipt({ root, stamp, provider, result, manifest, audit, spend }) {
+/** Collapse a per-call tool trace into per-tool {tool, calls, failed} counts (no args, no content). */
+function summarizeTrace(trace) {
+  const by = new Map();
+  for (const t of trace) {
+    const e = by.get(t.tool) ?? { tool: t.tool, calls: 0, failed: 0 };
+    e.calls += 1; if (!t.ok) e.failed += 1;
+    by.set(t.tool, e);
+  }
+  return [...by.values()];
+}
+
+/**
+ * Write a sanitized markdown receipt; returns its path. `stamp` is caller-supplied (no Date.now here).
+ * `loop` (optional) records a tool-loop run's investigation trace — iterations + per-tool call counts
+ * and pass/fail, NEVER tool-result content — so an interactive run is as auditable as a single shot.
+ */
+export function writeReceipt({ root, stamp, provider, result, manifest, audit, spend, loop = null }) {
   const dir = join(root, '.ai-workflow', 'context-gateway', 'receipts');
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `${stamp}-${provider.name}.md`);
@@ -46,6 +61,11 @@ export function writeReceipt({ root, stamp, provider, result, manifest, audit, s
     `- **Tokens:** ${result.inTok} in / ${result.outTok} out · **Cost:** ~$${result.cost.toFixed(4)} (est ~$${spend.estimate.toFixed(4)}, cap $${spend.cap}) · **Wall:** ${(result.wallMs / 1000).toFixed(1)}s`,
     `- **Citations:** ${audit.valid} valid / ${audit.invalid.length} invalid${audit.uncited ? ' · **UNCITED ANSWER**' : ''}`,
     ...(audit.invalid.length ? ['', '## Invalid citations', ...audit.invalid.map((i) => `- ${i.citation} — ${i.reason}`)] : []),
+    ...(loop ? [
+      '',
+      `## Tool loop — ${loop.iterations} iteration(s), stop=${loop.stopReason}`,
+      ...summarizeTrace(loop.toolTrace ?? []).map((t) => `- ${t.tool}: ${t.calls} call(s), ${t.failed} failed`),
+    ] : []),
     '',
     '## Evidence manifest (windows only — no content)',
     ...manifest.evidence.map((e) => `- ${e.id} ${e.tier} ${e.path} L${e.startLine}-L${e.endLine} sha=${e.sha}`),

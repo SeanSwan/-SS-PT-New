@@ -92,6 +92,7 @@ router.post('/generate', async (req, res) => {
 
     const result = await generateBootcampClass({
       trainerId: req.user.id,
+      requesterRole: req.user.role,
       classFormat: safeFormat,
       stationCount: safeStationCount,
       exercisesPerStation: safeExercisesPerStation,
@@ -110,6 +111,9 @@ router.post('/generate', async (req, res) => {
     return res.json({ success: true, bootcamp: result });
   } catch (err) {
     logger.error('[Bootcamp] Generate failed:', err.message);
+    if (err?.statusCode === 403 && err?.code === 'BOOTCAMP_PROFILE_ACCESS_DENIED') {
+      return res.status(403).json({ success: false, code: err.code, error: 'Access denied' });
+    }
     return res.status(500).json({ success: false, error: 'Failed to generate boot camp class' });
   }
 });

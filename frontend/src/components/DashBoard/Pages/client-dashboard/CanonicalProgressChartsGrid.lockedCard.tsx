@@ -19,7 +19,7 @@ const LockedChartCard: React.FC<{ title: string }> = ({ title }) => {
       <CrystallineLockOverlay
         isLocked
         featureName={title}
-        description="Part of the full 12-chart Guardian analytics cockpit."
+        description="Part of the full Guardian analytics cockpit."
         ctaLabel="Upgrade"
         badgeLabel="Guardian"
         onConfigure={() => navigate('/ascension')}

@@ -207,7 +207,7 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
             )}
             <StyledBox as="p" $style={{ margin: 0, fontSize: '1.05rem' }}>{message || 'Almost there — check your email to confirm your subscription.'}</StyledBox>
             <SuccessActions>
-              <CtaLink href="/contact">Book your free assessment</CtaLink>
+              <CtaLink href="/contact?intent=consultation&utm_source=newsletter&utm_campaign=welcome">Ask about a complimentary consultation</CtaLink>
               <ResendButton type="button" onClick={() => subscribe({ email })} disabled={status === 'loading'}>
                 {status === 'loading' ? 'Resending…' : "Didn't get it? Resend"}
               </ResendButton>

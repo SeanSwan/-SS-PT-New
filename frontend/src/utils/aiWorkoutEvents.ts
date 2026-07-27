@@ -14,6 +14,8 @@
  * WorkoutLogger useEffect listeners catch them → update form state.
  */
 
+import { recordCoachIntent } from './coachIntentRecorder';
+
 // ─── Event Names ─────────────────────────────────────────────
 
 export const AI_LOAD_TEMPLATE = 'AI_LOAD_TEMPLATE';
@@ -110,13 +112,20 @@ export type AIWorkoutEventDetail<T extends object> = T & AIWorkoutEventAck;
 
 function dispatchWithAcknowledgement<T extends object>(eventName: string, payload: T): boolean {
   let handled = false;
+  // Tracked separately from `handled` because the two falses are different
+  // facts: nobody was listening, vs an effector looked and declined
+  // (useWorkoutAiEvents.ts acks `next !== prev`). See coachEventLog.resolveOutcome.
+  let acknowledged = false;
   const detail: AIWorkoutEventDetail<T> = {
     ...payload,
     acknowledgeAIWorkoutEvent: (didHandle = true) => {
+      acknowledged = true;
       handled = didHandle !== false;
     },
   };
+  // Synchronous by spec — listeners run inline, so both flags are settled here.
   window.dispatchEvent(new CustomEvent(eventName, { detail }));
+  recordCoachIntent(eventName, payload, acknowledged, handled);
   return handled;
 }
 
@@ -185,3 +194,9 @@ export function dispatchAIWorkoutEvent(eventName: string, payload: unknown): boo
   if (!dispatch) return false;
   return dispatch(payload as AIEventPayload);
 }
+
+// Rest-timer voice intents (Arc L / L3 — Kimi: existing command family, no parallel registry).
+export const AI_REST_SKIP = 'AI_REST_SKIP';
+export const AI_REST_ADJUST = 'AI_REST_ADJUST';
+dispatchers[AI_REST_SKIP] = (p) => dispatchWithAcknowledgement(AI_REST_SKIP, p as object);
+dispatchers[AI_REST_ADJUST] = (p) => dispatchWithAcknowledgement(AI_REST_ADJUST, p as object);

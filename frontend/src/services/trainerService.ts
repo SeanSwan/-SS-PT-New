@@ -63,7 +63,11 @@ class TrainerService {
         phone: trainer.phone,
         photo: trainer.photo,
         specialties: trainer.specialties || 'General Fitness',
-        certifications: trainer.certifications || 'Certified Personal Trainer',
+        // P0-2 (SWA-29): do NOT fabricate a credential. A cert is a verifiable claim — a
+        // trainer with none on file must show none (parseListField('') → [] → no chips),
+        // never an invented "Certified Personal Trainer". (specialties/experience above are
+        // categories/puffery, not credentials, so their soft defaults stay.)
+        certifications: trainer.certifications || '',
         experience: trainer.experience || 'Experienced',
         bio: trainer.bio || '',
         hourlyRate: trainer.hourlyRate || 75,

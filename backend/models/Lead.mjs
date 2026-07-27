@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
+import { resolveFollowUpAt } from '../utils/leadFollowUp.mjs';
 
 class Lead extends Model {}
 
@@ -94,6 +95,48 @@ Lead.init(
       { fields: ['converted_user_id'] },
       { fields: ['gallery_visitor_id'] },
     ],
+    hooks: {
+      /**
+       * P0-1 (SWA-29): set the initial follow-up SLA at capture so the "leads needing
+       * follow-up" dashboard (leadRoutes.mjs:54 filter + :120 KPI) stops structurally
+       * reporting ~0. Placed on the MODEL, not a single capture service, because a Rule-20
+       * sibling sweep found 7 lead-create sites (contact form, signup, PRISM, consult,
+       * checkout, gallery, admin) — a per-service edit would miss the highest-intent ones
+       * (consult/checkout) and the dashboard would keep lying for exactly the leads that
+       * matter most. Speed-to-lead: hot leads (score >= 70 — consult/booking/checkout
+       * intent) get a 2h SLA; everyone else 24h. Only fills when null, so a caller (or the
+       * admin PUT) that sets an explicit date is never overwritten.
+       */
+      beforeCreate: (lead) => {
+        lead.nextFollowUpAt = resolveFollowUpAt(lead.nextFollowUpAt, lead.score);
+      },
+      /**
+       * P0-4 (SWA-29): emit the canonical funnel events server-side from the model, so ALL
+       * lead-create/convert paths feed the ONE funnel stream (MEASUREMENT-CHARTER.md) without
+       * every caller remembering to. recordFunnelEvent is fail-soft (never throws) + writes on
+       * its own connection, so a telemetry failure can never break or roll back lead capture /
+       * conversion. Only non-identifying `source` is passed — NO name/email/id (Rule 8).
+       */
+      afterCreate: async (lead) => {
+        const { recordFunnelEvent } = await import('../services/acquisitionTelemetry.mjs');
+        await recordFunnelEvent('lead_captured', { source: lead.source });
+        // A checkout creates a lead BORN converted (leadCaptureCheckout.mjs:68) — that path
+        // fires afterCreate, not afterUpdate, so the converted event must be emitted here too
+        // or the highest-value conversion goes uncounted (Rule-61 hostile-review catch).
+        if (lead.status === 'converted') {
+          await recordFunnelEvent('converted', { source: lead.source });
+        }
+      },
+      afterUpdate: async (lead) => {
+        // Existing-lead conversions go through instance .update() (leadCaptureCheckout.mjs:85,
+        // leadRoutes.mjs admin PUT) → afterUpdate fires. Emit only on the transition INTO
+        // converted so a later save of an already-converted lead never double-counts.
+        if (lead.previous('status') !== 'converted' && lead.status === 'converted') {
+          const { recordFunnelEvent } = await import('../services/acquisitionTelemetry.mjs');
+          await recordFunnelEvent('converted', { source: lead.source });
+        }
+      },
+    },
   }
 );
 

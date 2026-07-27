@@ -96,9 +96,12 @@ export const HeroPill = styled.span`
   font-weight: 900;
 `;
 
+/* Weighted, not 3×1fr (design.md §10 weighted-columns law). The headline
+   Swan Points stat leads wider so the hero reads with hierarchy on value
+   alone (grayscale test), not three interchangeable peer tiles. */
 export const StatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 9px;
 
   @media (max-width: 620px) {
@@ -128,4 +131,23 @@ export const StatIcon = styled.span<{ $tone?: 'teal' | 'purple' | 'gold' }>`
     $tone === 'purple' ? 'var(--client-purple)' : $tone === 'gold' ? 'var(--client-gold)' : 'var(--client-mint)'
   )};
   background: color-mix(in srgb, currentColor 17%, transparent);
+`;
+
+/* Momentum lens row — the Swan rank BADGE beside the level readout. The badge
+   overhangs its box (crown above, rank label below), so the row carries top/
+   bottom padding so neither clips against surrounding hero content. Badge leads
+   on desktop; stacks (badge on top, centered) on narrow handsets. */
+export const MomentumLens = styled.div`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  padding: 14px 0 26px; /* clearance for the badge crown (top) + rank label (bottom) */
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 16px;
+  }
 `;

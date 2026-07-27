@@ -35,8 +35,11 @@ export const PROVIDERS = {
   },
 };
 
-/** Evidence-path classes above the 'design' ceiling. Matched case-insensitively. */
-export const SENSITIVE_PATH_RE = /auth|login|session|billing|payment|stripe|webhook|pii|privacy|secret|credential|token|migration|middleware|\.env|admin|permission|checkout|payout/i;
+/**
+ * Evidence-path classes above the 'design' ceiling. Matched case-insensitively. Includes Sean's
+ * life-critical admin-only data classes (immigration, medical) per Rule 8 (hostile pass 3 finding 2).
+ */
+export const SENSITIVE_PATH_RE = /auth|oauth|jwt|login|session|password|billing|payment|stripe|checkout|payout|refund|payroll|bank|plaid|webhook|pii|ssn|privacy|secret|credential|token|migration|middleware|\.env|admin|permission|immigration|medical|patient|health/i;
 
 export class ProviderError extends Error {
   constructor(code, message, detail = null) {
@@ -46,10 +49,26 @@ export class ProviderError extends Error {
   }
 }
 
+const CEILING_RANK = { standard: 0, design: 1 }; // higher = more restrictive
+/** Model slugs that are ALWAYS design-ceiling regardless of which slot resolves them (Chinese
+ * providers per Village policy). Widened for ernie/hunyuan/doubao/internlm/stepfun (pass 3 finding 2). */
+const RESTRICTED_MODEL_RE = /moonshotai\/|(?:^|\/)kimi|glm|qwen|deepseek|yi-|baichuan|minimax|ernie|hunyuan|doubao|(?:^|\/)seed|internlm|stepfun|z-ai\//i;
+
 export function getProvider(name) {
   const p = PROVIDERS[name];
   if (!p) throw new ProviderError('UNKNOWN_PROVIDER', `no adapter for "${name}" (have: ${Object.keys(PROVIDERS).join(', ')})`);
-  return { name, ...p, model: process.env[p.envModel] || p.model };
+  const model = process.env[p.envModel] || p.model;
+  // The ceiling must travel with the RESOLVED MODEL, not the static slot (hostile pass 4, finding 5):
+  // a model override (e.g. SWAN_FUSION_JUDGE_MODEL=moonshotai/kimi-k3 on the standard fable slot)
+  // must NOT route sensitive evidence to a design/Chinese model under a standard ceiling. Inherit the
+  // MOST restrictive of: the slot's ceiling, any registry slot owning this model, and the hardcoded
+  // restricted-slug list. Fail toward MORE restriction, never less.
+  let ceiling = p.ceiling;
+  for (const q of Object.values(PROVIDERS)) {
+    if (q.model === model && CEILING_RANK[q.ceiling] > CEILING_RANK[ceiling]) ceiling = q.ceiling;
+  }
+  if (RESTRICTED_MODEL_RE.test(model) && CEILING_RANK.design > CEILING_RANK[ceiling]) ceiling = 'design';
+  return { name, ...p, model, ceiling };
 }
 
 /**
@@ -57,7 +76,9 @@ export function getProvider(name) {
  * CEILING listing every offending evidence path; returns the offending list (empty = pass).
  */
 export function enforceCeiling(provider, manifest) {
-  if (provider.ceiling !== 'design') return [];
+  // Screen every non-standard ceiling, not just 'design' — so a future restricted tier fails
+  // SAFE (screened) rather than silently passing. Transport gates identically (!== 'standard').
+  if (provider.ceiling === 'standard') return [];
   const offending = manifest.evidence.filter((e) => SENSITIVE_PATH_RE.test(e.path)).map((e) => `${e.id} ${e.path}`);
   if (offending.length) {
     throw new ProviderError('CEILING', `${provider.name} is design-scoped; packet contains ${offending.length} sensitive evidence item(s)`, offending);
@@ -66,15 +87,25 @@ export function enforceCeiling(provider, manifest) {
 }
 
 /**
- * Spend gate (threat T8). Fail-closed: SWAN_CONTEXT_MAX_USD must be set to spend at all.
- * Estimate is conservative: chars/3 input tokens + full maxTokens output.
+ * Conservative cost estimate for one turn: input-token proxy = UTF-8 BYTES/3 (not chars/3) so
+ * CJK content — a 3-byte char ≈ 1 token — isn't 3× under-counted, which would let the T8 cap be
+ * overshot on the design/Kimi lane most likely to carry CJK (hostile pass 5, finding 7). ASCII
+ * (1 byte/char) is unchanged. Output side assumes the full maxTokens (an exact ceiling).
+ * Callers pass a UTF-8 byte length.
  */
-export function assertSpend(provider, promptChars, maxTokens, env = process.env) {
+export function estimateCost(provider, promptBytes, maxTokens) {
+  return (promptBytes / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
+}
+
+/**
+ * Spend gate (threat T8). Fail-closed: SWAN_CONTEXT_MAX_USD must be set to spend at all.
+ */
+export function assertSpend(provider, promptBytes, maxTokens, env = process.env) {
   const cap = Number(env.SWAN_CONTEXT_MAX_USD);
   if (!Number.isFinite(cap) || cap <= 0) {
     throw new ProviderError('NO_CAP', 'SWAN_CONTEXT_MAX_USD is not set — network spend is fail-closed (dry-run commands need no cap)');
   }
-  const estimate = (promptChars / 3 / 1e6) * provider.priceInPerM + (maxTokens / 1e6) * provider.priceOutPerM;
+  const estimate = estimateCost(provider, promptBytes, maxTokens);
   if (estimate > cap) {
     throw new ProviderError('SPEND_CAP', `estimated ~$${estimate.toFixed(4)} exceeds SWAN_CONTEXT_MAX_USD=$${cap}`, { estimate, cap });
   }

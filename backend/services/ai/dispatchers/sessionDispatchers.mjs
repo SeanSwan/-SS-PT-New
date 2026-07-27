@@ -36,6 +36,7 @@
 import { Op } from 'sequelize';
 import { getSession } from '../../../models/index.mjs';
 import { cancelSessionForAI } from '../../sessions/sessionCancelService.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,10 @@ const SCHEDULE_STATUSES = ['scheduled', 'confirmed', 'completed'];
  * }>}
  */
 export async function dispatchCancelSession(params, ctx) {
-  const { sessionId, clientId, date } = params;
+  const { sessionId, date } = params;
+  // The selected client always wins over the classifier-extracted one — cancelling
+  // is destructive, so a misparsed client reference must never pick the session.
+  const clientId = resolveCommandClientId(params, ctx);
 
   // ── Path A: direct by sessionId ─────────────────────────────────────────
 

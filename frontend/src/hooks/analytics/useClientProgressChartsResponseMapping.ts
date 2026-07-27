@@ -2,7 +2,7 @@
  * useClientProgressChartsResponseMapping
  * ======================================
  *
- * Shared response mapper for the 12-chart workout progress proof contract.
+ * Shared response mapper for the 15-chart workout progress proof contract.
  * Converts partial API outages into explicit unavailable counts while keeping
  * honest empty workout data as empty chart series.
  */

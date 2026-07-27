@@ -8,6 +8,10 @@ import {
   toTrainerClientName,
   type TrainerClientOption,
 } from './trainerClientSource';
+import {
+  getClientHubAudienceConfig,
+  type ClientHubAudience,
+} from '../../workspaces/clients-team/clientHubAudience';
 
 export const OPT_PHASES = [
   { phase: 1, name: 'Stabilization Endurance', reps: '12-20', sets: '1-3', tempo: '4/2/1', rest: '0-90s' },
@@ -62,11 +66,21 @@ export type SavedTrainerForgePlan = {
 
 export const buildExerciseId = (index: number) => `manual-exercise-${Date.now()}-${index}`;
 
-export const buildTrainerForgeLoggerPath = (clientId: number) =>
-  `/dashboard/trainer/log-workout?clientId=${clientId}&loadPlan=today&source=build-plan`;
+/**
+ * Build Plan is mounted for BOTH audiences (admin superset closure 2026-07-24),
+ * so these handoff paths must resolve by audience. A hardcoded `/dashboard/
+ * trainer/*` here would demote an admin into the trainer shell the moment they
+ * left Build Plan — activeRole is URL-derived (UniversalDashboardLayout.tsx:77).
+ *
+ * `audience` is intentionally REQUIRED rather than defaulted: a default is a
+ * silent wrong answer for one of the two roles, and TypeScript should refuse to
+ * compile a call site that has not decided.
+ */
+export const buildTrainerForgeLoggerPath = (clientId: number, audience: ClientHubAudience) =>
+  `${audience === 'trainer' ? '/dashboard/trainer' : '/dashboard/admin'}/log-workout?clientId=${clientId}&loadPlan=today&source=build-plan`;
 
-export const buildTrainerForgePlannerPath = (clientId: number) =>
-  `/dashboard/trainer/workout-planner?clientId=${clientId}&source=build-plan`;
+export const buildTrainerForgePlannerPath = (clientId: number, audience: ClientHubAudience) =>
+  `${getClientHubAudienceConfig(audience).workoutPlannerBase}?clientId=${clientId}&source=build-plan`;
 
 export const parseTrainerForgeClientId = (value: string | number | null | undefined): number | null => {
   if (typeof value === 'number') {

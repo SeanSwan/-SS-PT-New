@@ -61,7 +61,8 @@ The bar: silent-and-fast for normal idea-prompts; surface only when acting blind
 ## Step 4 — Route big visions to the real gates (don't one-shot a product)
 
 prompt-watcher is a lightweight per-prompt amplifier, **not** a replacement for the interview gates. Silently enhancing and one-shotting a whole product is exactly the failure rule 64 exists to prevent. So if the enhanced prompt reveals the idea is actually a **net-new component/page/feature/system or an unproven bet**, the correct *action* to start is the right gate (this isn't a confirmation step — invoking the gate IS acting on the prompt):
-- Net-new surface / needs Sean's taste & vision captured → start **`grill-me`** (rule 64).
+- **Substantial creation** (net-new feature/component/page/system/design, OR a meaningful upgrade/redesign) → run **`create-with-context`** (rule 76): GROUND in a real audit → ENHANCE → pull an EXPERT brain (Kimi K3 for design) as CONTEXT → **Claude AUTHORS** the synthesis → present blueprint + build with proof. The expert is context, never the author.
+- Net-new surface / needs Sean's taste & vision captured → start **`grill-me`** (rule 64), which feeds `create-with-context`.
 - Unproven bet / "will this win" / monetization / roadmap → **`grill-me` then `chromie`** (rule 65).
 - Then the normal pipeline (`swan-orchestrator` → `swan-design-router` if UI → build → `closeout-evidence-lock`).
 

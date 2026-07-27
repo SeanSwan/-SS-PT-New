@@ -29,6 +29,24 @@ import {
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
 
+const PROFILE_ACCESS_DENIED_CODE = 'BOOTCAMP_PROFILE_ACCESS_DENIED';
+
+function assertProfileAccess(profile, { trainerId, requesterRole, requireActive = false }) {
+  const ownsProfile = !!profile
+    && (!requireActive || profile.isActive === true)
+    && (requesterRole === 'admin' || Number(profile.trainerId) === Number(trainerId));
+  if (ownsProfile) return;
+
+  const error = new Error('Access denied');
+  error.statusCode = 403;
+  error.code = PROFILE_ACCESS_DENIED_CODE;
+  throw error;
+}
+
+function isProfileAccessDenied(error) {
+  return error?.statusCode === 403 && error?.code === PROFILE_ACCESS_DENIED_CODE;
+}
+
 // ── Exercise Selection Algorithms ─────────────────────────────────────
 
 /**
@@ -208,17 +226,20 @@ export function buildAvailableEquipmentList(equipmentItems = []) {
   return [...tokens];
 }
 
-async function getAvailableEquipmentForBootcamp(equipmentProfileId) {
+async function getAvailableEquipmentForBootcamp(equipmentProfileId, requester) {
   if (!equipmentProfileId) return buildAvailableEquipmentList([]);
 
   try {
     const { getAllModels } = await import('../../models/index.mjs');
     const models = getAllModels();
     const profile = models.EquipmentProfile
-      ? await models.EquipmentProfile.findByPk(equipmentProfileId)
+      ? await models.EquipmentProfile.findByPk(equipmentProfileId, {
+          attributes: ['id', 'trainerId', 'isActive'],
+        })
       : null;
 
-    if (!profile || !models.EquipmentItem) return buildAvailableEquipmentList([]);
+    assertProfileAccess(profile, { ...requester, requireActive: true });
+    if (!models.EquipmentItem) return buildAvailableEquipmentList([]);
 
     const equipmentItems = await models.EquipmentItem.findAll({
       where: {
@@ -231,6 +252,7 @@ async function getAvailableEquipmentForBootcamp(equipmentProfileId) {
 
     return buildAvailableEquipmentList(equipmentItems);
   } catch (eqErr) {
+    if (isProfileAccessDenied(eqErr)) throw eqErr;
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
     return buildAvailableEquipmentList([]);
@@ -369,6 +391,7 @@ export function resolveBootcampStructure({
 export async function generateBootcampClass(options) {
   const {
     trainerId,
+    requesterRole,
     classFormat: requestedClassFormat = '4x4_r2',
     stationCount: requestedStationCount,
     exercisesPerStation: requestedExercisesPerStation,
@@ -397,7 +420,10 @@ export async function generateBootcampClass(options) {
   let spaceProfile = null;
   if (spaceProfileId) {
     const SpaceProfile = getBootcampSpaceProfile();
-    spaceProfile = await SpaceProfile.findByPk(spaceProfileId);
+    spaceProfile = await SpaceProfile.findByPk(spaceProfileId, {
+      attributes: ['id', 'trainerId', 'maxStations', 'maxPerStation'],
+    });
+    assertProfileAccess(spaceProfile, { trainerId, requesterRole });
     if (spaceProfile?.maxStations && stationCount > spaceProfile.maxStations) {
       stationCount = Math.max(CUSTOM_STRUCTURE_LIMITS.minStations, spaceProfile.maxStations);
       if (classFormat === 'custom') {
@@ -420,7 +446,10 @@ export async function generateBootcampClass(options) {
 
   // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
   try {
-    const availableEquipment = await getAvailableEquipmentForBootcamp(equipmentProfileId);
+    const availableEquipment = await getAvailableEquipmentForBootcamp(equipmentProfileId, {
+      trainerId,
+      requesterRole,
+    });
 
     const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
     const rolodexResults = await queryExercisesForBootcamp({
@@ -437,6 +466,7 @@ export async function generateBootcampClass(options) {
       }));
     }
   } catch (eqErr) {
+    if (isProfileAccessDenied(eqErr)) throw eqErr;
     // Non-fatal - fall through to registry fallback
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);

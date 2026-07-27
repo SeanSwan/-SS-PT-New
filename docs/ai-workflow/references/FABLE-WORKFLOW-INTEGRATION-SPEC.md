@@ -14,7 +14,7 @@ Fable 5 is the strongest and scarcest brain in the SwanStudios stack. This spec 
 
 Per CLAUDE.md rule 46 (amended 2026-06-10) and the Co-Orchestrator Hierarchy:
 
-- **Final Decider on everything** — plans, reviews, commits, design arbitration, review-chain verdicts. Codex's hostile review and Gemini's design authority are mandatory *inputs*; Fable arbitrates.
+- **Final Decider on everything** — plans, reviews, commits, design arbitration, review-chain verdicts. Codex's hostile review is a mandatory *input*; Fable arbitrates. **(Amended 2026-07-25: design authority is Kimi K3 + Opus 5 — Gemini is context-only and is no longer a design authority.)**
 - **Fallback chain when Fable is unavailable:** next best Claude model (Opus 4.8 → Opus 4.x → Sonnet) assumes the Final Decider role. Sean is the human owner above all models.
 - **Architect of record** for the control layer: this spec, the operator bridge, the skill registry, the Hermes Agentic OS, and the Design Brain are Fable-authored artifacts that other brains obey and extend.
 
@@ -50,7 +50,7 @@ Use Fable when the task is **high-leverage, high-ambiguity, or must-be-right**:
 | **Hermes** | Hermes is Sean's private *operator broker* — it routes commands, holds working memory, and talks to Telegram/the Pi/the 5090. Hermes never writes code and never self-authorizes; it consumes Fable's registries and effect tiers. Fable designs Hermes's governance; Hermes runs inside it. |
 | **AI Village** | Village is the paid, many-brain *review court* for must-be-right calls (rule 16/50; Tier 3 always chains into a free triangle pass whose synthesis is final). Fable convenes it, frames the question, and arbitrates its output. Village never replaces Fable's verdict — it informs it. |
 | **Browser Harness** | The harness is eyes, not hands: supervised, read-only by default, producing QA receipts (console/network/screenshot evidence). Fable writes the QA checklists the harness executes; harness output feeds Fable/Codex verdicts. |
-| **Gemini (CTO)** | Lead design authority for concept direction; Fable can override. Gemini proposes, Design Brain constrains, Fable arbitrates fidelity at ship time. |
+| **Gemini (CTO)** | ⚠ **CONTEXT ONLY (amended 2026-07-25)** — no longer a design authority. Supplies context/research/options *into* a decision; **Kimi K3 + Opus 5** set concept direction. Design Brain constrains, Fable arbitrates fidelity at ship time. |
 
 ## 6. Fable's standing jobs
 
@@ -106,7 +106,7 @@ All Fable artifacts (and prompts written *for* Fable) use construction-domain la
 
 > **2026-07-04:** all four DECIDED via Sean's delegation to Fable's recommendations ("we're gonna do what you recommend"). Each remains revisitable by Sean at any time.
 
-1. **DECIDED:** the Final Decider fallback chain stays **strictly Claude-family** (Fable → Opus 4.8 → Opus 4.x → Sonnet). Gemini remains Lead Design Authority under the Decider, never the Decider — design authority and commit arbitration stay separate powers (matches CLAUDE.md Co-Orchestrator Hierarchy).
+1. **DECIDED:** the Final Decider fallback chain stays **strictly Claude-family** (Fable → Opus 4.8 → Opus 4.x → Sonnet). **Amended 2026-07-25: design authority is Kimi K3 + Opus 5; Gemini is context-only and holds no design authority.** Design authority and commit arbitration remain separate powers (matches CLAUDE.md Co-Orchestrator Hierarchy).
 2. **DECIDED:** when Fable is present it takes the **standing orchestrator lane**; Rule 67 Claude↔Codex pair-coding continues beneath it as the execution layer. Fable arbitrates, assigns lanes, and owns verdicts; it builds directly only when the task passes the §4 spend test.
 3. **DECIDED:** Fable passes stay **on-demand plus phase-close audits** (rule 48 moments) — no fixed weekly cadence until C4 Cadence automation lands and earns it.
 4. **DECIDED:** yes — Fable-authored specs carry a **stale-review date, default 90 days** from last substantive edit (same provenance discipline as vault notes). A spec past its date is flagged in the next Fable pass, not auto-invalidated.

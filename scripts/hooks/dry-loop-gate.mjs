@@ -13,9 +13,13 @@
  * DECISION RULES (current turn only):
  *   1. stop_hook_active            -> allow (no-loop guard; one guaranteed enforcement/turn)
  *   2. transcript unreadable       -> allow (fail-open — a broken gate must never wedge)
- *   3. build signals present (>=2 non-emission file writes OR git commit/push) AND the
- *      final assistant text carries NO dry-loop ledger marker -> BLOCK with loop guidance
- *   4. marker present or turn not build-shaped -> allow silently
+ *   3. BUILD path — build signals present (>=2 non-emission file writes OR git commit/push):
+ *      require BOTH the dry-loop marker (Rule 73) AND the PROOF token (Rule 74), else BLOCK
+ *   4. REVIEW path — no build signals, but the USER demanded a hostile review OR the agent
+ *      surfaced a REVISE/REJECT verdict: require the dry-loop marker OR a Sean-gated escape
+ *      (`AWAITING SEAN`/`PROOF: N/A`), else BLOCK. This closes the hole where a review turn
+ *      does one round, hands back a findings list, and stops — forcing Sean to re-ask.
+ *   5. otherwise -> allow silently
  *
  * MARKER CONTRACT (what the closeout must contain to pass):
  *   `DRY-LOOP: CLEAN×2` (+ optional `(rounds: N)`) — two consecutive find-nothing rounds ran, OR
@@ -29,6 +33,31 @@ const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-pa
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 const MARKER_RE = /DRY-LOOP:\s*(CLEAN\s*[×x]\s*2|N\/A)/i;
+// Rule 74 (Proof-Before-Done, Sean 2026-07-22): a build-shaped closeout must also
+// carry a PROOF token — current-session evidence for the completion claim, or an
+// explicit `PROOF: N/A — <reason>` when the work is genuinely unproveable in-session
+// (disclosed, not claimed done). The dry-loop marker proves the hostile loop ran;
+// the PROOF token proves the WORK itself was verified.
+const PROOF_RE = /PROOF:\s*\S/i;
+
+// Review-path gate (Sean 2026-07-22, "make it stick — I should never have to type
+// 'do another review' again"). The build path above only fires when files change; a
+// REVIEW-ONLY turn (agent runs a hostile review, finds bugs, reports them, writes no
+// fix files) slips through. That is the exact hole Sean kept hitting: one round, a
+// findings list, and a stop — forcing him to re-ask. These signals close it.
+//
+// REVIEW_REQUEST_RE = the user DEMANDED a review in their last line (incl. the frequent
+// dictation misspelling "hospital review"). When present, this turn OWES a dry-loop
+// marker (or an escape) at the end regardless of whether any file was written.
+const REVIEW_REQUEST_RE =
+  /\b(?:host(?:i|a)le|hospital)\s+review\b|\breview\s+(?:this|the)\s+(?:work|code|slice|pr|change|fix|diff)\b|\buntil\s+(?:it'?s\s+)?dry\b|\bdry[\s-]?loop\b/i;
+// REVIEW_VERDICT_RE = the agent itself surfaced a formal not-clean verdict (rule-46
+// UPPERCASE verdicts — the verdict form, not casual prose). Catches an UNPROMPTED review
+// that found something and is handing it back without looping to dry.
+const REVIEW_VERDICT_RE = /\b(?:REVISE|REJECT)\b/;
+// ESCAPE_RE = the only legitimate way to end a review turn WITHOUT CLEAN×2: the finding
+// is Sean's call (flag it, don't fix it), or the turn honestly discloses it (PROOF: N/A).
+const ESCAPE_RE = /AWAITING\s+SEAN|DECISION\s+REQUIRED|SEAN-?GATED|blocked\s+on\s+Sean|PROOF:\s*N\/A/i;
 
 const BLOCK_REASON =
   'Dry-Loop Law (Sean 2026-07-21): this turn changed code/files or committed, but the closeout ' +
@@ -42,6 +71,30 @@ const BLOCK_REASON =
   'build-shaped (docs-only, partial WIP, Q&A), state `DRY-LOOP: N/A — <reason>` instead. ' +
   'Never fabricate the marker without the rounds behind it.';
 
+const PROOF_BLOCK_REASON =
+  'Proof-Before-Done (Rule 74, Sean 2026-07-22): this turn changed code/committed and the ' +
+  'hostile loop ran, but the closeout carries NO proof of the work itself. You may not claim ' +
+  'done/fixed/passing without current-session, reproducible evidence in the SAME closeout. End ' +
+  'with a `PROOF:` line stating the evidence you actually ran this turn — e.g. `PROOF: npm test ' +
+  '842 passed, tsc --noEmit exit 0, npm run build ok` or the exact vitest file + N/N, or a ' +
+  'Canonical Surface Receipt / live-probe observed value for UI/data-truth. If the work genuinely ' +
+  'cannot be proven in-session (e.g. a live authed browser journey needs a backend that will not ' +
+  'run here), DISCLOSE it: `PROOF: N/A — <what could not be proven, why, and the lower-tier ' +
+  'evidence that stands in>` and scope your claim to only the proven part (Rule 28). Asserting ' +
+  'evidence you did not run is a rule 19/28 violation.';
+
+const REVIEW_BLOCK_REASON =
+  'Dry-Loop Law — review turn (Sean 2026-07-22, "make it stick"): you were asked for a hostile ' +
+  'review (or you surfaced a REVISE/REJECT verdict) and this turn is stopping without proving the ' +
+  'loop ran dry. A hostile review is NOT one round. Repeat until a round finds NOTHING fixable, ' +
+  'then ONE MORE confirmation round (two consecutive CLEAN rounds = dry). Fix what you find as you ' +
+  'go; each round attacks from a NEW vantage (different cwd/worktree, mode, flag, role, viewport, ' +
+  'real caller path) — re-reading is not a round. Do NOT hand back a findings list and stop: that ' +
+  'is the exact thing Sean should never have to re-prompt. When dry, end with the round ledger and ' +
+  '`DRY-LOOP: CLEAN×2 (rounds: N)`. If a finding is genuinely Sean\'s call, flag it to Linear ' +
+  '(linear-todo Mode 1) and write `AWAITING SEAN: <decision>` — that is the ONLY way to end a ' +
+  'review turn early. Never fabricate the marker without the rounds behind it.';
+
 export function isRealUserLine(entry) {
   if (!entry || entry.type !== 'user') return false;
   const content = entry.message?.content;
@@ -50,6 +103,16 @@ export function isRealUserLine(entry) {
     return content.some((c) => c?.type === 'text') && !content.some((c) => c?.type === 'tool_result');
   }
   return false;
+}
+
+/** Flatten a user entry's content to plain text (the demand side the review gate reads). */
+export function userLineText(entry) {
+  const content = entry?.message?.content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.filter((c) => c?.type === 'text').map((c) => String(c.text ?? '')).join('\n');
+  }
+  return '';
 }
 
 export function parseTranscript(raw) {
@@ -100,14 +163,36 @@ export function analyzeTurn(entries) {
     }
   }
   signals.markerSeen = MARKER_RE.test(lastAssistantText);
+  signals.proofSeen = PROOF_RE.test(lastAssistantText);
+  // Review-path signals: did the USER demand a review, did the agent surface a not-clean
+  // verdict, and did the closeout carry a legitimate early-exit escape.
+  const userText = lastUserIdx >= 0 ? userLineText(entries[lastUserIdx]) : '';
+  signals.reviewRequested = REVIEW_REQUEST_RE.test(userText);
+  signals.verdictSeen = REVIEW_VERDICT_RE.test(lastAssistantText);
+  signals.escapeSeen = ESCAPE_RE.test(lastAssistantText);
   return signals;
 }
 
 export function decide(hookInput, transcriptRaw) {
   if (hookInput?.stop_hook_active) return null;
   const s = analyzeTurn(parseTranscript(transcriptRaw));
-  if (s.markerSeen) return null;
-  if (s.fileWrites >= 2 || s.gitActivity) return BLOCK_REASON;
+  const buildShaped = s.fileWrites >= 2 || s.gitActivity;
+
+  // Build path (Rule 74): a build-shaped turn must carry BOTH the dry-loop marker (hostile
+  // loop ran to dry) AND the PROOF token (the work itself was verified this session). The
+  // build gate is stricter than the review gate, so it wins when a turn is both.
+  if (buildShaped) {
+    if (!s.markerSeen) return BLOCK_REASON;
+    if (!s.proofSeen) return PROOF_BLOCK_REASON;
+    return null;
+  }
+
+  // Review path (Sean 2026-07-22 "make it stick"): a review-only turn that was demanded
+  // by Sean, or that surfaced a not-clean verdict, may not stop with an un-run loop. It
+  // passes only with CLEAN×2 / N/A (markerSeen) or a Sean-gated escape (escapeSeen).
+  const reviewShaped = s.reviewRequested || s.verdictSeen;
+  if (reviewShaped && !s.markerSeen && !s.escapeSeen) return REVIEW_BLOCK_REASON;
+
   return null;
 }
 

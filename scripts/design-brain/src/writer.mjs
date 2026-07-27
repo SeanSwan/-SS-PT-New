@@ -89,6 +89,15 @@ export function safeWriteText(root, target, content) {
   return resolve(target);
 }
 
+/** Atomic, jailed overwrite for the coarse Probe heartbeat; deliberately no activity ledger. */
+export function safeWriteHeartbeat(root, target, content) {
+  preflight(root, target, content, `heartbeat write to ${target}`);
+  mkdirSync(dirname(resolve(target)), { recursive: true });
+  const tmp = resolve(target) + '.tmp-' + process.pid;
+  writeFileSync(tmp, content);
+  renameSync(tmp, resolve(target));
+  return resolve(target);
+}
 /** Append one JSON object as a JSONL line, jailed + audited. */
 export function appendJsonl(root, target, obj) {
   const line = JSON.stringify(obj) + '\n';

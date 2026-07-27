@@ -2,7 +2,7 @@
  * Runtime sanitizers for client progress chart payloads.
  *
  * Victory turns missing or non-finite x/y values into SVG NaN coordinates.
- * These helpers keep the typed 12-chart contract honest at the API boundary.
+ * These helpers keep the typed 15-chart contract honest at the API boundary.
  */
 import type {
   AnchorLiftPoint,

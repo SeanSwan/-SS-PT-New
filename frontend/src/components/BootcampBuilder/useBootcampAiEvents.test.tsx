@@ -86,3 +86,32 @@ describe('useBootcampAiEvents', () => {
     expect(handlers.setStationCount).not.toHaveBeenCalled();
   });
 });
+
+describe('undo actions (Kimi law: aggregate undo, zero-click apply)', () => {
+  it('structure receipt carries an Undo action restoring the PREVIOUS values', () => {
+    const handlers = { ...baseHandlers(), getCurrent: () => ({ stationCount: 4, exercisesPerStation: 4, targetDuration: '40', optPhase: 1 }) };
+    render(<Harness handlers={handlers} />);
+    dispatchAIWorkoutEvent(AI_BOOTCAMP_SET_STRUCTURE, { stations: 6 });
+    const receipt = handlers.pushReceipt.mock.calls.at(-1)?.[0];
+    expect(receipt.ok).toBe(true);
+    expect(receipt.action?.label).toBe('Undo');
+    expect(receipt.action?.eventName).toBe(AI_BOOTCAMP_SET_STRUCTURE);
+    expect(receipt.action?.payload).toEqual({ stations: 4, exercisesPerStation: 4 });
+  });
+
+  it('duration receipt Undo restores the previous minutes', () => {
+    const handlers = { ...baseHandlers(), getCurrent: () => ({ stationCount: 4, exercisesPerStation: 4, targetDuration: '40', optPhase: 1 }) };
+    render(<Harness handlers={handlers} />);
+    dispatchAIWorkoutEvent(AI_BOOTCAMP_SET_DURATION, { minutes: 60 });
+    const receipt = handlers.pushReceipt.mock.calls.at(-1)?.[0];
+    expect(receipt.action?.payload).toEqual({ minutes: 40 });
+  });
+
+  it('without getCurrent the receipt has no Undo (never fabricates a previous state)', () => {
+    const handlers = baseHandlers();
+    render(<Harness handlers={handlers} />);
+    dispatchAIWorkoutEvent(AI_BOOTCAMP_SET_DURATION, { minutes: 60 });
+    const receipt = handlers.pushReceipt.mock.calls.at(-1)?.[0];
+    expect(receipt.action).toBeUndefined();
+  });
+});

@@ -17,6 +17,7 @@ import { parseCatalog, resolveAuthority, TIER_RANK } from './authority.mjs';
 import { searchFiles, matchLines, basenameAffinity, findTests, searchCatalog, mergeWindows } from './retrieve.mjs';
 import { createSafeReader, SafeReadError } from './safeRead.mjs';
 import { createPacket } from './packet.mjs';
+import { redactSecrets } from './egress.mjs';
 
 const HANDOFF = 'docs/ai-workflow/AI-HANDOFF/';
 
@@ -131,10 +132,18 @@ export function compileContext({ root, question, tracked, originatingModel, issu
   // --- budgeted packet assembly via safeRead ---
   const packet = createPacket({ question, headSha: head, originatingModel, issue });
   const included = [], excluded = [];
-  let spent = 0;
+  let spent = 0, secretsRedacted = 0;
   // Linear issue context first (small, high-signal, A3 — a plan/status source, never code truth).
+  // MUST redact like every other evidence lane: a Linear issue body is EXTERNAL content that could
+  // hold a pasted secret (DB URL, key) — this lane bypassing egress was a T3 gap (hostile pass 4).
   if (issueNotes && issue) {
-    const content = String(issueNotes).slice(0, 4000);
+    // Pre-cap the read to bound redaction work (hostile pass 5: a huge issue body otherwise feeds a
+    // giant string to the regexes), then redact BEFORE the 4000-char slice so a secret straddling the
+    // cut can't survive as a truncated prefix. 8192 >> the 4000 output window, so nothing is lost.
+    const red = redactSecrets(String(issueNotes).slice(0, 8192));
+    red.text = red.text.slice(0, 4000);
+    if (red.redactions) { secretsRedacted += red.redactions; notes.push(`redacted ${red.redactions} secret(s) [${red.kinds.join(',')}] in linear/${issue}.md`); }
+    const content = red.text;
     const lineCount = content.split('\n').length;
     const id = packet.addEvidence({ path: `linear/${issue}.md`, startLine: 1, endLine: lineCount, content, sha: 'linear-live', tier: 'A3' });
     included.push({ id, path: `linear/${issue}.md`, window: `L1-L${lineCount}`, tier: 'A3' });
@@ -150,13 +159,17 @@ export function compileContext({ root, question, tracked, originatingModel, issu
         if (e instanceof SafeReadError && e.code === 'BAD_RANGE') { try { ev = reader.readWindow(c.path); } catch (e2) { excluded.push({ path: c.path, reason: e2.code }); continue; } }
         else { excluded.push({ path: c.path, reason: e.code ?? 'READ_ERROR' }); continue; }
       }
-      if (spent + ev.content.length > budgetChars) { excluded.push({ path: c.path, reason: 'BUDGET', window: `L${w.start}-L${w.end}` }); continue; }
-      spent += ev.content.length;
-      const id = packet.addEvidence({ path: ev.path, startLine: ev.startLine, endLine: ev.endLine, content: ev.content, sha: shaByPath.get(ev.path) ?? 'untracked', tier: c.auth.tier });
+      // T3 content half: redact inline secret VALUES before the window can enter the packet — the
+      // path filter cannot know a hardcoded key sits inside an innocuously-named tracked file.
+      const red = redactSecrets(ev.content);
+      if (red.redactions) { secretsRedacted += red.redactions; notes.push(`redacted ${red.redactions} secret(s) [${red.kinds.join(',')}] in ${ev.path}`); }
+      if (spent + red.text.length > budgetChars) { excluded.push({ path: c.path, reason: 'BUDGET', window: `L${w.start}-L${w.end}` }); continue; }
+      spent += red.text.length;
+      const id = packet.addEvidence({ path: ev.path, startLine: ev.startLine, endLine: ev.endLine, content: red.text, sha: shaByPath.get(ev.path) ?? 'untracked', tier: c.auth.tier });
       included.push({ id, path: ev.path, window: `L${ev.startLine}-L${ev.endLine}`, tier: c.auth.tier });
     }
   }
 
   const manifest = packet.finalize();
-  return { packet, manifest, report: { anchors, needleCount: needles.length, included, excluded, notes, spentChars: spent, budgetChars, headSha: head } };
+  return { packet, manifest, report: { anchors, needleCount: needles.length, included, excluded, notes, spentChars: spent, budgetChars, headSha: head, secretsRedacted } };
 }

@@ -61,7 +61,7 @@ describe('AdminProgressChartsGrid mega stats', () => {
     expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
 
-  it('mounts the full exercise diary above the 12-chart grid', () => {
+  it('mounts the full exercise diary above the 15-chart grid', () => {
     render(<MemoryRouter><AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" /></MemoryRouter>);
 
     const board = screen.getByRole('region', { name: /client exercise mega stats/i });
@@ -75,14 +75,14 @@ describe('AdminProgressChartsGrid mega stats', () => {
     render(<MemoryRouter><AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" /></MemoryRouter>);
 
     const grid = screen.getByTestId('admin-progress-charts-grid');
-    expect(grid).toHaveTextContent('Fixture Client - Progress proof building - 3 of 12 charts populated');
+    expect(grid).toHaveTextContent('Fixture Client - Progress proof building - 3 of 15 charts populated');
     expect(grid).toHaveTextContent('225lbs x 5');
     expect(grid).toHaveTextContent('1 pain / 2 redline');
     expect(grid.textContent).not.toMatch(/[ÂÃâ]/);
   });
   it('separates no-history proof copy from unavailable chart feeds', () => {
     expect(getProgressProofStatusText(0, 0)).toBe('No saved workout proof yet - log a workout to populate charts');
-    expect(getProgressProofStatusText(0, 2)).toBe('0 of 12 charts populated - 2 feeds unavailable');
-    expect(getProgressProofStatusText(12, 0)).toBe('Full progress proof ready - 12 charts populated');
+    expect(getProgressProofStatusText(0, 2)).toBe('0 of 15 charts populated - 2 feeds unavailable');
+    expect(getProgressProofStatusText(15, 0)).toBe('Full progress proof ready - 15 charts populated');
   });
 });

@@ -21,6 +21,29 @@ const ContentWrapper = styled.div<{ $withHeader: boolean }>`
     $withHeader ? 'calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px))' : '0';
 `;
 
+const SkipLink = styled.a`
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10000;
+  transform: translateY(-160%);
+  padding: 0.7rem 1rem;
+  border-radius: 0.5rem;
+  color: var(--text-primary, #E0ECF4);
+  background: var(--bg-base, #030712);
+  text-decoration: none;
+  transition: transform 0.2s ease;
+
+  &:focus {
+    transform: translateY(0);
+    outline: 3px solid var(--focus-ring, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
 const Content = styled.main`
   flex: 1;
 `;
@@ -48,10 +71,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <MainContainer>
+      <SkipLink href="#main-content">Skip to main content</SkipLink>
       {!isDesignPreviewRoute && <Header />}
 
       <ContentWrapper $withHeader={!isDesignPreviewRoute} data-swan-app-content-wrapper>
-        <Content>
+        <Content id="main-content" tabIndex={-1}>
           {children}
         </Content>
       </ContentWrapper>

@@ -54,13 +54,19 @@ const StatChip = styled.span`
   border-radius: 10px;
   background: var(--card-dark, #141419);
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
-  min-width: 110px;
+  /* Grow to fill, but shrink below 110px on narrow rails instead of forcing
+     the side column past the viewport (overflow was clipped off-screen). */
+  flex: 1 1 96px;
+  min-width: 0;
+  max-width: 100%;
 `;
 
 const ChipValue = styled.strong`
   font-family: 'Fira Code', monospace;
   font-size: 16px;
   color: var(--text-primary, #e0ecf4);
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const ChipLabel = styled.span`
