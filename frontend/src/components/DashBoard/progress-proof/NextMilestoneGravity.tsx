@@ -1,7 +1,7 @@
 /**
  * COMPONENT: NextMilestoneGravity
  * PURPOSE: Turns the pulse's "next target" text into a visual next-best-action pull —
- *   a slim track whose glowing fill reaches toward a gold milestone node, with the
+ *   a slim track whose gradient fill (with a subtle, reduced-motion-safe pulse) reaches
  *   remaining gap as the caption ("8 lb to your best"). Every chart nudges the client
  *   toward the next win (Product Core Loop). Informational, not interactive.
  * A11Y: exposes a progressbar role with valuenow/min/max + label. The pulse-glow is
@@ -41,7 +41,6 @@ const Fill = styled.span<{ $value: number }>`
   width: ${({ $value }) => `${Math.max(0, Math.min(100, $value))}%`};
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 46%, transparent);
   animation: ${pull} 2.4s ease-in-out infinite;
   @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
@@ -55,7 +54,6 @@ const Node = styled.span`
   transform: translateY(-50%);
   border-radius: 50%;
   background: var(--accent-gold, #C6A84B);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-gold, #C6A84B) 60%, transparent);
 `;
 
 const Caption = styled.span`
@@ -78,7 +76,10 @@ const NextMilestoneGravity: React.FC<NextMilestoneGravityProps> = ({
   remainingLabel,
   atPeak = false,
 }) => {
-  const percent = Math.round(Math.max(0, Math.min(1, progressToNext)) * 100);
+  // Guard a non-finite prop (exported + independently testable; a NaN would otherwise
+  // reach aria-valuenow="NaN" and width:"NaN%").
+  const safe = Number.isFinite(progressToNext) ? progressToNext : 0;
+  const percent = Math.round(Math.max(0, Math.min(1, safe)) * 100);
   const caption = atPeak || !remainingLabel
     ? 'Peak reached - protect it'
     : `${remainingLabel} to your best`;

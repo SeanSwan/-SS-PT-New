@@ -23,14 +23,38 @@ describe('pulse coachAction', () => {
       .toBe('Trending up - 50 lb from your best. One more quality session closes the gap.');
   });
 
-  it('prescribes overload when steady (plateau)', () => {
+  it('holds at best when steady AT the peak (D1: not a plateau contradiction)', () => {
+    // flat AND at personal best -> must NOT say "break the plateau" while gravity says "Peak reached"
     expect(pulseFor([{ x: 'W1', y: 100 }, { x: 'W2', y: 100 }]).coachAction)
+      .toBe('Holding at your best - keep this stimulus to protect it.');
+  });
+
+  it('prescribes overload when steady BELOW the best (real plateau)', () => {
+    expect(pulseFor([{ x: 'W1', y: 200 }, { x: 'W2', y: 100 }, { x: 'W3', y: 100 }]).coachAction)
       .toBe('Holding steady - add a small progressive overload to break the plateau.');
   });
 
   it('flags recovery when falling', () => {
     expect(pulseFor([{ x: 'W1', y: 200 }, { x: 'W2', y: 100 }]).coachAction)
       .toBe('Dipped from your best - check recovery, sleep, and volume this week.');
+  });
+
+  it('D2: a sub-1-unit NEW best is a record, not steady (lower-is-better body fat)', () => {
+    const pulse = buildProgressChartPulse(
+      [{ x: 'W1', y: 18.4 }, { x: 'W2', y: 18.1 }],
+      { unit: '%', higherIsBetter: false },
+    );
+    expect(pulse.tone).toBe('record');
+    expect(pulse.coachAction).toBe('New personal best - keep this stimulus to lock it in.');
+  });
+
+  it('D4: a sub-0.5 gap reads as at-peak, not "0 from your best"', () => {
+    const pulse = buildProgressChartPulse(
+      [{ x: 'A', y: 200 }, { x: 'B', y: 198 }, { x: 'C', y: 199.7 }],
+      { unit: 'lb', higherIsBetter: true },
+    );
+    expect(pulse.remainingLabel).toBe(''); // not "0 lb"
+    expect(pulse.progressToNext).toBeGreaterThan(0.99);
   });
 });
 

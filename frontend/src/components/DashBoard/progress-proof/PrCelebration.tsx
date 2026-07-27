@@ -9,7 +9,7 @@
  *   the static gold ribbon shows (Rule 25). Transform/opacity only (Rule: GPU-safe).
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Sparkles } from 'lucide-react';
 
@@ -28,9 +28,9 @@ const shardBurst = keyframes`
 `;
 
 const ribbonPop = keyframes`
-  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.86); }
-  60%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.04); }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  0%   { opacity: 0; transform: translateY(6px) scale(0.86); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.04); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
 const Layer = styled.div`
@@ -81,12 +81,12 @@ const Shard = styled.span`
   @media (prefers-reduced-motion: reduce) { display: none; }
 `;
 
-/* Persistent badge — pinned TOP-CENTER so it never covers the card metrics. */
+/* Persistent badge - pinned TOP-RIGHT so it clears the left-aligned kicker (phone
+   widths) and the card metrics below. */
 const Ribbon = styled.span`
   position: absolute;
   top: 0.7rem;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0.7rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -123,18 +123,25 @@ interface PrCelebrationProps {
   label?: string;
 }
 
-const PrCelebration: React.FC<PrCelebrationProps> = ({ label = 'New Record' }) => (
-  <Layer data-testid="pr-celebration" aria-hidden={false}>
-    <Flash aria-hidden="true" />
-    {Array.from({ length: SHARD_COUNT }, (_, i) => (
-      <Shard key={i} aria-hidden="true" />
-    ))}
-    <Ribbon>
-      <Sparkles size={14} aria-hidden="true" />
-      {label}
-    </Ribbon>
-    <SrOnly role="status">New personal record reached.</SrOnly>
-  </Layer>
-);
+const PrCelebration: React.FC<PrCelebrationProps> = ({ label = 'New Record' }) => {
+  // Populate the live region AFTER mount so screen readers reliably announce it
+  // (a region rendered already-populated is commonly dropped by VO/JAWS).
+  const [announced, setAnnounced] = useState('');
+  useEffect(() => { setAnnounced('New personal record reached.'); }, []);
+
+  return (
+    <Layer data-testid="pr-celebration" aria-hidden={false}>
+      <Flash aria-hidden="true" />
+      {Array.from({ length: SHARD_COUNT }, (_, i) => (
+        <Shard key={i} aria-hidden="true" />
+      ))}
+      <Ribbon>
+        <Sparkles size={14} aria-hidden="true" />
+        {label}
+      </Ribbon>
+      <SrOnly role="status">{announced}</SrOnly>
+    </Layer>
+  );
+};
 
 export default React.memo(PrCelebration);

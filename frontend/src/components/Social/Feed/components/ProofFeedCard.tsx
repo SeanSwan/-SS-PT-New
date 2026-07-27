@@ -8,6 +8,7 @@
 import React from 'react';
 import { BarChart3, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Post } from '../types/PostCardTypes';
+import { CANONICAL_CHART_IDS } from '../../../../hooks/analytics/useClientProgressCharts.types';
 import {
   ProofCaption,
   ProofCardShell,
@@ -42,7 +43,7 @@ const deriveProofFeedData = (post: Post): ProofFeedData => {
     || 'Milestone';
   const total = explicit?.totalCharts
     || Number(content.match(/(\d+)\s*\/\s*(\d+)\s*SwanStudios charts/i)?.[2])
-    || 12;
+    || CANONICAL_CHART_IDS.length; // single-sourced deck size (15), not a hardcoded 12 (G5)
   const populated = explicit?.populatedCharts
     || Number(content.match(/(\d+)\s*\/\s*\d+\s*SwanStudios charts/i)?.[1])
     || 0;

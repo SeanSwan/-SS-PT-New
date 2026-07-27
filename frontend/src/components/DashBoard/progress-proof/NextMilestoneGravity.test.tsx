@@ -53,6 +53,11 @@ describe('NextMilestoneGravity component', () => {
     render(<NextMilestoneGravity progressToNext={1} atPeak />);
     expect(screen.getByText('Peak reached - protect it')).toBeInTheDocument();
   });
+
+  it('D5: guards a non-finite progress value (no NaN in aria-valuenow)', () => {
+    render(<NextMilestoneGravity progressToNext={Number.NaN} remainingLabel="5 lb" />);
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+  });
 });
 
 describe('ProgressChartInsightBar gravity mount', () => {

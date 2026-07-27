@@ -96,7 +96,9 @@ const computeGravity = (
   }
   return {
     progressToNext: Math.max(0, Math.min(1, progress)),
-    remainingLabel: remainingRaw > 0 ? formatPulseValue(remainingRaw, unit) : '',
+    // >= 0.5 so a tiny gap that rounds to "0" is treated as "essentially there"
+    // (empty) rather than contradicting the ~100% bar with "0 from your best".
+    remainingLabel: remainingRaw >= 0.5 ? formatPulseValue(remainingRaw, unit) : '',
   };
 };
 
@@ -108,6 +110,10 @@ const buildCoachAction = (
   tone: ProgressChartPulseTone,
   remainingLabel?: string,
 ): string => {
+  // No remaining gap = the latest value ties the personal best (at peak). The steady
+  // copy must reflect that instead of telling a client at their best to "break the
+  // plateau" - which would contradict the gravity bar's "Peak reached" caption.
+  const atBest = !remainingLabel;
   switch (tone) {
     case 'record':
       return 'New personal best - keep this stimulus to lock it in.';
@@ -116,7 +122,9 @@ const buildCoachAction = (
         ? `Trending up - ${remainingLabel} from your best. One more quality session closes the gap.`
         : 'Trending up - hold the momentum with your next session.';
     case 'steady':
-      return 'Holding steady - add a small progressive overload to break the plateau.';
+      return atBest
+        ? 'Holding at your best - keep this stimulus to protect it.'
+        : 'Holding steady - add a small progressive overload to break the plateau.';
     case 'falling':
       return 'Dipped from your best - check recovery, sleep, and volume this week.';
     default:
@@ -130,11 +138,15 @@ const resolveMomentumTone = <T extends ChartPoint>(
   best: T,
   higherIsBetter: boolean,
 ): ProgressChartPulseTone => {
-  const delta = latest.y - previous.y;
-  if (Math.abs(delta) < 1) return 'steady';
+  // Record check FIRST (before the steady threshold): a genuine new best must never be
+  // swallowed by the sub-1-unit "steady" band. Integer metrics (the wired ones) are
+  // unaffected - a new best there already has delta >= 1; this only rescues fractional
+  // metrics (body fat, est-1RM) that improve by < 1 unit into a new best.
   if (isImprovement(latest.y, previous.y, higherIsBetter) && isBestValue(latest.y, best.y, higherIsBetter)) {
     return 'record';
   }
+  const delta = latest.y - previous.y;
+  if (Math.abs(delta) < 1) return 'steady';
   return isImprovement(latest.y, previous.y, higherIsBetter) ? 'rising' : 'falling';
 };
 
