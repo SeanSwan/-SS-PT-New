@@ -11,7 +11,7 @@
  * trees, streaks, admin settings, and user progress endpoints.
  *
  * HOW IT FITS IN THE APP:
- *   gamificationRoutes.mjs → gamificationController → Sequelize models
+ *   gamificationV1Routes.mjs → gamificationController → Sequelize models
  *                                                    → GamificationEngine
  *                                                    → levelingAlgorithm
  *

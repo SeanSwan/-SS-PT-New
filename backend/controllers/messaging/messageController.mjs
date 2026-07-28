@@ -12,6 +12,7 @@ import {
   sequelize,
   touchConversation,
 } from '../../services/messagingRepository.mjs';
+import { canSendToConversation, BLOCKED_MESSAGE } from '../../services/messaging/blockGuard.mjs';
 
 const SEND_MESSAGE_FAILED_MESSAGE = 'Failed to send message.';
 const FETCH_MESSAGES_FAILED_MESSAGE = 'Failed to fetch messages.';
@@ -140,6 +141,12 @@ export const sendMessage = async (req, res) => {
     await ensureMessagingTables();
     const membership = await getConversationMembership(conversationId, senderId);
     if (!membership) return res.status(403).json({ error: 'You are not a member of this conversation.' });
+
+    // Blocking must actually block. Until 2026-07-27 this path checked
+    // membership only, so a blocked user kept messaging through an existing
+    // direct conversation and the Block button lied (rule 75).
+    const blockCheck = await canSendToConversation(conversationId, senderId);
+    if (!blockCheck.allowed) return res.status(403).json({ error: BLOCKED_MESSAGE });
 
     const message = await createMessageRecord({ conversationId, senderId, content });
     await touchConversation(conversationId);

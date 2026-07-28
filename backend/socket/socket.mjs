@@ -11,6 +11,7 @@ import { QueryTypes } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -116,6 +117,14 @@ export const initializeSocket = () => {
       try {
         if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
           socket.emit('error', { message: 'You are not a member of this conversation.' });
+          return;
+        }
+
+        // Same block check as the REST path. Fixing only REST would have been a
+        // false fix — this socket handler is a complete second way to send.
+        const blockCheck = await canSendToConversation(normalizedConversationId, socket.user.id);
+        if (!blockCheck.allowed) {
+          socket.emit('error', { message: BLOCKED_MESSAGE });
           return;
         }
 
