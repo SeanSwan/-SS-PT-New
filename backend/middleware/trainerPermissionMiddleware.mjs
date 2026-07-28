@@ -263,13 +263,43 @@ import { Op } from 'sequelize';
  * @param {string} permissionType - The permission type to check
  * @returns {Promise<boolean>} - Whether the trainer has the permission
  */
+/**
+ * ⚠ SEMANTIC CORRECTED 2026-07-28 (launch audit S8, SWA-75) ⚠
+ *
+ * This function used to return `false` whenever no grant row existed, and
+ * `false` on any error. That is the exact fail-closed semantic that caused the
+ * 2026-05-01 production incident documented in
+ * `routes/dailyWorkoutFormRoutes.mjs:495` — the TrainerPermissions model had
+ * camelCase/snake_case column drift, the query threw, the catch swallowed it
+ * and returned false, and EVERY trainer (including ones with active client
+ * assignments) was 403'd out of logging workouts.
+ *
+ * The `trainer_permissions` table has never had rows in production: every live
+ * trainer is permitted today by role + active assignment. So a fail-closed
+ * default here is not "more secure" — it is a total trainer lockout waiting for
+ * someone to wire this middleware up.
+ *
+ * The semantic below is the one already proven in production by
+ * `dailyWorkoutFormRoutes.checkTrainerPermission`:
+ *   1. explicit active grant                       -> allow
+ *   2. trainer has ZERO rows of ANY type           -> allow (admin has not
+ *                                                     opted into gating)
+ *   3. trainer HAS rows but not this one           -> deny (admin opted in)
+ *   4. lookup throws                               -> allow + loud warn
+ *
+ * Role and assignment scoping still gate access upstream — this controls only
+ * the OPTIONAL admin-configured per-permission layer.
+ */
 export const hasTrainerPermission = async (trainerId, permissionType) => {
   try {
     const TrainerPermissions = getTrainerPermissionsModel();
-    
+    const numericTrainerId = Number.parseInt(trainerId, 10);
+    if (!Number.isInteger(numericTrainerId) || numericTrainerId <= 0) return false;
+
+    // 1. Explicit, active, unexpired grant.
     const permission = await TrainerPermissions.findOne({
       where: {
-        trainerId,
+        trainerId: numericTrainerId,
         permissionType,
         isActive: true,
         [Op.or]: [
@@ -278,11 +308,25 @@ export const hasTrainerPermission = async (trainerId, permissionType) => {
         ]
       }
     });
+    if (permission) return true;
 
-    return !!permission;
-  } catch (error) {
-    logger.error('Error checking trainer permission:', error);
+    // 2. No rows at all for this trainer -> admin gating is not configured.
+    const anyRow = await TrainerPermissions.findOne({
+      where: { trainerId: numericTrainerId },
+    });
+    if (!anyRow) return true;
+
+    // 3. Admin HAS configured this trainer, and this permission is not granted.
     return false;
+  } catch (error) {
+    // 4. Schema drift / DB error — allow, loudly. Locking out every trainer
+    //    because of a model mismatch is strictly worse than the alternative.
+    logger.warn('Trainer permission check errored — falling back to permissive default', {
+      trainerId,
+      permissionType,
+      error: error?.message,
+    });
+    return true;
   }
 };
 
