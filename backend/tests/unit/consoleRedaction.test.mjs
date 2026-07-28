@@ -116,6 +116,32 @@ describe('console redaction — must not damage normal output', () => {
   });
 });
 
+describe('console redaction — must not destroy built-in types', () => {
+  // Found by hostile review AFTER the first ship. The value walker rebuilt every object as a plain
+  // `{}` via Object.keys(), which erased Date -> {}, RegExp -> {}, Map -> {}, Set -> {}, and
+  // Buffer -> { '0': 97 }. That violates the rule this whole effort is built on: never destroy the
+  // information a log exists to carry.
+  it.each([
+    ['Date', new Date(0), /1970/],
+    ['RegExp', /x/g, /\/x\/g/],
+    ['Map', new Map([['k', 'v']]), /Map/],
+    ['Set', new Set([1]), /Set/],
+    ['Buffer', Buffer.from('ab'), /Buffer/]
+  ])('preserves %s instead of flattening it to {}', (_label, value, expected) => {
+    installConsoleRedaction();
+    expect(capture(() => console.log(value))).toMatch(expected);
+  });
+
+  it.each([
+    ['Map', new Map([['e', 'jane@example.com']])],
+    ['Set', new Set(['jane@example.com'])]
+  ])('still redacts values inside a %s', (_label, collection) => {
+    // Preserving the type must not cost the redaction.
+    installConsoleRedaction();
+    expect(capture(() => console.log(collection))).not.toContain('jane@example.com');
+  });
+});
+
 describe('console redaction — cannot take the process down', () => {
   it('does not hang or throw on a circular reference', () => {
     installConsoleRedaction();

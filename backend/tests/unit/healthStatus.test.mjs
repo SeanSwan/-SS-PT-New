@@ -80,6 +80,32 @@ describe('deriveHealthStatus — genuinely healthy', () => {
   });
 });
 
+describe('deriveHealthStatus — strict inputs, because it must fail CLOSED', () => {
+  // Found by hostile review after the first ship. None were reachable from the two real call
+  // sites, but a fail-closed primitive that fails OPEN on unexpected input is backwards, and the
+  // next caller does not know the unwritten contract.
+  it('does not throw when called with no argument', () => {
+    // Previously threw on destructuring, which would have 500'd the health endpoint.
+    expect(() => deriveHealthStatus()).not.toThrow();
+    expect(deriveHealthStatus().ready).toBe(false);
+  });
+
+  it.each([
+    ['the STRING "false" (truthy)', { dbReachable: 'false', validPricedPackages: 5 }],
+    ['a truthy non-boolean', { dbReachable: 1, validPricedPackages: 5 }]
+  ])('treats %s as NOT reachable', (_label, input) => {
+    expect(deriveHealthStatus(input).ready).toBe(false);
+  });
+
+  it.each([
+    ['Infinity', Infinity],
+    ['a numeric string', '5'],
+    ['NaN', NaN]
+  ])('treats a package count of %s as not sellable', (_label, count) => {
+    expect(deriveHealthStatus({ dbReachable: true, validPricedPackages: count }).ready).toBe(false);
+  });
+});
+
 describe('readinessHttpStatus — the probe that is allowed to fail', () => {
   it('returns 200 only when the service can actually serve', () => {
     expect(readinessHttpStatus(deriveHealthStatus({ dbReachable: true, validPricedPackages: 3 }))).toBe(200);

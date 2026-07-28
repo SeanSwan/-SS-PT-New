@@ -97,3 +97,26 @@ export function uninstallConsoleRedaction() {
 export function isConsoleRedactionInstalled() {
   return originals !== null;
 }
+
+/**
+ * SELF-INSTALL ON IMPORT — this side effect is deliberate and load-bearing.
+ *
+ * ESM hoists every static import and evaluates the whole graph BEFORE any statement in the
+ * importing module runs. So calling `installConsoleRedaction()` from a statement in server.mjs
+ * installs it only AFTER every imported module has already finished initializing — and module
+ * initialization is exactly when database connections are opened and config is dumped, i.e. the
+ * highest-value moment to be redacting.
+ *
+ * Proven, not assumed: an imported module's `console.log` of a connection string printed the
+ * password in the clear, while the same string logged after the explicit call was redacted.
+ *
+ * Installing here, at module evaluation, means anything imported AFTER this module in server.mjs
+ * is covered. `server.mjs` therefore imports this FIRST, before dotenv and before everything else.
+ *
+ * TRADEOFF, stated honestly: this runs before dotenv, so `SWAN_CONSOLE_REDACTION` is read from the
+ * real process environment, NOT from a `.env` file. On Render the kill switch works (env vars are
+ * set in the dashboard and present at process start). Locally, a `.env` entry will NOT disable it —
+ * export it in the shell instead. Boot-phase coverage is worth that narrowing; the alternative is
+ * leaving startup unredacted so a local .env toggle can work.
+ */
+installConsoleRedaction();

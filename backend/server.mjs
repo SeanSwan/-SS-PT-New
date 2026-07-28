@@ -14,24 +14,24 @@
 
 // ===================== ENVIRONMENT SETUP =====================
 // PHASE 1: Load environment first
+// MUST BE THE FIRST IMPORT. This module self-installs console redaction at evaluation time.
+// ESM hoists and fully evaluates the import graph before any statement here runs, so a
+// statement-level install would leave the ENTIRE boot phase — DB connection errors, config
+// dumps — logging unredacted. Proven by execution, not assumed. Anything imported BELOW this
+// line is covered. Kill switch SWAN_CONSOLE_REDACTION must be a real env var (Render dashboard
+// or shell export), not a .env entry, because this runs before dotenv.
+import './utils/consoleRedaction.mjs';
+
 import dotenv from 'dotenv';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { installConsoleRedaction } from './utils/consoleRedaction.mjs';
 
 // Get paths for environment setup
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRootDir = path.resolve(__dirname, '..');
 const envPath = path.resolve(projectRootDir, '.env');
-
-// Route direct console.* through the shared redaction rules before ANY logging happens.
-// 543 console calls in runtime code bypassed both loggers; 454 of them log an error object or
-// request data, so `console.error(err)` on a DB failure wrote connection credentials to stdout —
-// which on Render is the log stream. Installed here, immediately after dotenv, so the
-// SWAN_CONSOLE_REDACTION=off kill switch is readable and nothing logs unredacted before it.
-installConsoleRedaction();
 
 // Load environment variables FIRST (critical for Redis blocker)
 if (existsSync(envPath)) {

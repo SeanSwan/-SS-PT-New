@@ -42,10 +42,21 @@ export const STORE_CHECK = Object.freeze({
  * @param {number|null} input.validPricedPackages - sellable package count, null when unknown
  * @returns {{ status: string, ready: boolean, checks: { store: string }, message: string }}
  */
-export function deriveHealthStatus({ dbReachable, validPricedPackages }) {
+export function deriveHealthStatus({ dbReachable, validPricedPackages } = {}) {
+  // STRICT checks, not truthiness — this function's whole contract is failing closed, so it must
+  // not be lenient about its own inputs. Found by hostile review after the first ship:
+  //   - called with NO argument it THREW on destructuring, which would 500 the health endpoint
+  //   - `dbReachable: 'false'` (the STRING) is truthy and reported "healthy"
+  //   - `validPricedPackages: Infinity` reported a transactable store
+  // None were reachable from today's two call sites, which pass real booleans and a real count —
+  // but a fail-closed primitive that fails open on unexpected input is backwards, and the next
+  // caller does not know the unwritten contract.
+  const reachable = dbReachable === true;
+  const packageCount = Number.isFinite(validPricedPackages) ? validPricedPackages : 0;
+
   // The database is unreachable. Say so. This used to report "healthy" / "Server healthy", which
   // told an operator mid-incident that nothing was wrong.
-  if (!dbReachable) {
+  if (!reachable) {
     return {
       status: 'degraded',
       ready: false,
@@ -55,7 +66,7 @@ export function deriveHealthStatus({ dbReachable, validPricedPackages }) {
   }
 
   // Reachable, but nothing sellable. The server works; the storefront cannot transact.
-  if (!validPricedPackages || validPricedPackages <= 0) {
+  if (packageCount <= 0) {
     return {
       status: 'degraded',
       ready: false,

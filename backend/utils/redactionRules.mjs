@@ -130,6 +130,31 @@ export function redactLogValue(v, depth = 0, redactString = redactLogString) {
   if (Array.isArray(v)) return v.map((x) => redactLogValue(x, depth + 1, redactString));
 
   if (v && typeof v === 'object') {
+    // ── Built-ins that a plain Object.keys() walk DESTROYS ────────────────────────────────────
+    // Rebuilding these as `{}` erased them in the log: a Date printed as `{}`, a RegExp as `{}`,
+    // a Map/Set as `{}`, a Buffer as `{ '0': 97, '1': 98 }`. Found by hostile review AFTER the
+    // first ship — and it violated the rule this module is otherwise built around: never destroy
+    // the information a log exists to carry.
+    //
+    // None of these hold redactable content in enumerable own keys, so returning them untouched
+    // is both correct and safe:
+    //   - Date / RegExp  — no string payload a secret could hide in
+    //   - Buffer / TypedArray / ArrayBuffer — binary; stringifying would be worse than useless
+    if (v instanceof Date || v instanceof RegExp) return v;
+    if (ArrayBuffer.isView(v) || v instanceof ArrayBuffer) return v;
+
+    // Map/Set DO carry values worth redacting, but their contents are not own keys — so redact
+    // the entries and rebuild the same collection type rather than flattening to a plain object.
+    if (v instanceof Map) {
+      return new Map([...v].map(([k, val]) => [
+        redactLogValue(k, depth + 1, redactString),
+        redactLogValue(val, depth + 1, redactString)
+      ]));
+    }
+    if (v instanceof Set) {
+      return new Set([...v].map((val) => redactLogValue(val, depth + 1, redactString)));
+    }
+
     // Error objects do not enumerate `message`/`stack` as own keys, so a plain key walk drops the
     // very fields that carry leaked connection strings. Handle them explicitly.
     if (v instanceof Error) {
