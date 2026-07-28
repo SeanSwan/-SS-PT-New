@@ -22,11 +22,15 @@ the registry, how a surface adopts a lens, 16 live LensFrame surfaces) exists.**
 
 ## 2. The killer findings (all file:line-verified by the audits)
 
-1. **The v2 world engine is stranded behind a ONE-LINE id mismatch.** `v2/recipeResolution.ts:12-15` keys
-   `V2_RECIPES_BY_STYLE_LENS_ID` by RECIPE id (`swan.candy-glass-arcade.v2`) but is fed the v1 `styleLensId`
-   (`candy-glass-arcade`). They never match → **always resolves `null`** → every `SurfaceLensGate` paints the
-   Crystalline default. `catalogV2Map.ts:13` already has the correct `id → recipe` map. Fixing this one line makes
-   ~15 already-mounted gates restyle. **Highest capability unlock in the whole system.**
+1. **~~The v2 world engine is stranded behind a ONE-LINE id mismatch.~~ CORRECTED 2026-07-27 (dry-loop): NOT a
+   bug — a DELIBERATE dark-until-rollout gate.** `v2/recipeResolution.ts` resolves `null` in production ON PURPOSE
+   (docstring: "resolves to null … until the catalog exposes v2 styles. Fail-closed by construction"), and it is
+   **contract-tested** by `WorkoutDesignLab.styleAxis.test.tsx:427` ("A3: production resolveRecipeForStyleLens
+   stays untouched and inert (source contract)") + `surfaceManifests.test.ts:59-63`. The worlds DO render in the
+   **Lab** (`catalogV2Map` + Compare panel). "Fixing" it would break A3, flip a deliberate production gate, and
+   ship the 2-work / 25-don't inconsistency HONEST exists to avoid. **Flipping = a Sean-gated ROLLOUT decision,
+   not a fix.** *(This was the audit's headline; it was wrong — a reminder that the audit is a hypothesis, and
+   every finding gets verify-before-act.)*
 2. **28 lenses → 1 actual color-world.** All 27 lenses map to the *identical* `CRYSTALLINE_DEFAULT_WORLD_VALUES`
    (`contract/values/index.ts:20-28`); the header says per-lens differentiation is "Slice-3 design work" =
    **unbuilt**. Only **2 of 27** lenses have a v2 recipe (`candy-glass-arcade`, `prism-terminal`). So even after
