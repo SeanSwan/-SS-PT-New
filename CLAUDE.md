@@ -616,6 +616,22 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
     **The non-negotiable law:** NEVER relay an expert's output as the deliverable — and never reduce Claude to a transcriber either. Both brains create; Claude authors the fusion. Reject expert suggestions that fight the Swan strategy or house rules (Rule 6 tokens, Rule 10 Victory, Dual-Button Glow, dark-first, 44px, ≤300 lines, reduced-motion). This is the creation spine INSIDE the pipeline (`prompt-watcher` → `grill-me`/`chromie` → `swan-orchestrator` → `swan-design-router` → build → `closeout-evidence-lock`), NOT a bypass. Fires automatically every chat via this rule (boot context) + the `prompt-watcher` VISION path. Does NOT fire for trivial edits / bugfixes / questions / status / corrections. Skill: `.claude/skills/create-with-context/SKILL.md`. **Why:** Sean 2026-07-24 — consulting an expert and pasting its answer is a failure mode; so is Claude just transcribing. Grounding in an audit + FUSING Claude's creativity with the expert's produced the charts-upgrade blueprint (`CHARTS-EXPANSIVE-UPGRADE-BLUEPRINT-2026-07-24.md`) this rule was born from. Memory is a hypothesis; the audit is truth; the expert is a creative peer; **Claude authors the fusion.**
 
+77. **Dead-File Quarantine — an unrouted file must never sit beside live code (MANDATORY, applies to EVERY agent)** — Established 2026-07-28 by Sean: *"whenever we find any non-linked, non-routed dead files, they automatically need to be put away and hidden somewhere so that they don't trip the AI into thinking it's the current file."* An orphaned `.bak`, a `Component.old.tsx`, a half-migrated `serviceV2.mjs`, or an agent's own scratch copy sitting next to the real module is a **trap for the next agent**: it greps, finds the dead twin, edits it, verifies nothing, and ships a change to a file no route reaches. This has a proven cost — the whole point of Rules 26/27 (Canonical Surface Receipt, Surface Classification) is recovering from exactly this confusion *after* it happens. Rule 77 removes the trap instead.
+
+    **Two tiers, because "automatic" and Rule 34 (No Blind Cleanup) must both hold.**
+
+    **TIER 1 — agent scratch: auto-remove, no approval needed.** A file the CURRENT session created purely as a working artifact — A/B copies, probe scripts, `*.tmp.*`, `*.before.*`, `probe-*.mjs`, `verify-*.mjs`, dumps written next to source instead of the scratchpad. The agent that created it **deletes it before closeout** and never commits it. No approval, because nothing is being destroyed that existed before the session. Real instance that motivated this rule: a `phiScanner.before.tmp.mjs` A/B copy was left beside the live `phiScanner.mjs` — caught by the diff audit at closeout, one grep away from a future agent "fixing" the wrong file.
+
+    **TIER 2 — pre-existing files that look dead: propose, never move silently.** Requires evidence before any proposal: `rg` for every import/require of the module, route-mount check where relevant, JSX-usage check for components (an `import()` declaration is NOT proof of mount — Rule 26), and a check for dynamic/string-built references. Then classify per Rule 33 and propose relocation to `archive/pending-deletion/<YYYY-MM-DD>/` **preserving the original path underneath**, with a one-line `MANIFEST.md` entry recording origin path, date, evidence, and who approved. Execution happens only with Sean's explicit approval (Rule 34), and the phrases "safe to delete" / "nothing to lose" remain forbidden.
+
+    **Quarantine layout (existing convention, do not invent a new one):** `archive/pending-deletion/<YYYY-MM-DD>/<original/path/preserved>` plus `MANIFEST.md`. Never `archive/` root, never a sibling `_old/` next to live code — the whole point is getting it OUT of the working tree's grep path.
+
+    **When Tier 2 detection runs:** during `repo-hygiene-scan` (Rules 32-39), during any canonical-surface audit that surfaces a competing file, when a grep returns two plausible implementations of one thing, and at the closeout diff audit. It is a **detection-and-propose** gate, not a background deleter.
+
+    **Never quarantine on suspicion alone:** intentionally-dormant modules are NOT dead. `voiceConfirmationTier.mjs` has zero consumers on purpose (SWA-67); `notImplementedCheck` stubs exist to fail honestly. A file with a header explaining why it is dormant is doing its job — read the header before proposing anything. If the file lacks that header and is genuinely dormant-on-purpose, the correct fix is to ADD the header, not to move the file.
+
+    **Closeout requirement:** the post-task hygiene check (Rule 38) must state either `DEAD-FILES: none created, none found` or list Tier-1 artifacts removed and Tier-2 candidates proposed. Skill: `.claude/skills/dead-file-sweep/SKILL.md`.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -851,11 +867,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24, `.claude/skills/` documented count = 24)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24; dead-file-sweep added 2026-07-28, `.claude/skills/` documented count = 25)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 24 entries
+### Default-exposed `.claude/skills/` = 25 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -875,6 +891,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
+| `dead-file-sweep` | Rule 77 execution surface. Finds unrouted/unimported files that trap the next agent into editing a dead twin. Two tiers: agent scratch artifacts are auto-removed at closeout; pre-existing suspects are evidenced (imports + route mounts + JSX usage + dynamic refs) and PROPOSED for `archive/pending-deletion/`, never moved silently. Honors the dormant-on-purpose exception. |
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 | `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
