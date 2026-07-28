@@ -11,8 +11,11 @@
  *    INLINE `--world-*` (emitted deeper, on LensPlanFrame) still wins by normal custom-property scoping;
  *  - is `display: contents` — zero layout/paint of its own, pure token + attribute carrier.
  *
- * Zero visual change while surface flags are OFF: gates return the old page without mounting any frame, so
- * this wrapper only ever exists inside a flag-ON vNext mount.
+ * Post-de-gate (FLAG-LIFECYCLE-DOCTRINE.md, 2026-07-21): the 7 vNext surface flags are RETIRED — design is
+ * chosen by the canonical committed route, not a flag. So `SurfaceLensGate` (and this wrapper) now mount on the
+ * LIVE canonical surfaces that adopt a LensFrame (e.g. WorkoutLogger, Schedule, Clients, Bootcamp), NOT inside a
+ * flag-ON vNext mount. It stays a `display:contents` no-op for the default world, so committing no lens (or a
+ * lens with no recipe — 25 of 27 today) produces zero visual change; only a lens with a v2 recipe repaints.
  *
  * Values = the canonical Crystalline Swan palette (CLAUDE.md Active Palette). This file is the ONE sanctioned
  * hex site for the default world — surfaces stay pure consumers (LAW 8 R6).
