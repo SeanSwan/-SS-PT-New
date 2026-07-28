@@ -11,7 +11,7 @@ import { CANONICAL_CHART_IDS } from '../../../hooks/analytics/useClientProgressC
 // list (15), not a hardcoded 12. The old constant made the readiness meter clamp
 // at 12/15 and award "Legendary" prematurely — it lied about a full deck. Derived
 // here so the count can never drift from the real charts again.
-const TOTAL_PROGRESS_PROOF_CHARTS = CANONICAL_CHART_IDS.length;
+export const TOTAL_PROGRESS_PROOF_CHARTS = CANONICAL_CHART_IDS.length;
 
 export type ProgressProofAudience = 'client' | 'admin';
 export type ProgressProofTone = 'empty' | 'building' | 'full' | 'unavailable';
@@ -64,7 +64,10 @@ const qualityByTone: Record<ProgressProofTone, string> = {
   unavailable: 'Some feeds unavailable',
 };
 
-const PROOF_LEVELS = [
+// Single-sourced proof-tier ladder. Both getProofLevel (current-level text) and
+// the Proof Facet Rail (the earned-collection view) derive from THIS one array,
+// so the tier thresholds can never drift between the two surfaces (Rule 58).
+export const PROOF_LEVELS = [
   { min: TOTAL_PROGRESS_PROOF_CHARTS, label: 'Legendary' },
   { min: 8, label: 'Apex' },
   { min: 4, label: 'Momentum' },

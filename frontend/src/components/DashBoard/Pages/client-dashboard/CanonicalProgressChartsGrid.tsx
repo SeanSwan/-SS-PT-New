@@ -17,6 +17,7 @@ import ProgressChartCube from '../../progress/ProgressChartCube';
 import ProgressChartRecoveryObservatory from '../../progress/ProgressChartRecoveryObservatory';
 import ProgressChartWarRoomBoard from '../../progress/ProgressChartWarRoomBoard';
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
+import ProofFacetRail from '../../progress-proof/ProofFacetRail';
 import ProgressReportPdfButton from '../../progress-proof/ProgressReportPdfButton';
 import LockedChartCard from './CanonicalProgressChartsGrid.lockedCard';
 import { LensChartPaletteProvider } from './CanonicalProgressChartsGrid.lensPalette';
@@ -85,6 +86,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
         unavailableChartCount={unavailableChartCount}
         onLensChange={setActiveLensId}
       />
+      <ProofFacetRail populated={nonEmptyChartCount} />
       <ProgressChartCube
         charts={charts}
         nonEmptyChartCount={nonEmptyChartCount}
