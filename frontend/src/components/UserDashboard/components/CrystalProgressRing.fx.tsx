@@ -1,69 +1,73 @@
 /**
  * FILE: CrystalProgressRing.fx.tsx
- * PURPOSE: The decorative FX layers of the Crystal Ring (aura, faceted gems,
- *   comet-head electricity filaments, counter twin band, inner glyph ring,
- *   glowing orbital motes, ultimate crown). Extracted from the main component so
- *   each file stays under the 300-line cap (Rule 4) while the FX gained real
- *   material craft in the 2026-07-27 polish pass.
- * POLISH: filaments now lead with a bright COMET HEAD over a dimmed tail (was a
- *   uniform-opacity sliding dash → cheap marquee); orbitals are soft radial-glow
- *   MOTES (was flat pinpoints); gems carry a lit FACET gradient (was flat squares).
- *   All static geometry — motion lives in the styles' one master clock. Colors via
- *   token,#fallback (Rule 6); the whole SVG is aria-hidden in the parent.
+ * PURPOSE: The decorative FX layers of the Crystal Ring — aura, gems (seated on the
+ *   silhouette's vertices), comet electricity, gold-trace promise line, and orbital motes
+ *   whose SHAPE is the era's particle grammar (dot/dash/shard/rune/comet), not just a count.
+ *   Every element lives inside the FX budget (crystalRing.geometry) so nothing ever clips.
+ * CONSTRAINTS: static SVG geometry (motion via the styled one-clock); no filter on rotating
+ *   layers (gradient fills only); colors via token,#fallback; aria-hidden in the parent.
  */
 
 import React from 'react';
-
-const TAU = Math.PI * 2;
-
-/** Points evenly spaced on a circle of radius `rad` about (cx,cy). */
-export const onCircle = (cx: number, cy: number, rad: number, i: number, n: number, phase = 0) => {
-  const t = phase + (i / n) * TAU;
-  return { x: cx + rad * Math.cos(t), y: cy + rad * Math.sin(t) };
-};
+import {
+  CENTER, R_CORE, STROKE, ORBIT_OFFSET, onCircle,
+} from './crystalRing.geometry';
+import type { ParticleGrammar } from './crystalRing.tiers';
 
 export interface RingFxProps {
   uid: string;
-  cx: number;
-  cy: number;
-  r: number;
-  circ: number;
-  stroke: number;
-  small: boolean;
+  sides: number;
   arc: string;
   arcOpacity: number;
-  showFilaments: boolean;
-  filamentCount: number;
-  showTwin: boolean;
-  showGlyph: boolean;
+  particle: ParticleGrammar;
   orbitalCount: number;
   gemCount: number;
+  filaments: number;
+  goldTrace: boolean;
+  showAura: boolean;
 }
 
-/**
- * Mid-layer decorative FX (gems, comet filaments, twin band, glyph ring, orbital
- * motes), rendered between the groove track and the progress fill. The aura
- * (behind) and crown (on top) stay in the parent to preserve exact paint order.
- * Owns its own gradient defs (gem facet + orbital glow), keyed by `uid`.
- */
+const ORBIT_R = R_CORE + ORBIT_OFFSET;
+const CIRC = 2 * Math.PI * R_CORE;
+
+/** One orbital mote rendered in its era's particle grammar, at (x,y) with radial angle `a`. */
+const Mote: React.FC<{ g: ParticleGrammar; x: number; y: number; a: number; sz: number; fill: string; grad: string }>
+  = ({ g, x, y, a, sz, fill, grad }) => {
+  const inx = x - Math.cos(a) * sz * 2.6; // tail/point toward center
+  const iny = y - Math.sin(a) * sz * 2.6;
+  switch (g) {
+    case 'dash':
+      return <line x1={x} y1={y} x2={inx} y2={iny} stroke={fill} strokeWidth={sz} strokeLinecap="round" opacity={0.85} />;
+    case 'shard':
+      return <path d={`M${x} ${y - sz * 1.8} L${x + sz} ${y + sz} L${x - sz} ${y + sz} Z`} fill={fill} opacity={0.85} transform={`rotate(${(a * 180) / Math.PI + 90} ${x} ${y})`} />;
+    case 'rune':
+      return <path d={`M${x} ${y - sz * 1.6} L${x + sz * 1.6} ${y} L${x} ${y + sz * 1.6} L${x - sz * 1.6} ${y} Z`} fill="none" stroke={fill} strokeWidth={1} opacity={0.85} />;
+    case 'comet':
+      return <>
+        <line x1={x} y1={y} x2={inx} y2={iny} stroke={fill} strokeWidth={sz * 0.7} strokeLinecap="round" opacity={0.5} />
+        <circle cx={x} cy={y} r={sz} fill={`url(#${grad})`} className="ring-orbital" />
+      </>;
+    default: // dot
+      return <circle cx={x} cy={y} r={sz} fill={`url(#${grad})`} className="ring-orbital" />;
+  }
+};
+
 const RingFx: React.FC<RingFxProps> = ({
-  uid, cx, cy, r, circ, stroke, small, arc, arcOpacity,
-  showFilaments, filamentCount, showTwin, showGlyph, orbitalCount, gemCount,
+  uid, sides, arc, arcOpacity, particle, orbitalCount, gemCount, filaments, goldTrace, showAura,
 }) => {
   const gemGrad = `${uid}-gem`;
   const orbGrad = `${uid}-orb`;
-  const seg = circ * 0.04;
+  const seg = CIRC * 0.04;
+  const gemR = sides >= 3 ? R_CORE : R_CORE; // gems sit on the band; polygon vertices when faceted
 
   return (
     <>
       <defs>
-        {/* Faceted gem — lit from the top-left corner into the era color. */}
         <linearGradient id={gemGrad} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="var(--frost-white, #e0ecf4)" stopOpacity="0.95" />
           <stop offset="45%" stopColor={arc} />
           <stop offset="100%" stopColor={arc} stopOpacity="0.62" />
         </linearGradient>
-        {/* Glowing mote — bright core fading to transparent (soft-edged dot). */}
         <radialGradient id={orbGrad}>
           <stop offset="0%" stopColor="var(--frost-white, #e0ecf4)" stopOpacity="0.95" />
           <stop offset="34%" stopColor={arc} stopOpacity="0.9" />
@@ -71,89 +75,54 @@ const RingFx: React.FC<RingFxProps> = ({
         </radialGradient>
       </defs>
 
-      {/* Faceted gem nodes set into the ring — cut-stone gradient diamonds */}
+      {/* Aura halo — soft ring behind, breathes via .ring-aura (scale about center). */}
+      {showAura && (
+        <circle className="ring-aura" cx={CENTER} cy={CENTER} r={R_CORE * 1.02} fill="none" stroke={arc} strokeWidth={STROKE * 0.7} />
+      )}
+
+      {/* Gold-trace promise line — a single thin inner gold ring (late Amethyst only). */}
+      {goldTrace && (
+        <circle cx={CENTER} cy={CENTER} r={R_CORE * 0.82} fill="none" stroke="var(--gilded-fern, #c6a84b)" strokeWidth={1} opacity={0.5} />
+      )}
+
+      {/* Faceted gems — seated on the silhouette's vertices (polygon) or evenly (circle). */}
       {gemCount > 0 && (
         <g className="ring-gems">
-          {Array.from({ length: gemCount }, (_, i) => {
-            const p = onCircle(cx, cy, r, i, gemCount, -Math.PI / 2);
-            const s = small ? 2 : 2.6;
-            return (
-              <rect
-                key={i} x={p.x - s} y={p.y - s} width={s * 2} height={s * 2}
-                fill={`url(#${gemGrad})`} opacity={0.92}
-                transform={`rotate(45 ${p.x} ${p.y})`}
-              />
-            );
+          {Array.from({ length: sides >= 3 ? sides : gemCount }, (_, i) => {
+            const n = sides >= 3 ? sides : gemCount;
+            const p = onCircle(gemR, i, n, -Math.PI / 2);
+            const s = 4;
+            return <rect key={i} x={p.x - s} y={p.y - s} width={s * 2} height={s * 2} fill={`url(#${gemGrad})`} opacity={0.9} transform={`rotate(45 ${p.x} ${p.y})`} />;
           })}
         </g>
       )}
 
-      {/* Electricity filaments — dimmed tail dash + bright leading comet head,
-          whole group rotated by the master clock. */}
-      {showFilaments && (
+      {/* Comet electricity — dimmed dash tail + bright leading head, on the energy circle. */}
+      {filaments > 0 && (
         <g className="ring-arc-group">
-          {Array.from({ length: filamentCount }, (_, i) => {
-            const off = -(circ * (i / filamentCount));
-            // leading-head angle: dash start (top, rotate -90) + i-share + dash length
-            const theta = -Math.PI / 2 + (i / filamentCount) * TAU + (seg / circ) * TAU;
-            const head = { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta) };
+          {Array.from({ length: filaments }, (_, i) => {
+            const off = -(CIRC * (i / filaments));
+            const theta = -Math.PI / 2 + (i / filaments) * 2 * Math.PI + (seg / CIRC) * 2 * Math.PI;
+            const hx = CENTER + R_CORE * Math.cos(theta);
+            const hy = CENTER + R_CORE * Math.sin(theta);
             return (
               <React.Fragment key={i}>
-                <circle
-                  cx={cx} cy={cy} r={r} fill="none"
-                  className="ring-filament"
-                  stroke={arc} strokeWidth={2} strokeLinecap="round"
-                  strokeDasharray={`${seg} ${circ}`} strokeDashoffset={off}
-                  transform={`rotate(-90 ${cx} ${cy})`} style={{ opacity: arcOpacity * 0.72 }}
-                />
-                <circle
-                  className="ring-arc-head"
-                  cx={head.x} cy={head.y} r={small ? 1.6 : 2.3}
-                  fill="var(--frost-white, #e0ecf4)" style={{ opacity: Math.min(1, arcOpacity + 0.15) }}
-                />
+                <circle className="ring-filament" cx={CENTER} cy={CENTER} r={R_CORE} fill="none" stroke={arc} strokeWidth={2} strokeLinecap="round" strokeDasharray={`${seg} ${CIRC}`} strokeDashoffset={off} transform={`rotate(-90 ${CENTER} ${CENTER})`} style={{ opacity: arcOpacity * 0.72 }} />
+                <circle className="ring-arc-head" cx={hx} cy={hy} r={2.4} fill="var(--frost-white, #e0ecf4)" style={{ opacity: Math.min(1, arcOpacity + 0.15) }} />
               </React.Fragment>
             );
           })}
         </g>
       )}
 
-      {/* Counter-rotating twin band (inner) */}
-      {showTwin && (() => {
-        const n = Math.max(2, Math.round(filamentCount / 2));
-        const tSeg = circ * 0.03;
-        const innerR = r - stroke * 1.3;
-        const innerCirc = TAU * innerR;
-        return (
-          <g className="ring-twin-group">
-            {Array.from({ length: n }, (_, i) => (
-              <circle
-                key={i} cx={cx} cy={cy} r={innerR} fill="none"
-                className="ring-twin"
-                stroke="var(--ice-wing, #60c0f0)" strokeWidth={1.5} strokeLinecap="round"
-                strokeDasharray={`${tSeg} ${innerCirc}`} strokeDashoffset={-(innerCirc * (i / n))}
-                transform={`rotate(-90 ${cx} ${cy})`} opacity={0.55}
-              />
-            ))}
-          </g>
-        );
-      })()}
-
-      {/* Inner rotating facet glyph ring */}
-      {showGlyph && (
-        <g className="ring-glyph-group">
-          {Array.from({ length: 6 }, (_, i) => {
-            const p = onCircle(cx, cy, r * 0.52, i, 6, -Math.PI / 2);
-            return <circle key={i} cx={p.x} cy={p.y} r={1.4} fill="var(--gilded-fern, #c6a84b)" opacity={0.7} />;
-          })}
-        </g>
-      )}
-
-      {/* Orbital glowing motes — soft radial-glow dots, group rotated by the clock */}
+      {/* Orbital motes — the era's particle grammar, prime-count + detuned sizes. */}
       {orbitalCount > 0 && (
         <g className="ring-orbit-group">
           {Array.from({ length: orbitalCount }, (_, i) => {
-            const p = onCircle(cx, cy, r + stroke * 0.9, i, orbitalCount, -Math.PI / 2);
-            return <circle key={i} cx={p.x} cy={p.y} r={small ? 2.6 : 3.6} fill={`url(#${orbGrad})`} className="ring-orbital" />;
+            const p = onCircle(ORBIT_R, i, orbitalCount, -Math.PI / 2);
+            const a = Math.atan2(p.y - CENTER, p.x - CENTER);
+            const sz = [3.5, 2.5, 4][i % 3]; // varied sizes (Kimi: never uniform)
+            return <Mote key={i} g={particle} x={p.x} y={p.y} a={a} sz={sz} fill={arc} grad={orbGrad} />;
           })}
         </g>
       )}

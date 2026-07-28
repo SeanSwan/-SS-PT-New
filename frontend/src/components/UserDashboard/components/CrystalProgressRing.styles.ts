@@ -63,6 +63,17 @@ const auraBreath = keyframes`
   50%      { opacity: 0.7;  transform: scale(1.045); }
 `;
 
+/* Swan crest — the emblem breathes its opacity on the master clock (never spins). */
+const crestBreath = keyframes`
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+`;
+/* Coronation only — the whole crest group swells slowly (the one ultimate breath). */
+const crestSwell = keyframes`
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+`;
+
 /* Rule 43: interpolated keyframe fragments composed into the styled component
    MUST use css`` (a bare string toStrings the keyframe → mount crash #12). */
 const arcMotion = css`
@@ -153,6 +164,15 @@ export const RingWrap = styled.div`
     ${auraMotion}
   }
 
+  /* Swan crest — never spins. The emblem breathes opacity; at coronation the whole
+     crest group swells slowly about the ring center (the one ultimate breath). */
+  .ring-crest--emblem { animation: ${crestBreath} calc(var(--ring-loop, 14000ms) / 2) ease-in-out infinite; }
+  .ring-crest--coronation {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: ${crestSwell} var(--ring-loop, 14000ms) ease-in-out infinite;
+  }
+
   /* Progress fill carries the era spectrum + a glow whose strength is the
      engine's --ring-glow; the glow gently breathes on the master clock. */
   .ring-fill {
@@ -176,9 +196,9 @@ export const RingWrap = styled.div`
     .ring-arc-group,
     .ring-orbit-group,
     .ring-orbital,
-    .ring-twin-group,
-    .ring-glyph-group,
     .ring-aura,
+    .ring-crest--emblem,
+    .ring-crest--coronation,
     .ring-fill {
       animation: none;
       /* release the compositor layers too — no point promoting idle layers
