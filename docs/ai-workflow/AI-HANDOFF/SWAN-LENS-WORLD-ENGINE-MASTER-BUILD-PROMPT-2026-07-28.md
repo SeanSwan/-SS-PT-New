@@ -122,6 +122,17 @@ export const <ID>_RECIPE: RecipeV2 = {
   },
 };
 ```
+**⚠ THE REAL EXPRESSIVENESS CEILING (orchestrator finding, from the code — neither advisor saw this):** a recipe
+can only use component variants + templates the **host capability manifest** (`LAB_HOST_MANIFEST.slots` /
+`templates`) declares. Today that vocabulary is tiny — `text.display` supports 3 variants, `surface.card` 2, and
+only 2 templates (`playfield-stack`, `operator-grid`) exist. **Tokens alone (color/radius/font) give ~40% of a
+world's distinctness; the other ~60% is STRUCTURAL — templates + component variants — and each new variant needs a
+real renderer.** So "25 distinct worlds" is really: expand the manifest vocabulary to ~6–8 templates + ~4–6 variants
+per slot, implement those renderers ONCE (shared across worlds), then compose them per-world in the recipe. This is
+the largest hidden cost and it lives in Slice 1's spine + the wave slices (§6). Budget renderer work explicitly; do
+NOT ship 25 worlds that all use `playfield-stack` — that IS "25 greys." The host-manifest expansion is gated by the
+same fail-closed validation (a recipe naming an undeclared variant fails closed to default).
+
 **Law A palette discipline (non-negotiable, rule 6/40):** chrome (buttons, nav, focus rings, Dual-Button Glow)
 NEVER themed — always Crystalline Swan tokens (`--midnight-sapphire`, `--ice-wing`, `--wing-purple`,
 `--gilded-fern`, `--frost-white`, `--obsidian-black`). The world paints only the *setting* (`--world-bg/panel/
