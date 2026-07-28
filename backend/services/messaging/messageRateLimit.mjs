@@ -52,6 +52,46 @@ const sends = new Map();
 /** Stop the map growing without bound when many users send once and leave. */
 const MAX_TRACKED_USERS = 10_000;
 
+/**
+ * Is this entry currently at or over a limit? Such an entry must survive
+ * eviction — dropping it hands an actively-throttled sender a fresh budget.
+ */
+function isThrottled(timestamps, now) {
+  if (timestamps.length >= HOURLY_MAX) return true;
+  const cutoff = now - BURST_WINDOW_MS;
+  let burst = 0;
+  for (let i = timestamps.length - 1; i >= 0; i -= 1) {
+    if (timestamps[i] > cutoff) burst += 1;
+    else break;
+  }
+  return burst >= BURST_MAX;
+}
+
+/**
+ * Evict one entry to stay bounded, preferring a victim that is NOT currently
+ * throttled. Scans a bounded window from the least-recently-used end so this
+ * stays O(1)-ish; if every candidate in that window is throttled we fall back
+ * to the LRU entry rather than growing without limit.
+ *
+ * Why this exists: plain LRU eviction reset an actively-throttled sender's
+ * budget under enough traffic. Confirmed by adversarial probe, not theory —
+ * the first LRU-only attempt at this fix still failed the test.
+ */
+const EVICTION_SCAN = 64;
+function evictOne(now) {
+  let fallback;
+  let scanned = 0;
+  for (const [k, ts] of sends) {
+    if (fallback === undefined) fallback = k;
+    if (!isThrottled(ts, now)) {
+      sends.delete(k);
+      return;
+    }
+    if (++scanned >= EVICTION_SCAN) break;
+  }
+  if (fallback !== undefined) sends.delete(fallback);
+}
+
 function prune(timestamps, now) {
   const cutoff = now - HOURLY_WINDOW_MS;
   let i = 0;
@@ -79,8 +119,21 @@ export function checkMessageRate(userId, now = Date.now()) {
     else break;
   }
 
+  // Re-insert on EVERY touch so Map iteration order is genuinely
+  // least-recently-used. `Map.set` on an existing key does NOT reorder it, so
+  // without the delete the "oldest" key below is merely the first-ever-seen
+  // user — evicting them resets an ACTIVE sender's budget and hands them a
+  // fresh burst. Found by adversarial probe during hostile review 2026-07-28.
+  const touch = (timestamps) => {
+    sends.delete(key);
+    // An entry whose window has fully expired carries no information; dropping
+    // it keeps the map bounded by ACTIVE senders instead of growing with every
+    // user who has ever sent a message in this process.
+    if (timestamps.length > 0) sends.set(key, timestamps);
+  };
+
   if (burstCount >= BURST_MAX) {
-    sends.set(key, recent);
+    touch(recent);
     const oldestInBurst = recent[recent.length - burstCount];
     return {
       allowed: false,
@@ -90,7 +143,7 @@ export function checkMessageRate(userId, now = Date.now()) {
   }
 
   if (hourlyCount >= HOURLY_MAX) {
-    sends.set(key, recent);
+    touch(recent);
     return {
       allowed: false,
       reason: 'hourly',
@@ -101,11 +154,9 @@ export function checkMessageRate(userId, now = Date.now()) {
   recent.push(now);
 
   if (!sends.has(key) && sends.size >= MAX_TRACKED_USERS) {
-    // Evict the least-recently-active tracked user rather than grow forever.
-    const oldestKey = sends.keys().next().value;
-    if (oldestKey !== undefined) sends.delete(oldestKey);
+    evictOne(now);
   }
-  sends.set(key, recent);
+  touch(recent);
 
   return { allowed: true };
 }

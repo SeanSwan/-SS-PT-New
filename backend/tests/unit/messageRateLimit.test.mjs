@@ -109,6 +109,45 @@ describe('checkMessageRate — safety posture', () => {
   });
 });
 
+/**
+ * Eviction must never hand an actively-throttled sender a fresh budget.
+ *
+ * Found by adversarial probe during hostile review (2026-07-28), NOT by theory:
+ * the tracker is bounded at MAX_TRACKED_USERS, and the original eviction removed
+ * the first-inserted key. Since `Map.set` on an existing key does not reorder,
+ * that key was merely the first-ever-seen user — evicting them reset an active
+ * throttle. A first fix switched to true LRU ordering and STILL failed this
+ * test, because under enough traffic a throttled user legitimately becomes the
+ * least-recently-used. Eviction now prefers a victim that is not throttled.
+ */
+describe('eviction cannot reset an active throttle', () => {
+  it('keeps a throttled user throttled after heavy eviction pressure', () => {
+    const t = 5_000_000;
+    for (let i = 0; i < BURST_MAX; i += 1) checkMessageRate(1, t + i);
+    expect(checkMessageRate(1, t + BURST_MAX).allowed).toBe(false);
+
+    // Push far more than MAX_TRACKED_USERS distinct senders through.
+    for (let u = 1000; u < 11_100; u += 1) checkMessageRate(u, t + BURST_MAX);
+
+    expect(checkMessageRate(1, t + BURST_MAX + 1).allowed).toBe(false);
+  });
+
+  it('still lets an evicted-but-idle user send normally', () => {
+    const t = 6_000_000;
+    checkMessageRate(1, t); // one send, nowhere near a limit
+    for (let u = 1000; u < 11_100; u += 1) checkMessageRate(u, t);
+    expect(checkMessageRate(1, t + 1).allowed).toBe(true);
+  });
+
+  it('drops fully-expired entries instead of tracking every user forever', () => {
+    const t = 7_000_000;
+    checkMessageRate(1, t);
+    // Far beyond the hourly window — the entry carries no information and the
+    // user must be treated as brand new.
+    expect(checkMessageRate(1, t + HOURLY_WINDOW_MS + 1).allowed).toBe(true);
+  });
+});
+
 describe('wiring — both send paths are throttled', () => {
   it('REST sendMessage calls the throttle', async () => {
     const { readFileSync } = await import('node:fs');
