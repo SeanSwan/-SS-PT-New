@@ -88,6 +88,65 @@ export const PRIVATE_KEY_RULE =
  * @param {*} input - redacted only when a non-empty string; anything else passes through unchanged
  * @returns {*} the redacted string, or the input untouched
  */
+/**
+ * Maximum object/array nesting traversed by {@link redactLogValue}. Bounds work and terminates
+ * circular references. 12 because real error payloads nest deeper than a handful of levels — an
+ * ORM error wrapped in a service error wrapped in request context reaches 6+ easily.
+ */
+export const MAX_REDACTION_DEPTH = 12;
+
+/**
+ * Recursively redact a value of any shape — string, array, object, primitive.
+ *
+ * Lives HERE rather than in one logger so that every log surface (winston, the PII logger, and the
+ * console wrapper) walks values identically. Two hand-maintained copies of this logic drifted once
+ * already and the drift was a live credential leak; a third copy for console would repeat it.
+ *
+ * ORDER IS LOAD-BEARING: strings are redacted at ANY depth, BEFORE the cap is consulted. The cap
+ * exists to bound TRAVERSAL, and redacting a string costs nothing in recursion, so it must never
+ * gate redaction. Checking the cap first is what let a connection string nested 5 levels deep get
+ * logged with its password intact.
+ *
+ * Beyond the cap an untraversed OBJECT yields a marker rather than the raw value — fail closed,
+ * because an object you declined to inspect may contain anything.
+ *
+ * @param {*} v
+ * @param {number} [depth=0]
+ * @returns {*}
+ */
+export function redactLogValue(v, depth = 0, redactString = redactLogString) {
+  // `redactString` is INJECTABLE on purpose. The winston logger additionally redacts exact secret
+  // VALUES read from environment variables — something no shape-based pattern can know about — so
+  // it passes its own richer string redactor here. Sharing the TRAVERSAL while letting the string
+  // step vary is what keeps one walker without weakening the caller that needs more.
+  // (Hard-wiring redactLogString here silently removed env-value redaction from winston; caught
+  // before ship.)
+  if (typeof v === 'string') return redactString(v);
+
+  if (depth > MAX_REDACTION_DEPTH) {
+    return v && typeof v === 'object' ? '<REDACTED-DEPTH-EXCEEDED>' : v;
+  }
+
+  if (Array.isArray(v)) return v.map((x) => redactLogValue(x, depth + 1, redactString));
+
+  if (v && typeof v === 'object') {
+    // Error objects do not enumerate `message`/`stack` as own keys, so a plain key walk drops the
+    // very fields that carry leaked connection strings. Handle them explicitly.
+    if (v instanceof Error) {
+      const clone = new Error(redactString(v.message));
+      clone.name = v.name;
+      if (v.stack) clone.stack = redactString(v.stack);
+      for (const k of Object.keys(v)) clone[k] = redactLogValue(v[k], depth + 1, redactString);
+      return clone;
+    }
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = redactLogValue(v[k], depth + 1, redactString);
+    return out;
+  }
+
+  return v;
+}
+
 export function redactLogString(input) {
   try {
     if (typeof input !== 'string' || input.length === 0) return input;

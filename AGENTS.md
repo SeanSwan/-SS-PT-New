@@ -914,11 +914,16 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24; dead-file-sweep added 2026-07-28, `.claude/skills/` documented count = 25)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07; create-with-context added 2026-07-24; dead-file-sweep added 2026-07-28; count reconciled against disk 2026-07-28, `.claude/skills/` documented count = 31)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 25 entries
+### Default-exposed `.claude/skills/` = 31 entries
+
+> Count VERIFIED against disk 2026-07-28 (`find .claude/skills -maxdepth 2 -name SKILL.md` = 31, zero junctions).
+> The prior figure of 24/25 had drifted: `cost-guard`, `linear-todo`, `swan-debate`, and `swan-world-factory`
+> existed on disk but appeared in no table. An earlier guess that the gap was `.agents/skills` junctions
+> was wrong — there are none. Re-verify with that command rather than trusting this number.
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -939,6 +944,10 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
 | `dead-file-sweep` | Rule 77 execution surface. Finds unrouted/unimported files that trap the next agent into editing a dead twin. Two tiers: agent scratch artifacts are auto-removed at closeout; pre-existing suspects are evidenced (imports + route mounts + JSX usage + dynamic refs) and PROPOSED for `archive/pending-deletion/`, never moved silently. Honors the dormant-on-purpose exception. |
+| `cost-guard` | Cost-discipline gate. Fires BEFORE any paid-AI spend (consult-fable/sol/kimi, validation-orchestrator) or expensive multi-file operation. |
+| `linear-todo` | Linear-backed to-do workflow: capture conversation summaries as SWA issues, verify captured work against current commits, run the read-only tree sentinel so parallel agents do not collide. |
+| `swan-debate` | Bounded N-round adversarial debate between two agents for genuinely contested decisions. Escalation target when a Tier-2 triangle returns CONTRADICTIONS. |
+| `swan-world-factory` | Manual-only batch orchestrator for generating and hostile-reviewing licensed M4 Swan World Engine experiments. Writes ignored artifacts, never auto-promotes. |
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 | `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |

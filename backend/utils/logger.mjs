@@ -59,7 +59,7 @@ const SECRET_ENV_VARS = [
  * Env-value redaction below is retained and still runs FIRST — it catches exact secret values
  * from the environment that no shape-based pattern can know about.
  */
-import { LOG_REDACTION_RULES, PRIVATE_KEY_RULE } from './redactionRules.mjs';
+import { LOG_REDACTION_RULES, PRIVATE_KEY_RULE, redactLogValue } from './redactionRules.mjs';
 
 function getLiveSecretValues() {
   const values = [];
@@ -100,40 +100,12 @@ function redactString(s) {
   return out;
 }
 
-/**
- * Maximum object/array nesting traversed. Bounds work and terminates circular references.
- * Raised from 4 because traversal is cheap and real error payloads nest deeper than 4 —
- * an ORM error wrapped in a service error wrapped in a request context reaches 6+ easily.
- */
-const MAX_REDACTION_DEPTH = 12;
-
-function redactValue(v, depth = 0) {
-  // Strings are redacted at ANY depth, BEFORE the cap is consulted.
-  //
-  // WHY THIS ORDER MATTERS (SWA-71, found by execution 2026-07-28): the cap used to be checked
-  // first and returned the value untouched — `if (depth > 4) return v;` — so any string nested
-  // deeper than 4 levels was logged RAW. Verified: a database connection string at depth 5+ was
-  // written to the logs with its password intact. The cap exists to bound TRAVERSAL, and
-  // redacting a string costs nothing in recursion depth, so it must never gate redaction.
-  if (typeof v === 'string') return redactString(v);
-
-  if (depth > MAX_REDACTION_DEPTH) {
-    // Too deep to traverse safely. Fail CLOSED: an untraversed object may contain secrets, so
-    // emit a marker rather than the raw value. Losing debug detail beyond 12 levels is a far
-    // better outcome than leaking a credential, and the marker says which happened.
-    return v && typeof v === 'object' ? '<REDACTED-DEPTH-EXCEEDED>' : v;
-  }
-
-  if (Array.isArray(v)) return v.map((x) => redactValue(x, depth + 1));
-  if (v && typeof v === 'object') {
-    const out = {};
-    for (const k of Object.keys(v)) {
-      out[k] = redactValue(v[k], depth + 1);
-    }
-    return out;
-  }
-  return v;
-}
+// Value walking lives in redactionRules.mjs so winston, the PII logger, and the console wrapper
+// all traverse identically. A local copy here is how the two loggers drifted into a credential
+// leak; a third copy would repeat it.
+// Pass logger's OWN redactString so env-VALUE redaction is preserved — the shared default only
+// does shape-based patterns.
+const redactValue = (v, depth = 0) => redactLogValue(v, depth, redactString);
 
 const redactionFormat = winston.format((info) => {
   // Walk every value in the log info object. message + meta + level all pass through.

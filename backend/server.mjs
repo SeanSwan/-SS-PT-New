@@ -18,12 +18,20 @@ import dotenv from 'dotenv';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { installConsoleRedaction } from './utils/consoleRedaction.mjs';
 
 // Get paths for environment setup
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRootDir = path.resolve(__dirname, '..');
 const envPath = path.resolve(projectRootDir, '.env');
+
+// Route direct console.* through the shared redaction rules before ANY logging happens.
+// 543 console calls in runtime code bypassed both loggers; 454 of them log an error object or
+// request data, so `console.error(err)` on a DB failure wrote connection credentials to stdout —
+// which on Render is the log stream. Installed here, immediately after dotenv, so the
+// SWAN_CONSOLE_REDACTION=off kill switch is readable and nothing logs unredacted before it.
+installConsoleRedaction();
 
 // Load environment variables FIRST (critical for Redis blocker)
 if (existsSync(envPath)) {
