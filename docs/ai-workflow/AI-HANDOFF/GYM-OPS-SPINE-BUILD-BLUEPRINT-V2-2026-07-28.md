@@ -4,6 +4,35 @@ status: open
 supersedes: docs/ai-workflow/AI-HANDOFF/GYM-OPS-SPINE-BUILD-BLUEPRINT-2026-07-28.md
 ---
 
+# ⚠ STATUS after 5 hostile-review rounds — read before building anything
+
+| Slice | Findings across 5 rounds | Verdict |
+|---|---|---|
+| **S0 Location + policy config** | **zero, in all five rounds** | ✅ **BUILD IT** |
+| S2/S3 classes, cancel, waitlist | a few per round, all fixed, narrowing | 🟡 buildable after S0 proves the patterns |
+| **S1 Membership + Stripe** | **the large majority of every round's findings, including every BLOCKER after v1** | 🔴 **DO NOT BUILD FROM THIS SPEC** |
+
+**Defect rate per round did not converge:** 5 blockers → 1 → 1 → 0 → 1, with HIGHs at 16 → 4 → 5 → 3 → 7.
+Each revision fixed every finding and introduced new ones at roughly the same rate. Kimi's own
+summary of the pattern, after round 5: *"the fix is where the next defect lives."*
+
+**Why paper review cannot finish this**, in the reviewer's words: the surviving defect class is
+**predicate/NULL three-valued logic and concurrent-constraint behaviour** — partial-index predicates
+against NULL, `ignoreDuplicates` silently passing when the predicate excludes the conflicting row,
+`RESTRICT` firing on a DELETE no mock models, advisory-lock serialization across real transactions.
+Every one of these passes against a mocked store and detonates on first contact with real Postgres.
+**More review rounds will not find them. Running them will, in minutes.**
+
+**Recommendation:** build S0 now. Build the S1 money path **incrementally against Stripe test mode
+with real webhooks and real Postgres**, not from this document. Two decisions block S1 regardless
+and are Sean's: §9.1 (membership plan catalog) and the freeze-while-cancel-pending rule.
+
+Open at round 5: 1 BLOCKER (pending-row sweep vs `RESTRICT` + the event law), 7 HIGH.
+Reviews: `KIMI-REVIEW-gym-ops-spine-{,V2-,V2R3-,V2R4-,V2R5-}2026-07-28.md`
+(Kimi K3 high/medium effort; recorded costs $0.2598 + $0.2596 + $0.3001 + $0.1993 + $0.1467 = **$1.1655**).
+
+---
+
 # Gym Operations Spine — Worker-Bot Build Blueprint **v2**
 
 **Date:** 2026-07-28 · **Linear:** SWA-74
@@ -193,8 +222,12 @@ locking its `class_slots` row.**
 **separate column**, never a status. A checked-in member still holds their seat. *(This is v1's A3.)*
 
 **`memberships.status`** — the single authoritative list:
-`active` · `frozen` · `past_due` · `suspended` · `cancelled` · `expired`
+**`pending`** · `active` · `frozen` · `past_due` · `suspended` · `cancelled` · `expired`
+
 **`suspended` is present.** *(v1's A1.)* Blocks booking and door entry; `past_due` does not.
+**`pending`** is a checkout-in-flight placeholder that grants **no access whatsoever** — it exists
+so the double-checkout guard has a row to see (S1). It is swept after 24h if the checkout is
+abandoned, and promoted to `active` by `checkout.session.completed`.
 
 ### 2.5 `assertCanBook()` — the entitlement gate (v1's A4)
 
@@ -227,6 +260,7 @@ export async function assertCanBook({ userId, slot }, t) {
   });
 
   if (!membership) throw new ForbiddenError('NO_ACTIVE_MEMBERSHIP');        // also catches wrong-location
+  if (membership.status === 'pending') throw new ForbiddenError('NO_ACTIVE_MEMBERSHIP');  // checkout in flight — grants nothing
   if (membership.status === 'suspended') throw new ForbiddenError('MEMBERSHIP_SUSPENDED');
   if (membership.status === 'frozen')    throw new ForbiddenError('MEMBERSHIP_FROZEN');
   if (['cancelled', 'expired'].includes(membership.status)) throw new ForbiddenError('MEMBERSHIP_ENDED');
@@ -317,7 +351,17 @@ the term ended).
 | 3 | **Time elapsed** | `membershipLifecycleCron.mjs` → `startMembershipLifecycleScheduler`, daily, registered in `core/startup.mjs`. For `endsAt < now` and status in (`active`,`past_due`): → `cancelled` if `cancelRequestedAt` is set, else `expired`. Writes the matching event. **This is the only writer of `expired`.** **It must SKIP `frozen` memberships** — freeze pauses billing, so an unextended `endsAt` would expire a member who still has paid term left. Same cron auto-unfreezes `frozenUntil < now` (resume Stripe collection, event `unfrozen`). |
 
 **Freeze extends the term.** On unfreeze, push `endsAt` forward by the frozen duration — the member
-paused a paid term, they did not forfeit it.
+paused a paid term, they did not forfeit it. If `endsAt` is NULL (ongoing month-to-month, no cancel
+pending), extending is a **no-op** — do not write `NULL + interval`.
+
+> 🔴 **If `cancelRequestedAt` is set, unfreeze MUST also push Stripe `cancel_at` to the new `endsAt`
+> in the same operation.** Stripe's `cancel_at` is an absolute timestamp and `pause_collection` does
+> not move it. Extend `endsAt` locally without re-arming Stripe and the subscription is cancelled at
+> the *old* date → `customer.subscription.deleted` → path 2 fires while status is still `active`
+> (so the terminal NO-OP guard does not catch it) → the member is terminated with weeks of paid,
+> freeze-extended term remaining. Alternative, if you prefer fewer moving parts: **forbid freezing
+> while a cancellation is pending** (`409 CANCEL_PENDING`). Either is acceptable — **pick one and
+> write it down**; leaving it implicit is how the paid term gets destroyed.
 
 `assertCanBook` (§2.5) and S6's door resolver **both** independently check `endsAt` as well as
 status, so a failed cron degrades to denied access, never to free access. **Fail-closed on every path.**
@@ -374,7 +418,9 @@ both yield 06:30 local.
 **`20260728110000-create-memberships.cjs`**
 
 `memberships`: `id` · `userId` FK `"Users"` **RESTRICT** NOT NULL · `locationId` FK `locations` RESTRICT NOT NULL ·
-`name` STRING(150) · `status` ENUM(§2.4, 6 values) default `active` · `priceCents` INTEGER NOT NULL ·
+`name` STRING(150) · `status` **ENUM(`pending`,`active`,`frozen`,`past_due`,`suspended`,`cancelled`,`expired`) — all seven of §2.4, verbatim** default `pending` ·
+`stripeCheckoutSessionId` STRING(255) nullable (unique, partial non-null — the `pending`→`active` promotion key) ·
+`cancelRequestedAt` DATE nullable · `priceCents` INTEGER NOT NULL ·
 `currency` STRING(3) NOT NULL default `'USD'` · `billingInterval` ENUM(`monthly`,`annual`) ·
 `termMonths` INTEGER nullable · `startsAt`/`endsAt` DATE · `entitlement` ENUM(`unlimited`,`limited`,`open_gym_only`) ·
 `sessionsPerPeriod` INTEGER nullable · `cancellationNoticeDays` INTEGER default 30 ·
@@ -391,16 +437,19 @@ both yield 06:30 local.
 > await queryInterface.addIndex('memberships', ['userId', 'locationId'], {
 >   name: 'memberships_one_live_per_user_per_location',
 >   unique: true,
->   where: { status: ['active', 'past_due', 'frozen'] },
+>   where: { status: ['pending', 'active', 'past_due', 'frozen', 'suspended'] },
 > });
 > ```
+> `pending` is in the predicate so the double-checkout guard's witness row is enforced at the DB, and
+> `suspended` so a delinquent member cannot re-buy around dunning. This predicate, the 409 guard's
+> status list, and §2.4 must always agree — they are the same rule expressed three times.
 > This is the DB backstop for the double-checkout double-charge. It also makes §2.5's membership
 > lookup deterministic rather than "whichever row Postgres returns first."
 
 `membership_events` (append-only audit): `id` · **`membershipId` FK RESTRICT — NULLABLE** *(an orphaned
 `checkout.session.completed` has no membership to attach; without nullable, its dedup row cannot be
 written and a Stripe resend re-runs cancel+refund)* · `eventType`
-**ENUM(`created`,`frozen`,`unfrozen`,`payment_failed`,`payment_recovered`,`suspended`,`unsuspended`,`cancellation_requested`,`cancelled`,`expired`,`renewed`,`orphan_subscription_refunded`)** ·
+**ENUM(`created`,`frozen`,`unfrozen`,`payment_failed`,`payment_recovered`,`suspended`,`unsuspended`,`cancellation_requested`,`cancellation_rescinded`,`cancelled`,`expired`,`renewed`,`orphan_subscription_refunded`)** ·
 `actorUserId` FK nullable · `stripeEventId` STRING(255) nullable · `notes` TEXT · `metadata` JSONB ·
 `occurredAt` DATE NOT NULL. Unique index on `stripeEventId` (partial, non-null) — **this is the
 webhook replay-dedup store** (v1's C3).
@@ -427,18 +476,37 @@ webhook replay-dedup store** (v1's C3).
      { bind: [`membership-checkout:${userId}:${locationId}`], transaction: t });
    ```
    then check for an existing membership with status in
-   (`active`,`past_due`,`frozen`,**`suspended`**) → return `409 ALREADY_A_MEMBER`.
-   **`suspended` is included deliberately:** omitting it lets a member suspended for non-payment buy
-   a fresh membership to escape the dunning ladder, and the debt disappears operationally. A
+   (**`pending`**,`active`,`past_due`,`frozen`,**`suspended`**) → return `409 ALREADY_A_MEMBER`.
+   **Then, inside the same locked transaction, INSERT a `pending` membership row** carrying the
+   Stripe Checkout Session id.
+
+   > 🔴 **The lock alone does NOT fix this, and an earlier draft shipped exactly that mistake.** The
+   > guard's witness is *the existence of a membership row* — and without the `pending` insert, no
+   > row exists until `checkout.session.completed` fires minutes later, after payment. Tab A locks,
+   > checks (empty), opens a session, commits, releases; tab B locks one second later, checks —
+   > **still empty** — and opens a second session. Both are charged. Serialization only helps
+   > check-then-act when the first actor writes state the second actor's check can see. The
+   > `pending` row is that state.
+
+   `checkout.session.completed` **promotes the `pending` row to `active`** (matching on session id)
+   rather than inserting. Abandoned checkouts are swept by the §2.7 lifecycle cron: `pending` rows
+   older than 24h are deleted. `pending` is in the unique-index predicate below.
+
+   **`suspended` is in the guard deliberately:** omitting it lets a member suspended for non-payment
+   buy a fresh membership to escape the dunning ladder, and the debt disappears operationally. A
    suspended member must settle up, not re-buy.
 2. **Webhook `checkout.session.completed`** → create the `Membership` row with `stripeSubscriptionId`
    and `stripeCustomerId` from the session, `status: 'active'`, event `created`. If the insert hits
    the active-membership unique index, **cancel the just-created Stripe subscription and refund**,
    then alert — never leave a paid-for orphan subscription.
-3. **Webhook `invoice.paid`** → if it maps to a Membership: `status:'active'`, reset
-   `dunningAttempt = 0`. Event is `created`-period-aware: write `payment_recovered` only when the
-   membership was `past_due`; otherwise write `renewed` *(otherwise every routine monthly renewal
-   logs as a recovery and the audit trail is noise)*.
+3. **Webhook `invoice.paid`** → if it maps to a Membership: reset `dunningAttempt = 0`, and
+   **write `status:'active'` ONLY when the current status is `past_due`** (event `payment_recovered`).
+   For any other current status, write the event `renewed` and **leave status alone**.
+   > An unconditional `status:'active'` write defeats a live freeze: a `frozen` member who receives
+   > any stray `invoice.paid` — proration at unfreeze, an out-of-band invoice — is flipped to
+   > `active` with `frozenUntil` still in the future, so the door and booking open with no
+   > `unfrozen` event ever written. It would also resurrect a `cancelled` membership.
+   > Guard the status write; the event write is unconditional.
 4. **Webhook `customer.subscription.deleted`** → §2.7 path 2. **Mandatory.**
 
 **Webhook replay contract (applies to every handler):** each handler writes a `membership_events`
@@ -463,8 +531,15 @@ async function resolveSubscriptionOwner(stripeSubscriptionId) { /* Membership �
 A subscription ID that matches nothing is an operational alarm, never silence.
 
 **Routes** `/api/memberships`: `POST /checkout` (`protect`) · `GET /me` (`protect`) ·
-`GET /` (`protect`+`adminOnly`, filter by location) · `POST /:id/freeze` · `POST /:id/unfreeze` ·
-`POST /:id/cancel` (all `protect`+`adminOnly`).
+`GET /` (`protect`+`adminOnly`, filter by location) · `POST /:id/freeze` · `POST /:id/unfreeze`
+(both `protect`+`adminOnly`) · **`POST /:id/cancel` (`protect`, owner-or-admin — a member may cancel
+their own membership; §2.7 path 1 says "member/admin" and it must actually be reachable by a member)** ·
+**`POST /:id/rescind-cancel` (`protect`, owner-or-admin)** — clears `cancelRequestedAt`, restores
+`endsAt`, removes Stripe `cancel_at`, writes event `cancellation_rescinded`.
+
+> The rescind route is not a nicety. Status stays `active` through the notice window, and the 409
+> guard blocks re-checkout for `active` — so without rescind, a member who cancels and changes their
+> mind the next day has **no path back** except staff hand-editing two columns and a Stripe object.
 
 **Freeze must touch billing** *(v1's C2 — v1 froze access and kept charging)*: when
 `FREEZE_PAUSES_BILLING`, call Stripe `subscriptions.update(id, { pause_collection: { behavior: 'void' } })`;
@@ -522,6 +597,20 @@ Indexes: `(locationId,startsAt)`, `(classSeriesId)`, `(instructorId,startsAt)`,
 > retired rows stayed in the unique index, rescheduling a series onto an instant where a retired row
 > exists would make the generator's `ignoreDuplicates: true` **silently drop the new slot** — the
 > class just never appears, with no error and no entry in `orphanedSlotIds`.
+>
+> 🔴 **But excluding cancelled rows from the index is NOT sufficient on its own — it creates the
+> opposite bug.** Two different things flip a slot to `cancelled`, and they want opposite behaviour:
+>
+> | Who cancelled it | `cancellationReason` | Generator must |
+> |---|---|---|
+> | S2.2 series reschedule | `'series_rescheduled'` | **re-create** at that instant |
+> | Staff cancelled one occurrence (holiday, instructor sick) | anything else | **never re-create — it is a tombstone** |
+>
+> The index cannot tell them apart. So the generator MUST filter in code: **skip any instant where a
+> `cancelled` slot exists whose `cancellationReason != 'series_rescheduled'`.** Without this filter,
+> the daily generator re-inserts a fresh `scheduled` slot over every staff cancellation within the
+> 90-day horizon — the holiday closure quietly comes back to life, with the original bookings gone
+> and no error anywhere.
 
 `class_bookings`: `id` · `classSlotId` FK **RESTRICT** NOT NULL · `userId` FK `"Users"` **RESTRICT** NOT NULL ·
 `status` **ENUM(`booked`,`waitlisted`,`cancelled`,`late_cancelled`,`no_show`,`skipped_ineligible`) — all six of §2.4, verbatim** default `booked` ·
@@ -530,9 +619,12 @@ Indexes: `(locationId,startsAt)`, `(classSeriesId)`, `(instructorId,startsAt)`,
 `cancelledAt` DATE · `promotedAt` DATE · **`skippedAt` DATE nullable** · **`skipReason` STRING(64) nullable** ·
 `source` ENUM(`member`,`staff`,`admin`) default `member` · timestamps.
 
-> ⚠ **Enum parity check before you run this migration:** every value written anywhere in this
-> document must appear in the ENUM above. v1 shipped a `suspended` write against an ENUM that
-> lacked it and fail-opened. Grep the doc for `status: '` and confirm each literal is listed.
+> ⚠ **Enum parity check — run the DOC-WIDE rule from S1, not a status-only grep.** Every literal
+> written to *any* enumerated column anywhere in this document must appear in that column's ENUM:
+> `class_bookings.status`, `memberships.status`, `membership_events.eventType`, `class_slots.status`,
+> `check_ins.method`, `class_bookings.source`, `memberships.entitlement`, `memberships.billingInterval`.
+> This defect has recurred in four consecutive revisions and moved column each time — a check scoped
+> to one column name will keep missing it.
 > The partial unique index below intentionally covers only `booked` + `waitlisted`, so
 > `skipped_ineligible` does not block a staff re-add.
 
@@ -602,6 +694,10 @@ await ClassSlot.bulkCreate(rows, { transaction: t, ignoreDuplicates: true });
 Registered as `backend/services/classSlotGeneratorCron.mjs` exporting `startClassSlotGeneratorScheduler`,
 wired in `backend/core/startup.mjs` beside `startSessionReminderScheduler` (~:593). Daily. Also
 invoked on series create/edit.
+
+**The same cron writes `class_slots.status='completed'`** for `scheduled` slots whose `endsAt < now`.
+This is the only writer of `completed`; without it the value is decorative and yesterday's classes
+stay `scheduled` forever. Run the completion sweep **before** the generation pass.
 
 **Routes** `backend/routes/classRoutes.mjs` → `/api/classes` (`protect` on all):
 
@@ -847,7 +943,9 @@ membership branch → `membershipDunningService`. AI-tier path untouched. Unknow
 | cron: day 3 since `dunningStartedAt` | reminder, `dunningAttempt=2` |
 | cron: day 7 | final notice, `dunningAttempt=3` |
 | cron: day `DUNNING_SUSPEND_DAY` (10) | **`status:'suspended'`** → blocks booking (§2.5) + door (S6), event `suspended` |
-| `invoice.paid` | `status:'active'`, `dunningAttempt=0`, **`dunningStartedAt=NULL`** (re-arms the clock), event `payment_recovered` |
+| `invoice.paid` while `past_due` | `status:'active'`, `dunningAttempt=0`, **`dunningStartedAt=NULL`** (re-arms the clock), event `payment_recovered` |
+| `invoice.paid` while **`suspended`** | `status:'active'`, `dunningAttempt=0`, `dunningStartedAt=NULL`, event **`unsuspended`** — *this is the writer of `unsuspended`; without it a member who pays off their debt stays locked out and the enum value is decorative* |
+| `invoice.paid` in any other status | event only (`renewed`); **do not touch status** (see S1 step 3 — an unconditional write defeats a live freeze) |
 | `customer.subscription.deleted` | §2.7 path 2 — Stripe gave up. `status:'cancelled'`. |
 
 **Ownership rule (removes the webhook-vs-cron ambiguity):** the webhook owns *starting* and *clearing*

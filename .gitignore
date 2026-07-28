@@ -481,3 +481,11 @@ SOUL.archive/**
 
 # Playwright MCP session recordings (may capture typed-in credentials)
 .playwright-mcp/
+
+# Agent scratch patches/scripts at repo root (Codex working files).
+# NOT deleted — only untracked. These are another agent's in-flight work.
+# This entry exists for a specific safety reason: CLAUDE.md rule 67 records a commit that once
+# swept in 63 of the other agent's WIP files. With 60+ of these sitting untracked at root, a single
+# `git add -A` re-runs that incident. Ignoring the class makes the accident impossible and keeps
+# `git status` readable enough that real changes are visible.
+.codex-tmp-*
