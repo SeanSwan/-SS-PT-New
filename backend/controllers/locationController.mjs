@@ -23,6 +23,9 @@ import Location from '../models/Location.mjs';
 import { parseWallClock } from '../utils/zonedTime.mjs';
 import logger from '../utils/logger.mjs';
 
+/** Upper bound on the free-form metadata blob, in serialized bytes. */
+const METADATA_MAX_BYTES = 16_384;
+
 /** True when `zone` is a timezone Intl actually recognizes. */
 function isValidTimeZone(zone) {
   if (typeof zone !== 'string' || !zone.trim()) return false;
@@ -67,7 +70,62 @@ function validatePayload(body, { requireName }) {
     }
   }
 
+  // metadata is a free-form JSONB escape hatch. Unbounded, it is a storage/DoS vector even from an
+  // admin account, and an oversized row degrades every list query that selects it.
+  if (body.metadata !== undefined && body.metadata !== null) {
+    if (typeof body.metadata !== 'object' || Array.isArray(body.metadata)) {
+      problems.push('metadata must be a JSON object');
+    } else {
+      let serialized;
+      try {
+        serialized = JSON.stringify(body.metadata);
+      } catch {
+        problems.push('metadata must be JSON-serializable'); // circular refs
+      }
+      if (serialized && serialized.length > METADATA_MAX_BYTES) {
+        problems.push(`metadata must be under ${METADATA_MAX_BYTES} bytes`);
+      }
+    }
+  }
+
   return problems;
+}
+
+/**
+ * Parse a path `:id` into a positive integer, or null.
+ *
+ * WHY THIS EXISTS: `id` is a SERIAL primary key. Handing Postgres a non-numeric value raises
+ * `invalid input syntax for type integer`, which the generic catch below turns into a 500 — so
+ * `GET /api/locations/abc` reported a server failure for what is plainly a client error, and
+ * polluted error monitoring with noise that looks like the backend is broken. Validate first and
+ * treat an unparseable id as "no such resource".
+ */
+function parseId(raw) {
+  const value = String(raw ?? '').trim();
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * Derive the slug to persist, or return a problem.
+ *
+ * SHARED BY create AND update ON PURPOSE. These two paths previously derived slugs independently,
+ * and they drifted: create rejected an empty result while update happily persisted `''` when given
+ * something like "---" (the raw value is truthy, the slugified value is not). An empty slug breaks
+ * the public identifier and the partial unique index silently. One helper, one rule.
+ *
+ * @returns {{slug?: string, problem?: string}} slug omitted when the caller supplied nothing.
+ */
+function resolveSlug({ explicitSlug, name, required }) {
+  const source = typeof explicitSlug === 'string' && explicitSlug.trim() ? explicitSlug : (required ? name : null);
+  if (source === null || source === undefined) return {};          // update with no slug change
+
+  const slug = Location.slugify(source);
+  if (!slug) {
+    return { problem: 'Could not derive a usable slug; provide an explicit alphanumeric slug' };
+  }
+  return { slug };
 }
 
 /**
@@ -101,10 +159,36 @@ export const listLocations = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/locations/slug/:slug
+ *
+ * The slug is the stable public identifier — it is what the unique index protects and what a
+ * member-facing URL would carry. Without this it was write-only: derivable and enforced, but not
+ * resolvable, so every consumer would have to list all locations and filter client-side.
+ *
+ * Registered BEFORE /:id in the router so 'slug' is never swallowed as an id.
+ */
+export const getLocationBySlug = async (req, res) => {
+  try {
+    const location = await Location.findOne({ where: { slug: String(req.params.slug || '').toLowerCase() } });
+    if (!location) {
+      return res.status(404).json({ success: false, message: 'Location not found' });
+    }
+    return res.status(200).json({ success: true, location });
+  } catch (error) {
+    logger.error('Failed to fetch location by slug', { error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch location' });
+  }
+};
+
 /** GET /api/locations/:id */
 export const getLocationById = async (req, res) => {
   try {
-    const location = await Location.findByPk(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) {
+      return res.status(404).json({ success: false, message: 'Location not found' });
+    }
+    const location = await Location.findByPk(id);
     if (!location) {
       return res.status(404).json({ success: false, message: 'Location not found' });
     }
@@ -128,17 +212,11 @@ export const createLocation = async (req, res) => {
     }
 
     const payload = pickWritable(body);
-    const slugSource = typeof body.slug === 'string' && body.slug.trim()
-      ? body.slug
-      : payload.name;
-    payload.slug = Location.slugify(slugSource);
-
-    if (!payload.slug) {
-      return res.status(400).json({
-        success: false,
-        message: 'Could not derive a slug from the name; provide an explicit slug',
-      });
+    const { slug, problem } = resolveSlug({ explicitSlug: body.slug, name: payload.name, required: true });
+    if (problem) {
+      return res.status(400).json({ success: false, message: problem });
     }
+    payload.slug = slug;
 
     const location = await Location.create(payload);
     return res.status(201).json({ success: true, location });
@@ -158,7 +236,11 @@ export const updateLocation = async (req, res) => {
   try {
     const body = req.body || {};
 
-    const location = await Location.findByPk(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) {
+      return res.status(404).json({ success: false, message: 'Location not found' });
+    }
+    const location = await Location.findByPk(id);
     if (!location) {
       return res.status(404).json({ success: false, message: 'Location not found' });
     }
@@ -170,10 +252,13 @@ export const updateLocation = async (req, res) => {
 
     const payload = pickWritable(body);
     // Slug only moves when explicitly asked. Renaming a site must not silently break URLs or any
-    // external reference already using the old slug.
-    if (typeof body.slug === 'string' && body.slug.trim()) {
-      payload.slug = Location.slugify(body.slug);
+    // external reference already using the old slug. Same helper as create — an unusable slug is
+    // a 400 here too, never a persisted empty string.
+    const { slug, problem } = resolveSlug({ explicitSlug: body.slug, name: payload.name, required: false });
+    if (problem) {
+      return res.status(400).json({ success: false, message: problem });
     }
+    if (slug !== undefined) payload.slug = slug;
 
     await location.update(payload);
     return res.status(200).json({ success: true, location });
@@ -193,7 +278,11 @@ export const updateLocation = async (req, res) => {
  */
 export const deleteLocation = async (req, res) => {
   try {
-    const location = await Location.findByPk(req.params.id);
+    const id = parseId(req.params.id);
+    if (id === null) {
+      return res.status(404).json({ success: false, message: 'Location not found' });
+    }
+    const location = await Location.findByPk(id);
     if (!location) {
       return res.status(404).json({ success: false, message: 'Location not found' });
     }
@@ -207,6 +296,7 @@ export const deleteLocation = async (req, res) => {
 
 export default {
   listLocations,
+  getLocationBySlug,
   getLocationById,
   createLocation,
   updateLocation,
