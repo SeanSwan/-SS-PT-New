@@ -12,6 +12,7 @@ import logger from '../utils/logger.mjs';
 import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
+import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../services/messaging/messageRateLimit.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -125,6 +126,14 @@ export const initializeSocket = () => {
         const blockCheck = await canSendToConversation(normalizedConversationId, socket.user.id);
         if (!blockCheck.allowed) {
           socket.emit('error', { message: BLOCKED_MESSAGE });
+          return;
+        }
+
+        // Same throttle as REST. Without it, a limiter on the REST path alone
+        // would be bypassed by emitting 'send_message' over the websocket.
+        const rate = checkMessageRate(socket.user.id);
+        if (!rate.allowed) {
+          socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
           return;
         }
 

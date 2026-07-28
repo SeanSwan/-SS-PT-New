@@ -13,6 +13,7 @@ import {
   touchConversation,
 } from '../../services/messagingRepository.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../../services/messaging/blockGuard.mjs';
+import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../../services/messaging/messageRateLimit.mjs';
 
 const SEND_MESSAGE_FAILED_MESSAGE = 'Failed to send message.';
 const FETCH_MESSAGES_FAILED_MESSAGE = 'Failed to fetch messages.';
@@ -147,6 +148,14 @@ export const sendMessage = async (req, res) => {
     // direct conversation and the Block button lied (rule 75).
     const blockCheck = await canSendToConversation(conversationId, senderId);
     if (!blockCheck.allowed) return res.status(403).json({ error: BLOCKED_MESSAGE });
+
+    // Throttle AFTER authorization so a rejected sender cannot burn another
+    // user's budget, and so 403 is never masked by 429.
+    const rate = checkMessageRate(senderId);
+    if (!rate.allowed) {
+      res.set('Retry-After', String(Math.ceil((rate.retryAfterMs ?? 1000) / 1000)));
+      return res.status(429).json({ error: MESSAGE_RATE_LIMITED });
+    }
 
     const message = await createMessageRecord({ conversationId, senderId, content });
     await touchConversation(conversationId);
