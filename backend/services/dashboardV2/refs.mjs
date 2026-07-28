@@ -2,7 +2,7 @@
  * dashboardV2/refs — server-side masking + formatting for Dashboards v2 (KIMI-DASHBOARDS §2.3/§6).
  *
  * PRIVACY (Rule 8): the client never sees a real name or raw id. Every person is shown as a stable,
- * NON-reversible display ref (`C-1042`, `T-07`) derived by HMAC(id, MASK_SALT). It is deterministic
+ * NON-reversible display ref (`C-026122`, `T-004317`) derived by HMAC(id, MASK_SALT). It is deterministic
  * within a deploy (same id → same ref) so the UI is coherent, but it is display-only — you cannot
  * recover the id from the ref. FORMATTING happens here too: every string the client renders is
  * pre-formatted server-side (`value: string // fmt:server`); the client formats nothing.
@@ -18,12 +18,40 @@ const MASK_SALT = configuredSalt
     ? crypto.createHmac('sha256', platformSecret).update('dashboard-v2-display-refs').digest('hex')
     : crypto.randomBytes(32).toString('hex'));
 
-/** Non-reversible display ref: HMAC(id) → 4-digit code with a role-kind prefix. */
+/**
+ * Ref space per kind. WIDENED 2026-07-28 (admin-surface audit, SWA-75).
+ *
+ * The ref was a 4-digit code for every kind — 10,000 possible values. Because a
+ * ref REPLACES the person's name in these dashboards, two clients landing on the
+ * same code are indistinguishable to the operator, and `dashboardV2Service`
+ * additionally uses trainer refs as CHART LABELS, where a collision visually
+ * merges two people into one series.
+ *
+ * Measured against the real HMAC (not theory): 100 clients produced 1 colliding
+ * ref, 250 produced 3, 500 produced 13. That is a launch-window problem, not a
+ * someday problem.
+ *
+ * Both kinds get a 6-digit space (1e6). The first attempt at this fix left
+ * trainers on the 4-digit space, reasoning that the roster is small — the
+ * uniqueness test immediately produced a collision at FIFTY trainers. "Small
+ * roster" is not a defence at a 10,000-value space, and trainers are precisely
+ * the refs used as chart labels, where a collision merges two series.
+ *
+ * Safe to change: refs are computed at projection time and never persisted —
+ * no DB column stores one, and nothing looks a record up by ref.
+ */
+const REF_SPACE = { T: 1000000, C: 1000000 };
+const REF_WIDTH = { T: 6, C: 6 };
+
+/** Non-reversible display ref: HMAC(id) → fixed-width code with a role-kind prefix. */
 export function maskRef(id, kind = 'C') {
   if (id === null || id === undefined) return `${kind}-—`;
+  const space = REF_SPACE[kind] ?? REF_SPACE.C;
+  const width = REF_WIDTH[kind] ?? REF_WIDTH.C;
   const h = crypto.createHmac('sha256', MASK_SALT).update(String(id)).digest('hex');
-  const n = parseInt(h.slice(0, 6), 16) % 10000; // 0..9999, stable per id
-  return `${kind}-${String(n).padStart(kind === 'T' ? 2 : 4, '0')}`;
+  // 8 hex chars (32 bits) so the modulus is not drawn from a 24-bit pool.
+  const n = parseInt(h.slice(0, 8), 16) % space; // stable per id
+  return `${kind}-${String(n).padStart(width, '0')}`;
 }
 
 export const maskClient = (id) => maskRef(id, 'C');
