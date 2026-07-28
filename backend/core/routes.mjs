@@ -32,8 +32,9 @@ import userRoutes from '../routes/userRoutes.mjs';
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
 import packageRoutes from '../routes/packageRoutes.mjs';
-// Temporarily disabled for deployment hotfix - will re-enable after verification
-// import trainingSessionRoutes from '../routes/trainingSessionRoutes.mjs';
+// trainingSessionRoutes was disabled for a deployment hotfix and never re-enabled.
+// The module was deleted 2026-07-27 (launch audit). Session endpoints are served
+// by sessionRoutes / sessions.mjs / sessionPackageRoutes above.
 
 // ===================== BUSINESS LOGIC =====================
 import cartRoutes from '../routes/cartRoutes.mjs';
@@ -101,9 +102,13 @@ import sessionDeductionRoutes from '../routes/sessionDeductionRoutes.mjs';
 import sessionTypeRoutes from '../routes/sessionTypeRoutes.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
-// LEGACY ROUTES - Replaced by V1 API (kept for backward compatibility)
-// app.use('/api/gamification', gamificationRoutes);
-// app.use('/api/gamification', gamificationApiRoutes);
+// Gamification is served ENTIRELY by gamificationV1Routes, mounted below at
+// BOTH /api/v1/gamification and /api/gamification. The former legacy modules
+// (gamificationRoutes.mjs, gamificationApiRoutes.mjs) were deleted 2026-07-27:
+// their mounts had been commented out here while a stale comment still claimed
+// they were "kept for backward compatibility", which sent a security audit
+// chasing a file no request could ever reach. Do not resurrect them — add to
+// gamificationV1Routes instead.
 
 // ===================== LIVE STREAMING & CREATOR ECONOMY =====================
 import liveStreamRoutes from '../routes/liveStreamRoutes.mjs';
@@ -315,8 +320,7 @@ export const setupRoutes = async (app) => {
   // AI-powered client onboarding (single transactional endpoint)
   app.use('/api/clients/onboard', clientOnboardRoutes);
   app.use('/api/client-data', clientDataRoutes);
-  // Temporarily disabled for deployment hotfix - will re-enable after verification
-  // app.use('/api/training-sessions', trainingSessionRoutes);
+  // (removed 2026-07-27) /api/training-sessions — trainingSessionRoutes deleted; see note at imports.
   app.use('/api/roles', roleRoutes);
   
   // ===================== CLIENT-TRAINER ASSIGNMENT ROUTES (EARLY REGISTRATION) =====================
