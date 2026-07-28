@@ -42,16 +42,24 @@ const SECRET_ENV_VARS = [
   'R2_SECRET_ACCESS_KEY',
 ];
 
-const KEY_SHAPE_PATTERNS = [
-  /\bsk_live_[A-Za-z0-9]{16,}/g,
-  /\bsk_test_[A-Za-z0-9]{16,}/g,
-  /\bsk-[A-Za-z0-9_-]{20,}/g,
-  /\brk_live_[A-Za-z0-9]{16,}/g,
-  /\bwhsec_[A-Za-z0-9]{16,}/g,
-  /\bxoxb-[A-Za-z0-9-]{20,}/g,
-  /\bAIza[A-Za-z0-9_-]{20,}/g,
-  /\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, // JWT
-];
+/**
+ * Pattern-based redaction now comes from the shared list in `utils/redactionRules.mjs`.
+ *
+ * WHY (SWA-71, 2026-07-28): the previous inline list here covered API-key shapes ONLY. Verified by
+ * execution, this logger — the one with ~2841 call sites, 12x the reach of `piiSafeLogging` —
+ * passed **email, SSN, phone, and database credentials** straight through. The concrete leak:
+ * `logger.error(err)` on a Postgres connection failure writes the connection password into the
+ * logs, because a credential-URL rule did not exist here.
+ *
+ * `piiSafeLogging.mjs` had the broader list. Two hand-maintained redaction lists in one backend
+ * drifted, and the drift WAS the bug — so both now read from one source. The shared module also
+ * documents why order matters (credential URLs before EMAIL) and why a bare 10-digit run is
+ * deliberately not treated as a phone number (it would eat migration timestamps and IDs).
+ *
+ * Env-value redaction below is retained and still runs FIRST — it catches exact secret values
+ * from the environment that no shape-based pattern can know about.
+ */
+import { LOG_REDACTION_RULES, PRIVATE_KEY_RULE } from './redactionRules.mjs';
 
 function getLiveSecretValues() {
   const values = [];
@@ -80,17 +88,42 @@ function redactString(s) {
       }
     }
   }
-  // Pattern-based redaction (catches secrets not in our env list — e.g.
-  // values pasted into logger.error from third-party libraries)
-  for (const pat of KEY_SHAPE_PATTERNS) {
-    out = out.replace(pat, '<REDACTED-KEY>');
+  // Pattern-based redaction (catches secrets not in our env list — e.g. values pasted into
+  // logger.error from third-party libraries — plus PII shapes). Rules are ORDERED: credential
+  // URLs are matched before EMAIL, because a connection string contains a `password@hostname`
+  // segment that EMAIL would otherwise consume, leaving the scheme and username exposed.
+  // PEM blocks span lines, so they run before the per-rule pass.
+  out = out.replace(PRIVATE_KEY_RULE, '<REDACTED-PRIVATE_KEY>');
+  for (const [kind, pattern] of LOG_REDACTION_RULES) {
+    out = out.replace(pattern, `<REDACTED-${kind}>`);
   }
   return out;
 }
 
+/**
+ * Maximum object/array nesting traversed. Bounds work and terminates circular references.
+ * Raised from 4 because traversal is cheap and real error payloads nest deeper than 4 —
+ * an ORM error wrapped in a service error wrapped in a request context reaches 6+ easily.
+ */
+const MAX_REDACTION_DEPTH = 12;
+
 function redactValue(v, depth = 0) {
-  if (depth > 4) return v; // recursion cap
+  // Strings are redacted at ANY depth, BEFORE the cap is consulted.
+  //
+  // WHY THIS ORDER MATTERS (SWA-71, found by execution 2026-07-28): the cap used to be checked
+  // first and returned the value untouched — `if (depth > 4) return v;` — so any string nested
+  // deeper than 4 levels was logged RAW. Verified: a database connection string at depth 5+ was
+  // written to the logs with its password intact. The cap exists to bound TRAVERSAL, and
+  // redacting a string costs nothing in recursion depth, so it must never gate redaction.
   if (typeof v === 'string') return redactString(v);
+
+  if (depth > MAX_REDACTION_DEPTH) {
+    // Too deep to traverse safely. Fail CLOSED: an untraversed object may contain secrets, so
+    // emit a marker rather than the raw value. Losing debug detail beyond 12 levels is a far
+    // better outcome than leaking a credential, and the marker says which happened.
+    return v && typeof v === 'object' ? '<REDACTED-DEPTH-EXCEEDED>' : v;
+  }
+
   if (Array.isArray(v)) return v.map((x) => redactValue(x, depth + 1));
   if (v && typeof v === 'object') {
     const out = {};
