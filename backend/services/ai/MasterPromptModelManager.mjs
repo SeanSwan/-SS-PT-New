@@ -5,10 +5,14 @@
  */
 
 import axios from 'axios';
-import { piiSafeLogger } from '../../../utils/monitoring/piiSafeLogging.mjs';
-import { ethicalAIReview } from '../EthicalAIReview.mjs';
-import { mcpAnalytics } from '../../monitoring/MCPAnalytics.mjs';
-import { accessibilityTesting } from '../../accessibility/AccessibilityTesting.mjs';
+// Paths corrected 2026-07-28: all four were off by one directory level — this file appears to have
+// been moved into services/ai/ without its relative imports being updated. Every target exists and
+// every named export was verified present; only the traversal was wrong. From services/ai/,
+// '../../../' escapes above backend/ entirely.
+import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
+import { ethicalAIReview } from './EthicalAIReview.mjs';
+import { mcpAnalytics } from '../monitoring/MCPAnalytics.mjs';
+import { accessibilityTesting } from '../accessibility/AccessibilityTesting.mjs';
 
 class MasterPromptModelManager {
   constructor() {
