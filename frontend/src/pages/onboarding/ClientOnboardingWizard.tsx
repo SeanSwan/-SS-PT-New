@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
@@ -12,6 +12,8 @@ import {
   getOnboardingAccessStatusLabel,
 } from "./ClientOnboardingAccessHandoff";
 import { StyledBox } from '@/components/ui/StyledBox';
+import { useAuth } from "../../context/AuthContext";
+import { readDraft, writeDraft, clearDraft } from "./useOnboardingDraft";
 
 /* ── Lazy-loaded wizard sections (code-split for FCP) ── */
 const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
@@ -450,14 +452,44 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const _themeCtx = useUniversalTheme();
   void _themeCtx; // consumed but we always render dark
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<any>(initialData || {});
+  const { user } = useAuth();
+
+  // Draft persistence applies ONLY to a client filling in their own assessment.
+  // Staff creating a client (onSubmit / !selfSubmit) must never restore someone
+  // else's half-finished answers into a fresh client record.
+  //
+  // A REAL user id is required. Falling back to an "anonymous" key would let two
+  // different clients sharing one browser inherit each other's health answers
+  // (rule 8), and would strand a draft written before auth resolved.
+  const draftUserId = user?.id ?? null;
+  const draftEnabled = selfSubmit && !onSubmit && draftUserId !== null;
+  const restoredDraft = useRef(draftEnabled ? readDraft(draftUserId) : null);
+
+  // Clamp the restored step: a draft saved against an older/longer version of
+  // the wizard would otherwise index past the end and crash on
+  // `steps[currentStep].component`.
+  const restoredStep = Math.min(
+    Math.max(restoredDraft.current?.currentStep ?? 0, 0),
+    WIZARD_STEPS.length - 1
+  );
+
+  const [currentStep, setCurrentStep] = useState(restoredStep);
+  const [formData, setFormData] = useState<any>(
+    initialData || restoredDraft.current?.formData || {}
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [copiedResetLink, setCopiedResetLink] = useState(false);
   const [resetLinkCopyStatus, setResetLinkCopyStatus] = useState('');
+
+  // Persist the in-progress assessment to the client's own device so closing a
+  // tab at section 6 does not destroy everything (launch audit S4, 2026-07-27).
+  useEffect(() => {
+    if (!draftEnabled) return;
+    writeDraft(draftUserId, { formData, currentStep });
+  }, [draftEnabled, draftUserId, formData, currentStep]);
 
   const steps = WIZARD_STEPS;
   const CurrentSection = steps[currentStep].component as React.ComponentType<any>;
@@ -584,6 +616,9 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
       if (!data.success) {
         setError(data.error || data.message || "Submission failed. Please try again.");
       } else {
+        // Answers are now persisted server-side — do not leave health/injury
+        // responses sitting in device storage (rule 8).
+        if (draftEnabled) clearDraft(draftUserId);
         await maybeGrantAiConsent();
         setSubmissionResult(data.data);
         setShowSuccessModal(true);

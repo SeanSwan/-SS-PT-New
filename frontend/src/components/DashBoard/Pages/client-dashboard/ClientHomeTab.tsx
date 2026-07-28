@@ -10,6 +10,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab';
+import ClientOnboardingLaunchCard from './ClientOnboardingLaunchCard';
+import { useAuth } from '../../../../context/AuthContext';
 import {
   DashboardBackgroundSettingsPanel,
   DashboardBackgroundSurface,
@@ -37,9 +39,16 @@ const CLIENT_TAB_ROUTES: Partial<Record<TabId, string>> = {
 
 const ClientHomeTab: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <DashboardBackgroundSurface>
+      {/* Entry point into the NASM-informed assessment. Renders only while the
+          client's onboarding is known-incomplete; see ClientOnboardingLaunchCard. */}
+      <ClientOnboardingLaunchCard
+        isOnboardingComplete={user?.isOnboardingComplete}
+        firstName={user?.firstName}
+      />
       <ClientDashboardHomeTab
         embedded
         backgroundSettings={<DashboardBackgroundSettingsPanel scopeLabel="Client" />}
