@@ -43,12 +43,17 @@ world-local native palettes (Law B only, never Swan-brand chrome). A design surf
 - **v1 chrome (LIVE):** committing a lens writes `data-style-lens` on `<html>`; `ActiveLensGlobalStyles` injects
   that lens's `--lens-*` block. Real consumers: the dashboard shell (`UniversalDashboardLayout.styles.ts`), the
   WorkoutLogger `SurfaceLensGate` frame, Coach Command Center, PrismCapture radius. **~4 vars change.**
-- **v2 worlds (BUILT, STRANDED):** `SurfaceLensGate` → `resolveRecipeForStyleLens(styleLensId)` → `LensPlanFrame`
-  → `--world-*`. **BUG:** `v2/recipeResolution.ts:12-15` keys the map by RECIPE id (`swan.candy-glass-arcade.v2`)
-  but is fed the v1 `styleLensId` (`candy-glass-arcade`) → **always `null`** → host defaults → zero per-lens
-  color change for every real user. `catalogV2Map.ts:13` already has the correct `styleLensId → recipe` map.
-  **Phase-2 HONEST fixes this one line** → the 2 authored worlds (`candy-glass-arcade`, `prism-terminal`) finally
-  paint on the ~15 mounted gates. The other 25 lenses have no recipe → stay chrome-only (honest).
+- **v2 worlds (BUILT, DELIBERATELY GATED — corrected 2026-07-27):** `SurfaceLensGate` →
+  `resolveRecipeForStyleLens(styleLensId)` → `LensPlanFrame` → `--world-*`. In PRODUCTION this resolves `null`
+  **on purpose** — `v2/recipeResolution.ts` keys `V2_RECIPES_BY_STYLE_LENS_ID` by RECIPE id and is fed the v1
+  `styleLensId`, a **dark-until-rollout gate** the docstring states outright ("resolves to null … until the
+  catalog exposes v2 styles. Fail-closed by construction"), CONTRACT-TESTED by `WorkoutDesignLab.styleAxis.test
+  .tsx:427` ("A3: production resolveRecipeForStyleLens stays untouched and inert (source contract)") +
+  `surfaceManifests.test.ts:59-63`. This is **NOT a bug** — the audit's "1-line fix" was a mischaracterization.
+  The worlds DO render in the **Lab** (via `catalogV2Map` + the Compare panel). **Flipping the gate is a
+  Sean-gated ROLLOUT decision, not a code fix** — and under HONEST, keeping it gated is arguably correct because
+  flipping it ships the 2-worlds-work / 25-lenses-don't inconsistency HONEST exists to avoid. Do NOT re-key the
+  resolver without a rollout decision + updating A3.
 - **Palette (LIVE, but SPLIT):** the appearance runtime sets structure but applies NO palette; the Colorway is
   applied by a *separate* system (`UniversalThemeContext`, `swanstudios-theme`), reconciled only inside
   `UniversalThemeToggle.handleApply`. **Phase-1 collapses these** so `Profile.paletteThemeId` is the single palette
