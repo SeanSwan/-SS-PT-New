@@ -24,7 +24,7 @@
 import express from 'express';
 import FinancialTransaction from '../models/financial/FinancialTransaction.mjs';
 import BusinessMetrics from '../models/financial/BusinessMetrics.mjs';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { getTaxRate, calculateForwardTax, calculateTax } from '../utils/taxCalculator.mjs';
 import { getAllModels } from '../models/index.mjs';
@@ -187,10 +187,31 @@ router.post('/track-checkout-start', async (req, res) => {
 
 /**
  * POST /api/financial/log-transaction
- * Log transaction to PostgreSQL FinancialTransaction table
- * Used by checkout components for comprehensive tracking
+ * Write a row to the FinancialTransaction ledger.
+ *
+ * ⚠ ADMIN-ONLY since 2026-07-28 (launch audit, SWA-75). Until then this was
+ * `protect`-only — any authenticated user — and it:
+ *   1. UPDATED an existing transaction matched ONLY on stripePaymentIntentId,
+ *      with NO ownership check. Supplying another user's payment-intent id let a
+ *      client overwrite that row's status, refundAmount, feeAmount, netAmount,
+ *      processedAt, failureReason and metadata — i.e. mark a real payment
+ *      refunded or failed, or restate its amounts.
+ *   2. CREATED rows from a client-supplied `amount`, so a user could fabricate
+ *      ledger entries attributed to themselves.
+ *   3. Accepted client-supplied `ipAddress`/`userAgent`, letting the caller
+ *      forge the audit trail of their own write.
+ *
+ * The authoritative writer for real payments is the SIGNATURE-VERIFIED Stripe
+ * webhook (`backend/webhooks/stripeWebhook.mjs`); manual/offline payments go
+ * through `offlinePaymentRoutes` which validates prices server-side and creates
+ * a PENDING order for admin confirmation. No client ever needs this endpoint,
+ * and no frontend code calls it — the only `/api/financial/*` call in the app is
+ * `/track-checkout-start`.
+ *
+ * Kept rather than deleted so an operator retains a manual reconciliation path;
+ * gated so a client cannot reach it.
  */
-router.post('/log-transaction', async (req, res) => {
+router.post('/log-transaction', adminOnly, async (req, res) => {
   try {
     const userId = req.user.id;
     const {
@@ -209,10 +230,11 @@ router.post('/log-transaction', async (req, res) => {
       feeAmount,
       netAmount,
       processedAt,
-      failureReason,
-      ipAddress,
-      userAgent
+      failureReason
     } = req.body;
+    // NOTE: ipAddress / userAgent are deliberately absent above. They are
+    // OBSERVED from the request below, so a caller cannot forge the origin of
+    // its own ledger write.
 
     // Validate required fields
     if (!stripePaymentIntentId) {
@@ -273,8 +295,10 @@ router.post('/log-transaction', async (req, res) => {
       netAmount: parseFloat(netAmount) || (parseFloat(amount) - parseFloat(feeAmount || 0)),
       processedAt: processedAt ? new Date(processedAt) : null,
       failureReason,
-      ipAddress: ipAddress || req.ip || req.connection.remoteAddress,
-      userAgent: userAgent || req.headers['user-agent']
+      // Audit fields are OBSERVED, never accepted from the request body — a
+      // caller must not be able to forge the origin of its own ledger write.
+      ipAddress: req.ip || req.connection?.remoteAddress || null,
+      userAgent: req.headers['user-agent'] || null
     };
 
     const transaction = await FinancialTransaction.create(transactionData);
@@ -304,7 +328,11 @@ router.post('/log-transaction', async (req, res) => {
  * Update business metrics in PostgreSQL for chart generation
  * Aggregates data for analytics dashboards
  */
-router.post('/update-metrics', async (req, res) => {
+// ⚠ ADMIN-ONLY since 2026-07-28 (launch audit, SWA-75). Was `protect`-only, so
+// any authenticated user could write BusinessMetrics rows that the admin revenue
+// dashboards read. Its sibling /calculate-metrics already enforced admin inline;
+// this one was missed.
+router.post('/update-metrics', adminOnly, async (req, res) => {
   try {
     const {
       transactionData,
