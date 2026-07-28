@@ -5,32 +5,35 @@
  *          "living crystal ring" that evolves every level from 1→1000 and takes
  *          on a distinct identity every 50 levels (20 bands), building toward
  *          the ultimate Apex ring. Flowing purple↔cyan↔gold gradient, electricity
- *          circling the band, plus escalating FX: aura halo, orbital sparks,
+ *          circling the band, plus escalating FX: aura halo, orbital motes,
  *          faceted gems, a counter-rotating twin band, an inner glyph ring, a
  *          progress-tip spark, and a radiant crown at Level 1000.
  * AUTHOR:  Claude Opus 4.8 | CREATED: 2026-07-22 | Kimi K3 design pass 2026-07-22
+ *          | motion-polish pass 2026-07-27 (detuned parallax periods, entrance
+ *            bloom, comet-head filaments, glowing motes, faceted gems)
  * ============================================================================
  *
- * KIMI K3 + SEAN MANDATES (all applied):
- *   - Index to LEVEL not tier; 20 bands (every 50 levels) give a visible new
- *     identity ~2.5× as often as the prior 5 eras. crystalRing.tiers.ts.
+ * KIMI K3 + SEAN MANDATES (all preserved through the polish pass):
+ *   - Index to LEVEL not tier; 20 bands (every 50 levels). crystalRing.tiers.ts.
  *   - ONE master clock — every FX layer is phase-locked to a single rotation
- *     loop; escalation adds DEPTH, motion SLOWS as it deepens. FX are layers,
- *     NOT independent animators.
+ *     loop (the polish detunes periods as HARMONIC DERIVATIONS of that one
+ *     --ring-loop, not new animators); escalation adds DEPTH.
  *   - Electricity + all rotating FX are STATIC geometry rotated by transform —
  *     never animated stroke-dashoffset/dasharray, never SVG feTurbulence.
  *   - ONE styled wrapper; dynamics via CSS custom properties; static keyframes.
  *   - Numeral sanctuary scrim scales up with the light. SVG-only.
- *   - Full/Lean/Still quality; reduced-motion = the t=0 frame. Responsive
- *     quantization at small render sizes.
+ *   - Full/Lean/Still quality; reduced-motion = the t=0 frame.
  *
  * CANON: §4 dispersion fringe (monotonic, ≤0.7α); §8 one signature/route; §2
  *   transform/opacity only; §3 reduced-motion. Ring is decorative (aria-hidden);
- *   the accessible progressbar stays on the parent.
+ *   the accessible progressbar stays on the parent. Decorative FX layers live in
+ *   CrystalProgressRing.fx.tsx (Rule 4 line cap); the structural progress arc,
+ *   aura, and crown stay here to preserve exact paint order.
  */
 
 import React from 'react';
 import { dialsFor } from './crystalRing.tiers';
+import RingFx, { onCircle } from './CrystalProgressRing.fx';
 import {
   RingCenter,
   RingEraLabel,
@@ -54,12 +57,6 @@ export interface CrystalProgressRingProps {
 const STROKE = 8;
 const GAP_DEG = 4;
 const TAU = Math.PI * 2;
-
-/** Points evenly spaced on a circle of radius `rad` about (cx,cy). */
-const onCircle = (cx: number, cy: number, rad: number, i: number, n: number, phase = 0) => {
-  const t = phase + (i / n) * TAU;
-  return { x: cx + rad * Math.cos(t), y: cy + rad * Math.sin(t) };
-};
 
 const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
   pct,
@@ -160,82 +157,14 @@ const CrystalProgressRing: React.FC<CrystalProgressRingProps> = ({
           transform={`rotate(${-90 + GAP_DEG / 2} ${cx} ${cy})`}
         />
 
-        {/* Faceted gem nodes set into the ring — static diamonds */}
-        {gemCount > 0 && (
-          <g className="ring-gems">
-            {Array.from({ length: gemCount }, (_, i) => {
-              const p = onCircle(cx, cy, r, i, gemCount, -Math.PI / 2);
-              const s = small ? 2 : 2.6;
-              return (
-                <rect
-                  key={i} x={p.x - s} y={p.y - s} width={s * 2} height={s * 2}
-                  fill={d.era.arc} opacity={0.85}
-                  transform={`rotate(45 ${p.x} ${p.y})`}
-                />
-              );
-            })}
-          </g>
-        )}
-
-        {/* Electricity filaments — static, whole group rotated by master clock */}
-        {showFilaments && (
-          <g className="ring-arc-group">
-            {Array.from({ length: filamentCount }, (_, i) => {
-              const seg = circ * 0.04;
-              const off = -(circ * (i / filamentCount));
-              return (
-                <circle
-                  key={i} cx={cx} cy={cy} r={r} fill="none"
-                  className="ring-filament"
-                  stroke={d.era.arc} strokeWidth={2} strokeLinecap="round"
-                  strokeDasharray={`${seg} ${circ}`} strokeDashoffset={off}
-                  transform={`rotate(-90 ${cx} ${cy})`} style={{ opacity: d.arcOpacity }}
-                />
-              );
-            })}
-          </g>
-        )}
-
-        {/* Counter-rotating twin band (inner) */}
-        {showTwin && (() => {
-          const n = Math.max(2, Math.round(filamentCount / 2));
-          const seg = circ * 0.03;
-          const innerR = r - STROKE * 1.3;
-          const innerCirc = TAU * innerR;
-          return (
-            <g className="ring-twin-group">
-              {Array.from({ length: n }, (_, i) => (
-                <circle
-                  key={i} cx={cx} cy={cy} r={innerR} fill="none"
-                  className="ring-twin"
-                  stroke="var(--ice-wing, #60c0f0)" strokeWidth={1.5} strokeLinecap="round"
-                  strokeDasharray={`${seg} ${innerCirc}`} strokeDashoffset={-(innerCirc * (i / n))}
-                  transform={`rotate(-90 ${cx} ${cy})`} opacity={0.55}
-                />
-              ))}
-            </g>
-          );
-        })()}
-
-        {/* Inner rotating facet glyph ring */}
-        {showGlyph && (
-          <g className="ring-glyph-group">
-            {Array.from({ length: 6 }, (_, i) => {
-              const p = onCircle(cx, cy, r * 0.52, i, 6, -Math.PI / 2);
-              return <circle key={i} cx={p.x} cy={p.y} r={1.4} fill="var(--gilded-fern, #c6a84b)" opacity={0.7} />;
-            })}
-          </g>
-        )}
-
-        {/* Orbital luminous dots — static positions, group rotated by the clock */}
-        {orbitalCount > 0 && (
-          <g className="ring-orbit-group">
-            {Array.from({ length: orbitalCount }, (_, i) => {
-              const p = onCircle(cx, cy, r + STROKE * 0.9, i, orbitalCount, -Math.PI / 2);
-              return <circle key={i} cx={p.x} cy={p.y} r={small ? 1.4 : 2} fill={d.era.arc} className="ring-orbital" />;
-            })}
-          </g>
-        )}
+        {/* Mid decorative FX (gems, comet filaments, twin, glyph, motes) */}
+        <RingFx
+          uid={uid} cx={cx} cy={cy} r={r} circ={circ} stroke={STROKE} small={small}
+          arc={d.era.arc} arcOpacity={d.arcOpacity}
+          showFilaments={showFilaments} filamentCount={filamentCount}
+          showTwin={showTwin} showGlyph={showGlyph}
+          orbitalCount={orbitalCount} gemCount={gemCount}
+        />
 
         {/* Progress fill — flowing era spectrum */}
         <circle
