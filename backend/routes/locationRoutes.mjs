@@ -15,7 +15,8 @@
  * - GET    /api/locations/:id        (auth)
  * - POST   /api/locations            (admin)
  * - PUT    /api/locations/:id        (admin)
- * - DELETE /api/locations/:id        (admin)  — soft delete
+ * - DELETE /api/locations/:id        (admin)  — soft delete; 409 + count if sessions
+ *                                              reference it, unless ?force=true
  *
  * WHY reads are not admin-gated: the class schedule, check-in kiosk, and member app all need to
  * name a site. Locations carry no member data — only addresses and hours the gym publishes anyway.

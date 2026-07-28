@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Location from '../../models/Location.mjs';
+import Session from '../../models/Session.mjs';
 import {
   listLocations,
   getLocationBySlug,
@@ -46,7 +47,7 @@ function installMockStore() {
       err.name = 'SequelizeUniqueConstraintError';
       throw err;
     }
-    const row = { id: nextId++, deletedAt: null, ...values };
+    const row = { id: nextId++, deletedAt: null, opensAt: null, closesAt: null, ...values };
     row.update = async (patch) => { Object.assign(row, patch); return row; };
     row.destroy = async () => { row.deletedAt = new Date(); };
     rows.push(row);
@@ -61,7 +62,14 @@ function installMockStore() {
   return rows;
 }
 
-beforeEach(() => { installMockStore(); });
+/** Sessions attached to the location under test — drives the delete guardrail. */
+let attachedSessionCount = 0;
+
+beforeEach(() => {
+  installMockStore();
+  attachedSessionCount = 0;
+  Session.count = vi.fn(async () => attachedSessionCount);
+});
 
 describe('createLocation', () => {
   it('creates and derives a slug from the name', async () => {
@@ -186,6 +194,86 @@ describe('getLocationBySlug', () => {
       expect((await call(getLocationBySlug, { params: { slug: bad } })).code).toBe(404);
     }
     expect((await call(getLocationBySlug, { params: {} })).code).toBe(404);
+  });
+});
+
+describe('write normalization', () => {
+  it('stores the trimmed name so it matches the slug derived from it', async () => {
+    const res = await call(createLocation, { body: { name: '  Downtown Gym  ' } });
+    expect(res.payload.location.name).toBe('Downtown Gym');
+    expect(res.payload.location.slug).toBe('downtown-gym');
+  });
+
+  it('uppercases country and canonicalizes the timezone', async () => {
+    // Intl accepts 'america/los_angeles'; stored verbatim, two rows for one zone would compare
+    // unequal as strings.
+    const res = await call(createLocation, {
+      body: { name: 'Canon', country: 'us', timezone: 'america/los_angeles' },
+    });
+    expect(res.payload.location.country).toBe('US');
+    expect(res.payload.location.timezone).toBe('America/Los_Angeles');
+  });
+});
+
+describe('opening hours are a pair', () => {
+  // One without the other is a half-defined window the door-access slice would have to guess at.
+  it('rejects one-sided hours on create', async () => {
+    expect((await call(createLocation, { body: { name: 'A', opensAt: '05:00' } })).code).toBe(400);
+    expect((await call(createLocation, { body: { name: 'B', closesAt: '23:00' } })).code).toBe(400);
+  });
+
+  it('accepts both set, both null, or neither mentioned — including an overnight window', async () => {
+    expect((await call(createLocation, { body: { name: 'C', opensAt: '05:00', closesAt: '23:00' } })).code).toBe(201);
+    expect((await call(createLocation, { body: { name: 'D', opensAt: null, closesAt: null } })).code).toBe(201);
+    expect((await call(createLocation, { body: { name: 'E' } })).code).toBe(201);
+    // 22:00 -> 05:00 wraps midnight; legitimate for a late-night gym.
+    expect((await call(createLocation, { body: { name: 'F', opensAt: '22:00', closesAt: '05:00' } })).code).toBe(201);
+  });
+
+  it('validates the EFFECTIVE post-update state, not just the patch', async () => {
+    const paired = (await call(createLocation, { body: { name: 'Paired', opensAt: '05:00', closesAt: '23:00' } })).payload.location.id;
+    expect((await call(updateLocation, { params: { id: paired }, body: { opensAt: null } })).code).toBe(400);
+    expect((await call(updateLocation, { params: { id: paired }, body: { opensAt: null, closesAt: null } })).code).toBe(200);
+
+    const bare = (await call(createLocation, { body: { name: 'Bare' } })).payload.location.id;
+    expect((await call(updateLocation, { params: { id: bare }, body: { opensAt: '05:00' } })).code).toBe(400);
+    expect((await call(updateLocation, { params: { id: bare }, body: { opensAt: '05:00', closesAt: '23:00' } })).code).toBe(200);
+    // Adjusting one side when both are already set is fine.
+    expect((await call(updateLocation, { params: { id: bare }, body: { opensAt: '06:00' } })).code).toBe(200);
+  });
+});
+
+describe('deleteLocation guardrail', () => {
+  // A paranoid delete does NOT fire ON DELETE SET NULL, so attached sessions are left pointing at a
+  // row that no longer resolves. Silent history detachment is the hazard being guarded.
+  it('refuses to delete a location that sessions reference, and reports the count', async () => {
+    const id = (await call(createLocation, { body: { name: 'Busy Site' } })).payload.location.id;
+    attachedSessionCount = 200;
+
+    const res = await call(deleteLocation, { params: { id }, query: {} });
+    expect(res.code).toBe(409);
+    expect(res.payload.attachedSessions).toBe(200);
+    expect(res.payload.message).toMatch(/isActive=false/); // offers the non-destructive alternative
+    expect((await call(getLocationById, { params: { id } })).code).toBe(200); // still there
+  });
+
+  it('proceeds when the caller explicitly forces it', async () => {
+    const id = (await call(createLocation, { body: { name: 'Busy Site 2' } })).payload.location.id;
+    attachedSessionCount = 5;
+    const res = await call(deleteLocation, { params: { id }, query: { force: 'true' } });
+    expect(res.code).toBe(200);
+    expect(res.payload.attachedSessions).toBe(5);
+  });
+
+  it('fails CLOSED when the in-use check itself errors', async () => {
+    const id = (await call(createLocation, { body: { name: 'Unknown Usage' } })).payload.location.id;
+    Session.count = vi.fn(async () => { throw new Error('db unavailable'); });
+
+    const res = await call(deleteLocation, { params: { id }, query: {} });
+    expect(res.code).toBe(503);
+    // The safety check failing must never be read as "safe to delete".
+    Session.count = vi.fn(async () => 0);
+    expect((await call(getLocationById, { params: { id } })).code).toBe(200);
   });
 });
 
