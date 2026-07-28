@@ -229,15 +229,26 @@ const LaterButton = styled.button`
   }
 `;
 
+/**
+ * Roles for whom a training-profile assessment is meaningful. Staff visiting a
+ * client route must never be invited to fill one in — `/dashboard/client/*` is
+ * reachable by URL for admins and trainers (activeRole derives from the path),
+ * and submitting would write client onboarding data onto a staff account.
+ */
+const ONBOARDING_ROLES = new Set(['client', 'user']);
+
 export interface ClientOnboardingLaunchCardProps {
   /** Strictly false means "known incomplete". undefined means "not loaded yet". */
   isOnboardingComplete?: boolean;
+  /** Only client-type accounts are invited to onboard. */
+  role?: string;
   firstName?: string;
   onStart?: () => void;
 }
 
 const ClientOnboardingLaunchCard: React.FC<ClientOnboardingLaunchCardProps> = ({
   isOnboardingComplete,
+  role,
   firstName,
   onStart,
 }) => {
@@ -246,6 +257,9 @@ const ClientOnboardingLaunchCard: React.FC<ClientOnboardingLaunchCardProps> = ({
 
   // Only nag when we KNOW it is incomplete.
   if (isOnboardingComplete !== false || dismissed) return null;
+  // ...and only a client-type account. An admin or trainer whose own flag is
+  // false must not be invited to fill in a client assessment.
+  if (role !== undefined && !ONBOARDING_ROLES.has(role)) return null;
 
   const greeting = firstName ? `${firstName}, let's` : "Let's";
 

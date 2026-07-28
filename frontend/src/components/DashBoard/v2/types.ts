@@ -22,8 +22,8 @@ export interface StatDef {
 
 export interface SessionRow {
   id: string;
-  clientRef: string; // masked (C-1042)
-  trainerRef: string; // masked (T-07)
+  clientRef: string; // masked, non-reversible (C-026122)
+  trainerRef: string; // masked, non-reversible (T-004317)
   startLabel: string;
   endLabel: string;
   status: 'upcoming' | 'active' | 'done' | 'missed';

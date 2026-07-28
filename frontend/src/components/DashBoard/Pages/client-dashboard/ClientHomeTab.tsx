@@ -47,6 +47,7 @@ const ClientHomeTab: React.FC = () => {
           client's onboarding is known-incomplete; see ClientOnboardingLaunchCard. */}
       <ClientOnboardingLaunchCard
         isOnboardingComplete={user?.isOnboardingComplete}
+        role={user?.role}
         firstName={user?.firstName}
       />
       <ClientDashboardHomeTab

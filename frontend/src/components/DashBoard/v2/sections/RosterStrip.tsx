@@ -7,7 +7,7 @@ import styled from 'styled-components';
 import { EmptyState } from './EmptyState';
 
 export interface RosterEntry {
-  clientRef: string; // masked (C-1042)
+  clientRef: string; // masked, non-reversible (C-026122) — also used as the React key, so it must stay unique
   lastSessionLabel: string;
   adherencePct: number;
 }

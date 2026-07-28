@@ -38,6 +38,25 @@ describe('ClientOnboardingLaunchCard', () => {
     expect(screen.getByRole('button', { name: /start my assessment/i })).toBeTruthy();
   });
 
+  // Found by hostile review of this slice: /dashboard/client/* is reachable by
+  // URL for staff (activeRole derives from the path), so an admin or trainer
+  // whose own isOnboardingComplete is false would otherwise be invited to fill
+  // in a CLIENT assessment — writing client onboarding data onto a staff account.
+  it.each([['admin'], ['trainer']])('does NOT render for a %s', (role) => {
+    const { container } = renderCard({ isOnboardingComplete: false, role });
+    expect(container.firstChild).toBeNull();
+  });
+
+  it.each([['client'], ['user']])('still renders for a %s', (role) => {
+    renderCard({ isOnboardingComplete: false, role });
+    expect(screen.getByRole('button', { name: /start my assessment/i })).toBeTruthy();
+  });
+
+  it('renders when the role has not loaded yet (undefined), gated only by the flag', () => {
+    renderCard({ isOnboardingComplete: false, role: undefined });
+    expect(screen.getByRole('button', { name: /start my assessment/i })).toBeTruthy();
+  });
+
   it('does NOT render once onboarding is complete', () => {
     const { container } = renderCard({ isOnboardingComplete: true });
     expect(container.firstChild).toBeNull();
