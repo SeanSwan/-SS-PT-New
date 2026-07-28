@@ -24,6 +24,14 @@ const conversationSelectSql = (extraWhere = '') => `
     c.updated_at,
     cp.role as "viewerRole",
     (cp.role IN ('owner', 'admin')) as "canManage",
+    CASE
+      WHEN cm.conversation_id IS NOT NULL AND (cm.muted_until IS NULL OR cm.muted_until > NOW()) THEN true
+      ELSE false
+    END as "isMuted",
+    CASE
+      WHEN cm.conversation_id IS NOT NULL AND (cm.muted_until IS NULL OR cm.muted_until > NOW()) THEN cm.muted_until
+      ELSE NULL
+    END as "mutedUntil",
     COALESCE((
       SELECT COUNT(*)::int
       FROM conversation_participants cp_count
@@ -57,19 +65,24 @@ const conversationSelectSql = (extraWhere = '') => `
       'created_at', lm.created_at,
       'sender_id', lm.sender_id
     ) as "lastMessage",
-    COALESCE((
-      SELECT COUNT(*)::int
-      FROM messages m
-      LEFT JOIN message_receipts mr ON m.id = mr.message_id AND mr.user_id = :viewerId
-      WHERE m.conversation_id = c.id
-        AND m.sender_id != :viewerId
-        AND mr.id IS NULL
-    ), 0) as "unreadCount"
+    GREATEST(
+      COALESCE((
+        SELECT COUNT(*)::int
+        FROM messages m
+        LEFT JOIN message_receipts mr ON m.id = mr.message_id AND mr.user_id = :viewerId
+        WHERE m.conversation_id = c.id
+          AND m.sender_id != :viewerId
+          AND mr.id IS NULL
+      ), 0),
+      CASE WHEN cp.marked_unread_at IS NOT NULL THEN 1 ELSE 0 END
+    ) as "unreadCount"
   FROM conversations c
   JOIN conversation_participants cp ON c.id = cp.conversation_id
+  LEFT JOIN conversation_mutes cm ON cm.conversation_id = c.id AND cm.user_id = :viewerId
   LEFT JOIN last_messages lm ON c.id = lm.conversation_id AND lm.rn = 1
   WHERE cp.user_id = :viewerId
     AND cp.deleted_at IS NULL
+    AND cp.archived_at IS NULL
     ${extraWhere}
 `;
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock3, MessageCircle } from 'lucide-react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import { formatThreadMeta, getConversationTitle } from './CoachCommandCenter.logic';
 
@@ -29,11 +30,9 @@ const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ threa
   if (!thread) {
     return (
       <section className="active-thread-header is-empty" role="region" aria-label="Active coach thread">
-        <div className="active-thread-main">
-          <span className="active-thread-eyebrow">Active thread</span>
-          <h3>No thread selected</h3>
-          <p>Fresh command lane. Recent and History threads are ready when needed.</p>
-        </div>
+        <MessageCircle size={16} aria-hidden="true" />
+        <span>New chat</span>
+        <small>No client selected</small>
       </section>
     );
   }
@@ -42,29 +41,12 @@ const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ threa
 
   return (
     <section className="active-thread-header" role="region" aria-label={`Active coach thread: ${title}`}>
-      <div className="active-thread-main">
-        <span className="active-thread-eyebrow">Active thread</span>
-        <h3>{title}</h3>
-        <p>History loaded below. Composer ready for the next command.</p>
-      </div>
-      <dl className="active-thread-meta" aria-label="Active thread details">
-        <div>
-          <dt>Client</dt>
-          <dd>{clientLabel(thread)}</dd>
-        </div>
-        <div>
-          <dt>History</dt>
-          <dd>{messageCountLabel(thread)}</dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd>{statusLabel(thread)}</dd>
-        </div>
-        <div>
-          <dt>Last activity</dt>
-          <dd>{formatThreadMeta(thread)}</dd>
-        </div>
-      </dl>
+      <MessageCircle size={16} aria-hidden="true" />
+      <strong>{title}</strong>
+      <span>{clientLabel(thread)}</span>
+      <span>{messageCountLabel(thread)}</span>
+      <span>{statusLabel(thread)}</span>
+      <small><Clock3 size={13} aria-hidden="true" /> {formatThreadMeta(thread)}</small>
     </section>
   );
 };

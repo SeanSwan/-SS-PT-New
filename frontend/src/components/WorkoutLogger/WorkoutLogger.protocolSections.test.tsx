@@ -143,6 +143,19 @@ describe('Phase 16.1-UX — WorkoutLogger.tsx wires the three canonical protocol
     expect(SOURCE).toMatch(/sectionContext=\s*\{\s*pendingSectionContext\s*\?\?\s*['"]main['"]\s*\}/);
     expect(SOURCE).toMatch(/addProtocolFromRolodex\s*\(\s*pendingSectionContext\s*,/);
   });
+
+  it('main rolodex selections retain metadata for challenge progress rules', () => {
+    const fnIdx = SOURCE.indexOf('const addExercise');
+    expect(fnIdx).toBeGreaterThan(-1);
+    const body = SOURCE.slice(fnIdx, fnIdx + 2200);
+
+    expect(body).toMatch(/category:\s*movementPattern/);
+    expect(body).toMatch(/exerciseFamily:\s*movementPattern/);
+    expect(body).toMatch(/nasmMovementPattern:\s*movementPattern/);
+    expect(body).toMatch(/bodyPartCategory/);
+    expect(body).toMatch(/muscleGroups/);
+    expect(body).toMatch(/tags/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

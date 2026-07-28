@@ -67,6 +67,10 @@ vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('../services/gamification/challengeWorkoutCompletionBridge.mjs', () => ({
+  applyDailyWorkoutFormChallengeProgress: vi.fn().mockResolvedValue({ updated: [], xpAwarded: 0 }),
+}));
+
 const dailyWorkoutFormRoutes = (await import('../routes/dailyWorkoutFormRoutes.mjs')).default;
 
 const app = express();

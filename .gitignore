@@ -398,8 +398,12 @@ firebase-adminsdk*.json
 # MCP / AI tool configs (may contain API keys)
 mcp.json
 .mcp.json
+.mcp.local.json
 claude_desktop_config.json
 .claude/config.json
+
+# swan-council MCP shim — local-only spend ledger (spend data, per-machine)
+scripts/mcp/swan-council.spend.json
 
 # Token / session files
 *.token

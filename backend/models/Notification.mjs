@@ -4,7 +4,7 @@ import sequelize from '../database.mjs';
 
 /**
  * Notification Model
- * Stores notifications for users with different types and read status
+ * Stores user-facing in-app notifications and their delivery/action metadata.
  */
 class Notification extends Model {}
 
@@ -29,7 +29,7 @@ Notification.init(
       defaultValue: 'system',
       validate: {
         isIn: {
-          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'measurement']],
+          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'message', 'measurement']],
           msg: 'Invalid notification type'
         }
       }
@@ -38,6 +38,68 @@ Notification.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    category: {
+      type: DataTypes.STRING(40),
+      allowNull: false,
+      defaultValue: 'system',
+    },
+    priority: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'normal',
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'unread',
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {},
+    },
+    actions: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+    },
+    groupKey: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+    idempotencyKey: {
+      type: DataTypes.STRING(160),
+      allowNull: true,
+    },
+    requiresAction: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    actionStatus: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    deliveredAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    openedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    clickedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    archivedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     persistent: {
       type: DataTypes.BOOLEAN,

@@ -118,6 +118,10 @@ vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('../services/gamification/challengeWorkoutCompletionBridge.mjs', () => ({
+  applyDailyWorkoutFormChallengeProgress: vi.fn().mockResolvedValue({ updated: [], xpAwarded: 0 }),
+}));
+
 // Import the route AFTER mocks are registered.
 const dailyWorkoutFormRoutes = (await import('../routes/dailyWorkoutFormRoutes.mjs')).default;
 

@@ -34,4 +34,13 @@ describe('bootcamp route format contract', () => {
     expect(spaceUpdateRoute).not.toContain('error: err.message');
     expect(trendApproveRoute).not.toContain('error: err.message');
   });
+
+  it('forwards valid OPT phase selections into the generator options', () => {
+    const normalizedRouteSource = routeSource.replace(/\r\n/g, '\n');
+
+    expect(normalizedRouteSource).toContain('name, optPhase, includeStretch, stretchDurationMin');
+    expect(normalizedRouteSource).toContain('const parsedOptPhase = optPhase == null ? NaN : parseInt(optPhase, 10);');
+    expect(normalizedRouteSource).toContain('parsedOptPhase >= 1 && parsedOptPhase <= 5');
+    expect(normalizedRouteSource).toContain('optPhase: safeOptPhase');
+  });
 });

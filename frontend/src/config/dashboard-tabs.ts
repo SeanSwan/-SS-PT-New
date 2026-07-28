@@ -555,10 +555,13 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'marketing', section: 'business', label: 'Marketing', icon: 'Megaphone', prefix: '/dashboard/admin/marketing', description: 'SEO, content marketing, and competitor analysis' },
   { id: 'gamification', section: 'business', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
   { id: 'content', section: 'business', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management', featureKey: 'content-studio' },
+  { id: 'photo-gallery', section: 'business', label: 'Photo Galleries', icon: 'Camera', prefix: '/dashboard/admin/gallery', description: 'Passcode photoshoot galleries — upload and manage client shoots' },
 
   // ── SYSTEM — infrastructure, personal, tools ──
   { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
   { id: 'system', section: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
+  { id: 'workout-design-lab', section: 'system', label: 'Workout Design Lab', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-design-lab', description: 'Compare eight unified workout and logging concepts' },
+  { id: 'lens-foundry', section: 'system', label: 'Lens Foundry', icon: 'Palette', prefix: '/dashboard/admin/lens-foundry', description: 'Private morph lab, design brain GUI, and operator-flow workbench' },
   { id: 'badge-creator', section: 'system', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
   { id: 'immigration', section: 'system', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },
   { id: 'my-home', section: 'system', label: 'My Home', icon: 'Home', prefix: '/dashboard/admin/my-home', description: '3D avatar home — unlocks at Level 10' },

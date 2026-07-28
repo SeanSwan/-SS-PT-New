@@ -47,4 +47,14 @@ describe('AdminStellarSidebar workout-first navigation', () => {
     expect(deprecatedPendingOrders?.route).toBe('/dashboard/admin/pending-orders');
     expect(deprecatedPendingOrders?.status).toBe('real');
   });
+  it('keeps Lens Foundry in the active System navigation section', () => {
+    const systemItems = WORKSPACE_CONFIG.filter((item) => item.section === 'system');
+    const lensFoundry = systemItems.find((item) => item.id === 'lens-foundry');
+
+    expect(lensFoundry?.label).toBe('Lens Foundry');
+    expect(lensFoundry?.prefix).toBe('/dashboard/admin/lens-foundry');
+    expect(lensFoundry?.description).toContain('design brain');
+    expect(lensFoundry?.icon).toBe('Palette');
+    expect(source).toContain('Palette');
+  });
 });

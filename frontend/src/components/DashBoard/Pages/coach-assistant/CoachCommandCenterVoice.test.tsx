@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
@@ -7,6 +7,7 @@ import CoachCommandCenterPage from './CoachCommandCenterPage';
 const useCoachIntakeQueueMock = vi.hoisted(() => vi.fn());
 const useAIChatMock = vi.hoisted(() => vi.fn());
 const listConversationsMock = vi.hoisted(() => vi.fn());
+const sendMessageWithConversationMock = vi.hoisted(() => vi.fn());
 const executeCommandMock = vi.hoisted(() => vi.fn());
 const confirmCommandMock = vi.hoisted(() => vi.fn());
 const cancelCommandMock = vi.hoisted(() => vi.fn());
@@ -46,6 +47,21 @@ vi.mock('./hooks/useCoachBrowserSpeechInput', () => ({
   useCoachBrowserSpeechInput: () => speechMock,
 }));
 
+vi.mock('./VoiceRecordingOverlay', () => ({
+  default: ({ isOpen, onClose, onEditTranscript, onTranscribed }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onEditTranscript?: (text: string) => void;
+    onTranscribed: (text: string) => void;
+  }) => isOpen ? (
+    <section role="dialog" aria-label="Voice recording">
+      <button type="button" onClick={() => onTranscribed('Log squats 3 by 10')}>Mock transcribe</button>
+      <button type="button" onClick={() => onEditTranscript?.('Edit bench press 4 by 8')}>Mock edit transcript</button>
+      <button type="button" onClick={onClose}>Mock close</button>
+    </section>
+  ) : null,
+}));
+
 vi.mock('./CoachIntakeWorkspace', () => ({
   default: () => <section data-testid="mock-coach-intake-workspace" />,
 }));
@@ -78,6 +94,19 @@ const unifiedSummary = {
   failedDrafts: 0,
 };
 
+function setRecorderSupport(supported: boolean) {
+  Object.defineProperty(window, 'MediaRecorder', {
+    configurable: true,
+    writable: true,
+    value: supported ? class MockMediaRecorder { static isTypeSupported() { return true; } } : undefined,
+  });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    writable: true,
+    value: supported ? { getUserMedia: vi.fn() } : undefined,
+  });
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant']}>
@@ -89,6 +118,7 @@ function renderPage() {
 describe('CoachCommandCenter voice input', () => {
   beforeEach(() => {
     listConversationsMock.mockReset();
+    sendMessageWithConversationMock.mockReset();
     executeCommandMock.mockReset();
     confirmCommandMock.mockReset();
     cancelCommandMock.mockReset();
@@ -99,6 +129,7 @@ describe('CoachCommandCenter voice input', () => {
     speechMock.interim = '';
     speechMock.listening = false;
     speechMock.speechSupported = true;
+    setRecorderSupport(false);
 
     listConversationsMock.mockResolvedValue([]);
     executeCommandMock.mockResolvedValue({ type: 'fallback_to_chat' });
@@ -121,7 +152,7 @@ describe('CoachCommandCenter voice input', () => {
       newChat: vi.fn(),
       renameConversation: vi.fn(),
       sendMessage: vi.fn(),
-      sendMessageWithConversation: vi.fn(),
+      sendMessageWithConversation: sendMessageWithConversationMock,
       sending: false,
     });
     useCoachIntakeQueueMock.mockReturnValue({
@@ -151,12 +182,58 @@ describe('CoachCommandCenter voice input', () => {
     expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the command center Mic button when browser speech is unavailable', () => {
+  it('disables the command center Mic button when no voice capture mode is available', () => {
     speechMock.speechSupported = false;
 
     renderPage();
 
     expect(screen.getByRole('button', { name: /voice dictation/i })).toBeDisabled();
+  });
+
+  it('opens the server transcription recorder when browser speech is unavailable', () => {
+    speechMock.speechSupported = false;
+    setRecorderSupport(true);
+
+    renderPage();
+
+    const mic = screen.getByRole('button', { name: /start voice recording/i });
+    expect(mic).not.toBeDisabled();
+
+    fireEvent.click(mic);
+    expect(screen.getByRole('dialog', { name: /voice recording/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /mock transcribe/i }));
+    expect(screen.getByPlaceholderText(/talk or type to swan coach/i)).toHaveValue('Log squats 3 by 10');
+    expect(screen.getByText(/voice command captured - press send to continue/i)).toBeInTheDocument();
+  });
+
+  it('routes transcribed workout commands through the approval-gated command lane', async () => {
+    speechMock.speechSupported = false;
+    setRecorderSupport(true);
+    executeCommandMock.mockResolvedValueOnce({
+      type: 'confirmation_required',
+      message: 'Review this workout draft before saving.',
+      operationId: 'voice-op-1',
+      command: 'log_workout',
+      params: {},
+      client: null,
+      details: { source: 'voice_recorder' },
+      isDestructive: false,
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /start voice recording/i }));
+    fireEvent.click(screen.getByRole('button', { name: /mock transcribe/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^send to swan coach$/i }));
+
+    await waitFor(() => {
+      expect(executeCommandMock).toHaveBeenCalledWith(
+        'Log squats 3 by 10',
+        expect.objectContaining({ selectedClientId: null }),
+      );
+    });
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
   });
 
   it('keeps fake voice toggles out of the command action factory', () => {

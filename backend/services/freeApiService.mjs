@@ -47,6 +47,7 @@ export async function searchFoods(query, pageSize = 10) {
   }
 }
 
+
 /**
  * Get detailed nutrient info for a specific food.
  * @param {string|number} fdcId - FDC ID of the food

@@ -60,6 +60,7 @@ import logger from './utils/logger.mjs';
 import { startPlaudR2MirrorWorker, stopPlaudR2MirrorWorker } from './jobs/plaudR2MirrorWorker.mjs';
 import { startPlaudCronJobs, stopPlaudCronJobs } from './jobs/plaudCronJobs.mjs';
 import { startMarketingPublisherWorker, stopMarketingPublisherWorker } from './jobs/marketingPublisherWorker.mjs';
+import { startNotificationDeliveryRetryWorker, stopNotificationDeliveryRetryWorker } from './jobs/notificationDeliveryRetryWorker.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
 // Prevent server crashes from unhandled promise rejections
@@ -133,6 +134,12 @@ let appInstance = null;
       logger.error('Marketing publisher worker bootstrap failed (non-fatal): %s', marketingErr.message);
     }
 
+    try {
+      startNotificationDeliveryRetryWorker();
+    } catch (notificationRetryErr) {
+      logger.error('Notification delivery retry worker bootstrap failed (non-fatal): %s', notificationRetryErr.message);
+    }
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
 
   } catch (error) {
@@ -152,6 +159,7 @@ const gracefulShutdown = async (signal) => {
     stopPlaudR2MirrorWorker();
     stopPlaudCronJobs();
     stopMarketingPublisherWorker();
+    stopNotificationDeliveryRetryWorker();
   } catch (err) {
     logger.warn('Worker/cron shutdown error: %s', err.message);
   }

@@ -45,9 +45,50 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
   );
 }
 
+const formatCount = (value: number): string => Math.max(0, Math.round(value)).toLocaleString();
+
+const formatDaysLeft = (daysLeft: number): string => {
+  const safeDaysLeft = Math.max(0, Math.round(daysLeft));
+  if (safeDaysLeft === 0) return 'Today';
+  if (safeDaysLeft === 1) return '1 day left';
+  return `${formatCount(safeDaysLeft)} days left`;
+};
+
+const buildChallengeMetaRows = (activeChallenge: ClientDashboardHomeProps['activeChallenge']): string[] => {
+  if (!activeChallenge) return [];
+
+  const rows: string[] = [];
+  const participantCount = Math.max(0, Math.round(activeChallenge.participants));
+  const checkInsCount = Math.max(0, Math.round(activeChallenge.checkInsCount ?? 0));
+
+  if (activeChallenge.impactLabel) rows.push(activeChallenge.impactLabel);
+
+  const progressParts = [
+    activeChallenge.progressLabel ? `Progress: ${activeChallenge.progressLabel}` : '',
+    checkInsCount > 0 ? `${formatCount(checkInsCount)} ${checkInsCount === 1 ? 'check-in' : 'check-ins'}` : '',
+  ].filter(Boolean);
+  if (progressParts.length) rows.push(progressParts.join(' | '));
+
+  const communityParts = [
+    `${formatCount(participantCount)} ${participantCount === 1 ? 'participant in' : 'participants in'}`,
+    formatDaysLeft(activeChallenge.daysLeft),
+    activeChallenge.reward ? `Reward: ${activeChallenge.reward}` : '',
+  ].filter(Boolean);
+  if (communityParts.length) rows.push(communityParts.join(' | '));
+
+  return rows;
+};
+
 function RailChallenge({ activeChallenge, challengeLoading, onTarget }: Pick<ClientDashboardHomeProps,
   'activeChallenge' | 'challengeLoading' | 'onTarget'>) {
   const progress = activeChallenge?.progress ?? 0;
+  const challengeTitle = activeChallenge?.title || 'No active challenge';
+  const challengeCopy = activeChallenge?.nextAction || activeChallenge?.reward || 'Join a challenge to start earning rewards.';
+  const challengeCopyLabel = activeChallenge?.nextAction ? 'Next action' : activeChallenge ? 'Reward' : 'Next action';
+  const challengeMetaRows = buildChallengeMetaRows(activeChallenge);
+  const ctaLabel = activeChallenge ? 'Open Challenge Board' : 'Explore Challenges';
+  const ctaAriaLabel = activeChallenge ? `Open challenge board for ${activeChallenge.title}` : 'Explore the challenge board';
+
   return (
     <PanelCard>
       <PanelHeader>
@@ -55,12 +96,14 @@ function RailChallenge({ activeChallenge, challengeLoading, onTarget }: Pick<Cli
         {challengeLoading && <TinyText>Loading</TinyText>}
       </PanelHeader>
       <CardBody>
-        <CardTitle>{activeChallenge?.title || 'No active challenge'}</CardTitle>
-        <MutedText>{activeChallenge?.reward || 'Join a challenge to start earning rewards.'}</MutedText>
-        <ProgressTrack role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+        <CardTitle>{challengeTitle}</CardTitle>
+        <TinyText>{challengeCopyLabel}</TinyText>
+        <MutedText>{challengeCopy}</MutedText>
+        {challengeMetaRows.map((row) => <TinyText key={row}>{row}</TinyText>)}
+        <ProgressTrack aria-label={`${challengeTitle} progress`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
           <ProgressFill $pct={progress} />
         </ProgressTrack>
-        <ActionButton type="button" onClick={() => onTarget('challenges')}>View Challenges</ActionButton>
+        <ActionButton type="button" aria-label={ctaAriaLabel} onClick={() => onTarget('challenges')}>{ctaLabel}</ActionButton>
       </CardBody>
     </PanelCard>
   );

@@ -1,0 +1,160 @@
+diff --git a/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts b/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
+--- a/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
++++ b/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
+@@ -1,1 +1,1 @@
+-import { useEffect, type MutableRefObject } from 'react';
++import { useEffect, useRef, type MutableRefObject } from 'react';
+@@ -21,0 +22,5 @@
++  const onCloseRef = useRef(onClose);
++  useEffect(() => {
++    onCloseRef.current = onClose;
++  }, [onClose]);
++
+@@ -33,1 +38,1 @@
+-        onClose();
++        onCloseRef.current();
+@@ -62,1 +67,1 @@
+-  }, [active, initialFocusRef, onClose, panelRef]);
++  }, [active, initialFocusRef, panelRef]);
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+@@ -1,1 +1,1 @@
+-import React, { useEffect, useRef, useState } from 'react';
++import React, { useCallback, useEffect, useRef, useState } from 'react';
+@@ -67,0 +68,3 @@
++const coherentServingLabel = (quantity: number | null, unit: string) =>
++  [quantity, unit.trim()].filter((value) => value !== null && value !== '').join(' ') || 'Serving';
++
+@@ -78,0 +82,4 @@
++  const requestClose = useCallback(() => {
++    if (!savingRef.current) onClose();
++  }, [onClose]);
++
+@@ -88,1 +96,1 @@
+-  useNutritionReviewDialog(Boolean(draft), onClose, panelRef, closeButtonRef);
++  useNutritionReviewDialog(Boolean(draft), requestClose, panelRef, closeButtonRef);
+@@ -110,9 +118,26 @@
+-      if (field !== 'quantity') {
+-        return { ...food, serving: { ...food.serving, [field]: value } };
++      if (field === 'basis') {
++        return {
++          ...food,
++          serving: {
++            ...food.serving,
++            basis: value as NutritionDraftFood['serving']['basis'],
++          },
++        };
++      }
++      if (field === 'unit') {
++        return {
++          ...food,
++          serving: {
++            ...food.serving,
++            unit: value,
++            label: coherentServingLabel(food.serving.quantity, value),
++          },
++        };
+       }
+       const quantity = cleanMacro(value);
+       return {
+         ...food,
+-        serving: { ...food.serving, quantity },
++        serving: {
++          ...food.serving,
++          quantity,
++          label: coherentServingLabel(quantity, food.serving.unit),
++        },
+         nutrients: scaleNutrientsForServing(food.nutrients, food.serving.quantity, quantity),
+       };
+@@ -178,1 +203,8 @@
+-          <CloseButton ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close nutrition review">
++          <CloseButton
++            ref={closeButtonRef}
++            type="button"
++            onClick={requestClose}
++            disabled={saving}
++            aria-label="Close nutrition review"
++          >
+@@ -233,0 +266,2 @@
++        {status && <Status role="status" aria-live="polite"><CheckCircle2 size={14} /> {status}</Status>}
++        {error && <Status role="alert" aria-live="assertive" $error><AlertTriangle size={14} /> {error}</Status>}
+@@ -243,1 +278,1 @@
+-          <TertiaryButton type="button" onClick={onClose}>Cancel</TertiaryButton>
++          <TertiaryButton type="button" onClick={requestClose} disabled={saving}>Cancel</TertiaryButton>
+@@ -245,2 +280,0 @@
+-        {status && <Status role="status" aria-live="polite"><CheckCircle2 size={14} /> {status}</Status>}
+-        {error && <Status role="alert" aria-live="assertive" $error><AlertTriangle size={14} /> {error}</Status>}
+diff --git a/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts b/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
+--- a/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
++++ b/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
+@@ -154,1 +154,1 @@
+-    serving: { basis: 'household', quantity: 1, unit: 'serving', label: compactText(item.portion) || '1 serving' },
++    serving: servingFromLabel(item.portion, 'household'),
+@@ -169,1 +169,2 @@
+-  const provider = food.source === 'OFF' ? 'Open Food Facts' : 'USDA';
++  const isCommunitySource = String(food.source || '').toUpperCase() === 'OFF';
++  const provider = isCommunitySource ? 'Open Food Facts' : 'USDA';
+@@ -177,1 +178,1 @@
+-    confidence: 0.85,
++    confidence: isCommunitySource ? 0.6 : 0.85,
+@@ -183,1 +184,1 @@
+-  return baseDraft('search', `Review ${name}`, 'Food Search', 'provider', [row], options, {
++  return baseDraft('search', `Review ${name}`, 'Food Search', isCommunitySource ? 'community' : 'provider', [row], options, {
+diff --git a/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts b/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
+--- a/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
++++ b/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
+@@ -50,0 +51,18 @@
++const sodiumFromBarcode = (
++  info: Record<string, unknown>,
++  servingGrams: number | null,
++  openFoodFacts: boolean,
++) => {
++  const perHundredGrams = firstMacro(info, ['sodium_100g']);
++  if (perHundredGrams !== null) {
++    const servingValue = servingGrams ? perHundredGrams * servingGrams / 100 : perHundredGrams;
++    return roundMacro(servingValue * 1000);
++  }
++  const explicitMilligrams = firstMacro(info, ['sodium_mg', 'sodiumMg']);
++  if (explicitMilligrams !== null) return explicitMilligrams;
++  const fallback = firstMacro(info, ['sodium']);
++  return fallback !== null && openFoodFacts ? roundMacro(fallback * 1000) : fallback;
++};
++
+@@ -54,0 +73,1 @@
++  openFoodFacts: boolean,
+@@ -62,1 +82,1 @@
+-  sodium: barcodeMacro(info, ['sodium_100g'], ['sodium'], servingGrams),
++  sodium: sodiumFromBarcode(info, servingGrams, openFoodFacts),
+@@ -74,0 +95,1 @@
++  const openFoodFacts = /open\s*food\s*facts/i.test(provider);
+@@ -84,2 +106,2 @@
+-    nutrients: nutrientsFromBarcode(info, servingGrams),
+-    confidence: 0.82,
++    nutrients: nutrientsFromBarcode(info, servingGrams, openFoodFacts),
++    confidence: openFoodFacts ? 0.6 : 0.82,
+@@ -100,1 +122,1 @@
+-    sourceConfidence: 'provider',
++    sourceConfidence: openFoodFacts ? 'community' : 'provider',
+diff --git a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+--- a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
++++ b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+@@ -97,0 +98,1 @@
++  const requestSequence = useRef(0);
+@@ -99,0 +101,1 @@
++    const requestId = ++requestSequence.current;
+@@ -112,1 +115,2 @@
+-      setAllResults(await fetchFoodSearchResults(trimmed));
++      const results = await fetchFoodSearchResults(trimmed);
++      if (requestId === requestSequence.current) setAllResults(results);
+@@ -114,2 +118,4 @@
+-      setAllResults([]);
+-      setSearchError(true);
++      if (requestId === requestSequence.current) {
++        setAllResults([]);
++        setSearchError(true);
++      }
+@@ -117,1 +123,1 @@
+-      setLoading(false);
++      if (requestId === requestSequence.current) setLoading(false);
+

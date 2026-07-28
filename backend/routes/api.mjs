@@ -18,6 +18,7 @@ import v2PaymentRoutes from './v2PaymentRoutes.mjs';
 import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 import featureFlagRoutes from './featureFlagRoutes.mjs';
 import contentStudioRoutes from './contentStudioRoutes.mjs';
+import contentStudioProjectRoutes from './contentStudioProjectRoutes.mjs';
 
 const router = Router();
 
@@ -75,6 +76,9 @@ router.use('/admin/finance', adminFinanceRoutes);
 
 // Mount feature flag routes (per-user access control)
 router.use('/feature-flags', featureFlagRoutes);
+
+// Mount Content Studio project workflow before the broader Content Studio router
+router.use('/content-studio/projects', contentStudioProjectRoutes);
 
 // Mount Content Studio routes (service config + API keys)
 router.use('/content-studio', contentStudioRoutes);

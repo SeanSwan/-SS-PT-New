@@ -9,13 +9,22 @@ vi.mock('../services/variationEngine.mjs', () => ({
   getExerciseRegistry: vi.fn(),
   getExerciseRegistryFromDB: vi.fn(),
   generateSwapSuggestions: vi.fn(() => null),
+  getNextSessionType: vi.fn((history = [], pattern = 'standard') => {
+    const buildCount = pattern === 'aggressive' ? 1 : pattern === 'conservative' ? 3 : 2;
+    let consecutiveBuilds = 0;
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+      if (history[i]?.sessionType !== 'build') break;
+      consecutiveBuilds += 1;
+    }
+    return consecutiveBuilds >= buildCount ? 'switch' : 'build';
+  }),
 }));
 vi.mock('../services/oneRepMaxService.mjs', () => ({
   getRecommendedWeight: vi.fn(() => null),
 }));
 
 const { getClientContext } = await import('../services/clientIntelligenceService.mjs');
-const { getExerciseRegistryFromDB } = await import('../services/variationEngine.mjs');
+const { getExerciseRegistryFromDB, getNextSessionType } = await import('../services/variationEngine.mjs');
 const { generateWorkout, generatePlan } = await import('../services/workoutBuilderService.mjs');
 
 // Canned client context fixture - covers everything the service reads.
@@ -31,7 +40,7 @@ function fakeContext(overrides = {}) {
     },
     pain: overrides.pain ?? { exclusions: [], warnings: [] },
     movement: overrides.movement ?? { compensations: [] },
-    variation: { lastSessionType: null, currentPattern: 'BUILD/SWITCH' },
+    variation: overrides.variation ?? { lastSessionType: null, currentPattern: 'standard', sessionHistory: [] },
     equipment: overrides.equipment ?? [],
     goals: overrides.goals ?? null,
     body: overrides.body ?? null,
@@ -78,6 +87,48 @@ beforeEach(() => {
   getExerciseRegistryFromDB.mockResolvedValue(fakeRegistry());
 });
 
+describe('generateWorkout - variation rotation policy', () => {
+  it('standard rotation keeps the second consecutive workout as BUILD and switches after two BUILD sessions', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      variation: {
+        lastSessionType: 'build',
+        currentPattern: 'standard',
+        sessionHistory: [{ sessionType: 'build' }],
+      },
+    }));
+
+    const secondBuild = await generateWorkout({
+      clientId: 1,
+      trainerId: 99,
+      category: 'full_body',
+      rotationPattern: 'standard',
+    });
+
+    expect(secondBuild.sessionType).toBe('build');
+    expect(getNextSessionType).toHaveBeenLastCalledWith([{ sessionType: 'build' }], 'standard');
+
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      variation: {
+        lastSessionType: 'build',
+        currentPattern: 'standard',
+        sessionHistory: [{ sessionType: 'build' }, { sessionType: 'build' }],
+      },
+    }));
+
+    const switchWorkout = await generateWorkout({
+      clientId: 1,
+      trainerId: 99,
+      category: 'full_body',
+      rotationPattern: 'standard',
+    });
+
+    expect(switchWorkout.sessionType).toBe('switch');
+    expect(getNextSessionType).toHaveBeenLastCalledWith(
+      [{ sessionType: 'build' }, { sessionType: 'build' }],
+      'standard',
+    );
+  });
+});
 describe('generatePlan - goal-driven phase progression', () => {
   it('all six goals produce DISTINCT mesocycle sequences for identical input', async () => {
     const goals = ['general_fitness', 'hypertrophy', 'strength', 'fat_loss', 'athletic_performance', 'golf_performance'];

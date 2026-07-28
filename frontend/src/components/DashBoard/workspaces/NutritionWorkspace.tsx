@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FILE: NutritionWorkspace.tsx
- * PURPOSE: Unified Nutrition Hub — meal logging, food search, hydration,
+ * PURPOSE: Unified Nutrition Hub â€” meal logging, food search, hydration,
  *          macro charts, and secondary nutrition tools in a focused interface
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-26
  * AI VILLAGE VALIDATED: 2026-03-26
@@ -11,29 +11,30 @@
  * FoodIntelligenceDashboard, HydrationTab, LearnTab, macro Victory charts,
  * and lower-priority nutrition tools behind More. Available to all roles.
  *
- * HOW IT FITS IN THE APP: UniversalDashboardLayout → NutritionWorkspace
+ * HOW IT FITS IN THE APP: UniversalDashboardLayout â†’ NutritionWorkspace
  * KEY DECISIONS: Today-first primary tabs; Restaurant, Garden, Farm Finder,
  * and Supplements stay available behind More.
  *
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: NutritionWorkspace                               ║
- * ║  PURPOSE: Unified nutrition hub with 10 tabs                  ║
- * ║  OWNER: Claude Opus 4.6                                       ║
- * ║  LAST VALIDATED: 2026-03-26                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
+ * â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+ * â•‘  COMPONENT: NutritionWorkspace                               â•‘
+ * â•‘  PURPOSE: Unified nutrition hub with 10 tabs                  â•‘
+ * â•‘  OWNER: Claude Opus 4.6                                       â•‘
+ * â•‘  LAST VALIDATED: 2026-03-26                                   â•‘
+ * â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  *
  * CLICK-OUTCOMES:
- * [Tab: Log Meal] → FoodIntakeForm → POST /api/macros
- * [Tab: Food Search] → FoodSearchPanel → USDA/barcode lookup
- * [Tab: Hydration] → NutritionHydrationTab → localStorage tracker
- * [Tab: My Macros] → Victory MacroDonut + NutritionBalanceRadar
- * [Tab: Intelligence] → FoodIntelligenceDashboard
- * [Tab: Learn] → NutritionLearnTab → NASM education accordion
+ * [Tab: Log Meal] â†’ FoodIntakeForm â†’ POST /api/macros
+ * [Tab: Food Search] â†’ FoodSearchPanel â†’ USDA/barcode lookup
+ * [Tab: Hydration] â†’ NutritionHydrationTab â†’ localStorage tracker
+ * [Tab: My Macros] â†’ Victory MacroDonut + NutritionBalanceRadar
+ * [Tab: Intelligence] â†’ FoodIntelligenceDashboard
+ * [Tab: Learn] â†’ NutritionLearnTab â†’ NASM education accordion
  */
 
 import React, { useCallback, useState, lazy, Suspense } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
+import NutritionWorkspaceCapture from './NutritionWorkspace.capture';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useHydration } from '../../../hooks/useHydration';
@@ -62,13 +63,10 @@ import {
   MoreToolsLabel,
   MoreToolsRow,
   MoreToolsSelect,
-  TabBtn,
-  TabRow,
   WorkspaceRoot,
 } from './NutritionWorkspace.styles';
 import {
   NUTRITION_MORE_TABS,
-  NUTRITION_PRIMARY_TABS,
   NUTRITION_TAB_LABELS,
   isMoreNutritionTab,
   nutritionPanelId,
@@ -189,25 +187,15 @@ const NutritionWorkspace: React.FC = () => {
         </HeaderActions>
       </Header>
 
-      <TabRow role="tablist" aria-label="Nutrition workspace tabs">
-        {NUTRITION_PRIMARY_TABS.map(tab => (
-          <TabBtn
-            key={tab.id}
-            id={nutritionTabId(tab.id)}
-            type="button"
-            $active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-            whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={nutritionPanelId(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </TabBtn>
-        ))}
-      </TabRow>
+      <NutritionWorkspaceCapture
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        summary={summary}
+        macroLoading={macroLoading}
+        gentleMode={gentleMode}
+        trainingDay={trainingDay}
+        reduceMotion={reduceMotion}
+      />
       <MoreToolsRow>
         <MoreToolsLabel htmlFor="nutrition-more-tools">More</MoreToolsLabel>
         <MoreToolsSelect

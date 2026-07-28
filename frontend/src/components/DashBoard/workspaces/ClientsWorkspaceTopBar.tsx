@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { ClipboardCheck, ClipboardList, Eye, KeyRound, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Download, Eye, KeyRound, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
 import { ActionBtn, TopBar, TopBarActions } from './ClientsWorkspace.styles';
 import ClientSelectorDropdown, { type ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
@@ -12,7 +12,9 @@ interface ClientsWorkspaceTopBarProps {
   clients: ClientOption[];
   selectedClient: ClientOption | null;
   loading: boolean;
+  exportingClients: boolean;
   onSelectClient: (client: ClientOption) => void;
+  onExportClients: () => void;
   onNewClient: () => void;
   onOpenAI: () => void;
   onOpenOnboardingWorkbench: () => void;
@@ -28,7 +30,9 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
   clients,
   selectedClient,
   loading,
+  exportingClients,
   onSelectClient,
+  onExportClients,
   onNewClient,
   onOpenAI,
   onOpenOnboardingWorkbench,
@@ -51,6 +55,17 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
         loading={loading}
       />
       <TopBarActions data-swan-client-workspace-actions>
+        <ActionBtn
+          type="button"
+          onClick={onExportClients}
+          disabled={exportingClients}
+          aria-busy={exportingClients}
+          aria-label={exportingClients ? 'Exporting client directory as CSV' : 'Export client directory as CSV'}
+          title="Download the complete client directory as a CSV file"
+        >
+          <Download size={16} />
+          <span>{exportingClients ? 'Exporting...' : 'Export CSV'}</span>
+        </ActionBtn>
           {!selectedClient && (
             <>
               <ActionBtn

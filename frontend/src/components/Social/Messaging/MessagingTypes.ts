@@ -1,14 +1,7 @@
 /**
- * ============================================================================
  * FILE: MessagingTypes.ts
- * PURPOSE: Type definitions for the Direct Messaging system
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
- * ============================================================================
+ * PURPOSE: Type definitions for the SwanStudios messaging system.
  */
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// SECTION: Core Types
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type GroupRole = 'owner' | 'admin' | 'member';
 
@@ -24,6 +17,45 @@ export interface MessageParticipant {
   lastActive?: string | null;
 }
 
+export interface MessageReaction {
+  id?: number | string;
+  userId: number;
+  reaction: string;
+  createdAt: string;
+}
+
+export interface MessagePin {
+  id?: number | string;
+  pinnedBy: number;
+  createdAt: string;
+}
+
+export interface MessageSave {
+  id?: number | string;
+  savedBy: number;
+  createdAt: string;
+}
+
+export interface MessageAttachmentDraft {
+  kind: 'link' | 'workout_card' | 'session_card' | 'nutrition_card';
+  title: string;
+  url?: string | null;
+  entityType?: string | null;
+  entityId?: number | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface MessageAttachment {
+  id: number | string;
+  kind: string;
+  title: string;
+  url?: string | null;
+  entityType?: string | null;
+  entityId?: number | null;
+  metadata?: Record<string, unknown> | null;
+  scanStatus?: string;
+}
+
 export interface MessageData {
   id: number | string;
   conversation_id: number | string;
@@ -31,8 +63,24 @@ export interface MessageData {
   content: string;
   created_at: string;
   updated_at: string;
+  reply_to_message_id?: number | string | null;
+  edited_at?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: number | null;
   sender?: MessageParticipant;
   readBy?: { userId: number; readAt: string }[];
+  clientMessageId?: string;
+  reactions?: MessageReaction[];
+  pins?: MessagePin[];
+  saves?: MessageSave[];
+  attachments?: MessageAttachment[];
+}
+
+export interface PendingMessage {
+  clientMessageId: string;
+  conversationId: string | number;
+  content: string;
+  status: 'pending' | 'failed';
 }
 
 export interface ConversationData {
@@ -51,6 +99,8 @@ export interface ConversationData {
   viewerRole?: GroupRole;
   canManage?: boolean;
   memberCount?: number;
+  isMuted?: boolean;
+  mutedUntil?: string | null;
 }
 
 export interface CreateConversationRequest {
@@ -78,9 +128,10 @@ export interface TypingUser {
   conversationId: string | number;
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// SECTION: Component Props
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export interface SendMessageOptions {
+  replyToMessageId?: number | string | null;
+  attachments?: MessageAttachmentDraft[];
+}
 
 export interface ConversationListProps {
   conversations: ConversationData[];
@@ -98,7 +149,7 @@ export interface MessageThreadProps {
 }
 
 export interface ComposeMessageProps {
-  onSend: (content: string) => void;
+  onSend: (content: string, options?: SendMessageOptions) => void;
   disabled?: boolean;
 }
 

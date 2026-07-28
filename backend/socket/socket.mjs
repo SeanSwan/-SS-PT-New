@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Socket.IO Server Initialization
  * ===============================
  *
@@ -9,6 +9,11 @@ import jwt from 'jsonwebtoken';
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 import logger from '../utils/logger.mjs';
+import { createMessageNotificationEvent } from '../services/communications/notificationOrchestratorService.mjs';
+import { getMessageNotificationRecipients } from '../services/messagingNotificationRecipientService.mjs';
+import { createMessageRecord, ensureMessagingTables, normalizeClientMessageId } from '../services/messagingRepository.mjs';
+import { assertCanMessageConversation, MESSAGING_POLICY_DENIED_MESSAGE } from '../services/messagingPolicyService.mjs';
+import { isSocketRateLimited } from '../services/socketEventRateLimiter.mjs';
 import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
@@ -20,9 +25,45 @@ const toPositiveInt = (value) => {
   return Number.isInteger(next) && next > 0 ? next : null;
 };
 
+
 const normalizeConversationIds = (conversationIds) => {
   if (!Array.isArray(conversationIds)) return [];
   return [...new Set(conversationIds.map(toPositiveInt).filter(Boolean))];
+};
+
+const addOnlineSocket = (userId, socketId) => {
+  const normalizedUserId = toPositiveInt(userId);
+  if (!normalizedUserId || !socketId) return false;
+  const wasOnline = onlineUsers.has(normalizedUserId) && onlineUsers.get(normalizedUserId).size > 0;
+  const socketIds = onlineUsers.get(normalizedUserId) || new Set();
+  socketIds.add(socketId);
+  onlineUsers.set(normalizedUserId, socketIds);
+  return wasOnline;
+};
+
+const removeOnlineSocket = (userId, socketId) => {
+  const normalizedUserId = toPositiveInt(userId);
+  if (!normalizedUserId || !socketId) return false;
+  const socketIds = onlineUsers.get(normalizedUserId);
+  if (!socketIds) return false;
+  socketIds.delete(socketId);
+  if (socketIds.size > 0) return true;
+  onlineUsers.delete(normalizedUserId);
+  return false;
+};
+
+const isUserOnline = (userId) => {
+  const normalizedUserId = toPositiveInt(userId);
+  return Boolean(normalizedUserId && onlineUsers.get(normalizedUserId)?.size > 0);
+};
+
+const ackMessageSend = (ack, payload) => {
+  if (typeof ack !== 'function') return;
+  try {
+    ack(payload);
+  } catch (error) {
+    logger.warn(`Messaging send ack failed: ${error.message}`);
+  }
 };
 
 async function isActiveParticipant(conversationId, userId) {
@@ -74,8 +115,8 @@ export const initializeSocket = () => {
 
   io.on('connection', (socket) => {
     logger.info(`Messaging socket connected: ${socket.id} for user ${socket.user.id}`);
-    onlineUsers.set(socket.user.id, socket.id);
-    socket.broadcast.emit('user_online', { userId: socket.user.id });
+    const wasOnline = addOnlineSocket(socket.user.id, socket.id);
+    if (!wasOnline) socket.broadcast.emit('user_online', { userId: socket.user.id });
 
     socket.on('join_conversations', async (conversationIds) => {
       const normalizedIds = normalizeConversationIds(conversationIds);
@@ -102,62 +143,89 @@ export const initializeSocket = () => {
       }
     });
 
-    socket.on('send_message', async ({ conversationId, content }) => {
+    socket.on('send_message', async (payload, ack) => {
+      const { conversationId, content, clientMessageId, attachments, replyToMessageId } = payload || {};
       const normalizedConversationId = toPositiveInt(conversationId);
+      const normalizedClientMessageId = normalizeClientMessageId(clientMessageId);
       const trimmedContent = typeof content === 'string' ? content.trim() : '';
-      if (!normalizedConversationId || !trimmedContent || trimmedContent.length > MAX_MESSAGE_LENGTH) return;
+
+      const failSend = (message) => {
+        ackMessageSend(ack, { ok: false, clientMessageId: normalizedClientMessageId, error: message });
+        socket.emit('error', { message });
+      };
+
+      if (isSocketRateLimited({ userId: socket.user.id, event: 'send_message', limit: 60, windowMs: 60 * 1000 })) return failSend('Too many messages. Please slow down.');
+      if (!normalizedConversationId) return failSend('Valid conversation ID is required.');
+      if (Array.isArray(attachments) && attachments.length > 0) return failSend('Attachments must be sent through the REST message endpoint.');
+      if (replyToMessageId) return failSend('Replies with attachments or reply references must use REST.');
+      if (!trimmedContent) return failSend('Message content is required.');
+      if (trimmedContent.length > MAX_MESSAGE_LENGTH) return failSend('Message content is too long.');
 
       try {
+        await ensureMessagingTables();
         if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
-          socket.emit('error', { message: 'You are not a member of this conversation.' });
+          failSend('You are not a member of this conversation.');
           return;
         }
 
-        const [rows] = await sequelize.query(
-          `INSERT INTO messages (conversation_id, sender_id, content, created_at, updated_at)
-           VALUES (:conversationId, :senderId, :content, NOW(), NOW())
-           RETURNING id, content, created_at, updated_at, sender_id, conversation_id`,
-          { replacements: { conversationId: normalizedConversationId, senderId: socket.user.id, content: trimmedContent } }
-        );
-        const newMessage = rows[0] || rows;
-        const messagePayload = { ...newMessage, sender: socket.user };
+        const policy = await assertCanMessageConversation({ actorId: socket.user.id, conversationId: normalizedConversationId });
+        if (!policy.allowed) return failSend(MESSAGING_POLICY_DENIED_MESSAGE);
+
+        const newMessage = await createMessageRecord({
+          conversationId: normalizedConversationId,
+          senderId: socket.user.id,
+          content: trimmedContent,
+          clientMessageId: normalizedClientMessageId,
+        });
+        const messagePayload = { ...newMessage, sender: socket.user, clientMessageId: normalizedClientMessageId };
         const roomName = String(normalizedConversationId);
+
+        if (newMessage.wasIdempotentReplay) {
+          ackMessageSend(ack, {
+            ok: true,
+            clientMessageId: normalizedClientMessageId,
+            messageId: newMessage.id,
+            createdAt: newMessage.created_at,
+            message: messagePayload,
+          });
+          return;
+        }
 
         io.to(roomName).emit('new_message', messagePayload);
         logger.info(`Message sent in room ${roomName} by user ${socket.user.id}`);
 
-        const participants = await sequelize.query(
-          `SELECT user_id
-           FROM conversation_participants
-           WHERE conversation_id = :conversationId
-             AND user_id != :senderId
-             AND deleted_at IS NULL`,
-          { replacements: { conversationId: normalizedConversationId, senderId: socket.user.id }, type: QueryTypes.SELECT }
-        );
+        ackMessageSend(ack, {
+          ok: true,
+          clientMessageId: normalizedClientMessageId,
+          messageId: newMessage.id,
+          createdAt: newMessage.created_at,
+          message: messagePayload,
+        });
 
-        for (const participant of participants) {
-          const notificationContent = {
-            from: socket.user.firstName,
-            message: trimmedContent.substring(0, 50) + (trimmedContent.length > 50 ? '...' : ''),
+        try {
+          const participants = await getMessageNotificationRecipients({
             conversationId: normalizedConversationId,
-          };
-          const [notificationRows] = await sequelize.query(
-            `INSERT INTO notifications (user_id, type, content, created_at)
-             VALUES (:userId, 'new_message', :content::jsonb, NOW())
-             RETURNING *`,
-            { replacements: { userId: participant.user_id, content: JSON.stringify(notificationContent) } }
-          );
+            senderId: socket.user.id,
+          });
 
-          const recipientSocketId = onlineUsers.get(participant.user_id);
-          if (recipientSocketId) io.to(recipientSocketId).emit('new_notification', notificationRows[0] || notificationRows);
+          await createMessageNotificationEvent({
+            actor: socket.user,
+            recipients: participants,
+            conversationId: normalizedConversationId,
+            messageId: newMessage.id,
+            content: trimmedContent,
+          });
+        } catch (notificationError) {
+          logger.warn(`Message notification fanout failed for room ${roomName}: ${notificationError.message}`);
         }
       } catch (error) {
         logger.error(`Error sending message for user ${socket.user.id} in room ${normalizedConversationId}:`, error);
-        socket.emit('error', { message: 'Failed to send message.' });
+        failSend('Failed to send message.');
       }
     });
 
     socket.on('is_typing', ({ conversationId }) => {
+      if (isSocketRateLimited({ userId: socket.user.id, event: 'is_typing', limit: 30, windowMs: 10 * 1000 })) return;
       const normalizedConversationId = toPositiveInt(conversationId);
       if (!normalizedConversationId) return;
       const roomName = String(normalizedConversationId);
@@ -204,6 +272,21 @@ export const initializeSocket = () => {
           }
         );
 
+        await sequelize.query(
+          `UPDATE conversation_participants
+           SET marked_unread_at = NULL
+           WHERE conversation_id = :conversationId
+             AND user_id = :userId
+             AND deleted_at IS NULL
+             AND marked_unread_at IS NOT NULL`,
+          {
+            replacements: {
+              conversationId: normalizedConversationId,
+              userId: socket.user.id,
+            },
+          }
+        );
+
         const readMessageIds = readRows.map(row => row.message_id);
         if (readMessageIds.length > 0) {
           io.to(String(normalizedConversationId)).emit('messages_read', {
@@ -221,15 +304,15 @@ export const initializeSocket = () => {
     socket.on('query_online_status', (userIds, callback) => {
       const statuses = {};
       if (Array.isArray(userIds)) {
-        userIds.forEach(id => { statuses[id] = onlineUsers.has(id); });
+        userIds.forEach(id => { statuses[id] = isUserOnline(id); });
       }
       if (typeof callback === 'function') callback(statuses);
     });
 
     socket.on('disconnect', () => {
       logger.info(`Messaging socket disconnected: ${socket.id}`);
-      onlineUsers.delete(socket.user.id);
-      socket.broadcast.emit('user_offline', { userId: socket.user.id });
+      const stillOnline = removeOnlineSocket(socket.user.id, socket.id);
+      if (!stillOnline) socket.broadcast.emit('user_offline', { userId: socket.user.id });
     });
   });
 

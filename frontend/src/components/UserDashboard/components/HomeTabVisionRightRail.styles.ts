@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: HomeTabVisionRightRail.styles.ts
  * PURPOSE: Right-rail layout helpers for the Creator Observatory Home tab.
  */
@@ -22,12 +22,6 @@ export const ActivityGrid = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 0.9rem;
-`;
-
-export const ActivityItem = styled.div`
-  display: flex;
-  gap: 0.55rem;
-  min-width: 0;
 `;
 
 export const ActivityCopy = styled.div`
@@ -99,22 +93,6 @@ export const TrendingGrid = styled.div`
   display: grid;
   gap: 0.65rem;
   margin-top: 0.8rem;
-`;
-
-export const TrendingRow = styled.div`
-  display: grid;
-  grid-template-columns: 2.05rem minmax(0, 1fr) max-content;
-  gap: 0.68rem;
-  align-items: center;
-  min-height: 54px;
-  padding: 0.68rem 0.72rem;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--surface-elevated, #003080) 34%, transparent),
-      color-mix(in srgb, var(--bg-surface, #141419) 74%, transparent));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent);
 `;
 
 export const TrendRank = styled.span`
@@ -272,3 +250,6 @@ export const LeaderboardPoints = styled.span`
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 `;
+
+
+

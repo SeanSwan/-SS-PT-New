@@ -31,6 +31,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/use-toast';
+import { useClientDirectoryExport } from './useClientDirectoryExport';
 import ClientsWorkspaceView from './ClientsWorkspace.view';
 import {
   buildClientDetailSearchParams,
@@ -65,8 +66,9 @@ import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActio
 import { buildClientCardQuickActionRoute } from './clients-team/clientCardQuickActions';
 
 const ClientsWorkspace: React.FC = () => {
-  const { authAxios } = useAuth() as any;
+  const { authAxios, services } = useAuth();
   const { toast } = useToast();
+  const clientExport = useClientDirectoryExport(services?.adminClient, toast);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -257,6 +259,8 @@ const ClientsWorkspace: React.FC = () => {
       detailTab={detailTab}
       clientHubIntent={clientHubIntent}
       loading={loading}
+      exportingClients={clientExport.exporting}
+      onExportClients={clientExport.exportClients}
       manualCreateOpen={manualCreateOpen}
       manualCreateTrainers={manualCreateTrainers}
       creationHandoff={creationHandoff}

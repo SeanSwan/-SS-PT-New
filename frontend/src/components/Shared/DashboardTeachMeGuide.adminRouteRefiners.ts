@@ -230,6 +230,31 @@ const adminDesignSystemCheck = (base: DashboardTeachMeGuideCopy) => applyPatch(b
   primaryPrompt: 'teach me the admin design system quality check workflow',
 });
 
+const adminLensFoundryLab = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach design lab',
+  title: 'Admin Lens Foundry Lab',
+  summary: 'Use Lens Foundry to inspect morph receipts, design-brain structure, Fable direction packets, portfolio ideas, and promotion gates before anything moves into production.',
+  focus: 'This is a private systems lab: prototype in Lens Foundry, review the trust boundary, then promote only stable artifacts into SwanStudios.',
+  primaryAction: { label: 'Open Lens Foundry', to: '/dashboard/admin/lens-foundry' },
+  fastPath: [
+    'Check Slice 1 morph receipts.',
+    'Pick the design or operator lane.',
+    'Promote only reviewed artifacts.',
+  ],
+  steps: [
+    'Start with Morph Lab when motion, layout, or View Transition behavior is the risk.',
+    'Use Design Brain and Portfolio lanes for Fable direction packets and creative exploration.',
+    'Move work into SS-PT only through a reviewed promotion gate with synthetic data boundaries intact.',
+  ],
+  actions: [
+    { label: 'Lens Foundry', to: '/dashboard/admin/lens-foundry' },
+    { label: 'Style Guide', to: '/dashboard/admin/style-guide' },
+    { label: 'Coach Command', to: '/dashboard/admin/coach-assistant' },
+    { label: 'Security', to: '/dashboard/admin/security' },
+  ],
+  primaryPrompt: 'teach me the admin lens foundry workflow',
+});
+
 export const refineAdminGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
@@ -284,6 +309,9 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['immigration'])) {
     return adminImmigrationWorkspace(base);
+  }
+  if (includesAny(path, ['lens-foundry'])) {
+    return adminLensFoundryLab(base);
   }
   if (includesAny(path, ['style-guide'])) {
     return adminDesignSystemCheck(base);

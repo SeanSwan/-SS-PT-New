@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { cssUrlValue, sanitizeImageUrl } from '../../../../utils/imageUrl';
 import {
   CloseButton,
   FullImage,
@@ -16,9 +17,13 @@ interface PostMediaLightboxProps {
 
 const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, onClose }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const safeSrc = sanitizeImageUrl(src);
+  const backdropStyle = safeSrc ? ({
+    '--post-lightbox-backdrop-image': `url(${cssUrlValue(safeSrc)})`,
+  } as React.CSSProperties & Record<'--post-lightbox-backdrop-image', string>) : undefined;
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || !safeSrc) return undefined;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeButtonRef.current?.focus();
@@ -32,12 +37,12 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, open]);
+  }, [onClose, open, safeSrc]);
 
-  if (!open) return null;
+  if (!open || !safeSrc) return null;
 
   return (
-    <LightboxOverlay onMouseDown={onClose}>
+    <LightboxOverlay style={backdropStyle} onMouseDown={onClose}>
       <LightboxFrame
         role="dialog"
         aria-modal="true"
@@ -47,7 +52,7 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
         <CloseButton ref={closeButtonRef} type="button" aria-label="Close full image" onClick={onClose}>
           <X size={20} aria-hidden="true" />
         </CloseButton>
-        <FullImage src={src} alt={`Full post image: ${alt}`} />
+        <FullImage src={safeSrc} alt={`Full post image: ${alt}`} />
       </LightboxFrame>
     </LightboxOverlay>
   );

@@ -137,7 +137,7 @@ export const NextAction = styled.p`
 
 export const MetricRail = styled.div`
   display: grid;
-  grid-template-columns: minmax(150px, 1.25fr) minmax(128px, 1fr) minmax(112px, 0.9fr) minmax(112px, 0.85fr);
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));

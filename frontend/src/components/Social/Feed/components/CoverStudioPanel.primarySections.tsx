@@ -107,7 +107,10 @@ export function LayoutSection({
     <div>
       <SectionLabel><span className="num">02</span> {coverType === 'stage' ? 'Stage layout' : coverType === 'carousel' ? 'Carousel layout' : 'Collage pattern'}</SectionLabel>
       {coverType === 'stage' && (
-        <SectionHelp><b>Smart</b> is our pick - selected media plus crystalline fill tiles.</SectionHelp>
+        <SectionHelp><b>Smart</b> is our pick - selected media plus crystalline fill tiles. <b>Vitrine</b> keeps the hero whole with atmospheric fill.</SectionHelp>
+      )}
+      {coverType === 'stage' && selectedLayout !== 'smart-carousel' && selectedLayout !== 'vitrine' && (
+        <SectionHelp>Need the full photo visible? Use Smart or Vitrine, then choose Tall or Cinema height for portrait media.</SectionHelp>
       )}
       <DirGrid>
         {layoutOptions.map((layout) => (

@@ -10,6 +10,18 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx'),
   'utf8',
 );
+const deliveryHealthSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/AdminNotificationDeliveryHealth.tsx'),
+  'utf8',
+);
+const broadcastComposerSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/AdminBroadcastComposer.tsx'),
+  'utf8',
+);
+const reportQueueSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/AdminMessageReportQueue.tsx'),
+  'utf8',
+);
 
 describe('CommunicationCenter active surface truth contract', () => {
   it('is mounted by the admin client management communication tab', () => {
@@ -40,6 +52,35 @@ describe('CommunicationCenter active surface truth contract', () => {
     expect(source).toContain('aria-label={voiceDraft.label}');
     expect(source).toContain('onClick={voiceDraft.toggle}');
     expect(source).not.toContain('<RoundButton title="Voice Message">');
+  });
+
+  it('mounts admin broadcast delivery health inside the analytics tab', () => {
+    expect(source).toContain("import AdminNotificationDeliveryHealth from './AdminNotificationDeliveryHealth'");
+    expect(source).toContain('<AdminNotificationDeliveryHealth key={deliveryHealthVersion} />');
+    expect(deliveryHealthSource).toContain("authAxios.get('/api/admin/notifications/delivery-health')");
+  });
+
+  it('mounts the orchestrator-backed admin broadcast composer instead of a disabled placeholder', () => {
+    expect(source).toContain("import AdminBroadcastComposer from './AdminBroadcastComposer'");
+    expect(source).toContain('<AdminBroadcastComposer');
+    expect(source).toContain('onBroadcastComplete={() => void refreshBroadcastDeliveryHealth()}');
+    expect(source).toContain('setActiveTab(3)');
+    expect(source).toContain('Broadcasts');
+    expect(source).not.toContain('Broadcast messaging backend not connected');
+    expect(broadcastComposerSource).toContain("authAxios.post('/api/admin/notifications/broadcast'");
+  });
+
+  it('keeps the admin broadcast composer under the dashboard file cap', () => {
+    expect(broadcastComposerSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
+
+  it('mounts the admin message report queue on the CommunicationCenter moderation tab', () => {
+    expect(source).toContain("import AdminMessageReportQueue from './AdminMessageReportQueue'");
+    expect(source).toContain('<AdminMessageReportQueue />');
+    expect(source).toContain('setActiveTab(4)');
+    expect(source).toContain('Moderation');
+    expect(reportQueueSource).toContain("authAxios.get('/api/messaging/admin/reports?status=open&limit=25')");
+    expect(reportQueueSource).toContain("authAxios.patch(`/api/messaging/admin/reports/${report.id}`");
   });
 
   it('does not leave communication call and thread-option controls as silent no-ops', () => {

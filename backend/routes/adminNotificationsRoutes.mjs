@@ -8,146 +8,50 @@
  */
 
 import express from 'express';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
-import { getAllModels, Op } from '../models/index.mjs';
+import { protect, adminOnly, rateLimiter } from '../middleware/authMiddleware.mjs';
+import { getAllModels } from '../models/index.mjs';
+import { broadcastAdminNotification } from '../services/adminNotificationBroadcastService.mjs';
+import {
+  bulkAdminNotificationAction,
+  getAdminNotificationDeliveryHealth,
+  getAdminNotificationRetentionReport,
+  listAdminNotifications,
+  serializeAdminNotification,
+} from '../services/adminNotificationManagementService.mjs';
 
 const router = express.Router();
-
-const parseMetadata = (metadata) => {
-  if (!metadata) return {};
-  try {
-    return typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
-  } catch (error) {
-    return {};
-  }
-};
-
-const mapAdminTypeToUi = (adminType, metadata) => {
-  if (metadata?.type) return metadata.type;
-
-  const alertTypes = ['security_alert', 'performance_alert', 'payment_failed', 'refund_request'];
-  const marketingTypes = ['purchase', 'high_value_purchase', 'revenue_milestone'];
-
-  if (alertTypes.includes(adminType)) return 'alert';
-  if (marketingTypes.includes(adminType)) return 'marketing';
-  if (adminType === 'new_user') return 'user';
-  return 'system';
-};
-
-const serializeAdminNotification = (notification, adminCount) => {
-  const metadata = parseMetadata(notification.metadata);
-  const audience = metadata.audience || { type: 'all', count: adminCount };
-  const channels = Array.isArray(metadata.channels) ? metadata.channels : ['in-app'];
-  const status = notification.actionRequired && !notification.actionTaken ? 'scheduled' : 'sent';
-
-  return {
-    id: notification.id,
-    title: notification.title,
-    content: notification.message,
-    type: mapAdminTypeToUi(notification.type, metadata),
-    status,
-    audience: {
-      type: audience.type || 'all',
-      count: Number(audience.count || adminCount || 0)
-    },
-    channels,
-    createdAt: notification.createdAt,
-    scheduledFor: notification.expiresAt || null,
-    sentAt: notification.createdAt,
-    metrics: {
-      sent: Number(audience.count || adminCount || 0),
-      delivered: Number(audience.count || adminCount || 0),
-      opened: notification.isRead ? Number(audience.count || adminCount || 0) : 0,
-      clicked: 0
-    },
-    template: metadata.template || null
-  };
-};
+const adminNotificationReadLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 120, message: 'Too many admin notification requests.' });
+const adminNotificationCommandLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 60, message: 'Too many admin notification changes.' });
+const adminNotificationBroadcastLimiter = rateLimiter({ windowMs: 60 * 60 * 1000, max: 10, message: 'Too many notification broadcasts.' });
 
 /**
  * @route   GET /api/admin/notifications
  * @desc    List admin notifications
  * @access  Private (Admin)
  */
-router.get('/notifications', protect, adminOnly, async (req, res) => {
-  try {
-    const models = getAllModels();
-    const AdminNotification = models.AdminNotification;
-    const User = models.User;
+router.get('/notifications', protect, adminOnly, adminNotificationReadLimiter, async (req, res) => {
+  const result = await listAdminNotifications();
+  return res.status(result.statusCode).json(result.body);
+});
 
-    if (!AdminNotification) {
-      return res.status(200).json({
-        success: true,
-        notifications: [],
-        stats: { total: 0, unread: 0, highPriority: 0, actionRequired: 0 },
-        degraded: true
-      });
-    }
+/**
+ * @route   GET /api/admin/notifications/delivery-health
+ * @desc    Summarize admin broadcast delivery health
+ * @access  Private (Admin)
+ */
+router.get('/notifications/delivery-health', protect, adminOnly, adminNotificationReadLimiter, async (req, res) => {
+  const result = await getAdminNotificationDeliveryHealth({ limit: req.query?.limit });
+  return res.status(result.statusCode).json(result.body);
+});
 
-    const adminCount = await User.count({ where: { role: 'admin' } });
-
-    let notifications = [];
-    try {
-      notifications = await AdminNotification.findAll({
-        where: {
-          [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }]
-        },
-        order: [['createdAt', 'DESC']],
-        limit: 200,
-        raw: true
-      });
-    } catch (findErr) {
-      console.warn('[adminNotifications] findAll failed (table may be missing columns):', findErr.message);
-      // Return empty gracefully instead of 500
-      return res.status(200).json({
-        success: true,
-        notifications: [],
-        stats: { total: 0, unread: 0, highPriority: 0, actionRequired: 0 },
-        degraded: true
-      });
-    }
-
-    let summary;
-    try {
-      summary = AdminNotification.getNotificationSummary
-        ? await AdminNotification.getNotificationSummary()
-        : {
-            total: notifications.length,
-            unread: notifications.filter((item) => !item.isRead).length,
-            highPriority: notifications.filter((item) =>
-              ['high', 'critical'].includes(item.priority)
-            ).length,
-            actionRequired: notifications.filter((item) => item.actionRequired && !item.actionTaken).length
-          };
-    } catch (summaryErr) {
-      console.warn('[adminNotifications] getNotificationSummary failed:', summaryErr.message);
-      summary = {
-        total: notifications.length,
-        unread: notifications.filter((item) => !item.isRead).length,
-        highPriority: 0,
-        actionRequired: 0
-      };
-    }
-
-    return res.status(200).json({
-      success: true,
-      notifications: notifications.map((notification) => {
-        try {
-          return serializeAdminNotification(notification, adminCount);
-        } catch {
-          return { id: notification.id, title: notification.title || 'Notification', content: notification.message || '', type: 'system' };
-        }
-      }),
-      stats: summary
-    });
-  } catch (error) {
-    console.error('[adminNotifications] Error fetching notifications:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch notifications',
-      degraded: true
-    });
-  }
+/**
+ * @route   GET /api/admin/notifications/retention-policy
+ * @desc    Summarize communication retention policy counts
+ * @access  Private (Admin)
+ */
+router.get('/notifications/retention-policy', protect, adminOnly, adminNotificationReadLimiter, async (req, res) => {
+  const result = await getAdminNotificationRetentionReport();
+  return res.status(result.statusCode).json(result.body);
 });
 
 /**
@@ -155,7 +59,7 @@ router.get('/notifications', protect, adminOnly, async (req, res) => {
  * @desc    Delete admin notification
  * @access  Private (Admin)
  */
-router.delete('/notifications/:id', protect, adminOnly, async (req, res) => {
+router.delete('/notifications/:id', protect, adminOnly, adminNotificationCommandLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const models = getAllModels();
@@ -163,21 +67,12 @@ router.delete('/notifications/:id', protect, adminOnly, async (req, res) => {
 
     const deleted = await AdminNotification.destroy({ where: { id } });
     if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+      return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Notification deleted'
-    });
+    return res.status(200).json({ success: true, message: 'Notification deleted' });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete notification'
-    });
+    return res.status(500).json({ success: false, message: 'Failed to delete notification' });
   }
 });
 
@@ -186,94 +81,24 @@ router.delete('/notifications/:id', protect, adminOnly, async (req, res) => {
  * @desc    Broadcast a notification to users
  * @access  Private (Admin)
  */
-router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => {
+router.post('/notifications/broadcast', protect, adminOnly, adminNotificationBroadcastLimiter, async (req, res) => {
   try {
-    const {
-      title,
-      content,
-      type = 'system',
-      audience = 'all',
-      channels = ['in-app'],
-      userIds,
-      link,
-      image
-    } = req.body || {};
-
-    if (!title || !content) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title and content are required'
-      });
-    }
-
-    const models = getAllModels();
-    const User = models.User;
-    const Notification = models.Notification;
-    const AdminNotification = models.AdminNotification;
-
-    let where = {};
-    if (audience === 'specific') {
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'userIds are required for specific audience broadcasts'
-        });
-      }
-      where = { id: userIds };
-    } else if (audience === 'clients') {
-      where = { role: 'client' };
-    } else if (audience === 'trainers') {
-      where = { role: 'trainer' };
-    }
-
-    const recipients = await User.findAll({
-      where,
-      attributes: ['id'],
-      raw: true
+    const result = await broadcastAdminNotification({
+      requestBody: req.body,
+      adminUserId: req.user?.id,
     });
 
-    const recipientIds = recipients.map((user) => user.id);
-    const senderId = Number(req.user?.id);
-
-    if (recipientIds.length > 0) {
-      await Notification.bulkCreate(
-        recipientIds.map((recipientId) => ({
-          userId: recipientId,
-          title,
-          message: content,
-          type: 'admin',
-          read: false,
-          link: link || null,
-          image: image || null,
-          senderId: Number.isFinite(senderId) ? senderId : null
-        }))
-      );
+    if (!result.body?.notification) {
+      return res.status(result.statusCode).json(result.body);
     }
 
-    const adminNotification = await AdminNotification.create({
-      type: 'system_alert',
-      title,
-      message: content,
-      priority: type === 'alert' ? 'high' : 'medium',
-      actionRequired: type === 'alert',
-      metadata: JSON.stringify({
-        audience: { type: audience, count: recipientIds.length },
-        channels,
-        type,
-        senderId: Number.isFinite(senderId) ? senderId : null
-      })
-    });
-
-    return res.status(201).json({
-      success: true,
-      notificationsCreated: recipientIds.length,
-      notification: serializeAdminNotification(adminNotification, recipientIds.length)
+    const { notification, audienceCount, ...body } = result.body;
+    return res.status(result.statusCode).json({
+      ...body,
+      notification: serializeAdminNotification(notification, audienceCount),
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to broadcast notification'
-    });
+    return res.status(500).json({ success: false, message: 'Failed to broadcast notification' });
   }
 });
 
@@ -282,7 +107,7 @@ router.post('/notifications/broadcast', protect, adminOnly, async (req, res) => 
  * @desc    Full notification detail
  * @access  Private (Admin)
  */
-router.get('/notifications/:id', protect, adminOnly, async (req, res) => {
+router.get('/notifications/:id', protect, adminOnly, adminNotificationReadLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const models = getAllModels();
@@ -291,24 +116,17 @@ router.get('/notifications/:id', protect, adminOnly, async (req, res) => {
 
     const notification = await AdminNotification.findByPk(id);
     if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+      return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
     const adminCount = await User.count({ where: { role: 'admin' } });
-
     return res.status(200).json({
       success: true,
-      notification: serializeAdminNotification(notification, adminCount)
+      notification: serializeAdminNotification(notification, adminCount),
     });
   } catch (error) {
     console.error('[adminNotifications] Error fetching notification detail:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch notification'
-    });
+    return res.status(500).json({ success: false, message: 'Failed to fetch notification' });
   }
 });
 
@@ -317,7 +135,7 @@ router.get('/notifications/:id', protect, adminOnly, async (req, res) => {
  * @desc    Mark notification as resolved / action taken
  * @access  Private (Admin)
  */
-router.patch('/notifications/:id/resolve', protect, adminOnly, async (req, res) => {
+router.patch('/notifications/:id/resolve', protect, adminOnly, adminNotificationCommandLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const models = getAllModels();
@@ -326,29 +144,19 @@ router.patch('/notifications/:id/resolve', protect, adminOnly, async (req, res) 
 
     const notification = await AdminNotification.findByPk(id);
     if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+      return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
-    const adminUserId = req.user?.id ?? null;
-    const notes = req.body?.notes ?? null;
-
-    await notification.markActionTaken(adminUserId, notes);
-
+    await notification.markActionTaken(req.user?.id ?? null, req.body?.notes ?? null);
     const adminCount = await User.count({ where: { role: 'admin' } });
 
     return res.status(200).json({
       success: true,
-      notification: serializeAdminNotification(notification, adminCount)
+      notification: serializeAdminNotification(notification, adminCount),
     });
   } catch (error) {
     console.error('[adminNotifications] Error resolving notification:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to resolve notification'
-    });
+    return res.status(500).json({ success: false, message: 'Failed to resolve notification' });
   }
 });
 
@@ -357,7 +165,7 @@ router.patch('/notifications/:id/resolve', protect, adminOnly, async (req, res) 
  * @desc    Mark notification as read / archived
  * @access  Private (Admin)
  */
-router.patch('/notifications/:id/archive', protect, adminOnly, async (req, res) => {
+router.patch('/notifications/:id/archive', protect, adminOnly, adminNotificationCommandLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const models = getAllModels();
@@ -366,28 +174,19 @@ router.patch('/notifications/:id/archive', protect, adminOnly, async (req, res) 
 
     const notification = await AdminNotification.findByPk(id);
     if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+      return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
-    const adminUserId = req.user?.id ?? null;
-
-    await notification.markAsRead(adminUserId);
-
+    await notification.markAsRead(req.user?.id ?? null);
     const adminCount = await User.count({ where: { role: 'admin' } });
 
     return res.status(200).json({
       success: true,
-      notification: serializeAdminNotification(notification, adminCount)
+      notification: serializeAdminNotification(notification, adminCount),
     });
   } catch (error) {
     console.error('[adminNotifications] Error archiving notification:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to archive notification'
-    });
+    return res.status(500).json({ success: false, message: 'Failed to archive notification' });
   }
 });
 
@@ -396,61 +195,14 @@ router.patch('/notifications/:id/archive', protect, adminOnly, async (req, res) 
  * @desc    Bulk archive or delete notifications
  * @access  Private (Admin)
  */
-router.post('/notifications/bulk', protect, adminOnly, async (req, res) => {
-  try {
-    const { ids, action } = req.body || {};
+router.post('/notifications/bulk', protect, adminOnly, adminNotificationCommandLimiter, async (req, res) => {
+  const result = await bulkAdminNotificationAction({
+    ids: req.body?.ids,
+    action: req.body?.action,
+    adminUserId: req.user?.id ?? null,
+  });
 
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'ids must be a non-empty array'
-      });
-    }
-
-    if (!['archive', 'delete'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: "action must be 'archive' or 'delete'"
-      });
-    }
-
-    const models = getAllModels();
-    const AdminNotification = models.AdminNotification;
-    let processed = 0;
-
-    if (action === 'delete') {
-      processed = await AdminNotification.destroy({
-        where: { id: { [Op.in]: ids } }
-      });
-    } else {
-      // archive — mark all as read
-      const adminUserId = req.user?.id ?? null;
-      const now = new Date();
-
-      const [affectedCount] = await AdminNotification.update(
-        {
-          isRead: true,
-          readAt: now,
-          readBy: adminUserId
-        },
-        {
-          where: { id: { [Op.in]: ids } }
-        }
-      );
-      processed = affectedCount;
-    }
-
-    return res.status(200).json({
-      success: true,
-      processed
-    });
-  } catch (error) {
-    console.error('[adminNotifications] Error in bulk operation:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process bulk operation'
-    });
-  }
+  return res.status(result.statusCode).json(result.body);
 });
 
 export default router;

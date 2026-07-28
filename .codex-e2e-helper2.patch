@@ -1,0 +1,23 @@
+diff --git a/frontend/e2e/nutrition-workspace-smoke.helpers.ts b/frontend/e2e/nutrition-workspace-smoke.helpers.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/e2e/nutrition-workspace-smoke.helpers.ts
+@@ -0,0 +1,17 @@
++import { expect, type Locator, type Page } from '@playwright/test';
++
++export async function openNutritionManualReview(page: Page): Promise<Locator> {
++  const captureRail = page.getByRole('navigation', { name: /nutrition capture modes/i });
++  await captureRail.getByRole('button', { name: /manual meal/i }).click();
++  await expect(page.getByRole('heading', { name: /food intake tracker/i })).toBeVisible();
++  await page.getByLabel('Food Name').fill('Salmon rice bowl');
++  await page.getByLabel('Portion/Serving Size').fill('1 bowl');
++  await page.getByLabel('Calories').fill('560');
++  await page.getByLabel('Protein').fill('42');
++  await page.getByLabel('Carbs').fill('58');
++  await page.getByLabel('Fat').fill('18');
++  await page.getByRole('button', { name: /review meal/i }).click();
++  const dialog = page.getByRole('dialog', { name: /review manual meal/i });
++  await expect(dialog).toBeVisible();
++  return dialog;
++}
+

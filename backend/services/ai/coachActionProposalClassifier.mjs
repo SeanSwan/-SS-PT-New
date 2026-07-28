@@ -12,6 +12,10 @@ import {
 import { classifyNutritionLogPayload } from './coachNutritionProposalClassifier.mjs';
 import { classifyClientProfileCoveragePayload } from './coachClientProfileCoverageClassifier.mjs';
 import { normalizeOnboardingCoverageUpdates } from './coachOnboardingCoveragePayloadNormalizer.mjs';
+import {
+  WORKOUT_LOG_SOURCES,
+  normalizeWorkoutLogSource,
+} from '../workout/workoutLogSourcePolicy.mjs';
 
 export { parseSafeFrontendDispatch };
 
@@ -26,6 +30,11 @@ const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab
 const ExerciseDraftSchema = z.object({
   name: z.string().trim().min(1),
 }).passthrough();
+
+const WorkoutLogSourceSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? normalizeWorkoutLogSource(value) : value),
+  z.enum(Object.values(WORKOUT_LOG_SOURCES)),
+);
 
 const StructuredCoachProposalSchema = z.object({
   action: z.literal('coach_action_proposal'),
@@ -72,6 +81,7 @@ const WorkoutLogActionSchema = z.object({
   action: z.literal('import_workout_log'),
   date: z.string().trim().min(4),
   scheduledSessionId: ScheduledSessionIdSchema.optional(),
+  source: WorkoutLogSourceSchema.optional(),
   exercises: z.array(ExerciseDraftSchema).min(1),
 }).passthrough();
 
@@ -179,6 +189,12 @@ function safeRouteScheduledSessionId(routeContext) {
   return /^[1-9]\d*$/.test(scheduledSessionId) ? scheduledSessionId : null;
 }
 
+function safeRouteWorkoutSource(routeContext) {
+  return routeContext?.intent === 'historical_import'
+    ? WORKOUT_LOG_SOURCES.HISTORICAL_IMPORT
+    : null;
+}
+
 function withWorkoutRouteDefaults(payload, routeContext) {
   const defaults = {};
   const date = safeRouteDate(routeContext);
@@ -187,6 +203,8 @@ function withWorkoutRouteDefaults(payload, routeContext) {
   if (scheduledSessionId && payload.scheduledSessionId == null) {
     defaults.scheduledSessionId = scheduledSessionId;
   }
+  const source = safeRouteWorkoutSource(routeContext);
+  if (source && !payload.source) defaults.source = source;
   return Object.keys(defaults).length ? { ...payload, ...defaults } : payload;
 }
 

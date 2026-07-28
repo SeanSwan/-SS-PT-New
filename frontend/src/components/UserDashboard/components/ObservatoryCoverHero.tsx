@@ -81,13 +81,16 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
   onAvatarClick,
   dashboardBackgroundControls,
 }) => {
-  const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner(dashboardBackgroundControls);
+  const { bannerLayer, coverEditorSlot, toggleCoverEditor, bannerFrameHeight } = useHomeCoverBanner(dashboardBackgroundControls);
   const safePhoto = sanitizeImageUrl(profilePhoto ?? undefined);
   const visibleRankTitle = rankTitleLabel || `Level ${level} | ${tierName}`;
 
   return (
     <>
-      <CoverHeroSection aria-label="Profile cover">
+      <CoverHeroSection
+        aria-label="Profile cover"
+        style={{ '--cover-hero-height': `${bannerFrameHeight}px` } as React.CSSProperties}
+      >
         {bannerLayer ? (
           <CoverMediaHost aria-hidden="true">{bannerLayer}</CoverMediaHost>
         ) : (

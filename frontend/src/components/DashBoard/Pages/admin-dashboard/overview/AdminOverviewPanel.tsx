@@ -21,6 +21,8 @@ import GamificationSummaryWidget from '../components/GamificationSummaryWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
+import AdminSignalBar from './AdminSignalBar';
+import AdminOverviewSection from './AdminOverviewSection';
 import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
 import OracleInsightsWidget from '../components/OracleInsightsWidget';
@@ -40,12 +42,8 @@ import {
   CosmicSelect,
   ErrorText,
   StatusText,
-  TelemetryDetails,
-  TelemetryGrid,
 } from './AdminOverviewPanel.styles';
-
 const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
-
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
@@ -54,33 +52,27 @@ const AdminOverviewPanel: React.FC = () => {
   const [systemHealth, setSystemHealth] = useState<SystemHealthMetric[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const quickActions: AdminQuickAction[] = useMemo(
     () => buildAdminOverviewQuickActions(navigate),
     [navigate]
   );
-
   const fetchAdminOverview = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
       const [revenueRes, usersRes, workoutsRes, healthRes] = await Promise.allSettled([
         authAxios.get('/api/admin/analytics/statistics/revenue', { params: { timeRange } }),
         authAxios.get('/api/admin/analytics/statistics/users'),
         authAxios.get('/api/admin/analytics/statistics/workouts'),
         authAxios.get('/api/admin/analytics/statistics/system-health'),
       ]);
-
       const revenueData = readSettledData(revenueRes);
       const usersData = readSettledData(usersRes);
       const workoutsData = readSettledData(workoutsRes);
       const healthData = readSettledData(healthRes);
-
       if ([revenueRes, usersRes, workoutsRes, healthRes].some(result => result.status === 'rejected')) {
         setError('Some admin overview metrics could not be loaded.');
       }
-
       const nextMetrics: AdminDashboardMetric[] = [
         revenueData ? {
             id: 'total-revenue',
@@ -159,7 +151,6 @@ const AdminOverviewPanel: React.FC = () => {
             description: 'System health endpoint unavailable',
           }),
       ];
-
       const nextSystemHealth: SystemHealthMetric[] = healthData
         ? (healthData.services ?? []).map((service: any) => ({
             service: service.name ?? 'Service',
@@ -184,7 +175,6 @@ const AdminOverviewPanel: React.FC = () => {
             throughput: 0,
             details: 'System health endpoint unavailable',
           }];
-
       setMetrics(nextMetrics);
       setSystemHealth(nextSystemHealth);
     } catch (err) {
@@ -193,17 +183,13 @@ const AdminOverviewPanel: React.FC = () => {
       setIsLoading(false);
     }
   }, [authAxios, timeRange]);
-
   useEffect(() => {
     fetchAdminOverview();
   }, [fetchAdminOverview]);
-
   return (
     <BentoWrapper>
-      {/* Row 0: First-click operator launchpad */}
+      <BentoFull><AdminSignalBar /></BentoFull>
       <BentoFull><AdminQuickActions actions={quickActions} /></BentoFull>
-
-      {/* ── Row 0: AI Terminal (full width) ── */}
       <BentoFull>
         <AITerminalPanel
           context="data_management"
@@ -213,85 +199,94 @@ const AdminOverviewPanel: React.FC = () => {
           defaultOpen={false}
         />
       </BentoFull>
-
-      {/* ── Row 1: KPI Metrics + Time Range Control ── */}
-      <BentoFull>
-        <ControlsHeader>
-          <ControlsInner>
-            <CosmicSelect
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              aria-label="Select time range"
-            >
-              <option value="24h">Last 24 hours</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </CosmicSelect>
-            {isLoading && <StatusText>Loading...</StatusText>}
-            {error && <ErrorText role="alert" aria-live="polite">{error}</ErrorText>}
-          </ControlsInner>
-        </ControlsHeader>
-      </BentoFull>
-      <BentoFull><AdminOverviewMetrics metrics={metrics} /></BentoFull>
-
-      {/* ── Row 2: Intake Triptych — Orientation + Waivers + Visitor Map (PROMOTED from Row 7) ── */}
-      <BentoThird><OrientationIntakeWidget /></BentoThird>
-      <BentoThird><WaiverSummaryWidget /></BentoThird>
-      <BentoThird>
-        <Suspense fallback={<div style={{ minHeight: 400 }} />}>
-          <VisitorWorldMap />
-        </Suspense>
-      </BentoThird>
-
-      {/* ── Row 3: Real-time Signups (full width) ── */}
-      <BentoFull>
-        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
-      </BentoFull>
-
-      {/* ── Row 4: Revenue + User Growth Charts (2-col) ── */}
-      <BentoHalf><RevenueChart /></BentoHalf>
-      <BentoHalf><UserGrowthChart /></BentoHalf>
-
-      {/* ── Row 5: Business KPI + Session Tracking (2-col) ── */}
-      <BentoHalf><BusinessKPIDashboard /></BentoHalf>
-      <BentoHalf><SessionTrackingWidget /></BentoHalf>
-
-      {/* ── Row 6: Quick Actions + Activity Feed + Gamification (3-col) ── */}
-      <BentoThird><RecentActivityFeed /></BentoThird>
-      <BentoThird><GamificationSummaryWidget /></BentoThird>
-
-      {/* ── Row 7: System Health + Pending Payments (2-col) ── */}
-      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
-      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
-
-      {/* ── Row 8: Critical Alerts (2-col) ── */}
-      <BentoHalf><VisitorGeoWidget /></BentoHalf>
-      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
-
-      {/* ── Rows 8-11: Deep Telemetry Accordion (collapsed by default for scannability) ── */}
-      <TelemetryDetails>
-        <summary>Access Deep Telemetry — Social · Compliance · Operations · Oracle</summary>
-        <TelemetryGrid>
-          {/* Row 8: Social triptych */}
-          <BentoThird><SocialOverviewWidget /></BentoThird>
-          <BentoThird><ModerationWidget /></BentoThird>
-          <BentoThird><PostReportsWidget /></BentoThird>
-
-          {/* Row 9: Client Intelligence */}
-          <BentoHalf><ClientComplianceDashboard /></BentoHalf>
-          <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
-
-          {/* Row 10: Operations */}
-          <BentoHalf><UpcomingChecksWidget /></BentoHalf>
-          <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
-
-          {/* Row 11: Swan Oracle */}
-          <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
-        </TelemetryGrid>
-      </TelemetryDetails>
+      <AdminOverviewSection
+        id="admin-mission-critical"
+        eyebrow="Mission Critical Queues"
+        title="Action required before analytics"
+        lead="Intakes, waivers, payments, leads, cancellations, and measurement checks stay above passive charts so urgent work is not buried."
+      >
+        <BentoThird><OrientationIntakeWidget /></BentoThird>
+        <BentoThird><WaiverSummaryWidget /></BentoThird>
+        <BentoThird><ContactNotifications autoRefresh={true} showActions={true} /></BentoThird>
+        <BentoHalf><PendingPaymentsWidget /></BentoHalf>
+        <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
+        <BentoHalf><UpcomingChecksWidget /></BentoHalf>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-platform-pulse"
+        eyebrow="Platform Pulse"
+        title="Live system trust and overview metrics"
+        lead="Signup flow, health services, and top-line metrics are visible early without pushing the action queues below finance."
+      >
+        <BentoFull>
+          <ControlsHeader>
+            <ControlsInner>
+              <CosmicSelect
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                aria-label="Select time range"
+              >
+                <option value="24h">Last 24 hours</option>
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+              </CosmicSelect>
+              {isLoading && <StatusText>Loading...</StatusText>}
+              {error && <ErrorText role="alert" aria-live="polite">{error}</ErrorText>}
+            </ControlsInner>
+          </ControlsHeader>
+        </BentoFull>
+        <BentoFull><AdminOverviewMetrics metrics={metrics} /></BentoFull>
+        <BentoFull><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></BentoFull>
+        <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
+        <BentoThird><RecentActivityFeed /></BentoThird>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-operations"
+        eyebrow="Client and Trainer Operations"
+        title="Coaching workflow health"
+        lead="Compliance, automated check-ins, and session tracking sit together so admin can detect stale client or trainer workflows quickly."
+      >
+        <BentoHalf><ClientComplianceDashboard /></BentoHalf>
+        <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
+        <BentoHalf><SessionTrackingWidget /></BentoHalf>
+        <BentoHalf><VisitorGeoWidget /></BentoHalf>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-community-safety"
+        eyebrow="Community and Content Safety"
+        title="Social, moderation, and challenge signals"
+        lead="Community status is no longer hidden in a bottom accordion; moderation reports and gamification sit in the active scan path."
+      >
+        <BentoThird><SocialOverviewWidget /></BentoThird>
+        <BentoThird><ModerationWidget /></BentoThird>
+        <BentoThird><PostReportsWidget /></BentoThird>
+        <BentoThird><GamificationSummaryWidget /></BentoThird>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-business-lens"
+        eyebrow="Business Lens"
+        title="Growth and revenue after the action queues"
+        lead="Finance remains visible, but it no longer outranks people waiting on admin decisions."
+      >
+        <BentoHalf><RevenueChart /></BentoHalf>
+        <BentoHalf><UserGrowthChart /></BentoHalf>
+        <BentoHalf><BusinessKPIDashboard /></BentoHalf>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-deep-telemetry"
+        eyebrow="Research and Deep Telemetry"
+        title="Oracle and geographic intelligence"
+        lead="Long-form telemetry is promoted to a visible section instead of a mystery details button at the bottom of the page."
+      >
+        <BentoHalf>
+          <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+            <VisitorWorldMap />
+          </Suspense>
+        </BentoHalf>
+        <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
+      </AdminOverviewSection>
     </BentoWrapper>
   );
 };
-
 export default AdminOverviewPanel;

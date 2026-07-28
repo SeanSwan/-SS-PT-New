@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: useMessagingGroupActions.ts
  * PURPOSE: REST group-management actions for the messaging hook.
  */
@@ -11,7 +11,7 @@ import { createMessagingErrorState, type MessagingErrorState } from './messaging
 
 interface Args {
   enabled: boolean;
-  currentUserId: number | null;
+  currentUserId: string | number | null;
   mountedRef: MutableRefObject<boolean>;
   applyConversationUpdate: (conversation: ConversationData | null) => void;
   setConversations: Dispatch<SetStateAction<ConversationData[]>>;

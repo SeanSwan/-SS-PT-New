@@ -4,13 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getProductByBarcode: vi.fn(),
+  findProductByPk: vi.fn(),
   processAIDataUpdates: vi.fn(),
+  currentUser: { id: 42, role: 'client' },
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
-    req.user = { id: 42, role: 'client' };
+    req.user = mocks.currentUser;
     next();
   },
 }));
@@ -42,7 +44,7 @@ vi.mock('../../models/FoodIngredient.mjs', () => ({
 }));
 
 vi.mock('../../models/FoodProduct.mjs', () => ({
-  default: { findByPk: vi.fn(), count: vi.fn(), findAll: vi.fn() },
+  default: { findByPk: mocks.findProductByPk, count: vi.fn(), findAll: vi.fn() },
 }));
 
 vi.mock('../../models/FoodScanHistory.mjs', () => ({
@@ -59,6 +61,11 @@ function makeApp() {
   app.use('/api/food-scanner', foodScannerRoutes);
   return app;
 }
+
+beforeEach(() => {
+  mocks.currentUser = { id: 42, role: 'client' };
+  mocks.findProductByPk.mockReset();
+});
 
 describe('POST /api/food-scanner/log-scan date fallback', () => {
   beforeEach(() => {
@@ -274,5 +281,53 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
     expect(response.status).toBe(200);
     expect(response.body.analysis.flags).not.toContain('HIGH_SODIUM');
     expect(response.body.analysis.flags).not.toContain('HIGH_SUGAR');
+  });
+});
+
+describe('PUT /api/food-scanner/admin/product/:id model mapping', () => {
+  it('maps legacy nutrition aliases to real FoodProduct columns', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    mocks.currentUser = { id: 1, role: 'admin' };
+    mocks.findProductByPk.mockResolvedValue({ id: 55, update });
+
+    const response = await request(makeApp())
+      .put('/api/food-scanner/admin/product/55')
+      .send({
+        name: 'Greek Yogurt',
+        brand: 'Swan Dairy',
+        barcode: '123456789012',
+        ingredients: [1, 2],
+        nutritionFacts: { calories: 110, protein: 11 },
+        healthScore: 'good',
+        category: 'Dairy',
+      });
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({
+      name: 'Greek Yogurt',
+      brand: 'Swan Dairy',
+      barcode: '123456789012',
+      ingredients: [1, 2],
+      nutritionalInfo: { calories: 110, protein: 11 },
+      overallRating: 'good',
+      category: 'Dairy',
+    });
+    expect(update.mock.calls[0][0]).not.toHaveProperty('nutritionFacts');
+    expect(update.mock.calls[0][0]).not.toHaveProperty('healthScore');
+    expect(update.mock.calls[0][0]).not.toHaveProperty('allergens');
+  });
+
+  it('maps legacy product allergens to healthConcerns instead of writing phantom columns', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    mocks.currentUser = { id: 1, role: 'admin' };
+    mocks.findProductByPk.mockResolvedValue({ id: 55, update });
+
+    const response = await request(makeApp())
+      .put('/api/food-scanner/admin/product/55')
+      .send({ allergens: ['milk'] });
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ healthConcerns: ['milk'] });
+    expect(update.mock.calls[0][0]).not.toHaveProperty('allergens');
   });
 });

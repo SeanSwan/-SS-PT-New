@@ -10,7 +10,6 @@ import {
   FormField,
   Label,
   StyledInput,
-  CheckboxWrapper,
   PrimaryButton,
   OutlinedButton,
   ErrorText,
@@ -18,50 +17,38 @@ import {
   SmallText
 } from './ui';
 import apiService from '../../services/api.service';
+import {
+  NOTIFICATION_CATEGORY_OPTIONS,
+  NOTIFICATION_CHANNEL_OPTIONS,
+  createDefaultPreferences,
+  getApiErrorMessage,
+  normalizePreferences,
+  preferenceEnvelope,
+  toCanonicalPreferences,
+  type NotificationCategoryKey,
+  type NotificationChannelKey,
+  type NotificationDigestFrequency,
+  type NotificationPreferences,
+  type QuietHours,
+} from './NotificationPreferencesModal.model';
+import { NotificationDeliveryOptions } from './NotificationPreferencesModal.delivery';
+import {
+  CategoryChannels,
+  CategoryCopy,
+  CategoryDescription,
+  CategoryGrid,
+  CategoryRow,
+  CategorySection,
+  CategoryTitle,
+  CategoryToggle,
+  SectionHeading,
+} from './NotificationPreferencesModal.styles';
 
 interface NotificationPreferencesModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
-
-interface QuietHours {
-  start: string;
-  end: string;
-}
-
-interface NotificationPreferences {
-  email: boolean;
-  sms: boolean;
-  push: boolean;
-  quietHours: QuietHours;
-}
-
-const defaultPreferences: NotificationPreferences = {
-  email: true,
-  sms: true,
-  push: false,
-  quietHours: { start: '', end: '' }
-};
-
-const normalizePreferences = (prefs: any): NotificationPreferences => {
-  if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) {
-    return { ...defaultPreferences };
-  }
-
-  return {
-    email: prefs.email !== undefined ? Boolean(prefs.email) : true,
-    sms: prefs.sms !== undefined ? Boolean(prefs.sms) : true,
-    push: prefs.push !== undefined ? Boolean(prefs.push) : false,
-    quietHours: {
-      start: prefs.quietHours?.start || '',
-      end: prefs.quietHours?.end || ''
-    }
-  };
-};
-
-const getApiErrorMessage = (error: any, fallback: string) =>
-  error?.response?.data?.message || fallback;
 
 const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> = ({
   open,
@@ -72,7 +59,7 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
+  const [preferences, setPreferences] = useState<NotificationPreferences>(() => createDefaultPreferences());
 
   useEffect(() => {
     if (!open) {
@@ -81,33 +68,61 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       return;
     }
 
-    const loadProfile = async () => {
+    const loadPreferences = async () => {
       setLoading(true);
       setFormError(null);
       setSuccessMessage(null);
 
       try {
-        const response = await apiService.get('/api/profile');
-        const payload = response.data;
-        const user = payload?.user || payload?.data || payload;
-        const prefs = user?.notificationPreferences;
-
-        setPreferences(normalizePreferences(prefs));
+        const response = await apiService.get('/api/notifications/preferences');
+        setPreferences(normalizePreferences(preferenceEnvelope(response.data)));
       } catch (error) {
         console.error('Error loading notification preferences:', error);
-        setPreferences({ ...defaultPreferences });
+        setPreferences(createDefaultPreferences());
       } finally {
         setLoading(false);
       }
     };
 
-    loadProfile();
+    loadPreferences();
   }, [open]);
 
-  const updatePreference = (key: keyof NotificationPreferences, value: boolean) => {
+  const updatePreference = (key: NotificationChannelKey, value: boolean) => {
     setPreferences((prev) => ({
       ...prev,
       [key]: value
+    }));
+  };
+
+  const updateDigestFrequency = (value: NotificationDigestFrequency) => {
+    setPreferences((prev) => ({
+      ...prev,
+      digestFrequency: value,
+    }));
+  };
+
+  const updateShowPreview = (value: boolean) => {
+    setPreferences((prev) => ({
+      ...prev,
+      showPreview: value,
+    }));
+  };
+
+  const updateCategoryPreference = (
+    category: NotificationCategoryKey,
+    channel: NotificationChannelKey,
+    value: boolean,
+  ) => {
+    setPreferences((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [category]: {
+          ...prev.categories[category],
+          inApp: true,
+          [channel]: value,
+        },
+      },
     }));
   };
 
@@ -127,8 +142,8 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
 
     try {
       setSaving(true);
-      const response = await apiService.put('/api/profile', {
-        notificationPreferences: preferences
+      const response = await apiService.put('/api/notifications/preferences', {
+        preferences: toCanonicalPreferences(preferences)
       });
 
       const result = response.data;
@@ -154,7 +169,7 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       isOpen={open}
       onClose={onClose}
       title="Notification Settings"
-      size="md"
+      size="lg"
       footer={(
         <>
           <OutlinedButton onClick={onClose} disabled={saving}>
@@ -179,43 +194,51 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       )}
 
       {successMessage && (
-        <SmallText style={{ color: '#10b981', marginBottom: '1rem' }}>
+        <SmallText style={{ color: 'var(--success, #10B981)', marginBottom: '1rem' }}>
           {successMessage}
         </SmallText>
       )}
 
-      <FormField>
-        <CheckboxWrapper>
-          <input
-            type="checkbox"
-            checked={preferences.email}
-            onChange={(e) => updatePreference('email', e.target.checked)}
-          />
-          <span>Receive email notifications</span>
-        </CheckboxWrapper>
-      </FormField>
+      <NotificationDeliveryOptions
+        preferences={preferences}
+        onChannelChange={updatePreference}
+        onDigestChange={updateDigestFrequency}
+        onPreviewChange={updateShowPreview}
+      />
 
-      <FormField>
-        <CheckboxWrapper>
-          <input
-            type="checkbox"
-            checked={preferences.sms}
-            onChange={(e) => updatePreference('sms', e.target.checked)}
-          />
-          <span>Receive SMS notifications</span>
-        </CheckboxWrapper>
-      </FormField>
-
-      <FormField>
-        <CheckboxWrapper>
-          <input
-            type="checkbox"
-            checked={preferences.push}
-            onChange={(e) => updatePreference('push', e.target.checked)}
-          />
-          <span>Receive push notifications</span>
-        </CheckboxWrapper>
-      </FormField>
+      <CategorySection aria-labelledby="notification-category-heading">
+        <SectionHeading as="h3" id="notification-category-heading">
+          Notification categories
+        </SectionHeading>
+        <HelperText>Email, SMS, and push can be tuned per category. In-app alerts remain on.</HelperText>
+        <CategoryGrid>
+          {NOTIFICATION_CATEGORY_OPTIONS.map((category) => (
+            <CategoryRow key={category.key}>
+              <CategoryCopy>
+                <CategoryTitle>{category.label}</CategoryTitle>
+                <CategoryDescription>{category.description}</CategoryDescription>
+              </CategoryCopy>
+              <CategoryChannels>
+                {NOTIFICATION_CHANNEL_OPTIONS.map((channel) => (
+                  <CategoryToggle key={channel.key}>
+                    <input
+                      type="checkbox"
+                      aria-label={`${category.label} ${channel.label}`}
+                      checked={preferences.categories[category.key]?.[channel.key] ?? false}
+                      onChange={(event) => updateCategoryPreference(
+                        category.key,
+                        channel.key,
+                        event.target.checked,
+                      )}
+                    />
+                    <span>{channel.label}</span>
+                  </CategoryToggle>
+                ))}
+              </CategoryChannels>
+            </CategoryRow>
+          ))}
+        </CategoryGrid>
+      </CategorySection>
 
       <FormField>
         <Label htmlFor="quiet-hours-start">Quiet hours start</Label>

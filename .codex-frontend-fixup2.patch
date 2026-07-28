@@ -1,0 +1,54 @@
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+@@ -81,0 +82,1 @@
++  const lastServingQuantityRef = useRef(new Map<string, number>());
+@@ -88,1 +89,5 @@
+-    setFoods(editableFoods(draft));
++    const nextFoods = editableFoods(draft);
++    setFoods(nextFoods);
++    lastServingQuantityRef.current = new Map(nextFoods
++      .filter((food) => food.serving.quantity !== null && food.serving.quantity > 0)
++      .map((food) => [food.id, food.serving.quantity as number]));
+@@ -136,0 +142,4 @@
++      const previousQuantity = food.serving.quantity ?? lastServingQuantityRef.current.get(id) ?? null;
++      if (quantity !== null && quantity > 0) {
++        lastServingQuantityRef.current.set(id, quantity);
++      }
+@@ -144,1 +154,1 @@
+-        nutrients: scaleNutrientsForServing(food.nutrients, food.serving.quantity, quantity),
++        nutrients: scaleNutrientsForServing(food.nutrients, previousQuantity, quantity),
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+@@ -129,27 +129,25 @@
+-  it('feeds real same-day workout sessions into training-day nutrition insights', async () => {
+-
+   it('returns to Today and refreshes the diary after a reviewed save', async () => {
+     const user = userEvent.setup();
+     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+-
+     await user.click(screen.getByRole('button', { name: /manual meal/i }));
+     await user.click(await screen.findByRole('button', { name: /prepare manual draft/i }));
+     await user.click(screen.getByRole('button', { name: /complete reviewed save/i }));
+-
+     expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+     expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
+     expect(mocks.macroSummary.refetch).toHaveBeenCalledTimes(1);
+   });
++
++  it('feeds real same-day workout sessions into training-day nutrition insights', async () => {
+     mocks.macroSummary.summary = {
+       ...mocks.defaultSummary,
+       totalProtein: 60,
+       totalFiber: 24,
+       mealCount: 3,
+     };
+     mocks.workoutSessions.data = [{ id: 'workout-1', date: '2026-06-20T18:00:00.000Z' }];
+-
+     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+-
+     expect(await screen.findByText(/training-day support/i)).toBeInTheDocument();
+     expect(screen.getByText(/protein-forward meal and a water check-in/i)).toBeInTheDocument();
+   });
+

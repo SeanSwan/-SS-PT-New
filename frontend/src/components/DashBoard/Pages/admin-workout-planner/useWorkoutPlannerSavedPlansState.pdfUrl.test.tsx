@@ -89,6 +89,33 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
     expect(result.current.savedPlans[2].pdfFile).toBeNull();
   });
 
+  it('duplicates a saved plan into the selected target client and copy span', async () => {
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),
+      post: vi.fn().mockResolvedValue({ data: { success: true } }),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const setStatusMsg = vi.fn();
+
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState({
+      ...makeHookInput(authAxios),
+      setStatusMsg,
+    }));
+
+    await act(async () => {
+      await result.current.handleCardDuplicate('source-plan', 'Source Plan', 77, 52);
+    });
+
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-plans/source-plan/duplicate', {
+      targetClientId: 77,
+      durationWeeks: 52,
+    });
+    expect(setStatusMsg).toHaveBeenCalledWith({
+      type: 'success',
+      text: 'Copied "Source Plan" to client #77 as a draft.',
+    });
+  });
   it('sets a saved plan as the primary arc through the dedicated endpoint', async () => {
     const authAxios = {
       get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),

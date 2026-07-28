@@ -27,6 +27,7 @@ import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 import AdminImpersonationBanner from './components/Admin/AdminImpersonationBanner';
+import NotificationToastBridge from './components/Communications/NotificationToastBridge';
 
 // Homepage Refactor v2.0 - Performance tier system
 import { PerformanceTierProvider } from './core/perf/PerformanceTierProvider';
@@ -205,6 +206,10 @@ const AppContent = () => {
     };
   }, []);
   
+  const handleOpenNotification = React.useCallback((link: string) => {
+    void router.navigate(link);
+  }, []);
+
   return (
     <>
       <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
@@ -213,6 +218,7 @@ const AppContent = () => {
       <NetworkStatus position="top" autoHide={true} />
       <ConnectionStatusBanner connection={connection} />
       <AdminImpersonationBanner />
+      <NotificationToastBridge onOpenNotification={handleOpenNotification} />
       
       {/* Development Tools */}
       <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />

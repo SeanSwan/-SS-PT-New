@@ -1,0 +1,24 @@
+diff --git a/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts b/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
+--- a/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
++++ b/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
+@@ -39,1 +39,1 @@
+-      serving: { basis: 'household', quantity: 1, unit: 'serving', label: '1 cup' },
++      serving: { basis: 'household', quantity: 1, unit: 'cup', label: '1 cup' },
+@@ -87,0 +88,1 @@
++        sodium_100g: 0.8,
+@@ -97,0 +99,2 @@
++    expect(draft.sourceConfidence).toBe('community');
++    expect(draft.foods[0].confidence).toBe(0.6);
+@@ -100,1 +103,1 @@
+-      nutrients: { calories: 120, protein: 3, carbs: 15, fat: 6, fiber: 1.5 },
++      nutrients: { calories: 120, protein: 3, carbs: 15, fat: 6, fiber: 1.5, sodium: 240 },
+@@ -102,0 +106,9 @@
++
++  it('classifies Open Food Facts search data as community sourced', () => {
++    const draft = searchFoodToNutritionDraft({
++      id: 'off-1', name: 'Community cereal', calories: 210, protein: 5,
++      carbs: 40, fat: 4, servingSize: '45 g', source: 'OFF',
++    });
++    expect(draft.sourceConfidence).toBe('community');
++    expect(draft.foods[0].confidence).toBe(0.6);
++  });

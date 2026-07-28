@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getEquipmentApiErrorMessage,
+  getEquipmentScanErrorPayload,
   validateEquipmentPhoto,
 } from './useEquipmentAPI';
 
@@ -24,6 +25,18 @@ describe('useEquipmentAPI helpers', () => {
         'Scan failed. Try again.',
       ),
     ).toBe('Rate limit exceeded. Maximum 10 scans per hour.');
+  });
+
+  it('preserves duplicate scan metadata from failed scan responses', () => {
+    const payload = {
+      success: false,
+      error: 'Detected equipment already exists in this profile.',
+      duplicates: [{ suggestedName: 'Dumbbell Rack', confidence: 0.91, status: 'duplicate' }],
+      candidates: [{ suggestedName: 'Dumbbell Rack', confidence: 0.91 }],
+    };
+
+    expect(getEquipmentScanErrorPayload({ response: { data: payload } })).toBe(payload);
+    expect(getEquipmentScanErrorPayload({ response: { data: { error: 'No scan metadata' } } })).toBeUndefined();
   });
 
   it('validates equipment scan image type and size before upload', () => {

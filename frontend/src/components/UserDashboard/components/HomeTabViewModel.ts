@@ -13,11 +13,11 @@ export {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
   extractTrendingTagNames,
-  selectActiveChallengeSummary,
 } from './HomeTabLiveWidgetViewModel';
+export { selectActiveChallengeSummary } from './HomeTabChallengeViewModel';
+export type { HomeChallengeSummary } from './HomeTabChallengeViewModel';
 export type {
   HomeBadgeItem,
-  HomeChallengeSummary,
   HomeLeaderboardRow,
   HomeLiveActivityItem,
   TrendingTagSummary,

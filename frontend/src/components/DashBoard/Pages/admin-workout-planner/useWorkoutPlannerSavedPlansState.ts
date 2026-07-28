@@ -135,11 +135,23 @@ export const useWorkoutPlannerSavedPlansState = ({
     }
   }, [authAxios, fetchSavedPlans, loadedPlanId, selectedClientId, setLoadedPlanName, setStatusMsg]);
 
-  const handleCardDuplicate = useCallback(async (planId: string, planName: string) => {
+  const handleCardDuplicate = useCallback(async (
+    planId: string,
+    planName: string,
+    targetClientId?: number | null,
+    durationWeeks?: number | null,
+  ) => {
     if (!selectedClientId) return;
+    const destinationClientId = targetClientId || selectedClientId;
+    const body: { targetClientId: number; durationWeeks?: number } = { targetClientId: destinationClientId };
+    if (durationWeeks) body.durationWeeks = durationWeeks;
+
     try {
-      await authAxios.post(`/api/workout-plans/${planId}/duplicate`, {});
-      setStatusMsg({ type: 'success', text: `Duplicated "${planName}" as draft.` });
+      await authAxios.post(`/api/workout-plans/${planId}/duplicate`, body);
+      setStatusMsg({
+        type: 'success',
+        text: `Copied "${planName}" to client #${destinationClientId} as a draft.`,
+      });
       fetchSavedPlans(selectedClientId);
     } catch (err) {
       logApiError('Duplicate plan failed', err);

@@ -1,0 +1,8 @@
+diff --git a/backend/tests/unit/aiDataWriteMacroLogDate.test.mjs b/backend/tests/unit/aiDataWriteMacroLogDate.test.mjs
+--- a/backend/tests/unit/aiDataWriteMacroLogDate.test.mjs
++++ b/backend/tests/unit/aiDataWriteMacroLogDate.test.mjs
+@@ -16,0 +17,4 @@
++vi.mock('../../services/encryption/encryptionService.mjs', () => ({
++  encrypt: vi.fn((value) => value),
++}));
++

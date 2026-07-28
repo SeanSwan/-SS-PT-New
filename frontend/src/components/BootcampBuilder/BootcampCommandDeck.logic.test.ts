@@ -81,6 +81,80 @@ describe('getBootcampCommandDeckModel', () => {
     );
   });
 
+  it('turns insufficient equipment evidence into launch-readiness repair work', () => {
+    const classWithShortage = bootcamp({
+      exercises: Array.from({ length: 16 }, (_, index) => exercise(`Exercise ${index + 1}`, Math.floor(index / 4), true)),
+      equipmentReadiness: {
+        type: 'insufficient_equipment',
+        code: 'insufficient_equipment',
+        severity: 'warning',
+        allowedCount: 12,
+        rejectedCount: 8,
+        requiredSlots: 16,
+        missingEquipmentCounts: { sled: 3, rower: 1 },
+        message: 'Selected equipment profile cannot fill every planned station slot.',
+      },
+    });
+
+    const model = getBootcampCommandDeckModel(classWithShortage, 'hybrid', false);
+
+    expect(model.equipmentShortage).toBe(true);
+    expect(model.equipmentAlertLabel).toBe('Equipment shortage: sled, rower');
+    expect(model.nextAction).toBe('Add or map equipment: sled, rower');
+    expect(model.repairQueue).toContain('Add or map equipment: sled, rower');
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Equipment', value: '12/16' }),
+    ]));
+  });
+  it('does not treat profile-applied warnings as shortages when enough equipment-backed exercises remain', () => {
+    const profileWarning = bootcamp({
+      exercises: Array.from({ length: 16 }, (_, index) => exercise(`Exercise ${index + 1}`, Math.floor(index / 4), true)),
+      equipmentReadiness: {
+        type: 'equipment',
+        code: 'equipment_profile_applied',
+        severity: 'warning',
+        allowedCount: 16,
+        rejectedCount: 2,
+        requiredSlots: 16,
+        missingEquipmentCounts: {},
+        message: 'Equipment profile applied with caution.',
+      },
+    });
+
+    const model = getBootcampCommandDeckModel(profileWarning, 'hybrid', false);
+
+    expect(model.equipmentShortage).toBe(false);
+    expect(model.equipmentAlertLabel).toBeNull();
+    expect(model.nextAction).toBe('Save template, export PDF, or launch Demo Mode.');
+    expect(model.repairQueue).toEqual([]);
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Equipment', value: '16/16', detail: '2 filtered out' }),
+    ]));
+  });
+
+  it('uses backend readiness messages when shortage counts have no equipment names', () => {
+    const classWithMessageOnlyShortage = bootcamp({
+      exercises: Array.from({ length: 16 }, (_, index) => exercise(`Exercise ${index + 1}`, Math.floor(index / 4), true)),
+      equipmentReadiness: {
+        type: 'equipment',
+        code: 'equipment_profile_applied',
+        severity: 'info',
+        allowedCount: 8,
+        rejectedCount: 8,
+        requiredSlots: 16,
+        missingEquipmentCounts: {},
+        message: 'Only 8 compatible exercises remain for 16 planned slots.',
+      },
+    });
+
+    const model = getBootcampCommandDeckModel(classWithMessageOnlyShortage, 'hybrid', false);
+
+    expect(model.equipmentShortage).toBe(true);
+    expect(model.equipmentAlertLabel).toBe('Only 8 compatible exercises remain for 16 planned slots.');
+    expect(model.nextAction).toBe('Only 8 compatible exercises remain for 16 planned slots.');
+    expect(model.repairQueue).toContain('Only 8 compatible exercises remain for 16 planned slots.');
+  });
+
   it('surfaces the first weak station before timing or media polish', () => {
     const weakStation = bootcamp({
       totalClassMin: 58,

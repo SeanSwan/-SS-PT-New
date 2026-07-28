@@ -24,7 +24,13 @@ const plans: SavedPlanSummary[] = [
   },
 ];
 
+const clients = [
+  { id: 42, firstName: 'Ava', lastName: 'Stone', username: 'ava' },
+  { id: 77, firstName: 'Swan', lastName: 'Sean Bot', username: 'swan_sean_bot' },
+];
+
 const props = {
+  clients,
   selectedClientId: 42,
   savedPlans: plans,
   savedPlansLoading: false,
@@ -91,6 +97,16 @@ describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
     expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-9m');
   });
 
+  it('duplicates a saved plan into the selected copy target and span', () => {
+    const onDuplicate = vi.fn();
+    render(<WorkoutPlannerSavedPlansSection {...props} onDuplicate={onDuplicate} />);
+
+    fireEvent.change(screen.getByLabelText(/copy duplicate target client/i), { target: { value: '77' } });
+    fireEvent.change(screen.getByLabelText(/copy duplicate span/i), { target: { value: '52' } });
+    fireEvent.click(screen.getByTestId('action-duplicate-plan-6m'));
+
+    expect(onDuplicate).toHaveBeenCalledWith('plan-6m', 'Six Month Foundation', 77, 52);
+  });
   it('offers a direct logger link for the current selected-client plan', () => {
     render(
       <WorkoutPlannerSavedPlansSection

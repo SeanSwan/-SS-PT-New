@@ -49,10 +49,14 @@ import {
   CheckCheck,
   BarChart3,
   MessageCircle,
+  ShieldAlert,
   Plus
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useCommunicationVoiceDraft } from './useCommunicationVoiceDraft';
+import AdminNotificationDeliveryHealth from './AdminNotificationDeliveryHealth';
+import AdminBroadcastComposer from './AdminBroadcastComposer';
+import AdminMessageReportQueue from './AdminMessageReportQueue';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -1028,6 +1032,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<'app' | 'sms' | 'email'>('app');
   const [activeTab, setActiveTab] = useState(0);
+  const [deliveryHealthVersion, setDeliveryHealthVersion] = useState(0);
   const [isTyping] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
@@ -1181,6 +1186,10 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
     );
   }, [conversations, searchQuery]);
 
+  const refreshBroadcastDeliveryHealth = useCallback(() => {
+    setDeliveryHealthVersion(prev => prev + 1);
+  }, []);
+
   const handleStartConversation = async () => {
     const participantId = participantToPayloadId(clientId);
     if (!participantId || isLoadingConversations) return;
@@ -1322,11 +1331,13 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
   // Render analytics dashboard
   const renderAnalytics = () => (
-    <SectionBlock>
-      <SectionSubTitle>
-        Communication Analytics
-      </SectionSubTitle>
-      <GridContainer>
+    <>
+      <AdminNotificationDeliveryHealth key={deliveryHealthVersion} />
+      <SectionBlock>
+        <SectionSubTitle>
+          Communication Analytics
+        </SectionSubTitle>
+        <GridContainer>
         <CardPanel>
           <MetricValue $tone="accent">
             {communicationAnalytics.totalMessages}
@@ -1348,8 +1359,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
           <SmallText>Unread Threads</SmallText>
           <ProgressBar $value={Math.min(communicationAnalytics.avgResponseTime * 20, 100)} $color={theme.orange} />
         </CardPanel>
-      </GridContainer>
-    </SectionBlock>
+        </GridContainer>
+      </SectionBlock>
+    </>
   );
 
   // Render templates management
@@ -1405,6 +1417,18 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
     </SectionBlock>
   );
 
+  const renderBroadcasts = () => (
+    <SectionBlock>
+      <AdminBroadcastComposer onBroadcastComplete={() => void refreshBroadcastDeliveryHealth()} />
+    </SectionBlock>
+  );
+
+  const renderModeration = () => (
+    <SectionBlock>
+      <AdminMessageReportQueue />
+    </SectionBlock>
+  );
+
   return (
     <PageWrapper>
       {/* Header */}
@@ -1431,6 +1455,14 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
         <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
           <BarChart3 size={18} />
           Analytics
+        </TabButton>
+        <TabButton $active={activeTab === 3} onClick={() => setActiveTab(3)}>
+          <Megaphone size={18} />
+          Broadcasts
+        </TabButton>
+        <TabButton $active={activeTab === 4} onClick={() => setActiveTab(4)}>
+          <ShieldAlert size={18} />
+          Moderation
         </TabButton>
       </TabBar>
 
@@ -1673,6 +1705,12 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       {/* Analytics Tab */}
       {activeTab === 2 && renderAnalytics()}
 
+      {/* Broadcasts Tab */}
+      {activeTab === 3 && renderBroadcasts()}
+
+      {/* Moderation Tab */}
+      {activeTab === 4 && renderModeration()}
+
       {/* Speed Dial / Floating Action Button */}
       <SpeedDialContainer>
         <SpeedDialFab
@@ -1686,7 +1724,12 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
             <UserPlus size={18} />
             New Conversation
           </SpeedDialActionBtn>
-          <SpeedDialActionBtn disabled title="Broadcast messaging backend not connected">
+          <SpeedDialActionBtn
+            onClick={() => {
+              setActiveTab(3);
+              setSpeedDialOpen(false);
+            }}
+          >
             <Megaphone size={18} />
             Broadcast Message
           </SpeedDialActionBtn>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: conversationController.mjs
  * PURPOSE: Conversation list, creation, and self-hide/leave handlers.
  */
@@ -26,6 +26,8 @@ import {
   touchConversation,
   upsertConversationParticipant,
 } from '../../services/messagingRepository.mjs';
+import { assertCanMessageUsers, MESSAGING_POLICY_DENIED_MESSAGE } from '../../services/messagingPolicyService.mjs';
+import { recordMessagingAdminOverrideAudit } from '../../services/messagingAdminOverrideAuditService.mjs';
 
 const CREATE_CONVERSATION_FAILED_MESSAGE = 'Failed to create conversation.';
 const FETCH_CONVERSATIONS_FAILED_MESSAGE = 'Failed to fetch conversations.';
@@ -85,6 +87,9 @@ export const createConversation = async (req, res) => {
       return res.status(400).json({ error: INVALID_PARTICIPANTS_MESSAGE });
     }
 
+    const policy = await assertCanMessageUsers({ actorId: creatorId, targetUserIds: otherParticipantIds });
+    if (!policy.allowed) return res.status(403).json({ error: MESSAGING_POLICY_DENIED_MESSAGE });
+
     if (requestedType === 'direct' && otherParticipantIds.length === 1) {
       const existing = await findDirectConversation(creatorId, otherParticipantIds[0]);
       if (existing) {
@@ -114,6 +119,12 @@ export const createConversation = async (req, res) => {
       }
 
       await trx.commit();
+      await recordMessagingAdminOverrideAudit({
+        actorId: creatorId,
+        targetUserIds: policy.adminOverrideUserIds,
+        conversationId: conversation.id,
+        action: 'conversation.created',
+      });
       const newConversation = await getConversationForViewer(conversation.id, creatorId);
       return res.status(201).json(newConversation);
     } catch (insertError) {

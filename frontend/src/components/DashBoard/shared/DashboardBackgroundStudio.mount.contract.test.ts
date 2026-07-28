@@ -19,6 +19,7 @@ describe('role dashboard background studio mount contract', () => {
     const adminHome = read('src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx');
     const studio = read('src/components/DashBoard/shared/DashboardBackgroundStudio.tsx');
     const recipes = read('src/components/UserDashboard/backgrounds/UserDashboardBackgroundRecipes.ts');
+    const styles = read('src/components/DashBoard/shared/DashboardBackgroundStudio.styles.ts');
 
     expect(routeComponents).toContain("export const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
     expect(routeComponents).toContain("export const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'))");
@@ -36,6 +37,10 @@ describe('role dashboard background studio mount contract', () => {
     expect(studio).toContain('useUserDashboardBackgroundPreference(brandLogo)');
     expect(studio).toContain('<UserDashboardBackgroundControls');
     expect(studio).toContain('DashboardBackgroundContext.Provider');
+    expect(styles).toContain('position: fixed;');
+    expect(styles).toContain('var(--user-dashboard-bg-art, transparent)');
+    expect(styles).toContain('width: min(760px, calc(100vw - 48px));');
+    expect(styles).toContain('max-height: min(68vh, 720px);');
     expect(recipes).toContain("'forest-swan'");
     expect(recipes).toContain("'deep-space-swan'");
     expect(recipes).toContain("'cyberpunk-swan'");

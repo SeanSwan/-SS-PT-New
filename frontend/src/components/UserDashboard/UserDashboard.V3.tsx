@@ -27,7 +27,7 @@ import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
 import { buildUserDashboardTeachCoachRoute } from './UserDashboardTeachCoachRoute';
-import UserDashboardBackgroundControls from './backgrounds/UserDashboardBackgroundControls';
+import UserDashboardBackgroundControlsDisclosure from './backgrounds/UserDashboardBackgroundControlsDisclosure';
 import useUserDashboardBackgroundPreference from './backgrounds/useUserDashboardBackgroundPreference';
 import { USER_DASHBOARD_TAB_IDS, type TabId } from './types/UserDashboardTypes';
 
@@ -64,7 +64,7 @@ const UserDashboardV3: React.FC = () => {
   const teachMePathname = `${location.pathname}#${dashboard.activeTab}`;
   const dashboardBackground = useUserDashboardBackgroundPreference(brandLogo);
   const dashboardBackgroundControls = (
-    <UserDashboardBackgroundControls
+    <UserDashboardBackgroundControlsDisclosure
       preference={dashboardBackground.preference}
       activeBackground={dashboardBackground.activeBackground}
       customUploadError={dashboardBackground.customUploadError}

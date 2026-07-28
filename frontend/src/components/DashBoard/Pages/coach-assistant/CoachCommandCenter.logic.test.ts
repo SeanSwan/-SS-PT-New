@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildCommandRouteContext,
   buildRouteContext,
   buildThreadSelectionSearchParams,
   buildWorkflowReturnLabel,
@@ -127,5 +128,51 @@ describe('CoachCommandCenter route context copy', () => {
     expect(context.prompt).toContain('Workout Logger');
     expect(context.prompt).not.toContain('selected client');
     expect(context.status).toBe('My 2026-06-18 workout context loaded');
+  });
+
+  it('loads message-summary copy without embedding private thread text', () => {
+    const context = buildRouteContext('summarize_messages', null);
+
+    expect(context.prompt).toContain('Message thread summary');
+    expect(context.prompt).toContain('selected thread route context');
+    expect(context.prompt).toContain('read-only summary');
+    expect(context.prompt).toContain('draft suggested replies only after I ask');
+    expect(context.prompt).not.toContain('knee');
+    expect(context.prompt).not.toContain('squats');
+    expect(context.status).toBe('Message thread summary context loaded');
+  });
+});
+
+describe('CoachCommandCenter message action route context', () => {
+  it.each([
+    ['create_task_from_message', 'Create a review-gated task draft from the selected message context'],
+    ['schedule_from_message', 'Prepare a review-gated schedule follow-up from the selected message context'],
+    ['log_workout_from_message', 'Prepare a review-gated workout log draft from the selected message context'],
+  ])('loads %s copy without embedding private message text', (intent, expectedCopy) => {
+    const context = buildRouteContext(intent, null);
+
+    expect(context.prompt).toContain(expectedCopy);
+    expect(context.prompt).toContain('selected thread route context');
+    expect(context.prompt).toContain('selected message reference');
+    expect(context.prompt).toContain('approval');
+    expect(context.prompt).not.toContain('knee');
+    expect(context.prompt).not.toContain('squats');
+    expect(context.status).toContain('Message action context loaded');
+  });
+
+  it('preserves only safe message identifiers in command-lane route context', () => {
+    const context = buildCommandRouteContext('create_task_from_message', null, {
+      threadId: '7',
+      sourceMessageId: 'm-injury',
+      messageText: 'knee pain after squats',
+    } as any);
+
+    expect(context).toMatchObject({
+      source: 'coach-command-center',
+      intent: 'create_task_from_message',
+      threadId: '7',
+      sourceMessageId: 'm-injury',
+    });
+    expect(context).not.toHaveProperty('messageText');
   });
 });

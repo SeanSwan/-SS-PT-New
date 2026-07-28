@@ -74,4 +74,32 @@ describe('messaging routes security hardening', () => {
     expect(controllerSource).toContain("'lastName', u.\"lastName\"");
     expect(controllerSource).toContain("'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END");
   });
+  it('gates messaging search and writes through policy plus route rate limits', () => {
+    const routeSource = readSource('routes/messagingRoutes.mjs');
+    const conversationSource = readSource('controllers/messaging/conversationController.mjs');
+    const groupSource = readSource('controllers/messaging/groupController.mjs');
+    const messageSource = readSource('controllers/messaging/messageController.mjs');
+    const socketSource = readSocketSource();
+
+    expect(routeSource).toContain('messagingSearchLimiter');
+    expect(routeSource).toContain('messagingConversationLimiter');
+    expect(routeSource).toContain('messagingSendLimiter');
+    expect(routeSource).toContain("router.get('/users/search', protect, messagingTier, messagingSearchLimiter, searchUsers)");
+    expect(routeSource).toContain("router.post('/conversations', protect, messagingTier, messagingConversationLimiter");
+    expect(routeSource).toContain("router.post('/conversations/:id/participants', protect, messagingTier, messagingConversationLimiter");
+    expect(routeSource).toContain("router.post('/conversations/:id/messages', protect, messagingTier, messagingSendLimiter, sendMessage)");
+
+    expect(conversationSource).toContain('assertCanMessageUsers');
+    expect(groupSource).toContain('assertCanMessageUsers');
+    expect(messageSource).toContain('getMessagingSearchScope');
+    expect(messageSource).toContain('if (query.length < 2) return res.json([]);');
+    expect(messageSource).not.toContain('!query || query.length < 2');
+    expect(messageSource).toContain('assertCanMessageConversation');
+    expect(messageSource).not.toContain('OR email ILIKE :query');
+
+    expect(socketSource).toContain('assertCanMessageConversation');
+    expect(socketSource).toContain('isSocketRateLimited');
+    expect(socketSource).toContain("event: 'send_message'");
+    expect(socketSource).toContain("event: 'is_typing'");
+  });
 });

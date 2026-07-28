@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "evidence/2",
+  "deniedFields": [
+    "account_email",
+    "connector_url",
+    "cookie",
+    "customer_data",
+    "email",
+    "oauth_url",
+    "raw_content",
+    "raw_html",
+    "screenshot",
+    "screenshot_url",
+    "token"
+  ],
+  "requiredDedupeKeys": ["k1", "k2", "k3", "k4", "k5"]
+}

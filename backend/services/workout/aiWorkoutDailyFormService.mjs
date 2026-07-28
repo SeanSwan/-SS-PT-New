@@ -35,6 +35,8 @@ import {
   scheduledWorkoutDate,
   scheduledWorkoutSessionFields,
 } from './aiWorkoutScheduledSessionService.mjs';
+import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
+import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -59,6 +61,7 @@ export async function submitAiWorkoutLogAsDailyForm({
   scheduledSessionId,
   trainerId,
   userRole = 'trainer',
+  source,
   sequelize,
 }) {
   const parsedClientId = parsePositiveInteger(clientId);
@@ -70,6 +73,16 @@ export async function submitAiWorkoutLogAsDailyForm({
     'Sequelize transaction boundary is required',
     'WORKOUT_APPLY_FAILED',
   );
+
+  const sourcePolicy = deriveWorkoutLogSourcePolicy(source);
+  if (
+    sourcePolicy.isHistoricalImport
+    && scheduledSessionId !== undefined
+    && scheduledSessionId !== null
+    && scheduledSessionId !== ''
+  ) {
+    throw new AiWorkoutDailyFormError('Historical workout imports cannot be linked to scheduled sessions');
+  }
 
   const normalizedExercises = normalizeAiExercises(exercises);
   const requestedDuration = parseNonNegativeInteger(duration, null);
@@ -130,7 +143,8 @@ export async function submitAiWorkoutLogAsDailyForm({
     const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
     const billingDecision = buildWorkoutSessionBillingDecision(client, {
       scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
-      nonBillablePlannedAssignment: isAiNonBillablePlannedAssignment(plannedAssignmentMetadata),
+      nonBillablePlannedAssignment: sourcePolicy.suppressPaidSessionDeduction
+        || isAiNonBillablePlannedAssignment(plannedAssignmentMetadata),
       creditsRequired: scheduledCreditsRequired,
     });
     if (!billingDecision.canLogWorkout) {
@@ -176,6 +190,8 @@ export async function submitAiWorkoutLogAsDailyForm({
       submittedAt: new Date(),
       totalSets,
       estimatedDuration,
+      source: sourcePolicy.source,
+      historicalImport: sourcePolicy.isHistoricalImport,
     };
     if (overallIntensity !== null) formData.overallIntensity = overallIntensity;
     if (plannedAssignmentMetadata) formData.plannedAssignment = plannedAssignmentMetadata;
@@ -197,16 +213,18 @@ export async function submitAiWorkoutLogAsDailyForm({
     if (billingDecision.sessionDeducted) {
       await dailyForm.update({ sessionDeducted: true }, { transaction });
     }
-    const planProgress = await advanceAiPlannedAssignmentAfterLog({
-      WorkoutPlan: models.WorkoutPlan,
-      assignment: plannedAssignmentMetadata,
-      clientId: parsedClientId,
-      dailyWorkoutFormId: dailyForm.id,
-      workoutSessionId: workoutSession.id,
-      completedAt: dailyForm.submittedAt || new Date().toISOString(),
-      hasScheduledSession: Boolean(linkedScheduledSession),
-      transaction,
-    });
+    const planProgress = sourcePolicy.suppressPlanAdvancement
+      ? null
+      : await advanceAiPlannedAssignmentAfterLog({
+        WorkoutPlan: models.WorkoutPlan,
+        assignment: plannedAssignmentMetadata,
+        clientId: parsedClientId,
+        dailyWorkoutFormId: dailyForm.id,
+        workoutSessionId: workoutSession.id,
+        completedAt: dailyForm.submittedAt || new Date().toISOString(),
+        hasScheduledSession: Boolean(linkedScheduledSession),
+        transaction,
+      });
 
     await completeAiLinkedScheduledSession({
       linkedScheduledSession,
@@ -219,9 +237,11 @@ export async function submitAiWorkoutLogAsDailyForm({
     const billingStatus = billingDecision.sessionDeducted
       ? (billingDecision.creditsToDeduct > 0 ? 'deducted' : 'previously_deducted')
       : 'not_deducted';
-    const billingCreditsRequired = billingDecision.creditsToDeduct > 0
-      ? billingDecision.creditsToDeduct
-      : normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired);
+    const billingCreditsRequired = sourcePolicy.suppressPaidSessionDeduction
+      ? 0
+      : billingDecision.creditsToDeduct > 0
+        ? billingDecision.creditsToDeduct
+        : normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired);
     const billing = {
       status: billingStatus,
       shouldDeduct: billingDecision.shouldDeduct,
@@ -231,6 +251,10 @@ export async function submitAiWorkoutLogAsDailyForm({
       remainingSessions: Math.max(0, availableSessionsBeforeSave - billingDecision.creditsToDeduct),
     };
     await transaction.commit();
+    const challengeProgress = await applyAiWorkoutChallengeProgress({
+      sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
+      workoutDateIso, estimatedDuration, exercises: normalizedExercises,
+    });
 
     return {
       id: dailyForm.id,
@@ -249,7 +273,10 @@ export async function submitAiWorkoutLogAsDailyForm({
       xpAwarded: null,
       streakDays: null,
       xp: null,
+      source: sourcePolicy.source,
+      historicalImport: sourcePolicy.isHistoricalImport,
       billing,
+      challengeProgress,
       form: {
         id: dailyForm.id,
         clientId: parsedClientId,
@@ -259,6 +286,8 @@ export async function submitAiWorkoutLogAsDailyForm({
         estimatedDuration,
         ...(linkedScheduledSession ? { scheduledSessionId: linkedScheduledSession.id } : {}),
         sessionDeducted: billingDecision.sessionDeducted,
+        source: sourcePolicy.source,
+        historicalImport: sourcePolicy.isHistoricalImport,
         ...(plannedAssignmentMetadata ? { plannedAssignment: plannedAssignmentMetadata } : {}),
         ...(planProgress?.advanced ? { planProgress } : {}),
       },

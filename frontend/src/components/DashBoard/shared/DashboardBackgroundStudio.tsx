@@ -68,12 +68,14 @@ export const DashboardBackgroundSettingsPanel: React.FC<DashboardBackgroundSetti
     ? `Rotate ${rotationLabel}`
     : 'Fixed';
 
+  const toggleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    setOpen((current) => !current);
+  };
+
   return (
-    <DashboardBackgroundSettingsDetails
-      open={open}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <DashboardBackgroundSettingsSummary aria-label={`${scopeLabel} dashboard background settings`}>
+    <DashboardBackgroundSettingsDetails open={open}>
+      <DashboardBackgroundSettingsSummary role="button" aria-expanded={open} aria-label={`${scopeLabel} dashboard background settings`} onClick={toggleOpen}>
         <DashboardBackgroundSummaryMain>
           <Palette size={18} aria-hidden="true" />
           <span className="background-summary-copy">

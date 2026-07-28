@@ -19,6 +19,7 @@ import { Router } from 'express';
 import eventBus from '../services/eventBus.mjs';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { FORMAT_CONFIG } from '../services/bootcamp/bootcampConstants.mjs';
+import { verifyBootcampEquipmentProfileAccess } from '../services/bootcamp/bootcampEquipmentContext.mjs';
 import {
   generateBootcampClass,
   saveBootcampTemplate,
@@ -42,6 +43,12 @@ router.use(authorize(['admin', 'trainer']));
 const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
 const NOT_FOUND_PATTERN = /not found/i;
+const hasProvidedValue = (value) => value !== undefined && value !== null && value !== '';
+const parseOptionalPositiveInteger = (value) => {
+  if (!hasProvidedValue(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const getBootcampRouteErrorResponse = (
   err = {},
@@ -63,7 +70,7 @@ router.post('/generate', async (req, res) => {
       stationCount, exercisesPerStation,
       targetDuration, expectedParticipants,
       spaceProfileId, equipmentProfileId,
-      name, includeStretch, stretchDurationMin,
+      name, optPhase, includeStretch, stretchDurationMin,
     } = req.body;
 
     const VALID_STYLES = [
@@ -89,6 +96,15 @@ router.post('/generate', async (req, res) => {
     const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
     const safeDuration = Math.min(Math.max(parseInt(targetDuration, 10) || 45, 20), 90);
     const safeParticipants = Math.min(Math.max(parseInt(expectedParticipants, 10) || 12, 1), 50);
+    const parsedOptPhase = optPhase == null ? NaN : parseInt(optPhase, 10);
+    const safeOptPhase = Number.isFinite(parsedOptPhase) && parsedOptPhase >= 1 && parsedOptPhase <= 5
+      ? parsedOptPhase
+      : undefined;
+    const parsedEquipmentProfileId = parseOptionalPositiveInteger(equipmentProfileId);
+    if (parsedEquipmentProfileId === null) {
+      return res.status(400).json({ success: false, error: 'Valid equipmentProfileId is required when provided' });
+    }
+    await verifyBootcampEquipmentProfileAccess(parsedEquipmentProfileId, req.user);
 
     const result = await generateBootcampClass({
       trainerId: req.user.id,
@@ -101,7 +117,8 @@ router.post('/generate', async (req, res) => {
       targetDuration: safeDuration,
       expectedParticipants: safeParticipants,
       spaceProfileId: spaceProfileId ? parseInt(spaceProfileId, 10) : undefined,
-      equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : undefined,
+      equipmentProfileId: parsedEquipmentProfileId,
+      optPhase: safeOptPhase,
       name: typeof name === 'string' ? name.slice(0, 200) : undefined,
       includeStretch: includeStretch !== false,
       stretchDurationMin: Math.min(Math.max(parseInt(stretchDurationMin, 10) || 3, 1), 10),
@@ -110,6 +127,9 @@ router.post('/generate', async (req, res) => {
     return res.json({ success: true, bootcamp: result });
   } catch (err) {
     logger.error('[Bootcamp] Generate failed:', err.message);
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ success: false, error: err.message });
+    }
     return res.status(500).json({ success: false, error: 'Failed to generate boot camp class' });
   }
 });

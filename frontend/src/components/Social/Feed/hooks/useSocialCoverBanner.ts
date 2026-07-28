@@ -22,10 +22,12 @@
 
 import { useEffect, useState } from 'react';
 import profileService, {
+  DEFAULT_BANNER_FRAME_HEIGHT,
   DEFAULT_BANNER_OBJECT_FIT,
   isBannerObjectFit,
   normalizeBannerCollageLayout,
   normalizeBannerCollagePhotos,
+  normalizeBannerFrameHeight,
   normalizeBannerImageScale,
   normalizeBannerObjectPosition,
   normalizeBannerStickyCarousel,
@@ -39,6 +41,7 @@ export interface SocialCoverBanner {
   bannerObjectPosition: BannerObjectPosition;
   bannerObjectFit: BannerObjectFit;
   bannerImageScale: number;
+  bannerFrameHeight: number;
   bannerCollagePhotos: string[];
   bannerCollageLayout: BannerCollageLayout;
   bannerStickyCarousel: boolean;
@@ -76,6 +79,7 @@ export function useSocialCoverBanner(refreshKey = 0): SocialCoverBanner | null {
           bannerObjectPosition: normalizeBannerObjectPosition(profile.bannerObjectPosition),
           bannerObjectFit,
           bannerImageScale: normalizeBannerImageScale(profile.bannerImageScale),
+          bannerFrameHeight: normalizeBannerFrameHeight(profile.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT),
           bannerCollagePhotos,
           bannerCollageLayout: normalizeBannerCollageLayout(profile.bannerCollageLayout),
           bannerStickyCarousel: normalizeBannerStickyCarousel(profile.bannerStickyCarousel),

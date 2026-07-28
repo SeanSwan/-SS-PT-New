@@ -257,7 +257,7 @@
 // backend/routes/adminClientRoutes.mjs
 import express from 'express';
 import multer from 'multer';
-import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { protect, authorize, ownerAdminOnly } from '../middleware/authMiddleware.mjs';
 import adminClientController from '../controllers/adminClientController.mjs';
 import { validationMiddleware } from '../middleware/validationMiddleware.zod.mjs';
 import { CreateExternalClientSchema } from '../schemas/clientSource.mjs';
@@ -296,9 +296,9 @@ router.get('/clients/activation-queue', adminClientController.getClientActivatio
 router.get('/clients/export', adminClientController.exportClients);
 router.get('/clients/:clientId', adminClientController.getClientDetails);
 router.post('/clients', adminClientController.createClient);
-router.put('/clients/:clientId/restore', adminClientController.restoreClient);
+router.put('/clients/:clientId/restore', ownerAdminOnly, adminClientController.restoreClient);
 router.put('/clients/:clientId', adminClientController.updateClient);
-router.delete('/clients/:clientId', adminClientController.deleteClient);
+router.delete('/clients/:clientId', ownerAdminOnly, adminClientController.deleteClient);
 
 // Create external client (Move Fitness, etc.) — Zod validated
 router.post('/clients/create-external', validationMiddleware(CreateExternalClientSchema), adminClientController.createExternalClient);

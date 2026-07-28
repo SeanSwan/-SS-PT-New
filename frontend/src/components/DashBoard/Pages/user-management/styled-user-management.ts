@@ -380,6 +380,37 @@ export const FormInput = styled.input`
   }
 `;
 
+export const SetupLinkToggle = styled.label`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.24));
+  background: var(--surface-accent-soft, rgba(96, 192, 240, 0.08));
+  color: var(--text-primary, ${theme.text});
+  cursor: pointer;
+`;
+
+export const SetupLinkCheckbox = styled.input`
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin-top: 0.1rem;
+  accent-color: var(--accent-primary, ${theme.cyan});
+  cursor: pointer;
+`;
+
+export const SetupLinkResult = styled.div`
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--success-border, rgba(0, 191, 143, 0.32));
+  background: var(--success-surface, rgba(0, 191, 143, 0.12));
+`;
+
 export const FormSelect = styled.select`
   width: 100%;
   min-height: 44px;

@@ -1,0 +1,48 @@
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
+@@ -16,0 +17,1 @@
++import NutritionDiaryTimeline from './NutritionDiaryTimeline';
+@@ -97,4 +98,9 @@
+   const handleReviewSaved = useCallback((success: boolean, options?: { closeDrawer?: boolean }) => {
+-    if (success) handleMealLogResult(true);
++    if (success) {
++      handleMealLogResult(true);
++      setActiveTab('today');
++    }
+     if (success && options?.closeDrawer !== false) setReviewDraft(null);
+   }, [handleMealLogResult]);
++
++  const handleCloseReview = useCallback(() => setReviewDraft(null), []);
+@@ -165,13 +171,23 @@
+-            {activeTab === 'today' && (macroUnavailablePanel || (
+-              <>
++            {activeTab === 'today' && (
++              macroError ? (
++                <>
++                  {macroUnavailablePanel}
++                  <section aria-label="Nutrition Today diary">
++                    <NutritionDiaryTimeline
++                      gentleMode={gentleMode}
++                      refreshKey="summary-unavailable"
++                      onReviewDraft={setReviewDraft}
++                    />
++                  </section>
++                </>
++              ) : (
+                 <NutritionTodayPanel
+                   summary={summary}
+                   loading={macroLoading}
+                   onNavigate={(target) => setActiveTab(target)}
+                   onReviewDraft={setReviewDraft}
+                   gentleMode={gentleMode}
+                   onAskCoach={handleGentleCoach}
+                   trainingDay={trainingDay}
+                 />
+-              </>
+-            ))}
++              )
++            )}
+@@ -224,1 +240,1 @@
+-      <NutritionReviewDrawer draft={reviewDraft} onClose={() => setReviewDraft(null)} onSaved={handleReviewSaved} />
++      <NutritionReviewDrawer draft={reviewDraft} onClose={handleCloseReview} onSaved={handleReviewSaved} />

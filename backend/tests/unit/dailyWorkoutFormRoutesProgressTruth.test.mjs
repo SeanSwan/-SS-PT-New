@@ -261,13 +261,16 @@ describe('dailyWorkoutFormRoutes — client self-log trainerId attribution (Phas
     );
   });
 
-  it('branches on self-log roles to look up an active assignment', () => {
-    // Lock the shape of the role-gated derivation. Any refactor that
-    // drops the role branch would re-stamp the actor as the trainer.
+  it('branches on same-user self-log actors to look up an active assignment', () => {
+    // Admin/trainer personal logging uses forceSelfMode on the frontend,
+    // so the backend must treat parsedClientId === actor id as self-log
+    // for trainer attribution. The client/user guard above still keeps
+    // member self-log limited to their own account.
     const idx = source.indexOf('let attributedTrainerId');
     expect(idx).toBeGreaterThan(-1);
-    const slice = source.slice(idx, idx + 2000);
-    expect(slice).toMatch(/if\s*\(\s*isWorkoutSelfLogRole\(userRole\)\s*\)/);
+    const slice = source.slice(idx, idx + 2200);
+    expect(slice).toMatch(/const\s+isSelfWorkoutLogActor\s*=\s*isWorkoutSelfLogRole\(userRole\)\s*\|\|\s*parsedClientId\s*===\s*userNumericId/);
+    expect(slice).toMatch(/if\s*\(\s*isSelfWorkoutLogActor\s*\)/);
     expect(slice).toMatch(/ClientTrainerAssignment[\s\S]{0,300}findOne/);
     expect(slice).toMatch(/status:\s*['"]active['"]/);
   });
@@ -509,3 +512,4 @@ describe('dailyWorkoutFormRoutes - progress-detailed access guard (Slice 232)', 
     expect(volumeIdx).toBeGreaterThan(mergeIdx);
   });
 });
+

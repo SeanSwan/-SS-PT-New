@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: GroupManagementPanel.tsx
  * PURPOSE: Group chat rename, member, and role controls for messaging threads.
  */
@@ -34,7 +34,7 @@ import {
 
 interface Props {
   conversation: ConversationData;
-  currentUserId: number;
+  currentUserId: string | number;
   searchUsers: (query: string) => Promise<SearchUserResult[]>;
   onRename: (conversationId: string | number, name: string) => Promise<ConversationData | null>;
   onAddParticipants: (conversationId: string | number, participantIds: number[], adminIds?: number[]) => Promise<ConversationData | null>;

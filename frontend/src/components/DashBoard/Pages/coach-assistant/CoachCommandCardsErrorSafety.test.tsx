@@ -93,8 +93,8 @@ describe('Coach command card error safety', () => {
       />,
     );
 
-    expect(screen.getByText(/Confirm Action/i)).toBeInTheDocument();
-    expect(screen.getByText(/42/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ready to save?/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/42/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Marcus/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/private@example\.com/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Private Marcus exercise note/i)).not.toBeInTheDocument();

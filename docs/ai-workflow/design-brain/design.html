@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SwanStudios Design Brain — Static Visual Reference</title>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  DESIGN BRAIN — STATIC VISUAL REFERENCE (design.html)
+  ═══════════════════════════════════════════════════════════════════════════
+  Purpose:   Visual mirror of docs/ai-workflow/design-brain/design.md.
+             Renders the Crystalline Swan design system so a human or agent
+             can SEE the rules the markdown states. Where the two disagree,
+             design.md (canonical) wins.
+  Source:    docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md
+  Contract:  Fully self-contained. No external scripts, styles, fonts,
+             fetches, or live data. Placeholder demo copy only — no PII,
+             no secrets. Minimal inline JS for cosmetic demo toggles;
+             the page reads completely with JS disabled.
+  A11y:      Semantic HTML, :focus-visible on all samples, >=44px demo
+             controls, WCAG 4.5:1 text contrast, all animation gated
+             behind @media (prefers-reduced-motion: no-preference).
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+/* ══════════════ 0. TOKENS ══════════════ */
+:root {
+  /* Crystalline Swan — active palette */
+  --obsidian-black: #0A0A0F;     /* Obsidian Black — page background */
+  --bg-base: var(--obsidian-black); /* alias for this page only; app-level --bg-base fallback is #030712 per design.md */
+  --carbon: #141419;             /* Card dark */
+  --graphite: #1A1A24;           /* Surface dark — modals, drawers */
+  --midnight-sapphire: #002060;  /* Primary — button bg */
+  --royal-depth: #003080;        /* Surface — elevated cards */
+  --ice-wing: #60C0F0;           /* Cyan glow — gaming accents, XP bars */
+  --arctic-cyan: #50A0F0;        /* DATA ONLY — charts. Not buttons/glow */
+  --gilded-fern: #C6A84B;        /* Luxury accent — gold */
+  --frost-white: #E0ECF4;        /* Text primary */
+  --swan-lavender: #4070C0;      /* Tertiary */
+  --wing-purple: #8B5CF6;        /* Glow accent — purple buttons, focus */
+
+  /* Semantic — per design.md §4: success=Ice Wing, warn=Gilded Fern, danger=the ONE off-palette red, info=Swan Lavender */
+  --sem-success: #60C0F0;
+  --sem-warn: #C6A84B;
+  --sem-danger: #E5484D;         /* restrained red — also T4 tier */
+  --sem-info: #4070C0;
+
+  /* Cyberforest — Hermes operator surfaces ONLY */
+  --forest-deep: #0E2A1E;
+  --forest-mid: #1A4032;
+
+  /* Derived */
+  --text-primary: var(--frost-white, #E0ECF4);
+  --text-muted: #9FB2C8;         /* 4.5:1+ on all dark surfaces here */
+  --border-electric: rgba(96, 192, 240, 0.25);
+  --border-electric-hover: rgba(96, 192, 240, 0.5);
+  --border-gold: rgba(198, 168, 75, 0.3);
+
+  /* Type stacks — system fallbacks only; no external font loading */
+  --font-heading: 'Plus Jakarta Sans', 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+  --font-drama: 'Cormorant Garamond', 'Palatino Linotype', Georgia, 'Times New Roman', serif;
+  --font-data: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace;
+  --font-ui: 'Sora', 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+
+  /* Modular spacing scale */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  --sp-6: 32px; --sp-7: 48px; --sp-8: 72px; --sp-9: 108px;
+
+  /* Radius scale */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-pill: 999px;
+}
+
+/* ══════════════ 1. BASE ══════════════ */
+* { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+body {
+  margin: 0;
+  background: var(--obsidian-black, #0A0A0F);
+  color: var(--text-primary, #E0ECF4);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); line-height: 1.2; margin: 0 0 var(--sp-4); }
+h2 { font-size: 28px; letter-spacing: -0.01em; }
+h3 { font-size: 18px; color: var(--text-primary); }
+p { margin: 0 0 var(--sp-4); }
+code { font-family: var(--font-data); font-size: 0.9em; color: var(--ice-wing, #60C0F0); }
+a { color: var(--ice-wing, #60C0F0); }
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--wing-purple, #8B5CF6);
+  outline-offset: 2px; /* design.md §10: focus ring offset 2px */
+  border-radius: 4px;
+}
+
+/* ══════════════ 2. LAYOUT SHELL ══════════════ */
+.banner {
+  background: linear-gradient(90deg, var(--midnight-sapphire, #002060), var(--graphite, #1A1A24));
+  border-bottom: 1px solid var(--border-gold);
+  color: var(--frost-white, #E0ECF4);
+  font-family: var(--font-data);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: var(--sp-3) var(--sp-5);
+  text-align: center;
+}
+.banner strong { color: var(--gilded-fern, #C6A84B); }
+.page-head {
+  max-width: 1180px; margin: 0 auto;
+  padding: var(--sp-8) var(--sp-5) var(--sp-5);
+}
+.page-head h1 { font-size: 44px; letter-spacing: -0.02em; margin-bottom: var(--sp-2); }
+.page-head .sub {
+  font-family: var(--font-drama); font-style: italic; font-size: 22px;
+  color: var(--text-muted);
+}
+.toc {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-electric);
+  border-bottom: 1px solid var(--border-electric);
+  padding: var(--sp-2) var(--sp-4);
+  overflow-x: auto;
+}
+.toc ol {
+  display: flex; gap: var(--sp-1); list-style: none;
+  margin: 0 auto; padding: 0; max-width: 1180px; white-space: nowrap;
+}
+.toc a {
+  display: inline-flex; align-items: center;
+  min-height: 44px; padding: 0 var(--sp-3);
+  font-family: var(--font-ui); font-size: 12.5px; letter-spacing: 0.03em;
+  color: var(--text-muted); text-decoration: none; border-radius: var(--r-sm);
+}
+.toc a:hover { color: var(--frost-white); background: rgba(96, 192, 240, 0.08); }
+main { max-width: 1180px; margin: 0 auto; padding: 0 var(--sp-5) var(--sp-9); }
+section { padding: var(--sp-8) 0 var(--sp-6); border-bottom: 1px solid rgba(96, 192, 240, 0.08); }
+section:last-of-type { border-bottom: none; }
+.kicker {
+  font-family: var(--font-data); font-size: 12px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--gilded-fern, #C6A84B);
+  margin-bottom: var(--sp-2);
+}
+.rule-caption {
+  font-size: 14px; color: var(--text-muted); max-width: 76ch;
+  border-left: 2px solid var(--border-gold); padding-left: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+.rule-caption strong { color: var(--frost-white); }
+
+/* ══════════════ 3. GLASS PANEL SYSTEM (C12) ══════════════ */
+.panel {
+  background: linear-gradient(135deg, rgba(0, 32, 96, 0.65), rgba(0, 48, 128, 0.55));
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  box-shadow:
+    0 1px 0 rgba(96, 192, 240, 0.08) inset,
+    0 20px 60px rgba(0, 16, 40, 0.4),
+    0 0 120px rgba(139, 92, 246, 0.06);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+}
+.panel--luxury {
+  border: 1px solid rgba(198, 168, 75, 0.35);
+  box-shadow: 0 0 40px rgba(198, 168, 75, 0.12), 0 20px 60px rgba(0, 16, 40, 0.4);
+}
+.panel--obsidian {
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.85), rgba(26, 26, 36, 0.75));
+  border: 1px solid rgba(96, 192, 240, 0.1);
+}
+
+/* ══════════════ 4. §1 COLOR SYSTEM ══════════════ */
+.swatch-grid {
+  display: grid; gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin-bottom: var(--sp-6);
+}
+.swatch {
+  background: var(--carbon, #141419);
+  border: 1px solid rgba(96, 192, 240, 0.12);
+  border-radius: var(--r-md); overflow: hidden;
+}
+.swatch .chip { height: 64px; position: relative; }
+.swatch .chip .flag {
+  position: absolute; top: 8px; right: 8px;
+  font-family: var(--font-data); font-size: 10px; letter-spacing: 0.1em;
+  background: var(--obsidian-black); color: var(--sem-warn);
+  border: 1px solid var(--sem-warn); border-radius: var(--r-pill);
+  padding: 3px 9px;
+}
+.swatch .meta { padding: var(--sp-3) var(--sp-4); }
+.swatch .meta b { display: block; font-size: 14px; }
+.swatch .meta code { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.swatch .meta .use { display: block; font-size: 12px; color: var(--text-muted); margin-top: var(--sp-2); }
+.swatch .meta .use em { color: var(--frost-white); font-style: normal; }
+.operator-note {
+  display: inline-block; margin: var(--sp-2) 0 var(--sp-4);
+  font-family: var(--font-data); font-size: 12px; letter-spacing: 0.06em;
+  color: var(--sem-warn); border: 1px dashed var(--sem-warn);
+  border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-3);
+}
+
+/* ══════════════ 5. §2 TYPOGRAPHY ══════════════ */
+.type-specimen {
+  display: grid; grid-template-columns: 180px 1fr; gap: var(--sp-4);
+  align-items: baseline; padding: var(--sp-4) 0;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.08);
+}
+.type-specimen .label { font-family: var(--font-data); font-size: 12px; color: var(--text-muted); }
+.spec-heading { font-family: var(--font-heading); font-size: 34px; font-weight: 700; letter-spacing: -0.015em; }
+.spec-drama { font-family: var(--font-drama); font-style: italic; font-size: 34px; }
+.spec-data { font-family: var(--font-data); font-size: 22px; color: var(--ice-wing); }
+.spec-ui { font-family: var(--font-ui); font-size: 20px; letter-spacing: 0.02em; }
+.scale-ramp p { margin: var(--sp-2) 0; }
+.drama-moment {
+  margin: var(--sp-6) 0 0; padding: var(--sp-6);
+  border-left: 3px solid var(--gilded-fern);
+  background: linear-gradient(90deg, rgba(198, 168, 75, 0.06), transparent 70%);
+}
+.drama-moment p {
+  font-family: var(--font-drama); font-style: italic;
+  font-size: clamp(26px, 4vw, 44px); line-height: 1.25; margin: 0;
+  color: var(--frost-white);
+}
+.drama-moment cite { font-family: var(--font-data); font-style: normal; font-size: 12px; color: var(--text-muted); }
+
+/* ══════════════ 6. §3 SPACING & RADIUS ══════════════ */
+.space-row { display: flex; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-2); }
+.space-row .tag { font-family: var(--font-data); font-size: 12px; width: 120px; color: var(--text-muted); }
+.space-bar { height: 14px; background: linear-gradient(90deg, var(--swan-lavender), var(--ice-wing)); border-radius: 3px; }
+.radius-row { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin-top: var(--sp-6); }
+.radius-demo {
+  width: 120px; height: 84px; background: var(--graphite);
+  border: 1px solid var(--border-electric);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data); font-size: 12px; color: var(--text-muted);
+}
+
+/* ══════════════ 7. §4 BUTTONS — GlowButton family ══════════════ */
+.btn {
+  font-family: var(--font-ui); font-size: 15px; font-weight: 600;
+  letter-spacing: 0.02em; cursor: pointer;
+  min-height: 44px; min-width: 44px; padding: 0 var(--sp-5);
+  border-radius: var(--r-md); border: 1px solid transparent;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  color: var(--frost-white, #E0ECF4);
+  transition: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* motion.md ban: never transition box-shadow — glow state changes apply instantly */
+  .btn { transition: transform 0.15s ease; }
+  .btn:not(:disabled):active { transform: translateY(1px); }
+}
+/* Primary — BLUE bg → PURPLE glow (Dual-Button Glow, half 1) */
+.btn--primary {
+  background: linear-gradient(160deg, var(--royal-depth, #003080), var(--midnight-sapphire, #002060));
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.35), 0 4px 14px rgba(0, 16, 40, 0.5);
+}
+.btn--primary:hover { box-shadow: 0 0 28px rgba(139, 92, 246, 0.55), 0 4px 14px rgba(0, 16, 40, 0.5); }
+.btn--primary:focus-visible { outline-color: var(--wing-purple, #8B5CF6); }
+/* Accent — PURPLE bg → CYAN glow (Dual-Button Glow, half 2; design.md §10 naming) */
+.btn--accent {
+  background: linear-gradient(160deg, #9D6FF8, var(--wing-purple, #8B5CF6));
+  color: #0A0A0F; font-weight: 700;
+  border-color: rgba(96, 192, 240, 0.45);
+  box-shadow: 0 0 18px rgba(96, 192, 240, 0.4), 0 4px 14px rgba(0, 16, 40, 0.5);
+}
+.btn--accent:hover { box-shadow: 0 0 28px rgba(96, 192, 240, 0.6), 0 4px 14px rgba(0, 16, 40, 0.5); }
+.btn--accent:focus-visible { outline-color: var(--ice-wing, #60C0F0); }
+/* Luxury — Graphite bg, Gilded Fern border + label, gold glow on focus (design.md §10) */
+.btn--luxury {
+  background: var(--graphite, #1A1A24);
+  border-color: rgba(198, 168, 75, 0.55);
+  color: var(--gilded-fern, #C6A84B);
+}
+.btn--luxury:hover { border-color: rgba(198, 168, 75, 0.8); background: rgba(198, 168, 75, 0.08); }
+.btn--luxury:focus-visible { outline-color: var(--gilded-fern, #C6A84B); box-shadow: 0 0 18px rgba(198, 168, 75, 0.4); }
+.btn--ghost {
+  background: transparent; border-color: var(--border-electric); color: var(--frost-white);
+}
+.btn--ghost:hover { border-color: var(--border-electric-hover); background: rgba(96, 192, 240, 0.06); }
+/* Danger — solid --danger bg, near-black label, NO glow (design.md §10: destruction is not celebrated) */
+.btn--danger {
+  background: var(--sem-danger, #E5484D); border-color: transparent;
+  color: #0A0A0F; font-weight: 700;
+}
+.btn:disabled {
+  background: var(--graphite); color: #6B7686; border-color: rgba(96, 192, 240, 0.08);
+  box-shadow: none; cursor: not-allowed;
+}
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; margin-bottom: var(--sp-4); }
+.measure {
+  display: inline-flex; flex-direction: column; align-items: center; gap: var(--sp-1);
+}
+.measure .rule-line {
+  font-family: var(--font-data); font-size: 11px; color: var(--gilded-fern);
+  border-left: 1px solid var(--gilded-fern); border-right: 1px solid var(--gilded-fern);
+  padding: 0 6px;
+}
+.glow-law {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-4); margin: var(--sp-5) 0;
+}
+.glow-law .law {
+  background: var(--carbon); border: 1px solid var(--border-electric);
+  border-radius: var(--r-md); padding: var(--sp-4);
+  font-family: var(--font-data); font-size: 13px; color: var(--text-muted);
+}
+.glow-law .law b { color: var(--frost-white); display: block; margin-bottom: var(--sp-2); }
+
+/* ══════════════ 8. §5 FORMS ══════════════ */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-5); }
+.field label { display: block; font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.03em; margin-bottom: var(--sp-2); }
+.field .help { font-size: 12.5px; color: var(--text-muted); margin-top: var(--sp-1); }
+.field .help--error { color: #F0938A; }
+.field .help--success { color: var(--sem-success); }
+.input, select.input, textarea.input {
+  width: 100%; min-height: 44px; padding: var(--sp-2) var(--sp-3);
+  background: var(--graphite, #1A1A24); color: var(--frost-white);
+  border: 1px solid var(--border-electric); border-radius: var(--r-md); /* buttons/inputs = 12px (design.md §7) */
+  font-family: var(--font-heading); font-size: 15px;
+}
+.input:focus-visible { outline: 2px solid var(--wing-purple); outline-offset: 2px; border-color: rgba(139, 92, 246, 0.6); }
+.input--error { border-color: var(--sem-danger); }
+.input--success { border-color: var(--sem-success); }
+textarea.input { min-height: 96px; resize: vertical; }
+.switch {
+  min-width: 64px; min-height: 44px; padding: 0;
+  border: 1px solid var(--border-electric); border-radius: var(--r-pill);
+  background: var(--graphite); cursor: pointer; position: relative;
+}
+.switch::after {
+  content: ""; position: absolute; top: 50%; left: 6px;
+  width: 30px; height: 30px; border-radius: 50%;
+  transform: translateY(-50%) translateX(0);
+  background: var(--text-muted);
+}
+.switch[aria-checked="true"] { background: var(--midnight-sapphire); border-color: rgba(139, 92, 246, 0.5); }
+.switch[aria-checked="true"]::after { transform: translateY(-50%) translateX(20px); background: var(--ice-wing); }
+@media (prefers-reduced-motion: no-preference) {
+  /* motion.md ban: knob moves via transform, never left/right */
+  .switch::after { transition: transform 0.14s ease; }
+}
+.check-row { display: flex; align-items: center; gap: var(--sp-3); min-height: 44px; }
+.check-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--wing-purple); }
+
+/* ══════════════ 9. §6 CARDS — SheenCard vs data card ══════════════ */
+.card-duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--sp-5); }
+.sheen-card {
+  position: relative; overflow: hidden; border-radius: var(--r-lg);
+  background: linear-gradient(150deg, var(--royal-depth, #003080), var(--midnight-sapphire, #002060) 60%, #001440);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 0 0 1px rgba(96, 192, 240, 0.35), 0 0 0 2px rgba(10,10,15,0.9), 0 0 0 3px rgba(198, 168, 75, 0.25), 0 24px 60px rgba(0, 16, 40, 0.5);
+  padding: var(--sp-5);
+}
+.sheen-card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(224, 236, 244, 0.14) 48%, rgba(96, 192, 240, 0.1) 52%, transparent 70%);
+  transform: translateX(-120%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheen-card:hover::before, .sheen-card:focus-within::before { transform: translateX(120%); transition: transform 1.1s ease; }
+}
+.sheen-card .price { font-family: var(--font-data); font-size: 40px; color: var(--frost-white); margin: var(--sp-3) 0; }
+.sheen-card .price small { font-size: 14px; color: var(--text-muted); }
+.data-card {
+  border-radius: var(--r-lg);
+  background: linear-gradient(150deg, rgba(0, 48, 128, 0.35), rgba(0, 32, 96, 0.3));
+  border: 1px solid var(--border-electric);
+  box-shadow: 0 12px 34px rgba(0, 16, 40, 0.35);
+  padding: var(--sp-5);
+}
+.card-tag {
+  display: inline-block; font-family: var(--font-data); font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: var(--r-pill); padding: 3px 10px; margin-bottom: var(--sp-3);
+}
+.card-tag--sell { color: var(--gilded-fern); border: 1px solid var(--border-gold); }
+.card-tag--data { color: var(--ice-wing); border: 1px solid var(--border-electric); }
+.metric-line { display: flex; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: 1px solid rgba(96,192,240,0.1); font-size: 14px; }
+.metric-line b { font-family: var(--font-data); color: var(--frost-white); font-weight: 500; }
+.metric-line span { color: var(--text-muted); }
+
+/* ══════════════ 10. §7 OPERATOR CONSOLE (Cyberforest) ══════════════ */
+.cyberforest {
+  border-radius: var(--r-lg); overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% -10%, rgba(96, 192, 240, 0.12), transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(139, 92, 246, 0.1), transparent 50%),
+    linear-gradient(165deg, var(--forest-mid, #1A4032), var(--forest-deep, #0E2A1E) 55%, #081912);
+  border: 1px solid rgba(96, 192, 240, 0.18);
+  padding: var(--sp-5);
+}
+.cyberforest .glass {
+  background: rgba(10, 10, 15, 0.55);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  border-radius: var(--r-md); padding: var(--sp-4);
+}
+.tier-legend { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-4) 0; }
+.tier {
+  font-family: var(--font-data); font-size: 12px; letter-spacing: 0.05em;
+  border-radius: var(--r-pill); padding: 5px 12px; border: 1px solid;
+}
+.tier--t0 { color: var(--ice-wing); border-color: rgba(96, 192, 240, 0.5); background: rgba(96, 192, 240, 0.1); }
+.tier--t1 { color: #A8C4F0; border-color: rgba(64, 112, 192, 0.7); background: rgba(64, 112, 192, 0.16); }
+.tier--t2 { color: var(--gilded-fern); border-color: rgba(198, 168, 75, 0.55); background: rgba(198, 168, 75, 0.1); }
+.tier--t3 { color: #B79AFB; border-color: rgba(139, 92, 246, 0.6); background: rgba(139, 92, 246, 0.12); }
+.tier--t4 { color: #F0938A; border-color: rgba(224, 86, 75, 0.6); background: rgba(224, 86, 75, 0.1); }
+.receipt-row {
+  font-family: var(--font-data); font-size: 12.5px; color: var(--text-muted);
+  background: rgba(10, 10, 15, 0.7); border: 1px solid rgba(96, 192, 240, 0.15);
+  border-radius: var(--r-sm); padding: var(--sp-3); overflow-x: auto; white-space: nowrap;
+}
+.receipt-row b { color: var(--ice-wing); font-weight: 500; }
+
+/* ══════════════ 11. §8–§12 PRODUCT CARDS ══════════════ */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--sp-5); }
+.mini-head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.mini-head h3 { margin: 0; font-size: 15px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em;
+  border-radius: var(--r-pill); padding: 4px 10px; border: 1px solid;
+}
+.chip--kill { color: #F0938A; border-color: rgba(224, 86, 75, 0.6); background: rgba(224, 86, 75, 0.08); }
+/* DRAFT = Swan Lavender T1 pill (design.md §15); #8FB2EE = lightened lavender text tint (proposed in design.md) */
+.chip--draft { color: #8FB2EE; border-color: rgba(64, 112, 192, 0.55); background: rgba(64, 112, 192, 0.10); }
+.chip--redact { color: var(--ice-wing); border-color: var(--border-electric); background: rgba(96, 192, 240, 0.06); }
+.chip--pill { color: var(--ice-wing); border-color: var(--border-electric); background: rgba(96, 192, 240, 0.08); }
+.approval-item {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
+  background: rgba(10, 10, 15, 0.5); border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--r-md); padding: var(--sp-3); margin: var(--sp-3) 0;
+  font-size: 14px;
+}
+.client-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) 0; border-bottom: 1px solid rgba(96, 192, 240, 0.1);
+}
+.client-row .avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data); font-size: 13px; color: var(--frost-white);
+  background: linear-gradient(150deg, var(--royal-depth), var(--midnight-sapphire));
+  border: 1px solid var(--border-electric);
+}
+.client-row .who { flex: 1; min-width: 0; }
+.client-row .who b { display: block; font-size: 14px; }
+.client-row .who span { font-size: 12px; color: var(--text-muted); }
+.icon-btn {
+  width: 44px; height: 44px; flex: none; cursor: pointer;
+  border-radius: var(--r-md); border: 1px solid var(--border-electric);
+  background: rgba(96, 192, 240, 0.06); color: var(--frost-white); font-size: 17px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { border-color: var(--border-electric-hover); }
+.proposal {
+  background: rgba(10, 10, 15, 0.5); border: 1px solid var(--border-electric);
+  border-radius: var(--r-md); padding: var(--sp-4); margin-top: var(--sp-3);
+}
+.proposal ul { margin: var(--sp-2) 0 var(--sp-4); padding-left: 18px; font-size: 14px; color: var(--text-muted); }
+.dots { display: flex; gap: var(--sp-2); margin: var(--sp-4) 0; }
+.dots i {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(96, 192, 240, 0.2); border: 1px solid var(--border-electric);
+}
+.dots i.on { background: var(--ice-wing); box-shadow: 0 0 10px rgba(96, 192, 240, 0.6); }
+.transcript {
+  font-family: var(--font-data); font-size: 13px; line-height: 1.7;
+  color: var(--text-muted); background: rgba(10, 10, 15, 0.55);
+  border: 1px solid rgba(96, 192, 240, 0.12); border-radius: var(--r-sm);
+  padding: var(--sp-3); margin: var(--sp-3) 0;
+}
+.transcript mark {
+  background: rgba(198, 168, 75, 0.15); color: var(--sem-warn);
+  border-radius: 3px; padding: 0 3px;
+}
+.ai-note { font-size: 12.5px; color: var(--sem-warn); font-family: var(--font-ui); letter-spacing: 0.02em; }
+
+/* ══════════════ 12. §13 DASHBOARD PANELS ══════════════ */
+.dash-grid { display: grid; grid-template-columns: minmax(280px, 3fr) minmax(220px, 2fr); gap: var(--sp-5); }
+@media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr; } }
+.ticker {
+  display: flex; flex-wrap: wrap; gap: var(--sp-5);
+  background: var(--carbon); border: 1px solid var(--border-electric);
+  border-radius: var(--r-md); padding: var(--sp-4); margin-bottom: var(--sp-5);
+}
+.ticker .stat b { display: block; font-family: var(--font-data); font-size: 26px; font-weight: 500; color: var(--frost-white); }
+.ticker .stat span { font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.ticker .stat .delta-up { color: var(--sem-success); font-size: 13px; font-family: var(--font-data); }
+.pill-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.chart-env {
+  background: var(--graphite, #1A1A24);
+  border: 1px solid var(--border-electric); border-radius: var(--r-lg);
+  padding: var(--sp-5);
+}
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; margin: var(--sp-4) 0; }
+.bars i {
+  flex: 1; border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--arctic-cyan, #50A0F0), rgba(80, 160, 240, 0.35));
+}
+.bars i.hi { background: linear-gradient(180deg, var(--gilded-fern), rgba(198, 168, 75, 0.4)); }
+.axis { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 11px; color: var(--text-muted); }
+.drill {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--sp-3);
+  font-family: var(--font-ui); font-size: 14px; color: var(--ice-wing);
+  text-decoration: none; border-radius: var(--r-sm);
+}
+.drill:hover { background: rgba(96, 192, 240, 0.08); }
+
+/* ══════════════ 13. §14 DATA TABLE ══════════════ */
+.table-wrap {
+  border: 1px solid var(--border-electric); border-radius: var(--r-md);
+  overflow: auto; max-height: 360px; background: var(--carbon);
+}
+table.swan { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+table.swan thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--graphite); color: var(--text-muted);
+  font-family: var(--font-ui); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  text-align: left; padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border-electric);
+}
+table.swan tbody td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid rgba(96, 192, 240, 0.07); }
+table.swan tbody tr:hover { background: rgba(96, 192, 240, 0.05); }
+table.swan .num { font-family: var(--font-data); color: var(--ice-wing); }
+table.swan .empty {
+  text-align: center; padding: var(--sp-6);
+  font-family: var(--font-drama); font-style: italic; font-size: 18px; color: var(--text-muted);
+}
+
+/* ══════════════ 14. §15 CINEMATIC LANDING ACT ══════════════ */
+.cinema {
+  border-radius: var(--r-lg); overflow: hidden; position: relative;
+  background:
+    radial-gradient(ellipse 90% 60% at 75% 10%, rgba(139, 92, 246, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 85%, rgba(96, 192, 240, 0.16), transparent 55%),
+    linear-gradient(160deg, #001040 0%, var(--midnight-sapphire, #002060) 40%, var(--obsidian-black, #0A0A0F) 95%);
+  border: 1px solid var(--border-electric);
+  padding: clamp(40px, 8vw, 108px) clamp(24px, 6vw, 84px);
+}
+.cinema .grid { display: grid; grid-template-columns: minmax(240px, 5fr) minmax(140px, 2fr); gap: var(--sp-6); align-items: end; }
+@media (max-width: 700px) { .cinema .grid { grid-template-columns: 1fr; } }
+.cinema h3 {
+  font-size: clamp(38px, 7vw, 84px); line-height: 1.02; letter-spacing: -0.025em;
+  margin: 0 0 var(--sp-4); font-weight: 800;
+}
+.cinema h3 em {
+  display: block; font-family: var(--font-drama); font-style: italic; font-weight: 400;
+  font-size: 0.62em; color: var(--gilded-fern, #C6A84B); letter-spacing: 0;
+}
+.cinema .lede { max-width: 46ch; color: var(--text-muted); font-size: 17px; }
+.cinema .side { font-family: var(--font-data); font-size: 12px; color: var(--text-muted); line-height: 2; border-left: 1px solid var(--border-gold); padding-left: var(--sp-4); }
+.cinema .cta-pair { display: flex; flex-wrap: wrap; gap: var(--sp-4); margin-top: var(--sp-6); }
+
+/* ══════════════ 15. §16 MOBILE PREVIEW ══════════════ */
+.phone-frame {
+  width: 375px; max-width: 100%; margin: 0 auto;
+  border: 2px solid var(--border-electric); border-radius: 28px;
+  background: var(--obsidian-black); padding: var(--sp-4); box-shadow: 0 30px 80px rgba(0, 16, 40, 0.5);
+}
+.phone-frame .notch { width: 110px; height: 8px; border-radius: var(--r-pill); background: var(--graphite); margin: 0 auto var(--sp-4); }
+.phone-frame .btn { width: 100%; }
+
+/* ══════════════ 16. §17 MOTION ══════════════ */
+.motion-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.motion-tiers .tier-card { background: var(--carbon); border: 1px solid var(--border-electric); border-radius: var(--r-md); padding: var(--sp-4); font-size: 14px; }
+.motion-tiers .tier-card b { display: block; font-family: var(--font-ui); margin-bottom: var(--sp-2); color: var(--ice-wing); }
+.motion-tiers .tier-card ul { margin: 0; padding-left: 18px; color: var(--text-muted); }
+.shimmer-demo {
+  height: 56px; border-radius: var(--r-md); position: relative; overflow: hidden;
+  background: var(--graphite); border: 1px solid var(--border-electric);
+  display: flex; align-items: center; padding: 0 var(--sp-4);
+  font-family: var(--font-data); font-size: 13px; color: var(--text-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shimmer-demo::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(110deg, transparent 35%, rgba(96, 192, 240, 0.12) 50%, transparent 65%);
+    animation: shimmer 2.6s linear infinite;
+  }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+}
+
+/* ══════════════ 17. §18 DOS & DON'TS ══════════════ */
+.dd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+@media (max-width: 700px) { .dd-grid { grid-template-columns: 1fr; } }
+.dd { border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); font-size: 14px; }
+.dd--do { background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.3); }
+.dd--dont { background: rgba(224, 86, 75, 0.05); border: 1px solid rgba(224, 86, 75, 0.3); }
+.dd b { font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.14em; display: block; margin-bottom: 4px; }
+.dd--do b { color: var(--sem-success); }
+.dd--dont b { color: #F0938A; }
+.dead-swatches { display: flex; gap: var(--sp-3); margin-top: var(--sp-2); }
+.dead-swatches span {
+  font-family: var(--font-data); font-size: 12px; color: #F0938A;
+  text-decoration: line-through; display: inline-flex; align-items: center; gap: 6px;
+}
+.dead-swatches i { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(224, 86, 75, 0.5); display: inline-block; }
+
+footer {
+  border-top: 1px solid var(--border-electric);
+  padding: var(--sp-6) var(--sp-5); text-align: center;
+  font-family: var(--font-data); font-size: 12px; color: var(--text-muted);
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ BANNER ═══════════ -->
+<div class="banner" role="note">
+  <strong>DESIGN BRAIN</strong> — STATIC VISUAL REFERENCE — mirrors <strong>design.md</strong> (canonical).
+  If this page and design.md disagree, design.md wins.
+</div>
+
+<header class="page-head">
+  <p class="kicker">SwanStudios · Crystalline Swan · Enchanted Apex</p>
+  <h1>Design Brain — Visual Reference</h1>
+  <p class="sub">A dark room lit by glowing objects — never grayscale minimalism, never a template.</p>
+  <p style="max-width:76ch; color:var(--text-muted); font-size:15px;">
+    Every sample below demonstrates a rule from <code>SWAN-CINEMATIC-DESIGN-SYSTEM.md</code> and CLAUDE.md.
+    All copy is placeholder demo copy in the SwanStudios voice; all client references are IDs only (Rule 8, zero PII).
+    Nothing on this page loads from the network, fetches data, or requires JavaScript to read.
+  </p>
+</header>
+
+<!-- ═══════════ TABLE OF CONTENTS ═══════════ -->
+<nav class="toc" aria-label="Section navigation">
+  <ol>
+    <li><a href="#colors">1 Color</a></li>
+    <li><a href="#typography">2 Type</a></li>
+    <li><a href="#spacing">3 Space</a></li>
+    <li><a href="#buttons">4 Buttons</a></li>
+    <li><a href="#forms">5 Forms</a></li>
+    <li><a href="#cards">6 Cards</a></li>
+    <li><a href="#operator">7 Operator</a></li>
+    <li><a href="#hermes">8 Hermes</a></li>
+    <li><a href="#coach-command">9 Coach CC</a></li>
+    <li><a href="#swan-coach">10 Swan Coach</a></li>
+    <li><a href="#onboarding">11 Onboarding</a></li>
+    <li><a href="#plaud">12 PLAUD</a></li>
+    <li><a href="#dashboard">13 Dashboard</a></li>
+    <li><a href="#table">14 Table</a></li>
+    <li><a href="#cinematic">15 Cinematic</a></li>
+    <li><a href="#mobile">16 Mobile</a></li>
+    <li><a href="#motion">17 Motion</a></li>
+    <li><a href="#dos-donts">18 Do/Don't</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ═══════════ §1 COLOR SYSTEM ═══════════ -->
+<section id="colors" aria-labelledby="colors-h">
+  <p class="kicker">Section 1</p>
+  <h2 id="colors-h">Color System — Crystalline Swan Tokens</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> CLAUDE.md Active Palette + Rule 6 (<code>var(--token, #fallback)</code>, never raw hex in components)
+    + Rule 3 (dark-first). Arctic Cyan is <strong>charts/data only</strong> — it is never a button, glow, or focus ring.
+  </p>
+
+  <div class="swatch-grid">
+    <div class="swatch"><div class="chip" style="background:#002060"></div>
+      <div class="meta"><b>Midnight Sapphire</b><code>#002060 · --midnight-sapphire</code>
+      <span class="use"><em>Primary.</em> Button backgrounds, deep hero gradients.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#003080"></div>
+      <div class="meta"><b>Royal Depth</b><code>#003080 · --royal-depth</code>
+      <span class="use"><em>Surface.</em> Elevated cards, gradient upper stop.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#60C0F0"></div>
+      <div class="meta"><b>Ice Wing</b><code>#60C0F0 · --ice-wing</code>
+      <span class="use"><em>Cyan glow.</em> Gaming accents, XP bars, electric borders.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#50A0F0"><span class="flag">DATA ONLY</span></div>
+      <div class="meta"><b>Arctic Cyan</b><code>#50A0F0 · --arctic-cyan</code>
+      <span class="use"><em>Charts &amp; data viz only.</em> NOT buttons, NOT glow, NOT focus.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#C6A84B"></div>
+      <div class="meta"><b>Gilded Fern</b><code>#C6A84B · --gilded-fern</code>
+      <span class="use"><em>Luxury accent.</em> Gold borders on sapphire glass, Rare rarity.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#E0ECF4"></div>
+      <div class="meta"><b>Frost White</b><code>#E0ECF4 · --frost-white</code>
+      <span class="use"><em>Text primary.</em> Headlines and body on dark surfaces.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#4070C0"></div>
+      <div class="meta"><b>Swan Lavender</b><code>#4070C0 · --swan-lavender</code>
+      <span class="use"><em>Tertiary.</em> Common rarity, quiet accents. Too dim for body text on dark — use borders/fills.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#8B5CF6"></div>
+      <div class="meta"><b>Wing Purple</b><code>#8B5CF6 · --wing-purple</code>
+      <span class="use"><em>Glow accent.</em> Purple buttons, focus rings, Epic rarity.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#0A0A0F"></div>
+      <div class="meta"><b>Obsidian Black</b><code>#0A0A0F · --obsidian-black</code>
+      <span class="use"><em>Deep dark.</em> Primary page background (this page).</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#141419"></div>
+      <div class="meta"><b>Carbon</b><code>#141419 · --carbon</code>
+      <span class="use"><em>Card dark.</em> Obsidian-variant card surfaces.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#1A1A24"></div>
+      <div class="meta"><b>Graphite</b><code>#1A1A24 · --graphite</code>
+      <span class="use"><em>Surface dark.</em> Modals, drawers, inputs, chart environments.</span></div></div>
+  </div>
+
+  <h3>Semantic colors</h3>
+  <div class="swatch-grid">
+    <div class="swatch"><div class="chip" style="background:#60C0F0"></div>
+      <div class="meta"><b>Success</b><code>#60C0F0 · --success</code>
+      <span class="use">Ice Wing at full for icon/border, 12% tint bg — Swan celebrates in ice-cyan, not generic green.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#C6A84B"></div>
+      <div class="meta"><b>Warning</b><code>#C6A84B · --warn</code>
+      <span class="use">Gilded Fern — gold reads "attention, not alarm." Review-needed states, AI-estimate captions. (DRAFT chips are Swan Lavender T1, not gold.)</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#E5484D"></div>
+      <div class="meta"><b>Danger</b><code>#E5484D · --danger</code>
+      <span class="use">Restrained red — the ONE off-palette semantic. Destructive intent, T4 tier. Never neon.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#4070C0"></div>
+      <div class="meta"><b>Info</b><code>#4070C0 · --info</code>
+      <span class="use">Swan Lavender. Neutral notices, helper affordances — borders/fills, not small text on dark.</span></div></div>
+  </div>
+
+  <h3>Cyberforest operator extension</h3>
+  <p class="operator-note">⚠ Hermes operator surfaces ONLY — never client-facing.</p>
+  <div class="swatch-grid">
+    <div class="swatch"><div class="chip" style="background:#0E2A1E"></div>
+      <div class="meta"><b>Forest Deep</b><code>#0E2A1E · --cf-forest-deep</code>
+      <span class="use">Operator console base gradient stop.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:#1A4032"></div>
+      <div class="meta"><b>Forest Mid</b><code>#1A4032 · --cf-forest-mid</code>
+      <span class="use">Operator console upper gradient stop.</span></div></div>
+    <div class="swatch"><div class="chip" style="background:linear-gradient(120deg, rgba(96,192,240,0.18) 0%, rgba(139,92,246,0.14) 45%, rgba(198,168,75,0.10) 100%), linear-gradient(120deg, #0E2A1E, #1A4032)"></div>
+      <div class="meta"><b>Aurora Sample</b><code>--cf-aurora · Ice Wing → Wing Purple → Gilded Fern wash (design.md §3)</code>
+      <span class="use">Top-edge/header wash or divider treatment at low opacity — never a full-page background.</span></div></div>
+  </div>
+</section>
+
+<!-- ═══════════ §2 TYPOGRAPHY ═══════════ -->
+<section id="typography" aria-labelledby="type-h">
+  <p class="kicker">Section 2</p>
+  <h2 id="type-h">Typography — Four Families, One Voice</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the four canonical stacks (Plus Jakarta Sans / Cormorant Garamond Italic / Fira Code / Sora)
+    with system fallbacks. Never Inter, Roboto, Arial, or Helvetica as display faces. This static page relies on
+    fallback rendering when a family is not installed — production loads the real families.
+  </p>
+
+  <div class="type-specimen"><span class="label">Plus Jakarta Sans<br>headings · UI · body</span>
+    <span class="spec-heading">Log the workout. Prove the progress.</span></div>
+  <div class="type-specimen"><span class="label">Cormorant Garamond<br>italic · drama · dividers</span>
+    <span class="spec-drama">Strength is a story told one session at a time.</span></div>
+  <div class="type-specimen"><span class="label">Fira Code<br>data · KPI · receipts</span>
+    <span class="spec-data">sessions_logged: 1,284 · streak: 21d · Δ +4.2%</span></div>
+  <div class="type-specimen"><span class="label">Sora<br>UI · gaming · buttons</span>
+    <span class="spec-ui">LEVEL 12 — CRYSTALLINE ASCENT · XP 8,420 / 10,000</span></div>
+
+  <h3 style="margin-top:var(--sp-6)">Scale ramp</h3>
+  <div class="scale-ramp">
+    <p style="font-size:64px; font-weight:800; letter-spacing:-0.02em; line-height:1.05;">Display 64 — hero headline</p>
+    <p style="font-size:40px; font-weight:700;">Heading 40 — section title</p>
+    <p style="font-size:28px; font-weight:700;">Heading 28 — panel title</p>
+    <p style="font-size:20px; font-weight:600;">Heading 20 — card title</p>
+    <p style="font-size:16px;">Body 16 — primary reading size, 1.6 line height</p>
+    <p style="font-size:14px; color:var(--text-muted);">Support 14 — secondary text, captions, helper copy</p>
+    <p style="font-family:var(--font-ui); font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted);">Label 12 — uppercase Sora, letter-spaced</p>
+  </div>
+
+  <figure class="drama-moment" style="margin-left:0; margin-right:0;">
+    <p>The chart doesn't flatter you.<br>It remembers you.</p>
+    <figcaption><cite>Cormorant Garamond Italic — the one "drama" beat a section is allowed.</cite></figcaption>
+  </figure>
+</section>
+
+<!-- ═══════════ §3 SPACING & RADIUS ═══════════ -->
+<section id="spacing" aria-labelledby="space-h">
+  <p class="kicker">Section 3</p>
+  <h2 id="space-h">Spacing &amp; Radius</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the modular scale (4 → 240px) — vertical rhythm comes from this scale, never arbitrary
+    pixel values. Section gaps are 160–240px desktop / 72–108px mobile. Radius stops at 20px for cards; pills use 999px.
+  </p>
+
+  <div class="space-row"><span class="tag">--sp-1 · 4px</span><span class="space-bar" style="width:4px"></span></div>
+  <div class="space-row"><span class="tag">--sp-2 · 8px</span><span class="space-bar" style="width:8px"></span></div>
+  <div class="space-row"><span class="tag">--sp-3 · 12px</span><span class="space-bar" style="width:12px"></span></div>
+  <div class="space-row"><span class="tag">--sp-4 · 16px</span><span class="space-bar" style="width:16px"></span></div>
+  <div class="space-row"><span class="tag">--sp-5 · 24px</span><span class="space-bar" style="width:24px"></span></div>
+  <div class="space-row"><span class="tag">--sp-6 · 32px</span><span class="space-bar" style="width:32px"></span></div>
+  <div class="space-row"><span class="tag">--sp-7 · 48px</span><span class="space-bar" style="width:48px"></span></div>
+  <div class="space-row"><span class="tag">--sp-8 · 72px</span><span class="space-bar" style="width:72px"></span></div>
+  <div class="space-row"><span class="tag">--sp-9 · 108px</span><span class="space-bar" style="width:108px"></span></div>
+  <div class="space-row"><span class="tag">160 / 240px</span><span class="space-bar" style="width:160px"></span><span class="space-bar" style="width:240px"></span></div>
+
+  <div class="radius-row">
+    <div class="radius-demo" style="border-radius:8px">--r-sm · 8px</div>
+    <div class="radius-demo" style="border-radius:12px">--r-md · 12px</div>
+    <div class="radius-demo" style="border-radius:20px">--r-lg · 20px</div>
+    <div class="radius-demo" style="border-radius:999px; width:180px; height:44px;">--r-pill · 999px</div>
+  </div>
+</section>
+
+<!-- ═══════════ §4 BUTTONS ═══════════ -->
+<section id="buttons" aria-labelledby="btn-h">
+  <p class="kicker">Section 4</p>
+  <h2 id="btn-h">Buttons — the GlowButton Family</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the mandatory <strong>Dual-Button Glow rule</strong> — blue background gets a
+    <em>purple</em> glow; purple background gets a <em>cyan</em> glow — plus Rule 2 (≥44px touch targets)
+    and <code>:focus-visible</code> rings (Wing Purple on blue, Ice Wing on purple). Tab through these samples
+    to see the focus states. Any library suggestion that conflicts with Dual-Button Glow is rejected, not adapted.
+  </p>
+
+  <div class="glow-law">
+    <div class="law"><b>Law 1 — Blue bg → Purple glow</b>
+      Midnight Sapphire / Royal Depth surface · Wing Purple <code>#8B5CF6</code> outer glow + focus ring.</div>
+    <div class="law"><b>Law 2 — Purple bg → Cyan glow</b>
+      Wing Purple surface · Ice Wing <code>#60C0F0</code> outer glow + focus ring.</div>
+  </div>
+
+  <div class="btn-row">
+    <span class="measure">
+      <button type="button" class="btn btn--primary">Book a Session</button>
+      <span class="rule-line">min-height 44px · min-width 44px (Rule 2)</span>
+    </span>
+    <button type="button" class="btn btn--accent">Start Free</button>
+    <button type="button" class="btn btn--luxury">Concierge Upgrade</button>
+    <button type="button" class="btn btn--ghost">View Programs</button>
+    <button type="button" class="btn btn--danger">Delete Draft</button>
+    <button type="button" class="btn" disabled>Processing…</button>
+  </div>
+  <p style="font-size:13px; color:var(--text-muted); max-width:70ch;">
+    Primary = sapphire gradient with purple glow. Accent = purple with cyan glow (note the dark label for 4.5:1 contrast
+    on the lighter purple surface). Luxury = Graphite with Gilded Fern border and label, gold glow on focus only.
+    Ghost = electric border only. Danger = solid restrained red <code>#E5484D</code> with a near-black label and
+    no glow — destruction is not celebrated. Disabled = Graphite, no glow, <code>cursor: not-allowed</code>.
+  </p>
+</section>
+
+<!-- ═══════════ §5 FORMS ═══════════ -->
+<section id="forms" aria-labelledby="form-h">
+  <p class="kicker">Section 5</p>
+  <h2 id="form-h">Forms — Inputs, States, Helpers</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> Graphite input surfaces on dark, electric borders, Wing Purple focus rings,
+    semantic error/success borders with helper text, and 44px minimum heights on every control including
+    the toggle. Labels are always visible — placeholder text is never the only label.
+  </p>
+
+  <form class="form-grid" onsubmit="return false;">
+    <div class="field">
+      <label for="f-name">Program name <span style="color:var(--text-muted)">(default)</span></label>
+      <input class="input" id="f-name" type="text" value="Apex Strength — Phase 2" autocomplete="off">
+      <p class="help">Shown to the client on their dashboard.</p>
+    </div>
+    <div class="field">
+      <label for="f-goal">Primary goal <span style="color:var(--text-muted)">(select)</span></label>
+      <select class="input" id="f-goal">
+        <option>Strength &amp; power</option>
+        <option>Hypertrophy</option>
+        <option>Flexibility &amp; recovery</option>
+        <option>Sport performance — golf</option>
+      </select>
+      <p class="help">Drives the NASM OPT phase recommendation.</p>
+    </div>
+    <div class="field">
+      <label for="f-sessions">Sessions per week <span style="color:#F0938A">(error)</span></label>
+      <input class="input input--error" id="f-sessions" type="text" value="nine" aria-invalid="true" aria-describedby="f-sessions-err" autocomplete="off">
+      <p class="help help--error" id="f-sessions-err">Enter a number between 1 and 7.</p>
+    </div>
+    <div class="field">
+      <label for="f-rate">Session rate <span style="color:var(--sem-success)">(success)</span></label>
+      <input class="input input--success" id="f-rate" type="text" value="$175 / 60 min" aria-describedby="f-rate-ok" autocomplete="off">
+      <p class="help help--success" id="f-rate-ok">✓ Matches the active package catalog.</p>
+    </div>
+    <div class="field" style="grid-column: 1 / -1;">
+      <label for="f-notes">Coach notes <span style="color:var(--text-muted)">(textarea)</span></label>
+      <textarea class="input" id="f-notes">Client C-1042 cleared for loaded squats. Keep hip flexibility work in the warm-up block.</textarea>
+      <p class="help">Notes stay first-party — never sent to an LLM with names attached (Rule 8).</p>
+    </div>
+    <div class="field">
+      <span class="field" id="toggle-label" style="display:block; font-family:var(--font-ui); font-size:13px; margin-bottom:var(--sp-2);">Auto-share milestones to community</span>
+      <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="toggle-label" data-demo-switch>
+        <span class="sr-only">Auto-share milestones</span>
+      </button>
+      <p class="help">44px-tall switch. JS toggle is cosmetic — state text is readable without it.</p>
+    </div>
+    <div class="field">
+      <span style="display:block; font-family:var(--font-ui); font-size:13px; margin-bottom:var(--sp-2);">Consent checklist</span>
+      <label class="check-row" for="c-progress"><input type="checkbox" id="c-progress" checked> Progress photos may appear in my private chart history</label>
+      <label class="check-row" for="c-wear"><input type="checkbox" id="c-wear"> Sync wearable recovery data (enrichment only)</label>
+    </div>
+  </form>
+</section>
+
+<!-- ═══════════ §6 CARDS ═══════════ -->
+<section id="cards" aria-labelledby="cards-h">
+  <p class="kicker">Section 6</p>
+  <h2 id="cards-h">Cards — SheenCard vs. Client/Data Card</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the Swan Card Standard. <strong>SheenCard</strong> (chrome edge, metallic sheen sweep)
+    is allowed only when the card <em>sells, features, or showcases</em>. <strong>Client/data cards</strong> keep the same
+    geometry and gradient language but stay <em>low-motion</em>: no pointer tracking, no animation loops, no hover-only
+    actions. Both use the C12 panel recipes — no fourth variant is ever invented.
+  </p>
+
+  <div class="card-duo">
+    <article class="sheen-card">
+      <span class="card-tag card-tag--sell">Showcase — sheen allowed</span>
+      <h3>3-Month Transformation</h3>
+      <p style="font-size:14px; color:var(--text-muted); margin:0;">4 sessions weekly · progress charts · community access</p>
+      <p class="price">$8,400 <small>· $175/session</small></p>
+      <button type="button" class="btn btn--primary">Claim Your Slot</button>
+      <p style="font-size:12px; color:var(--text-muted); margin:var(--sp-3) 0 0;">
+        Hover (or focus) sweeps the metallic sheen once. Under <code>prefers-reduced-motion: reduce</code>
+        the sheen never runs — the chrome border alone carries the premium read.
+      </p>
+    </article>
+
+    <article class="data-card">
+      <span class="card-tag card-tag--data">Client data — low-motion</span>
+      <h3>Client C-1042 · Weekly Summary</h3>
+      <div class="metric-line"><span>Workouts logged</span><b>4 / 4</b></div>
+      <div class="metric-line"><span>Volume delta</span><b style="color:var(--sem-success)">+6.5%</b></div>
+      <div class="metric-line"><span>Streak</span><b>21 days</b></div>
+      <div class="metric-line" style="border-bottom:none;"><span>Next session</span><b>Thu · 7:00 AM</b></div>
+      <div style="display:flex; gap:var(--sp-3); margin-top:var(--sp-4);">
+        <button type="button" class="icon-btn" aria-label="Open workout history" title="History">☰</button>
+        <button type="button" class="icon-btn" aria-label="Open progress charts" title="Charts">▦</button>
+        <button type="button" class="btn btn--ghost" style="flex:1;">Review Week</button>
+      </div>
+      <p style="font-size:11.5px; margin:var(--sp-2) 0 0; opacity:.65;">Glyphs above are static-page stand-ins — real builds use <b>lucide-react</b> icons (emoji/glyph controls are an anti-patterns.md ban).</p>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════ §7 OPERATOR CONSOLE ═══════════ -->
+<section id="operator" aria-labelledby="op-h">
+  <p class="kicker">Section 7</p>
+  <h2 id="op-h">Operator Console — Crystalline Cyberforest</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the Hermes operator extension — glass over a CSS forest/aurora gradient,
+    tier badges T0–T4, and a Fira Code receipt-ledger row. <strong>Operator-only surface:</strong> the Cyberforest
+    palette never appears on client-facing UI. Every operator action leaves a receipt.
+  </p>
+
+  <div class="cyberforest">
+    <div class="glass">
+      <div class="mini-head">
+        <h3 style="font-family:var(--font-data); font-weight:500;">HERMES // operator.console</h3>
+        <span class="chip chip--pill">read-mostly · gated</span>
+      </div>
+      <div class="tier-legend" role="list" aria-label="Action tier legend">
+        <span class="tier tier--t0" role="listitem">T0 · read</span>
+        <span class="tier tier--t1" role="listitem">T1 · draft</span>
+        <span class="tier tier--t2" role="listitem">T2 · write (scoped)</span>
+        <span class="tier tier--t3" role="listitem">T3 · confirm required</span>
+        <span class="tier tier--t4" role="listitem">T4 · kill-switch class</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--sp-3);">
+        Tier color mapping: T0 Ice Wing · T1 Swan Lavender · T2 Gilded Fern · T3 Wing Purple · T4 restrained red
+        <code style="color:#F0938A">#E5484D</code>. Escalation always moves cold → hot, left → right.
+      </p>
+      <div class="receipt-row" role="log" aria-label="Receipt ledger sample">
+        <b>2026-07-03T14:02:11Z</b> · op=<b>session.reschedule</b> · tier=<b>T3</b> · actor=<b>operator:admin</b> · target=<b>client:C-1042</b> · verdict=<b>APPROVED</b> · receipt=<b>rcpt_8f3a…</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §8 HERMES COMMAND CENTER ═══════════ -->
+<section id="hermes" aria-labelledby="hermes-h">
+  <p class="kicker">Section 8</p>
+  <h2 id="hermes-h">Hermes Agentic OS — Command-Center Preview</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the operator command-center card grammar — a briefing line, an approval queue item
+    carrying its tier badge and confirm note, and an always-visible kill-switch chip. Approvals are explicit;
+    nothing hot runs silently.
+  </p>
+
+  <div class="panel panel--obsidian" style="max-width:640px;">
+    <div class="mini-head">
+      <h3>Morning Briefing</h3>
+      <span class="chip chip--kill">⏻ KILL SWITCH — armed</span>
+    </div>
+    <p style="font-family:var(--font-data); font-size:13.5px; color:var(--text-muted);">
+      3 clients trained yesterday · 1 stale client (C-2077, 9 days) · 2 sessions today · 0 failed webhooks.
+    </p>
+    <div class="approval-item">
+      <span class="tier tier--t3">T3</span>
+      <span style="flex:1; min-width:180px;">Send reactivation nudge to <b>client C-2077</b> via scheduled message.</span>
+      <button type="button" class="btn btn--primary" style="min-width:120px;">Confirm</button>
+      <button type="button" class="btn btn--ghost">Dismiss</button>
+    </div>
+    <p style="font-size:12.5px; color:var(--sem-warn); margin:0;">
+      T3 actions require explicit operator confirmation — the button never auto-fires, and every confirm writes a receipt row.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════ §9 COACH COMMAND CENTER ═══════════ -->
+<section id="coach-command" aria-labelledby="ccc-h">
+  <p class="kicker">Section 9</p>
+  <h2 id="ccc-h">Coach Command Center — Trainer Surface</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the trainer coaching loop (Product Core Loop): fast client access, next-session
+    visibility, and 44px icon actions with no hover-only controls. Compact grouped facts — no duplicated data.
+  </p>
+
+  <div class="panel" style="max-width:640px;">
+    <div class="mini-head">
+      <h3>Today's Roster</h3>
+      <span class="chip chip--pill">2 sessions · 1 review due</span>
+    </div>
+    <div class="client-row">
+      <span class="avatar" aria-hidden="true">C‑10</span>
+      <span class="who"><b>Client C-1042</b><span>Phase 2 · Strength · streak 21d</span></span>
+      <span class="chip chip--pill">Next: 7:00 AM</span>
+      <button type="button" class="icon-btn" aria-label="Log workout for client C-1042" title="Log workout">＋</button>
+      <button type="button" class="icon-btn" aria-label="Open charts for client C-1042" title="Charts">▦</button>
+    </div>
+    <div class="client-row" style="border-bottom:none;">
+      <span class="avatar" aria-hidden="true">C‑20</span>
+      <span class="who"><b>Client C-2077</b><span>Phase 1 · Flexibility · 9 days since last log</span></span>
+      <span class="chip chip--draft">Stale — review</span>
+      <button type="button" class="icon-btn" aria-label="Log workout for client C-2077" title="Log workout">＋</button>
+      <button type="button" class="icon-btn" aria-label="Message client C-2077" title="Message">✉</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §10 SWAN COACH ═══════════ -->
+<section id="swan-coach" aria-labelledby="sc-h">
+  <p class="kicker">Section 10</p>
+  <h2 id="sc-h">Swan Coach — Chat Proposal Surface</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the Swan Coach proposal pattern — the assistant drafts, the human approves.
+    Proposals carry a DRAFT badge until the coach approves and logs; the approve action is a full-weight
+    primary button, never an implicit auto-save.
+  </p>
+
+  <div class="panel panel--obsidian" style="max-width:560px;">
+    <div class="mini-head">
+      <h3>Swan Coach</h3>
+      <span class="chip chip--draft">DRAFT — not logged</span>
+    </div>
+    <p style="font-size:14px; color:var(--text-muted);">
+      "Heard your dictation from this morning's session. Here's the workout entry I'd log for client C-1042:"
+    </p>
+    <div class="proposal">
+      <b style="font-family:var(--font-ui); font-size:13px;">Proposed workout log · Thu 7:00 AM</b>
+      <ul>
+        <li>Back squat — 4 × 5 @ 225 lb (top set +10 lb vs last week)</li>
+        <li>Romanian deadlift — 3 × 8 @ 185 lb</li>
+        <li>Hip flexibility block — 10 min (coach note: keep in warm-up)</li>
+      </ul>
+      <div style="display:flex; flex-wrap:wrap; gap:var(--sp-3);">
+        <button type="button" class="btn btn--primary">Approve &amp; Log</button>
+        <button type="button" class="btn btn--ghost">Edit First</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §11 ONBOARDING ═══════════ -->
+<section id="onboarding" aria-labelledby="ob-h">
+  <p class="kicker">Section 11</p>
+  <h2 id="ob-h">Client Onboarding — Welcome Step</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> activation discipline (Rule 62) — one clear next action per step, progress dots
+    for orientation, no competing CTAs. The trainee's first-week goal: first workout logged, first coach touch,
+    first visible progress proof.
+  </p>
+
+  <div class="panel panel--luxury" style="max-width:480px;">
+    <p class="kicker" style="margin-bottom:var(--sp-1);">Step 2 of 5</p>
+    <h3 style="font-size:24px;">Welcome to your training record</h3>
+    <p style="font-size:14.5px; color:var(--text-muted);">
+      Everything you log becomes proof — charts, streaks, and milestones your coach actually reviews.
+      Let's capture your starting point.
+    </p>
+    <div class="dots" aria-label="Onboarding progress: step 2 of 5">
+      <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+    </div>
+    <button type="button" class="btn btn--primary" style="width:100%;">Log My First Workout</button>
+  </div>
+</section>
+
+<!-- ═══════════ §12 PLAUD REVIEW ═══════════ -->
+<section id="plaud" aria-labelledby="plaud-h">
+  <p class="kicker">Section 12</p>
+  <h2 id="plaud-h">PLAUD Review — Transcript Verification</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the voice-ingest trust pattern — AI-parsed transcripts are estimates until a human
+    approves, redaction is visible, and the approve path is deliberate. Data truth rule: nothing enters the workout
+    record unreviewed.
+  </p>
+
+  <div class="panel panel--obsidian" style="max-width:560px;">
+    <div class="mini-head">
+      <h3>Session Transcript — C-1042</h3>
+      <span class="chip chip--redact">🛡 PII redacted at ingest</span>
+    </div>
+    <div class="transcript" aria-label="Transcript excerpt">
+      "…good depth on that last set, let's call it <mark>225 for five</mark>, three more sets like that…
+      then RDLs, <mark>one eighty-five, three by eight</mark>… name check <mark>[REDACTED]</mark> before we
+      wrap the flexibility block…"
+    </div>
+    <p class="ai-note">⚠ AI estimate — review before approving. Parsed weights and reps can be wrong.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:var(--sp-3); margin-top:var(--sp-3);">
+      <button type="button" class="btn btn--primary">Approve Entry</button>
+      <button type="button" class="btn btn--ghost">Correct Values</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §13 DASHBOARD PANELS ═══════════ -->
+<section id="dashboard" aria-labelledby="dash-h">
+  <p class="kicker">Section 13</p>
+  <h2 id="dash-h">Dashboard Panels — Ticker, Pills, Chart Environment</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> C11 (premium chart environment — chart + narrative column + drill-down, never a bare
+    bordered box) and the dashboard arc Phase 2/3. Bars are CSS placeholders in <strong>Arctic Cyan on Graphite</strong> —
+    production charts are <strong>Victory only</strong> (Rule 10), fed by real workout logs, never mock data.
+  </p>
+
+  <div class="ticker" role="list" aria-label="Stat ticker">
+    <span class="stat" role="listitem"><b>1,284</b><span>sessions logged</span></span>
+    <span class="stat" role="listitem"><b>96.2% <em class="delta-up">▲1.1</em></b><span>save success</span></span>
+    <span class="stat" role="listitem"><b>18</b><span>active clients</span></span>
+    <span class="stat" role="listitem"><b>21d</b><span>longest streak</span></span>
+  </div>
+
+  <div class="pill-row" aria-label="Metric filter pills">
+    <span class="chip chip--pill">Volume</span>
+    <span class="chip chip--pill">Intensity</span>
+    <span class="chip chip--draft">Adherence — review</span>
+    <span class="chip chip--pill">Recovery</span>
+  </div>
+
+  <div class="dash-grid">
+    <figure class="chart-env" style="margin:0;">
+      <figcaption style="font-family:var(--font-ui); font-size:13px; color:var(--text-muted);">
+        Weekly training volume — client C-1042 <span style="color:var(--gilded-fern)">· gold = personal best week</span>
+      </figcaption>
+      <div class="bars" role="img" aria-label="Placeholder bar chart: seven weeks of rising training volume with a personal-best in week six">
+        <i style="height:38%"></i><i style="height:46%"></i><i style="height:42%"></i>
+        <i style="height:58%"></i><i style="height:66%"></i><i class="hi" style="height:92%"></i><i style="height:78%"></i>
+      </div>
+      <div class="axis"><span>W-6</span><span>W-5</span><span>W-4</span><span>W-3</span><span>W-2</span><span>W-1</span><span>now</span></div>
+      <p style="font-family:var(--font-data); font-size:11px; color:var(--text-muted); margin:var(--sp-3) 0 0;">
+        CSS placeholder — production renders this with Victory + <code>chartTheme.ts</code> tokens.
+      </p>
+    </figure>
+    <div class="panel panel--obsidian">
+      <h3 style="font-size:16px;">The story in the chart</h3>
+      <p style="font-family:var(--font-drama); font-style:italic; font-size:19px; color:var(--frost-white);">
+        Six straight weeks of climbing volume — week six was a personal best.
+      </p>
+      <p style="font-size:14px; color:var(--text-muted);">Delta <b style="color:var(--gilded-fern); font-family:var(--font-data);">+24%</b> vs the prior block. Deload recommended within 2 weeks.</p>
+      <a class="drill" href="#dashboard">View detail →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §14 DATA TABLE ═══════════ -->
+<section id="table" aria-labelledby="table-h">
+  <p class="kicker">Section 14</p>
+  <h2 id="table-h">Data Table — Dense, Premium, Honest</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> sticky header styling, quiet row hover, Fira Code numerics, and the empty-state
+    rule — an empty row speaks in Cormorant italic, never a bare "no data" label. Wrapper scrolls; the page never
+    scrolls horizontally.
+  </p>
+
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Recent workout logs table (scrollable)">
+    <table class="swan">
+      <thead>
+        <tr><th scope="col">Client</th><th scope="col">Workout</th><th scope="col">Volume</th><th scope="col">Δ vs last</th><th scope="col">Logged</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>C-1042</td><td>Lower — strength</td><td class="num">14,850 lb</td><td class="num" style="color:var(--sem-success)">+6.5%</td><td>Today 08:12</td><td><span class="chip chip--pill">verified</span></td></tr>
+        <tr><td>C-1042</td><td>Upper — push</td><td class="num">11,200 lb</td><td class="num" style="color:var(--sem-success)">+2.1%</td><td>Tue 07:55</td><td><span class="chip chip--pill">verified</span></td></tr>
+        <tr><td>C-3311</td><td>Flexibility block</td><td class="num">—</td><td class="num">n/a</td><td>Mon 18:30</td><td><span class="chip chip--draft">review</span></td></tr>
+        <tr><td>C-2077</td><td>Full body — intro</td><td class="num">6,400 lb</td><td class="num" style="color:#F0938A">−3.8%</td><td>9 days ago</td><td><span class="chip chip--kill">stale</span></td></tr>
+        <tr><td colspan="6" class="empty">No sessions logged this window — the record is waiting for its next chapter.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ §15 CINEMATIC LANDING ═══════════ -->
+<section id="cinematic" aria-labelledby="cine-h">
+  <p class="kicker">Section 15</p>
+  <h2 id="cine-h">Cinematic Landing — Act 1 Sample</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> <strong>C1</strong> (cinematic hero composition — gradient stands in for the video layer),
+    <strong>C12</strong> (glass/electric surface language), the <strong>B2.1 Act 1 hook</strong> (awe / identity), editorial
+    asymmetry (weighted grid, left-aligned, no centered-heading-plus-two-buttons template), the Jakarta + Cormorant
+    italic mix, and the CTA pair obeying Dual-Button Glow.
+  </p>
+
+  <div class="cinema">
+    <div class="grid">
+      <div>
+        <p class="kicker">SwanStudios · Personal Training</p>
+        <h3>Train like it's<br>your legacy.<em>Because the record remembers.</em></h3>
+        <p class="lede">
+          Every session logged. Every rep charted. Every milestone shared with a community that shows up.
+          Coaching built on 26+ years of training experience — and proof you can see.
+        </p>
+        <div class="cta-pair">
+          <button type="button" class="btn btn--primary">Book a Session</button>
+          <button type="button" class="btn btn--accent">Explore Programs</button>
+        </div>
+      </div>
+      <aside class="side" aria-label="Hero data column">
+        SESSIONS LOGGED<br><span style="font-size:30px; color:var(--frost-white)">1,284</span><br><br>
+        ACTIVE STREAK RECORD<br><span style="font-size:30px; color:var(--frost-white)">21 days</span><br><br>
+        <span style="color:var(--gilded-fern)">Act 1 — hook · awe · identity</span>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ §16 MOBILE PREVIEW ═══════════ -->
+<section id="mobile" aria-labelledby="mob-h">
+  <p class="kicker">Section 16</p>
+  <h2 id="mob-h">Mobile Preview — 375px Frame</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the responsive audit discipline — cards stack cleanly at small widths, buttons go
+    full-width, touch targets stay ≥44px, nothing clips or requires hover. Every client-management surface is checked
+    at phone width before completion.
+  </p>
+
+  <div class="phone-frame">
+    <div class="notch" aria-hidden="true"></div>
+    <article class="data-card" style="margin-bottom:var(--sp-4);">
+      <span class="card-tag card-tag--data">Today</span>
+      <h3 style="font-size:17px;">Lower — Strength</h3>
+      <div class="metric-line"><span>Planned sets</span><b>14</b></div>
+      <div class="metric-line" style="border-bottom:none;"><span>Est. duration</span><b>55 min</b></div>
+    </article>
+    <button type="button" class="btn btn--primary">Start Workout</button>
+  </div>
+</section>
+
+<!-- ═══════════ §17 MOTION NOTES ═══════════ -->
+<section id="motion" aria-labelledby="motion-h">
+  <p class="kicker">Section 17</p>
+  <h2 id="motion-h">Motion — Three Tiers, One Policy</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the performance-tier contract. Every cinematic surface ships all three tiers in the
+    same file. Motion always has a job — reveal, hierarchy, state, or reward. Decorative motion is noise and gets cut.
+  </p>
+
+  <div class="motion-tiers">
+    <div class="tier-card"><b>Tier 1 — Full cinema</b>
+      <ul><li>Video headers, parallax, R3F accents</li><li>Framer layout tweens</li><li>Desktop + capable mobile</li></ul></div>
+    <div class="tier-card"><b>Tier 2 — Lean cinema</b>
+      <ul><li>Still hero instead of video</li><li>CSS-only parallax, no Three.js</li><li>Low-power / save-data devices</li></ul></div>
+    <div class="tier-card"><b>Tier 3 — Reduced motion</b>
+      <ul><li><code>prefers-reduced-motion: reduce</code></li><li>All motion disabled, static composition</li><li>Tokens and hierarchy fully preserved</li></ul></div>
+  </div>
+
+  <div class="shimmer-demo">
+    loading-shimmer demo — animates ONLY under prefers-reduced-motion: no-preference
+  </div>
+  <p style="font-size:13px; color:var(--text-muted); margin-top:var(--sp-3); max-width:70ch;">
+    If your OS is set to reduce motion, the panel above is intentionally static — that's the fallback working,
+    not a bug. GPU-safe properties only (<code>transform</code>, <code>opacity</code>); never animate layout.
+  </p>
+</section>
+
+<!-- ═══════════ §18 DOS & DON'TS ═══════════ -->
+<section id="dos-donts" aria-labelledby="dd-h">
+  <p class="kicker">Section 18</p>
+  <h2 id="dd-h">Dos &amp; Don'ts</h2>
+  <p class="rule-caption">
+    <strong>Demonstrates:</strong> the anti-template bans (design-system section B) plus the hard CLAUDE.md rules,
+    side by side. When in doubt, the DON'T column is the list of things AI defaults to — resist all of it.
+  </p>
+
+  <div class="dd-grid">
+    <div class="dd dd--do"><b>DO</b>Use <code>var(--token, #fallback)</code> for every color, spacing, and blur value.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Hardcode raw hex in components — tokens with dark fallbacks only (Rule 6).</div>
+
+    <div class="dd dd--do"><b>DO</b>Blue button → purple glow · purple button → cyan glow (Dual-Button Glow).</div>
+    <div class="dd dd--dont"><b>DON'T</b>Cyan buttons, cyan glows on blue, or any library "taste" that bans purple glow — rejected, not adapted.</div>
+
+    <div class="dd dd--do"><b>DO</b>Reserve Arctic Cyan <code>#50A0F0</code> for charts and data visualization.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Put Arctic Cyan on buttons, focus rings, or glows — it is data-only.</div>
+
+    <div class="dd dd--do"><b>DO</b>Compose with weighted, asymmetric grids and left-aligned editorial moments.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Center everything, or ship equal 4-up box grids as the default composition.</div>
+
+    <div class="dd dd--do"><b>DO</b>Feed charts from real workout logs; mark placeholders as gaps to replace.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Ship fake metrics or decorative KPI rows with no media/story anchor.</div>
+
+    <div class="dd dd--do"><b>DO</b>Use styled-components with CSS Grid composition (and the <code>css``</code> helper for shared fragments).</div>
+    <div class="dd dd--dont"><b>DON'T</b>Use Material-UI, Tailwind classes, or Recharts in new work (Rules 1, 10).</div>
+
+    <div class="dd dd--do"><b>DO</b>Keep every interactive element ≥44px with a visible <code>:focus-visible</code> ring.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Hide actions behind hover, nest interactive elements, or shrink touch targets.</div>
+
+    <div class="dd dd--do"><b>DO</b>Gate all animation behind <code>prefers-reduced-motion: no-preference</code> and animate transform/opacity only.</div>
+    <div class="dd dd--dont"><b>DON'T</b>Ship motion with no job, scroll-jack, or animate layout properties.</div>
+
+    <div class="dd dd--do"><b>DO</b>Use glass as a depth cue with electric or gold borders (C12 — three recipes only).</div>
+    <div class="dd dd--dont"><b>DON'T</b>Use glassmorphism as a gimmick or invent a fourth panel recipe.</div>
+
+    <div class="dd dd--do"><b>DO</b>Refer to clients by ID (C-1042) in any AI-adjacent surface — zero PII to LLMs (Rule 8).</div>
+    <div class="dd dd--dont"><b>DON'T</b>Use the retired Galaxy-Swan theme — these tokens are dead:
+      <span class="dead-swatches">
+        <span><i style="background:#0a0a1a"></i>#0a0a1a</span>
+        <span><i style="background:#00FFFF"></i>#00FFFF</span>
+        <span><i style="background:#7851A9"></i>#7851A9</span>
+      </span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  DESIGN BRAIN · static visual reference · self-contained, no network, no live data ·
+  canonical source: <code>docs/ai-workflow/design-brain/design.md</code> +
+  <code>docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md</code>
+</footer>
+
+<script>
+/* Cosmetic demo behavior only. The page is fully readable with JS disabled. */
+(function () {
+  "use strict";
+  /* Toggle switch demo (Section 5) — flips aria-checked for the visual state. */
+  document.querySelectorAll("[data-demo-switch]").forEach(function (sw) {
+    sw.addEventListener("click", function () {
+      var on = sw.getAttribute("aria-checked") === "true";
+      sw.setAttribute("aria-checked", on ? "false" : "true");
+    });
+  });
+  /* Demo buttons do nothing destructive — they are visual specimens. */
+  document.querySelectorAll("main .btn:not([data-demo-switch])").forEach(function (btn) {
+    btn.addEventListener("click", function (e) { e.preventDefault(); });
+  });
+})();
+</script>
+
+</body>
+</html>

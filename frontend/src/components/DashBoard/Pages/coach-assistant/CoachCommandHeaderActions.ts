@@ -3,7 +3,7 @@
  * PURPOSE: Route-safe quick actions for the Coach Command Center header.
  *
  * These actions reduce the common workout flow by one click: Log, Build, Intake,
- * and PLAUD are visible before the Ops drawer opens. They only navigate or switch
+ * and Audio are visible before the Ops drawer opens. They only navigate or switch
  * local tabs; Logger/Planner remain the save owners.
  */
 export type CoachHeaderQuickActionIcon = 'log' | 'builder' | 'client' | 'intake' | 'plaud';
@@ -89,10 +89,10 @@ export function buildCoachHeaderQuickActions({
         onClick: onOpenIntake,
       },
       {
-        ariaLabel: 'Import PLAUD audio',
+        ariaLabel: 'Import audio',
         detail: 'Audio',
         icon: 'plaud',
-        label: 'PLAUD',
+        label: 'Audio',
         onClick: onOpenPlaud,
       },
     );

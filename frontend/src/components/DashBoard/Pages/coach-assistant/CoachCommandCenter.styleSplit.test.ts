@@ -49,29 +49,28 @@ describe('CoachCommandCenter style split', () => {
     });
   });
 
-  it('keeps transcript controls at the 44px touch target minimum', () => {
+  it('keeps Floor Mode dock controls at the 44px touch target minimum', () => {
     const dockSource = readStyleFile('CoachCommandCenter.bridgeDockStyles.ts');
 
-    expect(dockSource).toMatch(/\.transcript-reset[\s\S]*?min-height:\s*44px/);
+    expect(dockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-height:\s*56px/);
+    expect(dockSource).toMatch(/\.dock-more-menu button,[\s\S]*?\.dock-more-menu a[\s\S]*?min-height:\s*44px/);
   });
 
   it('keeps the mounted mobile command dock reachable and thumb-ready', () => {
     const bridgeSource = readStyleFile('CoachCommandCenter.bridgeStyles.ts');
     const mobileDockSource = readStyleFile('CoachCommandCenter.bridgeMobileDockStyles.ts');
-    const dockComponentSource = readStyleFile('CoachConsoleDock.tsx');
+    const dockComponentSource = readFileSync(resolve(__dirname, 'CoachConsoleDock.tsx'), 'utf8');
 
     expect(bridgeSource).toContain('coachCommandBridgeMobileDockStyles');
     expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?position:\s*sticky;/);
     expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?bottom:\s*0;/);
     expect(mobileDockSource).toContain('env(safe-area-inset-bottom)');
-    expect(mobileDockSource).toMatch(/\.dock-actions[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
-    expect(mobileDockSource).toMatch(/\.dock-actions-left[\s\S]*?overflow-x:\s*auto;/);
-    expect(mobileDockSource).toMatch(/\.quick-intents[\s\S]*?flex-wrap:\s*wrap;/);
-    expect(mobileDockSource).toMatch(/\.quick-intent[\s\S]*?flex:\s*1 1 148px;/);
-    expect(mobileDockSource).toMatch(/\.quick-intent[\s\S]*?white-space:\s*normal;/);
-    expect(mobileDockSource).toMatch(/\.dock-action \.dock-action-label[\s\S]*?display:\s*none;/);
-    expect(mobileDockSource).toMatch(/\.dock-mic,\s*\.dock-send[\s\S]*?min-width:\s*54px;[\s\S]*?min-height:\s*54px;/);
-    expect(dockComponentSource).toContain('aria-label="Attach"');
-    expect(dockComponentSource).toContain('aria-label="Readback"');
+    expect(mobileDockSource).toMatch(/\.dock-primary-row[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
+    expect(mobileDockSource).toMatch(/\.dock-main-actions[\s\S]*?gap:\s*7px;/);
+    expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-width:\s*54px;/);
+    expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-height:\s*54px;/);
+    expect(mobileDockSource).toMatch(/\.dock-more-menu[\s\S]*?min-width:\s*min\(244px,\s*calc\(100vw - 24px\)\);/);
+    expect(dockComponentSource).toContain('aria-label="More command tools"');
+    expect(dockComponentSource).toContain('Audio');
   });
 });

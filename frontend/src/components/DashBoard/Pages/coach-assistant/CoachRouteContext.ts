@@ -36,6 +36,8 @@ export interface CoachRouteContext {
   scheduledSessionId?: string;
   scheduledSessionDate?: string;
   scheduledSessionCredits?: number;
+  threadId?: string;
+  sourceMessageId?: string;
   allowedActions: CoachRouteAction[];
   writeBackPolicy: 'approval_required';
 }
@@ -72,6 +74,9 @@ const ACTIONS: Record<CoachRouteSurface, CoachRouteAction[]> = {
   messages: [
     { key: 'summarize_messages', mode: 'ask', requiresApproval: false },
     { key: 'draft_client_message', mode: 'draft', requiresApproval: true },
+    { key: 'create_task_from_message', mode: 'draft', requiresApproval: true },
+    { key: 'schedule_from_message', mode: 'draft', requiresApproval: true },
+    { key: 'log_workout_from_message', mode: 'draft', requiresApproval: true },
   ],
   coach_command_center: [
     { key: 'summarize_open_approvals', mode: 'ask', requiresApproval: false },
@@ -154,6 +159,8 @@ export function buildCoachRouteContext(pathname: string, search = ''): CoachRout
   const source = safeToken(params.get('source'));
   const intent = safeToken(params.get('intent'));
   const scheduledSessionId = safePositiveIntegerString(params.get('sessionId'));
+  const threadId = safePositiveIntegerString(params.get('threadId'));
+  const sourceMessageId = safeToken(params.get('sourceMessageId'));
 
   return {
     route: sourcePath,
@@ -162,6 +169,8 @@ export function buildCoachRouteContext(pathname: string, search = ''): CoachRout
     ...compactRouteFields([
       ['source', source],
       ['intent', intent],
+      ['threadId', threadId],
+      ['sourceMessageId', sourceMessageId],
     ]),
     ...scheduledSessionFields(scheduledSessionId, params),
     allowedActions: ACTIONS[surface],

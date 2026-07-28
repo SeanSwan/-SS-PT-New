@@ -1,0 +1,119 @@
+{
+  "viewport": {
+    "w": 390,
+    "h": 844
+  },
+  "scrollWidth": 375,
+  "clientWidth": 375,
+  "horizontalOverflow": false,
+  "buttonCount": 40,
+  "tooSmall": [],
+  "offscreen": [
+    {
+      "text": "03\nFamily Trust",
+      "w": 158,
+      "h": 47,
+      "x": 360,
+      "y": 190
+    },
+    {
+      "text": "04\nFair Access",
+      "w": 153,
+      "h": 47,
+      "x": 526,
+      "y": 190
+    },
+    {
+      "text": "05\nReadiness",
+      "w": 145,
+      "h": 47,
+      "x": 686,
+      "y": 190
+    },
+    {
+      "text": "06\nCivic Intel",
+      "w": 143,
+      "h": 47,
+      "x": 840,
+      "y": 190
+    },
+    {
+      "text": "07\nComment Intel",
+      "w": 183,
+      "h": 47,
+      "x": 991,
+      "y": 190
+    },
+    {
+      "text": "08\nInfluence Intel",
+      "w": 178,
+      "h": 47,
+      "x": 1182,
+      "y": 190
+    },
+    {
+      "text": "09\nIntel Wiki",
+      "w": 138,
+      "h": 47,
+      "x": 1367,
+      "y": 190
+    },
+    {
+      "text": "10\nImpact",
+      "w": 118,
+      "h": 47,
+      "x": 1513,
+      "y": 190
+    },
+    {
+      "text": "11\nMarketplace",
+      "w": 163,
+      "h": 47,
+      "x": 1639,
+      "y": 190
+    },
+    {
+      "text": "12\nHermes",
+      "w": 123,
+      "h": 47,
+      "x": 1811,
+      "y": 190
+    },
+    {
+      "text": "13\nTrust Safety",
+      "w": 157,
+      "h": 47,
+      "x": 1942,
+      "y": 190
+    },
+    {
+      "text": "14\nOwner Console",
+      "w": 187,
+      "h": 47,
+      "x": 2108,
+      "y": 190
+    },
+    {
+      "text": "Acknowledge command screen",
+      "w": 170,
+      "h": 61,
+      "x": 225,
+      "y": 921
+    },
+    {
+      "text": "Open focused workspace",
+      "w": 170,
+      "h": 61,
+      "x": 405,
+      "y": 921
+    },
+    {
+      "text": "Show command brief",
+      "w": 170,
+      "h": 61,
+      "x": 585,
+      "y": 921
+    }
+  ],
+  "firstScreen": "HOME LOOKOUT\nOak treehouse over Swan Guard village\nOak 1984\nGraphite 1996\nGlass 2026\nFAMILY-FIRST INTELLIGENCE\nSwan Guard Command\n01\nCommand\n02\nCreator Board\n03\nFamily Trust\n04\nFair Access\n05\nReadiness\n06\nCivic Intel\n07\nComment Intel\n08\nInfluence Intel\n09\nIntel Wiki\n10\nImpact\n11\nMarketplace\n12\nHermes\n13\nTrust Safety\n14\nOwner Console\nCommand\noverview\nACTION BOUNDARY\nPermission and audit API\nPermission Center and operator grant controls use the first-party API boundary.\nCommand screen deck\nlocal control room\nCOMMAND SCREEN 1 OF 6\nREADINESS\nUP: BRIEF\nRIGHT: NEXT\nHOLD / ARROWS\nLEFT: ACKNOWLEDGE\nDOWN: OPEN\nalert\nwatch\nWater: urgent\nDECIDE WHAT NEEDS ATTENTION NOW\nMedicine rotation\n\n9 days tracked toward 14 days tracked; expiration dates need review.\n\nReadiness\nNext command screen\nAcknowledge command screen\nOpen focused workspace\nShow command brief\nNow screening\n\nReadiness / watch\n\nMarketplace draft blocked discriminatory language\n\nMarketplace / urgent\n\nHermes redaction clean\n\nHermes / clear\n\nReview household readiness\n\nReadiness / Today\n\nAttention\n\nFamily Resilience Lab rank #4\n\nHome\n\nReadiness check\n\nExecution boundary\n\nLive checkout: Off / Live posting: Off\n\nFAMILY SAFETY OPERATING SY"
+}

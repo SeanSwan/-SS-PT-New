@@ -1,0 +1,8 @@
+diff --git a/backend/tests/unit/reviewedNutritionDraftService.test.mjs b/backend/tests/unit/reviewedNutritionDraftService.test.mjs
+--- a/backend/tests/unit/reviewedNutritionDraftService.test.mjs
++++ b/backend/tests/unit/reviewedNutritionDraftService.test.mjs
+@@ -119,2 +119,2 @@
+-      confidenceScore: 0.82,
+-      reviewStatus: 'client_confirmed',
++      confidenceScore: 0.6,
++      reviewStatus: 'needs_review',

@@ -107,6 +107,13 @@ export interface ExerciseEntry {
   formRating: number | null; // 1-5, null = not rated
   painLevel: number; // 0-10 (kept as number, painLevel null-honesty deferred to Phase 16.1)
   performanceNotes?: string;
+  category?: string;
+  exerciseFamily?: string;
+  movementPattern?: string;
+  nasmMovementPattern?: string;
+  bodyPartCategory?: string;
+  muscleGroups?: string[];
+  tags?: string[];
 }
 
 export interface PlannedWorkoutAssignmentMetadata {
@@ -172,6 +179,27 @@ export interface WorkoutSessionBillingReceipt {
   remainingSessions: number | null;
 }
 
+export interface ChallengeProgressImpactUpdate {
+  challengeId: string | null;
+  title: string;
+  delta: number;
+  progressUnit: string;
+  currentProgress: number;
+  progressPercentage: number;
+  completed: boolean;
+  xpEarned: number;
+  assignedSessionOnly?: boolean;
+  assignedSession?: boolean;
+}
+
+export interface ChallengeProgressImpactReceipt {
+  status: 'processed' | 'failed' | string;
+  updatedCount: number;
+  skippedCount: number;
+  headline: string | null;
+  updates: ChallengeProgressImpactUpdate[];
+}
+
 export interface DailyWorkoutForm {
   id: string;
   formId?: string;
@@ -196,6 +224,7 @@ export interface DailyWorkoutForm {
   totalPointsEarned: number;
   mcpProcessed: boolean;
   billing?: WorkoutSessionBillingReceipt;
+  challengeProgress?: ChallengeProgressImpactReceipt;
   submittedAt: string;
   mcpProcessedAt?: string;
   processingErrors?: any;

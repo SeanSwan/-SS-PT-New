@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   normalizeConversationPayload,
   normalizeConversationsPayload,
@@ -72,6 +72,53 @@ describe('messaging API adapters', () => {
     expect(conversation?.participants[1]).toEqual(expect.objectContaining({ groupRole: 'admin' }));
   });
 
+  it('preserves message action metadata from the backend', () => {
+    const messages = normalizeMessagesPayload([
+      {
+        id: 9,
+        conversation_id: 7,
+        sender_id: 42,
+        content: 'Updated plan note',
+        reply_to_message_id: 3,
+        edited_at: '2026-06-30T18:08:00.000Z',
+        deleted_at: null,
+        deleted_by: null,
+        reactions: [{ id: 1, userId: 42, reaction: 'swan', createdAt: '2026-06-30T18:09:00.000Z' }],
+        pins: [{ id: 2, pinnedBy: 103, createdAt: '2026-06-30T18:10:00.000Z' }],
+        saves: [{ id: 3, savedBy: 103, createdAt: '2026-06-30T18:11:00.000Z' }],
+      },
+    ]);
+
+    expect(messages[0]).toEqual(expect.objectContaining({
+      reply_to_message_id: 3,
+      edited_at: '2026-06-30T18:08:00.000Z',
+      deleted_at: null,
+      deleted_by: null,
+      reactions: [expect.objectContaining({ userId: 42, reaction: 'swan' })],
+      pins: [expect.objectContaining({ pinnedBy: 103 })],
+      saves: [expect.objectContaining({ savedBy: 103 })],
+    }));
+  });
+
+  it('keeps attachment-only messages visible when backend content is empty', () => {
+    const messages = normalizeMessagesPayload([
+      {
+        id: 10,
+        conversation_id: 7,
+        sender_id: 42,
+        content: '',
+        created_at: '2026-06-30T18:12:00.000Z',
+        attachments: [
+          { id: 99, kind: 'link', title: 'Workout plan', url: '/dashboard/client/workouts', scanStatus: 'not_required' },
+        ],
+      },
+    ]);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].attachments).toEqual([
+      expect.objectContaining({ kind: 'link', title: 'Workout plan', url: '/dashboard/client/workouts' }),
+    ]);
+  });
   it('sorts raw message history into readable oldest-first order', () => {
     const messages = normalizeMessagesPayload([
       { id: 2, conversation_id: 7, sender_id: 9, content: 'Second', created_at: '2026-06-18T12:05:00.000Z' },

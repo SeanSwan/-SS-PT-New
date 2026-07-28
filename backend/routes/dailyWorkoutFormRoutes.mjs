@@ -29,13 +29,17 @@ import {
   getSessionType,
   getClientTrainerAssignment,
   getTrainerPermissions,
-  getBodyMeasurement
+  getBodyMeasurement,
+  getChallenge,
+  getChallengeParticipant
 } from '../models/index.mjs';
 import { PERMISSION_TYPES } from '../models/TrainerPermissions.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
+import { applyDailyWorkoutFormChallengeProgress } from '../services/gamification/challengeWorkoutCompletionBridge.mjs';
+import { buildChallengeProgressImpactReceipt } from '../services/gamification/challengeProgressImpactReceipt.mjs';
 import { buildWorkoutSessionBillingDecision, normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
@@ -824,7 +828,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     //
     // Trainer/admin path: actor and form's trainerId are the same user.
     let attributedTrainerId = trainerId;
-    if (isWorkoutSelfLogRole(userRole)) {
+    const isSelfWorkoutLogActor = isWorkoutSelfLogRole(userRole) || parsedClientId === userNumericId;
+    if (isSelfWorkoutLogActor) {
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
@@ -1096,7 +1101,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     if (linkedScheduledSession) {
       const scheduledSessionCompletionDate = new Date();
       const shouldStampScheduledSessionDeduction = billingDecision.shouldDeduct && billingDecision.sessionDeducted;
-      const scheduledSessionAttendanceRecorderId = isWorkoutSelfLogRole(userRole)
+      const scheduledSessionAttendanceRecorderId = isSelfWorkoutLogActor
         ? (linkedScheduledSession.markedPresentBy || null)
         : trainerId;
       await linkedScheduledSession.update({
@@ -1112,7 +1117,48 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     }
 
     await transaction.commit();
-
+    let challengeProgress = buildChallengeProgressImpactReceipt();
+    try {
+      const challengeExercises = formData?.exercises || [];
+      const challengeProgressResult = await applyDailyWorkoutFormChallengeProgress({
+        sequelize,
+        models: {
+          Challenge: getChallenge(),
+          ChallengeParticipant: getChallengeParticipant(),
+        },
+        userId: parsedClientId,
+        dailyForm,
+        workoutSession,
+        workoutDateIso,
+        estimatedDuration,
+        exercises: challengeExercises,
+      });
+      challengeProgress = buildChallengeProgressImpactReceipt(challengeProgressResult);
+      const challengeProgressCounts = {
+        updatedCount: challengeProgress.updatedCount,
+        skippedCount: challengeProgress.skippedCount,
+      };
+      if (challengeProgress.updatedCount > 0 || challengeProgress.skippedCount > 0) {
+        logger.info('Challenge progress processed from workout form', {
+          clientId: parsedClientId,
+          formId: dailyForm.id,
+          ...challengeProgressCounts,
+        });
+      } else {
+        logger.debug('No active challenge progress for workout form', {
+          clientId: parsedClientId,
+          formId: dailyForm.id,
+          ...challengeProgressCounts,
+        });
+      }
+    } catch (challengeErr) {
+      challengeProgress = buildChallengeProgressImpactReceipt(null, 'failed');
+      logger.warn('Challenge progress update failed (non-critical)', {
+        clientId: parsedClientId,
+        formId: dailyForm.id,
+        ...toWorkoutFormErrorMetadata(challengeErr, 'workout_form_challenge_progress_failed'),
+      });
+    }
     // Award XP/gamification points asynchronously (don't block response)
     setImmediate(async () => {
       let xpTransaction;
@@ -1141,6 +1187,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
           ...toWorkoutFormErrorMetadata(xpErr, 'workout_form_xp_award_failed'),
         });
       }
+
+
 
       // Process with MCP servers (legacy, disabled by default)
       processMCPIntegration(dailyForm.id, {
@@ -1175,6 +1223,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         billing: billingReceipt,
         plannedAssignment: plannedAssignmentMetadata,
         planProgress: planProgress?.advanced ? planProgress : null,
+        challengeProgress,
         submittedAt: dailyForm.submittedAt
       },
       message: billingDecision.message
@@ -2373,3 +2422,4 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
 });
 
 export default router;
+

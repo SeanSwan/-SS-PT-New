@@ -38,6 +38,24 @@ Canonical Surface Receipt present? [Y/N — link to artifact if Y]
 If claim says "end-to-end" / "live surface fixed" / "truth restored" / "canonical":
   The receipt MUST be present. If missing, narrow the claim to what was actually verified.
 
+=== SECTION 1b — Proof-Before-Done (rule 73, HARD GATE — Sean 2026-07-22) ===
+No "done / fixed / complete / passing / ready" may leave this closeout without
+current-session, reproducible PROOF in the SAME message. Produce a `PROOF:` line
+with the exact evidence you actually ran this turn:
+  PROOF: <e.g. `npm test → 842 passed`, `tsc --noEmit → exit 0`, `npm run build → ok`,
+         the exact vitest file → N/N, OR a Canonical Surface Receipt / live-probe
+         observed value (file:line + value) for UI/data-truth work>
+Asserting evidence you did NOT run is a rule 19/28 violation. If the work genuinely
+cannot be proven in-session (e.g. a live authed browser journey needs a backend that
+won't run here): `PROOF: N/A — <what could not be proven, why, and the lower-tier
+evidence that stands in>` and narrow the completion claim to only the proven part.
+This section + the DRY-LOOP marker (Section 3) are BOTH required on any build-shaped
+turn — the deterministic Stop hook `scripts/hooks/dry-loop-gate.mjs` BLOCKS the turn
+if either the `PROOF:` token or the `DRY-LOOP: CLEAN×2` marker is absent.
+(If a gate.mjs harness is in play: also paste its passing output + git hash-object at
+authoring AND at closeout — a hash mismatch means the builder touched the gate =
+automatic REVISE. If exempt/trivial: "Gate Evidence: exempt — <reason>".)
+
 === SECTION 2 — Forbidden-Language Filter (rule 34) ===
 Scan the closeout text for these forbidden phrases:
   [ ] "should be fixed"
@@ -51,8 +69,40 @@ Scan the closeout text for these forbidden phrases:
   [ ] "end-to-end fixed" (without a Canonical Surface Receipt)
 If any found, rewrite before the closeout ships.
 
-=== SECTION 3 — Dual-Pass Hostile Review (rule 17) ===
-Hostile review checklist:
+=== SECTION 3 — DRY-LOOP Hostile Review (rule 17 + Sean's Dry-Loop Law, 2026-07-21) ===
+
+THE LAW (Sean, 2026-07-21 — "this is just protocol from here on out"): a single
+hostile pass is NOT completion. For every build/fix/feature task, hostile-review
+rounds repeat UNTIL A ROUND FINDS NOTHING FIXABLE — and then ONE MORE full
+confirmation round runs on top of that ("the second final"). Only two consecutive
+clean rounds = dry. Sean must NEVER have to ask for another round.
+
+Loop mechanics (each round, before the checklists below):
+  1. Every round must gather NEW evidence — execute from a vantage not yet tried
+     (different cwd/worktree, different mode/flag, different role/viewport, the
+     real caller path, the unusual input) — re-reading code you already read is
+     NOT a round.
+  2. A round that APPLIED fixes is itself a defect source: its own changes are
+     the primary attack surface of the next round (proven 2026-07-21: round 3
+     introduced the MAIN-TREE blind spot; only round 4's different-vantage
+     execution caught it).
+  3. Record the round ledger in the closeout: Round N — vantage tried — found →
+     fixed | found → flagged (gated) | CLEAN. The ledger must end with TWO
+     consecutive CLEAN rounds.
+  4. Findings that are Sean-gated (rule 34 cleanup, DECISION-class, paid spend)
+     count as "flagged", not "fixable" — they don't keep the loop alive, but
+     they MUST be captured to Linear (linear-todo Mode 1) before dry is declared.
+  5. Scale rounds to blast radius: trivial one-liners may dry in 2 rounds
+     (1 find-nothing + 1 confirm); production/money/auth surfaces should expect
+     3-5+. Token cost is not a reason to stop early — Sean's standing directive.
+  6. HARNESS ENFORCEMENT: a deterministic Stop hook (`scripts/hooks/dry-loop-gate.mjs`)
+     blocks the turn from ending when files changed / commits landed without the
+     ledger. The closeout MUST end with the literal marker `DRY-LOOP: CLEAN×2
+     (rounds: N)` — or `DRY-LOOP: N/A — <reason>` for genuinely non-build turns.
+     The marker is a CLAIM: emitting it without the rounds behind it violates
+     rules 19/28.
+
+Hostile review checklist (apply EVERY round):
   [ ] stale state / race conditions
   [ ] null/undefined/type mismatches
   [ ] wrong route / base URL / env / proxy / service worker / deploy drift
@@ -136,6 +186,22 @@ Did this work create:
   [ ] New debate docs? — [list]
   [ ] New obsolete files? — [list]
 If any yes, add to cleanup backlog or archive plan.
+
+=== SECTION 6.5 — Hermes Closeout Emission (rules 68-69) ===
+Substantial transferable work completed? [Y/N + reason]
+Hermes Inbox memo: [path | not required]
+Fable-tier permanent lesson? [Y/N + originating model]
+Hermes Learning Packet: [path | not required | QUARANTINE]
+Privacy/secret scan: [command + result | not applicable]
+
+=== SECTION 6.6 — Linear Board Sync (linear-todo Mode 1/2) ===
+Does this task have (or deserve) a SWA issue? [Y/N]
+  - If it advanced/finished an EXISTING issue: update that issue THIS turn — final state,
+    commit range, evidence, Done/Todo transition. Do NOT wait for Sean to ask (the whole
+    system exists so he never has to). SWA issue: [SWA-N updated | none applies + why]
+  - If it was substantial NET-NEW work with no issue: capture one (Mode 1, dedup first).
+  - New Sean-gated findings surfaced this turn (Rule 34 / DECISION / spend): [SWA-N each | none]
+Board synced? [Y — SWA-N | N/A — trivial/no-issue task]
 
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:

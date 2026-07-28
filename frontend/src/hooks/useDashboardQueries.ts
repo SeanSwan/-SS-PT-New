@@ -20,13 +20,15 @@
  * With:
  *   const { data, isLoading } = useSocialFeed({ limit: 10 });
  *
- * KEY DECISIONS: Hooks return { data, isLoading, error, refetch } matching
- * the TanStack Query API. Each hook uses the authAxios instance from AuthContext
- * and only enables when authAxios is available (prevents unauthenticated calls).
+ * KEY DECISIONS: Hooks return { data, isLoading, error, refetch } shaped
+ * objects. Auth-backed query hooks use the authAxios instance from AuthContext
+ * and only enable when authAxios is available (prevents unauthenticated calls).
  */
 
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { useNotificationCenter } from './useNotificationCenter';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Query Key Factory
@@ -39,9 +41,6 @@ export const queryKeys = {
     challenges: () => ['social', 'challenges'] as const,
     posts: () => ['social', 'posts'] as const,
     trendingTags: (params?: Record<string, unknown>) => ['social', 'trendingTags', params] as const,
-  },
-  notifications: {
-    summary: () => ['notifications', 'summary'] as const,
   },
   messaging: {
     summary: () => ['messaging', 'summary'] as const,
@@ -178,18 +177,20 @@ export function useCreatePost() {
 }
 
 export function useNotificationSummary() {
-  const { authAxios, user } = useAuth();
-
-  return useQuery({
-    queryKey: queryKeys.notifications.summary(),
-    queryFn: async ({ signal }) => {
-      const res = await authAxios.get('/api/notifications', { signal });
-      return res.data;
-    },
-    enabled: !!authAxios && !!user,
-    staleTime: 30 * 1000,
-    retry: false,
+  const { notifications, unreadCount, loading, error, refresh } = useNotificationCenter({
+    fetchOnMount: true,
+    subscribeToSocket: true,
   });
+
+  return useMemo(() => ({
+    data: { notifications, unreadCount },
+    isLoading: loading,
+    isFetching: loading,
+    isError: !!error,
+    loading,
+    error,
+    refetch: refresh,
+  }), [error, loading, notifications, refresh, unreadCount]);
 }
 
 export function useMessageSummary(options: { enabled?: boolean } = {}) {

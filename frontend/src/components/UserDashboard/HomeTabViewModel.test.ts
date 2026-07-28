@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   assessStreakRisk,
-  buildHomeBadgeShowcase,
   buildHomeLiveActivity,
   buildHomeTrainingProof,
   buildLatestPostView,
   buildCreatorStats,
-  extractTrendingTagNames,
   buildHomePostPayload,
   buildHomeTopBarActions,
   parseUnreadNotificationCount,
   previewHomePostIntent,
   resolveHomeAvatarSrc,
-  selectActiveChallengeSummary,
   sumUnreadConversations,
 } from './components/HomeTabViewModel';
 
@@ -267,60 +264,5 @@ describe('HomeTabViewModel', () => {
     });
   });
 
-  it('selects a real active challenge and refuses demo challenge data as truth', () => {
-    expect(selectActiveChallengeSummary({
-      isDemoData: true,
-      challenges: [{ id: 'demo', title: 'Fake Challenge', status: 'active' }],
-    })).toBeNull();
 
-    expect(selectActiveChallengeSummary({
-      isDemoData: false,
-      challenges: [
-        { id: 'a', title: 'Open Challenge', status: 'active', progress: 15, daysLeft: 9, participants: 10 },
-        { id: 'b', title: 'Joined Challenge', status: 'active', joined: true, progress: 67, daysLeft: 3, participants: 42, reward: '500 XP' },
-      ],
-    })).toEqual({
-      id: 'b',
-      title: 'Joined Challenge',
-      progress: 67,
-      daysLeft: 3,
-      participants: 42,
-      reward: '500 XP',
-      joined: true,
-    });
-  });
-
-  it('maps badges, leaderboard rows, and trending tags from live payloads', () => {
-    const showcase = buildHomeBadgeShowcase({
-      achievements: [{
-        id: 'ua-1',
-        pointsAwarded: 250,
-        achievement: { name: 'First Forge', icon: 'F', badgeImageUrl: '/badge.png' },
-      }],
-      leaderboard: [{
-        id: 'leader-1',
-        points: 4200,
-        client: { firstName: 'Ari', username: 'ari' },
-      }],
-      currentUserName: 'Sean',
-      currentUserPoints: 900,
-    });
-
-    expect(showcase.badges).toEqual([
-      { id: 'ua-1', name: 'First Forge', icon: 'F', imageUrl: '/badge.png' },
-    ]);
-    expect(showcase.leaderboardRows).toEqual([
-      { id: 'leader-1', name: 'Ari', points: 4200 },
-    ]);
-
-    expect(extractTrendingTagNames({
-      data: [
-        { name: 'StrengthSurge', weeklyCount: 9 },
-        { slug: 'level-up', postCount: 3 },
-      ],
-    })).toEqual([
-      { name: 'StrengthSurge', count: 9 },
-      { name: 'level-up', count: 3 },
-    ]);
-  });
 });

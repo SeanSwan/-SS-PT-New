@@ -1,344 +1,51 @@
 /**
  * ============================================================================
  * FILE: bootcampGenerator.mjs
- * PURPOSE: AI-powered bootcamp class generation algorithm
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-01
+ * PURPOSE: AI-powered bootcamp class generation orchestration
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Generates bootcamp class plans using exercise registry,
- * freshness tracking, station layout, and overflow management.
- * HOW IT FITS: Called by bootcampService → routes → frontend ConfigPanel
+ * This module coordinates the bootcamp generation workflow. Selection,
+ * equipment, scoring, structure, and pain-alert helpers live in focused modules.
  */
 
 import {
   getBootcampClassLog,
   getBootcampSpaceProfile,
-  getClientPainEntry,
 } from '../../models/index.mjs';
 import { getExerciseRegistry } from '../variationEngine.mjs';
 import { Op } from 'sequelize';
 import {
-  FORMAT_CONFIG, TRANSITION_TIME_SEC, STATION_TRANSITION_SEC,
-  DAY_TYPE_MUSCLES, CARDIO_FINISHERS, LAP_EXERCISES,
-  CUSTOM_STRUCTURE_LIMITS, formatExerciseName, distributeMuscleGroups,
+  CUSTOM_STRUCTURE_LIMITS,
+  DAY_TYPE_MUSCLES,
+  LAP_EXERCISES,
+  STATION_TRANSITION_SEC,
 } from './bootcampConstants.mjs';
-import { estimateSetupTime } from './exerciseRolodexBridge.mjs';
 import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
-  generateBoard2, applyClassStyle, generateStretches,
+  generateBoard2,
+  applyClassStyle,
+  generateStretches,
 } from './classStyleModifiers.mjs';
-
-// ── Exercise Selection Algorithms ─────────────────────────────────────
-
-function selectStationExercises(available, stationMuscles, count, usedNames) {
-  const primaryMuscle = stationMuscles[0];
-
-  const primaryMatches = available
-    .filter(ex => {
-      const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-      return exPrimary && exPrimary === primaryMuscle;
-    })
-    .filter(ex => !usedNames.has(ex.key));
-
-  const secondaryMatches = available
-    .filter(ex => {
-      const exMuscles = ex.muscles ?? [];
-      const exPrimary = ex.primaryMuscle || exMuscles[0];
-      if (exPrimary === primaryMuscle) return false;
-      return exMuscles.includes(primaryMuscle);
-    })
-    .filter(ex => !usedNames.has(ex.key));
-
-  const tertiaryMatches = stationMuscles.length > 1
-    ? available
-        .filter(ex => {
-          const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-          return stationMuscles.slice(1).includes(exPrimary);
-        })
-        .filter(ex => !usedNames.has(ex.key))
-        .filter(ex => !primaryMatches.some(p => p.key === ex.key) && !secondaryMatches.some(s => s.key === ex.key))
-    : [];
-
-  const matching = [...primaryMatches, ...secondaryMatches, ...tertiaryMatches];
-  const needed = Math.max(1, count - 1);
-
-  if (matching.length >= needed) return matching.slice(0, needed);
-
-  const selected = [...matching];
-  const remainingPool = available
-    .filter(ex => !usedNames.has(ex.key) && !selected.some(s => s.key === ex.key));
-
-  for (const ex of remainingPool) {
-    if (selected.length >= needed) break;
-    selected.push(ex);
-  }
-
-  return selected;
-}
-
-function selectFullGroupExercises(available) {
-  const compound = available
-    .filter(ex => (ex.muscles ?? []).length >= 2)
-    .slice(0, 5);
-
-  const cardio = CARDIO_FINISHERS.slice(0, 5).map(cf => ({
-    ...cf,
-    key: cf.name.toLowerCase().replace(/\s+/g, '_'),
-    muscles: cf.muscles.split(','),
-    isCardio: true,
-  }));
-
-  const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
-  const accessory = available
-    .filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2)
-    .slice(0, 5);
-
-  const result = [];
-  const maxLen = Math.max(compound.length, cardio.length, accessory.length);
-  for (let i = 0; i < maxLen; i++) {
-    if (compound[i]) result.push(compound[i]);
-    if (cardio[i]) result.push(cardio[i]);
-    if (accessory[i]) result.push(accessory[i]);
-  }
-
-  return result.slice(0, 15);
-}
-
-// ── Build Exercise Record ─────────────────────────────────────────────
-
-function buildExerciseRecord(ex, opts) {
-  // Use bridge estimator if exercise has equipment data, else fall back to stored value
-  const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
-  const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId);
-
-  return {
-    stationIndex: opts.stationIndex ?? undefined,
-    exerciseName: ex.name ?? formatExerciseName(ex.key),
-    durationSec: opts.durationSec,
-    restSec: opts.restSec ?? TRANSITION_TIME_SEC,
-    sortOrder: opts.sortOrder,
-    isCardioFinisher: opts.isCardioFinisher ?? false,
-    muscleTargets: Array.isArray(ex.muscles) ? ex.muscles.join(',') : (ex.muscles ?? ''),
-    easyVariation: ex.easy ?? null,
-    mediumVariation: ex.medium ?? null,
-    hardVariation: ex.hard ?? null,
-    kneeMod: ex.kneeMod ?? null,
-    shoulderMod: ex.shoulderMod ?? null,
-    ankleMod: ex.ankleMod ?? null,
-    wristMod: ex.wristMod ?? null,
-    backMod: ex.backMod ?? null,
-    description: ex.description ?? null,
-    instructions: ex.instructions ?? null,
-    equipmentRequired: Array.isArray(ex.equipment) ? ex.equipment.join(', ') : (ex.equipment ?? null),
-    videoUrl: ex.videoUrl ?? null,
-    previewVideoUrl: ex.previewVideoUrl ?? null,
-    imageUrl: ex.imageUrl ?? null,
-    thumbnailUrl: ex.thumbnailUrl ?? null,
-    board: 'main',
-    setupTimeSec: setupTime,
-    exerciseLibraryId,
-  };
-}
-
-function normalizeExerciseLibraryId(value) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
-}
-
-function addEquipmentToken(tokens, value) {
-  if (typeof value !== 'string') return;
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return;
-
-  tokens.add(normalized);
-  if (normalized.includes('_')) tokens.add(normalized.replace(/_/g, ' '));
-  if (normalized.includes(' ')) tokens.add(normalized.replace(/\s+/g, '_'));
-}
-
-export function buildAvailableEquipmentList(equipmentItems = []) {
-  const tokens = new Set(['bodyweight', 'none']);
-
-  for (const item of equipmentItems) {
-    if (
-      !item
-      || item.isActive === false
-      || item.approvalStatus === 'rejected'
-      || item.approvalStatus === 'pending'
-    ) {
-      continue;
-    }
-
-    addEquipmentToken(tokens, item.trainerLabel);
-    addEquipmentToken(tokens, item.name);
-    addEquipmentToken(tokens, item.category);
-    addEquipmentToken(tokens, item.resistanceType);
-    addEquipmentToken(tokens, item.equipmentType);
-  }
-
-  return [...tokens];
-}
-
-async function getAvailableEquipmentForBootcamp(equipmentProfileId) {
-  if (!equipmentProfileId) return buildAvailableEquipmentList([]);
-
-  try {
-    const { getAllModels } = await import('../../models/index.mjs');
-    const models = getAllModels();
-    const profile = models.EquipmentProfile
-      ? await models.EquipmentProfile.findByPk(equipmentProfileId)
-      : null;
-
-    if (!profile || !models.EquipmentItem) return buildAvailableEquipmentList([]);
-
-    const equipmentItems = await models.EquipmentItem.findAll({
-      where: {
-        profileId: equipmentProfileId,
-        isActive: true,
-        approvalStatus: { [Op.in]: ['approved', 'manual'] },
-      },
-      raw: true,
-    });
-
-    return buildAvailableEquipmentList(equipmentItems);
-  } catch (eqErr) {
-    const { default: logger } = await import('../../utils/logger.mjs');
-    logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
-    return buildAvailableEquipmentList([]);
-  }
-}
-
-function exerciseSearchText(exercise) {
-  return [
-    exercise.name,
-    exercise.key,
-    exercise.exerciseType,
-    exercise.bodyPartCategory,
-    ...(Array.isArray(exercise.muscles) ? exercise.muscles : [exercise.muscles]),
-    ...(Array.isArray(exercise.equipment) ? exercise.equipment : [exercise.equipment]),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-}
-
-function hasAny(text, words) {
-  return words.some(word => text.includes(word));
-}
-
-function scoreExerciseForIntensity(exercise, intensityCategory) {
-  if (!intensityCategory) return 0;
-
-  const text = exerciseSearchText(exercise);
-  const difficulty = Number(exercise.difficulty ?? 500);
-  const hasEquipment = !hasAny(text, ['bodyweight', 'none']) && hasAny(text, [
-    'barbell', 'dumbbell', 'kettlebell', 'machine', 'cable', 'bench',
-  ]);
-
-  switch (intensityCategory) {
-    case 'high_impact':
-      return (hasAny(text, ['jump', 'burpee', 'sprint', 'plyo', 'hop', 'bound']) ? 70 : 0)
-        + (hasAny(text, ['mobility', 'stretch', 'recovery']) ? -35 : 0)
-        + Math.min(20, difficulty / 50);
-    case 'medium_impact':
-      return (hasAny(text, ['compound', 'squat', 'row', 'press', 'lunge', 'hinge']) ? 45 : 0)
-        + (hasAny(text, ['jump', 'burpee', 'sprint', 'plyo']) ? -40 : 0)
-        + (difficulty >= 250 && difficulty <= 700 ? 15 : 0);
-    case 'calisthenics':
-      return (hasAny(text, ['bodyweight', 'push up', 'pull up', 'plank', 'squat', 'lunge']) ? 70 : 0)
-        + (hasEquipment ? -35 : 0);
-    case 'stability':
-      return (hasAny(text, ['core', 'balance', 'stability', 'bosu', 'single', 'unilateral', 'plank']) ? 70 : 0)
-        + (hasAny(text, ['jump', 'sprint']) ? -30 : 0);
-    case 'flexibility':
-      return (hasAny(text, ['stretch', 'mobility', 'flexibility', 'recovery', 'flow']) ? 80 : 0)
-        + Math.max(0, 500 - difficulty) / 20;
-    case 'cardio':
-      return (hasAny(text, ['cardio', 'conditioning', 'jump', 'jack', 'sprint', 'burpee', 'climber']) ? 70 : 0)
-        + (hasAny(text, ['mobility', 'stretch']) ? -35 : 0);
-    default:
-      return 0;
-  }
-}
-
-export function rankExercisesForBootcamp(exercises, { intensityCategory } = {}) {
-  if (!intensityCategory || !Array.isArray(exercises)) return exercises;
-
-  return [...exercises]
-    .map((exercise, index) => ({
-      exercise,
-      index,
-      score: scoreExerciseForIntensity(exercise, intensityCategory),
-    }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map(item => item.exercise);
-}
-
-// ── Main Generation Function ──────────────────────────────────────────
-
-function clampInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value, 10);
-  const safe = Number.isFinite(parsed) ? parsed : fallback;
-  return Math.min(Math.max(safe, min), max);
-}
-
-export function resolveBootcampStructure({
-  classFormat = '4x4_r2',
-  stationCount,
-  exercisesPerStation,
-  targetDuration = 50,
-} = {}) {
-  const baseFormat = FORMAT_CONFIG[classFormat] ?? FORMAT_CONFIG['4x4_r2'];
-  const hasCustomStructure = classFormat === 'custom' || stationCount != null || exercisesPerStation != null;
-
-  if (!hasCustomStructure) {
-    let resolvedStationCount;
-    if (classFormat === 'full_group') {
-      resolvedStationCount = 0;
-    } else if (baseFormat.fixedStations) {
-      resolvedStationCount = baseFormat.fixedStations;
-    } else {
-      const exerciseTimeSec = baseFormat.exercisesPerStation * baseFormat.durationSec;
-      const stationTimeSec = exerciseTimeSec + (baseFormat.exercisesPerStation - 1) * TRANSITION_TIME_SEC + STATION_TRANSITION_SEC;
-      resolvedStationCount = Math.max(4, Math.min(10, Math.floor((targetDuration * 60) / stationTimeSec)));
-    }
-    return { classFormat, format: baseFormat, stationCount: resolvedStationCount };
-  }
-
-  const resolvedStationCount = clampInt(
-    stationCount,
-    baseFormat.fixedStations || 4,
-    CUSTOM_STRUCTURE_LIMITS.minStations,
-    CUSTOM_STRUCTURE_LIMITS.maxStations,
-  );
-  const resolvedExercisesPerStation = clampInt(
-    exercisesPerStation,
-    baseFormat.exercisesPerStation || 4,
-    CUSTOM_STRUCTURE_LIMITS.minExercisesPerStation,
-    CUSTOM_STRUCTURE_LIMITS.maxExercisesPerStation,
-  );
-  const rounds = baseFormat.rounds || 2;
-  const totalSlots = resolvedStationCount * resolvedExercisesPerStation * rounds;
-  const transitionSec = resolvedStationCount * Math.max(0, resolvedExercisesPerStation - 1) * rounds * TRANSITION_TIME_SEC;
-  const stationTransitionSec = Math.max(0, resolvedStationCount - 1) * STATION_TRANSITION_SEC;
-  const availableWorkSec = (targetDuration * 60) - transitionSec - stationTransitionSec;
-  const durationSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / Math.max(1, totalSlots))));
-
-  return {
-    classFormat: 'custom',
-    stationCount: resolvedStationCount,
-    format: {
-      ...baseFormat,
-      exercisesPerStation: resolvedExercisesPerStation,
-      durationSec,
-      fixedStations: resolvedStationCount,
-      rounds,
-    },
-  };
-}
+import {
+  filterExercisesForStrictEquipment,
+  summarizeBootcampSelectionEvidence,
+} from './bootcampIntelligenceEngine.mjs';
+import {
+  buildAvailableEquipmentList,
+  getBootcampEquipmentContext,
+} from './bootcampEquipmentContext.mjs';
+import {
+  buildExerciseRecord,
+  buildFullGroupWorkout,
+  buildStationWorkout,
+  normalizeExerciseLibraryId,
+} from './bootcampExerciseSelection.mjs';
+import { rankExercisesForBootcamp } from './bootcampIntensityScoring.mjs';
+import {
+  getRequiredEquipmentExerciseSlots,
+  resolveBootcampStructure,
+} from './bootcampStructure.mjs';
+import { collectBootcampPainAlerts } from './bootcampPainAlerts.mjs';
 
 export async function generateBootcampClass(options) {
   const {
@@ -353,6 +60,7 @@ export async function generateBootcampClass(options) {
     expectedParticipants = 12,
     spaceProfileId,
     equipmentProfileId,
+    optPhase,
     name,
     includeStretch = true,
     stretchDurationMin = 3,
@@ -367,7 +75,6 @@ export async function generateBootcampClass(options) {
   });
   let { classFormat, format, stationCount } = structure;
 
-  // Step 2: Load space profile constraints
   let spaceProfile = null;
   if (spaceProfileId) {
     const SpaceProfile = getBootcampSpaceProfile();
@@ -380,10 +87,7 @@ export async function generateBootcampClass(options) {
     }
   }
 
-  // Step 3: Get recent class logs for freshness
   const recentExerciseNames = await getRecentExerciseNames(trainerId);
-
-  // Step 4: Get exercises — use Rolodex bridge with equipment filtering if profile set
   const targetMuscles = DAY_TYPE_MUSCLES[dayType] ?? DAY_TYPE_MUSCLES.full_body;
   const combinedExclusions = new Set(recentExerciseNames);
   if (exclusionKeys instanceof Set) {
@@ -391,15 +95,17 @@ export async function generateBootcampClass(options) {
   }
 
   let availableExercises = [];
+  const explanations = [];
+  const equipmentContext = await getBootcampEquipmentContext(equipmentProfileId);
+  let equipmentFilterResult = null;
 
-  // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
   try {
-    const availableEquipment = await getAvailableEquipmentForBootcamp(equipmentProfileId);
-
+    const availableEquipment = equipmentContext.availableEquipment;
     const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
     const rolodexResults = await queryExercisesForBootcamp({
       muscleGroups: targetMuscles,
       availableEquipment,
+      optPhase,
       excludeNames: [...combinedExclusions],
       limit: 240,
     });
@@ -410,24 +116,37 @@ export async function generateBootcampClass(options) {
         ...ex,
       }));
     }
+
+    if (equipmentContext.strictEquipment && availableExercises.length > 0) {
+      equipmentFilterResult = filterExercisesForStrictEquipment(availableExercises, equipmentContext);
+      availableExercises = equipmentFilterResult.allowed;
+    }
   } catch (eqErr) {
-    // Non-fatal - fall through to registry fallback
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);
   }
 
-  // Fallback: use full exercise registry if Rolodex didn't produce results
   if (availableExercises.length === 0) {
     const registry = getExerciseRegistry();
-    availableExercises = Object.entries(registry)
+    const registryExercises = Object.entries(registry)
       .filter(([, ex]) => (ex.muscles ?? []).some(m => targetMuscles.includes(m)))
       .filter(([key]) => !combinedExclusions.has(key))
       .map(([key, ex]) => ({ key, ...ex }));
+
+    if (equipmentContext.strictEquipment) {
+      equipmentFilterResult = filterExercisesForStrictEquipment(registryExercises, equipmentContext);
+      availableExercises = equipmentFilterResult.allowed;
+    } else {
+      availableExercises = registryExercises;
+    }
   }
+
+  const requiredEquipmentSlots = getRequiredEquipmentExerciseSlots({ classFormat, stationCount, format });
+  const equipmentSummary = summarizeBootcampSelectionEvidence(equipmentFilterResult, { requiredSlots: requiredEquipmentSlots });
+  if (equipmentSummary) explanations.push(equipmentSummary);
 
   const stations = [];
   const allExercises = [];
-  const explanations = [];
 
   if (intensityCategory) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });
@@ -437,20 +156,17 @@ export async function generateBootcampClass(options) {
     });
   }
 
-  // Step 5: Build stations or full-group workout
   if (classFormat === 'full_group') {
     buildFullGroupWorkout(availableExercises, format, allExercises, explanations);
   } else {
     buildStationWorkout(availableExercises, targetMuscles, stationCount, format, recentExerciseNames, stations, allExercises, explanations);
   }
 
-  // Step 6: Calculate timing
   const totalExerciseTime = allExercises.reduce((sum, ex) => sum + ex.durationSec + ex.restSec, 0);
   const totalStationTransitions = Math.max(0, stationCount - 1) * STATION_TRANSITION_SEC;
   const totalWorkoutSec = totalExerciseTime + totalStationTransitions;
   const totalWorkoutMin = Math.round(totalWorkoutSec / 60);
 
-  // Step 7: Generate overflow plan
   const maxPerStation = spaceProfile?.maxPerStation ?? 4;
   let overflowPlan = null;
   if (stationCount > 0 && expectedParticipants > maxPerStation * stationCount) {
@@ -467,10 +183,7 @@ export async function generateBootcampClass(options) {
     });
   }
 
-  // Step 8: Flow optimization — interleave fast/slow setup exercises
   const flowData = optimizeStationFlow(stations, allExercises, explanations);
-
-  // Step 9: Generate alternative boards for joint-friendly and low-impact paths.
   const board2Exercises = generateBoard2(allExercises);
   const allWithBoard2 = [...allExercises, ...board2Exercises];
 
@@ -483,63 +196,22 @@ export async function generateBootcampClass(options) {
     });
   }
 
-  // Step 9b: Pain-aware annotations — flag exercises that may aggravate active injuries
-  const painAlerts = [];
-  if (trainerId) {
-    try {
-      const PainEntry = getClientPainEntry();
-      const activeEntries = await PainEntry.findAll({
-        where: { createdById: trainerId, status: 'active', painLevel: { [Op.gte]: 5 } },
-        attributes: ['bodyRegion', 'side', 'painLevel', 'painType', 'userId'],
-      });
-      if (activeEntries.length > 0) {
-        const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
-        const REGION_MUSCLE_MAP = {
-          left_knee: ['quadriceps', 'hamstrings'], right_knee: ['quadriceps', 'hamstrings'],
-          lower_back: ['erector_spinae', 'core', 'glutes'], upper_back: ['trapezius', 'rhomboids', 'lats'],
-          left_shoulder: ['shoulders', 'chest'], right_shoulder: ['shoulders', 'chest'],
-          left_hip: ['glutes', 'hip_flexors', 'adductors'], right_hip: ['glutes', 'hip_flexors', 'adductors'],
-          left_ankle: ['calves', 'tibialis'], right_ankle: ['calves', 'tibialis'],
-        };
+  const painAlerts = await collectBootcampPainAlerts({ trainerId, allExercises, explanations });
 
-        for (const region of painRegions) {
-          const relatedMuscles = REGION_MUSCLE_MAP[region] || [];
-          const flaggedExercises = allExercises.filter(ex => {
-            const exMuscles = ex.muscleTargets?.toLowerCase() || '';
-            return relatedMuscles.some(m => exMuscles.includes(m));
-          });
-          if (flaggedExercises.length > 0) {
-            painAlerts.push({
-              region,
-              severity: Math.max(...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel)),
-              flaggedExercises: flaggedExercises.map(e => e.exerciseName),
-              recommendation: `Participants with ${region.replace(/_/g, ' ')} issues should use Board 2 joint-friendly alternatives or Board 3 low-impact swaps for these exercises.`,
-            });
-          }
-        }
-        if (painAlerts.length > 0) {
-          explanations.push({
-            type: 'pain_alert',
-            message: `Pain-aware: ${painAlerts.length} exercise group(s) flagged based on active client injuries. Board 2 joint-friendly modifications and Board 3 low-impact swaps recommended.`,
-          });
-        }
-      }
-    } catch { /* pain check is non-fatal */ }
-  }
-
-  // Step 10: Apply class style modifications
   applyClassStyle(classStyle, allExercises, explanations);
 
-  // Step 11: Generate warm-up stretches
   const stretches = includeStretch ? generateStretches(dayType, stretchDurationMin) : [];
-
-  const templateName = name ?? `${dayType.replace(/_/g, ' ')} ${classFormat.replace(/_/g, ' ')} — ${new Date().toLocaleDateString()}`;
+  const templateName = name ?? `${dayType.replace(/_/g, ' ')} ${classFormat.replace(/_/g, ' ')} - ${new Date().toLocaleDateString()}`;
   const stretchTime = includeStretch ? stretchDurationMin : 0;
 
   return {
     name: templateName,
-    classFormat, classStyle, dayType, intensityCategory,
-    stationCount, targetDuration,
+    classFormat,
+    classStyle,
+    dayType,
+    intensityCategory,
+    stationCount,
+    targetDuration,
     exercisesPerStation: format.exercisesPerStation ?? undefined,
     rounds: format.rounds ?? undefined,
     exerciseDurationSec: format.durationSec ?? undefined,
@@ -556,12 +228,11 @@ export async function generateBootcampClass(options) {
     overflowPlan,
     flowData,
     painAlerts,
+    equipmentReadiness: equipmentSummary ?? null,
     explanations,
     aiGenerated: true,
   };
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────
 
 async function getRecentExerciseNames(trainerId) {
   const ClassLog = getBootcampClassLog();
@@ -585,72 +256,12 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations) {
-  const selected = selectFullGroupExercises(available);
-  for (let i = 0; i < selected.length; i++) {
-    allExercises.push(buildExerciseRecord(selected[i], {
-      durationSec: format.durationSec,
-      sortOrder: i + 1,
-      isCardioFinisher: selected[i].isCardio ?? false,
-    }));
-  }
-  explanations.push({
-    type: 'format',
-    message: `Full group workout: ${selected.length} exercises x 2 rounds, ${format.durationSec}s each`,
-  });
-}
-
-function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations) {
-  const muscleGroups = distributeMuscleGroups(targetMuscles, stationCount);
-
-  for (let s = 0; s < stationCount; s++) {
-    const stationMuscles = muscleGroups[s];
-    const stationExes = selectStationExercises(available, stationMuscles, format.exercisesPerStation, usedNames);
-
-    stations.push({
-      stationNumber: s + 1,
-      stationName: `Station ${s + 1}: ${formatExerciseName(stationMuscles[0] ?? 'mixed')}`,
-      equipmentNeeded: stationExes
-        .flatMap(e => Array.isArray(e.equipment) ? e.equipment : (e.equipment ? [e.equipment] : []))
-        .filter((v, i, a) => v && a.indexOf(v) === i)
-        .map(eq => formatExerciseName(eq))
-        .join(', ') || 'Bodyweight',
-      setupTimeSec: 0,
-      sortOrder: s + 1,
-    });
-
-    for (let e = 0; e < stationExes.length; e++) {
-      allExercises.push(buildExerciseRecord(stationExes[e], {
-        stationIndex: s,
-        durationSec: format.durationSec,
-        sortOrder: e + 1,
-      }));
-      usedNames.add(stationExes[e].key);
-    }
-
-    const finisher = CARDIO_FINISHERS[s % CARDIO_FINISHERS.length];
-    allExercises.push(buildExerciseRecord(finisher, {
-      stationIndex: s,
-      durationSec: format.durationSec,
-      restSec: 0,
-      sortOrder: stationExes.length + 1,
-      isCardioFinisher: true,
-    }));
-  }
-
-  explanations.push({
-    type: 'format',
-    message: `${stationCount} stations, ${format.exercisesPerStation} exercises each, ${format.durationSec}s per exercise`,
-  });
-}
-
-// Style modifiers imported from ./classStyleModifiers.mjs
-// Flow optimization imported from ./flowOptimizer.mjs
-
 export const __testing__ = {
   buildAvailableEquipmentList,
+  getBootcampEquipmentContext,
   buildExerciseRecord,
   normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
   resolveBootcampStructure,
+  getRequiredEquipmentExerciseSlots,
 };

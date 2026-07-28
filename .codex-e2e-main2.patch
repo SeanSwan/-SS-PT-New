@@ -1,0 +1,40 @@
+diff --git a/frontend/e2e/nutrition-workspace-smoke.spec.ts b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+--- a/frontend/e2e/nutrition-workspace-smoke.spec.ts
++++ b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+@@ -1,0 +2,1 @@
++import { openNutritionManualReview } from './nutrition-workspace-smoke.helpers';
+@@ -182,1 +183,1 @@
+-    await page.goto('/dashboard/client/meal-planner', { waitUntil: 'domcontentloaded' });
++    await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
+@@ -227,11 +228,1 @@
+-  await captureRail.getByRole('button', { name: /manual meal/i }).click();
+-  await expect(page.getByRole('heading', { name: /food intake tracker/i })).toBeVisible();
+-  await page.getByLabel('Food Name').fill('Salmon rice bowl');
+-  await page.getByLabel('Portion/Serving Size').fill('1 bowl');
+-  await page.getByLabel('Calories').fill('560');
+-  await page.getByLabel('Protein').fill('42');
+-  await page.getByLabel('Carbs').fill('58');
+-  await page.getByLabel('Fat').fill('18');
+-  await page.getByRole('button', { name: /review meal/i }).click();
+-  const reviewDialog = page.getByRole('dialog', { name: /review manual meal/i });
+-  await expect(reviewDialog).toBeVisible();
++  const reviewDialog = await openNutritionManualReview(page);
+@@ -249,0 +241,1 @@
++  await expect(page.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+@@ -255,1 +248,1 @@
+-  expect(new URL(page.url()).pathname).toBe('/dashboard/client/meal-planner');
++  expect(new URL(page.url()).pathname).toBe('/user-dashboard/nutrition');
+@@ -287,1 +280,1 @@
+-      await page.goto('/dashboard/client/meal-planner', { waitUntil: 'domcontentloaded' });
++      await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
+@@ -292,0 +286,9 @@
++      if (width <= 414) {
++        const mobileDialog = await openNutritionManualReview(page);
++        const save = mobileDialog.getByRole('button', { name: /approve and save 1 item/i });
++        await save.scrollIntoViewIfNeeded();
++        const box = await save.boundingBox();
++        expect(box?.height ?? 0, `${width}px review action height`).toBeGreaterThanOrEqual(44);
++        expect((box?.x ?? -1) + (box?.width ?? width + 1), `${width}px review action fit`).toBeLessThanOrEqual(width + 1);
++        await mobileDialog.getByRole('button', { name: /cancel/i }).click();
++      }
+

@@ -42,6 +42,26 @@ export const normalizeText = (value, fallback = '') => {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 };
 
+const normalizeStringArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => typeof item === 'string' && item.trim())
+    .map((item) => item.trim());
+};
+
+const exerciseMetadata = (exercise) => {
+  const out = {};
+  for (const key of ['category', 'exerciseFamily', 'movementPattern', 'nasmMovementPattern', 'bodyPartCategory']) {
+    const value = normalizeText(exercise?.[key], null);
+    if (value) out[key] = value;
+  }
+  for (const key of ['muscleGroups', 'tags']) {
+    const values = normalizeStringArray(exercise?.[key]);
+    if (values.length > 0) out[key] = values;
+  }
+  return out;
+};
+
 export const normalizeIntensity = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
@@ -95,6 +115,7 @@ export function normalizeAiExercises(exercises) {
     return {
       exerciseName,
       exerciseNote,
+      ...exerciseMetadata(exercise),
       sets: sourceSets.map((set, index) => normalizeSet(set, index + 1)),
     };
   });

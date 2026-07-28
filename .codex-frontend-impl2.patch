@@ -1,0 +1,115 @@
+diff --git a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.styles.ts b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.styles.ts
+--- a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.styles.ts
++++ b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.styles.ts
+@@ -137,6 +137,12 @@ export const EstimateReviewButton = styled.button`
+   }
+ `;
+ 
++export const EstimateReviewMoreButton = styled(EstimateReviewButton)`
++  width: 100%;
++  margin-top: 10px;
++  background: var(--button-secondary-bg, #003080);
++`;
++
+ export const EstimateReviewState = styled.div`
+diff --git a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.logic.ts b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.logic.ts
+--- a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.logic.ts
++++ b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.logic.ts
+@@ -51,6 +51,7 @@ const REVIEW_REASON_LABELS: Record<string, string> = {
+   barcode_unmatched: 'Barcode not matched',
+   client_requested: 'Client requested review',
++  edited_after_review: 'Edited after coach review',
+   metabolic_deviation: 'Calories differ from 4-4-9',
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.tsx b/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.tsx
+@@ -42,7 +42,9 @@ const DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
+ const SOURCE_LABELS: Record<string, string> = {
++  'ai-chat': 'Swan Coach',
+   ai_chat: 'Swan Coach',
+   barcode: 'Barcode',
++  'food-scanner': 'Photo estimate',
+   manual: 'Manual',
+@@ -52,6 +54,7 @@ const REVIEW_REASONS: Record<string, string> = {
+   barcode_unmatched: 'Barcode not matched',
+   client_requested: 'Client requested review',
++  edited_after_review: 'Edited after coach review',
+   metabolic_deviation: 'Calories differ from 4-4-9',
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.repeatMeal.ts b/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.repeatMeal.ts
+--- a/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.repeatMeal.ts
++++ b/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.repeatMeal.ts
+@@ -101,8 +101,10 @@ export const buildRepeatMacroPayload = (entry: RepeatMacroEntry | null | undefine
+ };
+ const REPEAT_DRAFT_SOURCE: Record<string, NutritionDraftSource> = {
++  'ai-chat': 'meal-plan',
+   ai_chat: 'meal-plan',
+   barcode: 'barcode',
++  'food-scanner': 'photo',
+   manual: 'manual',
+diff --git a/frontend/src/components/FoodTracker/RestaurantTab.logic.ts b/frontend/src/components/FoodTracker/RestaurantTab.logic.ts
+--- a/frontend/src/components/FoodTracker/RestaurantTab.logic.ts
++++ b/frontend/src/components/FoodTracker/RestaurantTab.logic.ts
+@@ -3,6 +3,7 @@ import { cleanMacro } from './mealPhotoLog';
+ 
+ export interface RestaurantAddFoodPayload {
++  id?: string;
+   name: string;
+@@ -35,6 +36,7 @@ export function buildRestaurantLogPayload(food: FoodDetail): RestaurantAddFoodPa
+   const serving = food.primaryServing;
+   return {
++    id: String(food.id),
+     name: food.brand ? `${food.brand} ${food.name}` : food.name,
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx
+@@ -12,6 +12,7 @@ import { useSubscription } from '../../../hooks/useSubscription';
+ import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
+ import NutritionReviewDrawer from '../../FoodTracker/NutritionReviewDrawer';
++import NutritionDiaryTimeline from './NutritionDiaryTimeline';
+@@ -94,9 +95,15 @@ const NutritionWorkspace: React.FC = () => {
+   }, []);
+ 
+   const handleReviewSaved = useCallback((success: boolean, options?: { closeDrawer?: boolean }) => {
+-    if (success) handleMealLogResult(true);
++    if (success) {
++      handleMealLogResult(true);
++      setActiveTab('today');
++    }
+     if (success && options?.closeDrawer !== false) setReviewDraft(null);
+   }, [handleMealLogResult]);
+ 
++  const handleCloseReview = useCallback(() => {
++    setReviewDraft(null);
++  }, []);
++
+@@ -163,18 +170,23 @@ const NutritionWorkspace: React.FC = () => {
+-            {activeTab === 'today' && (macroUnavailablePanel || (
+-              <>
++            {activeTab === 'today' && (
++              macroError ? (
++                <>
++                  {macroUnavailablePanel}
++                  <section aria-label="Nutrition Today diary">
++                    <NutritionDiaryTimeline
++                      gentleMode={gentleMode}
++                      refreshKey="summary-unavailable"
++                      onReviewDraft={setReviewDraft}
++                    />
++                  </section>
++                </>
++              ) : (
+                 <NutritionTodayPanel
+                   summary={summary}
+@@ -187,6 +199,5 @@ const NutritionWorkspace: React.FC = () => {
+                   trainingDay={trainingDay}
+                 />
+-              </>
+-            ))}
++              )
++            )}
+@@ -224,5 +235,5 @@ const NutritionWorkspace: React.FC = () => {
+       </ContentArea>
+-      <NutritionReviewDrawer draft={reviewDraft} onClose={() => setReviewDraft(null)} onSaved={handleReviewSaved} />
++      <NutritionReviewDrawer draft={reviewDraft} onClose={handleCloseReview} onSaved={handleReviewSaved} />
+     </WorkspaceRoot>
+

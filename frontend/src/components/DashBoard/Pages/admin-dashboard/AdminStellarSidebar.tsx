@@ -54,7 +54,7 @@ import {
   DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
   Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck, FileSignature,
-  Mail, Heart, Apple, Sparkles, Home,
+  Mail, Heart, Apple, Sparkles, Home, Camera,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
-  Mail, Heart, Apple, Sparkles, Home,
+  Mail, Heart, Apple, Sparkles, Home, Camera, Palette,
 };
 
 const getIcon = (name: string, size = 20) => {

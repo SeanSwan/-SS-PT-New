@@ -1,14 +1,13 @@
 /**
  * COMPONENT: CoachChatTranscript
- * PURPOSE: ChatGPT-style conversation view for the Swan Coach terminal.
+ * PURPOSE: Talk-first conversation view for the Swan Coach terminal.
  *
- * Renders the command/conversation log as a chat transcript (oldest first, newest at
- * the bottom, auto-scrolled) using the existing CoachCommandLogEntry renderer — which
- * already carries inline confirmation + execution-result cards. Empty state invites the
- * trainer to talk. No data rewire: `logs` is the same stream the controller already builds.
+ * Renders the existing command/conversation log as the live chat transcript. The
+ * empty state gives one concrete trainer-floor example and keeps the approval
+ * rule visible without adding fake prompt buttons.
  */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CommandLogConfirmation, CommandLogEntry } from './CoachCommandCenter.data';
@@ -30,13 +29,12 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   logs,
   onCancelCommand,
   onConfirmCommand,
-  onReset,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
 }) => {
   const streamRef = useRef<HTMLDivElement>(null);
 
-  // Controller prepends new entries (newest first); a chat reads oldest -> newest.
+  // Controller prepends new entries (newest first); a chat reads oldest to newest.
   const ordered = useMemo(() => [...logs].reverse(), [logs]);
 
   useEffect(() => {
@@ -46,14 +44,6 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
 
   return (
     <section className="chat-transcript" aria-label="Conversation with Swan Coach">
-      <div className="transcript-top">
-        <span className="transcript-title">Conversation</span>
-        <button type="button" className="transcript-reset" onClick={onReset}>
-          <RefreshCw size={15} aria-hidden="true" />
-          <span>Clear</span>
-        </button>
-      </div>
-
       <CoachActiveThreadHeader thread={activeThread} />
 
       <div className="transcript-stream" ref={streamRef} aria-live="polite">
@@ -72,15 +62,12 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
           <div className="transcript-empty">
             <Sparkles size={22} aria-hidden="true" />
             <strong>Talk to Swan Coach</strong>
-            <p>
-              Dictate a client's workout, onboard a new client, or pick up a past conversation. Swan Coach
-              prepares each action and waits for your confirmation before anything is saved.
-            </p>
-            <ul className="transcript-empty-actions" aria-label="Suggested coach prompts">
+            <p>Example: Log Sean's workout: bench 4x8 at 185.</p>
+            <span className="transcript-empty-safe">Nothing saves until you confirm.</span>
+            <ul className="transcript-empty-actions" aria-label="Suggested coach intents">
               <li>Log workout</li>
               <li>Onboard client</li>
-              <li>Update log</li>
-              <li>Recall</li>
+              <li>Recall history</li>
             </ul>
           </div>
         )}

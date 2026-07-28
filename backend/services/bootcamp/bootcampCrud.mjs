@@ -17,6 +17,7 @@ import {
   getExerciseTrend,
   getExercise,
 } from '../../models/index.mjs';
+import { hydrateExerciseProgrammingIntent, serializeExerciseNotes } from './bootcampProgrammingNotes.mjs';
 
 const LIVE_EXERCISE_FIELDS = ['videoUrl', 'previewVideoUrl', 'thumbnailUrl', 'imageUrl', 'description', 'instructions'];
 
@@ -75,6 +76,7 @@ async function loadLiveExercises(exerciseIds) {
 
 export async function hydrateTemplateExerciseMedia(templates, exerciseLoader = loadLiveExercises) {
   const exerciseRows = collectTemplateExerciseRows(templates);
+  for (const exercise of exerciseRows) hydrateExerciseProgrammingIntent(exercise);
   const exerciseIds = [...new Set(
     exerciseRows
       .map(row => normalizeExerciseLibraryId(getRecordValue(row, 'exerciseLibraryId')))
@@ -170,6 +172,7 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     equipmentRequired: ex.equipmentRequired,
     description: ex.description ?? null,
     instructions: ex.instructions ?? null,
+    notes: serializeExerciseNotes(ex),
     videoUrl: ex.videoUrl ?? null,
     previewVideoUrl: ex.previewVideoUrl ?? null,
     imageUrl: ex.imageUrl ?? null,

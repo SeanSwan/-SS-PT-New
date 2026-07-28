@@ -75,6 +75,7 @@ interface ClientsWorkspaceViewProps {
   detailTab: ClientDetailTab;
   clientHubIntent: ClientHubIntent;
   loading: boolean;
+  exportingClients: boolean;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
   creationHandoff: ManualClientCreationHandoff | null;
@@ -86,6 +87,7 @@ interface ClientsWorkspaceViewProps {
   renderOverview: TabRenderer;
   renderSettings: TabRenderer;
   onSelectClient: (client: ClientOption) => void;
+  onExportClients: () => void;
   onNewClient: () => void;
   onOpenAI: () => void;
   onOpenOnboardingWorkbench: () => void;
@@ -253,6 +255,8 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       clients={props.clients}
       selectedClient={props.selectedClient}
       loading={props.loading}
+      exportingClients={props.exportingClients}
+      onExportClients={props.onExportClients}
       onSelectClient={props.onSelectClient}
       onNewClient={props.onNewClient}
       onOpenAI={props.onOpenAI}

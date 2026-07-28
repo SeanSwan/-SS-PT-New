@@ -263,6 +263,7 @@ import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { requireLinkedWaiver } from './waiverGate.mjs';
+import { AdminOwnerGateError, requireOwnerAdmin } from '../services/admin/adminOwnerGate.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -451,6 +452,41 @@ export const adminOnly = (req, res, next) => {
   }
 };
 
+/**
+ * Owner-admin access middleware for destructive or account-control actions.
+ * Must be used after protect; normal admins keep broad staff access but cannot
+ * run high-blast-radius operations unless explicitly allowlisted.
+ */
+export const ownerAdminOnly = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authenticated'
+    });
+  }
+
+  try {
+    requireOwnerAdmin(req.user);
+    return next();
+  } catch (error) {
+    const statusCode = error instanceof AdminOwnerGateError ? error.statusCode : 403;
+    logger.warn('Owner-admin action denied', {
+      userId: req.user?.id,
+      role: req.user?.role,
+      ownerGateCode: error?.code || 'OWNER_GATE_DENIED',
+      path: req.path,
+      method: req.method
+    });
+
+    return res.status(statusCode).json({
+      success: false,
+      message: statusCode === 503
+        ? 'Owner admin gate is not configured'
+        : 'Access denied: Owner admin only',
+      code: error?.code || 'OWNER_GATE_DENIED'
+    });
+  }
+};
 /**
  * Role-based authorization middleware
  * @param {string[]} roles - Array of allowed roles

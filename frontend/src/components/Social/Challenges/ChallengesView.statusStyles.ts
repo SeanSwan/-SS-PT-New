@@ -40,3 +40,26 @@ export const Spinner = styled(Loader2)`
     animation: none;
   }
 `;
+export const EmptyState = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-height: clamp(170px, 24vw, 240px);
+  align-content: center;
+  border: 1px dashed color-mix(in srgb, var(--accent-luxury, #C6A84B) 28%, transparent);
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 64%, transparent);
+  padding: clamp(24px, 4vw, 42px);
+  text-align: center;
+`;
+
+export const EmptyIcon = styled.div`
+  color: var(--accent-luxury, #C6A84B);
+  opacity: 0.62;
+`;
+
+export const EmptyTitle = styled.h3`
+  margin: 0 0 2px;
+  color: var(--text-primary, #E0ECF4);
+  font: 800 1.05rem/1.25 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+`;

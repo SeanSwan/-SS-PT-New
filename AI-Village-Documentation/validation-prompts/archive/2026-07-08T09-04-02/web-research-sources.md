@@ -1,0 +1,123 @@
+# Web Research Sources Report
+
+> 2 brain(s) performed real-time web research via Google Search Grounding
+
+---
+
+## UX Research & Competitor Analysis
+**Model:** google/gemini-2.5-flash
+
+**Search queries:**
+- "Trainerize features"
+- "TrueCoach features"
+- "My PT Hub features"
+- "Hevy app features"
+- "Strong app features"
+- "JEFIT app features"
+- "Strava app features"
+- "Caliber app features"
+- "Future.fit app features"
+- "Trainiac app features"
+- "fitness app navigation patterns"
+- "fitness app home screen design"
+- "fitness app progress tracking UI"
+- "fitness app community features"
+- "fitness app gamification examples"
+- "fitness app workout logging UI"
+- "mobile app bottom navigation bar best practices"
+- "mobile app sticky header design"
+- "mobile app quick post UI"
+- "mobile app clickable hashtags UX"
+- "mobile app progress celebration animations"
+- "mobile app gesture patterns"
+- "mobile app keyboard navigation best practices"
+- "mobile app screen reader compatibility"
+- "WCAG color contrast for data visualization"
+- "onboarding patterns Duolingo"
+- "onboarding patterns Notion"
+- "onboarding patterns Linear"
+- "2026 UX UI trends fitness"
+- "latest UX trends dark mode"
+- "latest UX trends personalization AI"
+- "latest UX trends community features"
+- "latest UX trends gamification"
+- "latest UX trends mobile-first design"
+
+**Sources cited:**
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF2FKiIz-Q8GHGZ8tKAb3i_syfq0S7KAkVTZHfTbBxW9R8UKKGvgA3JMdbX2B95RDBFN2JAModnGcymcCTUg6bPzzwtUK5Y9Ev5bCiodB3s9jXP
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEl6NjECIMOH0iw6I2gqRnuGUNKXCZ2-HNyDsQ0g0Y7avM8NKq9cm1jRIEfOd667xGQmH-Cos3XPrb9zVXiy4mgGY5LR7kheGb58FDeMmQhndEtARLXm6rwvgsIHQ==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGBgUdKXok-IGB3l20Puh9wWSzdatrQ5LvKrDzlQRd4bzRZCU_rnAjmpI-tEaaawNk49wx6yBGqhDW4WizRnEgEkI4frUguCmVgrR_6Opp-_NYkPEOzc5zJ1xLd1n4HgAAlYErWs6mSPYPgq8m7vqInLsxeTam1TU4f4U78UC8oab9K0knVfZbGJjYSRCsuJ1R7Ntd6FQQh2RZc3lteqatar1rujmxvN5KIaQsEgmN0fnYfMLjlQD7NOA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFuWXI-V7CcweX41QW7j7Oc6usWmBAmM2stjlqPMND9gvAnElTi2Tc34oI8RvGBPrV-ekje6g3CEyj5SMMQNoCqb_IbW0ojXjtn0uOPFudjDKnSF3RCPuC508be1QQE_6kT8jmIDNV8e_smcWsjrvx3M6ds
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGHy49q9trk4TzwTH4jT0-y3QRMkn_-UBTN47SppdeZVMwDoF3hPnqDyXb20YmW5cet_9_wYXg9R6xjErplG6997OGIhLAhLFKylkIBh2UitsNKf-4Gp4z750mw74jWiCPtlgKEqIyxas5QELuSOLsjdDKWsdU=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE-xnEI9vOmpOSUDPb0g-LiaoIsLOft6MUdMLdShgWEOgs0s2zzb9Al5DOF6UARbbLXm8BWqiGp0XdGste0ofEsoCP_o0xfZGEZbqsF-oC687o-CzgLnfu0N9e5q3wuLEVvIQEylY-xJjtDgNg1DFeShU83ovfOz9OWhxeGG3H1
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHsaf9TR0gGie5jskTMMHwdybjbE1wurECg2bUSQZvx6JdBZQeQW9C-4n3OPHn0GA_75IORCk15cJJoSVw7WSPzm6cn2qoMMAsqhaqyna4KDujRJ4qv4vp-6gI5iQ==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUVC__Jk1bf6nHxV69IiGsiwE-ieVbNzE7wJrbKoRil1O5oN7EJ4xnKOIVusABGPuMC2e2u9B8svtHuvyPD8OQSbbJjHhJVP4GIx1BrrY82co4qtaph4qvWebvRF7Ix3wgJ_Efi06F
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGE-ztiKo4LLVdPDP3GHFPCy1V-UQsUDzenjWPNNxsWRRkVjwQYxUOPLMmBAfmQ5yBB91budQ-EPYf6vgm0o4WvI7jOo3MwErpZWVRucTJwmdeEMfdR4C6bsBoHP5glarWZ17yZoUebAnRbyVupzWsYTdnvqcYZqg==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHAA0YLO0f59F7Zndr4B360uFNp2LbBQrTvQMW9PTJ7KqJPhPDb94tNrLDuUzOfPeQ3bm8GxwW-BpxAwrRyfEljAbAPdNTtwegb_a63sevtlibaIGp4qgnZzjX3F4Uk7nWOF27nLsin4HZpgT_9-U37f8EHVlr_iuupyZJlh2rJSJ_XA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHbCOe84T4POgt-D8gVN8pQ1ewlVhmSA3sktEIL9pgfaopFv20NMYYLHZIBLEaQKfmeIHl5PRYlMrO293PgPwRfDZLIlEfjJ030O_I90p8bHqaBR1UFxnDpmiGQob6NT3Q4ergNUnRxYGf6VZk9y1X_aIhbqUQ2CGK3DcmlsRk=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGNnibXDb7tlaGa-hm5Tj_wdgUEpdoIuABgt6dQA6jDm1KFMUvNZVk9dyyZClH66AKLAhc-xMZ33BVC3y1nsLGZodFBVp45FI4EI_7_orLKaZarOBHbPI8y0wR_c6LQDnE9dZPhKIXlVES7cM5B1HqiyoIeafqnl8lviWugvnzcIwCs
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqwDJdKM0lMe0YRQGL57-414XBG3pZdBUoXraJZIJT7UpKbM8N5yYvROfz96W5dgGlWEYGGRnShY7I8aVooVMeDktMOs5dCojioBP4O8BlQJMwdw==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGaSRLGCzndN8nJaQt5OmqEPKb-k_XzYuTJQokMaJUVrE_wXtx5OUhNkqkDXmIRrZM9L7LWZV0frLqlMEKJWNHQc463jjpHJjrDNsYgk2BMaA7CpgaLUIix8g==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGyxW2MoC7GOYH684cj2gReMMicFnEY_ykTZuFqUu82VmAatFNLG1D--5NE-5XmjVyn6fG9SxfimA-qu5sO_TvpY_gjsFyRT4DSrs5iz8AQF40py8PsOzk2sP-ARUoXeDh-l1C_MzwOIVk0cLRcAVO8EZyynA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1-dm7TjfKlJVLdX8WakIIANxrSHIkszuRQ4vbbSkrify7TFmDwh0Pz09tUPYw5RzCRHQ2j50cbBeGUEMbLVTPrDWGGk51K14qPnwVfz5A6oD_8cfSXHICl2B-4izgNUfWzMQTa_2ph2iCqBbrbSzp-bKDxtn-Z8lXy6YxmBj8y46hgWa3Xvs1
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGys6mf0tgpB3xj1u1D65XGx-lbjTMcWGz-MgXQxxgeHC7K7T2Z5Mb0eNqqlo23lTqjAVL9_2W10_lHhfL75iaQKm_poXzr516BoIR85dpxx2B1fg==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHhJq0XxfE5jSzNxlOLHP3EPdriSO3HQ6K7K3RUycHpt6Mlsfe91P6N0ChqvOn8URq6P26lrb5J8LnvbT-_OcJ-a4Xu5FecBoN36VoUFwGmfA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEj2oKk_JRsaZwyCoq5eICafx_TAnr2sfAru3ORjEN9LkMgHSCMgzk92nN_cPLU4HPnf8Sg8Ypjx4Mzjle62MD-h4Ekd6oxNSTrm5YdcLvHPAYdzhAy8qAC5Au5DyfHH6IBjs8HBpQwTE9wL_cgPGFSpykD3FQuTHh4_-KBI-jbAKr9xRdCfQ==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGar3LTLTsSehzYvVbSyN5pgnNOj_jb2GFNqpmhhZ8BQDUuirZjyioI_FLgU33CqIkrsMlJ7AvrHaX1ZI-2G9QpKBHCKugPIzDYy2qOG1j606WlEwqbmD93sTMr8Cp5zJPW
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFqgX5LWNar135oNn-e7mD1PbRH_7W7ACAYgtK7-8N4LkghAXaqSgqsbaZA3VLTIu2R7vQdGsO2HFFtrNRP4T2sr7Rc2rN15thWAQUVZZuxdOl6HnsE9yLMMFLdg47eu5Mn
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHc2b-2Ir58t88TusdRO1oIohzfMOaShPleL-v7GgjEZdwqeOpFtdY7Xq7pm3vSGpT2TqMotF37HLhz9F8Vsny30VhHNEO5hF8yy9snFVNrEYxl0bpnaFoqC_VM1-lDRE58UGukLuvCnznOb7vh
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFzNKTWyklPRkE8hN05gfQekhVSfBQEql9AcfE26GEsOb1u4MmnmX90foFt-KboaHx8V-xLvNxJSlGMzJmjeioA9D5e-kf3GYB5jMuzE8VNziEcW8v1OhPMmj054bHHUEEnVvdklWxh2XLG0CJhAg==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEoStOZjAYzXyF57e4z4OOgf7vrhEsmsRICd63wpjf_7FhxdMV6CDszRy9tH2b5ryaQAOd638ETYm47AQyGckwYjeii_-rLpd7iGrdPeXBU3cKQSX6bUo11zKeSvai1wwQqEHNDeHMNn4T8-NHLXzBoKfpqo4H0wY3zOn0=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFu1h9XI9uzTdWbktOLTfnwvpsmpEja9tNgoiquiQRP-YEDn2gUd4Y_er8SVBs-WnnG3twx7NKSiLqHwk86Pzo0YWkK94i5aO-rEzZCtVNbVRz0WBXHBKaeVoo=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQENQ0PLZWKGg8cfVZs7_IbBJjMZj6lLuQc0xx1qDuiKHeoGXpVBBH0IhHnSJE02t-1AXmyTCrIFsaiyRD5S9GIm-joXISfgnaefWcDhcNu31X11BGQg1yU13a3i07d0EoZak8ahCpH8jSfwIrJ7Ae8TObVKnUqoxt1nhoSK2x90enrnff5Dle6v48Oo
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHztWOgyO508nuJqmLgp8tzQBxYN9DhLYFBTk6eo2dgEV9y1gVG7WlIP2QnlPAP1RYm9fya3pai7DWKWlV_jEe2VSd4MelDR7C9Z02kPCN_k8cX1Lvyl3d6QilOUsNF1gLCvXrzxR2Vj_K2I76Jf7gsMe86Mb6StFFHIXE0
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGafJSS1G9SR2xSLgn3RL4PIAc3gRFmYG9GySmCIKKiy9H3fOyJXqC7IpKq1FZhmuprAEh1Agw1fhmDoRSB5lkY1CuVYafn91qRMqYQqvy6TLDzUW8dQrWJlemzswhjufJQ8ykEhRo=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFn9kZ1BPwamFW-_xY9s4589zIq-2JepO0eTKPP6PUiOFEMlVqEgcrdEQVk_t97j6VrVbw389LeIpqwvwe8zlS4K09Fon3FpSzPYvkwbAbEi4OfWWG0IFw2t8ZZyHfW0z_as7xgH8byNKSi
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOMbIe03iN8q2Q26wCdLnBmsTh4ytV6mmZeP_gNd_qnP6WWj5zwGnCBr6LPJjg3T1ospUe4VI0svF-HErV1r9oYPmxJf3Omdi9nA9ARh5UVDGM_hbAZCq0JOhsqCFCT7oKs89cj_h7L1fVtmm7oxGUoNCvyjlGPDmk94ZmFFM7hmARs_1buhuQZho6wZblx9EKHcDaI3TMNUCZDvKSEOgpJqDktPQPmaY1IfEuTMN7CkPiINcmdapVToWM72mtIDru9xI9FScUceR_XIEiKy-ogiM5S-qk65TvZva6cgcl7TVBRrWPwWgaS3NtlUHt4D7iRZmYGugpfHYmj9Ny0r_K9CrHOSdJL5AdWev2TzUIPLQ=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOmw16fn5Y4tmpHv5FNtbPYN0d4uUHveoWQUjREQlaQewppilqiCJLgAfJnvNtn2m7FHgTUOK9SceFLEenJewvKo0x4PZ_7U_pRvjaH3AaS2hpKC4iN5-JfNBRepSKxVE25-6oeFi0A6eWyqPV3RQ=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG4AUycnY2pHvqF3tF5cr_24iOPIOiveOjYB-nJX2zTK3IVjTp5NTYbQwPBvMQqVBVjyOI_uaIdk-hHvlpfK2Og-xBsZk5XDvgH-Luj97pohmCC5Jz3FFhMgbdQbA0_gCcbnyZNeXtPtE7b3ZlKz1LhVDFf-4YG8PlpEbh4VuRY9mU-KsSs
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE4KeCVOlMRV5B5OG8Utkdcz0HLj_Cc5PYonrmrb7Au3h7NmXLQmyEPmQF3dimjtzGu60fPs7IEN5Vhq5q2r5p3kH2Aw2XQ0pmy-bqf4ClE5uAIa8EA_wFS6Rxd0hCXHitaCwtVQlLAufmAgK13Lu49LVXC32gq88R34xxc8Mltw67CAw==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcZbgi6u6ptgWUcJhWH9DNq8kiU966MiyTBG59fmN4cJOuVWXvQqgakuF2H2NfNPOWDmlcQYSgTzEbZ3VVUWBC83Gp5OIwrHtF27xow-9QV8Ka0VM_1dR9m3yRNP4bpD8ZyDzaUj8N-CUEi6KuiIX6e26rjqypba5oLelKV7MBuQK-dS8-0xjJEfjKzqj2XA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHrxP8nBzM-sY3JdzQ2UJ1G49-tmPGkiwDrfUJNoiHN9e4xg5CC0hhQmytLoltN3rUMeDWaW3rjjjQylwZVM-OGsCBVkapE1LPLD7-WX46UCEPOITxOq9laARlYZ_UruOHkvUTZFbS3SYnlbdF-d05JRiyisehaa8Ih7OfYmYjlwQ==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFij4v4I4Kca-XJrMZC7ORrCP36Vt5_SfDkEKqVNl597pIN2CrOvcR1jqLjQyvAeqbsBLNEb8oXysonjpWLQ2AqxsyrVSBSqYf-Kby3peGMc822HVM84DmhkJUmyVFFqelw3KZjDpdLuidWAq8dSM4DZ4VPw3tBVMDvu1Y-YNGeeXUi
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE_EMrp5Pk47IzGj89_1Co7UbthInV1VFl5hNn-gOl-yKISf2MbntFaiOhqnZ9JfZ9E8v8J-ibTpaAW8VCyBQ_CKV7m73Ek19jB-J23PqXr1LP2N30qqiZc--08vdTxew6A_OWYj3PwDX3TD1_PWuwBXYd2RlwCo2B7NwIwz4fG5FuHBUc1Ww==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG0MAOSraRIJ30RlgYO8pTzvfJRqp3fRiSe66gSyR4Wv27bTvZcI5ugiEI5Tnv-B5irAFRGMtaMf_YDsYG7tHs91QiM7Rk4XwGDyqLVjGR518ADXYF3dwWrkATNhbALDMfHZNiyIhrbzFLl4DRr49Xz9dLtIOACj4tv4ZNVLAnddNq-RVUiv-f6nnm4rFLXPA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEsecn547_gMQ0Yed99L30PAq37Hjfq5Sb9mAkwuU0dgrOf_pF8Y50Tv6cjdr_xoidGoxyx2AIsOVgDThhnKnt8ckZP0HIG9f320ltCrAxItjaNkzM6XW98RzOpVRjZxwyosP3VzQBDBV9rv-8=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHLZxXtjSBV-mOWrxL13r0AI5rZvYGQyR9owE3wGgWz5lhdTF6nLPDxOByvSnykCEqDxQjRej7jEwWyFyFLCfeH0cDD1hT2Q29h3mzXBv9xRwoLMIqMg3UPQg1kkw5eeErGg_gK0ng=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG_-iJuxV3Glkv-2NRRBySe8gnI1HGFGrNCS3eAG8XYs37GAO3WT5Z1ZudIhqKyxQtvIvtjGgq9hg49ml9EGmjeAKiK5qiIrKxQc3d8eXrHhFhkPS5_aeimsR0L2Yon7GL0lyLvmRysrvzwBQ3Gq-EqQtKV6x2ZxiI=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEI-lfQQlVr4IO1DMr4K3uLaN99G8OQyr-CSnbIFkLy814Bi5dRhrogBUhN1aJAIcq_LrvRv8lNA92yEamHLL8M-CSe6r9bLLibRJA0i6Nfhi6itdudrXB8yi1AyRgfNQZuWNs9WLOzdQ==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFwwhsYiBTUzlIvZSwk3B1-G5zHUUCgDcI4PNMxbQoDQBB3z4J_x0EumVybCq5POhsRlCG3CTe7Aoqt-_xCQOLGmoPcPIlszJYZYCOlhYE-QChNWhrBSCX87_6Q2U5BVUudmX2HwefCS-hqGQrr367HF5zGWCEFgJV0
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHc-EAjQ5SLTq7hilb8VeMA6xlV9TDu0sFDTeR8KSKknOgteyyV1zmMHU_pavf6yavVE57D8aaoQ5nfpNmPVBXAQafWTHZOoeT6til0HlHbizA6cUlhSdijUbEfI9fK71We8QQImVNPbY4bjSM=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG0sqCbNgbTCeu7NNedKaRHfqXiLFPr7z2lhrbLBUTcY2bZ65Vu3TyMtSgkzhoNbI_bWxKTS7k-dPV8elFyzus8JzkV3dWxJnOOgzQP8GC2umKJEWhMLgDg7IdcvXAmdDeRXGIyxJOkzPi2X41U8zj3i8p4_tpd_SV_7gCehm13aau-xowPLQDaonp5qpcb4op1zUg92jBg
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEBj1TjqmVtJHmLGec9eJEM524orwIMj9HWRdQYbSnaDGnJZVAxrCo4QrEo-Sdd6BJI9Qr9LCelKbwvI8bUwGS9I6eKduiK6iHGG6dcSd--CyL8HF1-JsaxZOdB8QarVhIGDJrrxhFH1_gLFfs=
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOkutkMYYlM9AIXJYbyOHJ4O-21GJT5J7_b8vJZ5IkihrcZi6u6lSv-QEqfHO7g3BPv9uNGBOkN1EzCsz4Ce1XnkJ-89M-qoYS73aMNnYvxlOBRwLKtYIgv7W0X0sOM1x3L_fpsf-PFHQOeQ54G5jSWnPO6M3DbRcvU09G9gA3RTFliWwdvDJDwLex_EehUe_yOYX1SFSCZ6TZFoz0fD-Y5k2F
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHikVN1H2Rimf7gOcwvMMzha9ybw9JBDM66YIbXfP4RFWdMS43WtsvAU2fRCTYW4XM6qK1ynnkcPssJvTR9TN2tIeSQ6fr-fAdJJkyQKh3lHpfPcDwTRy912sQyQHniHHbOZNMosqI2y0j6p1zMjFp9ZE1kRWYhPbCqK8B6bbOE9T2RnzrBGrBUN3YjZYK66EfpuFU
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEkujN5udjTG5P1iXqWecfYEX1Z3n_gHHm_8DRJuyE4hUOs0J4JgSN3OEUAXkmuLiN17oabdP8kpF3nFaguX9VE1NmVTuc1Lm_u9P2wbrLblW2pZqsBqdSJ2Wutk0-eE8fIuCD8vE5ydZtNuGEnbLEY3ZK1IWJvE7QhXgIz4qRc1jylKwvxwtUS
+
+---
+
+## Strategic Research & Gap Analysis
+**Model:** google/gemini-3.1-pro-preview
+
+**Search queries:**
+- "fitness app data portability FHIR 2025 2026"
+- "FTC guidelines AI fitness apps 2025 2026"
+- "WCAG 2.2 fitness app compliance focus appearance target size"
+- ""Web Speech API" fitness app hands free logging"
+- ""Health Connect" API fitness app integration 2025 2026"
+- "fitness app gamification variable rewards 2025 2026"
+- "B2B2C fitness SaaS monetization trends 2025 2026"
+- ""AI agents" fitness coaching 2025 2026"
+
+**Sources cited:**
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE8l0gdOUVUNeQp438Lu-zwzZFbkszmOIbn4G8RD0YBtl6nRemCh9fWYCNB9OvPmo4Ynx_SBxjJ43I8OccXSMvMpnlZrI87xMms8GQ0XnFOO7MisiyzFA==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE-D5DCjIA6ebMWTZO6yCwonVMyLMOwIsDQ7TtArLkQ6ZlKDtCsSPDHp6JV51ABOaZ2eQwydoGmBKWGVp58iKMUCR0E1rG90zSH8jkkJGyRyM1TZYecBIEsWBsBRQX2z-AFanPkbu7a7qbRTTKo4yMDId4NwSw71GFbOjvrl_zoqXeF4A==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHbRnmRT4GpEiDmatoFpZSdMa7-BmE09tpE9pIhpAzqkq4K2TjnV9Hj5u1fp11ssV4R1Qjx860gFEMrd5WPBB2lYmoBJBjm3BuPf1mefZJElrX0UYOOt8jnibSpuiPekG_xu9m-sRwPm3f9N0IYCr7cPKT4XPeUsw==
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEp1cFxJ-gFWwpz_97RUQe8Hpn4gplISWrsTYrV-y2UseoV-zhxjWOFCybrM7lTbJQgw2DIOX9QDW0Ql-GvZ8leHMLuWdWDzj5uPgNN78u7d3jPcj5f1l5JO5q5peen510sCH4CkoxBVE_tRaaI5PFCN1TmEBhyw7jJRuQC
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHMAiVrEzSMGjzYBl281UAcZkr32mV3MWEFq8y9K5STUBXghmi3mk7gsTf_IKdW9pdM_jspai-5UIkKR0GVzuYSRDjQ8tG4o3djP8iWROWLq1yllhSw2TwYxXhTAQpppdcfTWzmuglzv5KyJ7p4xqtgCxFABHATd3CwO_nE1iWHFwLCotUUUMsd2S6z6N-k5XWE83Kt1wmMmJ-LjsuAwZbh
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHppsY79ymkWQegcpABdIBq2NqMlvMtTt5cus1Ty7l9FRvOUAKu2p7RYW3mDwgu5im74bwMIFlj_uPy3k-MrPilwg0-sne8prqIlrFV4tjuqr-t_KGSlSLp6qEN2Air-bE_4x-uRf6oiON5kvqh743G
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGyM51UHBM2W5t4JveAxMoyK9E2hRvZZV_Ri89io0Ma8Z9uT4uz8ygr6hg9uFqEAO_TVkAnLlBpKKpIfu95JeHCQR5lgQgKKixITvhigcgozsCzDryl4WrDuw4PbRZCnZBv-oio8JfszyHBGXwnJ36ZrRrvHtEkH12R2mphpTqtwdEu6ZwpYsJySWuZmN62Tct-90ROSvC6mviOKHv4CKeYMspPuZhlfB4NG07p6UyemKCB9OEW
+- https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFPU_fMqyLXcGGubqn6r_8UdwkVjbFIP9lGsB6Zz2InntWpuoq3r02HawjSkXmcDSnIiMsWdpmfdL4LudHWKc2pxATpKaEzmvLHBk5IOW89TULhED6LGZJQl5Kc0cMt4dHD9LwjBPBdDBtoMfHffoKfajcH-ger1CbDiWtJpyGHfDgtxFv3cJG6-jTMdGDdErDpalb5y_7XyA==
+
+---
+

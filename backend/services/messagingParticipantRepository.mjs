@@ -39,7 +39,7 @@ export async function upsertConversationParticipant({ conversationId, userId, ro
 export async function reviveParticipant(conversationId, userId) {
   await sequelize.query(
     `UPDATE conversation_participants
-     SET deleted_at = NULL
+     SET deleted_at = NULL, archived_at = NULL, marked_unread_at = NULL
      WHERE conversation_id = :conversationId AND user_id = :userId`,
     { replacements: { conversationId, userId } }
   );

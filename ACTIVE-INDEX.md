@@ -2,7 +2,7 @@
 
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
-**Paired with:** `CLAUDE.md` (operating rules + load order).
+**Paired with:** `AGENTS.md` / `CLAUDE.md` (operating rules + load order).
 **Last updated:** 2026-06-26 (global AI entrypoint archive indexed; social Try This Workout flow retained)
 
 > If you are here for "where does X live" — this is the right file.
@@ -12,14 +12,20 @@
 
 ## 🔥 Operating core (read first)
 
-- **`CLAUDE.md`** — root operating rules, 41 mandatory rules, load order, common gotchas
+- **`AGENTS.md` / `CLAUDE.md`** — mirrored root operating rules, 68 mandatory rules, load order, common gotchas
 - **`ACTIVE-INDEX.md`** — this file (surface/archive map)
 - **`docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`** — cleanup workflow driven by rules 32–39
 - **`docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`** — plan-before-build, mandatory
 - **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — Swan visual source of truth (stack, narrative arc B2, C1-C12 pattern library)
 - **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes + Seedance 2.0 prompt templates
+- **`docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`** — who/what may do which job at which T0–T4 tier; unregistered = BLOCKED (Fable control layer, 2026-07-03)
+- **`docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`** - cost-control rule for Fable token economy: semantic compression, query-first reads, image-context estimator, and proxy safety gates
+- **Startup router rule:** fresh AI sessions read `AGENTS.md`/`CLAUDE.md`, then this index; keep bulky protocol details linked here instead of copied into startup context.
+- **`docs/ai-workflow/hermes-agentic-os/index.md`** — Hermes Agentic OS map: approval gates, receipts, kill switches, channels, command center
+- **`docs/ai-workflow/hermes-agentic-os/task-operating-system.md`** - Sean's human-AI task loop: one visible work state, Agent-Ready Contract, universal eval, batched human QA, and bounded Tailscale support
+- **`docs/ai-workflow/design-brain/index.md`** — Design Brain map: design.md (canonical) + design.html mirror, Mobbin MCP reference gate, adapters, archetypes, QA gates
 
-These six files are the operating base. Everything else is loaded on-demand.
+These files are the operating base. Everything else is loaded on-demand.
 
 ---
 
@@ -68,7 +74,7 @@ Location: `scripts/swan-video-studio/`
 - `swan-orchestrator` — pre-task gate for rules 15/17/26/32
 - `canonical-surface-audit` — rules 26-31 execution surface
 - `repo-hygiene-scan` — rules 32-39 execution surface
-- `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md from `docs/ai-workflow/references/`, and the two reference libraries from `.agents/skills/`)
+- `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md from `docs/ai-workflow/references/`, the Design Brain including the Mobbin reference gate when relevant, and the two reference libraries from `.agents/skills/`)
 - `closeout-evidence-lock` — end-of-task evidence gate (preserves substantive code-review checklist from retired `requesting-code-review`)
 
 **KEEP core (8, unchanged):**
@@ -105,6 +111,7 @@ Core reference set (most frequently used):
 - `DASHBOARD-ARCHITECTURE.md`
 - `SWANSTUDIOS-DASHBOARD-VISION-BRIEF.md`
 - `BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`
+- `FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` (NEW 2026-07-04) - when/how to reduce Fable context spend; unreviewed proxies remain blocked
 - `NASM-OPT-PROTOCOL.md`
 - `GAMIFICATION-SYSTEM.md`
 - `CHART-ANALYTICS-SYSTEM.md`

@@ -538,9 +538,9 @@ const SocialPageV3: React.FC = () => {
 
   const handleNotificationSelect = useCallback(
     async (notification: SocialNotification) => {
-      await socialNotifications.markAsRead(notification.id);
+      await socialNotifications.markAsClicked(notification.id);
       const link = typeof notification.link === 'string' ? notification.link.trim() : '';
-      if (link.startsWith('/')) navigate(link);
+      if (link.startsWith('/') && !link.startsWith('//')) navigate(link);
     },
     [navigate, socialNotifications],
   );

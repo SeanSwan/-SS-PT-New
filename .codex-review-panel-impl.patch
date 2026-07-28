@@ -1,0 +1,451 @@
+
+diff --git frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
+index 760827202..b05f86ba4 100644
+--- frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
++++ frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
+@@ -1,190 +1,254 @@
+-import React, { useEffect, useMemo, useState } from 'react';
+-import { CheckCircle2 } from 'lucide-react';
+-import apiService from '../../../../services/api.service';
+-import type { ClientOption } from './ClientSelectorDropdown';
+-import { getClientDisplayName } from './clientIdentity';
+-import { formatLocalCalendarDate } from './nutritionDate';
+-import { selectRosterClientIds } from './ClientNutritionRosterTriagePanel.logic';
+-import {
+-  buildNutritionEstimateReviewRows,
+-  type NutritionEstimateReviewClient,
+-  type NutritionEstimateReviewEntry,
+-  type NutritionEstimateReviewRow,
+-} from './ClientNutritionEstimateReviewPanel.logic';
+-import {
+-  EstimateReviewBody,
+-  EstimateReviewButton,
+-  EstimateReviewCard,
+-  EstimateReviewClient,
+-  EstimateReviewDescription,
+-  EstimateReviewFact,
+-  EstimateReviewFacts,
+-  EstimateReviewHeader,
+-  EstimateReviewList,
+-  EstimateReviewMeal,
+-  EstimateReviewMeta,
+-  EstimateReviewShell,
+-  EstimateReviewState,
+-  EstimateReviewTitle,
+-} from './ClientNutritionEstimateReviewPanel.styles';
+-
+-interface ClientNutritionEstimateReviewPanelProps {
+-  clients: ClientOption[];
+-  hidden?: boolean;
+-}
+-
+-type LoadState = 'loading' | 'ready' | 'error';
+-
+-interface ReviewQueueResponse {
+-  data?: {
+-    success?: boolean;
+-    entries?: NutritionEstimateReviewEntry[];
+-  };
+-}
+-
+-interface VerifyResponse {
+-  data?: {
+-    success?: boolean;
+-  };
+-}
+-
+-const toReviewClients = (clients: ClientOption[]): NutritionEstimateReviewClient[] =>
+-  clients.map((client) => ({
+-    id: client.id,
+-    displayName: getClientDisplayName(client),
+-  }));
+-
+-const getEntriesFromResponse = (response: ReviewQueueResponse): NutritionEstimateReviewEntry[] => {
+-  if (!response.data?.success || !Array.isArray(response.data.entries)) {
+-    throw new Error('Nutrition review queue response was not successful');
+-  }
+-  return response.data.entries;
+-};
+-
+-const assertVerifySuccess = (response: VerifyResponse) => {
+-  if (!response.data?.success) {
+-    throw new Error('Nutrition verify response was not successful');
+-  }
+-};
+-
+-const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReviewPanelProps> = ({ clients, hidden }) => {
+-  const reviewClients = useMemo(() => toReviewClients(clients), [clients]);
+-  const rosterClientIds = useMemo(() => selectRosterClientIds(reviewClients), [reviewClients]);
+-  const [state, setState] = useState<LoadState>('loading');
+-  const [entries, setEntries] = useState<NutritionEstimateReviewEntry[]>([]);
+-  const [verifyingId, setVerifyingId] = useState<number | string | null>(null);
+-  const [verifyError, setVerifyError] = useState(false);
+-
+-  useEffect(() => {
+-    if (hidden || rosterClientIds.length === 0) return undefined;
+-
+-    let cancelled = false;
+-    const date = formatLocalCalendarDate();
+-    const params = new URLSearchParams({ date, userIds: rosterClientIds.join(','), days: '7' });
+-    setState('loading');
+-    setVerifyError(false);
+-
+-    apiService.get(`/api/macros/review-queue?${params.toString()}`)
+-      .then((response) => {
+-        if (cancelled) return;
+-        setEntries(getEntriesFromResponse(response as ReviewQueueResponse));
+-        setState('ready');
+-      })
+-      .catch(() => {
+-        if (!cancelled) setState('error');
+-      });
+-
+-    return () => {
+-      cancelled = true;
+-    };
+-  }, [hidden, rosterClientIds]);
+-
+-  if (hidden || rosterClientIds.length === 0) return null;
+-
+-  const allRows = buildNutritionEstimateReviewRows(
+-    reviewClients.filter((client) => rosterClientIds.includes(client.id)),
+-    entries
+-  );
+-  const rows = allRows.slice(0, 5);
+-  const pendingMeta = allRows.length > rows.length
+-    ? `Showing ${rows.length} of ${allRows.length} pending`
+-    : `${allRows.length} pending`;
+-
+-  const verifyRow = async (row: NutritionEstimateReviewRow) => {
+-    if (verifyingId !== null) return;
+-    setVerifyError(false);
+-    setVerifyingId(row.id);
+-
+-    try {
+-      const response = await apiService.patch(`/api/macros/client-timeline/${encodeURIComponent(String(row.id))}/verify`);
+-      assertVerifySuccess(response as VerifyResponse);
+-      setEntries((currentEntries) => currentEntries.filter((entry) => String(entry.id) !== String(row.id)));
+-    } catch {
+-      setVerifyError(true);
+-    } finally {
+-      setVerifyingId(null);
+-    }
+-  };
+-
+-  const stateMessage = state === 'loading'
+-    ? 'Loading nutrition estimates...'
+-    : state === 'error'
+-      ? 'Nutrition estimate review unavailable'
+-      : rows.length === 0
+-        ? 'No estimates awaiting review'
+-        : null;
+-
+-  return (
+-    <EstimateReviewShell aria-labelledby="nutrition-estimate-review-title" aria-busy={state === 'loading'}>
+-      <EstimateReviewHeader>
+-        <EstimateReviewTitle id="nutrition-estimate-review-title">Nutrition Estimate Review</EstimateReviewTitle>
+-        <EstimateReviewMeta>{state === 'ready' ? pendingMeta : 'Needs coach review'}</EstimateReviewMeta>
+-      </EstimateReviewHeader>
+-
+-      {verifyError ? (
+-        <EstimateReviewState role="alert">
+-          Nutrition estimate review unavailable
+-        </EstimateReviewState>
+-      ) : null}
+-
+-      {stateMessage ? (
+-        <EstimateReviewState role={state === 'error' ? 'alert' : 'status'}>
+-          {stateMessage}
+-        </EstimateReviewState>
+-      ) : (
+-        <EstimateReviewList>
+-          {rows.map((row) => (
+-            <EstimateReviewCard key={row.id}>
+-              <EstimateReviewBody>
+-                <EstimateReviewClient>{row.clientName}</EstimateReviewClient>
+-                <EstimateReviewMeal>{row.mealTitle}</EstimateReviewMeal>
+-                <EstimateReviewDescription>{row.description}</EstimateReviewDescription>
+-                <EstimateReviewFacts>
+-                  <EstimateReviewFact>{row.macroLine}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.sourceLabel}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.reviewReasonLabel}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.reviewStatusLabel}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.servingLabel}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.confidenceLabel}</EstimateReviewFact>
+-                  <EstimateReviewFact>{row.reconciliationLabel}</EstimateReviewFact>
+-                </EstimateReviewFacts>
+-              </EstimateReviewBody>
+-              <EstimateReviewButton
+-                type="button"
+-                aria-label={`Mark ${row.clientName} ${row.mealTitle} verified`}
+-                aria-busy={verifyingId === row.id}
+-                disabled={verifyingId !== null}
+-                onClick={() => verifyRow(row)}
+-              >
+-                <CheckCircle2 size={16} aria-hidden="true" />
+-                Mark verified
+-              </EstimateReviewButton>
+-            </EstimateReviewCard>
+-          ))}
+-        </EstimateReviewList>
+-      )}
+-    </EstimateReviewShell>
+-  );
+-};
+-
+-export default ClientNutritionEstimateReviewPanel;
++import React, { useEffect, useMemo, useState } from 'react';
++import { CheckCircle2, ListPlus } from 'lucide-react';
++import apiService from '../../../../services/api.service';
++import type { ClientOption } from './ClientSelectorDropdown';
++import { getClientDisplayName } from './clientIdentity';
++import { formatLocalCalendarDate } from './nutritionDate';
++import { selectRosterClientIds } from './ClientNutritionRosterTriagePanel.logic';
++import {
++  buildNutritionEstimateReviewRows,
++  type NutritionEstimateReviewClient,
++  type NutritionEstimateReviewEntry,
++  type NutritionEstimateReviewRow,
++} from './ClientNutritionEstimateReviewPanel.logic';
++import {
++  EstimateReviewBody,
++  EstimateReviewButton,
++  EstimateReviewCard,
++  EstimateReviewClient,
++  EstimateReviewDescription,
++  EstimateReviewFact,
++  EstimateReviewFacts,
++  EstimateReviewHeader,
++  EstimateReviewList,
++  EstimateReviewMeal,
++  EstimateReviewMeta,
++  EstimateReviewMoreButton,
++  EstimateReviewShell,
++  EstimateReviewState,
++  EstimateReviewTitle,
++} from './ClientNutritionEstimateReviewPanel.styles';
++
++interface ClientNutritionEstimateReviewPanelProps {
++  clients: ClientOption[];
++  hidden?: boolean;
++}
++
++type LoadState = 'loading' | 'ready' | 'error';
++
++interface ReviewQueueResponse {
++  data?: {
++    success?: boolean;
++    entries?: NutritionEstimateReviewEntry[];
++    total?: number;
++    hasMore?: boolean;
++  };
++}
++
++interface VerifyResponse {
++  data?: { success?: boolean };
++}
++
++const PAGE_LIMIT = 25;
++const VISIBLE_STEP = 5;
++
++const toReviewClients = (clients: ClientOption[]): NutritionEstimateReviewClient[] =>
++  clients.map((client) => ({
++    id: client.id,
++    displayName: getClientDisplayName(client),
++  }));
++
++const queuePage = (response: ReviewQueueResponse) => {
++  if (!response.data?.success || !Array.isArray(response.data.entries)) {
++    throw new Error('Nutrition review queue response was not successful');
++  }
++  const entries = response.data.entries;
++  return {
++    entries,
++    total: Number.isSafeInteger(response.data.total) ? Number(response.data.total) : entries.length,
++    hasMore: Boolean(response.data.hasMore),
++  };
++};
++
++const queueUrl = (rosterClientIds: number[], offset: number) => {
++  const params = new URLSearchParams({
++    date: formatLocalCalendarDate(),
++    userIds: rosterClientIds.join(','),
++    days: '7',
++    limit: String(PAGE_LIMIT),
++    offset: String(offset),
++  });
++  return `/api/macros/review-queue?${params.toString()}`;
++};
++
++const assertVerifySuccess = (response: VerifyResponse) => {
++  if (!response.data?.success) throw new Error('Nutrition verify response was not successful');
++};
++
++const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReviewPanelProps> = ({ clients, hidden }) => {
++  const reviewClients = useMemo(() => toReviewClients(clients), [clients]);
++  const rosterClientIds = useMemo(() => selectRosterClientIds(reviewClients), [reviewClients]);
++  const [state, setState] = useState<LoadState>('loading');
++  const [entries, setEntries] = useState<NutritionEstimateReviewEntry[]>([]);
++  const [total, setTotal] = useState(0);
++  const [hasMore, setHasMore] = useState(false);
++  const [visibleCount, setVisibleCount] = useState(VISIBLE_STEP);
++  const [loadingMore, setLoadingMore] = useState(false);
++  const [verifyingId, setVerifyingId] = useState<number | string | null>(null);
++  const [verifyError, setVerifyError] = useState(false);
++
++  useEffect(() => {
++    if (hidden || rosterClientIds.length === 0) return undefined;
++
++    let cancelled = false;
++    setState('loading');
++    setVerifyError(false);
++    setVisibleCount(VISIBLE_STEP);
++
++    apiService.get(queueUrl(rosterClientIds, 0))
++      .then((response) => {
++        if (cancelled) return;
++        const page = queuePage(response as ReviewQueueResponse);
++        setEntries(page.entries);
++        setTotal(page.total);
++        setHasMore(page.hasMore);
++        setState('ready');
++      })
++      .catch(() => {
++        if (!cancelled) setState('error');
++      });
++
++    return () => { cancelled = true; };
++  }, [hidden, rosterClientIds]);
++
++  if (hidden || rosterClientIds.length === 0) return null;
++
++  const allRows = buildNutritionEstimateReviewRows(
++    reviewClients.filter((client) => rosterClientIds.includes(client.id)),
++    entries,
++  );
++  const rows = allRows.slice(0, visibleCount);
++  const unloadedCount = Math.max(0, total - entries.length);
++  const pendingCount = allRows.length + unloadedCount;
++  const pendingMeta = pendingCount > rows.length
++    ? `Showing ${rows.length} of ${pendingCount} pending`
++    : `${pendingCount} pending`;
++  const canLoadMore = visibleCount < allRows.length || hasMore;
++
++  const loadMore = async () => {
++    if (loadingMore) return;
++    if (visibleCount < allRows.length) {
++      setVisibleCount((current) => current + VISIBLE_STEP);
++      return;
++    }
++
++    setLoadingMore(true);
++    try {
++      const page = queuePage(await apiService.get(
++        queueUrl(rosterClientIds, entries.length),
++      ) as ReviewQueueResponse);
++      setEntries((current) => {
++        const existingIds = new Set(current.map((entry) => String(entry.id)));
++        return [...current, ...page.entries.filter((entry) => !existingIds.has(String(entry.id)))];
++      });
++      setTotal(page.total);
++      setHasMore(page.hasMore);
++      setVisibleCount((current) => current + VISIBLE_STEP);
++    } catch {
++      setVerifyError(true);
++    } finally {
++      setLoadingMore(false);
++    }
++  };
++
++  const verifyRow = async (row: NutritionEstimateReviewRow) => {
++    if (verifyingId !== null) return;
++    setVerifyError(false);
++    setVerifyingId(row.id);
++
++    try {
++      const response = await apiService.patch(
++        `/api/macros/client-timeline/${encodeURIComponent(String(row.id))}/verify`,
++      );
++      assertVerifySuccess(response as VerifyResponse);
++      setEntries((current) => current.filter((entry) => String(entry.id) !== String(row.id)));
++      setTotal((current) => Math.max(0, current - 1));
++    } catch {
++      setVerifyError(true);
++    } finally {
++      setVerifyingId(null);
++    }
++  };
++
++  const stateMessage = state === 'loading'
++    ? 'Loading nutrition estimates...'
++    : state === 'error'
++      ? 'Nutrition estimate review unavailable'
++      : rows.length === 0
++        ? 'No estimates awaiting review'
++        : null;
++
++  return (
++    <EstimateReviewShell aria-labelledby="nutrition-estimate-review-title" aria-busy={state === 'loading'}>
++      <EstimateReviewHeader>
++        <EstimateReviewTitle id="nutrition-estimate-review-title">Nutrition Estimate Review</EstimateReviewTitle>
++        <EstimateReviewMeta>{state === 'ready' ? pendingMeta : 'Needs coach review'}</EstimateReviewMeta>
++      </EstimateReviewHeader>
++
++      {verifyError && (
++        <EstimateReviewState role="alert">Nutrition estimate review unavailable</EstimateReviewState>
++      )}
++
++      {stateMessage ? (
++        <EstimateReviewState role={state === 'error' ? 'alert' : 'status'}>{stateMessage}</EstimateReviewState>
++      ) : (
++        <>
++          <EstimateReviewList>
++            {rows.map((row) => (
++              <EstimateReviewCard key={row.id}>
++                <EstimateReviewBody>
++                  <EstimateReviewClient>{row.clientName}</EstimateReviewClient>
++                  <EstimateReviewMeal>{row.mealTitle}</EstimateReviewMeal>
++                  <EstimateReviewDescription>{row.description}</EstimateReviewDescription>
++                  <EstimateReviewFacts>
++                    <EstimateReviewFact>{row.macroLine}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.sourceLabel}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.reviewReasonLabel}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.reviewStatusLabel}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.servingLabel}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.confidenceLabel}</EstimateReviewFact>
++                    <EstimateReviewFact>{row.reconciliationLabel}</EstimateReviewFact>
++                  </EstimateReviewFacts>
++                </EstimateReviewBody>
++                <EstimateReviewButton
++                  type="button"
++                  aria-label={`Mark ${row.clientName} ${row.mealTitle} verified`}
++                  aria-busy={verifyingId === row.id}
++                  disabled={verifyingId !== null}
++                  onClick={() => verifyRow(row)}
++                >
++                  <CheckCircle2 size={16} aria-hidden="true" />
++                  Mark verified
++                </EstimateReviewButton>
++              </EstimateReviewCard>
++            ))}
++          </EstimateReviewList>
++          {canLoadMore && (
++            <EstimateReviewMoreButton
++              type="button"
++              onClick={loadMore}
++              disabled={loadingMore}
++              aria-busy={loadingMore}
++            >
++              <ListPlus size={16} aria-hidden="true" />
++              {loadingMore ? 'Loading estimates...' : 'Load more pending estimates'}
++            </EstimateReviewMoreButton>
++          )}
++        </>
++      )}
++    </EstimateReviewShell>
++  );
++};
++
++export default ClientNutritionEstimateReviewPanel;
++
+

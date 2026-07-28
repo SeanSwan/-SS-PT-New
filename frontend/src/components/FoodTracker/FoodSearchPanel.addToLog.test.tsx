@@ -9,36 +9,36 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FoodSearchPanel from './FoodSearchPanel';
+import type { FoodResult } from './FoodSearchPanel.logic';
 
-const apiMocks = vi.hoisted(() => ({ post: vi.fn() }));
-vi.mock('../../services/api.service', () => ({ default: { post: apiMocks.post } }));
+const apiMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+vi.mock('../../services/api.service', () => ({ default: { get: apiMocks.get, post: apiMocks.post } }));
 
-const usdaFood = {
-  fdcId: 1,
-  description: 'CHICKEN BREAST',
-  foodNutrients: [
-    { nutrientNumber: '208', value: 165 },
-    { nutrientNumber: '203', value: 31 },
-    { nutrientNumber: '204', value: 4 },
-    { nutrientNumber: '205', value: 0 },
-  ],
+const chickenFood: FoodResult = {
+  id: 'usda-1',
+  name: 'Chicken Breast',
+  calories: 165,
+  protein: 31,
+  fat: 4,
+  carbs: 0,
+  servingSize: '100g',
+  source: 'USDA',
 };
 
-function mockFetch() {
-  return vi.fn((url: string | URL) => {
-    const u = String(url);
-    if (u.includes('nal.usda.gov')) {
-      return Promise.resolve({ ok: true, json: async () => ({ foods: [usdaFood] }) } as Response);
-    }
-    return Promise.resolve({ ok: true, json: async () => ({ products: [] }) } as Response);
-  });
-}
+const mockSearchResults = (foods: FoodResult[] = [chickenFood]) => {
+  apiMocks.get.mockResolvedValue({ data: { success: true, foods } });
+};
 
 describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
   beforeEach(() => {
+    apiMocks.get.mockReset();
     apiMocks.post.mockReset();
-    vi.stubGlobal('fetch', mockFetch());
+    mockSearchResults();
+    vi.stubGlobal('fetch', vi.fn(() => {
+      throw new Error('FoodSearchPanel must use /api/nutrition/food-search, not browser provider fetch');
+    }));
   });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -54,6 +54,8 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     const addBtn = await screen.findByRole('button', { name: /add chicken breast to snack/i }, { timeout: 2000 });
     await user.click(addBtn);
 
+    expect(apiMocks.get).toHaveBeenCalledWith('/api/nutrition/food-search?q=chicken&pageSize=15');
+    expect(globalThis.fetch).not.toHaveBeenCalled();
     await waitFor(() => expect(apiMocks.post).toHaveBeenCalledTimes(1));
     expect(apiMocks.post).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
       description: 'Chicken Breast',
@@ -70,7 +72,7 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     const added = await screen.findByRole('button', { name: /chicken breast added to snack/i });
     expect(added).toBeDisabled();
 
-    await user.click(added); // disabled: no duplicate write
+    await user.click(added);
     expect(apiMocks.post).toHaveBeenCalledTimes(1);
   });
 
@@ -99,52 +101,25 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
 
   it('does not save malformed external macro fields as credible nutrition values', async () => {
     apiMocks.post.mockResolvedValue({ data: { success: true } });
-    vi.stubGlobal('fetch', vi.fn((url: string | URL) => {
-      const u = String(url);
-      if (u.includes('nal.usda.gov')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            foods: [{
-              fdcId: 2,
-              description: 'ODD CHICKEN',
-              foodNutrients: [
-                { nutrientNumber: '208', value: '1e3' },
-                { nutrientNumber: '203', value: ['45'] },
-                { nutrientNumber: '204', value: '4.5' },
-                { nutrientNumber: '205', value: '0x10' },
-              ],
-            }],
-          }),
-        } as Response);
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({
-          products: [{
-            _id: 'off-odd',
-            product_name: 'Odd Packaged Chicken',
-            serving_quantity: '1e2',
-            nutriments: {
-              'energy-kcal_100g': 120,
-              proteins_100g: 20,
-              fat_100g: 4,
-              carbohydrates_100g: 5,
-            },
-          }, {
-            _id: 'off-zero',
-            product_name: 'Zero Packaged Chicken',
-            serving_quantity: '0',
-            nutriments: {
-              'energy-kcal_100g': 90,
-              proteins_100g: 18,
-              fat_100g: 2,
-              carbohydrates_100g: 3,
-            },
-          }],
-        }),
-      } as Response);
-    }));
+    mockSearchResults([{
+      id: 'usda-2',
+      name: 'Odd Chicken',
+      calories: '1e3' as unknown as number,
+      protein: ['45'] as unknown as number,
+      carbs: '0x10' as unknown as number,
+      fat: 4.5,
+      servingSize: '100g',
+      source: 'USDA',
+    }, {
+      id: 'off-odd',
+      name: 'Odd Packaged Chicken',
+      calories: 120,
+      protein: 20,
+      carbs: 5,
+      fat: 4,
+      servingSize: '100g',
+      source: 'OFF',
+    }]);
     const user = userEvent.setup();
 
     render(<FoodSearchPanel onDataSent={vi.fn()} />);
@@ -163,27 +138,8 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     expect(screen.queryByText('0g')).not.toBeInTheDocument();
   });
 
-  it('does not render packaged foods without a stable external id', async () => {
-    vi.stubGlobal('fetch', vi.fn((url: string | URL) => {
-      const u = String(url);
-      if (u.includes('nal.usda.gov')) {
-        return Promise.resolve({ ok: true, json: async () => ({ foods: [] }) } as Response);
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({
-          products: [{
-            product_name: 'Mystery Packaged Chicken',
-            nutriments: {
-              'energy-kcal_100g': 90,
-              proteins_100g: 18,
-              fat_100g: 2,
-              carbohydrates_100g: 3,
-            },
-          }],
-        }),
-      } as Response);
-    }));
+  it('does not render foods omitted by the proxy', async () => {
+    mockSearchResults([]);
     const user = userEvent.setup();
 
     render(<FoodSearchPanel onDataSent={vi.fn()} />);
@@ -204,9 +160,9 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     const addBtn = await screen.findByRole('button', { name: /add chicken breast to snack/i }, { timeout: 2000 });
 
     fireEvent.click(addBtn);
-    fireEvent.click(addBtn); // second tap before the first resolves
+    fireEvent.click(addBtn);
 
-    expect(apiMocks.post).toHaveBeenCalledTimes(1); // savingRef guard: no duplicate write
+    expect(apiMocks.post).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole('button', { name: /adding chicken breast to snack/i })).toHaveAttribute('aria-busy', 'true');
     pending.forEach((resolve) => resolve());
     await screen.findByRole('button', { name: /chicken breast added to snack/i });
@@ -226,7 +182,6 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     expect(await screen.findByText(/could not add that food/i)).toBeInTheDocument();
     expect(screen.queryByText(/raw lower-layer detail/i)).not.toBeInTheDocument();
     expect(onDataSent).toHaveBeenCalledWith(false);
-    // still re-tryable (not marked added)
     expect(screen.getByRole('button', { name: /add chicken breast to snack/i })).toBeEnabled();
   });
 });

@@ -1,0 +1,161 @@
+diff --git a/backend/models/NutritionSourceRecord.mjs b/backend/models/NutritionSourceRecord.mjs
+--- a/backend/models/NutritionSourceRecord.mjs
++++ b/backend/models/NutritionSourceRecord.mjs
+@@ -75,6 +75,11 @@ NutritionSourceRecord.init({
+     allowNull: true,
+     comment: 'Provider identifiers only; never a full raw provider payload.',
+   },
++  payloadDigest: {
++    type: DataTypes.STRING(64),
++    allowNull: true,
++    validate: { is: /^[a-f0-9]{64}$/i },
++  },
+   status: {
+     type: DataTypes.STRING(20),
+     allowNull: false,
+diff --git a/backend/migrations/20260709000000-add-nutrition-decision-provenance.cjs b/backend/migrations/20260709000000-add-nutrition-decision-provenance.cjs
+--- a/backend/migrations/20260709000000-add-nutrition-decision-provenance.cjs
++++ b/backend/migrations/20260709000000-add-nutrition-decision-provenance.cjs
+@@ -57,4 +57,5 @@ const sourceColumns = (Sequelize) => ({
+   confidenceScore: { type: Sequelize.FLOAT, allowNull: true },
+   workoutProximity: { type: Sequelize.STRING(20), allowNull: false, defaultValue: 'none' },
+   rawPayloadRef: { type: Sequelize.JSONB, allowNull: true },
++  payloadDigest: { type: Sequelize.STRING(64), allowNull: true },
+   status: { type: Sequelize.STRING(20), allowNull: false, defaultValue: 'processing' },
+diff --git a/backend/routes/dailyMacroRoutes.utils.mjs b/backend/routes/dailyMacroRoutes.utils.mjs
+--- a/backend/routes/dailyMacroRoutes.utils.mjs
++++ b/backend/routes/dailyMacroRoutes.utils.mjs
+@@ -181,5 +181,11 @@ export const buildMacroEntryUpdates = (entry, body) => {
+ 
+   if (Object.keys(updates).length > 0 || hasClientVerifiedInput) {
+     updates.verified = false;
++    if (entry.reviewStatus === 'verified') {
++      updates.reviewStatus = 'needs_review';
++      updates.reviewReason = 'edited_after_review';
++      updates.reviewedByUserId = null;
++      updates.reviewedAt = null;
++    }
+   }
+ 
+diff --git a/backend/routes/dailyMacroRosterTriageRoutes.mjs b/backend/routes/dailyMacroRosterTriageRoutes.mjs
+--- a/backend/routes/dailyMacroRosterTriageRoutes.mjs
++++ b/backend/routes/dailyMacroRosterTriageRoutes.mjs
+@@ -22,2 +22,5 @@ router.use(protect);
+ 
+ const NUTRITION_REVIEW_ROLES = new Set(['admin', 'trainer']);
++const REVIEW_QUEUE_DEFAULT_LIMIT = 50;
++const REVIEW_QUEUE_MAX_LIMIT = 100;
++const REVIEW_QUEUE_MAX_OFFSET = 10000;
+ const TRIAGE_MACRO_ATTRIBUTES = [
+@@ -36,8 +39,16 @@ const requireNutritionReviewer = (req, res, next) => {
+   }
+   return next();
+ };
+ 
++const parseQueueInteger = (value, fallback, max, allowZero = false) => {
++  if (typeof value === 'undefined') return fallback;
++  const pattern = allowZero ? /^\d+$/ : /^[1-9]\d*$/;
++  if (typeof value !== 'string' || !pattern.test(value)) return null;
++  const parsed = Number(value);
++  return Number.isSafeInteger(parsed) && parsed <= max ? parsed : null;
++};
++
+ router.get('/roster-triage', requireNutritionReviewer, async (req, res) => {
+@@ -109,7 +120,11 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
+     if (!allowed) {
+       return res.status(404).json({ success: false, error: 'Macro data not found' });
+     }
+ 
++    if (entry.verified && entry.reviewStatus === 'verified' && entry.reviewedByUserId && entry.reviewedAt) {
++      return res.json({ success: true, entry: timelineEntry(entry) });
++    }
++
+     const updatedEntry = await entry.update({
+       verified: true,
+       reviewStatus: 'verified',
+@@ -140,6 +155,16 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
+     if (!days) {
+       return res.status(400).json({ success: false, error: 'Invalid days' });
+     }
++    const limit = parseQueueInteger(
++      req.query.limit,
++      REVIEW_QUEUE_DEFAULT_LIMIT,
++      REVIEW_QUEUE_MAX_LIMIT,
++    );
++    const offset = parseQueueInteger(req.query.offset, 0, REVIEW_QUEUE_MAX_OFFSET, true);
++    if (limit === null || offset === null) {
++      return res.status(400).json({ success: false, error: 'Invalid pagination' });
++    }
+ 
+     for (const userId of userIds) {
+@@ -154,5 +179,5 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
+ 
+     const startDate = daysBefore(date, days - 1);
+-    const rows = await DailyMacroLog.findAll({
++    const { count, rows } = await DailyMacroLog.findAndCountAll({
+       attributes: REVIEW_MACRO_ATTRIBUTES,
+       where: {
+@@ -170,5 +195,6 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
+       },
+       order: [['date', 'DESC'], ['createdAt', 'DESC']],
+-      limit: 50,
++      limit,
++      offset,
+     });
+ 
+@@ -180,4 +206,9 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
+       days,
+       entries: rows.map(reviewQueueEntry),
++      total: count,
++      limit,
++      offset,
++      hasMore: offset + rows.length < count,
+     });
+diff --git a/backend/services/aiDataWriteService.mjs b/backend/services/aiDataWriteService.mjs
+--- a/backend/services/aiDataWriteService.mjs
++++ b/backend/services/aiDataWriteService.mjs
+@@ -15,6 +15,7 @@
+  */
+ import logger from '../utils/logger.mjs';
+ import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
++import { encrypt } from './encryption/encryptionService.mjs';
+ import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
+@@ -391,5 +392,5 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } =
+     date: resolveNutritionWriteDate(data.date),
+     mealType: trustedMacroMealType(data.mealType),
+-    description: safeDescription,
++    description: encrypt(safeDescription, 'health:nutrition:description'),
+     calories: sanitizeAiMacroNumber(data.calories),
+@@ -433,5 +434,5 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } =
+   );
+ 
+-  logger.info('[AIDataWrite] Macro log added for user %d: %s', userId, safeDescription);
++  logger.info('[AIDataWrite] Macro log added for user %d via %s', userId, replacements.source);
+ }
+diff --git a/backend/services/aiChatService.mjs b/backend/services/aiChatService.mjs
+--- a/backend/services/aiChatService.mjs
++++ b/backend/services/aiChatService.mjs
+@@ -1271,5 +1271,5 @@
+       // 12. Macro logs
+       includeNutrition ? safeQuery(
+-        `SELECT date, "mealType", description, calories, protein, carbs, fat, fiber
++        `SELECT date, "mealType", calories, protein, carbs, fat, fiber
+          FROM daily_macro_logs
+@@ -1692,5 +1692,5 @@
+         const d = m.date?.toISOString?.()?.split('T')[0] || String(m.date);
+         if (!byDate[d]) byDate[d] = { meals: [], t: { cal: 0, pro: 0, carb: 0, fat: 0 } };
+-        const safeDescription = stripIdentityFromNotes(m.description, userId, clientIdentity) || 'Meal entry';
++        const safeDescription = 'Meal entry';
+         byDate[d].meals.push(`${m.mealType}: ${safeDescription} (${m.calories || 0}cal ${m.protein || 0}P ${m.carbs || 0}C ${m.fat || 0}F)`);
+diff --git a/backend/tests/unit/reviewedNutritionDraftService.test.mjs b/backend/tests/unit/reviewedNutritionDraftService.test.mjs
+--- a/backend/tests/unit/reviewedNutritionDraftService.test.mjs
++++ b/backend/tests/unit/reviewedNutritionDraftService.test.mjs
+@@ -110,6 +110,6 @@ describe('reviewedNutritionDraftService', () => {
+       caloriesCalculated: 126,
+       reconciliationStatus: 'within_tolerance',
+-      confidenceScore: 0.82,
+-      reviewStatus: 'client_confirmed',
++      confidenceScore: 0.6,
++      reviewStatus: 'needs_review',
+     }), { transaction: 'nutrition-tx' });
+

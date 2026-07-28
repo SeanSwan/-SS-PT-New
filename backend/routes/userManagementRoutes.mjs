@@ -338,15 +338,30 @@
  */
 
 // backend/routes/userManagementRoutes.mjs
+import crypto from 'crypto';
 import express from 'express';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly, ownerAdminOnly } from '../middleware/authMiddleware.mjs';
 import User from '../models/User.mjs';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import { PasswordResetEmailDeliveryError, sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 
 const router = express.Router();
 const PAID_CREDIT_FREE_TRACKING_MESSAGE = 'Admin user management cannot assign paid credits to free-tracking clients';
+const STAFF_SETUP_PASSWORD_BYTES = 32;
+
+const generateServerSetupPassword = () => `Setup-${crypto.randomBytes(STAFF_SETUP_PASSWORD_BYTES).toString('base64url')}!Aa1`;
+
+const requireOwnerForAdminRolePayload = (req, res, next) => {
+  const requestedRole = typeof req.body?.role === 'string'
+    ? req.body.role.trim().toLowerCase()
+    : '';
+  if (requestedRole !== 'admin') {
+    return next();
+  }
+  return ownerAdminOnly(req, res, next);
+};
 
 const parseAdminSessionCreditInput = (value, fallback = 0) => {
   const parsed = Number(value ?? fallback);
@@ -480,7 +495,7 @@ router.get('/trainers', protect, adminOnly, async (req, res) => {
  * @desc    Admin: Create a new user
  * @access  Private (Admin Only)
  */
-router.post('/user', protect, adminOnly, async (req, res) => {
+router.post('/user', protect, adminOnly, requireOwnerForAdminRolePayload, async (req, res) => {
   try {
     const { 
       firstName, 
@@ -488,6 +503,7 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       email, 
       username, 
       password, 
+      sendSetupLink = false,
       role, 
       phone,
       availableSessions,
@@ -514,11 +530,14 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       });
     }
     
+    const sendSetupLinkRequested = sendSetupLink === true;
+    const setupPassword = sendSetupLinkRequested ? generateServerSetupPassword() : password;
+
     // Validate required fields
-    if (!firstName || !lastName || !email || !username || !password || !role) {
+    if (!firstName || !lastName || !email || !username || !role || (!sendSetupLinkRequested && !password)) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: firstName, lastName, email, username, password, role'
+        message: 'Please provide all required fields: firstName, lastName, email, username, password or sendSetupLink, role'
       });
     }
     
@@ -528,7 +547,7 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       lastName,
       email,
       username,
-      password,
+      password: setupPassword,
       role,
       phone,
       availableSessions: availableSessions || 0,
@@ -558,12 +577,40 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       userData.hourlyRate = user.hourlyRate;
     }
     
+    let resetHandoff = null;
+    if (sendSetupLinkRequested) {
+      try {
+        const resetResult = await sendPasswordResetEmailForUser(user, { includeResetUrl: true });
+        const resetEmailSent = resetResult?.emailSent === true;
+        resetHandoff = {
+          credentialAction: resetEmailSent ? 'setup_link_sent' : 'setup_link_ready',
+          resetEmailSent,
+          emailSent: resetEmailSent,
+          resetUrl: resetResult?.resetUrl,
+          resetExpiresAt: resetResult?.resetExpiresAt,
+          expiresInMinutes: resetResult?.expiresInMinutes,
+        };
+      } catch (resetError) {
+        if (!(resetError instanceof PasswordResetEmailDeliveryError) && !resetError?.resetUrl) {
+          throw resetError;
+        }
+        resetHandoff = {
+          credentialAction: 'setup_link_ready',
+          resetEmailSent: false,
+          emailSent: false,
+          resetUrl: resetError.resetUrl,
+          resetExpiresAt: resetError.resetExpiresAt,
+          expiresInMinutes: resetError.expiresInMinutes,
+        };
+      }
+    }
     logger.info(`Admin ${req.user.id} created new user: ${user.id} (${user.role})`);
     
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      user: userData
+      user: userData,
+      ...(resetHandoff ? { data: resetHandoff } : {})
     });
   } catch (error) {
     logUserManagementRouteError('Error creating user', error, req, { action: 'create_user' });
@@ -579,7 +626,7 @@ router.post('/user', protect, adminOnly, async (req, res) => {
  * @desc    Admin: Update a user
  * @access  Private (Admin Only)
  */
-router.put('/user/:id', protect, adminOnly, async (req, res) => {
+router.put('/user/:id', protect, adminOnly, requireOwnerForAdminRolePayload, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -703,7 +750,7 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
  * @desc    Admin: Promote user to admin role
  * @access  Private (Admin Only)
  */
-router.post('/promote-admin', protect, adminOnly, async (req, res) => {
+router.post('/promote-admin', protect, adminOnly, ownerAdminOnly, async (req, res) => {
   try {
     const { userId, adminCode } = req.body;
     
@@ -815,7 +862,7 @@ router.post('/promote-client', protect, adminOnly, async (req, res) => {
  * @desc    Admin: Deactivate a user (soft delete)
  * @access  Private (Admin Only)
  */
-router.delete('/user/:id', protect, adminOnly, async (req, res) => {
+router.delete('/user/:id', protect, adminOnly, ownerAdminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     

@@ -39,10 +39,15 @@ export type CoachScheduledSessionRouteContext = {
   scheduledSessionCredits?: number;
 };
 
+export type CoachMessageActionRouteContext = {
+  threadId?: string;
+  sourceMessageId?: string;
+};
+
 export type CoachCommandRouteContext = {
   source: 'coach-command-center';
   intent: string | null;
-} & Partial<CoachScheduledSessionRouteContext>;
+} & Partial<CoachScheduledSessionRouteContext> & CoachMessageActionRouteContext;
 
 export type CoachQueueSummaryView = {
   total: number;
@@ -56,6 +61,7 @@ export type CoachQueueSummaryView = {
   failed: number;
   needsClient: number;
   preparedDrafts: number;
+  pendingDrafts: number;
 };
 
 export type CoachThreadSummary = ConversationSummary;

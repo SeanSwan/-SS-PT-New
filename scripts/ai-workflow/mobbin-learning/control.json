@@ -1,0 +1,9 @@
+{
+  "killSwitch": false,
+  "mode": "manual",
+  "weeklyCaps": {
+    "runs": 12,
+    "reviewedResults": 144,
+    "flowsOpened": 36
+  }
+}

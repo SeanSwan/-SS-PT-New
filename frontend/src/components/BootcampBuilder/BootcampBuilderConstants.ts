@@ -213,14 +213,14 @@ export const CLASS_STYLES: Array<{ value: ClassStyle; label: string; description
   { value: 'pyramid', label: 'Pyramid', description: 'Heavy → drop weight → lighter → failure' },
   { value: 'superset', label: 'Superset', description: 'Compound → bodyweight → banded (same muscle)' },
   { value: 'mixed', label: 'Mixed', description: 'Different styles per station — maximum variety' },
-  { value: 'ladder', label: 'Ladder', description: 'Ascending reps: 2-4-6-8-10 per round' },
-  { value: 'descending', label: 'Descending', description: 'Descending reps: 15-12-10-8-6 — build intensity' },
-  { value: 'chipper', label: 'Chipper', description: 'High-rep single pass: 50-40-30-20-10 — chip away' },
-  { value: 'countdown', label: 'Countdown', description: 'Decreasing time: 60s-45s-30s-15s — intensity builds' },
+  { value: 'ladder', label: 'Metcon Ladder', description: 'Two-group ladder: 9-15-20-25 reps with clean form caps' },
+  { value: 'descending', label: 'Rep Breakdown', description: 'Paired body parts: 25-20-15-9 reps as fatigue climbs' },
+  { value: 'chipper', label: 'Chipper', description: 'High-rep single pass: 50-40-30-20-10 with steady pacing' },
+  { value: 'countdown', label: 'Countdown', description: 'Decreasing time: 60s-45s-30s-15s as pressure rises' },
   { value: 'death_by', label: 'Death By...', description: 'EMOM add 1 rep/min until failure' },
   { value: 'ygig', label: 'You Go I Go', description: 'Partner swap — one works, one rests. 1:1 ratio' },
-  { value: 'contrast', label: 'Contrast', description: 'Heavy strength + explosive plyometric superset' },
-  { value: 'density', label: 'Density', description: 'Max work in fixed time blocks (5 min each)' },
+  { value: 'contrast', label: 'Two-Group Contrast', description: 'Strength plus explosive work across two body groups' },
+  { value: 'density', label: 'Density Block', description: 'Max clean rounds in fixed 5-minute windows' },
 ];
 
 // ── Intensity Categories ────────────────────────────────────

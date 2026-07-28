@@ -5,8 +5,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const { mockCreatePostMutate } = vi.hoisted(() => ({
+const { mockCreatePostMutate, mockNavigate, mockSocialChallengesData } = vi.hoisted(() => ({
   mockCreatePostMutate: vi.fn(),
+  mockNavigate: vi.fn(),
+  mockSocialChallengesData: [] as unknown[],
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock('../../../Social/Hashtags', () => ({
@@ -38,7 +44,7 @@ vi.mock('../../../../hooks/social/useParty', () => ({
 }));
 
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
-  useSocialChallenges: () => ({ data: [], error: null }),
+  useSocialChallenges: () => ({ data: mockSocialChallengesData, error: null }),
   useSocialFeed: () => ({ data: [], isLoading: false, error: null }),
   useLeaderboard: () => ({ data: [] }),
   useCreatePost: () => ({ mutate: mockCreatePostMutate, isPending: false, error: null }),
@@ -74,6 +80,23 @@ describe('ClientCommunityPage truth states', () => {
     expect(screen.queryByText(/SwanAthlete1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IronPhoenix/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/CoreCrusher/i)).not.toBeInTheDocument();
+  });
+
+  it('opens the first-class Challenge Board from active challenge previews', async () => {
+    const user = userEvent.setup();
+    mockSocialChallengesData.push({
+      id: 'challenge-1',
+      title: 'Three Planned Sessions',
+      description: 'Complete assigned workouts this week',
+      progress: 40,
+      daysRemaining: 4,
+    });
+
+    render(<ClientCommunityPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Open Challenge Board for Three Planned Sessions' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/challenges');
   });
 
   it('does not key dynamic community rows by array index', () => {

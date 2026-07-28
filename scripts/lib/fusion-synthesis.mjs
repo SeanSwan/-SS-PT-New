@@ -67,10 +67,18 @@ function emptySections() {
  * @param {{ analysts: Array<{name:string, model:string, text:string}>, context?: string, topic?: string }} args
  * @returns {string}
  */
-export function buildSynthesisPrompt({ analysts, context = '', topic = '' }) {
+export function buildSynthesisPrompt({ analysts, context = '', topic = '', deliverable = '' }) {
   const panel = (analysts || [])
     .map((a, i) => `### Analyst ${i + 1}: ${a.name} (${a.model})\n${a.text}`)
     .join('\n\n---\n\n');
+
+  // Optional authoring add-on (Sean 2026-07-08): when the caller supplies a `deliverable`
+  // brief, the judge appends ONE grounded build plan (with Mermaid diagrams) after the
+  // analysis sections — extracting maximum value from a single paid judge call. Used only
+  // on demand, not every run. Empty by default → prompt is byte-identical to the base contract.
+  const deliverableBlock = deliverable
+    ? `\n\n## Full Build Plan (Final Deliverable)\n${deliverable}`
+    : '';
 
   return `You are the SYNTHESIS JUDGE in a multi-model "fusion" pipeline${topic ? ` for: ${topic}` : ''}.
 
@@ -95,7 +103,7 @@ Valuable points raised by exactly ONE analyst that no other analyst mentioned. A
 Important aspects of the task that NO analyst addressed but should have, given the context. Reason about gaps in the collective coverage — still without doing new external research.
 
 ## Fused Recommendation
-The single best answer, synthesized from everything above. Ground every claim in the analysts' contributions. Be decisive and actionable.
+The single best answer, synthesized from everything above. Ground every claim in the analysts' contributions. Be decisive and actionable.${deliverableBlock}
 
 ---
 
@@ -164,8 +172,10 @@ export async function runFusionSynthesis({
   judgeModel,
   context = '',
   topic = '',
+  deliverable = '',
   priceInputPerM = 0,
   priceOutputPerM = 0,
+  maxUsd = 0,
   minPanel = MIN_PANEL,
   log = () => {},
 }) {
@@ -188,11 +198,26 @@ export async function runFusionSynthesis({
   }
 
   const start = Date.now();
-  const prompt = buildSynthesisPrompt({ analysts, context, topic });
+  const prompt = buildSynthesisPrompt({ analysts, context, topic, deliverable });
+
+  // Hard per-call dollar cap (Sean 2026-07-08): bound THIS judge call's TOTAL cost by
+  // computing the largest output-token budget the dollars allow, given the measured input
+  // size and the model's output price. Guarantees the paid judge (e.g. Fable at $10/$50 per M)
+  // can never exceed `maxUsd`. 0 = disabled (callModel's own default ceiling applies). The 0.85
+  // factor is a ~15% safety margin against tokenizer drift vs the char/4 estimate; the floor
+  // keeps a minimal answer possible even if the input alone nears the budget.
+  let callMaxTokens; // undefined -> callModel uses its own default ceiling
+  if (maxUsd > 0 && priceOutputPerM > 0) {
+    const estInputTokens = Math.ceil(prompt.length / 4);
+    const inputCost = (estInputTokens / 1_000_000) * priceInputPerM;
+    const outputBudgetUSD = Math.max(0, maxUsd - inputCost);
+    callMaxTokens = Math.max(1200, Math.floor((outputBudgetUSD / priceOutputPerM) * 1_000_000 * 0.85));
+    log(`[synthesis] hard cap $${maxUsd.toFixed(2)} — ~${estInputTokens} input tok ($${inputCost.toFixed(3)}) → output capped at ${callMaxTokens} tok`);
+  }
   log(`[synthesis] judging ${analysts.length} analyst outputs via ${judgeModel}...`);
 
   try {
-    const res = await callModel(judgeModel, prompt);
+    const res = await callModel(judgeModel, prompt, callMaxTokens);
     const text = res?.text || '(no response)';
     const inputTokens = res?.inputTokens || 0;
     const outputTokens = res?.outputTokens || 0;

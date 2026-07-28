@@ -140,7 +140,7 @@ export const useHeaderState = () => {
       case 'trainer':
         return user.role === 'admin' || user.role === 'trainer';
       case 'client':
-        return user.role === 'admin' || user.role === 'client';
+        return user.role === 'admin' || user.role === 'trainer' || user.role === 'client';
       case 'user':
         return true;
       default:

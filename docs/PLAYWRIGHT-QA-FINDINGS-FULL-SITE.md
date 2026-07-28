@@ -1,4 +1,4 @@
-# Full-Site Playwright QA Findings Report
+le upload# Full-Site Playwright QA Findings Report
 
 > **Date:** 2026-03-13
 > **Tester:** Claude (Playwright MCP)

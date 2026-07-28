@@ -38,6 +38,7 @@ import {
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
+import CommunicationsInboxStrip from '../../Communications/CommunicationsInboxStrip';
 import ClientDashboardHome from './ClientDashboardHome';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
@@ -157,6 +158,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     { label: 'Log Workout', path: logWorkoutPath },
     { label: 'Ask Coach', path: homeTrainingCoachPath },
     { label: 'View Progress', target: 'progress' },
+    { label: 'View Challenges', target: 'challenges' },
     ...(canBookSessions ? [{ label: 'Book Session', path: '/dashboard/client/schedule' }] : []),
   ], [canBookSessions, homeTrainingCoachPath, logWorkoutPath]);
 
@@ -185,6 +187,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
       <ClientDashboardHome
         embedded={embedded}
         backgroundSettings={backgroundSettings}
+        communicationInbox={<CommunicationsInboxStrip />}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}
         featureImageSrc={featureWorkoutImage}

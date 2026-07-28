@@ -24,6 +24,7 @@ describe('schedule support modals auth pipeline', () => {
     const sessionsRoutesSource = readSource('backend/routes/sessions.mjs');
     const legacySessionRoutesSource = readSource('backend/routes/sessionRoutes.mjs');
     const profileRoutesSource = readSource('backend/routes/profileRoutes.mjs');
+    const notificationRoutesSource = readSource('backend/routes/notificationRoutes.mjs');
 
     expect(scheduleSource).toContain('<ScheduleModals');
     expect(modalStackSource).toContain("import RecurringSessionModal from '../RecurringSessionModal'");
@@ -39,6 +40,7 @@ describe('schedule support modals auth pipeline', () => {
 
     expect(coreRoutesSource).toContain("app.use('/api/sessions', sessionsRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/profile', profileRoutes)");
+    expect(coreRoutesSource).toContain("app.use('/api/notifications', notificationsApiRoutes)");
     expect(sessionsRoutesSource).toContain('router.get("/users/trainers"');
     expect(sessionsRoutesSource).toContain('router.post("/recurring"');
     expect(sessionsRoutesSource).toContain('router.put("/recurring/:groupId"');
@@ -46,6 +48,8 @@ describe('schedule support modals auth pipeline', () => {
     expect(sessionsRoutesSource).toContain('router.post("/block"');
     expect(profileRoutesSource).toContain("router.get('/', protect, getUserProfile)");
     expect(profileRoutesSource).toContain("router.put('/', protect, updateUserProfile)");
+    expect(notificationRoutesSource).toContain("router.get('/preferences', protect, notificationReadLimiter, getNotificationPreferences)");
+    expect(notificationRoutesSource).toContain("router.put('/preferences', protect, notificationPreferencesLimiter, updateNotificationPreferences)");
 
     expect(coreRoutesSource).toContain("app.use('/api', apiRoutes)");
     expect(apiRoutesSource).toContain("router.use('/sessions', sessionRoutes)");
@@ -57,6 +61,7 @@ describe('schedule support modals auth pipeline', () => {
       supportModalPaths.map((path) => [path, readSource(path)])
     );
     const combinedSource = Object.values(sources).join('\n');
+    const notificationPreferencesSource = sources['frontend/src/components/UniversalMasterSchedule/NotificationPreferencesModal.tsx'];
 
     for (const source of Object.values(sources)) {
       expect(source).toContain("import apiService from '../../services/api.service';");
@@ -79,10 +84,10 @@ describe('schedule support modals auth pipeline', () => {
     expect(sources['frontend/src/components/UniversalMasterSchedule/BlockedTimeModal.tsx'])
       .toContain("apiService.post('/api/sessions/block', payload)");
 
-    expect(sources['frontend/src/components/UniversalMasterSchedule/NotificationPreferencesModal.tsx'])
-      .toContain("apiService.get('/api/profile')");
-    expect(sources['frontend/src/components/UniversalMasterSchedule/NotificationPreferencesModal.tsx'])
-      .toContain("apiService.put('/api/profile', {");
+    expect(notificationPreferencesSource).toContain("apiService.get('/api/notifications/preferences')");
+    expect(notificationPreferencesSource).toContain("apiService.put('/api/notifications/preferences', {");
+    expect(notificationPreferencesSource).not.toContain("apiService.get('/api/profile')");
+    expect(notificationPreferencesSource).not.toContain("apiService.put('/api/profile'");
 
     expect(sources['frontend/src/components/UniversalMasterSchedule/ClientRecurringBookingModal.tsx'])
       .toContain("apiService.post('/api/sessions/book-recurring', {");

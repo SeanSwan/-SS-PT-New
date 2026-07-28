@@ -8,13 +8,26 @@ import BootcampExercise from '../../models/BootcampExercise.mjs';
 import { FORMAT_CONFIG } from '../../services/bootcamp/bootcampConstants.mjs';
 import { __testing__ } from '../../services/bootcamp/bootcampGenerator.mjs';
 import { applyClassStyle, generateBoard2 } from '../../services/bootcamp/classStyleModifiers.mjs';
+import { hydrateTemplateExerciseMedia } from '../../services/bootcamp/bootcampCrud.mjs';
+import { hydrateExerciseProgrammingIntent, serializeExerciseNotes } from '../../services/bootcamp/bootcampProgrammingNotes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const bootcampCrudSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampCrud.mjs'), 'utf8');
 const bootcampGeneratorSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampGenerator.mjs'), 'utf8');
+const bootcampEquipmentContextSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampEquipmentContext.mjs'), 'utf8');
+const bootcampExerciseSelectionSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampExerciseSelection.mjs'), 'utf8');
 const exerciseRolodexBridgeSource = readFileSync(resolve(__dirname, '../../services/bootcamp/exerciseRolodexBridge.mjs'), 'utf8');
+const lineCount = (fileSource) => fileSource.split(/\r?\n/).length;
 
 describe('bootcamp generation semantics', () => {
+  it('keeps the generator as orchestration by extracting helper modules', () => {
+    expect(bootcampGeneratorSource).toContain("from './bootcampEquipmentContext.mjs'");
+    expect(bootcampGeneratorSource).toContain("from './bootcampExerciseSelection.mjs'");
+    expect(bootcampGeneratorSource).toContain("from './bootcampIntensityScoring.mjs'");
+    expect(bootcampGeneratorSource).toContain("from './bootcampStructure.mjs'");
+    expect(bootcampGeneratorSource).toContain("from './bootcampPainAlerts.mjs'");
+    expect(lineCount(bootcampGeneratorSource)).toBeLessThanOrEqual(300);
+  });
   it('orders calisthenics and flexibility requests around the selected intensity instead of treating it as metadata only', () => {
     const exercises = [
       { name: 'Barbell Back Squat', key: 'barbell_back_squat', muscles: ['quads'], equipment: ['barbell'], difficulty: 700 },
@@ -44,6 +57,73 @@ describe('bootcamp generation semantics', () => {
       expect(mainExercises.every(ex => typeof ex.description === 'string' && ex.description.length > 0)).toBe(true);
       expect(exercises.find(ex => ex.board === 'alternative').description).toBeUndefined();
     }
+  });
+
+  it('adds metcon rep targets and paired-muscle focus to cross-training style cues', () => {
+    const exercises = [
+      {
+        exerciseName: 'Dumbbell Thruster',
+        board: 'main',
+        stationIndex: 0,
+        sortOrder: 1,
+        durationSec: 35,
+        restSec: 15,
+        isCardioFinisher: false,
+        muscleTargets: 'quads,shoulders',
+      },
+    ];
+    const explanations = [];
+
+    applyClassStyle('descending', exercises, explanations);
+
+    expect(exercises[0].description).toContain('25-20-15-9');
+    expect(exercises[0].description).toContain('quads + shoulders');
+    expect(exercises[0].description).toContain('run the target muscles down safely');
+    expect(exercises[0].programmingIntent).toEqual(expect.objectContaining({
+      type: 'functional_circuit',
+      classStyle: 'descending',
+      scheme: '25-20-15-9',
+      prescriptionLabel: '25-20-15-9 reps',
+      repTargets: [25, 20, 15, 9],
+      groupFocus: 'quads + shoulders',
+    }));
+    expect(explanations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'style',
+        message: expect.stringContaining('two body groups'),
+      }),
+    ]));
+  });
+  it('round-trips structured programming intent through saved BootcampExercise notes', async () => {
+    const exercises = [{
+      exerciseName: 'Dumbbell Thruster',
+      board: 'main',
+      stationIndex: 0,
+      sortOrder: 1,
+      durationSec: 35,
+      restSec: 15,
+      isCardioFinisher: false,
+      muscleTargets: 'quads,shoulders',
+    }];
+
+    applyClassStyle('descending', exercises, []);
+    const notes = serializeExerciseNotes(exercises[0]);
+    const plainExercise = { notes, exerciseLibraryId: null };
+    const template = { exercises: [plainExercise], stations: [] };
+
+    expect(BootcampExercise.rawAttributes.notes).toBeDefined();
+    expect(notes).toContain('bootcamp:programming-intent:');
+    expect(serializeExerciseNotes({
+      notes: 'Trainer-visible note',
+      programmingIntent: exercises[0].programmingIntent,
+    })).toContain('Trainer-visible note\nbootcamp:programming-intent:');
+    hydrateExerciseProgrammingIntent(plainExercise);
+    expect(plainExercise.programmingIntent).toEqual(expect.objectContaining({ scheme: '25-20-15-9' }));
+    await hydrateTemplateExerciseMedia([template], async () => {
+      throw new Error('live exercise loader should not run without exerciseLibraryId values');
+    });
+    expect(plainExercise.programmingIntent).toEqual(expect.objectContaining({ prescriptionLabel: '25-20-15-9 reps' }));
+    expect(bootcampCrudSource).toContain('notes: serializeExerciseNotes(ex)');
   });
 
   it('builds separate joint-friendly and low-impact alternative boards from the main intensity board', () => {
@@ -126,6 +206,44 @@ describe('bootcamp generation semantics', () => {
     expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null');
   });
 
+  it('passes the selected OPT phase into the Rolodex bridge query', () => {
+    const normalizedGeneratorSource = bootcampGeneratorSource.replace(/\r\n/g, '\n');
+    const queryIndex = normalizedGeneratorSource.indexOf('const rolodexResults = await queryExercisesForBootcamp');
+    const queryBlock = normalizedGeneratorSource.slice(queryIndex, queryIndex + 260);
+
+    expect(queryIndex).toBeGreaterThan(-1);
+    expect(normalizedGeneratorSource).toContain('equipmentProfileId,\n    optPhase,\n    name,');
+    expect(queryBlock).toContain('availableEquipment,\n      optPhase,\n      excludeNames');
+    expect(exerciseRolodexBridgeSource).toContain('if (optPhase) {');
+    expect(exerciseRolodexBridgeSource).toContain('COALESCE("optPhases"::text');
+  });
+
+  it('strict-filters generated classes against selected equipment profiles and mapping evidence', () => {
+    expect(bootcampGeneratorSource).toContain("from './bootcampIntelligenceEngine.mjs'");
+    expect(bootcampGeneratorSource).toContain('getBootcampEquipmentContext');
+    expect(bootcampEquipmentContextSource).toContain('EquipmentExerciseMap.findAll');
+    expect(bootcampEquipmentContextSource).toContain('confirmed: true');
+    expect(bootcampGeneratorSource).toContain('filterExercisesForStrictEquipment(availableExercises, equipmentContext)');
+    expect(bootcampGeneratorSource).toContain('summarizeBootcampSelectionEvidence(equipmentFilterResult, { requiredSlots: requiredEquipmentSlots })');
+    expect(bootcampGeneratorSource).toContain('equipmentReadiness: equipmentSummary ?? null');
+    expect(bootcampEquipmentContextSource).toContain('strictEquipment: Boolean(equipmentProfileId)');
+    expect(bootcampExerciseSelectionSource).toContain('selectionReason: ex.selectionReason ?? null');
+    expect(bootcampExerciseSelectionSource).toContain('equipmentEvidence: Array.isArray(ex.equipmentEvidence) ? ex.equipmentEvidence : []');
+    expect(bootcampExerciseSelectionSource).toContain('missingEquipment: Array.isArray(ex.missingEquipment) ? ex.missingEquipment : []');
+  });
+
+  it('calculates planned non-cardio slots for equipment readiness warnings', () => {
+    expect(__testing__.getRequiredEquipmentExerciseSlots({
+      classFormat: 'custom',
+      stationCount: 4,
+      format: { exercisesPerStation: 4 },
+    })).toBe(12);
+    expect(__testing__.getRequiredEquipmentExerciseSlots({
+      classFormat: 'full_group',
+      stationCount: 0,
+      format: { exercisesPerStation: 5 },
+    })).toBe(15);
+  });
   it('persists exercise media references for saved class templates and demo mode replay', () => {
     expect(BootcampExercise.rawAttributes.videoUrl).toBeDefined();
     expect(BootcampExercise.rawAttributes.previewVideoUrl).toBeDefined();
@@ -142,7 +260,7 @@ describe('bootcamp generation semantics', () => {
     expect(BootcampExercise.rawAttributes.instructions).toBeDefined();
     expect(bootcampCrudSource).toContain('description: ex.description ?? null');
     expect(bootcampCrudSource).toContain('instructions: ex.instructions ?? null');
-    expect(bootcampGeneratorSource).toContain('mediumVariation: ex.medium ?? null');
+    expect(bootcampExerciseSelectionSource).toContain('mediumVariation: ex.medium ?? null');
     expect(exerciseRolodexBridgeSource).toContain('medium: ex.mediumVariation ?? null');
     expect(bootcampGeneratorSource).not.toContain('mediumVariation: ex.name ?? formatExerciseName(ex.key)');
     expect(exerciseRolodexBridgeSource).not.toContain('medium: ex.name');
@@ -151,6 +269,6 @@ describe('bootcamp generation semantics', () => {
   it('keeps shared Exercise UUIDs as bootcamp exercise library ids for live media rejoin', () => {
     expect(BootcampExercise.rawAttributes.exerciseLibraryId.type.key).toBe('UUID');
     expect(bootcampCrudSource).toContain('exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId)');
-    expect(bootcampGeneratorSource).toContain('const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId)');
+    expect(bootcampExerciseSelectionSource).toContain('const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId)');
   });
 });

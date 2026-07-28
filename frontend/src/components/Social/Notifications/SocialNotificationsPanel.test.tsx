@@ -21,6 +21,8 @@ const unreadNotification: SocialNotification = {
     firstName: 'Coach',
     lastName: 'Swan',
   },
+  link: '/messages',
+  actionLabel: 'Open messages',
 };
 
 const readNotification: SocialNotification = {
@@ -31,10 +33,40 @@ const readNotification: SocialNotification = {
   read: true,
 };
 
+
+const adminNotification: SocialNotification = {
+  id: 'admin-1',
+  title: 'Admin broadcast ready',
+  message: 'A staff communication needs review.',
+  type: 'admin',
+  read: false,
+};
+const actionNotification: SocialNotification = {
+  ...unreadNotification,
+  id: 'action-1',
+  title: 'Trainer message waiting',
+  link: '//unsafe.example/messages',
+  actionLabel: 'Unsafe fallback',
+  actions: [
+    { label: 'Message trainer', type: 'open_link', href: '/messages?conversation=7' },
+    { label: 'External portal', type: 'open_link', href: 'https://example.com/portal' },
+  ],
+};
+
+const snoozeNotification: SocialNotification = {
+  ...unreadNotification,
+  id: 'snooze-1',
+  title: 'Session reminder',
+  actions: [
+    { label: 'Snooze 1 hour', type: 'snooze', durationMinutes: 60 },
+  ],
+};
+
 const baseHandlers = {
   onRefresh: vi.fn(),
   onMarkAllRead: vi.fn(),
   onOpenNotification: vi.fn(),
+  onSnoozeNotification: vi.fn(),
 };
 
 function renderPanel(overrides: Partial<ComponentProps<typeof SocialNotificationsPanel>> = {}) {
@@ -64,6 +96,7 @@ describe('SocialNotificationsPanel', () => {
     expect(screen.getByText('1 unread')).toBeInTheDocument();
     expect(screen.getByText('Consistency proof ready')).toBeInTheDocument();
     expect(screen.getByText('From Coach Swan')).toBeInTheDocument();
+    expect(screen.getByText('Open messages')).toBeInTheDocument();
     expect(screen.getByText('Reward')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /mark read/i }));
@@ -76,6 +109,41 @@ describe('SocialNotificationsPanel', () => {
     expect(props.onOpenNotification).toHaveBeenCalledWith(unreadNotification);
   });
 
+
+  it('labels admin notifications with the first-class admin taxonomy label', () => {
+    renderPanel({ notifications: [adminNotification], unreadCount: 1 });
+
+    expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.queryByText('admin')).not.toBeInTheDocument();
+  });
+  it('renders safe notification actions as separate controls without nesting buttons', () => {
+    const props = renderPanel({ notifications: [actionNotification], unreadCount: 1 });
+
+    const action = screen.getByRole('button', { name: /message trainer/i });
+    expect(action).toBeInTheDocument();
+    expect(action).toHaveStyle({ minHeight: '44px' });
+    expect(screen.queryByRole('button', { name: /external portal/i })).not.toBeInTheDocument();
+    expect(document.querySelector('button button')).toBeNull();
+
+    fireEvent.click(action);
+    expect(props.onOpenNotification).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'action-1',
+      link: '/messages?conversation=7',
+      actionLabel: 'Message trainer',
+    }));
+  });
+
+  it('renders snooze actions through the canonical snooze handler', () => {
+    const props = renderPanel({ notifications: [snoozeNotification], unreadCount: 1 });
+
+    const action = screen.getByRole('button', { name: /snooze 1 hour/i });
+    expect(action).toBeInTheDocument();
+    expect(action).toHaveStyle({ minHeight: '44px' });
+
+    fireEvent.click(action);
+    expect(props.onSnoozeNotification).toHaveBeenCalledWith('snooze-1', 60);
+    expect(props.onOpenNotification).not.toHaveBeenCalled();
+  });
   it('keeps the mark-read action hidden when there are no unread notifications', () => {
     renderPanel({
       notifications: [{ ...readNotification, id: 'read-only' }],

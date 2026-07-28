@@ -16,6 +16,7 @@ import {
   BannerStageAtrium,
   BannerStageAtriumSlot,
   BannerStageAtriumTrack,
+  BannerStageHeroBackdrop,
   BannerStageImage,
   BannerStagePlayOrb,
   BannerStageSmart,
@@ -204,11 +205,10 @@ const UserDashboardBannerStageLayouts: React.FC<UserDashboardBannerStageLayoutsP
   return (
     <BannerStageVitrine data-testid="banner-stage-vitrine" style={positionStyle}>
       <BannerStageVitrineHero>
-        {isBannerVideoUrl(heroPhoto) ? (
-          <BannerStageVideo src={heroPhoto} data-testid="banner-stage-video" muted loop autoPlay playsInline preload="metadata" />
-        ) : (
-          <BannerStageImage src={heroPhoto} alt="" data-testid="banner-stage-image" draggable={false} />
-        )}
+        <BannerStageHeroBackdrop aria-hidden="true">
+          {renderStageMedia(heroPhoto)}
+        </BannerStageHeroBackdrop>
+        {renderStageMedia(heroPhoto, isBannerVideoUrl(heroPhoto) ? 'banner-stage-video' : 'banner-stage-image')}
         {isBannerVideoUrl(heroPhoto) && (
           <BannerStagePlayOrb aria-hidden="true"><PlayGlyph /></BannerStagePlayOrb>
         )}

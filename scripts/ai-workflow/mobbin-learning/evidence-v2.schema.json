@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://swanstudios.com/schemas/design-learning/evidence-2.json",
+  "title": "Swan Design Learning Evidence v2",
+  "description": "Distilled, inspected external-reference evidence. Raw vendor content is prohibited.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "run_id",
+    "actor_id",
+    "source_vendor",
+    "source_type",
+    "source_ref",
+    "observed_at",
+    "query",
+    "inspection",
+    "observations",
+    "dedupe",
+    "governance"
+  ],
+  "properties": {
+    "schema_version": { "const": "evidence/2" },
+    "evidence_id": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "run_id": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "actor_id": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "source_vendor": { "const": "mobbin" },
+    "source_type": { "enum": ["screen", "flow", "section"] },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "description": "Opaque vendor reference only; never an OAuth or connector URL."
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "query": { "type": "string", "minLength": 3, "maxLength": 240 },
+    "inspection": { "$ref": "#/$defs/inspection" },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/observation" }
+    },
+    "dedupe": { "$ref": "#/$defs/dedupe" },
+    "governance": { "$ref": "#/$defs/governance" }
+  },
+  "$defs": {
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inspected_by", "inspected_at", "surfaces_opened", "notes"],
+      "properties": {
+        "inspected_by": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "inspected_at": { "type": "string", "format": "date-time" },
+        "surfaces_opened": { "type": "integer", "minimum": 1, "maximum": 36 },
+        "notes": { "type": "string", "minLength": 20, "maxLength": 2000 }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["design_question", "principle", "swan_translation", "confidence"],
+      "properties": {
+        "design_question": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "principle": { "type": "string", "minLength": 3, "maxLength": 1000 },
+        "swan_translation": { "type": "string", "minLength": 3, "maxLength": 1000 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "dedupe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k1", "k2", "k3", "k4", "k5"],
+      "properties": {
+        "k1": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "k2": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "k3": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "k4": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "k5": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["week", "usage"],
+      "properties": {
+        "week": { "type": "string", "pattern": "^[0-9]{4}-W[0-9]{2}$" },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runs", "reviewedResults", "flowsOpened"],
+          "properties": {
+            "runs": { "type": "integer", "minimum": 0, "maximum": 12 },
+            "reviewedResults": { "type": "integer", "minimum": 0, "maximum": 144 },
+            "flowsOpened": { "type": "integer", "minimum": 0, "maximum": 36 }
+          }
+        }
+      }
+    }
+  }
+}

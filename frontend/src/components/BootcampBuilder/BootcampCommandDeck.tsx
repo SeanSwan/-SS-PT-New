@@ -36,7 +36,7 @@ const BootcampCommandDeck: React.FC<BootcampCommandDeckProps> = ({ bootcamp, bui
     () => getBootcampCommandDeckModel(bootcamp, buildMode, floorMode),
     [bootcamp, buildMode, floorMode],
   );
-  const hasAlerts = model.missingDemoCount > 0 || model.bottleneckCount > 0;
+  const hasAlerts = model.missingDemoCount > 0 || model.bottleneckCount > 0 || model.equipmentShortage;
 
   return (
     <CommandDeckShell $tone={model.readinessTone} aria-label="Bootcamp launch readiness command deck">
@@ -66,6 +66,7 @@ const BootcampCommandDeck: React.FC<BootcampCommandDeckProps> = ({ bootcamp, bui
       </MetricRail>
       {hasAlerts && (
         <AlertStrip aria-label="Bootcamp readiness warnings">
+          {model.equipmentShortage && model.equipmentAlertLabel && <AlertChip>{model.equipmentAlertLabel}</AlertChip>}
           {model.missingDemoCount > 0 && <AlertChip>{model.missingDemoCount} demo video gaps</AlertChip>}
           {model.bottleneckCount > 0 && <AlertChip>{model.bottleneckCount} flow bottleneck{model.bottleneckCount > 1 ? 's' : ''}</AlertChip>}
         </AlertStrip>

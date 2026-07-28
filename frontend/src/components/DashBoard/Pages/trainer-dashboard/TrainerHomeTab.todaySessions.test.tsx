@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import { useTrainerTodaySessions } from '../../../../hooks/useTrainerTodaySessions';
+// These render tests mount TrainerHomeTab outside the app Redux provider; the inbox has its own coverage.
+vi.mock('../../../Communications/CommunicationsInboxStrip', () => ({
+  default: () => null,
+}));
+
 import TrainerHomeTab from './TrainerHomeTab';
 
 const mockNavigate = vi.fn();

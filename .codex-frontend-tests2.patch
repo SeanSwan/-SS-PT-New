@@ -1,0 +1,210 @@
+diff --git a/frontend/src/components/FoodTracker/FoodSearchPanel.addToLog.test.tsx b/frontend/src/components/FoodTracker/FoodSearchPanel.addToLog.test.tsx
+--- a/frontend/src/components/FoodTracker/FoodSearchPanel.addToLog.test.tsx
++++ b/frontend/src/components/FoodTracker/FoodSearchPanel.addToLog.test.tsx
+@@ -44,6 +44,38 @@ describe('FoodSearchPanel add-to-log (Nutrition search proxy)', () => {
+     expect(apiMocks.get).toHaveBeenCalledWith('/api/nutrition/food-search?q=chicken&pageSize=15');
+   });
+ 
++  it('ignores a stale search response that resolves after the latest query', async () => {
++    let resolveApple!: (value: unknown) => void;
++    let resolveBanana!: (value: unknown) => void;
++    apiMocks.get.mockReset();
++    apiMocks.get
++      .mockReturnValueOnce(new Promise((resolve) => { resolveApple = resolve; }))
++      .mockReturnValueOnce(new Promise((resolve) => { resolveBanana = resolve; }));
++    const user = userEvent.setup();
++
++    render(<FoodSearchPanel onDataSent={vi.fn()} />);
++    const search = screen.getByPlaceholderText(/search foods/i);
++    await user.type(search, 'apple');
++    await waitFor(() => expect(apiMocks.get).toHaveBeenCalledTimes(1), { timeout: 2000 });
++    await user.clear(search);
++    await user.type(search, 'banana');
++    await waitFor(() => expect(apiMocks.get).toHaveBeenCalledTimes(2), { timeout: 2000 });
++
++    resolveBanana({ data: { success: true, foods: [{
++      ...chickenFood, id: 'banana-1', name: 'Banana',
++    }] } });
++    expect(await screen.findByRole('button', { name: /add banana to snack/i })).toBeInTheDocument();
++
++    resolveApple({ data: { success: true, foods: [{
++      ...chickenFood, id: 'apple-1', name: 'Apple',
++    }] } });
++    await waitFor(() => {
++      expect(screen.getByRole('button', { name: /add banana to snack/i })).toBeInTheDocument();
++      expect(screen.queryByRole('button', { name: /add apple to snack/i })).not.toBeInTheDocument();
++    });
++  });
++
+   it('hands a searched food to the shared review contract without writing first', async () => {
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+@@ -64,6 +64,20 @@ vi.mock('../../FoodTracker/FoodSearchPanel', () => ({
+   default: () => <section aria-label="food search add">Food search panel</section>,
+ }));
+ 
++vi.mock('../../FoodTracker/FoodIntakeForm', () => ({
++  default: ({ onReviewDraft }: { onReviewDraft: (draft: object) => void }) => (
++    <button type="button" onClick={() => onReviewDraft({ id: 'manual-test' })}>Prepare manual draft</button>
++  ),
++}));
++
++vi.mock('../../FoodTracker/NutritionReviewDrawer', () => ({
++  default: ({ draft, onSaved }: { draft: object | null; onSaved: (success: boolean, options: object) => void }) => (
++    draft
++      ? <button type="button" onClick={() => onSaved(true, { closeDrawer: true })}>Complete reviewed save</button>
++      : null
++  ),
++}));
++
+ describe('NutritionWorkspace Today landing', () => {
+@@ -97,7 +111,7 @@ describe('NutritionWorkspace Today landing', () => {
+     expect(await screen.findByLabelText('food search add')).toBeInTheDocument();
+   });
+ 
+-  it('surfaces macro-summary errors instead of rendering the Today diary as empty', async () => {
++  it('keeps the independent diary available while macro totals are unavailable', async () => {
+@@ -106,8 +120,8 @@ describe('NutritionWorkspace Today landing', () => {
+ 
+     const alert = await screen.findByRole('alert', { name: /nutrition totals unavailable/i });
+     expect(alert).toHaveTextContent(/Macro summary unavailable/i);
+-    expect(screen.queryByLabelText(/nutrition today diary/i)).not.toBeInTheDocument();
++    expect(screen.getByLabelText(/nutrition today diary/i)).toBeInTheDocument();
++    expect(screen.getByRole('heading', { name: /today's diary timeline/i })).toBeInTheDocument();
+     expect(screen.queryByLabelText(/0 calories logged today/i)).not.toBeInTheDocument();
+@@ -116,6 +130,22 @@ describe('NutritionWorkspace Today landing', () => {
+     expect(await screen.findByRole('alert', { name: /nutrition totals unavailable/i })).toHaveTextContent(/Macro summary unavailable/i);
+   });
+ 
++  it('returns to Today and refreshes the diary after a reviewed save', async () => {
++    const user = userEvent.setup();
++    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
++
++    await user.click(screen.getByRole('button', { name: /manual meal/i }));
++    await user.click(await screen.findByRole('button', { name: /prepare manual draft/i }));
++    await user.click(screen.getByRole('button', { name: /complete reviewed save/i }));
++
++    expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
++    expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
++    expect(mocks.macroSummary.refetch).toHaveBeenCalledTimes(1);
++  });
++
+   it('feeds real same-day workout sessions into training-day nutrition insights', async () => {
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.reviewDraft.test.ts b/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.reviewDraft.test.ts
+--- a/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.reviewDraft.test.ts
++++ b/frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.reviewDraft.test.ts
+@@ -38,4 +38,21 @@ describe('NutritionTodayPanel repeat review draft', () => {
+       }],
+     });
+   });
++
++  it.each([
++    ['food-scanner', 'photo', 'ai_estimate'],
++    ['ai-chat', 'meal-plan', 'ai_estimate'],
++  ] as const)('preserves the %s source alias in repeat review', (storedSource, draftSource, confidence) => {
++    const repeatDraft = repeatMacroEntryToNutritionDraft({
++      id: 88,
++      mealType: 'snack',
++      description: 'Saved meal',
++      source: storedSource,
++      servingQuantity: 1,
++      servingUnit: 'serving',
++    }, { draftId: 'repeat-alias' });
++
++    expect(repeatDraft).toMatchObject({
++      source: draftSource,
++      sourceConfidence: confidence,
++    });
++  });
+ });
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.test.tsx b/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.test.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.test.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionDiaryTimeline.test.tsx
+@@ -77,6 +77,39 @@ describe('NutritionDiaryTimeline', () => {
+     }));
+   });
+ 
++  it('labels active source aliases and edited review receipts honestly', async () => {
++    apiGet.mockResolvedValue({
++      data: {
++        success: true,
++        entries: [
++          {
++            id: 90, mealType: 'snack', description: 'Photo meal',
++            source: 'food-scanner', reviewStatus: 'needs_review',
++            reviewReason: 'edited_after_review',
++          },
++          {
++            id: 91, mealType: 'dinner', description: 'Coach meal',
++            source: 'ai-chat', reviewStatus: 'needs_review',
++          },
++        ],
++      },
++    });
++
++    render(
++      <NutritionDiaryTimeline
++        gentleMode={false}
++        refreshKey="source-aliases"
++        onReviewDraft={vi.fn()}
++      />,
++    );
++
++    expect(await screen.findByText('Photo meal')).toBeInTheDocument();
++    expect(screen.getByText('Photo estimate')).toBeInTheDocument();
++    expect(screen.getByText('Swan Coach')).toBeInTheDocument();
++    expect(screen.getByText('Reason: Edited after coach review')).toBeInTheDocument();
++  });
++
+   it('hides macro numbers in Gentle Mode while preserving diary context', async () => {
+diff --git a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.test.tsx b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.test.tsx
+--- a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.test.tsx
++++ b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.test.tsx
+@@ -81,5 +81,5 @@ describe('ClientNutritionEstimateReviewPanel', () => {
+     expect(screen.getByText('Source confidence: 55%')).toBeInTheDocument();
+     expect(screen.getByText('Calories: Within 4-4-9 range')).toBeInTheDocument();
+-    expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7`);
++    expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7&limit=25&offset=0`);
+@@ -116,6 +116,44 @@ describe('ClientNutritionEstimateReviewPanel', () => {
+     expect(screen.queryByText('meal 6')).not.toBeInTheDocument();
+   });
+ 
++  it('loads the next server page when pending work exceeds the loaded queue', async () => {
++    const today = formatLocalCalendarDate();
++    apiGetMock
++      .mockResolvedValueOnce({
++        data: {
++          success: true,
++          total: 6,
++          hasMore: true,
++          entries: Array.from({ length: 5 }, (_, index) => ({
++            id: 100 + index, userId: 101, mealType: 'snack',
++            description: `page one meal ${index + 1}`, source: 'voice', verified: false,
++          })),
++        },
++      })
++      .mockResolvedValueOnce({
++        data: {
++          success: true,
++          total: 6,
++          hasMore: false,
++          entries: [{
++            id: 105, userId: 202, mealType: 'dinner',
++            description: 'page two meal', source: 'photo', verified: false,
++          }],
++        },
++      });
++    const user = userEvent.setup();
++    render(<ClientNutritionEstimateReviewPanel clients={clients} />);
++
++    await user.click(await screen.findByRole('button', { name: /load more pending estimates/i }));
++    expect(apiGetMock).toHaveBeenLastCalledWith(
++      `/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7&limit=25&offset=5`,
++    );
++    expect(await screen.findByText('page two meal')).toBeInTheDocument();
++    expect(screen.getByText('6 pending')).toBeInTheDocument();
++  });
++
+   it('does not render estimates returned for clients outside the visible roster', async () => {
+

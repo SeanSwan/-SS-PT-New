@@ -1,0 +1,21 @@
+{
+  "version": "recommendation-policy/1",
+  "labels": {
+    "USE_NOW": "High-value gap with strong evidence. Notify Sean for implementation approval.",
+    "TRIAL": "Promising idea that needs a bounded prototype, token decision, or browser proof.",
+    "WATCH": "Retain as research, but do not spend implementation time yet.",
+    "REJECT": "Conflicts with Swan, duplicates existing value, or lacks enough value to retain."
+  },
+  "use_now_min": 75,
+  "trial_min": 55,
+  "watch_min": 30,
+  "minimum_use_now_evidence": 2,
+  "minimum_use_now_confidence": 0.75,
+  "hard_rules": [
+    "Labels notify; they never auto-build or auto-promote canon.",
+    "Raw copying, fake progress data, inaccessible controls, and Swan canon conflicts are rejected.",
+    "Authenticated or client-rendered claims require browser or source evidence; crawler absence is not proof of absence.",
+    "A mounted duplicate must demonstrate measurable workflow improvement before implementation.",
+    "Client green is a token proposal. Cyberforest operator green is not silently reused in client UI."
+  ]
+}

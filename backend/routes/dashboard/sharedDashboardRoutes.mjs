@@ -40,6 +40,7 @@ import {
   bufferPageView,
   sanitizePagePath,
   sanitizeReferrer,
+  shouldSkipPageViewPath,
   summarizeUserAgent,
 } from '../../services/pageViewCache.mjs';
 
@@ -463,8 +464,8 @@ router.post('/track-pageview', pageviewLimiter, async (req, res) => {
       return res.json({ success: true, tracked: false });
     }
 
-    // Skip admin dashboard and auth pages — these inflate visitor counts
-    if (!pagePath || /^\/dashboard/i.test(pagePath) || /^\/(login|register|auth)/i.test(pagePath)) {
+    // Skip admin dashboard and login-only auth pages; signup/register are acquisition visits.
+    if (shouldSkipPageViewPath(pagePath)) {
       return res.json({ success: true, tracked: false });
     }
 

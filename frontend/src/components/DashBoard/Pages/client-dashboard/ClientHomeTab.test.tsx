@@ -129,6 +129,11 @@ vi.mock('../../../../hooks/social/useSocialFeed', () => ({
   }),
 }));
 
+// These render tests mount ClientHomeTab outside the app Redux provider; the inbox has its own coverage.
+vi.mock('../../../Communications/CommunicationsInboxStrip', () => ({
+  default: () => null,
+}));
+
 import ClientHomeTab from './ClientHomeTab';
 
 function defaultCurrentWorkoutResponse() {

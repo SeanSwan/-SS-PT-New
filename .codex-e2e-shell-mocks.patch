@@ -1,0 +1,6 @@
+diff --git a/frontend/e2e/nutrition-workspace-smoke.spec.ts b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+--- a/frontend/e2e/nutrition-workspace-smoke.spec.ts
++++ b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+@@ -64,0 +65,2 @@
++    if (endpoint === '/api/v1/gamification/profile') return fulfillJson(route, { profile: { points: 0, level: 1, tier: 'bronze' } });
++    if (/^\/api\/profile\/(?:[^/]+\/)?posts$/.test(endpoint)) return fulfillJson(route, { success: true, posts: [], pagination: { limit: 20, offset: 0, total: 0 } });

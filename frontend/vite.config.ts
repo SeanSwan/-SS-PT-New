@@ -40,7 +40,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true, // Enable sourcemaps to debug the styled-components issue
+    sourcemap: false, // Do not publish production source maps; upload private maps to an error tracker when configured
     minify: 'esbuild', // Re-enabled minification for production
     chunkSizeWarningLimit: 1200,
     // Force new file paths to bypass Cloudflare CDN cache

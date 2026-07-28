@@ -57,6 +57,15 @@ describe('useMessaging tier gate', () => {
     expect(messagingViewSource).toContain('useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading })');
   });
 
+  it('passes message action handlers into the mounted thread', () => {
+    const messagingViewSource = source('./MessagingView.tsx');
+
+    expect(messagingViewSource).toContain('onEditMessage={editMessage}');
+    expect(messagingViewSource).toContain('onDeleteMessage={deleteMessage}');
+    expect(messagingViewSource).toContain('onToggleReaction={toggleMessageReaction}');
+    expect(messagingViewSource).toContain('onTogglePin={toggleMessagePin}');
+  });
+
   it('returns raw live search arrays from the mounted hook as visible users', async () => {
     apiServiceMocks.get.mockImplementation((url: string) => Promise.resolve({
       data: url.includes('/users/search')

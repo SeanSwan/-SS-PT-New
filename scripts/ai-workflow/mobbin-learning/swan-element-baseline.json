@@ -1,0 +1,132 @@
+{
+  "version": "swan-element-baseline/1",
+  "captured_at": "2026-07-19T18:00:00Z",
+  "baseline_ref": "origin/main",
+  "baseline_sha": "0f72d3055e44d798cc6b351fa66860ac1bc2af2f",
+  "checkout_warning": "The shared checkout was on stale branch wip/comms-notifications-2026-07-05 at 1fe75078e; runtime truth was read from refreshed origin/main without switching branches.",
+  "evidence_classes": {
+    "crawler_proven": "Observed by SquirrelScan on the public production URL.",
+    "browser_proven": "Observed in a rendered browser at the canonical route.",
+    "source_proven": "Mounted or configured in the refreshed origin/main source tree.",
+    "unmounted_source": "Component exists in source but has no verified mount.",
+    "unknown": "Not enough evidence; never convert to missing automatically."
+  },
+  "crawler_receipt": {
+    "url": "https://sswanstudios.com",
+    "tool": "SquirrelScan 0.0.76",
+    "mode": "quick, HTTP-only, offline, unpublished, concurrency 1, max 25",
+    "pages_crawled": 1,
+    "limitation": "Cloudflare and the client-rendered Vite shell prevented a public HTTP crawl from inventorying authenticated dashboard elements.",
+    "report": "C:/tmp/swan-squirrel-audit-20260719/quick.llm"
+  },
+  "taste_profile": {
+    "preferred_dark_combinations": [
+      "black + white + yellow/gold",
+      "black + white + blue",
+      "black + white + green"
+    ],
+    "canon_mapping": {
+      "black": "Obsidian Black",
+      "white": "Frost White",
+      "yellow_gold": "Gilded Fern",
+      "blue": "Ice Wing / Midnight Sapphire",
+      "green": "client token proposal required"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "workout-logging",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx:200",
+        "origin/main:frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx:47"
+      ]
+    },
+    {
+      "id": "workout-proof",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/UserDashboard/components/HomeTab.tsx:149",
+        "origin/main:frontend/src/components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.tsx:80"
+      ]
+    },
+    {
+      "id": "home-next-action",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/UserDashboard/components/HomeTab.tsx:156",
+        "origin/main:frontend/src/components/UserDashboard/components/HomeTab.tsx:217"
+      ]
+    },
+    {
+      "id": "progress-cockpit",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx:201",
+        "origin/main:frontend/src/components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.tsx:80"
+      ]
+    },
+    {
+      "id": "post-save-next-move",
+      "status": "fragmented",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/WorkoutLogger/WorkoutLogger.tsx:811",
+        "origin/main:backend/services/postSaveHandoffAssembler.mjs:44"
+      ],
+      "note": "The handoff is mounted but both server and client feature flags default off; treat it as integration-ready, not live user capability."
+    },
+    {
+      "id": "post-workout-celebration",
+      "status": "unmounted",
+      "evidence_class": "unmounted_source",
+      "evidence": [
+        "origin/main:frontend/src/components/Celebrations/PostWorkoutCelebration.tsx:234"
+      ],
+      "note": "Repo-wide origin/main search found the component definition but no production import or JSX mount."
+    },
+    {
+      "id": "client-soreness-coach-override",
+      "status": "fragmented",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "origin/main:frontend/src/components/UniversalMasterSchedule/SessionDetailClientFeedbackPanel.tsx"
+      ],
+      "note": "Feedback exists in a schedule detail surface, but no verified closed loop connects post-workout difficulty/soreness to coach interpretation and override."
+    },
+    {
+      "id": "readiness-confidence-freshness",
+      "status": "unknown",
+      "evidence_class": "unknown",
+      "evidence": [],
+      "note": "No claim of absence is final until rendered browser and broader source proof are complete."
+    },
+    {
+      "id": "dark-gold-language",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "AGENTS.md Active Palette: Obsidian Black, Frost White, Gilded Fern"
+      ]
+    },
+    {
+      "id": "dark-blue-language",
+      "status": "mounted",
+      "evidence_class": "source_proven",
+      "evidence": [
+        "AGENTS.md Active Palette: Obsidian Black, Frost White, Ice Wing, Midnight Sapphire"
+      ]
+    },
+    {
+      "id": "dark-green-client-language",
+      "status": "doctrine_only",
+      "evidence_class": "unknown",
+      "evidence": [],
+      "note": "Sean preference captured. Client canon requires an explicit token proposal; operator Cyberforest green is out of scope."
+    }
+  ]
+}

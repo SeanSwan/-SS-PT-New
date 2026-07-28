@@ -1,5 +1,5 @@
 /**
- * ðŸš€ GAMIFICATION API ROUTES - COMPLETE v1 API ENDPOINTS
+ * GAMIFICATION API ROUTES - COMPLETE v1 API ENDPOINTS
  * =====================================================
  * Production-ready API routes that match frontend gamification components
  * expectations with proper versioning (/api/v1/gamification/*)
@@ -11,6 +11,9 @@ import rateLimit from 'express-rate-limit';
 // Import all controllers
 import gamificationController from '../controllers/gamificationController.mjs';
 import challengeController from '../controllers/challengeController.mjs';
+import challengeEngagementController from '../controllers/challengeEngagementController.mjs';
+import challengeResultsController from '../controllers/challengeResultsController.mjs';
+import challengeSubmissionController from '../controllers/challengeSubmissionController.mjs';
 import progressController from '../controllers/progressController.mjs';
 import goalController from '../controllers/goalController.mjs';
 import socialController from '../controllers/socialController.mjs';
@@ -51,9 +54,16 @@ const pointActionLimiter = rateLimit({
   keyGenerator: (req) => `points:${req.user?.id || req.ip}`,
   message: { success: false, message: 'Too many point actions. Please try again later.' }
 });
+const challengeViewLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many challenge view events. Please try again later.' }
+});
 
 // ============================================================================
-// ðŸ“Š USER STATS & PROGRESS ENDPOINTS
+// USER STATS & PROGRESS ENDPOINTS
 // ============================================================================
 
 /**
@@ -85,7 +95,7 @@ router.post('/users/:userId/progress', authenticate, authorizeResourceAccess('us
 router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('userId'), progressController.getProgressInsights);
 
 // ============================================================================
-// ðŸ† LEADERBOARD ENDPOINTS
+// LEADERBOARD ENDPOINTS
 // ============================================================================
 
 /**
@@ -96,8 +106,49 @@ router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('use
 router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard);
 
 // ============================================================================
-// ðŸŽ¯ CHALLENGE SYSTEM ENDPOINTS
+// CHALLENGE SYSTEM ENDPOINTS
 // ============================================================================
+
+/**
+ * @route   GET /api/v1/gamification/challenge-templates
+ * @desc    Get governed trainer/admin challenge creation templates
+ * @access  Trainer/Admin
+ */
+router.get('/challenge-templates', authenticate, requireTrainer, challengeController.getChallengeTemplates);
+
+/**
+ * @route   GET /api/v1/gamification/challenge-submissions/policy
+ * @desc    Get client challenge submission entitlement policy
+ * @access  Authenticated users
+ */
+router.get('/challenge-submissions/policy', authenticate, requireUser, challengeSubmissionController.getClientChallengeSubmissionPolicy);
+
+/**
+ * @route   POST /api/v1/gamification/challenge-submissions
+ * @desc    Create a client challenge submission when entitlement opens
+ * @access  Authenticated users
+ */
+router.post('/challenge-submissions', authenticate, requireUser, challengeSubmissionController.createClientChallengeSubmission);
+/**
+ * @route   GET /api/v1/gamification/challenge-submissions/manage
+ * @desc    Get governed trainer/admin challenge submission queue policy
+ * @access  Trainer/Admin
+ */
+router.get('/challenge-submissions/manage', authenticate, requireTrainer, challengeSubmissionController.getManagedChallengeSubmissions);
+
+/**
+ * @route   PATCH /api/v1/gamification/challenge-submissions/:id/moderation
+ * @desc    Moderate a client-created challenge submission into review, requested changes, rejection, or private draft
+ * @access  Trainer/Admin
+ */
+router.patch('/challenge-submissions/:id/moderation', authenticate, requireTrainer, challengeSubmissionController.moderateManagedChallengeSubmission);
+
+/**
+ * @route   POST /api/v1/gamification/users/:userId/challenges/progress-events/workout-completed
+ * @desc    Apply a canonical workout-completed event to joined challenges
+ * @access  Authenticated user, assigned trainer, or admin
+ */
+router.post('/users/:userId/challenges/progress-events/workout-completed', authenticate, requireUser, authorizeResourceAccess('userId'), challengeController.recordWorkoutChallengeProgress);
 
 /**
  * @route   GET /api/v1/gamification/challenges
@@ -105,6 +156,27 @@ router.get('/leaderboard', authenticate, requireUser, progressController.getLead
  * @access  Public
  */
 router.get('/challenges', challengeController.getAllChallenges);
+
+/**
+ * @route   GET /api/v1/gamification/challenges/manage
+ * @desc    Get trainer/admin managed challenges including drafts
+ * @access  Trainer/Admin
+ */
+router.get('/challenges/manage', authenticate, requireTrainer, challengeController.getManagedChallenges);
+
+/**
+ * @route   POST /api/v1/gamification/challenges/:id/view
+ * @desc    Record aggregate challenge card/detail view analytics
+ * @access  Public
+ */
+router.post('/challenges/:id/view', challengeViewLimiter, challengeEngagementController.recordChallengeView);
+
+/**
+ * @route   GET /api/v1/gamification/challenges/:id/results
+ * @desc    Get trainer/admin managed challenge result analytics
+ * @access  Trainer/Admin
+ */
+router.get('/challenges/:id/results', authenticate, requireTrainer, challengeResultsController.getManagedChallengeResults);
 
 /**
  * @route   GET /api/v1/gamification/challenges/:id
@@ -119,6 +191,18 @@ router.get('/challenges/:id', challengeController.getChallengeById);
  * @access  Trainer/Admin
  */
 router.post('/challenges', authenticate, requireTrainer, challengeController.createChallenge);
+/**
+ * @route   PATCH /api/v1/gamification/challenges/:id/status
+ * @desc    Publish an owned draft challenge
+ * @access  Trainer/Admin
+ */
+router.patch('/challenges/:id/status', authenticate, requireTrainer, challengeController.updateManagedChallengeStatus);
+/**
+ * @route   PUT /api/v1/gamification/challenges/:id/audience
+ * @desc    Replace an owned draft challenge audience
+ * @access  Trainer/Admin
+ */
+router.put('/challenges/:id/audience', authenticate, requireTrainer, challengeController.updateManagedChallengeAudience);
 
 /**
  * @route   POST /api/v1/gamification/challenges/:id/join
@@ -156,7 +240,7 @@ router.get('/challenges/:id/leaderboard', authenticate, requireUser, challengeCo
 router.get('/users/:userId/challenges', authenticate, authorizeResourceAccess('userId'), challengeController.getUserChallenges);
 
 // ============================================================================
-// ðŸ… ACHIEVEMENT SYSTEM ENDPOINTS
+// ACHIEVEMENT SYSTEM ENDPOINTS
 // ============================================================================
 
 /**
@@ -225,7 +309,7 @@ router.post('/users/:userId/achievements/:achievementId', authenticate, requireT
 router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.updateAchievementProgress);
 
 // ============================================================================
-// ðŸ’° POINTS & REWARDS SYSTEM
+// POINTS & REWARDS SYSTEM
 // ============================================================================
 
 /**
@@ -285,7 +369,7 @@ router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController
 router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, pointActionLimiter, authorizeResourceAccess('userId'), gamificationController.redeemReward);
 
 // ============================================================================
-// ðŸŽ–ï¸ MILESTONES SYSTEM
+// MILESTONES SYSTEM
 // ============================================================================
 
 /**
@@ -331,7 +415,7 @@ router.delete('/milestones/:id', authenticate, requireAdmin, gamificationControl
 router.post('/users/:userId/check-milestones', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.checkAndAwardMilestones);
 
 // ============================================================================
-// ðŸŽ¯ GOAL MANAGEMENT SYSTEM
+// GOAL MANAGEMENT SYSTEM
 // ============================================================================
 
 /**
@@ -398,7 +482,7 @@ router.get('/goals/:id/analytics', authenticate, requireUser, goalController.get
 router.get('/users/:userId/goals/categories', authenticate, authorizeResourceAccess('userId'), goalController.getGoalCategoriesStats);
 
 // ============================================================================
-// ðŸ‘¥ SOCIAL FEATURES & USER INTERACTIONS
+// SOCIAL FEATURES & USER INTERACTIONS
 // ============================================================================
 
 /**
@@ -458,7 +542,7 @@ router.get('/discover-users', authenticate, requireUser, socialController.discov
 router.get('/social-feed', authenticate, requireUser, socialController.getSocialFeed);
 
 // ============================================================================
-// âš™ï¸ SETTINGS & CONFIGURATION
+// SETTINGS & CONFIGURATION
 // ============================================================================
 
 /**
@@ -476,7 +560,7 @@ router.get('/settings', gamificationController.getSettings);
 router.put('/settings', authenticate, requireAdmin, gamificationController.updateSettings);
 
 // ============================================================================
-// ðŸ”¥ WORKOUT INTEGRATION
+// WORKOUT INTEGRATION
 // ============================================================================
 
 /**
@@ -501,7 +585,7 @@ router.post(
 );
 
 // ============================================================================
-// ðŸ”” NOTIFICATIONS
+// NOTIFICATIONS
 // ============================================================================
 
 /**
@@ -512,7 +596,7 @@ router.post(
 router.patch('/notifications/:notificationId/read', authenticate, requireUser, gamificationController.markNotificationAsRead);
 
 // ============================================================================
-// ðŸ“± USER PROFILE ENDPOINTS
+// USER PROFILE ENDPOINTS
 // ============================================================================
 
 /**
@@ -543,7 +627,7 @@ router.put('/profile/rank-title', authenticate, requireProfileReader, (req, res)
 router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserProfile);
 
 // ============================================================================
-// ðŸŽ¯ ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY
+// ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY
 // ============================================================================
 
 /**
@@ -608,7 +692,7 @@ router.get('/search', async (req, res) => {
 });
 
 // ============================================================================
-// ðŸ§Š STREAK FREEZE SYSTEM (Loss Aversion Psychology)
+// STREAK FREEZE SYSTEM (Loss Aversion Psychology)
 // ============================================================================
 
 /**
@@ -626,7 +710,7 @@ router.get('/streak-freeze/:userId', authenticate, authorizeResourceAccess('user
 router.post('/streak-freeze/use', authenticate, requireUser, gamificationController.useStreakFreeze);
 
 // ============================================================================
-// ðŸ”„ COMEBACK CHALLENGES (Re-engagement Psychology)
+// COMEBACK CHALLENGES (Re-engagement Psychology)
 // ============================================================================
 
 /**
@@ -644,7 +728,7 @@ router.get('/comeback-challenge/:userId', authenticate, authorizeResourceAccess(
 router.post('/comeback-challenge/accept', authenticate, requireUser, gamificationController.acceptComebackChallenge);
 
 // ============================================================================
-// ðŸ“Š ACTIVITY FEED & WEEKLY RECAP (Social Psychology)
+// ACTIVITY FEED & WEEKLY RECAP (Social Psychology)
 // ============================================================================
 
 /**
@@ -689,3 +773,4 @@ router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('u
 router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.releasePet);
 
 export default router;
+

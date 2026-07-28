@@ -12,37 +12,20 @@ import { ExternalLink, Users } from 'lucide-react';
 import PostCard from '../../Social/Feed/PostCard';
 import { EmptyFeedWelcome } from '../../Social/Feed/components/SocialFeedPanels';
 import { InfiniteScrollSentinel, Spinner } from '../../Social/Feed/styles/SocialFeedStyles';
+import type { Post } from '../../Social/Feed/types/PostCardTypes';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
 import { Eyebrow } from './HomeTabVision.styles';
-import {
-  CenteredRow,
-  EndOfFeed,
-  ErrorCopy,
-  FeedEnrichmentCard,
-  FeedEnrichmentCopy,
-  FeedEnrichmentLabel,
-  FeedEnrichmentLink,
-  FeedEnrichmentMediaImage,
-  FeedEnrichmentMediaVideo,
-  FeedEnrichmentMeta,
-  FeedEnrichmentStack,
-  FeedEnrichmentSummary,
-  FeedEnrichmentTitle,
-  FeedHint,
-  FeedSection,
-  FeedSignalCopy,
-  FeedSignalHeader,
-  FeedStatePanel,
-  FeedStatusPill,
-  FeedTitle,
-  FeedTitleRow,
-  RetryButton,
-} from './HomeCommunityFeed.styles';
+import { HomeFeedFocusBanner } from './HomeFeedFocusBanner';
+import { HOME_FEED_ALL_FOCUS, isHomeFeedFocused, type HomeFeedFocus } from './HomeFeedFocus';
+import { useHomeFeedFocusPosts } from './useHomeFeedFocusPosts';
+import { CenteredRow, EndOfFeed, ErrorCopy, FeedEnrichmentCard, FeedEnrichmentCopy, FeedEnrichmentLabel, FeedEnrichmentLink, FeedEnrichmentMediaImage, FeedEnrichmentMediaVideo, FeedEnrichmentMeta, FeedEnrichmentStack, FeedEnrichmentSummary, FeedEnrichmentTitle, FeedHint, FeedSection, FeedSignalCopy, FeedSignalHeader, FeedStatePanel, FeedStatusPill, FeedTitle, FeedTitleRow, RetryButton } from './HomeCommunityFeed.styles';
 
 interface HomeCommunityFeedProps {
   feed: SocialFeedApi;
   enrichmentItems?: FeedEnrichmentItem[];
+  focus?: HomeFeedFocus;
+  onClearFocus?: () => void;
 }
 
 type FeedNavigationHandlers = {
@@ -52,8 +35,14 @@ type FeedNavigationHandlers = {
 
 type FeedBodyProps = FeedNavigationHandlers & {
   feed: SocialFeedApi;
+  posts: Post[];
   enrichmentItems: FeedEnrichmentItem[];
   sentinelRef: React.RefObject<HTMLDivElement>;
+  focusActive: boolean;
+  focusLoading: boolean;
+  focusError: Error | null;
+  onFocusRetry: () => void;
+  onClearFocus: () => void;
 };
 
 const sourceLabels: Record<FeedEnrichmentItem['source'], string> = {
@@ -73,6 +62,11 @@ const getFeedStatusLabel = (feed: SocialFeedApi): string => {
   return describeLivePostCount(feed.posts.length);
 };
 
+const getFocusedStatusLabel = (count: number, loading: boolean): string => {
+  if (loading) return 'Loading matches';
+  return `${count} ${count === 1 ? 'match' : 'matches'}`;
+};
+
 const shouldLoadMore = (
   entries: IntersectionObserverEntry[],
   isLoadingMore: boolean,
@@ -81,10 +75,11 @@ const shouldLoadMore = (
 const useInfiniteFeedScroll = (
   feed: SocialFeedApi,
   sentinelRef: React.RefObject<HTMLDivElement>,
+  disabled: boolean,
 ) => {
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!feed.hasMore || !sentinel) return undefined;
+    if (disabled || !feed.hasMore || !sentinel) return undefined;
 
     const observer = new IntersectionObserver((entries) => {
       if (shouldLoadMore(entries, feed.isLoadingMore)) void feed.loadMore();
@@ -95,7 +90,7 @@ const useInfiniteFeedScroll = (
       observer.unobserve(sentinel);
       observer.disconnect();
     };
-  }, [feed.hasMore, feed.isLoadingMore, feed.loadMore]);
+  }, [disabled, feed.hasMore, feed.isLoadingMore, feed.loadMore]);
 };
 
 const FeedLoadingState = () => (
@@ -109,16 +104,18 @@ const FeedLoadingState = () => (
 const FeedErrorState = ({ onRetry }: { onRetry: () => void }) => (
   <FeedStatePanel role="alert">
     <ErrorCopy>The community feed could not load.</ErrorCopy>
-    <RetryButton type="button" onClick={onRetry}>
-      Try again
-    </RetryButton>
+    <RetryButton type="button" onClick={onRetry}>Try again</RetryButton>
   </FeedStatePanel>
 );
 
-const FeedEmptyState = ({
-  onBrowseChallenges,
-  onFindFriends,
-}: FeedNavigationHandlers) => (
+const FocusedFeedEmptyState = ({ onClearFocus }: { onClearFocus: () => void }) => (
+  <FeedStatePanel aria-label="Focused community feed empty">
+    <ErrorCopy>No posts matched this signal yet.</ErrorCopy>
+    <RetryButton type="button" onClick={onClearFocus}>Back to all Home posts</RetryButton>
+  </FeedStatePanel>
+);
+
+const FeedEmptyState = ({ onBrowseChallenges, onFindFriends }: FeedNavigationHandlers) => (
   <EmptyFeedWelcome
     showActions
     onBrowseChallenges={onBrowseChallenges}
@@ -160,16 +157,18 @@ const FeedEnrichmentCards = ({ items }: { items: FeedEnrichmentItem[] }) => {
 
 const FeedPostStream = ({
   feed,
+  posts,
   enrichmentItems,
   sentinelRef,
-}: Pick<FeedBodyProps, 'feed' | 'enrichmentItems' | 'sentinelRef'>) => {
-  const trailingEnrichment = feed.posts.length < 3 ? enrichmentItems.slice(0, 2) : [];
+  showEnrichment,
+}: Pick<FeedBodyProps, 'feed' | 'posts' | 'enrichmentItems' | 'sentinelRef'> & { showEnrichment: boolean }) => {
+  const trailingEnrichment = showEnrichment && posts.length < 3 ? enrichmentItems.slice(0, 2) : [];
 
   return (
     <>
-      {feed.posts.map((post, index) => {
+      {posts.map((post, index) => {
         const enrichmentIndex = Math.floor((index + 1) / 3) - 1;
-        const showEnrichment = (index + 1) % 3 === 0 && enrichmentItems[enrichmentIndex];
+        const showCard = showEnrichment && (index + 1) % 3 === 0 && enrichmentItems[enrichmentIndex];
         return (
           <React.Fragment key={post.id}>
             <PostCard
@@ -184,59 +183,75 @@ const FeedPostStream = ({
               onRepost={feed.repostPost}
               onLoadComments={feed.loadComments}
             />
-            {showEnrichment && <FeedEnrichmentCardView item={enrichmentItems[enrichmentIndex]} />}
+            {showCard && <FeedEnrichmentCardView item={enrichmentItems[enrichmentIndex]} />}
           </React.Fragment>
         );
       })}
 
       <FeedEnrichmentCards items={trailingEnrichment} />
 
-      {feed.hasMore && (
+      {showEnrichment && feed.hasMore && (
         <InfiniteScrollSentinel ref={sentinelRef}>
           {feed.isLoadingMore && <Spinner $size={20} />}
         </InfiniteScrollSentinel>
       )}
 
-      {!feed.hasMore && <EndOfFeed>You are caught up.</EndOfFeed>}
+      {showEnrichment && !feed.hasMore && <EndOfFeed>You are caught up.</EndOfFeed>}
     </>
   );
 };
 
 const FeedBody = ({
   feed,
+  posts,
   enrichmentItems,
   onBrowseChallenges,
   onFindFriends,
   sentinelRef,
+  focusActive,
+  focusLoading,
+  focusError,
+  onFocusRetry,
+  onClearFocus,
 }: FeedBodyProps) => {
+  if (focusActive) {
+    if (focusLoading) return <FeedLoadingState />;
+    if (focusError) return <FeedErrorState onRetry={onFocusRetry} />;
+    if (posts.length === 0) return <FocusedFeedEmptyState onClearFocus={onClearFocus} />;
+    return <FeedPostStream feed={feed} posts={posts} enrichmentItems={[]} sentinelRef={sentinelRef} showEnrichment={false} />;
+  }
   if (feed.isLoading) return <FeedLoadingState />;
   if (feed.error) return <FeedErrorState onRetry={() => void feed.refreshPosts()} />;
   if (feed.posts.length === 0) {
     return (
       <>
-        <FeedEmptyState
-          onBrowseChallenges={onBrowseChallenges}
-          onFindFriends={onFindFriends}
-        />
+        <FeedEmptyState onBrowseChallenges={onBrowseChallenges} onFindFriends={onFindFriends} />
         <FeedEnrichmentCards items={enrichmentItems} />
       </>
     );
   }
-  return <FeedPostStream feed={feed} enrichmentItems={enrichmentItems} sentinelRef={sentinelRef} />;
+  return <FeedPostStream feed={feed} posts={posts} enrichmentItems={enrichmentItems} sentinelRef={sentinelRef} showEnrichment />;
 };
 
 const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({
   feed,
   enrichmentItems = [],
+  focus = HOME_FEED_ALL_FOCUS,
+  onClearFocus = () => undefined,
 }) => {
   const navigate = useNavigate();
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const statusLabel = getFeedStatusLabel(feed);
+  const focusActive = isHomeFeedFocused(focus);
+  const focusedFeed = useHomeFeedFocusPosts(focus, feed);
+  const posts = focusActive ? focusedFeed.posts : feed.posts;
+  const statusLabel = focusActive
+    ? getFocusedStatusLabel(posts.length, focusedFeed.isLoading)
+    : getFeedStatusLabel(feed);
 
-  useInfiniteFeedScroll(feed, sentinelRef);
+  useInfiniteFeedScroll(feed, sentinelRef, focusActive);
 
   return (
-    <FeedSection aria-label="Community feed">
+    <FeedSection id="home-community-feed" tabIndex={-1} aria-label="Community feed">
       <FeedSignalHeader>
         <FeedSignalCopy>
           <FeedTitleRow>
@@ -246,17 +261,28 @@ const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({
             </Eyebrow>
           </FeedTitleRow>
           <FeedTitle>Live community signal</FeedTitle>
-          <FeedHint>
-            Proof, questions, and coach-marked wins from the SwanStudios floor.
-          </FeedHint>
+          <FeedHint>Proof, questions, and coach-marked wins from the SwanStudios floor.</FeedHint>
         </FeedSignalCopy>
         <FeedStatusPill aria-live="polite">{statusLabel}</FeedStatusPill>
       </FeedSignalHeader>
 
+      <HomeFeedFocusBanner
+        focus={focus}
+        resultCount={posts.length}
+        loading={focusedFeed.isLoading}
+        onClearFocus={onClearFocus}
+      />
+
       <FeedBody
         feed={feed}
+        posts={posts}
         enrichmentItems={enrichmentItems}
         sentinelRef={sentinelRef}
+        focusActive={focusActive}
+        focusLoading={focusedFeed.isLoading}
+        focusError={focusedFeed.error}
+        onFocusRetry={focusedFeed.refetch}
+        onClearFocus={onClearFocus}
         onBrowseChallenges={() => navigate('/user-dashboard/challenges')}
         onFindFriends={() => navigate('/user-dashboard/friends')}
       />

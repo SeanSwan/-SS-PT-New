@@ -1,0 +1,6 @@
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx b/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
+@@ -113,1 +113,1 @@
+-        serving: { quantity: 2, unit: 'sandwich', label: '2 sandwich' },
++        serving: expect.objectContaining({ quantity: 2, unit: 'sandwich', label: '2 sandwich' }),

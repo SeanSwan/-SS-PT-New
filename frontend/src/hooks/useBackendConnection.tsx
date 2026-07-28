@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios, { AxiosResponse } from 'axios';
 import styled from 'styled-components';
 import { logger } from '@/utils/logger';
@@ -28,6 +28,7 @@ const getApiUrl = () => {
 };
 
 const HEALTH_CHECK_PATH = '/api/health';
+const TRANSIENT_HEALTH_FAILURE_LIMIT = 2;
 
 // Default configuration - PRODUCTION SAFE
 const DEFAULT_CONFIG = {
@@ -134,7 +135,7 @@ const createApiInstance = (baseURL: string) => {
     baseURL,
     timeout: 5000,
     headers: {
-      'Content-Type': 'application/json'
+      Accept: 'application/json'
     }
   });
 };
@@ -145,7 +146,15 @@ const createApiInstance = (baseURL: string) => {
  * @returns {Object} Connection state and utilities
  */
 export const useBackendConnection = (config: Partial<BackendConnectionConfig> = {}) => {
-  const fullConfig: BackendConnectionConfig = { ...DEFAULT_CONFIG, ...config };
+  const fullConfig = useMemo<BackendConnectionConfig>(() => ({ ...DEFAULT_CONFIG, ...config }), [
+    config.maxRetries,
+    config.retryDelay,
+    config.maxRetryDelay,
+    config.backoffMultiplier,
+    config.healthCheckInterval,
+    config.apiUrl,
+    config.forceUnavailableMode
+  ]);
   const [connectionState, setConnectionState] = useState(CONNECTION_STATES.CONNECTING);
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<BackendConnectionError | null>(null);
@@ -155,6 +164,8 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
   const isMountedRef = useRef(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const healthCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryCountRef = useRef(0);
+  const consecutiveHealthFailuresRef = useRef(0);
 
   // Enhanced circuit breaker to prevent infinite loops
   const circuitBreakerRef = useRef({ attempts: 0, lastAttempt: 0, isBlocked: false });
@@ -162,8 +173,13 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
   const CIRCUIT_BREAKER_WINDOW = 60000; // 1 minute window
   const CIRCUIT_BREAKER_COOLDOWN = 300000; // 5 minute cooldown after blocking
 
+  const updateRetryCount = useCallback((nextRetryCount: number) => {
+    retryCountRef.current = nextRetryCount;
+    setRetryCount(nextRetryCount);
+  }, []);
+
   // Create API instance
-  const apiInstance = createApiInstance(fullConfig.apiUrl);
+  const apiInstance = useMemo(() => createApiInstance(fullConfig.apiUrl), [fullConfig.apiUrl]);
 
   // Calculate retry delay with exponential backoff
   const calculateRetryDelay = useCallback((attempt: number) => {
@@ -185,7 +201,8 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       if (response.status === 200) {
         logger.log('âœ… Backend health check SUCCESS - server is running');
         setConnectionState(CONNECTION_STATES.CONNECTED);
-        setRetryCount(0);
+        updateRetryCount(0);
+        consecutiveHealthFailuresRef.current = 0;
         setLastError(null);
         return true;
       }
@@ -204,7 +221,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
         logger.warn('ðŸš« Health check BLOCKED by browser/ad blocker - marking backend unavailable immediately');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.UNAVAILABLE);
-          setRetryCount(fullConfig.maxRetries); // Force max retries to stop further attempts
+          updateRetryCount(fullConfig.maxRetries); // Force max retries to stop further attempts
         }
       }
 
@@ -216,7 +233,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       setLastError(errorObj);
       return false;
     }
-  }, [apiInstance, fullConfig.forceUnavailableMode, fullConfig.maxRetries, fullConfig.apiUrl]);
+  }, [apiInstance, fullConfig.forceUnavailableMode, fullConfig.maxRetries, fullConfig.apiUrl, updateRetryCount]);
 
   // Attempt to reconnect with enhanced safety - PRODUCTION HARDENED
   const attemptReconnection = useCallback(async () => {
@@ -286,7 +303,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
     }
 
     // GET CURRENT RETRY COUNT DIRECTLY FROM STATE
-    const currentRetryCount = retryCount;
+    const currentRetryCount = retryCountRef.current;
     logger.log(`Attempting reconnection, current retry count: ${currentRetryCount}/${fullConfig.maxRetries}`);
 
     // CHECK MAX RETRIES REACHED
@@ -320,7 +337,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
         logger.log('âœ… Connection successful, resetting retry count');
         circuitBreaker.attempts = 0; // Reset circuit breaker on success
         if (isMountedRef.current) {
-          setRetryCount(0);
+          updateRetryCount(0);
           setIsRetrying(false);
           // checkBackendHealth already sets CONNECTED state
         }
@@ -333,7 +350,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
       // UPDATE RETRY COUNT IMMEDIATELY
       if (isMountedRef.current) {
-        setRetryCount(newRetryCount);
+        updateRetryCount(newRetryCount);
       }
 
       // Check if we've hit max retries after incrementing
@@ -369,7 +386,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
         setIsRetrying(false);
       }
     }
-  }, [retryCount, fullConfig.maxRetries, fullConfig.forceUnavailableMode, checkBackendHealth, calculateRetryDelay, CIRCUIT_BREAKER_LIMIT, CIRCUIT_BREAKER_WINDOW]);
+  }, [fullConfig.maxRetries, fullConfig.forceUnavailableMode, checkBackendHealth, calculateRetryDelay, updateRetryCount, CIRCUIT_BREAKER_LIMIT, CIRCUIT_BREAKER_WINDOW]);
 
   // Manual retry function
   const manualRetry = useCallback(() => {
@@ -390,11 +407,12 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
     circuitBreakerRef.current.isBlocked = false;
     circuitBreakerRef.current.lastAttempt = 0;
 
-    setRetryCount(0);
+    updateRetryCount(0);
+    consecutiveHealthFailuresRef.current = 0;
     setLastError(null);
     logger.log('ðŸ”„ Manual retry initiated, resetting all counters');
     attemptReconnection();
-  }, [attemptReconnection]);
+  }, [attemptReconnection, updateRetryCount]);
 
   // Initial connection attempt - with immediate backend unavailable for LOCAL development only
   useEffect(() => {
@@ -459,6 +477,14 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
 
         const isHealthy = await checkBackendHealth();
         if (!isHealthy && isMountedRef.current) {
+          const failureCount = consecutiveHealthFailuresRef.current + 1;
+          consecutiveHealthFailuresRef.current = failureCount;
+
+          if (failureCount < TRANSIENT_HEALTH_FAILURE_LIMIT) {
+            logger.warn(`Transient backend health check failed (${failureCount}/${TRANSIENT_HEALTH_FAILURE_LIMIT}); keeping connection state until the next check`);
+            return;
+          }
+
           setConnectionState(CONNECTION_STATES.DISCONNECTED);
           // Only attempt reconnection if not already in backend unavailable
           if (connectionState !== CONNECTION_STATES.UNAVAILABLE) {

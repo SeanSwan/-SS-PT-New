@@ -188,12 +188,39 @@ export const SectionCard = styled.div`
   }
 `;
 
-export const ChallengeCard = styled.div`
+export const ChallengeCard = styled.button`
+  width: 100%;
+  min-height: 44px;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent));
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 1rem;
   margin-bottom: 0.75rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+
+  &:hover {
+    border-color: var(--accent-secondary, #8B5CF6);
+    box-shadow: 0 0 0 1px var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent));
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
 
   &:last-child {
     margin-bottom: 0;

@@ -170,9 +170,9 @@ export function useSocket() {
   const connected = connectionState === 'connected';
 
   // Use refs for stable socket access — prevents stale closure bugs
-  const emit = useCallback((event: string, data?: unknown) => {
+  const emit = useCallback((event: string, data?: unknown, ack?: (...args: unknown[]) => void) => {
     if (socketRef.current?.connected) {
-      socketRef.current.emit(event, data);
+      socketRef.current.emit(event, data, ack);
     }
   }, []);
 

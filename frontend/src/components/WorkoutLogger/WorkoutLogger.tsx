@@ -1,21 +1,14 @@
-/**
- * WorkoutLogger Component - Orchestrator
- * Coordinates client context, exercise logging, protocol selections, PDF export,
- * submit, summary generation, and the split sub-components.
- */
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History } from 'lucide-react';
+import { Plus, Download, Timer, History, UploadCloud } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-// 2026-04-17 Codex round 2 fix: self-route default onComplete/onCancel
-// now navigate to a real client route instead of being silent no-ops.
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   dailyWorkoutFormService,
   ExerciseEntry,
   ExerciseSet,
 } from '../../services/nasmApiService';
+import type { DailyWorkoutForm } from '../../services/nasmApiService';
 import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import {
@@ -60,7 +53,9 @@ import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
 import ActivePlanContextStrip from './ActivePlanContextStrip';
+import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
+import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
@@ -72,9 +67,6 @@ import {
   parsedWorkoutToExerciseEntries,
 } from './workoutLoggerVoiceImport';
 import { applyAIUpdateSet } from './aiWorkoutEventReducers';
-// 2026-04-17: CompactProtocolSection replaces the always-rendered 25/20/15
-// static NASMProtocolSection checklists that used to swallow the logger
-// page. Rolodex is now the primary add flow; recommendations are chips.
 import CompactProtocolSection, {
   type ProtocolSectionKey,
   type ProtocolSelection,
@@ -91,6 +83,7 @@ import { getPhaseTemplate } from './NASMPhaseTemplates';
 import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
+  PlanAssignmentPickerItem,
   PlannedAssignment,
   WorkoutLoggerClient,
   WorkoutLoggerExerciseOption,
@@ -104,6 +97,9 @@ import {
   getExerciseEntryRowKey,
   hasIncompleteWorkoutSets,
   normalizeWorkoutDate,
+  planAssignmentPickerItemToContext,
+  planAssignmentPickerItemToEntries,
+  planAssignmentPickerItemToSubmitAssignment,
 } from './WorkoutLogger.helpers';
 import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
 import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
@@ -140,7 +136,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   loadTodayPlanSignal = 0,
   scheduledSessionCreditHint = null,
   scheduledSessionId = null,
-  scheduledSessionDate = null
+  scheduledSessionDate = null,
+  onOpenHistoryImport,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -150,8 +147,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const routeAssignmentType = searchParams.get('assignmentType');
   const hasInitialExercises = Array.isArray(initialData) && initialData.length > 0;
 
-  // Self-mode resolves the logged-in client route without emitting
-  // `/api/workout-forms/client/undefined/info`.
   const userNumericId = coerceToNumericId(user?.id);
   const allowSelfMode = isSelfLoggingDashboardRole(user?.role) || forceSelfMode;
   const effectiveClientId: number | undefined =
@@ -166,15 +161,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     ? normalizeWorkoutDate(scheduledSessionDate)
     : normalizeWorkoutDate(null);
 
-  // Self-route defaults keep cancel/complete navigable when no parent handlers are passed.
-  const resolvedOnComplete = onComplete ?? (() => {
-    navigate('/dashboard/client/workouts');
+  const resolvedOnComplete = onComplete ?? ((formData: DailyWorkoutForm) => {
+    navigate('/dashboard/client/workouts', {
+      state: { workoutChallengeProgress: formData.challengeProgress ?? null },
+    });
   });
   const resolvedOnCancel = onCancel ?? (() => {
     navigate('/dashboard/client/overview');
   });
 
-  // - Core State -
   const [confirmRequest, setConfirmRequest] = useState<WorkoutLoggerConfirmRequest | null>(null);
   const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {
     if (initialData && Array.isArray(initialData) && initialData.length > 0) {
@@ -186,12 +181,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   });
   const exercisesRef = useRef<ExerciseEntry[]>(exercises);
   const [sessionNotes, setSessionNotes] = useState('');
-  // Phase 16 (2026-04-16): null = "not rated", distinct from any 1-10
-  // value the user explicitly picks. Previously `useState(5)` seeded a
-  // phantom 5/10 onto every save, which dragged the canonical
-  // IntensityRpeTrendLine toward a false 5.0 baseline. The save path
-  // omits `overallIntensity` from the /api/workout-forms payload when
-  // this is null, and the backend persists DB null.
+  /* Phase 16: null overallIntensity means not rated; save omits untouched ratings. */
   const [overallIntensity, setOverallIntensity] = useState<number | null>(null);
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [client, setClient] = useState<WorkoutLoggerClient | null>(null);
@@ -205,13 +195,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isRepeatingSession, setIsRepeatingSession] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
+  const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
   const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(readQuickLogPreference);
   const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
+  const [loadedPlanContext, setLoadedPlanContext] = useState<PlannedAssignment | null>(null);
 
-  // Speed helpers are no-ops without a real client id; client self-mode
-  // skips admin-only ghost pre-fill reads.
   const hookClientId = effectiveClientId ?? 0;
   const ghostPreFill = useGhostPreFill(hookClientId, { skip: isClientSelfMode });
   const sessionStats = useSessionStats(exercises);
@@ -221,7 +211,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     onComplete: () => toast.info('Rest complete - next set!'),
   });
 
-  // Protocol selections stay separate from logged strength sets.
   const [selectedWarmup, setSelectedWarmup] = useState<ProtocolSelection[]>([]);
   const [selectedBalanceCore, setSelectedBalanceCore] = useState<ProtocolSelection[]>([]);
   const [selectedCooldown, setSelectedCooldown] = useState<ProtocolSelection[]>([]);
@@ -231,7 +220,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     cooldown: false,
   });
 
-  // null routes rolodex selections into the main exercise list.
   const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
 
   useEffect(() => {
@@ -244,7 +232,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return `${prefix}-local-${Date.now()}-${nextId}`;
   }, []);
 
-  // - NASM Helpers -
   const toggleNasmSection = useCallback((key: ProtocolSectionKey) =>
     setNasmSectionsOpen(prev => ({ ...prev, [key]: !prev[key] })), []);
 
@@ -268,7 +255,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       };
       setter((prev) => (prev.some((p) => p.id === entry.id) ? prev : [...prev, entry]));
     },
-    // protocolSectionSetters is stable across renders (useState setters).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -303,12 +289,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     setNasmSectionsOpen((prev) => ({ ...prev, [section]: true }));
   }, []);
 
-  // - Load Phase Template -
   const loadPhaseTemplate = useCallback((phase: number) => {
     const template = getPhaseTemplate(phase);
     if (!template) return;
 
-    // Template ratings start null so untouched values stay out of averages.
     const templateExercises: ExerciseEntry[] = template.exercises.map((ex, i) => ({
       loggerExerciseId: createWorkoutLoggerLocalId('exercise'),
       exerciseId: `template-${phase}-${i}-${Date.now()}`,
@@ -329,7 +313,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       performanceNotes: '',
     }));
 
-    // Translate template protocol ids into compact selected-items lists.
     const toSelections = (ids: string[]): ProtocolSelection[] => {
       const out: ProtocolSelection[] = [];
       for (const id of ids) {
@@ -355,12 +338,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Loaded Phase ${phase} template - ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
   }, [createWorkoutLoggerLocalId]);
 
-  // - AI-to-Logger prefill -
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
     return convertAIWorkoutExercisesToEntries(incoming, createWorkoutLoggerLocalId);
   }, [createWorkoutLoggerLocalId]);
 
-  // Listen for live custom event
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
@@ -399,7 +380,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Applied ${parsedExercises.length} parsed exercise${parsedExercises.length === 1 ? '' : 's'}`);
   }, [createWorkoutLoggerLocalId]);
 
-  // - AI-as-Operator Event Listeners -
   useEffect(() => {
     const acknowledgeAIWorkoutEvent = (event: Event, handled = true) => {
       const detail = (event as CustomEvent<AIWorkoutEventAck>).detail;
@@ -426,7 +406,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           setNumber: i + 1,
           weight: d.weight || 0,
           reps: d.reps || 10,
-          // Phase 16: AI-added exercises default to null rating.
           rpe: null,
           tempo: d.tempo || '',
           restTime: d.restSeconds || 60,
@@ -453,7 +432,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         toast.success(`Updated ${detail.exerciseName}`);
       }
     };
-    // Bridge compact NASM selections to the assistant AI_TOGGLE_NASM_ITEM payload.
     const onToggleItem = (e: Event) => {
       const d = (e as CustomEvent).detail;
       if (!d?.section) return;
@@ -508,7 +486,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       window.removeEventListener(AI_UPDATE_SET, onUpdateSet);
       window.removeEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     };
-    // Keep currentOPTPhase fresh for markAll; setters are stable refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadPhaseTemplate, currentOPTPhase, createWorkoutLoggerLocalId]);
 
@@ -526,19 +503,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const executeLoadClientData = useCallback(async () => {
     setIsLoadingClient(true);
     try {
-      // 2026-04-17: guard against mounting without a resolvable client
-      // context. Before this guard, the self-route mount hit
-      // `/api/workout-forms/client/undefined/info` and 403'd.
       if (typeof effectiveClientId !== 'number') {
         setClient(null);
         return;
       }
 
       const api = new ApiService();
-      // 2026-04-17: isClientSelfMode already resolved in the outer
-      // scope. Use it instead of re-deriving here. When the logged-in
-      // client is logging their own workout, hit the self endpoint
-      // which does not require an explicit id in the URL.
       const infoUrl = isClientSelfMode
         ? '/api/workout-forms/my/info'
         : `/api/workout-forms/client/${effectiveClientId}/info`;
@@ -566,8 +536,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: unknown) {
       console.error('Failed to load client data:', error);
-      // Fail-closed: set sessions to 0 on network error to prevent unlimited submissions.
-      // Admins bypass the session check (line 482), so they can still submit if needed.
       setClient({
         id: effectiveClientId ?? 0,
         firstName: 'Client',
@@ -583,13 +551,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [effectiveClientId, isClientSelfMode]);
 
-  // - Load client on mount -
   useEffect(() => {
     executeLoadClientData();
   }, [executeLoadClientData]);
 
-  // - Load Today's Plan -
   const loadTodaysPlan = useCallback(async () => {
+    setLoadedPlanContext(null);
     await loadTodaysPlanIntoLogger({
       effectiveClientId,
       createWorkoutLoggerLocalId,
@@ -616,7 +583,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     void loadTodaysPlan();
   }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
 
-  // - Repeat Last Session (admin/trainer click-saver; orchestration extracted) -
+  const handleApplyGeneratedPlanDay = useCallback((assignment: PlanAssignmentPickerItem) => {
+    const prefilled = planAssignmentPickerItemToEntries(assignment, createWorkoutLoggerLocalId);
+    if (prefilled.length === 0) {
+      toast.info('That generated plan day has no exercises to load.');
+      return;
+    }
+
+    setExercises((prev) => [...prev, ...prefilled]);
+    const submitAssignment = planAssignmentPickerItemToSubmitAssignment(assignment);
+    setPlannedAssignment(submitAssignment);
+    setLoadedPlanContext(planAssignmentPickerItemToContext(assignment));
+    const label = assignment.title || assignment.dayLabel || 'generated plan day';
+    toast.success(`Loaded ${prefilled.length} exercise${prefilled.length === 1 ? '' : 's'} from ${label}${submitAssignment ? '' : ' as a draft'}.`);
+  }, [createWorkoutLoggerLocalId]);
+
   const handleRepeatLastSession = useCallback(
     () => repeatLastSessionIntoLogger({
       effectiveClientId,
@@ -628,9 +609,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     [effectiveClientId, isClientSelfMode, createWorkoutLoggerLocalId],
   );
 
-  // - Exercise CRUD -
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {
-    // Ghost prefill is admin-only; client self-mode must never call that endpoint.
     if (!isClientSelfMode) {
       ghostPreFill.fetchExerciseHistory(exercise.name);
     }
@@ -638,6 +617,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       ghostPreFill.createPreFilledSet(exercise.name, 1),
       () => createWorkoutLoggerLocalId('set')
     );
+    const source = exercise as Partial<ExerciseSlim>;
+    const movementPattern = source.nasmMovementPattern?.trim() || undefined;
+    const bodyPartCategory = source.bodyPartCategory?.trim() || undefined;
+    const exerciseType = source.exerciseType?.trim() || undefined;
+    const muscleGroups = [
+      ...(Array.isArray(source.primaryMuscles) ? source.primaryMuscles : []),
+      ...(Array.isArray(source.secondaryMuscles) ? source.secondaryMuscles : []),
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    const tags = [exerciseType, bodyPartCategory, movementPattern]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
 
     setExercises(prev => [...prev, {
       loggerExerciseId: createWorkoutLoggerLocalId('exercise'),
@@ -646,7 +635,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       sets: [preFilled],
       formRating: null,
       painLevel: 0,
-      performanceNotes: ''
+      performanceNotes: '',
+      ...(movementPattern ? {
+        category: movementPattern,
+        exerciseFamily: movementPattern,
+        movementPattern,
+        nasmMovementPattern: movementPattern,
+      } : {}),
+      ...(bodyPartCategory ? { bodyPartCategory } : {}),
+      ...(muscleGroups.length > 0 ? { muscleGroups } : {}),
+      ...(tags.length > 0 ? { tags } : {}),
     }]);
     setShowExerciseSearch(false);
     toast.success(`Added ${exercise.name} to workout`);
@@ -717,7 +715,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.info('Exercise removed from workout');
   }, []);
 
-  // - Export PDF -
   const handleExportPDF = useCallback(() => {
     if (exercises.length === 0) {
       toast.error('Add exercises before exporting');
@@ -734,7 +731,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success('PDF exported');
   }, [exercises, client, user, workoutDateValue, sessionNotes, overallIntensity]);
 
-  // - Submit with AbortSignal timeout (Phase 3 fix) -
   const handleSubmit = async (submitOverrides?: { overallIntensity?: number | null; sessionNotes?: string }) => {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true; // Set IMMEDIATELY after check to close race window
@@ -748,7 +744,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
     if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
-    // Strict === 0 check: null (unknown/error state) passes through, allowing submission
     if (
       client.availableSessions === 0 &&
       user?.role !== 'admin' &&
@@ -761,7 +756,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
-    // Payload builder omits null ratings; submit still fails closed without a real client id.
     if (typeof effectiveClientId !== 'number') {
       toast.error('No client context - unable to submit');
       isSubmittingRef.current = false;
@@ -779,13 +773,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       plannedAssignment,
     });
 
-    // Phase 6: Offline-first - queue if offline
     if (!offlineQueue.isOnline) {
       offlineQueue.queueSubmission(formData);
       isSubmittingRef.current = false;
       setIsSubmitting(false);
       return;
     }
+
+    setLastChallengeProgress(null);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -797,6 +792,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       );
 
       if (response.success && response.data) {
+        setLastChallengeProgress(response.data.challengeProgress ?? null);
         toast.success(buildWorkoutSubmitSuccessMessage(response.data, response.message));
         setSubmittedFormId(response.data.id || response.data.formId || null);
         dispatchWorkoutLogged({
@@ -806,6 +802,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         });
         resolvedOnComplete(response.data);
       } else {
+        setLastChallengeProgress(null);
         const existingFormId = response.data?.id || response.data?.formId || null;
         if (existingFormId) {
           setSubmittedFormId(existingFormId);
@@ -829,7 +826,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
         toast.error(message || 'Workout was not saved. Please review and try again.');
       } else {
-        // Phase 6: Queue locally if submit fails due to network
         offlineQueue.queueSubmission(formData);
       }
     } finally {
@@ -856,7 +852,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return () => window.removeEventListener(AI_SUBMIT_WORKOUT, onSubmitWorkout);
   }, [handleSubmit, overallIntensity, sessionNotes]);
 
-  // - Generate & Send Summary -
   const handleGenerateSummary = useCallback(async () => {
     if (!submittedFormId) {
       toast.error('Complete and save the workout before sending a summary');
@@ -896,7 +891,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [effectiveClientId, submittedFormId, exercises, sessionNotes, overallIntensity]);
 
-  // - Computed Values -
   const hasUnsavedWorkout = useMemo(() => (
     exercises.length > 0 ||
     selectedWarmup.length > 0 ||
@@ -934,7 +928,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const estimatedDuration = useMemo(() =>
     Math.min(totalSets * MINUTES_PER_SET, MAX_WORKOUT_DURATION), [totalSets]);
 
-  // - Loading State -
   if (!client) {
     return (
       <WorkoutLoggerContainer>
@@ -945,7 +938,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     );
   }
 
-  // - Render -
   return (
     <NASMLearningProvider>
       <WorkoutLoggerContainer
@@ -953,15 +945,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/*
-          Equipment Profile Picker - 2026-04-17: hidden on the client
-          self-log route. The underlying `/api/equipment-profiles`
-          endpoint is trainer/admin gated (`equipmentRoutes.mjs:72`), so
-          mounting this picker as a client would 403 on every fetch.
-          Equipment profiles are trainer-authored training locations;
-          they are not relevant to client self-logging. Trainer / admin
-          paths (mounted via EnhancedWorkoutLogger) continue to render it.
-        */}
         {!isClientSelfMode && (
           <EquipmentProfilePicker
             selectedProfileId={equipmentProfileId}
@@ -980,8 +963,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           exerciseCount={exercises.length}
           selfMode={isClientSelfMode}
         />
-
-        {/* Header */}
         <WorkoutLoggerHeader
           clientFirstName={client.firstName}
           clientLastName={client.lastName}
@@ -1000,11 +981,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionDate={scheduledSessionDate}
           scheduledSessionId={scheduledSessionId}
         />
-
-        {/* Active plan context: shows what plan/assignment was loaded
-            (title, week, day, exercise count, status) so it stays in
-            view while logging. Renders nothing until a plan is loaded. */}
-        <ActivePlanContextStrip assignment={plannedAssignment} />
+        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} />
 
         {!isClientSelfMode && typeof effectiveClientId === 'number' && (
           <VoiceImportPanel aria-label="Voice and file workout import">
@@ -1019,11 +996,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             />
           </VoiceImportPanel>
         )}
-
-        {/* Phase 6: Session Stats Bar (sticky, live volume/sets/calories) */}
         {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
-
-        {/* Phase 6: Quick Log / Full Mode mode bar (preference persists per operator) */}
         {exercises.length > 0 && (
           <WorkoutLoggerModeBar
             isQuickLogMode={isQuickLogMode}
@@ -1034,17 +1007,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             restSecondsLeft={restTimer.secondsLeft}
           />
         )}
-
-        {/* Learning Mode Toggle */}
         <LearningModeToggle />
-
-        {/* NASM Phase Guide - Education card with Load Template */}
         <NASMPhaseGuide
           phase={currentOPTPhase}
           onLoadTemplate={loadPhaseTemplate}
         />
-
-        {/* NASM Warmup (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Warmup & Corrective"
           icon={<WarmupProtocolIcon size={18} />}
@@ -1057,9 +1024,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
           onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
         />
-
-        {/* Exercise Section */}
         <ExerciseSection>
+          {!isClientSelfMode && typeof effectiveClientId === 'number' && (
+            <WorkoutPlanAssignmentPicker
+              clientId={effectiveClientId}
+              disabled={isLoadingPlan || isRepeatingSession}
+              onApplyAssignment={handleApplyGeneratedPlanDay}
+            />
+          )}
           <LoadPlanRow>
             {!isClientSelfMode && (
               <LoadPlanButton
@@ -1075,13 +1047,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Download size={16} />
               {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
             </LoadPlanButton>
+            {!isClientSelfMode && onOpenHistoryImport && (
+              <LoadPlanButton
+                onClick={onOpenHistoryImport}
+                disabled={isLoadingPlan || isRepeatingSession}
+                title="Open historical workout import"
+              >
+                <UploadCloud size={16} />
+                History Import
+              </LoadPlanButton>
+            )}
           </LoadPlanRow>
 
           <ExerciseSearchBar>
             <RolodexTrigger
               onClick={() => {
-                // Main section add - clear any pending protocol context
-                // so the next rolodex selection lands in `exercises`.
                 setPendingSectionContext(null);
                 setShowExerciseSearch(prev => !prev);
               }}
@@ -1091,15 +1071,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
-            {/*
-              2026-04-17: The rolodex is the single shared picker across the
-              main workout body AND all three protocol sections. When a
-              protocol section's Add button is clicked, `pendingSectionContext`
-              is set and the rolodex routes the selection into that section's
-              compact selected-items list. When it's null, selections flow
-              into the main `exercises` array (and through Phase 16's
-              null-honest save path - untouched ratings stay null).
-            */}
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               onClose={() => {
@@ -1151,9 +1122,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 onRemoveExercise={removeExercise}
                 getOverload={ghostPreFill.getOverload}
                 onSetLogged={handleSetLogged}
-                // Round 12 (2026-04-18): suppress GhostDataRow's admin
-                // fetch on the client self-log route. Ghost-prefill and
-                // ghost-data are visible hints only; they shouldn't 403.
                 ghostSkip={isClientSelfMode}
               />
             ))
@@ -1170,8 +1138,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             </AddExerciseButton>
           )}
         </ExerciseSection>
-
-        {/* NASM Balance & Core (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Balance, Core & Stability"
           icon={<BalanceProtocolIcon size={18} />}
@@ -1184,8 +1150,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('balance_core', item)}
           onRemoveSelected={(id) => removeProtocolItem('balance_core', id)}
         />
-
-        {/* NASM Cooldown (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Cooldown & Recovery"
           icon={<CooldownProtocolIcon size={18} />}
@@ -1198,8 +1162,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('cooldown', item)}
           onRemoveSelected={(id) => removeProtocolItem('cooldown', id)}
         />
-
-        {/* Session Summary */}
         {exercises.length > 0 && (
           <SessionSummaryForm
             overallIntensity={overallIntensity}
@@ -1214,12 +1176,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        {/* ARIA Live Region for screen readers */}
+        <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>
-
-        {/* Always-reachable Save: fixed above the long set list until saved. */}
         {exercises.length > 0 && !submittedFormId && (
           <StickyLogActionBar
             completedSets={sessionStats.completedSets}
@@ -1228,8 +1188,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             isSubmitting={isSubmitting}
           />
         )}
-
-        {/* Footer Actions */}
         <WorkoutLoggerFooter
           onCancel={handleCancel}
           onExportPDF={handleExportPDF}
@@ -1242,8 +1200,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           summaryLockedReason={summaryLockedReason}
         />
       </WorkoutLoggerContainer>
-
-      {/* Floating PiP Rest Timer */}
       {showFloatingTimer && (
         <FloatingRestTimer onClose={() => setShowFloatingTimer(false)} />
       )}
@@ -1252,9 +1208,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         request={confirmRequest}
         onClose={() => setConfirmRequest(null)}
       />
-
-      {/* Timer toggle FAB (only when exercises exist). Lifts above the fixed
-          Save bar while it's mounted so it never overlaps the Save action. */}
       {exercises.length > 0 && !showFloatingTimer && (
         <TimerFAB
           $lift={!submittedFormId}

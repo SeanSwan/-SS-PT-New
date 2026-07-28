@@ -114,6 +114,7 @@ describe('MessageThread group identity presentation', () => {
     expect(screen.getByTestId('group-message-role-2')).toHaveTextContent('Admin');
     expect(screen.getByTestId('group-message-speaker-1')).toHaveTextContent('You');
     expect(screen.getByTestId('group-message-role-1')).toHaveTextContent('Owner');
+    expect(screen.getByText('Sent')).toBeInTheDocument();
     expect(screen.getByTestId('group-message-speaker-3')).toHaveTextContent('Jackie Sammons');
     expect(screen.getByTestId('group-message-role-3')).toHaveTextContent('Member');
     expect(screen.getByLabelText('Message Swan Family')).toBeInTheDocument();

@@ -14,6 +14,7 @@ import {
   DashboardBackgroundSettingsPanel,
   DashboardBackgroundSurface,
 } from '../../shared/DashboardBackgroundStudio';
+import CommunicationsInboxStrip from '../../../Communications/CommunicationsInboxStrip';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
@@ -124,6 +125,8 @@ const TrainerHomeTab: React.FC = () => {
       />
 
       <DashboardBackgroundSettingsPanel scopeLabel="Trainer" />
+
+      <CommunicationsInboxStrip />
 
       <TrainerHomeMainGrid>
         <TrainerHomePrimaryColumn>

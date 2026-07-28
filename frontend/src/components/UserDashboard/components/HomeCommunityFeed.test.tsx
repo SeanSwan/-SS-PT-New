@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Post } from '../../Social/Feed/types/PostCardTypes';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
@@ -112,6 +112,7 @@ const buildFeed = (overrides: Partial<SocialFeedApi> = {}): SocialFeedApi => ({
   reportPost: vi.fn(),
   repostPost: vi.fn(),
   getPostDetails: vi.fn(),
+  getPostsByHashtag: vi.fn(),
   loadComments: vi.fn(),
   ...overrides,
 } as SocialFeedApi);
@@ -291,4 +292,57 @@ describe('HomeCommunityFeed', () => {
 
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
+
+  it('focuses the Home feed on a selected hashtag and returns to all posts', async () => {
+    const onClearFocus = vi.fn();
+    const focusedPost = buildPost({ id: 'tag-post', content: 'SwanProgress proof card' });
+    const getPostsByHashtag = vi.fn().mockResolvedValue([focusedPost]);
+
+    render(
+      <HomeCommunityFeed
+        feed={buildFeed({
+          posts: [buildPost({ id: 'base-post', content: 'Base community post' })],
+          getPostsByHashtag,
+        })}
+        focus={{ kind: 'hashtag', hashtag: 'swanprogress', label: '#SwanProgress', count: 1 }}
+        onClearFocus={onClearFocus}
+      />
+    );
+
+    expect(screen.getByText('#SwanProgress posts')).toBeInTheDocument();
+    await waitFor(() => expect(getPostsByHashtag).toHaveBeenCalledWith('swanprogress'));
+    expect(await screen.findByText('SwanProgress proof card')).toBeInTheDocument();
+    expect(screen.queryByText('Base community post')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /back to all home posts/i }));
+
+    expect(onClearFocus).toHaveBeenCalledTimes(1);
+  });
+
+  it('focuses live activity on the exact post details when a post id is present', async () => {
+    const exactPost = buildPost({ id: 'post-9', content: 'Exact activity post body', type: 'milestone' });
+    const getPostDetails = vi.fn().mockResolvedValue(exactPost);
+
+    render(
+      <HomeCommunityFeed
+        feed={buildFeed({ getPostDetails })}
+        focus={{
+          kind: 'activity',
+          activityId: 'event-9',
+          label: 'Maya shared a milestone',
+          subtitle: 'Exact post from this activity',
+          postId: 'post-9',
+          postType: 'milestone',
+          preview: 'Preview text from socket',
+        }}
+        onClearFocus={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Activity detail')).toBeInTheDocument();
+    expect(screen.getByText('Preview text from socket')).toBeInTheDocument();
+    await waitFor(() => expect(getPostDetails).toHaveBeenCalledWith('post-9'));
+    expect(await screen.findByText('Exact activity post body')).toBeInTheDocument();
+  });
 });
+

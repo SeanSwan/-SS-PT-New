@@ -256,3 +256,26 @@ export const EmptyText = styled.p`
   color: ${({ theme }) => theme.text.muted};
   margin: 0;
 `;
+
+export const ExternalVideoLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 1.25rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 46%, transparent);
+  border-radius: 12px;
+  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--surface-primary, #003080) 58%, transparent);
+  font-weight: 800;
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  ${focusRing}
+  ${reducedMotion}
+
+  &:hover {
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+  }
+`;

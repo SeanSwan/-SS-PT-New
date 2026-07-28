@@ -934,7 +934,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         currentWeek: 1,
         currentDay: 1,
         progressNotes: [],
-        metadata: {
+        metadata: expect.objectContaining({
           planHorizon: 'six_month',
           assignmentDefault: 'trainer_session',
           billingIntent: 'trainer_led_scheduled_flow',
@@ -942,8 +942,13 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           isPrimaryPlan: false,
           primary: false,
           duplicatedFrom: 'plan-1',
-        },
+          copiedFromClientId: 42,
+          targetClientId: 42,
+          copyHorizonWeeks: 26,
+        }),
       }));
+      const duplicatePayload = mockWorkoutPlanCreate.mock.calls[0][0];
+      expect(duplicatePayload.metadata.planPdf).toBeUndefined();
     });
   });
 

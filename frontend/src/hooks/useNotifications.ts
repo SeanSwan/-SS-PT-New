@@ -1,25 +1,18 @@
 /**
  * useNotifications Hook
- * ====================
- * Hook for managing notifications in the Universal Master Schedule and other components.
- * Provides methods to display, dismiss, and manage notification states.
+ * =====================
+ * Legacy notification utility API backed by the shared notification center.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import apiService from '../services/api.service';
-import { logger } from '@/utils/logger';
-import { useToast } from './use-toast';
+import { useCallback, useMemo } from 'react';
 
-// Types
-export interface Notification {
-  id: string;
+import { useToast } from './use-toast';
+import { useNotificationCenter } from './useNotificationCenter';
+import type { Notification as CenterNotification } from '../store/slices/notificationSlice';
+
+export interface Notification extends Omit<CenterNotification, 'type'> {
   type: string;
-  title: string;
-  message: string;
-  userId?: string;
   data?: any;
-  read: boolean;
-  createdAt: string;
   expiresAt?: string;
 }
 
@@ -30,240 +23,79 @@ export interface NotificationOptions {
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-interface NotificationsPayload {
-  success?: boolean;
-  message?: string;
-  data?: {
-    notifications?: Partial<Notification>[];
-    unreadCount?: number;
-  };
-  notifications?: Partial<Notification>[];
-  unreadCount?: number;
+function toLegacyNotification(notification: CenterNotification): Notification {
+  return { ...notification };
 }
-
-const EMPTY_NOTIFICATIONS: Notification[] = [];
 
 function isActiveNotification(notification: Notification) {
   return !notification.expiresAt || new Date(notification.expiresAt) > new Date();
 }
 
-function normalizeNotification(notification: Partial<Notification>): Notification {
-  return {
-    ...notification,
-    id: String(notification.id ?? globalThis.crypto?.randomUUID?.() ?? Date.now()),
-    type: notification.type || 'info',
-    title: notification.title || 'Notification',
-    message: notification.message || '',
-    read: Boolean(notification.read),
-    createdAt: notification.createdAt || new Date().toISOString(),
-  };
-}
-
-function normalizePayload(payload: NotificationsPayload) {
-  const body = payload.data ?? payload;
-  const notifications = Array.isArray(body.notifications)
-    ? body.notifications.map(normalizeNotification).filter(isActiveNotification)
-    : EMPTY_NOTIFICATIONS;
-  const unreadCount = Number.isFinite(body.unreadCount)
-    ? Number(body.unreadCount)
-    : notifications.filter((notification) => !notification.read).length;
-
-  return { notifications, unreadCount };
-}
-
-/**
- * useNotifications Hook
- * 
- * Provides notification management functionality including:
- * - Displaying toast notifications
- * - Managing persistent notifications
- * - Marking notifications as read
- * - Filtering notifications by type
- */
 export const useNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(EMPTY_NOTIFICATIONS);
-  const [serverUnreadCount, setServerUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const notificationCenter = useNotificationCenter({ fetchOnMount: true });
   const { toast } = useToast();
+  const notifications = useMemo(
+    () => notificationCenter.notifications.map(toLegacyNotification).filter(isActiveNotification),
+    [notificationCenter.notifications],
+  );
 
-  const fetchNotifications = useCallback(async (showLoading = true) => {
-    if (showLoading) setIsLoading(true);
+  const unreadCount = useMemo(
+    () => notificationCenter.unreadCount || notifications.filter((notification) => !notification.read).length,
+    [notificationCenter.unreadCount, notifications],
+  );
 
-    try {
-      const response = await apiService.get<NotificationsPayload>('/api/notifications');
-      if (response.data?.success === false) {
-        throw new Error(response.data.message || 'Notification API returned an error');
-      }
+  const getNotificationsByType = useCallback(
+    (type: Notification['type']) => notifications.filter((notification) => notification.type === type),
+    [notifications],
+  );
 
-      const next = normalizePayload(response.data);
-      setNotifications(next.notifications);
-      setServerUnreadCount(next.unreadCount);
-    } catch (error: any) {
-      logger.warn('[useNotifications] Unable to load notifications:', error.message);
-      setNotifications(EMPTY_NOTIFICATIONS);
-      setServerUnreadCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const addNotification = useCallback(
+    (notification: Omit<Notification, 'id' | 'createdAt'>) => {
+      const newNotification: Notification = {
+        ...notification,
+        id: globalThis.crypto?.randomUUID?.() ?? Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+      notificationCenter.addNotification(newNotification);
+      return newNotification;
+    },
+    [notificationCenter],
+  );
 
-  // Get unread notifications count
-  const unreadCount = useMemo(() => {
-    return serverUnreadCount || notifications.filter(n => !n.read).length;
-  }, [notifications, serverUnreadCount]);
+  const showToast = useCallback(
+    (message: string, options: NotificationOptions = {}) => {
+      const { type = 'info' } = options;
+      const variant = type === 'error' ? 'destructive' : 'default';
+      const title =
+        type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info';
+      toast({ title, description: message, variant });
+    },
+    [toast],
+  );
 
-  // Get notifications by type
-  const getNotificationsByType = useCallback((type: Notification['type']) => {
-    return notifications.filter(n => n.type === type);
-  }, [notifications]);
-
-  // Add a new notification
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: globalThis.crypto?.randomUUID?.() ?? Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-
-    setNotifications(prev => [newNotification, ...prev]);
-    if (!newNotification.read) {
-      setServerUnreadCount((count) => count + 1);
-    }
-    return newNotification;
-  }, []);
-
-  // Show toast notification
-  const showToast = useCallback((
-    message: string,
-    options: NotificationOptions = {}
-  ) => {
-    const {
-      type = 'info',
-      autoClose = 5000,
-      position = 'top-right'
-    } = options;
-
-    // Convert type to variant for the project's toast system
-    let variant: 'default' | 'destructive' = 'default';
-    if (type === 'error') {
-      variant = 'destructive';
-    }
-
-    const title = type === 'success' ? 'Success' : 
-                  type === 'error' ? 'Error' : 
-                  type === 'warning' ? 'Warning' : 
-                  'Info';
-
-    toast({ title, description: message, variant });
-  }, [toast]);
-
-  // Mark notification as read
-  const markAsRead = useCallback(async (notificationId: string) => {
-    const previousNotifications = notifications;
-    const previousUnreadCount = unreadCount;
-
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-        : notification
-      )
-    );
-    setServerUnreadCount((count) => Math.max(0, count - 1));
-
-    try {
-      await apiService.patch(`/api/notifications/${notificationId}/read`);
-    } catch (error: any) {
-      logger.warn('[useNotifications] Unable to mark notification read:', error.message);
-      setNotifications(previousNotifications);
-      setServerUnreadCount(previousUnreadCount);
-    }
-  }, [notifications, unreadCount]);
-
-  // Mark all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    const previousNotifications = notifications;
-    const previousUnreadCount = unreadCount;
-
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-    setServerUnreadCount(0);
-
-    try {
-      await apiService.patch('/api/notifications/read-all');
-    } catch (error: any) {
-      logger.warn('[useNotifications] Unable to mark all notifications read:', error.message);
-      setNotifications(previousNotifications);
-      setServerUnreadCount(previousUnreadCount);
-    }
-  }, [notifications, unreadCount]);
-
-  // Remove notification
-  const removeNotification = useCallback(async (notificationId: string) => {
-    const previousNotifications = notifications;
-    const previousUnreadCount = unreadCount;
-    const removedNotification = notifications.find((notification) => notification.id === notificationId);
-
-    setNotifications(prev => 
-      prev.filter(notification => notification.id !== notificationId)
-    );
-    if (removedNotification && !removedNotification.read) {
-      setServerUnreadCount((count) => Math.max(0, count - 1));
-    }
-
-    try {
-      await apiService.delete(`/api/notifications/${notificationId}`);
-    } catch (error: any) {
-      logger.warn('[useNotifications] Unable to remove notification:', error.message);
-      setNotifications(previousNotifications);
-      setServerUnreadCount(previousUnreadCount);
-    }
-  }, [notifications, unreadCount]);
-
-  // Clear all notifications
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-    setServerUnreadCount(0);
-  }, []);
-
-  useEffect(() => {
-    void fetchNotifications();
-  }, [fetchNotifications]);
-
-  // Notification management methods
-  const notificationMethods = {
-    // Toast notifications
-    success: (message: string, options?: NotificationOptions) => 
-      showToast(message, { ...options, type: 'success' }),
-    error: (message: string, options?: NotificationOptions) => 
-      showToast(message, { ...options, type: 'error' }),
-    warning: (message: string, options?: NotificationOptions) => 
-      showToast(message, { ...options, type: 'warning' }),
-    info: (message: string, options?: NotificationOptions) => 
-      showToast(message, { ...options, type: 'info' }),
-  };
+  const notificationMethods = useMemo(
+    () => ({
+      success: (message: string, options?: NotificationOptions) => showToast(message, { ...options, type: 'success' }),
+      error: (message: string, options?: NotificationOptions) => showToast(message, { ...options, type: 'error' }),
+      warning: (message: string, options?: NotificationOptions) => showToast(message, { ...options, type: 'warning' }),
+      info: (message: string, options?: NotificationOptions) => showToast(message, { ...options, type: 'info' }),
+    }),
+    [showToast],
+  );
 
   return {
-    // Notification data
     notifications,
     unreadCount,
-    isLoading,
-    
-    // Notification methods
+    isLoading: notificationCenter.loading,
     addNotification,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-    clearAll,
+    markAsRead: notificationCenter.markAsRead,
+    markAllAsRead: notificationCenter.markAllAsRead,
+    removeNotification: notificationCenter.removeNotification,
+    clearAll: notificationCenter.clearNotifications,
     getNotificationsByType,
-    
-    // Toast methods
     toast: notificationMethods,
     showToast,
-    
-    // Utility methods
-    refresh: () => fetchNotifications(false),
+    refresh: notificationCenter.refresh,
   };
 };
 

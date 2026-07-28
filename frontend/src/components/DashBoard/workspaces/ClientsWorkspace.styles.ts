@@ -116,7 +116,7 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
     min-width: 0;
   }
 
-  &:hover {
+  &:not(:disabled):hover {
     background: ${({ $variant }) =>
       $variant === 'primary'
         ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
@@ -129,6 +129,12 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
         : $variant === 'danger'
           ? '0 0 16px color-mix(in srgb, var(--color-error, #DC2626) 35%, transparent)'
         : '0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)'};
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.62;
+    box-shadow: none;
   }
 
   &:focus-visible {

@@ -1,0 +1,14 @@
+{
+  "actors": [
+    {
+      "id": "codex-researcher",
+      "status": "active",
+      "roles": ["researcher"]
+    },
+    {
+      "id": "human-adjudicator-sean",
+      "status": "active",
+      "roles": ["adjudicator", "canon-writer"]
+    }
+  ]
+}

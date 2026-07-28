@@ -77,6 +77,14 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).toContain('move_fitness|external|swanstudios');
   });
 
+  it('teaches workout-log proposals to mark historical backfills with a source', () => {
+    const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
+
+    expect(prompt).toContain('source: "historical_import"');
+    expect(prompt).toContain('source: "move_fitness_historical_import"');
+    expect(prompt).toContain('AI-estimated historical filler');
+  });
+
   it('teaches trainer Coach the same structured proposal contract', () => {
     const prompt = getSystemPrompt('trainer', 'coach_assistant', 'concise');
 

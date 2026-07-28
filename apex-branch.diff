@@ -1,0 +1,737 @@
+diff --git a/frontend/src/components/UserDashboard/UserDashboard.V3.tsx b/frontend/src/components/UserDashboard/UserDashboard.V3.tsx
+index 5181b6156..3d4bf39e4 100644
+--- a/frontend/src/components/UserDashboard/UserDashboard.V3.tsx
++++ b/frontend/src/components/UserDashboard/UserDashboard.V3.tsx
+@@ -8,6 +8,7 @@ import {
+   ContentGrid,
+   ContentWrapper,
+   HiddenInput,
++  HomeDesktopNavShell,
+   MainContentZWrapper,
+   NoiseOverlay,
+   ProfileContainer,
+@@ -107,10 +108,13 @@ const UserDashboardV3: React.FC = () => {
+           <ContentWrapper data-user-dashboard-scroll-root $belowCover>
+             {isHomeTab ? (
+               <>
+-              <UserDashboardTabBarV3
+-                activeTab={dashboard.activeTab}
+-                onTabChange={handleTabChange}
+-              />
++              {/* Apex Phase 1b: Home's left rail is gone, so the tab bar is the desktop nav. */}
++              <HomeDesktopNavShell>
++                <UserDashboardTabBarV3
++                  activeTab={dashboard.activeTab}
++                  onTabChange={handleTabChange}
++                />
++              </HomeDesktopNavShell>
+               <DashboardTeachMeGuide
+                 role="user"
+                 pathname={teachMePathname}
+diff --git a/frontend/src/components/UserDashboard/UserDashboardDailyLoop.contract.test.ts b/frontend/src/components/UserDashboard/UserDashboardDailyLoop.contract.test.ts
+index d3cc00e63..71051a5f4 100644
+--- a/frontend/src/components/UserDashboard/UserDashboardDailyLoop.contract.test.ts
++++ b/frontend/src/components/UserDashboard/UserDashboardDailyLoop.contract.test.ts
+@@ -165,6 +165,42 @@ describe('UserDashboard V3 daily loop contract', () => {
+     expect(coverHookSource).toContain('bannerStickyCarousel={coverBanner.bannerStickyCarousel}');
+     expect(coverHookSource).not.toContain('bannerStickyCarousel={false}');
+   });
++  it('re-homes Level/XP/streak into ApexHeader and removes the Home left rail (Apex Phase 1b)', () => {
++    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
++    const apexSource = readSource('src/components/UserDashboard/components/ApexHeader.tsx');
++    const shellSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
++
++    // The rail is unmounted; ApexHeader takes its place and receives its real data.
++    expect(homeSource).not.toContain('<HomeTabVisionLeftRail');
++    expect(homeSource).toContain('<ApexHeader');
++    expect(homeSource).toContain('streakDays={streakDays}');
++    expect(homeSource).toContain('progressPercent={progressPercent}');
++    // Dead state the rail used to own must not linger.
++    expect(homeSource).not.toContain('activeLens');
++
++    // Rings expose status as text + ARIA, never color alone (WCAG 1.4.1 / 2.4.13).
++    expect(apexSource).toContain('role="progressbar"');
++    expect(apexSource).toContain('aria-valuetext');
++    expect(apexSource).toContain(':focus-visible');
++    expect(apexSource).toContain('prefers-reduced-motion');
++    // Data truth: no invented workouts/volume numbers in the header.
++    expect(apexSource).not.toContain('15,240');
++
++    // With the rail gone, the top tab bar must be the desktop Home nav.
++    expect(shellSource).toContain('<HomeDesktopNavShell>');
++    // The nav wrapper MUST stay display:contents — a wrapper box would become the
++    // containing block for TabNavigation's position:sticky and kill the stick.
++    const navStylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
++    expect(navStylesSource).toContain('display: contents;');
++  });
++  it('removes the redundant Home hero lens strip (Apex redesign Phase 1a) so the tab bar is the sole Home nav', () => {
++    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
++    // HERO_LENSES was a third parallel nav duplicating the top tab bar + Home left rail.
++    // Phase 1a removes it; the top tab bar (and, until Phase 2, the left rail) carry Home nav.
++    expect(centerSource).not.toContain('HERO_LENSES');
++    expect(centerSource).not.toContain('<LensStrip');
++    expect(centerSource).not.toContain('activeLens');
++  });
+   it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on user Home', () => {
+     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
+@@ -656,11 +692,12 @@ describe('UserDashboard V3 daily loop contract', () => {
+     expect(homeHeroSource).toContain('display: none;');
+     expect(homeHeroSource).toContain('@media (max-width: 1023px)');
+ 
+-    expect(homeLayoutSource).toContain('grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);');
++    // Apex Phase 1b: the left-rail column was removed; the shell is now center + right rail.
++    expect(homeLayoutSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);');
+     expect(homeLayoutSource).toContain('@media (max-width: 1500px) and (min-width: 1321px)');
+-    expect(homeLayoutSource).toContain('grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);');
++    expect(homeLayoutSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);');
+     expect(homeLayoutSource).toContain('@media (max-width: 1320px)');
+-    expect(homeLayoutSource).toContain('grid-column: 2;');
++    expect(homeLayoutSource).toContain('grid-column: 1;');
+ 
+     expect(cardStylesSource).toContain('flex-wrap: wrap;');
+     expect(cardStylesSource).toContain('min-width: min(100%, 7.6rem);');
+diff --git a/frontend/src/components/UserDashboard/components/ApexHeader.styles.ts b/frontend/src/components/UserDashboard/components/ApexHeader.styles.ts
+new file mode 100644
+index 000000000..30afc8a2f
+--- /dev/null
++++ b/frontend/src/components/UserDashboard/components/ApexHeader.styles.ts
+@@ -0,0 +1,244 @@
++/**
++ * FILE: ApexHeader.styles.ts
++ * PURPOSE: Styled surface for ApexHeader (Apex redesign Phase 1b).
++ *
++ * Extracted from ApexHeader.tsx to honor the 300-line file rule (CLAUDE.md rule 4).
++ * Palette is Crystalline Swan via var(--token, #fallback) (rule 6). Dual-Button Glow:
++ * sapphire surface -> purple glow (LogButton); purple surface -> cyan glow (LevelHex).
++ * Motion is opt-in behind prefers-reduced-motion (rule 25).
++ */
++import styled, { css } from 'styled-components';
++
++export const Header = styled.header`
++  position: relative;
++  z-index: 1;
++  /* Apex Phase 1b polish: status packs as one left cluster (intro + rings) rather
++     than spreading edge-to-edge, which left a dead gap on wide desktops. */
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: clamp(1.25rem, 3.5vw, 3rem);
++  max-width: 1760px;
++  margin: 0 auto clamp(1rem, 1.6vw, 1.5rem);
++  padding: clamp(1.1rem, 2vw, 1.75rem) clamp(1.1rem, 2.2vw, 2rem);
++  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.1));
++  border-radius: 20px;
++  background:
++    radial-gradient(120% 140% at 82% 0%, rgba(0, 48, 128, 0.55), transparent 60%),
++    linear-gradient(150deg, var(--bg-elevated, #141419), var(--bg-surface, #1a1a24));
++
++  @media (max-width: 860px) {
++    flex-direction: column;
++    align-items: stretch;
++    gap: 1.5rem;
++  }
++`;
++
++/* Left cluster: intro copy + CTA + level/XP. Content-width so the rings sit next
++   to it, not at the far edge. */
++export const Intro = styled.div`
++  flex: 0 1 auto;
++  min-width: 0;
++  max-width: 640px;
++`;
++
++export const Eyebrow = styled.p`
++  margin: 0 0 0.35rem;
++  color: var(--text-muted, #8fa3b8);
++  font-size: 0.72rem;
++  font-weight: 700;
++  letter-spacing: 0.16em;
++  text-transform: uppercase;
++`;
++
++export const Title = styled.h2`
++  margin: 0;
++  color: var(--text-primary, #e0ecf4);
++  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
++  font-weight: 800;
++  line-height: 1.1;
++`;
++
++export const Subtitle = styled.p`
++  margin: 0.4rem 0 0;
++  color: var(--text-muted, #8fa3b8);
++  font-size: 0.92rem;
++`;
++
++/* Dual-Button Glow: sapphire background -> purple glow. */
++export const LogButton = styled.button`
++  display: inline-flex;
++  align-items: center;
++  gap: 0.55rem;
++  min-height: 44px;
++  margin-top: 1.15rem;
++  padding: 0 1.35rem;
++  border: 0;
++  border-radius: 999px;
++  background: linear-gradient(135deg, var(--accent-secondary, #002060), #0a3aa0);
++  color: var(--text-primary, #e0ecf4);
++  font-size: 0.95rem;
++  font-weight: 700;
++  cursor: pointer;
++  box-shadow: 0 0 22px rgba(139, 92, 246, 0.45);
++  transition: box-shadow 160ms ease;
++
++  &:hover {
++    box-shadow: 0 0 30px rgba(139, 92, 246, 0.65);
++  }
++
++  &:focus-visible {
++    outline: 2px solid var(--accent-primary, #60c0f0);
++    outline-offset: 3px;
++  }
++
++  @media (prefers-reduced-motion: no-preference) {
++    transition: transform 160ms ease, box-shadow 160ms ease;
++    &:hover { transform: translateY(-1px); }
++  }
++`;
++
++export const LevelRow = styled.div`
++  display: flex;
++  align-items: center;
++  gap: 0.9rem;
++  margin-top: 1.25rem;
++  max-width: 440px;
++`;
++
++/* Dual-Button Glow: purple surface -> cyan glow. */
++export const LevelHex = styled.div`
++  flex: none;
++  display: grid;
++  place-items: center;
++  width: 54px;
++  height: 54px;
++  color: #fff;
++  font-size: 0.9rem;
++  font-weight: 800;
++  line-height: 1;
++  text-align: center;
++  background: linear-gradient(150deg, var(--accent-glow, #8b5cf6), #6d3fd6);
++  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
++  box-shadow: 0 0 18px rgba(96, 192, 240, 0.45);
++`;
++
++export const XpBlock = styled.div`
++  flex: 1;
++  min-width: 0;
++`;
++
++export const XpMeta = styled.div`
++  display: flex;
++  align-items: baseline;
++  justify-content: space-between;
++  gap: 0.75rem;
++  margin-bottom: 0.45rem;
++  color: var(--text-muted, #8fa3b8);
++  font-size: 0.8rem;
++
++  strong {
++    color: var(--accent-gold, #c6a84b);
++    font-size: 0.85rem;
++  }
++`;
++
++export const XpTrack = styled.div`
++  height: 8px;
++  border-radius: 999px;
++  background: color-mix(in srgb, var(--text-primary, #e0ecf4) 9%, transparent);
++  overflow: hidden;
++`;
++
++export const XpFill = styled.div<{ $pct: number }>`
++  width: ${({ $pct }) => $pct}%;
++  height: 100%;
++  border-radius: 999px;
++  background: linear-gradient(90deg, var(--accent-tertiary, #4070c0), var(--accent-primary, #60c0f0));
++  box-shadow: 0 0 10px rgba(96, 192, 240, 0.5);
++
++  @media (prefers-reduced-motion: no-preference) {
++    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
++  }
++`;
++
++export const Rings = styled.div`
++  flex: none;
++  display: flex;
++  gap: clamp(0.9rem, 2vw, 1.75rem);
++
++  @media (max-width: 860px) {
++    justify-content: flex-start;
++  }
++`;
++
++export const RingWrap = styled.div`
++  position: relative;
++  display: grid;
++  place-items: center;
++  width: 104px;
++  text-align: center;
++
++  svg {
++    width: 88px;
++    height: 88px;
++    transform: rotate(-90deg);
++  }
++
++  circle {
++    fill: none;
++    stroke-width: 7;
++    stroke-linecap: round;
++  }
++`;
++
++/* css`` helper is mandatory here: this fragment is composed into a styled
++   component and interpolates tokens (CLAUDE.md rule 43). */
++const ringTone = (tone: 'gold' | 'cyan') => (tone === 'gold'
++  ? css`
++      stroke: var(--accent-gold, #c6a84b);
++      filter: drop-shadow(0 0 6px rgba(198, 168, 75, 0.55));
++    `
++  : css`
++      stroke: var(--accent-primary, #60c0f0);
++      filter: drop-shadow(0 0 6px rgba(96, 192, 240, 0.55));
++    `);
++
++export const Track = styled.circle`
++  stroke: color-mix(in srgb, var(--text-primary, #e0ecf4) 10%, transparent);
++`;
++
++export const Fill = styled.circle<{ $tone: 'gold' | 'cyan' }>`
++  ${({ $tone }) => ringTone($tone)}
++
++  @media (prefers-reduced-motion: no-preference) {
++    transition: stroke-dashoffset 520ms cubic-bezier(0.22, 1, 0.36, 1);
++  }
++`;
++
++export const RingCenter = styled.div`
++  position: absolute;
++  top: 30px;
++  display: grid;
++  gap: 0.1rem;
++  color: var(--text-primary, #e0ecf4);
++  pointer-events: none;
++
++  strong { font-size: 1.35rem; font-weight: 800; line-height: 1; }
++  span {
++    color: var(--text-muted, #8fa3b8);
++    font-size: 0.62rem;
++    letter-spacing: 0.08em;
++    text-transform: uppercase;
++  }
++`;
++
++export const RingLabel = styled.span`
++  display: inline-flex;
++  align-items: center;
++  gap: 0.3rem;
++  margin-top: 0.35rem;
++  color: var(--text-muted, #8fa3b8);
++  font-size: 0.72rem;
++  font-weight: 600;
++`;
+diff --git a/frontend/src/components/UserDashboard/components/ApexHeader.tsx b/frontend/src/components/UserDashboard/components/ApexHeader.tsx
+new file mode 100644
+index 000000000..d3b8f12e2
+--- /dev/null
++++ b/frontend/src/components/UserDashboard/components/ApexHeader.tsx
+@@ -0,0 +1,193 @@
++/**
++ * FILE: ApexHeader.tsx
++ * PURPOSE: Apex Home header — the single orientation beat for /user-dashboard Home.
++ *
++ * BLUEPRINT
++ * ─────────
++ * WHY: Apex redesign Phase 1b. The Home left rail (HomeTabVisionLeftRail) was one
++ *      of three disagreeing navs AND the only carrier of Level / XP / streak on
++ *      desktop. This header absorbs that data so the rail can be removed without
++ *      stranding it; the top tab bar becomes the sole Home nav.
++ *
++ * DATA TRUTH (CLAUDE.md Product Core Loop): every number here comes from real
++ *      gamification data (useGamificationData) via HomeTab. Nothing is mocked.
++ *      The mockup's workouts/volume rings are intentionally NOT built — they need
++ *      weekly workout aggregates that do not exist yet. Deferred, not faked.
++ *
++ * A11Y: each ring is role="progressbar" with aria-valuenow/min/max/valuetext and a
++ *      visible text value + label, so status is never conveyed by color alone
++ *      (WCAG 1.4.1). Focus rings use :focus-visible (WCAG 2.4.13).
++ *
++ * MOTION: ring/XP fills transition only under prefers-reduced-motion: no-preference.
++ *
++ * STYLES: extracted to ApexHeader.styles.ts (rule 4, 300-line cap).
++ */
++import React from 'react';
++import { Crown, Dumbbell, Flame, type LucideIcon } from 'lucide-react';
++import {
++  Eyebrow,
++  Fill,
++  Header,
++  Intro,
++  LevelHex,
++  LevelRow,
++  LogButton,
++  RingCenter,
++  RingLabel,
++  RingWrap,
++  Rings,
++  Subtitle,
++  Title,
++  Track,
++  XpBlock,
++  XpFill,
++  XpMeta,
++  XpTrack,
++} from './ApexHeader.styles';
++
++interface ApexHeaderProps {
++  /** Real: canonical level from gamification. */
++  level: number;
++  /** Real: tier display name (e.g. "Crystalline Ascendant"). */
++  tierName: string;
++  /** Real: lifetime XP. */
++  points: number;
++  /** Real: XP remaining to the next level. */
++  pointsToNext: number;
++  /** Real: 0-100 progress toward next level. */
++  progressPercent: number;
++  /** Real: consecutive-day streak. */
++  streakDays: number;
++  /** Routes to the personal log-workout surface. */
++  onLogWorkout: () => void;
++}
++
++const RING_RADIUS = 34;
++const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
++
++/** Next meaningful streak milestone — derived from the real streak, never invented. */
++const streakMilestone = (days: number): number => {
++  if (days < 7) return 7;
++  if (days < 30) return 30;
++  if (days < 100) return 100;
++  return Math.ceil((days + 1) / 100) * 100;
++};
++
++interface RingProps {
++  label: string;
++  value: number;
++  max: number;
++  display: string;
++  unit: string;
++  tone: 'gold' | 'cyan';
++  Icon: LucideIcon;
++}
++
++const AscensionRing: React.FC<RingProps> = ({ label, value, max, display, unit, tone, Icon }) => {
++  const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
++  const offset = RING_CIRCUMFERENCE - (pct / 100) * RING_CIRCUMFERENCE;
++
++  return (
++    <RingWrap
++      role="progressbar"
++      aria-label={label}
++      aria-valuenow={value}
++      aria-valuemin={0}
++      aria-valuemax={max}
++      aria-valuetext={`${display} ${unit}, ${Math.round(pct)}% toward ${max}`}
++    >
++      <svg viewBox="0 0 80 80" aria-hidden="true" focusable="false">
++        <Track cx="40" cy="40" r={RING_RADIUS} />
++        <Fill
++          cx="40"
++          cy="40"
++          r={RING_RADIUS}
++          $tone={tone}
++          strokeDasharray={RING_CIRCUMFERENCE}
++          strokeDashoffset={offset}
++        />
++      </svg>
++      {/* Visible value + label: status is never color-only (WCAG 1.4.1). */}
++      <RingCenter aria-hidden="true">
++        <strong>{display}</strong>
++        <span>{unit}</span>
++      </RingCenter>
++      <RingLabel aria-hidden="true">
++        <Icon size={13} />
++        {label}
++      </RingLabel>
++    </RingWrap>
++  );
++};
++
++const ApexHeader: React.FC<ApexHeaderProps> = ({
++  level,
++  tierName,
++  points,
++  pointsToNext,
++  progressPercent,
++  streakDays,
++  onLogWorkout,
++}) => (
++  <Header aria-label="Your ascension status">
++    <Intro>
++      <Eyebrow>Today</Eyebrow>
++      <Title>Ready to train?</Title>
++      <Subtitle>
++        {pointsToNext > 0
++          ? `${pointsToNext.toLocaleString()} XP to Level ${level + 1}`
++          : `Level ${level} — next tier within reach`}
++      </Subtitle>
++
++      <LogButton type="button" onClick={onLogWorkout}>
++        <Dumbbell size={18} aria-hidden="true" />
++        Log today&apos;s workout
++      </LogButton>
++
++      <LevelRow>
++        <LevelHex aria-hidden="true">Lv {level}</LevelHex>
++        <XpBlock>
++          <XpMeta>
++            <span>
++              <strong>{tierName}</strong> · Level {level}
++            </span>
++            <span>{points.toLocaleString()} XP</span>
++          </XpMeta>
++          <XpTrack
++            role="progressbar"
++            aria-label="XP toward next level"
++            aria-valuenow={progressPercent}
++            aria-valuemin={0}
++            aria-valuemax={100}
++            aria-valuetext={`${progressPercent}% toward level ${level + 1}`}
++          >
++            <XpFill $pct={progressPercent} />
++          </XpTrack>
++        </XpBlock>
++      </LevelRow>
++    </Intro>
++
++    <Rings>
++      <AscensionRing
++        label="Streak"
++        value={streakDays}
++        max={streakMilestone(streakDays)}
++        display={`${streakDays}`}
++        unit="days"
++        tone="gold"
++        Icon={Flame}
++      />
++      <AscensionRing
++        label="Level progress"
++        value={progressPercent}
++        max={100}
++        display={`${progressPercent}%`}
++        unit={`to L${level + 1}`}
++        tone="cyan"
++        Icon={Crown}
++      />
++    </Rings>
++  </Header>
++);
++
++export default React.memo(ApexHeader);
+diff --git a/frontend/src/components/UserDashboard/components/HomeTab.tsx b/frontend/src/components/UserDashboard/components/HomeTab.tsx
+index dc39bf588..dca8ed16d 100644
+--- a/frontend/src/components/UserDashboard/components/HomeTab.tsx
++++ b/frontend/src/components/UserDashboard/components/HomeTab.tsx
+@@ -15,7 +15,6 @@ import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+ import { useFeedEnrichment } from '../../../hooks/social/useFeedEnrichment';
+ import { useSubscription } from '../../../hooks/useSubscription';
+ import { useMessageSummary, useNotificationSummary, useWorkoutSessions } from '../../../hooks/useDashboardQueries';
+-import brandLogo from '../../../assets/Logo.png';
+ import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
+ import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
+ import { sanitizeImageUrl } from '../../../utils/imageUrl';
+@@ -28,7 +27,7 @@ import { DockSkeleton } from './HomeTabActions.styles';
+ import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
+ import { USER_HOME_TRAINING_PROMPT, buildUserDashboardTeachCoachRoute } from '../UserDashboardTeachCoachRoute';
+ import HomeTabVisionCenter from './HomeTabVisionCenter';
+-import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
++import ApexHeader from './ApexHeader';
+ import HomeTabVisionRightRail from './HomeTabVisionRightRail';
+ import { buildSidebarQuickStats } from './UserDashboardSidebarV3';
+ import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
+@@ -76,7 +75,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
+   const messageSummary = useMessageSummary({
+     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
+   });
+-  const [activeLens, setActiveLens] = useState('reels');
+   const [searchOpen, setSearchOpen] = useState(false);
+   const posts = communityFeed.posts;
+   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
+@@ -186,7 +184,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
+       onTabChange('challenges');
+       return;
+     }
+-    setActiveLens(target);
+     onTabChange(target);
+   };
+ 
+@@ -210,21 +207,20 @@ const HomeTab: React.FC<HomeTabProps> = ({
+         onProgress={() => onTabChange('progress')}
+       />
+ 
+-      <CreatorShell>
+-        <HomeTabVisionLeftRail
+-          logoSrc={brandLogo}
+-          level={level}
+-          points={points}
+-          pointsToNext={pointsToNext}
+-          progressPercent={progressPercent}
+-          streakDays={streakDays}
+-          activeId={activeLens}
+-          onAction={runAction}
+-        />
++      {/* Apex Phase 1b: absorbs Level/XP/streak from the removed left rail. */}
++      <ApexHeader
++        level={level}
++        tierName={tierName}
++        points={points}
++        pointsToNext={pointsToNext}
++        progressPercent={progressPercent}
++        streakDays={streakDays}
++        onLogWorkout={() => navigate(logWorkoutPath)}
++      />
+ 
++      <CreatorShell>
+         <HomeTabVisionCenter
+           points={points}
+-          activeLens={activeLens}
+           postText={composer.postText}
+           activeMood={composer.activeMood}
+           selectedMediaName={composer.selectedMedia?.name}
+diff --git a/frontend/src/components/UserDashboard/components/HomeTabVision.styles.ts b/frontend/src/components/UserDashboard/components/HomeTabVision.styles.ts
+index e0d472bf7..f88a71fb4 100644
+--- a/frontend/src/components/UserDashboard/components/HomeTabVision.styles.ts
++++ b/frontend/src/components/UserDashboard/components/HomeTabVision.styles.ts
+@@ -58,18 +58,19 @@ export const CreatorShell = styled.div`
+   position: relative;
+   z-index: 1;
+   display: grid;
+-  grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);
++  /* Apex Phase 1b: left-rail column removed — ApexHeader now carries its data. */
++  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+   gap: clamp(1rem, 1.6vw, 1.5rem);
+   max-width: 1760px;
+   margin: 0 auto;
+ 
+   @media (max-width: 1500px) and (min-width: 1321px) {
+-    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);
++    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+     gap: 16px;
+   }
+ 
+   @media (max-width: 1320px) {
+-    grid-template-columns: minmax(210px, 240px) minmax(0, 1fr);
++    grid-template-columns: minmax(0, 1fr);
+   }
+ 
+   @media (max-width: 1023px) {
+@@ -102,7 +103,8 @@ export const RightRail = styled.aside`
+   min-width: 0;
+ 
+   @media (max-width: 1320px) {
+-    grid-column: 2;
++    /* Apex Phase 1b: shell is single-column here, so stack instead of column 2. */
++    grid-column: auto;
+     display: grid;
+     grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+@@ -140,7 +142,8 @@ export const SupportShell = styled(CreatorShell)`
+ 
+   @media (min-width: 1281px) {
+     > ${CenterColumn} {
+-      grid-column: 2;
++      /* Apex Phase 1b: center is column 1 now that the left-rail column is gone. */
++      grid-column: 1;
+     }
+   }
+ `;
+diff --git a/frontend/src/components/UserDashboard/components/HomeTabVisionCenter.tsx b/frontend/src/components/UserDashboard/components/HomeTabVisionCenter.tsx
+index cf6e916ea..6222abded 100644
+--- a/frontend/src/components/UserDashboard/components/HomeTabVisionCenter.tsx
++++ b/frontend/src/components/UserDashboard/components/HomeTabVisionCenter.tsx
+@@ -14,7 +14,7 @@ import {
+ import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
+ import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+ import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
+-import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
++import { POST_MOODS, type VisionTarget } from './HomeTabVision.data';
+ import {
+   CenterColumn,
+   Eyebrow,
+@@ -45,17 +45,11 @@ import {
+ } from './HomeTabVisionCenter.styles';
+ import HomeTabSelectedMediaPreview from './HomeTabSelectedMediaPreview';
+ import UserDashboardQuickStatsTicker, { type QuickStatsTickerStat } from './UserDashboardQuickStatsTicker';
+-import {
+-  LensButton,
+-  LensPuck,
+-  LensStrip,
+-} from './HomeTabVisionHero.styles';
+ 
+ const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
+ 
+ interface HomeTabVisionCenterProps {
+   points: number;
+-  activeLens: string;
+   postText: string;
+   activeMood: string;
+   selectedMediaName?: string;
+@@ -86,7 +80,6 @@ interface HomeTabVisionCenterProps {
+ 
+ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
+   points,
+-  activeLens,
+   postText,
+   activeMood,
+   selectedMediaName,
+@@ -135,17 +128,6 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
+       </XpPill>
+     </TopBar>
+ 
+-    <LensStrip aria-label="Creator dashboard sections">
+-      {HERO_LENSES.map(({ id, label, Icon, target }) => (
+-        <LensButton key={id} type="button" $active={activeLens === id} onClick={() => onAction(target)}>
+-          <LensPuck $active={activeLens === id}>
+-            <Icon size={25} aria-hidden="true" />
+-          </LensPuck>
+-          <span>{label}</span>
+-        </LensButton>
+-      ))}
+-    </LensStrip>
+-
+     <CenterGrid>
+       <Panel $tone="violet">
+         <SpreadButtonRow>
+diff --git a/frontend/src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts b/frontend/src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts
+index b0f2b9787..ef0da3d4f 100644
+--- a/frontend/src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts
++++ b/frontend/src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts
+@@ -199,6 +199,16 @@ export const TabNavigation = styled.div`
+   }
+ `;
+ 
++/* Apex Phase 1b: Home's left rail is gone, so the tab bar is its desktop nav. Other surfaces keep it hidden >=1025px (they have sidebars).
++   display:contents is REQUIRED: TabNavigation is position:sticky, and a wrapper box would become its containing block and kill the stick. */
++export const HomeDesktopNavShell = styled.div`
++  display: contents;
++
++  @media (min-width: 1025px) {
++    ${TabNavigation} { display: flex; }
++  }
++`;
++
+ export const Tab = styled(motion.button)<{ $active?: boolean }>`
+   display: flex;
+   align-items: center;

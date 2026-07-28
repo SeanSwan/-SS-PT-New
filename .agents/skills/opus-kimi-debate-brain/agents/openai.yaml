@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kimi-Only Review (Opus Retired)"
+  short_description: "Run a dry-first, capped Kimi hostile review"
+  default_prompt: "Use $opus-kimi-debate-brain as its retirement adapter and route this task to the Kimi-only review workflow. Never call Opus."

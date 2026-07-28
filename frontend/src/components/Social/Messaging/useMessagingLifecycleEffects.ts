@@ -8,7 +8,7 @@ interface UseMessagingLifecycleEffectsOptions {
   connected: boolean;
   activeConversationId: string | number | null;
   messages: MessageData[];
-  currentUserId: number | null;
+  currentUserId: string | number | null;
   mountedRef: MutableRefObject<boolean>;
   pollRef: MutableRefObject<ReturnType<typeof setInterval> | null>;
   typingClearTimers: MutableRefObject<Map<number, ReturnType<typeof setTimeout>>>;
@@ -77,7 +77,7 @@ export function useMessagingLifecycleEffects({
   useEffect(() => {
     if (!enabled || !connected || !activeConversationId || messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg && lastMsg.sender_id !== currentUserId) {
+    if (lastMsg && String(lastMsg.sender_id) !== String(currentUserId)) {
       markAsRead(activeConversationId, lastMsg.id);
     }
   }, [activeConversationId, connected, currentUserId, enabled, markAsRead, messages]);

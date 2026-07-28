@@ -19,12 +19,13 @@ import {
   TrendRank,
   TrendSignal,
   TrendingGrid,
-  TrendingRow,
 } from './HomeTabVisionRightRail.styles';
+import { TrendingRow } from './HomeTabVisionRailButtons.styles';
 
 interface HomeTabTrendingPanelProps {
   trendingTags: TrendingTagSummary[];
   trendingLoading: boolean;
+  onSelectTag: (tag: TrendingTagSummary) => void;
 }
 
 function trendPercent(count: number, maxCount: number): number {
@@ -35,6 +36,7 @@ function trendPercent(count: number, maxCount: number): number {
 const HomeTabTrendingPanel: React.FC<HomeTabTrendingPanelProps> = ({
   trendingTags,
   trendingLoading,
+  onSelectTag,
 }) => {
   const maxTrendCount = useMemo(
     () => trendingTags.reduce((max, tag) => Math.max(max, tag.count), 0),
@@ -57,20 +59,26 @@ const HomeTabTrendingPanel: React.FC<HomeTabTrendingPanelProps> = ({
             const countLabel = hasCount ? `${compactNumber(tag.count)} posts` : 'New signal';
 
             return (
-              <TrendingRow key={tag.name} role="listitem" aria-label={`#${tag.name}, ${countLabel}`}>
-                <TrendRank aria-hidden="true">{String(index + 1).padStart(2, '0')}</TrendRank>
-                <TrendCopy>
-                  <TagName>#{tag.name}</TagName>
-                  <TrendSignal>{hasCount ? 'Community momentum' : 'Awaiting first posts'}</TrendSignal>
-                  <TrendMeter aria-hidden="true">
-                    <TrendMeterFill $pct={trendPercent(tag.count, maxTrendCount)} $active={hasCount} />
-                  </TrendMeter>
-                </TrendCopy>
-                <TrendCount>
-                  {hasCount ? compactNumber(tag.count) : 'New'}
-                  <span>{hasCount ? 'posts' : 'tag'}</span>
-                </TrendCount>
-              </TrendingRow>
+              <div key={tag.name} role="listitem">
+                <TrendingRow
+                  type="button"
+                  aria-label={`Open #${tag.name} posts, ${countLabel}`}
+                  onClick={() => onSelectTag(tag)}
+                >
+                  <TrendRank aria-hidden="true">{String(index + 1).padStart(2, '0')}</TrendRank>
+                  <TrendCopy>
+                    <TagName>#{tag.name}</TagName>
+                    <TrendSignal>{hasCount ? 'Community momentum' : 'Awaiting first posts'}</TrendSignal>
+                    <TrendMeter aria-hidden="true">
+                      <TrendMeterFill $pct={trendPercent(tag.count, maxTrendCount)} $active={hasCount} />
+                    </TrendMeter>
+                  </TrendCopy>
+                  <TrendCount>
+                    {hasCount ? compactNumber(tag.count) : 'New'}
+                    <span>{hasCount ? 'posts' : 'tag'}</span>
+                  </TrendCount>
+                </TrendingRow>
+              </div>
             );
           })}
         </TrendingGrid>

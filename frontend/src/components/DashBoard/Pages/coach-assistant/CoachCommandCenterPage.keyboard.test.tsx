@@ -6,7 +6,7 @@ import {
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
 
-const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const PLACEHOLDER = 'Talk or type to Swan Coach...';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 
 describe('CoachCommandCenterPage keyboard submit', () => {
@@ -44,7 +44,7 @@ describe('CoachCommandCenterPage keyboard submit', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const composer = composerInput();
-    fireEvent.change(composer, { target: { value: 'ちゃず' } });
+    fireEvent.change(composer, { target: { value: 'ã¡ã‚ƒãš' } });
     fireEvent.keyDown(composer, { key: 'Enter', code: 'Enter', isComposing: true });
 
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();

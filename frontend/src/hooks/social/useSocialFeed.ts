@@ -478,6 +478,25 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user]);
 
+
+  const getPostsByHashtag = useCallback(async (hashtag: string, requestedLimit = 50): Promise<Post[]> => {
+    const trimmedHashtag = hashtag.trim();
+    if (!user || !trimmedHashtag) return [];
+
+    try {
+      const response = await authAxios.get('/api/social/posts/feed', {
+        params: {
+          limit: requestedLimit,
+          offset: 0,
+          hashtag: trimmedHashtag,
+        },
+      });
+      return response.data.posts || [];
+    } catch (err) {
+      console.error('Error fetching hashtag posts:', err);
+      return [];
+    }
+  }, [authAxios, user]);
   // Load a post's full comment THREAD into feed state. The feed endpoint
   // returns commentsCount only — without this, comments from other members
   // (including coach answers) would never render in the stream.
@@ -537,6 +556,7 @@ export const useSocialFeed = () => {
     reportPost,
     repostPost,
     getPostDetails,
+    getPostsByHashtag,
     loadComments
   };
 };

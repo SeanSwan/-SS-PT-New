@@ -14,6 +14,7 @@ import {
 import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
+import type { HomeFeedFocus } from './HomeFeedFocus';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
@@ -63,16 +64,18 @@ interface HomeTabVisionCenterProps {
   selectedMediaPreviewUrl?: string | null;
   selectedMediaType?: string;
   mediaError?: string | null;
-  /** O3: the single stateful feed mount (owned by HomeTab) — powers the
+  /** O3: the single stateful feed mount (owned by HomeTab) - powers the
       community stream below the composer. */
   communityFeed: SocialFeedApi;
   quickStats: QuickStatsTickerStat[];
+  supportPanels?: React.ReactNode;
   feedEnrichmentItems: FeedEnrichmentItem[];
+  feedFocus: HomeFeedFocus;
   /** O3: true while "Share my week" has armed the workout-proof attachment. */
   proofAttached: boolean;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
   postIntentPreview: { type: string; label: string | null; hashtags: string[] } | null;
-  /** Real latest feed post — null renders honest empty states. */
+  /** Real latest feed post - null renders honest empty states. */
   latestPost: HomeLatestPostView | null;
   canPost: boolean;
   isPosting: boolean;
@@ -83,6 +86,7 @@ interface HomeTabVisionCenterProps {
   onClearMedia: () => void;
   onPostTextChange: (value: string) => void;
   onSubmitPost: (event: React.FormEvent<HTMLFormElement>) => void;
+  onClearFeedFocus: () => void;
   topBarActions: ReadonlyArray<HomeTopBarAction>;
 }
 
@@ -97,7 +101,9 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   mediaError,
   communityFeed,
   quickStats,
+  supportPanels,
   feedEnrichmentItems,
+  feedFocus,
   proofAttached,
   postIntentPreview,
   latestPost,
@@ -110,6 +116,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   onClearMedia,
   onPostTextChange,
   onSubmitPost,
+  onClearFeedFocus,
   topBarActions,
 }) => (
   <CenterColumn>
@@ -170,7 +177,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         ) : (
           <>
             <CaptionCopy>
-              No media drops yet — your latest photo or clip will headline here.
+              No media drops yet - your latest photo or clip will headline here.
             </CaptionCopy>
             <ComposerActions>
               <GlassButton type="button" $variant="ghost" onClick={() => onAction('reels')}>
@@ -185,7 +192,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       <Panel as="form" $tone="cyan" onSubmit={onSubmitPost}>
         <SpreadButtonRow>
           <Eyebrow>Quick Post</Eyebrow>
-          {/* O3: "Share my week" armed — this post ships as REAL workout
+          {/* O3: "Share my week" armed - this post ships as REAL workout
               proof (type workout + the latest session link). */}
           {proofAttached && <Chip $tone="gold">Workout proof attached</Chip>}
         </SpreadButtonRow>
@@ -204,7 +211,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
             </MoodButton>
           ))}
         </MoodScroller>
-        {/* Workstream N3: the smart-hashtag truth-line — exactly what this
+        {/* Workstream N3: the smart-hashtag truth-line - exactly what this
             post will ship as (same inference path as the submit payload). */}
         {postIntentPreview && postIntentPreview.hashtags.length > 0 && (
           <IntentPreview aria-live="polite">
@@ -245,16 +252,19 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       </Panel>
     </CenterGrid>
 
-    {/* Workstream O2: the REAL scrolling community feed lives on Home now —
+    {/* Workstream O2: the REAL scrolling community feed lives on Home now -
         full PostCard interactions + infinite scroll (the retired Feed tab's
         single duplicated surface). Replaces the old one-post feed card; the
         Latest Drop spotlight above still owns the user's own latest media. */}
     <UserDashboardQuickStatsTicker stats={quickStats} />
+    {supportPanels}
 
     <Suspense fallback={null}>
       <HomeCommunityFeed
         feed={communityFeed}
         enrichmentItems={feedEnrichmentItems}
+        focus={feedFocus}
+        onClearFocus={onClearFeedFocus}
       />
     </Suspense>
   </CenterColumn>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Panel, PanelTitle, SectionDivider, InsightCard, PrimaryButton, TimingBadge } from './BootcampBuilderStyles';
 import { buildBootcampBoardViews } from './BootcampBoardViews';
 import BootcampCommandDeck from './BootcampCommandDeck';
@@ -56,6 +56,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   onSelectStation,
   activeStation,
 }) => {
+  const reduceMotion = useReducedMotion();
   const [activeBoard, setActiveBoard] = useState<BoardView>('main');
   const boardViews = useMemo(() => buildBootcampBoardViews(bootcamp?.exercises ?? []), [bootcamp]);
   const board1Exercises = boardViews.mainExercises;
@@ -73,7 +74,12 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
       <PanelTitle>Class Preview</PanelTitle>
       <AnimatePresence>
         {bootcamp && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.24 }}
+          >
             <BootcampCommandDeck bootcamp={bootcamp} buildMode={buildMode} floorMode={floorMode} />
             <TimingBadgeRow>
               <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>

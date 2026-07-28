@@ -15,6 +15,7 @@ import logger from '../utils/logger.mjs';
 // service. The history-row mapper lives in a shared service for route/tests.
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingAssignmentPickerService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { toClientWorkoutHistoryRow as mapClientWorkoutHistoryRow } from '../services/clientWorkoutHistoryRowService.mjs';
 import { selectCurrentWorkoutPlan } from '../services/workoutPlanRouteHelpers.mjs';
@@ -102,6 +103,11 @@ router.get('/:userId/current', protect, async (req, res) => {
         today,
         recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
       });
+      const assignmentPicker = buildClientTrainingAssignmentPicker({
+        plans: clientPlans,
+        today,
+        assignmentCompletions: completionContext.assignmentCompletions,
+      });
       return res.status(200).json({
         success: true,
         data: null,
@@ -109,6 +115,7 @@ router.get('/:userId/current', protect, async (req, res) => {
         todayAssignment: overview.todayAssignment,
         trainingPlanCatalog: overview.trainingPlanCatalog,
         homeworkSummary: overview.homeworkSummary,
+        assignmentPicker,
         message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
       });
     }
@@ -123,11 +130,17 @@ router.get('/:userId/current', protect, async (req, res) => {
       assignmentCompletions: completionContext.assignmentCompletions,
       recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
     });
+    const assignmentPicker = buildClientTrainingAssignmentPicker({
+      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      today,
+      assignmentCompletions: completionContext.assignmentCompletions,
+    });
     const enrichedPlan = {
       ...formattedPlan,
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
+      assignmentPicker,
     };
 
     return res.status(200).json({
@@ -138,6 +151,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
       homeworkSummary: overview.homeworkSummary,
+      assignmentPicker,
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);

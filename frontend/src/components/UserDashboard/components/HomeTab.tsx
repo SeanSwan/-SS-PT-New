@@ -36,18 +36,9 @@ import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
-import {
-  assessStreakRisk,
-  buildHomeTopBarActions,
-  buildHomeTrainingProof,
-  buildLatestPostView,
-  normalizeHomePercent,
-  normalizeHomeWholeNumber,
-  parseUnreadNotificationCount,
-  sumUnreadConversations,
-  type HomeTopBarTarget,
-} from './HomeTabViewModel';
-import { CenterColumn, CreatorPage, CreatorShell, Panel, SupportShell } from './HomeTabVision.styles';
+import { useHomeFeedFocusController } from './useHomeFeedFocusController';
+import { assessStreakRisk, buildHomeTopBarActions, buildHomeTrainingProof, buildLatestPostView, normalizeHomePercent, normalizeHomeWholeNumber, parseUnreadNotificationCount, sumUnreadConversations, type HomeTopBarTarget } from './HomeTabViewModel';
+import { CreatorPage, CreatorShell, Panel } from './HomeTabVision.styles';
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -72,12 +63,13 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const communityFeed = useSocialFeed();
   const { items: feedEnrichmentItems } = useFeedEnrichment({ limit: 5 });
   const notificationSummary = useNotificationSummary();
-  // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
+  // Messaging is elite-gated server-side - free tiers never poll it (402 by design).
   const messageSummary = useMessageSummary({
     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
   });
   const [activeLens, setActiveLens] = useState('reels');
   const [searchOpen, setSearchOpen] = useState(false);
+  const { feedFocus, clearFeedFocus, focusActivity, focusTrending } = useHomeFeedFocusController();
   const posts = communityFeed.posts;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
   const topBarActions = useMemo(() => buildHomeTopBarActions({
@@ -113,7 +105,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
     () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
     [streakDays, workoutSessions.data],
   );
-  // O3: Quick Post composer (extracted hook) — "Share my week" arms the
+  // O3: Quick Post composer (extracted hook) - "Share my week" arms the
   // workout-proof attachment with the latest REAL session link.
   const composer = useHomeComposer({
     createPost: communityFeed.createPost,
@@ -135,6 +127,51 @@ const HomeTab: React.FC<HomeTabProps> = ({
     currentUserPoints: points,
   });
 
+  const supportPanels = (
+    <>
+      <Panel>
+        <HomeTabTrainingProof
+          proof={trainingProof}
+          onShareProgress={composer.handleShareProgress}
+        />
+      </Panel>
+
+      <Panel>
+        <DailyHealthLoop
+          streakDays={streakDays}
+          level={level}
+          progressPercent={progressPercent}
+          tierName={tierName}
+          logWorkoutPath={logWorkoutPath}
+          nutritionAction={nutritionAction}
+          onOpenNutrition={() => onTabChange('nutrition')}
+        />
+      </Panel>
+
+      {subLoading ? (
+        <DockSkeleton aria-hidden="true" />
+      ) : (
+        <Panel>
+          <SwanCoachDock
+            isElite={hasEliteAccess}
+            userName={displayName}
+            userRole={user?.role}
+            streakDays={streakDays}
+            level={level}
+            tierName={tierName}
+          />
+          {hasEliteAccess && (
+            <SwanCoachActionLauncher
+              userName={displayName}
+              userRole={user?.role}
+              streakDays={streakDays}
+              level={level}
+            />
+          )}
+        </Panel>
+      )}
+    </>
+  );
   const runAction = (target: VisionTarget) => {
     if (target === 'challenges') {
       // Challenges is a first-class dashboard tab post-merge (workstream N).
@@ -188,7 +225,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
           mediaError={composer.mediaError}
           communityFeed={communityFeed}
           quickStats={quickStats}
+          supportPanels={supportPanels}
           feedEnrichmentItems={feedEnrichmentItems}
+          feedFocus={feedFocus}
           proofAttached={composer.proofAttached}
           postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}
@@ -201,6 +240,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           onClearMedia={composer.clearSelectedMedia}
           onPostTextChange={composer.setPostText}
           onSubmitPost={composer.submitPost}
+          onClearFeedFocus={clearFeedFocus}
           topBarActions={topBarActions}
         />
         <HomeDashboardSearchPanel
@@ -240,56 +280,10 @@ const HomeTab: React.FC<HomeTabProps> = ({
           streakDays={streakDays}
           onAction={runAction}
           onLogWorkout={() => navigate(logWorkoutPath)}
+          onActivitySelect={focusActivity}
+          onTrendingSelect={focusTrending}
         />
       </CreatorShell>
-
-      <SupportShell>
-        <CenterColumn>
-          {/* Workstream N4: the Product Core Loop on Home — real progress
-              proof from logged workouts, one tap from a shareable post. */}
-          <Panel>
-            <HomeTabTrainingProof
-              proof={trainingProof}
-              onShareProgress={composer.handleShareProgress}
-            />
-          </Panel>
-
-          <Panel>
-            <DailyHealthLoop
-              streakDays={streakDays}
-              level={level}
-              progressPercent={progressPercent}
-              tierName={tierName}
-              logWorkoutPath={logWorkoutPath}
-              nutritionAction={nutritionAction}
-              onOpenNutrition={() => onTabChange('nutrition')}
-            />
-          </Panel>
-
-          {subLoading ? (
-            <DockSkeleton aria-hidden="true" />
-          ) : (
-            <Panel>
-              <SwanCoachDock
-                isElite={hasEliteAccess}
-                userName={displayName}
-                userRole={user?.role}
-                streakDays={streakDays}
-                level={level}
-                tierName={tierName}
-              />
-              {hasEliteAccess && (
-                <SwanCoachActionLauncher
-                  userName={displayName}
-                  userRole={user?.role}
-                  streakDays={streakDays}
-                  level={level}
-                />
-              )}
-            </Panel>
-          )}
-        </CenterColumn>
-      </SupportShell>
     </CreatorPage>
   );
 };

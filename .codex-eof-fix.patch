@@ -1,0 +1,10 @@
+diff --git a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+--- a/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
++++ b/frontend/src/components/DashBoard/workspaces/NutritionWorkspace.today.test.tsx
+@@ -160,1 +160,0 @@
+-
+diff --git a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
+--- a/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
++++ b/frontend/src/components/DashBoard/workspaces/clients-team/ClientNutritionEstimateReviewPanel.tsx
+@@ -254,1 +254,0 @@
+-

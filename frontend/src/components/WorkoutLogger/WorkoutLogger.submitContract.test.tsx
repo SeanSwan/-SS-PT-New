@@ -419,4 +419,37 @@ describe('T10 Phase 16 — sanitizer does not touch non-rating fields', () => {
     expect(body.exercises[0].sets[0].restTime).toBe(120);
     expect(body.exercises[0].sets[0].notes).toBe('first set of the day');
   });
+
+  it('preserves exercise classification metadata for challenge progress rules', () => {
+    const exercise = {
+      ...makeExercise({ exerciseName: 'Push Up' }),
+      category: 'push',
+      exerciseFamily: 'push',
+      movementPattern: 'horizontal_push',
+      bodyPartCategory: 'Chest',
+      muscleGroups: ['chest', 'triceps'],
+      tags: ['bodyweight', 'push'],
+    } as ExerciseEntry & {
+      category: string;
+      exerciseFamily: string;
+      movementPattern: string;
+      bodyPartCategory: string;
+      muscleGroups: string[];
+      tags: string[];
+    };
+
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [exercise],
+      overallIntensity: null,
+    });
+    const sentExercise = body.exercises[0] as typeof body.exercises[0] & typeof exercise;
+
+    expect(sentExercise.category).toBe('push');
+    expect(sentExercise.exerciseFamily).toBe('push');
+    expect(sentExercise.movementPattern).toBe('horizontal_push');
+    expect(sentExercise.bodyPartCategory).toBe('Chest');
+    expect(sentExercise.muscleGroups).toEqual(['chest', 'triceps']);
+    expect(sentExercise.tags).toEqual(['bodyweight', 'push']);
+  });
 });

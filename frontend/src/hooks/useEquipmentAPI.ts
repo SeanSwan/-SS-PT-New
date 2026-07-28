@@ -4,6 +4,33 @@
  */
 import { useCallback, useMemo } from 'react';
 import apiService from '../services/api.service';
+import type {
+  EquipmentItem,
+  EquipmentProfile,
+  EquipmentScanCandidateReviewPayload,
+  EquipmentScanCandidateReviewResponse,
+  EquipmentScanError,
+  EquipmentScanErrorPayload,
+  EquipmentScanResponse,
+  EquipmentStats,
+  ExerciseMapping,
+} from './equipmentApiTypes';
+export type {
+  AiScanData,
+  EquipmentItem,
+  EquipmentProfile,
+  EquipmentScanCandidate,
+  EquipmentScanCandidateReviewPayload,
+  EquipmentScanCandidateReviewResponse,
+  EquipmentScanDuplicate,
+  EquipmentScanError,
+  EquipmentScanErrorPayload,
+  EquipmentScanResponse,
+  EquipmentScanSession,
+  EquipmentStats,
+  ExerciseMapping,
+  ScanResult,
+} from './equipmentApiTypes';
 
 const API_BASE = '/api/equipment-profiles';
 const ACCEPTED_EQUIPMENT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -64,6 +91,17 @@ export function getEquipmentApiErrorMessage(err: unknown, fallback: string): str
   ) || fallback;
 }
 
+export function getEquipmentScanErrorPayload(err: unknown): EquipmentScanErrorPayload | undefined {
+  const payload = (err as ApiErrorLike)?.response?.data;
+  if (!payload || typeof payload !== 'object') return undefined;
+  const scanPayload = payload as EquipmentScanErrorPayload;
+  const hasScanDetails = Array.isArray(scanPayload.items)
+    || Array.isArray(scanPayload.candidates)
+    || Array.isArray(scanPayload.possibleItems)
+    || Array.isArray(scanPayload.duplicates)
+    || Boolean(scanPayload.scanSession);
+  return hasScanDetails ? scanPayload : undefined;
+}
 export function validateEquipmentPhoto(file: File): string | null {
   if (!ACCEPTED_EQUIPMENT_IMAGE_TYPES.includes(file.type)) {
     return 'Please upload a JPG, PNG, or WebP equipment photo.';
@@ -74,79 +112,6 @@ export function validateEquipmentPhoto(file: File): string | null {
   }
 
   return null;
-}
-
-export interface EquipmentProfile {
-  id: number;
-  trainerId: number;
-  name: string;
-  locationType: 'gym' | 'park' | 'home' | 'client_home' | 'custom';
-  description: string | null;
-  address: string | null;
-  isDefault: boolean;
-  isActive: boolean;
-  equipmentCount: number;
-  coverPhotoUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface EquipmentItem {
-  id: number;
-  profileId: number;
-  name: string;
-  trainerLabel: string | null;
-  category: string;
-  resistanceType: string | null;
-  description: string | null;
-  photoUrl: string | null;
-  aiScanData: AiScanData | null;
-  approvalStatus: 'pending' | 'approved' | 'rejected' | 'manual';
-  approvedAt: string | null;
-  isActive: boolean;
-  quantity: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AiScanData {
-  confidence: number;
-  boundingBox: { x: number; y: number; w: number; h: number } | null;
-  suggestedName: string;
-  suggestedCategory: string;
-  suggestedExercises: string[];
-  rawResponse: Record<string, unknown>;
-  latencyMs: number;
-  model: string;
-  scannedAt: string;
-}
-
-export interface ExerciseMapping {
-  id: number;
-  equipmentItemId: number;
-  exerciseKey: string;
-  exerciseName: string;
-  isCustomExercise: boolean;
-  customExerciseId: number | null;
-  isPrimary: boolean;
-  isAiSuggested: boolean;
-  confirmed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ScanResult {
-  confidence: number;
-  suggestedName: string;
-  suggestedCategory: string;
-  suggestedExercises: string[];
-  boundingBox: { x: number; y: number; w: number; h: number } | null;
-}
-
-export interface EquipmentStats {
-  profileCount: number;
-  itemCount: number;
-  pendingApprovals: number;
 }
 
 export function useEquipmentAPI() {
@@ -232,15 +197,15 @@ export function useEquipmentAPI() {
       const response = await apiService.post(`${API_BASE}/${profileId}/scan`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return response.data as { success: boolean; item: EquipmentItem; scanResult: ScanResult };
+      return response.data as EquipmentScanResponse;
     } catch (err) {
       // Preserve the HTTP status + a transient/non-transient hint so the caller
       // can auto-retry a flaky AI connection without burning quota on a 429/503.
       const status = (err as any)?.response?.status;
       const configurable = (err as any)?.response?.data?.configurable === true;
-      const scanError = new Error(getEquipmentApiErrorMessage(err, 'Scan failed')) as
-        Error & { status?: number; retryable?: boolean };
+      const scanError = new Error(getEquipmentApiErrorMessage(err, 'Scan failed')) as EquipmentScanError;
       if (typeof status === 'number') scanError.status = status;
+      scanError.scanResponse = getEquipmentScanErrorPayload(err);
       scanError.retryable = typeof status !== 'number'
         ? true
         : status >= 500 && status !== 503 && !configurable;
@@ -264,6 +229,15 @@ export function useEquipmentAPI() {
     );
   }, []);
 
+  const reviewScanCandidate = useCallback(async (
+    profileId: number,
+    payload: EquipmentScanCandidateReviewPayload,
+  ) => {
+    return apiFetch<EquipmentScanCandidateReviewResponse>(
+      `${API_BASE}/${profileId}/scan-candidates/${payload.candidateIndex}/review`,
+      { method: 'PUT', body: JSON.stringify(payload) },
+    );
+  }, []);
   // ── Exercise Mapping ──────────────────────────────────────────────
 
   const listExerciseMappings = useCallback(async (profileId: number, itemId: number) => {
@@ -304,13 +278,13 @@ export function useEquipmentAPI() {
   return useMemo(() => ({
     listProfiles, getProfile, createProfile, updateProfile, deleteProfile,
     listItems, addItem, updateItem, deleteItem,
-    scanEquipment, approveItem, rejectItem,
+    scanEquipment, approveItem, rejectItem, reviewScanCandidate,
     listExerciseMappings, addExerciseMapping, removeExerciseMapping, confirmExerciseMapping,
     getStats,
   }), [
     listProfiles, getProfile, createProfile, updateProfile, deleteProfile,
     listItems, addItem, updateItem, deleteItem,
-    scanEquipment, approveItem, rejectItem,
+    scanEquipment, approveItem, rejectItem, reviewScanCandidate,
     listExerciseMappings, addExerciseMapping, removeExerciseMapping, confirmExerciseMapping,
     getStats,
   ]);

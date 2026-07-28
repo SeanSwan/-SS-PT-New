@@ -41,6 +41,10 @@ describe('PostMediaDisplay image lightbox', () => {
 
     const dialog = screen.getByRole('dialog', { name: /full post image/i });
     expect(dialog).toBeInTheDocument();
+    expect(dialog.parentElement).toHaveAttribute(
+      'style',
+      expect.stringContaining(`--post-lightbox-backdrop-image: url(\"${imagePost.mediaUrl}\")`),
+    );
     expect(screen.getByRole('img', { name: /full post image/i })).toHaveAttribute('src', imagePost.mediaUrl);
 
     await user.keyboard('{Escape}');
@@ -51,11 +55,16 @@ describe('PostMediaDisplay image lightbox', () => {
   });
   it('keeps uploaded images out of the gradient-backed hero and preserves contain-fit modal images', () => {
     const displaySource = readFileSync(resolve(__dirname, './components/PostMediaDisplay.tsx'), 'utf8');
+    const lightboxSource = readFileSync(resolve(__dirname, './components/PostMediaLightbox.tsx'), 'utf8');
     const lightboxStyles = readFileSync(resolve(__dirname, './components/PostMediaLightbox.styles.ts'), 'utf8');
 
     expect(displaySource).toContain('<ImageMediaButton');
     expect(displaySource).toContain('<HeroArea $bgImage={null} $gradient={gradient} $hasImage={false}>');
     expect(displaySource).not.toContain('$bgImage={heroImage}');
+    expect(lightboxSource).toContain('const safeSrc = sanitizeImageUrl(src);');
+    expect(lightboxSource).toContain('cssUrlValue(safeSrc)');
+    expect(lightboxStyles).toContain('background-image: var(--post-lightbox-backdrop-image);');
+    expect(lightboxStyles).toContain('filter: blur(32px) saturate(1.22) brightness(0.58);');
     expect(lightboxStyles).toContain('object-fit: contain');
     expect(lightboxStyles).toContain('max-height: calc(92vh - 64px);');
   });

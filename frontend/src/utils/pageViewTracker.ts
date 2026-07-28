@@ -1,3 +1,5 @@
+import { normalizePageViewPath, shouldSkipPageViewPath } from './pageViewTrackerRules';
+
 /**
  * Anonymous Page View Tracker
  * ===========================
@@ -10,16 +12,15 @@ const API_BASE = import.meta.env.VITE_API_BASE || '';
 let lastTrackedPath = '';
 
 export function trackPageView(path?: string) {
-  const pagePath = path || window.location.pathname;
+  const pagePath = normalizePageViewPath(path || window.location.pathname);
+
+  if (!pagePath) return;
 
   // Don't re-track the same page
   if (pagePath === lastTrackedPath) return;
 
-  // Skip admin dashboard pages — these inflate visitor counts
-  if (pagePath.startsWith('/dashboard')) return;
-
-  // Skip login/auth pages
-  if (pagePath === '/login' || pagePath === '/register' || pagePath === '/auth') return;
+  // Skip admin dashboard and login-only auth pages; signup/register are acquisition visits.
+  if (shouldSkipPageViewPath(pagePath)) return;
 
   lastTrackedPath = pagePath;
 

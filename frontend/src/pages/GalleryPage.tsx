@@ -1078,6 +1078,40 @@ const BackButtonFull = styled(BackButton)`
   text-align: center;
 `;
 
+const DownloadAllBar = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 22px;
+`;
+
+const DownloadAllButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: var(--midnight-sapphire, #002060);
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-purple, #8B5CF6));
+  transition: opacity 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  &:hover:not(:disabled) { opacity: 0.92; box-shadow: 0 6px 22px var(--accent-primary-glow, rgba(96, 192, 240, 0.4)); }
+  &:disabled { opacity: 0.6; cursor: progress; }
+  @media (prefers-reduced-motion: no-preference) {
+    &:active:not(:disabled) { transform: translateY(1px); }
+  }
+`;
+
+const DownloadAllHint = styled.span`
+  font-size: 12px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+`;
+
 const LoadingShimmer = styled.div`
   width: 100%;
   height: 200px;
@@ -1097,6 +1131,7 @@ const GalleryPage: React.FC = () => {
   // State
   const [events, setEvents] = useState<GalleryEventSummary[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<GalleryEventSummary | null>(null);
   const [galleryToken, setGalleryToken] = useState<string | null>(() => {
     // Restore gallery session on back-button navigation
@@ -1642,6 +1677,29 @@ const GalleryPage: React.FC = () => {
     }
   };
 
+  // Download the whole event as a single ZIP. Direct navigation with the access
+  // token as a query param (the backend accepts ?token=) so the browser streams
+  // the zip to disk — no in-tab buffering that would OOM on large galleries.
+  const handleDownloadAll = () => {
+    if (!galleryToken || downloadingAll) return;
+    const eventSlug = selectedEvent?.slug || slug || gateSlug;
+    if (!eventSlug) return;
+    setDownloadingAll(true);
+    try {
+      const url = `${API_BASE}/api/gallery/events/${encodeURIComponent(eventSlug)}/download-all?token=${encodeURIComponent(galleryToken)}`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${eventSlug}-photos.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      // The browser owns the actual streaming download from here; re-enable the
+      // button shortly so a stalled request doesn't lock it forever.
+      window.setTimeout(() => setDownloadingAll(false), 4000);
+    }
+  };
+
   // Determine if we're in photo grid view (for credit pill visibility)
   const isPhotoGridView = !!galleryToken && photos.length > 0 && lightboxIndex === null;
 
@@ -1819,6 +1877,20 @@ const GalleryPage: React.FC = () => {
               </PhotographerNote>
             )}
           </>
+        )}
+
+        {selectedEvent && !loading && photos.length > 0 && (
+          <DownloadAllBar>
+            <DownloadAllButton type="button" onClick={handleDownloadAll} disabled={downloadingAll} aria-label={`Download all ${photos.length} photos as a ZIP file`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {downloadingAll ? 'Preparing ZIP…' : `Download all ${photos.length} photos (ZIP)`}
+            </DownloadAllButton>
+            <DownloadAllHint>Free · one zip file · large galleries may take a moment</DownloadAllHint>
+          </DownloadAllBar>
         )}
 
         {/* Gallery Info Card — actions for message, donation, VIP */}

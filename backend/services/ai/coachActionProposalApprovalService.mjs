@@ -196,6 +196,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       intensity: payload.intensity,
       plannedAssignment: payload.plannedAssignment,
       scheduledSessionId: payload.scheduledSessionId,
+      source: payload.source,
       trainerId: req.user.id,
       userRole: req.user.role,
       sequelize: db,

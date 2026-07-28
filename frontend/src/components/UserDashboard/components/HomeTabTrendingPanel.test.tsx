@@ -1,5 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import HomeTabTrendingPanel from './HomeTabTrendingPanel';
 
 const tags = [
@@ -11,25 +11,37 @@ const tags = [
 afterEach(() => cleanup());
 
 describe('HomeTabTrendingPanel', () => {
-  it('renders ranked real-data trend rows without decorative sparkline polylines', () => {
-    const { container } = render(<HomeTabTrendingPanel trendingTags={tags} trendingLoading={false} />);
+  it('renders ranked real-data trend rows as clickable feed filters', () => {
+    const onSelectTag = vi.fn();
+    const { container } = render(
+      <HomeTabTrendingPanel
+        trendingTags={tags}
+        trendingLoading={false}
+        onSelectTag={onSelectTag}
+      />
+    );
 
     expect(screen.getByText('3 signals')).toBeTruthy();
     const list = screen.getByRole('list', { name: 'Trending community topics' });
     const rows = within(list).getAllByRole('listitem');
+    const buttons = within(list).getAllByRole('button');
 
     expect(rows).toHaveLength(3);
     expect(rows[0].textContent).toContain('01');
     expect(rows[0].textContent).toContain('#StrengthSurge');
     expect(rows[0].textContent).toContain('24');
-    expect(rows[0].getAttribute('aria-label')).toBe('#StrengthSurge, 24 posts');
+    expect(buttons[0]).toHaveAttribute('aria-label', 'Open #StrengthSurge posts, 24 posts');
     expect(rows[2].textContent).toContain('New');
-    expect(rows[2].getAttribute('aria-label')).toBe('#new-season, New signal');
+    expect(buttons[2]).toHaveAttribute('aria-label', 'Open #new-season posts, New signal');
+
+    fireEvent.click(buttons[0]);
+
+    expect(onSelectTag).toHaveBeenCalledWith(tags[0]);
     expect(container.querySelector('polyline')).toBeNull();
   });
 
   it('keeps loading and empty states honest', () => {
-    render(<HomeTabTrendingPanel trendingTags={[]} trendingLoading />);
+    render(<HomeTabTrendingPanel trendingTags={[]} trendingLoading onSelectTag={vi.fn()} />);
 
     expect(screen.getByText('Syncing')).toBeTruthy();
     expect(screen.getByText('Loading trend signals.')).toBeTruthy();

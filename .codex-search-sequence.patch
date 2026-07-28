@@ -1,0 +1,36 @@
+diff --git a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+--- a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
++++ b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+@@ -97,23 +97,28 @@
+   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
++  const requestSequence = useRef(0);
+ 
+   const doSearch = useCallback(async (rawQuery: string) => {
++    const requestId = ++requestSequence.current;
+     const trimmed = rawQuery.trim();
+     if (!trimmed) {
+       setAllResults([]);
+       setSearched(false);
+       setSearchError(false);
+       return;
+     }
+ 
+     setLoading(true);
+     setSearched(true);
+     setSearchError(false);
+     try {
+-      setAllResults(await fetchFoodSearchResults(trimmed));
++      const results = await fetchFoodSearchResults(trimmed);
++      if (requestId === requestSequence.current) setAllResults(results);
+     } catch {
+-      setAllResults([]);
+-      setSearchError(true);
++      if (requestId === requestSequence.current) {
++        setAllResults([]);
++        setSearchError(true);
++      }
+     } finally {
+-      setLoading(false);
++      if (requestId === requestSequence.current) setLoading(false);
+     }
+   }, []);

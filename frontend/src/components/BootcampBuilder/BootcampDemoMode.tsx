@@ -18,7 +18,7 @@ import {
   StationJumpButton,
   StationJumpRail,
 } from './BootcampDemoMode.floorStyles';
-import { getVideoPoster, isDirectVideoFile, isEmbeddableVideoUrl } from './bootcampVideoEmbed';
+import { getDemoMediaPillLabel, getExerciseDemoMedia, getStationDemoReadiness } from './bootcampExerciseMedia';
 import {
   DemoExerciseList,
   DemoExerciseMeta,
@@ -43,54 +43,18 @@ import {
 } from './BootcampDemoMode.styles';
 
 export { getFloorDirectorModel } from './BootcampDemoMode.floorDirector';
+export { getDemoMediaPillLabel, getExerciseDemoMedia, getStationDemoReadiness } from './bootcampExerciseMedia';
 
 interface BootcampDemoModeProps {
   bootcamp: GeneratedBootcamp;
   onSelectExercise: (ex: BootcampExercise) => void;
 }
 
-export function getExerciseDemoMedia(exercise: BootcampExercise) {
-  const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null;
-  // The full-length video opened "for depth" (file plays inline in the modal,
-  // YouTube/Vimeo plays via embed).
-  const videoUrl = exercise.videoUrl || catalogVideoUrl;
-  const poster = exercise.thumbnailUrl
-    || exercise.imageUrl
-    || exercise.catalogVideoSample?.thumbnailUrl
-    || getVideoPoster(videoUrl)        // derive a YouTube thumbnail so the tile isn't empty
-    || null;
-  // The GIF-style looping preview: a dedicated short R2 loop (Codex's
-  // previewVideoUrl column) when present, else fall back to looping the full
-  // video ONLY when it's a direct file we can safely autoplay muted.
-  const previewUrl = exercise.previewVideoUrl
-    || (isDirectVideoFile(videoUrl) ? videoUrl : null);
-  return {
-    poster,
-    videoUrl,
-    previewUrl,
-    previewIsFile: isDirectVideoFile(previewUrl),
-    isCatalogVideo: !exercise.videoUrl && Boolean(catalogVideoUrl),
-    canPreviewVideo: isDirectVideoFile(previewUrl),
-    isEmbedVideo: isEmbeddableVideoUrl(videoUrl),
-  };
-}
-
-type DemoMedia = ReturnType<typeof getExerciseDemoMedia>;
-
-export function getDemoMediaPillLabel(media: DemoMedia): string {
-  if (media.previewIsFile) return media.isCatalogVideo ? 'Catalog clip' : 'Looping clip';
-  if (!media.videoUrl) return 'Media slot';
-  return media.isCatalogVideo ? 'Catalog video' : 'Tap to play';
-}
-
-export function getStationDemoReadiness(exercises: BootcampExercise[]) {
-  const totalExercises = exercises.length;
-  const readyVideos = exercises.filter((exercise) => {
-    const media = getExerciseDemoMedia(exercise);
-    return Boolean(media.videoUrl || media.previewUrl);
-  }).length;
-  return `${readyVideos}/${totalExercises} demos ready`;
-}
+const getExercisePrescriptionLabel = (exercise: BootcampExercise): string => {
+  const structured = exercise.programmingIntent?.prescriptionLabel || exercise.programmingIntent?.scheme;
+  if (structured) return `${structured} / ${exercise.restSec}s rest`;
+  return `${exercise.durationSec}s work / ${exercise.restSec}s rest`;
+};
 
 const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectExercise }) => {
   const stationExercises = useMemo(() => {
@@ -251,7 +215,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                       </DemoMediaStage>
                       <DemoExerciseName>{exerciseIndex + 1}. {exercise.exerciseName}</DemoExerciseName>
                       <DemoExerciseMeta>
-                        {exercise.durationSec}s work / {exercise.restSec}s rest
+                        {getExercisePrescriptionLabel(exercise)}
                       </DemoExerciseMeta>
                     </DemoExerciseSelectButton>
                     {media.videoUrl && (

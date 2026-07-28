@@ -6,6 +6,9 @@ import {
   hasIncompleteWorkoutSets,
   isCurrentWorkoutAssignmentLoggable,
   normalizeWorkoutDate,
+  planAssignmentPickerItemToContext,
+  planAssignmentPickerItemToEntries,
+  planAssignmentPickerItemToSubmitAssignment,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
 
@@ -151,6 +154,51 @@ describe('WorkoutLogger helpers', () => {
         notes: 'Keep chest tall',
       },
     ]);
+  });
+
+
+  it('loads generated picker days as logger rows while only current items submit assignment metadata', () => {
+    let nextId = 0;
+    const makeLocalId = (prefix: string) => `${prefix}-${nextId += 1}`;
+    const pickerItem = {
+      id: 'plan-6m:w1:d2:homework',
+      assignmentKey: 'plan-6m:w1:d2:homework',
+      planId: 'plan-6m',
+      planTitle: 'Six Month Arc',
+      assignmentType: 'homework',
+      canSubmitPlannedAssignment: true,
+      isLoadable: true,
+      title: 'Upper Strength',
+      weekNumber: 1,
+      dayNumber: 2,
+      dayLabel: 'Upper',
+      exerciseCount: 1,
+      firstExerciseName: 'Row',
+      exercises: [{ exerciseId: 'row', exerciseName: 'Row', sets: 3, reps: 8 }],
+    };
+
+    expect(planAssignmentPickerItemToEntries(pickerItem, makeLocalId)[0]).toMatchObject({
+      exerciseId: 'row',
+      exerciseName: 'Row',
+      sets: expect.arrayContaining([expect.objectContaining({ reps: 8, rpe: null })]),
+    });
+    expect(planAssignmentPickerItemToContext(pickerItem)).toMatchObject({
+      assignmentKey: 'plan-6m:w1:d2:homework',
+      planId: 'plan-6m',
+      source: 'workout_plan',
+      title: 'Upper Strength',
+    });
+    expect(planAssignmentPickerItemToSubmitAssignment(pickerItem)).toMatchObject({
+      assignmentKey: 'plan-6m:w1:d2:homework',
+    });
+
+    expect(planAssignmentPickerItemToSubmitAssignment({
+      ...pickerItem,
+      id: 'plan-6m:w1:d4:homework',
+      assignmentKey: 'plan-6m:w1:d4:homework',
+      canSubmitPlannedAssignment: false,
+      submitMode: 'draft_only',
+    })).toBeNull();
   });
 
   it('keeps coach duration rows review-only instead of inventing reps', () => {

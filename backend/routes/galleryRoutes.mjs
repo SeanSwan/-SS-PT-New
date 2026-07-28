@@ -11,6 +11,7 @@
  *   POST   /api/gallery/events/:slug/access — Email + password → gallery access token
  *   GET    /api/gallery/events/:slug/photos — Get photos (requires gallery token)
  *   GET    /api/gallery/photos/:id/download — Download full-res photo
+ *   GET    /api/gallery/events/:slug/download-all - Download all event photos as ZIP
  *   POST   /api/gallery/enhancement-request — Submit enhancement request (3 free/event, then credits)
  *   GET    /api/gallery/credits             — Get current credit status
  *   POST   /api/gallery/purchase-credits    — Purchase enhancement credits via Stripe
@@ -26,6 +27,8 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { ZipArchive } from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 import GalleryEvent from '../models/GalleryEvent.mjs';
 import GalleryPhoto from '../models/GalleryPhoto.mjs';
@@ -86,6 +89,17 @@ const downloadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 200,
   message: { success: false, error: 'Download limit reached. Please try again later.' },
+});
+
+// Tighter limiter for full-gallery ZIP downloads. Each request streams the whole
+// event through the server and is keyed by gallery visitor after token auth.
+const downloadAllLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 15,
+  message: { success: false, error: 'Too many full-gallery downloads. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `ga_${req.galleryAccess?.visitorId ?? 'anon'}`,
 });
 
 /**
@@ -388,6 +402,124 @@ router.get('/photos/:id/download', downloadLimiter, requireGalleryAccess, async 
   }
 });
 
+/**
+ * GET /api/gallery/events/:slug/download-all
+ * Stream every photo in the event as a single ZIP (requires gallery access).
+ * Guards run before zip headers, because JSON errors are impossible once bytes
+ * start flowing. Objects are streamed from R2 one at a time to keep memory flat.
+ */
+router.get('/events/:slug/download-all', requireGalleryAccess, downloadAllLimiter, async (req, res) => {
+  if (req.galleryAccess.slug !== req.params.slug) {
+    return res.status(403).json({ success: false, error: 'Access token does not match this event' });
+  }
+
+  let photos;
+  try {
+    [photos] = await sequelize.query(
+      `SELECT photo_number as "photoNumber", display_name as "displayName", storage_key as "storageKey"
+       FROM gallery_photos WHERE event_id = :eventId ORDER BY photo_number ASC`,
+      { replacements: { eventId: req.galleryAccess.eventId } }
+    );
+  } catch (err) {
+    logger.error('[Gallery] download-all query error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load photos' });
+  }
+
+  if (!photos || photos.length === 0) {
+    return res.status(404).json({ success: false, error: 'No photos to download' });
+  }
+
+  let r2Client;
+  try {
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.status(503).json({ success: false, error: 'Photo storage is not configured for downloads' });
+    }
+    r2Client = getR2Client();
+  } catch (err) {
+    logger.error('[Gallery] download-all R2 init error:', err.message);
+    return res.status(503).json({ success: false, error: 'Photo storage is unavailable' });
+  }
+
+  const bucket = process.env.R2_BUCKET_NAME;
+  const zipSlug = String(req.params.slug)
+    .replace(/[^A-Za-z0-9._-]/g, '_')
+    .slice(0, 120) || 'gallery';
+  const zipName = `${zipSlug}-photos.zip`;
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+  const archive = new ZipArchive({ store: true });
+  let aborted = false;
+
+  archive.on('warning', (err) => logger.warn('[Gallery] download-all archive warning:', err?.message));
+  archive.on('error', (err) => {
+    logger.error('[Gallery] download-all archive error:', err?.message);
+    aborted = true;
+    if (!res.writableEnded) res.destroy(err);
+  });
+
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      archive.destroy();
+    }
+  });
+
+  archive.pipe(res);
+
+  const usedNames = new Set();
+  let added = 0;
+
+  for (const photo of photos) {
+    if (aborted) break;
+    if (!photo.storageKey) continue;
+
+    const safeName = String(photo.displayName || 'photo')
+      .replace(/[\\/:*?"<>|\x00-\x1F]/g, '_')
+      .slice(0, 120);
+    let entryName = `${String(photo.photoNumber).padStart(3, '0')}_${safeName}.jpg`;
+    let dedupe = 1;
+    while (usedNames.has(entryName)) {
+      entryName = `${String(photo.photoNumber).padStart(3, '0')}_${dedupe++}_${safeName}.jpg`;
+    }
+    usedNames.add(entryName);
+
+    try {
+      const obj = await r2Client.send(new GetObjectCommand({ Bucket: bucket, Key: photo.storageKey }));
+      await new Promise((resolve, reject) => {
+        const onEntry = () => { cleanup(); resolve(); };
+        const onErr = (e) => { cleanup(); reject(e); };
+        const cleanup = () => {
+          archive.off('entry', onEntry);
+          archive.off('error', onErr);
+          obj.Body.off('error', onErr);
+        };
+        archive.once('entry', onEntry);
+        archive.once('error', onErr);
+        obj.Body.once('error', onErr);
+        archive.append(obj.Body, { name: entryName });
+      });
+      added += 1;
+    } catch (err) {
+      logger.error(`[Gallery] download-all skip ${photo.storageKey}:`, err?.message);
+    }
+  }
+
+  if (aborted) return;
+
+  if (added === 0) {
+    logger.error('[Gallery] download-all: no readable photos for event', req.galleryAccess.eventId);
+  }
+
+  try {
+    await archive.finalize();
+  } catch (err) {
+    logger.error('[Gallery] download-all finalize error:', err?.message);
+    if (!res.writableEnded) res.destroy(err);
+  }
+});
 // ── Enhancement Credits Constants ─────────────────────────────────────────
 
 const FREE_ENHANCEMENTS_PER_EVENT = 3;

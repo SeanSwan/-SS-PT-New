@@ -35,6 +35,7 @@ import styled, { keyframes } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { Shield, Search, Users } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { FEATURE_ACCESS_FEATURES } from './featureAccessCatalog';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -329,19 +330,11 @@ const SkeletonRow = styled.div`
 `;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Available Features
-// ────────────────────────────────────────────────────��────────
-const FEATURES = [
-  { key: 'content-studio', label: 'Content Studio' },
-  { key: 'workout-planner-pro', label: 'Workout Planner Pro' },
-];
-
-// ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const FeatureAccessPage: React.FC = () => {
   const { authAxios } = useAuth();
-  const [selectedFeature, setSelectedFeature] = useState(FEATURES[0].key);
+  const [selectedFeature, setSelectedFeature] = useState(FEATURE_ACCESS_FEATURES[0].key);
   const [users, setUsers] = useState<UserFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -419,7 +412,7 @@ const FeatureAccessPage: React.FC = () => {
           onChange={(e) => setSelectedFeature(e.target.value)}
           aria-label="Select feature to manage"
         >
-          {FEATURES.map(f => (
+          {FEATURE_ACCESS_FEATURES.map(f => (
             <option key={f.key} value={f.key}>{f.label}</option>
           ))}
         </FeatureSelect>

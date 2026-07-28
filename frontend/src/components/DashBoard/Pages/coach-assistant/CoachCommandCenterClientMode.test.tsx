@@ -11,36 +11,37 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
+const openCommandTools = () => {
+  fireEvent.click(screen.getByRole('button', { name: /^More command tools$/i }));
+  return screen.getByRole('menu', { name: /^More command tools$/i });
+};
 
 describe('CoachCommandCenterPage client mode', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('renders a client-safe command bridge without operator-only tabs, drawer, or PLAUD import', () => {
+  it('renders a client-safe talk bridge without operator-only tabs, drawer, or PLAUD import', () => {
     renderPage('/dashboard/client/coach-assistant?teachPrompt=Teach%20me%20today', 'client');
 
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
     expect(useCoachIntakeQueueMock).toHaveBeenCalledWith({ scope: 'actionable', limit: 12, enabled: false });
     expect(screen.getByText(/Your coach terminal/i)).toBeInTheDocument();
     expect(screen.getAllByText(/My training/i).length).toBeGreaterThan(0);
-    const headerActions = screen.getByLabelText('Coach header quick actions');
-    expect(within(headerActions).getByRole('link', { name: /Log workout for My workout log/i }))
-      .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
-    expect(within(headerActions).getByRole('link', { name: /Open workouts for My workout log/i }))
-      .toHaveAttribute('href', '/dashboard/client/workouts');
     expect(screen.getByRole('button', { name: /^New coach chat$/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /^Chat$/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Talk$/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /^History$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Operations$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Import PLAUD/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Review/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^More coach actions$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Onboard client$/i })).not.toBeInTheDocument();
-    const workoutActions = screen.getByLabelText('Workout surfaces');
-    expect(within(workoutActions).getByRole('link', { name: /^Open workout logger$/i }))
+    expect(screen.queryByLabelText('Coach header quick actions')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Workout surfaces')).not.toBeInTheDocument();
+
+    const tools = openCommandTools();
+    expect(within(tools).queryByRole('menuitem', { name: /^Audio$/i })).not.toBeInTheDocument();
+    expect(within(tools).getByRole('menuitem', { name: /^Open workout logger$/i }))
       .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
-    expect(within(workoutActions).getByRole('link', { name: /^Open workout planner$/i }))
+    expect(within(tools).getByRole('menuitem', { name: /^Open workout planner$/i }))
       .toHaveAttribute('href', '/dashboard/client/workouts');
+    expect(within(tools).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });
 
@@ -101,6 +102,6 @@ describe('CoachCommandCenterPage client mode', () => {
 
     expect(await screen.findByRole('link', { name: /back to client dashboard/i }))
       .toHaveAttribute('href', '/dashboard/client/overview');
-    expect(screen.queryByRole('button', { name: /^Operations$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^More coach actions$/i })).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
 import styled, { keyframes, css } from 'styled-components';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -20,18 +19,10 @@ import {
   X,
 } from 'lucide-react';
 
-import { RootState, AppDispatch } from '../../redux/store';
-import {
-  fetchNotifications,
-  markAsRead,
-  markAllAsRead,
-  removeNotification,
-  addNotification,
-  setUnreadCount,
-  Notification,
-} from '../../store/slices/notificationSlice';
-import api from '../../services/api';
-import { useSocket } from '../../context/SocketContext';
+import { Notification } from '../../store/slices/notificationSlice';
+import { useNotificationCenter } from '../../hooks/useNotificationCenter';
+import HeaderNotificationActions, { isSafeInternalHref } from './EnhancedNotificationSection.actions';
+import HeaderNotificationSettingsControl, { HeaderNotificationPreferencesModal } from './EnhancedNotificationSection.settings';
 
 // ─── Design Tokens ───────────────────────────────────────────────
 const TOKENS = {
@@ -119,7 +110,9 @@ const BellButton = styled.button<{ $pulsing: boolean }>`
   align-items: center;
   justify-content: center;
   width: 44px;
+  min-width: 44px;
   height: 44px;
+  min-height: 44px;
   border: none;
   border-radius: 12px;
   background: transparent;
@@ -284,6 +277,13 @@ const HeaderTitle = styled.h3`
   letter-spacing: -0.01em;
 `;
 
+const HeaderControls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
 const MarkAllButton = styled.button`
   display: flex;
   align-items: center;
@@ -298,7 +298,7 @@ const MarkAllButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease;
-  min-height: 32px;
+  min-height: 44px;
 
   &:hover {
     background: rgba(139, 92, 246, 0.22);
@@ -527,67 +527,46 @@ const formatRelativeTime = (dateString: string): string => {
 // ─── Component ──────────────────────────────────────────────────
 
 const EnhancedNotificationSection: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { socket } = useSocket();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    refresh,
+    markAsClicked: markNotificationClicked,
+    markAllAsRead: markAllNotificationsRead,
+    removeNotification: deleteNotification,
+    snoozeNotification,
+  } = useNotificationCenter({ subscribeToSocket: true });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
   const [badgeAnimate, setBadgeAnimate] = useState(false);
   const previousUnreadRef = useRef(0);
-
-  // Mobile drag state
   const [dragY, setDragY] = useState(0);
   const dragStartRef = useRef<number | null>(null);
 
-  // Redux state
-  const { notifications, unreadCount, loading } = useSelector(
-    (state: RootState) => state.notifications
-  );
-
-  // ── Swan Pulse: trigger when new unread arrives while dropdown is closed ──
+  // Swan Pulse: trigger when new unread arrives while dropdown is closed
   useEffect(() => {
     if (!isOpen && unreadCount > previousUnreadRef.current) {
       setIsPulsing(true);
       setBadgeAnimate(true);
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setIsPulsing(false);
         setBadgeAnimate(false);
-      }, 3700); // 3 cycles of 1.2s animation
-      return () => clearTimeout(timer);
+      }, 3700);
+      return () => window.clearTimeout(timer);
     }
     previousUnreadRef.current = unreadCount;
   }, [unreadCount, isOpen]);
-
-  // ── Socket.IO listeners ──
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewNotification = (data: Notification) => {
-      dispatch(addNotification(data));
-    };
-
-    const handleNotificationCount = (data: { count?: number; unreadCount?: number }) => {
-      dispatch(setUnreadCount(data.unreadCount ?? data.count ?? 0));
-    };
-
-    socket.on('notification:new', handleNewNotification);
-    socket.on('notification:count', handleNotificationCount);
-
-    return () => {
-      socket.off('notification:new', handleNewNotification);
-      socket.off('notification:count', handleNotificationCount);
-    };
-  }, [socket, dispatch]);
-
-  // ── Fetch notifications when dropdown opens ──
+  // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      dispatch(fetchNotifications());
+      refresh();
     }
-  }, [dispatch, isOpen]);
-
+  }, [isOpen, refresh]);
   // ── Click-outside handler ──
   useEffect(() => {
     if (!isOpen) return;
@@ -621,27 +600,55 @@ const EnhancedNotificationSection: React.FC = () => {
   }, []);
 
   const handleNotificationClick = useCallback(
-    (notification: Notification) => {
-      dispatch(markAsRead(notification.id));
-      if (notification.link) {
-        navigate(notification.link);
+    async (notification: Notification) => {
+      await markNotificationClicked(notification.id);
+      const link = typeof notification.link === 'string' ? notification.link.trim() : '';
+      if (isSafeInternalHref(link)) {
+        navigate(link);
         setIsOpen(false);
       }
     },
-    [dispatch, navigate]
+    [markNotificationClicked, navigate]
+  );
+
+  const handleNotificationActionLink = useCallback(
+    async (notification: Notification, href: string) => {
+      await markNotificationClicked(notification.id);
+      const link = href.trim();
+      if (isSafeInternalHref(link)) {
+        navigate(link);
+        setIsOpen(false);
+      }
+    },
+    [markNotificationClicked, navigate]
+  );
+
+  const handleNotificationSnooze = useCallback(
+    async (notification: Notification, durationMinutes: number) => {
+      await snoozeNotification(notification.id, durationMinutes);
+    },
+    [snoozeNotification]
   );
 
   const handleMarkAllRead = useCallback(() => {
-    dispatch(markAllAsRead());
-  }, [dispatch]);
+    void markAllNotificationsRead();
+  }, [markAllNotificationsRead]);
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsOpen(true);
+    setIsOpen(false);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsOpen(false);
+  }, []);
 
   const handleDelete = useCallback(
     (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      dispatch(removeNotification(id));
-      api.delete(`/notifications/${id}`).catch(() => {});
+      void deleteNotification(id);
     },
-    [dispatch]
+    [deleteNotification]
   );
 
   // ── Mobile drag-to-dismiss ──
@@ -670,12 +677,15 @@ const EnhancedNotificationSection: React.FC = () => {
     <>
       <Header>
         <HeaderTitle>Notifications</HeaderTitle>
-        {unreadCount > 0 && (
-          <MarkAllButton onClick={handleMarkAllRead}>
-            <CheckCircle size={14} />
-            Mark all read
-          </MarkAllButton>
-        )}
+        <HeaderControls>
+          {unreadCount > 0 && (
+            <MarkAllButton type="button" onClick={handleMarkAllRead}>
+              <CheckCircle size={14} />
+              Mark all read
+            </MarkAllButton>
+          )}
+          <HeaderNotificationSettingsControl onOpen={handleOpenSettings} />
+        </HeaderControls>
       </Header>
 
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
@@ -723,6 +733,11 @@ const EnhancedNotificationSection: React.FC = () => {
                     <NotifTitle $read={notif.read}>{notif.title}</NotifTitle>
                     <NotifMessage>{notif.message}</NotifMessage>
                     <NotifTime>{formatRelativeTime(notif.createdAt)}</NotifTime>
+                    <HeaderNotificationActions
+                      notification={notif}
+                      onOpenLink={handleNotificationActionLink}
+                      onSnooze={handleNotificationSnooze}
+                    />
                   </NotifContent>
 
                   <DeleteBtn
@@ -778,6 +793,11 @@ const EnhancedNotificationSection: React.FC = () => {
           </BottomSheet>
         </>
       )}
+
+      <HeaderNotificationPreferencesModal
+        open={settingsOpen}
+        onClose={handleCloseSettings}
+      />
     </div>
   );
 };

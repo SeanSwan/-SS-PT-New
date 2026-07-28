@@ -51,13 +51,22 @@ describe('Messaging safe-error source contract', () => {
     expect(helperSource).toContain('getSafeMessagingErrorMessage');
   });
 
+  it('keeps attachment controls on 44px touch targets', () => {
+    const styles = source('./MessageThread.styles.ts');
+    const removeButtonBlock = styles.match(/export const AttachmentRemoveButton = styled\.button`([\s\S]*?)`;/)?.[1] || '';
+
+    expect(removeButtonBlock).toContain('min-width: 44px;');
+    expect(removeButtonBlock).toContain('min-height: 44px;');
+  });
   it('keeps the extracted messaging files under the line cap', () => {
     [
       './useMessaging.ts',
       './useMessagingSocketEffects.ts',
+      './useMessaging.helpers.ts',
       './useMessagingLifecycleEffects.ts',
       './messagingApiFetch.ts',
       './MessageThread.styles.ts',
+      './MessageAttachmentList.tsx',
       './ConversationListPanel.tsx',
       './ConversationListPanel.styles.ts',
       './ConversationListPanel.groupThread.test.tsx',

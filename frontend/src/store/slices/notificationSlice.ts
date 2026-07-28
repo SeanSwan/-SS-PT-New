@@ -1,39 +1,31 @@
 /**
  * Notification Slice
- * Manages the state for user notifications including unread counts and notification data
+ * Manages user notifications, unread counts, and canonical API response shapes.
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
 import { logger } from '@/utils/logger';
+import {
+  normalizeNotification,
+  normalizeNotificationDetailPayload,
+  normalizeNotificationsPayload,
+} from './notificationPayloadNormalization';
+import type { Notification, NotificationState } from './notificationTypes';
 
-// Define the notification interface
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'orientation' | 'system' | 'order' | 'workout' | 'client' | 'admin';
-  read: boolean;
-  createdAt: string;
-  link?: string;
-  image?: string;
-  userId: string;
-  sender?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-}
+export type {
+  Notification,
+  NotificationAction,
+  NotificationPriority,
+  NotificationSender,
+  NotificationState,
+  NotificationType,
+} from './notificationTypes';
+export {
+  normalizeNotification,
+  normalizeNotificationDetailPayload,
+  normalizeNotificationsPayload,
+} from './notificationPayloadNormalization';
 
-// Define the notification state interface
-export interface NotificationState {
-  notifications: Notification[];
-  unreadCount: number;
-  loading: boolean;
-  error: string | null;
-  lastFetched: string | null;
-}
-
-// Initial state
 const initialState: NotificationState = {
   notifications: [],
   unreadCount: 0,
@@ -42,14 +34,24 @@ const initialState: NotificationState = {
   lastFetched: null
 };
 
-// Async thunks
+export const DEFAULT_SNOOZE_DURATION_MINUTES = 60;
+
+export interface SnoozeNotificationArgs {
+  notificationId: string;
+  durationMinutes?: number;
+}
+
+export interface ResolveNotificationActionArgs {
+  notificationId: string;
+  status: 'resolved' | 'dismissed';
+}
+
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchAll',
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      // Call the API to fetch notifications
       const response = await api.get('/api/notifications');
-      return response.data;
+      return normalizeNotificationsPayload(response.data);
     } catch (error: any) {
       logger.warn('[Notifications] Failed to fetch notifications:', error.message);
       return rejectWithValue(error.message || 'Failed to fetch notifications');
@@ -61,21 +63,60 @@ export const markAsRead = createAsyncThunk(
   'notifications/markAsRead',
   async (notificationId: string, { rejectWithValue }) => {
     try {
-      // Call the API to mark a notification as read
-      const response = await api.put(`/notifications/${notificationId}/read`);
-      return response.data;
+      const response = await api.put(`/api/notifications/${notificationId}/read`);
+      return normalizeNotificationDetailPayload(response.data, notificationId);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to mark notification as read');
     }
   }
 );
 
+export const markAsClicked = createAsyncThunk(
+  'notifications/markAsClicked',
+  async (notificationId: string, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/api/notifications/${notificationId}/click`);
+      return normalizeNotificationDetailPayload(response.data, notificationId);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to mark notification as clicked');
+    }
+  }
+);
+
+export const snoozeNotification = createAsyncThunk(
+  'notifications/snooze',
+  async (
+    { notificationId, durationMinutes = DEFAULT_SNOOZE_DURATION_MINUTES }: SnoozeNotificationArgs,
+    { rejectWithValue },
+  ) => {
+    try {
+      const response = await api.patch(`/api/notifications/${notificationId}/snooze`, { durationMinutes });
+      return normalizeNotificationDetailPayload(response.data, notificationId);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to snooze notification');
+    }
+  },
+);
+
+export const resolveNotificationAction = createAsyncThunk(
+  'notifications/resolveAction',
+  async (
+    { notificationId, status }: ResolveNotificationActionArgs,
+    { rejectWithValue },
+  ) => {
+    try {
+      const response = await api.patch(`/api/notifications/${notificationId}/action-status`, { status });
+      return normalizeNotificationDetailPayload(response.data, notificationId);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update notification action');
+    }
+  },
+);
 export const markAllAsRead = createAsyncThunk(
   'notifications/markAllAsRead',
   async (_, { rejectWithValue }) => {
     try {
-      // Call the API to mark all notifications as read
-      const response = await api.put('/notifications/read-all');
+      const response = await api.put('/api/notifications/read-all');
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to mark all notifications as read');
@@ -83,76 +124,76 @@ export const markAllAsRead = createAsyncThunk(
   }
 );
 
-// Create the slice
 const notificationSlice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    // Add a new notification (for real-time updates)
-    addNotification: (state, action: PayloadAction<Notification>) => {
-      state.notifications.unshift(action.payload);
-      if (!action.payload.read) {
-        state.unreadCount += 1;
+    addNotification: (state, action: PayloadAction<Partial<Notification>>) => {
+      const notification = normalizeNotification(action.payload);
+      const existingIndex = state.notifications.findIndex((item) => item.id === notification.id);
+
+      if (existingIndex !== -1) {
+        const wasUnread = !state.notifications[existingIndex].read;
+        state.notifications[existingIndex] = {
+          ...state.notifications[existingIndex],
+          ...notification,
+        };
+        if (wasUnread && notification.read) {
+          state.unreadCount = Math.max(0, state.unreadCount - 1);
+        } else if (!wasUnread && !notification.read) {
+          state.unreadCount += 1;
+        }
+        return;
       }
+
+      state.notifications.unshift(notification);
+      if (!notification.read) state.unreadCount += 1;
     },
-    // Remove a notification
     removeNotification: (state, action: PayloadAction<string>) => {
       const index = state.notifications.findIndex(n => n.id === action.payload);
       if (index !== -1) {
         const wasUnread = !state.notifications[index].read;
         state.notifications.splice(index, 1);
-        if (wasUnread) {
-          state.unreadCount = Math.max(0, state.unreadCount - 1);
-        }
+        if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
     },
-    // Clear all notifications
     clearNotifications: (state) => {
       state.notifications = [];
       state.unreadCount = 0;
     },
-    // Reset error state
     resetError: (state) => {
       state.error = null;
     },
-    // Manually set unread count (for badge synchronization)
     setUnreadCount: (state, action: PayloadAction<number>) => {
       state.unreadCount = action.payload;
     }
   },
   extraReducers: (builder) => {
     builder
-      // Handle fetchNotifications
       .addCase(fetchNotifications.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.loading = false;
-        // Make sure we have valid data, even if the response is empty or partially empty
-        state.notifications = action.payload?.notifications || [];
-        state.unreadCount = action.payload?.unreadCount || 0;
+        state.notifications = action.payload.notifications;
+        state.unreadCount = action.payload.unreadCount;
         state.lastFetched = new Date().toISOString();
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         logger.warn('Notification fetch rejected:', action.payload);
         state.loading = false;
         state.error = action.payload as string;
-        // On error, keep existing notifications rather than clearing them
-        // This preserves user experience when backend connections fail temporarily
       })
-      
-      // Handle markAsRead
       .addCase(markAsRead.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(markAsRead.fulfilled, (state, action) => {
         state.loading = false;
-        // Find and update the notification
         const notification = state.notifications.find(n => n.id === action.payload.id);
         if (notification && !notification.read) {
-          notification.read = true;
+          Object.assign(notification, action.payload, { read: true });
           state.unreadCount = Math.max(0, state.unreadCount - 1);
         }
       })
@@ -160,15 +201,63 @@ const notificationSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      
-      // Handle markAllAsRead
+      .addCase(markAsClicked.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markAsClicked.fulfilled, (state, action) => {
+        state.loading = false;
+        const notification = state.notifications.find(n => n.id === action.payload.id);
+        if (notification) {
+          const wasUnread = !notification.read;
+          Object.assign(notification, action.payload, { read: true });
+          if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
+        }
+      })
+      .addCase(markAsClicked.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(snoozeNotification.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(snoozeNotification.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.notifications.findIndex(n => n.id === action.payload.id);
+        if (index !== -1) {
+          const wasUnread = !state.notifications[index].read;
+          state.notifications.splice(index, 1);
+          if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
+        }
+      })
+      .addCase(snoozeNotification.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(resolveNotificationAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resolveNotificationAction.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.notifications.findIndex(n => n.id === action.payload.id);
+        if (index !== -1) {
+          const wasUnread = !state.notifications[index].read;
+          state.notifications.splice(index, 1);
+          if (wasUnread) state.unreadCount = Math.max(0, state.unreadCount - 1);
+        }
+      })
+      .addCase(resolveNotificationAction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
       .addCase(markAllAsRead.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(markAllAsRead.fulfilled, (state) => {
         state.loading = false;
-        // Mark all as read
         state.notifications.forEach(notification => {
           notification.read = true;
         });
@@ -181,10 +270,10 @@ const notificationSlice = createSlice({
   }
 });
 
-export const { 
-  addNotification, 
-  removeNotification, 
-  clearNotifications, 
+export const {
+  addNotification,
+  removeNotification,
+  clearNotifications,
   resetError,
   setUnreadCount
 } = notificationSlice.actions;

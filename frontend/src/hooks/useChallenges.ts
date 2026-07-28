@@ -1,9 +1,9 @@
 /**
  * useChallenges Hook
  * ==================
- * Fetches challenges from /api/v1/gamification/challenges and merges
- * with user participation data. Falls back to an empty state if the API is
- * unavailable; it never manufactures challenges.
+ * Fetches live challenge records and merges authenticated user participation
+ * data for the dashboard-mounted Challenges tab. API failures render a safe
+ * retryable unavailable state; this hook never manufactures challenge cards.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,90 +11,32 @@ import apiService from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import { logger } from '@/utils/logger';
 
-/* ─── Types matching ChallengesView ────────────────── */
-
-export type ChallengeStatus = 'active' | 'upcoming' | 'completed';
-export type ChallengeCategory = 'strength' | 'cardio' | 'consistency' | 'social' | 'dance' | 'music' | 'singing' | 'art' | 'gaming' | 'comedy' | 'community';
-
-export interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  category: ChallengeCategory;
-  status: ChallengeStatus;
-  progress: number;       // 0-100
-  participants: number;
-  daysLeft?: number;
-  startsIn?: string;
-  reward: string;
-  joined: boolean;
-}
+import type { Challenge } from './useChallenges.normalization';
+import { normalizeChallengeRecords } from './useChallenges.normalization';
+export {
+  normalizeChallengeForDashboard,
+  normalizeChallengeRecords,
+} from './useChallenges.normalization';
+export type {
+  Challenge,
+  ChallengeCategory,
+  ChallengeStatus,
+  ChallengeWorkoutImpact,
+} from './useChallenges.normalization';
 
 interface UseChallengesReturn {
   challenges: Challenge[];
   loading: boolean;
   error: string | null;
   isDemoData: boolean;
-  joinChallenge: (id: string) => Promise<void>;
-  leaveChallenge: (id: string) => Promise<void>;
+  joinChallenge: (id: string) => Promise<boolean>;
+  leaveChallenge: (id: string) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
-/* ─── Category mapping ─────────────────────────────── */
+export const CHALLENGE_LIST_UNAVAILABLE_MESSAGE = 'Challenge list unavailable. Refresh to try again.';
 
-const CATEGORY_MAP: Record<string, ChallengeCategory> = {
-  fitness: 'strength',
-  nutrition: 'cardio',
-  mindfulness: 'consistency',
-  social: 'social',
-  streak: 'consistency',
-  dance: 'dance',
-  music: 'music',
-  singing: 'singing',
-  art: 'art',
-  gaming: 'gaming',
-  comedy: 'comedy',
-  community_meetup: 'community',
-};
-
-/* ─── Helpers ──────────────────────────────────────── */
-
-function mapCategory(backendCategory: string): ChallengeCategory {
-  return CATEGORY_MAP[backendCategory] || 'strength';
-}
-
-function deriveStatus(apiStatus: string, startDate: string, endDate: string): ChallengeStatus {
-  const now = Date.now();
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
-
-  if (apiStatus === 'completed' || apiStatus === 'archived') return 'completed';
-  if (apiStatus === 'draft' || start > now) return 'upcoming';
-  if (end < now) return 'completed';
-  return 'active';
-}
-
-function computeDaysLeft(endDate: string): number {
-  const diff = new Date(endDate).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
-
-function computeStartsIn(startDate: string): string {
-  const diff = new Date(startDate).getTime() - Date.now();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  if (days <= 0) return 'soon';
-  if (days === 1) return '1 day';
-  return `${days} days`;
-}
-
-function formatReward(xpReward?: number, badgeName?: string): string {
-  const parts: string[] = [];
-  if (xpReward) parts.push(`${xpReward} XP`);
-  if (badgeName) parts.push(badgeName);
-  return parts.length > 0 ? parts.join(' + ') : 'XP Reward';
-}
-
-/* ─── Hook ─────────────────────────────────────────── */
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 export function useChallenges(): UseChallengesReturn {
   const { user } = useAuth();
@@ -108,7 +50,6 @@ export function useChallenges(): UseChallengesReturn {
     setError(null);
 
     try {
-      // Fetch all challenges (public endpoint, no auth required)
       const allRes = await apiService.get('/api/v1/gamification/challenges', {
         params: { status: 'all', limit: 50 },
       });
@@ -117,11 +58,8 @@ export function useChallenges(): UseChallengesReturn {
         throw new Error(allRes.data?.message || 'Failed to fetch challenges');
       }
 
-      const apiChallenges = allRes.data.challenges || [];
-
-      // Fetch user participations if logged in
-      const userParticipationIds = new Set<number>();
-      const userProgressMap = new Map<number, number>();
+      const apiChallenges = asArray(allRes.data.challenges || allRes.data.data?.challenges);
+      let participations: unknown[] = [];
 
       if (user?.id) {
         try {
@@ -131,56 +69,20 @@ export function useChallenges(): UseChallengesReturn {
           );
 
           if (userRes.data?.success) {
-            const participations = userRes.data.challenges || [];
-            for (const p of participations) {
-              const challengeId = p.challengeId || p.challenge?.id;
-              if (challengeId) {
-                userParticipationIds.add(challengeId);
-                userProgressMap.set(challengeId, p.progress || p.progressPercentage || 0);
-              }
-            }
+            participations = asArray(userRes.data.challenges || userRes.data.data?.challenges);
           }
         } catch {
-          // Non-critical — we just won't know joined/progress
+          // Non-critical: public challenges still render without personal progress.
         }
       }
 
-      // Map API data to frontend interface
-      const mapped: Challenge[] = apiChallenges
-        .filter((c: any) => c.status !== 'cancelled')
-        .map((c: any) => {
-          const status = deriveStatus(c.status, c.startDate, c.endDate);
-          const joined = userParticipationIds.has(c.id);
-          const progress = joined ? (userProgressMap.get(c.id) || 0) : 0;
-
-          const challenge: Challenge = {
-            id: String(c.id),
-            title: c.title,
-            description: c.description || '',
-            category: mapCategory(c.category),
-            status,
-            progress,
-            participants: c.currentParticipants || 0,
-            reward: formatReward(c.xpReward, c.badgeName),
-            joined,
-          };
-
-          if (status === 'active') {
-            challenge.daysLeft = computeDaysLeft(c.endDate);
-          } else if (status === 'upcoming') {
-            challenge.startsIn = computeStartsIn(c.startDate);
-          }
-
-          return challenge;
-        });
-
-      setChallenges(mapped);
+      setChallenges(normalizeChallengeRecords(apiChallenges, participations));
       setIsDemoData(false);
     } catch (err: any) {
-      logger.warn('[useChallenges] API unavailable, falling back to empty state:', err.message);
+      logger.warn('[useChallenges] API unavailable, showing retry state:', err.message);
       setChallenges([]);
       setIsDemoData(false);
-      setError(null);
+      setError(CHALLENGE_LIST_UNAVAILABLE_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -190,25 +92,31 @@ export function useChallenges(): UseChallengesReturn {
     fetchChallenges();
   }, [fetchChallenges]);
 
-  const joinChallenge = useCallback(async (id: string) => {
+  const joinChallenge = useCallback(async (id: string): Promise<boolean> => {
     try {
       const res = await apiService.post(`/api/v1/gamification/challenges/${id}/join`);
       if (res.data?.success) {
-        await fetchChallenges(); // Refresh data
+        await fetchChallenges();
+        return true;
       }
+      return false;
     } catch (err: any) {
-      console.error('[useChallenges] Join failed:', err.message);
+      logger.warn('[useChallenges] Join failed:', err.message);
+      return false;
     }
   }, [fetchChallenges]);
 
-  const leaveChallenge = useCallback(async (id: string) => {
+  const leaveChallenge = useCallback(async (id: string): Promise<boolean> => {
     try {
       const res = await apiService.delete(`/api/v1/gamification/challenges/${id}/leave`);
       if (res.data?.success) {
         await fetchChallenges();
+        return true;
       }
+      return false;
     } catch (err: any) {
-      console.error('[useChallenges] Leave failed:', err.message);
+      logger.warn('[useChallenges] Leave failed:', err.message);
+      return false;
     }
   }, [fetchChallenges]);
 

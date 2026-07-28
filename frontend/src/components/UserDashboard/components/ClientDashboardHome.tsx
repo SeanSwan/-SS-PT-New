@@ -14,7 +14,6 @@ import {
 } from './ClientDashboardHome.layoutStyles';
 import {
   ClientProfileHero,
-  ClientQuickActions,
   ClientSidebar,
   ClientTopNavigation,
   NextSessionCard,
@@ -22,6 +21,7 @@ import {
   TodaysAssignmentCard,
 } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
+import { ClientQuickActions } from './ClientDashboardHome.quickActions';
 import {
   CommunityFeedCard,
   PerformanceZoneCard,
@@ -46,6 +46,7 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
           <ContentGrid>
             <PrimaryStack>
               <ClientProfileHero {...props} />
+              {props.communicationInbox}
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>

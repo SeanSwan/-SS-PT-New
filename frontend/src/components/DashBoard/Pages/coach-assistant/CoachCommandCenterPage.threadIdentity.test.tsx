@@ -46,7 +46,7 @@ describe('CoachCommandCenterPage thread identity', () => {
     const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
     fireEvent.click(within(historyPanel).getByRole('button', { name: /Client confirmation holds/i }));
 
-    await waitFor(() => expect(screen.getByRole('tab', { name: /^Chat$/i })).toHaveAttribute('aria-selected', 'true'));
+    await waitFor(() => expect(screen.getByRole('tab', { name: /^Talk$/i })).toHaveAttribute('aria-selected', 'true'));
     const header = screen.getByRole('region', { name: /active coach thread/i });
     expect(within(header).getByText('Client confirmation holds')).toBeInTheDocument();
     expect(within(header).getByText('Client #88')).toBeInTheDocument();

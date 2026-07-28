@@ -77,6 +77,25 @@ describe('BootcampDemoMode floor director rendering', () => {
     expect(screen.queryByText('1. Row')).not.toBeInTheDocument();
   });
 
+  it('renders structured rep schemes when functional programming intent is present', () => {
+    const functional = {
+      ...bootcamp(),
+      exercises: [
+        exercise('Dumbbell Thruster', 0, {
+          programmingIntent: {
+            type: 'functional_circuit',
+            prescriptionLabel: '25-20-15-9 reps',
+            scheme: '25-20-15-9',
+          },
+        }),
+      ],
+    };
+
+    render(<BootcampDemoMode bootcamp={functional} onSelectExercise={vi.fn()} />);
+
+    expect(screen.getByText('25-20-15-9 reps / 15s rest')).toBeInTheDocument();
+  });
+
   it('marks a failed short-loop preview as unavailable instead of ready', () => {
     render(<BootcampDemoMode bootcamp={bootcamp()} onSelectExercise={vi.fn()} />);
 

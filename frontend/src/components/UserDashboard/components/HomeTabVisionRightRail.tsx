@@ -35,7 +35,6 @@ import {
 import {
   ActivityCopy,
   ActivityGrid,
-  ActivityItem,
   ActivityUser,
   BadgeImage,
   ChallengeBody,
@@ -59,6 +58,7 @@ import {
   SoftParagraph,
   TransformationGrid,
 } from './HomeTabVisionRightRail.styles';
+import { ActivityItem } from './HomeTabVisionRailButtons.styles';
 import HomeTabTrendingPanel from './HomeTabTrendingPanel';
 import HomePhotoLibraryPreview from './HomePhotoLibraryPreview';
 
@@ -79,15 +79,17 @@ interface HomeTabVisionRightRailProps {
   leaderboardRows: HomeLeaderboardRow[];
   trendingTags: TrendingTagSummary[];
   trendingLoading: boolean;
-  /** Real faction totals (workstream O) — empty renders no panel at all. */
+  /** Real faction totals (workstream O) - empty renders no panel at all. */
   factions: Faction[];
-  /** Real transformation photo URLs from the profile — empty renders a CTA. */
+  /** Real transformation photo URLs from the profile - empty renders a CTA. */
   transformationPhotoUrls: string[];
-  /** O3 streak rescue — real signal from logged sessions + the live streak. */
+  /** O3 streak rescue - real signal from logged sessions + the live streak. */
   streakAtRisk: boolean;
   streakDays: number;
   onAction: (target: VisionTarget) => void;
   onLogWorkout: () => void;
+  onActivitySelect: (item: HomeLiveActivityItem) => void;
+  onTrendingSelect: (tag: TrendingTagSummary) => void;
 }
 
 function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
@@ -115,12 +117,24 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   streakDays,
   onAction,
   onLogWorkout,
+  onActivitySelect,
+  onTrendingSelect,
 }) => {
   const challengeButtonTarget: VisionTarget = 'challenges';
-  const challengeButtonLabel = activeChallenge
-    ? 'Open Challenges'
-    : 'Explore Challenges';
-
+  const challengeButtonLabel = activeChallenge ? 'Open Challenges' : 'Explore Challenges';
+  const challengeProgressLine = activeChallenge?.progressLabel ? `Progress: ${activeChallenge.progressLabel}` : '';
+  const challengeCheckInLine = activeChallenge?.checkInsCount
+    ? `${compactNumber(activeChallenge.checkInsCount)} ${activeChallenge.checkInsCount === 1 ? 'check-in' : 'check-ins'}` : '';
+  const challengeCommunityLine = activeChallenge?.nextAction ? `${compactNumber(activeChallenge.participants)} ${activeChallenge.participants === 1 ? 'participant is' : 'participants are'} in. Reward: ${activeChallenge.reward}.` : '';
+  const challengeCountdownLine = activeChallenge
+    ? activeChallenge.daysLeft <= 0 ? 'Today' : activeChallenge.daysLeft === 1 ? '1 day left' : `${activeChallenge.daysLeft} days left`
+    : challengeLoading ? 'Syncing' : 'Ready';
+  const challengeSupportLine = [
+    activeChallenge?.impactLabel,
+    challengeProgressLine,
+    challengeCheckInLine,
+    challengeCommunityLine,
+  ].filter(Boolean).join(' | ');
   return (
   <RightRail aria-label="Creator observatory widgets">
     <HomeTabNextBestAction
@@ -141,7 +155,12 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
           {liveActivityItems.map((item) => {
             const Icon = iconForActivity(item);
             return (
-              <ActivityItem key={item.id}>
+              <ActivityItem
+                key={item.id}
+                type="button"
+                aria-label={`Open activity detail: ${item.user} ${item.action}, ${item.time}`}
+                onClick={() => onActivitySelect(item)}
+              >
                 <Chip>
                   <Icon size={13} aria-hidden="true" />
                 </Chip>
@@ -162,7 +181,7 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
       <RailHeader>
         <Eyebrow $tone="gold">Active Challenge</Eyebrow>
         <GoldMeta>
-          {activeChallenge ? `${activeChallenge.daysLeft}D left` : challengeLoading ? 'Syncing' : 'Ready'}
+          {challengeCountdownLine}
         </GoldMeta>
       </RailHeader>
       {activeChallenge ? (
@@ -175,8 +194,9 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
               <ChallengeTitle>{activeChallenge.title}</ChallengeTitle>
             </ButtonRow>
             <SoftParagraph>
-              {compactNumber(activeChallenge.participants)} creators are in. Reward: {activeChallenge.reward}.
+              {activeChallenge.nextAction || `${compactNumber(activeChallenge.participants)} ${activeChallenge.participants === 1 ? 'participant is' : 'participants are'} in. Reward: ${activeChallenge.reward}.`}
             </SoftParagraph>
+            {challengeSupportLine ? <MutedTiny>{challengeSupportLine}</MutedTiny> : null}
             <Bar>
               <Fill $pct={activeChallenge.progress} $gold />
             </Bar>
@@ -225,12 +245,13 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
     </Panel>
 
     {/* Workstream O: the Faction War race moved here from the retired Feed
-        tab — renders nothing while no factions exist (honest gate). */}
+        tab - renders nothing while no factions exist (honest gate). */}
     <HomeTabFactionPanel factions={factions} />
 
     <HomeTabTrendingPanel
       trendingTags={trendingTags}
       trendingLoading={trendingLoading}
+      onSelectTag={onTrendingSelect}
     />
 
     <Panel>
@@ -238,7 +259,7 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         <Eyebrow>Weekly Momentum</Eyebrow>
         <Chip>{progressPercent}%</Chip>
       </RailHeader>
-      {/* Workstream N2: the fake 7-bar chart is gone — the ring is the real
+      {/* Workstream N2: the fake 7-bar chart is gone - the ring is the real
           level-progress signal; the left rail already owns the streak week. */}
       <MomentumLayout>
         <MomentumRing>

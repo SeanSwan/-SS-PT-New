@@ -17,6 +17,7 @@ import type {
 export type {
   BootcampExercise,
   BootcampExplanation,
+  BootcampEquipmentReadiness,
   BootcampStation,
   BootcampStretch,
   ClassFormat,
@@ -31,9 +32,9 @@ export type {
   StationFlowData,
 } from './useBootcampAPI.types';
 
-// ── Types ─────────────────────────────────────────────────────────────
+// Types
 
-// ── API Helpers ───────────────────────────────────────────────────────
+// API Helpers
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const method = (options?.method || 'GET').toUpperCase();
@@ -56,7 +57,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   }
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────
+// Hook
 
 export function useBootcampAPI() {
   const generateClass = useCallback(async (params: {

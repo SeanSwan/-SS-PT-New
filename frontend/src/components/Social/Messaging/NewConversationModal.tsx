@@ -73,6 +73,7 @@ const NewConversationModal: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestRef = useRef(0);
   const { friends, isLoading: friendsLoading } = useSocialFriends();
 
   const friendUsers = useMemo(() => friends.map(normalizeFriend).filter(user => Number.isFinite(user.id)), [friends]);
@@ -94,14 +95,11 @@ const NewConversationModal: React.FC<Props> = ({
     setGroupName('Swan Family');
     setSelectedIds(new Set());
     setAdminIds(new Set());
-    setLoading(true);
-    searchUsers('').then(results => {
-      setUsers(results);
-      setLoading(false);
-    });
+    setUsers([]);
+    setLoading(false);
+    searchRequestRef.current += 1;
     setTimeout(() => inputRef.current?.focus(), 100);
-  }, [isOpen, searchUsers]);
-
+  }, [isOpen]);
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
@@ -109,14 +107,26 @@ const NewConversationModal: React.FC<Props> = ({
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const normalizedQuery = value.trim().replace(/\s+/g, ' ');
+    if (normalizedQuery.length < 2) {
+      searchRequestRef.current += 1;
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const results = await searchUsers(value);
-      setUsers(results);
-      setLoading(false);
+      try {
+        const results = await searchUsers(normalizedQuery);
+        if (searchRequestRef.current === requestId) setUsers(results);
+      } finally {
+        if (searchRequestRef.current === requestId) setLoading(false);
+      }
     }, 300);
   }, [searchUsers]);
-
   const toggleSelected = useCallback((userId: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -287,5 +297,4 @@ const NewConversationModal: React.FC<Props> = ({
     </ModalOverlay>
   );
 };
-
 export default React.memo(NewConversationModal);

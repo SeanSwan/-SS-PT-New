@@ -5,6 +5,8 @@ import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 const baseProps = {
   clients: [],
   loading: false,
+  exportingClients: false,
+  onExportClients: vi.fn(),
   onSelectClient: vi.fn(),
   onNewClient: vi.fn(),
   onOpenAI: vi.fn(),
@@ -46,6 +48,7 @@ describe('ClientsWorkspaceTopBar', () => {
   it('keeps every top action as a non-submit button for embedded layouts', () => {
     render(<ClientsWorkspaceTopBar {...baseProps} selectedClient={null} />);
 
+    expect(screen.getByRole('button', { name: /export client directory as csv/i })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', { name: /trainer assignments/i })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', { name: /open swan coach/i })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', { name: /manual add/i })).toHaveAttribute('type', 'button');

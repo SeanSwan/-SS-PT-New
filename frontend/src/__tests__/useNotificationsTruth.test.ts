@@ -7,17 +7,23 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const hookPath = join(__dirname, '..', 'hooks', 'useNotifications.ts');
+const centerPath = join(__dirname, '..', 'hooks', 'useNotificationCenter.ts');
 
 describe('useNotifications production truth contract', () => {
-  it('does not seed mock notifications or random demo events', () => {
+  it('delegates to the shared notification center without demo data or direct API drift', () => {
     const source = readFileSync(hookPath, 'utf8');
+    const centerSource = readFileSync(centerPath, 'utf8');
+    const combinedSource = `${source}\n${centerSource}`;
 
-    expect(source).not.toMatch(/mockNotifications/);
-    expect(source).not.toMatch(/demo purposes/i);
-    expect(source).not.toMatch(/Simulate real-time notifications/i);
-    expect(source).not.toMatch(/Math\.random/);
-    expect(source).not.toMatch(/setTimeout/);
-    expect(source).not.toMatch(/setInterval/);
-    expect(source).toContain("'/api/notifications'");
+    expect(combinedSource).not.toMatch(/mockNotifications/);
+    expect(combinedSource).not.toMatch(/demo purposes/i);
+    expect(combinedSource).not.toMatch(/Simulate real-time notifications/i);
+    expect(combinedSource).not.toMatch(/Math\.random/);
+    expect(combinedSource).not.toMatch(/setTimeout/);
+    expect(combinedSource).not.toMatch(/setInterval/);
+    expect(centerSource).toContain('/api/notifications');
+    expect(source).toContain('useNotificationCenter({ fetchOnMount: true');
+    expect(source).not.toContain("apiService.get<NotificationsPayload>('/api/notifications')");
+    expect(source).not.toContain('apiService.patch');
   });
 });

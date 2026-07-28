@@ -4,11 +4,12 @@
  * empty state, and card actions outside the planner page shell.
  */
 
-import React from 'react';
-import { ClipboardList, Dumbbell, Star } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ClipboardList, Copy, Dumbbell, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
+import type { PlannerClient } from './WorkoutPlannerTypes';
 import {
   MesocycleGrid,
   MesocycleSection,
@@ -27,7 +28,17 @@ import {
 
 export type { SavedPlanSummary } from './SavedPlanCard';
 
+const COPY_HORIZON_OPTIONS = [
+  { value: '', label: 'Same Span' },
+  { value: '1', label: '1 Week' },
+  { value: '4', label: '1 Month' },
+  { value: '13', label: '3 Month' },
+  { value: '26', label: '6 Month' },
+  { value: '52', label: '1 Year' },
+];
+
 interface WorkoutPlannerSavedPlansSectionProps {
+  clients: PlannerClient[];
   selectedClientId: number | null;
   savedPlans: SavedPlanSummary[];
   savedPlansLoading: boolean;
@@ -36,7 +47,7 @@ interface WorkoutPlannerSavedPlansSectionProps {
   onLoad: (planId: string, planName: string) => void;
   onActivate: (planId: string, planName: string) => void;
   onRename: (planId: string, newName: string) => void;
-  onDuplicate: (planId: string, planName: string) => void;
+  onDuplicate: (planId: string, planName: string, targetClientId?: number, durationWeeks?: number) => void;
   onArchive: (planId: string, planName: string) => void;
   onSetPrimary: (planId: string, planName: string) => void;
   pdfDialogPlan: SavedPlanSummary | null;
@@ -52,6 +63,7 @@ interface WorkoutPlannerSavedPlansSectionProps {
 }
 
 const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionProps> = ({
+  clients,
   selectedClientId,
   savedPlans,
   savedPlansLoading,
@@ -74,6 +86,13 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   onClosePdfDialog,
   activePlanLoggerRoute,
 }) => {
+  const [copyTargetClientId, setCopyTargetClientId] = useState<number | null>(selectedClientId);
+  const [copyDurationWeeks, setCopyDurationWeeks] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCopyTargetClientId(selectedClientId);
+  }, [selectedClientId]);
+
   if (!selectedClientId) return null;
 
   const defaultSixMonthPlan = savedPlans.find(plan => (
@@ -87,6 +106,17 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   const handlePrimaryArcChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const plan = savedPlans.find(item => item.id === event.target.value);
     if (plan && plan.id !== primaryPlan?.id) onSetPrimary(plan.id, plan.name);
+  };
+  const handleCopyTargetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(event.target.value);
+    setCopyTargetClientId(Number.isFinite(value) && value > 0 ? value : selectedClientId);
+  };
+  const handleCopyDurationChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number(event.target.value);
+    setCopyDurationWeeks(Number.isFinite(value) && value > 0 ? value : null);
+  };
+  const handlePlanDuplicate = (planId: string, planName: string) => {
+    onDuplicate(planId, planName, copyTargetClientId || selectedClientId, copyDurationWeeks || undefined);
   };
 
   return (
@@ -125,7 +155,27 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                   </option>
                 ))}
               </SmallSelect>
-              {activePlanLoggerRoute && (
+              <PlanModeLabel><Copy size={14} /> Copy To</PlanModeLabel>
+              <SmallSelect
+                value={copyTargetClientId || selectedClientId}
+                onChange={handleCopyTargetChange}
+                aria-label="Copy duplicate target client"
+              >
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>
+                    {client.firstName} {client.lastName}
+                  </option>
+                ))}
+              </SmallSelect>
+              <SmallSelect
+                value={copyDurationWeeks || ''}
+                onChange={handleCopyDurationChange}
+                aria-label="Copy duplicate span"
+              >
+                {COPY_HORIZON_OPTIONS.map(option => (
+                  <option key={option.value || 'same'} value={option.value}>{option.label}</option>
+                ))}
+              </SmallSelect>              {activePlanLoggerRoute && (
                 <PlannerHandoffLink
                   href={activePlanLoggerRoute}
                   aria-label="Open Workout Logger for the current plan"
@@ -147,7 +197,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                   onLoad={onLoad}
                   onActivate={onActivate}
                   onRename={onRename}
-                  onDuplicate={onDuplicate}
+                  onDuplicate={handlePlanDuplicate}
                   onArchive={onArchive}
                   onSetPrimary={onSetPrimary}
                   onViewPdf={onViewPdf}

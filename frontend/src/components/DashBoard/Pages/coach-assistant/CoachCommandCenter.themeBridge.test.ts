@@ -36,7 +36,7 @@ describe('CoachCommandCenter theme bridge', () => {
     expect(focusSource).toContain('--coach-focus-text: var(--text-primary, #f4f7fb);');
     expect(focusSource).toContain('--coach-focus-accent: var(--accent-primary, #69d7d0);');
     expect(focusSource).toContain('--coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));');
-    expect(mobileDockSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(mobileDockSource).toContain('grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));');
     expect(mobileDockSource).toContain('.tab-button {');
     expect(mobileDockSource).toContain('min-width: 0;');
     expect(focusSource).not.toContain('--coach-crystalline-');

@@ -9,7 +9,7 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^More coach actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -92,7 +92,8 @@ describe('CoachCommandCenter selected thread target routes', () => {
       '/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42&teachPrompt=Old%20client%20prompt',
     );
 
-    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+    let opsRail = openOpsRail();
+    expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
@@ -102,7 +103,8 @@ describe('CoachCommandCenter selected thread target routes', () => {
     fireEvent.click(within(historyPanel).getByRole('button', { name: /Ava Stone weekly training/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+      opsRail = screen.getByLabelText('Coach operations command surface');
+      expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
         'href',
         '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
       );

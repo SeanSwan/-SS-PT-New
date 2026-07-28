@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -8,64 +8,73 @@ import {
   setCoachCommandCenterConversations,
 } from './CoachCommandCenterPage.test.harness';
 
+const openCommandTools = () => {
+  fireEvent.click(screen.getByRole('button', { name: /^More command tools$/i }));
+  return screen.getByRole('menu', { name: /^More command tools$/i });
+};
+
 describe('CoachCommandCenterPage workout route actions', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('offers Sean/admin personal Logger and Planner when no route client is loaded', () => {
+  it('offers Sean/admin personal Logger and Planner inside More when no route client is loaded', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
-    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /open workout logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveTextContent('My Planner');
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveTextContent('My Planner');
   });
 
-  it('links route clients to the canonical client training logger and planner surfaces', () => {
+  it('links route clients to the canonical client training logger and planner surfaces inside More', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
-    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /open workout logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
   });
 
-  it('routes trainer command clients to trainer logger and planner surfaces', () => {
+  it('routes trainer command clients to trainer logger and planner surfaces inside More', () => {
     renderPage(
       '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=trainer-overview&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
       'trainer',
     );
 
-    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /open workout logger/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
     );
   });
 
-  it('routes client command actions to self logging and workout history', () => {
+  it('routes client command actions to self logging and workout history inside More', () => {
     renderPage('/dashboard/client/coach-assistant?teachPrompt=Teach%20me%20today', 'client');
 
-    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /open workout logger/i })).toHaveAttribute(
       'href',
       '/dashboard/client/log-workout?loadPlan=today',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/client/workouts',
     );
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveTextContent('My Workouts');
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveTextContent('My Workouts');
   });
 
   it('offers a client logger draft handoff for generated workout answers', async () => {
@@ -91,13 +100,14 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
   });
 
-  it('preserves a safe trainer return route in the planner handoff', () => {
+  it('preserves a safe trainer return route in the planner handoff inside More', () => {
     renderPage(
       '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=master-schedule&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
       'trainer',
     );
 
-    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /open workout planner/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
     );

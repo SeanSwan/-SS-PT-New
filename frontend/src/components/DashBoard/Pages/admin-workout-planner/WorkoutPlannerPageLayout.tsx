@@ -177,6 +177,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       </ThreePanel>
 
       <WorkoutPlannerSavedPlansSection
+        clients={clients}
         selectedClientId={selectedClientId}
         savedPlans={savedPlans}
         savedPlansLoading={savedPlansLoading}

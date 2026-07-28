@@ -1,0 +1,117 @@
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx b/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.atomic.test.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { render, screen, waitFor } from '@testing-library/react';
++import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+@@ -79,6 +79,52 @@ describe('NutritionReviewDrawer atomic review contract', () => {
+     expect(mocks.post.mock.calls[1][1].draftId).toBe('draft-panera-atomic');
+   });
+ 
++  it('blocks close, cancel, and Escape while an atomic save is in flight', async () => {
++    let resolveSave!: (value: unknown) => void;
++    mocks.post.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
++    const onClose = vi.fn();
++    const user = userEvent.setup();
++
++    render(<NutritionReviewDrawer draft={baseDraft} onClose={onClose} />);
++    await user.click(screen.getByRole('button', { name: /approve and save 1 item/i }));
++    await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
++
++    expect(screen.getByRole('button', { name: /close nutrition review/i })).toBeDisabled();
++    expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
++    fireEvent.keyDown(document, { key: 'Escape' });
++    expect(onClose).not.toHaveBeenCalled();
++
++    resolveSave({ data: { success: true, entries: [{ id: 1 }] } });
++    await waitFor(() => expect(screen.getByRole('button', { name: /close nutrition review/i })).toBeEnabled());
++  });
++
++  it('keeps serving quantity, unit, label, and scaled nutrients coherent', async () => {
++    const user = userEvent.setup();
++    render(<NutritionReviewDrawer draft={baseDraft} onClose={vi.fn()} />);
++
++    const quantity = screen.getByLabelText(/serving quantity for turkey sandwich/i);
++    await user.clear(quantity);
++    await user.type(quantity, '2');
++    await user.click(screen.getByRole('button', { name: /approve and save 1 item/i }));
++
++    await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
++    expect(mocks.post.mock.calls[0][1]).toMatchObject({
++      foods: [expect.objectContaining({
++        serving: { quantity: 2, unit: 'sandwich', label: '2 sandwich' },
++        nutrients: expect.objectContaining({ calories: 1020, protein: 64 }),
++      })],
++    });
++  });
++
++  it('does not reset focus when a parent rerenders with the same open draft', async () => {
++    const { rerender } = render(<NutritionReviewDrawer draft={baseDraft} onClose={() => undefined} />);
++    const quantity = screen.getByLabelText(/serving quantity for turkey sandwich/i);
++    quantity.focus();
++    expect(quantity).toHaveFocus();
++
++    rerender(<NutritionReviewDrawer draft={baseDraft} onClose={() => undefined} />);
++    await new Promise((resolve) => window.setTimeout(resolve, 10));
++    expect(quantity).toHaveFocus();
++  });
++
+   it('shows full nutrient labels and serving controls', () => {
+diff --git a/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts b/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
+--- a/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
++++ b/frontend/src/components/FoodTracker/nutritionDecisionDraft.v1.test.ts
+@@ -35,5 +35,5 @@ describe('NutritionEntryDraft v1 contract', () => {
+     });
+     expect(draft.foods[0]).toMatchObject({
+       description: 'Greek yogurt',
+-      serving: { basis: 'household', quantity: 1, unit: 'serving', label: '1 cup' },
++      serving: { basis: 'household', quantity: 1, unit: 'cup', label: '1 cup' },
+@@ -89,6 +89,7 @@ describe('NutritionEntryDraft v1 contract', () => {
+         fat_100g: 20,
+         fiber_100g: 5,
++        sodium_100g: 0.8,
+       },
+@@ -97,6 +98,8 @@ describe('NutritionEntryDraft v1 contract', () => {
+     expect(draft.rawPayloadRef).toEqual(expect.objectContaining({
+       barcode: '049000042566',
+       externalId: '22',
+     }));
++    expect(draft.sourceConfidence).toBe('community');
++    expect(draft.foods[0].confidence).toBe(0.6);
+     expect(draft.foods[0]).toMatchObject({
+       serving: { basis: 'label', quantity: 30, unit: 'g' },
+-      nutrients: { calories: 120, protein: 3, carbs: 15, fat: 6, fiber: 1.5 },
++      nutrients: { calories: 120, protein: 3, carbs: 15, fat: 6, fiber: 1.5, sodium: 240 },
+     });
+   });
++
++  it('classifies Open Food Facts search data as community sourced', () => {
++    const draft = searchFoodToNutritionDraft({
++      id: 'off-1', name: 'Community cereal', calories: 210, protein: 5,
++      carbs: 40, fat: 4, servingSize: '45 g', source: 'OFF',
++    });
++    expect(draft.sourceConfidence).toBe('community');
++    expect(draft.foods[0].confidence).toBe(0.6);
++  });
+diff --git a/frontend/src/components/FoodTracker/FoodIntakeForm.test.tsx b/frontend/src/components/FoodTracker/FoodIntakeForm.test.tsx
+--- a/frontend/src/components/FoodTracker/FoodIntakeForm.test.tsx
++++ b/frontend/src/components/FoodTracker/FoodIntakeForm.test.tsx
+@@ -88,6 +88,8 @@ describe('FoodIntakeForm edit-after-save flow', () => {
+     }));
+     expect(mocks.post).not.toHaveBeenCalled();
+     expect(mocks.logFoodIntake).not.toHaveBeenCalled();
++    expect(screen.getByLabelText('Food Name')).toHaveValue('Eggs');
++    expect(screen.getByLabelText('Portion/Serving Size')).toHaveValue('2 whole');
+   });
+diff --git a/frontend/src/components/FoodTracker/VoiceNutritionPanel.test.tsx b/frontend/src/components/FoodTracker/VoiceNutritionPanel.test.tsx
+--- a/frontend/src/components/FoodTracker/VoiceNutritionPanel.test.tsx
++++ b/frontend/src/components/FoodTracker/VoiceNutritionPanel.test.tsx
+@@ -62,6 +62,7 @@ describe('VoiceNutritionPanel (Slice 1.6)', () => {
+     })));
+     expect(apiMocks.post).toHaveBeenCalledTimes(1);
+     expect(screen.queryByRole('button', { name: /approve and save meal plan/i })).not.toBeInTheDocument();
++    expect(screen.getByLabelText(/what did you eat/i)).toHaveValue('I had chips and salsa');
+   });
+

@@ -1,149 +1,74 @@
 /**
  * useSocialNotifications
  * ======================
- * Live in-app notification state for the Social Hub. Reads the canonical
- * /api/notifications API and never seeds local/demo notification data.
+ * Adapter over the shared notification center for Social Hub and dashboard tabs.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import apiService from '../services/api.service';
-import { logger } from '@/utils/logger';
+import { useCallback, useMemo } from 'react';
 
-export interface SocialNotificationSender {
-  id?: number | string;
-  firstName?: string | null;
-  lastName?: string | null;
+import { useNotificationCenter } from './useNotificationCenter';
+import type { Notification as CenterNotification, NotificationSender } from '../store/slices/notificationSlice';
+
+export interface SocialNotificationSender extends NotificationSender {
   profilePicture?: string | null;
 }
 
-export interface SocialNotification {
-  id: number | string;
-  title: string;
-  message: string;
-  type: string;
-  read: boolean;
+export interface SocialNotification extends Omit<CenterNotification, 'sender' | 'image'> {
   persistent?: boolean | null;
-  link?: string | null;
   image?: string | null;
-  createdAt?: string;
   sender?: SocialNotificationSender | null;
 }
 
-interface NotificationsPayload {
-  success?: boolean;
-  message?: string;
-  data?: {
-    notifications?: SocialNotification[];
-    unreadCount?: number;
+function toSocialNotification(notification: CenterNotification): SocialNotification {
+  const sender = notification.sender
+    ? {
+        ...notification.sender,
+        profilePicture:
+          notification.sender.profileImageUrl || notification.sender.photo || notification.sender.avatar || null,
+      }
+    : null;
+
+  return {
+    ...notification,
+    image: notification.image ?? null,
+    sender,
   };
-  notifications?: SocialNotification[];
-  unreadCount?: number;
-}
-
-const EMPTY_STATE: SocialNotification[] = [];
-
-function normalizePayload(payload: NotificationsPayload) {
-  const body = payload.data ?? payload;
-  const notifications = Array.isArray(body.notifications) ? body.notifications : EMPTY_STATE;
-  const unreadCount = Number.isFinite(body.unreadCount)
-    ? Number(body.unreadCount)
-    : notifications.filter((notification) => !notification.read).length;
-
-  return { notifications, unreadCount };
 }
 
 export function useSocialNotifications() {
-  const [notifications, setNotifications] = useState<SocialNotification[]>(EMPTY_STATE);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchNotifications = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    setError(null);
-
-    try {
-      const response = await apiService.get<NotificationsPayload>('/api/notifications');
-      if (response.data?.success === false) {
-        throw new Error(response.data.message || 'Notification API returned an error');
-      }
-
-      const next = normalizePayload(response.data);
-      setNotifications(next.notifications);
-      setUnreadCount(next.unreadCount);
-    } catch (err: any) {
-      logger.warn('[useSocialNotifications] Unable to load notifications:', err.message);
-      setNotifications(EMPTY_STATE);
-      setUnreadCount(0);
-      setError('Notifications are temporarily unavailable.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const notificationCenter = useNotificationCenter({ fetchOnMount: true });
+  const notifications = useMemo(
+    () => notificationCenter.notifications.map(toSocialNotification),
+    [notificationCenter.notifications],
+  );
 
   const markAsRead = useCallback(
     async (notificationId: SocialNotification['id']) => {
-      const target = notifications.find((notification) => String(notification.id) === String(notificationId));
-      if (!target || target.read) return;
-
-      const previousNotifications = notifications;
-      const previousUnreadCount = unreadCount;
-
-      setNotifications((current) =>
-        current.map((notification) =>
-          String(notification.id) === String(notificationId)
-            ? { ...notification, read: true }
-            : notification,
-        ),
-      );
-      setUnreadCount((count) => Math.max(0, count - 1));
-
-      try {
-        await apiService.patch(`/api/notifications/${notificationId}/read`);
-      } catch (err: any) {
-        logger.warn('[useSocialNotifications] Unable to mark notification read:', err.message);
-        setNotifications(previousNotifications);
-        setUnreadCount(previousUnreadCount);
-        setError('Unable to update that notification.');
-      }
+      await notificationCenter.markAsRead(notificationId);
     },
-    [notifications, unreadCount],
+    [notificationCenter],
   );
 
-  const markAllAsRead = useCallback(async () => {
-    if (unreadCount === 0) return;
-
-    const previousNotifications = notifications;
-    const previousUnreadCount = unreadCount;
-
-    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
-    setUnreadCount(0);
-
-    try {
-      await apiService.patch('/api/notifications/read-all');
-    } catch (err: any) {
-      logger.warn('[useSocialNotifications] Unable to mark all notifications read:', err.message);
-      setNotifications(previousNotifications);
-      setUnreadCount(previousUnreadCount);
-      setError('Unable to mark notifications read.');
-    }
-  }, [notifications, unreadCount]);
-
-  useEffect(() => {
-    void fetchNotifications();
-  }, [fetchNotifications]);
+  const markAsClicked = useCallback(
+    async (notificationId: SocialNotification['id']) => {
+      await notificationCenter.markAsClicked(notificationId);
+    },
+    [notificationCenter],
+  );
 
   return useMemo(
     () => ({
       notifications,
-      unreadCount,
-      loading,
-      error,
-      refresh: () => fetchNotifications(false),
+      unreadCount: notificationCenter.unreadCount,
+      loading: notificationCenter.loading,
+      error: notificationCenter.error,
+      refresh: notificationCenter.refresh,
       markAsRead,
-      markAllAsRead,
+      markAsClicked,
+      markAllAsRead: notificationCenter.markAllAsRead,
+      snoozeNotification: notificationCenter.snoozeNotification,
     }),
-    [error, fetchNotifications, loading, markAllAsRead, markAsRead, notifications, unreadCount],
+    [markAsClicked, markAsRead, notificationCenter, notifications],
   );
 }
 

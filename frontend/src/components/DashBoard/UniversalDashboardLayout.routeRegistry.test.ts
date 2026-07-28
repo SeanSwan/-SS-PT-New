@@ -39,4 +39,12 @@ describe('UniversalDashboardLayout route registry contract', () => {
       '/trainer-management-legacy',
     ]);
   });
+  it('mounts Lens Foundry only on the admin dashboard', () => {
+    const adminLensFoundry = roleConfigurations.admin.routes.find((route) => route.path === '/lens-foundry');
+
+    expect(adminLensFoundry?.title).toBe('Lens Foundry Lab');
+    expect(adminLensFoundry?.description).toContain('design brain');
+    expect(roleConfigurations.trainer.routes.map(({ path }) => path)).not.toContain('/lens-foundry');
+    expect(roleConfigurations.client.routes.map(({ path }) => path)).not.toContain('/lens-foundry');
+  });
 });

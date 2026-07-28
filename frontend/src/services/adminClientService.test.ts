@@ -219,3 +219,55 @@ describe('adminClientService logWorkout', () => {
     });
   });
 });
+
+describe('adminClientService exportClients', () => {
+  it('rehearses a CSV download with synthetic data through the protected export request', async () => {
+    const csv = 'id,firstName,lastName,email\n424242,Fixture,Client,fixture.client@example.test\n';
+    const get = vi.fn().mockResolvedValue({ data: csv });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get,
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+    const createObjectURL = vi.fn(() => 'blob:synthetic-client-export');
+    const revokeObjectURL = vi.fn();
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    try {
+      await service.exportClients('csv');
+    } finally {
+      Object.defineProperty(window.URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectURL,
+      });
+      Object.defineProperty(window.URL, 'revokeObjectURL', {
+        configurable: true,
+        value: originalRevokeObjectURL,
+      });
+    }
+
+    expect(get).toHaveBeenCalledWith('/api/admin/clients/export', {
+      params: { format: 'csv' },
+      responseType: 'blob',
+    });
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:synthetic-client-export');
+  });
+});

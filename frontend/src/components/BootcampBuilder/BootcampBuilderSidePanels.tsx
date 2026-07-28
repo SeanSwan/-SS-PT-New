@@ -4,8 +4,8 @@ import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
 import { getMainBoardExercises } from './BootcampBuilderPlacement';
 import ConfigPanel from './ConfigPanel';
 import ExerciseDetailPanel from './ExerciseDetailPanel';
-import ExerciseRolodexPanel from './ExerciseRolodexPanel';
-import type { RolodexExercise } from './ExerciseRolodexPanel';
+import ExerciseIntelligencePicker from './ExerciseIntelligencePicker';
+import type { RolodexExercise } from './ExerciseIntelligencePicker';
 import type { BuildMode } from './BootcampBuilderPage.constants';
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
@@ -92,7 +92,7 @@ export const BootcampLeftPanel: React.FC<BootcampLeftPanelProps> = ({
   onGenerate,
   onSelectFromRolodex,
 }) => buildMode === 'manual' ? (
-  <ExerciseRolodexPanel
+  <ExerciseIntelligencePicker
     onAddExercise={onAddExercise}
     onSelectExercise={onSelectFromRolodex}
     selectedId={selectedRolodexId}
@@ -104,6 +104,7 @@ export const BootcampLeftPanel: React.FC<BootcampLeftPanelProps> = ({
     equipmentProfileId={equipmentProfileId}
     onEquipmentProfileChange={setEquipmentProfileId}
     stationInfo={getManualStationInfo(stationCount, exercisesPerStation, bootcamp)}
+    selectionContext="manual_builder"
   />
 ) : (
   <ConfigPanel
@@ -134,11 +135,12 @@ export const BootcampRightPanel: React.FC<BootcampRightPanelProps> = ({
   onAddExercise,
   onSelectFromRolodex,
 }) => buildMode === 'hybrid' ? (
-  <ExerciseRolodexPanel
+  <ExerciseIntelligencePicker
     onAddExercise={onAddExercise}
     onSelectExercise={onSelectFromRolodex}
     selectedId={selectedRolodexId}
     equipmentProfileId={equipmentProfileId}
+    selectionContext="hybrid_builder"
   />
 ) : (
   <ExerciseDetailPanel

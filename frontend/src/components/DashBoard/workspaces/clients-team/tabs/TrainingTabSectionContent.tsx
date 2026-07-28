@@ -60,6 +60,7 @@ interface TrainingSectionContentProps {
   scheduledSessionId: string | null;
   onArchitectPlanCreated: () => void;
   onLogTodayFromPlan: () => void;
+  onOpenHistoryImport: () => void;
   onOpenProgress?: () => void;
   onWorkoutCancel: () => void;
   onWorkoutComplete: (savedWorkout: unknown) => void;
@@ -95,6 +96,7 @@ const sectionRenderers: Record<TrainingSection, (props: TrainingSectionContentPr
   ),
   logger: ({
     loadTodayPlanSignal,
+    onOpenHistoryImport,
     onWorkoutCancel,
     onWorkoutComplete,
     safeClientId,
@@ -108,6 +110,7 @@ const sectionRenderers: Record<TrainingSection, (props: TrainingSectionContentPr
       scheduledSessionCreditHint={scheduledSessionCreditHint}
       scheduledSessionDate={scheduledSessionDate}
       scheduledSessionId={scheduledSessionId}
+      onOpenHistoryImport={onOpenHistoryImport}
       onComplete={onWorkoutComplete}
       onCancel={onWorkoutCancel}
     />

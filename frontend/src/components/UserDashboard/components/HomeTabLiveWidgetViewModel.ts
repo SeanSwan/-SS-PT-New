@@ -14,17 +14,11 @@ export interface HomeLiveActivityItem {
   action: string;
   time: string;
   source: 'live' | 'feed';
+  postId?: string;
+  postType?: string;
+  preview?: string;
 }
 
-export interface HomeChallengeSummary {
-  id: string;
-  title: string;
-  progress: number;
-  daysLeft: number;
-  participants: number;
-  reward: string;
-  joined: boolean;
-}
 
 export interface HomeBadgeItem {
   id: string;
@@ -69,9 +63,7 @@ function readNumber(record: UnknownRecord, keys: string[]): number {
   return 0;
 }
 
-function clampPercentValue(value: number): number {
-  return Math.min(Math.max(Math.round(value), 0), 100);
-}
+
 
 export function firstMediaUrl(post: UnknownRecord): string {
   const direct = readString(post, ['mediaUrl', 'media_url', 'imageUrl', 'thumbnailUrl', 'videoUrl']);
@@ -117,7 +109,7 @@ function actionFromEvent(event: UnknownRecord): string {
   return `shared a ${postType}`;
 }
 
-/* Workstream N2: buildHomeStories removed — stories are not a real product
+/* Workstream N2: buildHomeStories removed - stories are not a real product
    feature (no backend), so the strip rendered feed media pretending to be one.
    The Home rail now only carries widgets backed by real data. */
 
@@ -136,12 +128,18 @@ export function buildHomeLiveActivity({
 }): HomeLiveActivityItem[] {
   const liveItems = (events || []).map((event, index) => {
     const record = asRecord(event);
+    const postId = readString(record, ['postId']);
+    const postType = readString(record, ['postType', 'contentType']);
+    const preview = readString(record, ['preview', 'content', 'summary']);
     return {
       id: readString(record, ['id']) || `event-${index}`,
       user: readString(record, ['userName', 'username', 'actorName']) || displayName,
       action: actionFromEvent(record),
       time: formatAgo(record.timestamp || record.createdAt, nowMs),
       source: 'live' as const,
+      postId: postId || undefined,
+      postType: postType || undefined,
+      preview: preview || undefined,
     };
   });
 
@@ -149,41 +147,20 @@ export function buildHomeLiveActivity({
 
   return (feedPosts || []).slice(0, limit).map((post, index) => {
     const record = asRecord(post);
+    const postId = readString(record, ['id', '_id', 'postId']);
     const type = readString(record, ['type', 'postType']) || 'post';
+    const preview = readString(record, ['content', 'caption', 'summary']);
     return {
-      id: readString(record, ['id', '_id', 'postId']) || `post-${index}`,
+      id: postId || `post-${index}`,
       user: displayNameFromPost(record, displayName),
       action: `shared a ${type}`,
       time: formatAgo(record.createdAt || record.timestamp || record.updatedAt, nowMs),
       source: 'feed' as const,
+      postId: postId || undefined,
+      postType: type,
+      preview: preview || undefined,
     };
   });
-}
-
-export function selectActiveChallengeSummary({
-  challenges,
-  isDemoData,
-}: {
-  challenges?: unknown[] | null;
-  isDemoData?: boolean;
-}): HomeChallengeSummary | null {
-  if (isDemoData) return null;
-
-  const active = (challenges || [])
-    .map(asRecord)
-    .filter((challenge) => readString(challenge, ['status']) === 'active');
-  const selected = active.find((challenge) => challenge.joined === true) || active[0];
-  if (!selected) return null;
-
-  return {
-    id: readString(selected, ['id', '_id', 'challengeId']),
-    title: readString(selected, ['title', 'name']) || 'Active Challenge',
-    progress: clampPercentValue(readNumber(selected, ['progress', 'progressPercentage'])),
-    daysLeft: Math.max(0, Math.round(readNumber(selected, ['daysLeft', 'daysRemaining']))),
-    participants: Math.max(0, Math.round(readNumber(selected, ['participants', 'currentParticipants']))),
-    reward: readString(selected, ['reward', 'rewardText']) || 'XP Reward',
-    joined: selected.joined === true,
-  };
 }
 
 export function buildHomeBadgeShowcase({

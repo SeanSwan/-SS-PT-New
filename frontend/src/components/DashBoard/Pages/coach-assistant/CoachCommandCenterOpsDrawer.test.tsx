@@ -9,12 +9,12 @@ import {
   useCoachIntakeQueueMock,
 } from './CoachCommandCenterPage.test.harness';
 
-const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const PLACEHOLDER = 'Talk or type to Swan Coach...';
 const opsStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.opsStyles.ts'), 'utf8');
 const crystallineStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.crystallineFocusStyles.ts'), 'utf8');
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^More coach actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -41,7 +41,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
-    const opsTrigger = screen.getByRole('button', { name: /^Operations$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^More coach actions$/i });
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(opsTrigger);
@@ -58,7 +58,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveAttribute('data-embedded', 'true');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveTextContent('11111111-2222-3333-4444-555555555555');
 
-    fireEvent.click(screen.getByRole('tab', { name: /^Intake/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open intake review$/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 
@@ -117,8 +117,10 @@ describe('CoachCommandCenterPage Operations drawer', () => {
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
     expect(within(priorityActions).queryByRole('button', { name: /Draft in chat/i })).not.toBeInTheDocument();
+    expect(within(priorityActions).getByRole('button', { name: /^Import audio$/i })).toBeInTheDocument();
+    expect(within(priorityActions).queryByText(/^PLAUD$/i)).not.toBeInTheDocument();
     fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));
-    expect(screen.getByRole('button', { name: /^Operations$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^More coach actions$/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 

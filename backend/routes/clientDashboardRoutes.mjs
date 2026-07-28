@@ -40,6 +40,7 @@ import sequelize from '../database.mjs';
 import { protect, clientOnly, rateLimiter } from '../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../models/index.mjs';
 import { updateClientProfile } from '../controllers/profileController.mjs';
+import { toChallengeDashboardParticipation } from '../services/gamification/challengeDashboardReadModel.mjs';
 
 const router = express.Router();
 
@@ -139,7 +140,7 @@ router.get('/challenges', protect, async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      challenges: participations
+      challenges: participations.map((row) => toChallengeDashboardParticipation(row))
     });
   } catch (error) {
     return res.status(500).json({

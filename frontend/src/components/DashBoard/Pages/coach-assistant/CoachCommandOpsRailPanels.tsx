@@ -157,7 +157,7 @@ export function QuickClientPanel({
       <div className="section-title-row">
         <div>
           <h2 className="panel-title">Add client fast</h2>
-          <p className="panel-subtitle">Name-only client record for staged PLAUD and workout review.</p>
+          <p className="panel-subtitle">Name-only client record for staged audio and workout review.</p>
         </div>
         <UserPlus size={19} aria-hidden="true" />
       </div>

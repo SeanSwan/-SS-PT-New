@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: MessagingView.tsx
  * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */
@@ -8,6 +8,8 @@ import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
 import { useSubscription } from '../../../hooks/useSubscription';
 import { MessagingContainer } from './MessagingStyles';
+import ActionRequiredInbox from '../../Communications/ActionRequiredInbox';
+import CommunicationsInboxStrip from '../../Communications/CommunicationsInboxStrip';
 import ConversationListPanel from './ConversationListPanel';
 import MessageThread from './MessageThread';
 import NewConversationModal from './NewConversationModal';
@@ -32,6 +34,7 @@ const MessagingView: React.FC = () => {
     loading,
     messagesLoading,
     error,
+    retryMessage,
     sendMessage,
     createConversation,
     renameConversation,
@@ -48,6 +51,18 @@ const MessagingView: React.FC = () => {
     emitTyping,
     dismissError,
     pendingMessages,
+    editMessage,
+    deleteMessage,
+    toggleMessageReaction,
+    toggleMessagePin,
+    toggleMessageSave,
+    archiveConversation,
+    markConversationUnread,
+    muteConversation,
+    unmuteConversation,
+    reportMessage,
+    blockUser,
+    searchConversationMessages,
   } = useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading });
 
   const activeConversation = useMemo(
@@ -114,6 +129,9 @@ const MessagingView: React.FC = () => {
         </SummaryMetrics>
       </MessagingSummary>
 
+      <CommunicationsInboxStrip />
+      <ActionRequiredInbox />
+
       <MessagingContainer>
         <ConversationListPanel
           conversations={conversations}
@@ -131,6 +149,7 @@ const MessagingView: React.FC = () => {
           participant={activeParticipant}
           conversation={activeConversation}
           onSend={sendMessage}
+          onRetryMessage={retryMessage}
           onBack={handleBack}
           onTyping={emitTyping}
           onDismissError={dismissError}
@@ -143,6 +162,18 @@ const MessagingView: React.FC = () => {
           conversationId={activeConversationId}
           error={error}
           pendingMessages={pendingMessages}
+          onEditMessage={editMessage}
+          onDeleteMessage={deleteMessage}
+          onToggleReaction={toggleMessageReaction}
+          onTogglePin={toggleMessagePin}
+          onToggleSave={toggleMessageSave}
+          onArchiveConversation={archiveConversation}
+          onBlockUser={blockUser}
+          onMarkUnread={markConversationUnread}
+          onMuteConversation={muteConversation}
+          onReportMessage={reportMessage}
+          onSearchMessages={searchConversationMessages}
+          onUnmuteConversation={unmuteConversation}
           searchUsers={searchUsers}
           onRenameConversation={renameConversation}
           onAddParticipants={addConversationParticipants}

@@ -1,0 +1,925 @@
+diff --git backend/services/nutrition/nutritionDraftIntegrity.mjs backend/services/nutrition/nutritionDraftIntegrity.mjs
+new file mode 100644
+index 000000000..426a1380b
+--- /dev/null
++++ backend/services/nutrition/nutritionDraftIntegrity.mjs
+@@ -0,0 +1,48 @@
++/**
++ * Integrity policy for reviewed nutrition drafts.
++ * Trust grades and replay receipts are derived server-side from durable input.
++ */
++import { createHash } from 'node:crypto';
++
++const PROVIDER_SOURCES = new Set(['search', 'restaurant', 'barcode']);
++const AI_SOURCES = new Set(['voice', 'photo', 'meal-plan']);
++const COMMUNITY_PROVIDER_PATTERN = /open\s*food\s*facts/i;
++
++const canonicalize = (value) => {
++  if (Array.isArray(value)) return value.map(canonicalize);
++  if (!value || typeof value !== 'object') return value;
++  return Object.keys(value).sort().reduce((result, key) => {
++    if (value[key] !== undefined) result[key] = canonicalize(value[key]);
++    return result;
++  }, {});
++};
++
++export const nutritionDraftDigest = (value) => createHash('sha256')
++  .update(JSON.stringify(canonicalize(value)))
++  .digest('hex');
++
++export const isCommunityNutritionProvider = (rawPayloadRef) =>
++  COMMUNITY_PROVIDER_PATTERN.test(rawPayloadRef?.provider || '');
++
++export const resolveNutritionSourceConfidence = (source, rawPayloadRef, reviewReason) => {
++  if (source === 'manual') return 'community';
++  if (AI_SOURCES.has(source)) return 'ai_estimate';
++  if (source === 'barcode' && reviewReason === 'barcode_unmatched') return 'community';
++  if (PROVIDER_SOURCES.has(source) && isCommunityNutritionProvider(rawPayloadRef)) return 'community';
++  return PROVIDER_SOURCES.has(source) ? 'provider' : 'community';
++};
++
++export const hasDurableProviderReference = (source, rawPayloadRef) => {
++  if (!PROVIDER_SOURCES.has(source)) return true;
++  if (!rawPayloadRef?.provider) return false;
++  if (source === 'barcode') return Boolean(rawPayloadRef.barcode || rawPayloadRef.externalId);
++  return Boolean(rawPayloadRef.externalId);
++};
++
++export const nutritionEntryReceipt = (entry) => Object.fromEntries(Object.entries({
++  id: entry?.id,
++  date: entry?.date,
++  mealType: entry?.mealType,
++  reviewStatus: entry?.reviewStatus,
++  reviewReason: entry?.reviewReason,
++}).filter(([, value]) => value !== undefined));
+diff --git backend/services/nutrition/reviewedNutritionDraftService.mjs backend/services/nutrition/reviewedNutritionDraftService.mjs
+index 3a4a06b62..72dcf18ea 100644
+--- backend/services/nutrition/reviewedNutritionDraftService.mjs
++++ backend/services/nutrition/reviewedNutritionDraftService.mjs
+@@ -1,270 +1,287 @@
+-/**
+- * Atomic, idempotent persistence for reviewed NutritionEntryDraft v1 payloads.
+- * The client sends provider references, not raw provider payloads. All rows and
+- * their provenance record commit in one database transaction.
+- */
+-import sequelize from '../../database.mjs';
+-import DailyMacroLog from '../../models/DailyMacroLog.mjs';
+-import NutritionSourceRecord from '../../models/NutritionSourceRecord.mjs';
+-import { buildMacroRow } from './macroLogService.mjs';
+-import { reconcileNutritionCalories } from './nutritionReconciliation.mjs';
+-
+-const MAX_FOODS = 20;
+-const DRAFT_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+-const ALLOWED_SOURCES = new Set(['manual', 'voice', 'photo', 'search', 'restaurant', 'barcode', 'meal-plan']);
+-const ALLOWED_PROXIMITY = new Set(['none', 'pre_workout', 'intra_workout', 'post_workout']);
+-const ALLOWED_SERVING_BASIS = new Set(['label', 'per_100g', 'weighed', 'household', 'estimated']);
+-const ALLOWED_REVIEW_REASONS = new Set([
+-  'barcode_unmatched',
+-  'client_requested',
+-  'metabolic_deviation',
+-  'provider_estimate',
+-  'unverified_estimate',
+-]);
+-const NEEDS_REVIEW_REASONS = new Set([
+-  'barcode_unmatched',
+-  'client_requested',
+-  'metabolic_deviation',
+-  'unverified_estimate',
+-]);
+-
+-const ROUTE_SOURCE = {
+-  manual: 'manual',
+-  voice: 'voice',
+-  photo: 'food-scanner',
+-  search: 'usda_lookup',
+-  restaurant: 'usda_lookup',
+-  barcode: 'barcode',
+-  'meal-plan': 'ai-chat',
+-};
+-
+-const DEFAULT_CONFIDENCE = {
+-  provider: 0.85,
+-  community: 0.6,
+-  ai_estimate: 0.45,
+-};
+-
+-const SOURCE_CONFIDENCE = {
+-  manual: 'community',
+-  voice: 'ai_estimate',
+-  photo: 'ai_estimate',
+-  search: 'provider',
+-  restaurant: 'provider',
+-  barcode: 'provider',
+-  'meal-plan': 'ai_estimate',
+-};
+-
+-export class NutritionDraftValidationError extends Error {}
+-export class NutritionDraftConflictError extends Error {}
+-
+-const safeText = (value, maxLength) =>
+-  typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, maxLength) : '';
+-
+-const strictNonNegativeNumber = (value) =>
+-  typeof value === 'number' && Number.isFinite(value) && value >= 0
+-    ? Math.round(value * 10) / 10
+-    : null;
+-
+-const strictPositiveNumber = (value) => {
+-  const number = strictNonNegativeNumber(value);
+-  return number !== null && number > 0 ? number : null;
+-};
+-
+-const strictConfidence = (value, fallback) =>
+-  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+-    ? Math.round(value * 100) / 100
+-    : fallback;
+-
+-const sanitizeRawPayloadRef = (value) => {
+-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+-  const provider = safeText(value.provider, 100);
+-  const externalId = safeText(value.externalId, 120);
+-  const barcode = typeof value.barcode === 'string' && /^\d{8,14}$/.test(value.barcode)
+-    ? value.barcode
+-    : '';
+-  const schemaVersion = safeText(value.schemaVersion, 30);
+-  const capturedAt = typeof value.capturedAt === 'string'
+-    && !Number.isNaN(Date.parse(value.capturedAt))
+-    ? value.capturedAt
+-    : '';
+-
+-  const ref = {};
+-  if (provider) ref.provider = provider;
+-  if (externalId) ref.externalId = externalId;
+-  if (barcode) ref.barcode = barcode;
+-  if (schemaVersion) ref.schemaVersion = schemaVersion;
+-  if (capturedAt) ref.capturedAt = capturedAt;
+-  return Object.keys(ref).length > 0 ? ref : null;
+-};
+-
+-const validateDraft = (draft, userId) => {
+-  if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
+-    throw new NutritionDraftValidationError('Draft body is required');
+-  }
+-  if (draft.contractVersion !== '1.0') {
+-    throw new NutritionDraftValidationError('Unsupported draft contract');
+-  }
+-  if (typeof draft.draftId !== 'string' || !DRAFT_ID_PATTERN.test(draft.draftId)) {
+-    throw new NutritionDraftValidationError('Invalid draft id');
+-  }
+-  if (draft.userId !== null && draft.userId !== undefined
+-      && (!Number.isSafeInteger(draft.userId) || draft.userId !== userId)) {
+-    throw new NutritionDraftValidationError('Cross-user draft denied');
+-  }
+-  if (!ALLOWED_SOURCES.has(draft.source)) {
+-    throw new NutritionDraftValidationError('Invalid draft source');
+-  }
+-  if (!Array.isArray(draft.foods) || draft.foods.length < 1 || draft.foods.length > MAX_FOODS) {
+-    throw new NutritionDraftValidationError('Draft must contain 1-20 foods');
+-  }
+-};
+-
+-const normalizeServing = (serving) => ({
+-  basis: ALLOWED_SERVING_BASIS.has(serving?.basis) ? serving.basis : 'estimated',
+-  quantity: strictPositiveNumber(serving?.quantity),
+-  unit: safeText(serving?.unit, 30) || 'serving',
+-  label: safeText(serving?.label, 100),
+-});
+-
+-const resolveReviewReason = (draft, reconciliation, sourceConfidence) => {
+-  if (draft.reviewRequested) return 'client_requested';
+-  if (ALLOWED_REVIEW_REASONS.has(draft.reviewReason)) return draft.reviewReason;
+-  if (reconciliation.status === 'metabolic_deviation') return 'metabolic_deviation';
+-  if (draft.source === 'manual' && sourceConfidence === 'community') return null;
+-  if (sourceConfidence === 'ai_estimate' || sourceConfidence === 'community') {
+-    return 'unverified_estimate';
+-  }
+-  if (sourceConfidence === 'provider') return 'provider_estimate';
+-  return null;
+-};
+-
+-const buildEntryAttributes = (food, draft, context) => {
+-  const description = safeText(food?.description, 500);
+-  if (!description) throw new NutritionDraftValidationError('Food description is required');
+-
+-  const nutrients = food?.nutrients && typeof food.nutrients === 'object' ? food.nutrients : {};
+-  const serving = normalizeServing(food?.serving);
+-  const reconciliation = reconcileNutritionCalories(nutrients);
+-  const reviewReason = resolveReviewReason(draft, reconciliation, context.sourceConfidence);
+-  const reviewStatus = NEEDS_REVIEW_REASONS.has(reviewReason) ? 'needs_review'
+-    : 'client_confirmed';
+-  const confidenceScore = strictConfidence(food?.confidence, context.defaultConfidence);
+-
+-  let base;
+-  try {
+-    base = buildMacroRow({
+-      date: draft.date,
+-      mealType: food?.mealType,
+-      description,
+-      calories: nutrients.calories,
+-      protein: nutrients.protein,
+-      carbs: nutrients.carbs,
+-      fat: nutrients.fat,
+-      fiber: nutrients.fiber,
+-      sugar: nutrients.sugar,
+-      sodium: nutrients.sodium,
+-      items: [{
+-        id: safeText(food?.id, 100) || undefined,
+-        name: description.slice(0, 150),
+-        serving: serving.label || [serving.quantity, serving.unit].filter(Boolean).join(' '),
+-        provider: safeText(food?.provider, 100) || draft.sourceLabel,
+-        source: draft.source,
+-        confidence: confidenceScore,
+-      }],
+-    }, { userId: context.userId, source: ROUTE_SOURCE[draft.source] });
+-  } catch (error) {
+-    throw new NutritionDraftValidationError(error.message);
+-  }
+-
+-  return {
+-    ...base,
+-    sourceRecordId: context.sourceRecordId,
+-    loggedByUserId: context.loggedByUserId,
+-    contractVersion: draft.contractVersion,
+-    draftId: draft.draftId,
+-    workoutProximity: context.workoutProximity,
+-    servingBasis: serving.basis,
+-    servingQuantity: serving.quantity,
+-    servingUnit: serving.unit,
+-    caloriesReported: reconciliation.reportedCalories,
+-    caloriesCalculated: reconciliation.calculatedCalories,
+-    reconciliationStatus: reconciliation.status,
+-    confidenceScore,
+-    reviewStatus,
+-    reviewReason,
+-    brandName: safeText(food?.brandName, 200) || null,
+-    mealSource: draft.source === 'barcode' ? 'packaged' : null,
+-  };
+-};
+-
+-export async function saveReviewedNutritionDraft(draft, { userId, loggedByUserId }) {
+-  const safeUserId = Number(userId);
+-  const safeLoggedByUserId = Number(loggedByUserId);
+-  if (!Number.isSafeInteger(safeUserId) || safeUserId < 1
+-      || !Number.isSafeInteger(safeLoggedByUserId) || safeLoggedByUserId < 1) {
+-    throw new NutritionDraftValidationError('Valid user context is required');
+-  }
+-  validateDraft(draft, safeUserId);
+-
+-  const sourceConfidence = draft.source === 'barcode' && draft.reviewReason === 'barcode_unmatched'
+-    ? 'community'
+-    : SOURCE_CONFIDENCE[draft.source];
+-  const workoutProximity = ALLOWED_PROXIMITY.has(draft.workoutProximity)
+-    ? draft.workoutProximity
+-    : 'none';
+-  const defaultConfidence = DEFAULT_CONFIDENCE[sourceConfidence];
+-  const rawPayloadRef = sanitizeRawPayloadRef(draft.rawPayloadRef);
+-
+-  return sequelize.transaction(async (transaction) => {
+-    const [sourceRecord, created] = await NutritionSourceRecord.findOrCreate({
+-      where: { userId: safeUserId, draftId: draft.draftId },
+-      defaults: {
+-        userId: safeUserId,
+-        loggedByUserId: safeLoggedByUserId,
+-        draftId: draft.draftId,
+-        contractVersion: draft.contractVersion,
+-        source: draft.source,
+-        sourceLabel: safeText(draft.sourceLabel, 120) || null,
+-        sourceConfidence,
+-        confidenceScore: defaultConfidence,
+-        workoutProximity,
+-        rawPayloadRef,
+-        status: 'processing',
+-        entryCount: 0,
+-      },
+-      transaction,
+-    });
+-
+-    if (!created) {
+-      const entries = await DailyMacroLog.findAll({
+-        where: { sourceRecordId: sourceRecord.id },
+-        order: [['id', 'ASC']],
+-        transaction,
+-      });
+-      if (entries.length === 0) {
+-        throw new NutritionDraftConflictError('Draft source record has no committed rows');
+-      }
+-      return { replayed: true, entries, sourceRecordId: sourceRecord.id };
+-    }
+-
+-    const entries = [];
+-    for (const food of draft.foods) {
+-      const attributes = buildEntryAttributes(food, draft, {
+-        userId: safeUserId,
+-        loggedByUserId: safeLoggedByUserId,
+-        sourceRecordId: sourceRecord.id,
+-        workoutProximity,
+-        sourceConfidence,
+-        defaultConfidence,
+-      });
+-      entries.push(await DailyMacroLog.create(attributes, { transaction }));
+-    }
+-
+-    await sourceRecord.update({
+-      status: 'committed',
+-      entryCount: entries.length,
+-    }, { transaction });
+-
+-    return { replayed: false, entries, sourceRecordId: sourceRecord.id };
+-  });
+-}
++/**
++ * Atomic, idempotent persistence for reviewed NutritionEntryDraft v1 payloads.
++ * Client confidence labels are advisory; server policy owns trust and review state.
++ */
++import sequelize from '../../database.mjs';
++import DailyMacroLog from '../../models/DailyMacroLog.mjs';
++import NutritionSourceRecord from '../../models/NutritionSourceRecord.mjs';
++import { buildMacroRow } from './macroLogService.mjs';
++import {
++  hasDurableProviderReference,
++  nutritionDraftDigest,
++  nutritionEntryReceipt,
++  resolveNutritionSourceConfidence,
++} from './nutritionDraftIntegrity.mjs';
++import { reconcileNutritionCalories } from './nutritionReconciliation.mjs';
++
++const MAX_FOODS = 20;
++const DRAFT_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
++const ALLOWED_SOURCES = new Set(['manual', 'voice', 'photo', 'search', 'restaurant', 'barcode', 'meal-plan']);
++const ALLOWED_PROXIMITY = new Set(['none', 'pre_workout', 'intra_workout', 'post_workout']);
++const ALLOWED_SERVING_BASIS = new Set(['label', 'per_100g', 'weighed', 'household', 'estimated']);
++const NEEDS_REVIEW_REASONS = new Set([
++  'barcode_unmatched',
++  'client_requested',
++  'metabolic_deviation',
++  'unverified_estimate',
++]);
++
++const ROUTE_SOURCE = {
++  manual: 'manual',
++  voice: 'voice',
++  photo: 'food-scanner',
++  search: 'usda_lookup',
++  restaurant: 'usda_lookup',
++  barcode: 'barcode',
++  'meal-plan': 'ai-chat',
++};
++
++const DEFAULT_CONFIDENCE = {
++  provider: 0.85,
++  community: 0.6,
++  ai_estimate: 0.45,
++};
++
++export class NutritionDraftValidationError extends Error {}
++export class NutritionDraftConflictError extends Error {}
++
++const safeText = (value, maxLength) =>
++  typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, maxLength) : '';
++
++const strictNonNegativeNumber = (value) =>
++  typeof value === 'number' && Number.isFinite(value) && value >= 0
++    ? Math.round(value * 10) / 10
++    : null;
++
++const strictPositiveNumber = (value) => {
++  const number = strictNonNegativeNumber(value);
++  return number !== null && number > 0 ? number : null;
++};
++
++const strictConfidence = (value, fallback) => {
++  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) return fallback;
++  return Math.min(Math.round(value * 100) / 100, fallback);
++};
++
++const sanitizeRawPayloadRef = (value) => {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
++  const provider = safeText(value.provider, 100);
++  const externalId = safeText(value.externalId, 120);
++  const barcode = typeof value.barcode === 'string' && /^\d{8,14}$/.test(value.barcode)
++    ? value.barcode
++    : '';
++  const schemaVersion = safeText(value.schemaVersion, 30);
++  const capturedAt = typeof value.capturedAt === 'string'
++    && !Number.isNaN(Date.parse(value.capturedAt))
++    ? value.capturedAt
++    : '';
++
++  const ref = {};
++  if (provider) ref.provider = provider;
++  if (externalId) ref.externalId = externalId;
++  if (barcode) ref.barcode = barcode;
++  if (schemaVersion) ref.schemaVersion = schemaVersion;
++  if (capturedAt) ref.capturedAt = capturedAt;
++  return Object.keys(ref).length > 0 ? ref : null;
++};
++
++const validateDraft = (draft, userId) => {
++  if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
++    throw new NutritionDraftValidationError('Draft body is required');
++  }
++  if (draft.contractVersion !== '1.0') {
++    throw new NutritionDraftValidationError('Unsupported draft contract');
++  }
++  if (typeof draft.draftId !== 'string' || !DRAFT_ID_PATTERN.test(draft.draftId)) {
++    throw new NutritionDraftValidationError('Invalid draft id');
++  }
++  if (draft.userId !== null && draft.userId !== undefined
++      && (!Number.isSafeInteger(draft.userId) || draft.userId !== userId)) {
++    throw new NutritionDraftValidationError('Cross-user draft denied');
++  }
++  if (!ALLOWED_SOURCES.has(draft.source)) {
++    throw new NutritionDraftValidationError('Invalid draft source');
++  }
++  if (!Array.isArray(draft.foods) || draft.foods.length < 1 || draft.foods.length > MAX_FOODS) {
++    throw new NutritionDraftValidationError('Draft must contain 1-20 foods');
++  }
++};
++
++const normalizeServing = (serving) => ({
++  basis: ALLOWED_SERVING_BASIS.has(serving?.basis) ? serving.basis : 'estimated',
++  quantity: strictPositiveNumber(serving?.quantity),
++  unit: safeText(serving?.unit, 30) || 'serving',
++  label: safeText(serving?.label, 100),
++});
++
++const resolveReviewReason = (draft, reconciliation, sourceConfidence) => {
++  if (draft.reviewRequested === true) return 'client_requested';
++  if (draft.source === 'barcode' && draft.reviewReason === 'barcode_unmatched') {
++    return 'barcode_unmatched';
++  }
++  if (reconciliation.status === 'metabolic_deviation') return 'metabolic_deviation';
++  if (draft.source === 'manual' && sourceConfidence === 'community') return null;
++  if (sourceConfidence === 'ai_estimate' || sourceConfidence === 'community') {
++    return 'unverified_estimate';
++  }
++  if (sourceConfidence === 'provider') return 'provider_estimate';
++  return null;
++};
++
++const buildEntryAttributes = (food, draft, context) => {
++  const description = safeText(food?.description, 500);
++  if (!description) throw new NutritionDraftValidationError('Food description is required');
++
++  const nutrients = food?.nutrients && typeof food.nutrients === 'object' ? food.nutrients : {};
++  const serving = normalizeServing(food?.serving);
++  const reconciliation = reconcileNutritionCalories(nutrients);
++  const reviewReason = resolveReviewReason(draft, reconciliation, context.sourceConfidence);
++  const reviewStatus = NEEDS_REVIEW_REASONS.has(reviewReason) ? 'needs_review' : 'client_confirmed';
++  const confidenceScore = strictConfidence(food?.confidence, context.defaultConfidence);
++
++  let base;
++  try {
++    base = buildMacroRow({
++      date: draft.date,
++      mealType: food?.mealType,
++      description,
++      calories: nutrients.calories,
++      protein: nutrients.protein,
++      carbs: nutrients.carbs,
++      fat: nutrients.fat,
++      fiber: nutrients.fiber,
++      sugar: nutrients.sugar,
++      sodium: nutrients.sodium,
++      items: [{
++        id: safeText(food?.id, 100) || undefined,
++        name: description.slice(0, 150),
++        serving: serving.label || [serving.quantity, serving.unit].filter(Boolean).join(' '),
++        provider: safeText(food?.provider, 100) || draft.sourceLabel,
++        source: draft.source,
++        confidence: confidenceScore,
++      }],
++    }, { userId: context.userId, source: ROUTE_SOURCE[draft.source] });
++  } catch (error) {
++    throw new NutritionDraftValidationError(error.message);
++  }
++
++  return {
++    ...base,
++    sourceRecordId: null,
++    loggedByUserId: context.loggedByUserId,
++    contractVersion: draft.contractVersion,
++    draftId: draft.draftId,
++    workoutProximity: context.workoutProximity,
++    servingBasis: serving.basis,
++    servingQuantity: serving.quantity,
++    servingUnit: serving.unit,
++    caloriesReported: reconciliation.reportedCalories,
++    caloriesCalculated: reconciliation.calculatedCalories,
++    reconciliationStatus: reconciliation.status,
++    confidenceScore,
++    reviewStatus,
++    reviewReason,
++    brandName: safeText(food?.brandName, 200) || null,
++    mealSource: draft.source === 'barcode' ? 'packaged' : null,
++  };
++};
++
++export async function saveReviewedNutritionDraft(draft, { userId, loggedByUserId }) {
++  const safeUserId = Number(userId);
++  const safeLoggedByUserId = Number(loggedByUserId);
++  if (!Number.isSafeInteger(safeUserId) || safeUserId < 1
++      || !Number.isSafeInteger(safeLoggedByUserId) || safeLoggedByUserId < 1) {
++    throw new NutritionDraftValidationError('Valid user context is required');
++  }
++  validateDraft(draft, safeUserId);
++
++  const rawPayloadRef = sanitizeRawPayloadRef(draft.rawPayloadRef);
++  if (!hasDurableProviderReference(draft.source, rawPayloadRef)) {
++    throw new NutritionDraftValidationError('Durable provider reference is required');
++  }
++  const sourceConfidence = resolveNutritionSourceConfidence(
++    draft.source,
++    rawPayloadRef,
++    draft.reviewReason,
++  );
++  const workoutProximity = ALLOWED_PROXIMITY.has(draft.workoutProximity)
++    ? draft.workoutProximity
++    : 'none';
++  const defaultConfidence = DEFAULT_CONFIDENCE[sourceConfidence];
++  const entryPlans = draft.foods.map((food) => buildEntryAttributes(food, draft, {
++    userId: safeUserId,
++    loggedByUserId: safeLoggedByUserId,
++    workoutProximity,
++    sourceConfidence,
++    defaultConfidence,
++  }));
++  const payloadDigest = nutritionDraftDigest({
++    userId: safeUserId,
++    loggedByUserId: safeLoggedByUserId,
++    source: draft.source,
++    sourceLabel: safeText(draft.sourceLabel, 120) || null,
++    rawPayloadRef,
++    workoutProximity,
++    entries: entryPlans,
++  });
++
++  return sequelize.transaction(async (transaction) => {
++    const [sourceRecord, created] = await NutritionSourceRecord.findOrCreate({
++      where: { userId: safeUserId, draftId: draft.draftId },
++      defaults: {
++        userId: safeUserId,
++        loggedByUserId: safeLoggedByUserId,
++        draftId: draft.draftId,
++        contractVersion: draft.contractVersion,
++        source: draft.source,
++        sourceLabel: safeText(draft.sourceLabel, 120) || null,
++        sourceConfidence,
++        confidenceScore: defaultConfidence,
++        workoutProximity,
++        rawPayloadRef,
++        payloadDigest,
++        status: 'processing',
++        entryCount: 0,
++      },
++      transaction,
++    });
++
++    if (!created) {
++      if (sourceRecord.status !== 'committed' || sourceRecord.payloadDigest !== payloadDigest) {
++        throw new NutritionDraftConflictError('Draft id conflicts with another payload');
++      }
++      const entries = await DailyMacroLog.findAll({
++        where: { sourceRecordId: sourceRecord.id },
++        order: [['id', 'ASC']],
++        transaction,
++      });
++      if (entries.length < 1 || entries.length !== sourceRecord.entryCount) {
++        throw new NutritionDraftConflictError('Committed draft receipt does not match stored rows');
++      }
++      return {
++        replayed: true,
++        entries: entries.map(nutritionEntryReceipt),
++        sourceRecordId: sourceRecord.id,
++      };
++    }
++
++    const entries = [];
++    for (const plan of entryPlans) {
++      entries.push(await DailyMacroLog.create({
++        ...plan,
++        sourceRecordId: sourceRecord.id,
++      }, { transaction }));
++    }
++
++    await sourceRecord.update({
++      status: 'committed',
++      entryCount: entries.length,
++    }, { transaction });
++
++    return {
++      replayed: false,
++      entries: entries.map(nutritionEntryReceipt),
++      sourceRecordId: sourceRecord.id,
++    };
++  });
++}
+diff --git backend/services/encryption/healthDataEncryption.mjs backend/services/encryption/healthDataEncryption.mjs
+index 0f4d96e99..8702c30a6 100644
+--- backend/services/encryption/healthDataEncryption.mjs
++++ backend/services/encryption/healthDataEncryption.mjs
+@@ -1,127 +1,130 @@
+-/**
+- * ============================================================
+- * BLUEPRINT: Health Data Encryption Hooks
+- * ============================================================
+- * Purpose:  Sequelize lifecycle hooks to automatically encrypt
+- *           sensitive health data fields on write and decrypt
+- *           on read. Transparent to the rest of the application.
+- * Scope:    Pain entries, body measurements, nutrition logs,
+- *           client notes, progress data.
+- * Owner:    Phase 11 — E2EE Encryption
+- * ============================================================
+- */
+-
+-import { encryptFields, decryptFields, isEncryptionEnabled } from './encryptionService.mjs';
+-
+-// ---------------------------------------------------------------------------
+-// Field Definitions — Which fields get encrypted per model
+-// ---------------------------------------------------------------------------
+-
+-const ENCRYPTED_MODEL_FIELDS = {
+-  ClientPainEntry: {
+-    context: 'health:pain_entry',
+-    fields: ['description', 'notes', 'severity_notes'],
+-  },
+-  ClientBaselineMeasurements: {
+-    context: 'health:baseline',
+-    fields: ['notes', 'injuries', 'medical_notes'],
+-  },
+-  DailyMacroLog: {
+-    context: 'health:nutrition',
+-    fields: ['description'],
+-  },
+-  ClientNote: {
+-    context: 'health:client_note',
+-    fields: ['content', 'note_text'],
+-  },
+-  ClientProgress: {
+-    context: 'health:progress',
+-    fields: ['notes', 'trainer_notes'],
+-  },
+-  ClientNutritionPlan: {
+-    context: 'health:nutrition_plan',
+-    fields: ['plan_details', 'notes', 'restrictions'],
+-  },
+-};
+-
+-// ---------------------------------------------------------------------------
+-// Hook Registration
+-// ---------------------------------------------------------------------------
+-
+-/**
+- * Register encryption hooks on a Sequelize model.
+- * Silently skips if encryption is not enabled (no master key).
+- *
+- * @param {object} Model — Sequelize model class
+- * @param {string} modelName — Name key from ENCRYPTED_MODEL_FIELDS
+- */
+-export function registerEncryptionHooks(Model, modelName) {
+-  const config = ENCRYPTED_MODEL_FIELDS[modelName];
+-  if (!config) return; // Model not configured for encryption
+-
+-  // Filter to only fields that actually exist on the model
+-  const validFields = config.fields.filter(f => {
+-    const attrs = Model.rawAttributes || Model.tableAttributes || {};
+-    return !!attrs[f];
+-  });
+-
+-  if (validFields.length === 0) return;
+-
+-  // Encrypt before save
+-  Model.addHook('beforeCreate', `encrypt_${modelName}`, (instance) => {
+-    if (!isEncryptionEnabled()) return;
+-    encryptFields(instance, validFields, config.context);
+-  });
+-
+-  Model.addHook('beforeUpdate', `encrypt_${modelName}`, (instance) => {
+-    if (!isEncryptionEnabled()) return;
+-    // Only encrypt changed fields to avoid re-encrypting
+-    const changedFields = validFields.filter(f => instance.changed(f));
+-    if (changedFields.length > 0) {
+-      encryptFields(instance, changedFields, config.context);
+-    }
+-  });
+-
+-  // Decrypt after read
+-  Model.addHook('afterFind', `decrypt_${modelName}`, (results) => {
+-    if (!isEncryptionEnabled()) return;
+-    if (!results) return;
+-
+-    const instances = Array.isArray(results) ? results : [results];
+-    for (const instance of instances) {
+-      if (instance && typeof instance.getDataValue === 'function') {
+-        decryptFields(instance, validFields, config.context);
+-      }
+-    }
+-  });
+-}
+-
+-/**
+- * Register encryption hooks on all configured health data models.
+- * Call this after model associations are set up.
+- *
+- * @param {object} models — Object of Sequelize model classes
+- */
+-export function registerAllHealthEncryptionHooks(models) {
+-  if (!isEncryptionEnabled()) {
+-    console.log('[HealthEncryption] Encryption disabled — hooks not registered');
+-    return;
+-  }
+-
+-  let registered = 0;
+-  for (const modelName of Object.keys(ENCRYPTED_MODEL_FIELDS)) {
+-    const Model = models[modelName];
+-    if (Model) {
+-      registerEncryptionHooks(Model, modelName);
+-      registered++;
+-    }
+-  }
+-
+-  console.log(`[HealthEncryption] Registered encryption hooks on ${registered} models`);
+-}
+-
+-export default {
+-  registerEncryptionHooks,
+-  registerAllHealthEncryptionHooks,
+-  ENCRYPTED_MODEL_FIELDS,
+-};
++/**
++ * Sequelize health-data encryption hooks.
++ * Sensitive scalar fields and duplicate nutrition text in JSONB are encrypted
++ * at rest, then restored on read and write responses.
++ */
++import {
++  decrypt,
++  decryptFields,
++  encrypt,
++  encryptFields,
++  isEncryptionEnabled,
++} from './encryptionService.mjs';
++
++const ENCRYPTED_MODEL_FIELDS = {
++  ClientPainEntry: {
++    context: 'health:pain_entry',
++    fields: ['description', 'notes', 'severity_notes'],
++  },
++  ClientBaselineMeasurements: {
++    context: 'health:baseline',
++    fields: ['notes', 'injuries', 'medical_notes'],
++  },
++  DailyMacroLog: {
++    context: 'health:nutrition',
++    fields: ['description'],
++  },
++  ClientNote: {
++    context: 'health:client_note',
++    fields: ['content', 'note_text'],
++  },
++  ClientProgress: {
++    context: 'health:progress',
++    fields: ['notes', 'trainer_notes'],
++  },
++  ClientNutritionPlan: {
++    context: 'health:nutrition_plan',
++    fields: ['plan_details', 'notes', 'restrictions'],
++  },
++};
++
++const mapNutritionItems = (items, transform) => {
++  if (!Array.isArray(items)) return items;
++  return items.map((item) => {
++    if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
++    const next = { ...item };
++    for (const field of ['name', 'description']) {
++      if (typeof next[field] === 'string' && next[field]) {
++        next[field] = transform(next[field], `health:nutrition:items:${field}`);
++      }
++    }
++    return next;
++  });
++};
++
++export const encryptNutritionItems = (items) => mapNutritionItems(items, encrypt);
++export const decryptNutritionItems = (items) => mapNutritionItems(items, decrypt);
++
++const transformNutritionItems = (instance, transform) => {
++  if (!instance || typeof instance.getDataValue !== 'function') return;
++  const items = instance.getDataValue('items');
++  if (items !== undefined) instance.setDataValue('items', transform(items));
++};
++
++const decryptInstance = (instance, validFields, config, isNutrition) => {
++  if (!instance || typeof instance.getDataValue !== 'function') return;
++  decryptFields(instance, validFields, config.context);
++  if (isNutrition) transformNutritionItems(instance, decryptNutritionItems);
++};
++
++export function registerEncryptionHooks(Model, modelName) {
++  const config = ENCRYPTED_MODEL_FIELDS[modelName];
++  if (!config) return;
++
++  const attrs = Model.rawAttributes || Model.tableAttributes || {};
++  const validFields = config.fields.filter((field) => Boolean(attrs[field]));
++  const isNutrition = modelName === 'DailyMacroLog' && Boolean(attrs.items);
++  if (validFields.length === 0 && !isNutrition) return;
++
++  Model.addHook('beforeCreate', `encrypt_${modelName}`, (instance) => {
++    if (!isEncryptionEnabled()) return;
++    encryptFields(instance, validFields, config.context);
++    if (isNutrition) transformNutritionItems(instance, encryptNutritionItems);
++  });
++
++  Model.addHook('beforeUpdate', `encrypt_${modelName}`, (instance) => {
++    if (!isEncryptionEnabled()) return;
++    const changedFields = validFields.filter((field) => instance.changed(field));
++    if (changedFields.length > 0) encryptFields(instance, changedFields, config.context);
++    if (isNutrition && instance.changed('items')) {
++      transformNutritionItems(instance, encryptNutritionItems);
++    }
++  });
++
++  Model.addHook('afterFind', `decrypt_${modelName}`, (results) => {
++    if (!isEncryptionEnabled() || !results) return;
++    const instances = Array.isArray(results) ? results : [results];
++    instances.forEach((instance) => decryptInstance(instance, validFields, config, isNutrition));
++  });
++
++  for (const event of ['afterCreate', 'afterUpdate']) {
++    Model.addHook(event, `decrypt_${modelName}_${event}`, (instance) => {
++      if (isEncryptionEnabled()) decryptInstance(instance, validFields, config, isNutrition);
++    });
++  }
++}
++
++export function registerAllHealthEncryptionHooks(models) {
++  if (!isEncryptionEnabled()) {
++    console.log('[HealthEncryption] Encryption disabled - hooks not registered');
++    return;
++  }
++
++  let registered = 0;
++  for (const modelName of Object.keys(ENCRYPTED_MODEL_FIELDS)) {
++    const Model = models[modelName];
++    if (Model) {
++      registerEncryptionHooks(Model, modelName);
++      registered += 1;
++    }
++  }
++  console.log(`[HealthEncryption] Registered encryption hooks on ${registered} models`);
++}
++
++export default {
++  registerEncryptionHooks,
++  registerAllHealthEncryptionHooks,
++  encryptNutritionItems,
++  decryptNutritionItems,
++  ENCRYPTED_MODEL_FIELDS,
++};
+diff --git backend/migrations/20260709001000-backfill-daily-macro-encryption.cjs backend/migrations/20260709001000-backfill-daily-macro-encryption.cjs
+new file mode 100644
+index 000000000..635e9789b
+--- /dev/null
++++ backend/migrations/20260709001000-backfill-daily-macro-encryption.cjs
+@@ -0,0 +1,40 @@
++'use strict';
++
++/**
++ * Encrypts legacy nutrition descriptions and duplicate meal text in JSONB.
++ * This migration fails closed so a deployment cannot silently skip protection.
++ */
++const TABLE = 'daily_macro_logs';
++
++module.exports = {
++  async up(queryInterface, Sequelize) {
++    if (!process.env.ENCRYPTION_MASTER_KEY) {
++      throw new Error('ENCRYPTION_MASTER_KEY is required for nutrition encryption backfill');
++    }
++
++    const { encrypt } = await import('../services/encryption/encryptionService.mjs');
++    const { encryptNutritionItems } = await import('../services/encryption/healthDataEncryption.mjs');
++
++    await queryInterface.sequelize.transaction(async (transaction) => {
++      const rows = await queryInterface.sequelize.query(
++        `SELECT id, description, items FROM ${TABLE} ORDER BY id ASC`,
++        { type: Sequelize.QueryTypes.SELECT, transaction },
++      );
++
++      for (const row of rows) {
++        const description = encrypt(row.description, 'health:nutrition:description');
++        const items = encryptNutritionItems(row.items);
++        await queryInterface.bulkUpdate(
++          TABLE,
++          { description, items },
++          { id: row.id },
++          { transaction },
++        );
++      }
++    });
++  },
++
++  async down() {
++    // Security backfills are intentionally not reversed into plaintext.
++  },
++};
+

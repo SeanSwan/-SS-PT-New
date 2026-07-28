@@ -1,6 +1,19 @@
 export type ClassFormat = string;
 export type DayType = 'lower_body' | 'upper_body' | 'cardio' | 'full_body' | 'custom';
 
+export interface BootcampProgrammingIntent {
+  type?: 'functional_circuit' | string;
+  classStyle?: string;
+  label?: string;
+  scheme?: string;
+  prescriptionLabel?: string;
+  workMode?: string;
+  repTargets?: number[];
+  timeTargetsSec?: number[];
+  groupFocus?: string;
+  coachCue?: string;
+  safetyCue?: string;
+}
 export interface BootcampExercise {
   exerciseName: string;
   durationSec: number;
@@ -42,6 +55,17 @@ export interface BootcampExercise {
   boardLabel?: string;
   sourceExerciseName?: string;
   setupTimeSec?: number;
+  notes?: string | null;
+  programmingIntent?: BootcampProgrammingIntent | null;
+  selectionReason?: string | null;
+  equipmentEvidence?: string[];
+  missingEquipment?: string[];
+  mediaStatus?: 'preview_video' | 'video' | 'poster' | 'none' | string | null;
+  scoreBreakdown?: {
+    equipment?: number;
+    media?: number;
+    total?: number;
+  } | null;
   pyramidStartWeight?: string | null;
   pyramidDrops?: number | null;
   supersetOrder?: number | null;
@@ -77,6 +101,17 @@ export interface OverflowPlan {
 
 export interface BootcampExplanation {
   type: string;
+  message: string;
+}
+
+export interface BootcampEquipmentReadiness {
+  type: 'equipment' | 'insufficient_equipment' | string;
+  code?: 'equipment_profile_applied' | 'insufficient_equipment' | string;
+  severity?: 'info' | 'warning' | 'error' | string;
+  allowedCount?: number;
+  rejectedCount?: number;
+  requiredSlots?: number;
+  missingEquipmentCounts?: Record<string, number>;
   message: string;
 }
 
@@ -132,6 +167,7 @@ export interface GeneratedBootcamp {
   stretches?: BootcampStretch[];
   overflowPlan: OverflowPlan | null;
   flowData?: StationFlowData[];
+  equipmentReadiness?: BootcampEquipmentReadiness | null;
   explanations: BootcampExplanation[];
   aiGenerated: boolean;
 }

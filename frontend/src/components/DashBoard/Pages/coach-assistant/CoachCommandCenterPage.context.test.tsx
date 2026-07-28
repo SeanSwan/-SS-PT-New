@@ -8,7 +8,7 @@ import {
 } from './CoachCommandCenterPage.test.harness';
 const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 
-const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const PLACEHOLDER = 'Talk or type to Swan Coach...';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
 

@@ -10,6 +10,7 @@ const readSource = (relativePath: string) =>
 describe('mounted FoodTracker auth pipeline', () => {
   it('covers FoodTracker tabs mounted from the nutrition workspace and backed by mounted APIs', () => {
     const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
+    const captureSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.capture.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const macroRoutesSource = readSource('backend/routes/dailyMacroRoutes.mjs');
     const mealPlanRoutesSource = readSource('backend/routes/mealPlanRoutes.mjs');
@@ -17,6 +18,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     const gardeningRoutesSource = readSource('backend/routes/gardeningRoutes.mjs');
     const farmRoutesSource = readSource('backend/routes/farmFinderRoutes.mjs');
     const freeRoutesSource = readSource('backend/routes/freeApiRoutes.mjs');
+    const clientNutritionRoutesSource = readSource('backend/routes/clientNutritionRoutes.mjs');
 
     expect(workspaceSource).toContain("const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'))");
     expect(workspaceSource).toContain("const GardeningTab = lazy(() => import('../../FoodTracker/GardeningTab'))");
@@ -24,6 +26,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(workspaceSource).toContain("const SupplementsTab = lazy(() => import('../../FoodTracker/SupplementsTab'))");
     expect(workspaceSource).toContain("const MealPlanTab = lazy(() => import('../../FoodTracker/MealPlanTab'))");
     expect(workspaceSource).toContain("const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntelligenceDashboard'))");
+    expect(workspaceSource).toContain("const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'))");
 
     expect(coreRoutesSource).toContain("app.use('/api/macros', dailyMacroRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/gardening', gardeningRoutes)");
@@ -31,6 +34,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(coreRoutesSource).toContain("app.use('/api/supplements', supplementRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/meal-plans', mealPlanRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/free', freeApiRoutes)");
+    expect(coreRoutesSource).toContain("app.use('/api/nutrition', clientNutritionRoutes)");
     expect(macroRoutesSource).toContain("router.post('/'");
     expect(mealPlanRoutesSource).toContain("router.get('/golf-presets'");
     expect(mealPlanRoutesSource).toContain("router.post('/generate'");
@@ -45,6 +49,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(freeRoutesSource).toContain("router.get('/nutrition'");
     expect(freeRoutesSource).toContain("router.get('/food-search'");
     expect(freeRoutesSource).toContain("router.get('/quote'");
+    expect(clientNutritionRoutesSource).toContain("router.get('/food-search'");
   });
 
   it('keeps mounted FoodTracker backend calls on the shared API service', () => {
@@ -56,6 +61,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     const gardeningSource = readSource('frontend/src/components/FoodTracker/GardeningTab.tsx');
     const farmFinderSource = readSource('frontend/src/components/FoodTracker/FarmFinderTab.tsx');
     const intelligenceSource = readSource('frontend/src/components/FoodTracker/FoodIntelligenceDashboard.tsx');
+    const searchPanelLogicSource = readSource('frontend/src/components/FoodTracker/FoodSearchPanel.logic.ts');
     const combinedSource = [
       foodIntakeSource,
       mealPlanSource,
@@ -64,6 +70,7 @@ describe('mounted FoodTracker auth pipeline', () => {
       gardeningSource,
       farmFinderSource,
       intelligenceSource,
+      searchPanelLogicSource,
     ].join('\n');
 
     expect(foodIntakeSource).toContain("import apiService from '../../services/api.service'");
@@ -96,6 +103,13 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(intelligenceSource).toContain('apiService.get(`/api/free/food-search?q=${encodeURIComponent(query)}`)');
     expect(intelligenceSource).toContain("apiService.get('/api/free/quote')");
 
+    expect(searchPanelLogicSource).toContain("import apiService from '../../services/api.service'");
+    expect(searchPanelLogicSource).toContain('apiService.get<FoodSearchProxyResponse>');
+    expect(searchPanelLogicSource).toContain('/api/nutrition/food-search?q=${encodeURIComponent(query)}&pageSize=15');
+    expect(searchPanelLogicSource).not.toContain('VITE_USDA_API_KEY');
+    expect(searchPanelLogicSource).not.toContain('nal.usda.gov');
+    expect(searchPanelLogicSource).not.toContain('openfoodfacts.org');
+
     expect(combinedSource).not.toContain("localStorage.getItem('token')");
     expect(combinedSource).not.toContain('fetch(');
     expect(combinedSource).not.toContain('Authorization');
@@ -121,12 +135,13 @@ describe('mounted FoodTracker auth pipeline', () => {
 
   it('honors reduced motion for mounted Nutrition workspace framer-motion surfaces', () => {
     const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
+    const captureSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.capture.tsx');
     const supplementsSource = readSource('frontend/src/components/FoodTracker/SupplementsTab.tsx');
 
     expect(workspaceSource).toContain("import { useReducedMotion } from 'framer-motion';");
     expect(workspaceSource).toContain('const reduceMotion = Boolean(useReducedMotion());');
-    expect(workspaceSource).toContain('whileHover={reduceMotion ? undefined : { scale: 1.02 }}');
-    expect(workspaceSource).toContain('whileTap={reduceMotion ? undefined : { scale: 0.98 }}');
+    expect(captureSource).toContain('whileHover={reduceMotion ? undefined : { y: -2 }}');
+    expect(captureSource).toContain('whileTap={reduceMotion ? undefined : { scale: 0.98 }}');
 
     expect(supplementsSource).toContain("import { AnimatePresence, useReducedMotion } from 'framer-motion';");
     expect(supplementsSource).toContain('const reduceMotion = Boolean(useReducedMotion());');

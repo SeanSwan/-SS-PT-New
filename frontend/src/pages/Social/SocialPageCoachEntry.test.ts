@@ -54,6 +54,10 @@ describe('SocialPage.V3 Coach entry — source contract', () => {
       "const VALID_TABS = ['feed', 'reels', 'friends', 'challenges', 'notifications'] as const",
     );
   });
+  it('records notification click lifecycle before safe-link navigation', () => {
+    expect(PAGE_SOURCE).toContain('await socialNotifications.markAsClicked(notification.id);');
+    expect(PAGE_SOURCE).toContain("link.startsWith('/') && !link.startsWith('//')");
+  });
 });
 
 describe('getSwanCoachDashboardPath role routing', () => {

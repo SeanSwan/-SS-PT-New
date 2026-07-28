@@ -356,6 +356,52 @@ describe('coachActionProposalService', () => {
     });
   });
 
+  it('normalizes workout-log historical sources and defaults them from historical route context', () => {
+    const explicit = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'workout_log',
+      payload: {
+        clientId: 42,
+        date: '2026-06-07',
+        source: 'history import',
+        exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+    });
+
+    expect(explicit?.payload).toMatchObject({
+      clientId: 42,
+      source: 'historical_import',
+      date: '2026-06-07',
+    });
+
+    const fromRoute = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'workout_log',
+      payload: {
+        clientId: 42,
+        exercises: [{ name: 'Step-up', sets: 3, reps: 10 }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+      routeContext: {
+        intent: 'historical_import',
+        workoutDate: '2026-06-14',
+      },
+    });
+
+    expect(fromRoute?.payload).toMatchObject({
+      clientId: 42,
+      date: '2026-06-14',
+      source: 'historical_import',
+    });
+  });
+
   it('does not create date-less workout-log proposals from malformed route context', () => {
     const classified = classifyActionBlock({
       action: 'import_workout_log',

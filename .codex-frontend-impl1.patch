@@ -1,0 +1,263 @@
+diff --git a/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts b/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
+--- a/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
++++ b/frontend/src/components/FoodTracker/useNutritionReviewDialog.ts
+@@ -1,4 +1,4 @@
+-import { useEffect, type MutableRefObject } from 'react';
++import { useEffect, useRef, type MutableRefObject } from 'react';
+@@ -20,6 +20,11 @@ export function useNutritionReviewDialog(
+   initialFocusRef: MutableRefObject<HTMLButtonElement | null>,
+ ) {
++  const onCloseRef = useRef(onClose);
++  useEffect(() => {
++    onCloseRef.current = onClose;
++  }, [onClose]);
++
+   useEffect(() => {
+@@ -31,5 +36,5 @@ export function useNutritionReviewDialog(
+       if (event.key === 'Escape') {
+         event.preventDefault();
+-        onClose();
++        onCloseRef.current();
+         return;
+@@ -61,3 +66,3 @@ export function useNutritionReviewDialog(
+       if (previousFocus?.isConnected) previousFocus.focus();
+     };
+-  }, [active, initialFocusRef, onClose, panelRef]);
++  }, [active, initialFocusRef, panelRef]);
+ }
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.tsx
+@@ -1,4 +1,4 @@
+-import React, { useEffect, useRef, useState } from 'react';
++import React, { useCallback, useEffect, useRef, useState } from 'react';
+@@ -67,6 +67,9 @@ const editableFoods = (draft: NutritionEntryDraft | null): NutritionDraftFood[]
+     nutrients: { ...food.nutrients },
+   })) : [];
+ 
++const coherentServingLabel = (quantity: number | null, unit: string) =>
++  [quantity, unit.trim()].filter((value) => value !== null && value !== '').join(' ') || 'Serving';
++
+ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, onClose, onSaved }) => {
+@@ -80,6 +83,10 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+   const panelRef = useRef<HTMLElement | null>(null);
+   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+ 
++  const requestClose = useCallback(() => {
++    if (!savingRef.current) onClose();
++  }, [onClose]);
++
+@@ -91,5 +98,5 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+ 
+-  useNutritionReviewDialog(Boolean(draft), onClose, panelRef, closeButtonRef);
++  useNutritionReviewDialog(Boolean(draft), requestClose, panelRef, closeButtonRef);
+@@ -111,14 +118,22 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+     setFoods((current) => current.map((food) => {
+       if (food.id !== id) return food;
+-      if (field !== 'quantity') {
+-        return { ...food, serving: { ...food.serving, [field]: value } };
++      if (field === 'basis') {
++        return { ...food, serving: { ...food.serving, basis: value as NutritionDraftFood['serving']['basis'] } };
++      }
++      if (field === 'unit') {
++        return {
++          ...food,
++          serving: {
++            ...food.serving,
++            unit: value,
++            label: coherentServingLabel(food.serving.quantity, value),
++          },
++        };
+       }
+       const quantity = cleanMacro(value);
+       return {
+         ...food,
+-        serving: { ...food.serving, quantity },
++        serving: {
++          ...food.serving,
++          quantity,
++          label: coherentServingLabel(quantity, food.serving.unit),
++        },
+         nutrients: scaleNutrientsForServing(food.nutrients, food.serving.quantity, quantity),
+@@ -186,5 +201,11 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+-          <CloseButton ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close nutrition review">
++          <CloseButton
++            ref={closeButtonRef}
++            type="button"
++            onClick={requestClose}
++            disabled={saving}
++            aria-label="Close nutrition review"
++          >
+@@ -234,6 +255,8 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+           ))}
+         </FoodList>
+ 
++        {status && <Status role="status" aria-live="polite"><CheckCircle2 size={14} /> {status}</Status>}
++        {error && <Status role="alert" aria-live="assertive" $error><AlertTriangle size={14} /> {error}</Status>}
+         <ActionRow>
+@@ -246,8 +269,6 @@ const NutritionReviewDrawer: React.FC<NutritionReviewDrawerProps> = ({ draft, on
+             <Flag size={17} /> Save for coach review
+           </SecondaryButton>
+-          <TertiaryButton type="button" onClick={onClose}>Cancel</TertiaryButton>
++          <TertiaryButton type="button" onClick={requestClose} disabled={saving}>Cancel</TertiaryButton>
+         </ActionRow>
+-        {status && <Status role="status" aria-live="polite"><CheckCircle2 size={14} /> {status}</Status>}
+-        {error && <Status role="alert" aria-live="assertive" $error><AlertTriangle size={14} /> {error}</Status>}
+diff --git a/frontend/src/components/FoodTracker/NutritionReviewDrawer.styles.ts b/frontend/src/components/FoodTracker/NutritionReviewDrawer.styles.ts
+--- a/frontend/src/components/FoodTracker/NutritionReviewDrawer.styles.ts
++++ b/frontend/src/components/FoodTracker/NutritionReviewDrawer.styles.ts
+@@ -25,5 +25,5 @@ export const DrawerPanel = styled.section`
+ 
+   @media (max-width: 560px) {
+-    padding: 16px 14px 104px;
++    padding: 16px 14px max(16px, env(safe-area-inset-bottom));
+   }
+ `;
+@@ -74,4 +74,5 @@ export const CloseButton = styled.button`
+ 
+   &:focus-visible { ${focusRing} }
++  &:disabled { opacity: 0.58; cursor: not-allowed; }
+ `;
+@@ -218,11 +219,14 @@ export const ActionRow = styled.div`
+   background: var(--bg-elevated, #141419);
+ 
+   @media (max-width: 560px) {
+-    position: fixed;
+-    right: 0;
+-    bottom: 0;
+-    width: min(100%, 720px);
+-    padding: 10px 14px;
++    position: sticky;
++    bottom: -16px;
++    display: grid;
++    grid-template-columns: 1fr;
++    width: 100%;
++    margin-top: auto;
++    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+     border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+   }
+ `;
+@@ -258,5 +262,5 @@ export const SecondaryButton = styled.button`
+   flex: 1 1 12rem;
+   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
+-  background: var(--accent-secondary, #8B5CF6);
++  background: var(--button-secondary-bg, #003080);
+   color: var(--text-primary, #E0ECF4);
+diff --git a/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts b/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
+--- a/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
++++ b/frontend/src/components/FoodTracker/nutritionDraft.adapters.ts
+@@ -151,5 +151,5 @@ export function manualFoodItemsToNutritionDraft(
+     displayName: compactText(item.name) || undefined,
+     mealType: normalizeMealType(mealType),
+-    serving: { basis: 'household', quantity: 1, unit: 'serving', label: compactText(item.portion) || '1 serving' },
++    serving: servingFromLabel(item.portion, 'household'),
+@@ -166,5 +166,6 @@ export function searchFoodToNutritionDraft(
+ ): NutritionEntryDraft {
+   const name = compactText(food.name) || 'Searched food';
+-  const provider = food.source === 'OFF' ? 'Open Food Facts' : 'USDA';
++  const isCommunitySource = String(food.source || '').toUpperCase() === 'OFF';
++  const provider = isCommunitySource ? 'Open Food Facts' : 'USDA';
+@@ -177,5 +178,5 @@ export function searchFoodToNutritionDraft(
+     serving: servingFromLabel(food.servingSize),
+     nutrients: nutrientMap(food),
+-    confidence: 0.85,
++    confidence: isCommunitySource ? 0.6 : 0.85,
+@@ -186,5 +187,5 @@ export function searchFoodToNutritionDraft(
+   };
+-  return baseDraft('search', `Review ${name}`, 'Food Search', 'provider', [row], options, {
++  return baseDraft('search', `Review ${name}`, 'Food Search', isCommunitySource ? 'community' : 'provider', [row], options, {
+diff --git a/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts b/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
+--- a/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
++++ b/frontend/src/components/FoodTracker/nutritionDraft.barcode.ts
+@@ -48,7 +48,22 @@ const barcodeMacro = (
+   return firstMacro(info, fallbackKeys);
+ };
+ 
++const sodiumFromBarcode = (
++  info: Record<string, unknown>,
++  servingGrams: number | null,
++  openFoodFacts: boolean,
++) => {
++  const perHundredGrams = firstMacro(info, ['sodium_100g']);
++  if (perHundredGrams !== null) {
++    const servingValue = servingGrams ? perHundredGrams * servingGrams / 100 : perHundredGrams;
++    return roundMacro(servingValue * 1000);
++  }
++  const explicitMilligrams = firstMacro(info, ['sodium_mg', 'sodiumMg']);
++  if (explicitMilligrams !== null) return explicitMilligrams;
++  const fallback = firstMacro(info, ['sodium']);
++  return fallback !== null && openFoodFacts ? roundMacro(fallback * 1000) : fallback;
++};
++
+ const nutrientsFromBarcode = (
+   info: Record<string, unknown>,
+   servingGrams: number | null,
++  openFoodFacts: boolean,
+ ): NutrientMap => ({
+@@ -61,5 +76,5 @@ const nutrientsFromBarcode = (
+   sugar: barcodeMacro(info, ['sugars_100g', 'sugar_100g'], ['sugars', 'sugar'], servingGrams),
+-  sodium: barcodeMacro(info, ['sodium_100g'], ['sodium'], servingGrams),
++  sodium: sodiumFromBarcode(info, servingGrams, openFoodFacts),
+ });
+@@ -75,6 +90,7 @@ export function barcodeProductToNutritionDraft(
+   const name = compactText(product.name) || 'Scanned product';
+   const provider = compactText(product.dataSource) || 'Packaged food catalog';
++  const openFoodFacts = /open\s*food\s*facts/i.test(provider);
+@@ -89,6 +105,6 @@ export function barcodeProductToNutritionDraft(
+     serving,
+-    nutrients: nutrientsFromBarcode(info, servingGrams),
+-    confidence: 0.82,
++    nutrients: nutrientsFromBarcode(info, servingGrams, openFoodFacts),
++    confidence: openFoodFacts ? 0.6 : 0.82,
+@@ -104,5 +120,5 @@ export function barcodeProductToNutritionDraft(
+     source: 'barcode',
+     sourceLabel: 'Barcode Scanner',
+-    sourceConfidence: 'provider',
++    sourceConfidence: openFoodFacts ? 'community' : 'provider',
+diff --git a/frontend/src/components/FoodTracker/FoodIntakeForm.tsx b/frontend/src/components/FoodTracker/FoodIntakeForm.tsx
+--- a/frontend/src/components/FoodTracker/FoodIntakeForm.tsx
++++ b/frontend/src/components/FoodTracker/FoodIntakeForm.tsx
+@@ -169,5 +169,4 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent, onReviewDra
+       }));
+       setStatusMessage('Meal ready for review. Confirm serving and nutrients before saving.');
+-      resetForm();
+       return;
+diff --git a/frontend/src/components/FoodTracker/VoiceNutritionPanel.tsx b/frontend/src/components/FoodTracker/VoiceNutritionPanel.tsx
+--- a/frontend/src/components/FoodTracker/VoiceNutritionPanel.tsx
++++ b/frontend/src/components/FoodTracker/VoiceNutritionPanel.tsx
+@@ -65,7 +65,4 @@ const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent, on
+           reviewNotes: nextFollowUps,
+         }));
+-        setTranscript('');
+-        setFollowUps([]);
+-        setLowConfidence(false);
+         return;
+diff --git a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+--- a/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
++++ b/frontend/src/components/FoodTracker/FoodSearchPanel.tsx
+@@ -95,6 +95,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewDr
+   const { addError, addToLog, addedIds, addedMealTypes, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
+   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
++  const requestSequence = useRef(0);
+ 
+   const doSearch = useCallback(async (rawQuery: string) => {
++    const requestId = ++requestSequence.current;
+     const trimmed = rawQuery.trim();
+@@ -111,10 +112,13 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewDr
+     setSearchError(false);
+     try {
+-      setAllResults(await fetchFoodSearchResults(trimmed));
++      const results = await fetchFoodSearchResults(trimmed);
++      if (requestId === requestSequence.current) setAllResults(results);
+     } catch {
+-      setAllResults([]);
+-      setSearchError(true);
++      if (requestId === requestSequence.current) {
++        setAllResults([]);
++        setSearchError(true);
++      }
+     } finally {
+-      setLoading(false);
++      if (requestId === requestSequence.current) setLoading(false);
+     }
+

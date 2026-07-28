@@ -1,15 +1,15 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import type { ConversationData, MessageData, TypingUser } from './MessagingTypes';
+import type { ConversationData, MessageData, PendingMessage, TypingUser } from './MessagingTypes';
 import { normalizeMessage } from './messagingApiAdapters';
 
-type SocketEmit = (event: string, payload?: unknown) => void;
+type SocketEmit = (event: string, payload?: unknown, ack?: (...args: unknown[]) => void) => void;
 type SocketOn = (event: string, handler: (...args: unknown[]) => void) => () => void;
 
 interface UseMessagingSocketEffectsParams {
   activeConvRef: MutableRefObject<string | number | null>;
   connected: boolean;
   conversations: ConversationData[];
-  currentUserId: number | null;
+  currentUserId: string | number | null;
   emit: SocketEmit;
   enabled: boolean;
   mountedRef: MutableRefObject<boolean>;
@@ -17,7 +17,7 @@ interface UseMessagingSocketEffectsParams {
   setConversations: Dispatch<SetStateAction<ConversationData[]>>;
   setMessages: Dispatch<SetStateAction<MessageData[]>>;
   setOnlineUserIds: Dispatch<SetStateAction<Set<number>>>;
-  setPendingMessages: Dispatch<SetStateAction<string[]>>;
+  setPendingMessages: Dispatch<SetStateAction<PendingMessage[]>>;
   setTypingUsers: Dispatch<SetStateAction<TypingUser[]>>;
   typingClearTimers: MutableRefObject<Map<number, ReturnType<typeof setTimeout>>>;
 }
@@ -58,7 +58,9 @@ export function useMessagingSocketEffects({
           if (prev.some(m => String(m.id) === String(typedMsg.id))) return prev;
           return [...prev, typedMsg];
         });
-        setPendingMessages(prev => prev.filter(p => p !== typedMsg.content));
+        if (typedMsg.clientMessageId) {
+          setPendingMessages(prev => prev.filter(p => p.clientMessageId !== typedMsg.clientMessageId));
+        }
       }
 
       setConversations(prev => prev.map(conv => {
@@ -87,7 +89,7 @@ export function useMessagingSocketEffects({
     const handleTyping = (...args: unknown[]) => {
       const data = args[0] as Record<string, unknown>;
       if (!data?.conversationId || !data?.userId || !data?.userName) return;
-      if (Number(data.userId) === currentUserId) return;
+      if (String(data.userId) === String(currentUserId)) return;
 
       const typingData = {
         userId: Number(data.userId),

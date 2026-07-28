@@ -28,6 +28,7 @@ export const ClientSelfOnboardingWizard = React.lazy(() => import('../../pages/o
 export const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'));
 export const NotesManager = React.lazy(() => import('../Admin/NotesManager'));
 export const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'));
+export const AdminGalleryStudio = React.lazy(() => import('./Pages/admin-gallery/AdminGalleryStudio'));
 export const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'));
 export const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'));
 export const EnhancedUserDataManagement = React.lazy(() => import('./Pages/admin-users/EnhancedUserDataManagement'));
@@ -41,6 +42,7 @@ export const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLo
 export const AdminPersonalWorkoutLogger = React.lazy(() => import('../WorkoutLogger/AdminPersonalWorkoutLogger'));
 export const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
 export const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
+export const LensFoundryLab = React.lazy(() => import('./Pages/lens-foundry/LensFoundryLab'));
 export const MyClientsView = React.lazy(() => import('../TrainerDashboard/ClientManagement'));
 export const EnhancedWorkoutLogger = React.lazy(() => import('../TrainerDashboard/WorkoutLogging'));
 export const EnhancedClientProgressView = React.lazy(() =>
@@ -52,9 +54,11 @@ export const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard
 export const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 export const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
 export const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
+export const ChallengeCommandWorkspace = React.lazy(() => import('./Pages/challenges/ChallengeCommandWorkspace'));
 export const ContentStudioHub = React.lazy(() => import('./Pages/content-studio/ContentStudioHub'));
 export const FeatureAccessPage = React.lazy(() => import('./Pages/admin-feature-access/FeatureAccessPage'));
 export const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planner/WorkoutPlannerPage'));
+export const WorkoutDesignLabPage = React.lazy(() => import('./Pages/workout-design-lab/WorkoutDesignLabPage'));
 export const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 export const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'));
@@ -62,6 +66,7 @@ export const AdminWaiversManagerPage = React.lazy(() => import('./Pages/admin-wa
 export const AdminViewAsWrapper = React.lazy(() => import('./Pages/admin-clients/components/AdminViewAsWrapper'));
 export const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
 export const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'));
+export const ClientChallengesPage = React.lazy(() => import('./Pages/client-dashboard/ClientChallengesPage'));
 export const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/ClientProfilePage'));
 export const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
 export const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));

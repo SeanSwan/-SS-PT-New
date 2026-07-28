@@ -59,6 +59,9 @@ import {
   FormLabel,
   FormInput,
   FormSelect,
+  SetupLinkCheckbox,
+  SetupLinkResult,
+  SetupLinkToggle,
   FeatureItem,
   SubTitle,
 } from './styled-user-management';
@@ -75,6 +78,15 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   photo?: string;
+}
+
+interface SetupLinkHandoff {
+  credentialAction?: 'setup_link_sent' | 'setup_link_ready' | string;
+  resetEmailSent?: boolean;
+  emailSent?: boolean;
+  resetUrl?: string;
+  resetExpiresAt?: string;
+  expiresInMinutes?: number;
 }
 
 interface ApiErrorLike {
@@ -117,6 +129,7 @@ const ModernUserManagementSystem: React.FC = () => {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [createdSetupLink, setCreatedSetupLink] = useState<SetupLinkHandoff | null>(null);
 
   // Form state
   const [editFormData, setEditFormData] = useState({
@@ -127,6 +140,7 @@ const ModernUserManagementSystem: React.FC = () => {
     password: '',
     role: 'user' as User['role'],
     isActive: true,
+    sendSetupLink: true,
   });
 
   // Filter defaults stay centralized until the search/filter controls are restored.
@@ -209,16 +223,18 @@ const ModernUserManagementSystem: React.FC = () => {
       password: '',
       role: user.role,
       isActive: user.isActive,
+      sendSetupLink: false,
     });
     setIsEditModalOpen(true);
   };
 
   // Handle edit form change
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value } = e.target;
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, type, value, checked } = e.target;
+    const nextValue = type === 'checkbox' ? checked : value;
     setEditFormData(prev => ({
       ...prev,
-      [name as string]: value,
+      [name]: nextValue,
     }));
   };
 
@@ -227,7 +243,7 @@ const ModernUserManagementSystem: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const { password, ...updatePayload } = editFormData;
+      const { password, sendSetupLink, ...updatePayload } = editFormData;
       const response = await authAxios.put(`/api/auth/users/${selectedUser.id}`, updatePayload);
 
       if (response.data && response.data.success) {
@@ -260,25 +276,59 @@ const ModernUserManagementSystem: React.FC = () => {
       password: '',
       role: 'user',
       isActive: true,
+      sendSetupLink: true,
     });
+    setCreatedSetupLink(null);
     setIsAddUserModalOpen(true);
+  };
+
+  const closeAddUserModal = () => {
+    setIsAddUserModalOpen(false);
+    setCreatedSetupLink(null);
   };
 
   // Handle create new user
   const handleCreateUser = async () => {
     try {
-      if (!editFormData.password) {
+      setCreatedSetupLink(null);
+
+      if (!editFormData.sendSetupLink && !editFormData.password) {
         throw new Error('Temporary password is required for backend account creation');
       }
 
-      const response = await authAxios.post('/api/auth/user', editFormData);
+      const createPayload = {
+        ...editFormData,
+        password: editFormData.sendSetupLink ? '' : editFormData.password,
+      };
+
+      const response = await authAxios.post('/api/auth/user', createPayload);
 
       if (response.data && response.data.success) {
+        const setupLinkData = response.data?.data as SetupLinkHandoff | undefined;
+        const credentialAction = setupLinkData?.credentialAction;
+        const setupLinkReady = credentialAction === 'setup_link_ready';
+        const setupLinkSent = credentialAction === 'setup_link_sent';
+
+        if (setupLinkData) {
+          setCreatedSetupLink(setupLinkData);
+        } else {
+          setCreatedSetupLink(null);
+        }
+
         toast({
           title: "Success",
-          description: "New user created successfully",
+          description: setupLinkReady
+            ? "User created. Email delivery failed, so copy the setup link below."
+            : setupLinkSent
+              ? "User created and setup link sent. Copy the link below if they need a manual handoff."
+              : "New user created successfully",
         });
         fetchUsers();
+
+        if (editFormData.sendSetupLink && setupLinkData?.resetUrl) {
+          return;
+        }
+
         setIsAddUserModalOpen(false);
       } else {
         throw new Error(response.data?.message || 'Failed to create user');
@@ -494,7 +544,7 @@ const ModernUserManagementSystem: React.FC = () => {
       </ContentContainer>
 
       {/* Add User Dialog */}
-      <ModalOverlay $open={isAddUserModalOpen} onClick={() => setIsAddUserModalOpen(false)}>
+      <ModalOverlay $open={isAddUserModalOpen} onClick={closeAddUserModal}>
         <ModalPanel $maxWidth="600px" onClick={e => e.stopPropagation()}>
           <ModalTitle>
             <UserPlus size={22} />
@@ -502,8 +552,28 @@ const ModernUserManagementSystem: React.FC = () => {
           </ModalTitle>
           <ModalContentStyled>
             <ModalSubText>
-              Create a new user account with a temporary password. Have the user change it after first login.
+              Invite the user with a setup link so they set their own password before signing in.
             </ModalSubText>
+
+            {createdSetupLink && (
+              <SetupLinkResult>
+                <SectionTitle>Setup Link Ready</SectionTitle>
+                <ModalSubText>
+                  {createdSetupLink.credentialAction === 'setup_link_sent'
+                    ? 'Email was sent. Keep this copy available in case they need a manual handoff.'
+                    : 'Email delivery needs manual handoff. Copy this link and send it directly to the user.'}{' '}
+                  {createdSetupLink.expiresInMinutes
+                    ? `Expires in ${createdSetupLink.expiresInMinutes} minutes.`
+                    : 'Use it before it expires.'}
+                </ModalSubText>
+                {createdSetupLink.resetUrl && (
+                  <FormField $fullWidth>
+                    <FormLabel htmlFor="add-setupLink">Setup Link</FormLabel>
+                    <FormInput id="add-setupLink" value={createdSetupLink.resetUrl} readOnly onFocus={e => e.currentTarget.select()} />
+                  </FormField>
+                )}
+              </SetupLinkResult>
+            )}
 
             <FormGrid $columns={2} $gap="1rem">
               <FormField>
@@ -551,16 +621,34 @@ const ModernUserManagementSystem: React.FC = () => {
                   placeholder="Username"
                 />
               </FormField>
+              <SetupLinkToggle htmlFor="add-sendSetupLink">
+                <SetupLinkCheckbox
+                  id="add-sendSetupLink"
+                  name="sendSetupLink"
+                  type="checkbox"
+                  checked={editFormData.sendSetupLink}
+                  onChange={handleEditFormChange}
+                />
+                <div>
+                  <BodyText>Send setup link instead of temporary password</BodyText>
+                  <ModalSubText>
+                    Recommended for administrators and trainers. The account is created, then the user chooses their own password from the secure link.
+                  </ModalSubText>
+                </div>
+              </SetupLinkToggle>
               <FormField $fullWidth>
-                <FormLabel htmlFor="add-password">Initial Password *</FormLabel>
+                <FormLabel htmlFor="add-password">
+                  {editFormData.sendSetupLink ? 'Manual Password' : 'Manual Password *'}
+                </FormLabel>
                 <FormInput
                   id="add-password"
                   name="password"
                   type="password"
                   value={editFormData.password}
                   onChange={handleEditFormChange}
-                  required
-                  placeholder="Set an initial password"
+                  disabled={editFormData.sendSetupLink}
+                  required={!editFormData.sendSetupLink}
+                  placeholder={editFormData.sendSetupLink ? 'Setup link lets them choose a password' : 'Set an initial password'}
                 />
               </FormField>
               <FormField $fullWidth>
@@ -580,12 +668,20 @@ const ModernUserManagementSystem: React.FC = () => {
             </FormGrid>
           </ModalContentStyled>
           <ModalActions>
-            <StyledButton $variant="outlined" onClick={() => setIsAddUserModalOpen(false)}>
-              Cancel
-            </StyledButton>
-            <StyledButton $variant="contained" $color="success" onClick={handleCreateUser}>
-              Create User
-            </StyledButton>
+            {createdSetupLink ? (
+              <StyledButton $variant="contained" $color="success" onClick={closeAddUserModal}>
+                Done
+              </StyledButton>
+            ) : (
+              <>
+                <StyledButton $variant="outlined" onClick={closeAddUserModal}>
+                  Cancel
+                </StyledButton>
+                <StyledButton $variant="contained" $color="success" onClick={handleCreateUser}>
+                  Create User
+                </StyledButton>
+              </>
+            )}
           </ModalActions>
         </ModalPanel>
       </ModalOverlay>

@@ -5,7 +5,7 @@ import {
   resetCoachCommandCenterMocks,
 } from './CoachCommandCenterPage.test.harness';
 
-type ExpectedTab = 'chat' | 'intake' | 'plaud' | 'onboarding';
+type ExpectedTab = 'talk' | 'review';
 
 const MERGE_ID = '11111111-2222-3333-4444-555555555555';
 
@@ -26,43 +26,48 @@ function setDrawerViewport(matches: boolean) {
 }
 
 function expectActiveTab(tab: ExpectedTab) {
-  const chat = screen.getByRole('tab', { name: /^Chat$/i });
-  const intake = screen.getByRole('tab', { name: /^Intake/i });
-  const plaud = screen.getByRole('tab', { name: /^PLAUD/i });
-  const onboarding = screen.getByRole('tab', { name: /^Workbench/i });
-  expect(chat).toHaveAttribute('aria-selected', String(tab === 'chat'));
-  expect(intake).toHaveAttribute('aria-selected', String(tab === 'intake'));
-  expect(plaud).toHaveAttribute('aria-selected', String(tab === 'plaud'));
-  expect(onboarding).toHaveAttribute('aria-selected', String(tab === 'onboarding'));
-  expect(chat).toHaveAttribute('aria-pressed', String(tab === 'chat'));
-  expect(intake).toHaveAttribute('aria-pressed', String(tab === 'intake'));
-  expect(plaud).toHaveAttribute('aria-pressed', String(tab === 'plaud'));
-  expect(onboarding).toHaveAttribute('aria-pressed', String(tab === 'onboarding'));
+  const talk = screen.getByRole('tab', { name: /^Talk$/i });
+  const review = screen.getByRole('tab', { name: /^Review/i });
+  const history = screen.getByRole('tab', { name: /^History$/i });
+
+  expect(talk).toHaveAttribute('aria-selected', String(tab === 'talk'));
+  expect(review).toHaveAttribute('aria-selected', String(tab === 'review'));
+  expect(history).toHaveAttribute('aria-selected', 'false');
+  expect(talk).toHaveAttribute('aria-pressed', String(tab === 'talk'));
+  expect(review).toHaveAttribute('aria-pressed', String(tab === 'review'));
+  expect(history).toHaveAttribute('aria-pressed', 'false');
+
+  expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
 }
 
-async function expectMountedWorkspace(tab: ExpectedTab, activeIntakeId?: string, mergeLabel?: string) {
+async function expectMountedWorkspace(tab: ExpectedTab, section?: 'intake' | 'audio' | 'drafts', activeIntakeId?: string, mergeLabel?: string) {
   expectActiveTab(tab);
 
-  if (tab === 'chat') {
+  if (tab === 'talk') {
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     return;
   }
 
-  if (tab === 'onboarding') {
-    expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
-    expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /^Review$/i })).toBeInTheDocument();
+
+  if (section === 'drafts') {
+    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    expect(await screen.findByRole('region', { name: /^Drafts$/i })).toBeInTheDocument();
     return;
   }
 
-  if (tab === 'intake') {
+  if (section === 'intake') {
+    fireEvent.click(screen.getByRole('button', { name: /open intake review/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     expect(screen.getByText(`Active intake ${activeIntakeId || 'none'}`)).toBeInTheDocument();
     return;
   }
 
+  fireEvent.click(screen.getByRole('button', { name: /open audio review/i }));
   expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
   if (mergeLabel) {
@@ -74,33 +79,33 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it.each([
-    ['default actionable intake', '/dashboard/admin/coach-assistant', 'intake'],
-    ['explicit chat workspace', '/dashboard/admin/coach-assistant?workspace=chat', 'chat'],
-    ['direct intake', '/dashboard/admin/coach-assistant?intake=clip-111', 'intake', 'clip-111'],
-    ['direct proposal', '/dashboard/admin/coach-assistant?proposal=proposal-123', 'intake'],
-    ['proposal for intake', '/dashboard/admin/coach-assistant?intake=clip-111&proposal=proposal-123', 'intake', 'clip-111'],
-    ['PLAUD workspace', '/dashboard/admin/coach-assistant?workspace=plaud', 'plaud'],
-    ['onboarding workbench', '/dashboard/admin/coach-assistant?workspace=onboarding&clientId=77', 'onboarding'],
-    ['review next PLAUD', '/dashboard/admin/coach-assistant?review=next', 'plaud'],
-    ['direct PLAUD merge', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}`, 'plaud', undefined, MERGE_ID],
-    ['PLAUD wins over proposal', '/dashboard/admin/coach-assistant?workspace=plaud&proposal=proposal-123', 'plaud'],
-    ['merge wins over intake', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}&intake=clip-111`, 'plaud', undefined, MERGE_ID],
-    ['review-next wins over proposal', '/dashboard/admin/coach-assistant?review=next&proposal=proposal-123', 'plaud'],
+    ['default actionable talk', '/dashboard/admin/coach-assistant', 'talk'],
+    ['explicit chat workspace', '/dashboard/admin/coach-assistant?workspace=chat', 'talk'],
+    ['direct intake', '/dashboard/admin/coach-assistant?intake=clip-111', 'review', 'intake', 'clip-111'],
+    ['direct proposal', '/dashboard/admin/coach-assistant?proposal=proposal-123', 'review', 'intake', 'none'],
+    ['proposal for intake', '/dashboard/admin/coach-assistant?intake=clip-111&proposal=proposal-123', 'review', 'intake', 'clip-111'],
+    ['PLAUD workspace', '/dashboard/admin/coach-assistant?workspace=plaud', 'review', 'audio'],
+    ['onboarding workbench', '/dashboard/admin/coach-assistant?workspace=onboarding&clientId=77', 'review', 'drafts'],
+    ['review next PLAUD', '/dashboard/admin/coach-assistant?review=next', 'review', 'audio'],
+    ['direct PLAUD merge', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}`, 'review', 'audio', undefined, MERGE_ID],
+    ['PLAUD wins over proposal', '/dashboard/admin/coach-assistant?workspace=plaud&proposal=proposal-123', 'review', 'audio'],
+    ['merge wins over intake', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}&intake=clip-111`, 'review', 'audio', undefined, MERGE_ID],
+    ['review-next wins over proposal', '/dashboard/admin/coach-assistant?review=next&proposal=proposal-123', 'review', 'audio'],
   ] as const)(
     'routes %s to %s',
-    async (_label, route, tab, activeIntakeId, mergeLabel) => {
+    async (_label, route, tab, section, activeIntakeId, mergeLabel) => {
       renderPage(route);
 
-      await expectMountedWorkspace(tab, activeIntakeId, mergeLabel);
+      await expectMountedWorkspace(tab, section, activeIntakeId, mergeLabel);
     },
   );
 
-  it('keeps client deep links on Chat when an operator-only tab hint is present', () => {
+  it('keeps client deep links on Talk when an operator-only tab hint is present', () => {
     renderPage('/dashboard/client/coach-assistant?workspace=plaud&review=next', 'client');
 
-    expect(screen.getByRole('tab', { name: /^Chat$/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /^Talk$/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: /^Review/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
   });
 
@@ -120,7 +125,7 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
   it('uses modal drawer semantics for operations below the desktop breakpoint', async () => {
     setDrawerViewport(true);
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /operations/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^More coach actions$/i }));
 
     await waitFor(() => {
       const rail = screen.getByRole('dialog', { name: 'Coach operations command surface' });

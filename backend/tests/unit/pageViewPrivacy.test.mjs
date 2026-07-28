@@ -5,6 +5,7 @@ import {
   bufferPageView,
   sanitizePagePath,
   sanitizeReferrer,
+  shouldSkipPageViewPath,
   summarizeUserAgent,
 } from '../../services/pageViewCache.mjs';
 
@@ -54,5 +55,17 @@ describe('page view privacy helpers', () => {
     expect(JSON.stringify(PAGE_VIEW_BUFFER[0])).not.toContain('203.0.113.42');
     expect(JSON.stringify(PAGE_VIEW_BUFFER[0])).not.toContain('client@example.com');
     expect(JSON.stringify(PAGE_VIEW_BUFFER[0])).not.toContain('Mozilla/5.0');
+  });
+  it('tracks public signup and register pages while skipping admin and login surfaces', () => {
+    expect(shouldSkipPageViewPath('/signup')).toBe(false);
+    expect(shouldSkipPageViewPath('/register')).toBe(false);
+    expect(shouldSkipPageViewPath('/auth/register')).toBe(false);
+    expect(shouldSkipPageViewPath('/auth/signup')).toBe(false);
+
+    expect(shouldSkipPageViewPath(null)).toBe(true);
+    expect(shouldSkipPageViewPath('/dashboard/admin/overview')).toBe(true);
+    expect(shouldSkipPageViewPath('/login')).toBe(true);
+    expect(shouldSkipPageViewPath('/auth')).toBe(true);
+    expect(shouldSkipPageViewPath('/auth/login')).toBe(true);
   });
 });

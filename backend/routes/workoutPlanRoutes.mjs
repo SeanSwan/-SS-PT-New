@@ -28,6 +28,7 @@ import sequelize from '../database.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import {
+  assertAssignmentOrAdmin,
   verifyClientAccessByUserId,
   verifyClientAccessByPlanId,
   filterPlansByTrainerAssignment,
@@ -44,11 +45,12 @@ import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressSer
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import {
   ACTIVATE_MAX_RETRIES,
-  buildDuplicatePlanMetadata,
+  buildWorkoutPlanCopyPayload,
   currentDateOnly,
   isUniqueViolation,
   markPlanPrimary,
   mergePlanMetadata,
+  parseCopyDurationWeeks,
   parseStrictPositiveInteger,
   selectCurrentWorkoutPlan,
   toPlainObject,
@@ -626,7 +628,7 @@ router.put('/:id/activate', protect, trainerOrAdminOnly,
  * to guarantee field fidelity. The duplicate is always status='draft' per
  * product rule "exactly one active plan per client."
  *
- * Body (optional): { title?: string }
+ * Body (optional): { title?: string, targetClientId?: number, durationWeeks?: number }
  *
  * @route POST /api/workout-plans/:id/duplicate
  * @access Trainer (assigned client) / Admin
@@ -637,36 +639,51 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
   async (req, res) => {
     const WorkoutPlan = getWorkoutPlan();
     const original = req.workoutPlan;
-    const { title } = req.body || {};
+    const {
+      title,
+      targetClientId,
+      userId: bodyUserId,
+      clientId: bodyClientId,
+      durationWeeks,
+    } = req.body || {};
 
     try {
-      // Deep-clone JSONB: serializing prevents accidental shared-reference
-      // bugs at test time. JSONB persists fine either way; explicit clone
-      // makes intent unambiguous.
-      const clonedPlanData = original.planData
-        ? JSON.parse(JSON.stringify(original.planData))
-        : { weeks: [] };
+      const sourceClientId = parseStrictPositiveInteger(original.userId);
+      const destinationClientId = parseStrictPositiveInteger(
+        targetClientId ?? bodyUserId ?? bodyClientId ?? sourceClientId,
+      );
+      if (!destinationClientId) {
+        return res.status(400).json({ success: false, message: 'Valid targetClientId is required' });
+      }
 
-      const copy = await WorkoutPlan.create({
-        userId: original.userId,
+      const durationWasProvided = durationWeeks !== undefined
+        && durationWeeks !== null
+        && durationWeeks !== '';
+      const copyDurationWeeks = durationWasProvided ? parseCopyDurationWeeks(durationWeeks) : undefined;
+      if (durationWasProvided && !copyDurationWeeks) {
+        return res.status(400).json({
+          success: false,
+          message: 'durationWeeks must be between 1 and 52',
+        });
+      }
+
+      if (destinationClientId !== sourceClientId) {
+        const allowed = await assertAssignmentOrAdmin(req.user?.id, req.user?.role, destinationClientId);
+        if (!allowed) {
+          return res.status(404).json({ success: false, message: 'Resource not found' });
+        }
+      }
+
+      const copy = await WorkoutPlan.create(buildWorkoutPlanCopyPayload({
+        original,
         trainerId: req.user.id,
-        title: (typeof title === 'string' && title.trim().length > 0)
-          ? title.trim()
-          : `${original.title} (copy)`,
-        description: original.description,
-        nasmPhase: original.nasmPhase,
-        durationWeeks: original.durationWeeks,
-        status: 'draft', // ALWAYS draft per product rule
-        currentWeek: 1,
-        currentDay: 1,
-        planData: clonedPlanData,
-        progressNotes: [],
-        createdBy: 'trainer',
-        metadata: buildDuplicatePlanMetadata(original),
-      });
+        targetClientId: destinationClientId,
+        title,
+        durationWeeks: copyDurationWeeks,
+      }));
 
-      logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',
-        original.id, copy.id, original.userId, req.user.id);
+      logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (source client %d, target client %d, trainer %d)',
+        original.id, copy.id, sourceClientId, destinationClientId, req.user.id);
 
       return res.status(201).json({ success: true, plan: copy });
     } catch (err) {

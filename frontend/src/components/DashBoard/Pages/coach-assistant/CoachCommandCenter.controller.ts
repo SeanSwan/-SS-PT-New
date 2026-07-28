@@ -1,4 +1,4 @@
-import { type SetStateAction, useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
@@ -19,22 +19,21 @@ import {
   buildQueueSummary,
   buildRightRailItems,
   buildStatusMetrics,
-  buildVoiceStatus,
   displaySelectedStatus,
   getConversationTitle,
   pickAutoSelectedThread,
   pickInitialReviewMergeRequestId,
   pickRouteReviewNextMergeRequestId,
-  runCoachVoiceCommand,
   selectedClientLabel as buildSelectedClientLabel,
   shouldScrollPlaudReview,
   toggleBoolean,
 } from './CoachCommandCenter.logic';
+import { getMessageActionRouteContextFromSearchParams } from './CoachCommandCenter.messageRouteContext';
 import { buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
-import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
 import type { DrawerSide } from './CoachCommandCenter.types';
-import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
+import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
+import { usePremiumTTS } from './hooks/usePremiumTTS';
 
 export function useCoachCommandCenterController({
   userRole = 'admin',
@@ -42,6 +41,7 @@ export function useCoachCommandCenterController({
   const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat();
   const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
+  const tts = usePremiumTTS();
   const operatorEnabled = userRole !== 'client';
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
@@ -58,7 +58,6 @@ export function useCoachCommandCenterController({
   const [quickClientBusy, setQuickClientBusy] = useState(false);
   const [quickClientMessage, setQuickClientMessage] = useState<string | null>(null);
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
-  const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
 
   const shellRef = useRef<HTMLDivElement>(null);
   const commandFormRef = useRef<HTMLFormElement>(null);
@@ -108,6 +107,7 @@ export function useCoachCommandCenterController({
   const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
   const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
+  const messageActionRouteContext = useMemo(() => getMessageActionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
     () => routeTeachPrompt
       ? {
@@ -123,7 +123,10 @@ export function useCoachCommandCenterController({
   );
   const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent, searchKey]);
   const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
-  const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
+  const commandRouteContext = useMemo(
+    () => buildCommandRouteContext(routeIntent, scheduledSessionContext, messageActionRouteContext),
+    [messageActionRouteContext, routeIntent, scheduledSessionContext],
+  );
   const clientContextTiles = useMemo(() => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)), [activeThread, effectiveClientId]);
   const conversationLogs = useMemo(
     () => buildConversationLogs(chat.activeConversation?.id, chat.messages),
@@ -162,13 +165,6 @@ export function useCoachCommandCenterController({
   );
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
-  const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
-    setCommandText((current) => resolveVoiceCommandText(next, current));
-  }, []);
-  const handleVoiceCaptured = useCallback((text: string) => {
-    setCommandText((current) => capturedVoiceText(current, text));
-    setSelectedStatus('Voice command captured - press Prepare to review');
-  }, []);
   const handleGuidePrompt = useCallback((prompt: string) => {
     const trimmed = prompt.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS);
     if (!trimmed) return;
@@ -176,12 +172,8 @@ export function useCoachCommandCenterController({
     setSelectedStatus('Guide prompt staged for review');
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
-  const speech = useCoachBrowserSpeechInput({
-    maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
-    onSend: handleVoiceCaptured,
-    setInputError: setVoiceInputError,
-    setText: setVoiceCommandText,
-  });
+  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
+
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,
@@ -204,6 +196,7 @@ export function useCoachCommandCenterController({
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
     routeRequestContext: scheduledSessionContext,
+    speakCoachReply: tts.speak,
     onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
     onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, null, null), { replace: true }),
     setActiveThreadId,
@@ -217,14 +210,6 @@ export function useCoachCommandCenterController({
     setQuickClientName,
     setSelectedStatus,
   });
-  const handleVoice = useCallback(() => {
-    runCoachVoiceCommand({
-      cancelPillVisible: speech.cancelPillVisible,
-      handleCancelSend: speech.handleCancelSend,
-      speechSupported: speech.speechSupported,
-      toggleListening: speech.toggleListening,
-    }, setSelectedStatus);
-  }, [speech.cancelPillVisible, speech.handleCancelSend, speech.speechSupported, speech.toggleListening]);
 
   useLoadCoachConversations(chat);
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
@@ -236,7 +221,6 @@ export function useCoachCommandCenterController({
     plaudReviewRef,
   );
 
-  const voiceStatus = buildVoiceStatus(voiceInputError, speech.interim, speech.cancelPillVisible);
 
   return {
     activeIntakeId: searchParams.get('intake'),
@@ -261,7 +245,7 @@ export function useCoachCommandCenterController({
     handleStartPlaudUpload: actions.handleStartPlaudUpload,
     handleSubmit: actions.handleSubmit,
     handleThreadSelect: actions.handleThreadSelect,
-    handleVoice,
+    handleVoice: voiceCapture.handleVoice,
     initialReviewMergeRequestId,
     intakeStates,
     leftRailRef,
@@ -279,7 +263,7 @@ export function useCoachCommandCenterController({
     rightRailItems,
     rightRailRef,
     selectedClientLabel,
-    selectedStatus: displaySelectedStatus(voiceStatus, selectedStatus),
+    selectedStatus: displaySelectedStatus(voiceCapture.voiceStatus, selectedStatus),
     setCommandText,
     setQuickClientName,
     setQuickClientSource,
@@ -291,8 +275,13 @@ export function useCoachCommandCenterController({
     teachMode,
     threadSearch,
     toggleTeachMode: () => setTeachMode(toggleBoolean),
-    voiceActive: speech.listening,
-    voiceSupported: speech.speechSupported,
+    toggleVoiceReplies: tts.toggleEnabled,
+    voiceActive: voiceCapture.voiceActive,
+    voiceCaptureMode: voiceCapture.voiceCaptureMode,
+    voiceOverlay: voiceCapture.voiceOverlay,
+    voiceReplyEnabled: tts.enabled,
+    voiceReplySpeaking: tts.speaking,
+    voiceSupported: voiceCapture.voiceSupported,
     workflowReturnLabel,
     workflowReturnTo,
   };

@@ -38,3 +38,8 @@ export function groupByDate(msgs: MessageData[]): { date: string; messages: Mess
   }
   return groups;
 }
+export function getMessageDeliveryStatus(msg: MessageData, isMine: boolean): 'Sent' | 'Delivered' | 'Read' | null {
+  if (!isMine) return null;
+  if (msg.readBy?.length) return 'Read';
+  return msg.clientMessageId ? 'Delivered' : 'Sent';
+}

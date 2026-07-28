@@ -7,6 +7,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { searchFoodCatalog } from '../services/nutrition/foodCatalogSearchService.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -20,6 +21,36 @@ const sendInternalError = (res, message) => res.status(500).json({
   error: INTERNAL_ERROR
 });
 
+/**
+ * GET /api/nutrition/food-search?q=chicken
+ * Protected server-side food catalog proxy for FoodTracker search.
+ */
+router.get('/food-search', protect, async (req, res) => {
+  try {
+    const query = String(req.query.q ?? req.query.query ?? '').trim();
+    if (!query) {
+      return res.status(400).json({ success: false, message: 'Food search query is required' });
+    }
+
+    const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 15;
+    const result = await searchFoodCatalog(query, pageSize);
+    if (!result.ok) {
+      return res.status(502).json({
+        success: false,
+        message: result.error || 'Food lookup is temporarily unavailable.',
+      });
+    }
+
+    return res.status(200).json({ success: true, foods: result.foods });
+  } catch (error) {
+    logger.error('Error searching food catalog:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Food lookup is temporarily unavailable.',
+      error: INTERNAL_ERROR,
+    });
+  }
+});
 /**
  * GET /api/nutrition/:userId/current
  * Get the client's current nutrition plan

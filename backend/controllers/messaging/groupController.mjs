@@ -26,6 +26,8 @@ import {
   updateParticipantRoleRecord,
   upsertConversationParticipant,
 } from '../../services/messagingRepository.mjs';
+import { assertCanMessageUsers, MESSAGING_POLICY_DENIED_MESSAGE } from '../../services/messagingPolicyService.mjs';
+import { recordMessagingAdminOverrideAudit } from '../../services/messagingAdminOverrideAuditService.mjs';
 
 const UPDATE_CONVERSATION_FAILED_MESSAGE = 'Failed to update conversation.';
 const ADD_PARTICIPANTS_FAILED_MESSAGE = 'Failed to add participants.';
@@ -101,6 +103,9 @@ export const addConversationParticipants = async (req, res) => {
       return res.status(400).json({ error: INVALID_PARTICIPANTS_MESSAGE });
     }
 
+    const policy = await assertCanMessageUsers({ actorId: userId, targetUserIds: participantIds });
+    if (!policy.allowed) return res.status(403).json({ error: MESSAGING_POLICY_DENIED_MESSAGE });
+
     const adminIds = canManageParticipantRole(manager.membership.viewerRole)
       ? normalizeAdminIds(req.body.adminIds, participantIds, userId)
       : [];
@@ -113,6 +118,12 @@ export const addConversationParticipants = async (req, res) => {
       }
       await touchConversation(conversationId, trx);
       await trx.commit();
+      await recordMessagingAdminOverrideAudit({
+        actorId: userId,
+        targetUserIds: policy.adminOverrideUserIds,
+        conversationId,
+        action: 'conversation.participants_added',
+      });
     } catch (insertError) {
       await trx.rollback();
       throw insertError;

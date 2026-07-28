@@ -9,6 +9,10 @@ const __dirname = dirname(__filename);
 const guardedSources = [
   { path: '../../services/gamification/goalChallengeService.mjs', enforceLineCount: true },
   { path: '../../services/gamification/goalChallengeTemplates.mjs', enforceLineCount: true },
+  { path: '../../services/gamification/challengeTemplateCatalog.mjs', enforceLineCount: true },
+  { path: '../../services/gamification/challengeCreationService.mjs', enforceLineCount: true },
+  { path: '../../services/gamification/challengeListService.mjs', enforceLineCount: true },
+  { path: '../../services/gamification/challengeProgressEventService.mjs', enforceLineCount: true },
   { path: '../../services/gamificationComboService.mjs', enforceLineCount: true },
   { path: '../../services/weeklyChallengeCron.mjs', enforceLineCount: true },
   { path: '../../../scripts/achievement-badge-manifest.json', enforceLineCount: true },
@@ -17,6 +21,10 @@ const guardedSources = [
 
 const asciiGeneratedSources = [
   '../../services/gamification/goalChallengeTemplates.mjs',
+  '../../services/gamification/challengeTemplateCatalog.mjs',
+  '../../services/gamification/challengeCreationService.mjs',
+  '../../services/gamification/challengeListService.mjs',
+  '../../services/gamification/challengeProgressEventService.mjs',
   '../../services/weeklyChallengeCron.mjs'
 ];
 

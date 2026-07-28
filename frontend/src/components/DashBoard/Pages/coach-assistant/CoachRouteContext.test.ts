@@ -34,7 +34,31 @@ describe('CoachRouteContext', () => {
     expect(context.allowedActions.every(action => action.mode !== 'act' || action.requiresApproval)).toBe(true);
   });
 
-  it('preserves safe scheduled-session context when Coach is opened from the schedule', () => {
+
+  it('preserves safe message-origin context as approval-gated Coach draft actions', () => {
+    const context = buildCoachRouteContext(
+      '/dashboard/trainer/coach-assistant',
+      '?source=messages&intent=log_workout_from_message&threadId=7&sourceMessageId=m-injury&sourcePath=%2Fdashboard%2Ftrainer%2Fmessages&messageText=knee%20pain',
+    );
+
+    expect(context).toMatchObject({
+      route: '/dashboard/trainer/messages',
+      scope: 'trainer',
+      surface: 'messages',
+      source: 'messages',
+      intent: 'log_workout_from_message',
+      threadId: '7',
+      sourceMessageId: 'm-injury',
+      writeBackPolicy: 'approval_required',
+    });
+    expect(context).not.toHaveProperty('messageText');
+    expect(context.allowedActions).toEqual(expect.arrayContaining([
+      { key: 'create_task_from_message', mode: 'draft', requiresApproval: true },
+      { key: 'schedule_from_message', mode: 'draft', requiresApproval: true },
+      { key: 'log_workout_from_message', mode: 'draft', requiresApproval: true },
+    ]));
+    expect(context.allowedActions.every(action => action.mode !== 'act' && action.requiresApproval !== false || action.key === 'summarize_messages')).toBe(true);
+  });  it('preserves safe scheduled-session context when Coach is opened from the schedule', () => {
     const context = buildCoachRouteContext(
       '/dashboard/trainer/coach-assistant',
       '?source=master-schedule&intent=log_workout&sourcePath=%2Fdashboard%2Ftrainer%2Fschedule&sessionId=88&sessionDate=2026-05-31T16%3A00%3A00.000Z&sessionCredits=2&scheduledSessionNotes=private',

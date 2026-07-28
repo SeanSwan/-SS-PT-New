@@ -13,7 +13,9 @@ export interface WorkoutLoggerProps {
   scheduledSessionCreditHint?: number | null;
   scheduledSessionId?: string | null;
   scheduledSessionDate?: string | null;
+  onOpenHistoryImport?: () => void;
 }
+
 
 export interface WorkoutLoggerExerciseOption {
   id: string;
@@ -85,15 +87,30 @@ export interface CurrentWorkoutPlanResponse {
   id?: string | number;
   currentSession?: PlannedSession;
   todayAssignment?: PlannedAssignment;
+  assignmentPicker?: PlanAssignmentPickerItem[];
   data?: {
     id?: string | number;
     currentSession?: PlannedSession;
     todayAssignment?: PlannedAssignment;
+    assignmentPicker?: PlanAssignmentPickerItem[];
   };
   plan?: {
     id?: string | number;
     currentSession?: PlannedSession;
     todayAssignment?: PlannedAssignment;
+    assignmentPicker?: PlanAssignmentPickerItem[];
     days?: PlannedDay[];
   };
+}
+
+export interface PlanAssignmentPickerItem extends PlannedAssignment {
+  id: string;
+  planTitle?: string | null;
+  planStatus?: string | null;
+  isCurrent?: boolean | null;
+  isLoadable?: boolean | null;
+  canSubmitPlannedAssignment?: boolean | null;
+  submitMode?: 'planned_assignment' | 'draft_only' | string | null;
+  sessionType?: string | null;
+  exercises?: PlannedExercise[];
 }

@@ -235,6 +235,44 @@ describe('coachActionProposalApprovalService', () => {
     }));
   });
 
+  it('passes historical workout-log source into the canonical daily-form writer', async () => {
+    const db = fakeApprovalDb();
+    const {
+      approveCoachActionProposal,
+      getCoachActionProposal,
+      submitAiWorkoutLogAsDailyForm,
+    } = await loadApprovalService({
+      decryptedProposal: {
+        payload: {
+          clientId: 42,
+          date: '2026-05-05',
+          source: 'historical_import',
+          exercises: [{ name: 'Step-up' }],
+        },
+        targetUserId: 42,
+      },
+    });
+
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledWith(expect.objectContaining({
+      clientId: 42,
+      source: 'historical_import',
+      exercises: [{ name: 'Step-up' }],
+    }));
+  });
+
   it('rejects malformed workout proposal client ids before access or write', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });

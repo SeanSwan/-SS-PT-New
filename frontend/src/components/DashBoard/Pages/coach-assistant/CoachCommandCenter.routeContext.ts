@@ -5,8 +5,10 @@
  * outside the main controller/logic module.
  */
 import { normalizeIsoDateOnly } from '../../../../utils/isoDateOnly';
+import { buildMessageRouteContext, compactMessageActionRouteContext } from './CoachCommandCenter.messageRouteContext';
 import type {
   CoachCommandRouteContext,
+  CoachMessageActionRouteContext,
   CoachScheduledSessionRouteContext,
 } from './CoachCommandCenter.types';
 
@@ -57,11 +59,13 @@ export function getScheduledSessionRouteContextFromSearchParams(
 export function buildCommandRouteContext(
   routeIntent: string | null,
   scheduledSession: CoachScheduledSessionRouteContext | null,
+  messageActionContext: Partial<CoachMessageActionRouteContext> | null = null,
 ): CoachCommandRouteContext {
   return {
     source: 'coach-command-center',
     intent: routeIntent,
     ...(scheduledSession || {}),
+    ...compactMessageActionRouteContext(messageActionContext),
   };
 }
 
@@ -106,16 +110,8 @@ export function buildRouteClientLabel(routeClientId: number | null): string | nu
 }
 
 const THREAD_SELECTION_STALE_KEYS = [
-  'intent',
-  'source',
-  'returnTo',
-  'sourcePath',
-  'teachPrompt',
-  'sessionId',
-  'sessionDate',
-  'sessionCredits',
-  'workoutDate',
-  'draftKey',
+  'intent', 'source', 'returnTo', 'sourcePath', 'teachPrompt', 'sessionId',
+  'sessionDate', 'sessionCredits', 'workoutDate', 'draftKey', 'sourceMessageId',
 ];
 
 export function buildThreadSelectionSearchParams(
@@ -165,7 +161,7 @@ function adminDailyCommandRouteContext(): RouteContextCopy {
   return {
     prompt: prompt([
       'Admin daily command triage.',
-      'Help me choose the next owner/admin move across client logging, my workout, onboarding, intake review, PLAUD review, schedule gaps, session credits, and money-path blockers.',
+      'Help me choose the next owner/admin move across client logging, my workout, onboarding, intake review, audio review, schedule gaps, session credits, and money-path blockers.',
       'Keep it low-click: tell me the next one or two actions and where to go.',
       'Keep all workout, client, intake, and money-path writes review-gated; do not claim anything was saved until I approve it.',
     ]),
@@ -250,6 +246,7 @@ const ROUTE_CONTEXT_BUILDERS: Record<string, RouteContextBuilder> = {
   trainer_daily_command: () => trainerDailyCommandRouteContext(),
   client_onboarding: (routeClientLabel) => onboardingRouteContext(routeClientLabel),
   historical_import: (routeClientLabel) => historicalImportRouteContext(routeClientLabel),
+
   log_self_workout: selfWorkoutRouteContext,
   log_workout: logWorkoutRouteContext,
   plan_review: (routeClientLabel) => planReviewRouteContext(routeClientLabel),
@@ -260,6 +257,8 @@ export function buildRouteContext(
   routeClientLabel: string | null,
   scheduledSession: CoachScheduledSessionRouteContext | null = null,
 ): RouteContextCopy {
+  const messageContext = buildMessageRouteContext(routeIntent);
+  if (messageContext.prompt) return messageContext;
   return routeIntent
     ? ROUTE_CONTEXT_BUILDERS[routeIntent]?.(routeClientLabel, scheduledSession) ?? EMPTY_ROUTE_CONTEXT
     : EMPTY_ROUTE_CONTEXT;

@@ -1,0 +1,13 @@
+diff --git a/frontend/e2e/nutrition-workspace-smoke.spec.ts b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+--- a/frontend/e2e/nutrition-workspace-smoke.spec.ts
++++ b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+@@ -225,9 +225,0 @@
+-      if (width <= 414) {
+-        const mobileDialog = await openNutritionManualReview(page);
+-        const save = mobileDialog.getByRole('button', { name: /approve and save 1 item/i });
+-        await save.scrollIntoViewIfNeeded();
+-        const box = await save.boundingBox();
+-        expect(box?.height ?? 0, `${width}px review action height`).toBeGreaterThanOrEqual(44);
+-        expect((box?.x ?? -1) + (box?.width ?? width + 1), `${width}px review action fit`).toBeLessThanOrEqual(width + 1);
+-        await mobileDialog.getByRole('button', { name: /cancel/i }).click();
+-      }

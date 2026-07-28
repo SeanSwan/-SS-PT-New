@@ -778,10 +778,21 @@ export async function getClientContext(clientId, trainerId) {
 
   // ── Process Variation History ───────────────────────────────────
 
+  const variationHistory = recentVariations
+    .slice()
+    .reverse()
+    .map(log => ({
+      sessionType: log.sessionType,
+      sessionDate: log.sessionDate,
+      rotationPattern: log.rotationPattern || 'standard',
+    }))
+    .filter(entry => entry.sessionType === 'build' || entry.sessionType === 'switch');
+
   const variationSummary = {
     recentSessions: recentVariations.length,
     lastSessionType: recentVariations[0]?.sessionType ?? null,
     lastSessionDate: recentVariations[0]?.sessionDate ?? null,
+    sessionHistory: variationHistory,
     recentlyUsedExercises: [],
     currentPattern: recentVariations[0]?.rotationPattern || 'standard',
   };

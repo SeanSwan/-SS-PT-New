@@ -1,5 +1,5 @@
 /**
- * 🎯 CHALLENGE CONTROLLER - COMPREHENSIVE CHALLENGE MANAGEMENT SYSTEM
+ * CHALLENGE CONTROLLER - COMPREHENSIVE CHALLENGE MANAGEMENT SYSTEM
  * ===================================================================
  * Production-ready controller for complete challenge functionality that matches
  * frontend gamification components expectations
@@ -12,6 +12,34 @@ import db from '../database.mjs';
 import getModels from '../models/associations.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { checkBadgesForGamificationEvent } from '../services/badgeGamificationBridge.mjs';
+import {
+  ChallengeCreationValidationError,
+  buildChallengeCreatePayload,
+} from '../services/gamification/challengeCreationService.mjs';
+import { getChallengeList } from '../services/gamification/challengeListService.mjs';
+import {
+  ChallengeStatusTransitionError,
+  transitionManagedChallengeStatus,
+} from '../services/gamification/challengeStatusService.mjs';
+import {
+  ChallengeAudienceValidationError,
+  replaceManagedChallengeAudience,
+} from '../services/gamification/challengeAudienceService.mjs';
+import {
+  ChallengeProgressEventValidationError,
+  applyWorkoutChallengeProgressEvent,
+} from '../services/gamification/challengeProgressEventService.mjs';
+import {
+  getChallengeGovernancePolicy,
+  getChallengeTemplateCatalog,
+  listChallengeArchetypes,
+} from '../services/gamification/challengeTemplateCatalog.mjs';
+import { toChallengeDashboardParticipation } from '../services/gamification/challengeDashboardReadModel.mjs';
+import { recordChallengeView } from '../services/gamification/challengeEngagementService.mjs';
+import {
+  awardWorkoutChallengeCompletionXp,
+  getChallengeCompletionTitle,
+} from '../services/gamification/challengeCompletionRewardService.mjs';
 
 const INTERNAL_ERROR = 'Internal server error';
 
@@ -41,107 +69,119 @@ const parseOptionalBoundedPositiveInteger = (value, min, max) => {
   return parsed;
 };
 
+const parseManualProgressValue = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') return null;
+
+    const numberValue = Number(trimmedValue);
+    return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
+  }
+
+  return null;
+};
+
+const statusMessageForAction = (action) => {
+  switch (String(action ?? 'publish').trim().toLowerCase()) {
+    case 'complete':
+      return 'Challenge marked completed successfully';
+    case 'cancel':
+      return 'Challenge cancelled successfully';
+    case 'archive':
+      return 'Challenge archived successfully';
+    case 'publish':
+    default:
+      return 'Challenge published successfully';
+  }
+};
+
+const collectWorkoutChallengeBadges = async ({ userId, completions }) => {
+  const badgesEarned = [];
+
+  for (const completion of completions) {
+    const earned = await checkBadgesForGamificationEvent({
+      userId,
+      type: 'challenge_completion',
+      activityData: {
+        challengeId: completion.challengeId,
+        challengeName: getChallengeCompletionTitle(completion),
+        completed: true,
+        status: 'completed',
+        count: 1,
+        sourceType: 'workout_completed'
+      }
+    });
+
+    badgesEarned.push(...earned);
+  }
+
+  return badgesEarned;
+};
 const challengeController = {
   /**
-   * 🎮 GET ALL CHALLENGES - WITH FILTERS & PAGINATION
+   * GET CHALLENGE TEMPLATES
+   * =======================
+   * GET /api/v1/gamification/challenge-templates
+   */
+  getChallengeTemplates: async (req, res) => {
+    try {
+      return res.status(200).json({
+        success: true,
+        templates: getChallengeTemplateCatalog(),
+        archetypes: listChallengeArchetypes(),
+        governance: getChallengeGovernancePolicy()
+      });
+    } catch (error) {
+      console.error('Error fetching challenge templates:', error);
+      return sendChallengeError(res, 500, 'Failed to fetch challenge templates');
+    }
+  },
+  /**
+   * GET ALL CHALLENGES - WITH FILTERS & PAGINATION
    * ===============================================
    * GET /api/v1/gamification/challenges
    */
   getAllChallenges: async (req, res) => {
     try {
       const models = await getModels();
-      const { Challenge, User, ChallengeParticipant } = models;
-      
-      const {
-        page = 1,
-        limit = 20,
-        type,
-        category,
-        difficulty,
-        status = 'active',
-        featured,
-        search,
-        sortBy = 'createdAt',
-        sortOrder = 'desc'
-      } = req.query;
-
-      const normalizedPage = parsePositiveInteger(page, 1);
-      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
-      const normalizedDifficulty = parseOptionalBoundedPositiveInteger(difficulty, 1, 5);
-      const offset = (normalizedPage - 1) * normalizedLimit;
-      
-      // Build filter conditions
-      const whereClause = {};
-      
-      if (type && type !== 'all') whereClause.challengeType = type;
-      if (category && category !== 'all') whereClause.category = category;
-      if (normalizedDifficulty !== null) whereClause.difficulty = normalizedDifficulty;
-      if (status && status !== 'all') whereClause.status = status;
-      if (featured === 'true') whereClause.isFeatured = true;
-      
-      // Search functionality
-      if (search) {
-        whereClause[Op.or] = [
-          { title: { [Op.iLike]: `%${search}%` } },
-          { description: { [Op.iLike]: `%${search}%` } },
-          { tags: { [Op.contains]: [search.toLowerCase()] } }
-        ];
-      }
-      
-      // Sorting options
-      const validSortFields = ['createdAt', 'startDate', 'endDate', 'title', 'difficulty', 'completionRate', 'currentParticipants'];
-      const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-      const order = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-
-      const challenges = await Challenge.findAndCountAll({
-        where: whereClause,
-        include: [
-          {
-            model: User,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
-          },
-          {
-            model: ChallengeParticipant,
-            as: 'participants',
-            attributes: ['id', 'userId', 'currentProgress', 'progressPercentage', 'status', 'joinedAt'],
-            include: [{
-              model: User,
-              as: 'user',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
-            }],
-            limit: 5 // Show only first 5 participants in list view
-          }
-        ],
-        order: [[sortField, order]],
-        limit: normalizedLimit,
-        offset,
-        distinct: true
-      });
+      const result = await getChallengeList({ models, query: req.query, defaultStatus: 'active', publicOnly: true });
 
       return res.status(200).json({
         success: true,
-        challenges: challenges.rows,
-        pagination: {
-          total: challenges.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(challenges.count / normalizedLimit)
-        },
-        filters: {
-          types: ['daily', 'weekly', 'monthly', 'community', 'custom'],
-          categories: ['fitness', 'nutrition', 'mindfulness', 'social', 'streak', 'dance', 'music', 'art', 'gaming', 'community_meetup'],
-          difficulties: [1, 2, 3, 4, 5]
-        }
+        ...result
       });
     } catch (error) {
-      console.error('❌ Error fetching challenges:', error);
+      console.error('Error fetching challenges:', error);
       return sendChallengeError(res, 500, 'Failed to fetch challenges');
     }
   },
 
+  getManagedChallenges: async (req, res) => {
+    try {
+      const models = await getModels();
+      const result = await getChallengeList({
+        models,
+        query: req.query,
+        defaultStatus: 'all',
+        viewer: req.user
+      });
+
+      return res.status(200).json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('Error fetching managed challenges:', error);
+      return sendChallengeError(res, 500, 'Failed to fetch managed challenges');
+    }
+  },
+
   /**
-   * 🎯 GET SINGLE CHALLENGE - WITH FULL DETAILS
+   * GET SINGLE CHALLENGE - WITH FULL DETAILS
    * ==========================================
    * GET /api/v1/gamification/challenges/:id
    */
@@ -172,12 +212,17 @@ const challengeController = {
         ]
       });
 
-      if (!challenge) {
+      if (!challenge || challenge.status === 'draft' || challenge.isPublic !== true) {
         return res.status(404).json({
           success: false,
           message: 'Challenge not found'
         });
       }
+
+      const viewTracking = await recordChallengeView({
+        Challenge,
+        challenge,
+      });
 
       // Calculate additional metrics
       const totalParticipants = challenge.participants.length;
@@ -188,6 +233,7 @@ const challengeController = {
 
       const challengeWithMetrics = {
         ...challenge.toJSON(),
+        viewCount: viewTracking.viewCount,
         metrics: {
           totalParticipants,
           completedParticipants,
@@ -203,101 +249,29 @@ const challengeController = {
         challenge: challengeWithMetrics
       });
     } catch (error) {
-      console.error('❌ Error fetching challenge:', error);
+      console.error('Error fetching challenge:', error);
       return sendChallengeError(res, 500, 'Failed to fetch challenge');
     }
   },
 
   /**
-   * ⭐ CREATE NEW CHALLENGE
+   * CREATE NEW CHALLENGE
    * =====================
    * POST /api/v1/gamification/challenges
    */
   createChallenge: async (req, res) => {
     const transaction = await db.transaction();
-    
+
     try {
       const models = await getModels();
       const { Challenge } = models;
-      
-      const {
-        title,
-        description,
-        challengeType = 'daily',
-        difficulty = 3,
-        category = 'fitness',
-        xpReward = 100,
-        bonusXpReward = 0,
-        maxParticipants,
-        maxProgress = 1,
-        progressUnit = 'completion',
-        startDate,
-        endDate,
-        requirements = [],
-        tags = [],
-        isPublic = true,
-        isFeatured = false,
-        isPremium = false,
-        hasLeaderboard = true,
-        leaderboardType = 'progress'
-      } = req.body;
+      const challengePayload = buildChallengeCreatePayload({
+        body: req.body,
+        userId: req.user.id,
+        now: new Date(),
+      });
 
-      const userId = req.user.id;
-
-      // Validation
-      if (!title || !description || !startDate || !endDate) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Title, description, start date, and end date are required'
-        });
-      }
-
-      // Validate dates
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const now = new Date();
-
-      if (start <= now) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Start date must be in the future'
-        });
-      }
-
-      if (end <= start) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'End date must be after start date'
-        });
-      }
-
-      // Create challenge
-      const challenge = await Challenge.create({
-        title,
-        description,
-        challengeType,
-        difficulty,
-        category,
-        xpReward,
-        bonusXpReward,
-        maxParticipants,
-        maxProgress,
-        progressUnit,
-        startDate: start,
-        endDate: end,
-        createdBy: userId,
-        requirements,
-        tags: Array.isArray(tags) ? tags : [],
-        status: 'active',
-        isPublic,
-        isFeatured,
-        isPremium,
-        hasLeaderboard,
-        leaderboardType
-      }, { transaction });
+      const challenge = await Challenge.create(challengePayload, { transaction });
 
       await transaction.commit();
 
@@ -308,23 +282,87 @@ const challengeController = {
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('❌ Error creating challenge:', error);
+
+      if (error instanceof ChallengeCreationValidationError) {
+        return sendChallengeError(res, error.statusCode, error.publicMessage, error.publicMessage);
+      }
+
+      console.error('Error creating challenge:', error);
       return sendChallengeError(res, 500, 'Failed to create challenge');
     }
   },
 
+  updateManagedChallengeStatus: async (req, res) => {
+    try {
+      const models = await getModels();
+      const { action = 'publish', visibility = 'public' } = req.body ?? {};
+
+      const challenge = await transitionManagedChallengeStatus({
+        models,
+        challengeId: req.params.id,
+        viewer: req.user,
+        action,
+        visibility,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: statusMessageForAction(action),
+        challenge,
+      });
+    } catch (error) {
+      if (error instanceof ChallengeStatusTransitionError) {
+        return sendChallengeError(res, error.statusCode, error.publicMessage, error.publicMessage);
+      }
+
+      console.error('Error updating managed challenge status:', error);
+      return sendChallengeError(res, 500, 'Failed to update challenge status');
+    }
+  },
+  updateManagedChallengeAudience: async (req, res) => {
+    const transaction = await db.transaction();
+
+    try {
+      const models = await getModels();
+      const result = await replaceManagedChallengeAudience({
+        models,
+        challengeId: req.params.id,
+        viewer: req.user,
+        userIds: req.body?.userIds,
+        transaction,
+      });
+
+      await transaction.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Challenge audience saved successfully',
+        challenge: result.challenge,
+        audienceCount: result.audienceCount,
+      });
+    } catch (error) {
+      await transaction.rollback();
+
+      if (error instanceof ChallengeAudienceValidationError) {
+        return sendChallengeError(res, error.statusCode, error.publicMessage, error.publicMessage);
+      }
+
+      console.error('Error updating managed challenge audience:', error);
+      return sendChallengeError(res, 500, 'Failed to update challenge audience');
+    }
+  },
   /**
-   * 🚀 JOIN CHALLENGE
+   * JOIN CHALLENGE
    * ================
    * POST /api/v1/gamification/challenges/:id/join
    */
   joinChallenge: async (req, res) => {
     const transaction = await db.transaction();
-    
+
     try {
       const models = await getModels();
       const { Challenge, ChallengeParticipant, User } = models;
-      
+
       const { id } = req.params;
       const userId = req.user.id;
 
@@ -345,25 +383,6 @@ const challengeController = {
         });
       }
 
-      // Validate challenge status
-      if (challenge.status !== 'active') {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Challenge is not active'
-        });
-      }
-
-      // Check if challenge has started
-      const now = new Date();
-      if (now > challenge.endDate) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Challenge has ended'
-        });
-      }
-
       // Check if user is already participating
       const existingParticipation = await ChallengeParticipant.findOne({
         where: {
@@ -373,11 +392,48 @@ const challengeController = {
         transaction
       });
 
-      if (existingParticipation) {
+      const reactivatingParticipation = existingParticipation?.status === 'quit';
+
+      if (existingParticipation && !reactivatingParticipation) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: 'You are already participating in this challenge'
+        });
+      }
+
+      if (challenge.isPublic !== true || challenge.status === 'draft') {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Challenge not found'
+        });
+      }
+
+      // Validate challenge status
+      if (challenge.status !== 'active') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge is not active'
+        });
+      }
+
+      // Check if challenge is inside its active window
+      const now = new Date();
+      if (now < challenge.startDate) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge has not started'
+        });
+      }
+
+      if (now > challenge.endDate) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge has ended'
         });
       }
 
@@ -390,15 +446,22 @@ const challengeController = {
         });
       }
 
-      // Create participation record
-      const participation = await ChallengeParticipant.create({
-        challengeId: id,
-        userId,
-        currentProgress: 0,
-        progressPercentage: 0,
-        status: 'joined',
-        joinedAt: now
-      }, { transaction });
+      // Create or reactivate participation record
+      const participation = reactivatingParticipation
+        ? await existingParticipation.update({
+          status: 'joined',
+          joinedAt: now,
+          lastProgressUpdate: now,
+          updatedAt: now
+        }, { transaction })
+        : await ChallengeParticipant.create({
+          challengeId: id,
+          userId,
+          currentProgress: 0,
+          progressPercentage: 0,
+          status: 'joined',
+          joinedAt: now
+        }, { transaction });
 
       // Update challenge participant count
       await challenge.update({
@@ -414,24 +477,24 @@ const challengeController = {
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('❌ Error joining challenge:', error);
+      console.error('Error joining challenge:', error);
       return sendChallengeError(res, 500, 'Failed to join challenge');
     }
   },
 
   /**
-   * 📈 UPDATE CHALLENGE PROGRESS
+   * UPDATE CHALLENGE PROGRESS
    * ===========================
    * PUT /api/v1/gamification/challenges/:id/progress
    */
   updateChallengeProgress: async (req, res) => {
     const transaction = await db.transaction();
     let transactionCommitted = false;
-    
+
     try {
       const models = await getModels();
       const { Challenge, ChallengeParticipant } = models;
-      
+
       const { id } = req.params;
       const { progress, notes } = req.body;
       const userId = req.user.id;
@@ -444,6 +507,15 @@ const challengeController = {
         });
       }
 
+      const progressValue = parseManualProgressValue(progress);
+      if (progressValue === null) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Progress value must be a non-negative number'
+        });
+      }
+
       // Get challenge and participation
       const challenge = await Challenge.findByPk(id, { transaction });
       const participation = await ChallengeParticipant.findOne({
@@ -452,6 +524,14 @@ const challengeController = {
       });
 
       if (!challenge) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Challenge not found'
+        });
+      }
+
+      if (challenge.status === 'draft' || (challenge.isPublic !== true && !participation)) {
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -475,13 +555,40 @@ const challengeController = {
         });
       }
 
+      if (challenge.status !== 'active') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge is not active'
+        });
+      }
+
+      const now = new Date();
+      if (now < challenge.startDate) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge has not started'
+        });
+      }
+
+      if (now > challenge.endDate) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Challenge has ended'
+        });
+      }
+
       // Calculate progress percentage
-      const newProgressPercentage = Math.min(100, Math.max(0, (progress / challenge.maxProgress) * 100));
+      const rawMaxProgress = Number(challenge.maxProgress);
+      const maxProgress = Number.isFinite(rawMaxProgress) && rawMaxProgress > 0 ? rawMaxProgress : 1;
+      const newProgressPercentage = Math.min(100, Math.max(0, (progressValue / maxProgress) * 100));
       const wasCompleted = newProgressPercentage >= 100 && participation.status !== 'completed';
 
       // Update participation
       const updatedFields = {
-        currentProgress: Math.min(challenge.maxProgress, Math.max(0, progress)),
+        currentProgress: Math.min(maxProgress, progressValue),
         progressPercentage: newProgressPercentage,
         updatedAt: new Date()
       };
@@ -496,7 +603,7 @@ const challengeController = {
       // Award XP if completed
       if (wasCompleted) {
         const totalXpReward = challenge.xpReward + (challenge.bonusXpReward || 0);
-        
+
         if (totalXpReward > 0) {
           await GamificationPointsService.recordLedgerEntry({
             userId,
@@ -517,8 +624,8 @@ const challengeController = {
           transaction
         });
 
-        const newCompletionRate = challenge.currentParticipants > 0 
-          ? (completedCount / challenge.currentParticipants) * 100 
+        const newCompletionRate = challenge.currentParticipants > 0
+          ? (completedCount / challenge.currentParticipants) * 100
           : 0;
 
         await challenge.update({
@@ -556,13 +663,72 @@ const challengeController = {
       });
     } catch (error) {
       if (!transactionCommitted) await transaction.rollback();
-      console.error('❌ Error updating challenge progress:', error);
+      console.error('Error updating challenge progress:', error);
       return sendChallengeError(res, 500, 'Failed to update challenge progress');
     }
   },
 
   /**
-   * 🏆 GET CHALLENGE LEADERBOARD
+   * RECORD WORKOUT CHALLENGE PROGRESS
+   * =================================
+   * POST /api/v1/gamification/users/:userId/challenges/progress-events/workout-completed
+   */
+  recordWorkoutChallengeProgress: async (req, res) => {
+    const transaction = await db.transaction();
+    let transactionCommitted = false;
+
+    try {
+      const models = await getModels();
+      const userId = parsePositiveInteger(req.params.userId);
+      const result = await applyWorkoutChallengeProgressEvent({
+        models,
+        userId,
+        event: req.body,
+        transaction,
+        now: new Date(),
+      });
+      const completedUpdates = result.updated.filter((update) => update.completed);
+      const xpAwarded = await awardWorkoutChallengeCompletionXp({
+        userId,
+        completions: completedUpdates,
+        transaction,
+      });
+
+      await transaction.commit();
+      transactionCommitted = true;
+
+      let badgesEarned = [];
+      try {
+        badgesEarned = await collectWorkoutChallengeBadges({ userId, completions: completedUpdates });
+      } catch (badgeError) {
+        console.error('Error checking workout challenge badges:', badgeError);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Workout challenge progress processed',
+        ...result,
+        badgesEarned,
+        xpAwarded,
+      });
+    } catch (error) {
+      if (!transactionCommitted) await transaction.rollback();
+
+      if (error instanceof ChallengeProgressEventValidationError) {
+        const statusCode = error.statusCode ?? 400;
+        const publicMessage = statusCode >= 500
+          ? 'Failed to process workout challenge progress'
+          : error.publicMessage;
+
+        return sendChallengeError(res, statusCode, publicMessage, publicMessage);
+      }
+
+      console.error('Error recording workout challenge progress:', error);
+      return sendChallengeError(res, 500, 'Failed to process workout challenge progress');
+    }
+  },
+  /**
+   * GET CHALLENGE LEADERBOARD
    * ============================
    * GET /api/v1/gamification/challenges/:id/leaderboard
    */
@@ -570,14 +736,28 @@ const challengeController = {
     try {
       const models = await getModels();
       const { Challenge, ChallengeParticipant, User } = models;
-      
+
       const { id } = req.params;
       const { limit = 20 } = req.query;
       const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
 
       const challenge = await Challenge.findByPk(id);
-      
+
       if (!challenge) {
+        return res.status(404).json({
+          success: false,
+          message: 'Challenge not found'
+        });
+      }
+
+      let leaderboardParticipation = null;
+      if (challenge.isPublic !== true && challenge.status !== 'draft') {
+        leaderboardParticipation = await ChallengeParticipant.findOne({
+          where: { challengeId: id, userId: req.user.id }
+        });
+      }
+
+      if (challenge.status === 'draft' || (challenge.isPublic !== true && !leaderboardParticipation)) {
         return res.status(404).json({
           success: false,
           message: 'Challenge not found'
@@ -630,23 +810,23 @@ const challengeController = {
         }
       });
     } catch (error) {
-      console.error('❌ Error fetching challenge leaderboard:', error);
+      console.error('Error fetching challenge leaderboard:', error);
       return sendChallengeError(res, 500, 'Failed to fetch challenge leaderboard');
     }
   },
 
   /**
-   * 🚪 LEAVE CHALLENGE
+   * LEAVE CHALLENGE
    * =================
    * DELETE /api/v1/gamification/challenges/:id/leave
    */
   leaveChallenge: async (req, res) => {
     const transaction = await db.transaction();
-    
+
     try {
       const models = await getModels();
       const { Challenge, ChallengeParticipant } = models;
-      
+
       const { id } = req.params;
       const userId = req.user.id;
 
@@ -664,6 +844,15 @@ const challengeController = {
         });
       }
 
+      const challenge = await Challenge.findByPk(id, { transaction });
+      if (!challenge || challenge.status === 'draft') {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Challenge not found'
+        });
+      }
+
       if (participation.status === 'completed') {
         await transaction.rollback();
         return res.status(400).json({
@@ -672,16 +861,37 @@ const challengeController = {
         });
       }
 
-      // Remove participation
-      await participation.destroy({ transaction });
+      if (participation.status === 'quit') {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'You are not participating in this challenge'
+        });
+      }
+
+      const leftAt = new Date();
+      const progressHistory = Array.isArray(participation.progressHistory) ? participation.progressHistory : [];
+
+      // Preserve participation for lifecycle analytics instead of hard-deleting the row.
+      await participation.update({
+        status: 'quit',
+        lastProgressUpdate: leftAt,
+        updatedAt: leftAt,
+        progressHistory: [
+          ...progressHistory,
+          {
+            sourceType: 'challenge_left',
+            sourceId: id,
+            occurredAt: leftAt.toISOString(),
+            previousStatus: String(participation.status || 'joined')
+          }
+        ]
+      }, { transaction });
 
       // Update challenge participant count
-      const challenge = await Challenge.findByPk(id, { transaction });
-      if (challenge) {
-        await challenge.update({
-          currentParticipants: Math.max(0, challenge.currentParticipants - 1)
-        }, { transaction });
-      }
+      await challenge.update({
+        currentParticipants: Math.max(0, challenge.currentParticipants - 1)
+      }, { transaction });
 
       await transaction.commit();
 
@@ -691,13 +901,13 @@ const challengeController = {
       });
     } catch (error) {
       await transaction.rollback();
-      console.error('❌ Error leaving challenge:', error);
+      console.error('Error leaving challenge:', error);
       return sendChallengeError(res, 500, 'Failed to leave challenge');
     }
   },
 
   /**
-   * 👤 GET USER CHALLENGES
+   * GET USER CHALLENGES
    * =====================
    * GET /api/v1/gamification/users/:userId/challenges
    */
@@ -705,16 +915,16 @@ const challengeController = {
     try {
       const models = await getModels();
       const { Challenge, ChallengeParticipant, User } = models;
-      
+
       const { userId } = req.params;
       const { status = 'active', page = 1, limit = 20 } = req.query;
 
       const normalizedPage = parsePositiveInteger(page, 1);
       const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
       const offset = (normalizedPage - 1) * normalizedLimit;
-      
+
       const whereClause = { userId };
-      
+
       if (status === 'active') {
         whereClause.status = { [Op.in]: ['joined', 'active'] };
       } else if (status === 'completed') {
@@ -726,6 +936,8 @@ const challengeController = {
         include: [{
           model: Challenge,
           as: 'challenge',
+          where: { status: { [Op.ne]: 'draft' } },
+          required: true,
           include: [{
             model: User,
             as: 'creator',
@@ -740,7 +952,7 @@ const challengeController = {
 
       return res.status(200).json({
         success: true,
-        challenges: userChallenges.rows,
+        challenges: userChallenges.rows.map((row) => toChallengeDashboardParticipation(row)),
         pagination: {
           total: userChallenges.count,
           page: normalizedPage,
@@ -749,10 +961,11 @@ const challengeController = {
         }
       });
     } catch (error) {
-      console.error('❌ Error fetching user challenges:', error);
+      console.error('Error fetching user challenges:', error);
       return sendChallengeError(res, 500, 'Failed to fetch user challenges');
     }
   }
 };
 
 export default challengeController;
+

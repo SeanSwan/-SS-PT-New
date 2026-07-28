@@ -28,5 +28,18 @@ describe('DashboardTeachMeGuide admin special routes', () => {
     });
     expect(styleGuide.fastPath.join(' ')).toMatch(/tokens|mobile|contrast/i);
     expect(styleGuide.title).not.toBe('Admin command center');
+
+    const lensFoundry = getDashboardTeachMeGuide({
+      role: 'admin',
+      pathname: '/dashboard/admin/lens-foundry',
+    });
+
+    expect(lensFoundry.title).toBe('Admin Lens Foundry Lab');
+    expect(lensFoundry.primaryAction).toEqual({
+      label: 'Open Lens Foundry',
+      to: '/dashboard/admin/lens-foundry',
+    });
+    expect(lensFoundry.fastPath.join(' ')).toMatch(/morph|promote/i);
+    expect(lensFoundry.title).not.toBe('Admin command center');
   });
 });

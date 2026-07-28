@@ -52,7 +52,6 @@ import {
   PanelHeader,
   ProgressFill,
   ProgressTrack,
-  QuickActionGrid,
   RowItem,
   StatusDot,
   TinyText,
@@ -69,7 +68,7 @@ import {
   StatGrid,
   StatTile,
 } from './ClientDashboardHome.heroStyles';
-import type { ClientDashboardAction, ClientDashboardHomeProps, ClientDashboardTarget } from './ClientDashboardHome.types';
+import type { ClientDashboardHomeProps, ClientDashboardTarget } from './ClientDashboardHome.types';
 
 type PickProps = Pick<ClientDashboardHomeProps, 'onNavigate' | 'onTarget'>;
 type RailItem = [string, ClientDashboardTarget | undefined, LucideIcon];
@@ -230,26 +229,6 @@ function HeroStat({ icon, label, value, tone }: { icon: React.ReactNode; label: 
   );
 }
 
-export function ClientQuickActions({ actions, onNavigate, onTarget }: { actions: ClientDashboardAction[] } & PickProps) {
-  return (
-    <QuickActionGrid>
-      {actions.map((action, index) => (
-        <ActionButton
-          key={action.label}
-          type="button"
-          $primary={index === 0}
-          disabled={!!action.disabledReason}
-          title={action.disabledReason || action.label}
-          onClick={() => (action.path ? onNavigate(action.path) : action.target ? onTarget(action.target) : undefined)}
-        >
-          {index === 0 ? <Dumbbell size={17} /> : index === 1 ? <Bot size={17} /> : index === 2 ? <LineChart size={17} /> : <CalendarDays size={17} />}
-          {action.label}
-        </ActionButton>
-      ))}
-    </QuickActionGrid>
-  );
-}
-
 export function TodaySnapshotCard({ todaySnapshot }: Pick<ClientDashboardHomeProps, 'todaySnapshot'>) {
   return (
     <PanelCard>
@@ -298,3 +277,5 @@ export function NextSessionCard({ sessionPreview, onNavigate }: Pick<ClientDashb
     </PanelCard>
   );
 }
+
+

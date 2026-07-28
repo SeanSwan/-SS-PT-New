@@ -34,7 +34,13 @@ import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { getEquipmentProfile, getEquipmentItem, getEquipmentExerciseMap } from '../models/index.mjs';
-import { isEquipmentScanConfigured, scanEquipmentImage } from '../services/equipmentScanService.mjs';
+import { isEquipmentScanConfigured, scanEquipmentImageMulti } from '../services/equipmentScanService.mjs';
+import { matchExistingEquipment } from '../services/equipmentScanV2Support.mjs';
+import { persistEquipmentScanReviewSession } from '../services/equipmentScanReviewPersistence.mjs';
+import {
+  recordEquipmentScanCandidateAction,
+  recordEquipmentScanCandidateReview,
+} from '../services/equipmentScanReviewOutcomeService.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
@@ -496,9 +502,9 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       });
     }
 
-    const scanResult = await scanEquipmentImage(req.file.buffer, req.file.mimetype);
+    const scanSession = await scanEquipmentImageMulti(req.file.buffer, req.file.mimetype);
 
-    // Save the photo to R2/local storage before creating the item
+    // Save the photo to R2/local storage before creating pending review items.
     let photoUrl = null;
     try {
       const photoUpload = await uploadPhoto(req.file.buffer, {
@@ -512,55 +518,150 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       logger.warn('[EquipmentRoutes] Photo upload failed (non-fatal):', uploadErr.message);
     }
 
-    // Create pending equipment item with AI scan data
     const EquipmentItem = getEquipmentItem();
-    const item = await EquipmentItem.create({
-      profileId: profile.id,
-      photoUrl,
-      name: scanResult.suggestedName,
-      category: scanResult.suggestedCategory,
-      resistanceType: scanResult.resistanceType,
-      description: scanResult.description,
-      aiScanData: {
-        confidence: scanResult.confidence,
-        boundingBox: scanResult.boundingBox,
-        suggestedName: scanResult.suggestedName,
-        suggestedCategory: scanResult.suggestedCategory,
-        suggestedExercises: scanResult.suggestedExercises,
-        rawResponse: scanResult.rawResponse,
-        latencyMs: scanResult.latencyMs,
-        model: scanResult.model,
-        scannedAt: new Date().toISOString(),
-      },
-      approvalStatus: 'pending',
-      isActive: true,
+    const EquipmentExerciseMap = getEquipmentExerciseMap();
+    const existingItems = await EquipmentItem.findAll({
+      where: { profileId: profile.id, isActive: true },
     });
+    const createdItems = [];
+    const createdCandidates = [];
+    const createdCandidateRecords = [];
+    const duplicateCandidates = [];
+    const baseReviewItems = Array.isArray(scanSession.items)
+      ? scanSession.items.map((candidate, index) => ({ ...candidate, candidateIndex: index }))
+      : [];
+    const possibleCandidates = (Array.isArray(scanSession.possibleItems) ? scanSession.possibleItems : []).map((candidate, index) => ({
+      ...candidate,
+      status: 'possible',
+      candidateIndex: baseReviewItems.length + index,
+    }));
+    const reviewCandidates = [...baseReviewItems, ...possibleCandidates];
+    const scannedAt = new Date().toISOString();
 
-    // Auto-create exercise mappings from AI suggestions (unconfirmed)
-    if (scanResult.suggestedExercises?.length > 0) {
-      const EquipmentExerciseMap = getEquipmentExerciseMap();
-      const mappings = scanResult.suggestedExercises.map(exercise => ({
-        equipmentItemId: item.id,
-        exerciseKey: exercise.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-        exerciseName: exercise,
-        isCustomExercise: false,
-        isPrimary: false,
-        isAiSuggested: true,
-        confirmed: false,
-      }));
-      await EquipmentExerciseMap.bulkCreate(mappings, { ignoreDuplicates: true });
+    for (const [candidateIndex, candidate] of scanSession.items.entries()) {
+      const duplicateMatch = matchExistingEquipment(candidate, existingItems);
+      if (duplicateMatch) {
+        duplicateCandidates.push({ ...candidate, ...duplicateMatch, status: 'duplicate', candidateIndex });
+        continue;
+      }
+
+      const item = await EquipmentItem.create({
+        profileId: profile.id,
+        photoUrl,
+        name: candidate.suggestedName,
+        category: candidate.suggestedCategory,
+        resistanceType: candidate.resistanceType,
+        description: candidate.description,
+        quantity: candidate.quantity,
+        aiScanData: {
+          schemaVersion: scanSession.schemaVersion,
+          promptVersion: scanSession.promptVersion,
+          imageQuality: scanSession.imageQuality,
+          sceneSummary: scanSession.sceneSummary,
+          confidence: candidate.confidence,
+          visibility: candidate.visibility,
+          boundingBox: candidate.boundingBox,
+          suggestedName: candidate.suggestedName,
+          suggestedCategory: candidate.suggestedCategory,
+          equipmentKind: candidate.equipmentKind,
+          quantity: candidate.quantity,
+          alternateNames: candidate.alternateNames,
+          suggestedExercises: candidate.suggestedExercises,
+          movementPatterns: candidate.movementPatterns,
+          targetMuscles: candidate.targetMuscles,
+          safetyNotes: candidate.safetyNotes,
+          dedupeKey: candidate.dedupeKey,
+          needsHumanReview: candidate.needsHumanReview,
+          reasoning: candidate.reasoning,
+          candidateIndex,
+          rawResponse: scanSession.rawResponse,
+          latencyMs: scanSession.latencyMs,
+          model: scanSession.model,
+          scannedAt,
+        },
+        approvalStatus: 'pending',
+        isActive: true,
+      });
+      createdItems.push(item);
+      createdCandidates.push(candidate);
+      createdCandidateRecords.push({ candidateIndex, candidate, itemId: item.id });
+      existingItems.push(item);
+
+      if (candidate.suggestedExercises?.length > 0) {
+        const mappings = candidate.suggestedExercises.map(exercise => ({
+          equipmentItemId: item.id,
+          exerciseKey: exercise.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+          exerciseName: exercise,
+          isCustomExercise: false,
+          isPrimary: false,
+          isAiSuggested: true,
+          confirmed: false,
+        }));
+        await EquipmentExerciseMap.bulkCreate(mappings, { ignoreDuplicates: true });
+      }
     }
+
+    const persistedReview = await persistEquipmentScanReviewSession({
+      profile,
+      trainerId: req.user.id,
+      photoUrl,
+      scanSession: {
+        ...scanSession,
+        possibleItems: possibleCandidates,
+        candidates: reviewCandidates,
+      },
+      createdCandidateRecords,
+      duplicateCandidates,
+    });
+    const scanSessionResponse = {
+      schemaVersion: scanSession.schemaVersion,
+      promptVersion: scanSession.promptVersion,
+      imageQuality: scanSession.imageQuality,
+      sceneSummary: scanSession.sceneSummary,
+      itemCount: createdItems.length,
+      candidateCount: reviewCandidates.length,
+      possibleItemCount: possibleCandidates.length,
+      duplicateCount: duplicateCandidates.length,
+      photoUrl,
+      latencyMs: scanSession.latencyMs,
+      model: scanSession.model,
+      reviewSessionId: persistedReview?.sessionId,
+      candidateRecordCount: persistedReview?.candidateRecordCount,
+    };
+    const item = createdItems[0] || null;
+    if (!item) {
+      const duplicateOnly = duplicateCandidates.length > 0;
+      return res.status(duplicateOnly ? 409 : 422).json({
+        success: false,
+        error: duplicateOnly
+          ? 'Detected equipment already exists in this profile. Review duplicate suggestions before adding more.'
+          : 'AI could not identify the equipment. Try a clearer photo.',
+        candidates: reviewCandidates,
+        possibleItems: possibleCandidates,
+        duplicates: duplicateCandidates,
+        scanSession: scanSessionResponse,
+      });
+    }
+
+    const scanResult = createdCandidates[0] || scanSession.scanResult;
+    const scanResultResponse = {
+      confidence: scanResult.confidence,
+      suggestedName: scanResult.suggestedName,
+      suggestedCategory: scanResult.suggestedCategory,
+      suggestedExercises: scanResult.suggestedExercises,
+      boundingBox: scanResult.boundingBox,
+    };
 
     res.status(201).json({
       success: true,
       item,
-      scanResult: {
-        confidence: scanResult.confidence,
-        suggestedName: scanResult.suggestedName,
-        suggestedCategory: scanResult.suggestedCategory,
-        suggestedExercises: scanResult.suggestedExercises,
-        boundingBox: scanResult.boundingBox,
-      },
+      items: createdItems,
+      candidates: reviewCandidates,
+      possibleItems: possibleCandidates,
+      duplicates: duplicateCandidates,
+      scanSession: scanSessionResponse,
+
+      scanResult: scanResultResponse,
     });
   } catch (err) {
     logger.error('[EquipmentRoutes] Scan error:', err);
@@ -582,6 +683,45 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
   }
 });
 
+// PUT /api/equipment-profiles/:id/scan-candidates/:candidateIndex/review - Mark possible/duplicate candidate outcomes
+router.put('/:id/scan-candidates/:candidateIndex/review', async (req, res) => {
+  try {
+    const profile = await getOwnedProfile(req, res);
+    if (!profile) return;
+
+    const candidateIndex = Number(req.params.candidateIndex);
+    const {
+      reviewSessionId,
+      candidateStatus,
+      outcome,
+      status,
+      equipmentItemId,
+      duplicateOfItemId,
+      trainerCorrection,
+    } = req.body || {};
+
+    const result = await recordEquipmentScanCandidateAction({
+      profileId: profile.id,
+      reviewSessionId,
+      candidateIndex,
+      candidateStatus,
+      reviewedBy: req.user.id,
+      status: outcome || status,
+      equipmentItemId,
+      duplicateOfItemId,
+      trainerCorrection: trainerCorrection || {},
+    });
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Scan candidate review row was not found' });
+    }
+
+    res.json({ success: true, review: result });
+  } catch (err) {
+    logger.error('[EquipmentRoutes] Scan candidate review error:', err);
+    res.status(500).json({ success: false, error: 'Failed to record scan candidate review' });
+  }
+});
 // PUT /api/equipment-profiles/:id/items/:itemId/approve — Approve AI scan
 router.put('/:id/items/:itemId/approve', async (req, res) => {
   try {
@@ -607,6 +747,19 @@ router.put('/:id/items/:itemId/approve', async (req, res) => {
 
     await item.update(updates);
 
+    await recordEquipmentScanCandidateReview({
+      profileId: profile.id,
+      equipmentItemId: item.id,
+      reviewedBy: req.user.id,
+      status: 'approved',
+      trainerCorrection: {
+        name: item.name,
+        trainerLabel: item.trainerLabel,
+        category: item.category,
+        resistanceType: item.resistanceType,
+      },
+    });
+
     // Update cached count
     const EquipmentItem = getEquipmentItem();
     const count = await EquipmentItem.count({ where: { profileId: profile.id, isActive: true } });
@@ -624,13 +777,21 @@ router.put('/:id/items/:itemId/reject', async (req, res) => {
   try {
     const result = await getOwnedItem(req, res);
     if (!result) return;
-    const { item } = result;
+    const { profile, item } = result;
 
     if (item.approvalStatus !== 'pending') {
       return res.status(400).json({ success: false, error: 'Item is not pending approval' });
     }
 
     await item.update({ approvalStatus: 'rejected', isActive: false });
+
+    await recordEquipmentScanCandidateReview({
+      profileId: profile.id,
+      equipmentItemId: item.id,
+      reviewedBy: req.user.id,
+      status: 'rejected',
+      trainerCorrection: { rejectionReason: 'trainer_rejected_scan' },
+    });
 
     // Clean up AI-suggested exercise mappings
     const EquipmentExerciseMap = getEquipmentExerciseMap();

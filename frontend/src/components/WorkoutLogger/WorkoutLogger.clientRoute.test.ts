@@ -122,7 +122,7 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     const idx = SOURCE.indexOf('resolvedOnComplete');
     expect(idx).toBeGreaterThan(-1);
     const slice = SOURCE.slice(idx, idx + 500);
-    expect(slice).toMatch(/onComplete\s*\?\?\s*\(\s*\(\)\s*=>\s*\{[\s\S]*?navigate\s*\(/);
+    expect(slice).toMatch(/onComplete\s*\?\?\s*\(\s*\([^)]*\)\s*=>\s*\{[\s\S]*?navigate\s*\(/);
     expect(slice).toMatch(/\/dashboard\/client\//);
   });
 

@@ -52,6 +52,67 @@ export const buildDuplicatePlanMetadata = (plan) => {
   };
 };
 
+export const parseCopyDurationWeeks = (value) => {
+  const parsed = parseStrictPositiveInteger(value);
+  return parsed && parsed <= 52 ? parsed : null;
+};
+
+const cloneJson = (value, fallback) => {
+  if (value === undefined || value === null) return fallback;
+  return JSON.parse(JSON.stringify(value));
+};
+
+const normalizeCopiedPlanWeeks = (planData, durationWeeks) => {
+  const cloned = cloneJson(planData, { weeks: [] });
+  if (!Array.isArray(cloned.weeks)) {
+    return { ...cloned, weeks: [] };
+  }
+  if (!durationWeeks) return cloned;
+
+  return {
+    ...cloned,
+    weeks: cloned.weeks.slice(0, durationWeeks),
+  };
+};
+
+export const buildWorkoutPlanCopyPayload = ({
+  original,
+  trainerId,
+  targetClientId,
+  title,
+  durationWeeks,
+} = {}) => {
+  const raw = toPlainObject(original) || {};
+  const sourceClientId = parseStrictPositiveInteger(raw.userId);
+  const resolvedTargetClientId = parseStrictPositiveInteger(targetClientId) || sourceClientId;
+  const resolvedDurationWeeks = parseCopyDurationWeeks(durationWeeks)
+    || parseCopyDurationWeeks(raw.durationWeeks)
+    || 4;
+
+  return {
+    userId: resolvedTargetClientId,
+    trainerId,
+    title: (typeof title === 'string' && title.trim().length > 0)
+      ? title.trim()
+      : `${raw.title} (copy)`,
+    description: raw.description,
+    nasmPhase: raw.nasmPhase,
+    durationWeeks: resolvedDurationWeeks,
+    status: 'draft',
+    currentWeek: 1,
+    currentDay: 1,
+    planData: normalizeCopiedPlanWeeks(raw.planData, resolvedDurationWeeks),
+    progressNotes: [],
+    createdBy: 'trainer',
+    metadata: {
+      ...buildDuplicatePlanMetadata(raw),
+      copiedFromClientId: sourceClientId,
+      targetClientId: resolvedTargetClientId,
+      copyHorizonWeeks: resolvedDurationWeeks,
+    },
+  };
+};
+
 export const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};

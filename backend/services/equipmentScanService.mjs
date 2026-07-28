@@ -1,65 +1,34 @@
 /**
- * Equipment Scan Service — Gemini Flash Vision
- * ==============================================
- * Phase 7c: AI-powered equipment recognition from photos.
- *
- * Workflow:
- *   1. Trainer uploads a photo of equipment
- *   2. Image is sent to Gemini Flash Vision API
- *   3. AI returns: name, category, description, bounding box, exercises it supports
- *   4. Result stored as aiScanData on EquipmentItem (pending approval)
- *
- * Cost: ~$0.001 per scan (Gemini Flash Vision pricing)
+ * Equipment Scan Service - Gemini Flash Vision
+ * ============================================
+ * Sends equipment photos to Gemini, returns review-gated scan candidates, and
+ * preserves the legacy single-item wrapper used by the current frontend.
  */
 import logger from '../utils/logger.mjs';
 import {
   DEFAULT_EQUIPMENT_SCAN_MODEL,
-  EQUIPMENT_CATEGORIES,
-  RESISTANCE_TYPES,
   RETIRED_EQUIPMENT_SCAN_MODELS,
   buildEquipmentScanPrompt,
   isUnknownEquipmentResult,
-  normalizeRawScanResult,
   parseEquipmentScanResponse,
 } from './equipmentScanSupport.mjs';
+import {
+  EQUIPMENT_SCAN_V2_PROMPT_VERSION,
+  EQUIPMENT_SCAN_V2_SCHEMA_VERSION,
+  buildEquipmentScanPromptV2,
+  normalizeRawScanItems,
+  parseEquipmentScanResponseV2,
+} from './equipmentScanV2Support.mjs';
+import {
+  buildMultiScanResult,
+  isReviewableMultiScan,
+  sanitizeScanCandidate,
+  sanitizeScanResult,
+} from './equipmentScanV2Result.mjs';
 import {
   buildEquipmentCaptionPrompt,
   scanResultFromCaption,
 } from './equipmentScanCaptionFallback.mjs';
-
-/**
- * Validate bounding box coordinates are in 0-1 range
- */
-function validateBoundingBox(box) {
-  if (!box || typeof box !== 'object') return null;
-  const { x, y, w, h } = box;
-  if ([x, y, w, h].some(v => typeof v !== 'number' || v < 0 || v > 1)) return null;
-  return { x, y, w, h };
-}
-
-/**
- * Validate and sanitize the AI scan result
- */
-function sanitizeScanResult(raw) {
-  const normalized = normalizeRawScanResult(raw);
-  const hasKnownName = normalized.name && !/^unknown/i.test(normalized.name);
-  const fallbackConfidence = hasKnownName ? 0.65 : 0;
-  const confidence = typeof normalized.confidence === 'number'
-    ? Math.max(0, Math.min(1, normalized.confidence > 0 || !hasKnownName ? normalized.confidence : fallbackConfidence))
-    : fallbackConfidence;
-  const result = {
-    suggestedName: typeof normalized.name === 'string' ? normalized.name.slice(0, 150) : 'Unknown Equipment',
-    suggestedCategory: EQUIPMENT_CATEGORIES.includes(normalized.category) ? normalized.category : 'other',
-    resistanceType: RESISTANCE_TYPES.includes(normalized.resistanceType) ? normalized.resistanceType : 'other',
-    description: typeof normalized.description === 'string' ? normalized.description.slice(0, 500) : '',
-    confidence,
-    boundingBox: validateBoundingBox(normalized.boundingBox),
-    suggestedExercises: Array.isArray(normalized.suggestedExercises)
-      ? normalized.suggestedExercises.filter(e => typeof e === 'string').slice(0, 10).map(e => e.slice(0, 100))
-      : [],
-  };
-  return result;
-}
 
 export function getEquipmentScanApiKey() {
   return process.env.GOOGLE_API_KEY
@@ -83,7 +52,47 @@ export function getEquipmentScanModel() {
     : model;
 }
 
-async function requestGeminiEquipmentScan(model, { base64Image, mimeType, prompt }) {
+function validateEquipmentScanInput(imageBuffer, mimeType) {
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedMimes.includes(mimeType)) {
+    throw new Error(`Invalid image type: ${mimeType}. Allowed: ${allowedMimes.join(', ')}`);
+  }
+  if (imageBuffer.length > 10 * 1024 * 1024) {
+    throw new Error('Image too large. Maximum size is 10MB.');
+  }
+}
+
+async function getGeminiClient() {
+  try {
+    const mod = await import('@google/generative-ai');
+    return mod.GoogleGenerativeAI;
+  } catch {
+    throw new Error('Google Generative AI SDK not installed');
+  }
+}
+
+function createGeminiModels(GoogleGenerativeAI, apiKey, modelName) {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return {
+    model: genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        maxOutputTokens: 1800,
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      },
+    }),
+    captionModel: genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        maxOutputTokens: 80,
+        temperature: 0.1,
+      },
+    }),
+  };
+}
+
+async function generateWithImage(model, { base64Image, mimeType, prompt }) {
   const result = await model.generateContent({
     contents: [{
       role: 'user',
@@ -94,145 +103,109 @@ async function requestGeminiEquipmentScan(model, { base64Image, mimeType, prompt
     }],
   });
   const response = result?.response;
-  const text = typeof response?.text === 'function' ? response.text() : '';
-  return parseEquipmentScanResponse(text);
-}
-
-async function tryGeminiEquipmentScan(model, params, pass) {
-  try {
-    const parsed = await requestGeminiEquipmentScan(model, params);
-    return {
-      parsed,
-      sanitized: sanitizeScanResult(parsed),
-      error: null,
-    };
-  } catch (err) {
-    logger.warn('[EquipmentScan] Strict JSON scan pass failed', {
-      pass,
-      error: String(err?.message || 'unknown').slice(0, 160),
-    });
-    return { parsed: null, sanitized: null, error: err };
-  }
-}
-
-async function requestGeminiEquipmentCaption(model, { base64Image, mimeType }) {
-  const result = await model.generateContent({
-    contents: [{
-      role: 'user',
-      parts: [
-        { inlineData: { mimeType, data: base64Image } },
-        { text: buildEquipmentCaptionPrompt() },
-      ],
-    }],
-  });
-  const response = result?.response;
   return typeof response?.text === 'function' ? response.text() : '';
 }
 
+async function tryGeminiEquipmentScanV2(model, params, pass, modelName, startMs) {
+  try {
+    const text = await generateWithImage(model, params);
+    const parsed = parseEquipmentScanResponseV2(text);
+    return { scan: buildMultiScanResult(parsed, Date.now() - startMs, modelName), error: null };
+  } catch (err) {
+    logger.warn('[EquipmentScan] Multi-item JSON scan pass failed', {
+      pass,
+      error: String(err?.message || 'unknown').slice(0, 160),
+    });
+    return { scan: null, error: err };
+  }
+}
+
+async function captionFallbackScan(captionModel, params, startMs, modelName) {
+  const caption = await generateWithImage(captionModel, {
+    ...params,
+    prompt: buildEquipmentCaptionPrompt(),
+  });
+  const captionResult = scanResultFromCaption(caption);
+  if (!captionResult) {
+    throw new Error('AI could not identify visible workout equipment');
+  }
+  return buildMultiScanResult({
+    schemaVersion: EQUIPMENT_SCAN_V2_SCHEMA_VERSION,
+    promptVersion: EQUIPMENT_SCAN_V2_PROMPT_VERSION,
+    imageQuality: 'acceptable',
+    sceneSummary: caption.slice(0, 300),
+    items: [captionResult],
+  }, Date.now() - startMs, modelName);
+}
+
 /**
- * Scan equipment from an image using Gemini Flash Vision.
+ * Scan equipment from an image and return multiple review-gated candidates.
  *
  * @param {Buffer} imageBuffer - Raw image data
  * @param {string} mimeType - Image MIME type (image/jpeg, image/png, image/webp)
- * @returns {Promise<object>} Sanitized scan result
+ * @returns {Promise<object>} Sanitized multi-item scan session
  */
-export async function scanEquipmentImage(imageBuffer, mimeType) {
+export async function scanEquipmentImageMulti(imageBuffer, mimeType) {
   const apiKey = getEquipmentScanApiKey();
-  if (!apiKey) {
-    throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY is not configured');
-  }
+  if (!apiKey) throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY is not configured');
+  validateEquipmentScanInput(imageBuffer, mimeType);
 
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedMimes.includes(mimeType)) {
-    throw new Error(`Invalid image type: ${mimeType}. Allowed: ${allowedMimes.join(', ')}`);
-  }
-
-  // Max 10MB
-  if (imageBuffer.length > 10 * 1024 * 1024) {
-    throw new Error('Image too large. Maximum size is 10MB.');
-  }
-
-  let GoogleGenerativeAI;
-  try {
-    const mod = await import('@google/generative-ai');
-    GoogleGenerativeAI = mod.GoogleGenerativeAI;
-  } catch {
-    throw new Error('Google Generative AI SDK not installed');
-  }
-
+  const GoogleGenerativeAI = await getGeminiClient();
   const modelName = getEquipmentScanModel();
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      maxOutputTokens: 500,
-      temperature: 0.2,
-      responseMimeType: 'application/json',
-    },
-  });
-  const captionModel = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      maxOutputTokens: 80,
-      temperature: 0.1,
-    },
-  });
-
-  const base64Image = imageBuffer.toString('base64');
-
+  const { model, captionModel } = createGeminiModels(GoogleGenerativeAI, apiKey, modelName);
+  const imageParams = { base64Image: imageBuffer.toString('base64'), mimeType };
   const startMs = Date.now();
-  try {
-    const primary = await tryGeminiEquipmentScan(model, {
-      base64Image,
-      mimeType,
-      prompt: buildEquipmentScanPrompt(),
-    }, 'primary');
-    let parsed = primary.parsed;
-    let sanitized = primary.sanitized;
 
-    if (!sanitized || isUnknownEquipmentResult(sanitized)) {
-      const retry = await tryGeminiEquipmentScan(model, {
-        base64Image,
-        mimeType,
-        prompt: buildEquipmentScanPrompt({ retry: true }),
-      }, 'retry');
-      if (retry.sanitized && !isUnknownEquipmentResult(retry.sanitized)) {
-        parsed = retry.parsed;
-        sanitized = retry.sanitized;
-      } else {
-        const caption = await requestGeminiEquipmentCaption(captionModel, { base64Image, mimeType });
-        const captionResult = scanResultFromCaption(caption);
-        if (!captionResult) {
-          throw new Error('AI could not identify visible workout equipment');
-        }
-        parsed = captionResult;
-        sanitized = sanitizeScanResult(captionResult);
-      }
+  try {
+    const primary = await tryGeminiEquipmentScanV2(model, {
+      ...imageParams,
+      prompt: buildEquipmentScanPromptV2(),
+    }, 'primary', modelName, startMs);
+    let scan = primary.scan;
+
+    if (!isReviewableMultiScan(scan)) {
+      const retry = await tryGeminiEquipmentScanV2(model, {
+        ...imageParams,
+        prompt: buildEquipmentScanPromptV2({ retry: true }),
+      }, 'retry', modelName, startMs);
+      scan = isReviewableMultiScan(retry.scan)
+        ? retry.scan
+        : await captionFallbackScan(captionModel, imageParams, startMs, modelName);
     }
 
-    const latencyMs = Date.now() - startMs;
+    if (!isReviewableMultiScan(scan)) throw new Error('AI could not identify visible workout equipment');
 
-    logger.info('[EquipmentScan] Scan complete', {
-      name: sanitized.suggestedName,
-      category: sanitized.suggestedCategory,
-      confidence: sanitized.confidence,
-      latencyMs,
+    logger.info('[EquipmentScan] Multi-item scan complete', {
+      itemCount: scan.items.length,
+      primaryName: scan.scanResult.suggestedName,
+      confidence: scan.scanResult.confidence,
+      latencyMs: scan.latencyMs,
     });
-
-    return {
-      ...sanitized,
-      rawResponse: parsed,
-      latencyMs,
-      model: modelName,
-    };
+    return scan;
   } catch (err) {
-    const latencyMs = Date.now() - startMs;
     logger.error('[EquipmentScan] Scan failed', {
       error: err.message,
-      latencyMs,
+      latencyMs: Date.now() - startMs,
     });
     throw err;
   }
+}
+
+/**
+ * Legacy single-item wrapper. Kept for current frontend compatibility.
+ */
+export async function scanEquipmentImage(imageBuffer, mimeType) {
+  const multiScan = await scanEquipmentImageMulti(imageBuffer, mimeType);
+  return {
+    ...multiScan.scanResult,
+    rawResponse: multiScan.rawResponse,
+    latencyMs: multiScan.latencyMs,
+    model: multiScan.model,
+    schemaVersion: multiScan.schemaVersion,
+    promptVersion: multiScan.promptVersion,
+    imageQuality: multiScan.imageQuality,
+    sceneSummary: multiScan.sceneSummary,
+  };
 }
 
 export const __testing__ = {
@@ -241,10 +214,14 @@ export const __testing__ = {
   isEquipmentScanConfigured,
   buildEquipmentCaptionPrompt,
   buildEquipmentScanPrompt,
+  buildEquipmentScanPromptV2,
   isUnknownEquipmentResult,
   parseEquipmentScanResponse,
+  parseEquipmentScanResponseV2,
+  normalizeRawScanItems,
   scanResultFromCaption,
   sanitizeScanResult,
+  sanitizeScanCandidate,
 };
 
-export default { scanEquipmentImage };
+export default { scanEquipmentImage, scanEquipmentImageMulti };

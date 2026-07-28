@@ -1518,7 +1518,7 @@ The Creative Director has FINAL SAY on design decisions. You challenge but ultim
 // OpenRouter API Caller (single unified caller)
 // ─────────────────────────────────────────────
 
-async function callOpenRouter(apiKey, model, prompt) {
+async function callOpenRouter(apiKey, model, prompt, maxTokens = 4096) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1530,7 +1530,7 @@ async function callOpenRouter(apiKey, model, prompt) {
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       temperature: 0.3,
     }),
     signal: AbortSignal.timeout(CONFIG.timeout),
@@ -1724,15 +1724,37 @@ async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic,
     console.log(`    [synthesis] skipped — accumulated spend $${priorCost.toFixed(4)} already over cap $${Number(capUSD).toFixed(4)}`);
     return;
   }
+  // Sean 2026-07-08: OPT-IN "maximize the one paid judge call" mode — used only when we
+  // need a big-context authoring pass, not every run. A high output ceiling (so the judge
+  // isn't truncated mid-plan) plus, when SWAN_FUSION_DELIVERABLE=1, an instruction to emit
+  // a full build plan + Mermaid diagrams in a single pass. Both env-gated; default run is
+  // byte-identical (deliverable='' → base prompt; ceiling only raises an unused cap).
+  const judgeMaxTokens = Number(process.env.SWAN_FUSION_JUDGE_MAX_TOKENS) || 32000;
+  // Hard dollar cap on the single judge call (Sean 2026-07-08): default 0 = off; set
+  // SWAN_FUSION_JUDGE_MAX_USD (e.g. 2) to bound the paid judge (Fable) by dollars, not just
+  // tokens — fusion-synthesis computes the safe output ceiling from measured input + price.
+  const judgeMaxUsd = Number(process.env.SWAN_FUSION_JUDGE_MAX_USD) || 0;
+  const deliverable = process.env.SWAN_FUSION_DELIVERABLE === '1'
+    ? `Grounded STRICTLY in the analyst contributions above (no new external research), assemble their fragments into ONE complete, build-ready plan — the single authoritative deliverable, produced in one pass. Include ALL of:
+- **Executive summary** (3-5 sentences a founder can act on).
+- **System architecture** with at least TWO **Mermaid** diagrams in fenced \`\`\`mermaid code blocks (a flowchart of the intent -> API -> state -> render pipeline, and a state or sequence diagram of one morph transition).
+- **Sequenced build slices** — each shippable, numbered, with a one-line success criterion; ordered smallest-diamond-first.
+- **Decisions on EVERY open question** in the plan (pick one, one-line why).
+- **Risk table** (| risk | severity | mitigation |) with the single most likely fatal risk called out.
+- **The one de-risking experiment** to run before heavy investment.
+Be exhaustive and decisive. This is the only paid authoring call — leave nothing important for a follow-up.`
+    : '';
   try {
     const synth = await runFusionSynthesis({
       analystResults: phase1Results,
-      callModel: (model, prompt) => callOpenRouter(apiKey, model, prompt),
+      callModel: (model, prompt, mt) => callOpenRouter(apiKey, model, prompt, mt || judgeMaxTokens),
       judgeModel: FUSION_JUDGE.model,
       priceInputPerM: FUSION_JUDGE.priceInputPerM,
       priceOutputPerM: FUSION_JUDGE.priceOutputPerM,
+      maxUsd: judgeMaxUsd,
       context: ctx,
       topic,
+      deliverable,
       log: (m) => console.log(`    ${m}`),
     });
     if (synth) sink.push(synth);

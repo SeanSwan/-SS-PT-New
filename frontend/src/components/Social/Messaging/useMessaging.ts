@@ -4,12 +4,11 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '../../../hooks/useSocket';
-import type { ConversationData, CreateConversationRequest, MessageData, SearchUserResult, TypingUser } from './MessagingTypes';
+import type { ConversationData, MessageData, PendingMessage, SearchUserResult, TypingUser } from './MessagingTypes';
 import {
   encodeMessagingPathSegment,
   normalizeConversationPayload,
   normalizeConversationsPayload,
-  normalizeMessagePayload,
   normalizeMessagesPayload,
   normalizeSearchUsersPayload,
 } from './messagingApiAdapters';
@@ -18,31 +17,23 @@ import { createMessagingErrorState, type MessagingErrorState } from './messaging
 import { useMessagingLifecycleEffects } from './useMessagingLifecycleEffects';
 import { useMessagingSocketEffects } from './useMessagingSocketEffects';
 import { useMessagingGroupActions } from './useMessagingGroupActions';
+import {
+  isMessagingRequestCancellation,
+  normalizeCreateConversationInput,
+  type CreateConversationInput,
+} from './useMessaging.helpers';
+import { useMessagingSendActions } from './useMessagingSendActions';
+import { useMessagingMessageActions } from './useMessagingMessageActions';
+import { useMessagingConversationActions } from './useMessagingConversationActions';
+import { useMessagingSafetyActions } from './useMessagingSafetyActions';
 
 export type ErrorState = MessagingErrorState;
-type CreateConversationInput = number | CreateConversationRequest;
-
 interface UseMessagingOptions {
   enabled?: boolean;
 }
+const sameId = (a: string | number, b: string | number) => String(a) === String(b);
 
-const isMessagingRequestCancellation = (err: unknown): boolean => {
-  if (!(err instanceof Error)) return false;
-  const code = (err as { code?: unknown }).code;
-  return err.name === 'AbortError' || err.name === 'CanceledError' || code === 'ERR_CANCELED';
-};
-
-const normalizeCreateConversationInput = (input: CreateConversationInput): CreateConversationRequest => {
-  if (typeof input === 'number') return { type: 'direct', participantIds: [input] };
-  return {
-    type: input.type || (input.participantIds.length > 1 ? 'group' : 'direct'),
-    name: input.name,
-    participantIds: input.participantIds,
-    adminIds: input.adminIds || [],
-  };
-};
-
-export function useMessaging(currentUserId: number | null, options: UseMessagingOptions = {}) {
+export function useMessaging(currentUserId: string | number | null, options: UseMessagingOptions = {}) {
   const { connected, connectionState, emit, on } = useSocket();
   const enabled = options.enabled ?? true;
 
@@ -54,7 +45,7 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
   const [error, setError] = useState<ErrorState | null>(null);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
-  const [pendingMessages, setPendingMessages] = useState<string[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
 
   const activeConvRef = useRef<string | number | null>(null);
   const mountedRef = useRef(true);
@@ -136,31 +127,45 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     setError,
   });
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!enabled || !activeConversationId || !content.trim()) return;
-    const trimmed = content.trim();
+  const { editMessage, deleteMessage, toggleMessageReaction, toggleMessagePin, toggleMessageSave } = useMessagingMessageActions({
+    currentUserId,
+    enabled,
+    fetchConversations,
+    mountedRef,
+    setError,
+    setMessages,
+  });
 
-    if (connected) {
-      setPendingMessages(prev => [...prev, trimmed]);
-      emit('send_message', { conversationId: activeConversationId, content: trimmed });
-      return;
-    }
+  const { archiveConversation, markConversationUnread, muteConversation, searchConversationMessages, unmuteConversation } = useMessagingConversationActions({
+    enabled,
+    activeConvRef,
+    fetchConversations,
+    mountedRef,
+    setActiveConversationId,
+    setConversations,
+    setError,
+    setMessages,
+  });
 
-    try {
-      const segment = encodeMessagingPathSegment(activeConversationId);
-      const data = await apiFetch<unknown>(`/conversations/${segment}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ content: trimmed }),
-      });
-      const sentMessage = normalizeMessagePayload(data);
-      if (mountedRef.current) {
-        if (sentMessage) setMessages(prev => [...prev, sentMessage]);
-        fetchConversations();
-      }
-    } catch {
-      if (mountedRef.current) setError(createMessagingErrorState('send'));
-    }
-  }, [activeConversationId, connected, emit, enabled, fetchConversations]);
+  const { blockUser, reportMessage } = useMessagingSafetyActions({
+    enabled,
+    mountedRef,
+    setError,
+  });
+
+  const { retryMessage, sendMessage } = useMessagingSendActions({
+    activeConversationId,
+    activeConvRef,
+    connected,
+    emit,
+    enabled,
+    fetchConversations,
+    mountedRef,
+    pendingMessages,
+    setError,
+    setMessages,
+    setPendingMessages,
+  });
 
   const emitTyping = useCallback(() => {
     if (!enabled || !activeConversationId || !connected || typingTimeoutRef.current) return;
@@ -193,7 +198,6 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     }
   }, [enabled, fetchConversations]);
 
-
   const searchUsers = useCallback(async (query: string): Promise<SearchUserResult[]> => {
     if (!enabled) return [];
     try {
@@ -214,7 +218,7 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
 
   const getOtherParticipant = useCallback((conv: ConversationData) => {
     if (!currentUserId) return conv.participants[0] || null;
-    return conv.participants.find(p => p.id !== currentUserId) || conv.participants[0] || null;
+    return conv.participants.find(p => !sameId(p.id, currentUserId)) || conv.participants[0] || null;
   }, [currentUserId]);
 
   const dismissError = useCallback(() => setError(null), []);
@@ -268,7 +272,20 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     connected,
     connectionState,
     pendingMessages,
+    retryMessage,
     sendMessage,
+    editMessage,
+    deleteMessage,
+    toggleMessageReaction,
+    toggleMessagePin,
+    toggleMessageSave,
+    archiveConversation,
+    markConversationUnread,
+    muteConversation,
+    reportMessage,
+    blockUser,
+    searchConversationMessages,
+    unmuteConversation,
     createConversation,
     renameConversation,
     addConversationParticipants,

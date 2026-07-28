@@ -17,6 +17,8 @@ export interface BootcampCommandDeckModel {
   repairQueue: string[];
   missingDemoCount: number;
   bottleneckCount: number;
+  equipmentShortage: boolean;
+  equipmentAlertLabel: string | null;
   metrics: BootcampCommandMetric[];
 }
 
@@ -61,6 +63,67 @@ function getReadinessTone(score: number): BootcampCommandDeckModel['readinessTon
   return 'danger';
 }
 
+function getMissingEquipmentNames(bootcamp: GeneratedBootcamp): string[] {
+  const counts = bootcamp.equipmentReadiness?.missingEquipmentCounts ?? {};
+  return Object.entries(counts)
+    .filter(([, count]) => Number(count) > 0)
+    .sort(([, a], [, b]) => Number(b) - Number(a))
+    .map(([name]) => name.trim())
+    .filter(Boolean);
+}
+
+function getEquipmentReadinessMessage(bootcamp: GeneratedBootcamp): string | null {
+  const message = bootcamp.equipmentReadiness?.message;
+  return typeof message === 'string' && message.trim() ? message.trim() : null;
+}
+
+function hasEquipmentShortage(bootcamp: GeneratedBootcamp): boolean {
+  const readiness = bootcamp.equipmentReadiness;
+  if (!readiness) return false;
+  const allowed = Number(readiness.allowedCount);
+  const required = Number(readiness.requiredSlots);
+  const countShortage = Number.isFinite(allowed) && Number.isFinite(required) && required > 0 && allowed < required;
+  return (
+    readiness.type === 'insufficient_equipment'
+    || readiness.code === 'insufficient_equipment'
+    || countShortage
+  );
+}
+
+function getEquipmentRepairLabel(bootcamp: GeneratedBootcamp): string {
+  const missing = getMissingEquipmentNames(bootcamp).slice(0, 3);
+  if (missing.length > 0) return `Add or map equipment: ${missing.join(', ')}`;
+  return getEquipmentReadinessMessage(bootcamp) ?? 'Add or map missing equipment before teaching this class';
+}
+
+function getEquipmentAlertLabel(bootcamp: GeneratedBootcamp): string | null {
+  if (!hasEquipmentShortage(bootcamp)) return null;
+  const missing = getMissingEquipmentNames(bootcamp).slice(0, 3);
+  return missing.length > 0 ? `Equipment shortage: ${missing.join(', ')}` : getEquipmentReadinessMessage(bootcamp) ?? 'Equipment shortage';
+}
+
+function getEquipmentMetric(bootcamp: GeneratedBootcamp): BootcampCommandMetric {
+  const readiness = bootcamp.equipmentReadiness;
+  if (!readiness) {
+    return {
+      label: 'Equipment',
+      value: 'Any',
+      detail: 'No strict profile',
+    };
+  }
+
+  const allowed = Number(readiness.allowedCount ?? 0);
+  const required = Number(readiness.requiredSlots ?? 0);
+  const rejected = Number(readiness.rejectedCount ?? 0);
+  return {
+    label: 'Equipment',
+    value: required > 0 ? `${allowed}/${required}` : `${allowed} kept`,
+    detail: hasEquipmentShortage(bootcamp)
+      ? `${rejected} unavailable exercises removed`
+      : `${rejected} filtered out`,
+  };
+}
+
 export function getBootcampCommandDeckModel(
   bootcamp: GeneratedBootcamp,
   buildMode: BuildMode,
@@ -93,6 +156,9 @@ export function getBootcampCommandDeckModel(
   const bottleneckCount = (bootcamp.flowData ?? []).filter((flow) => flow.bottleneck).length;
   const overTime = bootcamp.totalClassMin > 55;
   const overTimeMin = Math.max(0, bootcamp.totalClassMin - 55);
+  const equipmentShortage = hasEquipmentShortage(bootcamp);
+  const equipmentAlertLabel = getEquipmentAlertLabel(bootcamp);
+  const equipmentRepairLabel = getEquipmentRepairLabel(bootcamp);
   const demoCoveragePenalty = mainExercises.length > 0
     ? Math.round((missingDemoCount / mainExercises.length) * 24)
     : 24;
@@ -109,12 +175,14 @@ export function getBootcampCommandDeckModel(
     - weakPenalty
     - demoCoveragePenalty
     - (overTime ? 15 : 0)
+    - (equipmentShortage ? 18 : 0)
     - (bottleneckCount * 8),
   );
   const nextAction = (() => {
     if (mainExercises.length === 0) return 'Add exercises from the SwanStudios Rolodex or generate with Swan Coach.';
     if (emptyStationIndex >= 0) return `Fill Station ${emptyStationIndex + 1} before saving.`;
     if (weakStationIndex >= 0) return `Finish Station ${weakStationIndex + 1} before saving.`;
+    if (equipmentShortage) return equipmentRepairLabel;
     if (overTime) return 'Trim timing below 55 minutes.';
     if (missingDemoCount > 0) return `Add demo videos for ${missingDemoCount} exercises before floor mode.`;
     if (bottleneckCount > 0) return `Review ${bottleneckCount} station flow bottleneck${bottleneckCount > 1 ? 's' : ''}.`;
@@ -123,6 +191,7 @@ export function getBootcampCommandDeckModel(
   const repairQueue = [
     ...emptyStationIndices.map((stationIndex) => `Fill S${stationIndex + 1}`),
     ...weakStationIndices.map((stationIndex) => `Finish S${stationIndex + 1} to ${expectedPerStation} exercises`),
+    ...(equipmentShortage ? [equipmentRepairLabel] : []),
     ...(missingDemoCount > 0 ? [`Add ${missingDemoCount} demo video${missingDemoCount > 1 ? 's' : ''}`] : []),
     ...(overTimeMin > 0 ? [`Trim ${overTimeMin} minute${overTimeMin > 1 ? 's' : ''} from class time`] : []),
     ...(bottleneckCount > 0 ? [`Review ${bottleneckCount} flow bottleneck${bottleneckCount > 1 ? 's' : ''}`] : []),
@@ -136,6 +205,8 @@ export function getBootcampCommandDeckModel(
     repairQueue,
     missingDemoCount,
     bottleneckCount,
+    equipmentShortage,
+    equipmentAlertLabel,
     metrics: [
       {
         label: 'Stations',
@@ -147,6 +218,7 @@ export function getBootcampCommandDeckModel(
         value: `${videoReadyCount}/${mainExercises.length}`,
         detail: missingDemoCount === 0 ? 'Floor visuals ready' : `${missingDemoCount} media slots open`,
       },
+      getEquipmentMetric(bootcamp),
       {
         label: 'Time cap',
         value: `${bootcamp.totalClassMin}/55`,

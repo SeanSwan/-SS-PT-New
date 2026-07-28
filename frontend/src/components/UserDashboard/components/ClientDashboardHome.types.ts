@@ -44,6 +44,7 @@ export interface ClientDashboardAction {
 export interface ClientDashboardHomeProps {
   embedded?: boolean;
   backgroundSettings?: ReactNode;
+  communicationInbox?: ReactNode;
   logoSrc: string;
   swanHeroSrc: string;
   featureImageSrc: string;

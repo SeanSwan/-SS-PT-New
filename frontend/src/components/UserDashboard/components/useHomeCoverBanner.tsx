@@ -10,6 +10,7 @@
  * ============================================================================
  */
 import React, { lazy, Suspense, useState } from 'react';
+import { DEFAULT_BANNER_FRAME_HEIGHT } from '../../../services/profileService';
 import { useSocialCoverBanner } from '../../Social/Feed/hooks/useSocialCoverBanner';
 import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
 
@@ -19,10 +20,12 @@ export function useHomeCoverBanner(dashboardBackgroundControls?: React.ReactNode
   bannerLayer: React.ReactNode | null;
   coverEditorSlot: React.ReactNode | null;
   toggleCoverEditor: () => void;
+  bannerFrameHeight: number;
 } {
   const [editorOpen, setEditorOpen] = useState(false);
   const [coverRefreshKey, setCoverRefreshKey] = useState(0);
   const coverBanner = useSocialCoverBanner(coverRefreshKey);
+  const bannerFrameHeight = coverBanner?.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT;
 
   const bannerLayer = coverBanner ? (
     <UserDashboardBannerMediaLayer
@@ -52,6 +55,7 @@ export function useHomeCoverBanner(dashboardBackgroundControls?: React.ReactNode
     bannerLayer,
     coverEditorSlot,
     toggleCoverEditor: () => setEditorOpen((open) => !open),
+    bannerFrameHeight,
   };
 }
 

@@ -1,0 +1,10 @@
+{
+  "$comment": "Words dropped before similarity scoring. 'user/app/screen/workout' etc. appear in nearly every design principle and would inflate overlap toward false corroboration — Kimi's explicit note. Keep additions conservative; a real content word wrongly listed here HIDES a real distinction between claims.",
+  "words": [
+    "a", "an", "the", "at", "on", "in", "to", "of", "and", "or", "is", "are", "be", "as",
+    "with", "for", "from", "by", "into", "onto", "over", "than", "then", "that", "this",
+    "should", "must", "can", "will", "not", "no", "it", "its", "their", "them", "you", "your",
+    "user", "users", "app", "apps", "screen", "screens", "page", "pages", "view", "views",
+    "ui", "ux", "workout", "workouts", "one", "single", "each", "per", "via"
+  ]
+}

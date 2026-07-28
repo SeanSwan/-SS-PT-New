@@ -30,7 +30,7 @@ import SocialSection from './sections/SocialSection';
 import CTASection from './sections/CTASection';
 import NewsletterSection from './sections/NewsletterSection';
 
-const MainWrapper = styled.main`
+const MainWrapper = styled.div`
   position: relative;
   background: var(--bg-base, #002060);
 `;

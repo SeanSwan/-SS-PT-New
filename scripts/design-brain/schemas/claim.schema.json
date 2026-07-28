@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "swan-design-brain/claim/1",
+  "title": "Convergence claim — the ONLY adjudicated unit; one principle across independent products",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claimId", "domainId", "principle", "workflowPhase", "userRole",
+    "products", "receiptRefs", "confidence", "status", "createdUtc"
+  ],
+  "properties": {
+    "claimId": { "type": "string", "pattern": "^CLM-[A-Za-z0-9-]{4,}$" },
+    "domainId": { "type": "string" },
+    "principle": { "type": "string", "minLength": 20 },
+    "workflowPhase": { "type": "string" },
+    "userRole": { "type": "string" },
+    "products": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string" },
+      "description": "independent products the principle was observed in; 1 => singleSource capped LOW"
+    },
+    "receiptRefs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "exceptions": { "type": "array", "items": { "type": "string" } },
+    "contradictions": { "type": "array", "items": { "type": "string" }, "description": "claimIds; bidirectional; NEVER auto-resolved" },
+    "swanTranslation": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "cPatterns": { "type": "array", "items": { "type": "string" } },
+        "tokens": { "type": "string" },
+        "qaRisks": { "type": "string" }
+      }
+    },
+    "confidence": {
+      "type": "object", "required": ["level", "basis"], "additionalProperties": false,
+      "properties": {
+        "level": { "enum": ["low", "medium", "high"] },
+        "basis": { "type": "string", "description": "mechanical: derived from unique product count, never model vibes" }
+      }
+    },
+    "singleSource": { "type": "boolean" },
+    "status": { "enum": ["proposed", "accepted", "rejected", "trial", "merged"] },
+    "mergedInto": { "type": "string" },
+    "humanDecision": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "actor": { "type": "string" }, "utc": { "type": "string" },
+        "batchId": { "type": "string" }, "note": { "type": "string" }
+      }
+    },
+    "createdUtc": { "type": "string", "format": "date-time" }
+  },
+  "x-trust": "Claims are recall-tier until a HUMAN sets status=accepted. Canon (doctrine files) is a separate, human-edited layer. repo-docs/agent text never counts as a product."
+}

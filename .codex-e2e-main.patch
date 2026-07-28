@@ -1,0 +1,45 @@
+diff --git a/frontend/e2e/nutrition-workspace-smoke.spec.ts b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+--- a/frontend/e2e/nutrition-workspace-smoke.spec.ts
++++ b/frontend/e2e/nutrition-workspace-smoke.spec.ts
+@@ -1,4 +1,5 @@
+ import { expect, test, type Page, type Route } from '@playwright/test';
++import { openNutritionManualReview } from './nutrition-workspace-smoke.helpers';
+@@ -182,5 +183,5 @@ async function gotoNutritionWorkspace(page: Page, resetTransientSignals: () => vo
+-    await page.goto('/dashboard/client/meal-planner', { waitUntil: 'domcontentloaded' });
++    await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
+@@ -225,14 +226,5 @@ test('client nutrition workspace enforces review-first logging across the respon
+   const captureRail = page.getByRole('navigation', { name: /nutrition capture modes/i });
+   await expect(captureRail.getByRole('button')).toHaveCount(5);
+-  await captureRail.getByRole('button', { name: /manual meal/i }).click();
+-  await expect(page.getByRole('heading', { name: /food intake tracker/i })).toBeVisible();
+-  await page.getByLabel('Food Name').fill('Salmon rice bowl');
+-  await page.getByLabel('Portion/Serving Size').fill('1 bowl');
+-  await page.getByLabel('Calories').fill('560');
+-  await page.getByLabel('Protein').fill('42');
+-  await page.getByLabel('Carbs').fill('58');
+-  await page.getByLabel('Fat').fill('18');
+-  await page.getByRole('button', { name: /review meal/i }).click();
+-  const reviewDialog = page.getByRole('dialog', { name: /review manual meal/i });
+-  await expect(reviewDialog).toBeVisible();
++  const reviewDialog = await openNutritionManualReview(page);
+@@ -249,4 +241,5 @@ test('client nutrition workspace enforces review-first logging across the respon
+   await expect(reviewDialog).toBeHidden();
++  await expect(page.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+@@ -255,5 +248,5 @@ test('client nutrition workspace enforces review-first logging across the respon
+-  expect(new URL(page.url()).pathname).toBe('/dashboard/client/meal-planner');
++  expect(new URL(page.url()).pathname).toBe('/user-dashboard/nutrition');
+@@ -287,5 +280,5 @@ test('client nutrition workspace enforces review-first logging across the respon
+-      await page.goto('/dashboard/client/meal-planner', { waitUntil: 'domcontentloaded' });
++      await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
+@@ -292,4 +285,12 @@ test('client nutrition workspace enforces review-first logging across the respon
+       if (width === 414) expect((await page.getByRole('navigation', { name: /nutrition capture modes/i }).boundingBox())?.y ?? height, `${width}px capture rail visibility`).toBeLessThan(height);
++      if (width <= 414) {
++        const mobileDialog = await openNutritionManualReview(page);
++        const save = mobileDialog.getByRole('button', { name: /approve and save 1 item/i });
++        await save.scrollIntoViewIfNeeded();
++        const box = await save.boundingBox();
++        expect(box?.height ?? 0, `${width}px review action height`).toBeGreaterThanOrEqual(44);
++        expect((box?.x ?? -1) + (box?.width ?? width + 1), `${width}px review action fit`).toBeLessThanOrEqual(width + 1);
++        await mobileDialog.getByRole('button', { name: /cancel/i }).click();
++      }
+

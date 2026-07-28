@@ -5,11 +5,12 @@
  */
 
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
+import type { AxiosRequestConfig } from 'axios';
 import { mapAdminClientToClientOption } from './clients-team/clientOptionMappers';
 import type { ClientDetailTab } from './ClientsWorkspace.logic';
 
 interface ClientHubAxios {
-  get: (url: string, config?: unknown) => Promise<{ data?: unknown }>;
+  get: (url: string, config?: AxiosRequestConfig) => Promise<{ data?: unknown }>;
 }
 
 type ClientDetailLoader = (clientId: number) => Promise<ClientOption | null>;

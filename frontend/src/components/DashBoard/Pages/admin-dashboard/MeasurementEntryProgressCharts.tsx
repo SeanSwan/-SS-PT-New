@@ -70,11 +70,20 @@ interface MeasurementEntryProgressChartsProps {
 
 const EMPTY_VALUE = '\u2014';
 
+const toFiniteStatNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const MeasurementEntryProgressCharts = ({
   stats,
   trendData,
   radarData,
 }: MeasurementEntryProgressChartsProps) => {
+  const totalMeasurements = toFiniteStatNumber(stats?.totalMeasurements);
+  const daysSinceStart = toFiniteStatNumber(stats?.daysSinceStart);
   if (trendData.length < 2) return null;
 
   return (
@@ -94,7 +103,7 @@ const MeasurementEntryProgressCharts = ({
               { label: 'Body Fat Change', value: stats.totalChange.bodyFat, unit: '%', Icon: Activity },
               { label: 'Waist Change', value: stats.totalChange.waist, unit: 'in', Icon: Ruler },
             ].map(({ label, value, unit, Icon }) => {
-              const numVal = value !== null && value !== undefined ? Number(value) : null;
+              const numVal = toFiniteStatNumber(value);
               const isPositiveChange = numVal !== null && numVal < 0;
               return (
                 <HeroMetricCard
@@ -201,8 +210,8 @@ const MeasurementEntryProgressCharts = ({
         {stats && (
           <CenteredStatsRow $gap={24} $centerWrap>
             <BodyText>
-              <AccentStat>{stats.totalMeasurements}</AccentStat> measurements over{' '}
-              <AccentStat>{stats.daysSinceStart}</AccentStat> days
+              <AccentStat>{totalMeasurements ?? EMPTY_VALUE}</AccentStat> measurements over{' '}
+              <AccentStat>{daysSinceStart ?? EMPTY_VALUE}</AccentStat> days
             </BodyText>
           </CenteredStatsRow>
         )}
