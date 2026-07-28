@@ -14,6 +14,7 @@
  * - Exercise names, goals, NASM phase → KEPT (non-PII)
  */
 import logger from '../../utils/logger.mjs';
+import { scanForPHI, stripPHI } from './phiScanner.mjs';
 
 // ── Pain Level Abstraction ──────────────────────────────────────────────────
 
@@ -47,6 +48,14 @@ export function deIdentifyClient(client, enrichment = {}) {
   const alias = `Client-${client.id}`;
   const aliasMap = {};
 
+  // Name fragments to alias out of any free text before it reaches a model. Includes the joined
+  // full name so "Sarah Connor" is replaced as one unit before the bare "Sarah" can match inside it.
+  const nameParts = [
+    [client.firstName, client.lastName].filter(Boolean).join(' '),
+    client.firstName,
+    client.lastName
+  ].filter(Boolean);
+
   // Map real name → alias
   const fullName = [client.firstName, client.lastName].filter(Boolean).join(' ');
   if (fullName) aliasMap[alias] = fullName;
@@ -57,7 +66,7 @@ export function deIdentifyClient(client, enrichment = {}) {
     clientAlias: alias,
     age: client.age || calculateAge(client.dateOfBirth) || null,
     gender: client.gender || null,
-    fitnessGoals: extractGoals(client, enrichment),
+    fitnessGoals: extractGoals(client, enrichment, nameParts, alias),
     trainingExperience: client.trainingExperience || null,
     nasmPhase: client.nasmPhase || enrichment.nasmPhase || null,
     clientSource: client.clientSource || null,
@@ -79,7 +88,7 @@ export function deIdentifyClient(client, enrichment = {}) {
     progressLevels: enrichment.progressLevels || null,
 
     // Goals (non-PII goal descriptions)
-    goals: deIdentifyGoals(enrichment.goals),
+    goals: deIdentifyGoals(enrichment.goals, nameParts, alias),
 
     // EXCLUDED from AI: name, email, phone, address, SSN, insurance, medications, specific diagnoses
   };
@@ -165,7 +174,63 @@ function calculateMeasurementTrend(measurements) {
   return diff < 0 ? 'improving' : 'declining'; // Weight loss = improving (fitness context)
 }
 
-function extractGoals(client, enrichment) {
+/**
+ * Scrub free text that is about to be sent to a cloud model.
+ *
+ * WHY THIS EXISTS (SWA-71, 2026-07-28): `deIdentifyClient` correctly excluded the STRUCTURED
+ * identifiers — email, phone, date of birth, last name — and correctly abstracted pain entries to
+ * `{bodyPart, level}`. But goal text was passed through verbatim, and goal text is where people
+ * write sentences. Verified by execution, this payload reached the model intact:
+ *
+ *   "Sarah wants to squat 200lb — Dr. Smith cleared her after ACL surgery"
+ *
+ * leaking the client's own first name, their physician's name, and a diagnosis. Rule 8 is
+ * categorical (zero PII to LLMs), so free text has to be treated as hostile, not trusted.
+ *
+ * Two passes, in this order:
+ *   1. Replace the client's own name with their alias — we know that string, so this is exact.
+ *      Longest-first so "Sarah Connor" is consumed before the bare "Sarah".
+ *   2. Strip anything the PHI scanner recognizes (medications, diagnoses, injuries, contact
+ *      details), which also covers third parties like a named physician.
+ *
+ * Never throws: a scrubbing failure must not take down context building. On error the text is
+ * dropped entirely rather than returned raw — fail closed, because the caller's next step is to
+ * hand this to an external model.
+ *
+ * @param {string} text - free text from a goal, description, or note
+ * @param {string[]} nameParts - the client's real name fragments to alias out
+ * @param {string} alias - the alias to substitute (e.g. "Client-42")
+ * @returns {string} scrubbed text, or '' if it could not be made safe
+ */
+function scrubFreeText(text, nameParts, alias) {
+  if (!text || typeof text !== 'string') return '';
+  try {
+    let out = text;
+
+    // Longest first: "Sarah Connor" must be replaced before the bare "Sarah" would match inside it.
+    const ordered = [...new Set(nameParts.filter(Boolean))].sort((a, b) => b.length - a.length);
+    for (const part of ordered) {
+      out = out.replace(new RegExp(`(?<!\\w)${escapeRegexLiteral(part)}(?!\\w)`, 'gi'), alias);
+    }
+
+    const { hasPHI, matches } = scanForPHI(out);
+    if (hasPHI) out = stripPHI(out, matches);
+
+    return out;
+  } catch (error) {
+    logger.warn('[deIdentifier] free-text scrub failed — dropping text rather than leaking it', {
+      error: error.message
+    });
+    return '';
+  }
+}
+
+/** Escape a literal string for safe use inside a RegExp. */
+function escapeRegexLiteral(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractGoals(client, enrichment, nameParts = [], alias = '') {
   const goals = [];
   if (client.fitnessGoals) goals.push(...(Array.isArray(client.fitnessGoals) ? client.fitnessGoals : [client.fitnessGoals]));
   if (enrichment.goals) {
@@ -173,16 +238,22 @@ function extractGoals(client, enrichment) {
       if (g.description || g.title) goals.push(g.description || g.title);
     }
   }
-  return [...new Set(goals)].slice(0, 10);
+  // Scrub BEFORE dedup so two spellings that scrub to the same text collapse to one entry.
+  const scrubbed = goals.map((g) => scrubFreeText(g, nameParts, alias)).filter(Boolean);
+  return [...new Set(scrubbed)].slice(0, 10);
 }
 
-function deIdentifyGoals(goals) {
+function deIdentifyGoals(goals, nameParts = [], alias = '') {
   if (!goals || !Array.isArray(goals)) return [];
   return goals.slice(0, 10).map(g => ({
-    title: g.title || g.description || 'Unnamed goal',
+    // The title is free text and must be scrubbed. The previous comment here claimed "EXCLUDED:
+    // any PII in notes" while the TITLE passed through verbatim — dropping `notes` is not the same
+    // as excluding PII, and a client's name, their physician's name, and a diagnosis all reached
+    // the model through this field.
+    title: scrubFreeText(g.title || g.description || '', nameParts, alias) || 'Unnamed goal',
     progress: g.progress || 0,
     status: g.status || 'active',
-    // EXCLUDED: any PII in notes
+    // EXCLUDED entirely: `notes` — unbounded free text with no reason to reach a model.
   }));
 }
 

@@ -31,6 +31,12 @@ const MEDICAL_PATTERNS = [
   /\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/,
   // Date of birth pattern
   /\b(DOB|date\s+of\s+birth|born\s+on|birthday)\s*:?\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/i,
+  // Named healthcare provider — third-party PII. Found leaking through free-text goal
+  // descriptions ("Dr. Smith cleared her after ACL surgery"): the client's own name was aliased
+  // out and the diagnosis stripped, but their physician's name still reached the model.
+  // Requires an honorific followed by a Capitalized surname, so "123 Oak Dr" and a bare "dr"
+  // do not match. Case-sensitive on the surname on purpose — that is what keeps it precise.
+  /\b(?:Dr|Doctor|Prof|Nurse|Therapist|Surgeon)\.?\s+[A-Z][a-zA-Z'-]{1,20}\b/,
 ];
 
 // ── Fuzzy Matching Terms ────────────────────────────────────────────────────
@@ -120,6 +126,9 @@ export function scanForPHI(text) {
       else if (/@/.test(match[0])) categories.add('email');
       else if (/\d{3}.*\d{3}.*\d{4}/.test(match[0])) categories.add('phone');
       else if (/DOB|born|birthday/i.test(match[0])) categories.add('dob');
+      // Provider check runs BEFORE the surgery check: "Surgeon Smith" contains "surgeon" and would
+      // otherwise be filed under `surgery` instead of being recognized as a third-party name.
+      else if (/^(?:Dr|Doctor|Prof|Nurse|Therapist|Surgeon)\b/i.test(match[0])) categories.add('provider_name');
       else if (/surgery|operation|procedure/i.test(match[0])) categories.add('surgery');
       else if (/taking|prescribed|allergic/i.test(match[0])) categories.add('medication');
       else if (/diagnosed|suffering|history/i.test(match[0])) categories.add('diagnosis');
@@ -132,15 +141,32 @@ export function scanForPHI(text) {
   for (const word of words) {
     const cleanWord = word.replace(/[.,!?;:'"()]/g, '');
     const matched = fuzzyMatchPHI(cleanWord);
-    if (matched && cleanWord.toLowerCase() !== matched.toLowerCase()) {
-      // AI Village consensus: Check against existing matches before adding (dedup)
+    if (matched) {
+      // An EXACT hit on a known PHI term counts. This condition used to be
+      // `matched && cleanWord.toLowerCase() !== matched.toLowerCase()`, which discarded exactly
+      // the case the term list exists to catch: `fuzzyMatchPHI` returns the term for an exact
+      // match, and that result was then thrown away because the word EQUALLED the term.
+      //
+      // The regex patterns above only fire with a lead-in verb ("taking X", "diagnosed with X"),
+      // so a bare correctly-spelled term matched NEITHER path and passed straight through to the
+      // cloud model. The behavior was inverted: "Metformn" (misspelled) was detected while
+      // "Metformin" (correct) was not — verified by execution for ACL, meniscus, Oxycodone,
+      // Metformin, diabetes, hypertension, fibromyalgia, Parkinson, surgery, and herniated.
+      //
+      // Double-reporting was the original concern, but the `alreadyMatched` dedup below already
+      // handles it — this extra condition was redundant AND load-bearing in the wrong direction.
+      const isExact = cleanWord.toLowerCase() === matched.toLowerCase();
+
+      // Dedup against anything the regex pass already recorded.
       const alreadyMatched = [...matches].some(m =>
         m.toLowerCase().includes(cleanWord.toLowerCase()) ||
         m.toLowerCase().includes(matched.toLowerCase())
       );
       if (!alreadyMatched) {
-        matches.add(`${cleanWord} (≈${matched})`);
-        categories.add('medical_fuzzy');
+        // Exact hits are stored bare so `stripPHI` can redact them directly; fuzzy hits keep the
+        // `(≈term)` annotation, which stripPHI already knows how to unwrap.
+        matches.add(isExact ? cleanWord : `${cleanWord} (≈${matched})`);
+        categories.add(isExact ? 'medical_term' : 'medical_fuzzy');
       }
     }
   }
