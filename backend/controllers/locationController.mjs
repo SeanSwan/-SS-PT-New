@@ -21,172 +21,13 @@
 
 import Location from '../models/Location.mjs';
 import Session from '../models/Session.mjs';
-import { parseWallClock } from '../utils/zonedTime.mjs';
 import logger from '../utils/logger.mjs';
-
-/** Upper bound on the free-form metadata blob, in serialized bytes. */
-const METADATA_MAX_BYTES = 16_384;
-
-/** True when `zone` is a timezone Intl actually recognizes. */
-function isValidTimeZone(zone) {
-  if (typeof zone !== 'string' || !zone.trim()) return false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: zone });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Validate the writable fields shared by create and update.
- * Returns an array of human-readable problems; empty means valid.
- */
-function validatePayload(body, { requireName, existing = {} }) {
-  const problems = [];
-
-  if (requireName || body.name !== undefined) {
-    if (typeof body.name !== 'string' || !body.name.trim()) {
-      problems.push('name is required');
-    } else if (body.name.trim().length > 150) {
-      problems.push('name must be 150 characters or fewer');
-    }
-  }
-
-  if (body.timezone !== undefined && !isValidTimeZone(body.timezone)) {
-    problems.push('timezone must be a valid IANA zone, e.g. America/Los_Angeles');
-  }
-
-  // Hours are a PAIR. One without the other is a half-defined window, and the door-access slice
-  // would have to invent a meaning for it ("opens at 05:00 and never closes"?). Both null is fine —
-  // that is "no hours restriction".
-  //
-  // Validate the EFFECTIVE final state, not the raw body. An absent field means different things in
-  // the two paths: on create it will be null, on update it means "leave as-is". Checking the body
-  // alone let `{ name, opensAt: '05:00' }` through on create, because closesAt was merely absent.
-  const effectiveOpens = body.opensAt !== undefined ? body.opensAt : (existing.opensAt ?? null);
-  const effectiveCloses = body.closesAt !== undefined ? body.closesAt : (existing.closesAt ?? null);
-  if (Boolean(effectiveOpens) !== Boolean(effectiveCloses)) {
-    problems.push('opensAt and closesAt must be set together, or both null');
-  }
-
-  for (const field of ['opensAt', 'closesAt']) {
-    const value = body[field];
-    // null is meaningful: it clears the restriction. Only reject malformed non-null values.
-    if (value !== undefined && value !== null && parseWallClock(value) === null) {
-      problems.push(`${field} must be 'HH:mm' (24-hour) or null`);
-    }
-  }
-
-  if (body.country !== undefined && body.country !== null) {
-    if (typeof body.country !== 'string' || body.country.trim().length !== 2) {
-      problems.push('country must be a 2-letter code');
-    }
-  }
-
-  // metadata is a free-form JSONB escape hatch. Unbounded, it is a storage/DoS vector even from an
-  // admin account, and an oversized row degrades every list query that selects it.
-  if (body.metadata !== undefined && body.metadata !== null) {
-    if (typeof body.metadata !== 'object' || Array.isArray(body.metadata)) {
-      problems.push('metadata must be a JSON object');
-    } else {
-      let serialized;
-      try {
-        serialized = JSON.stringify(body.metadata);
-      } catch {
-        problems.push('metadata must be JSON-serializable'); // circular refs
-      }
-      if (serialized && serialized.length > METADATA_MAX_BYTES) {
-        problems.push(`metadata must be under ${METADATA_MAX_BYTES} bytes`);
-      }
-    }
-  }
-
-  return problems;
-}
-
-/**
- * Parse a path `:id` into a positive integer, or null.
- *
- * WHY THIS EXISTS: `id` is a SERIAL primary key. Handing Postgres a non-numeric value raises
- * `invalid input syntax for type integer`, which the generic catch below turns into a 500 — so
- * `GET /api/locations/abc` reported a server failure for what is plainly a client error, and
- * polluted error monitoring with noise that looks like the backend is broken. Validate first and
- * treat an unparseable id as "no such resource".
- */
-function parseId(raw) {
-  const value = String(raw ?? '').trim();
-  if (!/^\d+$/.test(value)) return null;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-/**
- * Derive the slug to persist, or return a problem.
- *
- * SHARED BY create AND update ON PURPOSE. These two paths previously derived slugs independently,
- * and they drifted: create rejected an empty result while update happily persisted `''` when given
- * something like "---" (the raw value is truthy, the slugified value is not). An empty slug breaks
- * the public identifier and the partial unique index silently. One helper, one rule.
- *
- * @returns {{slug?: string, problem?: string}} slug omitted when the caller supplied nothing.
- */
-function resolveSlug({ explicitSlug, name, required }) {
-  const source = typeof explicitSlug === 'string' && explicitSlug.trim() ? explicitSlug : (required ? name : null);
-  if (source === null || source === undefined) return {};          // update with no slug change
-
-  const slug = Location.slugify(source);
-  if (!slug) {
-    return { problem: 'Could not derive a usable slug; provide an explicit alphanumeric slug' };
-  }
-  return { slug };
-}
-
-/**
- * Whitelist of client-writable fields. Anything not listed here is ignored, not trusted.
- * Tolerates a missing body: a request with no JSON payload (or the wrong content-type) arrives as
- * undefined, and indexing it would throw a TypeError that surfaces as an opaque 500.
- */
-function pickWritable(body = {}) {
-  const source = body || {};
-  const allowed = [
-    'name', 'addressLine1', 'addressLine2', 'city', 'region', 'postalCode',
-    'country', 'phone', 'timezone', 'opensAt', 'closesAt', 'isActive', 'metadata',
-  ];
-  const out = {};
-  for (const key of allowed) {
-    if (source[key] !== undefined) out[key] = source[key];
-  }
-  return normalizeWritable(out);
-}
-
-/**
- * Canonicalize values on the way in, so what we store matches what we validated.
- *
- * Validation ran against `name.trim()` while the raw value was being persisted — so
- * "  Downtown Gym  " stored with its whitespace intact, and its slug (derived from the trimmed
- * form) disagreed with the stored name. Normalizing here keeps the two consistent.
- *
- * Timezone is canonicalized through Intl because it accepts case variants: 'america/los_angeles'
- * validates, but storing it verbatim means two rows for the same zone compare unequal as strings.
- */
-function normalizeWritable(payload) {
-  const out = { ...payload };
-  if (typeof out.name === 'string') out.name = out.name.trim();
-  if (typeof out.country === 'string') out.country = out.country.trim().toUpperCase();
-  for (const field of ['addressLine1', 'addressLine2', 'city', 'region', 'postalCode', 'phone']) {
-    if (typeof out[field] === 'string') out[field] = out[field].trim() || null;
-  }
-  if (typeof out.timezone === 'string') {
-    try {
-      out.timezone = new Intl.DateTimeFormat('en-US', { timeZone: out.timezone })
-        .resolvedOptions().timeZone;
-    } catch {
-      /* validatePayload already rejected it; leave as-is rather than mask the error here */
-    }
-  }
-  return out;
-}
+import {
+  parseId,
+  pickWritable,
+  validatePayload,
+  resolveSlug,
+} from './locationPayload.mjs';
 
 /** GET /api/locations — active sites by default; ?includeInactive=true for admins' management view. */
 export const listLocations = async (req, res) => {
@@ -254,7 +95,9 @@ export const createLocation = async (req, res) => {
     }
 
     const payload = pickWritable(body);
-    const { slug, problem } = resolveSlug({ explicitSlug: body.slug, name: payload.name, required: true });
+    const { slug, problem } = resolveSlug({
+      explicitSlug: body.slug, name: payload.name, required: true, slugify: Location.slugify,
+    });
     if (problem) {
       return res.status(400).json({ success: false, message: problem });
     }
@@ -297,7 +140,9 @@ export const updateLocation = async (req, res) => {
     // Slug only moves when explicitly asked. Renaming a site must not silently break URLs or any
     // external reference already using the old slug. Same helper as create — an unusable slug is
     // a 400 here too, never a persisted empty string.
-    const { slug, problem } = resolveSlug({ explicitSlug: body.slug, name: payload.name, required: false });
+    const { slug, problem } = resolveSlug({
+      explicitSlug: body.slug, name: payload.name, required: false, slugify: Location.slugify,
+    });
     if (problem) {
       return res.status(400).json({ success: false, message: problem });
     }
