@@ -167,6 +167,41 @@ export class PIISafeLogger {
       console.info('MCP_OPERATION:', String(operation || ''));
     }
   }
+
+  /**
+   * Track an AI generation event (ethical review, plan generation, human-review flag).
+   *
+   * WHY THIS EXISTS: four call sites invoked `piiSafeLogger.trackAIGeneration(...)` while the
+   * method did not exist, so every one threw `TypeError: not a function`. Because two of those
+   * sites sit at the TOP of their try blocks — `EthicalAIReview.reviewWorkoutGeneration` and
+   * `EthicalAIReview.flagForHumanReview` — the throw aborted the function before any real work
+   * ran. Net effect on main: workout ethical review always returned `passed:false score:0`, and
+   * the human-review escalation never fired for ANY plan. Adding the method restores both.
+   *
+   * Only the user ID is recorded, never a name or contact detail (Rule 8: IDs are the allowed
+   * form). Never throws — an observability call must not be able to break the reviewed path,
+   * which is the exact failure mode this method was added to end.
+   *
+   * @param {string} generationType - e.g. 'workout_generation' | 'nutrition_planning'
+   * @param {string|number} userId - client ID only (never a name)
+   * @param {Object} meta - additional non-PII context
+   */
+  async trackAIGeneration(generationType, userId, meta = {}) {
+    try {
+      const trackingMeta = {
+        operation_type: 'ai_generation',
+        generation_type: generationType,
+        user_id: userId ?? null,
+        timestamp: new Date().toISOString(),
+        ...meta
+      };
+
+      await this.info(`AI Generation: ${generationType}`, trackingMeta);
+    } catch (error) {
+      // Fallback to basic logging — never rethrow into the caller's critical path.
+      console.info('AI_GENERATION:', String(generationType || ''));
+    }
+  }
 }
 
 // Export singleton instance

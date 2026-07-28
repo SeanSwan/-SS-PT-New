@@ -8,6 +8,52 @@ import { mcpHealthManager } from '../../utils/monitoring/mcpHealthManager.mjs';
  * Aligned with Master Prompt v26 Ethical AI by Design principles
  */
 
+/**
+ * Scoring weights per review type. Each map MUST sum to 1.0 and MUST contain a key for every
+ * check its review produces.
+ *
+ * WHY THIS IS SPLIT BY TYPE: there was a single weights map keyed for the workout checks only
+ * (inclusivity / abilityAccommodation / positiveTone / biasDetection), but the nutrition review
+ * emits different keys (bodyPositivity / culturalSensitivity / dietaryRestrictions). Three of
+ * nutrition's four checks matched no weight and were silently dropped from the total, capping
+ * every nutrition score at 0.25 x 90 = 23 against an 85 pass threshold — so nutrition ethical
+ * review could never pass, for any input, and nothing said so.
+ */
+const WORKOUT_CHECK_WEIGHTS = Object.freeze({
+  inclusivity: 0.25,
+  abilityAccommodation: 0.25,
+  positiveTone: 0.25,
+  biasDetection: 0.25
+});
+
+const NUTRITION_CHECK_WEIGHTS = Object.freeze({
+  inclusivity: 0.25,
+  bodyPositivity: 0.25,
+  culturalSensitivity: 0.25,
+  dietaryRestrictions: 0.25
+});
+
+/**
+ * Result for a check that has NOT been implemented yet.
+ *
+ * WHY `score: null` AND `passed: false`: the nutrition checks were stubs that returned
+ * `{ passed: true, score: 90 }` without reading their arguments. A plan containing peanut butter
+ * reviewed for a client with a declared peanut allergy raised zero issues and scored 90. Any
+ * future correction to the weights map would have flipped that from a loud failure into a
+ * SILENT PASS — manufacturing a "reviewed, score 90" record for a review that never happened.
+ *
+ * The invariant this enforces: an unimplemented safety check must be structurally incapable of
+ * reporting a pass. `null` cannot be summed into a score, and `implemented: false` forces the
+ * enclosing review to report itself incomplete.
+ */
+const notImplementedCheck = (checkName) => ({
+  implemented: false,
+  passed: false,
+  score: null,
+  issues: [`${checkName} is not implemented — this check did not run and produced no signal`],
+  recommendations: [`Implement ${checkName} before any caller relies on this review to gate content`]
+});
+
 class EthicalAIReview {
   constructor() {
     // Ethical guidelines configuration
@@ -116,8 +162,26 @@ class EthicalAIReview {
       };
 
       // Calculate overall score
-      checks.overallScore = this.calculateEthicalScore(checks);
-      checks.passed = checks.overallScore >= 85; // 85% threshold for ethical compliance
+      checks.overallScore = this.calculateEthicalScore(checks, WORKOUT_CHECK_WEIGHTS);
+
+      // Symmetric with the nutrition review: a check whose key drifts away from the weight map
+      // would otherwise be dropped from the score in silence — which is exactly how the nutrition
+      // scoring bug stayed hidden. Detect it here too so the same class cannot recur on this path.
+      const unrunChecks = this.collectUnrunChecks(checks, WORKOUT_CHECK_WEIGHTS);
+      checks.reviewComplete = unrunChecks.length === 0;
+      checks.unrunChecks = unrunChecks;
+      checks.passed = checks.reviewComplete && checks.overallScore >= 85; // 85% ethical threshold
+
+      if (!checks.reviewComplete) {
+        checks.incompleteReason =
+          `Workout ethical review did not run ${unrunChecks.length} of its checks ` +
+          `(${unrunChecks.join(', ')}). This result is NOT an ethical clearance.`;
+        piiSafeLogger.warn('Workout ethical review incomplete — checks did not run', {
+          workoutId: workoutPlan?.id ?? null,
+          unrunChecks,
+          overallScore: checks.overallScore
+        });
+      }
 
       // Flag for human review if needed
       if (!checks.passed || checks.overallScore < 90) {
@@ -137,10 +201,12 @@ class EthicalAIReview {
 
       return checks;
     } catch (error) {
+      // Optional chaining is load-bearing here for the same reason as the nutrition handler:
+      // an unguarded dereference made this error path throw on null input.
       piiSafeLogger.error('Ethical AI review failed', {
         error: error.message,
-        workoutId: workoutPlan.id,
-        userId: clientProfile.userId
+        workoutId: workoutPlan?.id ?? null,
+        userId: clientProfile?.userId ?? null
       });
       
       // Return safe defaults on error
@@ -565,22 +631,50 @@ class EthicalAIReview {
    * Calculate overall ethical score
    * @param {Object} checks - Individual check results
    */
-  calculateEthicalScore(checks) {
-    const weights = {
-      inclusivity: 0.25,
-      abilityAccommodation: 0.25,
-      positiveTone: 0.25,
-      biasDetection: 0.25
-    };
-
+  calculateEthicalScore(checks, weights = WORKOUT_CHECK_WEIGHTS) {
     let totalScore = 0;
     for (const [category, check] of Object.entries(checks)) {
-      if (weights[category] && check.score !== undefined) {
-        totalScore += check.score * weights[category];
-      }
+      const weight = weights[category];
+      // `!== undefined` (not truthiness): a legitimate 0.0 weight is falsy and was being skipped.
+      if (weight === undefined || !check || typeof check !== 'object') continue;
+      // An unimplemented check reports score `null` and must contribute NOTHING. It must never
+      // be able to push the total toward the pass threshold.
+      if (typeof check.score !== 'number') continue;
+      totalScore += check.score * weight;
     }
 
     return Math.round(totalScore);
+  }
+
+  /**
+   * List the checks in a result set that did not actually run.
+   *
+   * A check is "unrun" if it self-reports `implemented: false`, or if it carries a key the
+   * weight map does not know about. The second case is the one that hid the nutrition bug: an
+   * unknown key was silently dropped from the score with no signal that a check had vanished.
+   *
+   * @returns {string[]} check names that produced no trustworthy signal
+   */
+  collectUnrunChecks(checks, weights) {
+    const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+    const unrun = [];
+
+    for (const [category, check] of Object.entries(checks)) {
+      if (!check || typeof check !== 'object' || Array.isArray(check)) continue;
+
+      // Self-declared not-implemented always counts, weighted or not.
+      if (check.implemented === false) { unrun.push(category); continue; }
+
+      // Otherwise only CHECK RESULTS are eligible. A result carries its own `score` or `passed`;
+      // sibling data blobs on the same object (e.g. workout `ethicalCompliance`, which holds
+      // wcagCompliant/inclusiveLanguage/positivityScore) do not, and must not be mistaken for a
+      // check that failed to run — that false positive would force `reviewComplete: false` and
+      // block an otherwise-passing review. Caught by hostile review before ship.
+      const looksLikeCheckResult = has(check, 'score') || has(check, 'passed');
+      if (looksLikeCheckResult && weights[category] === undefined) unrun.push(category);
+    }
+
+    return unrun;
   }
 
   /**
@@ -705,8 +799,28 @@ REQUIRED ELEMENTS:
         passed: false
       };
 
-      checks.overallScore = this.calculateEthicalScore(checks);
-      checks.passed = checks.overallScore >= 85;
+      checks.overallScore = this.calculateEthicalScore(checks, NUTRITION_CHECK_WEIGHTS);
+
+      // A review is only "complete" when every check actually ran. `passed` requires BOTH a
+      // complete review and a passing score — so no combination of stubbed checks can ever
+      // produce `passed: true`. Callers that gate content on this must read `passed` alone;
+      // `reviewComplete` and `unrunChecks` explain WHY a review did not pass, distinguishing
+      // "reviewed and failed" from "never actually reviewed".
+      const unrunChecks = this.collectUnrunChecks(checks, NUTRITION_CHECK_WEIGHTS);
+      checks.reviewComplete = unrunChecks.length === 0;
+      checks.unrunChecks = unrunChecks;
+      checks.passed = checks.reviewComplete && checks.overallScore >= 85;
+
+      if (!checks.reviewComplete) {
+        checks.incompleteReason =
+          `Nutrition ethical review did not run ${unrunChecks.length} of its checks ` +
+          `(${unrunChecks.join(', ')}). This result is NOT an ethical clearance.`;
+        piiSafeLogger.warn('Nutrition ethical review incomplete — checks not implemented', {
+          planId: nutritionPlan?.id ?? null,
+          unrunChecks,
+          overallScore: checks.overallScore
+        });
+      }
 
       if (!checks.passed) {
         await this.flagForHumanReview(nutritionPlan, checks, clientProfile);
@@ -714,10 +828,13 @@ REQUIRED ELEMENTS:
 
       return checks;
     } catch (error) {
+      // Optional chaining is load-bearing: this handler previously dereferenced `nutritionPlan.id`
+      // and `clientProfile.userId` directly, so a null/undefined argument made the ERROR HANDLER
+      // throw — the same "the failure path fails" defect this file was fixed for.
       piiSafeLogger.error('Nutrition ethical review failed', {
         error: error.message,
-        planId: nutritionPlan.id,
-        userId: clientProfile.userId
+        planId: nutritionPlan?.id ?? null,
+        userId: clientProfile?.userId ?? null
       });
       return { passed: false, error: error.message };
     }
@@ -729,9 +846,8 @@ REQUIRED ELEMENTS:
    * @param {Object} clientProfile - Client profile
    */
   async checkNutritionInclusion(nutritionPlan, clientProfile) {
-    // Implementation for nutrition-specific inclusion checks
-    // Similar to workout inclusion but focused on dietary diversity
-    return { passed: true, score: 90, issues: [], recommendations: [] };
+    // NOT IMPLEMENTED — would check dietary diversity / inclusion.
+    return notImplementedCheck('checkNutritionInclusion');
   }
 
   /**
@@ -739,8 +855,11 @@ REQUIRED ELEMENTS:
    * @param {Object} nutritionPlan - Nutrition plan to check
    */
   async checkBodyPositivity(nutritionPlan) {
-    // Check for diet culture, restriction mentality, etc.
-    return { passed: true, score: 90, issues: [], recommendations: [] };
+    // NOT IMPLEMENTED — would detect diet-culture and restriction-mentality language.
+    // This is the eating-disorder-safety check. Until it is implemented, it must never report a
+    // pass: a false "body positivity: 90" on a restriction-promoting plan is the single most
+    // damaging thing this file could claim.
+    return notImplementedCheck('checkBodyPositivity');
   }
 
   /**
@@ -749,8 +868,8 @@ REQUIRED ELEMENTS:
    * @param {Object} clientProfile - Client profile
    */
   async checkCulturalSensitivity(nutritionPlan, clientProfile) {
-    // Check for cultural food preferences and restrictions
-    return { passed: true, score: 90, issues: [], recommendations: [] };
+    // NOT IMPLEMENTED — would check cultural/religious food preferences and restrictions.
+    return notImplementedCheck('checkCulturalSensitivity');
   }
 
   /**
@@ -759,8 +878,14 @@ REQUIRED ELEMENTS:
    * @param {Object} clientProfile - Client profile
    */
   async verifyDietaryAccommodation(nutritionPlan, clientProfile) {
-    // Verify that dietary restrictions are properly addressed
-    return { passed: true, score: 90, issues: [], recommendations: [] };
+    // NOT IMPLEMENTED — would verify declared allergies/intolerances/restrictions are honored.
+    // This is the ALLERGEN check. It previously returned `{ passed: true, score: 90 }` without
+    // reading either argument, so a plan containing an allergen a client had explicitly declared
+    // was reported as accommodated. Implementing it for real is blocked on a first-class,
+    // user-scoped dietary-identity model with a structured allergen taxonomy — today's
+    // `ClientNutritionPlan.allergies` is free-text JSONB defaulting to `[]`, where "no allergies"
+    // and "never asked" are the same value (see SWA-71). Until both exist, this reports honestly.
+    return notImplementedCheck('verifyDietaryAccommodation');
   }
 }
 
