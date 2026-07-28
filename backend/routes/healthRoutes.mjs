@@ -5,6 +5,7 @@
  */
 
 import express from 'express';
+import { deriveHealthStatus, readinessHttpStatus } from './healthStatus.mjs';
 
 // Dynamic import to handle initialization timing
 let getStorefrontItem, Op;
@@ -67,32 +68,41 @@ router.get('/', async (req, res) => {
           
           clearTimeout(timeoutId);
 
-        basicStatus.checks = {
-          store: validPricedPackages > 0 ? 'ready' : 'degraded'
-        };
+        Object.assign(basicStatus, deriveHealthStatus({
+          dbReachable: true,
+          validPricedPackages
+        }));
 
-        if (validPricedPackages === 0) {
-          basicStatus.status = 'degraded';
-          basicStatus.message = 'Store readiness degraded';
-        } else {
-          basicStatus.message = 'API operational';
-        }
-        
         } catch (dbQueryError) {
-          // Database query failed - fallback gracefully
-          basicStatus.checks = { store: 'unknown' };
-          basicStatus.message = 'Server healthy';
+          // Query failed or timed out. Report it as degraded — this branch used to overwrite the
+          // message with "Server healthy", so an operator curling /health during a database
+          // outage was told nothing was wrong.
+          Object.assign(basicStatus, deriveHealthStatus({
+            dbReachable: false,
+            validPricedPackages: null
+          }));
           console.log('Health check: Database query failed:', dbQueryError.message);
         }
+      } else {
+        // Models are not loaded — the process is up but cannot serve data.
+        Object.assign(basicStatus, deriveHealthStatus({
+          dbReachable: false,
+          validPricedPackages: null
+        }));
       }
     } catch (dbError) {
-      // Database not ready yet - still return healthy for basic server operation
-      basicStatus.checks = { store: 'unknown' };
-      basicStatus.message = 'Server healthy';
+      Object.assign(basicStatus, deriveHealthStatus({
+        dbReachable: false,
+        validPricedPackages: null
+      }));
       console.log('Health check: Database not ready yet:', dbError.message);
     }
 
-    // Always return 200 OK for basic server health
+    // ALWAYS 200 for this endpoint — deliberately. Render treats /health as a LIVENESS probe, so
+    // a 503 during a transient database blip would make it restart an application server that is
+    // running fine, turning a database problem into an outage. The BODY now tells the truth
+    // (status: 'degraded', ready: false) while the STATUS CODE keeps answering "the process is up".
+    // For a probe that is allowed to fail, point monitoring at /health/ready below.
     res.status(200).json(basicStatus);
 
   } catch (error) {
@@ -168,6 +178,47 @@ router.get('/store', async (req, res) => {
       message: 'Store data not yet available - initialization in progress'
     });
   }
+});
+
+/**
+ * GET /health/ready — READINESS probe (this one is allowed to fail).
+ *
+ * Separate from `/health` on purpose. Liveness answers "is the process up"; readiness answers
+ * "can it actually serve". Point uptime monitoring and any deploy gate HERE — a 503 from this
+ * endpoint means real requests are failing, without giving Render a reason to restart a process
+ * that is running correctly.
+ */
+router.get('/ready', async (req, res) => {
+  let status;
+  try {
+    const StorefrontItem = getStorefrontItem();
+    if (!StorefrontItem || !Op) {
+      status = deriveHealthStatus({ dbReachable: false, validPricedPackages: null });
+    } else {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      try {
+        const count = await Promise.race([
+          StorefrontItem.count({ where: { isActive: true, isSpecialOffer: false, price: { [Op.gt]: 0 } } }),
+          new Promise((_, reject) => {
+            controller.signal.addEventListener('abort', () => reject(new Error('Readiness query timeout')));
+          })
+        ]);
+        status = deriveHealthStatus({ dbReachable: true, validPricedPackages: count });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+  } catch (error) {
+    // Fail CLOSED: if readiness cannot be established, report NOT ready. Reporting ready on an
+    // error is how a broken deploy gets marked healthy.
+    status = deriveHealthStatus({ dbReachable: false, validPricedPackages: null });
+  }
+
+  res.status(readinessHttpStatus(status)).json({
+    ...status,
+    timestamp: new Date().toISOString()
+  });
 });
 
 export default router;
