@@ -15,6 +15,7 @@ const setupAssociations = async () => {
     const UserModule = await import('./User.mjs');
     const SessionModule = await import('./Session.mjs');
     const SessionTypeModule = await import('./SessionType.mjs');
+    const LocationModule = await import('./Location.mjs');
     const ClientProgressModule = await import('./ClientProgress.mjs');
     const GamificationModule = await import('./Gamification.mjs');
     const AchievementModule = await import('./Achievement.mjs');
@@ -236,6 +237,7 @@ const setupAssociations = async () => {
     const User = UserModule.default;
     const Session = SessionModule.default;
     const SessionType = SessionTypeModule.default;
+    const Location = LocationModule.default;
     const ClientProgress = ClientProgressModule.default;
     const Gamification = GamificationModule.default;
     const Achievement = AchievementModule.default;
@@ -492,7 +494,7 @@ const setupAssociations = async () => {
         console.log('🔧 Falling through to full association setup to repair missing associations...');
       } else {
         return {
-        User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
+        User, Session, SessionType, Location, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ProductVariant, ShoppingCart, CartItem, Order,
         OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
@@ -601,6 +603,12 @@ const setupAssociations = async () => {
     // Session type associations (Phase 5 - buffer-aware scheduling)
     Session.belongsTo(SessionType, { foreignKey: 'sessionTypeId', as: 'sessionType' });
     SessionType.hasMany(Session, { foreignKey: 'sessionTypeId', as: 'sessions' });
+
+    // Location associations (SWA-74 gym-ops spine S0).
+    // Alias is 'facility', NOT 'location' — Session already has a legacy STRING attribute named
+    // `location`, and reusing the name would collide with it.
+    Session.belongsTo(Location, { foreignKey: 'locationId', as: 'facility' });
+    Location.hasMany(Session, { foreignKey: 'locationId', as: 'sessions' });
 
     // User as reviewer of cancellation decisions (MindBody parity)
     User.hasMany(Session, { foreignKey: 'cancellationReviewedBy', as: 'reviewedCancellations' });

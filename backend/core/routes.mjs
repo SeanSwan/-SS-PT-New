@@ -85,6 +85,7 @@ import { mergeActionRouter, mergeRequestsRouter } from '../routes/plaud/plaudMer
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
+import locationRoutes from '../routes/locationRoutes.mjs';
 import availabilityRoutes from '../routes/availability.mjs';
 import sessionDeductionRoutes from '../routes/sessionDeductionRoutes.mjs';
 import sessionTypeRoutes from '../routes/sessionTypeRoutes.mjs';
@@ -354,6 +355,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
+  app.use('/api/locations', locationRoutes); // Physical facilities (SWA-74 gym-ops spine S0)
   app.use('/api/schedule-ai', scheduleAiRoutes);
   app.use('/api/availability', availabilityRoutes);
   app.use('/api/orientation', orientationRoutes);

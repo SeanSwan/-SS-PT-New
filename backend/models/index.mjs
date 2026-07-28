@@ -126,6 +126,7 @@ export const getOrder = () => getModel('Order');
 export const getOrderItem = () => getModel('OrderItem');
 export const getSession = () => getModel('Session');
 export const getSessionType = () => getModel('SessionType');
+export const getLocation = () => getModel('Location');
 export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
 export const getNotificationDelivery = () => getModel('NotificationDelivery');
