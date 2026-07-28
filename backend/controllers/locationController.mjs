@@ -20,6 +20,7 @@
  */
 
 import Location from '../models/Location.mjs';
+import Session from '../models/Session.mjs';
 import { parseWallClock } from '../utils/zonedTime.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -41,7 +42,7 @@ function isValidTimeZone(zone) {
  * Validate the writable fields shared by create and update.
  * Returns an array of human-readable problems; empty means valid.
  */
-function validatePayload(body, { requireName }) {
+function validatePayload(body, { requireName, existing = {} }) {
   const problems = [];
 
   if (requireName || body.name !== undefined) {
@@ -54,6 +55,19 @@ function validatePayload(body, { requireName }) {
 
   if (body.timezone !== undefined && !isValidTimeZone(body.timezone)) {
     problems.push('timezone must be a valid IANA zone, e.g. America/Los_Angeles');
+  }
+
+  // Hours are a PAIR. One without the other is a half-defined window, and the door-access slice
+  // would have to invent a meaning for it ("opens at 05:00 and never closes"?). Both null is fine —
+  // that is "no hours restriction".
+  //
+  // Validate the EFFECTIVE final state, not the raw body. An absent field means different things in
+  // the two paths: on create it will be null, on update it means "leave as-is". Checking the body
+  // alone let `{ name, opensAt: '05:00' }` through on create, because closesAt was merely absent.
+  const effectiveOpens = body.opensAt !== undefined ? body.opensAt : (existing.opensAt ?? null);
+  const effectiveCloses = body.closesAt !== undefined ? body.closesAt : (existing.closesAt ?? null);
+  if (Boolean(effectiveOpens) !== Boolean(effectiveCloses)) {
+    problems.push('opensAt and closesAt must be set together, or both null');
   }
 
   for (const field of ['opensAt', 'closesAt']) {
@@ -142,6 +156,34 @@ function pickWritable(body = {}) {
   const out = {};
   for (const key of allowed) {
     if (source[key] !== undefined) out[key] = source[key];
+  }
+  return normalizeWritable(out);
+}
+
+/**
+ * Canonicalize values on the way in, so what we store matches what we validated.
+ *
+ * Validation ran against `name.trim()` while the raw value was being persisted — so
+ * "  Downtown Gym  " stored with its whitespace intact, and its slug (derived from the trimmed
+ * form) disagreed with the stored name. Normalizing here keeps the two consistent.
+ *
+ * Timezone is canonicalized through Intl because it accepts case variants: 'america/los_angeles'
+ * validates, but storing it verbatim means two rows for the same zone compare unequal as strings.
+ */
+function normalizeWritable(payload) {
+  const out = { ...payload };
+  if (typeof out.name === 'string') out.name = out.name.trim();
+  if (typeof out.country === 'string') out.country = out.country.trim().toUpperCase();
+  for (const field of ['addressLine1', 'addressLine2', 'city', 'region', 'postalCode', 'phone']) {
+    if (typeof out[field] === 'string') out[field] = out[field].trim() || null;
+  }
+  if (typeof out.timezone === 'string') {
+    try {
+      out.timezone = new Intl.DateTimeFormat('en-US', { timeZone: out.timezone })
+        .resolvedOptions().timeZone;
+    } catch {
+      /* validatePayload already rejected it; leave as-is rather than mask the error here */
+    }
   }
   return out;
 }
@@ -245,7 +287,8 @@ export const updateLocation = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Location not found' });
     }
 
-    const problems = validatePayload(body, { requireName: false });
+    // Pass the current row so pair-rules (hours) validate the post-update state, not just the patch.
+    const problems = validatePayload(body, { requireName: false, existing: location });
     if (problems.length) {
       return res.status(400).json({ success: false, message: 'Invalid location', problems });
     }
@@ -273,8 +316,15 @@ export const updateLocation = async (req, res) => {
 
 /**
  * DELETE /api/locations/:id — admin only. SOFT delete (model is paranoid).
- * Sessions referencing this location keep their row; the FK is ON DELETE SET NULL, and a soft
- * delete does not fire it at all, so operational history stays intact either way.
+ *
+ * GUARDED, because a soft delete is quietly destructive here. Sessions keep their `locationId`, and
+ * `ON DELETE SET NULL` does NOT fire on a paranoid delete — so every session at that site is left
+ * pointing at a row that no longer resolves. Nothing errors; the schedule just stops being able to
+ * say where anything happened. An admin retiring a site has no way to know how much history they
+ * are about to detach.
+ *
+ * So: report the attached-session count and refuse, unless the caller passes ?force=true. Deleting
+ * an unused location stays a one-step operation; deleting a used one becomes deliberate.
  */
 export const deleteLocation = async (req, res) => {
   try {
@@ -286,8 +336,34 @@ export const deleteLocation = async (req, res) => {
     if (!location) {
       return res.status(404).json({ success: false, message: 'Location not found' });
     }
+
+    const force = String(req.query?.force || '').toLowerCase() === 'true';
+    let attachedSessions = 0;
+    try {
+      attachedSessions = await Session.count({ where: { locationId: id } });
+    } catch (countError) {
+      // Never let the safety check itself become the failure mode — but do not silently pretend
+      // the location is unused either. Fail closed: refuse the delete and say why.
+      logger.error('Could not count sessions before location delete', { error: countError.message });
+      return res.status(503).json({
+        success: false,
+        message: 'Could not verify whether this location is in use; delete not attempted',
+      });
+    }
+
+    if (attachedSessions > 0 && !force) {
+      return res.status(409).json({
+        success: false,
+        message: `This location is referenced by ${attachedSessions} session(s). `
+          + 'Those sessions will keep a reference that no longer resolves. '
+          + 'Re-send with ?force=true to proceed, or set isActive=false to retire it without detaching history.',
+        attachedSessions,
+      });
+    }
+
     await location.destroy();
-    return res.status(200).json({ success: true, message: 'Location deleted' });
+    logger.info('Location soft-deleted', { locationId: id, attachedSessions, force });
+    return res.status(200).json({ success: true, message: 'Location deleted', attachedSessions });
   } catch (error) {
     logger.error('Failed to delete location', { error: error.message });
     return res.status(500).json({ success: false, message: 'Failed to delete location' });
