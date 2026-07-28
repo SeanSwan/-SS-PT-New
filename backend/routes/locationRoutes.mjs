@@ -10,11 +10,12 @@
  * Linear: SWA-74
  *
  * Routes:
- * - GET    /api/locations       (auth)   — active sites; ?includeInactive=true for management
- * - GET    /api/locations/:id   (auth)
- * - POST   /api/locations       (admin)
- * - PUT    /api/locations/:id   (admin)
- * - DELETE /api/locations/:id   (admin)  — soft delete
+ * - GET    /api/locations            (auth)   — active sites; ?includeInactive=true for management
+ * - GET    /api/locations/slug/:slug (auth)   — resolve by public identifier
+ * - GET    /api/locations/:id        (auth)
+ * - POST   /api/locations            (admin)
+ * - PUT    /api/locations/:id        (admin)
+ * - DELETE /api/locations/:id        (admin)  — soft delete
  *
  * WHY reads are not admin-gated: the class schedule, check-in kiosk, and member app all need to
  * name a site. Locations carry no member data — only addresses and hours the gym publishes anyway.
@@ -23,6 +24,7 @@
 import express from 'express';
 import {
   listLocations,
+  getLocationBySlug,
   getLocationById,
   createLocation,
   updateLocation,
@@ -33,6 +35,9 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 const router = express.Router();
 
 router.get('/', protect, listLocations);
+// MUST precede '/:id' — Express matches in registration order, and '/:id' would otherwise capture
+// the literal segment 'slug' and try to look it up as a primary key.
+router.get('/slug/:slug', protect, getLocationBySlug);
 router.get('/:id', protect, getLocationById);
 
 router.post('/', protect, adminOnly, createLocation);
