@@ -38,14 +38,27 @@ import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
 class Location extends Model {
-  /** URL/DB-safe slug from a display name. Exposed so callers and seeders derive it identically. */
+  /**
+   * URL/DB-safe slug from a display name. Exposed so callers and seeders derive it identically.
+   *
+   * Accents are TRANSLITERATED, not dropped: NFD splits 'Ü' into 'U' + a combining diaeresis, and
+   * stripping only the combining mark keeps the base letter. Without this step the character class
+   * below deletes the whole glyph, so "ÜBER Fitness" would slug to "ber-fitness" — a wrong,
+   * user-visible identifier for any non-ASCII gym name.
+   *
+   * Returns '' when nothing usable survives (e.g. "---" or a lone symbol); callers must treat an
+   * empty slug as a validation failure rather than persisting it.
+   */
   static slugify(name) {
     return String(name || '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
-      .slice(0, 150);
+      .slice(0, 150)
+      .replace(/-+$/, ''); // a trailing '-' can appear after the 150-char cut
   }
 }
 

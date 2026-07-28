@@ -1377,6 +1377,7 @@ const setupAssociations = async () => {
       User,
       Session,
       SessionType,
+      Location,
       ClientProgress,
       Gamification,
       Achievement,
