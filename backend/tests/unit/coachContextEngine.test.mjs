@@ -32,7 +32,7 @@ function fakeSequelize({ failDomain = null } = {}) {
     QueryTypes: { SELECT: 'SELECT' },
     query: vi.fn(async (sql) => {
       if (failDomain === 'profile' && /FROM "Users"/.test(sql)) throw new Error('profile table down');
-      if (failDomain === 'pain' && /PainEntries/.test(sql)) throw new Error('pain table down');
+      if (failDomain === 'pain' && /client_pain_entries/.test(sql)) throw new Error('pain table down');
       if (failDomain === 'badges' && /FROM "UserBadges"/.test(sql)) throw new Error('badge table down');
       if (/FROM "Users"/.test(sql)) {
         return [{
@@ -44,7 +44,7 @@ function fakeSequelize({ failDomain = null } = {}) {
       if (/workout_sessions/.test(sql)) {
         return [{ id: 11, title: 'Lower body', createdAt: '2026-06-01', duration: 60, intensity: 7, exercises: [{ exerciseName: 'goblet squat', setNumber: 1, reps: 10, weight: 50 }] }];
       }
-      if (/PainEntries/.test(sql)) return [{ bodyPart: 'knee', level: 7, isActive: true }];
+      if (/client_pain_entries/.test(sql)) return [{ bodyPart: 'knee', level: 7, isActive: true }];
       if (/daily_macro_logs/.test(sql)) {
         return [{
           date: '2026-06-20',
@@ -63,7 +63,7 @@ function fakeSequelize({ failDomain = null } = {}) {
           flagProcessed: false,
         }];
       }
-      if (/"Goals"/.test(sql)) return [{ title: 'Run 5k', description: '', progress: 40, status: 'active' }];
+      if (/FROM goals/.test(sql)) return [{ title: 'Run 5k', description: '', progress: 40, status: 'active' }];
       if (/FROM sessions/.test(sql)) return [{ id: 31, sessionDate: '2026-06-15T17:00:00.000Z', duration: 60, status: 'scheduled' }];
       if (/FROM "UserBadges"/.test(sql)) return [];
       return [];
@@ -160,9 +160,9 @@ describe('buildCoachContext', () => {
         }];
       }
       if (/workout_sessions/.test(sql)) return [];
-      if (/PainEntries/.test(sql)) return [];
+      if (/client_pain_entries/.test(sql)) return [];
       if (/daily_macro_logs/.test(sql)) return [];
-      if (/"Goals"/.test(sql)) return [];
+      if (/FROM goals/.test(sql)) return [];
       if (/FROM sessions/.test(sql)) return [];
       return [];
     });

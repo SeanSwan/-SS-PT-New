@@ -60,8 +60,10 @@ const DOMAIN_LOADERS = {
   ),
   pain: (sequelize, replacements) => safeQuery(
     sequelize,
-    `SELECT "bodyPart", "painLevel" as level, "isActive"
-     FROM "PainEntries"
+    // Real table is client_pain_entries and the real column is "bodyRegion" (SWA-71).
+    // Aliased back to "bodyPart" so consumers keep their existing shape.
+    `SELECT "bodyRegion" AS "bodyPart", "painLevel" as level, "isActive"
+     FROM client_pain_entries
      WHERE "userId" = :clientId AND "isActive" = true
      ORDER BY "createdAt" DESC
      LIMIT 10`,
@@ -80,8 +82,10 @@ const DOMAIN_LOADERS = {
   ),
   goals: (sequelize, replacements) => safeQuery(
     sequelize,
-    `SELECT title, description, progress, status
-     FROM "Goals"
+    // Real table is lowercase `goals`; real column is "progressPercentage" (SWA-71).
+    // ::float because NUMERIC arrives as a STRING from node-postgres.
+    `SELECT title, description, "progressPercentage"::float AS progress, status
+     FROM goals
      WHERE "userId" = :clientId AND status = 'active'
      LIMIT 10`,
     replacements,
@@ -277,7 +281,7 @@ export async function buildTrainerDayContext({ user, sequelize }) {
       safeQuery(
         sequelize,
         `SELECT "userId", COUNT(*) AS "activePain"
-         FROM "PainEntries"
+         FROM client_pain_entries
          WHERE "userId" IN (:clientIds) AND "isActive" = true
          GROUP BY "userId"`,
         { clientIds },

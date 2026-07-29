@@ -37,8 +37,9 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
   const [painEntries, recentWorkouts, macroLogs, goals] = await Promise.allSettled([
     safeQuery(
       sequelize,
-      `SELECT "bodyPart", "painLevel" as level, "isActive"
-       FROM "PainEntries"
+      // client_pain_entries / "bodyRegion" (SWA-71); aliased to keep the output shape.
+      `SELECT "bodyRegion" AS "bodyPart", "painLevel" as level, "isActive"
+       FROM client_pain_entries
        WHERE "userId" = :clientId AND "isActive" = true
        ORDER BY "createdAt" DESC
        LIMIT 10`,
@@ -80,8 +81,9 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
     ),
     safeQuery(
       sequelize,
-      `SELECT title, description, progress, status
-       FROM "Goals"
+      // lowercase `goals` / "progressPercentage" (SWA-71); ::float since NUMERIC arrives as text.
+      `SELECT title, description, "progressPercentage"::float AS progress, status
+       FROM goals
        WHERE "userId" = :clientId AND status = 'active'
        LIMIT 10`,
       replacements,
