@@ -11,6 +11,7 @@
  * ============================================================================
  */
 import { css } from "styled-components";
+import { surfaceChartRepresentationStyles } from "./lensRepresentationStyles.surfaceChart";
 
 export const lensRepresentationStyles = css`
   /* ── collection.exercise ─────────────────────────────────────────── */
@@ -125,13 +126,10 @@ export const lensRepresentationStyles = css`
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--world-accent, #8b5cf6) 40%, transparent);
   }
 
-  /* surface.card (frosted-vault/etched-stone/lightwell) + chart.progress
-     (ring-gauge/spark-ribbon) are ALLOWLISTED in variantVocabulary.ts and
-     differentiate worlds by TOKENS only — consistent with the existing
-     floating-candy/faceted-console + arcade-meter/telemetry-columns, which
-     also have no dedicated form primitive. Their form renderers await the
-     lens2-surface/lens2-chart primitive elements (W0.2 follow-up); no dead
-     CSS is shipped here targeting elements that do not exist. */
+  /* surface.card + chart.progress form renderers live in
+     ./lensRepresentationStyles.surfaceChart.ts (Slice W0.2) and are composed in
+     at the bottom of this block — they were TOKEN-ONLY axes until the
+     .lens2-surface / .lens2-chart hooks landed on Panel + ReadinessDial. */
 
   /* ── action.primary — Slice W0 additions ─────────────────────────── */
   &[data-lens2-action='pill-cluster'] .lens2-actions {
@@ -156,20 +154,52 @@ export const lensRepresentationStyles = css`
     min-height: 48px;
   }
 
-  /* ── typography — Slice W0 additions (voice per family) ───────────── */
-  &[data-lens2-display='aurora-airy'] .lens2-display {
-    font-weight: 300;
-    letter-spacing: 0.04em;
+  /* ── typography — the display MEASURE + inscription form ──────────────
+     DISCIPLINE (hostile-review fix 2026-07-29): weight / letter-spacing /
+     family are already carried by the --world-title-font + --world-letter-spacing
+     TOKENS, and the generic [data-lens2-display] rule above applies them. A
+     variant rule that restated them would have identical specificity and later
+     source order, so it would silently OVERRIDE the token for every future
+     world using that variant. These rules therefore only touch what no token
+     controls: the text MEASURE, wrapping, casing, and inscription furniture. */
+  &[data-lens2-display='rounded-athletic'] .lens2-display {
+    max-width: 13ch;
+    text-wrap: balance;
   }
+  &[data-lens2-display='compact-technical-mono'] .lens2-display {
+    max-width: 24ch;
+    text-transform: uppercase;
+  }
+  &[data-lens2-display='vaulted-editorial'] .lens2-display {
+    max-width: 17ch;
+    font-style: italic;
+  }
+  &[data-lens2-display='aurora-airy'] .lens2-display {
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  /* rubricated margin rule — the monastic inscription move. */
   &[data-lens2-display='monastic-quiet'] .lens2-display {
-    font-weight: 500;
-    letter-spacing: -0.005em;
+    max-width: 10ch;
+    padding-inline-start: 0.55em;
+    border-inline-start: 2px solid
+      color-mix(in srgb, var(--world-accent, #4070c0) 62%, transparent);
+  }
+
+  /* ── text.body — the reading voice on the row primitives ─────────── */
+  &[data-lens2-body='soft-sans'] .lens2-row {
+    font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  }
+  &[data-lens2-body='terminal-mono'] .lens2-row {
+    font-family: 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
   }
   &[data-lens2-body='humanist-serif'] .lens2-row {
     font-family: 'Cormorant Garamond', Georgia, serif;
   }
   &[data-lens2-body='signal-grotesk'] .lens2-row {
-    font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Sora', sans-serif;
+    letter-spacing: 0.012em;
   }
 
   /* ── composition topology (desktop templates) ────────────────────── */
@@ -184,7 +214,14 @@ export const lensRepresentationStyles = css`
     }
   }
   &[data-lens2-template='editorial-column'] .lens2-composition {
-    max-width: 760px;
+    max-width: 860px;
     margin-inline: auto;
+    /* a real single editorial column — the host's 2-up areas collapse so the
+       measure is honest at every width (the max-width alone left a 260px
+       sidebar squeezed against a 760px shell). */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'hero' 'dial' 'work' 'context' 'actions';
   }
+
+  ${surfaceChartRepresentationStyles}
 `;

@@ -1,6 +1,15 @@
 import styled from 'styled-components';
 
-export const Panel = styled.section`
+/**
+ * `.lens2-surface` is the FORM hook for the `surface.card` recipe axis (Slice
+ * W0.2). Before this hook existed the axis was TOKEN-ONLY — two worlds could
+ * satisfy the ≥3-axis distinctness gate on an axis that rendered nothing.
+ * The className is MERGED (not replaced) so the callers' grid-area classes
+ * (`.hero`/`.dial`/`.work`/`.context`/`.actions`) keep working.
+ */
+export const Panel = styled.section.attrs<{ className?: string }>((props) => ({
+  className: ['lens2-surface', props.className].filter(Boolean).join(' '),
+}))`
   border: 1px solid
     color-mix(in srgb, var(--world-accent, #60c0f0) 34%, transparent);
   border-radius: var(--world-panel-radius, var(--world-radius, 22px));
@@ -65,7 +74,15 @@ export const SignalRow = styled.div`
   }
 `;
 
-export const ReadinessDial = styled.div<{ $readiness: number }>`
+/**
+ * `.lens2-chart` is the FORM hook for the `chart.progress` recipe axis (Slice
+ * W0.2) — same reason as `.lens2-surface` above. The conic gradient is the
+ * DATA channel (readiness %): variant CSS may only reshape the geometry
+ * (footprint, ring thickness, numeral scale), never replace the gradient.
+ */
+export const ReadinessDial = styled.div.attrs<{ className?: string }>((props) => ({
+  className: ['lens2-chart', props.className].filter(Boolean).join(' '),
+}))<{ $readiness: number }>`
   width: clamp(126px, 15vw, 210px);
   aspect-ratio: 1;
   border-radius: var(--world-dial-radius, 50%);
