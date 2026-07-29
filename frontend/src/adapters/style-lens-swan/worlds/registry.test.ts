@@ -71,16 +71,13 @@ describe('World Engine · layer 1 completeness', () => {
     }
   });
 
-  it('the built set is the Golden Pair + Wave 1 (6 built, 19 planned)', () => {
-    expect(builtWorlds().map((e) => e.id).sort()).toEqual([
-      'aurora-index',
-      'candy-glass-arcade',
-      'coach-ledger',
-      'crystalline-cathedral',
-      'prism-terminal',
-      'quiet-meridian',
-    ]);
-    expect(plannedWorlds().length).toBe(19);
+  it('23 of 25 are built; 2 are deliberate chrome-only holdouts', () => {
+    // These two MUST stay planned: WorkoutDesignLab.styleAxis.test.tsx proves the
+    // v1-vs-v2 badge split AND the Compare contract where BOTH panes are chrome —
+    // that needs TWO still-chrome ids. Retiring the chrome-only concept entirely
+    // is Slice 15, Sean's go-live gate, not ours to take.
+    expect([...plannedWorlds().map((e) => e.id)].sort()).toEqual(['blueprint-fold', 'lunar-stack']);
+    expect(builtWorlds().length).toBe(23);
     expect(builtWorlds().length + plannedWorlds().length).toBe(25);
   });
 
@@ -96,7 +93,7 @@ describe('World Engine · layer 2 static-deterministic', () => {
   it('every built recipe validates clean, compiles clean, and uses the id convention', () => {
     for (const e of builtWorlds()) {
       expect(e.recipe).not.toBeNull();
-      const recipe = e.recipe!;
+      const recipe = e.recipe;
       expect(recipe.id).toBe(worldRecipeId(e.id));
       expect(recipe.id).toMatch(/^swan\.[a-z][a-z0-9-]{1,64}\.v2$/);
       expect(validateRecipeV2(recipe)).toEqual([]);
@@ -109,7 +106,7 @@ describe('World Engine · layer 2 static-deterministic', () => {
 
   it('built worlds are distinct: every pair differs on >= 3 axes', () => {
     const plans = builtWorlds().map((e) => {
-      const r = compileRecipe(e.recipe!, LAB_HOST_MANIFEST);
+      const r = compileRecipe(e.recipe, LAB_HOST_MANIFEST);
       if (!r.ok) throw new Error(`${e.id} must compile`);
       return { id: e.id, plan: r.plan };
     });
@@ -160,9 +157,9 @@ describe('World Engine · layer 2b every built world compiles on every rollout s
 
   it('compiles clean, degrading ONLY slots the recipe declares optional', () => {
     for (const world of builtWorlds()) {
-      const optional = new Set(world.recipe!.compatibility.optional ?? []);
+      const optional = new Set(world.recipe.compatibility.optional ?? []);
       for (const [surfaceName, manifest] of SURFACES) {
-        const result = compileRecipe(world.recipe!, manifest as SurfaceCapabilityManifest);
+        const result = compileRecipe(world.recipe, manifest as SurfaceCapabilityManifest);
         expect(result.ok, `${world.id} on ${surfaceName}: ${JSON.stringify(!result.ok && result.issues)}`)
           .toBe(true);
         if (!result.ok) continue;
@@ -181,7 +178,7 @@ describe('World Engine · layer 2b every built world compiles on every rollout s
     // The logger publishes no chart.progress slot, so the chart axis collapses
     // for every recipe — the strictest real distinctness test we can run today.
     const plans = builtWorlds().map((e) => {
-      const r = compileRecipe(e.recipe!, WORKOUT_LOGGER_MANIFEST);
+      const r = compileRecipe(e.recipe, WORKOUT_LOGGER_MANIFEST);
       if (!r.ok) throw new Error(`${e.id} must compile on the logger surface`);
       return { id: e.id, plan: r.plan };
     });
