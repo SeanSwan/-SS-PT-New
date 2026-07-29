@@ -19,7 +19,7 @@ export const CANDY_GLASS_ARCADE_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.candy-glass-arcade.v2',
   tokens: {
-    'world-title-font': "800 clamp(38px, 5vw, 76px)/1 Sora, sans-serif",
+    'world-title-font': "800 clamp(38px, 5vw, 76px)/1 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.02em',
     'world-panel-radius': '26px',
     'world-row-radius': '22px',

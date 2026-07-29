@@ -22,7 +22,7 @@ export const TERRAIN_CONSOLE_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.terrain-console.v2',
   tokens: {
-    'world-title-font': "700 clamp(26px, 3.1vw, 44px)/1.1 'Fira Code', monospace",
+    'world-title-font': "500 clamp(26px, 3.1vw, 44px)/1.1 'Fira Code', monospace",
     'world-letter-spacing': '0.015em',
     'world-panel-radius': '4px',
     'world-row-radius': '3px',

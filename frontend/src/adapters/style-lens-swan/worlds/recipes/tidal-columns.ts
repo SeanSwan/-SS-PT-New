@@ -22,7 +22,7 @@ export const TIDAL_COLUMNS_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.tidal-columns.v2',
   tokens: {
-    'world-title-font': "300 clamp(30px, 4vw, 60px)/1.16 'Plus Jakarta Sans', sans-serif",
+    'world-title-font': "400 clamp(30px, 4vw, 60px)/1.16 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '0.05em',
     'world-panel-radius': '24px',
     'world-row-radius': '999px',

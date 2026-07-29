@@ -18,7 +18,7 @@ export const PRISM_TERMINAL_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.prism-terminal.v2',
   tokens: {
-    'world-title-font': "700 clamp(26px, 3.2vw, 48px)/1.08 'Fira Code', monospace",
+    'world-title-font': "500 clamp(26px, 3.2vw, 48px)/1.08 'Fira Code', monospace",
     'world-letter-spacing': '0.01em',
     'world-panel-radius': '4px',
     'world-row-radius': '3px',

@@ -22,7 +22,7 @@ export const CHRONOGRAPH_BOARD_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.chronograph-board.v2',
   tokens: {
-    'world-title-font': "700 clamp(26px, 3.1vw, 44px)/1.08 'Fira Code', monospace",
+    'world-title-font': "500 clamp(26px, 3.1vw, 44px)/1.08 'Fira Code', monospace",
     'world-letter-spacing': '0.06em',
     'world-panel-radius': '2px',
     'world-row-radius': '2px',

@@ -22,7 +22,7 @@ export const MODULAR_HARBOR_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.modular-harbor.v2',
   tokens: {
-    'world-title-font': "750 clamp(30px, 3.9vw, 56px)/1.05 Sora, sans-serif",
+    'world-title-font': "700 clamp(30px, 3.9vw, 56px)/1.05 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.018em',
     'world-panel-radius': '16px',
     'world-row-radius': '14px',

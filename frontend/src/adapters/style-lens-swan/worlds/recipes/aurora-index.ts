@@ -16,7 +16,7 @@ export const AURORA_INDEX_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.aurora-index.v2',
   tokens: {
-    'world-title-font': "300 clamp(30px, 4vw, 60px)/1.15 'Plus Jakarta Sans', sans-serif",
+    'world-title-font': "400 clamp(30px, 4vw, 60px)/1.15 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '0.04em',
     'world-panel-radius': '20px',
     'world-row-radius': '16px',

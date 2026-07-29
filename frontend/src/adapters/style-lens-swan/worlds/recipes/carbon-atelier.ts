@@ -22,7 +22,7 @@ export const CARBON_ATELIER_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.carbon-atelier.v2',
   tokens: {
-    'world-title-font': "600 clamp(30px, 3.9vw, 58px)/1.1 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
+    'world-title-font': "400 clamp(30px, 3.9vw, 58px)/1.1 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
     'world-letter-spacing': '-0.008em',
     'world-panel-radius': '8px',
     'world-row-radius': '6px',
