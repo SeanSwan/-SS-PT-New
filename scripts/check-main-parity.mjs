@@ -47,6 +47,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 
 const REF = 'origin/main';
 
@@ -146,26 +147,61 @@ async function main() {
     buckets[existsAt(base, file) ? 'MAIN-DELETED' : 'BRANCH-NEW'].push(file);
   }
 
+  // Warn when the local ref may be old. MAIN-DELETED and BRANCH-NEW both DISCARD a finding, so a
+  // stale ref fails in the dangerous direction: a file that exists on the real main can be reported
+  // as "main already removed this" and the finding is silently dropped. The ref is a local cache;
+  // git never refreshes it on its own.
+  //
+  // "Old" is measured two ways and the fresher one wins. The tip commit's age alone claimed
+  // "origin/main is 3d old — run git fetch" right after a fetch whenever main had simply been quiet
+  // for 3 days — a false alarm that teaches people to ignore the one warning that matters.
+  // FETCH_HEAD's mtime fixes that, but only counts when that last fetch actually included main:
+  // fetching some other branch must not silence a warning about THIS ref going stale.
+  let freshness = null;
+  try {
+    let ageSec = Math.floor(Date.now() / 1000) - Number(git(['log', '-1', '--format=%ct', REF]));
+    let source = 'tip commit';
+    try {
+      // The main-line must belong to ORIGIN, not merely any remote: FETCH_HEAD records whatever
+      // was fetched last, and a `branch 'main' of <some fork>` line would freshen this signal
+      // while origin/main sits stale — the dangerous direction again. Both URL spellings are
+      // normalized (https/ssh, trailing .git) and compared exactly; any mismatch just falls back
+      // to tip-commit age, which only ever errs toward a louder warning.
+      const norm = (u) => u.trim().replace(/\.git$/, '')
+        .replace(/^[a-z+]+:\/\//, '').replace(/^git@/, '').replace(':', '/');
+      const originUrl = norm(git(['config', '--get', 'remote.origin.url']));
+      const fetchHead = git(['rev-parse', '--git-path', 'FETCH_HEAD']);
+      const fetchedOriginMain = fs.readFileSync(fetchHead, 'utf8').split('\n').some((line) => {
+        const m = line.match(/branch 'main' of (.+)$/);
+        return m !== null && norm(m[1]) === originUrl;
+      });
+      if (fetchedOriginMain) {
+        const fetchAgeSec = Math.floor((Date.now() - fs.statSync(fetchHead).mtimeMs) / 1000);
+        if (fetchAgeSec < ageSec) { ageSec = fetchAgeSec; source = 'last fetch of origin/main'; }
+      }
+    } catch { /* no origin, never fetched, or FETCH_HEAD unreadable — tip-commit age stands */ }
+    freshness = { hours: Math.floor(ageSec / 3600), source };
+  } catch { /* freshness stays null and is reported as unknown below */ }
+
+  const staleWarning = freshness && freshness.hours >= 24
+    ? `⚠ ${REF} may be stale (${freshness.source} is ${Math.floor(freshness.hours / 24)}d old) — `
+      + `run \`git fetch origin main\`; MAIN-DELETED verdicts may be wrong and they DISCARD findings.`
+    : null;
+
   if (quiet) {
+    // The warning matters MOST here: quiet mode is the machine-readable one feeding other tools,
+    // where a wrong MAIN-DELETED verdict drops a finding with no human looking. It previously
+    // exited before the staleness check ran at all. stderr keeps stdout clean for pipes.
+    if (staleWarning) console.error(staleWarning);
     for (const f of buckets['ON-MAIN']) console.log(f);
     process.exit(buckets['ON-MAIN'].length === paths.length ? 0 : 1);
   }
 
-  // Warn when the local ref is old. MAIN-DELETED and BRANCH-NEW both DISCARD a finding, so a stale
-  // ref fails in the dangerous direction: a file that exists on the real main can be reported as
-  // "main already removed this" and the finding is silently dropped. The ref is a local cache; git
-  // never refreshes it on its own.
-  let staleNote = '';
-  try {
-    const refAgeSec = Math.floor(Date.now() / 1000) - Number(git(['log', '-1', '--format=%ct', REF]));
-    const hours = Math.floor(refAgeSec / 3600);
-    if (hours >= 24) {
-      staleNote = `  ⚠ ${REF} is ${Math.floor(hours / 24)}d old — run \`git fetch origin main\`;`
-        + ' MAIN-DELETED verdicts may be wrong and they DISCARD findings.\n';
-    } else {
-      staleNote = `  ${REF} ref age: ${hours}h\n`;
-    }
-  } catch { staleNote = `  (could not determine ${REF} ref age)\n`; }
+  const staleNote = staleWarning
+    ? `  ${staleWarning}\n`
+    : freshness
+      ? `  ${REF} freshness: ${freshness.hours}h (${freshness.source})\n`
+      : `  (could not determine ${REF} freshness)\n`;
 
   console.log(`\n=== main-parity check (${paths.length} path(s) vs ${REF}) ===`);
   console.log(`  merge-base: ${base.slice(0, 12)}`);

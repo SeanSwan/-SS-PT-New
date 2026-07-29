@@ -32,13 +32,15 @@
  * default export — several files there define multiple models and have no default at all.
  * Files it cannot cover are listed by name, never hidden inside a count.
  *
- * EXIT CODES: 0 = every model healthy · 1 = at least one broken · 2 = could not connect.
+ * EXIT CODES: 0 = every model healthy · 1 = at least one broken · 2 = could not connect, or the
+ * audit queried zero models (a fault in the audit itself, never a clean bill of health).
  * The non-zero exit makes it usable as a CI gate once the known failures are resolved.
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { collectModelFiles } from './lib/model-files.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODELS_DIR = path.join(HERE, '..', 'models');
@@ -72,22 +74,11 @@ async function main() {
     process.exit(2);
   }
 
-  // Model files are PascalCase; skip helpers, index, and association wiring.
-  //
-  // MUST RECURSE. `models/` has subdirectories — `models/social/` and `models/financial/` hold 34
-  // model files. A flat readdirSync silently examined only the top level and reported a clean
-  // sweep having never opened them. An audit that misses 17% of its subjects while reporting
-  // completeness is the same failure class as reporting HEALTHY having queried nothing.
-  const files = [];
-  const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith('.mjs') && /^[A-Z]/.test(entry.name)) files.push(full);
-    }
-  };
-  walk(MODELS_DIR);
-  files.sort();
+  // The subject list is SHARED with audit-write-paths (lib/model-files.mjs) so the two audits can
+  // never examine different universes again — that drift is exactly how `contact.mjs` was
+  // write-audited but invisible here. The walk's hard-won rules (recurse into subdirectories, no
+  // case filter, wiring files excluded by exact name) live with the shared function.
+  const files = collectModelFiles(MODELS_DIR);
 
   const healthy = [];
   const broken = { MISSING_TABLE: [], BROKEN_COLUMN: [], OTHER: [] };
@@ -185,7 +176,7 @@ async function main() {
   if (total === 0) {
     console.log('\n  AUDIT FAILED: zero models were queried.');
     console.log('  This is a fault in the audit, not a clean bill of health.');
-    console.log(`  (${skipped} files skipped — check the import specifier and MODELS_DIR.)\n`);
+    console.log(`  (${skippedFiles.length} files skipped — check the import specifier and MODELS_DIR.)\n`);
     await sequelize.close();
     process.exit(2);
   }

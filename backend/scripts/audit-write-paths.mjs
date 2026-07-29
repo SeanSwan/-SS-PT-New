@@ -43,10 +43,11 @@
  *             2 = the audit itself failed (including examining zero models).
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { QueryTypes } from 'sequelize';
+
+import { collectModelFiles } from './lib/model-files.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND = path.resolve(HERE, '..');
@@ -63,9 +64,6 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('  2 = the audit itself failed (including examining zero models).');
   process.exit(0);
 }
-
-/** Files in models/ that are not themselves models. */
-const NOT_MODELS = new Set(['index.mjs', 'associations.mjs', 'setupAssociations.mjs']);
 
 async function main() {
   const { default: sequelize } = await import(pathToFileURL(path.join(BACKEND, 'database.mjs')).href);
@@ -86,23 +84,28 @@ async function main() {
     required.get(r.t).add(r.c);
   }
 
+  // The required-columns query alone cannot tell "table missing" from "table has no required
+  // columns" — both produce no map entry, and they mean OPPOSITE things: the first is
+  // audit-model-health's finding, the second means every INSERT is satisfiable and the model
+  // passes. Conflating them parked passing models in the skip bucket, understating the pass count
+  // and burying the real skips in noise.
+  const tableRows = await sequelize.query(
+    `SELECT table_name::text AS t
+       FROM information_schema.tables
+      WHERE table_schema = 'public'`,
+    { type: QueryTypes.SELECT, logging: false },
+  );
+  const allTables = new Set(tableRows.map((r) => r.t));
+
   const broken = [];
   const ok = [];
   const skipped = [];
 
-  // MUST RECURSE — `models/social/` and `models/financial/` hold 34 model files. The first version
-  // of this script used a flat readdirSync and examined only the top level, reporting "140 examined"
-  // as though that were the whole set. An audit blind to 17% of its subjects while presenting a
-  // complete-looking total is worse than no audit.
-  const modelFiles = [];
-  const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith('.mjs') && !NOT_MODELS.has(entry.name)) modelFiles.push(full);
-    }
-  };
-  walk(MODELS_DIR);
+  // The subject list is SHARED with audit-model-health (lib/model-files.mjs) so the two audits can
+  // never examine different universes again — that drift is exactly how `contact.mjs` was audited
+  // here but invisible to model-health. The walk's hard-won rules (recurse into subdirectories, no
+  // case filter, wiring files excluded by exact name) live with the shared function.
+  const modelFiles = collectModelFiles(MODELS_DIR);
 
   for (const fullPath of modelFiles) {
     const shortName = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
@@ -132,9 +135,15 @@ async function main() {
       const table = typeof raw === 'string' ? raw : raw.tableName;
 
       // No table -> that is audit-model-health's finding, not ours. Do not double-report.
+      if (!allTables.has(table)) {
+        skipped.push({ file, why: `table "${table}" absent — audit-model-health's finding` });
+        continue;
+      }
+
+      // Table exists but demands nothing: every INSERT is satisfiable. A pass, not a skip.
       const req = required.get(table);
       if (!req) {
-        skipped.push({ file, why: 'table absent or has no required columns' });
+        ok.push({ file, table });
         continue;
       }
 
@@ -155,12 +164,20 @@ async function main() {
   console.log(`  models examined  : ${examined}`);
   console.log(`  can INSERT       : ${ok.length}`);
   console.log(`  CANNOT INSERT    : ${broken.length}`);
-  console.log(`  skipped          : ${skipped.length} (no table, no required columns, or not a model)`);
+  console.log(`  skipped          : ${skipped.length} (listed below)`);
 
   for (const b of broken) {
     console.log(`\n  x ${b.file}  ->  ${b.table}`);
     console.log(`      required by the table but not declared by the model: ${b.missing.join(', ')}`);
     console.log('      every INSERT through this model fails: violates not-null constraint');
+  }
+
+  // Always list skips, never just count them — audit-model-health's own rule, and it applies here
+  // for the same reason: these are the models this audit could NOT speak for, and a bare count
+  // reads as noise. A named list can be challenged; a number cannot.
+  if (skipped.length) {
+    console.log('\n  --- SKIPPED (not covered by this audit) ---');
+    for (const { file, why } of skipped) console.log(`    ${file.padEnd(34)} ${why}`);
   }
 
   if (verbose) {

@@ -8,6 +8,8 @@
  *
  * WHAT THIS DOES: collects every named-import-from-a-bare-package statement in backend/, imports
  * each package for real, and checks each requested binding exists on the resolved namespace.
+ * Covered forms: single- AND double-quoted specifiers, `import { X }`, `import Default, { X }`,
+ * and `export { X } from 'pkg'` re-exports — each one is the same crash at module load.
  *
  * WHY IT EXISTS — this is one of the TWO crash classes CLAUDE.md rule 42 names:
  *   1. ERR_MODULE_NOT_FOUND                         -> a path that does not resolve
@@ -53,8 +55,18 @@ const SKIP_DIRS = new Set([
   'node_modules', '.git', '.understand-anything', 'coverage', 'dist', 'build', 'venv', '__pycache__',
 ]);
 
-/** `import { a, b as c } from 'pkg'` — bare specifiers only (no leading . or /). */
-const NAMED_IMPORT = /^import\s*\{([^}]+)\}\s*from\s*'([a-z@][a-z0-9@/._-]*)'/gim;
+/**
+ * `import { a, b as c } from 'pkg'` — bare specifiers only (no leading . or /).
+ *
+ * Statement shapes the first version silently missed — each one is the SAME load-time crash class,
+ * so a miss here is an invisible coverage hole, not a stylistic gap:
+ *   - double-quoted specifiers: real instances exist (sessionRoutes.mjs `from "uuid"`,
+ *     models/contact.mjs `from "sequelize"`) and were checked zero times
+ *   - `import Default, { X } from 'pkg'` — the named part crashes identically
+ *   - `export { X } from 'pkg'` — a named re-export binds X exactly like an import
+ */
+const NAMED_IMPORT =
+  /^(?:import|export)(?:\s+[A-Za-z_$][\w$]*\s*,)?\s*\{([^}]+)\}\s*from\s*(['"])([a-z@][a-z0-9@/._-]*)\2/gim;
 
 function collectStatements(root) {
   const found = new Map(); // "pkg::a,b" -> { pkg, names, files:Set }
@@ -79,7 +91,7 @@ function collectStatements(root) {
           .map((n) => n.trim().split(/\s+as\s+/)[0].trim())
           .filter(Boolean);
         if (!names.length) continue;
-        const pkg = match[2];
+        const pkg = match[3];
         const key = `${pkg}::${names.join(',')}`;
         if (!found.has(key)) found.set(key, { pkg, names, files: new Set() });
         found.get(key).files.add(path.relative(BACKEND, full).replace(/\\/g, '/'));
