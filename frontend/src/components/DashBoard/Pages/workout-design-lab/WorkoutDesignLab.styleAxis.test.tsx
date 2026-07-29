@@ -18,6 +18,9 @@ import { V2_RECIPE_BY_CATALOG_ID } from "../../../../adapters/style-lens-swan/v2
 // longer play the chrome role it used to.)
 const CHROME_ONLY_ID = "lunar-stack";
 const CHROME_ONLY_LABEL = "Lunar Stack";
+/** Compare needs a SECOND still-chrome style to prove the both-panes-chrome copy
+ *  and the two-independent-scoped-stages contract. Guarded below, same as A. */
+const CHROME_ONLY_ID_B = "blueprint-fold";
 
 const beginPreview = vi.fn();
 const cancelPreview = vi.fn();
@@ -335,6 +338,14 @@ describe("Workout Design Lab Style axis", () => {
     ).toBe(false);
   });
 
+  it("guard: CHROME_ONLY_ID_B is still chrome-only (Compare needs TWO chrome styles)", () => {
+    expect(
+      Object.prototype.hasOwnProperty.call(V2_RECIPE_BY_CATALOG_ID, CHROME_ONLY_ID_B),
+      `${CHROME_ONLY_ID_B} now has a v2 recipe — Compare's both-panes-chrome contract needs a ` +
+        `second still-chrome style; pick a fresh CHROME_ONLY_ID_B or retire the chrome concept (Slice 15)`,
+    ).toBe(false);
+  });
+
   it("A3: engine badge derives from map presence with the exact copy", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
@@ -402,12 +413,12 @@ describe("Workout Design Lab Style axis", () => {
     fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
     expect(screen.queryByRole("combobox", { name: /compare engine/i })).toBeNull();
 
-    // MIXED: A = candy (v2) · B = blueprint-fold (chrome).
+    // MIXED: A = candy (v2) · B = the second chrome-only style.
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
       target: { value: "candy-glass-arcade" },
     });
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
-      target: { value: "blueprint-fold" },
+      target: { value: CHROME_ONLY_ID_B },
     });
     const comparison = screen.getByRole("region", { name: /world and style comparison/i });
     const panes = within(comparison).getAllByTestId("comparison-panel");
@@ -428,7 +439,7 @@ describe("Workout Design Lab Style axis", () => {
       target: { value: CHROME_ONLY_ID },
     });
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
-      target: { value: "blueprint-fold" },
+      target: { value: CHROME_ONLY_ID_B },
     });
     const comparison = screen.getByRole("region", { name: /world and style comparison/i });
     let panes = within(comparison).getAllByTestId("comparison-panel");
@@ -473,7 +484,7 @@ describe("Workout Design Lab Style axis", () => {
       target: { value: CHROME_ONLY_ID },
     });
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
-      target: { value: "blueprint-fold" },
+      target: { value: CHROME_ONLY_ID_B },
     });
 
     const comparison = screen.getByRole("region", {
@@ -488,7 +499,7 @@ describe("Workout Design Lab Style axis", () => {
     expect(frames[0]).not.toBeNull();
     expect(frames[1]).not.toBeNull();
     expect(frames[0].getAttribute("data-style-lens")).toBe(CHROME_ONLY_ID);
-    expect(frames[1].getAttribute("data-style-lens")).toBe("blueprint-fold");
+    expect(frames[1].getAttribute("data-style-lens")).toBe(CHROME_ONLY_ID_B);
 
     for (const frame of frames) {
       const scrollRoot = frame.querySelector("[data-dashboard-scroll-root]");

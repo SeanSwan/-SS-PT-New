@@ -1,9 +1,5 @@
 // adapters/style-lens-swan/v2/catalogV2Map.ts
-import { CANDY_GLASS_ARCADE_RECIPE, PRISM_TERMINAL_RECIPE } from './labRecipes';
-import { AURORA_INDEX_RECIPE } from '../worlds/recipes/aurora-index';
-import { CRYSTALLINE_CATHEDRAL_RECIPE } from '../worlds/recipes/crystalline-cathedral';
-import { COACH_LEDGER_RECIPE } from '../worlds/recipes/coach-ledger';
-import { QUIET_MERIDIAN_RECIPE } from '../worlds/recipes/quiet-meridian';
+import { builtWorlds } from '../worlds/registry';
 import type { RecipeV2 } from '../../../core/style-lens-os/v2/recipeV2';
 
 /** Catalog chips carry v1 ids; this map declares which chips have a v2
@@ -14,16 +10,31 @@ import type { RecipeV2 } from '../../../core/style-lens-os/v2/recipeV2';
  * dashboard today)? The two originals do; v2-only new styles do NOT —
  * their Apply receipt + footer copy derive from this flag (§4.3). */
 export interface CatalogV2Entry { recipe: RecipeV2; dashboardChrome: boolean }
+
+/**
+ * World entries are DERIVED from the registry, not hand-listed. A hand-listed
+ * map is a drift surface: a world could be `built` in the registry (and pass
+ * every world-engine gate) while being invisible in the Lab because someone
+ * forgot a line here. Deriving makes "built" and "offered in the Lab" the same
+ * fact. All 25 roster ids ship a v1 chrome lens (LENS_STYLE_ALLOWLIST), so every
+ * world carries dashboardChrome: true; the v2 full-restyle still renders only in
+ * the Lab (the recipeResolution rollout gate stays closed) until Slice 15's
+ * Sean-gated flip.
+ */
+const WORLD_ENTRIES: Record<string, CatalogV2Entry> = Object.fromEntries(
+  builtWorlds().map((world) => [world.id, { recipe: world.recipe, dashboardChrome: true }]),
+);
+
+/**
+ * Non-world catalog styles (#27+) that get a v2 recipe without being part of the
+ * 25-world roster. Empty today; a v2-only style added here with
+ * dashboardChrome: false picks up the allowlist exemption below.
+ */
+const EXTRA_ENTRIES: Record<string, CatalogV2Entry> = {};
+
 export const V2_RECIPE_BY_CATALOG_ID: Readonly<Record<string, CatalogV2Entry>> = Object.freeze({
-  'candy-glass-arcade': { recipe: CANDY_GLASS_ARCADE_RECIPE, dashboardChrome: true },
-  'prism-terminal': { recipe: PRISM_TERMINAL_RECIPE, dashboardChrome: true },
-  // Wave 1 — all 25 ids ship a v1 chrome lens (LENS_STYLE_ALLOWLIST), so
-  // dashboardChrome is TRUE; the v2 full-restyle still renders only in the Lab
-  // (recipeResolution rollout gate stays closed) until Slice 15's Sean-gated flip.
-  'aurora-index': { recipe: AURORA_INDEX_RECIPE, dashboardChrome: true },
-  'crystalline-cathedral': { recipe: CRYSTALLINE_CATHEDRAL_RECIPE, dashboardChrome: true },
-  'coach-ledger': { recipe: COACH_LEDGER_RECIPE, dashboardChrome: true },
-  'quiet-meridian': { recipe: QUIET_MERIDIAN_RECIPE, dashboardChrome: true },
+  ...WORLD_ENTRIES,
+  ...EXTRA_ENTRIES,
 });
 
 /** F16 carve-out: v2-only styles (dashboardChrome: false) deliberately ship NO
