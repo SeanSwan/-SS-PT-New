@@ -126,6 +126,38 @@ describe('lens representation · vocabulary coverage (no inert axis)', () => {
   });
 });
 
+describe('lens representation · a11y + data-legibility bans (hostile round 3)', () => {
+  /** Every rule body that targets one of the hooks, keyed by hook. */
+  const bodiesFor = (hook: string): string[] =>
+    [...CSS.matchAll(new RegExp(`\\.${hook}[^{}]*\\{([^}]*)\\}`, 'g'))].map((m) => m[1]);
+
+  it('no clip-path on .lens2-surface — it would clip focus-visible outlines', () => {
+    // clip-path clips ALL descendant paint. The concept action buttons use
+    // `outline: 3px; outline-offset: 3px`, so a clipped panel silently breaks
+    // WCAG 2.4.7 for keyboard users in any host composition whose `.actions`
+    // padding is smaller than the ring.
+    for (const body of bodiesFor('lens2-surface')) {
+      expect(body, `clip-path found in a .lens2-surface rule: ${body}`).not.toMatch(/clip-path/);
+    }
+  });
+
+  it('no blur() on .lens2-chart — filter applies to the readiness numeral', () => {
+    for (const body of bodiesFor('lens2-chart')) {
+      expect(body, `blur() found in a .lens2-chart rule: ${body}`).not.toMatch(/\bblur\s*\(/);
+    }
+  });
+
+  it('no decorative outline on .lens2-chart — it reads as a focus indicator', () => {
+    for (const body of bodiesFor('lens2-chart')) {
+      expect(body, `outline found in a .lens2-chart rule: ${body}`).not.toMatch(/(^|[\s;])outline\s*:/);
+    }
+  });
+
+  it('the representation layer animates nothing (reduced-motion safe by construction)', () => {
+    expect(CSS).not.toMatch(/(^|[\s;])(animation|transition)\s*:/);
+  });
+});
+
 describe('lens representation · hooks are real (DOM proof through LensPlanFrame)', () => {
   const model = {
     exercises: [
