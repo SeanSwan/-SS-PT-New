@@ -75,7 +75,7 @@ async function main() {
 
   const healthy = [];
   const broken = { MISSING_TABLE: [], BROKEN_COLUMN: [], OTHER: [] };
-  let skipped = 0;
+  const skippedFiles = [];
 
   for (const fullPath of files) {
     // Display name stays relative to models/ so subdirectory models read as `social/SocialPost.mjs`
@@ -88,7 +88,7 @@ async function main() {
       // into the skip branch and made this script report "ALL MODELS HEALTHY" having queried none.
       mod = await import(pathToFileURL(fullPath).href);
     } catch {
-      skipped += 1; // could not be imported at all
+      skippedFiles.push({ file: shortName, why: 'import failed' });
       continue;
     }
 
@@ -99,7 +99,20 @@ async function main() {
     const models = Object.entries(mod)
       .filter(([, v]) => typeof v?.findOne === 'function' && typeof v?.getTableName === 'function');
 
-    if (!models.length) { skipped += 1; continue; }
+    if (!models.length) {
+      // Name what was skipped and why. Twice now this script has hidden a coverage gap behind a
+      // bare count ("skipped 11 non-model files") that read as noise and was never questioned.
+      // A skip that cannot be seen is indistinguishable from a subject that does not exist.
+      const factory = Object.values(mod).some((v) => typeof v === 'function' && v.length === 1
+        && typeof v.findOne !== 'function');
+      skippedFiles.push({
+        file: shortName,
+        why: factory
+          ? 'exports an uninitialised factory (sequelize) => Model — cannot be queried from here'
+          : 'no Sequelize model export',
+      });
+      continue;
+    }
 
     for (const [exportName, Model] of models) {
       // Disambiguate only when a file holds more than one model, so single-model files read cleanly.
@@ -118,7 +131,7 @@ async function main() {
     + broken.BROKEN_COLUMN.length + broken.OTHER.length;
 
   console.log('\n=== Sequelize model health (live DB) ===');
-  console.log(`  models queried : ${total}   (skipped ${skipped} non-model files)`);
+  console.log(`  models queried : ${total}   (skipped ${skippedFiles.length} files — listed below)`);
   console.log(`  HEALTHY        : ${healthy.length}`);
   console.log(`  MISSING TABLE  : ${broken.MISSING_TABLE.length}`);
   console.log(`  BROKEN COLUMN  : ${broken.BROKEN_COLUMN.length}`);
@@ -129,6 +142,17 @@ async function main() {
     console.log(`\n  --- ${bucket} ---`);
     for (const { file, detail } of broken[bucket]) {
       console.log(`    ${file.padEnd(34)} ${detail}`);
+    }
+  }
+
+  // Always list skips, never just count them. These are the models this audit could NOT speak for,
+  // and they must be as visible as the ones it could — that is the whole lesson of the two coverage
+  // holes above. A reader who sees only "skipped: 3" has no way to know whether that is noise or a
+  // blind spot.
+  if (skippedFiles.length) {
+    console.log('\n  --- SKIPPED (not covered by this audit) ---');
+    for (const { file, why } of skippedFiles) {
+      console.log(`    ${file.padEnd(34)} ${why}`);
     }
   }
 
