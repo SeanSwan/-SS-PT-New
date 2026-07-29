@@ -1,11 +1,22 @@
-# Netlify headers for SwanStudios
-# Better performance, security, and SEO
+# SwanStudios static-site headers
+#
+# ⚠ TRUTH NOTE (2026-07-28): Render does NOT read this file — it is a
+# Netlify/Cloudflare-Pages convention. Verified by live probe: none of the
+# headers previously listed here were served in production. The CANONICAL
+# header configuration for the deployed site lives in render.yaml
+# (swanstudios-frontend service → headers block). This file is kept only so
+# a future move to a _headers-honoring host starts from correct values, and
+# it must be kept in sync with render.yaml.
+#
+# ⚠ Do NOT set microphone=() or camera=() — Coach voice capture / dictation
+# and the food scanner run on this origin and need (self).
 
 /*
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Strict-Transport-Security: max-age=31536000
 
 # Cache static assets
 /static/*
@@ -14,14 +25,14 @@
 # Cache JS and CSS
 *.js
   Cache-Control: public, max-age=31536000, immutable
-*.css  
+*.css
   Cache-Control: public, max-age=31536000, immutable
 
 # Cache images
 *.jpg
   Cache-Control: public, max-age=31536000, immutable
 *.jpeg
-  Cache-Control: public, max-age=31536000, immutable  
+  Cache-Control: public, max-age=31536000, immutable
 *.png
   Cache-Control: public, max-age=31536000, immutable
 *.gif
