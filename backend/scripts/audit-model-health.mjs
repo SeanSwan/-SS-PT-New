@@ -84,6 +84,32 @@ async function main() {
   const broken = { MISSING_TABLE: [], BROKEN_COLUMN: [], OTHER: [] };
   const skippedFiles = [];
 
+  // Which model files DIFFER from origin/main?
+  //
+  // This audit runs THIS branch's model code against the PRODUCTION schema. Where the two disagree,
+  // the verdict describes code that is not deployed — and the failure is silent and confident.
+  // Proof case, 2026-07-29: `TrainerPermissions.mjs` is correct on this branch (fix `2a7b457a3`),
+  // so the audit reports HEALTHY — while `origin/main` still carries `field: 'trainer_id'` and is
+  // therefore still broken in production. Anyone re-running this from a diverged branch would
+  // conclude a live defect had been fixed.
+  //
+  // One `git diff --name-only` call, not one per model, so the cost is a single subprocess.
+  // Best-effort: if git is unavailable the audit still runs, it just cannot annotate.
+  let divergedFromMain = new Set();
+  try {
+    const { execFileSync } = await import('node:child_process');
+    const out = execFileSync('git', ['diff', '--name-only', 'origin/main', 'HEAD', '--', 'models'], {
+      cwd: path.join(MODELS_DIR, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    // `git diff --name-only` emits REPO-ROOT-relative paths (`backend/models/Foo.mjs`) regardless of
+    // cwd, while display names here are relative to models/ (`Foo.mjs`, `social/Bar.mjs`). Stripping
+    // only `models/` left every entry unmatched and the warning silently never fired — the same
+    // authoritative-looking silence this annotation exists to prevent.
+    divergedFromMain = new Set(
+      out.split('\n').filter(Boolean).map((p) => p.trim().replace(/^.*?models\//, '')),
+    );
+  } catch { /* no git, no origin/main, or detached — annotation is skipped, audit still valid */ }
+
   for (const fullPath of files) {
     // Display name stays relative to models/ so subdirectory models read as `social/SocialPost.mjs`
     // rather than an absolute path that blows out the column alignment below.
@@ -143,6 +169,25 @@ async function main() {
   console.log(`  MISSING TABLE  : ${broken.MISSING_TABLE.length}`);
   console.log(`  BROKEN COLUMN  : ${broken.BROKEN_COLUMN.length}`);
   console.log(`  OTHER          : ${broken.OTHER.length}`);
+
+  // Say plainly when a verdict may not describe deployed code. Without this the output reads as a
+  // statement about production, and for a diverged model it is not — see the divergedFromMain note.
+  if (divergedFromMain.size) {
+    const examinedFiles = new Set(
+      [...healthy, ...broken.MISSING_TABLE.map((b) => b.file),
+        ...broken.BROKEN_COLUMN.map((b) => b.file), ...broken.OTHER.map((b) => b.file)]
+        .map((f) => String(f).split(':')[0]),
+    );
+    const overlap = [...examinedFiles].filter((f) => divergedFromMain.has(f));
+    if (overlap.length) {
+      console.log('');
+      console.log(`  ⚠ ${overlap.length} examined model file(s) DIFFER from origin/main. For those,`);
+      console.log('    this verdict describes THIS BRANCH, not deployed code. Confirm against main');
+      console.log('    before treating a pass as "fixed in production" or a failure as live:');
+      for (const f of overlap.slice(0, 12)) console.log(`      ${f}`);
+      if (overlap.length > 12) console.log(`      … and ${overlap.length - 12} more`);
+    }
+  }
 
   for (const bucket of ['MISSING_TABLE', 'BROKEN_COLUMN', 'OTHER']) {
     if (!broken[bucket].length) continue;
