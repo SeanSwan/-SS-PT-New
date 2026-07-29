@@ -9,6 +9,15 @@ import {
   WORKOUT_DESIGN_STYLE_COUNT,
   WORKOUT_DESIGN_STYLE_LENSES,
 } from "./workoutDesignStyleCatalog";
+import { V2_RECIPE_BY_CATALOG_ID } from "../../../../adapters/style-lens-swan/v2/catalogV2Map";
+
+// A style id that is STILL chrome-only (no v2 recipe) — the chrome-vs-v2 tests
+// below need one. As world waves promote ids to v2, this must stay chrome; the
+// guard test asserts that loudly so the next builder picks a fresh one instead
+// of getting a silent false pass. (Wave 1 promoted quiet-meridian, so it can no
+// longer play the chrome role it used to.)
+const CHROME_ONLY_ID = "lunar-stack";
+const CHROME_ONLY_LABEL = "Lunar Stack";
 
 const beginPreview = vi.fn();
 const cancelPreview = vi.fn();
@@ -319,11 +328,22 @@ describe("Workout Design Lab Style axis", () => {
     ).toBeTruthy();
   });
 
+  it("guard: CHROME_ONLY_ID is still chrome-only (a wave that promotes it must pick a fresh one)", () => {
+    expect(
+      Object.prototype.hasOwnProperty.call(V2_RECIPE_BY_CATALOG_ID, CHROME_ONLY_ID),
+      `${CHROME_ONLY_ID} now has a v2 recipe — update CHROME_ONLY_ID/LABEL to another still-chrome style`,
+    ).toBe(false);
+  });
+
   it("A3: engine badge derives from map presence with the exact copy", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^style$/i }));
-    // quiet-meridian (committed default selection) is chrome-only.
+    // a chrome-only style shows the v1 badge...
+    fireEvent.click(
+      screen.getByRole("option", { name: new RegExp(`${CHROME_ONLY_LABEL} style lens`, "i") }),
+    );
     expect(screen.getByText("v1 · chrome system")).toBeTruthy();
+    // ...a v2 style shows the full-restyle badge.
     fireEvent.click(
       screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
     );
@@ -369,9 +389,9 @@ describe("Workout Design Lab Style axis", () => {
       screen.getByRole("option", { name: /Candy Glass Arcade style lens/i }),
     );
     expect(screen.getByText(/WHAT CHANGES vs current:/i)).toBeTruthy();
-    // Any other state keeps the shipped definition list.
+    // Any other state (selecting a chrome-only style) keeps the shipped definition list.
     fireEvent.click(
-      screen.getByRole("option", { name: /Quiet Meridian style lens/i }),
+      screen.getByRole("option", { name: new RegExp(`${CHROME_ONLY_LABEL} style lens`, "i") }),
     );
     expect(screen.queryByText(/WHAT CHANGES vs current:/i)).toBeNull();
     expect(screen.getByText("Signature")).toBeTruthy();
@@ -403,6 +423,10 @@ describe("Workout Design Lab Style axis", () => {
   it("A3: BOTH chrome-only panes carry the exact chrome copy; BOTH v2 keep axes-diff captions", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
+    // both panes chrome-only (A defaults to a now-v2 world, so set it explicitly)
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: CHROME_ONLY_ID },
+    });
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
       target: { value: "blueprint-fold" },
     });
@@ -444,6 +468,10 @@ describe("Workout Design Lab Style axis", () => {
     render(<WorkoutDesignLabPage />);
     fireEvent.click(screen.getByRole("tab", { name: /^compare$/i }));
 
+    // two chrome-only stages (A defaults to a now-v2 world, so set it explicitly)
+    fireEvent.change(screen.getByRole("combobox", { name: /compare style lens a/i }), {
+      target: { value: CHROME_ONLY_ID },
+    });
     fireEvent.change(screen.getByRole("combobox", { name: /compare style lens b/i }), {
       target: { value: "blueprint-fold" },
     });
@@ -459,7 +487,7 @@ describe("Workout Design Lab Style axis", () => {
     );
     expect(frames[0]).not.toBeNull();
     expect(frames[1]).not.toBeNull();
-    expect(frames[0].getAttribute("data-style-lens")).toBe("quiet-meridian");
+    expect(frames[0].getAttribute("data-style-lens")).toBe(CHROME_ONLY_ID);
     expect(frames[1].getAttribute("data-style-lens")).toBe("blueprint-fold");
 
     for (const frame of frames) {

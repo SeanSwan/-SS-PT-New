@@ -19,6 +19,10 @@ import type { RecipeV2 } from '../../../core/style-lens-os/v2/recipeV2';
 import { WORLD_FAMILY, WORLD_IDS, type WorldFamily, type WorldId } from './worldId';
 import { CANDY_GLASS_ARCADE_RECIPE } from './recipes/candy-glass-arcade';
 import { PRISM_TERMINAL_RECIPE } from './recipes/prism-terminal';
+import { AURORA_INDEX_RECIPE } from './recipes/aurora-index';
+import { CRYSTALLINE_CATHEDRAL_RECIPE } from './recipes/crystalline-cathedral';
+import { COACH_LEDGER_RECIPE } from './recipes/coach-ledger';
+import { QUIET_MERIDIAN_RECIPE } from './recipes/quiet-meridian';
 
 export type WorldStatus = 'built' | 'planned';
 
@@ -30,10 +34,15 @@ export interface WorldEntry {
   readonly recipe: RecipeV2 | null;
 }
 
-/** The only built worlds today; every other id is `planned` (recipe: null). */
+/** Built worlds (real v2 recipe); every other id is `planned` (recipe: null). */
 const BUILT_RECIPES: Partial<Record<WorldId, RecipeV2>> = {
   'candy-glass-arcade': CANDY_GLASS_ARCADE_RECIPE,
   'prism-terminal': PRISM_TERMINAL_RECIPE,
+  // Wave 1 (ranks 3–6): all 5 families + both auto-theme anchors represented.
+  'aurora-index': AURORA_INDEX_RECIPE,
+  'crystalline-cathedral': CRYSTALLINE_CATHEDRAL_RECIPE,
+  'coach-ledger': COACH_LEDGER_RECIPE,
+  'quiet-meridian': QUIET_MERIDIAN_RECIPE,
 };
 
 const buildEntry = (id: WorldId): WorldEntry => {

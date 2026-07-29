@@ -1,5 +1,9 @@
 // adapters/style-lens-swan/v2/catalogV2Map.ts
 import { CANDY_GLASS_ARCADE_RECIPE, PRISM_TERMINAL_RECIPE } from './labRecipes';
+import { AURORA_INDEX_RECIPE } from '../worlds/recipes/aurora-index';
+import { CRYSTALLINE_CATHEDRAL_RECIPE } from '../worlds/recipes/crystalline-cathedral';
+import { COACH_LEDGER_RECIPE } from '../worlds/recipes/coach-ledger';
+import { QUIET_MERIDIAN_RECIPE } from '../worlds/recipes/quiet-meridian';
 import type { RecipeV2 } from '../../../core/style-lens-os/v2/recipeV2';
 
 /** Catalog chips carry v1 ids; this map declares which chips have a v2
@@ -13,6 +17,13 @@ export interface CatalogV2Entry { recipe: RecipeV2; dashboardChrome: boolean }
 export const V2_RECIPE_BY_CATALOG_ID: Readonly<Record<string, CatalogV2Entry>> = Object.freeze({
   'candy-glass-arcade': { recipe: CANDY_GLASS_ARCADE_RECIPE, dashboardChrome: true },
   'prism-terminal': { recipe: PRISM_TERMINAL_RECIPE, dashboardChrome: true },
+  // Wave 1 — all 25 ids ship a v1 chrome lens (LENS_STYLE_ALLOWLIST), so
+  // dashboardChrome is TRUE; the v2 full-restyle still renders only in the Lab
+  // (recipeResolution rollout gate stays closed) until Slice 15's Sean-gated flip.
+  'aurora-index': { recipe: AURORA_INDEX_RECIPE, dashboardChrome: true },
+  'crystalline-cathedral': { recipe: CRYSTALLINE_CATHEDRAL_RECIPE, dashboardChrome: true },
+  'coach-ledger': { recipe: COACH_LEDGER_RECIPE, dashboardChrome: true },
+  'quiet-meridian': { recipe: QUIET_MERIDIAN_RECIPE, dashboardChrome: true },
 });
 
 /** F16 carve-out: v2-only styles (dashboardChrome: false) deliberately ship NO
