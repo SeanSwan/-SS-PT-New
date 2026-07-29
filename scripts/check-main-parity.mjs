@@ -33,6 +33,14 @@
  *   node scripts/check-main-parity.mjs backend/routes/foo.mjs backend/routes/bar.mjs
  *   <something that lists paths> | node scripts/check-main-parity.mjs
  *   node scripts/check-main-parity.mjs --quiet <paths>   # print only the ON-MAIN ones
+ *   node scripts/check-main-parity.mjs --help            # usage only
+ *
+ * PATHS ARE REPO-RELATIVE, always — git paths are resolved from the repo root regardless of your
+ * cwd. Run this from `backend/` and pass `models/User.mjs` and you get ABSENT, not ON-MAIN.
+ *
+ * Arguments and stdin are mutually exclusive: when arguments are present stdin is not read at all.
+ * Reading it unconditionally hung the process whenever stdin was inherited rather than closed,
+ * which is every non-interactive parent — CI, a shell script, another tool.
  *
  * EXIT CODES: 0 = every path is ON-MAIN (all findings real) · 1 = at least one is not
  *             (some findings are branch artefacts) · 2 = the check itself could not run.
