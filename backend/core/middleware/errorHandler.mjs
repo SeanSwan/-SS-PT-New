@@ -7,6 +7,7 @@
 import path from 'path';
 import { existsSync } from 'fs';
 import logger from '../../utils/logger.mjs';
+import { reportServerError } from '../../services/monitoring/errorReporter.mjs';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -46,12 +47,21 @@ export const setupErrorHandling = (app) => {
 
   // ===================== GLOBAL ERROR HANDLER =====================
   app.use((err, req, res, next) => {
+    const statusCode = err.status || 500;
+
     logger.error(`Unhandled error: ${err.message}`, {
       stack: err.stack,
       url: req.url,
       method: req.method,
       ip: req.ip
     });
+
+    // Capture, scrub and group the fault so the reassurance below is TRUE.
+    // Until 2026-07-29 this handler told users "Our team has been notified"
+    // while nothing notified anyone — a rule-75 violation in user-facing copy.
+    // reportServerError ignores 4xx, never captures a request body, and is
+    // fail-open: it can never break the response.
+    reportServerError({ err, req, statusCode });
 
     const errorResponse = {
       success: false,
@@ -60,7 +70,7 @@ export const setupErrorHandling = (app) => {
         : err.message || 'An unexpected error occurred',
     };
 
-    res.status(err.status || 500).json(errorResponse);
+    res.status(statusCode).json(errorResponse);
   });
 
   // ===================== PROCESS ERROR HANDLERS =====================
