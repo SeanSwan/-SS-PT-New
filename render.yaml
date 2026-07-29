@@ -97,6 +97,15 @@ services:
       - path: /*
         name: Strict-Transport-Security
         value: max-age=31536000
+      # Cache-delivery correctness (2026-07-29 audit): /v3/* bundles carry
+      # content hashes in their filenames — immutable by construction. Live
+      # probe showed EVERYTHING served no-store (hashed chunks re-downloaded
+      # every visit, zero CDN caching). The blunt no-store rule lives in the
+      # dashboard and must be replaced there too (SWA-93) until Blueprint
+      # sync is enabled; HTML/manifest/spa-sw.js correctly stay no-cache.
+      - path: /v3/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
       - path: /*
         name: Content-Security-Policy-Report-Only
         value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://ss-pt-new.onrender.com wss://ss-pt-new.onrender.com https://api.stripe.com https://models.readyplayer.me https://api.readyplayer.me; frame-src 'self' https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
