@@ -448,6 +448,16 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
+    // Long-form legal URL aliases — payment processors, app listings, and
+    // email footers commonly guess these shapes; they 404'd until 2026-07-28.
+    {
+      path: 'privacy-policy',
+      element: <Navigate to="/privacy" replace />
+    },
+    {
+      path: 'terms-of-service',
+      element: <Navigate to="/terms" replace />
+    },
 
     // Video Library (public)
     {

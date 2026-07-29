@@ -22,6 +22,13 @@ describe('legal pages launch gate', () => {
     expect(routes).toMatch(/pages\/legal\/TermsOfServicePage/);
   });
 
+  it('long-form legal URL aliases redirect instead of 404ing', () => {
+    // External parties (payment processors, app listings) guess these shapes.
+    const routes = read('routes/main-routes.tsx');
+    expect(routes).toMatch(/path:\s*'privacy-policy'/);
+    expect(routes).toMatch(/path:\s*'terms-of-service'/);
+  });
+
   it('footer keeps /privacy + /terms links and drops the dead /sitemap link', () => {
     const footer = read('components/Footer/Footer.tsx');
     expect(footer).toMatch(/to="\/privacy"/);

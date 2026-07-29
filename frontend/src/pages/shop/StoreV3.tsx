@@ -37,6 +37,7 @@ import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import api from '../../services/api.service';
 import { VIDEO } from '../../config/videoAssets';
+import { YEARS_EXPERIENCE_CLAIM } from '../../content/marketingStats';
 
 // Cinematic UI Components
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
@@ -870,7 +871,7 @@ const StoreV3: React.FC = () => {
 
             <ScrollReveal direction="up" delay={0.6} duration={0.8}>
               <HeroSubtitle>
-                25+ Years of Experience &amp; NASM-Guided Protocols
+                {YEARS_EXPERIENCE_CLAIM} Years of Experience &amp; NASM-Guided Protocols
               </HeroSubtitle>
             </ScrollReveal>
 

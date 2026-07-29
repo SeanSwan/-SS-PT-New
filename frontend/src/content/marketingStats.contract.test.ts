@@ -16,17 +16,24 @@ const read = (rel: string) => readFileSync(resolve(SRC, rel), 'utf8');
 /** Live consumers — MUST import the module. */
 const MODULE_CONSUMERS = [
   'pages/HomePage/components/shared/HomeData.ts',
-  'pages/HomePage/components/HomePage.V4.tsx',
   'pages/about/components/shared/AboutData.ts',
   'pages/about/About.V4.tsx',
   'pages/about/components/sections/HeroSection.tsx',
   'pages/gallery/VIPConversionModal.tsx',
   'components/DashBoard/UniversalDashboardLayout.routes.tsx',
   'components/BootcampBuilder/BootcampBuilderChrome.tsx',
+  // Store surfaces escaped the P1-2 lock and shipped "25+ Years" live
+  // (caught by the 2026-07-28 launch audit): V3 = mounted, V2 = lazy fallback.
+  'pages/shop/StoreV3.tsx',
+  'pages/shop/StoreV2.tsx',
 ];
 
 /** Import-free surfaces (fallbacks + string content) — claims must not contradict. */
 const FALLBACKS = [
+  // V4 stopped importing the module directly (stats flow through child
+  // sections/HomeData) — the direct-import assertion had been failing on main;
+  // reclassified 2026-07-28. Literal bans below still apply to it.
+  'pages/HomePage/components/HomePage.V4.tsx',
   'pages/HomePage/components/HomePage.V3.tsx',
   'pages/about/About.V3.tsx',
   'components/WhySwanStudios/WhySwanStudios.tsx',
