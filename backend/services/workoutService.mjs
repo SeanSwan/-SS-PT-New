@@ -256,37 +256,10 @@ async function createWorkoutSession(sessionData) {
       notes: sessionData.notes
     }, { transaction });
     
-    // If there are exercises, create them
-    if (sessionData.exercises && Array.isArray(sessionData.exercises)) {
-      for (let i = 0; i < sessionData.exercises.length; i++) {
-        const exerciseData = sessionData.exercises[i];
-        
-        // Create the workout exercise
-        const workoutExercise = await WorkoutExercise.create({
-          workoutSessionId: workoutSession.id,
-          exerciseId: exerciseData.exerciseId,
-          orderInWorkout: i + 1,
-          notes: exerciseData.notes,
-          isRehabExercise: exerciseData.isRehabExercise || false
-        }, { transaction });
-        
-        // Create the sets if they exist
-        if (exerciseData.sets && Array.isArray(exerciseData.sets)) {
-          const setsToCreate = exerciseData.sets.map((set, setIndex) => ({
-            workoutExerciseId: workoutExercise.id,
-            setNumber: setIndex + 1,
-            setType: set.setType || 'working',
-            repsGoal: set.repsGoal,
-            weightGoal: set.weightGoal,
-            restGoal: set.restGoal,
-            tempo: set.tempo
-          }));
-          
-          await Set.bulkCreate(setsToCreate, { transaction });
-        }
-      }
-    }
-    
+    // Workout-OS C5 FREEZE: the normalized WorkoutExercise/Set store is frozen —
+    // canonical sets live in workout_logs (POST /api/workout-forms). Readers keep
+    // serving any historical rows; NO new legacy rows are written from any lane.
+
     await transaction.commit();
     
     // Return the created session with all its associations
@@ -349,131 +322,10 @@ async function updateWorkoutSession(sessionId, sessionData) {
       intensityRating: sessionData.intensityRating || existingSession.intensityRating
     }, { transaction });
     
-    // If exercise updates are provided
-    if (sessionData.exercises && Array.isArray(sessionData.exercises)) {
-      // Get existing exercises
-      const existingExercises = await WorkoutExercise.findAll({
-        where: { workoutSessionId: sessionId }
-      });
-      
-      const existingExerciseMap = {};
-      existingExercises.forEach(ex => {
-        existingExerciseMap[ex.id] = ex;
-      });
-      
-      // Process each exercise
-      for (const exerciseData of sessionData.exercises) {
-        if (exerciseData.id && existingExerciseMap[exerciseData.id]) {
-          // Update existing exercise
-          const existingExercise = existingExerciseMap[exerciseData.id];
-          
-          await existingExercise.update({
-            performanceRating: exerciseData.performanceRating || existingExercise.performanceRating,
-            difficultyRating: exerciseData.difficultyRating || existingExercise.difficultyRating,
-            painLevel: exerciseData.painLevel !== undefined ? exerciseData.painLevel : existingExercise.painLevel,
-            formRating: exerciseData.formRating || existingExercise.formRating,
-            formNotes: exerciseData.formNotes || existingExercise.formNotes,
-            notes: exerciseData.notes !== undefined ? exerciseData.notes : existingExercise.notes,
-            startedAt: exerciseData.startedAt || existingExercise.startedAt,
-            completedAt: exerciseData.completedAt || existingExercise.completedAt
-          }, { transaction });
-          
-          // Update sets if provided
-          if (exerciseData.sets && Array.isArray(exerciseData.sets)) {
-            // Get existing sets
-            const existingSets = await Set.findAll({
-              where: { workoutExerciseId: existingExercise.id }
-            });
-            
-            const existingSetMap = {};
-            existingSets.forEach(set => {
-              existingSetMap[set.id] = set;
-            });
-            
-            // Process each set
-            for (const setData of exerciseData.sets) {
-              if (setData.id && existingSetMap[setData.id]) {
-                // Update existing set
-                const existingSet = existingSetMap[setData.id];
-                
-                await existingSet.update({
-                  repsCompleted: setData.repsCompleted !== undefined ? setData.repsCompleted : existingSet.repsCompleted,
-                  weightUsed: setData.weightUsed !== undefined ? setData.weightUsed : existingSet.weightUsed,
-                  duration: setData.duration !== undefined ? setData.duration : existingSet.duration,
-                  distance: setData.distance !== undefined ? setData.distance : existingSet.distance,
-                  restTaken: setData.restTaken !== undefined ? setData.restTaken : existingSet.restTaken,
-                  rpe: setData.rpe !== undefined ? setData.rpe : existingSet.rpe,
-                  notes: setData.notes !== undefined ? setData.notes : existingSet.notes,
-                  isPR: setData.isPR !== undefined ? setData.isPR : existingSet.isPR,
-                  completedAt: setData.completedAt || existingSet.completedAt
-                }, { transaction });
-              } else {
-                // Create new set
-                await Set.create({
-                  workoutExerciseId: existingExercise.id,
-                  setNumber: setData.setNumber || existingSets.length + 1,
-                  setType: setData.setType || 'working',
-                  repsGoal: setData.repsGoal,
-                  repsCompleted: setData.repsCompleted,
-                  weightGoal: setData.weightGoal,
-                  weightUsed: setData.weightUsed,
-                  duration: setData.duration,
-                  distance: setData.distance,
-                  restGoal: setData.restGoal,
-                  restTaken: setData.restTaken,
-                  rpe: setData.rpe,
-                  tempo: setData.tempo,
-                  notes: setData.notes,
-                  isPR: setData.isPR || false,
-                  completedAt: setData.completedAt
-                }, { transaction });
-              }
-            }
-          }
-        } else {
-          // Create new exercise
-          const newExercise = await WorkoutExercise.create({
-            workoutSessionId: sessionId,
-            exerciseId: exerciseData.exerciseId,
-            orderInWorkout: exerciseData.orderInWorkout || existingExercises.length + 1,
-            performanceRating: exerciseData.performanceRating,
-            difficultyRating: exerciseData.difficultyRating,
-            painLevel: exerciseData.painLevel || 0,
-            formRating: exerciseData.formRating,
-            formNotes: exerciseData.formNotes,
-            isRehabExercise: exerciseData.isRehabExercise || false,
-            notes: exerciseData.notes,
-            startedAt: exerciseData.startedAt,
-            completedAt: exerciseData.completedAt
-          }, { transaction });
-          
-          // Create sets if provided
-          if (exerciseData.sets && Array.isArray(exerciseData.sets)) {
-            const setsToCreate = exerciseData.sets.map((set, setIndex) => ({
-              workoutExerciseId: newExercise.id,
-              setNumber: set.setNumber || setIndex + 1,
-              setType: set.setType || 'working',
-              repsGoal: set.repsGoal,
-              repsCompleted: set.repsCompleted,
-              weightGoal: set.weightGoal,
-              weightUsed: set.weightUsed,
-              duration: set.duration,
-              distance: set.distance,
-              restGoal: set.restGoal,
-              restTaken: set.restTaken,
-              rpe: set.rpe,
-              tempo: set.tempo,
-              notes: set.notes,
-              isPR: set.isPR || false,
-              completedAt: set.completedAt
-            }));
-            
-            await Set.bulkCreate(setsToCreate, { transaction });
-          }
-        }
-      }
-    }
-    
+    // Workout-OS C5 FREEZE: the normalized WorkoutExercise/Set store is frozen —
+    // canonical sets live in workout_logs (POST /api/workout-forms). Readers keep
+    // serving any historical rows; NO new legacy rows are written from any lane.
+
     // If the session is completed, update client progress
     if (sessionData.status === 'completed' && (!existingSession.status || existingSession.status !== 'completed')) {
       await updateClientProgress(existingSession.userId, sessionId, transaction);
@@ -1606,39 +1458,10 @@ async function generateWorkoutSessions(planId, options = {}) {
           notes: day.notes
         }, { transaction });
         
-        // Get the exercises for this day
-        const exercises = day.exercises.sort((a, b) => a.orderInWorkout - b.orderInWorkout);
-        
-        // Create workout exercises
-        for (let i = 0; i < exercises.length; i++) {
-          const exerciseData = exercises[i];
-          
-          // Create the workout exercise
-          const workoutExercise = await WorkoutExercise.create({
-            workoutSessionId: session.id,
-            exerciseId: exerciseData.exerciseId,
-            orderInWorkout: exerciseData.orderInWorkout,
-            isRehabExercise: exerciseData.exercise?.isRehabExercise || false,
-            notes: exerciseData.notes
-          }, { transaction });
-          
-          // Parse set scheme and create sets
-          const setScheme = exerciseData.setScheme || '3x10';
-          const sets = parseSetScheme(setScheme);
-          
-          // Create the sets
-          for (let j = 0; j < sets.length; j++) {
-            await Set.create({
-              workoutExerciseId: workoutExercise.id,
-              setNumber: j + 1,
-              setType: j === 0 && sets.length > 1 ? 'warmup' : 'working',
-              repsGoal: exerciseData.repGoal ? parseInt(exerciseData.repGoal, 10) : sets[j],
-              restGoal: exerciseData.restPeriod,
-              tempo: exerciseData.tempo
-            }, { transaction });
-          }
-        }
-        
+        // Workout-OS C5 FREEZE: the normalized WorkoutExercise/Set store is frozen —
+        // canonical sets live in workout_logs (POST /api/workout-forms). Readers keep
+        // serving any historical rows; NO new legacy rows are written from any lane.
+
         createdSessions.push(session);
       }
     }
@@ -1656,35 +1479,6 @@ async function generateWorkoutSessions(planId, options = {}) {
   }
 }
 
-/**
- * Parse set scheme string (e.g., "3x10" or "5,5,5")
- * @param {string} setScheme - Set scheme string
- * @returns {Array<number>} Array of reps per set
- */
-function parseSetScheme(setScheme) {
-  // Default to 3 sets of 10 reps
-  if (!setScheme || typeof setScheme !== 'string') {
-    return [10, 10, 10];
-  }
-  
-  // Check for "sets x reps" format (e.g., "3x10")
-  if (setScheme.includes('x')) {
-    const parts = setScheme.split('x');
-    const sets = parseInt(parts[0], 10) || 3;
-    const reps = parseInt(parts[1], 10) || 10;
-    
-    return Array(sets).fill(reps);
-  }
-  
-  // Check for comma-separated values (e.g., "12,10,8")
-  if (setScheme.includes(',')) {
-    return setScheme.split(',').map(rep => parseInt(rep.trim(), 10) || 10);
-  }
-  
-  // Default to 3 sets of the specified reps (or 10 if invalid)
-  const reps = parseInt(setScheme, 10) || 10;
-  return [reps, reps, reps];
-}
 
 /**
  * Get client progress data
@@ -1976,5 +1770,4 @@ export default {
   calculateSetXP,
   calculateNewLevel,
   updateStreak,
-  parseSetScheme
 };
