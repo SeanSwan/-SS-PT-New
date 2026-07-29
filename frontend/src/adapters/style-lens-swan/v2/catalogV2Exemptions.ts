@@ -30,6 +30,19 @@ export interface CatalogV2Meta {
 }
 
 /**
+ * The MINIMAL shape the exemption builder needs. Declared structurally (and
+ * without an index signature, which interfaces do not satisfy) so a full
+ * `CatalogV2Entry` — which also carries the heavy recipe — is accepted too.
+ */
+type DashboardChromeBearing = {
+  readonly dashboardChrome: boolean;
+  /** Present on full `CatalogV2Entry` values and on inline literals in tests.
+   *  Declared (as unknown) purely so excess-property checking accepts those
+   *  literals; this module never reads it — that is the whole point of the split. */
+  readonly recipe?: unknown;
+};
+
+/**
  * Non-world catalog styles (#27+) that get a v2 recipe without being part of the
  * 25-world roster. Empty today. A v2-only style added here with
  * `dashboardChrome: false` picks up the allowlist exemption below; its recipe is
@@ -46,7 +59,10 @@ export const EXTRA_ENTRY_META: Readonly<Record<string, CatalogV2Meta>> = Object.
  * the Wave-1 gate still bites them.
  */
 export const buildV2OnlyAllowlistExemptions = (
-  meta: Readonly<Record<string, CatalogV2Meta>> = EXTRA_ENTRY_META,
+  // Structural, not nominal: this only ever READS `dashboardChrome`, so a full
+  // `CatalogV2Entry` (which also carries the heavy recipe) is accepted too —
+  // existing callers and tests pass those.
+  meta: Readonly<Record<string, DashboardChromeBearing>> = EXTRA_ENTRY_META,
 ): Readonly<Record<string, string>> =>
   Object.freeze(
     Object.fromEntries(
