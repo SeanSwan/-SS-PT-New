@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api.service';
+import { useAuth } from '../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -74,12 +75,14 @@ export interface UsageStatus {
 
 export function useSubscription(options: { withTiers?: boolean } = {}) {
   const { withTiers = true } = options;
+  const { isAuthenticated } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [usage, setUsage] = useState<UsageStatus | null>(null);
   const [tiers, setTiers] = useState<TierDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
+  const tiersFetchedRef = useRef(false);
+  const statusFetchedRef = useRef(false);
 
   /** Fetch current subscription status + usage */
   const fetchStatus = useCallback(async () => {
@@ -180,12 +183,28 @@ export function useSubscription(options: { withTiers?: boolean } = {}) {
   const hasCrystallineAccess = isElite || isTrial;
 
   useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchStatus();
-      if (withTiers) fetchTiers();
+    // Tiers are a PUBLIC endpoint — store/ascension tier cards need them
+    // even for signed-out visitors.
+    if (withTiers && !tiersFetchedRef.current) {
+      tiersFetchedRef.current = true;
+      fetchTiers();
     }
-  }, [fetchStatus, fetchTiers, withTiers]);
+    if (isAuthenticated) {
+      if (!statusFetchedRef.current) {
+        statusFetchedRef.current = true;
+        fetchStatus();
+      }
+    } else {
+      // /api/subscriptions/status is auth-only: calling it signed-out just
+      // logged a guaranteed 401 + console error on the public store page
+      // (2026-07-28 launch audit). Present signed-out defaults without the
+      // network call, and allow a fresh fetch after the next sign-in.
+      statusFetchedRef.current = false;
+      setSubscription(null);
+      setUsage(null);
+      setLoading(false);
+    }
+  }, [isAuthenticated, withTiers, fetchStatus, fetchTiers]);
 
   return {
     subscription,
