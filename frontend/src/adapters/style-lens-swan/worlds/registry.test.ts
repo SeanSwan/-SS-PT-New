@@ -31,6 +31,9 @@ import {
   PRISM_TERMINAL_RECIPE,
 } from '../v2/labRecipes';
 import { resolveRecipeForStyleLens } from '../v2/recipeResolution';
+import * as surfaceManifests from '../v2/surfaceManifests';
+import { WORKOUT_LOGGER_MANIFEST } from '../v2/surfaceManifests';
+import type { SurfaceCapabilityManifest } from '../../../core/style-lens-os/v2/capability-manifest.schema';
 
 // ── Layer 1: completeness ────────────────────────────────────────────────────
 describe('World Engine · layer 1 completeness', () => {
@@ -132,6 +135,64 @@ describe('World Engine · layer 2 static-deterministic', () => {
       expect(b.inpMs).toBeLessThanOrEqual(200);
       expect(b.cls).toBeLessThanOrEqual(0.1);
     }
+  });
+});
+
+// ── Layer 2b: EVERY built world against EVERY rollout surface ────────────────
+/**
+ * Hostile round 5. Before this, built worlds were only ever compiled against
+ * LAB_HOST_MANIFEST, and only the Golden Pair was ever compiled against a
+ * production surface (surfaceManifests.test.ts). Two gaps followed:
+ *  1. A Wave world could be Lab-valid and fail on a rollout surface — invisible
+ *     until Slice 15 flips the gate, i.e. in front of users.
+ *  2. Distinctness was measured ONLY on the chart-bearing Lab host. Five of the
+ *     six surfaces publish NO chart slot, so the chart axis degrades on both
+ *     sides of a pair and the axis count drops by one. A pair sitting at exactly
+ *     3 axes on the Lab host with chart as one of them is INDISTINCT on the
+ *     surfaces users actually see.
+ */
+describe('World Engine · layer 2b every built world compiles on every rollout surface', () => {
+  const SURFACES = Object.entries(surfaceManifests).filter(([name]) => name.endsWith('_MANIFEST'));
+
+  it('has all 6 surface manifests in scope (anti-vacuous guard)', () => {
+    expect(SURFACES.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('compiles clean, degrading ONLY slots the recipe declares optional', () => {
+    for (const world of builtWorlds()) {
+      const optional = new Set(world.recipe!.compatibility.optional ?? []);
+      for (const [surfaceName, manifest] of SURFACES) {
+        const result = compileRecipe(world.recipe!, manifest as SurfaceCapabilityManifest);
+        expect(result.ok, `${world.id} on ${surfaceName}: ${JSON.stringify(!result.ok && result.issues)}`)
+          .toBe(true);
+        if (!result.ok) continue;
+        for (const degradation of result.degradations) {
+          const slot = [...optional].find((s) => degradation.includes(s));
+          expect(
+            slot,
+            `${world.id} on ${surfaceName} degraded a NON-optional slot: ${degradation}`,
+          ).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it('stays pairwise >= 3 axes distinct on a surface with NO chart slot', () => {
+    // The logger publishes no chart.progress slot, so the chart axis collapses
+    // for every recipe — the strictest real distinctness test we can run today.
+    const plans = builtWorlds().map((e) => {
+      const r = compileRecipe(e.recipe!, WORKOUT_LOGGER_MANIFEST);
+      if (!r.ok) throw new Error(`${e.id} must compile on the logger surface`);
+      return { id: e.id, plan: r.plan };
+    });
+    plans.forEach((a, i) =>
+      plans.slice(i + 1).forEach((b) => {
+        expect(
+          changedAxisCount(whatChanged(a.plan, b.plan)),
+          `${a.id} vs ${b.id} on the chart-less logger surface`,
+        ).toBeGreaterThanOrEqual(3);
+      }),
+    );
   });
 });
 
