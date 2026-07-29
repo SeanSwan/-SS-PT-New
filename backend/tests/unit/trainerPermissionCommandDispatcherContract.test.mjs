@@ -86,8 +86,11 @@ describe('trainer permission command dispatchers', () => {
       permissionType: 'edit_workouts',
       grantedBy: 1,
       isActive: true,
-      reason: 'Temporary intake coverage',
+      // `notes` is the real trainer_permissions audit column; the drifted `reason`
+      // column never existed in the DB (schema verified 2026-07-29, rule 58).
+      notes: 'Temporary intake coverage',
     }));
+    expect(TrainerPermissions.create.mock.calls[0][0]).not.toHaveProperty('reason');
     expect(result).toEqual({
       trainerId: 7,
       trainerFound: true,
@@ -122,14 +125,17 @@ describe('trainer permission command dispatchers', () => {
     });
 
     expect(TrainerPermissions.findByPk).toHaveBeenCalledWith(9901);
+    // Real lifecycle columns are revokedAt + notes; the revoking admin is preserved inside
+    // the notes text because the table has no revoked-by column. The previously asserted
+    // deactivatedAt/deactivatedBy/reason fields never existed in the DB (rule 58).
     expect(permissionRow.update).toHaveBeenCalledWith(expect.objectContaining({
       isActive: false,
-      deactivatedBy: 1,
-      reason: 'Scope changed',
+      notes: 'Scope changed (revoked by admin 1)',
     }));
-    expect(permissionRow.update.mock.calls[0][0].deactivatedAt).toBeInstanceOf(Date);
-    expect(permissionRow.update.mock.calls[0][0]).not.toHaveProperty('notes');
-    expect(permissionRow.update.mock.calls[0][0]).not.toHaveProperty('revokedAt');
+    expect(permissionRow.update.mock.calls[0][0].revokedAt).toBeInstanceOf(Date);
+    expect(permissionRow.update.mock.calls[0][0]).not.toHaveProperty('deactivatedAt');
+    expect(permissionRow.update.mock.calls[0][0]).not.toHaveProperty('deactivatedBy');
+    expect(permissionRow.update.mock.calls[0][0]).not.toHaveProperty('reason');
     expect(result).toEqual({
       permissionId: 9901,
       permissionFound: true,

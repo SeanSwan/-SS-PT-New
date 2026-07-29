@@ -341,13 +341,14 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Create new permission
+    // Create new permission. The table's audit column is `notes` (there is no `reason` column);
+    // the API keeps accepting `reason` and maps it there.
     const permission = await TrainerPermissions.create({
       trainerId: parsedTrainerId,
       permissionType,
       grantedBy,
       expiresAt: parsedExpiration.date,
-      reason: reason || notes || null,
+      notes: reason || notes || null,
       isActive: true
     });
 
@@ -426,12 +427,15 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Revoke permission
+    // Revoke permission. Real audit columns are revokedAt + notes; the table has no revoked-by
+    // column, so the revoking admin is preserved inside the notes text.
+    const revokeNote = reason || notes || permission.notes;
     await permission.update({
       isActive: false,
-      deactivatedAt: new Date(),
-      deactivatedBy: revokedBy,
-      reason: reason || notes || permission.reason
+      revokedAt: new Date(),
+      notes: revokeNote
+        ? `${revokeNote} (revoked by admin ${revokedBy})`
+        : `Revoked by admin ${revokedBy}`
     });
 
     // Fetch updated permission with related data
@@ -525,10 +529,10 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Update expiration date
+    // Update expiration date (`notes` is the real audit column; no `reason` column exists)
     await permission.update({
       expiresAt: parsedExpiration.date,
-      reason: reason || notes || permission.reason
+      notes: reason || notes || permission.notes
     });
 
     // Fetch updated permission with related data

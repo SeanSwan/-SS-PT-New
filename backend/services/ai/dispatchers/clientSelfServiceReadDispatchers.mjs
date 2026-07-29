@@ -240,9 +240,13 @@ export const dispatchMyStreaksBadges = async (_params = {}, ctx = {}) => {
   const { UserAchievement } = getAllModels();
   const userId = selfUserId(ctx);
   const record = await getGamificationRecord(userId);
+  // "New" = earned but not yet notified. The table has no isNew column (rule 58, verified
+  // 2026-07-29) — the previous count on isNew threw against the live DB every time.
   const [completedAchievementCount, newAchievementCount] = await Promise.all([
     UserAchievement?.count ? UserAchievement.count({ where: { userId, isCompleted: true } }) : 0,
-    UserAchievement?.count ? UserAchievement.count({ where: { userId, isNew: true } }) : 0,
+    UserAchievement?.count
+      ? UserAchievement.count({ where: { userId, isCompleted: true, notificationSent: false } })
+      : 0,
   ]);
   const badges = Array.isArray(record?.badges) ? record.badges : [];
 

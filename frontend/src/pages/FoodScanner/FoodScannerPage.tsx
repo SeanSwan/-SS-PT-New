@@ -276,12 +276,20 @@ const NoResultsMessage = styled.div`
 `;
 
 // Types
+// /api/food-scanner/history returns a denormalized scan log (backend schema-truth fix
+// 2026-07-29): rows carry productName/productCode/imageUrl directly — there is NO nested
+// product object, and favorites/ratings need a DB migration before they can return (SWA-87).
+// The legacy optional fields below keep old code paths compile-safe; they are absent from
+// API responses today, so every consumer must optional-chain them.
 interface ScanHistoryItem {
   id: number;
   scanDate: string;
+  productName: string;
+  productCode?: string | null;
+  imageUrl?: string | null;
   userRating?: number | null;
-  isFavorite: boolean;
-  product: FoodProduct;
+  isFavorite?: boolean;
+  product?: FoodProduct;
 }
 
 const HISTORY_ERROR_COPY = 'Scan history is temporarily unavailable. Please try again.';
@@ -425,8 +433,9 @@ const FoodScannerPage: React.FC = () => {
     if (!isAuthenticated || !scannedProduct) return;
     
     try {
-      // Find the scan in history
-      const scan = scanHistory.find(item => item.product.id === scannedProduct.id);
+      // Find the scan in history (history rows carry no product object today — this only
+      // matches legacy-shaped rows, and the favorites endpoint answers 400 until SWA-87 lands)
+      const scan = scanHistory.find(item => item.product?.id === scannedProduct.id);
       
       if (scan) {
         // Update existing scan
@@ -608,7 +617,7 @@ const FoodScannerPage: React.FC = () => {
                         onAddToLog={isAuthenticated ? handleAddToLog : undefined}
                         logLoading={logLoading}
                         isFavorite={scanHistory.some(item =>
-                          item.product.id === scannedProduct.id && item.isFavorite
+                          item.product?.id === scannedProduct.id && item.isFavorite
                         )}
                       />
                       
@@ -688,26 +697,26 @@ const FoodScannerPage: React.FC = () => {
               ) : (
                 <ScanHistoryList>
                   {scanHistory.map((scan) => (
-                    <ScanHistoryItem 
+                    <ScanHistoryItem
                       key={scan.id}
-                      onClick={() => handleHistoryItemClick(scan.product)}
+                      onClick={() => scan.product && handleHistoryItemClick(scan.product)}
                     >
-                      <ScanHistoryImage 
-                        style={{ 
-                          backgroundImage: `url(${scan.product.imageUrl || '/placeholder-product.jpg'})` 
+                      <ScanHistoryImage
+                        style={{
+                          backgroundImage: `url(${scan.product?.imageUrl || scan.imageUrl || '/placeholder-product.jpg'})`
                         }}
                       />
                       <ScanHistoryContent>
-                        <ScanHistoryName>{scan.product.name}</ScanHistoryName>
+                        <ScanHistoryName>{scan.product?.name ?? scan.productName}</ScanHistoryName>
                         <ScanHistoryDetails>
-                          <div>{scan.product.brand || 'Unknown Brand'}</div>
+                          <div>{scan.product?.brand || scan.productCode || 'Unknown Brand'}</div>
                           <div>
                             {new Date(scan.scanDate).toLocaleDateString()}
                           </div>
                         </ScanHistoryDetails>
                       </ScanHistoryContent>
-                      <ScanHistoryRating rating={scan.product.overallRating}>
-                        {foodScannerRatingLabel(scan.product.overallRating)}
+                      <ScanHistoryRating rating={scan.product?.overallRating ?? ''}>
+                        {foodScannerRatingLabel(scan.product?.overallRating ?? '')}
                       </ScanHistoryRating>
                       {scan.isFavorite && (
                         <div style={{ color: '#ffc107', fontSize: '1.2rem' }}>★</div>

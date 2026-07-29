@@ -730,9 +730,13 @@ const progressController = {
     try {
       const { UserAchievement } = models;
       if (!UserAchievement) return { total: 0, recent: [] };
+      // Real columns are isCompleted/earnedAt (rule 58, verified 2026-07-29). The previous
+      // where clause used isUnlocked/unlockedAt — fields that never existed in ANY version of
+      // this model — so this query always threw and the catch below silently returned zero
+      // achievements to the progress surface.
       const achievements = await UserAchievement.findAll({
-        where: { userId, isUnlocked: true },
-        order: [['unlockedAt', 'DESC']],
+        where: { userId, isCompleted: true },
+        order: [['earnedAt', 'DESC']],
         limit: 5,
         raw: true,
       });

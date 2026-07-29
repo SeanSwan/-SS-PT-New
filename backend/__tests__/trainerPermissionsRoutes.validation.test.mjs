@@ -202,13 +202,16 @@ describe('trainer permission grant validation', () => {
     expect(trainerFindOne).toHaveBeenCalledWith({
       where: { id: 901, role: 'trainer' },
     });
+    // `notes` is the real trainer_permissions audit column — no `reason` column exists
+    // (schema verified against information_schema 2026-07-29, rule 58).
     expect(permissionCreate).toHaveBeenCalledWith(expect.objectContaining({
       trainerId: 901,
       permissionType: 'edit_workouts',
       expiresAt: expect.any(Date),
       isActive: true,
-      reason: 'Temporary coverage',
+      notes: 'Temporary coverage',
     }));
+    expect(permissionCreate.mock.calls[0][0]).not.toHaveProperty('reason');
   });
 
   it('rejects malformed permission IDs before revoking permissions', async () => {
@@ -240,7 +243,7 @@ describe('trainer permission grant validation', () => {
   it('uses model-backed lifecycle fields when revoking permissions', async () => {
     const update = vi.fn().mockResolvedValue(undefined);
     permissionFindByPk
-      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, reason: 'Existing reason', update })
+      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, notes: 'Existing note', update })
       .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts' });
 
     const response = await request(app)
@@ -248,12 +251,16 @@ describe('trainer permission grant validation', () => {
       .send({ reason: 'Coverage period ended' });
 
     expect(response.status).toBe(200);
+    // Real lifecycle columns are revokedAt + notes; the revoking admin is folded into the
+    // notes text because the table has no revoked-by column (rule 58, verified 2026-07-29).
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       isActive: false,
-      deactivatedAt: expect.any(Date),
-      deactivatedBy: 1,
-      reason: 'Coverage period ended',
+      revokedAt: expect.any(Date),
+      notes: 'Coverage period ended (revoked by admin 1)',
     }));
+    expect(update.mock.calls[0][0]).not.toHaveProperty('deactivatedAt');
+    expect(update.mock.calls[0][0]).not.toHaveProperty('deactivatedBy');
+    expect(update.mock.calls[0][0]).not.toHaveProperty('reason');
   });
 
   it('rejects invalid extension dates before permission lookup', async () => {
@@ -273,7 +280,7 @@ describe('trainer permission grant validation', () => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const update = vi.fn().mockResolvedValue(undefined);
     permissionFindByPk
-      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, reason: 'Existing reason', update })
+      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, notes: 'Existing note', update })
       .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts' });
 
     const response = await request(app)
@@ -282,10 +289,12 @@ describe('trainer permission grant validation', () => {
 
     expect(response.status).toBe(200);
     expect(permissionFindByPk).toHaveBeenNthCalledWith(1, 12);
+    // `notes` is the real audit column (rule 58) — the API still accepts `reason` and maps it.
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       expiresAt: expect.any(Date),
-      reason: 'Extended',
+      notes: 'Extended',
     }));
+    expect(update.mock.calls[0][0]).not.toHaveProperty('reason');
     expect(permissionFindByPk).toHaveBeenNthCalledWith(2, 12, expect.any(Object));
   });
 });
