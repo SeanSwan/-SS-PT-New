@@ -35,7 +35,8 @@
     "code-health:dupes": "fallow dupes --format json",
     "code-health:health": "fallow health --format json",
     "code-health:fix-preview": "fallow fix --dry-run --format json",
-    "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"
+    "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json",
+    "check:main-parity": "node scripts/check-main-parity.mjs"
   },
   "devDependencies": {
     "fallow": "^2.88.3",
