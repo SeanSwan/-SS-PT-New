@@ -7,6 +7,11 @@
  * shatters into sprinkles of bokeh. Surface fit: storefront, gamified dashboard,
  * onboarding. (Master build prompt §1.)
  *
+ * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout
+ * surface with no chart slot — the strictest host): rounded-athletic display /
+ * soft-sans body / floating-candy surface / arcade-cards collection / glass-dock
+ * action / arcade-meter chart / playfield-stack template.
+ *
  * Moved verbatim from `v2/labRecipes.ts` in Slice 1 (values byte-identical →
  * compiled plan unchanged). Law A: chrome stays Crystalline Swan tokens; the
  * world paints only the setting via `--world-*` (LensPlanFrame maps `lens2-*`).

@@ -7,6 +7,11 @@
  * bands, each band becomes a data stream. Surface fit: Coach console, analytics.
  * (Master build prompt §1.)
  *
+ * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout
+ * surface with no chart slot — the strictest host): compact-technical-mono display /
+ * terminal-mono body / faceted-console surface / command-rows collection /
+ * command-rail action / telemetry-columns chart / operator-grid template.
+ *
  * Moved verbatim from `v2/labRecipes.ts` in Slice 1 (values byte-identical →
  * compiled plan unchanged). Law A: chrome stays Crystalline Swan tokens.
  */
