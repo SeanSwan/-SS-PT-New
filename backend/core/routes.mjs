@@ -307,7 +307,22 @@ export const setupRoutes = async (app) => {
 
   // ===================== USER MANAGEMENT ROUTES =====================
   app.use('/api/auth', userManagementRoutes);
-  // REMOVED: app.use('/api/sessions', sessionRoutes); - replaced by unified sessionsRoutes below
+  // NOTE (corrected 2026-07-28, SWA-71): the DIRECT mount of sessionRoutes was removed here, but
+  // sessionRoutes is STILL SERVED — it is mounted at routes/api.mjs:26 and reaches requests through
+  // the `app.use('/api', apiRoutes)` fallback further down this file. The previous comment said
+  // "REMOVED" without qualification, which read as "this router is gone". It is not.
+  //
+  // It survives because 4 admin endpoints exist ONLY there and nowhere else:
+  //   POST /api/sessions/allocate-from-order   GET /api/sessions/user-summary/:userId
+  //   POST /api/sessions/add-to-user           GET /api/sessions/allocation-health
+  // All four are protect + adminOnly. Migrating them into sessions.mjs is the real fix; until then
+  // this is a KNOWN, INTENTIONAL competing surface rather than an accidental one. Tracked on SWA-71.
+  //
+  // Anything single-segment under /api/sessions is claimed first by sessions.mjs, which is mounted
+  // here at line ~384. A path that exists ONLY in sessionRoutes is therefore unreachable by GET —
+  // it will either hit a real sessions.mjs route or fall into `router.get("/:id")` and return
+  // `400 Invalid session id`. Do NOT add new single-segment routes to sessionRoutes; they will be
+  // dead on arrival, and dead-but-present routes are how unguarded copies survive unnoticed.
   app.use('/api/session-packages', sessionPackageRoutes);
   app.use('/api/packages', packageRoutes);
 

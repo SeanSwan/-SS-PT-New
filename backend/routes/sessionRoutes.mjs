@@ -206,17 +206,6 @@ const buildRecurrenceDates = ({ startDate, recurrenceRule }) => {
   return dates;
 };
 
-// Session management test endpoint with real-time service health
-router.get('/test', (req, res) => {
-  const realTimeHealth = realTimeScheduleService.getServiceHealth();
-  
-  res.json({ 
-    message: 'Session API is working!',
-    realTimeService: realTimeHealth,
-    timestamp: new Date().toISOString()
-  });
-});
-
 /**
  * @route   POST /api/sessions/allocate-from-order
  * @desc    Manually allocate sessions from completed order (Admin)
@@ -2464,39 +2453,12 @@ router.get("/analytics", protect, async (req, res) => {
  * @desc    ADMIN & CLIENT: Get all available sessions.
  * @access  Public
  */
-router.get("/available", async (req, res) => {
-  try {
-    const Session = getSession();
-    const User = getUser();
-    const availableSessions = await Session.findAll({
-      where: { 
-        status: "available",
-        sessionDate: {
-          [Op.gt]: new Date() // Only future sessions
-        }
-      },
-      include: [
-        {
-          model: User,
-          as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'specialties', 'photo'],
-          required: false
-        }
-      ],
-      order: [['sessionDate', 'ASC']]
-    });
-    
-    res.json(availableSessions);
-  } catch (error) {
-    console.error("Error fetching available sessions:", error.message);
-    res.status(500).json({ message: "Server error fetching sessions." });
-  }
-});
-
-/**
- * POST /api/sessions/recurring
- * Admin route: Create recurring available slots
- */
+// GET /available REMOVED from this file (2026-07-28, SWA-71).
+// It was a DUPLICATE: `routes/sessions.mjs` already defines `/available` with `protect`, declared
+// before `/:id`, and that copy is the one that has always served the frontend. This copy had NO
+// auth guard and was dead — unreachable because the unified router is mounted first. Two copies of
+// one endpoint, one guarded and one not, is how the guardless copy stays alive unnoticed.
+// Do not re-add it here; sessions.mjs owns this route.
 router.post("/recurring", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
