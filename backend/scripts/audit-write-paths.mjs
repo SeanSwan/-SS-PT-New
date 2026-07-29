@@ -52,6 +52,17 @@ const BACKEND = path.resolve(HERE, '..');
 const MODELS_DIR = path.join(BACKEND, 'models');
 const verbose = process.argv.includes('--verbose');
 
+// `--help` must NOT run the audit. Without this, asking for documentation opened a connection and
+// fired a schema-wide query against PRODUCTION — surprising, and the opposite of what the flag
+// promises. Exit 0: asking for help is not a failure.
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log('usage: node backend/scripts/audit-write-paths.mjs [--verbose]');
+  console.log('  Finds models that can never INSERT: a NOT NULL column with no default that the');
+  console.log('  model does not declare. Read-only. Exit 0 = all can insert, 1 = some cannot,');
+  console.log('  2 = the audit itself failed (including examining zero models).');
+  process.exit(0);
+}
+
 /** Files in models/ that are not themselves models. */
 const NOT_MODELS = new Set(['index.mjs', 'associations.mjs', 'setupAssociations.mjs']);
 

@@ -38,6 +38,16 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODELS_DIR = path.join(HERE, '..', 'models');
 const verbose = process.argv.includes('--verbose');
 
+// `--help` must NOT run the audit — see audit-write-paths.mjs. Asking for documentation should not
+// connect to PRODUCTION and issue a findOne per model. Exit 0: asking for help is not a failure.
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log('usage: node backend/scripts/audit-model-health.mjs [--verbose]');
+  console.log('  Runs a real findOne() through every model against the live DB and classifies');
+  console.log('  failures (missing table / broken column). Read-only. Exit 0 = all healthy,');
+  console.log('  1 = at least one broken, 2 = could not connect or queried nothing.');
+  process.exit(0);
+}
+
 /** Classify a Sequelize error into an actionable bucket. */
 function classify(message) {
   const first = String(message).split('\n')[0];

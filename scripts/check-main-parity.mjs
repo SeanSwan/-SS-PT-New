@@ -83,6 +83,18 @@ async function readStdin() {
 }
 
 async function main() {
+  // `--help` exits 0, matching the audit scripts. Previously it fell through to the no-paths branch
+  // and exited 2, so `tool --help || echo failed` reported a failure for a successful help request.
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    console.log('usage: node scripts/check-main-parity.mjs [--quiet] <repo-relative path>...');
+    console.log('       <something listing paths> | node scripts/check-main-parity.mjs [--quiet]');
+    console.log('  Classifies each path against origin/main so a stale branch cannot masquerade');
+    console.log('  as a dead-file finding: ON-MAIN (real) / MAIN-DELETED (already cleaned up) /');
+    console.log('  BRANCH-NEW (WIP) / ABSENT. --quiet prints only the real ones.');
+    console.log('  Exit 0 = every path real, 1 = some are branch artefacts, 2 = check failed.');
+    process.exit(0);
+  }
+
   const quiet = process.argv.includes('--quiet');
   const argPaths = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   // Arguments win outright — do NOT touch stdin when they are present, or the process hangs.

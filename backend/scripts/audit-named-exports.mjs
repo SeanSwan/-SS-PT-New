@@ -38,6 +38,16 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND = path.resolve(HERE, '..');
 const verbose = process.argv.includes('--verbose');
 
+// `--help` must NOT run the audit — see audit-write-paths.mjs. This one imports every third-party
+// package in the backend, so a help request was doing real work for nothing.
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log('usage: node backend/scripts/audit-named-exports.mjs [--verbose]');
+  console.log('  Imports every bare package named in a `import { X } from "pkg"` and checks that');
+  console.log('  binding X actually exists — CLAUDE.md rule 42 crash class 2. Exit 0 = all');
+  console.log('  resolve, 1 = at least one missing, 2 = the audit itself failed.');
+  process.exit(0);
+}
+
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.understand-anything', 'coverage', 'dist', 'build', 'venv', '__pycache__',
 ]);
