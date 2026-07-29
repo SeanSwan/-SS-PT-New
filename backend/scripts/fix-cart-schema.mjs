@@ -26,9 +26,50 @@ import { QueryTypes } from 'sequelize';
 /**
  * Fixes database schema issues with cart and storefront tables
  */
+/**
+ * Refuse to run against a database we cannot PROVE is local.
+ *
+ * WHY: further down, this script runs an UNSCOPED `DELETE FROM shopping_carts` (no WHERE clause)
+ * whenever `shopping_carts.userId` is not already of type `uuid`. It imports `../database.mjs`,
+ * which per CLAUDE.md connects local dev to the PRODUCTION database for local/prod parity.
+ *
+ * THIS IS ARMED, NOT DORMANT — verified 2026-07-29 against production:
+ *   shopping_carts.userId = "integer"   ->  the !== 'uuid' branch is TRUE
+ *   shopping_carts rows   = 8            ->  real user carts would be deleted
+ *
+ * And the conversion it then attempts is almost certainly unwanted: the rest of the schema settled
+ * on INTEGER user ids ("Users".id is integer), so migrating this one column to UUID would fight the
+ * established design. Treat this script as stale until someone confirms that intent.
+ *
+ * `npm run fix-cart` reads like a harmless repair. It is not. Fail-closed: prove local, or refuse.
+ * Same ALLOW_DESTRUCTIVE_DB_RESET flag as scripts/setup-complete.mjs and reset-db-sequelize.mjs —
+ * one flag to reason about rather than a bespoke gate per script.
+ */
+function assertSafeToDeleteCarts() {
+  const dbUrl = process.env.DATABASE_URL || '';
+  const isProvablyLocal = /(localhost|127\.0\.0\.1)/i.test(dbUrl);
+
+  if (isProvablyLocal) return;
+
+  if (process.env.ALLOW_DESTRUCTIVE_DB_RESET !== 'true') {
+    throw new Error(
+      'REFUSING: DATABASE_URL is not provably local, and this script can run an unscoped\n'
+      + '  DELETE FROM shopping_carts (verified armed: userId is "integer", not "uuid").\n'
+      + '  It would then convert userId to UUID, which conflicts with the integer user ids the\n'
+      + '  rest of the schema uses — confirm that is still intended before running this at all.\n'
+      + '  To proceed anyway: ALLOW_DESTRUCTIVE_DB_RESET=true npm run fix-cart',
+    );
+  }
+
+  console.warn('⚠  ALLOW_DESTRUCTIVE_DB_RESET=true — may DELETE ALL shopping carts on a NON-LOCAL database.');
+}
+
 async function fixCartSchema() {
+  // Guard before opening a transaction or touching anything.
+  assertSafeToDeleteCarts();
+
   const transaction = await sequelize.transaction();
-  
+
   try {
     console.log('----- Database Schema Fix Script -----');
     
