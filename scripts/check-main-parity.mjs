@@ -48,16 +48,33 @@ function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-/** `git cat-file -e <rev>:<path>` exits non-zero when the blob does not exist. */
+/**
+ * Does a FILE exist at this rev?
+ *
+ * Must check the object TYPE, not merely existence. `git cat-file -e <rev>:<path>` succeeds for a
+ * TREE as well as a blob, so passing a directory reported "ON-MAIN — finding is REAL" with full
+ * confidence. Same failure class as the backslash bug: input that is not what the tool assumes,
+ * silently given an authoritative-looking verdict. Only a blob is a file.
+ */
 function existsAt(rev, file) {
   try {
-    execFileSync('git', ['cat-file', '-e', `${rev}:${file}`], { stdio: 'ignore' });
-    return true;
+    const type = execFileSync('git', ['cat-file', '-t', `${rev}:${file}`], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return type === 'blob';
   } catch {
     return false;
   }
 }
 
+/**
+ * Read piped paths. MUST NOT be called when arguments were supplied — see the call site.
+ *
+ * `isTTY` is false for any non-interactive parent (CI, a shell script, another tool), so awaiting
+ * this with stdin merely inherited rather than closed blocks forever. Measured before the fix:
+ * `check-main-parity <path>` returned exit 124 (killed by timeout) instead of a verdict — the tool
+ * hung in its own primary use case.
+ */
 async function readStdin() {
   if (process.stdin.isTTY) return [];
   const chunks = [];
@@ -68,7 +85,10 @@ async function readStdin() {
 async function main() {
   const quiet = process.argv.includes('--quiet');
   const argPaths = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-  const paths = [...argPaths, ...(await readStdin())]
+  // Arguments win outright — do NOT touch stdin when they are present, or the process hangs.
+  const stdinPaths = argPaths.length ? [] : await readStdin();
+
+  const paths = [...argPaths, ...stdinPaths]
     // Tolerate list output that carries leading markers or surrounding whitespace.
     .map((p) => p.trim().replace(/^[-*\s]+/, ''))
     // Git only ever speaks forward slashes. On Windows `find`, `dir`, and most tooling emit
@@ -79,7 +99,10 @@ async function main() {
     .filter(Boolean);
 
   if (!paths.length) {
-    console.error('usage: node scripts/check-main-parity.mjs <path>... (or pipe paths on stdin)');
+    // Say "repo-relative" explicitly: run from backend/ and type `models/User.mjs` and you get
+    // ABSENT, because git paths are always relative to the repo root regardless of your cwd.
+    console.error('usage: node scripts/check-main-parity.mjs <repo-relative path>... '
+      + '(or pipe paths on stdin)');
     process.exit(2);
   }
 
