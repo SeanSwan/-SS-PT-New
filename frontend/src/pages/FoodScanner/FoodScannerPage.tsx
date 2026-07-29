@@ -684,12 +684,19 @@ const FoodScannerPage: React.FC = () => {
               ) : (
                 <ScanHistoryList>
                   {scanHistory.map((scan) => (
+                    // Only rows that still carry a nested product object can be
+                    // re-opened. Post-SWA-87 rows are denormalized scan records
+                    // (productName/productCode/imageUrl) with no product object, so
+                    // advertising role="button" on them would hand keyboard and
+                    // screen-reader users a control that does nothing.
                     <ScanHistoryItem
                       key={scan.id}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
-                      onClick={() => scan.product && handleHistoryItemClick(scan.product)}
+                      role={scan.product ? 'button' : undefined}
+                      tabIndex={scan.product ? 0 : undefined}
+                      onKeyDown={scan.product
+                        ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }
+                        : undefined}
+                      onClick={scan.product ? () => handleHistoryItemClick(scan.product!) : undefined}
                     >
                       <StyledBox as={ScanHistoryImage}
                         $style={{

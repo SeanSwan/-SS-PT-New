@@ -211,14 +211,22 @@ describe('goal gamification command dispatchers', () => {
       options: { sequelize },
     });
 
+    // SWA-87: `progressPercentage` is NOT a column on "UserAchievements" (real
+    // columns: id, userId, achievementId, earnedAt, progress, isCompleted,
+    // pointsAwarded, notificationSent, createdAt, updatedAt — verified against
+    // information_schema). Asserting it meant this test stayed green while the
+    // INSERT it guards could never succeed against the real table. `earnedAt` is
+    // the real column and is now written.
     expect(createUserAchievement).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       achievementId: 'achievement-uuid-1',
       isCompleted: true,
       progress: 100,
-      progressPercentage: 100,
+      earnedAt: expect.any(Date),
       pointsAwarded: 100,
     }), { transaction });
+    const awarded = createUserAchievement.mock.calls[0][0];
+    expect(awarded).not.toHaveProperty('progressPercentage');
     expect(recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       points: 100,

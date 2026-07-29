@@ -160,7 +160,13 @@ describe('client self-service command dispatchers', () => {
       where: { userId: 17 },
     }));
     expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isCompleted: true } });
-    expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isNew: true } });
+    // SWA-87: `isNew` is NOT a column on "UserAchievements" (and it collides with
+    // Sequelize's own instance flag), so this WHERE could never have run against
+    // the real table. The unseen-badge count is now derived from the real column
+    // pair isCompleted + notificationSent.
+    expect(UserAchievement.count).toHaveBeenCalledWith({
+      where: { userId: 17, isCompleted: true, notificationSent: false },
+    });
     expect(xp).toEqual({
       userId: 17,
       level: 7,
