@@ -167,6 +167,7 @@ export const LensPlanFrame: React.FC<LensPlanFrameProps> = ({
       data-lens2-plan={plan.lensId}
       data-lens2-template={plan.templates["desktop-enhanced"]}
       data-lens2-display={plan.variants["text.display"]}
+      data-lens2-body={plan.variants["text.body"]}
       data-lens2-surface={plan.variants["surface.card"]}
       data-lens2-collection={plan.variants["collection.exercise"]}
       data-lens2-action={plan.variants["action.primary"]}
