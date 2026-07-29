@@ -219,6 +219,10 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     }, { transaction });
 
     // 5. Non-fatal: Create ClientProgress record
+    //    SAVEPOINT is load-bearing: without it, a failure here aborts the WHOLE transaction
+    //    (SQLSTATE 25P02) and the later commit() silently degrades to ROLLBACK — the caller
+    //    still gets 201 while nothing was persisted. "Non-fatal" is only true with a savepoint.
+    await sequelize.query('SAVEPOINT sp_client_progress', { transaction });
     try {
       const [tableCheck] = await sequelize.query(
         `SELECT to_regclass('client_progress') AS exists`,
@@ -234,13 +238,16 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         }, { transaction });
       }
     } catch (cpError) {
+      await sequelize.query('ROLLBACK TO SAVEPOINT sp_client_progress', { transaction });
       logger.warn(`[ClientOnboard] Non-fatal: ClientProgress creation failed for user ${newUser.id}:`, cpError.message);
     }
 
     // 6. If assignToSelf: Create ClientTrainerAssignment via raw SQL
-    //    Table uses snake_case columns (client_id, trainer_id, assigned_by)
+    //    Table uses QUOTED camelCase columns ("clientId", "trainerId", "assignedBy"), verified
+    //    against information_schema. The old snake_case list threw "column client_id does not exist".
     let assignedTrainer = null;
     if (assignToSelf) {
+      await sequelize.query('SAVEPOINT sp_trainer_assignment', { transaction });
       try {
         const [tableCheck] = await sequelize.query(
           `SELECT to_regclass('client_trainer_assignments') AS exists`,
@@ -248,7 +255,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         );
         if (tableCheck?.[0]?.exists) {
           await sequelize.query(
-            `INSERT INTO client_trainer_assignments (client_id, trainer_id, assigned_by, status, created_at, updated_at)
+            `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", status, "createdAt", "updatedAt")
              VALUES (:clientId, :trainerId, :assignedBy, 'active', NOW(), NOW())`,
             {
               replacements: {
@@ -266,12 +273,17 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
           };
         }
       } catch (assignError) {
+        await sequelize.query('ROLLBACK TO SAVEPOINT sp_trainer_assignment', { transaction });
         logger.warn(`[ClientOnboard] Non-fatal: Assignment creation failed for user ${newUser.id}:`, assignError.message);
       }
     }
 
     // 7. Non-fatal: Create trainer note via raw SQL if table exists
+    //    Columns are QUOTED camelCase. noteType is enum_client_notes_noteType, whose only labels
+    //    are observation|red_flag|achievement|concern|general — 'onboarding' is NOT a member and
+    //    threw even after the column names were corrected. 'general' is the model's own default.
     if (trainerNotes) {
+      await sequelize.query('SAVEPOINT sp_client_note', { transaction });
       try {
         const [tableCheck] = await sequelize.query(
           `SELECT to_regclass('client_notes') AS exists`,
@@ -279,8 +291,8 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         );
         if (tableCheck?.[0]?.exists) {
           await sequelize.query(
-            `INSERT INTO client_notes (user_id, trainer_id, note_type, content, created_at, updated_at)
-             VALUES (:userId, :trainerId, 'onboarding', :content, NOW(), NOW())`,
+            `INSERT INTO client_notes ("userId", "trainerId", "noteType", content, "createdAt", "updatedAt")
+             VALUES (:userId, :trainerId, 'general', :content, NOW(), NOW())`,
             {
               replacements: {
                 userId: newUser.id,
@@ -292,6 +304,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
           );
         }
       } catch (noteError) {
+        await sequelize.query('ROLLBACK TO SAVEPOINT sp_client_note', { transaction });
         logger.warn(`[ClientOnboard] Non-fatal: Note creation failed for user ${newUser.id}:`, noteError.message);
       }
     }

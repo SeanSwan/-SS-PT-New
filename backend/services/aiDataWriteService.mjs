@@ -524,9 +524,12 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
   const formData = JSON.stringify(formDataObj);
 
   await sequelize.query(
-    `INSERT INTO daily_workout_forms ("clientId", "trainerId", date, "sessionDeducted",
-                                       "formData", "totalPointsEarned", "mcpProcessed",
-                                       "submittedAt", "createdAt", "updatedAt")
+    // daily_workout_forms is a snake_case table. The previous quoted camelCase identifiers
+    // ("clientId", "formData", ...) do not exist, so every AI/dictation workout save threw
+    // 42703. Verified against information_schema, not against the model's JS field names.
+    `INSERT INTO daily_workout_forms (client_id, trainer_id, date, session_deducted,
+                                       form_data, total_points_earned, mcp_processed,
+                                       submitted_at, created_at, updated_at)
      VALUES (:clientId, :trainerId, :formDate, false,
              :formData::jsonb, 0, false,
              NOW(), NOW(), NOW())`,
