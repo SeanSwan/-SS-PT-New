@@ -68,9 +68,17 @@ describe('World Engine · layer 1 completeness', () => {
     }
   });
 
-  it('exactly the 2 Golden Pair worlds are built today; 23 planned', () => {
-    expect(builtWorlds().map((e) => e.id).sort()).toEqual(['candy-glass-arcade', 'prism-terminal']);
-    expect(plannedWorlds().length).toBe(23);
+  it('the built set is the Golden Pair + Wave 1 (6 built, 19 planned)', () => {
+    expect(builtWorlds().map((e) => e.id).sort()).toEqual([
+      'aurora-index',
+      'candy-glass-arcade',
+      'coach-ledger',
+      'crystalline-cathedral',
+      'prism-terminal',
+      'quiet-meridian',
+    ]);
+    expect(plannedWorlds().length).toBe(19);
+    expect(builtWorlds().length + plannedWorlds().length).toBe(25);
   });
 
   it('isWorldId guards the closed set', () => {
