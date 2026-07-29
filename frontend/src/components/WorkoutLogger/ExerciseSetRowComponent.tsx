@@ -85,7 +85,7 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
   // L2: coarse-pointer keypad — one-hop advance weight→reps; "use system keyboard" opts out per row.
   const keypad = useKeypadField((field, value) => onUpdateSet(exerciseIndex, setIndex, field, value));
   return (
-  <SetRow data-details={showDetails ? 'open' : 'closed'}>
+  <SetRow data-details={showDetails ? 'open' : 'closed'} data-logged={isLogged ? 'true' : 'false'}>
     <SetCell data-label="Set" data-essential="cell">
       <SetNumber>{set.setNumber}</SetNumber>
     </SetCell>

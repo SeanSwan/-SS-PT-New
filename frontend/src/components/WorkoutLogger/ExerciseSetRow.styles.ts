@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { CS, withAlpha } from './WorkoutLoggerCS';
+import { TRAIN } from '../../styles/train-tokens';
 
 export const SetsTable = styled.div`
   background: ${withAlpha(CS.bgDeep, 0.6)};
@@ -43,12 +44,24 @@ export const SetRow = styled.div`
   grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 48px 44px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid ${withAlpha(CS.gaming, 0.08)};
+  border-bottom: 1px solid ${withAlpha(CS.text, 0.06)};
+  border-left: 2px solid transparent;
   align-items: center;
-  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: ${withAlpha(CS.glow, 0.06)}; }
+  &:hover { background: ${withAlpha(TRAIN.active, 0.05)}; }
+
+  /* Train state language (§12-C2): the row being edited is the ONE loud thing. */
+  &:focus-within {
+    border-left-color: ${TRAIN.active};
+    background: ${withAlpha(TRAIN.active, 0.06)};
+  }
+  /* Logged rows read as earned and recede — inputs dim, gold edge holds. */
+  &[data-logged='true'] {
+    border-left-color: ${withAlpha(TRAIN.done, 0.55)};
+    &:not(:focus-within) input { opacity: 0.72; }
+  }
 
   @media (max-width: 1180px) {
     display: block;
@@ -127,11 +140,16 @@ export const SetCell = styled.div`
 
 export const SetNumber = styled.div`
   font-weight: 700;
-  color: var(--world-accent, ${CS.gaming});
+  color: ${TRAIN.pending};
   font-size: 1.1rem;
   text-align: center;
   font-family: 'Fira Code', 'Courier New', monospace;
   font-variant-numeric: tabular-nums;
+  transition: color 0.2s;
+
+  /* State language: pending recedes, the active row lights Ice Wing, logged holds gold. */
+  ${SetRow}:focus-within & { color: ${TRAIN.active}; }
+  ${SetRow}[data-logged='true'] & { color: ${TRAIN.done}; }
 `;
 
 export const NumberInput = styled.input`
@@ -151,8 +169,8 @@ export const NumberInput = styled.input`
 
   &:focus-visible {
     outline: none;
-    border-color: ${CS.glow};
-    box-shadow: 0 0 0 2px ${withAlpha(CS.glow, 0.15)};
+    border-color: ${TRAIN.active};
+    box-shadow: 0 0 0 2px ${withAlpha(TRAIN.active, 0.15)};
   }
 
   &::-webkit-outer-spin-button,
@@ -173,28 +191,6 @@ export const WeightInputWrapper = styled.div`
   @media (max-width: 1180px) { flex: 1; }
 `;
 
-/** Tap-to-fill last-weight chip (blueprint S5, 02 §E) — suggestion only,
- *  never auto-commits; mirrors the OverloadSuggestion pill discipline. */
-export const LastWeightChip = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.6rem;
-  min-height: 44px;
-  border: 1px solid ${withAlpha(CS.gaming, 0.25)};
-  border-radius: 999px;
-  background: ${withAlpha(CS.gaming, 0.08)};
-  color: ${CS.textMuted};
-  font-family: 'Fira Code', monospace;
-  font-size: 0.68rem;
-  line-height: 1.1;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover { background: ${withAlpha(CS.gaming, 0.18)}; color: ${CS.text}; }
-  &:focus-visible { outline: 2px solid ${CS.gaming}; outline-offset: 2px; }
-`;
-
 export const TextInput = styled.input`
   width: 100%;
   padding: 0.5rem;
@@ -210,8 +206,8 @@ export const TextInput = styled.input`
 
   &:focus-visible {
     outline: none;
-    border-color: ${CS.glow};
-    box-shadow: 0 0 0 2px ${withAlpha(CS.glow, 0.15)};
+    border-color: ${TRAIN.active};
+    box-shadow: 0 0 0 2px ${withAlpha(TRAIN.active, 0.15)};
   }
 
   &::placeholder { color: ${withAlpha(CS.text, 0.4)}; }
@@ -224,8 +220,8 @@ export const AddSetButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: ${withAlpha(CS.glow, 0.08)};
-  border: 2px dashed ${withAlpha(CS.glow, 0.3)};
+  background: ${withAlpha(TRAIN.active, 0.08)};
+  border: 2px dashed ${withAlpha(TRAIN.active, 0.3)};
   border-radius: 0.75rem;
   color: ${CS.glowLight};
   font-weight: 600;
@@ -237,20 +233,20 @@ export const AddSetButton = styled(motion.button)`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: ${withAlpha(CS.glow, 0.15)};
-    border-color: ${withAlpha(CS.glow, 0.5)};
+    background: ${withAlpha(TRAIN.active, 0.15)};
+    border-color: ${withAlpha(TRAIN.active, 0.5)};
     border-style: solid;
     transform: translateY(-1px);
   }
 
   &:focus-visible {
-    outline: 2px solid ${CS.glow};
+    outline: 2px solid ${TRAIN.active};
     outline-offset: 2px;
-    box-shadow: 0 0 0 4px ${withAlpha(CS.glow, 0.15)};
+    box-shadow: 0 0 0 4px ${withAlpha(TRAIN.active, 0.15)};
   }
 `;
 
-export { SetLogCheckButton, SetDetailsToggle } from './ExerciseSetRowControls.styles';
+export { SetLogCheckButton, SetDetailsToggle, LastWeightChip } from './ExerciseSetRowControls.styles';
 
 export const RemoveSetButton = styled.button`
   background: ${withAlpha(CS.error, 0.1)};
