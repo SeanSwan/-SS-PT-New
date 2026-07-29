@@ -1,15 +1,18 @@
 ---
-decision: 47 commits on wip/comms-notifications-2026-07-05 are genuinely ABSENT from main, not lost in translation. Verifying that surfaced a P0 live commission underpayment (creditsController passes no trainerType -> independent trainers get 65% instead of 85%) which the unlanded branch fix does NOT close, plus 2 unguarded DELETE routes live on main.
+decision: 48 commits (as of 2026-07-29; the branch is still being committed to) on wip/comms-notifications-2026-07-05 are genuinely ABSENT from main, not lost in translation. Verifying that surfaced three defects on main - (1) LATENT money bug, creditsController passes no trainerType so an independent trainer would get 65% not 85%, and the unlanded branch fix does NOT close it; 0 trainers and 0 commission rows today so nothing is lost yet; (2) LIVE authz, 2 unguarded DELETE routes on adminPackageRoutes; (3) LIVE schema, gamification can never award and 2 models can never INSERT.
 status: open
 supersedes: none
 ---
 
-# Handoff — branch parity, unlanded work, and what is broken on main RIGHT NOW
+# Handoff — branch parity, unlanded work, and what is broken on main
 
 **Date:** 2026-07-29 · **Author:** vs-claude (Opus 5) · **Linear:** SWA-75 (launch audit), SWA-62 (commission), SWA-87 (schema drift), SWA-89 (script guards), SWA-74 (gym-ops)
 **Written to `main` deliberately** so any agent on any branch can find it.
 
-> **Read this section first if you read nothing else.** Two things are broken in production right now, both proven by execution. The authz one is fixed on a branch that never landed. **The money one is NOT fixed anywhere — and the branch fix that looks like it closes it does not.** See §2.
+> **Read this section first if you read nothing else.** Three defects on `main`, all proven by execution:
+> - **AUTHZ — live and exploitable today.** Any admin can delete storefront packages; the owner-only guard was written on a branch that never landed (§2.2).
+> - **MONEY — latent, closing window.** An independent trainer would be underpaid 20 points on a mounted, persisted path. **0 trainers and 0 commission rows today, so nothing is lost yet** — and **the branch fix does NOT close it**, contrary to how it reads (§2.1).
+> - **SCHEMA — live.** Gamification cannot award anything; two models can never INSERT (§2.3).
 
 ---
 
@@ -30,7 +33,7 @@ supersedes: none
 ```bash
 cd <repo>
 git fetch origin main
-git cherry origin/main HEAD | awk '{print $1}' | sort | uniq -c      # 47 '+', 4 '-'
+git cherry origin/main HEAD | awk '{print $1}' | sort | uniq -c      # 48 '+', 4 '-' as of 2026-07-29
 # then, per key file, the decisive check:
 git cat-file -e origin/main:<path> && echo ON MAIN || echo ABSENT
 # and for MODIFIED files, compare substance not existence:
@@ -61,11 +64,11 @@ Only the Rule-72 Catalog work landed (it went to main by a separate route). Ever
 
 ---
 
-## 2. `[VERIFIED]` What is broken on `main` right now
+## 2. `[VERIFIED]` What is broken on `main`
 
-These are live on production. Both were found by *executing* code, not reading it.
+All found by *executing* code and querying the live DB, not by reading. **§2.2 and §2.3 are live today; §2.1 is latent** — that distinction is load-bearing, so it is restated at each one.
 
-### 2.1 P0 — MONEY. Independent trainers are underpaid 20 percentage points on one purchase path
+### 2.1 P0 — MONEY. An independent trainer WOULD be underpaid 20 points (latent: 0 trainers today, see the DB check below)
 
 **Mechanism, proven end to end on `origin/main`:**
 
@@ -89,9 +92,43 @@ const commission = calculateCommissionSplit(
 
 **Corroboration:** the string `trainerType` appears **0 times** in `creditsController.mjs` on main (`grep -c` → 0).
 
-**Dollar impact at Sean's real prices:** 20 points on the 3-month package ($8,400) = **$1,680** short. On the 6-month ($16,800) = **$3,360** short.
+### `[VERIFIED BY EXECUTION]` Dollar impact — probe run against main's calculator
 
-**Why it is silent:** there is no error. The split is computed, persisted, and looks plausible. Nothing logs a warning.
+Not read — **executed**. `node` against `backend/utils/commissionCalculator.mjs` on main:
+
+| Package | 4-arg (what runs today) | `{trainerType:'independent'}` | Short by |
+| -- | -- | -- | -- |
+| 3-month $8,400 | `trainerCut=$5,460` (65%) | `$7,140` (85%) | **$1,680** |
+| 6-month $16,800 | `$10,920` | `$14,280` | **$3,360** |
+| 12-month $33,600 | `$21,840` | `$28,560` | **$6,720** |
+
+**The gap is a constant 20 points of gross — there is no milder case.** Verified across every lead source and with the loyalty bump, because the modifiers subtract equally from both branches:
+
+| leadSource | today | independent | short |
+| -- | -- | -- | -- |
+| `platform` | 65% | 85% | $1,680 |
+| `trainer_brought` | 70% | 90% | $1,680 |
+| `resign` | 68% | 88% | $1,680 |
+| `trainer_brought` + loyalty | 75% | 95% | $1,680 |
+
+**Also proved by execution:** `{trainerType:'affiliated'}` is **byte-identical** to omitting the argument (`JSON.stringify` equal → `true`). That is the independent confirmation that landing `0b60de7db` changes nothing here.
+
+### 🔴 It is persisted, and the trainer endpoint underpays the trainer to themselves
+
+**Not cosmetic — it writes a durable money record.** `creditsController.mjs:176-192` creates a `TrainerCommission` row carrying `commissionRateTrainer`, `trainerCut`, `businessCut`, `grossAmount`. Also written onto the Order at `:153-154`. So when this fires, the wrong rate is **persisted**, not merely displayed — and if payouts read `trainer_commissions`, the wrong number is what gets paid.
+
+**It has not fired yet** — `trainer_commissions` is empty and no trainers exist (verified below). This paragraph describes what happens on the first real use, not a current loss.
+
+**Both reachable paths can carry an independent trainer** (`creditsRoutes.mjs`):
+
+| Endpoint | Guard | Whose `trainerId` |
+| -- | -- | -- |
+| `POST /api/admin/credits/purchase-and-grant` | `protect` + `adminOnly` | whatever the admin passes (`:113`) — any trainer, incl. independent |
+| `POST /api/trainer/credits/purchase-and-grant` | `protect` + `trainerOrAdminOnly` | **`req.user.id`** (`:257`, `:303`) — the trainer themselves |
+
+So an **independent trainer selling to their own client through the trainer endpoint underpays themselves on their own sale**, silently, and the wrong number is persisted. Commission is only written when `finalTrainerId` is set (`:175`), so trainer-less direct purchases are unaffected.
+
+**Why it is silent:** there is no error. The split computes, persists, and looks plausible. Nothing logs a warning.
 
 **The other caller is FINE — do not "fix" it.** `backend/services/CommissionService.mjs:85,93,106-111` reads `trainer.trainerType` from the DB and passes it. Only the `creditsController` path is affected. A blanket change risks breaking the correct path.
 
@@ -148,9 +185,29 @@ const commission = calculateCommissionSplit(
 );
 ```
 
-⚠️ **Whoever does this: make the default fail loudly for this path rather than silently paying 65%.** A default that silently underpays is the exact shape of the original bug. Prefer an explicit error (or a logged alert) when `trainerType` is missing on a money path, and write a regression test that fails before the fix.
+⚠️ **Follow the repo's existing pattern — do NOT invent a third one.** `[VERIFIED]` The branch's `CommissionService.mjs:97-104` already establishes the house style for a missing/invalid type: **validate against `TRAINER_TYPES`, `logger.warn` naming the trainer id and the bad value, then fall back to `DEFAULT_TRAINER_TYPE`** — deliberately not a throw, because `'affiliated'` preserves the historical 35/65 behaviour (documented at `commissionRates.mjs:23-24`). Copy that. Once `creditsController` passes the real type the fallback never fires anyway; the warn is the safety net, and a silent fallback is what hid this bug for six days.
 
-⚠️ **Before shipping a fix, decide the back-pay question.** If independent trainers were paid through the credits path, they were underpaid. That is a books question for Sean, not a code question. Landing the fix stops the bleeding; it does not reconcile history. Commit `0b60de7db` also ships `backend/scripts/reconcile-commission-rates.mjs` — read it before writing anything new.
+**Regression test must fail before the fix** — assert that a purchase for an `independent` trainer yields `trainerRate === 85`, and that a missing type emits the warn rather than silently paying 65%.
+
+✅ **Landing `0b60de7db` will NOT break the working caller.** Checked specifically because main's `CommissionService.mjs:93` passes `trainer.trainerType || 'hired'`, and `'hired'` is absent from the new `BASE_RATES` — which would have thrown. The branch updates that same file to validate-warn-fallback and removes the `'hired'` literal, so there is no landing hazard here.
+
+### ✅ `[VERIFIED against the live DB]` No money has been lost yet — this is LATENT, not active
+
+**Read this before doing any back-pay work.** Probed production read-only:
+
+| Check | Result |
+| -- | -- |
+| trainer-role users by `trainerType` | **zero rows — no trainers exist yet** |
+| `TrainerCommissions` (PascalCase) | **no such table** |
+| `trainer_commissions` (real table) | **0 rows** |
+
+**So: no commission has ever been written, and there is nobody to have underpaid.** There is **no back-pay to reconcile**. The bug will fire the first time an independent trainer is onboarded and either credits endpoint is used — fix it *before* that, and the cost is zero.
+
+This corrects the urgency, not the severity: it is still a real money defect on a mounted, persisted path, and it should be fixed before the first trainer is onboarded. It is simply not yet bleeding.
+
+**Also verified clean while checking (do NOT chase these):** the `TrainerCommission` model↔table mapping is **correct** — `tableName: 'trainer_commissions'` + `underscored: true`, and all 10 NOT-NULL-without-default columns (`trainer_id, client_id, lead_source, sessions_granted, gross_amount, net_after_tax, commission_rate_business, commission_rate_trainer, business_cut, trainer_cut`) are supplied by `creditsController.mjs:176-192`. Given how many models in this repo *are* drifted (§2.3), this one was worth confirming rather than assuming — it writes correctly.
+
+⚠️ **If trainers get onboarded before the fix lands,** the back-pay question becomes live: landing a fix stops the bleeding but does not reconcile history. `0b60de7db` ships `backend/scripts/reconcile-commission-rates.mjs` — read it before writing anything new. Re-run the victim query in §6 to check.
 
 ### 2.2 HIGH — AUTHZ. Two DELETE routes on main lack the owner-admin guard
 
@@ -179,6 +236,23 @@ The **bugs are on main and live**. The **audits that prove them are branch-only*
 
 **Product impact:** gamification — badges, XP, rarity tiers, all first-class in CLAUDE.md — **cannot award anything**. It presents as "quiet," not "broken."
 
+#### `[VERIFIED — my own live-DB probe, 2026-07-29]` real column lists, so you need not re-probe
+
+These were originally relayed from the consumed memos; re-verified independently against production (Rule 30 — another session's finding is a hypothesis until you run it yourself). **All three claims held.**
+
+| Table | Exists | Rows | Real columns |
+| -- | -- | -- | -- |
+| `UserAchievements` | YES (PascalCase) | **0** | `id, achievementId, earnedAt, progress, isCompleted, pointsAwarded, notificationSent, createdAt, updatedAt, userId` |
+| `user_achievements` | **NO SUCH TABLE** | — | — |
+| `food_scan_history` | YES | **0** | `id, userId, productName, productCode, imageUrl, nutritionData, scanDate, createdAt, updatedAt` |
+| `trainer_permissions` | YES | **0** | `id, trainerId, permissionType, grantedBy, isActive, expiresAt, grantedAt, revokedAt, notes, createdAt, updatedAt` |
+
+- **`maxProgress` is genuinely NOT a column** on `UserAchievements`, while the model declares it (main:65, used at :386-387). Confirms the break.
+- **`food_scan_history` NOT NULL without default: `userId`, `productName`.** `productName` exists in the table and is required; the model never declares it.
+- **`trainer_permissions` NOT NULL without default: `trainerId`, `permissionType`, `grantedBy`** — exactly the three named.
+- **The caller's columns don't exist:** the real product column is `productCode`; there is no `productId`, no `barcode`, no `wasConsumed`.
+- **All three tables are empty**, consistent with "writes never succeeded." Empty is corroboration, not proof — the proof is the executed INSERT.
+
 **Two traps for whoever takes this:**
 1. **Fixing the caller's payload is not enough.** Sequelize `create()` builds its INSERT from *all model-declared attributes*, not just the keys you pass. A phantom column anywhere in the model fails the write even if the payload is clean. **The model's attributes must be reconciled with the table.**
 2. **`FoodScanHistory` has two independent blockers.** Fixing only the payload leaves the write still failing, and still silent — the handler swallows the error by design so the scan still returns a product.
@@ -193,7 +267,7 @@ The **bugs are on main and live**. The **audits that prove them are branch-only*
 
 ## 3. The unlanded queue — what is on the branch
 
-`wip/comms-notifications-2026-07-05` · **47 commits absent from main**, 4 already landed · spans **2026-07-05 → 2026-07-29** · all authored `SeanSwan`.
+`wip/comms-notifications-2026-07-05` · **48 commits absent from main** (was 47 an hour earlier — the branch is STILL being committed to; re-derive before acting), 4 already landed · spans **2026-07-05 → 2026-07-29** · all authored `SeanSwan`.
 
 **Branch is ~1,238 commits BEHIND `origin/main`** (and climbing — other agents push to main continuously). There is no fast-forward. This is a merge/rebase with real conflict surface, not a push.
 
@@ -250,7 +324,11 @@ Sean named two candidates:
 
 ### Recommendation: neither, quite — do §2.1 first, then (B), then (A)
 
-**Rationale, and this is a change of ranking on evidence found during this verification:** Sean's option (B) is correctly ranked above (A) — SWA-87 is real production breakage and gamification cannot award anything. But the commission underpayment found in §2.1 outranks both: it is **money owed to real people, accruing silently, on a mounted route**, and the fix is already written and Codex-reviewed on the branch.
+**Rationale, on evidence gathered during this verification:** Sean's option (B) is correctly ranked above (A) — SWA-87 is **active** production breakage (gamification cannot award anything, today). The commission bug (§2.1) is **latent** — real, persisted, on a mounted route, but with 0 trainers and 0 commission rows it has cost nothing yet.
+
+It still goes first, for one reason: **it is the only item here whose cost depends on when you fix it.** Fix it before the first independent trainer is onboarded and the price is zero; fix it after and you owe back-pay and a reconciliation. SWA-87 is equally broken whenever you get to it. So this is a sequencing call about a closing window, not a claim that money is currently draining.
+
+⚠️ **Do not assume the branch fix covers it — it does not** (§2.1). Step 1a is new work.
 
 **Suggested order:**
 
@@ -259,13 +337,13 @@ Sean named two candidates:
    - **1b. Land `0b60de7db`** for the canonical rates, the `'hired'` removal, and the `ownerAdminOnly` DELETE guards (§2.2).
    - **Do not touch `CommissionService` — it is correct.** Surface the back-pay question to Sean; do not attempt reconciliation autonomously.
 2. **`S-SWA87` — fix the write-broken models.** Reconcile model attributes against real table columns for `FoodScanHistory`, `TrainerPermissions`, `UserAchievement`. Heed both traps in §2.3. Prove each fix with an executed, rolled-back INSERT — not a read.
-3. **`S-LAND` — land the rest of the branch in reviewed groups**, not one 47-commit merge. Suggested order: SWA-89 guards → audit family → SWA-74 gym-ops → tooling → docs. Rebase-and-verify per group against 1,237 commits of drift; resolve the shared-file conflicts in §3 deliberately.
+3. **`S-LAND` — land the rest of the branch in reviewed groups**, not one 48-commit merge. Suggested order: SWA-89 guards → audit family → SWA-74 gym-ops → tooling → docs. Rebase-and-verify per group against ~1,240 commits of drift (re-derive; it climbs); resolve the shared-file conflicts in §3 deliberately.
 4. *(cheap, any time)* **version endpoint** — removes the deploy-verification blind spot permanently.
 
 ### Before touching anything
 
 - **Rule 67:** `wip/comms-notifications-2026-07-05` may be another agent's live lane. Read `.ai-workflow/coordination/*.lane.md` + `review-queue.md` and claim files before editing. Sean's standing instruction: *"don't step on nobody's toes."*
-- **Rule 52 / branch freshness:** verify against `origin/main`, not the local branch. This tree is 1,237 commits behind; local reads will lie to you.
+- **Rule 52 / branch freshness:** verify against `origin/main`, not the local branch. This tree is ~1,240 commits behind and climbing; local reads will lie to you.
 - **Rule 74:** no "done/fixed" without current-session proof + a clean hostile pass in the same message.
 - **Landing ≠ deploying.** Pushing to `main` triggers Render. Money-path and authz changes deserve a deliberate deploy + verification, not a batch ride-along.
 
@@ -279,17 +357,31 @@ git fetch origin main && git log origin/main --oneline -5
 
 # 2. how far is this tree from truth?
 git log HEAD..origin/main --oneline | wc -l        # ~1238+ on the wip branch, climbing
-git cherry origin/main HEAD | grep -c '^+' || true # ~47 unlanded. NOTE: grep -c exits 1 on
+git cherry origin/main HEAD | grep -c '^+' || true # ~48 and climbing. NOTE: grep -c exits 1 on
                                                   # zero matches and will break an && chain
 
 # 3. who else is working
 cat .ai-workflow/coordination/*.lane.md .ai-workflow/coordination/review-queue.md
 
-# 4. confirm the two live bugs still exist before fixing (they may have been landed)
-git show origin/main:backend/controllers/creditsController.mjs | grep -c trainerType   # 0 = §2.1 still live
-git show origin/main:backend/routes/adminPackageRoutes.mjs | grep -n "router.delete"   # no ownerAdminOnly = §2.2 still live
-git show origin/main:backend/models/FoodScanHistory.mjs | grep -c productName          # 0 = §2.3 still live
+# 4. confirm the bugs still exist before fixing (they may have been landed). NOTE: grep -c
+#    exits 1 on zero matches — append `|| true` or an && chain will silently truncate.
+git show origin/main:backend/controllers/creditsController.mjs | grep -c trainerType || true  # 0 = §2.1 live
+git show origin/main:backend/routes/adminPackageRoutes.mjs | grep -c ownerAdminOnly || true   # 0 = §2.2 live
+git show origin/main:backend/models/FoodScanHistory.mjs | grep -c productName || true         # 0 = §2.3 live
 ```
+
+**Has the commission bug started costing money yet?** It had not as of 2026-07-29 (0 trainers, 0 commission rows). Re-check before assuming back-pay is needed — run from `backend/`, read-only:
+
+```sql
+-- any trainer at all?
+SELECT "trainerType", COUNT(*) FROM "Users" WHERE role='trainer' GROUP BY 1;
+-- any independent trainer paid below 85%? (rows here = real underpayment)
+SELECT COUNT(*), SUM(tc.gross_amount)
+FROM trainer_commissions tc JOIN "Users" u ON u.id = tc.trainer_id
+WHERE u."trainerType" = 'independent' AND tc.commission_rate_trainer < 85;
+```
+
+⚠️ Probe from `backend/` (sequelize is not resolvable from the repo root) and let `dotenv` load `DATABASE_URL` **inside** the script — never grep or echo it (Rule 59).
 
 **Load order:** `CLAUDE.md` → `ACTIVE-INDEX.md` → `.ai-workflow/continuity/rolling-last-done.md` → coordination lanes → this file.
 
