@@ -659,7 +659,7 @@ export const trackVideoView = async (req, res) => {
     // Insert analytics record
     const [analytics] = await sequelize.query(
       `INSERT INTO video_analytics
-       (video_id, user_id, watch_duration_seconds, completion_percentage, completed, chapters_viewed, replay_count, pause_count, session_id, device_type, user_agent, view_context, workout_id, viewed_at, created_at, updated_at)
+       (video_id, user_id, watched_duration_seconds, completion_percentage, completed, chapters_viewed, replay_count, pause_count, session_id, device_type, user_agent, view_context, workout_id, viewed_at, created_at, updated_at)
        VALUES (:video_id, :user_id, :watch_duration_seconds, :completion_percentage, :completed, :chapters_viewed::jsonb, :replay_count, :pause_count, :session_id, :device_type, :user_agent, :view_context, :workout_id, NOW(), NOW(), NOW())
        RETURNING *`,
       {
