@@ -23,7 +23,7 @@ export const ORBIT_ATLAS_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.orbit-atlas.v2',
   tokens: {
-    'world-title-font': "700 clamp(30px, 4vw, 58px)/1.08 Sora, sans-serif",
+    'world-title-font': "700 clamp(30px, 4vw, 58px)/1.08 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.01em',
     'world-panel-radius': '22px',
     'world-row-radius': '999px',

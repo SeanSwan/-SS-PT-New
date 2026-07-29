@@ -22,7 +22,7 @@ export const KINETIC_KANBAN_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.kinetic-kanban.v2',
   tokens: {
-    'world-title-font': "800 clamp(32px, 4.2vw, 62px)/1.02 Sora, sans-serif",
+    'world-title-font': "800 clamp(32px, 4.2vw, 62px)/1.02 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.02em',
     'world-panel-radius': '20px',
     'world-row-radius': '999px',
