@@ -14,19 +14,30 @@
  */
 import { CONTAINER_PROFILES } from '../../../core/style-lens-os/v2/recipeV2';
 import type { SurfaceCapabilityManifest } from '../../../core/style-lens-os/v2/capability-manifest.schema';
+import {
+  actionVariants,
+  bodyVariants,
+  buildTemplateManifest,
+  chartVariants,
+  collectionVariants,
+  displayVariants,
+  surfaceVariants,
+} from '../worlds/variantVocabulary';
 
+// Vocabulary is the single source of truth (variantVocabulary.ts, Slice W0): the
+// surface slots draw the SAME variant lists as the Lab host so the Golden Pair —
+// and every future world — compiles against every rollout surface. chart.progress
+// stays ABSENT here (surfaces without a chart slot degrade it cleanly); only
+// CLIENT_PROGRESS_MANIFEST below publishes a chart slot.
 const SWAN_SURFACE_SLOTS: SurfaceCapabilityManifest['slots'] = {
-  'text.display': { required: false, supportedVariants: ['rounded-athletic', 'compact-technical-mono', 'vaulted-editorial'] },
-  'text.body': { required: false, supportedVariants: ['soft-sans', 'terminal-mono'] },
-  'surface.card': { required: true, supportedVariants: ['floating-candy', 'faceted-console'] },
-  'collection.exercise': { required: true, supportedVariants: ['arcade-cards', 'command-rows'] },
-  'action.primary': { required: true, supportedVariants: ['glass-dock', 'command-rail'] },
+  'text.display': { required: false, supportedVariants: displayVariants() },
+  'text.body': { required: false, supportedVariants: bodyVariants() },
+  'surface.card': { required: true, supportedVariants: surfaceVariants() },
+  'collection.exercise': { required: true, supportedVariants: collectionVariants() },
+  'action.primary': { required: true, supportedVariants: actionVariants() },
 };
 
-const SWAN_SURFACE_TEMPLATES: SurfaceCapabilityManifest['templates'] = {
-  'playfield-stack': { supportedProfiles: CONTAINER_PROFILES },
-  'operator-grid': { supportedProfiles: ['tablet', 'desktop-enhanced'] },
-};
+const SWAN_SURFACE_TEMPLATES: SurfaceCapabilityManifest['templates'] = buildTemplateManifest();
 
 /**
  * Workout Logger (canonical id: log-workout — client, trainer, Client Hub,
@@ -93,7 +104,7 @@ export const CLIENT_PROGRESS_MANIFEST: SurfaceCapabilityManifest = {
   profiles: CONTAINER_PROFILES,
   slots: {
     ...SWAN_SURFACE_SLOTS,
-    'chart.progress': { required: false, supportedVariants: ['arcade-meter', 'telemetry-columns'] },
+    'chart.progress': { required: false, supportedVariants: chartVariants() },
   },
   templates: SWAN_SURFACE_TEMPLATES,
 };
