@@ -84,8 +84,10 @@ router.post('/start', protect, trainerOrAdminOnly, async (req, res) => {
 
     // Fetch client data for de-identification
     const [client] = await sequelize.query(
-      `SELECT id, "firstName", "lastName", age, gender, "nasmPhase",
-              "trainingExperience", "fitnessGoals", "clientSource", "isActive"
+      // "Users" has no age/nasmPhase; the column is singular "fitnessGoal" (SWA-71).
+      // This query is NOT wrapped in .catch(), so the old version 500ed every debate start.
+      `SELECT id, "firstName", "lastName", "dateOfBirth", gender,
+              "trainingExperience", "fitnessGoal" AS "fitnessGoals", "clientSource", "isActive"
        FROM "Users" WHERE id = :clientId AND "isActive" = true LIMIT 1`,
       { replacements: { clientId: resolvedClientId }, type: sequelize.QueryTypes.SELECT }
     );

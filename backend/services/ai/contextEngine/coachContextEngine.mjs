@@ -32,8 +32,10 @@ async function safeQuery(sequelize, sql, replacements) {
 const DOMAIN_LOADERS = {
   profile: (sequelize, replacements) => safeQuery(
     sequelize,
-    `SELECT id, "firstName", "lastName", age, gender, "nasmPhase",
-            "trainingExperience", "fitnessGoals", "clientSource", "isActive",
+    // "Users" has no age/nasmPhase, and the column is singular "fitnessGoal" (SWA-71).
+    // deIdentifyClient derives age from dateOfBirth and defaults nasmPhase itself.
+    `SELECT id, "firstName", "lastName", "dateOfBirth", gender,
+            "trainingExperience", "fitnessGoal" AS "fitnessGoals", "clientSource", "isActive",
             "availableSessions", points, level, tier, "streakDays", "totalWorkouts"
      FROM "Users"
      WHERE id = :clientId

@@ -26,8 +26,9 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
   const replacements = { clientId };
   const [clientRow] = await safeQuery(
     sequelize,
-    `SELECT id, "firstName", "lastName", age, gender, "nasmPhase",
-            "trainingExperience", "fitnessGoals", "clientSource", "isActive"
+    // "Users" has no age/nasmPhase; the column is singular "fitnessGoal" (SWA-71).
+    `SELECT id, "firstName", "lastName", "dateOfBirth", gender,
+            "trainingExperience", "fitnessGoal" AS "fitnessGoals", "clientSource", "isActive"
      FROM "Users"
      WHERE id = :clientId
      LIMIT 1`,

@@ -89,6 +89,39 @@ describe.each(SQL_FILES)('%s', (file) => {
   });
 });
 
+/**
+ * Round 2 (found by hostile review of the first fix): the profile domain in these SAME files
+ * was broken the same way, and the first pass missed it by fixing only what it had gone
+ * looking for. "Users" has no `age`, no `nasmPhase`, and the goals column is SINGULAR.
+ *
+ * This one was NOT a graceful degradation. Both the aiDebateRoutes and
+ * debateClientContextService profile queries are bare awaits with no .catch(), so
+ * POST /api/ai/debate/start returned 500 on every request — the debate feature was dead,
+ * not degraded. Verified: the old SELECT raises `column "age" does not exist`.
+ */
+describe.each(SQL_FILES)('%s — profile columns that exist on "Users"', (file) => {
+  const source = read(file);
+
+  it('does not select a bare `age` column', () => {
+    // deIdentifyClient does: age: client.age || calculateAge(client.dateOfBirth) || null
+    // so selecting "dateOfBirth" keeps the derived value working.
+    expect(source).not.toMatch(/SELECT[^`]*,\s*age,\s*gender/);
+  });
+
+  it('does not select "nasmPhase" from "Users"', () => {
+    // nasmPhase lives on MovementProfile / WorkoutPlan, never on "Users".
+    // deIdentifyClient already falls back to enrichment.nasmPhase || null.
+    expect(source).not.toMatch(/"nasmPhase"/);
+  });
+
+  it('selects the singular "fitnessGoal", aliased to the plural consumers read', () => {
+    // extractGoals() reads client.fitnessGoals (plural); the DB column is fitnessGoal.
+    const selectsUsers = /FROM "Users"/.test(source);
+    const ok = !selectsUsers || /"fitnessGoal"\s+AS\s+"fitnessGoals"/.test(source);
+    expect(ok).toBe(true);
+  });
+});
+
 describe('the output contract consumers depend on', () => {
   it('still exposes bodyPart and progress as aliases', () => {
     // The fix corrected the SOURCE identifiers while keeping the OUTPUT shape byte-identical,
