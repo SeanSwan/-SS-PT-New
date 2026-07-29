@@ -188,6 +188,11 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   // dead end (same reasoning as the trainer sidebar's 2026-07-13 audit note),
   // and a dead end is what pushes the owner back onto a trainer URL.
   { id: 'build-plan', section: 'training', label: CANONICAL_SURFACES.buildPlan.name, icon: 'Zap', prefix: '/dashboard/admin/build-plan', description: 'Draft a client workout with the Swan Coach copilot' },
+  // Workout-OS C0 (2026-07-29): the owner personal logger was a registered
+  // route with zero nav entries — a dead end by the same 2026-07-13 audit
+  // reasoning as the entries above. Client-facing workout logging stays inside
+  // Clients & Team (workoutFirst contract); this entry is the OWNER's own log.
+  { id: 'log-my-workout', section: 'training', label: CANONICAL_SURFACES.logMyWorkout.name, icon: 'ClipboardCheck', prefix: CANONICAL_SURFACES.logMyWorkout.routes.admin, description: CANONICAL_SURFACES.logMyWorkout.subtitles.admin },
   { id: 'assessments', section: 'training', label: 'Form Assessments', icon: 'ScanFace', prefix: '/dashboard/admin/assessments', description: 'Swan Coach form checking' },
   { id: 'bootcamp', section: 'training', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
   { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },

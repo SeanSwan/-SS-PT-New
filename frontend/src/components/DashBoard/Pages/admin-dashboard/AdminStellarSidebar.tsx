@@ -49,7 +49,7 @@ import {
 import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig } from '../../../../config/dashboard-tabs';
-import { Shield, Users, Calendar, Dumbbell, Gamepad2, DollarSign, CreditCard, Video, BarChart3, Settings, Globe, ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound, Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature, Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote, Rocket, Zap, ScanFace } from 'lucide-react';
+import { Shield, Users, Calendar, Dumbbell, Gamepad2, DollarSign, CreditCard, Video, BarChart3, Settings, Globe, ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound, Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature, Mail, Heart, Apple, Sparkles, Home, Camera, KeyRound, Unlock, Banknote, Rocket, Zap, ScanFace, ClipboardCheck } from 'lucide-react';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
@@ -66,6 +66,8 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   // for unknown names, so a missing entry here is invisible at build time and
   // silently renders the wrong glyph. Locked by AdminStellarSidebar.iconCoverage.test.ts.
   Zap, ScanFace,
+  // Workout-OS C0 (2026-07-29): owner personal logger entry.
+  ClipboardCheck,
 };
 
 const getIcon = (name: string, size = 20) => {
