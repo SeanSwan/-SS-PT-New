@@ -43,7 +43,9 @@ import { execFileSync } from 'node:child_process';
 const REF = 'origin/main';
 
 function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  // stderr is piped, not inherited: a handled failure here prints its own clear message, and letting
+  // git's raw `fatal: ...` through first makes a gracefully-handled case read like a crash.
+  return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
 /** `git cat-file -e <rev>:<path>` exits non-zero when the blob does not exist. */
@@ -69,6 +71,11 @@ async function main() {
   const paths = [...argPaths, ...(await readStdin())]
     // Tolerate list output that carries leading markers or surrounding whitespace.
     .map((p) => p.trim().replace(/^[-*\s]+/, ''))
+    // Git only ever speaks forward slashes. On Windows `find`, `dir`, and most tooling emit
+    // backslashes, and `git cat-file -e HEAD:backend\models\User.mjs` simply misses — which lands a
+    // REAL finding in ABSENT and silently drops it. Failing in that direction is worse than not
+    // running the check at all, because the output still looks authoritative.
+    .map((p) => p.replace(/\\/g, '/'))
     .filter(Boolean);
 
   if (!paths.length) {
