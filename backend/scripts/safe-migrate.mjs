@@ -20,7 +20,7 @@ import { spawn } from 'child_process';
 import { Sequelize } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const backendDir = path.resolve(__dirname, '..');
@@ -136,15 +136,27 @@ async function main() {
         logging: false,
       });
     } else {
-      // For local dev, import database.mjs
-      const dbModule = await import(path.join(backendDir, 'database.mjs'));
+      // For local dev, import database.mjs.
+      // MUST be a file:// URL — a raw Windows path (C:\...\database.mjs) is not a valid ESM
+      // specifier, so `import(path.join(...))` threw here on every Windows run. The catch below
+      // then reported it as "Database connection failed", which is misleading: it failed to LOAD
+      // the module, before any connection was attempted. Production was unaffected (it takes the
+      // DATABASE_URL branch above), so this only ever broke local dev on Windows.
+      const dbModule = await import(pathToFileURL(path.join(backendDir, 'database.mjs')).href);
       seq = dbModule.default;
     }
 
     await seq.authenticate();
     console.log('Database connected\n');
   } catch (err) {
-    console.error('Database connection failed:', err.message);
+    // Distinguish "could not load the module" from "could not reach the database" — reporting a
+    // load failure as a connection failure sends whoever hits it debugging the wrong system.
+    const isLoadFailure = err instanceof Error
+      && /ERR_UNSUPPORTED_ESM_URL_SCHEME|ERR_MODULE_NOT_FOUND|Cannot find module/.test(err.message);
+    console.error(
+      isLoadFailure ? 'Failed to load database module:' : 'Database connection failed:',
+      err.message,
+    );
     process.exit(1);
   }
 
