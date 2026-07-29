@@ -74,13 +74,32 @@ export function registerErrorSink(fn) {
   sinkDisabled = false;
 }
 
-/** Stable-ish grouping key: error class + route shape + status. */
-export function fingerprint({ name, routePath, statusCode }) {
-  const route = String(routePath || 'unknown')
+/**
+ * Strip the query string, then collapse ids.
+ *
+ * THE QUERY STRING IS WHERE THE SECRETS LIVE. `/api/auth/reset?token=...` is a
+ * live account-takeover primitive; `?key=`, `?email=`, JWTs and phone numbers
+ * all travel the same way. The path is what makes an error actionable — the
+ * query adds nothing diagnostic and everything dangerous, so it is removed
+ * BEFORE the value is stored or fingerprinted rather than relying on pattern
+ * scrubbing to catch every secret shape.
+ *
+ * Found by hostile review 2026-07-29: the first version of this reporter kept
+ * `req.originalUrl` verbatim, which put reset tokens straight into the error
+ * store and fragmented the fingerprint (one "problem" per token).
+ */
+export function normalizeRoute(routePath) {
+  const raw = String(routePath || 'unknown');
+  const pathOnly = raw.split('?')[0].split('#')[0];
+  return pathOnly
     // collapse ids so /clients/61/x and /clients/62/x are ONE problem
     .replace(/\/\d+(?=\/|$)/g, '/:id')
     .replace(/\/[0-9a-f]{8}-[0-9a-f-]{27,}(?=\/|$)/gi, '/:uuid');
-  return `${name || 'Error'}|${route}|${statusCode || 500}`;
+}
+
+/** Stable-ish grouping key: error class + route shape + status. */
+export function fingerprint({ name, routePath, statusCode }) {
+  return `${name || 'Error'}|${normalizeRoute(routePath)}|${statusCode || 500}`;
 }
 
 function safeHeaders(req) {
@@ -108,7 +127,9 @@ function prune(now) {
  */
 export function buildErrorEvent({ err, req, statusCode, now = Date.now() }) {
   const status = Number(statusCode) || Number(err?.status) || 500;
-  const routePath = req?.route?.path || req?.originalUrl || req?.url || 'unknown';
+  // normalizeRoute strips the query string BEFORE the value is ever stored —
+  // see its docblock. Never assign req.originalUrl raw.
+  const routePath = normalizeRoute(req?.route?.path || req?.originalUrl || req?.url || 'unknown');
 
   const raw = {
     at: new Date(now).toISOString(),
