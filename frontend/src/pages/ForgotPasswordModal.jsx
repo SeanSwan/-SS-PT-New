@@ -13,6 +13,7 @@ import { useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
+import { VIDEO } from '../config/videoAssets';
 import {
   CloseButton,
   Eyebrow,
@@ -75,7 +76,9 @@ const ForgotPasswordModal = () => {
       }}
     >
       <VideoBackground autoPlay loop muted playsInline aria-hidden="true" tabIndex={-1}>
-        <source src="/assets/movie.mp4" type="video/mp4" />
+        {/* /assets/movie.mp4 never existed (404'd on every load — 2026-07-28
+            launch audit); waves is the same R2-backed source /login serves. */}
+        <source src={VIDEO.waves} type="video/mp4" />
       </VideoBackground>
 
       <ModalContent

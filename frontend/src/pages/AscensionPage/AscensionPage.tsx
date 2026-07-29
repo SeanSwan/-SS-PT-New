@@ -74,7 +74,9 @@ const AscensionPage: React.FC = () => {
     return map;
   }, [tiers]);
 
-  const currentTier = subscription?.tier || 'free';
+  // null (not 'free') when no subscription record exists — a signed-out visitor
+  // has no plan, so no card may claim "Current Plan" (2026-07-28 launch audit).
+  const currentTier = subscription?.tier ?? null;
   const showTrial = !subscription;
   const showCrystallinePromo = subscription?.crystallinePromoEligible === true;
 
