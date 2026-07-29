@@ -50,7 +50,7 @@ export interface V1ThemeBridgeProps {
  * </V1ThemeBridge>
  *
  * <V1ThemeBridge>
- *   <TestimonialSlider /> // Still v1.0
+ *   <SomeLegacyV1Component /> // Still v1.0
  * </V1ThemeBridge>
  * ```
  *
