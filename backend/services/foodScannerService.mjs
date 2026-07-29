@@ -56,7 +56,7 @@ class FoodScannerService {
 
       // If user is authenticated, record the scan in their history
       if (userId && product) {
-        await this.#recordScanHistory(userId, product.id, barcode);
+        await this.#recordScanHistory(userId, product, barcode);
       }
 
       // Attach ingredient analysis if we have ingredients data
@@ -157,24 +157,14 @@ class FoodScannerService {
     try {
       const {
         limit = 10,
-        offset = 0,
-        favorites = false
+        offset = 0
       } = options;
 
-      const whereClause = { userId };
-      
-      if (favorites) {
-        whereClause.isFavorite = true;
-      }
-
+      // No favorites filter and no product include: food_scan_history has neither an isFavorite
+      // column nor a productId FK — rows carry productName/productCode/imageUrl directly
+      // (rule 58, verified 2026-07-29). The route rejects favorites=true explicitly.
       const { count, rows } = await FoodScanHistory.findAndCountAll({
-        where: whereClause,
-        include: [
-          {
-            model: FoodProduct,
-            as: 'product'
-          }
-        ],
+        where: { userId },
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [['scanDate', 'DESC']]
@@ -195,46 +185,10 @@ class FoodScannerService {
     }
   }
 
-  /**
-   * Update a scan history record (e.g., mark as favorite, add notes)
-   * 
-   * @param {number} scanId - The scan history ID
-   * @param {string} userId - The user ID (for authorization)
-   * @param {Object} updates - The updates to apply
-   * @returns {Promise<Object>} - The updated scan history record
-   */
-  async updateScanHistory(scanId, userId, updates) {
-    try {
-      const scan = await FoodScanHistory.findOne({
-        where: {
-          id: scanId,
-          userId
-        }
-      });
-
-      if (!scan) {
-        logger.warn(`Scan history record ${scanId} not found for user ${userId}`);
-        return null;
-      }
-
-      // Only allow updating specific fields
-      const allowedUpdates = ['notes', 'userRating', 'isFavorite', 'wasConsumed'];
-      const filteredUpdates = {};
-
-      for (const key of allowedUpdates) {
-        if (updates[key] !== undefined) {
-          filteredUpdates[key] = updates[key];
-        }
-      }
-
-      await scan.update(filteredUpdates);
-      
-      return scan;
-    } catch (error) {
-      logger.error(`Error updating scan history: ${error.message}`, error);
-      throw error;
-    }
-  }
+  // NOTE: updateScanHistory was removed 2026-07-29 (rule 58). Every field it allowed
+  // (notes/userRating/isFavorite/wasConsumed) was a phantom column — food_scan_history has no
+  // user-editable columns, so the method could only ever no-op or crash. The route now returns
+  // an explicit 400. Restoring scan edits requires an additive migration first (SWA-87).
 
   /**
    * Analyze ingredients in a product and determine health rating
@@ -488,22 +442,26 @@ class FoodScannerService {
    * Record a scan in the user's history
    * 
    * @param {string} userId - The user ID
-   * @param {number} productId - The product ID
+   * @param {Object} product - The FoodProduct row that was scanned
    * @param {string} barcode - The scanned barcode
    * @returns {Promise<Object>} - The created scan history record
    * @private
    */
-  async #recordScanHistory(userId, productId, barcode) {
+  async #recordScanHistory(userId, product, barcode) {
     try {
+      // food_scan_history is a denormalized log: productName/productCode are copied at scan
+      // time; there is no product FK column (rule 58, verified 2026-07-29). The previous write
+      // sent productId/barcode/wasConsumed — three phantom columns — while omitting the
+      // NOT NULL productName, so every insert failed and was swallowed below.
       const scan = await FoodScanHistory.create({
         userId,
-        productId,
-        barcode,
+        productName: product.name,
+        productCode: barcode ?? product.barcode ?? null,
         scanDate: new Date(),
-        wasConsumed: true
+        imageUrl: product.imageUrl ?? null
       });
 
-      logger.info(`Recorded scan history for user ${userId}, product ${productId}`);
+      logger.info(`Recorded scan history for user ${userId}, product ${product.id}`);
       return scan;
     } catch (error) {
       logger.error(`Error recording scan history: ${error.message}`, error);

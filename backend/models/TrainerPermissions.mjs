@@ -90,21 +90,24 @@ class TrainerPermissions extends Model {
       isActive: this.isActive,
       isValid: this.isValid(),
       isCritical: this.isCritical(),
-      grantedAt: this.createdAt,
+      grantedAt: this.grantedAt || this.createdAt,
       expiresAt: this.expiresAt
     };
   }
 
   /**
-   * Deactivate this permission (soft disable)
-   * @param {number} deactivatedBy - ID of admin deactivating permission
+   * Deactivate this permission (soft disable). The table has no revoked-by column, so the
+   * revoking admin is preserved in the notes audit text alongside revokedAt.
+   * @param {number} revokedBy - ID of admin revoking the permission
    * @returns {Promise<TrainerPermissions>} Updated permission instance
    */
-  async deactivate(deactivatedBy) {
+  async deactivate(revokedBy) {
     return await this.update({
       isActive: false,
-      deactivatedAt: new Date(),
-      deactivatedBy: deactivatedBy
+      revokedAt: new Date(),
+      notes: this.notes
+        ? `${this.notes} (revoked by admin ${revokedBy})`
+        : `Revoked by admin ${revokedBy}`
     });
   }
 }
@@ -116,36 +119,40 @@ TrainerPermissions.init(
       primaryKey: true,
       autoIncrement: true,
     },
+    // SCHEMA TRUTH (verified against information_schema 2026-07-29, rule 58): the real
+    // trainer_permissions table uses camelCase columns — trainerId, permissionType, grantedBy,
+    // isActive, expiresAt, grantedAt, revokedAt, notes. The previous snake_case `field:` mappings
+    // (trainer_id, permission_type, …) targeted columns that DO NOT EXIST, so every query through
+    // this model threw "column trainer_id does not exist" — this was CLAUDE.md rule 58's own
+    // worked example, still live. The model also declared deactivatedBy/deactivatedAt/reason,
+    // which have no columns; the table's audit columns are revokedAt and notes.
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'trainer_id', // Map camelCase to snake_case
-      references: { 
-        model: 'users', // Table name in snake_case
-        key: 'id' 
+      references: {
+        model: 'Users', // Canonical user table — FKs must reference "Users", not "users"
+        key: 'id'
       },
       comment: 'ID of the trainer receiving this permission'
     },
     permissionType: {
       type: DataTypes.ENUM(
         'edit_workouts',
-        'view_progress', 
+        'view_progress',
         'manage_clients',
         'access_nutrition',
         'modify_schedules',
         'view_analytics'
       ),
       allowNull: false,
-      field: 'permission_type', // Map camelCase to snake_case
       comment: 'Type of permission being granted'
     },
     grantedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'granted_by', // Map camelCase to snake_case
-      references: { 
-        model: 'users', // Table name in snake_case
-        key: 'id' 
+      references: {
+        model: 'Users',
+        key: 'id'
       },
       comment: 'ID of the admin who granted this permission'
     },
@@ -153,36 +160,28 @@ TrainerPermissions.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
       allowNull: false,
-      field: 'is_active', // Map camelCase to snake_case
       comment: 'Whether this permission is currently active'
     },
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      field: 'expires_at', // Map camelCase to snake_case
       comment: 'Optional expiration date for time-limited permissions'
     },
-    // Audit fields for tracking permission lifecycle
-    deactivatedBy: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'deactivated_by', // Map camelCase to snake_case
-      references: { 
-        model: 'users',
-        key: 'id' 
-      },
-      comment: 'ID of the admin who deactivated this permission'
+    grantedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      comment: 'When the permission was granted (DB default now())'
     },
-    deactivatedAt: {
+    revokedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      field: 'deactivated_at', // Map camelCase to snake_case
-      comment: 'Timestamp when permission was deactivated'
+      comment: 'Timestamp when permission was revoked (null while active)'
     },
-    reason: {
+    notes: {
       type: DataTypes.TEXT,
       allowNull: true,
-      comment: 'Optional reason for granting or revoking permission'
+      comment: 'Free-text audit note: grant reason, revoke reason, revoking admin'
     }
   },
   {

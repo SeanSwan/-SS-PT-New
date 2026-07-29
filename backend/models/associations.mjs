@@ -724,7 +724,9 @@ const setupAssociations = async () => {
     // =========================
     User.hasMany(FoodScanHistory, { foreignKey: 'userId', as: 'foodScans' });
     User.hasMany(Orientation, { foreignKey: 'userId', as: 'orientations' });
-    FoodProduct.hasMany(FoodScanHistory, { foreignKey: 'productId', as: 'scanHistory' });
+    // NO FoodProduct↔FoodScanHistory association: food_scan_history has no productId column —
+    // product identity is denormalized (productName/productCode) at scan time (rule 58,
+    // verified 2026-07-29). An association here would re-inject the phantom FK into every SELECT.
 
     if (DailyMacroLog) {
       User.hasMany(DailyMacroLog, { foreignKey: 'userId', as: 'dailyMacroLogs', constraints: false });
@@ -732,7 +734,6 @@ const setupAssociations = async () => {
     }
     
     FoodScanHistory.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-    FoodScanHistory.belongsTo(FoodProduct, { foreignKey: 'productId', as: 'product' });
     
     // ORIENTATION ASSOCIATIONS
     // =======================

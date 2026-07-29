@@ -502,10 +502,15 @@ class GamificationPersistence {
           }
         }
         
-        // Database fallback for achievement check
+        // Database fallback for achievement check.
+        // Registry name is UserAchievement (singular) — the previous UserAchievements lookup was
+        // undefined and threw on every call. KNOWN GAP (rule 58, 2026-07-29): this engine's
+        // catalog uses string keys ('first_workout') while UserAchievements.achievementId is an
+        // integer FK to the Achievements table, so this query cannot match engine achievements
+        // until an ID mapping exists (SWA-87). The catch keeps the check fail-safe either way.
         if (!this.redisEnabled) {
           try {
-            const dbAchievement = await sequelize.models.UserAchievements.findOne({
+            const dbAchievement = await sequelize.models.UserAchievement.findOne({
               where: { userId, achievementId }
             });
             hasAchievement = !!dbAchievement;
@@ -595,15 +600,21 @@ class GamificationPersistence {
         idempotencyKey: `achievement:${userId}:${achievementId}`
       });
 
-      // Persist to database (always do this)
+      // Persist to database (always do this).
+      // Registry name is UserAchievement (singular); achievementName/unlockedAt were phantom
+      // columns — real columns are earnedAt/isCompleted/progress (rule 58, 2026-07-29).
+      // KNOWN GAP: this engine's string achievement keys cannot satisfy the integer
+      // achievementId FK, so this insert fails (caught below) until an ID mapping lands
+      // (SWA-87) — the write shape is now column-correct for when it does.
       if (this.usePostgreSQL) {
         try {
-          await sequelize.models.UserAchievements.create({
+          await sequelize.models.UserAchievement.create({
             userId,
             achievementId,
-            achievementName: achievement.name,
-            pointsAwarded: achievement.points,
-            unlockedAt: new Date()
+            isCompleted: true,
+            progress: 100,
+            earnedAt: new Date(),
+            pointsAwarded: achievement.points
           });
         } catch (dbError) {
           console.log('🎯 Database achievement persist failed:', dbError.message);
@@ -968,12 +979,16 @@ class GamificationPersistence {
     try {
       await this.redis.sadd(`user:${userId}:achievements`, achievementId);
       
-      // Also store in database
+      // Also store in database. Registry name is UserAchievement (singular); unlockedAt was a
+      // phantom column — earnedAt is the real one (rule 58, 2026-07-29). Same string-key vs
+      // integer-FK gap as the sites above (SWA-87).
       if (this.usePostgreSQL) {
-        await sequelize.models.UserAchievements.create({
+        await sequelize.models.UserAchievement.create({
           userId,
           achievementId,
-          unlockedAt: new Date()
+          isCompleted: true,
+          progress: 100,
+          earnedAt: new Date()
         });
       }
       

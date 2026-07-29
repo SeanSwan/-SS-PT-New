@@ -4,7 +4,15 @@ import sequelize from '../database.mjs';
 
 /**
  * Food Scan History Model
- * Tracks user's food product scanning history
+ * Tracks user's food product scanning history.
+ *
+ * SCHEMA TRUTH (verified against information_schema 2026-07-29, rule 58): the real
+ * food_scan_history table is a denormalized scan log — productName/productCode are copied at
+ * scan time; there is NO product FK. The previous model declared productId/barcode/notes/
+ * userRating/isFavorite/wasConsumed/location/metadata, none of which exist as columns, and did
+ * NOT declare productName (NOT NULL) — so every INSERT violated a not-null constraint and was
+ * swallowed by the caller's catch. The table had 0 rows for exactly that reason. Favorites,
+ * ratings, and notes need an additive migration before they can return (SWA-87).
  */
 class FoodScanHistory extends Model {}
 
@@ -15,69 +23,35 @@ FoodScanHistory.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    // User who performed the scan
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'Users', // Canonical user table — FKs must reference "Users", not "users"
         key: 'id'
       }
     },
-    // The product that was scanned
-    productId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'food_products',
-        key: 'id'
-      }
-    },
-    // Barcode that was scanned
-    barcode: {
+    // Product identity is denormalized at scan time — the table has no product FK column.
+    productName: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    // Timestamp of the scan (defaults to current time)
+    productCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'UPC/EAN barcode as scanned'
+    },
     scanDate: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW
     },
-    // Optional user notes about this scan
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    // Optional user rating of the product (1-5)
-    userRating: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      validate: {
-        min: 1,
-        max: 5
-      }
-    },
-    // Whether the user saved this product to their favorites
-    isFavorite: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
-    // Whether the user marked this product as consumed
-    wasConsumed: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-    // Location of the scan (if provided)
-    location: {
-      type: DataTypes.JSON, // { latitude, longitude, placeName }
-      allowNull: true,
-    },
-    // Additional scan metadata
-    metadata: {
+    nutritionData: {
       type: DataTypes.JSON,
+      allowNull: true,
+    },
+    imageUrl: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

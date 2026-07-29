@@ -226,11 +226,19 @@ router.get('/history', protect, async (req, res) => {
   try {
     const userId = req.user.id;
     const { limit, offset, favorites } = req.query;
-    
+
+    // The scan-history table has no favorite column (rule 58, verified 2026-07-29) — say so
+    // instead of silently returning everything or pretending an empty favorites list is real.
+    if (favorites === 'true') {
+      return res.status(400).json({
+        success: false,
+        message: 'Favorites are not supported yet for scan history'
+      });
+    }
+
     const scanHistory = await foodScannerService.getUserScanHistory(userId, {
       limit,
-      offset,
-      favorites: favorites === 'true'
+      offset
     });
     
     return res.status(200).json({
@@ -249,35 +257,17 @@ router.get('/history', protect, async (req, res) => {
 
 /**
  * @route   PUT /api/food-scanner/history/:id
- * @desc    Update a scan history entry (e.g., mark as favorite)
+ * @desc    Scan history entries are immutable — every previously "editable" field
+ *          (notes/userRating/isFavorite/wasConsumed) was a phantom column that does not exist
+ *          in food_scan_history (rule 58, verified 2026-07-29). Editing needs an additive
+ *          migration first (SWA-87); until then this endpoint tells the truth.
  * @access  Private
  */
 router.put('/history/:id', protect, async (req, res) => {
-  try {
-    const scanId = req.params.id;
-    const userId = req.user.id;
-    
-    const updatedScan = await foodScannerService.updateScanHistory(scanId, userId, req.body);
-    
-    if (!updatedScan) {
-      return res.status(404).json({
-        success: false,
-        message: 'Scan history record not found or not authorized'
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      scan: updatedScan
-    });
-  } catch (error) {
-    logger.error(`Error in update history route: ${error.message}`, error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error while updating scan history',
-      error: 'Internal server error'
-    });
-  }
+  return res.status(400).json({
+    success: false,
+    message: 'Editing scan history is not supported yet'
+  });
 });
 
 /**
