@@ -140,14 +140,14 @@ export const dispatchAwardBadge = async (params, ctx) => withRequiredTransaction
 
   const pointsAwarded = toNumber(achievement.xpReward);
   const earnedAt = new Date();
+  // Only real UserAchievements columns (rule 58, verified 2026-07-29) — the previously included
+  // progressPercentage/unlockedAt do not exist in the table.
   const achievementFields = {
     userId: clientId,
     achievementId,
     isCompleted: true,
     progress: 100,
-    progressPercentage: 100,
     earnedAt,
-    unlockedAt: earnedAt,
     pointsAwarded,
   };
 

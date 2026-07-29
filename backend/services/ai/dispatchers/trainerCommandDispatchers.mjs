@@ -202,7 +202,9 @@ export async function dispatchSetTrainerPermissions(params = {}, ctx = {}) {
   }
 
   const expiresAt = params.expiresAt ? new Date(params.expiresAt) : null;
-  const reason = params.reason || params.notes || null;
+  // The table's audit column is `notes` (no `reason` column exists); the command keeps
+  // accepting `reason` and maps it there.
+  const notes = params.reason || params.notes || null;
   const granted = [];
   let skippedExistingCount = 0;
 
@@ -230,7 +232,7 @@ export async function dispatchSetTrainerPermissions(params = {}, ctx = {}) {
       grantedBy: Number(ctx.user?.id),
       expiresAt,
       isActive: true,
-      reason,
+      notes,
     }));
   }
 
@@ -269,11 +271,15 @@ export async function dispatchRevokeTrainerPermission(params = {}, ctx = {}) {
 
   const deactivatedBy = Number(ctx.user?.id) || null;
   const wasActive = permission.isActive !== false;
+  // Real audit columns are revokedAt + notes (no revoked-by column exists — the revoking admin
+  // is preserved inside the notes text). deactivatedBy stays in the RESPONSE contract below.
+  const revokeNote = params.reason || params.notes || permission.notes || null;
   await permission.update({
     isActive: false,
-    deactivatedAt: new Date(),
-    deactivatedBy,
-    reason: params.reason || params.notes || permission.reason || null,
+    revokedAt: new Date(),
+    notes: revokeNote
+      ? `${revokeNote} (revoked by admin ${deactivatedBy})`
+      : `Revoked by admin ${deactivatedBy}`,
   });
 
   return {

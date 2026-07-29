@@ -2,38 +2,47 @@
  * ============================================================================
  * FILE: UserAchievement.mjs
  * PURPOSE: Junction model tracking user progress toward achievements
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
- * AI VILLAGE VALIDATED: 2026-03-23
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-29 (schema-truth rewrite)
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Tracks each user's progress toward each achievement —
- * current progress value, completion status, unlock date, share count,
- * and display preferences. Junction between Users and Achievements.
+ * progress value, completion status, earned date, points awarded, and whether
+ * the unlock notification went out. Junction between Users and Achievements.
+ *
+ * SCHEMA TRUTH (verified against information_schema 2026-07-29, CLAUDE.md rule 58):
+ * the real "UserAchievements" table has EXACTLY these columns —
+ *   id (integer), userId (integer), achievementId (integer), earnedAt, progress,
+ *   isCompleted, pointsAwarded, notificationSent, createdAt, updatedAt.
+ *
+ * The previous version of this model declared ~45 attributes (maxProgress,
+ * progressPercentage, progressHistory, xpAwarded, isNew, shareCount, …) and UUID
+ * ids — none of which exist in the table, and both id columns are INTEGERS. The
+ * consequences in production were:
+ *   - every unscoped SELECT threw `column "maxProgress" does not exist`
+ *     (gamificationController worked around it with an explicit attribute list;
+ *     most other callers crashed or silently returned empty via catch blocks)
+ *   - every create() crashed, because Sequelize inserts declared defaults —
+ *     the achievement AWARD path never persisted a single row
+ * None of the rich fields ever had a migration; restoring any of them is an
+ * additive-migration slice (SWA-87), not a model edit.
  *
  * HOW IT FITS IN THE APP:
- *   Users ←→ UserAchievement ←→ Achievement
- *   gamificationController.awardPoints() → checks UserAchievement progress
- *   → if criteria met → marks completed + triggers celebration UI
- *
- * KEY DECISIONS:
- * - UUID primary key, FK to Users (integer) and Achievements (UUID)
- * - Tracks progressValue / progressTarget for partial-completion badges
- * - shareCount tracks social engagement with achievements
- * - 540 lines — exceeds 300-line rule but acceptable for model definitions
+ *   Users ←→ UserAchievement ←→ Achievement (associations in associations.mjs)
+ *   gamificationController award paths findOne/create with these columns;
+ *   profile/progress/social controllers read completion + earnedAt.
  */
 
-import { DataTypes, Op } from 'sequelize';
+import { DataTypes } from 'sequelize';
 import db from '../database.mjs';
 
 const UserAchievement = db.define('UserAchievement', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
     allowNull: false
   },
-  
-  // Foreign Keys
+
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -42,101 +51,41 @@ const UserAchievement = db.define('UserAchievement', {
       key: 'id'
     }
   },
-  
+
   achievementId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Achievements',
       key: 'id'
     }
   },
-  
-  // Progress Tracking
-  progress: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  
-  maxProgress: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 1.00,
-    validate: {
-      min: 0
-    }
-  },
-  
-  progressPercentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  
-  // Status Tracking
-  isCompleted: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
-  },
-  
-  isNew: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true
-  },
-  
-  isViewed: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
-  },
-  
-  // Timeline Management
-  startedAt: {
+
+  // The table treats a row as an award record: earnedAt is NOT NULL with no DB
+  // default, so the model supplies now() to keep create() paths satisfiable.
+  earnedAt: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
   },
-  
-  earnedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  unlockedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  lastProgressUpdate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  viewedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  // Reward Tracking
-  xpAwarded: {
-    type: DataTypes.INTEGER,
+
+  // Progress is stored as a plain number (double precision). Shipped usage
+  // treats it as a 0–100 percentage; completion sets it to 100.
+  progress: {
+    type: DataTypes.DOUBLE,
     allowNull: false,
     defaultValue: 0,
     validate: {
       min: 0
     }
   },
-  
+
+  isCompleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+
   pointsAwarded: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -145,203 +94,11 @@ const UserAchievement = db.define('UserAchievement', {
       min: 0
     }
   },
-  
-  bonusRewards: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  // Progress History
-  progressHistory: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  milestones: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  // Social Features
-  shareCount: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    validate: {
-      min: 0
-    }
-  },
-  
-  sharedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  socialPlatforms: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  reactions: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: {}
-  },
-  
-  // Notification Management
+
   notificationSent: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
-  },
-  
-  notificationSentAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  remindersSent: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    validate: {
-      min: 0
-    }
-  },
-  
-  // Performance Metrics
-  timeToComplete: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  
-  difficulty: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 3,
-    validate: {
-      min: 1,
-      max: 5
-    }
-  },
-  
-  effortScore: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 5.00,
-    validate: {
-      min: 1,
-      max: 10
-    }
-  },
-  
-  // User Experience
-  userRating: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 1,
-      max: 5
-    }
-  },
-  
-  userFeedback: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  
-  motivationLevel: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 1,
-      max: 10
-    }
-  },
-  
-  // Analytics Data
-  viewCount: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    validate: {
-      min: 0
-    }
-  },
-  
-  engagementScore: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 10
-    }
-  },
-  
-  // Custom Data
-  metadata: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: {}
-  },
-  
-  customNotes: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  
-  tags: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  // Verification (for achievements that require it)
-  isVerified: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
-  },
-  
-  verifiedBy: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
-  },
-  
-  verifiedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  
-  verificationEvidence: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  
-  // Timestamps
-  createdAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
-  
-  updatedAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'UserAchievements',
@@ -356,202 +113,11 @@ const UserAchievement = db.define('UserAchievement', {
       fields: ['userId', 'isCompleted']
     },
     {
-      fields: ['userId', 'isNew', 'isViewed']
-    },
-    {
-      fields: ['achievementId', 'isCompleted']
-    },
-    {
       fields: ['earnedAt']
-    },
-    {
-      fields: ['progressPercentage']
-    },
-    {
-      fields: ['shareCount']
-    },
-    {
-      fields: ['lastProgressUpdate']
     }
-  ],
-  
+  ]
 });
 
-// ── Instance Methods (attached to prototype for Sequelize v4+) ──
-
-UserAchievement.prototype.updateProgress = async function (newProgress, notes = null) {
-  const oldProgress = this.progress;
-
-  this.progress = Math.max(0, newProgress);
-  this.progressPercentage = this.maxProgress > 0
-    ? Math.min((this.progress / this.maxProgress) * 100, 100) : 0;
-  this.lastProgressUpdate = new Date();
-
-  // Clone-and-reassign to trigger Sequelize JSONB change detection
-  const currentHistory = this.progressHistory || [];
-  this.progressHistory = [...currentHistory, {
-    date: new Date().toISOString(),
-    progress: this.progress,
-    progressChange: this.progress - oldProgress,
-    percentage: this.progressPercentage,
-    notes
-  }].slice(-50);
-
-  if (this.progressPercentage >= 100 && !this.isCompleted) {
-    await this.complete();
-  }
-
-  await this.save();
-  return this;
-};
-
-UserAchievement.prototype.complete = async function () {
-  if (this.isCompleted) return this;
-
-  this.isCompleted = true;
-  this.earnedAt = new Date();
-  this.unlockedAt = new Date();
-  this.progressPercentage = 100;
-  this.isNew = true;
-
-  if (this.startedAt) {
-    this.timeToComplete = Math.floor(
-      (new Date() - new Date(this.startedAt)) / (1000 * 60 * 60 * 24)
-    );
-  }
-
-  const achievement = await db.models.Achievement.findByPk(this.achievementId);
-  if (achievement) {
-    this.xpAwarded = achievement.getTotalXpReward();
-    this.pointsAwarded = achievement.requiredPoints || 0;
-
-    const user = await db.models.User.findByPk(this.userId);
-    if (user && user.gamification) {
-      await user.gamification.update({
-        totalXp: user.gamification.totalXp + this.xpAwarded,
-        totalPoints: user.gamification.totalPoints + this.pointsAwarded
-      });
-    }
-  }
-
-  await this.save();
-  return this;
-};
-
-UserAchievement.prototype.share = async function (platform) {
-  this.shareCount += 1;
-  this.sharedAt = new Date();
-
-  // Clone-and-reassign for JSONB safety
-  const platforms = [...(this.socialPlatforms || [])];
-  if (!platforms.includes(platform)) platforms.push(platform);
-  this.socialPlatforms = platforms;
-
-  const achievement = await db.models.Achievement.findByPk(this.achievementId);
-  if (achievement) {
-    await achievement.update({ shareCount: achievement.shareCount + 1 });
-  }
-
-  await this.save();
-  return this;
-};
-
-UserAchievement.prototype.markAsViewed = async function () {
-  if (!this.isViewed) {
-    this.isViewed = true;
-    this.viewedAt = new Date();
-    this.isNew = false;
-    this.viewCount += 1;
-    await this.save();
-  }
-  return this;
-};
-
-UserAchievement.prototype.getCompletionSpeedScore = function () {
-  if (!this.isCompleted || !this.timeToComplete) return 0;
-  const achievement = this.Achievement;
-  if (!achievement || !achievement.averageTimeToUnlock) return 5;
-  const ratio = this.timeToComplete / achievement.averageTimeToUnlock;
-  if (ratio <= 0.5) return 10;
-  if (ratio <= 0.75) return 8;
-  if (ratio <= 1.0) return 6;
-  if (ratio <= 1.5) return 4;
-  return 2;
-};
-
-UserAchievement.prototype.getDaysSinceStarted = function () {
-  const start = new Date(this.startedAt);
-  return Math.ceil((new Date() - start) / (1000 * 60 * 60 * 24));
-};
-
-UserAchievement.prototype.getStats = function () {
-  return {
-    progress: this.progress,
-    progressPercentage: this.progressPercentage,
-    isCompleted: this.isCompleted,
-    timeToComplete: this.timeToComplete,
-    xpAwarded: this.xpAwarded,
-    shareCount: this.shareCount,
-    viewCount: this.viewCount,
-    effortScore: this.effortScore,
-    completionSpeedScore: this.getCompletionSpeedScore(),
-    daysSinceStarted: this.getDaysSinceStarted(),
-    progressUpdates: this.progressHistory ? this.progressHistory.length : 0
-  };
-};
-
-// ── Class Methods ──
-
-UserAchievement.getUserAchievements = async function (userId, filters = {}) {
-  const whereClause = { userId };
-  if (filters.completed !== undefined) whereClause.isCompleted = filters.completed;
-  return this.findAll({
-    where: whereClause,
-    include: [{
-      model: db.models.Achievement,
-      where: filters.category ? { category: filters.category } : undefined
-    }],
-    order: [['isNew', 'DESC'], ['earnedAt', 'DESC'], ['progressPercentage', 'DESC']]
-  });
-};
-
-UserAchievement.getRecentAchievements = async function (userId, limit = 5) {
-  return this.findAll({
-    where: { userId, isCompleted: true },
-    include: [{ model: db.models.Achievement }],
-    order: [['earnedAt', 'DESC']],
-    limit
-  });
-};
-
-UserAchievement.getUserProgress = async function (userId) {
-  const totalAchievements = await db.models.Achievement.count({
-    where: { isActive: true, isHidden: false }
-  });
-  const userAchievements = await this.count({ where: { userId } });
-  const completedAchievements = await this.count({ where: { userId, isCompleted: true } });
-  const totalXp = await this.sum('xpAwarded', { where: { userId, isCompleted: true } }) || 0;
-  return {
-    totalAchievements,
-    userAchievements,
-    completedAchievements,
-    totalXp,
-    completionRate: userAchievements > 0 ? (completedAchievements / userAchievements) * 100 : 0,
-    availableRate: totalAchievements > 0 ? (userAchievements / totalAchievements) * 100 : 0
-  };
-};
-
-UserAchievement.awardAchievement = async function (userId, achievementId, initialProgress = 0) {
-  const [userAchievement, created] = await this.findOrCreate({
-    where: { userId, achievementId },
-    defaults: { userId, achievementId, progress: initialProgress, startedAt: new Date() }
-  });
-  if (created && initialProgress > 0) {
-    await userAchievement.updateProgress(initialProgress);
-  }
-  return userAchievement;
-};
-
-// Model associations will be defined in associations.mjs
+// Model associations are defined in associations.mjs
 
 export default UserAchievement;
