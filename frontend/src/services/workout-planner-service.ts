@@ -5,7 +5,7 @@
  */
 
 import api from './api';
-import { WorkoutPlan, WorkoutPlansResponse, WorkoutPlanResponse, FetchPlansParams, ClonePlanParams } from '../pages/workout/types/plan.types';
+import { WorkoutPlan, WorkoutPlansResponse, WorkoutPlanResponse, FetchPlansParams, ClonePlanParams } from './types/plan.types';
 
 /**
  * Workout Planner Service

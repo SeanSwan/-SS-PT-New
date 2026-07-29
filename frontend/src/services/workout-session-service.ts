@@ -5,7 +5,7 @@
  */
 
 import api from './api';
-import { WorkoutSession, WorkoutSessionsResponse, WorkoutSessionResponse, FetchSessionsParams } from '../pages/workout/types/session.types';
+import { WorkoutSession, WorkoutSessionsResponse, WorkoutSessionResponse, FetchSessionsParams } from './types/session.types';
 
 const maybeRecord = (value: any) => (
   value && typeof value === 'object' ? value : {}

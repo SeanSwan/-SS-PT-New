@@ -15,6 +15,7 @@ import ProtectedRoute from './protected-route';
 
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
+import { useAuth } from '../context/AuthContext';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -199,11 +200,6 @@ const VariationEngine = lazyLoadWithErrorHandling(
   'Variation Engine'
 );
 
-// Intelligent Workout Builder — AI-powered workout generation (trainer/admin)
-const WorkoutBuilder = lazyLoadWithErrorHandling(
-  () => import('../components/WorkoutBuilder/WorkoutBuilderPage'),
-  'Workout Builder'
-);
 
 // Boot Camp Class Builder — AI-powered group fitness class generation (trainer/admin)
 const BootcampBuilder = lazyLoadWithErrorHandling(
@@ -248,10 +244,6 @@ const SubscriptionSuccessPage = lazyLoadWithErrorHandling(
 const EmergencyDashboard = lazyLoadWithErrorHandling(
   () => import('../components/Emergency/EmergencyDashboard'),
   'Emergency Dashboard'
-);
-const WorkoutDashboard = lazyLoadWithErrorHandling(
-  () => import('../pages/workout/WorkoutDashboard'),
-  'Workout Dashboard'
 );
 
 // Universal Dashboard Layout — serves ALL roles (admin, trainer, client)
@@ -303,6 +295,26 @@ const SocialTabRedirect: React.FC = () => {
 const SocialPostRedirect: React.FC = () => {
   const { postId } = useParams<{ postId?: string }>();
   return <Navigate to={postId ? buildSocialPostDashboardRedirect(postId) : '/user-dashboard'} replace />;
+};
+
+// Workout-OS C1 (2026-07-29): the dormant /workout dashboard stack and the
+// /workout-builder surface were mounted with zero nav entries (blueprint
+// UNIFIED-WORKOUT-OS §1.1 receipts). Their files are excised; these shims keep
+// old bookmarks working by landing each role on the absorbing live surface
+// (Rule 34 — nothing removed without a replacement path).
+const WORKOUT_VIEW_HOME_BY_ROLE: Record<string, string> = {
+  client: '/dashboard/client/workouts',
+  trainer: '/dashboard/trainer/client-progress',
+  admin: '/dashboard/admin/client-progress',
+};
+const WORKOUT_BUILDER_HOME_BY_ROLE: Record<string, string> = {
+  trainer: '/dashboard/trainer/workout-planner',
+  admin: '/dashboard/admin/workout-planner',
+};
+const LegacyWorkoutRedirect: React.FC<{ surface: 'view' | 'builder' }> = ({ surface }) => {
+  const { user } = useAuth();
+  const map = surface === 'builder' ? WORKOUT_BUILDER_HOME_BY_ROLE : WORKOUT_VIEW_HOME_BY_ROLE;
+  return <Navigate to={map[user?.role ?? ''] ?? '/dashboard'} replace />;
 };
 
 // Design Studio full-page viewers — admin-only routes below; never build-time gated.
@@ -641,14 +653,12 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Intelligent Workout Builder — AI-powered workout generation (trainer/admin)
+    // Workout-OS C1: legacy authoring surface excised — shim to the planner.
     {
       path: 'workout-builder',
       element: (
         <ProtectedRoute allowedRoles={['trainer', 'admin']}>
-          <Suspense fallback={<PageLoader />}>
-            <WorkoutBuilder />
-          </Suspense>
+          <LegacyWorkoutRedirect surface="builder" />
         </ProtectedRoute>
       )
     },
@@ -843,13 +853,12 @@ const MainRoutes: RouteObject = {
       element: <SocialTabRedirect />
     },
 
+    // Workout-OS C1: dormant workout dashboard excised — shim per role.
     {
       path: 'workout',
       element: (
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <WorkoutDashboard />
-          </Suspense>
+          <LegacyWorkoutRedirect surface="view" />
         </ProtectedRoute>
       )
     },
@@ -857,9 +866,7 @@ const MainRoutes: RouteObject = {
       path: 'workout/:userId',
       element: (
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <WorkoutDashboard />
-          </Suspense>
+          <LegacyWorkoutRedirect surface="view" />
         </ProtectedRoute>
       )
     },
