@@ -86,3 +86,101 @@ produces exactly the confident-and-wrong finding this loop keeps generating.
 The remaining item is left open rather than guessed at. **An unresolved question stated precisely,
 with the exact query that answers it, is worth more than a coin-flip conclusion** — especially in a
 lane where Rule 58 exists because past guesses became production incidents.
+---
+
+# RESOLUTION — 2026-07-29, same day (commit 093072b11)
+
+The open question above is answered. **Reading 2 was correct.** I ran the query against the
+production database rather than leaving it for Sean, and the result was the bad one.
+
+## What the database said
+
+```
+information_schema -> EXISTS: GamificationSettings, Gamifications, Users, goals, users
+                      FUZZY : client_pain_entries, goal_comments, goal_likes, goal_milestones, ...
+```
+
+| Hypothesis | Verdict |
+|---|---|
+| `"Goals"` missing | **CONFIRMED BROKEN** — only lowercase `goals` exists |
+| `"PainEntries"` missing | **CONFIRMED BROKEN** — real table is `client_pain_entries` |
+| `"Gamifications"` missing | **WRONG — the table exists.** Third retraction of this sweep |
+
+Executing old vs new against the live DB:
+
+```
+OLD goals  FAIL  relation "Goals" does not exist
+NEW goals  OK    rows=4        progress typeof=number
+OLD pain   FAIL  relation "PainEntries" does not exist
+NEW pain   OK    rows=0
+OLD agg    FAIL  relation "PainEntries" does not exist
+NEW agg    OK    rows=0
+```
+
+So the Coach has been answering without pain or goal context, and the debate engine started
+every debate with both enrichment domains empty.
+
+## The drift was two layers deep
+
+Fixing only the table name would **not** have fixed it:
+
+| SQL selected | Real column |
+|---|---|
+| `progress` | `progressPercentage` |
+| `bodyPart` | `bodyRegion` |
+
+A table-name-only fix moves the error from `relation does not exist` to `column does not
+exist` — still broken, still silent. **When a table name is wrong, check the columns too;
+the same drift event usually moved both.**
+
+Fixed by correcting the source identifiers and **aliasing back to the old names**, so the
+output shape is byte-identical and no consumer changed. `::float` on `progressPercentage`
+is deliberate: the column is NUMERIC and node-postgres returns NUMERIC as a **string**
+(verified: without cast `"0.00"`, with cast `0`).
+
+## Why it survived — the part worth carrying
+
+1. **The degradation design absorbed it.** The same `Promise.allSettled` + `dataQuality`
+   pattern praised above as "a pattern to copy" is what hid this for months. Both statements
+   are true: the design is right, *and* it makes a broken domain externally
+   indistinguishable from an empty one. **Resilience and observability have to ship
+   together** — degrade gracefully, but make the degradation legible.
+
+2. **The tests were pinned to the broken names.** Mocks matched `/"Goals"/` and
+   `/PainEntries/`, returning fixture rows for SQL that could never run. Green the whole
+   time. **A test asserting the same wrong string the code uses does not verify the code —
+   it photocopies it.** Mocks repointed; `coachContextTableNames.test.mjs` now pins the
+   identifiers that actually exist.
+
+**Corroboration:** `aiChatService.mjs` already queried `FROM goals`, `FROM
+client_pain_entries`, `"bodyRegion"` and `"progressPercentage"` correctly. The Coach chat
+path was right all along; the context engine and debate services had drifted away from it.
+
+## Third retraction: a bootcamp fix that fixed nothing
+
+Mid-review I "fixed" `bootcamp_class_logs` (plural) to the real singular
+`bootcamp_class_log`. **`main` already had it right.** I was editing a tree 1,229 commits
+behind — the same stale-tree trap recorded in iteration 3, hit for the third time this
+session. All work was moved to a worktree actually on `main` before anything was committed,
+and the stale-tree edits were reverted.
+
+**The generalizable fix is procedural: verify branch freshness BEFORE editing, not before
+committing.** Three misses is a pattern, not bad luck.
+
+## Method note — the extractor that lied
+
+The first repo-wide sweep reported **596 of 665** table references as "not found". That was
+not a finding, it was a broken extractor: the regex matched the words `FROM`/`JOIN` in
+English prose and comments (`ADMIN_PASSWORD`, `Authorization`, `BOTH`, `CLI`). Scoping the
+parse to strings that are actually SQL cut it to 42, of which the plausible ones were then
+verified individually against the live DB. **A sweep with a 90% false-positive rate is worse
+than no sweep — it buries the real signal.**
+
+## Still open, deliberately not touched
+
+`conversation_mutes`, `message_attachments`, `message_pins`, `message_reactions`,
+`message_reports`, `message_saves` do not exist in the DB, but they are created at runtime by
+`services/messagingSchemaRepository.mjs` — a self-bootstrapping schema module, not drift.
+Whether that bootstrap actually runs in production is a **separate lane** (the other agent is
+active in messaging/observability) and needs a judgment call, not a rename. Recorded, not
+fixed. `CommunityMemberships` (model exists, table does not) is in the same bucket.
