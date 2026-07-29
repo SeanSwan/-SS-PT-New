@@ -128,12 +128,39 @@ const creditsController = {
       );
       const applyLoyaltyBump = isEligibleForLoyaltyBump(clientCompletedSessions, sessionsGranted);
 
+      // 7b. Resolve the trainer's TYPE — the split depends on it.
+      // Without this, calculateCommissionSplit falls through to its affiliated
+      // default and pays an INDEPENDENT trainer 65% where 85% is owed: a flat
+      // 20 points of gross short on every package. Matches the house pattern in
+      // services/CommissionService.mjs (fetch trainer -> pass { trainerType }).
+      let trainerType = null;
+      if (finalTrainerId) {
+        const trainer = await User.findByPk(finalTrainerId, {
+          attributes: ['id', 'role', 'trainerType'],
+          transaction
+        });
+        if (!trainer) {
+          await transaction.rollback();
+          return res.status(404).json({ success: false, message: 'Trainer not found' });
+        }
+        if (trainer.role !== 'trainer') {
+          // Not fatal — admins legitimately self-attribute — but the split will
+          // use the affiliated default, so make that visible rather than silent.
+          console.warn(
+            `[credits] commission attributed to user ${finalTrainerId} with role ` +
+            `'${trainer.role}' (not 'trainer'); using default trainer type`
+          );
+        }
+        trainerType = trainer.trainerType || null;
+      }
+
       // 8. Calculate commission split
       const commission = calculateCommissionSplit(
         leadSource,
         taxCalc.grossAmount,
         sessionsGranted,
-        applyLoyaltyBump
+        applyLoyaltyBump,
+        { trainerType }
       );
 
       // 9. Create order

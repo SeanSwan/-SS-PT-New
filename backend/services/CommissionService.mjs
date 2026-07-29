@@ -90,7 +90,9 @@ export async function createCommissionForPurchase({
       return null;
     }
 
-    const trainerType = trainer.trainerType || 'hired'; // Default to hired if not set
+    // 'affiliated' is the real User.trainerType enum member (isIn
+    // [['affiliated','independent']]); 'hired' was never a storable value.
+    const trainerType = trainer.trainerType || 'affiliated';
 
     // Check loyalty eligibility from actual deducted/completed training evidence.
     const completedPaidSessions = await countCompletedPaidTrainingSessions(

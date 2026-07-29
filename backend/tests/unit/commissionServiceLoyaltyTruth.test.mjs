@@ -42,7 +42,10 @@ describe('CommissionService loyalty bump truth', () => {
     mocks.assignmentFindOne.mockResolvedValue({ trainerId: 22 });
     mocks.userFindByPk.mockImplementation(async (id) => {
       if (id === 22) {
-        return { id: 22, trainerType: 'hired', firstName: 'Trainer', lastName: 'One' };
+        // 'affiliated' — 'hired' was a phantom value User.trainerType's
+        // isIn [['affiliated','independent']] validator would have rejected,
+        // so this fixture was asserting behaviour for an unstorable row.
+        return { id: 22, trainerType: 'affiliated', firstName: 'Trainer', lastName: 'One' };
       }
       throw new Error('client availableSessions lookup should not drive loyalty');
     });

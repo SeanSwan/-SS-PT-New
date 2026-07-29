@@ -2,23 +2,36 @@
  * ============================================================================
  * FILE: commissionCalculator.mjs
  * PURPOSE: Trainer/business revenue split calculator with two-tier trainer model
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-07-29
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Calculates revenue splits between SwanStudios and trainers
- * based on trainer type (independent vs hired) and lead source. Supports loyalty
- * bumps for high-volume clients.
+ * based on trainer type and lead source. Supports loyalty bumps for high-volume
+ * clients.
  *
- * TWO-TIER TRAINER MODEL:
- * - Independent trainers: 10% platform fee (trainer keeps 90%)
- * - Hired trainers (Sean's clients via Move Fitness etc.): 40% to business (trainer keeps 60%)
+ * TWO-TIER TRAINER MODEL — these numbers are what the code below ACTUALLY does.
+ * `User.trainerType` is a STRING(20) validated `isIn [['affiliated','independent']]`,
+ * so 'affiliated' and null are the only non-independent values that can exist:
+ * - `independent` (own business):          15% to business, trainer keeps 85%
+ * - `affiliated` / unset (SS-employed):    35% to business, trainer keeps 65%
  *
- * LEAD SOURCE MODIFIERS (applied on top of trainer type base):
- * - Platform lead: Base rates apply as-is
- * - Trainer-brought lead: -5% from business cut (trainer reward for sourcing)
- * - Resign/renewal: -2% from business cut (retention reward)
+ * ⚠ UNRECONCILED WITH A LOCKED BUSINESS DECISION — Sean's call, do not change here.
+ *   `docs/ai-workflow/brainstorms/swanstudios-whole-app-vision-regrill-2026-06-10.md`
+ *   ("Key Decisions (final)", status: complete, 2026-06-10 — NEWER than this file's
+ *   original 2026-03-28 rates) locks the marketplace fee at "10% flat all-inclusive,
+ *   trainer keeps 90%". The code pays independents 85%, a 5-point gap. Nothing has
+ *   been paid on it yet (`trainer_commissions` is empty), so reconciling costs
+ *   nothing today. Changing a live payout rate is not an agent's decision.
  *
- * LOYALTY BUMP: +5% to trainer for clients who completed >100 sessions
+ * LEAD SOURCE MODIFIERS (applied on top of the trainer-type base):
+ * - Platform lead:        base rates apply as-is
+ * - Trainer-brought lead: -5 points off the business cut (reward for sourcing)
+ * - Resign/renewal:       -3 points off the business cut (retention reward)
+ * Every modifier floors the business cut at 5% and re-derives trainerRate = 100 - business.
+ *
+ * LOYALTY BUMP: -5 more points off the business cut. Requires BOTH the client's
+ * completed-session count AND the new package's session count to exceed 100
+ * (see isEligibleForLoyaltyBump, and the sessionsGranted > 100 re-check below).
  */
 
 /**
@@ -30,7 +43,7 @@
  * @param {number} sessionsGranted - Number of sessions in package
  * @param {boolean} applyLoyaltyBump - Whether to apply +5% loyalty bump
  * @param {Object} options - Additional options
- * @param {string} options.trainerType - 'independent' or 'hired' (default: 'hired')
+ * @param {string} options.trainerType - 'independent' or 'affiliated' (default: 'affiliated')
  * @returns {Object} Commission split details
  */
 export function calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false, options = {}) {
@@ -46,7 +59,10 @@ export function calculateCommissionSplit(leadSource, grossAmount, sessionsGrante
     throw new Error(`Invalid sessions granted: ${sessionsGranted}. Must be a positive number.`);
   }
 
-  const trainerType = options.trainerType || 'hired';
+  // 'affiliated' is the real enum member; the old 'hired' literal was never a
+  // storable User.trainerType value. Behaviourally identical (both take the else
+  // branch) — this only stops the phantom value propagating into new queries.
+  const trainerType = options.trainerType || 'affiliated';
 
   // ── Base rates from trainer type ──
   let businessRate = 0;
@@ -57,7 +73,7 @@ export function calculateCommissionSplit(leadSource, grossAmount, sessionsGrante
     businessRate = 15;
     trainerRate = 85;
   } else {
-    // Hired trainers (default): 35% to business, trainer keeps 65%
+    // Affiliated / unset (default): 35% to business, trainer keeps 65%
     businessRate = 35;
     trainerRate = 65;
   }
