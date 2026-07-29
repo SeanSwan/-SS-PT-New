@@ -80,25 +80,37 @@ async function main() {
   for (const fullPath of files) {
     // Display name stays relative to models/ so subdirectory models read as `social/SocialPost.mjs`
     // rather than an absolute path that blows out the column alignment below.
-    const file = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
-    let Model;
+    const shortName = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
+    let mod;
     try {
       // MUST be a file:// URL. A raw Windows path (C:\...\Foo.mjs) is not a valid ESM specifier,
       // so `import(path.join(...))` throws for EVERY file — which silently routed all 159 models
       // into the skip branch and made this script report "ALL MODELS HEALTHY" having queried none.
-      Model = (await import(pathToFileURL(fullPath).href)).default;
+      mod = await import(pathToFileURL(fullPath).href);
     } catch {
-      skipped += 1; // not an initialized Sequelize model (e.g. a plain export)
+      skipped += 1; // could not be imported at all
       continue;
     }
-    if (!Model?.findOne) { skipped += 1; continue; }
 
-    try {
-      await Model.findOne({ limit: 1 });
-      healthy.push(file);
-    } catch (error) {
-      const { bucket, detail } = classify(error.message);
-      broken[bucket].push({ file, detail });
+    // Scan EVERY export, not just `default`. Several files under models/social/enhanced/ define
+    // multiple models and have NO default export at all — AIRecommendations.mjs alone exports 5.
+    // Reading only `.default` sent those files to the skip bucket, hiding 32 model classes while
+    // the summary line printed a confident total. Same dead-coverage class as the missing recursion.
+    const models = Object.entries(mod)
+      .filter(([, v]) => typeof v?.findOne === 'function' && typeof v?.getTableName === 'function');
+
+    if (!models.length) { skipped += 1; continue; }
+
+    for (const [exportName, Model] of models) {
+      // Disambiguate only when a file holds more than one model, so single-model files read cleanly.
+      const file = models.length > 1 ? `${shortName}:${exportName}` : shortName;
+      try {
+        await Model.findOne({ limit: 1 });
+        healthy.push(file);
+      } catch (error) {
+        const { bucket, detail } = classify(error.message);
+        broken[bucket].push({ file, detail });
+      }
     }
   }
 

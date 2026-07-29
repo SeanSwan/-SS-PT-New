@@ -93,37 +93,48 @@ async function main() {
   walk(MODELS_DIR);
 
   for (const fullPath of modelFiles) {
-    const file = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
-    let Model;
+    const shortName = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
+    let mod;
     try {
-      Model = (await import(pathToFileURL(fullPath).href)).default;
+      mod = await import(pathToFileURL(fullPath).href);
     } catch {
-      skipped.push({ file, why: 'import failed' });
-      continue;
-    }
-    if (!Model || typeof Model.getTableName !== 'function' || !Model.rawAttributes) {
-      skipped.push({ file, why: 'not a Sequelize model' });
+      skipped.push({ file: shortName, why: 'import failed' });
       continue;
     }
 
-    const raw = Model.getTableName();
-    const table = typeof raw === 'string' ? raw : raw.tableName;
+    // Scan EVERY export, not just `default`. Several files under models/social/enhanced/ define
+    // multiple models and have NO default export — reading only `.default` hid 32 model classes
+    // behind a confident-looking total. Same dead-coverage class as the missing recursion above.
+    const models = Object.entries(mod)
+      .filter(([, v]) => typeof v?.getTableName === 'function' && v?.rawAttributes);
 
-    // No table -> that is audit-model-health's finding, not ours. Do not double-report.
-    const req = required.get(table);
-    if (!req) {
-      skipped.push({ file, why: 'table absent or has no required columns' });
+    if (!models.length) {
+      skipped.push({ file: shortName, why: 'not a Sequelize model' });
       continue;
     }
 
-    // `field` is the real column name when it differs from the attribute name.
-    const declared = new Set(
-      Object.values(Model.rawAttributes).map((a) => a.field || a.fieldName).filter(Boolean),
-    );
-    const missing = [...req].filter((c) => !declared.has(c));
+    for (const [exportName, Model] of models) {
+      const file = models.length > 1 ? `${shortName}:${exportName}` : shortName;
 
-    if (missing.length) broken.push({ file, table, missing });
-    else ok.push({ file, table });
+      const raw = Model.getTableName();
+      const table = typeof raw === 'string' ? raw : raw.tableName;
+
+      // No table -> that is audit-model-health's finding, not ours. Do not double-report.
+      const req = required.get(table);
+      if (!req) {
+        skipped.push({ file, why: 'table absent or has no required columns' });
+        continue;
+      }
+
+      // `field` is the real column name when it differs from the attribute name.
+      const declared = new Set(
+        Object.values(Model.rawAttributes).map((a) => a.field || a.fieldName).filter(Boolean),
+      );
+      const missing = [...req].filter((c) => !declared.has(c));
+
+      if (missing.length) broken.push({ file, table, missing });
+      else ok.push({ file, table });
+    }
   }
 
   const examined = broken.length + ok.length;
