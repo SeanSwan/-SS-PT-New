@@ -18,7 +18,20 @@ Checking *whether* the work landed surfaced two things live on main:
 1. **Independent trainers underpaid 20 percentage points.** `creditsController.mjs:132` calls `calculateCommissionSplit` with **4 arguments** — the 5th (`{ trainerType }`) is never passed. So `options.trainerType || 'hired'` → else-branch → 65% where an independent trainer is owed 85%. `grep -c trainerType` in that file = **0**. Route is mounted (`routes.mjs:720`). ~$1,680 short on an $8,400 package. **Silent** — no error, plausible-looking split, nothing logged.
 2. **Two DELETE routes missing the owner-admin guard** (`adminPackageRoutes.mjs:325,596`; `grep -c ownerAdminOnly` = 0). Any admin can delete storefront packages.
 
-Both fixes were **already written and Codex-reviewed** on the unlanded branch (`0b60de7db`). The bug wasn't unfixed — it was **unshipped**. That is a distinct failure mode worth naming: a review-approved fix sitting on a branch is worth zero.
+The authz fix was **already written and Codex-reviewed** on the unlanded branch (`0b60de7db`) — unfixed vs **unshipped** is a distinct failure mode worth naming: a review-approved fix sitting on a branch is worth zero.
+
+## The sharper lesson: "the fix exists on the branch" was itself wrong
+
+I wrote that first, then checked. **The branch fix does NOT close the money hole.** Its resolver `baseRatesForType()` throws on an unknown type — but the caller is `options.trainerType || DEFAULT_TRAINER_TYPE`, and `DEFAULT_TRAINER_TYPE = 'affiliated'` = `{businessRate: 35, trainerRate: 65}`. So an **absent** type never reaches the throw; it silently resolves to the same 65%.
+
+| `creditsController` passes no type → | trainer gets |
+| -- | -- |
+| main today: `'hired'` → else-branch | 65% |
+| after landing the fix: `'affiliated'` default | **65% — identical** |
+
+`git show 0b60de7db --name-only` does not include `creditsController.mjs`. **A fail-loud helper is not a fail-loud path** — one defaulting caller upstream neutralises it completely. Check the call site, not the helper's contract.
+
+**Generalisable:** when a fix is described as "no silent fallthrough," verify where the default is applied. A `|| DEFAULT` above a throwing resolver means the throw is dead code for the exact case it was written for.
 
 **The sibling caller was fine.** `CommissionService.mjs:85-111` reads `trainer.trainerType` from the DB and passes it. Only one of two callers was broken — so a blanket "fix the calculator" would have broken the correct path. Check every caller before changing a shared money function.
 

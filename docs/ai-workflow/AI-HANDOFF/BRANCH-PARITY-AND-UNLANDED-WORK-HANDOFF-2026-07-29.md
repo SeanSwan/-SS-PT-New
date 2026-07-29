@@ -1,5 +1,5 @@
 ---
-decision: 47 commits on wip/comms-notifications-2026-07-05 are genuinely ABSENT from main, not lost in translation; they contain a P0 live commission-underpayment bug fix and 2 unguarded DELETE routes still live on main
+decision: 47 commits on wip/comms-notifications-2026-07-05 are genuinely ABSENT from main, not lost in translation. Verifying that surfaced a P0 live commission underpayment (creditsController passes no trainerType -> independent trainers get 65% instead of 85%) which the unlanded branch fix does NOT close, plus 2 unguarded DELETE routes live on main.
 status: open
 supersedes: none
 ---
@@ -9,7 +9,7 @@ supersedes: none
 **Date:** 2026-07-29 · **Author:** vs-claude (Opus 5) · **Linear:** SWA-75 (launch audit), SWA-62 (commission), SWA-87 (schema drift), SWA-89 (script guards), SWA-74 (gym-ops)
 **Written to `main` deliberately** so any agent on any branch can find it.
 
-> **Read this section first if you read nothing else.** Two things are broken in production right now, both proven by execution, both fixed on a branch that never landed. See §2.
+> **Read this section first if you read nothing else.** Two things are broken in production right now, both proven by execution. The authz one is fixed on a branch that never landed. **The money one is NOT fixed anywhere — and the branch fix that looks like it closes it does not.** See §2.
 
 ---
 
@@ -95,17 +95,60 @@ const commission = calculateCommissionSplit(
 
 **The other caller is FINE — do not "fix" it.** `backend/services/CommissionService.mjs:85,93,106-111` reads `trainer.trainerType` from the DB and passes it. Only the `creditsController` path is affected. A blanket change risks breaking the correct path.
 
-**The fix already exists, unlanded** — commit `0b60de7db` (SWA-62 S0) adds `backend/utils/commissionRates.mjs`, which **throws** on an unknown trainer type instead of silently defaulting:
+### 🛑 `[VERIFIED]` The unlanded fix does NOT fix this. Landing the branch is not enough.
+
+**This corrects an earlier reading in this same document — verify it yourself before acting, then trust the verification, not the intuition.**
+
+Commit `0b60de7db` (SWA-62 S0) adds `backend/utils/commissionRates.mjs` with a genuinely fail-loud resolver:
 
 ```js
 export function baseRatesForType(trainerType) {
   const rates = BASE_RATES[trainerType];
-  if (!rates) throw new Error(`[commissionRates] Unknown trainerType "${trainerType}". Expected one of: ${TRAINER_TYPES.join(', ')}.`);
+  if (!rates) throw new Error(`[commissionRates] Unknown trainerType "${trainerType}". ...`);
   return rates;
 }
 ```
 
-**Second, related drift documented in that fix:** the DB enum is `['affiliated','independent']`. The literal `'hired'` **cannot exist in the DB**, so `'affiliated'` was falling through the same else-branch. Main still contains the `'hired'` default.
+**But the caller never reaches the throw.** The branch's `commissionCalculator.mjs:59-60` is:
+
+```js
+const trainerType = options.trainerType || DEFAULT_TRAINER_TYPE;   // <-- absent type is DEFAULTED, not thrown
+const base = baseRatesForType(trainerType);
+```
+
+And `commissionRates.mjs:28,36-37`:
+
+```js
+export const DEFAULT_TRAINER_TYPE = 'affiliated';
+export const BASE_RATES = Object.freeze({
+  independent: { businessRate: 15, trainerRate: 85 },
+  affiliated:  { businessRate: 35, trainerRate: 65 },   // <-- same 65% as today
+});
+```
+
+**So the arithmetic is unchanged for this path:**
+
+| | `creditsController` passes no type → | trainer receives |
+| -- | -- | -- |
+| main today | `'hired'` → else-branch | **65%** |
+| after landing `0b60de7db` | `'affiliated'` (the default) | **65%** |
+
+**`git show 0b60de7db --name-only` does not include `creditsController.mjs`.** The commit fixes six files; the broken caller is not one of them.
+
+The fix is still worth landing — it kills the phantom `'hired'` literal (which cannot exist in the DB enum `['affiliated','independent']`), canonicalizes the rates so no literal lives in two places, and makes an *explicitly wrong* type fail loudly. It just **does not close this hole**, because an *absent* type still silently resolves to the 65% rate.
+
+**The actual fix required (new work, ~10 lines):** `creditsController.mjs` must look up the trainer and pass the type — exactly as `CommissionService.mjs:85,93,106-111` already does:
+
+```js
+// pattern to copy from CommissionService.mjs
+const trainer = await User.findByPk(finalTrainerId, { attributes: ['id','trainerType'], transaction });
+const commission = calculateCommissionSplit(
+  leadSource, taxCalc.grossAmount, sessionsGranted, applyLoyaltyBump,
+  { trainerType: trainer.trainerType }        // <-- the missing 5th argument
+);
+```
+
+⚠️ **Whoever does this: make the default fail loudly for this path rather than silently paying 65%.** A default that silently underpays is the exact shape of the original bug. Prefer an explicit error (or a logged alert) when `trainerType` is missing on a money path, and write a regression test that fails before the fix.
 
 ⚠️ **Before shipping a fix, decide the back-pay question.** If independent trainers were paid through the credits path, they were underpaid. That is a books question for Sean, not a code question. Landing the fix stops the bleeding; it does not reconcile history. Commit `0b60de7db` also ships `backend/scripts/reconcile-commission-rates.mjs` — read it before writing anything new.
 
@@ -158,7 +201,7 @@ The **bugs are on main and live**. The **audits that prove them are branch-only*
 
 | Workstream | Commits | Substance | Risk if it keeps waiting |
 | -- | -- | -- | -- |
-| **SWA-62 trainer-economics** | 4 (`0b60de7db`, `5642a9dea`, `875b21dd6`, `a8119a6fa`) | commission drift fix + canonical rates + `ownerAdminOnly` on DELETEs + shadow-price instrumentation + Codex review fixes | **P0 — see §2.1/§2.2. Trainers underpaid; DELETEs under-guarded.** |
+| **SWA-62 trainer-economics** | 4 (`0b60de7db`, `5642a9dea`, `875b21dd6`, `a8119a6fa`) | canonical rates, `'hired'` phantom removed, `ownerAdminOnly` on DELETEs, shadow-price instrumentation, Codex review fixes. **Does NOT fix the creditsController underpayment — see §2.1** | **DELETEs under-guarded (§2.2). Underpayment needs separate new work.** |
 | **SWA-89 script guards** | 1 (`0ed96925f`) | fail-closed guards on **two unguarded production-destroying scripts** | a wrong invocation can destroy production data |
 | **Audit family** | 8 (`e8b704a74`, `44653c508`, `16494a5c6`, `5c6ce5d3d`, `91e4b022f`, `9c57261c8`, `515017d7f`, +) | `audit-model-health`, `audit-write-paths`, `audit-named-exports`, boot-crash coverage for 66 previously-invisible model classes | Rule-42 boot-crash class stays unguarded; SWA-87 keeps being rediscovered |
 | **SWA-74 gym-ops S0** | 7 (`b59eb8de8` → `c3c5d17b3`) | `Location` model, policy config, DST-safe zoned time, controller+routes+tests, 12 hostile-review rounds, 300-line extraction | complete reviewed feature sitting idle |
@@ -211,7 +254,10 @@ Sean named two candidates:
 
 **Suggested order:**
 
-1. **`S-MONEY` — land the commission fix + DELETE guards.** Cherry-pick or re-apply `0b60de7db` onto main. Narrow, reviewed, high value. **Do not touch `CommissionService` — it is correct.** Surface the back-pay question to Sean; do not attempt reconciliation autonomously.
+1. **`S-MONEY` — fix the caller, then land the branch fix.** Two distinct pieces, in this order:
+   - **1a. Pass `trainerType` in `creditsController.mjs:132`** (§2.1). This is the actual bug and it is **new work** — `0b60de7db` does not cover it, and landing the branch alone leaves independent trainers on 65%. Copy the `CommissionService.mjs:85-111` pattern. Regression test must fail before the fix.
+   - **1b. Land `0b60de7db`** for the canonical rates, the `'hired'` removal, and the `ownerAdminOnly` DELETE guards (§2.2).
+   - **Do not touch `CommissionService` — it is correct.** Surface the back-pay question to Sean; do not attempt reconciliation autonomously.
 2. **`S-SWA87` — fix the write-broken models.** Reconcile model attributes against real table columns for `FoodScanHistory`, `TrainerPermissions`, `UserAchievement`. Heed both traps in §2.3. Prove each fix with an executed, rolled-back INSERT — not a read.
 3. **`S-LAND` — land the rest of the branch in reviewed groups**, not one 47-commit merge. Suggested order: SWA-89 guards → audit family → SWA-74 gym-ops → tooling → docs. Rebase-and-verify per group against 1,237 commits of drift; resolve the shared-file conflicts in §3 deliberately.
 4. *(cheap, any time)* **version endpoint** — removes the deploy-verification blind spot permanently.
