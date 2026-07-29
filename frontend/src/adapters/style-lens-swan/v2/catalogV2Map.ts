@@ -1,5 +1,6 @@
 // adapters/style-lens-swan/v2/catalogV2Map.ts
 import { builtWorlds } from '../worlds/registry';
+import { EXTRA_ENTRY_META } from './catalogV2Exemptions';
 import type { RecipeV2 } from '../../../core/style-lens-os/v2/recipeV2';
 
 /** Catalog chips carry v1 ids; this map declares which chips have a v2
@@ -26,30 +27,26 @@ const WORLD_ENTRIES: Record<string, CatalogV2Entry> = Object.fromEntries(
 );
 
 /**
- * Non-world catalog styles (#27+) that get a v2 recipe without being part of the
- * 25-world roster. Empty today; a v2-only style added here with
- * dashboardChrome: false picks up the allowlist exemption below.
+ * Non-world catalog styles (#27+): recipes live here, their metadata lives in
+ * `catalogV2Exemptions.ts`. Empty today. The split is deliberate — see that
+ * file's header: the app-wide adapter barrel needs ONLY the metadata, and
+ * importing this module to get it dragged all 23 world recipes into the main
+ * entry chunk every visitor downloads.
  */
-const EXTRA_ENTRIES: Record<string, CatalogV2Entry> = {};
+const EXTRA_RECIPES: Record<string, RecipeV2> = {};
+
+const EXTRA_ENTRIES: Record<string, CatalogV2Entry> = Object.fromEntries(
+  Object.entries(EXTRA_RECIPES).map(([id, recipe]) => [
+    id,
+    { recipe, dashboardChrome: EXTRA_ENTRY_META[id]?.dashboardChrome ?? false },
+  ]),
+);
 
 export const V2_RECIPE_BY_CATALOG_ID: Readonly<Record<string, CatalogV2Entry>> = Object.freeze({
   ...WORLD_ENTRIES,
   ...EXTRA_ENTRIES,
 });
 
-/** F16 carve-out: v2-only styles (dashboardChrome: false) deliberately ship NO
- * v1 chrome/allowlist entry — they render through the recipe path and say so
- * in the Lab ("dashboard rollout pending"). The adapter barrel merges these
- * into the registry-integrity allowlist arg so the LENS-ADD-A-STYLE five-entry
- * pipeline never crashes adapter init for style #27+. Chrome styles get NO
- * exemption — the Wave-1 gate still bites them. */
-export const buildV2OnlyAllowlistExemptions = (
-  map: Readonly<Record<string, CatalogV2Entry>>,
-): Readonly<Record<string, string>> =>
-  Object.freeze(
-    Object.fromEntries(
-      Object.entries(map)
-        .filter(([, entry]) => entry.dashboardChrome === false)
-        .map(([id]) => [id, 'v2-only — renders via recipe path, no v1 chrome']),
-    ),
-  );
+/** Re-exported so existing importers keep working; the implementation and the
+ *  metadata it reads now live in the recipe-free `catalogV2Exemptions.ts`. */
+export { buildV2OnlyAllowlistExemptions } from './catalogV2Exemptions';

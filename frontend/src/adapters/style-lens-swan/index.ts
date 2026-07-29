@@ -32,7 +32,10 @@ import { AURORA_CONSOLE_MANIFEST } from './manifests/auroraConsole';
 import { assertLensRegistryIntegrity } from './contract/registryIntegrity';
 import { buildWorldValuesRegistry } from './contract/values';
 import { LENS_STYLE_ALLOWLIST } from './styles/lenses';
-import { buildV2OnlyAllowlistExemptions, V2_RECIPE_BY_CATALOG_ID } from './v2/catalogV2Map';
+// Recipe-FREE import (hostile round 9): pulling V2_RECIPE_BY_CATALOG_ID in here
+// dragged all 23 world recipe modules into the main entry chunk, for an
+// exemption set that world entries structurally cannot contribute to.
+import { buildV2OnlyAllowlistExemptions } from './v2/catalogV2Exemptions';
 
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
@@ -126,7 +129,7 @@ if (process.env.NODE_ENV !== 'production') {
   assertLensRegistryIntegrity(
     styledLensIds,
     buildWorldValuesRegistry(styledLensIds),
-    { ...LENS_STYLE_ALLOWLIST, ...buildV2OnlyAllowlistExemptions(V2_RECIPE_BY_CATALOG_ID) },
+    { ...LENS_STYLE_ALLOWLIST, ...buildV2OnlyAllowlistExemptions() },
   );
 }
 
