@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { setupMiddleware } from './middleware/index.mjs';
 import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
+import { serverErrorResponseReporter } from '../services/monitoring/errorReporter.mjs';
 import { initializeSession } from '../config/session.mjs';
 import { viewAsWriteBlocker } from '../middleware/viewAsGuard.mjs';
 import logger from '../utils/logger.mjs';
@@ -327,6 +328,12 @@ export const createApp = async () => {
   await setupMiddleware(app);
 
   app.use(viewAsWriteBlocker);
+
+  // Capture every response that finishes 5xx. Mounted BEFORE routes so the
+  // 'finish' listener is attached for all of them. This codebase returns 5xx
+  // directly in ~1,094 places that never reach the global error handler, so
+  // reporting only from that handler would miss most server faults.
+  app.use(serverErrorResponseReporter);
 
   // ===================== ROUTES SETUP =====================
   await setupRoutes(app);

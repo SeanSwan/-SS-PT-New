@@ -191,6 +191,40 @@ export function reportServerError({ err, req, statusCode, now = Date.now() } = {
   }
 }
 
+/**
+ * Express middleware: report ANY response that finishes with a 5xx.
+ *
+ * WHY THIS EXISTS ON TOP OF THE ERROR HANDLER
+ * The global error handler only sees faults passed to `next(err)` or thrown out
+ * of an async wrapper. This codebase returns 5xx DIRECTLY — measured 2026-07-29:
+ * **1,094 `res.status(5xx)` returns across 203 files**, mostly via per-file
+ * `sendInternalError` helpers. Reporting only from the error handler would have
+ * missed the overwhelming majority of server faults while appearing to work.
+ *
+ * So capture happens at the RESPONSE boundary, which every path crosses.
+ * `res.on('finish')` is used rather than monkey-patching res.json/res.send: it
+ * cannot alter the response, cannot throw into the request, and fires exactly
+ * once per response.
+ *
+ * DEDUPE: the error handler reports first and richer (it has the Error and its
+ * stack). It marks the request, and this listener then skips it, so a fault that
+ * travels through both paths is counted once.
+ */
+export function serverErrorResponseReporter(req, res, next) {
+  res.on('finish', () => {
+    try {
+      if (res.statusCode < 500) return;
+      if (req.__errorReported) return; // already captured with full detail
+      reportServerError({
+        err: Object.assign(new Error(`HTTP ${res.statusCode}`), { name: 'HttpServerError' }),
+        req,
+        statusCode: res.statusCode,
+      });
+    } catch { /* reporting must never affect the response */ }
+  });
+  next();
+}
+
 /** Snapshot for an ops/health surface. Contains no PII by construction. */
 export function getErrorSnapshot(now = Date.now()) {
   prune(now);

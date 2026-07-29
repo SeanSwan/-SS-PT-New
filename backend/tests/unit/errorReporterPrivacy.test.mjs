@@ -176,6 +176,59 @@ describe('reporting can never break a request', () => {
   });
 });
 
+/**
+ * The response-boundary reporter. Measured 2026-07-29: this codebase returns 5xx
+ * DIRECTLY in 1,094 places across 203 files, none of which reach the global error
+ * handler. Capturing only from that handler would have missed most server faults
+ * while appearing to work — found by hostile review of this very slice.
+ */
+describe('response-boundary capture (the 1,094 direct 5xx returns)', () => {
+  const runThrough = async (handler) => {
+    const express = (await import('express')).default;
+    const request = (await import('supertest')).default;
+    const { serverErrorResponseReporter } = await import('../../services/monitoring/errorReporter.mjs');
+    const app = express();
+    app.use(serverErrorResponseReporter);
+    app.get('/t', handler);
+    return request(app).get('/t');
+  };
+
+  it('captures a 500 returned DIRECTLY, without next(err)', async () => {
+    await runThrough((_req, res) => res.status(500).json({ error: 'internal' }));
+    expect(getErrorSnapshot().serverErrorsInWindow).toBe(1);
+  });
+
+  it('captures a 503 returned directly', async () => {
+    await runThrough((_req, res) => res.status(503).json({ error: 'unavailable' }));
+    expect(getErrorSnapshot().serverErrorsInWindow).toBe(1);
+  });
+
+  it('ignores a 200', async () => {
+    await runThrough((_req, res) => res.status(200).json({ ok: true }));
+    expect(getErrorSnapshot().serverErrorsInWindow).toBe(0);
+  });
+
+  it('ignores a 404', async () => {
+    await runThrough((_req, res) => res.status(404).json({ error: 'nope' }));
+    expect(getErrorSnapshot().serverErrorsInWindow).toBe(0);
+  });
+
+  // A fault travelling through BOTH paths must be counted once.
+  it('does not double-count a request the error handler already reported', async () => {
+    await runThrough((req, res) => {
+      req.__errorReported = true;
+      res.status(500).json({ error: 'already captured' });
+    });
+    expect(getErrorSnapshot().serverErrorsInWindow).toBe(0);
+  });
+
+  it('never alters the response it observes', async () => {
+    const res = await runThrough((_req, r) => r.status(500).json({ error: 'internal', keep: 'me' }));
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'internal', keep: 'me' });
+  });
+});
+
 describe('wiring — the global handler actually calls this', () => {
   it('errorHandler.mjs reports server errors', async () => {
     const { readFileSync } = await import('node:fs');

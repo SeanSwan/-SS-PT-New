@@ -62,6 +62,9 @@ export const setupErrorHandling = (app) => {
     // reportServerError ignores 4xx, never captures a request body, and is
     // fail-open: it can never break the response.
     reportServerError({ err, req, statusCode });
+    // Mark it so the response-boundary reporter does not double-count this
+    // fault — it has already been captured here, with the Error and its stack.
+    req.__errorReported = true;
 
     const errorResponse = {
       success: false,
