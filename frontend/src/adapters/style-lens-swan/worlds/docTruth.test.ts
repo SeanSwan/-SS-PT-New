@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { builtWorlds } from './registry';
+import type { RecipeSlot } from '../../../core/style-lens-os/v2/recipeV2';
 
 const RECIPE_DIR_CANDIDATES = [
   'src/adapters/style-lens-swan/worlds/recipes',
@@ -31,7 +32,7 @@ if (!recipeDir) {
 }
 
 /** The header's declared axis words → the recipe key each one must match. */
-const AXIS_SLOT: Record<string, string> = {
+const AXIS_SLOT: Record<string, RecipeSlot> = {
   display: 'text.display',
   body: 'text.body',
   surface: 'surface.card',
