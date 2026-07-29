@@ -46,7 +46,7 @@ Sean asked for a comprehensive launch audit: fix dirty files, catch work up to c
 | -- | -- | -- |
 | S1 data-subject rights | export + erasure (anonymisation — financial skeleton survives), mutation-proven. **Deliberately NOT route-wired**, pending Sean's access-control decision | `1389f0d0d` |
 | S2+S7 | email-failure visibility + `DEPLOY-ROLLBACK-POLICY.md` | `e431a9bda` |
-| S5 observability | 5xx captured at the **response boundary** — the global Express handler saw only ~8% (1,094 direct `res.status(5xx)` across 203 files) | `42c888ecb` |
+| S5 observability | 5xx captured at the **response boundary** — the global Express handler saw only a small fraction of them (~1,150 direct `res.status(5xx)` calls across ~237 files bypass it entirely; re-derive before citing) | `42c888ecb` |
 | S8 orphans | 3 components / 1,934 lines deleted, 4-way verified | `2231bbc52` |
 | Hostile pass A | 6 URL/PII capture defects + 3 erasure defects, both sets mutation-proven | `14032c035`, `451e611f8` |
 | Handoff + 9 dry rounds | branch-parity report, then self-correction | `d85f0502a`, `2d2c12c28`, `d84dd1745` |
@@ -55,7 +55,7 @@ Sean asked for a comprehensive launch audit: fix dirty files, catch work up to c
 
 ### Phase 2 — branch parity (the current work)
 
-Sean asked whether the branch sitting ~1,240 commits behind `main` was losing work "in translation." **Answer: no — 48 commits are genuinely unlanded; 11 of 13 key runtime files don't exist on `main` at all.** Verifying that surfaced three live defects (below).
+Sean asked whether the branch sitting ~1,240 commits behind `main` was losing work "in translation." **Answer: no — the commits are genuinely unlanded, not lost; 11 of 13 key runtime files don't exist on `main` at all.** The count was 47 when first measured and **51** hours later — an agent is actively committing to that branch, so re-derive it. Verifying this surfaced three defects on `main` (below).
 
 ### Phase 3 — 9 hostile rounds against that handoff
 
@@ -63,15 +63,32 @@ Seven real defects, five of them in the predecessor's own output. Full ledger in
 
 ---
 
-## GROUND TRUTH — verified, do NOT re-prove
+## GROUND TRUTH — mechanisms are solid, every NUMBER is stale
 
-Re-proving these wastes rounds. Treat as `[VERIFIED]` unless you have contrary evidence.
+Re-proving the **mechanisms** wastes rounds — treat those as `[VERIFIED]` unless you have contrary evidence. **Do not extend that trust to any figure, or to any "surface is clear" summary.** A hostile round against this document found that four of five inherited statistics had drifted or were scoped narrower than they read, and one of them ("0 unguarded") would have talked you out of auditing auth at all.
+
+> ### 🔢 But treat EVERY NUMBER here as stale on arrival
+>
+> A hostile round against this very document re-derived the inherited statistics and **four of five had drifted or were scoped narrower than they read.** Verified 2026-07-29:
+>
+> | Inherited claim | Re-derived | Verdict |
+> | -- | -- | -- |
+> | "204/232 routes guarded, 0 unguarded" | 219 route files, **1,421** `router.<verb>(` decls | **scoped subset, not the surface** — see the auth bullet |
+> | "1,094 direct `res.status(5xx)` across 203 files" | **1,153** across **237** files | drifted up |
+> | "48 commits unlanded" | **51** | drifted 47→48→51 *during this session* |
+> | "six auth rate limiters" | 9 `rateLimiter(` call sites in `authRoutes.mjs` | **ambiguous** — call sites ≠ distinct limiters; re-derive before citing |
+> | failing-test baseline "23" | not re-derived here | **derive it yourself before blaming your own change** |
+>
+> **Why this matters more than the numbers:** several agents push to `main` continuously and one is actively committing to the wip branch. **A count in a handoff is a timestamp, not a fact.** Re-derive with the command before you cite, act on, or repeat any figure — including the ones in this table. The *mechanisms* below are stable; the *arithmetic* is not.
 
 ### Proven STRONG (attack elsewhere first)
 
-- **Auth surface:** 204/232 routes guarded, **0 unguarded**. `protect` re-reads role from the DB, so a demotion is immediate. Impersonation is owner-gated, audited, de-escalating.
+- **Auth mechanics (genuinely verified, narrow):** `protect` re-reads role from the DB on every request, so a demotion takes effect immediately. Impersonation is owner-gated, audited, and de-escalating. **These two facts are solid.**
+  - ⚠️ **DO NOT read the auth surface as "cleared."** An earlier sweep reported "204/232 routes guarded, 0 unguarded" and that number was carried forward as if it covered everything. **Re-derived on current `main`: 219 route files, 1,421 `router.<verb>(` declarations.** So 232 was a *scoped subset*, not the surface — and the sweep's scope definition did not survive into this handoff. Treat the coverage figure as **`[UNKNOWN]`**, not as 100%.
+  - §B (two unguarded DELETEs, `grep -c ownerAdminOnly` = **0** on `origin/main`) is a live counter-example that survived that "0 unguarded" claim — which is the proof the figure was scoped.
+  - **Consequence for you:** auth is a legitimate target, not a finished one. Prefer unburned vantages **9–11** (drive IDOR by execution, role-escalation matrix, `adminOnly` vs `ownerAdminOnly` boundary repo-wide) over trusting any inherited count. Note the predecessor's *static* IDOR sweep produced ~100 false positives and found nothing real — **execute, don't enumerate.**
 - **Money path:** prices server-derived, webhooks signature-verified, grants idempotent, cart mutation scoped to the owner.
-- **Auth throttling exists** — six limiters (register 10/hr, login 100/15min + per-account 10/15min, refresh 20/15min, reset 5/15min ×2, change-password 10/15min).
+- **Auth throttling exists** — multiple limiters on register / login / per-account login / refresh / reset / change-password. The exact count and windows were carried forward unverified; **re-derive from `authRoutes.mjs` before citing them.** The mechanism (throttling is present, not absent) is what is verified.
 - **Support/report channel exists end-to-end and is linked** (`/api/support/issues` + admin inbox + `CompactFooter.tsx:89` + client dashboard).
 - **`sendEmail` returns `{success, error}` and all four call sites inspect it.**
 - **`TrainerCommission` model↔table mapping is CORRECT** — `tableName: 'trainer_commissions'` + `underscored: true`, all 10 NOT-NULL-no-default columns supplied.
@@ -133,7 +150,10 @@ Restore drill (tooling shipped + guard-tested, **never run**) · Stripe key rota
 Pick by expected yield. **Vantages marked 🔬 have historically produced the most real findings in this repo: execution over reading, live data over code, and the real caller path over the unit.**
 
 ### Execution / runtime
-1. 🔬 **Drive the real credits endpoint** with supertest + mocked `protect` as an *independent* trainer; assert the persisted `trainer_commissions` row's `commission_rate_trainer`. This is §A's failing regression test and the highest-value single item.
+1. 🔬 **Drive the real credits endpoint** with supertest + mocked `protect` as an *independent* trainer; assert the persisted `trainer_commissions` row's `commission_rate_trainer` is 85, not 65. This is §A's failing regression test and the **highest-value single item on this list**.
+   - `[VERIFIED]` **The tooling is already there** — `supertest` is in `backend` devDependencies, and **52 existing tests** mock the auth middleware. Copy the established pattern rather than inventing one: `backend/tests/api/achPaymentOrderItems.test.mjs`, `aiChatConversationTargetGuard.test.mjs`, `aiBffClientSummaryPathTruth.test.mjs`.
+   - Drive **both** endpoints — `/api/admin/credits/purchase-and-grant` (admin passes `trainerId`) and `/api/trainer/credits/purchase-and-grant` (self-assigns `req.user.id`, so an independent trainer shorts themselves).
+   - **Assert the persisted row, not the response body.** The response is not what payouts read.
 2. 🔬 **Execute the two write-broken model INSERTs** in isolated rolled-back transactions (one transaction PER assertion — Postgres aborts the whole tx after the first error; a shared tx produces false findings). Run a **control probe** on a drift-free model.
 3. **Boot the backend** and walk the mount order for real (`app._router.stack`) — Rule 31 shadowing. Overlapping mounts like `/api/workout` + `/api/workout/sessions` shadow silently.
 4. **Run the full suite from a pristine `origin/main` worktree** and diff the failure set against 23 — catch any regression the predecessor introduced.
@@ -225,7 +245,7 @@ There are **two working trees**, and the gitignored operational files exist in o
 
 | | Path | Branch | Holds |
 | -- | -- | -- | -- |
-| **Primary** (Sean's) | `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` | `wip/comms-notifications-2026-07-05` (~1,240 behind main, 48 unlanded) | **the gitignored operational files** — coordination lanes, continuity log |
+| **Primary** (Sean's) | `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` | `wip/comms-notifications-2026-07-05` (~1,240 behind main; ~51 unlanded and climbing) | **the gitignored operational files** — coordination lanes, continuity log |
 | **Worktree** (predecessor's) | `c:/tmp/ss-launch-audit-20260727` | `claude/launch-audit-20260727` (tracks main) | clean main-tracking tree; where the pushes came from |
 
 **`[VERIFIED]` These exist ONLY in the primary tree** (gitignored → absent from the worktree, and that is correct, not broken):
@@ -233,7 +253,7 @@ There are **two working trees**, and the gitignored operational files exist in o
 
 **Recommended:** read coordination/continuity from the **primary** tree; do code work and push from a **main-tracking** tree (reuse the predecessor's worktree or make your own). Reading `main` truth from the primary tree will lie to you — it is ~1,240 commits behind.
 
-⚠️ **Do NOT `git push` the primary tree's branch to main.** 48 unlanded commits, no fast-forward. Landing it is a deliberate reviewed operation (see the predecessor handoff §3/§5), and it may be another agent's live lane.
+⚠️ **Do NOT `git push` the primary tree's branch to main.** ~51 unlanded commits and climbing, no fast-forward. Landing it is a deliberate reviewed operation (see the predecessor handoff §3/§5), and it may be another agent's live lane.
 
 ⚠️ **Windows junction hazard when creating/removing worktrees** — `rmdir` any `node_modules` junction BEFORE `git worktree remove`, or it follows the junction and guts the shared install (this happened: 550→44 packages).
 
