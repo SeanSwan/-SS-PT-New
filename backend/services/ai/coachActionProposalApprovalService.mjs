@@ -4,7 +4,7 @@
  * Deterministic approval executor for Swan Coach action proposals.
  */
 import sequelize from '../../database.mjs';
-import { applyPlanEditProposal } from './coachPlanEditApprovalService.mjs';
+import { applyPlanEditProposal, resolveActiveEditablePlan } from './coachPlanEditApprovalService.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import {
@@ -53,13 +53,19 @@ export async function getCoachActionProposal({ id, req, sequelizeOverride = null
   const row = await loadOwnedProposal({ id, userId: req.user.id, db });
   if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
   const proposal = decryptProposalPayload(row);
+  // TRUST FIX: for a plan_edit proposal, load the SAME editable plan the apply
+  // path would mutate, so the referee judges every item against the plan's real
+  // OPT phase — never the model-supplied payload.phase. Any other type gets null.
+  const planEditPlan = row.proposal_type === COACH_PROPOSAL_TYPE.PLAN_EDIT
+    ? (await resolveActiveEditablePlan({ WorkoutPlan: db.models?.WorkoutPlan, payload: proposal?.payload || {} })).plan
+    : null;
   return {
     status: 200,
     body: {
       success: true,
       proposal: {
         ...mapProposalRow(row),
-        detail: sanitizeProposalDetail({ row, proposal }),
+        detail: sanitizeProposalDetail({ row, proposal, planEditPlan }),
         reviewToken: createProposalReviewToken({ row, userId: req.user.id }),
       },
     },

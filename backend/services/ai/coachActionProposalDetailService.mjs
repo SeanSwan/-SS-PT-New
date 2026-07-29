@@ -3,7 +3,7 @@
  * ====================================
  * Sanitizes Coach proposal review details before they reach the UI.
  */
-import { stampDoctrineVerdicts } from './planEditDoctrineService.mjs';
+import { stampDoctrineVerdictsFromPlan } from './planEditDoctrineService.mjs';
 import { decryptPayload } from '../plaudCipherService.mjs';
 import { summarizeOnboardingDraftForReview } from '../coachClientOnboardingApprovalService.mjs';
 import { COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
@@ -82,7 +82,7 @@ export function decryptProposalPayload(row) {
   });
 }
 
-export function sanitizeProposalDetail({ row, proposal }) {
+export function sanitizeProposalDetail({ row, proposal, planEditPlan = null }) {
   const payload = proposal.payload || {};
   if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING) {
     try {
@@ -115,13 +115,20 @@ export function sanitizeProposalDetail({ row, proposal }) {
   if (row.proposal_type === COACH_PROPOSAL_TYPE.PLAN_EDIT) {
     // Doctrine verdicts are RECOMPUTED here, server-side, on every detail read —
     // a stored (or model-authored) verdict can never reach the trainer's screen.
-    const phase = Number(payload.phase) || undefined;
+    // TRUST FIX (2026-07-28): every item is judged against the phase resolved
+    // FROM THE SAVED PLAN (planEditPlan, loaded by the async caller), NOT the
+    // model-supplied payload.phase — the accused must not pick its own yardstick.
+    // `planVerified` tells the UI whether the plan was actually loaded; when it
+    // is false the referee returns plan_unavailable (caution) for every item.
     return withApprovalGate(proposal, {
       planEdit: {
         clientId: parseDetailClientId(payload.clientId, proposal.targetUserId),
         planId: payload.planId ?? null,
-        phase: phase ?? null,
-        items: stampDoctrineVerdicts(Array.isArray(payload.items) ? payload.items : [], phase),
+        planVerified: Boolean(planEditPlan),
+        items: stampDoctrineVerdictsFromPlan(
+          Array.isArray(payload.items) ? payload.items : [],
+          planEditPlan,
+        ),
       },
     });
   }

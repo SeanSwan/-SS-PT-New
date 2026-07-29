@@ -24,6 +24,25 @@ import {
 
 const toPlain = (value) => (value?.toJSON ? value.toJSON() : value);
 
+/**
+ * The single "which plan may this proposal edit" contract, shared by the apply
+ * path AND the review/referee path so they can never disagree on the target.
+ * Ownership is in the QUERY (IDOR posture): the plan must belong to the client
+ * named in the proposal. `status: 'active'` refuses a plan archived/completed
+ * after the proposal was created — a lingering proposal must not mutate it, and
+ * the referee must not judge a stale target. Returns { plan, code }.
+ */
+export async function resolveActiveEditablePlan({ WorkoutPlan, payload }) {
+  const planId = normalizeWorkoutPlanId(payload?.planId);
+  const clientId = parseStrictPositiveInteger(payload?.clientId);
+  if (!planId || !clientId) return { plan: null, code: 'PLAN_EDIT_IDENTITY_INVALID' };
+  if (!WorkoutPlan) return { plan: null, code: 'PLAN_EDIT_MODEL_UNAVAILABLE' };
+  const plan = await WorkoutPlan.findOne({
+    where: { id: planId, userId: clientId, status: 'active' },
+  });
+  return plan ? { plan, code: null } : { plan: null, code: 'PLAN_EDIT_PLAN_NOT_FOUND' };
+}
+
 /** Locate the target exercise by week/day/exerciseName inside a planData copy. */
 function findTarget(planData, item) {
   const weeks = Array.isArray(planData?.weeks) ? planData.weeks : [];
@@ -101,19 +120,8 @@ export async function applyPlanEditProposal({ proposal, req, models }) {
   const { WorkoutPlan } = models;
   if (!WorkoutPlan) return { ok: false, code: 'PLAN_EDIT_MODEL_UNAVAILABLE' };
 
-  const planId = normalizeWorkoutPlanId(payload.planId);
-  const clientId = parseStrictPositiveInteger(payload.clientId);
-  if (!planId || !clientId) return { ok: false, code: 'PLAN_EDIT_IDENTITY_INVALID' };
-
-  // Ownership in the QUERY (same IDOR posture as the client plan read): the plan
-  // must belong to the client named in the proposal — a swapped planId cannot
-  // reach another client's program. Archived/completed plans are not editable:
-  // approving a lingering proposal must not mutate a plan that was archived
-  // after the proposal was created.
-  const plan = await WorkoutPlan.findOne({
-    where: { id: planId, userId: clientId, status: 'active' },
-  });
-  if (!plan) return { ok: false, code: 'PLAN_EDIT_PLAN_NOT_FOUND' };
+  const { plan, code: loadCode } = await resolveActiveEditablePlan({ WorkoutPlan, payload });
+  if (!plan) return { ok: false, code: loadCode };
 
   const planRecord = toPlain(plan);
 
