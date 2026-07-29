@@ -105,7 +105,11 @@ I made several judgment calls and wrote reasons for each. **Attack the reasons, 
 
 ## Evidence I actually have
 
-- **87 committed assertions executed** (52 backend + 35 frontend), 0 failed.
+- **96 committed assertions executed** (52 backend + 44 frontend), 0 failed. Re-derived immediately before handing you this prompt:
+  - backend: intakeCoverage 9 · dispatcherClientScopeInvariant 6 · intentResolutionEval 17 · voiceConfirmationTier 14 · aiChatEquipmentContextSource 6
+  - frontend: coachEventLog 20 · intentBarState 15 · offlineQueueStore 8 · WorkoutLogger.entropy 1
+  - **NOT counted (dependency-blocked, never run):** `backend/tests/unit/scheduleWriteCommandClientScope.test.mjs`
+  - *An earlier draft of this prompt said "87 (52 + 35)". That was wrong — I had dropped two frontend files when carrying the figure forward. Re-deriving it caught my own stale number. Treat every count in any handoff, including this one, as a timestamp rather than a fact.*
 - **RED→GREEN proven against pre-fix source** via `git show <base>:<path>` for C0.5 and C1.
 - **Seam integration** proven against a stubbed DOM (5/5): effector receives the full payload, dispatch return value unchanged.
 - Secret scan CLEAN on every commit. `/health` 200 across four deploy windows.
@@ -130,7 +134,7 @@ I made several judgment calls and wrote reasons for each. **Attack the reasons, 
 
 - Everything is on `main`. **Fixes-forward only. No revert without Sean.**
 - No production DB mutation, no destructive migration, no force-push, no history rewrite.
-- If you fix something, keep the 87 assertions green and add a test for what you fixed.
+- If you fix something, keep the 96 assertions green and add a test for what you fixed.
 - Rule 8: IDs and roles only — no client names, no PII, in code, tests, or your report.
 
 ## Deliverable
