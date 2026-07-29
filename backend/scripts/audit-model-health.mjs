@@ -57,22 +57,36 @@ async function main() {
   }
 
   // Model files are PascalCase; skip helpers, index, and association wiring.
-  const files = fs
-    .readdirSync(MODELS_DIR)
-    .filter((f) => f.endsWith('.mjs') && /^[A-Z]/.test(f))
-    .sort();
+  //
+  // MUST RECURSE. `models/` has subdirectories — `models/social/` and `models/financial/` hold 34
+  // model files. A flat readdirSync silently examined only the top level and reported a clean
+  // sweep having never opened them. An audit that misses 17% of its subjects while reporting
+  // completeness is the same failure class as reporting HEALTHY having queried nothing.
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.mjs') && /^[A-Z]/.test(entry.name)) files.push(full);
+    }
+  };
+  walk(MODELS_DIR);
+  files.sort();
 
   const healthy = [];
   const broken = { MISSING_TABLE: [], BROKEN_COLUMN: [], OTHER: [] };
   let skipped = 0;
 
-  for (const file of files) {
+  for (const fullPath of files) {
+    // Display name stays relative to models/ so subdirectory models read as `social/SocialPost.mjs`
+    // rather than an absolute path that blows out the column alignment below.
+    const file = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
     let Model;
     try {
       // MUST be a file:// URL. A raw Windows path (C:\...\Foo.mjs) is not a valid ESM specifier,
       // so `import(path.join(...))` throws for EVERY file — which silently routed all 159 models
       // into the skip branch and made this script report "ALL MODELS HEALTHY" having queried none.
-      Model = (await import(pathToFileURL(path.join(MODELS_DIR, file)).href)).default;
+      Model = (await import(pathToFileURL(fullPath).href)).default;
     } catch {
       skipped += 1; // not an initialized Sequelize model (e.g. a plain export)
       continue;

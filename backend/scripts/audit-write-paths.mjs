@@ -78,10 +78,25 @@ async function main() {
   const ok = [];
   const skipped = [];
 
-  for (const file of fs.readdirSync(MODELS_DIR).filter((f) => f.endsWith('.mjs') && !NOT_MODELS.has(f))) {
+  // MUST RECURSE — `models/social/` and `models/financial/` hold 34 model files. The first version
+  // of this script used a flat readdirSync and examined only the top level, reporting "140 examined"
+  // as though that were the whole set. An audit blind to 17% of its subjects while presenting a
+  // complete-looking total is worse than no audit.
+  const modelFiles = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.mjs') && !NOT_MODELS.has(entry.name)) modelFiles.push(full);
+    }
+  };
+  walk(MODELS_DIR);
+
+  for (const fullPath of modelFiles) {
+    const file = path.relative(MODELS_DIR, fullPath).replace(/\\/g, '/');
     let Model;
     try {
-      Model = (await import(pathToFileURL(path.join(MODELS_DIR, file)).href)).default;
+      Model = (await import(pathToFileURL(fullPath).href)).default;
     } catch {
       skipped.push({ file, why: 'import failed' });
       continue;
