@@ -23,7 +23,7 @@ export const KINTSUGI_CIRCUIT_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.kintsugi-circuit.v2',
   tokens: {
-    'world-title-font': "700 clamp(30px, 4vw, 58px)/1.06 Sora, sans-serif",
+    'world-title-font': "700 clamp(30px, 4vw, 58px)/1.06 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.012em',
     'world-panel-radius': '18px',
     'world-row-radius': '16px',
