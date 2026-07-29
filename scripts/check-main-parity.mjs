@@ -108,8 +108,25 @@ async function main() {
     process.exit(buckets['ON-MAIN'].length === paths.length ? 0 : 1);
   }
 
+  // Warn when the local ref is old. MAIN-DELETED and BRANCH-NEW both DISCARD a finding, so a stale
+  // ref fails in the dangerous direction: a file that exists on the real main can be reported as
+  // "main already removed this" and the finding is silently dropped. The ref is a local cache; git
+  // never refreshes it on its own.
+  let staleNote = '';
+  try {
+    const refAgeSec = Math.floor(Date.now() / 1000) - Number(git(['log', '-1', '--format=%ct', REF]));
+    const hours = Math.floor(refAgeSec / 3600);
+    if (hours >= 24) {
+      staleNote = `  ⚠ ${REF} is ${Math.floor(hours / 24)}d old — run \`git fetch origin main\`;`
+        + ' MAIN-DELETED verdicts may be wrong and they DISCARD findings.\n';
+    } else {
+      staleNote = `  ${REF} ref age: ${hours}h\n`;
+    }
+  } catch { staleNote = `  (could not determine ${REF} ref age)\n`; }
+
   console.log(`\n=== main-parity check (${paths.length} path(s) vs ${REF}) ===`);
-  console.log(`  merge-base: ${base.slice(0, 12)}\n`);
+  console.log(`  merge-base: ${base.slice(0, 12)}`);
+  console.log(staleNote);
 
   const note = {
     'ON-MAIN': 'finding is REAL — main has these too',
