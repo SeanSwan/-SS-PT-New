@@ -234,7 +234,7 @@ router.post('/', async (req, res) => {
     // Create the item
     const item = await StorefrontItem.create(req.body);
     
-    logger.info(`Admin created new storefront item: ${item.name} (ID: ${item.id})`);
+    logger.info(`Admin created new storefront item: ${item.name} (ID: ${item.id})`, { actorId: req.user?.id });
     
     res.status(201).json({
       success: true,
@@ -290,7 +290,7 @@ router.put('/:id', async (req, res) => {
     // Update the item
     await item.update(req.body);
     
-    logger.info(`Admin updated storefront item: ${item.name} (ID: ${item.id})`);
+    logger.info(`Admin updated storefront item: ${item.name} (ID: ${item.id})`, { actorId: req.user?.id });
     
     res.json({
       success: true,
@@ -348,7 +348,7 @@ router.delete('/:id', async (req, res) => {
     
     await item.destroy();
     
-    logger.info(`Admin deleted storefront item: ${itemName} (ID: ${packageId})`);
+    logger.info(`Admin deleted storefront item: ${itemName} (ID: ${packageId})`, { actorId: req.user?.id });
     
     res.json({ 
       success: true,
@@ -548,7 +548,7 @@ router.post('/:id/variants', async (req, res) => {
       displayOrder: normalized.updates.displayOrder ?? 0,
       isActive: normalized.updates.isActive ?? true,
     });
-    logger.info(`Admin created variant ${variant.id} for product ${itemId}`);
+    logger.info(`Admin created variant ${variant.id} for product ${itemId}`, { actorId: req.user?.id });
     return res.status(201).json({ success: true, variant });
   } catch (error) {
     const handled = validationError(res, error);
@@ -582,7 +582,7 @@ router.put('/variants/:variantId', async (req, res) => {
       return res.status(400).json({ success: false, message: 'No variant updates supplied' });
     }
     await variant.update(updates);
-    logger.info(`Admin updated variant ${variantId}`);
+    logger.info(`Admin updated variant ${variantId}`, { actorId: req.user?.id });
     return res.json({ success: true, variant });
   } catch (error) {
     const handled = validationError(res, error);
@@ -608,7 +608,7 @@ router.delete('/variants/:variantId', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Variant not found' });
     }
     await variant.destroy();
-    logger.info(`Admin deleted variant ${variantId}`);
+    logger.info(`Admin deleted variant ${variantId}`, { actorId: req.user?.id });
     return res.json({ success: true, message: 'Variant deleted' });
   } catch (error) {
     logger.error('Error deleting product variant:', error);
