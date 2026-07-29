@@ -2,6 +2,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import logger from "./utils/logger.mjs";
+import { reportServerError } from "./services/monitoring/errorReporter.mjs";
 
 dotenv.config();
 
@@ -80,6 +81,22 @@ export async function sendEmail({ to, subject, text, html }) {
     return { success: true, messageId: result.messageId };
   } catch (error) {
     logger.error("Error sending email:", error);
+    // Surface the failure through the same grouped/alertable channel as 5xx
+    // instead of leaving it as one line among ~2,841 log calls. A bounced
+    // password-reset locks a client out, and the operator otherwise learns
+    // about it from churn (Kimi K3, 2026-07-29). Fail-open: reporting a send
+    // failure must never itself break the send path.
+    try {
+      reportServerError({
+        err: Object.assign(new Error(`Email send failed: ${error?.message || 'unknown'}`), {
+          name: 'EmailSendError',
+        }),
+        // Subject only — never the recipient. The logger redacts emails, but the
+        // safe move is not to hand one over in the first place (rule 8).
+        req: { method: 'EMAIL', originalUrl: `/email/${String(subject || 'unknown').slice(0, 60)}` },
+        statusCode: 500,
+      });
+    } catch { /* never let reporting break email */ }
     return { success: false, error };
   }
 }
