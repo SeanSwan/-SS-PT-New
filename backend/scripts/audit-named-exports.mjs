@@ -26,6 +26,7 @@
  * USAGE:
  *   node backend/scripts/audit-named-exports.mjs
  *   node backend/scripts/audit-named-exports.mjs --verbose   # list every statement checked
+ *   node backend/scripts/audit-named-exports.mjs --help      # usage only; imports nothing
  *
  * EXIT CODES: 0 = all bindings resolve · 1 = at least one missing · 2 = the audit itself failed.
  */

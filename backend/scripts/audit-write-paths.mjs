@@ -37,6 +37,7 @@
  * USAGE:
  *   node backend/scripts/audit-write-paths.mjs
  *   node backend/scripts/audit-write-paths.mjs --verbose   # also list models that pass
+ *   node backend/scripts/audit-write-paths.mjs --help      # usage only; does NOT touch the DB
  *
  * EXIT CODES: 0 = every model can supply its required columns · 1 = at least one cannot ·
  *             2 = the audit itself failed (including examining zero models).

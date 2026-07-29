@@ -25,6 +25,12 @@
  * USAGE:
  *   node backend/scripts/audit-model-health.mjs           # summary + failures
  *   node backend/scripts/audit-model-health.mjs --verbose # also list healthy models
+ *   node backend/scripts/audit-model-health.mjs --help    # usage only; does NOT touch the DB
+ *
+ * SCOPE: recurses through models/ subdirectories (models/social/, models/financial/, and
+ * models/social/enhanced/ two levels down) and scans EVERY exported model per file, not just the
+ * default export — several files there define multiple models and have no default at all.
+ * Files it cannot cover are listed by name, never hidden inside a count.
  *
  * EXIT CODES: 0 = every model healthy · 1 = at least one broken · 2 = could not connect.
  * The non-zero exit makes it usable as a CI gate once the known failures are resolved.
