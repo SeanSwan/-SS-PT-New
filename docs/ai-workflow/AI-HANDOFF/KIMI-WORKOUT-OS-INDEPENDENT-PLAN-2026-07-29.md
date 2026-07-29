@@ -1,4 +1,4 @@
-# Kimi K3 - Review
+# Kimi K3 - Independent Plan (not a review — authored from the facts packet only)
 
 **Reviewer:** `moonshotai/kimi-k3` (high)
 **Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/08a767d5-78bd-4cf1-a474-3d1ae047cbb9/scratchpad/workout-os-facts-packet-for-kimi.md
