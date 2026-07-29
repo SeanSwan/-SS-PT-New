@@ -7,7 +7,7 @@
  * the trailing-3-week average. Real data only: loading, honest empty, and
  * error states — never fabricated targets.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { ProgressRing } from '../../v2/sections/ProgressRing';
@@ -56,9 +56,13 @@ type RingsState =
 const WeeklyRingsCard: React.FC = () => {
   const { authAxios } = useAuth();
   const [state, setState] = useState<RingsState>({ status: 'loading' });
+  // One fetch per mount — same guard as ClientTodayHero: unstable context
+  // identity must never refire the effect.
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!authAxios) return;
+    if (!authAxios || fetchedRef.current) return;
+    fetchedRef.current = true;
     let alive = true;
     authAxios
       .get('/api/client/analytics/ring-weekly-source')

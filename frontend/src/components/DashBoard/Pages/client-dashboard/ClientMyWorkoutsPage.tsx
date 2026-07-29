@@ -51,6 +51,7 @@ import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
 import ClientMyWorkoutsHeader from './ClientMyWorkoutsHeader';
 import ClientMyWorkoutsNextMove from './ClientMyWorkoutsNextMove';
 import ClientWorkoutPlanVaultPanel from './ClientWorkoutPlanVaultPanel';
+import ClientTodayHero from './ClientTodayHero';
 import ClientMyWorkoutsPagination from './ClientMyWorkoutsPagination';
 import WorkoutLoggerChallengeReceipt from '../../../WorkoutLogger/WorkoutLoggerChallengeReceipt';
 import {
@@ -149,6 +150,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
   return (
     <PageContainer>
       {pageHeader}
+      <ClientTodayHero />
       <ClientWorkoutPlanVaultPanel />
       <WorkoutLoggerChallengeReceipt progress={workoutChallengeProgress} />
 

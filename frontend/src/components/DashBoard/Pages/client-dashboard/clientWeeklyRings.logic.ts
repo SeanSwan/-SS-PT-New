@@ -56,6 +56,32 @@ const metric = (value: number, pace: number): RingMetric => ({
   pct: pace > 0 ? Math.min(100, Math.round((value / pace) * 100)) : (value > 0 ? 100 : 0),
 });
 
+export interface WeekDayState {
+  /** 0 = Monday … 6 = Sunday, LOCAL week. */
+  dayIndex: number;
+  logged: boolean;
+  isToday: boolean;
+}
+
+/** C4c week strip: which LOCAL weekdays hold completed sessions this week. */
+export function bucketWeekDays(sessions: RingSourceSession[], now: Date = new Date()): WeekDayState[] {
+  const weekStart = startOfLocalWeek(now);
+  const todayIndex = (now.getDay() + 6) % 7;
+  const logged = new Set<number>();
+  for (const session of sessions ?? []) {
+    const when = new Date(session.ts);
+    if (Number.isNaN(when.getTime())) continue;
+    const dayMs = new Date(when.getFullYear(), when.getMonth(), when.getDate()).getTime();
+    const offset = Math.round((dayMs - weekStart.getTime()) / (24 * 60 * 60 * 1000));
+    if (offset >= 0 && offset <= 6) logged.add(offset);
+  }
+  return Array.from({ length: 7 }, (_, dayIndex) => ({
+    dayIndex,
+    logged: logged.has(dayIndex),
+    isToday: dayIndex === todayIndex,
+  }));
+}
+
 export function bucketWeeklyRings(sessions: RingSourceSession[], now: Date = new Date()): WeeklyRings {
   const weeks = [0, 1, 2, 3].map(() => ({ workouts: 0, volume: 0, minutes: 0 }));
 
