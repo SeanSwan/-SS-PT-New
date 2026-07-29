@@ -18,7 +18,10 @@
  * lens with no recipe — 25 of 27 today) produces zero visual change; only a lens with a v2 recipe repaints.
  *
  * Values = the canonical Crystalline Swan palette (CLAUDE.md Active Palette). This file is the ONE sanctioned
- * hex site for the default world — surfaces stay pure consumers (LAW 8 R6).
+ * hex site for the DEFAULT world — surfaces stay pure consumers (LAW 8 R6). Per-world SETTING hex lives in
+ * `worlds/recipes/<id>.ts` and nowhere else, restricted to the `world-panel`/`world-bg`/`world-shadow` tokens
+ * (bespoke world depth has no palette slot); every other color token there must be `var(--palette-token, #fb)`.
+ * Both carve-outs are CI-enforced by `worlds/lawA.test.ts` — that test, not this comment, is the authority.
  */
 import styled from 'styled-components';
 
