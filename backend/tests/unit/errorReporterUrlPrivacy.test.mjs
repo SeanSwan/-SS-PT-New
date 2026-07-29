@@ -22,7 +22,7 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-const { buildErrorEvent } = await import('../../services/monitoring/errorReporter.mjs');
+const { buildErrorEvent, normalizeRoute } = await import('../../services/monitoring/errorReporter.mjs');
 
 const eventFor = (url) =>
   buildErrorEvent({ err: new Error('boom'), req: { method: 'GET', originalUrl: url }, statusCode: 500 });
@@ -56,5 +56,88 @@ describe('query-string secrets never survive into an error event', () => {
     const a = eventFor('/api/auth/reset?token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     const b = eventFor('/api/auth/reset?token=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
     expect(a.fingerprint).toBe(b.fingerprint);
+  });
+});
+
+/**
+ * Second hostile probe, 2026-07-29. The first fix cut only on a literal '?' and
+ * '#'. These are the ways a secret still reached the event afterwards.
+ */
+describe('separators and path-embedded secrets', () => {
+  it('strips a PERCENT-ENCODED question mark', () => {
+    expect(normalizeRoute('/api/x%3Ftoken=secret123')).toBe('/api/x');
+  });
+
+  it('strips matrix-parameter separators', () => {
+    expect(normalizeRoute('/api/x;token=secret123')).toBe('/api/x');
+  });
+
+  // Magic-link and verification routes put the token in the PATH, not the query.
+  it('redacts a JWT that IS a path segment', () => {
+    expect(normalizeRoute('/api/verify/eyJhbGciOiJIUzI1NiJ9.abc.def')).toBe('/api/verify/:token');
+  });
+
+  it('redacts a long opaque token path segment', () => {
+    expect(normalizeRoute('/claim/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4')).toBe('/claim/:token');
+  });
+
+  // Over-matching would destroy the diagnostic value the route exists to provide.
+  it.each([
+    ['/api/files/report.tar.gz'],
+    ['/static/app.min.js'],
+    ['/api/v1/users'],
+    ['/api/workout-sessions/history'],
+    ['/dashboard/client/overview'],
+  ])('leaves the innocent route %s untouched', (p) => {
+    expect(normalizeRoute(p)).toBe(p);
+  });
+});
+
+describe('bounded capture — one pathological error cannot eat memory', () => {
+  it('truncates a huge stack', () => {
+    const err = new Error('boom');
+    err.stack = 'x'.repeat(500_000);
+    const e = buildErrorEvent({ err, req: { originalUrl: '/a' }, statusCode: 500 });
+    expect(e.stack.length).toBeLessThan(9_000);
+    expect(e.stack).toContain('truncated');
+  });
+
+  it('truncates a huge message', () => {
+    const e = buildErrorEvent({ err: new Error('y'.repeat(200_000)), req: { originalUrl: '/a' }, statusCode: 500 });
+    expect(e.message.length).toBeLessThan(3_000);
+  });
+
+  it('leaves a normal message intact', () => {
+    const e = buildErrorEvent({ err: new Error('ordinary failure'), req: { originalUrl: '/a' }, statusCode: 500 });
+    expect(e.message).toBe('ordinary failure');
+  });
+});
+
+describe('referer is a URL and therefore carries secrets', () => {
+  it('strips the query string from a whitelisted referer', () => {
+    const e = buildErrorEvent({
+      err: new Error('e'),
+      req: { originalUrl: '/a', headers: { referer: 'https://app.test/reset?token=secret123' } },
+      statusCode: 500,
+    });
+    expect(JSON.stringify(e)).not.toContain('secret123');
+  });
+
+  it('flattens a repeated header to a string', () => {
+    const e = buildErrorEvent({
+      err: new Error('e'),
+      req: { originalUrl: '/a', headers: { 'user-agent': ['a', 'b'] } },
+      statusCode: 500,
+    });
+    expect(typeof e.headers['user-agent']).toBe('string');
+  });
+
+  it('bounds an absurdly long header', () => {
+    const e = buildErrorEvent({
+      err: new Error('e'),
+      req: { originalUrl: '/a', headers: { 'user-agent': 'u'.repeat(50_000) } },
+      statusCode: 500,
+    });
+    expect(e.headers['user-agent'].length).toBeLessThan(400);
   });
 });

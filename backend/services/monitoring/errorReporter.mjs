@@ -90,11 +90,36 @@ export function registerErrorSink(fn) {
  */
 export function normalizeRoute(routePath) {
   const raw = String(routePath || 'unknown');
-  const pathOnly = raw.split('?')[0].split('#')[0];
+
+  // Cut at EVERY separator that can begin a non-path payload. Hostile probe
+  // 2026-07-29 found the first version cut only on a literal '?' and '#', so
+  // `/api/x%3Ftoken=secret` (percent-encoded '?') and `/api/x;token=secret`
+  // (matrix params) both carried their secret straight through.
+  const pathOnly = raw.split(/[?#;]|%3F|%23/i)[0];
+
   return pathOnly
     // collapse ids so /clients/61/x and /clients/62/x are ONE problem
     .replace(/\/\d+(?=\/|$)/g, '/:id')
-    .replace(/\/[0-9a-f]{8}-[0-9a-f-]{27,}(?=\/|$)/gi, '/:uuid');
+    .replace(/\/[0-9a-f]{8}-[0-9a-f-]{27,}(?=\/|$)/gi, '/:uuid')
+    // A secret can BE a path segment, not just a query value: email-verification
+    // and magic-link routes are commonly /verify/<jwt> or /claim/<token>.
+    // JWT-shaped segment (three base64url parts). The FIRST part is the anchor:
+    // a JWT header is always >=16 base64url chars, while the payload/signature
+    // can be short. An earlier version required >=8 on the second part too and
+    // let `/verify/eyJhbGciOiJIUzI1NiJ9.abc.def` through. Anchoring on the long
+    // first part also avoids matching innocent names like `file.tar.gz`.
+    .replace(/\/[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?=\/|$)/g, '/:token')
+    // Long opaque hex/base64url segment — a token, never a readable route name.
+    .replace(/\/[A-Za-z0-9_-]{24,}(?=\/|$)/g, '/:token');
+}
+
+/** Bound a captured string so one pathological error cannot eat memory. */
+const MAX_MESSAGE_CHARS = 2_000;
+const MAX_STACK_CHARS = 8_000;
+function truncate(value, max) {
+  if (typeof value !== 'string') return value;
+  if (value.length <= max) return value;
+  return `${value.slice(0, max)}…[truncated ${value.length - max} chars]`;
 }
 
 /** Stable-ish grouping key: error class + route shape + status. */
@@ -106,7 +131,16 @@ function safeHeaders(req) {
   const out = {};
   const h = req?.headers || {};
   for (const key of HEADER_ALLOWLIST) {
-    if (h[key] !== undefined) out[key] = h[key];
+    if (h[key] === undefined) continue;
+    // A header can arrive as an array (repeated header) — flatten to a string
+    // so downstream never has to reason about shape.
+    const raw = Array.isArray(h[key]) ? h[key].join(', ') : h[key];
+    // `referer` is a full URL and therefore carries a query string. Whitelisting
+    // it without stripping put `?token=` straight into the event — found by
+    // hostile probe 2026-07-29. Keep only origin + path.
+    out[key] = key === 'referer'
+      ? truncate(normalizeRoute(String(raw)), 300)
+      : truncate(String(raw), 300);
   }
   return out;
 }
@@ -135,8 +169,11 @@ export function buildErrorEvent({ err, req, statusCode, now = Date.now() }) {
     at: new Date(now).toISOString(),
     statusCode: status,
     name: err?.name || 'Error',
-    message: err?.message || 'Unknown error',
-    stack: err?.stack || null,
+    // Bounded: a pathological error carrying a 200KB message or a 500KB stack
+    // would otherwise be stored whole in the group sample AND forwarded to the
+    // sink verbatim — 200 groups of that is a memory problem, not a log line.
+    message: truncate(err?.message || 'Unknown error', MAX_MESSAGE_CHARS),
+    stack: truncate(err?.stack || null, MAX_STACK_CHARS),
     method: req?.method || null,
     route: routePath,
     // Identity is a ROLE and an id — never a name, email or phone (rule 8).
