@@ -47,13 +47,19 @@ export const LATE_CANCEL_HOURS = envInt('LATE_CANCEL_HOURS', 12);
 export const LATE_CANCEL_FORFEITS_CREDIT = envBool('LATE_CANCEL_FORFEITS_CREDIT', false);
 
 /**
- * Do class bookings decrement a PT package's SessionPackage credits?
+ * Do class bookings decrement a PT package's session credits?
  *
  * ⚠ HIGHEST-RISK DEFAULT IN THIS FILE. Default NO — class attendance and personal-training session
  * credits are separate ledgers. If the gym intends a PT package to *pay for* class attendance,
  * flipping this alone is NOT sufficient: the enforcement path (which ledger decrements, what
  * happens at zero, refund on cancel) is deliberately unbuilt. Flipping this without that slice
  * gives away revenue silently.
+ *
+ * DO NOT reach for `SessionPackage.mjs` when building that path. That model looks like the credit
+ * store and is not: its `session_packages` table does not exist in production and no migration
+ * anywhere creates it (verified 2026-07-29, SWA-86). Its only reference outside its own file is an
+ * unused import. The live purchase path uses `StorefrontItem`. Confirm the real credit ledger
+ * against the database before writing enforcement against any model.
  */
 export const CLASS_CONSUMES_SESSION_CREDIT = envBool('CLASS_CONSUMES_SESSION_CREDIT', false);
 
