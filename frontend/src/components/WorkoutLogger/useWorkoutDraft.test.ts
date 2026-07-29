@@ -15,6 +15,7 @@ import {
   WORKOUT_DRAFT_PREFIX,
   WORKOUT_DRAFT_DEBOUNCE_MS,
   WORKOUT_DRAFT_MAX_AGE_MS,
+  hasStoredWorkoutDraft,
   useWorkoutDraft,
 } from './useWorkoutDraft';
 
@@ -210,5 +211,27 @@ describe('useWorkoutDraft hook', () => {
       again.result.current.clear();
     });
     expect(localStorage.getItem(KEY)).toBeNull();
+  });
+});
+
+describe('hasStoredWorkoutDraft (C4a mount-time peek)', () => {
+  beforeEach(() => localStorage.clear());
+
+  const KEY = buildWorkoutDraftKey(9, 11, '2026-07-29') as string;
+  const payload = (exercises: ExerciseEntry[], savedAt = new Date().toISOString()) =>
+    JSON.stringify({ v: 1, savedAt, exercises, sessionNotes: '', overallIntensity: null });
+
+  it('is true only for a fresh draft with exercises', () => {
+    localStorage.setItem(KEY, payload([exercise('Squat')]));
+    expect(hasStoredWorkoutDraft(9, 11, '2026-07-29')).toBe(true);
+  });
+
+  it('is false when absent, empty, stale, or the key is unbuildable', () => {
+    expect(hasStoredWorkoutDraft(9, 11, '2026-07-29')).toBe(false);
+    localStorage.setItem(KEY, payload([]));
+    expect(hasStoredWorkoutDraft(9, 11, '2026-07-29')).toBe(false);
+    localStorage.setItem(KEY, payload([exercise('Squat')], new Date(Date.now() - WORKOUT_DRAFT_MAX_AGE_MS - 1000).toISOString()));
+    expect(hasStoredWorkoutDraft(9, 11, '2026-07-29')).toBe(false);
+    expect(hasStoredWorkoutDraft(undefined, 11, '2026-07-29')).toBe(false);
   });
 });

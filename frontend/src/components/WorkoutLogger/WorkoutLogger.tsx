@@ -62,7 +62,8 @@ import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
 import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
-import { useWorkoutDraft, WorkoutDraftRestoreBanner } from './useWorkoutDraft';
+import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
+import WorkoutDraftGateBanner, { type WorkoutDraftGate } from './WorkoutDraftGateBanner';
 import { toggleSupersetLink, isLinkedToPrevious, renumberSupersetGroups } from './WorkoutLogger.supersets';
 import FloatingRestTimer from './FloatingRestTimer';
 import type {
@@ -124,6 +125,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const workoutDateValue = scheduledSessionDate
     ? normalizeWorkoutDate(scheduledSessionDate)
     : normalizeWorkoutDate(null);
+
+  // C4a: a stored draft BEATS ?loadPlan=today — synchronous peek (no effect-
+  // order race); the plan auto-loads only after an explicit discard.
+  const [draftGate, setDraftGate] = useState<WorkoutDraftGate>(() => (
+    hasStoredWorkoutDraft(userNumericId, effectiveClientId, workoutDateValue) ? 'pending' : 'none'
+  ));
 
   const resolvedOnComplete = onComplete ?? ((formData: DailyWorkoutForm) => {
     navigate('/dashboard/client/workouts', {
@@ -315,6 +322,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   } = useWorkoutPlanLoading({
     autoLoadTodayPlan,
     autoLoadTodayPlanRef,
+    blockTodayPlanForDraft: draftGate === 'pending' || draftGate === 'restored',
     createWorkoutLoggerLocalId,
     effectiveClientId,
     hasInitialExercises,
@@ -572,19 +580,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         />
         <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} />
 
-        {workoutDraft.pendingDraft && exercises.length === 0 && !sessionNotes && !autoLoadTodayPlan && (
-          <WorkoutDraftRestoreBanner
-            draft={workoutDraft.pendingDraft}
-            onRestore={() => {
-              const draft = workoutDraft.restore();
-              if (!draft) return;
-              setExercises(draft.exercises.map((entry) => ensureWorkoutLoggerExerciseRowIdentity(entry)));
-              setSessionNotes(draft.sessionNotes);
-              setOverallIntensity(draft.overallIntensity);
-            }}
-            onDiscard={workoutDraft.discard}
-          />
-        )}
+        <WorkoutDraftGateBanner
+          workoutDraft={workoutDraft}
+          visible={exercises.length === 0 && !sessionNotes}
+          setDraftGate={setDraftGate}
+          setExercises={setExercises}
+          setSessionNotes={setSessionNotes}
+          setOverallIntensity={setOverallIntensity}
+        />
+
 
         {typeof effectiveClientId === 'number' && (
           <WorkoutLoggerVoiceImportSection

@@ -82,6 +82,8 @@ vi.mock('../database.mjs', () => ({
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
     })),
+    // C4a: the route takes a pg advisory lock before the same-day dedupe.
+    query: vi.fn().mockResolvedValue([[], undefined]),
   },
 }));
 
@@ -310,6 +312,20 @@ describe('POST /api/workout-forms — receipt, PR, handoff, XP route contracts',
 
     expect(res.status).toBe(201);
     expect(mockAwardWorkoutXP).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes the advisory lock BEFORE the same-day dedupe read (C4a duplicate guard)', async () => {
+    primeSave();
+    const db = (await import('../database.mjs')).default;
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+
+    expect(res.status).toBe(201);
+    const lockIndex = db.query.mock.calls.findIndex(([sql]) => String(sql).includes('pg_advisory_xact_lock'));
+    expect(lockIndex).toBeGreaterThanOrEqual(0);
+    expect(db.query.mock.calls[lockIndex][1].replacements.lockKey).toBe('11:2026-05-03');
+    expect(db.query.mock.invocationCallOrder[lockIndex])
+      .toBeLessThan(mockDailyWorkoutFormFindOne.mock.invocationCallOrder[0]);
   });
 
   it('fires the badge sweep post-commit with the XP result', async () => {

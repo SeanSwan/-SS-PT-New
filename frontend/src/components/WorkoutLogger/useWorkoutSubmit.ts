@@ -166,8 +166,10 @@ export function useWorkoutSubmit({
         const existingFormId = response.data?.id || response.data?.formId || null;
         if (existingFormId) {
           setSubmittedFormId(existingFormId);
-          workoutDraft.clear();
-          toast.warning(response.message || 'Workout already exists for this date. Summary tools are unlocked.');
+          // C4a: NEVER clear the draft here — this branch means a DIFFERENT
+          // save already owns the date; clearing would destroy the only copy
+          // of the just-entered workout (probe finding #2).
+          toast.warning(response.message || 'A workout already exists for this date. Summary tools are unlocked — your current entries stay saved as a draft.');
         } else {
           toast.error(response.message || 'Workout was not saved. Please review and try again.');
         }

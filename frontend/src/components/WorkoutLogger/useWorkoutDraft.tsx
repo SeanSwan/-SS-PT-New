@@ -82,6 +82,27 @@ export const parseWorkoutDraft = (raw: string | null): WorkoutDraftPayload | nul
   }
 };
 
+/**
+ * Synchronous mount-time peek — lets `?loadPlan=today` defer to an existing
+ * draft without an effect-order race (the offer effect and the plan-load
+ * effect both fire on mount; this reads storage directly instead).
+ */
+export const hasStoredWorkoutDraft = (
+  userId: number | undefined,
+  clientId: number | undefined,
+  date: string
+): boolean => {
+  const key = buildWorkoutDraftKey(userId, clientId, date);
+  const storage = safeStorage();
+  if (!key || !storage) return false;
+  try {
+    const draft = parseWorkoutDraft(storage.getItem(key));
+    return Boolean(draft && draft.exercises.length > 0);
+  } catch {
+    return false;
+  }
+};
+
 /** Drop stale/corrupt drafts so day-scoped keys never accumulate. */
 export const purgeStaleWorkoutDrafts = (): void => {
   const storage = safeStorage();

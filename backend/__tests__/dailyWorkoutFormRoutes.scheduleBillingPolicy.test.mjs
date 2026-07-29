@@ -82,6 +82,8 @@ vi.mock('../database.mjs', () => ({
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
     })),
+    // C4a: the route takes a pg advisory lock before the same-day dedupe.
+    query: vi.fn().mockResolvedValue([[], undefined]),
   },
 }));
 

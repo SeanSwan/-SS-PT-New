@@ -1,19 +1,23 @@
 /**
  * WorkoutLogger.draft.contract.test.ts
  * ======================================
- * Phase 3c.1 source locks: the canonical logger shell MUST wire the autosave
- * draft lifecycle. Guards the three load-bearing hooks: (1) the hook is mounted
- * with live form state, (2) a successful or duplicate save clears the draft so
- * stale data can never resurrect, (3) the restore banner only offers a draft
- * into an EMPTY form (never clobbers typed/plan-loaded work).
+ * Phase 3c.1 source locks, amended by Workout-OS C4a (2026-07-29): the
+ * canonical logger shell MUST wire the autosave draft lifecycle. Guards:
+ * (1) the hook is mounted with live form state, (2) ONLY a confirmed save
+ * clears the draft — the duplicate-409 clear was REVERSED after the C4
+ * probe proved it destroys the only copy of a second same-day workout's
+ * content (unrecoverable data loss beats stale-draft tidiness), (3) the
+ * restore banner only offers a draft into an EMPTY form.
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// Slice D1/D2 decomposition: AI-events + submit clusters live in hooks.
+// Slice D1/D2 decomposition: AI-events + submit clusters live in hooks;
+// C4a: the banner moved to WorkoutDraftGateBanner (shell line cap).
 const source = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8')
   + readFileSync(resolve(__dirname, './useWorkoutAiEvents.ts'), 'utf8')
-  + readFileSync(resolve(__dirname, './useWorkoutSubmit.ts'), 'utf8');
+  + readFileSync(resolve(__dirname, './useWorkoutSubmit.ts'), 'utf8')
+  + readFileSync(resolve(__dirname, './WorkoutDraftGateBanner.tsx'), 'utf8');
 
 describe('WorkoutLogger draft autosave contract', () => {
   it('mounts useWorkoutDraft with the live form state', () => {
@@ -22,10 +26,10 @@ describe('WorkoutLogger draft autosave contract', () => {
     expect(source).toMatch(/enabled:\s*!hasInitialExercises\s*&&\s*!lastSaveResponse/);
   });
 
-  it('clears the draft on BOTH confirmed save and duplicate-exists outcomes', () => {
+  it('clears the draft ONLY on a confirmed save — a duplicate-409 preserves it', () => {
     const clears = source.match(/workoutDraft\.clear\(\)/g) ?? [];
-    expect(clears.length).toBeGreaterThanOrEqual(2);
-    // The success clear must live with the saved-response handoff.
+    expect(clears.length).toBe(1);
+    // The one clear must live with the saved-response handoff.
     expect(source).toMatch(
       /setLastSaveResponse\(response\.data\);\s*\n\s*workoutDraft\.clear\(\);/
     );
@@ -33,9 +37,7 @@ describe('WorkoutLogger draft autosave contract', () => {
 
   it('only offers the restore banner into an empty form', () => {
     expect(source).toContain('WorkoutDraftRestoreBanner');
-    expect(source).toMatch(
-      /workoutDraft\.pendingDraft\s*&&\s*exercises\.length === 0\s*&&\s*!sessionNotes/
-    );
+    expect(source).toMatch(/visible=\{exercises\.length === 0 && !sessionNotes\}/);
     // Restored rows must re-run row-identity assignment (stable loggerExerciseIds).
     expect(source).toMatch(/restore\(\)/);
     expect(source).toMatch(/ensureWorkoutLoggerExerciseRowIdentity/);

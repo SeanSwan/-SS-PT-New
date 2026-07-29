@@ -31,6 +31,8 @@ import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
 interface WorkoutPlanLoadingParams {
   autoLoadTodayPlan: boolean;
   autoLoadTodayPlanRef: React.MutableRefObject<string | null>;
+  /** C4a: a pending/restored draft blocks today-plan auto-load (draft wins). */
+  blockTodayPlanForDraft?: boolean;
   createWorkoutLoggerLocalId: (prefix: string) => string;
   effectiveClientId: number | undefined;
   hasInitialExercises: boolean;
@@ -47,6 +49,7 @@ interface WorkoutPlanLoadingParams {
 export function useWorkoutPlanLoading({
   autoLoadTodayPlan,
   autoLoadTodayPlanRef,
+  blockTodayPlanForDraft = false,
   createWorkoutLoggerLocalId,
   effectiveClientId,
   hasInitialExercises,
@@ -146,6 +149,10 @@ export function useWorkoutPlanLoading({
         ? `route:${searchParams.toString()}`
         : null;
 
+    // Draft-wins gate (C4a): return BEFORE the signal is consumed, so an
+    // explicit discard re-runs this effect and the plan still loads; a
+    // restore keeps blocking for the whole mount.
+    if (blockTodayPlanForDraft) return;
     if (!todayPlanLoadSignal || autoLoadTodayPlanRef.current === todayPlanLoadSignal || hasInitialExercises) return;
     if (pendingAiPlanPrefillLoadedRef.current && autoLoadTodayPlan && loadTodayPlanSignal <= 0) {
       autoLoadTodayPlanRef.current = todayPlanLoadSignal;
@@ -157,7 +164,7 @@ export function useWorkoutPlanLoading({
     autoLoadTodayPlanRef.current = todayPlanLoadSignal;
     void loadTodaysPlan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
+  }, [autoLoadTodayPlan, blockTodayPlanForDraft, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
 
   const handleApplyGeneratedPlanDay = useCallback((assignment: PlanAssignmentPickerItem) => {
     const prefilled = planAssignmentPickerItemToEntries(assignment, createWorkoutLoggerLocalId);

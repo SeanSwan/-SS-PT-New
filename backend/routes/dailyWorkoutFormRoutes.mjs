@@ -906,6 +906,18 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       }
     }
 
+    // C4a duplicate-write guard: the same-day dedupe below is a findOne-then-
+    // insert with NO unique index behind it (dupes may exist in prod, so the
+    // index needs its own probed migration). A transaction-scoped advisory
+    // lock on (clientId, date) serializes concurrent saves instead: the
+    // second request blocks here until the first commits, then its findOne
+    // SEES the new form and returns the clean 409. Auto-released at
+    // commit/rollback; no schema change. Postgres-only by design (prod DB).
+    await sequelize.query(
+      "SELECT pg_advisory_xact_lock(hashtext('workout-form-save'), hashtext(:lockKey))",
+      { replacements: { lockKey: `${parsedClientId}:${workoutDateIso}` }, transaction },
+    );
+
     // Check if a workout form already exists for this client on this date
     const DailyWorkoutForm = getDailyWorkoutForm();
     const existingForm = await DailyWorkoutForm.findOne({
