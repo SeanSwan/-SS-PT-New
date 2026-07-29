@@ -79,6 +79,7 @@
     "audit-database": "node scripts/audit-database-data.mjs",
     "audit:models": "node scripts/audit-model-health.mjs",
     "audit:exports": "node scripts/audit-named-exports.mjs",
+    "audit:writes": "node scripts/audit-write-paths.mjs",
     "audit:boot": "npm run audit:exports && npm run audit:models",
     "verify-migrations": "node scripts/verify-migrations.mjs",
     "fix-duplicate-indexes": "node scripts/fix-duplicate-indexes.mjs",
