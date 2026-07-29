@@ -6,7 +6,8 @@
  * on coach-confirm. Surface fit: evidence/ledger, analytics, history. Codeword:
  * compact-technical-mono display / terminal-mono body / faceted-console surface /
  * ledger-strips collection / monolith-bar action / ring-gauge chart / atrium-split
- * template (differs from prism-terminal on collection+action+chart+template = 4 axes).
+ * template (differs from prism-terminal on collection+action+template = 3 axes on a
+ * chart-less rollout surface, 4 with the Lab host's chart slot).
  * Law A: chrome stays Crystalline Swan.
  */
 import type { RecipeV2 } from '../../../../core/style-lens-os/v2/recipeV2';
