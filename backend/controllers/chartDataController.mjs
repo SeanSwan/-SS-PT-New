@@ -796,37 +796,6 @@ export async function getMacroSplitChart(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: DEPRECATED — broken PascalCase chains, return empty so
-// legacy consumers don't 404, but never render wrong data. Each
-// deprecated endpoint documents its replacement so consumers can
-// migrate. Phase 15+ may remove these entirely.
-// ─────────────────────────────────────────────────────────────
-
-/** @deprecated Phase 14 — use `chart-muscle-group-balance` instead. */
-export async function getMuscleGroupFocusChart(req, res) {
-  res.json({ success: true, data: [], deprecated: 'chart-muscle-group-balance' });
-}
-
-/** @deprecated Phase 14 — cardio detection is out of the 12-chart scope. */
-export async function getCardioEnduranceChart(req, res) {
-  res.json({ success: true, data: {}, deprecated: true });
-}
-
-/** @deprecated Phase 14 — use `chart-workout-frequency` instead. */
-export async function getSessionFrequencyChart(req, res) {
-  res.json({ success: true, data: [], deprecated: 'chart-workout-frequency' });
-}
-
-/** @deprecated Phase 14 — replaced in spirit by `chart-recovery-signal`. */
-export async function getMuscleRecoveryChart(req, res) {
-  res.json({ success: true, data: [], deprecated: 'chart-recovery-signal' });
-}
-
-/** @deprecated Phase 14 — use `chart-intensity-rpe-trend` instead. */
-export async function getRPEByExerciseChart(req, res) {
-  res.json({ success: true, data: {}, deprecated: 'chart-intensity-rpe-trend' });
-}
-// ─────────────────────────────────────────────────────────────
 // SECTION: 13. Est-1RM Trend — weekly best Brzycki estimate for the
 // client's most-logged weighted exercise (charter v3 4c).
 //

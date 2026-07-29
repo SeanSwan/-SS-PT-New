@@ -48,11 +48,6 @@ import {
   getBodyFatTrendChart,
   getMacroSplitChart,
   // Phase 14 deprecated — routed but return empty
-  getMuscleGroupFocusChart,
-  getCardioEnduranceChart,
-  getSessionFrequencyChart,
-  getMuscleRecoveryChart,
-  getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
 import { getNextBestActionHandler } from '../controllers/progressPulseController.mjs';
 import { protect, authorize, requireOwnershipOrTrainer } from '../middleware/authMiddleware.mjs';
@@ -186,14 +181,5 @@ router.get('/:userId/ring-weekly-source',             requireTier('pro', 'charts
 router.get('/:userId/chart-weight-progression', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeightProgressionChart);
 router.get('/:userId/chart-body-fat-trend',     requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getBodyFatTrendChart);
 router.get('/:userId/chart-macro-split',        requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMacroSplitChart);
-
-// Phase 14 deprecated — routed but return empty arrays so cached frontends
-// don't 404. Prefer the canonical replacements listed in each function's
-// JSDoc @deprecated tag in `chartDataController.mjs`.
-router.get('/:userId/chart-muscle-group-focus', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMuscleGroupFocusChart);
-router.get('/:userId/chart-cardio-endurance',   requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getCardioEnduranceChart);
-router.get('/:userId/chart-session-frequency',  requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getSessionFrequencyChart);
-router.get('/:userId/chart-muscle-recovery',    requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMuscleRecoveryChart);
-router.get('/:userId/chart-rpe-by-exercise',    requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getRPEByExerciseChart);
 
 export default router;

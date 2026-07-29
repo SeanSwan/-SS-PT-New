@@ -39,12 +39,6 @@ import {
   getMovementPatternBalanceChart,
   getMuscleGroupBalanceChart,
   getRecoverySignalChart,
-  // Phase 14 deprecated — still routed, must return empty arrays
-  getMuscleGroupFocusChart,
-  getCardioEnduranceChart,
-  getSessionFrequencyChart,
-  getMuscleRecoveryChart,
-  getRPEByExerciseChart,
 } from '../../controllers/chartDataController.mjs';
 
 const makeReqRes = ({ sql = [], rows = [] } = {}) => {
@@ -415,54 +409,6 @@ describe('Phase 14 / 15.0 — chart-recovery-signal', () => {
     await getRecoverySignalChart(req, res);
     const executedSql = sql[0];
     expect(executedSql).toMatch(/HAVING/i);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
-// Deprecated-endpoint contract: 5 pre-Phase-14 broken endpoints
-// must return empty arrays with a `deprecated` marker so legacy
-// callers get a clean 200 instead of a 404 or wrong data.
-// ─────────────────────────────────────────────────────────────
-
-describe('Phase 14 — deprecated PascalCase chart endpoints', () => {
-  it.each([
-    ['getMuscleGroupFocusChart', getMuscleGroupFocusChart, 'chart-muscle-group-balance'],
-    ['getSessionFrequencyChart', getSessionFrequencyChart, 'chart-workout-frequency'],
-    ['getMuscleRecoveryChart',   getMuscleRecoveryChart,   'chart-recovery-signal'],
-  ])('%s returns empty data with a deprecated replacement marker', async (_, handler, replacement) => {
-    const { req, res, querySpy } = makeReqRes();
-    await handler(req, res);
-    // No SQL is executed for deprecated stubs.
-    expect(querySpy).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        success: true,
-        data: [],
-        deprecated: replacement,
-      }),
-    );
-  });
-
-  it('getCardioEnduranceChart returns an empty object (grouped-by-type shape) marked deprecated', async () => {
-    const { req, res, querySpy } = makeReqRes();
-    await getCardioEnduranceChart(req, res);
-    expect(querySpy).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true, data: {}, deprecated: true }),
-    );
-  });
-
-  it('getRPEByExerciseChart returns an empty object marked deprecated (replaced by intensity-rpe-trend)', async () => {
-    const { req, res, querySpy } = makeReqRes();
-    await getRPEByExerciseChart(req, res);
-    expect(querySpy).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        success: true,
-        data: {},
-        deprecated: 'chart-intensity-rpe-trend',
-      }),
-    );
   });
 });
 

@@ -50,11 +50,6 @@ import {
   getBodyFatTrendChart,
   getMacroSplitChart,
   // Phase 14 deprecated — return empty arrays to avoid 404 on legacy callers
-  getMuscleGroupFocusChart,
-  getCardioEnduranceChart,
-  getSessionFrequencyChart,
-  getMuscleRecoveryChart,
-  getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
 import { getNbaLiteHandler, getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
 import { getRecoveryBoardHandler, postRecoveryCompletionHandler } from '../controllers/recoveryBoardController.mjs';
@@ -269,20 +264,5 @@ router.get('/chart-macro-split', getMacroSplitChart);
 // empty and tagged with the canonical replacement. Phase 15+ may
 // remove these entirely once all consumers have migrated.
 // ─────────────────────────────────────────────────────────────
-
-/** @deprecated Phase 14 — replaced by chart-muscle-group-balance */
-router.get('/chart-muscle-group-focus', requireGuardianAnalytics, getMuscleGroupFocusChart);
-
-/** @deprecated Phase 14 — out of 12-chart scope */
-router.get('/chart-cardio-endurance', requireGuardianAnalytics, getCardioEnduranceChart);
-
-/** @deprecated Phase 14 — replaced by chart-workout-frequency */
-router.get('/chart-session-frequency', requireGuardianAnalytics, getSessionFrequencyChart);
-
-/** @deprecated Phase 14 — replaced in spirit by chart-recovery-signal */
-router.get('/chart-muscle-recovery', requireGuardianAnalytics, getMuscleRecoveryChart);
-
-/** @deprecated Phase 14 — replaced by chart-intensity-rpe-trend */
-router.get('/chart-rpe-by-exercise', requireGuardianAnalytics, getRPEByExerciseChart);
 
 export default router;
