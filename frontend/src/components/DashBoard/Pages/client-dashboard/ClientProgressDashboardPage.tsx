@@ -47,6 +47,7 @@ import { loadClientWeeklyRecap } from './ClientProgressDashboardPage.recap';
 import { FirstWorkoutCta, PersonalRecordsCard, WeeklyRecapCard } from './ClientProgressDashboardPage.cards';
 import ClientProgressLensFrame from './ClientProgressLensFrame';
 import ProgressPulsePanel from './ProgressPulsePanel';
+import WeeklyRingsCard from './WeeklyRingsCard';
 // Do not re-introduce ProfileChartsGrid on /dashboard/client/progress.
 // The canonical chart registry is owned by CanonicalProgressChartsGrid + useClientProgressCharts.
 const CanonicalProgressChartsGrid = React.lazy(
@@ -220,6 +221,8 @@ const ClientProgressDashboardPage: React.FC = () => {
       {personalRecords.length > 0 && (
         <PersonalRecordsCard records={personalRecords} />
       )}
+
+      <WeeklyRingsCard />
 
       <ChartsSection>
         <ChartsSectionHeader>
