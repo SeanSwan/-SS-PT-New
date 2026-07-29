@@ -309,3 +309,29 @@ One role-configured logger (`loggerContext` prop on `WorkoutLogger`; `EnhancedWo
 **Standing rules for every slice:** one flag in flight at a time; production green before the next slice starts; canonical-surface receipt → build → hostile dry-loop (Rule 73) → targeted tests + tsc + build + Rule 42 audit → local commit; batch push per Rule 70; C2/C6 chat-bypass + safety handshakes coordinate with Cortex P1 via review-queue. Build happens in a fresh worktree off current `origin/main` — never on the stale wip tree.
 
 **Total program: ~7-10 build-weeks.** C0-C3 (~2 weeks) end Sean's daily pain and light up the dead delights; C4-C6 deliver the felt super-app + the headline suggested-workouts ask; C7-C8 finish the consolidation and the Demo Mode upgrade.
+
+---
+
+# §13 — PRE-BUILD HOSTILE REVIEW ADDENDUM (2026-07-29, build branch `claude/workout-os-build-20260729` off `origin/main@14032c035`)
+
+Sean-directed hostile pass on the §12 plan itself, receipts re-verified against CURRENT main (the §1 audit ran 1 commit earlier at c39adab88). Findings amend §12; where they conflict, §13 wins.
+
+**HR-1 [MATERIAL — C3 rescoped].** The completion moment ALREADY EXISTS on main: `frontend/src/components/WorkoutLogger/handoff/` (PostSaveHandoff + CelebrationBurst + ProofChart + ShareProofButton + StreakGoalModule + NextBestActionCard + role gating + tests), imported at `WorkoutLogger.tsx:44` and mounted at `:811`, **dark behind `VITE_ENABLE_POST_SAVE_HANDOFF` (default OFF)**. §12-C3's "mount PostWorkoutCelebration" would build a SECOND celebration. C3 is now: (a) receipt on handoff completeness; (b) **light the handoff as the completion moment**; (c) classify `Celebrations/PostWorkoutCelebration.tsx` absorb-or-retire — no double celebration; (d) badge auto-award; (e) streak chart; (f) rings mount; (g) deprecated-endpoint sweep.
+
+**HR-2 [gotcha + ruling].** The handoff flag is a build-time Vite env var (CLAUDE.md gotcha — not runtime-flippable). Sean's directive explicitly includes "celebration/streak/badges/rings turned on," so C3 flips the code default to ON with the env var inverted into a kill switch (`VITE_ENABLE_POST_SAVE_HANDOFF=false` disables). Recorded for the batch report.
+
+**HR-3 [C1 correction].** `WorkoutBuilderPage` carries 3 co-located test files, and `WorkoutLogger/CorrectiveRecommendationsPanel.styleExtraction.test.ts` references the WorkoutBuilder path — the excision receipt must classify that cross-reference and remove/update tests with the surface, not leave orphaned suites.
+
+**HR-4 [dependencies SATISFIED].** The Cortex P1 safety handshakes §12 planned around have ALREADY SHIPPED on main: `coachDispatchEligibilityService.mjs` exists with `SAFETY_REVIEW_REQUIRED`/`PAIN_EXCLUDED` blocking parity; no 7-day pain-window remnants in pain queries. C2/C4/C6 handshakes downgrade from "build/coordinate" to "verify + regression-lock." C6.0 is LIKELY already satisfied — verify with a concrete test at C6 start.
+
+**HR-5 [C2 gate vs non-stop ruling].** The billing-matrix gate (§10.8) requires Sean sign-off; Sean directed non-stop build. Ruling: C2 ships **behavior-PRESERVING** parameterization only — golden-master tests lock current deduction semantics per logging context BEFORE refactor; the matrix doc records observed truth for Sean's async sign-off; **zero deduction-semantic changes in this batch**. Any semantics Sean wants changed after reading the matrix = follow-up slice. Gate honored by preservation + documentation.
+
+**HR-6 [Rule 4].** `WorkoutLogger.tsx` is 866 lines (already over cap). C2 must be net-neutral-or-better on that file via forced extractions only (role banner, context plumbing) — no wholesale rewrite, no growth.
+
+**HR-7 [defaults adopted, Sean can override].** Hub user-facing label = **"Workouts"** (copy-only, reversible). Trainer "Log Workout" default = client-picker flow (current intent behavior). Both flagged in the batch report.
+
+**HR-8 [receipt drift].** Badge write path on current main is `backend/services/badgeService.mjs` (+ `awardWorkoutXP.mjs` / `workoutXpAwardStep.mjs` confirmed badge-free — the auto-award gap is real); the §6.1 `gamificationController.mjs:1643` citation is stale. `ring-weekly-source` zero-frontend-refs RE-CONFIRMED on current main.
+
+**HR-9 [C6 hardening].** Coach pain readers just suffered table-name drift fixed on main (`093072b11`: `"PainEntries"`→`client_pain_entries`). The C6 composer MUST read pain via the `ClientPainEntry` model — no raw SQL — to be immune to the drift class fixed the day before this build started.
+
+**HR-10 [process].** Codex launch-core findings (same surfaces) not yet posted; folded at the all-slices dry-loop stage per lane note. Playwright MCP browser QA avoided for authenticated flows (SWA-94 credential-autofill hazard); local vitest/build gates + component tests carry verification.
