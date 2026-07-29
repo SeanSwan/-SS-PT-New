@@ -41,12 +41,24 @@ export const surfaceChartRepresentationStyles = css`
       inset 0 1px 0 color-mix(in srgb, var(--world-text, #e0ecf4) 22%, transparent);
   }
 
-  /* technical: machined plate — a cut corner facet, no blur, no lift. */
+  /* technical: machined plate — squared diagonal corners + a hairline top rule,
+     no blur, no lift. Deliberately NOT clip-path: clip-path clips ALL descendant
+     paint, which would swallow the 3px/3px-offset focus-visible outlines on the
+     action buttons inside .actions panels whose host composition gives them less
+     padding than the ring (a WCAG 2.4.7 break that only shows up on keyboard, in
+     some of the 25 host compositions). Per-corner radii + an overlay gradient get
+     the same machined read with zero clipping. */
   &[data-lens2-surface='faceted-console'] .lens2-surface {
     border-width: 1px;
     backdrop-filter: none;
-    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+    border-start-end-radius: 0;
+    border-end-start-radius: 0;
     box-shadow: none;
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--world-accent, #60c0f0) 46%, transparent) 0 2px,
+      transparent 2px
+    );
   }
 
   /* luxe: heavy frost behind a double chrome edge. */
@@ -94,11 +106,14 @@ export const surfaceChartRepresentationStyles = css`
     inset: 24%;
   }
 
-  /* technical: small, hard, instrumented — a hairline outline as a bezel. */
+  /* technical: small, hard, instrumented — a hairline bezel ring.
+     box-shadow, not outline: a decorative outline on a non-focusable
+     element reads as a focus indicator to sighted keyboard users. */
   &[data-lens2-chart='telemetry-columns'] .lens2-chart {
     width: clamp(112px, 12vw, 176px);
-    outline: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 52%, transparent);
-    outline-offset: 7px;
+    box-shadow:
+      0 0 0 7px transparent,
+      0 0 0 8px color-mix(in srgb, var(--world-accent, #60c0f0) 52%, transparent);
   }
   &[data-lens2-chart='telemetry-columns'] .lens2-chart::after {
     inset: 13%;
@@ -119,11 +134,14 @@ export const surfaceChartRepresentationStyles = css`
     font-weight: 500;
   }
 
-  /* atmospheric: a bold soft-edged band of light. */
+  /* atmospheric: a bold soft-edged band of light.
+     NO blur() here — filter applies to DESCENDANTS, so blurring the dial
+     would blur the readiness numeral and its label. Never soften a data value. */
   &[data-lens2-chart='spark-ribbon'] .lens2-chart {
     width: clamp(160px, 20vw, 268px);
-    filter: blur(0.2px)
-      drop-shadow(0 0 26px color-mix(in srgb, var(--world-accent, #60c0f0) 40%, transparent));
+    filter: drop-shadow(
+      0 0 26px color-mix(in srgb, var(--world-accent, #60c0f0) 40%, transparent)
+    );
   }
   &[data-lens2-chart='spark-ribbon'] .lens2-chart::after {
     inset: 33%;
