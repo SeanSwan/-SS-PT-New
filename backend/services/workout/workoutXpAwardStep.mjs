@@ -20,6 +20,7 @@
 import logger from '../../utils/logger.mjs';
 import { getAllModels } from '../../models/index.mjs';
 import { awardWorkoutXP } from '../awardWorkoutXP.mjs';
+import { fireWorkoutBadgeChecks } from '../badgeGamificationBridge.mjs';
 
 export async function runWorkoutXpAwardStep({
   sequelize,
@@ -59,11 +60,21 @@ export async function runWorkoutXpAwardStep({
     await xpTx.commit();
 
     if (!xpResult || xpResult.sameDay || xpResult.alreadyAwarded) return null;
+
+    // Badge sweep rides POST-commit on the persisted stats (never throws,
+    // never re-awards: fireWorkoutBadgeChecks guards + DB unique constraint).
+    const badgesEarned = await fireWorkoutBadgeChecks({
+      userId,
+      xpResult,
+      exerciseCount: exercisesCompleted ?? 0,
+    });
+
     return {
       pointsAwarded: xpResult.pointsAwarded,
       newBalance: xpResult.newBalance,
       streakDays: xpResult.streakDays,
       milestones: (xpResult.awardedMilestones || []).map((m) => m.name),
+      badgesEarned: badgesEarned.map((b) => b?.name).filter(Boolean),
     };
   } catch (xpErr) {
     try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }

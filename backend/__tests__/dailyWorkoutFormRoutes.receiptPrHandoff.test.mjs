@@ -89,9 +89,20 @@ vi.mock('../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-const mockAwardWorkoutXP = vi.fn().mockResolvedValue(undefined);
+const XP_RESULT_FIXTURE = {
+  pointsAwarded: 50,
+  newBalance: 1200,
+  streakDays: 7,
+  totalWorkouts: 12,
+  awardedMilestones: [],
+};
+const mockAwardWorkoutXP = vi.fn().mockResolvedValue(XP_RESULT_FIXTURE);
 vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: (...args) => mockAwardWorkoutXP(...args),
+}));
+const mockFireWorkoutBadgeChecks = vi.fn().mockResolvedValue([]);
+vi.mock('../services/badgeGamificationBridge.mjs', () => ({
+  fireWorkoutBadgeChecks: (...args) => mockFireWorkoutBadgeChecks(...args),
 }));
 vi.mock('../services/gamification/challengeWorkoutCompletionBridge.mjs', () => ({
   applyDailyWorkoutFormChallengeProgress: vi.fn().mockResolvedValue(null),
@@ -299,5 +310,22 @@ describe('POST /api/workout-forms — receipt, PR, handoff, XP route contracts',
 
     expect(res.status).toBe(201);
     expect(mockAwardWorkoutXP).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires the badge sweep post-commit with the XP result', async () => {
+    primeSave();
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+    await flushPostCommit();
+
+    expect(res.status).toBe(201);
+    expect(mockFireWorkoutBadgeChecks).toHaveBeenCalledTimes(1);
+    expect(mockFireWorkoutBadgeChecks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 11,
+        xpResult: XP_RESULT_FIXTURE,
+        exerciseCount: 1,
+      }),
+    );
   });
 });

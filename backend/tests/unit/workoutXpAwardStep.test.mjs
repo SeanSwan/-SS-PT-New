@@ -64,7 +64,7 @@ describe('runWorkoutXpAwardStep', () => {
       { where: { id: 'session-1' }, transaction: tx },
     );
     expect(tx.commit).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ pointsAwarded: 60, newBalance: 200, streakDays: 4, milestones: ['First Week'] });
+    expect(result).toEqual({ pointsAwarded: 60, newBalance: 200, streakDays: 4, milestones: ['First Week'], badgesEarned: [] });
   });
 
   it('collapses sameDay/alreadyAwarded to null without stamping', async () => {

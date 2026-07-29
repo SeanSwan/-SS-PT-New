@@ -114,6 +114,9 @@ vi.mock('../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock('../services/badgeGamificationBridge.mjs', () => ({
+  fireWorkoutBadgeChecks: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: vi.fn().mockResolvedValue(undefined),
 }));

@@ -63,6 +63,7 @@ import { detectAndRecordPersonalRecords } from '../services/workout/workoutPrDet
 import { getAllModels } from '../models/index.mjs';
 import { safeAssemble } from '../services/postSaveHandoffAssembler.mjs';
 import { accrueFlatSessionEarning } from '../services/trainerSessionEarningService.mjs';
+import { fireWorkoutBadgeChecks } from '../services/badgeGamificationBridge.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -1263,7 +1264,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       try {
         xpTransaction = await sequelize.transaction();
         const exercises = formData?.exercises || [];
-        await awardWorkoutXP({
+        const xpResult = await awardWorkoutXP({
           userId: parsedClientId,
           workoutId: dailyForm.id,
           duration: estimatedDuration || null,
@@ -1278,6 +1279,21 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         }, xpTransaction);
         await xpTransaction.commit();
         logger.info('Workout XP awarded', { clientId, formId: dailyForm.id, exerciseCount: exercises.length });
+
+        // Badge sweep POST-commit on the persisted stats (best-effort, never
+        // throws; duplicate-proof via userHasBadge + unique_user_badge_ownership).
+        const badgesEarned = await fireWorkoutBadgeChecks({
+          userId: parsedClientId,
+          xpResult,
+          exerciseCount: exercises.length,
+        });
+        if (badgesEarned.length > 0) {
+          logger.info('Workout badges earned', {
+            clientId,
+            formId: dailyForm.id,
+            badgeCount: badgesEarned.length,
+          });
+        }
       } catch (xpErr) {
         if (xpTransaction) await xpTransaction.rollback().catch(() => {});
         logger.warn('XP award failed (non-critical)', {
