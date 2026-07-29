@@ -98,7 +98,16 @@ async function main() {
   let divergedFromMain = new Set();
   try {
     const { execFileSync } = await import('node:child_process');
-    const out = execFileSync('git', ['diff', '--name-only', 'origin/main', 'HEAD', '--', 'models'], {
+    // NOTE the missing `HEAD`: this compares origin/main to the WORKING TREE, not to HEAD.
+    //
+    // The audit imports models from DISK, so uncommitted edits are what it actually measures.
+    // Comparing origin/main..HEAD was blind to exactly that, and the blindness was not theoretical:
+    // when this annotation was first written, four model files (TrainerPermissions, FoodScanHistory,
+    // UserAchievement, associations) were modified and UNCOMMITTED by a parallel agent. The audit
+    // read those fixes and reported HEALTHY while HEAD *and* origin/main both still carried the bugs
+    // — and the HEAD-based check named none of them. A verdict on uncommitted code, presented as a
+    // verdict on production, with no warning.
+    const out = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'models'], {
       cwd: path.join(MODELS_DIR, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
     });
     // `git diff --name-only` emits REPO-ROOT-relative paths (`backend/models/Foo.mjs`) regardless of
@@ -180,12 +189,33 @@ async function main() {
     );
     const overlap = [...examinedFiles].filter((f) => divergedFromMain.has(f));
     if (overlap.length) {
+      // Diverged files that FAILED come first, and are never truncated away.
+      //
+      // Alphabetical truncation hid the single most important entry: TrainerPermissions.mjs is
+      // diverged AND its verdict flipped from broken to healthy on the strength of an uncommitted
+      // edit — exactly the case a reader must see. It sat past the 12-file cutoff and was invisible,
+      // which let a claim that it "is named" go into a commit message unverified.
+      const failedFiles = new Set(
+        [...broken.MISSING_TABLE, ...broken.BROKEN_COLUMN, ...broken.OTHER]
+          .map((b) => String(b.file).split(':')[0]),
+      );
+      const failed = overlap.filter((f) => failedFiles.has(f)).sort();
+      const passed = overlap.filter((f) => !failedFiles.has(f)).sort();
+
       console.log('');
-      console.log(`  ⚠ ${overlap.length} examined model file(s) DIFFER from origin/main. For those,`);
-      console.log('    this verdict describes THIS BRANCH, not deployed code. Confirm against main');
-      console.log('    before treating a pass as "fixed in production" or a failure as live:');
-      for (const f of overlap.slice(0, 12)) console.log(`      ${f}`);
-      if (overlap.length > 12) console.log(`      … and ${overlap.length - 12} more`);
+      console.log(`  ⚠ ${overlap.length} examined model file(s) DIFFER from origin/main (including`);
+      console.log('    UNCOMMITTED edits). For those, this verdict describes the code ON DISK HERE,');
+      console.log('    not deployed code. Confirm against main before treating a pass as "fixed in');
+      console.log('    production" or a failure as live.');
+      if (failed.length) {
+        console.log(`    diverged AND failing (${failed.length}) — verdict may not hold on main:`);
+        for (const f of failed) console.log(`      ${f}`);
+      }
+      if (passed.length) {
+        console.log(`    diverged and passing (${passed.length}) — the pass may be local only:`);
+        for (const f of passed.slice(0, 8)) console.log(`      ${f}`);
+        if (passed.length > 8) console.log(`      … and ${passed.length - 8} more`);
+      }
     }
   }
 
