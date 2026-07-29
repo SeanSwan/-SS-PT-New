@@ -10,9 +10,15 @@ import styled from 'styled-components';
 import { CalendarRange, Layers, ListChecks, Target } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import type { PlannedAssignment } from './WorkoutLogger.localTypes';
+import WorkoutLoggerEmptyPlanState, {
+  type WorkoutLoggerPlanLoadOutcome,
+} from './WorkoutLoggerEmptyPlanState';
 
 interface ActivePlanContextStripProps {
   assignment: PlannedAssignment | null;
+  /** C4b: why the plan loader came back empty — renders the in-page state. */
+  planLoadOutcome?: WorkoutLoggerPlanLoadOutcome | null;
+  isClientSelfMode?: boolean;
 }
 
 interface PlanFact {
@@ -84,9 +90,19 @@ const buildPlanContextView = (assignment: PlannedAssignment | null): PlanContext
   return { title, status, facts, firstExercise };
 };
 
-const ActivePlanContextStrip: React.FC<ActivePlanContextStripProps> = React.memo(({ assignment }) => {
+const ActivePlanContextStrip: React.FC<ActivePlanContextStripProps> = React.memo(({
+  assignment,
+  planLoadOutcome = null,
+  isClientSelfMode = false,
+}) => {
   const planContext = buildPlanContextView(assignment);
-  if (!planContext) return null;
+  // C4b: no plan context but the loader REPORTED why → persistent state
+  // instead of the old toast-then-blank dead end.
+  if (!planContext) {
+    return planLoadOutcome
+      ? <WorkoutLoggerEmptyPlanState outcome={planLoadOutcome} isClientSelfMode={isClientSelfMode} />
+      : null;
+  }
 
   return (
     <Strip role="note" aria-label="Active plan context">

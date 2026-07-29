@@ -318,6 +318,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     isRepeatingSession,
     loadTodaysPlan,
     loadedPlanContext,
+    planLoadOutcome,
     plannedAssignment,
   } = useWorkoutPlanLoading({
     autoLoadTodayPlan,
@@ -578,7 +579,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionDate={scheduledSessionDate}
           scheduledSessionId={scheduledSessionId}
         />
-        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} />
+        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} planLoadOutcome={exercises.length === 0 ? planLoadOutcome : null} isClientSelfMode={isClientSelfMode} />
 
         <WorkoutDraftGateBanner
           workoutDraft={workoutDraft}

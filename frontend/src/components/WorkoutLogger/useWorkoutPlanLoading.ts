@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { ExerciseEntry } from '../../services/nasmApiService';
+import type { WorkoutLoggerPlanLoadOutcome } from './WorkoutLoggerEmptyPlanState';
 import { ApiService } from '../../services/api.service';
 import { getErrorMessage } from './WorkoutLoggerCS';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
@@ -67,6 +68,8 @@ export function useWorkoutPlanLoading({
   const [isRepeatingSession, setIsRepeatingSession] = useState(false);
   const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
   const [loadedPlanContext, setLoadedPlanContext] = useState<PlannedAssignment | null>(null);
+  // C4b: why the loader came back empty — drives the in-page empty state.
+  const [planLoadOutcome, setPlanLoadOutcome] = useState<WorkoutLoggerPlanLoadOutcome | null>(null);
   // Value intentionally unread today (no loading UI yet) — kept so a future
   // client-loading state can surface without re-plumbing the fetch.
   const [, setIsLoadingClient] = useState(true);
@@ -128,6 +131,7 @@ export function useWorkoutPlanLoading({
 
   const loadTodaysPlan = useCallback(async () => {
     setLoadedPlanContext(null);
+    setPlanLoadOutcome(null);
     await loadTodaysPlanIntoLogger({
       effectiveClientId,
       createWorkoutLoggerLocalId,
@@ -138,6 +142,7 @@ export function useWorkoutPlanLoading({
       setIsLoadingPlan,
       setLoadedPlanContext,
       setPlannedAssignment,
+      setPlanLoadOutcome,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveClientId, createWorkoutLoggerLocalId, routeAssignmentKey, routeAssignmentType, scheduledSessionId]);
@@ -201,6 +206,7 @@ export function useWorkoutPlanLoading({
     isRepeatingSession,
     loadTodaysPlan,
     loadedPlanContext,
+    planLoadOutcome,
     plannedAssignment,
   };
 }

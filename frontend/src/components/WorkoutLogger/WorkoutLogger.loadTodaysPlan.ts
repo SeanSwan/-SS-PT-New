@@ -16,6 +16,7 @@ import type {
   PlanAssignmentPickerItem,
   PlannedAssignment,
 } from './WorkoutLogger.localTypes';
+import type { WorkoutLoggerPlanLoadOutcome } from './WorkoutLoggerEmptyPlanState';
 import {
   currentWorkoutAssignmentMatchesRouteIntent,
   getCurrentWorkoutCursorSession,
@@ -38,6 +39,7 @@ interface LoadTodaysPlanIntoLoggerParams {
   scheduledSessionId: string | null;
   setExercises: Dispatch<SetStateAction<ExerciseEntry[]>>;
   setIsLoadingPlan: Dispatch<SetStateAction<boolean>>;
+  setPlanLoadOutcome?: (outcome: WorkoutLoggerPlanLoadOutcome | null) => void;
   setLoadedPlanContext?: Dispatch<SetStateAction<PlannedAssignment | null>>;
   setPlannedAssignment: Dispatch<SetStateAction<PlannedAssignment | null>>;
 }
@@ -128,6 +130,7 @@ function loadPickerAssignmentIntoLogger({
 }
 
 export async function loadTodaysPlanIntoLogger({
+  setPlanLoadOutcome,
   effectiveClientId,
   createWorkoutLoggerLocalId,
   routeAssignmentKey: routeAssignmentKeyParam,
@@ -143,6 +146,7 @@ export async function loadTodaysPlanIntoLogger({
     const api = new ApiService();
     if (typeof effectiveClientId !== 'number') {
       toast.info('No client context - cannot load a plan');
+      setPlanLoadOutcome?.({ kind: 'no_client', message: 'Pick a client to load their plan.' });
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       return;
@@ -172,6 +176,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info('Today\'s assignment changed. Open it again from your dashboard before logging.');
+      setPlanLoadOutcome?.({ kind: 'assignment_changed', message: 'Open it again from your dashboard before logging.' });
       return;
     }
 
@@ -179,6 +184,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info('No active workout plan found for this training profile');
+      setPlanLoadOutcome?.({ kind: 'no_plan', message: 'Your trainer has not assigned a plan to this profile yet.' });
       return;
     }
 
@@ -190,6 +196,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info(`${assignmentLabel} is not loggable right now. Review your workout history or plan vault.`);
+      setPlanLoadOutcome?.({ kind: 'not_loggable', message: 'Review your workout history or plan vault.' });
       return;
     }
 
@@ -237,6 +244,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info('No active workout plan found for this training profile');
+      setPlanLoadOutcome?.({ kind: 'no_plan', message: 'Your trainer has not assigned a plan to this profile yet.' });
       return;
     }
 
@@ -247,6 +255,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info(`No exercises scheduled for ${dayLabel} in the active plan`);
+      setPlanLoadOutcome?.({ kind: 'no_exercises_today', message: 'Your plan has a rest day here.' });
       return;
     }
 
@@ -278,6 +287,7 @@ export async function loadTodaysPlanIntoLogger({
       setPlannedAssignment(null);
       setLoadedPlanContext?.(null);
       toast.info('No active workout plan found for this training profile');
+      setPlanLoadOutcome?.({ kind: 'no_plan', message: 'Your trainer has not assigned a plan to this profile yet.' });
       return;
     }
     console.error('Failed to load today\'s plan:', error);
