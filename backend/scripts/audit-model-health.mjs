@@ -41,6 +41,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { collectModelFiles } from './lib/model-files.mjs';
+import { divergedModelFiles, divergenceCaveat } from './lib/diverged-from-main.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODELS_DIR = path.join(HERE, '..', 'models');
@@ -84,40 +85,9 @@ async function main() {
   const broken = { MISSING_TABLE: [], BROKEN_COLUMN: [], OTHER: [] };
   const skippedFiles = [];
 
-  // Which model files DIFFER from origin/main?
-  //
-  // This audit runs THIS branch's model code against the PRODUCTION schema. Where the two disagree,
-  // the verdict describes code that is not deployed — and the failure is silent and confident.
-  // Proof case, 2026-07-29: `TrainerPermissions.mjs` is correct on this branch (fix `2a7b457a3`),
-  // so the audit reports HEALTHY — while `origin/main` still carries `field: 'trainer_id'` and is
-  // therefore still broken in production. Anyone re-running this from a diverged branch would
-  // conclude a live defect had been fixed.
-  //
-  // One `git diff --name-only` call, not one per model, so the cost is a single subprocess.
-  // Best-effort: if git is unavailable the audit still runs, it just cannot annotate.
-  let divergedFromMain = new Set();
-  try {
-    const { execFileSync } = await import('node:child_process');
-    // NOTE the missing `HEAD`: this compares origin/main to the WORKING TREE, not to HEAD.
-    //
-    // The audit imports models from DISK, so uncommitted edits are what it actually measures.
-    // Comparing origin/main..HEAD was blind to exactly that, and the blindness was not theoretical:
-    // when this annotation was first written, four model files (TrainerPermissions, FoodScanHistory,
-    // UserAchievement, associations) were modified and UNCOMMITTED by a parallel agent. The audit
-    // read those fixes and reported HEALTHY while HEAD *and* origin/main both still carried the bugs
-    // — and the HEAD-based check named none of them. A verdict on uncommitted code, presented as a
-    // verdict on production, with no warning.
-    const out = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'models'], {
-      cwd: path.join(MODELS_DIR, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    // `git diff --name-only` emits REPO-ROOT-relative paths (`backend/models/Foo.mjs`) regardless of
-    // cwd, while display names here are relative to models/ (`Foo.mjs`, `social/Bar.mjs`). Stripping
-    // only `models/` left every entry unmatched and the warning silently never fired — the same
-    // authoritative-looking silence this annotation exists to prevent.
-    divergedFromMain = new Set(
-      out.split('\n').filter(Boolean).map((p) => p.trim().replace(/^.*?models\//, '')),
-    );
-  } catch { /* no git, no origin/main, or detached — annotation is skipped, audit still valid */ }
+  // Shared with audit-write-paths so both audits carry the SAME caveat — see the lib for why
+  // it compares against the working tree rather than HEAD.
+  const divergedFromMain = divergedModelFiles(MODELS_DIR);
 
   for (const fullPath of files) {
     // Display name stays relative to models/ so subdirectory models read as `social/SocialPost.mjs`
@@ -181,43 +151,13 @@ async function main() {
 
   // Say plainly when a verdict may not describe deployed code. Without this the output reads as a
   // statement about production, and for a diverged model it is not — see the divergedFromMain note.
-  if (divergedFromMain.size) {
-    const examinedFiles = new Set(
-      [...healthy, ...broken.MISSING_TABLE.map((b) => b.file),
-        ...broken.BROKEN_COLUMN.map((b) => b.file), ...broken.OTHER.map((b) => b.file)]
-        .map((f) => String(f).split(':')[0]),
-    );
-    const overlap = [...examinedFiles].filter((f) => divergedFromMain.has(f));
-    if (overlap.length) {
-      // Diverged files that FAILED come first, and are never truncated away.
-      //
-      // Alphabetical truncation hid the single most important entry: TrainerPermissions.mjs is
-      // diverged AND its verdict flipped from broken to healthy on the strength of an uncommitted
-      // edit — exactly the case a reader must see. It sat past the 12-file cutoff and was invisible,
-      // which let a claim that it "is named" go into a commit message unverified.
-      const failedFiles = new Set(
-        [...broken.MISSING_TABLE, ...broken.BROKEN_COLUMN, ...broken.OTHER]
-          .map((b) => String(b.file).split(':')[0]),
-      );
-      const failed = overlap.filter((f) => failedFiles.has(f)).sort();
-      const passed = overlap.filter((f) => !failedFiles.has(f)).sort();
-
-      console.log('');
-      console.log(`  ⚠ ${overlap.length} examined model file(s) DIFFER from origin/main (including`);
-      console.log('    UNCOMMITTED edits). For those, this verdict describes the code ON DISK HERE,');
-      console.log('    not deployed code. Confirm against main before treating a pass as "fixed in');
-      console.log('    production" or a failure as live.');
-      if (failed.length) {
-        console.log(`    diverged AND failing (${failed.length}) — verdict may not hold on main:`);
-        for (const f of failed) console.log(`      ${f}`);
-      }
-      if (passed.length) {
-        console.log(`    diverged and passing (${passed.length}) — the pass may be local only:`);
-        for (const f of passed.slice(0, 8)) console.log(`      ${f}`);
-        if (passed.length > 8) console.log(`      … and ${passed.length - 8} more`);
-      }
-    }
-  }
+  // Same caveat, same wording, in both audits (lib/diverged-from-main.mjs).
+  for (const line of divergenceCaveat(
+    divergedFromMain,
+    [...healthy, ...broken.MISSING_TABLE.map((b) => b.file),
+      ...broken.BROKEN_COLUMN.map((b) => b.file), ...broken.OTHER.map((b) => b.file)],
+    [...broken.MISSING_TABLE, ...broken.BROKEN_COLUMN, ...broken.OTHER].map((b) => b.file),
+  )) console.log(line);
 
   for (const bucket of ['MISSING_TABLE', 'BROKEN_COLUMN', 'OTHER']) {
     if (!broken[bucket].length) continue;

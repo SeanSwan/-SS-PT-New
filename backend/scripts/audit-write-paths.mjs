@@ -48,6 +48,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { QueryTypes } from 'sequelize';
 
 import { collectModelFiles } from './lib/model-files.mjs';
+import { divergedModelFiles, divergenceCaveat } from './lib/diverged-from-main.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND = path.resolve(HERE, '..');
@@ -165,6 +166,16 @@ async function main() {
   console.log(`  can INSERT       : ${ok.length}`);
   console.log(`  CANNOT INSERT    : ${broken.length}`);
   console.log(`  skipped          : ${skipped.length} (listed below)`);
+
+  // Same caveat as audit-model-health (lib/diverged-from-main.mjs). This audit reads models from
+  // DISK too, so it is equally capable of reporting an uncommitted local fix as production truth —
+  // measured 2026-07-29: CANNOT INSERT fell 2 -> 0 purely because a parallel agent had uncommitted
+  // edits to FoodScanHistory and TrainerPermissions, reading SWA-98's finding as solved.
+  for (const line of divergenceCaveat(
+    divergedModelFiles(MODELS_DIR),
+    [...ok.map((o) => o.file), ...broken.map((b) => b.file)],
+    broken.map((b) => b.file),
+  )) console.log(line);
 
   for (const b of broken) {
     console.log(`\n  x ${b.file}  ->  ${b.table}`);
