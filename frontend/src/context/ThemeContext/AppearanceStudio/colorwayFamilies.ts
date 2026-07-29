@@ -35,7 +35,9 @@ const HERITAGE_IDS = new Set<string>([
 ]);
 
 export function familyOf(id: ThemeId): ColorwayFamilyId {
-  const theme = themes[id] as { family?: ColorwayFamilyId; effects?: { glassmorphism?: boolean } };
+  // 'archive' is a valid declared family on PremiumThemeSpec (UniversalThemePremiumThemes.ts)
+  // but is not a tray family — the guard below routes archived colorways to the heuristics.
+  const theme = themes[id] as { family?: ColorwayFamilyId | 'archive'; effects?: { glassmorphism?: boolean } };
   // 1) explicit declared family (premium themes with the extended schema).
   if (theme?.family && theme.family !== 'archive') return theme.family;
   // 2) brand lineage.
