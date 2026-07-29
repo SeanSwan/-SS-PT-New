@@ -58,6 +58,9 @@ export const OWNED_RECORD_MODELS = Object.freeze([
   { model: 'ClientNote', fk: 'userId' },
 ]);
 
+/** Per-model row cap for an export. See the export function for why. */
+export const MAX_EXPORT_ROWS_PER_MODEL = 5000;
+
 export class DataRightsError extends Error {
   constructor(message, statusCode = 400, code = 'DATA_RIGHTS_ERROR') {
     super(message);
@@ -106,8 +109,20 @@ export async function exportAccountData({ targetUserId, models, actor }) {
     const M = models[model];
     if (!M) continue; // model not present in this deployment — skip, do not fail
     try {
-      const rows = await M.findAll({ where: { [fk]: id } });
-      records[model] = rows.map((r) => (typeof r.toJSON === 'function' ? r.toJSON() : r));
+      // Bounded: an export is built entirely in memory before it is returned,
+      // so an account with a very large history would otherwise be a memory
+      // event rather than a document. The cap is disclosed in the payload so a
+      // truncated export is never mistaken for a complete one.
+      const rows = await M.findAll({ where: { [fk]: id }, limit: MAX_EXPORT_ROWS_PER_MODEL + 1 });
+      const truncated = rows.length > MAX_EXPORT_ROWS_PER_MODEL;
+      const kept = truncated ? rows.slice(0, MAX_EXPORT_ROWS_PER_MODEL) : rows;
+      records[model] = kept.map((r) => (typeof r.toJSON === 'function' ? r.toJSON() : r));
+      if (truncated) {
+        records[`${model}__truncated`] = {
+          returned: MAX_EXPORT_ROWS_PER_MODEL,
+          note: 'More records exist than this export returned. Request a full extract from the operator.',
+        };
+      }
     } catch (error) {
       // A missing table must not sink the whole export.
       logger.warn('[dataRights] export skipped a model', { model, error: error?.message });
@@ -166,6 +181,12 @@ export async function eraseAccountData({
   }
 
   const actorId = parseId(actor?.id);
+  // An irreversible operation must be ATTRIBUTABLE. Without an actor the audit
+  // row records actorId: null and nobody can answer "who erased this client?".
+  // Found by hostile probe 2026-07-29 — erasure ran happily with no actor.
+  if (actorId === null) {
+    throw new DataRightsError('Erasure requires an identified actor', 400, 'ACTOR_REQUIRED');
+  }
   if (actorId === id) {
     throw new DataRightsError('You cannot erase your own account', 400, 'SELF_ERASURE_BLOCKED');
   }
@@ -178,7 +199,9 @@ export async function eraseAccountData({
     if (!user) throw new DataRightsError('User not found', 404, 'TARGET_NOT_FOUND');
 
     // An admin account is infrastructure, not a data subject. Demote first.
-    if (user.role === 'admin') {
+    // Compared case-INSENSITIVELY: a hostile probe erased a user whose role was
+    // stored as 'Admin', because a strict === missed the capitalised variant.
+    if (String(user.role || '').trim().toLowerCase() === 'admin') {
       throw new DataRightsError('Admin accounts cannot be erased', 409, 'ADMIN_ERASURE_BLOCKED');
     }
 

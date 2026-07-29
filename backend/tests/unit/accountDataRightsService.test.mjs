@@ -24,6 +24,7 @@ const {
   eraseAccountData,
   erasureConfirmationFor,
   IDENTIFYING_USER_FIELDS,
+  MAX_EXPORT_ROWS_PER_MODEL,
   DataRightsError,
 } = await import('../../services/admin/accountDataRightsService.mjs');
 
@@ -128,6 +129,75 @@ describe('erasure — the refusals', () => {
     const models = makeModels(null);
     models.User.findByPk = vi.fn(async () => null);
     await expect(eraseAccountData(base({ models }))).rejects.toThrow(/not found/i);
+  });
+});
+
+/**
+ * Second hostile probe, 2026-07-29 — adversarial inputs the first pass never
+ * tried. All three of these were real defects in the shipped service.
+ */
+describe('erasure — hostile input handling', () => {
+  const base = (over = {}) => ({
+    targetUserId: 61,
+    confirmation: erasureConfirmationFor(61),
+    models: makeModels(makeUser()),
+    sequelize: fakeSequelize,
+    actor: { id: 1, role: 'admin' },
+    ...over,
+  });
+
+  // An irreversible operation must be attributable, or the audit row says
+  // actorId: null and nobody can answer "who erased this client?".
+  it('REFUSES to run without an identified actor', async () => {
+    await expect(eraseAccountData(base({ actor: undefined }))).rejects.toThrow(/identified actor/i);
+  });
+
+  it.each([[{}], [{ id: null }], [{ id: 'abc' }], [{ id: 0 }]])(
+    'REFUSES an unusable actor %j', async (actor) => {
+      await expect(eraseAccountData(base({ actor }))).rejects.toThrow(/identified actor/i);
+    }
+  );
+
+  // A strict === on the role let a user stored as 'Admin' be erased.
+  it.each([['Admin'], ['ADMIN'], [' admin ']])(
+    'REFUSES to erase a user whose role is %s (case/whitespace variant)', async (role) => {
+      const u = makeUser({ role });
+      await expect(eraseAccountData(base({ models: makeModels(u) })))
+        .rejects.toThrow(/Admin accounts cannot be erased/i);
+    }
+  );
+
+  it('still blocks self-erasure when the actor id arrives as a string', async () => {
+    await expect(eraseAccountData(base({ actor: { id: '61', role: 'admin' } })))
+      .rejects.toThrow(/your own account/i);
+  });
+});
+
+describe('export — bounded so it cannot become a memory event', () => {
+  it('caps rows per model and DISCLOSES the truncation', async () => {
+    const many = Array.from({ length: MAX_EXPORT_ROWS_PER_MODEL + 500 }, (_, i) => ({
+      id: i, toJSON: () => ({ id: i }),
+    }));
+    const models = makeModels(makeUser());
+    models.ClientProgress.findAll = vi.fn(async () => many);
+
+    const out = await exportAccountData({ targetUserId: 61, models, actor: { id: 1 } });
+
+    expect(out.records.ClientProgress).toHaveLength(MAX_EXPORT_ROWS_PER_MODEL);
+    // A truncated export must never be mistaken for a complete one.
+    expect(out.records.ClientProgress__truncated).toBeDefined();
+    expect(out.records.ClientProgress__truncated.note).toMatch(/more records exist/i);
+  });
+
+  it('does not mark a small result as truncated', async () => {
+    const out = await exportAccountData({ targetUserId: 61, models: makeModels(makeUser()), actor: { id: 1 } });
+    expect(out.records.ClientProgress__truncated).toBeUndefined();
+  });
+
+  it('pushes the limit into the QUERY, not just the slice', async () => {
+    const models = makeModels(makeUser());
+    await exportAccountData({ targetUserId: 61, models, actor: { id: 1 } });
+    expect(models.ClientProgress.findAll.mock.calls[0][0].limit).toBeGreaterThan(0);
   });
 });
 
