@@ -28,6 +28,17 @@ function readRequired(path) {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
 }
 
+/**
+ * Drop block and line comments so an ordering assertion cannot be defeated by a
+ * comment that QUOTES the code it is talking about. Deliberately naive; it only
+ * has to tell code from prose in a routes file.
+ */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
 describe("Report Room schema contract", () => {
   it("defines an opaque issue record with constrained workflow fields and indexed access paths", () => {
     const model = readRequired(files.issueModel);
@@ -124,9 +135,15 @@ describe("Report Room schema contract", () => {
   });
 
   it("mounts exact user and owner issue routers before the generic API router", () => {
-    const routes = readFileSync(
-      resolve(backendRoot, "core/routes.mjs"),
-      "utf8",
+    // Comments must be stripped BEFORE any indexOf ordering check. core/routes.mjs
+    // line 312 contains the prose "the `app.use('/api', apiRoutes)` fallback
+    // further down this file" — so a raw indexOf found the generic mount at the
+    // COMMENT (offset ~17.5k) instead of the real one (~44.2k, line 808) and this
+    // assertion failed even though the mounts were correctly ordered at 384/385
+    // vs 808. It was a false positive sitting in the failing-test baseline, and it
+    // meant the invariant it exists to protect was not actually being checked.
+    const routes = stripComments(
+      readFileSync(resolve(backendRoot, "core/routes.mjs"), "utf8"),
     );
     const userMount = "app.use('/api/support/issues', supportIssueRoutes)";
     const ownerMount =
