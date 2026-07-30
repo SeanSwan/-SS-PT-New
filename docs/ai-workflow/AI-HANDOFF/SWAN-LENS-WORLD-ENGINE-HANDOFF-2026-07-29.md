@@ -49,10 +49,21 @@ git diff --name-only origin/main...HEAD | sort > /tmp/replay   # ALL replayed co
 comm -12 /tmp/replay <(git diff --name-only HEAD...origin/main | sort)
 ```
 
-The single conflict was a COMMENT in `PrismCapture/prismCopy.ts`: both sides had independently reworded the same
-`credentialPhrasing` CI false-positive. Resolved by taking `origin/main`'s version, which is strictly more
-informative (it documents *why* the phrase is split). Nothing functional lost. The branch's merge commit
-(`afc9baec0`) was dropped by the rebase, as expected — its content is already in `origin/main`.
+The single conflict was a COMMENT in `PrismCapture/prismCopy.ts`. Resolved by taking `origin/main`'s version —
+and that resolution is provably LOSSLESS: the blob hash is `1eca5bf05` in all three of `pre-rebase tag`, `HEAD`,
+and `origin/main`. The pre-rebase branch had already absorbed that exact text through the merge commit
+`afc9baec0`, so the rebase reproduced the file the branch was already carrying. The conflict only existed because
+the rebase replays `c18a942d8`'s original patch against a base that had since moved past it. The merge commit
+itself was dropped by the rebase, as expected — its content is already in `origin/main`.
+
+**The rebase changed none of this session's work.** Of the 42 files this session touched, the only one differing
+between the pre-rebase tag and `HEAD` is this handoff — and only because it was edited AFTER the rebase. Everything
+else pre/post is byte-identical, including all five security-fix files (`galleryRoutes.mjs`,
+`adminGalleryRoutes.mjs`, the anti-farm migration, its truth test, and `GalleryReferral.mjs`).
+
+> **Pathspec trap, learned the hard way:** `git diff A B -- backend/` is relative to your CWD. Run it from
+> `backend/` and it silently matches NOTHING and reports a clean diff. Always run repo-wide git checks from the
+> repo root, and sanity-check that a "clean" result can actually produce a dirty one.
 
 **Post-rebase re-verification (Rule 70) — all green ON THE REBASED TREE:** affected vitest 28 files / 311 tests;
 standalone tsc over the full world graph clean; vite production build exit 0 (entry chunk 687,220 B); 23 recipe
