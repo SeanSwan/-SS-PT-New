@@ -1,4 +1,4 @@
-# SWAN LENS — WORLD ENGINE · Continuation Handoff (2026-07-29, rev 2)
+# SWAN LENS — WORLD ENGINE · Continuation Handoff (2026-07-29, rev 3)
 
 - **For:** the next agent continuing the 25-World Engine.
 - **Branch:** `claude/build-swan-lens` (git worktree at `C:\tmp\ss-build-swan-lens`). **NOT pushed** (batch cadence).
@@ -6,8 +6,11 @@
 - **Taxonomy canon:** `references/SWAN-LENS-OS.md`. **World DNA source:** `design-brain/worlds.md`.
 - **Read `CLAUDE.md` + `MEMORY.md` first** for the standing rules. This file is self-contained (Rule 48 style).
 
-> **rev 2 supersedes rev 1.** Rev 1 described 6 built / 19 planned and a pending 40-round review. Both are done:
-> **23 of 25 worlds are built**, and an 11-round hostile dry-loop ran to completion. Everything below is current.
+> **rev 3 supersedes rev 2 (which superseded rev 1).** Rev 1 described 6 built / 19 planned and a pending review.
+> All of it is done: **23 of 25 worlds are built**; a 22-round hostile dry-loop reached CLEAN×2; the branch has
+> been **REBASED onto `origin/main`** and re-verified, and a second dry-loop covered the rebase itself.
+> Everything below is current. Two things dominate what comes next: **§0.2 (two unmerged security fixes this
+> branch carries)** and the fact that the push is still Sean's gate.
 
 ---
 
@@ -153,6 +156,9 @@ round by its subject instead: `git log --oneline origin/main..HEAD | grep "round
    importing `catalogV2Map` there bundles all worlds into the main entry chunk. Guarded by `v2/bundleBoundary.test.ts`.
 
 ## 4. REMAINING WORK
+- **The rebase is DONE** (§0.1) — the branch sits on `origin/main` and is re-verified. The remaining push step is
+  a `git push` and nothing else, and it is Sean's call. **§0.2 raises the stakes: pushing also ships a HIGH
+  money-path security fix and a MED data-loss/PII fix that have been unmerged since 2026-07-22.**
 - **Sean-gated (do NOT do autonomously):** the theme-collapse track (Slices 2–6 — touches the LIVE palette);
   **Slice 15** (the all-25 go-live flip + retiring the chrome-only concept); Slice 16 and any dead-code deletion
   (Rule 34); the agent frontier (Slices 17–19); **the push to Render** (Rule 70 — everything stays committed-unpushed).
