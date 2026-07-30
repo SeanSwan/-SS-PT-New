@@ -86,6 +86,7 @@ import SessionStatsBar from './SessionStatsBar';
 import StickyLogActionBar from './StickyLogActionBar';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import { useWorkoutAiEvents } from './useWorkoutAiEvents';
 import { useWorkoutSubmit } from './useWorkoutSubmit';
 import { useWorkoutPlanLoading } from './useWorkoutPlanLoading';
@@ -185,6 +186,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
   const sessionStageStore = useMemo(() => createSessionStageStore(), []);
   const [sessionStage] = useSessionStage(sessionStageStore);
+  // M6: keep the screen awake while a live session is on the Train canvas.
+  useScreenWakeLock(sessionStage === 'train' && exercises.length > 0);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
