@@ -245,7 +245,7 @@ describe('World Engine · generator scaffold is valid', () => {
       'mobile-minimal': { template: 'playfield-stack' as const },
     },
     components: {
-      'text.display': { variant: 'vaulted-editorial' },
+      'text.display': { variant: 'rounded-athletic' },
       'text.body': { variant: 'soft-sans' },
       'surface.card': { variant: 'floating-candy' },
       'collection.exercise': { variant: 'arcade-cards' },

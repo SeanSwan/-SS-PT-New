@@ -98,3 +98,59 @@ describe('doc truth · every built world header matches its recipe', () => {
     expect(drift, `\n${drift.join('\n')}\n`).toEqual([]);
   });
 });
+
+/**
+ * The GENERATOR is a gate surface too (hostile round 12). `scripts/lens-add-world.mjs`
+ * predates docTruth + fontLoading, and had drifted into emitting a stub that fails
+ * BOTH the moment it is registered: no codeword line at all, and a display variant
+ * (`vaulted-editorial`) that applies `font-style: italic` paired with Plus Jakarta
+ * Sans, which loads no italic axis. A scaffold that cannot pass the gates teaches
+ * every future author the wrong shape, so the stub is contract-tested here.
+ */
+describe('doc truth · the world generator emits a gate-compatible scaffold', () => {
+  const stubSource = readFileSync(
+    resolve(recipeDir, '../../../../../../scripts/lens-add-world.mjs'),
+    'utf8',
+  );
+
+  it('can read the generator (anti-vacuous guard)', () => {
+    expect(stubSource).toContain('renderWorldRecipeStub');
+  });
+
+  it('the scaffold header declares a codeword that matches the variants it emits', () => {
+    // Parse the whole generator source: the stub's header lives inside a
+    // template literal, so there is no reliable comment boundary to split on.
+    const declared = parseCodeword(stubSource);
+    expect(declared, 'the scaffold states no codeword — a generated world fails docTruth').not.toBeNull();
+    for (const [axis, slot] of Object.entries(AXIS_SLOT)) {
+      if (!(axis in declared!)) continue;
+      const emitted = stubSource.match(
+        new RegExp(`'${slot.replace('.', '\\.')}':\\s*\\{\\s*variant:\\s*'([a-z-]+)'`),
+      );
+      expect(emitted, `scaffold emits no ${slot}`).not.toBeNull();
+      expect(declared![axis], `scaffold header ${axis} vs emitted ${slot}`).toBe(emitted![1]);
+    }
+  });
+
+  it('the scaffold never pairs a slanting display variant with a font that has no italic', () => {
+    // `vaulted-editorial` applies font-style: italic in lensRepresentationStyles.
+    // Plus Jakarta Sans (the scaffold's face) is loaded with no ital axis, so that
+    // pairing renders as synthetic oblique and fails fontLoading.test.ts.
+    const display = stubSource.match(/'text\.display':\s*\{\s*variant:\s*'([a-z-]+)'/)?.[1];
+    const usesPlusJakarta = /world-title-font[^\n]*Plus Jakarta Sans/.test(stubSource);
+    expect(display, 'scaffold emits no display variant').toBeTruthy();
+    if (usesPlusJakarta) {
+      expect(
+        display,
+        'the scaffold pairs a slanting display variant with Plus Jakarta Sans, which loads no italic axis',
+      ).not.toBe('vaulted-editorial');
+    }
+  });
+
+  it('the scaffold does not send authors to files that now derive themselves', () => {
+    expect(
+      /flip the ledger status/i.test(stubSource),
+      'the scaffold still tells authors to flip the ledger status — the ledger reads it from the registry',
+    ).toBe(false);
+  });
+});
