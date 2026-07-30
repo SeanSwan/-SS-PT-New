@@ -44,7 +44,10 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(enhancedLoggerView).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
     expect(enhancedLoggerView).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
     expect(workoutLogger).toMatch(/useGhostPreFill\(hookClientId, \{ skip: isClientSelfMode \}\)/);
-    expect(workoutLogger).toMatch(/ghostSkip=\{isClientSelfMode\}/);
+    // 2026-07-30 Runner Styles: the card render (and its ghostSkip pass-through)
+    // moved into runner/useRunnerEngine.tsx; WorkoutLogger feeds the engine deps.
+    expect(workoutLogger).toMatch(/ghostSkip: isClientSelfMode/);
+    expect(read('./runner/useRunnerEngine.tsx')).toMatch(/ghostSkip=\{ghostSkip\}/);
     expect(backendMount).toMatch(/app\.use\('\/api\/admin', adminWorkoutLoggerRoutes\)/);
     expect(adminWorkoutRoutes).toMatch(/router\.get\('\/clients\/:clientId\/workouts', getClientWorkouts\)/);
   });

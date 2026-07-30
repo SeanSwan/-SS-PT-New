@@ -18,6 +18,8 @@ import { useDialogFocusTrap } from './useDialogFocusTrap';
 import { useRovingTablist } from './useRovingTablist';
 import SwatchSpecimen from './SwatchSpecimen';
 import { groupByFamily, FAMILY_LABEL } from './colorwayFamilies';
+import { RUNNER_STYLES } from '../../../components/WorkoutLogger/runner/runnerStyles';
+import { useRunnerStyle } from '../../../components/WorkoutLogger/runner/useRunnerStyle';
 import {
   ChoiceButton,
   ChoiceGrid,
@@ -43,12 +45,13 @@ import {
   StyleSelect,
 } from './AppearanceStudio.styles';
 
-type TabId = 'style' | 'color' | 'motion' | 'density';
+type TabId = 'style' | 'color' | 'motion' | 'density' | 'runner';
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'style', label: 'Style' },
   { id: 'color', label: 'Color' },
   { id: 'motion', label: 'Motion' },
   { id: 'density', label: 'Density' },
+  { id: 'runner', label: 'Runner' },
 ];
 const TAB_IDS = TABS.map(({ id }) => id);
 const ROLES: PreviewRole[] = ['user', 'client', 'trainer', 'admin'];
@@ -78,6 +81,7 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
   onCancel,
 }) => {
   const [tab, setTab] = useState<TabId>('style');
+  const [runnerStyle, setRunnerStyle] = useRunnerStyle();
   const [role, setRole] = useState<PreviewRole>('client');
   const [viewport, setViewport] = useState<PreviewViewport>('desktop');
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -218,6 +222,33 @@ const AppearanceStudioPanel: React.FC<AppearanceStudioPanelProps> = ({
                   </React.Fragment>
                 ))}
               </ColorGrid>
+            </>
+          )}
+
+          {tab === 'runner' && (
+            <>
+              <h3>Session Runner style</h3>
+              <p>How your workout logger looks and moves. Applies instantly — switching mid-workout never loses a set.</p>
+              <StyleGrid>
+                {RUNNER_STYLES.map((style) => {
+                  const active = style.id === runnerStyle;
+                  return (
+                    <StyleCard key={style.id} $active={active}>
+                      <StyleSelect
+                        type='button'
+                        aria-pressed={active}
+                        aria-label={`${style.name} runner style${style.shipped ? '' : ' (coming soon)'}`}
+                        disabled={!style.shipped}
+                        onClick={() => style.shipped && setRunnerStyle(style.id)}
+                      >
+                        <strong>{style.name}</strong>
+                        <span>{style.tagline}</span>
+                        <em>{style.shipped ? (style.tier === 'tier1' ? 'Flawless tier' : 'Swan Labs') : 'Swan Labs — coming soon'}</em>
+                      </StyleSelect>
+                    </StyleCard>
+                  );
+                })}
+              </StyleGrid>
             </>
           )}
 

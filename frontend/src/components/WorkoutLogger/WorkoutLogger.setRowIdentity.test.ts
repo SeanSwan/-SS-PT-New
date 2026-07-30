@@ -84,7 +84,11 @@ describe('WorkoutLogger set row identity', () => {
   });
 
   it('does not key dynamic exercise cards by array index or duplicate backend id', () => {
+    // 2026-07-30 Runner Styles: the card render moved from WorkoutLogger.tsx
+    // into runner/useRunnerEngine.tsx (single source for Classic + skins).
+    // The stable-row-key contract follows the render to its new home.
     expect(read('WorkoutLogger.tsx')).not.toContain('key={exercise.exerciseId || exerciseIndex}');
-    expect(read('WorkoutLogger.tsx')).toContain('key={getExerciseEntryRowKey(exercise)}');
+    expect(read('runner/useRunnerEngine.tsx')).not.toContain('key={exercise.exerciseId || exerciseIndex}');
+    expect(read('runner/useRunnerEngine.tsx')).toContain('key={getExerciseEntryRowKey(exercise)}');
   });
 });

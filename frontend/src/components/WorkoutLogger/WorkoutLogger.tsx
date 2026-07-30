@@ -33,7 +33,6 @@ import { LiveRegion } from './WorkoutLoggerStatus.styles';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import WorkoutLoggerModeBar from './WorkoutLoggerModeBar';
 import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
-import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
 import ActivePlanContextStrip from './ActivePlanContextStrip';
@@ -64,13 +63,15 @@ import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
 import WorkoutDraftGateBanner, { type WorkoutDraftGate } from './WorkoutDraftGateBanner';
-import { toggleSupersetLink, isLinkedToPrevious, renumberSupersetGroups } from './WorkoutLogger.supersets';
+import { toggleSupersetLink, renumberSupersetGroups } from './WorkoutLogger.supersets';
 import FloatingRestTimer from './FloatingRestTimer';
 import type {
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
 } from './WorkoutLogger.localTypes';
-import { coerceToNumericId, ensureWorkoutLoggerExerciseRowIdentity, ensureWorkoutLoggerSetId, getExerciseEntryRowKey, hasIncompleteWorkoutSets, normalizeWorkoutDate, isSelfLoggingDashboardRole } from './WorkoutLogger.helpers';
+import { coerceToNumericId, ensureWorkoutLoggerExerciseRowIdentity, ensureWorkoutLoggerSetId, hasIncompleteWorkoutSets, normalizeWorkoutDate, isSelfLoggingDashboardRole } from './WorkoutLogger.helpers';
+import RunnerCollection from './runner/RunnerCollection';
+import { useRunnerEngine } from './runner/useRunnerEngine';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -464,6 +465,28 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success('PDF exported');
   }, [exercises, client, user, workoutDateValue, sessionNotes, overallIntensity]);
 
+  // Runner Styles (Swan Lens dimension): one engine, switchable skins.
+  const openRolodexForMain = useCallback(() => { setPendingSectionContext(null); setShowExerciseSearch(true); }, []);
+  const { engine: runnerEngine, renderClassicList } = useRunnerEngine({
+    exercises,
+    effectiveClientId,
+    showSetDetails,
+    onToggleSetDetails: handleToggleSetDetails,
+    onToggleSuperset: toggleSuperset,
+    onUpdateExercise: updateExercise,
+    onUpdateSet: updateSet,
+    onAddSet: addSet,
+    onRemoveSet: removeSet,
+    onRemoveExercise: removeExercise,
+    getOverload: ghostPreFill.getOverload,
+    getLastWeight,
+    onSetLogged: handleSetLogged,
+    ghostSkip: isClientSelfMode,
+    stats: sessionStats,
+    restTimer,
+    openRolodex: openRolodexForMain,
+  });
+
   const { handleGenerateSummary, handleSubmit } = useWorkoutSubmit({
     client,
     effectiveClientId,
@@ -722,30 +745,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               onSetLogged={handleSetLogged}
             />
           ) : (
-            <div className="lens2-collection">
-              {exercises.map((exercise, exerciseIndex) => (
-                <ExerciseCardComponent
-                  key={getExerciseEntryRowKey(exercise)}
-                  exercise={exercise}
-                  exerciseIndex={exerciseIndex}
-                  clientId={effectiveClientId}
-                  supersetGroup={exercise.supersetGroup ?? undefined}
-                  linkedToPrevious={isLinkedToPrevious(exercises, exerciseIndex)}
-                  showSetDetails={showSetDetails}
-                  onToggleSetDetails={handleToggleSetDetails}
-                  onToggleSupersetLink={exerciseIndex > 0 ? () => toggleSuperset(exerciseIndex) : undefined}
-                  onUpdateExercise={updateExercise}
-                  onUpdateSet={updateSet}
-                  onAddSet={addSet}
-                  onRemoveSet={removeSet}
-                  onRemoveExercise={removeExercise}
-                  getOverload={ghostPreFill.getOverload}
-                  getLastWeight={getLastWeight}
-                  onSetLogged={handleSetLogged}
-                  ghostSkip={isClientSelfMode}
-                />
-              ))}
-            </div>
+            <RunnerCollection engine={runnerEngine} renderClassicList={renderClassicList} />
           )}
 
           {exercises.length > 0 && (
