@@ -36,7 +36,9 @@
     "code-health:health": "fallow health --format json",
     "code-health:fix-preview": "fallow fix --dry-run --format json",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json",
-    "check:main-parity": "node scripts/check-main-parity.mjs"
+    "check:main-parity": "node scripts/check-main-parity.mjs",
+    "backup": "node scripts/backup-repo.mjs",
+    "backup:verify": "node scripts/backup-repo.mjs --verify-only"
   },
   "devDependencies": {
     "fallow": "^2.88.3",

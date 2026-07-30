@@ -321,6 +321,14 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/backup-after-work.mjs"
+          }
+        ]
       }
     ]
   },
