@@ -11,10 +11,23 @@ const unifiedRouteSource = readFileSync(resolve(__dirname, '../../routes/session
 const legacyRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionRoutes.mjs'), 'utf8');
 const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/session.service.mjs'), 'utf8');
 
+/**
+ * Comments must be stripped before ANY mount-order indexOf. core/routes.mjs:310-312
+ * is a NOTE that quotes "the `app.use('/api', apiRoutes)` fallback", so a raw
+ * indexOf resolves the aggregate mount to that comment (offset ~17.5k) instead of
+ * the real mount (~44.2k, line 808) and the ordering check fails while the mounts
+ * are in fact correctly ordered. Same defect fixed in
+ * tests/unit/supportIssueSchemaContract.test.mjs.
+ */
+const stripComments = (source) => source
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^[ \t]*\/\/.*$/gm, '');
+const coreRoutesCode = stripComments(coreRoutesSource);
+
 describe('session allocation clientSource boundary', () => {
   it('keeps manual allocation on the unified sessions router ahead of the legacy aggregate fallback', () => {
-    const unifiedMount = coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)");
-    const aggregateMount = coreRoutesSource.indexOf("app.use('/api', apiRoutes)");
+    const unifiedMount = coreRoutesCode.indexOf("app.use('/api/sessions', sessionsRoutes)");
+    const aggregateMount = coreRoutesCode.indexOf("app.use('/api', apiRoutes)");
     const unifiedAllocation = unifiedRouteSource.indexOf('router.post("/add-to-user", protect, adminOnly');
     const legacyAllocation = legacyRouteSource.indexOf("router.post('/add-to-user', protect, adminOnly");
 

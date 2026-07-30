@@ -18,7 +18,16 @@ const routeSlice = (startMarker, endMarker) => {
 describe('unified sessions route ownership guards', () => {
   it('keeps the unified sessions router as the mounted /api/sessions surface', () => {
     expect(coreRoutesSource).toContain("app.use('/api/sessions', sessionsRoutes)");
-    expect(coreRoutesSource).toContain("REMOVED: app.use('/api/sessions', sessionRoutes)");
+    // The legacy router must not take the direct /api/sessions mount. It is
+    // still served under the /api fallback via routes/api.mjs (SWA-71's known
+    // competing surface) — that is deliberate and tested elsewhere.
+    expect(coreRoutesSource).not.toContain("app.use('/api/sessions', sessionRoutes)");
+    expect(coreRoutesSource).not.toContain("import sessionRoutes from '../routes/sessionRoutes.mjs';");
+    // NOTE: this previously asserted the literal comment
+    // "REMOVED: app.use('/api/sessions', sessionRoutes)" existed in
+    // core/routes.mjs. SWA-71 corrected that comment on 2026-07-28 because the
+    // word REMOVED read as "this router is gone" when it is still reachable, and
+    // the assertion broke on the prose change alone. Assert mounts, not comments.
   });
 
   it('uses type-safe self/trainer/admin session record checks for session utility routes', () => {

@@ -14,6 +14,18 @@ const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/ses
 const cancellationReviewServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancellationReviewService.mjs'), 'utf8');
 const aiCancelServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancelService.mjs'), 'utf8');
 
+/**
+ * Comments must be stripped before ANY mount-order indexOf. core/routes.mjs:310-312
+ * is a NOTE that quotes "the `app.use('/api', apiRoutes)` fallback", so a raw
+ * indexOf resolves the aggregate mount to that comment instead of the real mount at
+ * line 808 — the ordering check then fails while the mounts are correctly ordered.
+ * Same defect fixed in tests/unit/supportIssueSchemaContract.test.mjs.
+ */
+const stripComments = (source) => source
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^[ \t]*\/\/.*$/gm, '');
+const coreRoutesCode = stripComments(coreRoutesSource);
+
 const sliceBetween = (source, startMarker, endMarker) => {
   const start = source.indexOf(startMarker);
   const end = source.indexOf(endMarker, start + startMarker.length);
@@ -27,8 +39,10 @@ const sliceBetween = (source, startMarker, endMarker) => {
 
 describe('session cancellation clientSource restore boundary', () => {
   it('documents unified session routes shadowing the legacy fallback session router', () => {
-    expect(coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)"))
-      .toBeLessThan(coreRoutesSource.indexOf("app.use('/api', apiRoutes)"));
+    expect(coreRoutesCode.indexOf("app.use('/api/sessions', sessionsRoutes)"))
+      .toBeGreaterThan(-1);
+    expect(coreRoutesCode.indexOf("app.use('/api/sessions', sessionsRoutes)"))
+      .toBeLessThan(coreRoutesCode.indexOf("app.use('/api', apiRoutes)"));
     expect(apiRoutesSource).toContain("router.use('/sessions', sessionRoutes)");
   });
 
