@@ -13,7 +13,15 @@
  *  1. `core/middleware/errorHandler.mjs` returned
  *     "An unexpected error occurred. Our team has been notified."
  *     Nothing notified anyone. That is a rule-75 violation in USER-FACING copy.
- *     This module makes the sentence true rather than softening it.
+ *
+ *     ⚠ CORRECTED 2026-07-29 (hostile round 23): an earlier version of this
+ *     docblock claimed this module "makes the sentence true." It does not, yet.
+ *     `registerErrorSink()` has NO runtime caller — only tests — so
+ *     `getErrorSnapshot().sinkConfigured` is FALSE in production and a 5xx
+ *     reaches a log line plus an in-memory group and goes no further. Capture is
+ *     not notification, and an in-memory group does not survive a restart. The
+ *     copy in all three places has been changed to "recorded" instead; the
+ *     "notified" wording may return only once a sink is actually registered.
  *
  *  2. AI features were monitored (services/monitoring/alertEngine.mjs evaluates
  *     AI_MONITOR_* thresholds and persists alerts) but general HTTP 5xx had no

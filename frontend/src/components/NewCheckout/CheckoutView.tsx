@@ -229,7 +229,12 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         const errorCode = error.response.data?.error?.code;
 
         if (status === 500) {
-          errorMessage = 'Server error occurred. Our team has been notified.';
+          // Rule 75: do NOT claim the team was notified. Server 5xx are captured
+          // and grouped (services/monitoring/errorReporter.mjs) but no forwarding
+          // sink is registered, so nothing reaches a human until someone reads the
+          // log. Point at the support channel instead — /support is a real, linked
+          // surface (CompactFooter -> POST /api/support/issues).
+          errorMessage = 'Server error occurred. Please try again — if it keeps happening, report it from the Support page.';
           errorDetails = 'This may be due to payment system configuration. Please try again in a moment.';
         } else if (status === 503 && errorCode === 'STRIPE_TAX_NOT_CONFIGURED') {
           errorMessage = serverMessage || 'Physical product checkout is temporarily unavailable.';

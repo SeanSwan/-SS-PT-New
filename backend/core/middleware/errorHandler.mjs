@@ -56,11 +56,14 @@ export const setupErrorHandling = (app) => {
       ip: req.ip
     });
 
-    // Capture, scrub and group the fault so the reassurance below is TRUE.
-    // Until 2026-07-29 this handler told users "Our team has been notified"
-    // while nothing notified anyone — a rule-75 violation in user-facing copy.
-    // reportServerError ignores 4xx, never captures a request body, and is
-    // fail-open: it can never break the response.
+    // Capture, scrub and group the fault. reportServerError ignores 4xx, never
+    // captures a request body, and is fail-open: it can never break the response.
+    //
+    // Rule 75 — capture is NOT notification. registerErrorSink() has no runtime
+    // caller (only tests), so getErrorSnapshot().sinkConfigured is false in
+    // production: the fault reaches a log line and an in-memory group, and no
+    // further. The user-facing copy below therefore says "recorded", not
+    // "notified". When Sean registers a sink, the stronger wording can return.
     reportServerError({ err, req, statusCode });
     // Mark it so the response-boundary reporter does not double-count this
     // fault — it has already been captured here, with the Error and its stack.
@@ -69,7 +72,7 @@ export const setupErrorHandling = (app) => {
     const errorResponse = {
       success: false,
       message: isProduction
-        ? 'An unexpected error occurred. Our team has been notified.'
+        ? 'An unexpected error occurred and has been recorded. Please try again — if it keeps happening, report it from the Support page.'
         : err.message || 'An unexpected error occurred',
     };
 

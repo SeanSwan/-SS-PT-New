@@ -22,6 +22,9 @@
  * redactLogValue rules.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 vi.mock('../../utils/logger.mjs', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
@@ -229,17 +232,80 @@ describe('response-boundary capture (the 1,094 direct 5xx returns)', () => {
   });
 });
 
+/** Read a file relative to THIS test file. */
+function readRepoFile(relPath) {
+  return readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), relPath), 'utf8');
+}
+
+/** backend/ root, derived from this test's location. */
+function backendRoot() {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+}
+
+/**
+ * Drop block and line comments so a prose MENTION of an identifier is not
+ * mistaken for a call to it. Found the hard way: documenting "registerErrorSink()
+ * has no runtime caller" inside errorHandler.mjs made that file register as a
+ * caller of itself. Deliberately naive — good enough to tell code from prose,
+ * and it never has to handle a comment marker inside a string literal here.
+ */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+}
+
 describe('wiring — the global handler actually calls this', () => {
-  it('errorHandler.mjs reports server errors', async () => {
-    const { readFileSync } = await import('node:fs');
-    const { resolve, dirname } = await import('node:path');
-    const { fileURLToPath } = await import('node:url');
-    const src = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), '../../core/middleware/errorHandler.mjs'),
-      'utf8'
-    );
+  it('errorHandler.mjs reports server errors', () => {
+    const src = readRepoFile('../../core/middleware/errorHandler.mjs');
     expect(src).toContain('reportServerError({ err, req, statusCode })');
-    // and the reassurance it prints must remain backed by that call
-    expect(src).toContain('Our team has been notified');
+  });
+});
+
+/**
+ * Rule 75 guard, added by hostile round 23.
+ *
+ * The previous version of this suite asserted errorHandler.mjs must CONTAIN
+ * "Our team has been notified" — i.e. a test was pinning the false claim in
+ * place and would have failed anyone who corrected it. Capture is not
+ * notification: registerErrorSink() has no runtime caller, so a 5xx reaches a
+ * log line and an in-memory group and stops there.
+ *
+ * The assertion is now inverted, and made conditional on the real thing rather
+ * than on a string: the strong "notified" wording is permitted only once some
+ * runtime module actually registers a sink.
+ */
+describe('rule 75 — user-facing 5xx copy may not over-claim', () => {
+  const COPY_SITES = [
+    '../../core/middleware/errorHandler.mjs',
+    '../../middleware/errorMiddleware.mjs',
+  ];
+
+  it('no runtime module registers an error sink (the premise of this guard)', () => {
+    const SKIP_DIRS = new Set(['node_modules', 'tests', '__tests__', 'coverage', '.git']);
+    const callers = [];
+    (function walk(dir) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          if (!SKIP_DIRS.has(entry.name)) walk(join(dir, entry.name));
+          continue;
+        }
+        if (!entry.name.endsWith('.mjs')) continue;
+        // errorReporter.mjs DEFINES registerErrorSink; it is not a caller.
+        if (entry.name === 'errorReporter.mjs') continue;
+        const file = join(dir, entry.name);
+        if (/registerErrorSink\s*\(/.test(stripComments(readFileSync(file, 'utf8')))) callers.push(file);
+      }
+    })(backendRoot());
+
+    // If this ever fails, a sink DID get wired — at which point the stronger
+    // "notified" copy becomes honest and the assertion below should be relaxed
+    // DELIBERATELY, with the sink named. It must not drift back by accident.
+    expect(callers).toEqual([]);
+  });
+
+  it.each(COPY_SITES)('%s does not tell users they were notified', (relPath) => {
+    const src = readRepoFile(relPath);
+    expect(src).not.toMatch(/message[^\n]*has been notified/);
   });
 });

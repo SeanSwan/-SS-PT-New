@@ -418,7 +418,10 @@ export const errorHandler = (err, req, res, next) => {
   
   // Sanitize error messages in production
   if (process.env.NODE_ENV === 'production' && statusCode >= 500) {
-    responseData.message = 'An unexpected error occurred. Our team has been notified.';
+    // Rule 75: "notified" was false — no error sink is registered (see
+    // services/monitoring/errorReporter.mjs), so a 5xx reaches a log line and
+    // nothing else. The response-boundary reporter does capture this path.
+    responseData.message = 'An unexpected error occurred and has been recorded. Please try again — if it keeps happening, report it from the Support page.';
     delete responseData.errors;
   }
 
