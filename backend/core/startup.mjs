@@ -605,6 +605,14 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Workout-OS C6b. No-op unless ENABLE_STALE_CLIENT_NUDGES=true (kill switch).
+          const { startStaleClientNudgeScheduler } = await import('../services/staleClientNudgeCron.mjs');
+          startStaleClientNudgeScheduler();
+        } catch (nudgeErr) {
+          logger.warn(`Stale-client nudge scheduler failed to start: ${nudgeErr.message}`);
+        }
+
+        try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
         } catch (eventErr) {

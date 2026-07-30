@@ -579,7 +579,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionDate={scheduledSessionDate}
           scheduledSessionId={scheduledSessionId}
         />
-        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} planLoadOutcome={exercises.length === 0 ? planLoadOutcome : null} isClientSelfMode={isClientSelfMode} />
+        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} planLoadOutcome={exercises.length === 0 ? planLoadOutcome : null} isClientSelfMode={isClientSelfMode} clientId={effectiveClientId} onAddExercise={addExercise} />
 
         <WorkoutDraftGateBanner
           workoutDraft={workoutDraft}

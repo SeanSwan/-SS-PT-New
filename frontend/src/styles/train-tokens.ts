@@ -16,8 +16,13 @@
 export const TRAIN = {
   /** Planned / not-yet-logged — recedes into the surface. */
   pending: 'var(--train-pending, var(--text-muted, #94a3b8))',
-  /** The set/session being worked RIGHT NOW — the single loud accent. */
-  active: 'var(--train-active, var(--accent-primary, #60C0F0))',
+  /**
+   * The set/session being worked RIGHT NOW — the single loud accent.
+   * Swan Lens seam: a world recipe's --world-accent drives this hue (theme
+   * changer integration); --train-active still wins when set explicitly;
+   * done/pr gold and coach purple stay brand-fixed state semantics.
+   */
+  active: 'var(--train-active, var(--world-accent, var(--accent-primary, #60C0F0)))',
   /** Logged / completed — the earned state. Gold's only Train use. */
   done: 'var(--train-done, var(--accent-gold, #C6A84B))',
   /** Swan Coach presence (docks, dictation, proposals). Never a set state. */

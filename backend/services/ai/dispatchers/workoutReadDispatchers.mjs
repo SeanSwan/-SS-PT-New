@@ -82,3 +82,41 @@ export const dispatchViewExerciseRecommendations = async (params = {}, ctx = {})
     topRecommendations: names.length ? names.join(', ') : null,
   };
 };
+
+
+/**
+ * suggest_workout (Workout-OS C6)
+ * Card-friendly summary of the deterministic suggested-session composer.
+ * Same default-off flag as the HTTP surface; holds are reported truthfully.
+ */
+export async function suggestWorkout(params, ctx) {
+  if (process.env.ENABLE_SUGGESTED_WORKOUTS !== 'true') {
+    return { available: false, reason: 'suggested workouts are not enabled' };
+  }
+  const { buildSuggestedWorkouts } = await import('../../suggestedWorkoutService.mjs');
+  const clientId = resolveCommandClientId(params, ctx);
+  const result = await buildSuggestedWorkouts({ clientId, trainerId: ctx.user.id });
+
+  if (result.hold) {
+    return {
+      available: false,
+      hold: result.hold,
+      ...(result.planPointer ? { activePlan: result.planPointer.title } : {}),
+      ...(Array.isArray(result.safetyFlags) && result.safetyFlags.length
+        ? { safetyFlags: result.safetyFlags.join(', ') }
+        : {}),
+    };
+  }
+
+  const top = result.suggestions[0];
+  return {
+    available: true,
+    count: result.suggestions.length,
+    coldStart: result.coldStart === true,
+    readiness: result.readinessLevel,
+    topTitle: top.title,
+    topFocus: top.focus,
+    topExercises: top.exercises.map((exercise) => exercise.name).join(', '),
+    why: top.whyRationale.join(' '),
+  };
+}

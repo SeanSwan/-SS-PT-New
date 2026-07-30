@@ -11,6 +11,7 @@ import { CalendarRange, Layers, ListChecks, Target } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import type { PlannedAssignment } from './WorkoutLogger.localTypes';
 import WorkoutLoggerEmptyPlanState, {
+  type AddSuggestedExercise,
   type WorkoutLoggerPlanLoadOutcome,
 } from './WorkoutLoggerEmptyPlanState';
 
@@ -19,6 +20,9 @@ interface ActivePlanContextStripProps {
   /** C4b: why the plan loader came back empty — renders the in-page state. */
   planLoadOutcome?: WorkoutLoggerPlanLoadOutcome | null;
   isClientSelfMode?: boolean;
+  /** C6d: enables the suggested-session offer inside the empty state. */
+  clientId?: number;
+  onAddExercise?: AddSuggestedExercise;
 }
 
 interface PlanFact {
@@ -94,13 +98,22 @@ const ActivePlanContextStrip: React.FC<ActivePlanContextStripProps> = React.memo
   assignment,
   planLoadOutcome = null,
   isClientSelfMode = false,
+  clientId,
+  onAddExercise,
 }) => {
   const planContext = buildPlanContextView(assignment);
   // C4b: no plan context but the loader REPORTED why → persistent state
   // instead of the old toast-then-blank dead end.
   if (!planContext) {
     return planLoadOutcome
-      ? <WorkoutLoggerEmptyPlanState outcome={planLoadOutcome} isClientSelfMode={isClientSelfMode} />
+      ? (
+        <WorkoutLoggerEmptyPlanState
+          outcome={planLoadOutcome}
+          isClientSelfMode={isClientSelfMode}
+          clientId={clientId}
+          onAddExercise={onAddExercise}
+        />
+      )
       : null;
   }
 

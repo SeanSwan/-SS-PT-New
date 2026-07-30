@@ -134,6 +134,7 @@ import {
   dispatchViewExerciseRecommendations,
   dispatchViewLastWorkout,
   dispatchViewWorkoutHistory,
+  suggestWorkout,
 } from './dispatchers/workoutReadDispatchers.mjs';
 import {
   dispatchCreateHermesTask,
@@ -287,6 +288,7 @@ const DISPATCHERS = new Map([
   ['log_measurements',         dispatchLogMeasurements],
   ['view_measurement_trends',  viewMeasurementTrends],
   ['view_active_pain',         viewActivePain],
+  ['suggest_workout',          suggestWorkout],
   ['add_pain_entry',           addPainEntry],
   ['resolve_pain_entry',       dispatchResolvePainEntry],
   ['update_pain_entry',        dispatchUpdatePainEntry],

@@ -421,6 +421,16 @@ const commands = [
   },
   // Arc L / L3 rest-timer voice intents (Kimi: existing family, no parallel registry).
   {
+    type: 'suggest_workout',
+    description: 'Compose safety-gated suggested next sessions for a client (deterministic, read-only)',
+    naturalLanguagePatterns: ['suggest a workout for {client}', 'what should {client} do today', "suggested session for {client}", 'what would you have {client} train'],
+    method: 'GET', endpoint: '/api/workout-builder/suggested/:userId',
+    inputSchema: z.object({ clientId: z.number().int().positive() }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: true, category: 'D',
+  },
+  {
     type: 'rest_skip',
     description: 'Skip the current rest period in the open workout logger',
     naturalLanguagePatterns: ['skip rest', 'skip the rest timer', 'back to work'],
