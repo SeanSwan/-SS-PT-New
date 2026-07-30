@@ -104,37 +104,29 @@ describe('the real Express router stack', () => {
   });
 
   /**
-   * KNOWN, PROVEN shadowing — pinned rather than asserted away.
+   * Shadowed routes — must stay EMPTY.
    *
-   * Verified BY EXECUTION against the booted app (each route's handler swapped for
-   * a marker reporting its owning mount, then real requests driven through
-   * supertest). `/api/workout` is mounted at layer 69 and the dedicated
-   * `/api/workout/sessions` router at 70, so five of the latter's nine routes are
-   * DEAD — every core CRUD operation is answered by the older router:
+   * History: `/api/workout` is mounted ahead of `/api/workout/sessions`, so five of
+   * the latter's nine routes were unreachable — GET `/`, GET `/:id`, POST `/`,
+   * PUT `/:id`, DELETE `/:id` were all answered by workoutController. Proven by
+   * execution (handlers swapped for markers reporting their owning mount, then real
+   * requests driven through supertest), then RESOLVED by deleting the dead routes
+   * rather than reordering the mounts: the winner is transactional, writes the
+   * normalized WorkoutExercise/Set rows, and is what the live frontend consumer was
+   * built for. Detail in
+   * docs/ai-workflow/AI-HANDOFF/WORKOUT-SESSIONS-DUAL-IMPLEMENTATION-DIFF-2026-07-30.md
    *
-   *   GET    /api/workout/sessions       -> /api/workout@69/sessions
-   *   GET    /api/workout/sessions/123   -> /api/workout@69/sessions/:sessionId
-   *   POST   /api/workout/sessions       -> /api/workout@69/sessions
-   *   PUT    /api/workout/sessions/123   -> /api/workout@69/sessions/:sessionId
-   *   DELETE /api/workout/sessions/123   -> /api/workout@69/sessions/:sessionId
+   * Still reachable on that router, because `/api/workout` has no matching pattern:
+   * POST /start, POST /:id/end, GET /:id/handoff, GET /statistics/:userId.
    *
-   * Reachable, because @69 has no matching pattern: POST /start, POST /:id/end,
-   * GET /:id/handoff, GET /statistics/:userId.
-   *
-   * This is the exact hazard CLAUDE.md rule 31 names by example, and it is live.
-   * NOT fixed here: reordering the mounts changes which implementation serves five
-   * live endpoints, and the two may differ in auth, response shape or side effects.
-   * That is Sean's call — filed on SWA-75.
-   *
-   * The list is an ALLOWLIST, not a mute: any NEW shadowing fails this test.
+   * This is the exact hazard CLAUDE.md rule 31 names by example. An entry appearing
+   * here again means someone re-added a route that cannot be reached.
    */
-  const KNOWN_SHADOWED = [
-    'GET /api/workout/sessions',
-    'POST /api/workout/sessions',
-    'GET /api/workout/sessions/:id',
-    'PUT /api/workout/sessions/:id',
-    'DELETE /api/workout/sessions/:id',
-  ];
+  // EMPTIED 2026-07-30 (SWA-75): the five shadowed routes were deleted from
+  // routes/workoutSessionRoutes.mjs. Because they were unreachable, removing them
+  // changed no behaviour — and this list going empty is the proof the deletion was
+  // complete. Anything reappearing here is a regression, not a note.
+  const KNOWN_SHADOWED = [];
 
   it('no NEW route is shadowed by an earlier mount', () => {
     const shadowed = [];

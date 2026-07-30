@@ -208,6 +208,7 @@ import workoutService from '../services/workoutService.mjs';
 import { errorResponse, successResponse } from '../utils/responseUtils.mjs';
 import logger from '../utils/logger.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import { parseSessionListQuery } from '../utils/workoutSessionQuery.mjs';
 
 /**
  * Get all workout sessions for a user
@@ -218,36 +219,34 @@ export async function getWorkoutSessions(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
 
-    // Extract query parameters. Canonical-surface-audit 2026-04-12 fix: the
-    // frontend canonical consumer (useDashboardQueries.useWorkoutSessions)
-    // sends { limit, page }; this controller must translate page → offset
-    // so pagination beyond page 1 actually works. Explicit offset wins when
-    // both are provided to preserve back-compat with any older caller.
-    const { limit, offset, page, status, startDate, endDate, sort, order } = req.query;
-
-    const parsedLimit = limit !== undefined ? parseInt(limit, 10) : undefined;
-
-    let parsedOffset;
-    if (offset !== undefined) {
-      parsedOffset = parseInt(offset, 10);
-    } else if (page !== undefined) {
-      const parsedPage = parseInt(page, 10);
-      const pageNum = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
-      // Service default limit is 10 — keep the page contract predictable
-      // when the caller omits limit instead of silently returning offset=0.
-      const effectiveLimit = parsedLimit || 10;
-      parsedOffset = (pageNum - 1) * effectiveLimit;
+    // Query-parameter validation, ported from routes/workoutSessionRoutes.mjs
+    // (SWA-75, 2026-07-30). That router's `GET /` did this properly and was
+    // UNREACHABLE — /api/workout is mounted ahead of /api/workout/sessions, so
+    // every real list request landed HERE, where `limit` was parsed with a bare
+    // parseInt and passed into the query with no cap at all: `?limit=1000000` was
+    // a valid request. The careful validation guarded a door nobody could open.
+    //
+    // parseSessionListQuery preserves the page → offset translation this
+    // controller already did for useDashboardQueries.useWorkoutSessions (which
+    // sends { limit, page }), keeps explicit offset winning over page, and also
+    // accepts the retired router's sortBy/sortDirection spelling so callers built
+    // against that contract are not silently ignored.
+    const parsed = parseSessionListQuery(req.query);
+    if (!parsed.ok) {
+      return errorResponse(res, 400, parsed.message);
     }
+
+    const { status } = req.query;
 
     // Get sessions
     const sessions = await workoutService.getWorkoutSessions(userId, {
-      limit: parsedLimit,
-      offset: parsedOffset,
+      limit: parsed.value.limit,
+      offset: parsed.value.offset,
       status,
-      startDate,
-      endDate,
-      sort,
-      order
+      startDate: parsed.value.startDate,
+      endDate: parsed.value.endDate,
+      sort: parsed.value.sort,
+      order: parsed.value.order
     });
 
     return successResponse(res, { sessions });
