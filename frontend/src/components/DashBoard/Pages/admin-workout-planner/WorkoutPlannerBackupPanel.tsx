@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { RefreshCcw, ShieldCheck, Sparkles } from 'lucide-react';
+import { PLANNER_GOLD } from './plannerGold';
 import { useAuth } from '../../../../context/AuthContext';
 
 const Panel = styled.section`
@@ -51,7 +52,7 @@ const StaleChip = styled.span<{ $stale: boolean }>`
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: ${({ $stale }) => ($stale ? 'var(--warning, #C6A84B)' : 'var(--success, #3DD68C)')};
+  color: ${({ $stale }) => ($stale ? PLANNER_GOLD : 'var(--success, #3DD68C)')};
   border: 1px solid currentColor;
 `;
 

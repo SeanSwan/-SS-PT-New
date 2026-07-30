@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 import {
   swanClientActionButton,
   swanDataCardShell,
@@ -26,7 +27,7 @@ export const Card = styled.div<{ $loaded: boolean; $isCurrent: boolean }>`
   gap: 8px;
   border: 1px solid ${({ $loaded, $isCurrent }) =>
     $isCurrent
-      ? 'var(--accent-gold, #C6A84B)'
+      ? PLANNER_GOLD
       : $loaded
         ? 'var(--accent-primary, #60C0F0)'
         : 'var(--border-soft, rgba(96, 192, 240, 0.18))'};
@@ -38,7 +39,7 @@ export const Card = styled.div<{ $loaded: boolean; $isCurrent: boolean }>`
   ${motionGuarded}
 
   ${({ $isCurrent }) => $isCurrent && css`
-    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-gold, #C6A84B) 25%, transparent);
+    box-shadow: 0 0 16px ${plannerGoldAlpha(0.25)};
   `}
 
   &:hover {
@@ -104,13 +105,13 @@ export const StatusBadge = styled.span<{ $status: string }>`
   text-transform: uppercase;
   white-space: nowrap;
   background: ${({ $status }) => {
-    if ($status === 'active') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 22%, transparent)';
+    if ($status === 'active') return plannerGoldAlpha(0.22);
     if ($status === 'paused') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)';
     if ($status === 'draft') return 'color-mix(in srgb, var(--text-secondary, rgba(224,236,244,0.5)) 12%, transparent)';
     return 'color-mix(in srgb, var(--text-muted, rgba(224,236,244,0.3)) 10%, transparent)';
   }};
   color: ${({ $status }) => {
-    if ($status === 'active') return 'var(--accent-gold, #C6A84B)';
+    if ($status === 'active') return PLANNER_GOLD;
     if ($status === 'paused') return 'var(--accent-secondary, #8B5CF6)';
     return 'var(--text-secondary, rgba(224,236,244,0.7))';
   }};
@@ -143,9 +144,9 @@ export const HorizonBadge = styled.span`
 `;
 
 export const PrimaryArcBadge = styled(HorizonBadge)`
-  border-color: color-mix(in srgb, var(--accent-gold, #C6A84B) 42%, transparent);
-  color: var(--accent-gold, #C6A84B);
-  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+  border-color: ${plannerGoldAlpha(0.42)};
+  color: ${PLANNER_GOLD};
+  background: ${plannerGoldAlpha(0.1)};
 `;
 
 export const PdfPanel = styled.div<{ $hasFile: boolean }>`
@@ -161,7 +162,7 @@ export const PdfPanel = styled.div<{ $hasFile: boolean }>`
       : 'var(--border-soft, rgba(96, 192, 240, 0.16))'};
   background: ${({ $hasFile }) =>
     $hasFile
-      ? 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), color-mix(in srgb, var(--accent-gold, #C6A84B) 8%, transparent))'
+      ? `linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), ${plannerGoldAlpha(0.08)})`
       : 'color-mix(in srgb, var(--bg-base, #030712) 38%, transparent)'};
 `;
 
@@ -189,7 +190,7 @@ export const PdfLabel = styled.span`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-gold, #C6A84B);
+  color: ${PLANNER_GOLD};
 `;
 
 export const PdfFileName = styled.span`
@@ -230,19 +231,19 @@ export const CardActionButton = styled.button<{ $variant?: 'primary' | 'danger' 
   padding: 6px 10px;
   border: 1px solid ${({ $variant }) =>
     $variant === 'primary'
-      ? 'var(--accent-gold, #C6A84B)'
+      ? PLANNER_GOLD
       : $variant === 'danger'
         ? 'color-mix(in srgb, var(--danger, #C92A54) 35%, transparent)'
         : 'var(--border-soft, rgba(96, 192, 240, 0.2))'};
   background: ${({ $variant }) =>
     $variant === 'primary'
-      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent)'
+      ? plannerGoldAlpha(0.12)
       : $variant === 'danger'
         ? 'color-mix(in srgb, var(--danger, #C92A54) 8%, transparent)'
         : 'transparent'};
   color: ${({ $variant }) =>
     $variant === 'primary'
-      ? 'var(--accent-gold, #C6A84B)'
+      ? PLANNER_GOLD
       : $variant === 'danger'
         ? 'var(--danger, #C92A54)'
         : 'var(--text-primary, #E0ECF4)'};
@@ -256,7 +257,7 @@ export const CardActionButton = styled.button<{ $variant?: 'primary' | 'danger' 
   &:hover:not(:disabled) {
     background: ${({ $variant }) =>
       $variant === 'primary'
-        ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 22%, transparent)'
+        ? plannerGoldAlpha(0.22)
         : $variant === 'danger'
           ? 'color-mix(in srgb, var(--danger, #C92A54) 16%, transparent)'
           : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'};

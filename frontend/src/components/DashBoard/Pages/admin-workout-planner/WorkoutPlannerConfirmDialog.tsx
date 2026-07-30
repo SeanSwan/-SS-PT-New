@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, X } from 'lucide-react';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 export interface WorkoutPlannerConfirmRequest {
   title: string;
@@ -68,15 +69,15 @@ const IconWrap = styled.div<{ $tone: 'warning' | 'danger' }>`
   color: ${({ $tone }) =>
     $tone === 'danger'
       ? 'var(--danger, #C92A54)'
-      : 'var(--accent-gold, #C6A84B)'};
+      : PLANNER_GOLD};
   background: ${({ $tone }) =>
     $tone === 'danger'
       ? 'color-mix(in srgb, var(--danger, #C92A54) 14%, transparent)'
-      : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent)'};
+      : plannerGoldAlpha(0.14)};
   border: 1px solid ${({ $tone }) =>
     $tone === 'danger'
       ? 'color-mix(in srgb, var(--danger, #C92A54) 32%, transparent)'
-      : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 32%, transparent)'};
+      : plannerGoldAlpha(0.32)};
 `;
 
 const TitleBlock = styled.div`
@@ -142,19 +143,19 @@ const ActionButton = styled.button<{ $primary?: boolean; $tone: 'warning' | 'dan
     $primary
       ? ($tone === 'danger'
         ? 'color-mix(in srgb, var(--danger, #C92A54) 48%, transparent)'
-        : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 48%, transparent)')
+        : plannerGoldAlpha(0.48))
       : 'var(--border-soft, rgba(96, 192, 240, 0.2))'};
   background: ${({ $primary, $tone }) =>
     $primary
       ? ($tone === 'danger'
         ? 'color-mix(in srgb, var(--danger, #C92A54) 18%, var(--bg-elevated, #1A1A24))'
-        : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, var(--bg-elevated, #1A1A24))')
+        : `color-mix(in srgb, ${PLANNER_GOLD} 18%, var(--bg-elevated, #1A1A24))`)
       : 'var(--bg-elevated, #1A1A24)'};
   color: ${({ $primary, $tone }) =>
     $primary
       ? ($tone === 'danger'
         ? 'var(--danger, #C92A54)'
-        : 'var(--accent-gold, #C6A84B)')
+        : PLANNER_GOLD)
       : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
   font-weight: 700;

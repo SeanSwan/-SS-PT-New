@@ -3,6 +3,7 @@
  * Re-exported by WorkoutPlannerStyles.ts for compatibility.
  */
 import styled from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 // SECTION: Plan Mode Controls
 // PURPOSE: Duration, sessions/week selectors for multi-week plan generation
@@ -82,7 +83,7 @@ export const MesocycleCard = styled.div<{ $phase: number }>`
   border: 1px solid ${({ $phase }) =>
     $phase <= 2 ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)' :
     $phase <= 3 ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)' :
-    $phase === 4 ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)' :
+    $phase === 4 ? plannerGoldAlpha(0.2) :
     'color-mix(in srgb, var(--danger, #C92A54) 20%, transparent)'
   };
   border-radius: 12px;
@@ -100,7 +101,7 @@ export const MesocycleCard = styled.div<{ $phase: number }>`
     background: ${({ $phase }) =>
       $phase <= 2 ? 'var(--accent-primary, #60C0F0)' :
       $phase <= 3 ? 'var(--accent-secondary, #8B5CF6)' :
-      $phase === 4 ? 'var(--accent-gold, #C6A84B)' :
+      $phase === 4 ? PLANNER_GOLD :
       'var(--danger, #C92A54)'
     };
   }
@@ -136,7 +137,7 @@ export const MesocyclePhase = styled.div<{ $phase: number }>`
   color: ${({ $phase }) =>
     $phase <= 2 ? 'var(--accent-primary, #60C0F0)' :
     $phase <= 3 ? 'var(--accent-secondary, #8B5CF6)' :
-    $phase === 4 ? 'var(--accent-gold, #C6A84B)' :
+    $phase === 4 ? PLANNER_GOLD :
     'var(--danger, #C92A54)'
   };
   margin-bottom: 8px;
@@ -174,9 +175,9 @@ export const DeloadBadge = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.6rem;
   font-weight: 600;
-  color: var(--accent-gold, #C6A84B);
-  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent);
+  color: ${PLANNER_GOLD};
+  background: ${plannerGoldAlpha(0.1)};
+  border: 1px solid ${plannerGoldAlpha(0.2)};
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;

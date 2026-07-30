@@ -6,6 +6,7 @@
  */
 
 import styled from 'styled-components';
+import { PLANNER_GOLD } from './plannerGold';
 
 export const Overlay = styled.div`
   position: fixed;
@@ -61,7 +62,7 @@ export const Eyebrow = styled.div`
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-gold, #C6A84B);
+  color: ${PLANNER_GOLD};
 `;
 
 export const Title = styled.h2`

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PLANNER_GOLD } from './plannerGold';
 
 export const VideoPreviewShell = styled.section`
   margin: 0 0 12px;
@@ -33,7 +34,7 @@ export const VideoPreviewTitle = styled.div`
 `;
 
 export const VideoPreviewMeta = styled.span`
-  color: var(--accent-luxury, #C6A84B);
+  color: ${PLANNER_GOLD};
   font-family: 'Sora', sans-serif;
   font-size: 0.62rem;
   font-weight: 700;

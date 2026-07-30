@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 export const Wrapper = styled.section`
   margin-top: 16px;
@@ -191,8 +192,8 @@ export const FallbackBadge = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.6rem;
   text-transform: uppercase;
-  background: color-mix(in srgb, var(--accent-warning, #C6A84B) 18%, transparent);
-  color: var(--accent-warning, #C6A84B);
+  background: ${plannerGoldAlpha(0.18)};
+  color: ${PLANNER_GOLD};
 `;
 
 export const Empty = styled.div`

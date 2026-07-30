@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 import {
   EmptyMessage,
   ExerciseName,
@@ -32,7 +33,7 @@ export const ExerciseListPane = styled.div`
 `;
 
 export const DegradedPanel = styled(Panel)<{ $degraded?: boolean }>`
-  border: ${({ $degraded }) => ($degraded ? '1px solid #C6A84B' : undefined)};
+  border: ${({ $degraded }) => ($degraded ? `1px solid ${PLANNER_GOLD}` : undefined)};
 `;
 
 export const ActionWrap = styled.div`
@@ -182,15 +183,15 @@ export const PlannerHandoffLink = styled.a<{ $variant?: 'primary' }>`
   border-radius: 8px;
   border: 1px solid ${({ $variant }) =>
     $variant === 'primary'
-      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 42%, transparent)'
+      ? plannerGoldAlpha(0.42)
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent)'};
   background: ${({ $variant }) =>
     $variant === 'primary'
-      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, var(--bg-elevated, #141419))'
+      ? `color-mix(in srgb, ${PLANNER_GOLD} 12%, var(--bg-elevated, #141419))`
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419))'};
   color: ${({ $variant }) =>
     $variant === 'primary'
-      ? 'var(--accent-gold, #C6A84B)'
+      ? PLANNER_GOLD
       : 'var(--accent-primary, #60C0F0)'};
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;

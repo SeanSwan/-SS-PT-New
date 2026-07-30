@@ -4,6 +4,7 @@
  */
 import styled from 'styled-components';
 import { iceShimmer } from './WorkoutPlannerShell.styles';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 // SECTION: Skeleton / Empty
 // ─────────────────────────────────────────────────────────────
@@ -134,7 +135,7 @@ export const ExplanationItem = styled.div<{ $type?: string }>`
   border-left: 3px solid ${({ $type }) => {
     switch ($type) {
       case 'safety_warning': return 'var(--danger, #C92A54)';
-      case 'pain_exclusion': return 'var(--accent-gold, #C6A84B)';
+      case 'pain_exclusion': return PLANNER_GOLD;
       case 'pain_warning': return 'var(--warning, #D4AF37)';
       case 'compensation': return 'var(--accent-secondary, #8B5CF6)';
       default: return 'var(--accent-primary, #60C0F0)';
@@ -161,7 +162,7 @@ export const ExplanationBadge = styled.span<{ $type?: string }>`
   background: ${({ $type }) => {
     switch ($type) {
       case 'safety_warning': return 'color-mix(in srgb, var(--danger, #C92A54) 15%, transparent)';
-      case 'pain_exclusion': return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 15%, transparent)';
+      case 'pain_exclusion': return plannerGoldAlpha(0.15);
       case 'pain_warning': return 'color-mix(in srgb, var(--warning, #D4AF37) 15%, transparent)';
       case 'compensation': return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)';
       default: return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
@@ -170,7 +171,7 @@ export const ExplanationBadge = styled.span<{ $type?: string }>`
   color: ${({ $type }) => {
     switch ($type) {
       case 'safety_warning': return 'var(--danger, #E14B67)';
-      case 'pain_exclusion': return 'var(--accent-gold, #C6A84B)';
+      case 'pain_exclusion': return PLANNER_GOLD;
       case 'pain_warning': return 'var(--warning, #D4AF37)';
       case 'compensation': return 'var(--accent-secondary, #8B5CF6)';
       default: return 'var(--accent-primary, #60C0F0)';

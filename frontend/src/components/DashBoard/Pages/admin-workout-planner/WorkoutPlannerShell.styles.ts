@@ -8,6 +8,7 @@
  */
 
 import styled, { keyframes } from 'styled-components';
+import { PLANNER_GOLD } from './plannerGold';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -166,7 +167,7 @@ export const StatusBanner = styled.div<{ $type: 'success' | 'error' }>`
   background: ${({ $type }) => $type === 'error'
     ? 'rgba(26, 26, 36, 0.95)'
     : 'rgba(26, 26, 36, 0.95)'};
-  border-left: 4px solid ${({ $type }) => $type === 'error' ? 'var(--danger, #C92A54)' : 'var(--accent-gold, #C6A84B)'};
+  border-left: 4px solid ${({ $type }) => $type === 'error' ? 'var(--danger, #C92A54)' : PLANNER_GOLD};
   color: var(--text-primary, #E0ECF4);
 
   .planner-status-text { flex: 1 1 220px; }
@@ -206,7 +207,7 @@ export const DegradedBanner = styled.div`
   margin-bottom: 16px;
   border-radius: 10px;
   background: rgba(26, 26, 36, 0.95);
-  border: 1px solid var(--accent-gold, #C6A84B);
+  border: 1px solid ${PLANNER_GOLD};
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
   color: var(--text-primary, #E0ECF4);
@@ -214,11 +215,11 @@ export const DegradedBanner = styled.div`
 
   svg {
     flex-shrink: 0;
-    color: var(--accent-gold, #C6A84B);
+    color: ${PLANNER_GOLD};
   }
 
   strong {
-    color: var(--accent-gold, #C6A84B);
+    color: ${PLANNER_GOLD};
     font-weight: 700;
   }
 `;

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 export const GuidedCandidatesWrap = styled.section`
   display: flex;
@@ -30,7 +31,7 @@ export const GuidedCandidatesTitle = styled.h3`
 `;
 
 export const GuidedCandidatesMeta = styled.span`
-  color: var(--accent-gold, #C6A84B);
+  color: ${PLANNER_GOLD};
   font-family: 'Fira Code', monospace;
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -107,9 +108,9 @@ export const CandidateMetaRow = styled.div`
 `;
 
 export const CandidateMetaPill = styled.span`
-  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent);
+  border: 1px solid ${plannerGoldAlpha(0.28)};
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, var(--bg-base, #030712));
+  background: color-mix(in srgb, ${PLANNER_GOLD} 10%, var(--bg-base, #030712));
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 0.68rem;

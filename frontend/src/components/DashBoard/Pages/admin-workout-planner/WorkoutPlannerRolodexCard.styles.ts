@@ -6,6 +6,7 @@
  * 44px add action aligned from narrow phone widths through desktop/4K.
  */
 import styled from 'styled-components';
+import { PLANNER_GOLD, plannerGoldAlpha } from './plannerGold';
 
 export const ExerciseAddBtn = styled.button`
   all: unset;
@@ -219,19 +220,19 @@ export const MetaTag = styled.span<{ $impact?: string }>`
   text-overflow: ellipsis;
   background: ${({ $impact }) => {
     if ($impact === 'Low Impact') return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
-    if ($impact === 'Medium Impact') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent)';
+    if ($impact === 'Medium Impact') return plannerGoldAlpha(0.12);
     if ($impact === 'High Impact') return 'color-mix(in srgb, var(--danger, #C92A54) 12%, transparent)';
     return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)';
   }};
   color: ${({ $impact }) => {
     if ($impact === 'Low Impact') return 'var(--accent-primary, #60C0F0)';
-    if ($impact === 'Medium Impact') return 'var(--accent-gold, #C6A84B)';
+    if ($impact === 'Medium Impact') return PLANNER_GOLD;
     if ($impact === 'High Impact') return 'var(--danger, #C92A54)';
     return 'var(--text-muted, rgba(224, 236, 244, 0.55))';
   }};
   border: 1px solid ${({ $impact }) => {
     if ($impact === 'Low Impact') return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)';
-    if ($impact === 'Medium Impact') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)';
+    if ($impact === 'Medium Impact') return plannerGoldAlpha(0.2);
     if ($impact === 'High Impact') return 'color-mix(in srgb, var(--danger, #C92A54) 20%, transparent)';
     return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)';
   }};
