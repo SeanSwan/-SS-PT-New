@@ -15,7 +15,26 @@
 Sean directed (2026-07-28): build ALL 25 Swan Lens "worlds" — promote the 25 real style-catalog lens ids from
 chrome-only to full `--world-*` `RecipeV2` worlds, "as creative and vivid as possible." Worlds render only in the
 Workout Design **Lab** until a Sean-gated rollout flip (Slice 15), so building them is **zero live-user risk**
-while `recipeResolution.ts` stays fail-closed. (Verified still untouched: `git diff main...HEAD` on that file is empty.)
+while `recipeResolution.ts` stays fail-closed.
+
+> **Gate integrity, correctly scoped:** `git diff <session-base>..HEAD -- .../v2/recipeResolution.ts` is EMPTY.
+> Do **not** verify this with `main...HEAD` — see §0.1.
+
+## 0.1 ⚠ BEFORE YOU PUSH — this branch has DIVERGED (measured 2026-07-29 17:44)
+Local `main` is **567 commits behind `origin/main`**, so any `main...HEAD` diff is against a stale ref and reports
+~2,553 files of phantom "changes." Measure against `origin/main`, or against the session base commit for
+"what did this session do."
+
+| Comparison | Count |
+|---|---|
+| `origin/main` ahead of this branch | **98 commits** |
+| this branch ahead of `origin/main` | **37 commits** |
+| this session's own change (`7638c8485..HEAD`) | **42 files, +2558 / −200** |
+
+`origin/main`'s tip was **16 minutes older than this branch's tip** — main is actively moving (the other agent is
+working). Per Rule 70 the push step is: **rebase onto `origin/main`, then RE-RUN the §5 gates on the rebased tree**
+before pushing. Do not push without that re-verification, and do not rebase without Sean — 37 commits onto a moving
+target is a real conflict surface, and the push is his gate anyway.
 
 ## 1. CURRENT STATE
 
