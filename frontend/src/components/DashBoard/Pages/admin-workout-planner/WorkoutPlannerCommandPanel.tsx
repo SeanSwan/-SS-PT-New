@@ -107,6 +107,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
       teachModeOpen={teachModeOpen}
       onReturnToClientHub={onReturnToClientHub}
       onTeachModeToggle={onTeachModeToggle}
+      onGenerationModeChange={onGenerationModeChange}
     />
     <WorkoutPlannerControlsSection
       clients={clients}

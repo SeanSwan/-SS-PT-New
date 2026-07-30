@@ -22,6 +22,7 @@ import type {
 } from './WorkoutPlannerTypes';
 import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 import { workoutPlannerReturnLabel } from './workoutPlannerReturnTo';
+import { generationModeForPlannerView, readPlannerViewMode, writePlannerViewMode, type PlannerViewMode } from './plannerViewMode';
 import {
   OPT_PHASES,
   PLAN_DURATIONS,
@@ -61,6 +62,7 @@ interface HeaderSectionProps {
   teachModeOpen: boolean;
   onReturnToClientHub: () => void;
   onTeachModeToggle: () => void;
+  onGenerationModeChange: (mode: SwanCoachGenerationMode) => void;
 }
 
 interface ControlsSectionProps {
@@ -101,11 +103,37 @@ interface PlanModeSectionProps {
   onSessionsPerWeekChange: (sessionsPerWeek: number) => void;
 }
 
+/**
+ * Guided/Power view toggle (Workout-OS C7, §12.2 ruling): Guided (default —
+ * Swan Coach proposes candidates, human picks) vs Power (dense auto canvas).
+ * Self-contained: owns the persisted preference and presets the generation
+ * mode through the existing onGenerationModeChange seam; users can still
+ * pick any mode in the generation-mode bar afterwards.
+ */
+const PlannerViewToggle: React.FC<{ onGenerationModeChange: (mode: SwanCoachGenerationMode) => void }> = ({
+  onGenerationModeChange,
+}) => {
+  const [view, setView] = React.useState<PlannerViewMode>(() => readPlannerViewMode());
+  const flip = () => {
+    const next: PlannerViewMode = view === 'guided' ? 'power' : 'guided';
+    setView(next);
+    writePlannerViewMode(next);
+    onGenerationModeChange(generationModeForPlannerView(next));
+  };
+  return (
+    <TeachToggle type="button" $active={view === 'guided'} onClick={flip} data-testid="planner-view-toggle">
+      <Sparkles size={16} />
+      {view === 'guided' ? 'Guided' : 'Power'} Mode
+    </TeachToggle>
+  );
+};
+
 export const WorkoutPlannerHeaderSection: React.FC<HeaderSectionProps> = ({
   plannerReturnTo,
   teachModeOpen,
   onReturnToClientHub,
   onTeachModeToggle,
+  onGenerationModeChange,
 }) => (
   <Header>
     <HeaderLeft>
@@ -121,6 +149,7 @@ export const WorkoutPlannerHeaderSection: React.FC<HeaderSectionProps> = ({
         {workoutPlannerReturnLabel(plannerReturnTo, 'back')}
       </TeachToggle>
     )}
+    <PlannerViewToggle onGenerationModeChange={onGenerationModeChange} />
     <TeachToggle type="button" $active={teachModeOpen} onClick={onTeachModeToggle}>
       <BookOpen size={16} />
       Teach Mode {teachModeOpen ? 'On' : 'Off'}

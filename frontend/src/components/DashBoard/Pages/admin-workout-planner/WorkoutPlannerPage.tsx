@@ -29,6 +29,7 @@ import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog
 import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
 import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
+import { generationModeForPlannerView, readPlannerViewMode } from './plannerViewMode';
 import { resolveWorkoutPlannerReturnTo } from './workoutPlannerReturnTo';
 import { useWorkoutPlannerDebateResultHydration } from './workoutPlannerDebateResultHydration';
 const WorkoutPlannerPage: React.FC = () => {
@@ -48,7 +49,7 @@ const WorkoutPlannerPage: React.FC = () => {
 
   const [phaseNumber, setPhaseNumber] = useState(2); const [category, setCategory] = useState<WorkoutCategory>('full_body');
   const [goal, setGoal] = useState<PlanGoal>('general_fitness'); const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
-  const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>('auto'); const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
+  const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>(() => generationModeForPlannerView(readPlannerViewMode())); const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1); const [teachModeOpen, setTeachModeOpen] = useState(false);
