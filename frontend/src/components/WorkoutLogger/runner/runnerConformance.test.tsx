@@ -103,6 +103,27 @@ describe('swap-storm: switching styles never remounts the host or loses the engi
   });
 });
 
+describe('LedgerPro logged-state isolation', () => {
+  it('fallback set keys (set-N) never bleed logged state across exercises', () => {
+    // No loggerSetId → both rows key as "set-1"; namespacing must isolate them.
+    const bareSet = { setNumber: 1, weight: 100, reps: 8, rpe: null, formQuality: null, restTime: 60 };
+    const engine = makeEngine({
+      exercises: [
+        { exerciseName: 'Bench Press', exerciseId: 'x1', loggerExerciseId: 'e1', formRating: null, painLevel: 0, sets: [{ ...bareSet }] },
+        { exerciseName: 'Plank', exerciseId: 'x2', loggerExerciseId: 'e2', formRating: null, painLevel: 0, sets: [{ ...bareSet }] },
+      ],
+    });
+    render(<LedgerProSkin engine={engine} />);
+    const toggles = screen.getAllByRole('button', { name: 'Log set 1 and start rest timer' });
+    expect(toggles).toHaveLength(2);
+    fireEvent.click(toggles[0]);
+    expect(screen.getByRole('button', { name: 'Set 1 logged — tap to unmark' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Log set 1 and start rest timer' })).toBeInTheDocument();
+    expect(engine.rows.onSetLogged).toHaveBeenCalledTimes(1);
+    expect(engine.rows.onSetLogged).toHaveBeenCalledWith(0, 0);
+  });
+});
+
 describe('static source law (every runner file)', () => {
   const dir = resolve(__dirname);
   const files = readdirSync(dir).filter((name) => /\.(ts|tsx)$/.test(name) && !name.includes('.test.'));

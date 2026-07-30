@@ -38,14 +38,17 @@ const LedgerProSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
   // the engine — reps>0 is the durable truth used by stats/save).
   const [loggedSetKeys, setLoggedSetKeys] = useState<ReadonlySet<string>>(() => new Set());
 
+  // Keys are namespaced by exercise: the row-key fallback (`set-N`) repeats
+  // across exercises, and a session-level Set would light sibling sets.
   const makeToggleLogged = useCallback(
-    (exerciseIndex: number) => (setKey: string, setIndex: number) => {
+    (exerciseIndex: number, exerciseKey: string) => (setKey: string, setIndex: number) => {
+      const namespaced = `${exerciseKey}::${setKey}`;
       setLoggedSetKeys((previous) => {
         const next = new Set(previous);
-        if (next.has(setKey)) {
-          next.delete(setKey);
+        if (next.has(namespaced)) {
+          next.delete(namespaced);
         } else {
-          next.add(setKey);
+          next.add(namespaced);
           rows.onSetLogged(exerciseIndex, setIndex);
         }
         return next;
@@ -67,9 +70,10 @@ const LedgerProSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
       {exercises.map((exercise, exerciseIndex) => {
         const done = isExerciseComplete(exercise);
         const progress = exerciseSetProgress(exercise);
-        const toggleLogged = makeToggleLogged(exerciseIndex);
+        const exerciseKey = getExerciseEntryRowKey(exercise);
+        const toggleLogged = makeToggleLogged(exerciseIndex, exerciseKey);
         return (
-          <ExerciseBlock key={getExerciseEntryRowKey(exercise)} aria-label={exercise.exerciseName}>
+          <ExerciseBlock key={exerciseKey} aria-label={exercise.exerciseName}>
             <ExerciseRow $done={done}>
               <h4>{exercise.exerciseName}</h4>
               <ExerciseMeta $done={done}>{progress.done}/{progress.total}</ExerciseMeta>
@@ -90,7 +94,7 @@ const LedgerProSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
                   set={set}
                   setIndex={setIndex}
                   showDetails={false}
-                  isLogged={loggedSetKeys.has(getExerciseSetRowKey(set))}
+                  isLogged={loggedSetKeys.has(`${exerciseKey}::${getExerciseSetRowKey(set)}`)}
                   canRemove={exercise.sets.length > 1}
                   onToggleLogged={toggleLogged}
                   onUpdateSet={rows.onUpdateSet}
