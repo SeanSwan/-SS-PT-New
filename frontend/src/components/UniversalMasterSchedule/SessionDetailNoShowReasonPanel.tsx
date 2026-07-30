@@ -42,8 +42,17 @@ const SessionDetailNoShowReasonPanel: React.FC<SessionDetailNoShowReasonPanelPro
           placeholder="Enter reason for no-show..."
           rows={3}
         />
+        {/*
+          Rule 75: this used to promise "Client will be notified about the
+          no-show." The email is real (sessionRoutes.mjs attendance handler) but
+          shouldNotifyClient() suppresses it when the client has no email, has
+          email notifications off, or is inside their quiet hours — and the
+          no-show path passes no `force`, so a suppressed notice is dropped, not
+          deferred. Whoever marks the no-show needs to know they may still have
+          to follow up personally.
+        */}
         <SmallText secondary>
-          Client will be notified about the no-show.
+          We'll email the client — unless they've turned notifications off or are in quiet hours.
         </SmallText>
         {canDeductSessionCredit && (
           <NoShowCreditOption>
