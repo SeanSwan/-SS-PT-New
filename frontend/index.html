@@ -77,12 +77,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Async font loading: media="print" + onload swap keeps the two Google
          Fonts stylesheets from blocking first paint (display=swap already
-         prevents invisible text). <noscript> keeps no-JS rendering correct. -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+         prevents invisible text). <noscript> keeps no-JS rendering correct.
+         SWA-103 (2026-07-30): Sora was referenced by ~515 source files and CLAUDE.md
+         names it the brand UI/gaming face, but it was in NO font link — every use
+         silently fell back to the system sans. Added here. The second link now uses
+         VARIABLE ranges (wght@a..b) rather than a static weight list, because the
+         codebase genuinely requests intermediate weights (650/720/750/850) that
+         static files cannot serve, and because one variable file per family is
+         FEWER requests than the 5 static Plus Jakarta Sans faces it replaces.
+         Cormorant gains italic 500/600 (it is not a variable font) for the luxe
+         display faces. Enforced by adapters/style-lens-swan/worlds/fontLoading.test.ts,
+         which parses THIS file and fails if a world asks for an unloaded face/weight. -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&family=Fira+Code:wght@300..700&family=Sora:wght@100..800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&family=Fira+Code:wght@300..700&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
     </noscript>
 
     <!-- Security Headers -->

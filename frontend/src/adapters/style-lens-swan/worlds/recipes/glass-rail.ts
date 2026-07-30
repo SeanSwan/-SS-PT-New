@@ -27,7 +27,7 @@ export const GLASS_RAIL_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.glass-rail.v2',
   tokens: {
-    'world-title-font': "400 clamp(30px, 3.9vw, 58px)/1.1 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
+    'world-title-font': "600 clamp(30px, 3.9vw, 58px)/1.1 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
     'world-letter-spacing': '-0.005em',
     'world-panel-radius': '18px',
     'world-row-radius': '999px',

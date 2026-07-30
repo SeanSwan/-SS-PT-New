@@ -22,7 +22,7 @@ export const CRYSTALLINE_CATHEDRAL_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.crystalline-cathedral.v2',
   tokens: {
-    'world-title-font': "400 clamp(34px, 4.4vw, 68px)/1.08 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
+    'world-title-font': "600 clamp(34px, 4.4vw, 68px)/1.08 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
     'world-letter-spacing': '-0.01em',
     'world-panel-radius': '14px',
     'world-row-radius': '10px',

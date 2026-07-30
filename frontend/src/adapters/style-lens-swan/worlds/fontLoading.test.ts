@@ -31,12 +31,29 @@ if (!indexPath) {
 }
 const indexHtml = readFileSync(indexPath, 'utf8');
 
+/**
+ * A loaded axis is either a set of discrete static weights or a VARIABLE range.
+ * Google Fonts serves `wght@200..800` as a single variable file covering every
+ * weight in between — including the intermediate values this codebase actually
+ * uses (650 / 720 / 750), which no static weight list can serve.
+ */
+interface Axis {
+  readonly discrete: Set<number>;
+  ranges: Array<[number, number]>;
+}
+const has = (axis: Axis, weight: number): boolean =>
+  axis.discrete.has(weight) || axis.ranges.some(([lo, hi]) => weight >= lo && weight <= hi);
+const isEmpty = (axis: Axis): boolean => axis.discrete.size === 0 && axis.ranges.length === 0;
+
 /** family (lowercased) → loaded weights, split by upright vs italic axis. */
-const LOADED: Map<string, { upright: Set<number>; italic: Set<number> }> = new Map();
+const LOADED: Map<string, { upright: Axis; italic: Axis }> = new Map();
 const entry = (family: string) => {
   const existing = LOADED.get(family);
   if (existing) return existing;
-  const fresh = { upright: new Set<number>(), italic: new Set<number>() };
+  const fresh = {
+    upright: { discrete: new Set<number>(), ranges: [] as Array<[number, number]> },
+    italic: { discrete: new Set<number>(), ranges: [] as Array<[number, number]> },
+  };
   LOADED.set(family, fresh);
   return fresh;
 };
@@ -48,15 +65,21 @@ for (const match of indexHtml.matchAll(/family=([A-Za-z+0-9]+):(?:(ital),)?wght@
     // With an `ital` axis each spec is `<ital>,<wght>`; otherwise just `<wght>`.
     const parts = spec.split(',');
     const ital = hasItalAxis ? Number(parts[0]) : 0;
-    const weight = Number(parts[hasItalAxis ? 1 : 0]);
-    if (!Number.isFinite(weight)) continue;
-    (ital === 1 ? loaded.italic : loaded.upright).add(weight);
+    const raw = parts[hasItalAxis ? 1 : 0];
+    const axis = ital === 1 ? loaded.italic : loaded.upright;
+    const range = raw.match(/^(\d+)\.\.(\d+)$/);
+    if (range) {
+      axis.ranges.push([Number(range[1]), Number(range[2])]);
+      continue;
+    }
+    const weight = Number(raw);
+    if (Number.isFinite(weight)) axis.discrete.add(weight);
   }
 }
 // Families with no `wght` axis at all load the single default upright weight.
 for (const match of indexHtml.matchAll(/family=([A-Za-z+0-9]+)(?=[&"'])/g)) {
   const family = match[1].replace(/\+/g, ' ').toLowerCase();
-  if (!LOADED.has(family)) entry(family).upright.add(400);
+  if (!LOADED.has(family)) entry(family).upright.discrete.add(400);
 }
 
 /**
@@ -82,10 +105,13 @@ const parseFontShorthand = (value: string): { weight: number; families: string[]
 describe('font reality · every built world', () => {
   it('parsed a real font loader out of index.html (anti-vacuous guard)', () => {
     expect(LOADED.size).toBeGreaterThanOrEqual(2);
-    expect([...LOADED.values()].every((w) => w.upright.size > 0)).toBe(true);
+    expect([...LOADED.values()].every((w) => !isEmpty(w.upright))).toBe(true);
     // At least one family must publish an italic axis, or the italic check below
     // would pass vacuously for want of any italic data at all.
-    expect([...LOADED.values()].some((w) => w.italic.size > 0)).toBe(true);
+    expect([...LOADED.values()].some((w) => !isEmpty(w.italic))).toBe(true);
+    // And at least one VARIABLE range must have parsed, or a regression back to
+    // static-only weights would silently disable the range half of this parser.
+    expect([...LOADED.values()].some((w) => w.upright.ranges.length > 0)).toBe(true);
   });
 
   it('requests only typefaces + weights the app actually loads', () => {
@@ -101,9 +127,11 @@ describe('font reality · every built world', () => {
       const displayVariant = world.recipe.components?.['text.display']?.variant ?? '';
       const needsItalic = ITALIC_DISPLAY_VARIANTS.has(displayVariant);
       const axis = needsItalic ? 'italic' : 'upright';
-      const realOption = parsed.families.some(
-        (family) => !GENERIC.has(family) && LOADED.get(family)?.[axis].has(parsed.weight),
-      );
+      const realOption = parsed.families.some((family) => {
+        if (GENERIC.has(family)) return false;
+        const loaded = LOADED.get(family);
+        return Boolean(loaded && has(loaded[axis], parsed.weight));
+      });
       if (!realOption) {
         const stack = parsed.families.filter((f) => !GENERIC.has(f));
         failures.push(

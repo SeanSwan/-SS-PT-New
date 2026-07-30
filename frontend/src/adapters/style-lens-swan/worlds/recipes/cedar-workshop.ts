@@ -27,7 +27,7 @@ export const CEDAR_WORKSHOP_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.cedar-workshop.v2',
   tokens: {
-    'world-title-font': "500 clamp(26px, 3.2vw, 46px)/1.14 'Fira Code', monospace",
+    'world-title-font': "600 clamp(26px, 3.2vw, 46px)/1.14 'Fira Code', monospace",
     'world-letter-spacing': '0.02em',
     'world-panel-radius': '12px',
     'world-row-radius': '999px',
