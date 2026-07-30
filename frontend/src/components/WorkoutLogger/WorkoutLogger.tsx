@@ -209,7 +209,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const {
     selectedWarmup, selectedBalanceCore, selectedCooldown, nasmSectionsOpen,
     toggleNasmSection, protocolSectionSetters, addProtocolPreset,
-    addProtocolFromRolodex, removeProtocolItem, requestAddForSection,
+    addProtocolFromRolodex, removeProtocolItem, requestAddForSection, openSections,
   } = useProtocolSelections(openRolodexForSection);
 
   // Phase 3c.1: in-gym autosave — draft persists per user+client+date, restored on remount.
@@ -241,6 +241,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     protocolSectionSetters.warmup(templateIdsToSelections(template.warmupIds));
     protocolSectionSetters.balance_core(templateIdsToSelections(template.balanceCoreIds));
     protocolSectionSetters.cooldown(templateIdsToSelections(template.cooldownIds));
+    // M5: the plan decides which bands open — filled bands show themselves.
+    openSections(([
+      ['warmup', template.warmupIds.length] as const,
+      ['balance_core', template.balanceCoreIds.length] as const,
+      ['cooldown', template.cooldownIds.length] as const,
+    ]).filter(([, count]) => count > 0).map(([key]) => key));
 
     setExercises(templateExercises);
     setCurrentOPTPhase(phase);
@@ -581,6 +587,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         />
         {/* SESSION SHELL zones 3+4 (Slice 3): free stage views — IA lands,
             behavior stays (M7). Existing sections render inline per stage. */}
+        {/* Receipt terminal state (Slice 5): post-save the rail is NOT
+            navigable — the receipt below replaces the staged canvas. */}
+        {!lastSaveResponse && (<>
         <StageRail store={sessionStageStore} />
         <StageCanvas stage={sessionStage} store={sessionStageStore}>
         {sessionStage === 'setup' && (<>
@@ -663,19 +672,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             restSecondsLeft={restTimer.secondsLeft}
           />
         )}
-        <CompactProtocolSection
-          title="Warmup & Corrective"
-          icon={<WarmupProtocolIcon size={18} />}
-          sectionKey="warmup"
-          selectedItems={selectedWarmup}
-          recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
-          isOpen={nasmSectionsOpen.warmup}
-          onToggleOpen={() => toggleNasmSection('warmup')}
-          onAddFromRolodex={() => requestAddForSection('warmup')}
-          onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
-          onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
-        />
         <ExerciseSection>
+          {/* M5: protocol sections are phase BANDS bookending the collection. */}
+          <CompactProtocolSection
+            title="Warmup & Corrective"
+            icon={<WarmupProtocolIcon size={18} />}
+            sectionKey="warmup"
+            selectedItems={selectedWarmup}
+            recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
+            isOpen={nasmSectionsOpen.warmup}
+            onToggleOpen={() => toggleNasmSection('warmup')}
+            onAddFromRolodex={() => requestAddForSection('warmup')}
+            onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
+            onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
+          />
           <ExerciseSearchBar>
             <RolodexTrigger
               onClick={() => {
@@ -736,8 +746,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               Add Another Exercise
             </AddExerciseButton>
           )}
-        </ExerciseSection>
-        <CompactProtocolSection
+          <CompactProtocolSection
           title="Balance, Core & Stability"
           icon={<BalanceProtocolIcon size={18} />}
           sectionKey="balance_core"
@@ -761,8 +770,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('cooldown', item)}
           onRemoveSelected={(id) => removeProtocolItem('cooldown', id)}
         />
+        </ExerciseSection>
         </>)}
-        {sessionStage === 'finish' && (exercises.length > 0 ? (
+        {sessionStage === 'finish' && (exercises.length > 0 ? (<>
+          <SessionStatsBar stats={sessionStats} />
           <SessionSummaryForm
             overallIntensity={overallIntensity}
             onIntensityChange={setOverallIntensity}
@@ -774,12 +785,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             clientSource={client?.clientSource}
             scheduledSessionCreditHint={scheduledSessionCreditHint}
           />
-        ) : (
+        </>) : (
           <FinishEmptyNote>
             Nothing logged yet — log a set in Train and Finish unlocks intensity, notes, and save.
           </FinishEmptyNote>
         ))}
         </StageCanvas>
+        </>)}
 
         {lastSaveResponse ? (
           <SaveSuccessPanel

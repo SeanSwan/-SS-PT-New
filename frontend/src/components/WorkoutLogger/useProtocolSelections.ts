@@ -26,6 +26,8 @@ export interface UseProtocolSelectionsResult {
   addProtocolFromRolodex: (section: ProtocolSectionKey, exercise: ExerciseSlim) => void;
   removeProtocolItem: (section: ProtocolSectionKey, id: string) => void;
   requestAddForSection: (section: ProtocolSectionKey) => void;
+  /** Open the given bands (plan-driven default state, M5). */
+  openSections: (keys: ProtocolSectionKey[]) => void;
 }
 
 export function useProtocolSelections(
@@ -96,6 +98,16 @@ export function useProtocolSelections(
     setNasmSectionsOpen((prev) => ({ ...prev, [section]: true }));
   }, [openRolodexForSection]);
 
+  /** M5 plan-driven band default: a template load OPENS the bands it filled. */
+  const openSections = useCallback((keys: ProtocolSectionKey[]) => {
+    if (keys.length === 0) return;
+    setNasmSectionsOpen((prev) => {
+      const next = { ...prev };
+      keys.forEach((key) => { next[key] = true; });
+      return next;
+    });
+  }, []);
+
   return {
     selectedWarmup,
     selectedBalanceCore,
@@ -107,5 +119,6 @@ export function useProtocolSelections(
     addProtocolFromRolodex,
     removeProtocolItem,
     requestAddForSection,
+    openSections,
   };
 }
