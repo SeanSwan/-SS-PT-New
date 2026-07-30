@@ -28,6 +28,11 @@
  * body. The clone of that same file exits 128. A backup is only "verified" if something restored
  * from it.
  *
+ * REFUSES TO START WITHOUT ROOM for the bundle AND its restore clone (~2.2x the last bundle).
+ * The header promised `exit 2 ... out of space` long before anything implemented it, so the real
+ * behaviour was to fill the disk and fail mid-write — the same failure that cost this session a
+ * worktree checkout on a 96%-full C:. Nothing is written or pruned when it refuses.
+ *
  * WHAT IT DOES NOT CAPTURE: uncommitted working-tree edits, untracked files, and anything in
  * .gitignore (.env, node_modules, the coordination/ and hermes-inbox/ local stores). This is a
  * backup of COMMITTED HISTORY. Uncommitted work is protected by committing it, not by this script.
@@ -38,7 +43,9 @@
  *   node scripts/backup-repo.mjs --keep 20       # retention (default 10)
  *   node scripts/backup-repo.mjs --help
  *
- * ENV: SWAN_BACKUP_DIR overrides the target directory.
+ * ENV: SWAN_BACKUP_DIR       target directory (default Z:/SwanStudios-backups)
+ *      SWAN_BACKUP_MIN_FREE minimum free bytes required before starting; raises the computed
+ *                           requirement (~2.2x the last bundle, for bundle + restore clone)
  *
  * EXIT CODES: 0 = a verified bundle exists · 1 = verification FAILED (no trustworthy backup) ·
  *             2 = could not run (no git, target unwritable, out of space).
@@ -179,6 +186,47 @@ function main() {
     console.error(`  target not writable: ${DEST}`);
     console.error('  set SWAN_BACKUP_DIR to a writable path on a DIFFERENT disk than the repo');
     process.exit(2);
+  }
+
+  // Refuse to start without room for BOTH the bundle and its restore test.
+  //
+  // The header has always documented "exit 2 ... out of space" — but nothing implemented it, so the
+  // real behaviour was to fill the disk and fail mid-write. That is not academic: the session that
+  // prompted this script lost a worktree checkout to a full C: drive.
+  //
+  // A run needs roughly 2x the bundle size, because proveRestorable() clones the bundle into a temp
+  // dir on the SAME volume before deleting it. Sizing from the newest existing bundle is the best
+  // available estimate; with none to go on, fall back to the .git directory's own size.
+  const prior = existingBundles()[0];
+  let estimate = 1024 ** 3; // 1GB fallback — better to over-reserve than to fill the disk
+  try {
+    if (prior) {
+      estimate = fs.statSync(prior.p).size;
+    } else {
+      // No bundle to size from: ask git how big its object store is. `size-pack` is in KiB.
+      const kib = Number((git(['count-objects', '-v']).match(/^size-pack:\s*(\d+)/m) || [])[1]);
+      if (Number.isFinite(kib) && kib > 0) estimate = kib * 1024;
+    }
+  } catch { /* keep the 1GB fallback */ }
+  // SWAN_BACKUP_MIN_FREE raises the requirement (bytes). Two purposes: it lets you demand real
+  // headroom on a shared volume, and it makes the refusal path testable — an untested blocking path
+  // is exactly where this script previously hid a bug that deleted a good backup.
+  const floor = Number(process.env.SWAN_BACKUP_MIN_FREE || 0);
+  const needed = Math.max(Math.round(estimate * 2.2), Number.isFinite(floor) ? floor : 0);
+  try {
+    const st = fs.statfsSync(DEST);
+    const free = st.bavail * st.bsize;
+    if (free < needed) {
+      console.error(`  INSUFFICIENT SPACE at ${DEST}`);
+      console.error(`    free ${human(free)}, need ~${human(needed)} (bundle + restore test)`);
+      console.error('    free space, prune bundles (--keep N), or point SWAN_BACKUP_DIR elsewhere.');
+      console.error('    Refusing to start rather than filling the disk and failing mid-write.');
+      process.exit(2);
+    }
+    console.log(`  space        : ${human(free)} free, ~${human(needed)} needed`);
+  } catch {
+    // statfs unavailable on this platform/path — proceed rather than block a backup over telemetry.
+    console.log('  space        : could not measure (proceeding)');
   }
 
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
