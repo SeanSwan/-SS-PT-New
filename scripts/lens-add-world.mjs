@@ -44,9 +44,24 @@ export function renderWorldRecipeStub(id) {
  * WORLD RECIPE — ${id} (${family}) · Swan World Engine  [SCAFFOLD — art-direct me]
  * DNA: <one-line DNA>. Impossible phenomenon: <the ONE optical trick>.
  * Signature motion: <beat>. Surface fit: <surface>. (Master build prompt §1.)
+ *
+ * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout
+ * surface with no chart slot — the strictest host): rounded-athletic display /
+ * soft-sans body / floating-candy surface / arcade-cards collection / glass-dock
+ * action / arcade-meter chart / playfield-stack template.
+ *
  * Law A: chrome stays Crystalline Swan tokens; the world paints only --world-*.
- * TODO(author): tune tokens + component variants for this world's DNA, then add
- *   to worlds/registry.ts BUILT_RECIPES and flip the ledger status via wave slice.
+ *
+ * TODO(author) — this scaffold is NOT registrable as-is:
+ *  1. The codeword above is a placeholder and WILL collide with a built world.
+ *     Change it, then update this header to match — docTruth.test.ts diffs the
+ *     prose against the object and fails the build if they disagree.
+ *  2. Any family/weight you choose must be loaded by frontend/index.html, in the
+ *     ITALIC axis too if you pick a display variant that slants (vaulted-editorial).
+ *     fontLoading.test.ts enforces this.
+ *  3. Register in worlds/registry.ts BUILT_RECIPES. That is the ONLY edit —
+ *     catalogV2Map derives itself from the registry, and the ledger reads its
+ *     status from the registry too. Then update the counts in registry.test.ts.
  */
 import type { RecipeV2 } from '../../../../core/style-lens-os/v2/recipeV2';
 import { RECIPE_SHARED } from '../recipeShared';
@@ -71,7 +86,7 @@ export const ${CONST}: RecipeV2 = {
     'mobile-minimal': { template: 'playfield-stack' },
   },
   components: {
-    'text.display': { variant: 'vaulted-editorial' },
+    'text.display': { variant: 'rounded-athletic' },
     'text.body': { variant: 'soft-sans' },
     'surface.card': { variant: 'floating-candy' },
     'collection.exercise': { variant: 'arcade-cards' },
