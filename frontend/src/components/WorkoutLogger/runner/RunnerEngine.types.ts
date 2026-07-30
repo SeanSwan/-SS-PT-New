@@ -7,8 +7,9 @@
  * mid-session loses nothing. Contract v2 (drafts/undo/focus/announce)
  * lands with the Sheet Stack slice — see RUNNER-STYLES-FINAL-10 §engine.
  */
-import type { ReactNode } from 'react';
-import type { ExerciseEntry } from '../../../services/nasmApiService';
+import type { ComponentProps, ReactNode } from 'react';
+import type ExerciseSetRowComponent from '../ExerciseSetRowComponent';
+import type { ExerciseEntry, ExerciseSet } from '../../../services/nasmApiService';
 
 export interface RunnerRestControls {
   isRunning: boolean;
@@ -23,6 +24,22 @@ export interface RunnerSessionStats {
   totalSets: number;
 }
 
+/**
+ * Set-row primitives for LEDGER-shell skins that compose the proven
+ * ExerciseSetRowComponent directly (keypad, ghost prefill, logged colors
+ * stay in ONE place — skins never re-implement input behavior).
+ */
+export interface RunnerRowActions {
+  onUpdateSet: <K extends keyof ExerciseSet>(exerciseIndex: number, setIndex: number, field: K, value: ExerciseSet[K]) => void;
+  onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
+  onAddSet: (exerciseIndex: number) => void;
+  onRemoveExercise: (exerciseIndex: number) => void;
+  /** Starts the rest timer for the just-logged set. */
+  onSetLogged: (exerciseIndex: number, setIndex: number) => void;
+  getOverload?: ComponentProps<typeof ExerciseSetRowComponent>['getOverload'];
+  getLastWeight?: ComponentProps<typeof ExerciseSetRowComponent>['getLastWeight'];
+}
+
 export interface RunnerEngine {
   exercises: ExerciseEntry[];
   /** Renders the full proven exercise card (all logging behavior included). */
@@ -31,6 +48,7 @@ export interface RunnerEngine {
   rest: RunnerRestControls;
   /** Opens the exercise Rolodex (search & add). */
   openRolodex: () => void;
+  rows: RunnerRowActions;
 }
 
 /**

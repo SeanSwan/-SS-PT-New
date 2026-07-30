@@ -13,6 +13,15 @@ import type { RunnerEngine } from './RunnerEngine.types';
 import type { RunnerStyleId } from './runnerStyles';
 import { useRunnerStyle } from './useRunnerStyle';
 import FocusFlowSkin from './FocusFlowSkin';
+import LedgerProSkin from './LedgerProSkin';
+import SheetStackSkin from './SheetStackSkin';
+
+/** Shipped skin components by style id (classic renders host-side). */
+const SKIN_BY_STYLE: Partial<Record<RunnerStyleId, React.ComponentType<{ engine: RunnerEngine }>>> = {
+  'focus-flow': FocusFlowSkin,
+  'ledger-pro': LedgerProSkin,
+  'sheet-stack': SheetStackSkin,
+};
 
 interface RunnerCollectionProps {
   engine: RunnerEngine;
@@ -64,9 +73,10 @@ const RunnerCollection: React.FC<RunnerCollectionProps> = ({
     return <>{quickLogActive && renderQuickLog ? renderQuickLog() : renderClassicList()}</>;
   }
 
+  const Skin = SKIN_BY_STYLE[styleId] ?? FocusFlowSkin;
   return (
     <RunnerSkinBoundary resetKey={styleId} fallback={renderClassicList}>
-      <FocusFlowSkin engine={engine} />
+      <Skin engine={engine} />
     </RunnerSkinBoundary>
   );
 };

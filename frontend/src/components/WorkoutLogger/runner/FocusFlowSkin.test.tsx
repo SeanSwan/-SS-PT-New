@@ -28,6 +28,10 @@ const makeEngine = (overrides: Partial<RunnerEngine> = {}): RunnerEngine => ({
   stats: { completedSets: 3, totalSets: 6 },
   rest: { isRunning: false, secondsLeft: 0, stop: vi.fn(), extend: vi.fn() },
   openRolodex: vi.fn(),
+  rows: {
+    onUpdateSet: vi.fn(), onRemoveSet: vi.fn(), onAddSet: vi.fn(),
+    onRemoveExercise: vi.fn(), onSetLogged: vi.fn(),
+  },
   ...overrides,
 });
 

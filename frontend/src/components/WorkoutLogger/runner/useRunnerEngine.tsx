@@ -105,7 +105,19 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
       extend: (seconds: number) => restTimer.start(Math.max(1, restTimer.secondsLeft + seconds)),
     },
     openRolodex,
-  }), [exercises, renderExerciseCard, stats, restTimer, openRolodex]);
+    rows: {
+      onUpdateSet,
+      onRemoveSet,
+      onAddSet,
+      onRemoveExercise,
+      onSetLogged,
+      getOverload: ghostPreFill.getOverload,
+      getLastWeight,
+    },
+  }), [
+    exercises, renderExerciseCard, stats, restTimer, openRolodex,
+    onUpdateSet, onRemoveSet, onAddSet, onRemoveExercise, onSetLogged, ghostPreFill, getLastWeight,
+  ]);
 
   return { engine, renderClassicList, renderQuickLog };
 }

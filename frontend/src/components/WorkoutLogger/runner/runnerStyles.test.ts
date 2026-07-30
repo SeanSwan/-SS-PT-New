@@ -31,7 +31,7 @@ describe('runnerStyles store', () => {
   });
 
   it('rejects unshipped styles at write AND read (stale key safety)', () => {
-    writeRunnerStyle('sheet-stack');
+    writeRunnerStyle('world-immersion');
     expect(readRunnerStyle()).toBe(DEFAULT_RUNNER_STYLE);
     window.localStorage.setItem('ss.runner.style.v1', 'stadium-hud');
     expect(readRunnerStyle()).toBe(DEFAULT_RUNNER_STYLE);
@@ -39,10 +39,10 @@ describe('runnerStyles store', () => {
     expect(readRunnerStyle()).toBe(DEFAULT_RUNNER_STYLE);
   });
 
-  it('registry: all 10 final styles + classic are present; exactly two ship in v1', () => {
+  it('registry: all 10 final styles + classic are present; the Flawless tier ships', () => {
     expect(RUNNER_STYLES).toHaveLength(11);
     const shipped = RUNNER_STYLES.filter((s) => s.shipped).map((s) => s.id);
-    expect(shipped.sort()).toEqual(['classic-ledger', 'focus-flow']);
+    expect(shipped.sort()).toEqual(['classic-ledger', 'focus-flow', 'ledger-pro', 'sheet-stack']);
     RUNNER_STYLES.forEach((style) => {
       expect(style.name.length).toBeGreaterThan(0);
       expect(style.tagline.length).toBeGreaterThan(0);

@@ -34,8 +34,8 @@ export interface RunnerStyleMeta {
 export const RUNNER_STYLES: readonly RunnerStyleMeta[] = Object.freeze([
   { id: 'focus-flow', name: 'Focus Flow', tagline: 'One exercise at a time — giant NOW state, thumb-zone controls', tier: 'tier1', shipped: true },
   { id: 'classic-ledger', name: 'Classic Ledger', tagline: 'The full-session card stack — everything visible, scrolling', tier: 'tier1', shipped: true },
-  { id: 'sheet-stack', name: 'Sheet Stack', tagline: 'iOS-native bottom-sheet ergonomics — everything at the thumb', tier: 'tier1', shipped: false },
-  { id: 'ledger-pro', name: 'Ledger Pro', tagline: 'The perfected dense table for power users', tier: 'tier1', shipped: false },
+  { id: 'sheet-stack', name: 'Sheet Stack', tagline: 'iOS-native bottom-sheet ergonomics — everything at the thumb', tier: 'tier1', shipped: true },
+  { id: 'ledger-pro', name: 'Ledger Pro', tagline: 'The perfected dense table for power users', tier: 'tier1', shipped: true },
   { id: 'target-card', name: 'Target Card', tagline: 'Target vs last time with steppers — most sets log in one tap', tier: 'labs', shipped: false },
   { id: 'split-zen', name: 'Split Zen', tagline: 'Viewport-scale numerals for the arm’s-length glance', tier: 'labs', shipped: false },
   { id: 'ghost-rival', name: 'Ghost Rival', tagline: 'Your previous session races beside you as a ghost', tier: 'labs', shipped: false },
