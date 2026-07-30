@@ -25,6 +25,7 @@ import {
   ProgressRail,
   RailChip,
   RailDot,
+  RailGroup,
   RestAction,
   RestReadout,
   SessionMeter,
@@ -32,8 +33,9 @@ import {
 } from './FocusFlowSkin.styles';
 
 const formatRest = (totalSeconds: number): string => {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
+  const clamped = Math.max(0, totalSeconds);
+  const m = Math.floor(clamped / 60);
+  const s = clamped % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
@@ -79,26 +81,29 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
 
   return (
     <FocusShell data-runner-skin='focus-flow'>
-      <ProgressRail role='tablist' aria-label='Exercises in this session'>
-        {exercises.map((exercise, index) => {
-          const state = chipState(index);
-          return (
-            <RailChip
-              key={getExerciseEntryRowKey(exercise)}
-              type='button'
-              role='tab'
-              aria-selected={index === activeIndex}
-              aria-label={`${exercise.exerciseName}${state === 'done' ? ', completed' : ''}`}
-              $state={state}
-              onClick={() => setActiveIndex(index)}
-            >
-              <RailDot $state={state} aria-hidden='true'>
-                {state === 'done' ? '' : index + 1}
-              </RailDot>
-              {exercise.exerciseName}
-            </RailChip>
-          );
-        })}
+      {/* Add lives OUTSIDE the tablist — a tablist may contain only tabs. */}
+      <ProgressRail>
+        <RailGroup role='tablist' aria-label='Exercises in this session'>
+          {exercises.map((exercise, index) => {
+            const state = chipState(index);
+            return (
+              <RailChip
+                key={getExerciseEntryRowKey(exercise)}
+                type='button'
+                role='tab'
+                aria-selected={index === activeIndex}
+                aria-label={`${exercise.exerciseName}${state === 'done' ? ', completed' : ''}`}
+                $state={state}
+                onClick={() => setActiveIndex(index)}
+              >
+                <RailDot $state={state} aria-hidden='true'>
+                  {state === 'done' ? '' : index + 1}
+                </RailDot>
+                {exercise.exerciseName}
+              </RailChip>
+            );
+          })}
+        </RailGroup>
         <RailChip
           type='button'
           $state='pending'

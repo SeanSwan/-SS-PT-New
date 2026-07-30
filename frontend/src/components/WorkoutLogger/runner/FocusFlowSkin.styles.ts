@@ -8,9 +8,10 @@ import styled, { css, keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { TRAIN } from '../../../styles/train-tokens';
 
+/* Pulse rides the Lens seam — the world's accent, never a hardcoded cyan. */
 const focusPulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(96, 192, 240, 0.35); }
-  100% { box-shadow: 0 0 0 12px rgba(96, 192, 240, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--world-accent, #60C0F0) 35%, transparent); }
+  100% { box-shadow: 0 0 0 12px transparent; }
 `;
 
 export const FocusShell = styled.div`
@@ -27,6 +28,12 @@ export const ProgressRail = styled.div`
   padding: 4px 2px 8px;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+`;
+
+/* Tabs-only group inside the rail (tablist purity — Add sits outside). */
+export const RailGroup = styled.div`
+  display: flex;
+  gap: 8px;
 `;
 
 export const RailChip = styled.button<{ $state: 'pending' | 'active' | 'done' }>`
