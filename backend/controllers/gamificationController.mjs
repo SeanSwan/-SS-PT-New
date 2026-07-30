@@ -419,9 +419,18 @@ import {
   validateSelectedRankTitleKey,
 } from '../utils/gamificationRankTitles.mjs';
 
-// Safe attribute list for UserAchievement — only columns from the .cjs migration.
-// The model defines extra fields (maxProgress, etc.) that don't exist in the
-// migration-created table, so we MUST use explicit attributes.
+// Explicit attribute list for UserAchievement — the real "UserAchievements" columns.
+//
+// HISTORY (rule 76): this list existed because the model declared ~45 attributes (maxProgress,
+// progressPercentage, …) that are not columns, so any unscoped SELECT threw. That was a
+// workaround for a KNOWN, DOCUMENTED drift that was left live for months — the comment here was
+// the fossil that recorded it. The model was fixed to schema truth in SWA-87 (2026-07-29) and now
+// declares exactly these columns, so this list is no longer load-bearing.
+//
+// Kept deliberately: it pins the query shape, so a future re-widening of the model cannot silently
+// change what these endpoints select. It must stay in sync with the model's real attributes —
+// `audit-model-health` / `audit-write-paths` are the checks that catch it if it drifts again.
+//
 // NOTE: Achievement queries do NOT need explicit attrs because the Achievements
 // table was model-created (via Sequelize sync), so ALL model columns exist.
 const SAFE_USER_ACHIEVEMENT_ATTRS = [

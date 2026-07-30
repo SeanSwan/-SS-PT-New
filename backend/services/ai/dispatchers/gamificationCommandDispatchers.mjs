@@ -101,7 +101,13 @@ export const dispatchViewXpStreaks = async (params, ctx) => {
     activeStreaks: streakRows.length,
     longestStreak: streakRows.reduce((max, streak) => Math.max(max, toNumber(streak.longestCount)), 0),
     completedAchievements: achievementRows.filter((achievement) => achievement.isCompleted).length,
-    newAchievements: achievementRows.filter((achievement) => achievement.isNew).length,
+    // "New" = earned but not yet notified. There is no `isNew` column in "UserAchievements", so
+    // the previous `achievement.isNew` read was `undefined` on every row and this count was
+    // silently ALWAYS 0 — wrong data rather than an error, which is why it went unnoticed
+    // (rule 58 / rule 76, verified 2026-07-29). Matches the client-facing
+    // `my_streaks_badges` definition in clientSelfServiceReadDispatchers.
+    newAchievements: achievementRows
+      .filter((achievement) => achievement.isCompleted && !achievement.notificationSent).length,
   };
 };
 
