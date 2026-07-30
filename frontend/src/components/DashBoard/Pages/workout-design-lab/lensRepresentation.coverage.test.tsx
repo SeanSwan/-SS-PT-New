@@ -156,6 +156,31 @@ describe('lens representation · a11y + data-legibility bans (hostile round 3)',
   it('the representation layer animates nothing (reduced-motion safe by construction)', () => {
     expect(CSS).not.toMatch(/(^|[\s;])(animation|transition)\s*:/);
   });
+
+  it('no variant shrinks a control below the 44px touch floor (Rule 2)', () => {
+    // Action variants restyle the button row. A variant rule that set a smaller
+    // min-height would silently undercut the 44px floor on exactly the surfaces
+    // the world repaints — and no existing gate reads variant CSS.
+    for (const match of CSS.matchAll(/min-height:\s*(\d+)px/g)) {
+      expect(
+        Number(match[1]),
+        `a representation rule sets min-height: ${match[1]}px, below the 44px touch floor`,
+      ).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  it('no variant hides an action behind :hover (no hover-only affordances)', () => {
+    // CLAUDE.md card standard: client/data surfaces may not require hover to
+    // operate. A `:hover { display/visibility/opacity }` rule in the
+    // representation layer would make a control unreachable on touch.
+    const hoverBlocks = [...CSS.matchAll(/:hover[^{]*\{([^}]*)\}/g)].map((m) => m[1]);
+    for (const body of hoverBlocks) {
+      expect(
+        body,
+        `a :hover rule toggles visibility — touch users would lose the control: ${body}`,
+      ).not.toMatch(/(display|visibility|opacity)\s*:/);
+    }
+  });
 });
 
 describe('lens representation · hooks are real (DOM proof through LensPlanFrame)', () => {
