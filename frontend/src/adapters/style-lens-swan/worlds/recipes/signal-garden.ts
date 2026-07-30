@@ -27,7 +27,7 @@ export const SIGNAL_GARDEN_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.signal-garden.v2',
   tokens: {
-    'world-title-font': "700 clamp(30px, 3.8vw, 56px)/1.06 Sora, 'Plus Jakarta Sans', sans-serif",
+    'world-title-font': "750 clamp(30px, 3.8vw, 56px)/1.06 Sora, 'Plus Jakarta Sans', sans-serif",
     'world-letter-spacing': '-0.015em',
     'world-panel-radius': '18px',
     'world-row-radius': '10px',

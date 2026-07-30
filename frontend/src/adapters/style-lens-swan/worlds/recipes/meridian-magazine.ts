@@ -27,7 +27,7 @@ export const MERIDIAN_MAGAZINE_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.meridian-magazine.v2',
   tokens: {
-    'world-title-font': "400 clamp(32px, 4.2vw, 64px)/1.04 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
+    'world-title-font': "600 clamp(32px, 4.2vw, 64px)/1.04 'Cormorant Garamond', 'Plus Jakarta Sans', serif",
     'world-letter-spacing': '-0.012em',
     'world-panel-radius': '6px',
     'world-row-radius': '4px',

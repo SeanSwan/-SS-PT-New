@@ -27,7 +27,7 @@ export const ANALOG_FLIGHT_RECORDER_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.analog-flight-recorder.v2',
   tokens: {
-    'world-title-font': "500 clamp(24px, 3vw, 42px)/1.12 'Fira Code', monospace",
+    'world-title-font': "700 clamp(24px, 3vw, 42px)/1.12 'Fira Code', monospace",
     'world-letter-spacing': '0.02em',
     'world-panel-radius': '3px',
     'world-row-radius': '2px',

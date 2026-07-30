@@ -23,7 +23,7 @@ export const COACH_LEDGER_RECIPE: RecipeV2 = {
   ...RECIPE_SHARED,
   id: 'swan.coach-ledger.v2',
   tokens: {
-    'world-title-font': "500 clamp(24px, 3vw, 44px)/1.1 'Fira Code', monospace",
+    'world-title-font': "600 clamp(24px, 3vw, 44px)/1.1 'Fira Code', monospace",
     'world-letter-spacing': '0.01em',
     'world-panel-radius': '6px',
     'world-row-radius': '4px',
