@@ -1,4 +1,4 @@
-# Swan Lens World Engine — 11-round hostile dry-loop + Waves 2-4 (SWA-69)
+# Swan Lens World Engine — 22-round hostile dry-loop (DRY) + Waves 2-4 (SWA-69)
 
 - **Surface:** Workout Design Lab / Style Lens OS v2 (`frontend/src/adapters/style-lens-swan/`)
 - **Branch:** `claude/build-swan-lens` (git worktree). **Committed, NOT pushed** — batch cadence, Sean pushes.
@@ -42,9 +42,25 @@ still fail-closed, so this is zero live-user risk until Sean's Slice-15 flip.
    gzip. **When a shared barrel imports something heavy, check what it actually
    reads.**
 
-6. **The round that applied a fix is the next round's best target.** Rounds 3 and
-   10 attacked the two preceding fixes and found real a11y and type defects in
-   freshly written code. Never treat your own last patch as verified.
+6. **The round that applied a fix is the next round's best target.** Rounds 3,
+   10, 13, 17 and 20 each attacked the immediately preceding fix and found real
+   defects in freshly written code — a11y bugs, type errors, a corrected doc that
+   still contradicted its own CLI, a marker inserted in the wrong place, and a
+   number that went stale the moment it was committed. Never treat your own last
+   patch as verified.
+
+7. **Read the tool, then RUN it.** Reading the world generator found two defects.
+   Executing it found a third that reading had missed: the fix had corrected the
+   file header but left the CLI printing the opposite guidance.
+
+8. **Check the baseline before trusting the diff.** Local `main` was 567 commits
+   stale, so every `main...HEAD` measurement was against a phantom baseline and
+   reported ~2,553 changed files for a 42-file session. The standing
+   "verify branch freshness first" law existed; it took 18 rounds to apply it.
+
+9. **A number in a doc is a liability.** The branch-ahead count went stale on the
+   very next commit. Docs should carry the COMMAND and stamp the measurement,
+   not just the answer.
 
 ## Owed to Sean (blocking nothing today)
 - **SWA-103 (High):** add the missing font links to `index.html`. Repo-wide, and
@@ -52,3 +68,6 @@ still fail-closed, so this is zero live-user risk until Sean's Slice-15 flip.
   degrade deliberately and auto-upgrade the day it lands.
 - Push to Render, the Slice-15 go-live flip, and the theme-collapse track remain
   Sean-gated and untouched.
+- **The branch has DIVERGED**: `origin/main` is ~98 commits ahead, this branch
+  ~39 ahead. Zero file overlap (verified), so the rebase is conflict-free at the
+  file level — but Rule 70 requires rebase-then-re-verify before any push.
