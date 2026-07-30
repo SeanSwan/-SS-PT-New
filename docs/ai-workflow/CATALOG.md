@@ -1,7 +1,7 @@
 # CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches `git ls-files -s <path>` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via `node scripts/catalog-regen.mjs`. Regeneration is T2 (reads repo, writes only this file).
-> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (539 files) · Regenerated 2026-07-30 by scripts/catalog-regen.mjs.
+> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (558 files) · Regenerated 2026-07-30 by scripts/catalog-regen.mjs.
 > **Usage:** `rg -i "<topic>" docs/ai-workflow/CATALOG.md` — grep, do not load wholesale.
 
 ## AI-HANDOFF (paths relative to docs/ai-workflow/AI-HANDOFF/)
@@ -24,6 +24,7 @@
 | AI-VILLAGE-REVIEW-REQUEST.md | 2025-11-10 | village | AI Village vote request on admin dashboard rebuild blueprint after a production-blocking styled-components error; consensus incomplete (2/6 votes collected) at time of doc. | open | 2a13285b0145 |
 | API-CONTRACT-DRIFT-AUDIT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | c5d525aa17a9 |
 | APPLAUD-LOCAL-SYNC-AUDIT-RECORD-2026-05-14.md | 2026-05-14 | codex | APPLAUD local folder sync (Windows launcher, audio watcher, suggested clip groups, merge UI) implemented and tested locally but not pushed to main. | open | 7f4505b90259 |
+| AUTH-METHOD-ROLLOUT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 47bd77cc4eb6 |
 | BACKEND-ORPHAN-INVENTORY-2026-07-28.md | 2026-07-28 | unknown | NEEDS DISTILLATION | stale | 2b7625c3358e |
 | BACKEND-PAYMENT-IDEMPOTENCY-LANE-WORKLOG-2026-05-20.md | 2026-05-20 | codex | Backend-only payment idempotency hardening (Stripe checkout, admin card charges, ACH retries, session credits, print orders) prepared as a local commit slice, not yet staged/pushed. | open | 709b3808d25a |
 | BLUEPRINT-dictation-planner-logger-sync-2026-07-14/00-README.md | 2026-07-14 | fable | Blueprint package for planner-Coach dictation, logger dictation, and last-weight suggestions build; builder contract binding | shipped | 7b170d95645c |
@@ -72,6 +73,7 @@
 | COACH-COMMAND-PHASE-1C-QUICK-CLIENT-CAPTURE-AUDIT-RECORD-2026-05-14.md | 2026-05-14 | codex | Coach Command Phase 1C added quick client-capture form and live queue rail to the admin command center, reusing the existing onboarding endpoint; approved for push pending full build/smoke. | shipped | d0f00f3ea96a |
 | COACH-COMMAND-PLAUD-UNIFIED-WORKFLOW-AI-VILLAGE-PROMPT-2026-05-14.md | 2026-05-14 | village | Planning prompt to unify Coach Command Center with PLAUD/AppLaude voice intake, staged workout-log approval, and minimal client creation, preserving an operator-approval-only write model. | open | 488f6324e72f |
 | COACH-COMMAND-REAL-CONVERSATIONS-AUDIT-RECORD-2026-05-14.md | 2026-05-14 | codex | Coach Command Center Phase 1 wired real AI-chat conversations (replacing static prototype threads) into the admin route; implemented locally, not pushed, after AI Village approved the sequencing. | open | 5cce3f67f281 |
+| COACH-CONTEXT-SCHEMA-DRIFT-PATCH-FOR-CODEX-2026-07-22.md | 2026-07-22 | unknown | NEEDS DISTILLATION | stale | 7c37ae2c5b2c |
 | COACH-HIVE-MIND-C0-CANONICAL-RECEIPT-2026-07-24.md | 2026-07-24 | unknown | NEEDS DISTILLATION | stale | a756b6905008 |
 | COACH-HIVE-MIND-C1-PIPELINE-TRACE-2026-07-25.md | 2026-07-25 | unknown | NEEDS DISTILLATION | stale | 201af85a74bd |
 | COACH-HIVE-MIND-C5-DESIGN-CONTRACT-2026-07-25.md | 2026-07-25 | unknown | NEEDS DISTILLATION | stale | b2407f95c09d |
@@ -223,6 +225,7 @@
 | HOMEPAGE-REVIEW-PROMPT.md | unknown | claude | Review prompt instructing an AI to Playwright-test the homepage redesign at multiple breakpoints and validate against Galaxy-Swan theme and UI/UX Pro Max standards | open | 0c2e7c112b69 |
 | HOSTILE-REVIEW-CONTINUATION-PROMPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | f527317c7d80 |
 | HOSTILE-REVIEW-RECONCILIATION-HANDOVER-2026-07-12.md | 2026-07-12 | fable | Five hostile-review rounds (~34 bugs incl. revenue double-count, IDOR, PR data-loss) merged and verified green, handed to Codex to finish 6 open lanes and push | open | 2b9287b1b47d |
+| HOSTILE-ROUNDS-17-38-CLOSEOUT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 74cb02d54a95 |
 | KILO-CODE-STATUS.md | 2025-11-11 | multi | Kilo Code (6th AI Village member, boot camp/group training specialist) completes QA review of dashboard architecture fix; approval conditional on error boundaries, accessibility checks, edge cases, rollback verification | consensus | 3381eec2d45e |
 | KIMI-ABOUT-BLUEPRINT-2026-07-17.md | 2026-07-17 | kimi | Kimi hostile review of About page blueprint: SEND-BACK, signature moment and CTA undefined, token fallbacks unenforceable | superseded | b123cbffc39f |
 | KIMI-ABOUT-DIRECTION-2026-07-18.md | 2026-07-18 | kimi | Kimi review of About V-next direction: SHIP-WITH-CHANGES, but the drawn-swan hero contradicts the optics-not-creatures thesis | open | e3ca8880544b |
@@ -268,6 +271,8 @@
 | KIMI-VIDEO-BLUEPRINT-2026-07-17.md | 2026-07-17 | kimi | SEND-BACK verdict on Video Library refactor brief: missing signature moment, weak CTA hierarchy, no perf budget; recommends a Refraction System | open | b23efa083afc |
 | KIMI-VIDEO-DIRECTION-2026-07-18.md | 2026-07-18 | kimi | SEND-BACK verdict on Video creative-direction seed: no committed optical mechanism, dispersion risks Galaxy-Swan palette, no loudness budget | open | 83da34352bed |
 | KIMI-VIDEO-DIRECTION-SEED-2026-07-18.md | 2026-07-18 | kimi | Seed brief asking Kimi to specify the Video Library refraction signature, visual language, and grid/pagination elevation | open | de87788d4ec4 |
+| KIMI-WORKOUT-OS-INDEPENDENT-PLAN-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 1c92b678f1f2 |
+| KIMI-WORKOUT-OS-REVIEW-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | de7c75bd9649 |
 | KIMI-WORKOUT-SECTION-ENHANCEMENTS-2026-07-18.md | 2026-07-18 | kimi | SHIP-WITH-CHANGES verdict on Workout section: specs the Post-Save Proof Screen as build #1 plus ranked logger/planner/bootcamp enhancements | open | d55a759ae5c3 |
 | KIMI-WORLD-ATMOSPHERE-ENHANCED-2026-07-17.md | 2026-07-17 | multi | Kimi K3 hostile review of WorldAtmosphere enhancement work order: SHIP-WITH-CHANGES; flags "subject-matter trap" (fauna/whales are clip-art not atmosphere), unmechanized anti-distraction contract, translucency/mobile issues; proposes "phenomena, never creatures" reframe | open | 19d9d250c90f |
 | LANE1-WORKOUT-CORE-AUDIT-RECORD-2026-07-13.md | 2026-07-13 | fable | Rule-48 audit: Lane 1 workout logger/planner Lens conversion + canonical naming registry shipped across 4 commits, merged with parallel main | shipped | 3f567c141bd9 |
@@ -441,6 +446,7 @@
 | STYLE-LENS-OS-SENTINEL-FABLE-REVISION-1-2026-07-11.md | 2026-07-11 | claude | Resubmission closing Fable's contrast/persistence/accessibility blockers and locking the Workout Design Lab 25+25 IA, still awaiting APPROVE | open | c50c27360728 |
 | STYLE-LENS-OS-SENTINEL-FABLE-REVISION-2-2026-07-11.md | 2026-07-11 | claude | Precision amendment with exact Playwright evidence and tightened expansion rules, requesting APPROVE for lenses 6-25 | open | 81d4c34068a8 |
 | SWA-71-CLEANUP-LOOP-HANDOFF-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 001494d72e05 |
+| SWA-71-CLEANUP-LOOP-HANDOFF-2026-07-30.md | 2026-07-30 | unknown | NEEDS DISTILLATION | stale | c3fe526abde0 |
 | SWAN-BRAIN-ARCHITECTURE-DECISION-2026-07-19.md | 2026-07-19 | kimi | Decided a hybrid two-tier retrieval architecture (no vector DB) reusing an existing Hermes FTS brain-vault; killed the fictional Obsidian/Karpathy Wiki/Graphify systems | consensus | a9155135e71f |
 | SWAN-COACH-A1-CONTEXT-ENGINE-PLAN-2026-06-10.md | 2026-06-10 | claude | Plan (awaiting Sean gate) for a coach context-assembly engine plus fail-closed client-access authorization helper and brief_client command; not yet built. | open | 12ea8696ab29 |
 | SWAN-COACH-B1-STREAMING-SPEED-PLAN-2026-06-10.md | 2026-06-10 | claude | B1a perceived-speed UI shipped; true token streaming (B1b) gated on a live SSE spike deployed but awaiting Sean to flip env var and record the verdict. | open | 2afd6abd8124 |
@@ -454,6 +460,9 @@
 | SWAN-CORTEX-UNIFIED-BRAIN-MASTER-DIRECTIVE-2026-07-12.md | 2026-07-12 | fable | Ratified master directive unifying Swan Coach into one NASM-governed brain, cataloguing P0 safety defects to fix before any new intelligence work | consensus | 4390039fbbbe |
 | SWAN-DESIGN-BRAIN-VISUAL-LEDGER-UPGRADE-PLAN-2026-07-25.md | 2026-07-25 | unknown | NEEDS DISTILLATION | stale | 12dbab1dc4ad |
 | SWAN-DESIGN-OVERHAUL-PROGRAM-TRACKER-2026-07-18.md | 2026-07-18 | claude | Tracks the 14-surface Crystalline redesign program; 7 surfaces shipped flag-off to main, Gallery surface pushed dark pending triangle QA | stale | 3b4c133d9d4b |
+| SWAN-LENS-AUDIT-AND-UPGRADE-2026-07-27.md | 2026-07-27 | unknown | NEEDS DISTILLATION | stale | a2b98e524adf |
+| SWAN-LENS-WORLD-ENGINE-HANDOFF-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | a5f5b0ec922c |
+| SWAN-LENS-WORLD-ENGINE-MASTER-BUILD-PROMPT-2026-07-28.md | 2026-07-28 | unknown | NEEDS DISTILLATION | stale | 78838cd86e20 |
 | SWAN-LIVING-WORLD-GENERATOR-MASTER-PROMPT-2026-07-17.md | 2026-07-17 | claude | Draft master prompt (machine that designs cinematic marketing worlds and in-app atmospheres) grounded on Kimi's 3-round spec; pending one hostile-review pass before use. | open | 97f1afcfc1a0 |
 | SWAN-PHOTOGRAPHY-CANONICAL-ADDITIVE-PLAN-2026-07-21.md | 2026-07-21 | unknown | NEEDS DISTILLATION | stale | 05bd1892db83 |
 | SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md | 2026-04-11 | sean | Records the core product vision: Swan Coach as voice-first operating layer, workout-progress-first revenue priority chain, and premium-tier gating strategy. | open | e2b648dc7bd5 |
@@ -471,6 +480,7 @@
 | ULTRA-HOSTILE-AUDIT-SCROLL-SHELL-AUDIT-RECORD-2026-07-16.md | 2026-07-16 | fable | Root-caused and fixed app-wide gummy scroll (unscoped html/body height pin) plus shell criticals (safe-area, auth resilience, 404 page); shipped pending final push | shipped | ee5a3bbbb543 |
 | UNIFIED-BRAIN-WORKOUT-PLANNER-AUDIT-RECORD-2026-07-16.md | 2026-07-16 | codex | Unified command brain + deterministic sequencing engine for the Workout Planner shipped, fixing the rearrange wall-of-text bug with typed outcomes and a safe undo | shipped | 66315b2be1c8 |
 | UNIFIED-BRAIN-WORKOUT-PLANNER-SLICE-0-1-EVIDENCE-2026-07-15.md | 2026-07-15 | codex | Canonical surface receipt proving the Workout Planner rearrange bug's root cause (no typed mutation, silent chat fallback) before any implementation | open | ff093a042032 |
+| UNIFIED-WORKOUT-OS-FABLE-BLUEPRINT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 6325bb3e2399 |
 | UNIFIED-WORLD-CONTINUATION-BLUEPRINT-2026-07-16.md | 2026-07-16 | fable | Handoff enabling any agent to resume the Unified World Redesign gallery generation exactly as Fable would, including recovery and review protocol | open | e898dc8dd9ca |
 | UNIVERSAL-SCHEDULE-CHANGELOG.md | 2026-02-11 | claude | Records the Universal Master Schedule P0 scroll-bug fix and theme-token alignment across 11 files, build/tests passing. | shipped | ca616d436030 |
 | UNIVERSAL-SCHEDULE-CROSS-AI-REVIEW.md | 2026-02-11 | claude | Cross-AI review prompt summarizing 11 responsive/accessibility fixes (2 P0, 4 P1, 5 P2/P3) to the Universal Master Schedule; awaiting review. | open | a84d51502a62 |
@@ -510,6 +520,15 @@
 | WORKOUT-BUILDER-PHASE-B-RECEIPT-2026-04-30.md | 2026-04-30 | claude | Pre-code receipt for Phase B: full IDOR enumeration across all 7 WorkoutPlan routes plus plan for a shared verifyClientAccess middleware and saved-plan click-to-load hydration | open | 65a1a7e4c7fc |
 | WORKOUT-DESIGN-LAB-25PLUS25-RECEIPT-2026-07-11.md | 2026-07-11 | codex | Workout Design Lab combines 25 Worlds + 25 Style Lenses + bounded Compare mode on one shared prototype session; full verification passed, pushed for review only not merged | shipped | 49a712242072 |
 | WORKOUT-DESIGN-LAB-25VIEW-RECEIPT-2026-07-10.md | 2026-07-10 | codex | Pre-implementation canonical surface receipt for the 25-view Workout Design Lab registry/selector/render chain before build; no API/model modified in this slice | open | 7c45e24c98a1 |
+| WORKOUT-OS-C0-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | acf6231430d8 |
+| WORKOUT-OS-C1-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | d7df2faa55ab |
+| WORKOUT-OS-C2-BILLING-MATRIX-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | e477e5b86654 |
+| WORKOUT-OS-C3-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 5bc0b0285c36 |
+| WORKOUT-OS-C4-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 10b430c6cd41 |
+| WORKOUT-OS-C5-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 933d5d90fbd2 |
+| WORKOUT-OS-C6-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | da8c20cbcce3 |
+| WORKOUT-OS-C7-RECEIPT-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 2631bb8fee9a |
+| WORKOUT-OS-PROGRAM-AUDIT-RECORD-2026-07-30.md | 2026-07-30 | unknown | NEEDS DISTILLATION | stale | de33dfec8407 |
 | WORKOUT-SYSTEM-OVERHAUL-CATALOG-2026-04-30.md | 2026-04-30 | sean | Catalog of workout-system UI bugs, architecture items (AI Village pass), sports-specific content, and workflow automation, sequenced UI-fixes-first then architecture then content; several items await Sean's design calls | open | 176b76597910 |
 | WORKOUTS-CURRENT-500-TRIAGE-SLICE-2-RECEIPT-2026-04-30.md | 2026-04-30 | claude | Root cause of GET /api/workouts/:id/current 500 verified as missing WorkoutPlanDay association eager-load against JSONB-based WorkoutPlan; fix proposed as backend-side response adapter, not yet implemented | open | 1b865d36baed |
 | WORKTREE-HYGIENE-SCAN-2026-07-20.md | 2026-07-20 | claude | 111 worktrees inventoried: 47 merged+clean likely removable pending Phase 2 approval, 41 ambiguous dirty/missing, 23 unmerged kept. Non-destructive Rule 32 scan. | open | 51eedaf8a1ab |
