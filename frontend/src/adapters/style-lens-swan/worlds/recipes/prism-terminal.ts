@@ -7,6 +7,11 @@
  * bands, each band becomes a data stream. Surface fit: Coach console, analytics.
  * (Master build prompt §1.)
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout
  * surface with no chart slot — the strictest host): compact-technical-mono display /
  * terminal-mono body / faceted-console surface / command-rows collection /
@@ -15,11 +20,6 @@
  * Moved verbatim from `v2/labRecipes.ts` in Slice 1 (values byte-identical →
  * compiled plan unchanged). Law A: chrome stays Crystalline Swan tokens.
  
- *
- * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
- * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
- * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
- * not a description of what renders today.
 */
 import type { RecipeV2 } from '../../../../core/style-lens-os/v2/recipeV2';
 import { RECIPE_SHARED } from '../recipeShared';

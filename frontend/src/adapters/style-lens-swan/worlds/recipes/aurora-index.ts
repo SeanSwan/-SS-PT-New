@@ -4,16 +4,17 @@
  * DNA: polar night; the sky is a slow curtain of ionized silk. Impossible optical
  * phenomenon: light that falls UPWARD from the horizon. Signature motion: a curtain-fold
  * sweep across the vault ceiling, frost glitter trailing. Surface fit: athlete dashboard.
- * Structural codeword (distinct ≥3 axes from every world): aurora-airy display /
- * signal-grotesk body / lightwell surface / gallery-tiles collection / pill-cluster action /
- * spark-ribbon chart / editorial-column template. Law A: chrome stays Crystalline Swan;
- * the world paints only the setting via --world-* (contrast measured at Slice 8).
- 
  *
  * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
  * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
  * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
  * not a description of what renders today.
+ *
+ * Structural codeword (distinct ≥3 axes from every world): aurora-airy display /
+ * signal-grotesk body / lightwell surface / gallery-tiles collection / pill-cluster action /
+ * spark-ribbon chart / editorial-column template. Law A: chrome stays Crystalline Swan;
+ * the world paints only the setting via --world-* (contrast measured at Slice 8).
+ 
 */
 import type { RecipeV2 } from '../../../../core/style-lens-os/v2/recipeV2';
 import { RECIPE_SHARED } from '../recipeShared';
