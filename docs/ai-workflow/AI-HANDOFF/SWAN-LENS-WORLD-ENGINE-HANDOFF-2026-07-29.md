@@ -25,11 +25,21 @@ Local `main` is **567 commits behind `origin/main`**, so any `main...HEAD` diff 
 ~2,553 files of phantom "changes." Measure against `origin/main`, or against the session base commit for
 "what did this session do."
 
-| Comparison | Count |
-|---|---|
-| `origin/main` ahead of this branch | **98 commits** |
-| this branch ahead of `origin/main` | **37 commits** |
-| this session's own change (`7638c8485..HEAD`) | **42 files, +2558 / −200** |
+Counts below were measured at `7f3adf4da` and **the branch-ahead figure grows with every further commit** — so
+re-measure rather than trusting the number. The commands are the durable part:
+
+```bash
+git rev-list --count main..origin/main      # how stale local main is   (was 567)
+git rev-list --count HEAD..origin/main      # origin/main ahead of us   (was 98)
+git rev-list --count origin/main..HEAD      # us ahead of origin/main   (was 38, GROWS)
+git diff --stat 7638c8485..HEAD             # this session only         (was 42 files, +2558/−200)
+git diff --name-only 7638c8485..HEAD | sort > /tmp/mine       # rebase conflict surface:
+comm -12 /tmp/mine <(git diff --name-only HEAD...origin/main | sort)   # was EMPTY — zero overlap
+```
+
+**Verified at `7f3adf4da`: ZERO file overlap** between this session's 42 files and the 238 files `origin/main`
+touched — it never went near the style-lens adapter or the Lab. The rebase is conflict-free at the file level.
+Re-run the `comm` check before rebasing, since main keeps moving.
 
 `origin/main`'s tip was **16 minutes older than this branch's tip** — main is actively moving (the other agent is
 working). Per Rule 70 the push step is: **rebase onto `origin/main`, then RE-RUN the §5 gates on the rebased tree**
