@@ -83,6 +83,18 @@ export function readDraft(
       savedAt: parsed.savedAt,
     };
   } catch {
+    // Unparseable JSON must be EVICTED, not just skipped. The structurally-invalid
+    // branch above already removes its entry; this one returned null and left the
+    // corrupt value in place, so it lingered in the client's localStorage
+    // indefinitely and every wizard mount re-parsed and re-threw on it. That also
+    // contradicted this function's own contract ("discarding anything malformed").
+    // Removal is itself best-effort — if storage is throwing, there is nothing more
+    // to do and a draft must never break the wizard.
+    try {
+      store.removeItem(draftKeyFor(userId));
+    } catch {
+      /* storage unavailable — nothing further to do */
+    }
     return null;
   }
 }

@@ -62,9 +62,21 @@ describe('onboarding draft persistence', () => {
     expect(readDraft(42)).toBeNull();
   });
 
+  it('EVICTS malformed JSON rather than leaving it to re-throw every mount', () => {
+    // This is the assertion the suite was missing: returning null is not the same
+    // as discarding. The catch branch used to leave the corrupt value in place, so
+    // it survived in the client's localStorage indefinitely and every wizard mount
+    // re-parsed and re-threw on it — while the sibling structurally-invalid branch
+    // did remove its entry.
+    window.localStorage.setItem(draftKeyFor(42), '{not json');
+    readDraft(42);
+    expect(window.localStorage.getItem(draftKeyFor(42))).toBeNull();
+  });
+
   it('discards a structurally invalid draft', () => {
     window.localStorage.setItem(draftKeyFor(42), JSON.stringify({ formData: null, savedAt: Date.now() }));
     expect(readDraft(42)).toBeNull();
+    expect(window.localStorage.getItem(draftKeyFor(42))).toBeNull();
   });
 
   it('defaults a missing step to 0 rather than NaN', () => {
