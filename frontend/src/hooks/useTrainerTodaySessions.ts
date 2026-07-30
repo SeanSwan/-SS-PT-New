@@ -178,7 +178,10 @@ export function buildTrainerSessionBuildPlanRoute(
   const start = getSessionStartDate(session);
   if (start) params.set('sessionDate', start.toISOString());
 
-  return `/dashboard/trainer/build-plan?${params.toString()}`;
+  // Workout-OS C7 (2026-07-29): Build Plan is absorbed into the Workout
+  // Planner. Same params kept — the planner honors clientId/returnTo and
+  // ignores the session-context extras safely.
+  return `/dashboard/trainer/workout-planner?${params.toString()}`;
 }
 
 const isClosedTrainerSession = (session: TrainerSession): boolean =>

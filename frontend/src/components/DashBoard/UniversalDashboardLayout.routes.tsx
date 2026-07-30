@@ -72,8 +72,8 @@ import {
   TrainerEarningsPage,
   TrainerHomeTab,
   TrainerPermissionsManager,
-  TrainerBuildPlanRedirect,
-  TrainerWorkoutForgePage,
+  AdminBuildPlanToPlannerRedirect,
+  TrainerBuildPlanToPlannerRedirect,
   TrainersManagementSection,
   UnifiedOnboardingWizard,
   UniversalSchedule,
@@ -170,7 +170,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       // theme) into the trainer dashboard. That is the mechanism behind
       // "it turns me into a trainer." Mounting them here removes the need to
       // ever leave the admin dashboard. Enforced by dashboardSupersetInvariant.test.ts.
-      { path: '/build-plan', component: TrainerWorkoutForgePage, title: CANONICAL_SURFACES.buildPlan.name, description: 'Draft a client workout with the Swan Coach copilot' },
+      { path: '/build-plan', component: AdminBuildPlanToPlannerRedirect, title: 'Build Plan (moved to Workout Planner)', description: 'Redirects the retired Build Plan surface into the Workout Planner' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
@@ -188,8 +188,8 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
-      { path: '/build-plan', component: TrainerWorkoutForgePage, title: CANONICAL_SURFACES.buildPlan.name, description: 'Draft a client workout with the Swan Coach copilot' },
-      { path: '/workout-forge', component: TrainerBuildPlanRedirect, title: CANONICAL_SURFACES.buildPlan.name, description: 'Redirects the legacy workout-forge path to Build Plan' },
+      { path: '/build-plan', component: TrainerBuildPlanToPlannerRedirect, title: 'Build Plan (moved to Workout Planner)', description: 'Redirects the retired Build Plan surface into the Workout Planner' },
+      { path: '/workout-forge', component: TrainerBuildPlanToPlannerRedirect, title: 'Build Plan (moved to Workout Planner)', description: 'Redirects the legacy workout-forge path to the Workout Planner' },
       { path: '/challenges', component: ChallengeCommandWorkspace, title: 'Challenges', description: 'Create and monitor client challenge campaigns' },
       { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: CANONICAL_SURFACES.workoutPlanner.name, description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },

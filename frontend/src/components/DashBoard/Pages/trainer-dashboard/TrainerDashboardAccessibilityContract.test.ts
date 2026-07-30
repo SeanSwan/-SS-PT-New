@@ -7,7 +7,8 @@ const readTrainerSource = (relativePath: string) => readFileSync(resolve(__dirna
 const assessmentsSource = readTrainerSource('TrainerAssessmentsPage.tsx');
 const assessmentsSectionsSource = readTrainerSource('TrainerAssessmentsPage.sections.tsx');
 const assessmentsStylesSource = readTrainerSource('TrainerAssessmentsPage.styles.ts');
-const forgeStylesSource = readTrainerSource('TrainerWorkoutForgePage.styles.ts');
+// TrainerWorkoutForgePage.styles.ts was retired with the Build Plan surface
+// (Workout-OS C7, 2026-07-29) — the forge source no longer exists to sweep.
 const teachModeSource = readTrainerSource('components/NASMTeachMode.tsx');
 const teachModeStylesSource = readTrainerSource('components/NASMTeachMode.styles.ts');
 const teachModeDataSource = [
@@ -22,7 +23,6 @@ describe('Trainer dashboard accessibility hardening contract', () => {
       assessmentsSource,
       assessmentsSectionsSource,
       assessmentsStylesSource,
-      forgeStylesSource,
       teachModeSource,
       teachModeStylesSource,
       teachModeDataSource,

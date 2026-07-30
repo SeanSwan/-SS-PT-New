@@ -41,11 +41,15 @@ export const CANONICAL_SURFACES = {
     testId: 'surface-workout-planner',
     ariaLabel: 'Open Workout Planner',
   },
+  // Workout-OS C7 (2026-07-29): the Build Plan surface (TrainerWorkoutForgePage)
+  // was retired as a strict subset of the Workout Planner. The key stays so
+  // legacy consumers resolve, but it now points at the planner mount; the old
+  // /build-plan and /workout-forge URLs redirect there preserving query params.
   buildPlan: {
     id: 'build-plan',
     name: 'Build Plan',
-    routes: { trainer: '/dashboard/trainer/build-plan' },
-    subtitles: { trainer: 'Draft a client workout with the Swan Coach copilot' },
+    routes: { trainer: '/dashboard/trainer/workout-planner' },
+    subtitles: { trainer: 'Absorbed into Workout Planner (C7)' },
     testId: 'surface-build-plan',
     ariaLabel: 'Open Build Plan',
   },

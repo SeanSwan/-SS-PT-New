@@ -62,10 +62,14 @@ describe('canonical surface naming registry', () => {
     }
   });
 
-  it('mounts Build Plan at /dashboard/trainer/build-plan with the canonical title (misroute regression lock)', () => {
+  it('absorbs Build Plan into the Workout Planner mount (C7 retirement + misroute regression lock)', () => {
+    // Workout-OS C7 (2026-07-29): the Build Plan surface was retired as a
+    // strict subset of the Workout Planner. Its registry route must resolve
+    // to the REGISTERED planner mount, never a dead or forked target.
+    expect(surfaceRoute('buildPlan', 'trainer')).toBe(surfaceRoute('workoutPlanner', 'trainer'));
     const entry = findRoleRoute('trainer', surfaceRoute('buildPlan', 'trainer')!);
     expect(entry).toBeDefined();
-    expect(entry!.title).toBe(surfaceName('buildPlan'));
+    expect(entry!.title).toBe(surfaceName('workoutPlanner'));
   });
 
   it('titles the Workout Planner with THE one name on both operator roles', () => {

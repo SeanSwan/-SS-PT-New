@@ -97,12 +97,14 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
   });
 
-  it('builds a trainer Build Plan route with scoped client and booked-session context', () => {
+  it('builds a trainer Workout Planner route with scoped client and booked-session context', () => {
+    // Workout-OS C7 (2026-07-29): Build Plan is absorbed into the planner —
+    // the helper keeps its name and params but targets the planner mount.
     const route = buildTrainerSessionBuildPlanRoute(apiSession);
     expect(route).not.toBeNull();
 
     const url = new URL(route ?? '', 'https://sswanstudios.test');
-    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
+    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
     expect(url.searchParams.get('clientId')).toBe('42');
     expect(url.searchParams.get('sessionId')).toBe('88');
     expect(url.searchParams.get('sessionDate')).toBe('2026-05-31T16:00:00.000Z');

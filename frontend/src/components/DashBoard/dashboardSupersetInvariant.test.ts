@@ -96,8 +96,8 @@ const DECLARED_ROLE_EXCLUSIVE: Record<string, { reason: string; adminCounterpart
   },
   '/workout-forge': {
     reason:
-      'Legacy alias that redirects to the canonical Build Plan surface. Aliases do not need mirroring; the canonical path does.',
-    adminCounterpart: '/build-plan',
+      'Legacy alias that redirects to the canonical Workout Planner (Build Plan was absorbed into the planner, Workout-OS C7 2026-07-29). Aliases do not need mirroring; the canonical path does.',
+    adminCounterpart: '/workout-planner',
   },
 };
 
@@ -148,8 +148,10 @@ describe('Dashboard superset invariant — admin ⊇ trainer', () => {
   it('surfaces every superset-closure capability in the admin sidebar, not just the router', () => {
     const navPrefixes = new Set(WORKSPACE_CONFIG.map((entry) => entry.prefix));
 
+    // '/dashboard/admin/build-plan' was removed here on the C7 retirement
+    // (2026-07-29): the route is now a redirect into the Workout Planner, and
+    // redirects need no sidebar entry — the planner already has one.
     const mustBeNavigable = [
-      '/dashboard/admin/build-plan',
       '/dashboard/admin/client-progress',
       '/dashboard/admin/assessments',
       '/dashboard/admin/videos',

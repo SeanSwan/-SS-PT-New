@@ -183,11 +183,6 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
 
   // ── TRAINING — fitness programming and health ──
   { id: 'workouts', section: 'training', label: CANONICAL_SURFACES.workoutPlanner.name, icon: 'Dumbbell', prefix: CANONICAL_SURFACES.workoutPlanner.routes.admin, description: CANONICAL_SURFACES.workoutPlanner.subtitles.admin },
-  // Superset closure (2026-07-24): these capabilities existed only on the
-  // trainer dashboard. Routes alone are not enough — an unlisted route is a
-  // dead end (same reasoning as the trainer sidebar's 2026-07-13 audit note),
-  // and a dead end is what pushes the owner back onto a trainer URL.
-  { id: 'build-plan', section: 'training', label: CANONICAL_SURFACES.buildPlan.name, icon: 'Zap', prefix: '/dashboard/admin/build-plan', description: 'Draft a client workout with the Swan Coach copilot' },
   // Workout-OS C0 (2026-07-29): the owner personal logger was a registered
   // route with zero nav entries — a dead end by the same 2026-07-13 audit
   // reasoning as the entries above. Client-facing workout logging stays inside

@@ -152,12 +152,14 @@ describe('DashboardTeachMeGuide route matrix', () => {
       to: '/dashboard/trainer/clients',
     });
 
+    // Workout-OS C7 (2026-07-29): /build-plan redirects into the planner,
+    // so its teach-me first click is the Workout Planner.
     expect(getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/build-plan',
     }).primaryAction).toEqual({
-      label: 'Build Plan',
-      to: '/dashboard/trainer/build-plan',
+      label: 'Open Workout Planner',
+      to: '/dashboard/trainer/workout-planner',
     });
 
     expect(getDashboardTeachMeGuide({

@@ -49,7 +49,7 @@ describe('Trainer home observatory parity', () => {
     expect(dataSource).toContain("label: 'Clients'");
     expect(dataSource).toContain("label: 'Progress'");
     expect(dataSource).toContain("label: 'Schedule'");
-    expect(dataSource).toContain("label: 'Build Plan'");
+    expect(dataSource).toContain("label: 'Workout Planner'");
     expect(dataSource).toContain("label: 'Coach'");
     expect(dataSource).toContain('TRAINER_OBSERVATORY_MOBILE_DOCK');
     expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');

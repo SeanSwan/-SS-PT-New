@@ -23,7 +23,7 @@ import {
   Users, ClipboardCheck, BarChart3,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame,
-  Zap, Home, Wrench, Wallet,
+  Home, Wrench, Wallet,
   ScanFace, HeartPulse, Camera, CalendarRange,
 } from 'lucide-react';
 import {
@@ -72,10 +72,6 @@ export const trainerNavConfig = [
   {
     section: 'BUILD',
     items: [
-      // Workout-OS C0 (2026-07-29): the two plan-authoring surfaces sit
-      // adjacent until the C7 Plan Studio merge retires Build Plan — a user
-      // hunting "where do I build a plan" must not find them split by intake.
-      { label: CANONICAL_SURFACES.buildPlan.name, path: CANONICAL_SURFACES.buildPlan.routes.trainer, icon: Zap },
       { label: CANONICAL_SURFACES.workoutPlanner.name, path: CANONICAL_SURFACES.workoutPlanner.routes.trainer, icon: Dumbbell },
       { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },

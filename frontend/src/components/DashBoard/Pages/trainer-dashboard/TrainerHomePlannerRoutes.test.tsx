@@ -61,7 +61,7 @@ describe('TrainerHomeTab Build Plan handoffs', () => {
     });
   });
 
-  it('surfaces a next-session Build action that opens selected-client Build Plan', async () => {
+  it('surfaces a next-session Build action that opens the selected-client Workout Planner', async () => {
     const user = userEvent.setup();
     render(<TrainerHomeTab />);
 
@@ -71,7 +71,7 @@ describe('TrainerHomeTab Build Plan handoffs', () => {
     const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
     const url = new URL(route, 'https://sswanstudios.test');
 
-    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
+    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
     expect(url.searchParams.get('clientId')).toBe('42');
     expect(url.searchParams.get('sessionId')).toBe('88');
     expect(url.searchParams.get('sessionDate')).toBe('2099-05-31T16:00:00.000Z');
@@ -90,7 +90,7 @@ describe('TrainerHomeTab Build Plan handoffs', () => {
 
     expect(screen.getByRole('button', { name: /dictate workout with swan coach for ada lovelace/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log workout for ada lovelace/i })).toBeInTheDocument();
-    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
+    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
     expect(url.searchParams.get('clientId')).toBe('42');
   });
 });

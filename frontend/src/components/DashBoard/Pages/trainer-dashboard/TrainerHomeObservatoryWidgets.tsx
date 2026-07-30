@@ -60,7 +60,7 @@ const TrainerHomeObservatoryWidgets: React.FC<TrainerHomeObservatoryWidgetsProps
 }) => {
   const nextClientName = nextSession ? getClientName(nextSession) : 'Build the day';
   const coachRoute = nextSession ? buildTrainerSessionCoachRoute(nextSession) : coachPath;
-  const buildPlanRoute = nextSession ? buildTrainerSessionBuildPlanRoute(nextSession) : '/dashboard/trainer/build-plan';
+  const buildPlanRoute = nextSession ? buildTrainerSessionBuildPlanRoute(nextSession) : '/dashboard/trainer/workout-planner';
 
   return (
     <WidgetsStack aria-label="Trainer homepage widgets">
@@ -80,8 +80,8 @@ const TrainerHomeObservatoryWidgets: React.FC<TrainerHomeObservatoryWidgetsProps
           </WidgetButton>
           <WidgetButton
             type="button"
-            onClick={() => onNavigate(buildPlanRoute ?? '/dashboard/trainer/build-plan')}
-            aria-label="Open trainer Build Plan"
+            onClick={() => onNavigate(buildPlanRoute ?? '/dashboard/trainer/workout-planner')}
+            aria-label="Open trainer Workout Planner"
           >
             <ClipboardList size={15} aria-hidden="true" />
             Build

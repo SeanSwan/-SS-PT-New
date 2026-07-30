@@ -1,32 +1,14 @@
 /**
  * SHARED LOGIC: Trainer Teach Me copy for training-system routes.
- * PURPOSE: Keeps trainer Workout Planner, equipment, bootcamp, and Build Plan tabs from
- * collapsing into one generic builder lesson.
+ * PURPOSE: Keeps trainer Workout Planner, equipment, and bootcamp tabs from
+ * collapsing into one generic builder lesson. The retired Build Plan /
+ * workout-forge paths (Workout-OS C7, 2026-07-29) redirect into the Workout
+ * Planner, so they teach the planner flow here.
  */
 
 import { CANONICAL_SURFACES } from '../../config/canonical-surface-names';
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
-
-const trainerBuilderFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  title: 'Trainer Build Plan flow',
-  summary: 'Use Build Plan to create the client workout, save it, then continue through Log Today or Open Workout Planner while the session context is fresh.',
-  focus: 'Pick the client first, build with the real constraints, then use the saved-workout handoff: Log Today for the floor, Open Workout Planner for review.',
-  primaryAction: { label: CANONICAL_SURFACES.buildPlan.name, to: CANONICAL_SURFACES.buildPlan.routes.trainer },
-  fastPath: [
-    'Confirm client, goal, and constraints.',
-    'Build manually or with Swan Coach.',
-    'Save, then choose Log Today or Open Workout Planner.',
-  ],
-  actions: [
-    { label: CANONICAL_SURFACES.buildPlan.name, to: CANONICAL_SURFACES.buildPlan.routes.trainer },
-    { label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' },
-    { label: CANONICAL_SURFACES.workoutPlanner.name, to: CANONICAL_SURFACES.workoutPlanner.routes.trainer },
-    { label: 'Equipment', to: '/dashboard/trainer/equipment' },
-    { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
-  ],
-  primaryPrompt: 'teach me the trainer Build Plan workflow from client draft to logger and Workout Planner handoff',
-});
 
 const trainerWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer Workout Planner',
@@ -92,5 +74,6 @@ export const trainerTrainingSystems = (
   if (includesAny(path, ['workout-planner'])) return trainerWorkoutPlanner(base);
   if (includesAny(path, ['equipment'])) return trainerEquipmentSetup(base);
   if (includesAny(path, ['bootcamp'])) return trainerBootcampDelivery(base);
-  return trainerBuilderFlow(base);
+  // Retired build-plan / workout-forge paths redirect into the planner (C7).
+  return trainerWorkoutPlanner(base);
 };

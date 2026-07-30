@@ -82,7 +82,6 @@ export const TrainerEarningsPage = React.lazy(() => import('./Pages/trainer-dash
 export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
 export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
-export const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
 export const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 export const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 export const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
@@ -178,9 +177,18 @@ export const AdminClientDetailsRedirect: React.FC = () => {
   return <Navigate to={`/dashboard/admin/client-management${location.search}`} replace />;
 };
 
-export const TrainerBuildPlanRedirect: React.FC = () => {
+// Workout-OS C7 (2026-07-29): the Build Plan / Workout Forge surface was a
+// proven strict subset of the canonical Workout Planner, so every legacy URL
+// now redirects into the planner. `location.search` is forwarded whole because
+// the planner honors clientId and returnTo (extra params are ignored safely).
+export const TrainerBuildPlanToPlannerRedirect: React.FC = () => {
   const location = useLocation();
-  return <Navigate to={`/dashboard/trainer/build-plan${location.search}`} replace />;
+  return <Navigate to={`/dashboard/trainer/workout-planner${location.search}`} replace />;
+};
+
+export const AdminBuildPlanToPlannerRedirect: React.FC = () => {
+  const location = useLocation();
+  return <Navigate to={`/dashboard/admin/workout-planner${location.search}`} replace />;
 };
 
 export const AdminLogWorkoutRedirect: React.FC = () => {
