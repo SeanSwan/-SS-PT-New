@@ -39,9 +39,14 @@ import packageRoutes from '../routes/packageRoutes.mjs';
 // ===================== BUSINESS LOGIC =====================
 import cartRoutes from '../routes/cartRoutes.mjs';
 import storefrontRoutes from '../routes/storeFrontRoutes.mjs';
-// ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
-// import checkoutRoutes from '../routes/checkoutRoutes.mjs';
-// import paymentRoutes from '../routes/paymentRoutes.mjs';
+// NOTE (corrected 2026-07-29, rule 75): the legacy checkoutRoutes.mjs and
+// paymentRoutes.mjs were DELETED in commit a4c26a9ac (Genesis Checkout), not
+// "moved to _ARCHIVED" — there is no _ARCHIVED directory anywhere in the repo, so
+// the old comment sent anyone looking for them on a hunt for a folder that does
+// not exist. Their commented-out import + mount lines are removed with it: they
+// referenced modules that are gone, so uncommenting them (a plausible move for
+// someone trying to "re-enable legacy checkout") would crash Render at boot with
+// ERR_MODULE_NOT_FOUND. The replacement is v2PaymentRoutes below.
 // NEW GENESIS CHECKOUT SYSTEM:
 import v2PaymentRoutes from '../routes/v2PaymentRoutes.mjs';
 import orderRoutes from '../routes/orderRoutes.mjs';
@@ -358,9 +363,10 @@ export const setupRoutes = async (app) => {
 
   // ===================== LEGACY VIDEO ROUTES (unchanged) =====================
   app.use('/api/videos', publicVideoRoutes); // Public video library (no auth)
-  // ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
-  // app.use('/api/checkout', checkoutRoutes);
-  // app.use('/api/payments', paymentRoutes);
+  // Legacy /api/checkout and the legacy /api/payments router are gone (deleted in
+  // a4c26a9ac; see the note at the imports). NOTE: /api/payments itself is still a
+  // LIVE path — offlinePaymentRoutes serves it a few lines below — so "legacy
+  // payment routes were removed" must not be read as "/api/payments is unmounted".
   // NEW GENESIS CHECKOUT SYSTEM:
   app.use('/api/v2/payments', v2PaymentRoutes);
   app.use('/api/orders', orderRoutes);

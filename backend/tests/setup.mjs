@@ -32,8 +32,22 @@ vi.mock('../utils/logger.mjs', async (importOriginal) => {
   };
 });
 
-// Mock email service
-vi.mock('../services/emailService.mjs', () => ({
+// Mock email service.
+//
+// PATH CORRECTED 2026-07-29 (hostile round 28): this pointed at
+// '../services/emailService.mjs', which DOES NOT EXIST. The real module is
+// backend/emailService.mjs (imported by services/notificationService.mjs and
+// utils/notification.mjs). vi.mock on a path nothing imports is silently inert, so
+// this block was dead for its entire life and setup.mjs was advertising a safety
+// net it did not provide.
+//
+// Nothing leaked in practice: the real sendEmail fails closed when the transporter
+// is unconfigured (emailService.mjs:44 -> { success: false }), which is why no test
+// noticed. But "no creds in CI" is the only thing that was stopping a real send —
+// if SMTP credentials ever reach a test environment, an unmocked path sends real
+// mail to whatever address a fixture happens to contain. The mock is the guard;
+// it now actually applies.
+vi.mock('../emailService.mjs', () => ({
   sendEmail: vi.fn().mockResolvedValue({ success: true }),
   sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
