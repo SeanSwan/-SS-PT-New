@@ -887,7 +887,10 @@ async function checkAchievements(userId, gamification, metrics, session, transac
   const achievements = await Achievement.findAll();
   
   // Get user's current achievements
-  const userAchievements = await sequelize.models.UserAchievements.findAll({
+  // Registry name is UserAchievement (singular) — the model is defined as
+  // db.define('UserAchievement', ...). `sequelize.models.UserAchievements` was undefined, so this
+  // threw a TypeError on every workout achievement check (rule 58 sweep, 2026-07-29).
+  const userAchievements = await sequelize.models.UserAchievement.findAll({
     where: { userId }
   });
   
@@ -944,10 +947,15 @@ async function checkAchievements(userId, gamification, metrics, session, transac
     
     // If achievement is achieved, award it
     if (achieved) {
-      await sequelize.models.UserAchievements.create({
+      // Same registry-name fix as above, plus real columns: the table has `earnedAt`, not
+      // `awardedAt` (a phantom key Sequelize silently drops), and an award record must set
+      // isCompleted/progress the way the other award paths do.
+      await sequelize.models.UserAchievement.create({
         userId,
         achievementId: achievement.id,
-        awardedAt: new Date()
+        isCompleted: true,
+        progress: 100,
+        earnedAt: new Date()
       }, { transaction });
 
       const rewardPoints = toNonNegativeInteger(achievement.xpReward);

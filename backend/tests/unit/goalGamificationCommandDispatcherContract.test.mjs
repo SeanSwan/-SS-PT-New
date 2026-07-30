@@ -211,14 +211,18 @@ describe('goal gamification command dispatchers', () => {
       options: { sequelize },
     });
 
+    // Only real "UserAchievements" columns. This assertion previously required
+    // `progressPercentage: 100` — a column that does not exist in the table, so the write it
+    // locked in could never have succeeded against the live DB (rule 58, verified 2026-07-29).
     expect(createUserAchievement).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       achievementId: 'achievement-uuid-1',
       isCompleted: true,
       progress: 100,
-      progressPercentage: 100,
       pointsAwarded: 100,
     }), { transaction });
+    expect(createUserAchievement.mock.calls[0][0]).not.toHaveProperty('progressPercentage');
+    expect(createUserAchievement.mock.calls[0][0]).not.toHaveProperty('unlockedAt');
     expect(recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       points: 100,

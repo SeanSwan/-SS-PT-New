@@ -61,7 +61,10 @@ export async function loadDispatcher() {
   const BodyMeasurement = { findOne: vi.fn(async () => measurement) };
   const Gamification = { findOne: vi.fn(async () => gamificationRecord) };
   const UserAchievement = {
-    count: vi.fn(async (options = {}) => (options.where?.isNew === true ? 1 : 5)),
+    // Keyed on the REAL column: "new" = earned but not yet notified. The previous stub keyed on
+    // `options.where.isNew`, a column that does not exist in "UserAchievements" — so this harness
+    // was modelling a query that always threw in production (rule 58, verified 2026-07-29).
+    count: vi.fn(async (options = {}) => (options.where?.notificationSent === false ? 1 : 5)),
   };
   const painEntryRows = [
     { id: 11, bodyRegion: 'lower_back', painLevel: 8, createdAt: new Date('2026-05-31T12:00:00Z') },
