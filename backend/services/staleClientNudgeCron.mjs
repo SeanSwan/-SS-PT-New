@@ -66,7 +66,9 @@ export async function runStaleClientNudgeTick({
     const cutoff = new Date(now.getTime() - days * DAY_MS);
 
     const clients = await User.findAll({
-      where: { role: 'client', isActive: { [Op.not]: false } },
+      // createdAt < cutoff: a brand-new client who has never logged must not
+      // be told "it's been a few days since your last session" (R4 fix).
+      where: { role: 'client', isActive: { [Op.not]: false }, createdAt: { [Op.lt]: cutoff } },
       attributes: ['id', 'notificationPreferences'],
       raw: true,
     });

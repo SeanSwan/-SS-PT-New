@@ -112,6 +112,18 @@ describe('runStaleClientNudgeTick', () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
+  it('excludes brand-new accounts from the sweep (never nudge a never-logged newbie)', async () => {
+    const { deps } = harness({ clients: [] });
+    await runStaleClientNudgeTick(deps);
+    const where = deps.User.findAll.mock.calls[0][0].where;
+    expect(where.createdAt).toBeDefined();
+    // The account-age bound uses the SAME cutoff as staleness.
+    const cutoffMs = NOW.getTime() - 4 * 24 * 60 * 60 * 1000;
+    // Op.lt is a SYMBOL key — Object.values can't see it.
+    const bound = where.createdAt[Object.getOwnPropertySymbols(where.createdAt)[0]];
+    expect(new Date(bound).getTime()).toBe(cutoffMs);
+  });
+
   it('never throws even when the user query explodes', async () => {
     const deps = {
       User: { findAll: vi.fn().mockRejectedValue(new Error('db down')) },

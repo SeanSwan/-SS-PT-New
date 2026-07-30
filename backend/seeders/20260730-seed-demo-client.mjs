@@ -1,23 +1,23 @@
 /**
- * Demo Client Sandbox Seeder — Workout-OS C8a (2026-07-30)
- * =========================================================
+ * Demo Client Sandbox Seeder — Workout-OS C8a (2026-07-30, R3 hostile fix)
+ * =========================================================================
  * Creates ONE shared sandbox client with ~90 days of realistic training
- * data so every chart, ring, and history surface renders in demos. The
- * exclusions ride EXISTING classifiers — zero runtime code:
+ * data so every chart, ring, and history surface renders in demos.
+ * Exclusions ride EXISTING classifiers — zero runtime code:
  *   billing-proof:  clientSource 'external' → isNonDeductingClient (locked)
  *   nudge-proof:    notificationPreferences.workoutReminders = false
- *   self-watermark: display name "Demo Client (Sandbox)" appears wherever
- *                   the client is listed — no watermark UI needed.
- * Data lands in the CANONICAL backbone (workout_sessions + workout_logs),
- * which the 15 chart endpoints and the rings read.
+ *   self-watermark: display name "Demo Client (Sandbox)".
+ * R3 fix: creation goes through the MODELS (not raw SQL) so NOT-NULL
+ * columns receive their model defaults and the password-hashing hook runs —
+ * a raw INSERT omitted required banner/total columns and would have failed
+ * on prod. Totals are computed truthfully from the generated sets.
  *
  * Run:    node backend/seeders/20260730-seed-demo-client.mjs
  * Reset:  FORCE_RESEED=true node backend/seeders/20260730-seed-demo-client.mjs
- *         (wipes ONLY the demo user's workout rows, then re-seeds)
- * Idempotent without the flag: exits if the demo user already has sessions.
  */
 import { randomUUID } from 'node:crypto';
-import sequelize from '../database.mjs';
+import '../models/index.mjs';
+import { getUser, getWorkoutSession, getWorkoutLog } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const DEMO_EMAIL = 'demo-client@swanstudios.internal';
@@ -34,49 +34,38 @@ const SPLITS = [
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 export async function seedDemoClient() {
-  const [existing] = await sequelize.query(
-    'SELECT id FROM "Users" WHERE email = :email OR username = :username LIMIT 1',
-    { replacements: { email: DEMO_EMAIL, username: DEMO_USERNAME } },
-  );
-  let demoUserId = existing[0]?.id;
+  const User = getUser();
+  const WorkoutSession = getWorkoutSession();
+  const WorkoutLog = getWorkoutLog();
 
-  if (!demoUserId) {
-    const [rows] = await sequelize.query(
-      `INSERT INTO "Users"
-         (email, username, password, "firstName", "lastName", role, "clientSource",
-          "notificationPreferences", "isActive", "createdAt", "updatedAt")
-       VALUES
-         (:email, :username, :password, 'Demo Client', '(Sandbox)', 'client', 'external',
-          CAST(:prefs AS json), true, NOW(), NOW())
-       RETURNING id`,
-      {
-        replacements: {
-          email: DEMO_EMAIL,
-          username: DEMO_USERNAME,
-          // Random unusable secret — the sandbox is browsed BY staff, never logged into.
-          password: randomUUID() + randomUUID(),
-          prefs: JSON.stringify({ workoutReminders: false }),
-        },
-      },
-    );
-    demoUserId = rows[0].id;
-    logger.info(`[DemoSeeder] created demo client user id=${demoUserId}`);
+  let demoUser = await User.findOne({ where: { email: DEMO_EMAIL }, attributes: ['id'] });
+  if (!demoUser) {
+    // Model path: defaults fill required columns; the hash hook makes the
+    // random password unusable-but-hashed. The sandbox is never logged into.
+    demoUser = await User.create({
+      email: DEMO_EMAIL,
+      username: DEMO_USERNAME,
+      password: randomUUID() + randomUUID(),
+      firstName: 'Demo Client',
+      lastName: '(Sandbox)',
+      role: 'client',
+      clientSource: 'external',
+      notificationPreferences: { workoutReminders: false },
+      isActive: true,
+    });
+    logger.info(`[DemoSeeder] created demo client user id=${demoUser.id}`);
   }
+  const demoUserId = demoUser.id;
 
-  const [sessions] = await sequelize.query(
-    'SELECT COUNT(*)::int AS count FROM workout_sessions WHERE "userId" = :id',
-    { replacements: { id: demoUserId } },
-  );
-  if (sessions[0].count > 0) {
+  const existingCount = await WorkoutSession.count({ where: { userId: demoUserId } });
+  if (existingCount > 0) {
     if (process.env.FORCE_RESEED !== 'true') {
-      logger.info(`[DemoSeeder] demo client already has ${sessions[0].count} sessions — done (FORCE_RESEED=true to reset).`);
+      logger.info(`[DemoSeeder] demo client already has ${existingCount} sessions — done (FORCE_RESEED=true to reset).`);
       return { demoUserId, seeded: 0, skipped: true };
     }
-    await sequelize.query(
-      'DELETE FROM workout_logs WHERE "sessionId" IN (SELECT id FROM workout_sessions WHERE "userId" = :id)',
-      { replacements: { id: demoUserId } },
-    );
-    await sequelize.query('DELETE FROM workout_sessions WHERE "userId" = :id', { replacements: { id: demoUserId } });
+    const sessions = await WorkoutSession.findAll({ where: { userId: demoUserId }, attributes: ['id'] });
+    await WorkoutLog.destroy({ where: { sessionId: sessions.map((s) => s.id) } });
+    await WorkoutSession.destroy({ where: { userId: demoUserId } });
     logger.info('[DemoSeeder] FORCE_RESEED — cleared demo workout rows');
   }
 
@@ -87,8 +76,6 @@ export async function seedDemoClient() {
     when.setHours(rand(7, 18), rand(0, 59), 0, 0);
     const split = SPLITS[seeded % SPLITS.length];
     const progression = 1 + ((DAYS_BACK - daysAgo) / DAYS_BACK) * 0.15;
-    const sessionId = randomUUID();
-    const duration = rand(40, 70);
 
     const logs = [];
     for (const [exerciseName, baseWeight] of split.exercises) {
@@ -103,29 +90,27 @@ export async function seedDemoClient() {
         });
       }
     }
-
-    await sequelize.query(
-      `INSERT INTO workout_sessions
-         (id, "userId", title, date, status, duration, "totalSets", "completedAt", "createdAt", "updatedAt")
-       VALUES (:id, :userId, :title, :date, 'completed', :duration, :totalSets, :date, NOW(), NOW())`,
-      {
-        replacements: {
-          id: sessionId,
-          userId: demoUserId,
-          title: `${split.label} — Demo`,
-          date: when.toISOString(),
-          duration,
-          totalSets: logs.length,
-        },
-      },
+    const totals = logs.reduce(
+      (acc, log) => ({
+        sets: acc.sets + 1,
+        reps: acc.reps + log.reps,
+        weight: acc.weight + log.weight * log.reps,
+      }),
+      { sets: 0, reps: 0, weight: 0 },
     );
-    for (const log of logs) {
-      await sequelize.query(
-        `INSERT INTO workout_logs ("sessionId", "exerciseName", "setNumber", weight, reps, rpe, "createdAt", "updatedAt")
-         VALUES (:sessionId, :exerciseName, :setNumber, :weight, :reps, :rpe, NOW(), NOW())`,
-        { replacements: { sessionId, ...log } },
-      );
-    }
+
+    const session = await WorkoutSession.create({
+      userId: demoUserId,
+      title: `${split.label} — Demo`,
+      date: when,
+      status: 'completed',
+      duration: rand(40, 70),
+      totalSets: totals.sets,
+      totalReps: totals.reps,
+      totalWeight: totals.weight,
+      completedAt: when,
+    });
+    await WorkoutLog.bulkCreate(logs.map((log) => ({ ...log, sessionId: session.id })));
     seeded += 1;
   }
 
