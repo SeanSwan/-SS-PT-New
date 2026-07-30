@@ -6,6 +6,11 @@
  * Signature motion: contour lines redrawing as the selected window moves.
  * Surface fit: load management, capacity mapping, longitudinal comparison.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): compact-technical-mono display / soft-sans body /
  * faceted-console surface / arcade-cards collection / command-rail action /

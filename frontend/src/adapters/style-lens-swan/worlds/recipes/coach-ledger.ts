@@ -9,7 +9,13 @@
  * template (differs from prism-terminal on collection+action+template = 3 axes on a
  * chart-less rollout surface, 4 with the Lab host's chart slot).
  * Law A: chrome stays Crystalline Swan.
- */
+ 
+ *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+*/
 import type { RecipeV2 } from '../../../../core/style-lens-os/v2/recipeV2';
 import { RECIPE_SHARED } from '../recipeShared';
 
