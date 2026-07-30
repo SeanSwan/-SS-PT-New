@@ -1,10 +1,56 @@
 # SwanStudios Render Deployment Configuration
 # ==========================================
-# Complete configuration for deploying SwanStudios to Render with PostgreSQL
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ ⛔ DO NOT ENABLE BLUEPRINT SYNC FOR THIS FILE YET — SWA-93 pre-sync audit │
+# │    2026-07-30. Syncing as written would NOT adopt the running services.  │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# This file is currently INERT: no Render service is managed by it. Two separate
+# sessions (2026-07-28, 2026-07-30) wrote config here believing it would ship.
+# It reads as authoritative and is not. Verify against the live dashboard before
+# trusting any value below.
+#
+# Render matches Blueprint entries to existing resources BY NAME:
+#   "If you add the name of an existing service to your Blueprint file, Render
+#    attempts to apply the Blueprint's configuration to that existing service."
+# and for names that match nothing, "Render appends a suffix to the name of each
+# new resource to prevent collisions" — i.e. it CREATES rather than adopts.
+#
+# BLOCKER 1 — the service names below match NO live service. Probed 2026-07-30:
+#   ss-pt-new.onrender.com            -> HTTP 200, the real backend
+#   swanstudios-main.onrender.com     -> HTTP 404, `x-render-routing: no-server`
+#   swanstudios-frontend.onrender.com -> HTTP 404, `x-render-routing: no-server`
+#   `no-server` is Render's signal that no service is bound to that hostname.
+#   Syncing today would spin up NEW duplicate services and leave the real ones
+#   unmanaged. The real static-site name is not knowable from outside the
+#   dashboard — Sean must read both real names off Render and set them here.
+#
+# BLOCKER 2 — `plan:` is applied to the matched service. CLAUDE.md rule 11 says
+#   Render is a PAID plan (~$60/mo), so the `plan: starter` values that were here
+#   could DOWNGRADE production. Both are commented out below until confirmed.
+#
+# BLOCKER 3 — the `databases:` block is commented out at the bottom. If its names
+#   did not match the live Postgres/Redis, a sync could provision EMPTY instances
+#   and repoint DATABASE_URL at them. That is the worst outcome available here.
+#
+# NOT A RISK (checked against Render's docs 2026-07-30, not assumed):
+#   * Env vars set in the dashboard but absent here are PRESERVED — "The resource
+#     retains any existing environment variable values that aren't overwritten by
+#     the Blueprint." The backend reads 256 distinct env vars; only 17 are declared
+#     here, including 60 undeclared secret-shaped ones. They survive a sync.
+#   * `generateValue: true` sets a value only "if the environment variable doesn't
+#     already exist" — it does NOT rotate JWT_SECRET / SESSION_SECRET on sync.
+#
+# SAFE ENABLE ORDER: fix the two names -> confirm both plans -> restore/verify the
+# databases block against the real resources -> sync ONE service first (the static
+# site, which is stateless) -> verify headers land -> only then the web service.
 
 # Main web service (Node.js backend + frontend)
 services:
   - type: web
+    # ⛔ BLOCKER 1: no service by this name exists. The live backend answers on
+    # ss-pt-new.onrender.com — set the REAL name here before any sync.
     name: swanstudios-main
     runtime: node
     repo: https://github.com/SeanSwan/-SS-PT-New
@@ -21,7 +67,11 @@ services:
       # Install frontend dependencies and build
       cd ../frontend && npm install && npm run build
     startCommand: cd backend && npm start
-    plan: starter # or standard/pro based on needs
+    # ⛔ BLOCKER 2 — commented out 2026-07-30 (SWA-93). `plan` is applied to the
+    # matched service, and CLAUDE.md rule 11 records Render as a PAID plan
+    # (~$60/mo). Syncing `starter` here could downgrade production. Restore this
+    # line only with the value read off the live dashboard.
+    # plan: starter
     env:
       - key: TRAINING_PLAN_PDF_DERIVATIVES
         value: true
@@ -67,6 +117,10 @@ services:
 
   # Frontend static site (PRODUCTION CONFIGURATION)
   - type: static
+    # ⛔ BLOCKER 1: no service by this name exists (probed 2026-07-30 ->
+    # `x-render-routing: no-server`). The apex sswanstudios.com is served by a
+    # static site whose real name is only visible in the dashboard. Set it here
+    # before any sync, or Render will create a duplicate.
     name: swanstudios-frontend
     runtime: node
     repo: https://github.com/SeanSwan/-SS-PT-New
@@ -170,18 +224,39 @@ services:
   # All features migrated to in-app implementations.
   # See docs/ai-workflow/launch-readiness/MCP-DECOMMISSION-PLAN.md
 
-# PostgreSQL database
-databases:
-  - name: swanstudios-db
-    databaseName: swanstudios
-    user: swanstudios_user
-    plan: starter # or standard/pro based on needs
-
-  # Redis for session storage (multi-instance scaling)
-  - name: swanstudios-redis
-    plan: starter # or standard/pro based on needs
-    maxmemoryPolicy: allkeys-lru # Automatically evict old keys when memory limit reached
-    ipAllowList: [] # Empty means allow from all Render services
+# ⛔ BLOCKER 3 — datastore declarations, COMMENTED OUT 2026-07-30 (SWA-93).
+#
+# WHY: this is the worst failure mode available in this file. Render matches
+# Blueprint resources by name; if these names do not match the live Postgres and
+# Redis, applying the Blueprint would PROVISION NEW EMPTY INSTANCES and repoint
+# DATABASE_URL / REDIS_URL (declared above via fromDatabase / fromService) at
+# them. The app would boot healthy against an empty database. Nothing in the file
+# as written could be verified from outside the dashboard — the two *services*
+# named here were both proven not to exist, so these names cannot be assumed good
+# either. `plan: starter` also is not among the Postgres plan values Render
+# currently documents, which suggests this block was never applied to anything.
+#
+# SIDE EFFECT, AND IT IS THE GOOD KIND: with this block commented out, the
+# `fromDatabase: swanstudios-db` and `fromService: swanstudios-redis` references
+# in the web service above are now DANGLING. An accidental sync should therefore
+# fail loudly on an unresolvable reference rather than quietly provisioning an
+# empty datastore and repointing the app at it. Fail-closed beats fail-silent.
+#
+# BEFORE RESTORING: read the real Postgres and Redis names + plans off the Render
+# dashboard, confirm they match character-for-character, and restore this block in
+# its own commit so the diff is reviewable on its own.
+#
+# databases:
+#   - name: swanstudios-db
+#     databaseName: swanstudios
+#     user: swanstudios_user
+#     plan: starter
+#
+#   # Redis for session storage (multi-instance scaling)
+#   - name: swanstudios-redis
+#     plan: starter
+#     maxmemoryPolicy: allkeys-lru
+#     ipAllowList: []
 
 # Environment variables to set manually in Render dashboard:
 # - STRIPE_SECRET_KEY: Your Stripe secret key
