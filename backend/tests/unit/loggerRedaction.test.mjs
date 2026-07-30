@@ -83,26 +83,50 @@ describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
 });
 
 describe('Logger redaction — pattern-based scrubbing (Rule 59)', () => {
+  /**
+   * These assertions used to demand the literal placeholder '<REDACTED-KEY>'.
+   * SWA-71 replaced the single generic label with CLASS-SPECIFIC ones
+   * (<REDACTED-STRIPE>, <REDACTED-GOOGLE>, <REDACTED-JWT>, ...), which is strictly
+   * better for triage, and these five tests then failed on the label alone while
+   * redaction was working perfectly. They were reported as security-suite failures
+   * for a cosmetic reason.
+   *
+   * Re-anchored on what actually matters, in this order:
+   *   1. the raw secret is GONE  <- the security property
+   *   2. SOME <REDACTED-*> marker replaced it  <- proves substitution, not deletion
+   * Three of these tests previously asserted only the label and never checked (1)
+   * at all, so a partial redaction would have passed. They all check it now, and a
+   * future re-labelling cannot break them.
+   */
+  // Underscores are real: the webhook-secret rule emits <REDACTED-STRIPE_WHSEC>.
+  const REDACTION_MARKER = /<REDACTED-[A-Z0-9_-]+>/;
+
   it('redacts sk_live_... patterns even when not in env list', () => {
     const unknownKey = stripeKey('live', 'unknownkeyhere1234567890abcdefxyz');
     const out = redactString(`Stripe key: ${unknownKey}`);
     expect(out).not.toContain(unknownKey);
-    expect(out).toContain('<REDACTED-KEY>');
+    expect(out).toMatch(REDACTION_MARKER);
   });
 
   it('redacts sk_test_... patterns', () => {
-    const out = redactString(`test mode: ${stripeKey('test', 'aaabbbcccdddeeefff111222333')}`);
-    expect(out).toContain('<REDACTED-KEY>');
+    const key = stripeKey('test', 'aaabbbcccdddeeefff111222333');
+    const out = redactString(`test mode: ${key}`);
+    expect(out).not.toContain(key);
+    expect(out).toMatch(REDACTION_MARKER);
   });
 
   it('redacts whsec_... patterns', () => {
-    const out = redactString(`webhook secret: ${stripeWebhookSecret('aabbccddeeff112233445566')}`);
-    expect(out).toContain('<REDACTED-KEY>');
+    const secret = stripeWebhookSecret('aabbccddeeff112233445566');
+    const out = redactString(`webhook secret: ${secret}`);
+    expect(out).not.toContain(secret);
+    expect(out).toMatch(REDACTION_MARKER);
   });
 
   it('redacts AIza... (Google API key shape)', () => {
-    const out = redactString(`Google key: ${googleApiKey()}`);
-    expect(out).toContain('<REDACTED-KEY>');
+    const key = googleApiKey();
+    const out = redactString(`Google key: ${key}`);
+    expect(out).not.toContain(key);
+    expect(out).toMatch(REDACTION_MARKER);
   });
 
   it('redacts JWT shape (eyJ...eyJ...sig)', () => {
@@ -115,7 +139,7 @@ describe('Logger redaction — pattern-based scrubbing (Rule 59)', () => {
     const jwt = `${seg1}.${seg2}.${seg3}`;
     const out = redactString(`Bearer ${jwt}`);
     expect(out).not.toContain(jwt);
-    expect(out).toContain('<REDACTED-KEY>');
+    expect(out).toMatch(REDACTION_MARKER);
   });
 
   it('does NOT over-redact legitimate text', () => {

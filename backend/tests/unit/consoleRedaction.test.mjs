@@ -16,6 +16,7 @@
  * both format specifiers and object shape so existing log output does not change meaning.
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { format } from 'node:util';
 import {
   installConsoleRedaction,
   uninstallConsoleRedaction,
@@ -26,12 +27,46 @@ import {
 const dbUrl = (user, secret, host) => ['postgres', '://', user, ':', secret, '@', host].join('');
 const SECRET = 'p4ssW0rdX';
 
-/** Capture what actually reached stdout for one call. */
+/**
+ * Capture what the wrapper actually emitted for one call.
+ *
+ * DO NOT patch process.stdout.write. Vitest replaces the global `console` with its
+ * own reporter, so `console.log` never reaches stdout under the runner — a probe
+ * measured EXACTLY ZERO BYTES captured. Every assertion here therefore ran against
+ * '': the positive "shape is preserved" checks failed loudly, and every
+ * `not.toContain(<secret>)` redaction assertion passed VACUOUSLY. A redaction
+ * suite that cannot observe its own output proves nothing.
+ *
+ * Instead, put a collector UNDERNEATH the wrapper. The wrapper delegates to
+ * whatever console method existed when it was installed, so the sequence is:
+ * unwrap -> install the collector as the base console -> re-wrap. What the
+ * collector receives is exactly what the wrapper passed downstream, formatted with
+ * node's `util.format` — the same formatter console.log itself uses, so %s/%d
+ * specifiers, object shape, Date/RegExp/Map/Set/Buffer rendering all match
+ * production output.
+ */
+const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug'];
 const capture = (fn) => {
-  const original = process.stdout.write.bind(process.stdout);
+  const wasInstalled = isConsoleRedactionInstalled();
+  if (wasInstalled) uninstallConsoleRedaction();
+
+  const saved = {};
+  for (const method of CONSOLE_METHODS) saved[method] = console[method];
+
   let out = '';
-  process.stdout.write = (chunk) => { out += String(chunk); return true; };
-  try { fn(); } finally { process.stdout.write = original; }
+  const collect = (...args) => { out += `${format(...args)}\n`; };
+  for (const method of CONSOLE_METHODS) console[method] = collect;
+
+  if (wasInstalled) installConsoleRedaction();
+  try {
+    fn();
+  } finally {
+    // Unwrap before restoring, or the wrapper keeps a reference to the collector.
+    if (wasInstalled) uninstallConsoleRedaction();
+    for (const method of CONSOLE_METHODS) console[method] = saved[method];
+    // Leave install state exactly as it was found.
+    if (wasInstalled) installConsoleRedaction();
+  }
   return out;
 };
 

@@ -17,9 +17,13 @@
  *   2. Identifiers are NOT destroyed (migration timestamps, epoch millis, IDs, commit SHAs).
  *   3. Rule ORDER holds: credential URLs are consumed whole, not partially eaten by EMAIL.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { Writable } from 'node:stream';
+import winston from 'winston';
 import { redactLogString, LOG_REDACTION_RULES } from '../../utils/redactionRules.mjs';
-import logger from '../../utils/logger.mjs';
+// NOTE: utils/logger.mjs is deliberately NOT imported normally here. tests/setup.mjs
+// mocks it to vi.fn() stubs, and a stub cannot leak, so importing the mock made this
+// entire suite vacuous. The real logger is loaded via vi.importActual below.
 import { piiSafeLogger, scrubPII } from '../../utils/monitoring/piiSafeLogging.mjs';
 
 // Secret-SHAPED fixtures are assembled at runtime. A literal here trips the repo secret scanner
@@ -27,12 +31,44 @@ import { piiSafeLogger, scrubPII } from '../../utils/monitoring/piiSafeLogging.m
 const dbUrl = (user, secret, host) => ['postgres', '://', user, ':', secret, '@', host].join('');
 const JWT = ['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV'].join('.');
 
-/** Capture what winston actually wrote for one logger call. */
+/**
+ * The REAL winston logger, bypassing the global mock.
+ *
+ * tests/setup.mjs does `vi.mock('../utils/logger.mjs')` and replaces the default
+ * export with bare `vi.fn()` stubs to keep test output quiet. That mock applies
+ * here too — so the `logger.info(...)` calls in this file were hitting a no-op
+ * spy that writes nothing, anywhere. The whole "the 2841-call-site logger no
+ * longer leaks" block was asserting against a stub, which is why every capture
+ * came back ''.
+ */
+const realLogger = (await vi.importActual('../../utils/logger.mjs')).default;
+// Every `logger.*` call in the assertions below must reach the REAL logger.
+const logger = realLogger;
+
+/**
+ * Capture what winston actually wrote for one logger call.
+ *
+ * DO NOT patch process.stdout.write here. Winston's Console transport emits
+ * through `console.log`, and vitest replaces `console` with its own reporter, so
+ * a stdout patch captures EXACTLY ZERO BYTES under the test runner — measured
+ * with a probe. Combined with the mock above, every assertion in this block ran
+ * against '': the positive "identifiers survive" checks failed loudly, and every
+ * `not.toContain(<secret>)` redaction assertion passed VACUOUSLY.
+ *
+ * Attaching a real winston Stream transport removes the guesswork. The logger's
+ * own format chain (redactionFormat FIRST, then timestamp + json) has already run
+ * by the time any transport sees the record, so what lands here is exactly what a
+ * production transport would receive — and it does not depend on how the runner
+ * treats the global console.
+ */
 const captureMainLogger = (fn) => {
-  const original = process.stdout.write.bind(process.stdout);
   let captured = '';
-  process.stdout.write = (chunk) => { captured += String(chunk); return true; };
-  try { fn(); } finally { process.stdout.write = original; }
+  const stream = new Writable({
+    write(chunk, _enc, cb) { captured += String(chunk); cb(); },
+  });
+  const transport = new winston.transports.Stream({ stream, level: 'silly' });
+  realLogger.add(transport);
+  try { fn(); } finally { realLogger.remove(transport); }
   return captured;
 };
 
