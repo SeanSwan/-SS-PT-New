@@ -330,6 +330,14 @@ import {
   runAdminAccountCommand,
   createAdminPasswordSetupLink
 } from '../controllers/adminAccountCommandController.mjs';
+import {
+  completeFederatedCallback,
+  exchangeFederatedCompletion,
+  listAuthProviders,
+  startFederatedLink,
+  startFederatedLogin,
+} from '../controllers/federatedAuthController.mjs';
+import { exchangeMagicLink, requestMagicLink } from '../controllers/magicLinkController.mjs';
 import { 
   protect, 
   adminOnly, 
@@ -348,6 +356,22 @@ const adminAccountCommandLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 
 const changePasswordLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 const CLIENT_ROLE_CONVERSION_MESSAGE = 'Client accounts must be created through Client Hub onboarding so access is handed off with a secure reset link.';
 
+/**
+ * Federated authentication discovery and authorization-code flow.
+ * One shared limiter covers starts, callbacks, completion exchange, and the
+ * protected linking start without changing the exact route ownership.
+ */
+router.get('/providers', listAuthProviders);
+router.post('/magic-link/request',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }), requestMagicLink);
+router.post('/magic-link/exchange',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 }), exchangeMagicLink);
+router.use('/oauth', rateLimiter({ windowMs: 15 * 60 * 1000, max: 60 }));
+router.get('/oauth/:provider/start', startFederatedLogin);
+router.get('/oauth/:provider/callback', completeFederatedCallback);
+router.post('/oauth/:provider/callback', completeFederatedCallback);
+router.post('/oauth/exchange', exchangeFederatedCompletion);
+router.post('/oauth/:provider/link/start', protect, startFederatedLink);
 /**
  * @route   POST /api/auth/register
  * @desc    Register a new user

@@ -1,795 +1,288 @@
 /**
- * EnhancedLoginModal.tsx
- * ===================
- * 
- * Enhanced login modal with optimized layout and compact footer
- * for better vertical space utilization.
+ * EnhancedLoginModal
+ *
+ * Canonical /login surface. Authentication opens the product; onboarding stays
+ * a voluntary dashboard action and is intentionally absent from this route.
  */
-
-import React, { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
-import { motion, Variants } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
-import { useUniversalTheme } from "../context/ThemeContext";
-import apiService from "../services/api.service";
-import AuthLayout from "../layouts/AuthLayout";
+import React, { useCallback, useEffect, useState } from 'react';
+import { Eye, EyeOff, X } from 'lucide-react';
+import type { Variants } from 'framer-motion';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useUniversalTheme } from '../context/ThemeContext';
+import apiService from '../services/api.service';
+import AuthLayout from '../layouts/AuthLayout';
 import { logger } from '@/utils/logger';
 import { PASSWORD_POLICY_COPY, isActivationPasswordStrong } from './activationPasswordPolicy';
 import { resolvePostPasswordChangeRoute } from './postPasswordChangeRoute';
+import EnhancedLoginProviders from './EnhancedLoginProviders';
+import {
+  AuthLink,
+  AuthLinks,
+  BrandName,
+  ClaimedWelcome,
+  CloseButton,
+  ConnectionStatus,
+  CredentialForm,
+  ErrorMessage,
+  FieldGroup,
+  FieldLabel,
+  FormSubtitle,
+  FormTitle,
+  FormWrapper,
+  InputField,
+  InputShell,
+  LoginContainer,
+  LogoCircle,
+  LogoImage,
+  ModalHeader,
+  PasswordPolicyHint,
+  PasswordToggle,
+  SubmitButton,
+} from './EnhancedLoginModal.styles';
 
-// --- Asset Paths ---
-const Logo = "/Logo.png";
-import { VIDEO } from "../config/videoAssets";
-const powerBackground = VIDEO.waves;
+const itemVariants: Variants = { hidden: { opacity: 1 }, visible: { opacity: 1 } };
+const isSafeLocalReturnUrl = (value: string | null): value is string =>
+  Boolean(value && value.startsWith('/') && !value.startsWith('//')
+    && !value.includes('\\') && !/[\u0000-\u001f\u007f]/.test(value));
 
-/* ------------------ Animations ------------------ */
-const shimmer = keyframes`
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-`;
-
-const glowText = keyframes`
-  0% { text-shadow: 0 0 5px currentColor; }
-  50% { text-shadow: 0 0 10px currentColor, 0 0 15px currentColor; }
-  100% { text-shadow: 0 0 5px currentColor; }
-`;
-
-/* ------------------ Styled Components ------------------ */
-const LoginContainer = styled(motion.div)`
-  position: relative;
-  width: 100%;
-  max-width: 100vw;
-  min-height: calc(100vh - 50px); /* Account for compact footer */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  overflow: hidden;
-`;
-
-const VideoBackground = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  overflow: hidden;
-
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: color-mix(in srgb, var(--bg-base) 55%, transparent);
-    z-index: 1;
-  }
-
-  video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    transform: translate(-50%, -50%);
-    object-fit: cover;
-    z-index: 0;
-    opacity: 0;
-    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  &.video-ready video {
-    opacity: 1;
-  }
-`;
-
-const FormWrapper = styled(motion.div)`
-  width: 100%;
-  max-width: 400px;
-  background: ${({ theme }) => theme.background.surface};
-  backdrop-filter: blur(8px);
-  padding: 30px 25px;
-  border-radius: 10px;
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
-  box-shadow: ${({ theme }) => theme.shadows.elevation};
-  position: relative;
-  z-index: 2;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: ${({ theme }) => theme.borders.elegant};
-    box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  }
-`;
-
-
-const CloseButton = styled(motion.button)`
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  background: ${({ theme }) => theme.colors.primary}10;
-  border: 1px solid ${({ theme }) => theme.colors.primary}30;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5rem;
-  color: ${({ theme }) => theme.colors.primary};
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}50;
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  line-height: 1;
-  text-align: center;
-
-  /* Adjust vertical positioning */
-  span {
-    margin-top: -2px; /* Fine-tune vertical alignment */
-    display: block;
-  }
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary}20;
-    box-shadow: ${({ theme }) => theme.shadows.primary};
-    color: ${({ theme }) => theme.text.primary};
-    transform: rotate(90deg) scale(1.1);
-  }
-`;
-
-const ModalHeader = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-`;
-
-const LogoCircle = styled(motion.div)`
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.gradients.cosmic};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-  border: 1px solid ${({ theme }) => theme.borders.elegant};
-  box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  animation: ${float} 6s ease-in-out infinite;
-  overflow: hidden;
-  transition: all 0.3s ease;
-
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      ${({ theme }) => theme.colors.primary}20 50%,
-      transparent 100%
-    );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
-    border-radius: 50%;
-  }
-  
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: ${({ theme }) => theme.shadows.primary}, ${({ theme }) => theme.shadows.cosmic};
-  }
-`;
-
-const LogoImage = styled.img`
-  width: 120%;
-  height: 120%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 2;
-  
-  /* Swan-inspired enhancement */
-  &:hover {
-    filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}70);
-    transform: scale(1.05) rotate(2deg);
-  }
-`;
-
-const HeaderText = styled(motion.h1)`
-  font-size: 1.6rem;
-  font-weight: 300;
-  color: ${({ theme }) => theme.text.primary};
-  margin: 0;
-  letter-spacing: 1px;
-  background: ${({ theme }) => theme.gradients.stellar};
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  animation: ${shimmer} 4s linear infinite;
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
-  transition: all 0.3s ease;
-  
-  /* Swan Studios brand enhancement */
-  &:hover {
-    animation: ${shimmer} 2s linear infinite;
-    text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}70;
-  }
-`;
-
-const FormTitle = styled(motion.h2)`
-  text-align: center;
-  margin-bottom: 20px;
-  font-weight: 300;
-  font-size: 1.3rem;
-  color: ${({ theme }) => theme.colors.primary};
-  letter-spacing: 1px;
-  animation: ${glowText} 3s infinite;
-  text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}50;
-  transition: all 0.3s ease;
-  
-  /* Swan elegance enhancement */
-  &:hover {
-    color: ${({ theme }) => theme.colors.accent || theme.colors.primary};
-    text-shadow: 0 0 12px ${({ theme }) => theme.colors.primary}70;
-  }
-`;
-
-const InputField = styled(motion.input)`
-  width: 100%;
-  padding: 12px 15px;
-  margin-bottom: 18px;
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
-  border-radius: 8px;
-  background: ${({ theme }) => theme.background.elevated};
-  color: ${({ theme }) => theme.text.primary};
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}30, inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    background: ${({ theme }) => theme.background.surface};
-    text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}20;
-  }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.text.muted};
-  }
-  
-  /* Swan-inspired focus animation */
-  &:focus {
-    transform: translateY(-1px);
-  }
-`;
-
-const Button = styled(motion.button)`
-  width: 100%;
-  padding: 12px;
-  background: ${({ theme }) => theme.gradients.primary};
-  background-size: 200% auto;
-  border: none;
-  border-radius: 8px;
-  color: ${({ theme }) => theme.colors.white || '#ffffff'};
-  font-size: 1.1rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  margin-top: 10px;
-  box-shadow: ${({ theme }) => theme.shadows.primary};
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-
-  &:hover {
-    background-position: right center;
-    box-shadow: ${({ theme }) => theme.shadows.cosmic};
-    transform: translateY(-2px);
-    background: ${({ theme }) => theme.gradients.cosmic};
-  }
-  
-  &:active {
-    transform: translateY(1px);
-  }
-  
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      ${({ theme }) => theme.colors.primary}30 50%,
-      transparent 100%
-    );
-    transition: all 0.3s ease;
-  }
-  
-  &:hover:before {
-    left: 100%;
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    background-position: 0% 0%;
-    box-shadow: none;
-    
-    &:hover:before {
-      left: -100%;
-    }
-  }
-`;
-
-const ForgotPasswordLink = styled(motion(Link))`
-  display: block;
-  margin-top: 15px;
-  text-align: center;
-  color: ${({ theme }) => theme.colors.primary};
-  font-size: 0.9rem;
-  text-decoration: none;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.accent || theme.colors.primaryLight};
-    text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}50;
-  }
-  
-  &:after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 1px;
-    background: ${({ theme }) => theme.colors.primary};
-    transition: width 0.3s ease;
-  }
-  
-  &:hover:after {
-    width: 50%;
-  }
-`;
-
-const ErrorMessage = styled(motion.p)`
-  color: #ff8080;
-  text-align: center;
-  margin-bottom: 15px;
-  padding: 8px 12px;
-  background: rgba(255, 85, 85, 0.15);
-  border-radius: 5px;
-  border: 1px solid rgba(255, 85, 85, 0.2);
-  font-size: 0.9rem;
-`;
-
-const ClaimedWelcome = styled(motion.p)`
-  color: var(--accent-primary, #60C0F0);
-  text-align: center;
-  margin-bottom: 15px;
-  padding: 8px 12px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-  border-radius: 5px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
-  font-size: 0.9rem;
-`;
-
-const PasswordPolicyHint = styled(motion.p)`
-  color: ${({ theme }) => theme.text.secondary || theme.text.muted};
-  font-size: 0.82rem;
-  line-height: 1.4;
-  margin: -8px 0 16px;
-`;
-
-const ConnectionStatus = styled(motion.div)<{ $connected: boolean }>`
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: ${props => props.$connected ? 'rgba(0, 200, 0, 0.2)' : 'rgba(200, 0, 0, 0.2)'};
-`;
-
-/**
- * EnhancedLoginModal Component
- * Enhanced login modal with optimized layout and compact footer
- */
+const PasswordField = ({
+  id, label, name, value, visible, disabled, autoComplete, onChange, onToggle, onFocus,
+}: {
+  id: string; label: string; name: string; value: string; visible: boolean; disabled: boolean;
+  autoComplete: 'current-password' | 'new-password';
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onToggle: () => void; onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
+}) => (
+  <FieldGroup>
+    <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <InputShell>
+      <InputField
+        id={id}
+        type={visible ? 'text' : 'password'}
+        name={name}
+        placeholder={label}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        autoComplete={autoComplete}
+        data-password="true"
+        required
+        disabled={disabled}
+        variants={itemVariants}
+      />
+      <PasswordToggle
+        type="button"
+        aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        aria-controls={id}
+        aria-pressed={visible}
+        onClick={onToggle}
+        disabled={disabled}
+      >
+        {visible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+      </PasswordToggle>
+    </InputShell>
+  </FieldGroup>
+);
 
 const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, user, isAuthenticated } = useAuth();
   useUniversalTheme();
-  // Slice 12 claim handoff: a freshly activated account arrives with
-  // ?username=&claimed=1 — prefill the field and greet, never re-type.
   const [searchParams] = useSearchParams();
+  const fragmentParams = new URLSearchParams(location.hash.replace(/^#/, ''));
   const isFreshlyClaimed = searchParams.get('claimed') === '1';
+  const requestedReturnUrl = fragmentParams.get('returnUrl') || searchParams.get('returnUrl');
+  const hasSafeReturnUrl = isSafeLocalReturnUrl(requestedReturnUrl);
+  const safeReturnUrl = hasSafeReturnUrl ? requestedReturnUrl : '/user-dashboard';
   const [credentials, setCredentials] = useState({
-    username: searchParams.get('username') ?? "",
-    password: "",
+    username: searchParams.get('username') ?? '', password: '',
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => searchParams.get('oauthError')
+    ? 'Provider sign-in could not be completed. Please try again.'
+    : '');
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState({ connected: false, checked: false });
-  const [videoReady, setVideoReady] = useState(false);
-  const handleVideoReady = useCallback(() => setVideoReady(true), []);
-  // Force password change state
   const [forcePasswordChange, setForcePasswordChange] = useState(false);
-  const [tempToken, setTempToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  
-  // Check server connection status on component mount
+  const [tempToken, setTempToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const navigateAfterLogin = useCallback((role?: string) => {
+    if (hasSafeReturnUrl) return navigate(safeReturnUrl, { replace: true });
+    if (role === 'admin') return navigate('/dashboard/admin');
+    if (role === 'trainer') return navigate('/dashboard/trainer/overview');
+    if (role === 'client') return navigate("/dashboard/client/overview");
+    return navigate("/user-dashboard");
+  }, [hasSafeReturnUrl, navigate, safeReturnUrl]);
+
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        // First try direct API check
-        const connected = await apiService.checkConnection();
+    let active = true;
+    apiService.checkConnection()
+      .then((status: boolean | { connected?: boolean }) => {
+        if (!active) return;
+        const connected = typeof status === 'boolean' ? status : Boolean(status?.connected);
         setServerStatus({ connected, checked: true });
-        
-        // If not connected, try fallback direct login
-        if (!connected) {
-          logger.log("API connection check failed. Using fallback...");
-          // Simulate connected state anyway to let user try
-          setServerStatus({ connected: true, checked: true });
-        }
-      } catch (err) {
-        console.error("Error checking server connection:", err);
-        setServerStatus({ connected: false, checked: true });
-      }
-    };
-    
-    checkConnection();
+      })
+      .catch(() => active && setServerStatus({ connected: false, checked: true }));
+    return () => { active = false; };
   }, []);
 
-  // Redirect already-authenticated users to their dashboard
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const role = user.role;
-      if (role === 'admin') {
-        navigate('/dashboard/admin');
-      } else if (role === 'trainer') {
-        navigate('/dashboard/trainer/overview');
-      } else if (role === 'client') {
-        navigate('/dashboard/client/overview');
-      } else {
-        // Plain 'user' role lands on the main hub — the user dashboard home feed (merge M7)
-        navigate('/user-dashboard');
+    if (isAuthenticated && user) navigateAfterLogin(user.role);
+  }, [isAuthenticated, navigateAfterLogin, user]);
+
+  const ensureVisible = (event: React.FocusEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    window.setTimeout(() => {
+      if (input.isConnected && typeof input.scrollIntoView === 'function') {
+        input.scrollIntoView({ block: 'center', behavior: 'auto' });
       }
-    }
-  }, [isAuthenticated, user, navigate]);
-
-  const handleClose = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
+    }, 160);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleClose = () => window.history.length > 1 ? navigate(-1) : navigate('/');
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCredentials((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
     setIsLoading(true);
-    
-    // Log the login attempt details to help debug
-    logger.log('Login attempt with credentials:', {
-      usernameOrEmail: credentials.username,
-      passwordLength: credentials.password.length
-    });
+    localStorage.removeItem('bypass_admin_verification');
+    localStorage.removeItem('admin_emergency_mode');
 
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('bypass_admin_verification');
-      localStorage.removeItem('admin_emergency_mode');
-    }
-    
     try {
-      
-      // First check server connection
       if (!serverStatus.connected && serverStatus.checked) {
-        // Allow login anyway, but warn the user
-        logger.warn("Attempting login without confirmed server connection");
+        logger.warn('Attempting login without a confirmed server connection');
       }
-      
-      // When calling login, pass the credentials directly
       const result = await login(credentials.username, credentials.password);
-      
-      // Handle force-password-change redirect
       if (result.success && result.forcePasswordChange && result.tempToken) {
         setForcePasswordChange(true);
         setTempToken(result.tempToken);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if login was successful and has user data
-      if (result.success && result.user) {
-        const loginUser = result.user;
-        logger.log('Login successful!', { role: loginUser.role });
-        setTimeout(() => {
-          if (loginUser.role === "admin") {
-            navigate("/dashboard/admin");
-          } else if (loginUser.role === "trainer") {
-            navigate("/dashboard/trainer/overview");
-          } else if (loginUser.role === "client") {
-            navigate("/dashboard/client/overview");
-          } else {
-            // Plain 'user' role lands on the main hub — the user dashboard home feed (merge M7)
-            navigate("/user-dashboard");
-          }
-        }, 200);
+      } else if (result.success && result.user) {
+        navigateAfterLogin(result.user.role);
       } else if (result.success) {
-        setError("Login successful but user data missing. Please try again.");
-        setIsLoading(false);
+        setError('Login succeeded but no user profile was returned. Please try again.');
       } else {
-        setError(result.error || result.message || "Invalid email or password. Please try again.");
-        setIsLoading(false);
+        setError(result.error || result.message || 'Invalid email or password. Please try again.');
       }
-    } catch (err: any) {
+    } catch (caught: any) {
+      const isNetworkError = !serverStatus.connected || caught?.code === 'ERR_NETWORK';
+      setError(isNetworkError
+        ? 'Unable to connect to the server. Check your connection and try again.'
+        : caught?.message || caught?.response?.data?.message || 'Unable to sign in. Please try again.');
+      logger.warn('Login failed', { status: caught?.status || caught?.response?.status || 'unknown' });
+    } finally {
       setIsLoading(false);
-      
-      // Handle cases where the server is down
-      if (!serverStatus.connected || err?.message?.includes('connection') || err?.code === 'ERR_NETWORK') {
-        setError("Unable to connect to server. Please check your connection and try again.");
-        return;
-      }
-      
-      // More robust error handling for server responses
-      console.error("Login error:", err);
-      let errorMessage = "An unknown error occurred";
-      
-      // Handle structured error object from AuthContext
-      if (err?.message) {
-        errorMessage = err.message;
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (typeof err === 'string') {
-        errorMessage = err;
-      }
-      
-      // Log additional details in development
-      logger.warn('Login error details:', {
-        status: err?.status || err?.response?.status,
-        data: err?.data || err?.response?.data,
-        message: errorMessage
-      });
-      
-      setError(errorMessage);
     }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-
-    if (!isActivationPasswordStrong(newPassword)) {
-      setError(PASSWORD_POLICY_COPY);
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
+  const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    if (!isActivationPasswordStrong(newPassword)) return setError(PASSWORD_POLICY_COPY);
+    if (newPassword !== confirmPassword) return setError('Passwords do not match.');
 
     setIsLoading(true);
     try {
       const result = await apiService.forceChangePassword(tempToken, newPassword);
       if (result.success && result.user) {
-        // forceChangePassword persists auth before this hard navigation refreshes AuthContext.
         window.location.href = resolvePostPasswordChangeRoute(result.user.role);
       } else {
-        setError("Password change failed. Please try again.");
-        setIsLoading(false);
+        setError('Password change failed. Please try again.');
       }
-    } catch (err: any) {
+    } catch (caught: any) {
+      setError(caught?.response?.data?.message || caught?.message || 'Password change failed.');
+    } finally {
       setIsLoading(false);
-      setError(err?.response?.data?.message || err?.message || "Password change failed.");
     }
-  };
-
-  // --- Animation Variants ---
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.5, ease: "easeIn" } },
-    exit: { opacity: 0, transition: { duration: 0.3, ease: "easeOut" } }
-  };
-
-  const formWrapperVariants: Variants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: 0.2,
-        duration: 0.6,
-        ease: "easeOut",
-        staggerChildren: 0.1,
-        delayChildren: 0.4
-      }
-    }
-  };
-  
-  const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
   };
 
   return (
     <AuthLayout>
-      <LoginContainer
-        key="login-container"
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        variants={containerVariants}
-      >
-        <VideoBackground className={videoReady ? 'video-ready' : ''}>
-          <video autoPlay loop muted playsInline key={powerBackground} onCanPlayThrough={handleVideoReady}>
-            <source src={powerBackground} type="video/mp4" />
-          </video>
-        </VideoBackground>
-
-        <CloseButton 
-          onClick={handleClose} 
-          aria-label="Close login modal" 
-          whileTap={{ scale: 0.9 }}
-        >
-          <span>×</span>
-        </CloseButton>
-
-        <FormWrapper
-          key="login-form-wrapper"
-          variants={formWrapperVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          <ModalHeader variants={itemVariants}>
-            <LogoCircle>
-              <LogoImage src={Logo} alt="SwanStudios Logo" />
-            </LogoCircle>
-            <HeaderText>SwanStudios</HeaderText>
+      <LoginContainer>
+        <FormWrapper aria-labelledby="login-title">
+          <CloseButton type="button" onClick={handleClose} aria-label="Close login">
+            <X size={20} aria-hidden="true" />
+          </CloseButton>
+          <ModalHeader>
+            <LogoCircle><LogoImage src="/Logo.png" alt="" /></LogoCircle>
+            <BrandName>SwanStudios</BrandName>
           </ModalHeader>
-
-          <FormTitle variants={itemVariants}>
-            {forcePasswordChange ? "Set Your New Password" : "Access Your Account"}
+          <FormTitle id="login-title">
+            {forcePasswordChange ? 'Set Your New Password' : 'Access Your Account'}
           </FormTitle>
+          <FormSubtitle>
+            {forcePasswordChange ? 'Secure your account before continuing.' : 'Sign in to continue your training journey.'}
+          </FormSubtitle>
 
-          {error && (
-            <ErrorMessage
-              key="login-error-message"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto', marginBottom: 15 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {error}
-            </ErrorMessage>
-          )}
-
+          {error && <ErrorMessage role="alert">{error}</ErrorMessage>}
           {isFreshlyClaimed && !error && !forcePasswordChange && (
-            <ClaimedWelcome
-              key="claimed-welcome"
-              role="status"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
+            <ClaimedWelcome role="status">
               Account activated — welcome to SwanStudios! Log in with your new password.
             </ClaimedWelcome>
           )}
 
           {forcePasswordChange ? (
-            <form onSubmit={handlePasswordChange}>
-              <InputField
-                type="password"
-                name="newPassword"
-                placeholder="New Password"
-                value={newPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                variants={itemVariants}
-              />
+            <CredentialForm onSubmit={handlePasswordChange}>
+              <PasswordField id="new-password" label="New Password" name="newPassword" value={newPassword}
+                visible={showNewPassword} disabled={isLoading} autoComplete="new-password"
+                onChange={(event) => setNewPassword(event.target.value)} onFocus={ensureVisible}
+                onToggle={() => setShowNewPassword((visible) => !visible)} />
               <PasswordPolicyHint variants={itemVariants}>{PASSWORD_POLICY_COPY}</PasswordPolicyHint>
-              <InputField
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm New Password"
-                value={confirmPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                variants={itemVariants}
-              />
-              <Button
-                type="submit"
-                disabled={isLoading}
-                variants={itemVariants}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isLoading ? "Updating..." : "Set Password & Continue"}
-              </Button>
-            </form>
+              <PasswordField id="confirm-password" label="Confirm New Password" name="confirmPassword"
+                value={confirmPassword} visible={showConfirmPassword} disabled={isLoading} autoComplete="new-password"
+                onChange={(event) => setConfirmPassword(event.target.value)} onFocus={ensureVisible}
+                onToggle={() => setShowConfirmPassword((visible) => !visible)} />
+              <SubmitButton type="submit" disabled={isLoading}>
+                {isLoading ? 'Updating…' : 'Set Password & Continue'}
+              </SubmitButton>
+            </CredentialForm>
           ) : (
             <>
-              <form onSubmit={handleSubmit}>
-                <InputField
-                  type="text"
-                  name="username"
-                  placeholder="Username or Email"
-                  value={credentials.username}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  variants={itemVariants}
-                />
-                <InputField
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={credentials.password}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  variants={itemVariants}
-                />
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  variants={itemVariants}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {isLoading ? "Authenticating..." : "Sign In"}
-                </Button>
-              </form>
-
-              <ForgotPasswordLink
-                to="/forgot-password"
-                variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
-              >
-                Forgot Password?
-              </ForgotPasswordLink>
+              <CredentialForm onSubmit={handleSubmit}>
+                <FieldGroup>
+                  <FieldLabel htmlFor="login-username">Username or Email</FieldLabel>
+                  <InputField id="login-username" type="text" name="username" placeholder="Username or Email"
+                    value={credentials.username} onChange={handleChange} onFocus={ensureVisible}
+                    autoComplete="username" autoCapitalize="none" spellCheck={false} inputMode="email"
+                    required disabled={isLoading} variants={itemVariants} />
+                </FieldGroup>
+                <PasswordField id="login-password" label="Password" name="password" value={credentials.password}
+                  visible={showPassword} disabled={isLoading} autoComplete="current-password"
+                  onChange={handleChange} onFocus={ensureVisible}
+                  onToggle={() => setShowPassword((visible) => !visible)} />
+                <SubmitButton type="submit" disabled={isLoading}>
+                  {isLoading ? 'Authenticating…' : 'Sign In'}
+                </SubmitButton>
+              </CredentialForm>
+              <EnhancedLoginProviders
+                exchange={fragmentParams.get('exchange') || searchParams.get('exchange')}
+                identifier={credentials.username}
+                magicToken={fragmentParams.get('magic')}
+                returnUrl={safeReturnUrl}
+                onAuthenticated={(authenticatedUser, destination) => window.location.replace(
+                  hasSafeReturnUrl
+                    ? destination
+                    : resolvePostPasswordChangeRoute(authenticatedUser.role as Parameters<typeof resolvePostPasswordChangeRoute>[0]),
+                )}
+                onError={setError}
+              />
+              <AuthLinks>
+                <AuthLink to="/forgot-password">Forgot Password?</AuthLink>
+                <AuthLink to="/signup">Create Account</AuthLink>
+              </AuthLinks>
             </>
           )}
-          
           {serverStatus.checked && (
-            <ConnectionStatus $connected={serverStatus.connected}>
-              {serverStatus.connected ? "✓ Server Connected" : "⚠ Server Offline"}
+            <ConnectionStatus $connected={serverStatus.connected} role="status">
+              {serverStatus.connected ? 'Server Connected' : 'Server unavailable'}
             </ConnectionStatus>
           )}
         </FormWrapper>

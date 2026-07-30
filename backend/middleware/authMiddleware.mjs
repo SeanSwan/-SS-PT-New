@@ -791,15 +791,27 @@ export const rateLimiter = (options = {}) => {
   const {
     windowMs = 60 * 1000,
     max = 100,
+    maxKeys = 10_000,
     message = 'Too many requests, please try again later.'
   } = options;
 
   const requests = new Map();
+  let lastCleanup = Date.now();
 
   return (req, res, next) => {
     const key = req.ip || 'unknown';
     const now = Date.now();
-    
+
+    if (now - lastCleanup >= windowMs) {
+      for (const [storedKey, timestamps] of requests.entries()) {
+        if (!timestamps.some((time) => now - time < windowMs)) requests.delete(storedKey);
+      }
+      lastCleanup = now;
+    }
+    if (!requests.has(key) && requests.size >= maxKeys) {
+      requests.delete(requests.keys().next().value);
+    }
+
     // Get existing timestamps or create new array
     const timestamps = requests.get(key) || [];
     
