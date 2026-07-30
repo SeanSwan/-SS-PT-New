@@ -1,12 +1,40 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { injectCspMeta } from './src/config/contentSecurityPolicy';
+
+/**
+ * SWA-104 — inject the Content-Security-Policy into the built HTML document.
+ *
+ * sswanstudios.com is a Render STATIC SITE that is not Blueprint-synced, so the
+ * `headers:` block in render.yaml never reaches visitors and helmet's CSP only
+ * ever covered /api/*. A <meta http-equiv> tag ships inside the build artifact,
+ * so it survives any hosting misconfiguration.
+ *
+ * `apply: 'build'` keeps it out of `npm run dev` on purpose: the policy includes
+ * upgrade-insecure-requests, which would rewrite the dev proxy's
+ * http://localhost:10000 API calls to https:// and break local development.
+ *
+ * Placement matters twice over — a meta CSP only governs what the parser sees
+ * AFTER it, but <meta charset> must stay inside the document's first 1024 bytes.
+ * injectCspMeta() anchors the policy immediately after charset to satisfy both,
+ * and throws if that anchor is ever removed rather than silently shipping nothing.
+ */
+const productionCspMeta = () => ({
+  name: 'swan-production-csp-meta',
+  apply: 'build' as const,
+  transformIndexHtml: {
+    order: 'pre' as const,
+    handler: (html: string) => injectCspMeta(html),
+  },
+});
 
 export default defineConfig({
   // Ensure public folder files (including _redirects) are copied to dist
   publicDir: 'public',
   plugins: [
-    react()
+    react(),
+    productionCspMeta()
   ],
   server: {
     host: '0.0.0.0',

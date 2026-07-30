@@ -75,12 +75,28 @@ services:
     buildCommand: rm -rf node_modules/.vite && npm install && npm run build
     staticPublishPath: ./dist
     # Security headers for the public static site (2026-07-28 launch hardening).
-    # Live probe showed only x-content-type-options was being served; the
-    # frontend/public/_headers file is a Netlify convention Render ignores.
+    #
+    # ⚠ SWA-104 (2026-07-30) — READ THIS BEFORE TRUSTING ANYTHING BELOW.
+    # This service is NOT Blueprint-synced, so EVERY header in this block is
+    # currently INERT. A live probe of https://sswanstudios.com/ returned no CSP,
+    # no X-Frame-Options, no Referrer-Policy and no HSTS — only Render's default
+    # x-content-type-options. Cloudflare is not the culprit: /api/health on the
+    # same host and edge returns the full helmet policy, so headers pass through
+    # fine; the static site simply never sent any. The same root cause is already
+    # noted for the Cache-Control rule below (SWA-93).
+    #
+    # Because of that, the CSP is now ALSO shipped inside the build artifact as a
+    # <meta http-equiv> tag — see frontend/src/config/contentSecurityPolicy.ts and
+    # the build-only plugin in frontend/vite.config.ts. That path reaches visitors
+    # without any dashboard action. The header value below is kept in sync with it
+    # and adds frame-ancestors, which browsers ignore in a meta tag.
+    #
+    # STILL REQUIRES SEAN IN THE RENDER DASHBOARD (no code path can deliver these):
+    #   X-Frame-Options / frame-ancestors (clickjacking), Strict-Transport-Security,
+    #   Permissions-Policy — plus replacing the blunt no-store Cache-Control rule.
+    #
     # NOTE: microphone/camera must stay (self) — Coach voice capture and the
     # food scanner run on this origin; an empty allowlist breaks them.
-    # CSP ships REPORT-ONLY first: zero breakage risk while console reports
-    # confirm the allowlist against real traffic before an enforcement pass.
     headers:
       - path: /*
         name: X-Frame-Options
@@ -106,9 +122,23 @@ services:
       - path: /v3/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+      # Kept byte-identical to PRODUCTION_CSP_HEADER in
+      # frontend/src/config/contentSecurityPolicy.ts (a unit test asserts the
+      # value below matches, so the two cannot drift silently).
+      #
+      # The previous value here was a REPORT-ONLY policy with a tight host
+      # allowlist. Enforcing it as written would have broken production: it had
+      # no https://cdn.jsdelivr.net (MediaPipe wasm + the admin world-atlas
+      # fetch), no https://unpkg.com (ffmpeg core, content-studio compression)
+      # and no 'wasm-unsafe-eval' at all. That is precisely why the fetch
+      # directives start permissive — a wrong allowlist breaks a revenue path
+      # silently, and 'unsafe-inline' is unavoidable while index.html uses an
+      # inline onload for the async font swap, which blunts what a host
+      # allowlist could buy anyway. Tightening is a separate slice and needs
+      # report-uri telemetry from real traffic, not a guess made from grep.
       - path: /*
-        name: Content-Security-Policy-Report-Only
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://ss-pt-new.onrender.com wss://ss-pt-new.onrender.com https://api.stripe.com https://models.readyplayer.me https://api.readyplayer.me; frame-src 'self' https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+        name: Content-Security-Policy
+        value: "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: data: https: wss:; frame-src 'self' https:; worker-src 'self' blob: https:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; frame-ancestors 'self'"
     routes:
       # SPA routing - serve index.html for all non-file routes
       - type: rewrite

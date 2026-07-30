@@ -103,10 +103,10 @@
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&family=Fira+Code:wght@300..700&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
     </noscript>
 
-    <!-- Security Headers -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <!-- <meta http-equiv="X-Frame-Options" content="DENY" /> REMOVED - CAUSING CONSOLE ERROR -->
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <!-- Security policy: src/config/contentSecurityPolicy.ts (SWA-104).
+         Comments here are served to every visitor, so the rationale lives in that
+         module — do not restate security posture in this file. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     
     <!-- Performance Hints - REMOVED CACHE PREVENTION -->
     <!-- <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
