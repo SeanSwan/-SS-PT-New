@@ -20,11 +20,12 @@ import {
 } from '../useSessionStage';
 import { STAGE_LABELS } from '../primitives/StageCanvas';
 
-const Rail = styled.div`
+const Rail = styled.div<{ $variant: 'tabs' | 'segmented' }>`
   display: flex;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: ${({ $variant }) => ($variant === 'segmented' ? '2px' : '6px')};
+  padding: ${({ $variant }) => ($variant === 'segmented' ? '4px 12px' : '6px 12px')};
   font-family: 'Sora', sans-serif;
+  ${({ $variant }) => ($variant === 'segmented' ? 'max-width: 420px;' : '')}
 `;
 
 const StageTab = styled.button<{ $active: boolean }>`
@@ -61,11 +62,23 @@ const Dot = styled.span<{ $active: boolean }>`
     $active ? 'var(--world-accent, #60c0f0)' : 'color-mix(in srgb, var(--text-muted, #94a3b8) 55%, transparent)'};
 `;
 
-const StageRail: React.FC<{ store: SessionStageStore }> = ({ store }) => {
+export interface StageRailProps {
+  store: SessionStageStore;
+  /** Recipe knob (M4): tab rail or the Ledger Pro compact segmented form. */
+  variant?: 'tabs' | 'segmented';
+}
+
+const StageRail: React.FC<StageRailProps> = ({ store, variant = 'tabs' }) => {
   const [stage] = useSessionStage(store);
 
   return (
-    <Rail data-shell-zone='stage-rail' role='tablist' aria-label='Session stages'>
+    <Rail
+      data-shell-zone='stage-rail'
+      data-rail-variant={variant}
+      $variant={variant}
+      role='tablist'
+      aria-label='Session stages'
+    >
       {SESSION_STAGES.map((target) => (
         <StageTab
           key={target}

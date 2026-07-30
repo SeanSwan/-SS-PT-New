@@ -74,6 +74,8 @@ import RunnerCollection from './runner/RunnerCollection';
 import RunnerEmptyState from './runner/RunnerEmptyState';
 import { useRunnerEngine } from './runner/useRunnerEngine';
 import { writeRunnerStyle } from './runner/runnerStyles';
+import { useRunnerStyle } from './runner/useRunnerStyle';
+import { getRecipe } from './runner/shell/recipes';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -182,6 +184,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
   const sessionStageStore = useMemo(() => createSessionStageStore(), []);
   const [sessionStage] = useSessionStage(sessionStageStore);
+  // M4: the active runner style's page recipe — DATA driving zone chrome.
+  const [runnerStyleId] = useRunnerStyle();
+  const pageRecipe = getRecipe(runnerStyleId);
   // M6: keep the screen awake while a live session is on the Train canvas.
   useScreenWakeLock(sessionStage === 'train' && exercises.length > 0);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -590,7 +595,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Receipt terminal state (Slice 5): post-save the rail is NOT
             navigable — the receipt below replaces the staged canvas. */}
         {!lastSaveResponse && (<>
-        <StageRail store={sessionStageStore} />
+        <StageRail store={sessionStageStore} variant={pageRecipe.stageRail === 'segmented' ? 'segmented' : 'tabs'} />
         <StageCanvas stage={sessionStage} store={sessionStageStore}>
         {sessionStage === 'setup' && (<>
           {!isClientSelfMode && (
@@ -655,7 +660,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           )}
         </>)}
         {sessionStage === 'train' && (<>
-        {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
+        {/* M4 statsStrip knob: expanded recipes keep the Train strip; collapsed
+            recipes lean on the context bar's 2 numbers. Finish always shows it. */}
+        {exercises.length > 0 && pageRecipe.statsStrip === 'expanded' && <SessionStatsBar stats={sessionStats} />}
         {exercises.length > 0 && (
           <WorkoutLoggerModeBar
             isQuickLogMode={isQuickLogMode}
