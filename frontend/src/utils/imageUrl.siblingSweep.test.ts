@@ -19,7 +19,11 @@ import { resolve } from 'path';
 const SURFACES: Array<{ label: string; path: string }> = [
   // ── Wave 1 (PR #6): the 6 originally-named debate-file surfaces ────────
   { label: 'PhotoGalleryCard.styles.ts', path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts' },
-  { label: 'TestimonialSlider.tsx', path: '../components/TestimonialSlider/TestimonialSlider.tsx' },
+  // TestimonialSlider.tsx was DELETED as a verified orphan in commit 2231bbc52
+  // (launch audit S8, "3 verified orphan components / 1,934 lines"). The surface no
+  // longer exists, so reading it threw ENOENT at module scope and this ENTIRE file
+  // collected 0 tests — every other surface below silently stopped being swept.
+  // A component deletion has to take its sibling-sweep entry with it.
   { label: 'VerticalReels.styles.ts', path: '../components/Social/Reels/VerticalReels.styles.ts' },
   { label: 'HomeStyles.tsx', path: '../pages/HomePage/components/shared/HomeStyles.tsx' },
   // ── Wave 2 (this PR): Phase-4 wider sweep ──────────────────────────────
@@ -111,6 +115,11 @@ describe('imageUrl sibling sweep — each surface uses sanitizeImageUrl + cssUrl
 
   it('SURFACES array covers the retained live image surfaces', () => {
     // The minimum guards the current live sweep against accidental truncation.
-    expect(SURFACES.length).toBeGreaterThanOrEqual(20);
+    // Lowered 20 -> 19 on 2026-07-29: TestimonialSlider.tsx was deleted as a
+    // verified orphan in 2231bbc52, so the surface genuinely no longer exists.
+    // This floor may only drop when a surface is REMOVED FROM THE CODEBASE, never
+    // to make a red test green — and every such drop names the commit that
+    // removed it.
+    expect(SURFACES.length).toBeGreaterThanOrEqual(19);
   });
 });

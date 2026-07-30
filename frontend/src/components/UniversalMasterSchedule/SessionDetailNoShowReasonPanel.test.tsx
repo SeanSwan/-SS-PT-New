@@ -27,7 +27,14 @@ describe('SessionDetailNoShowReasonPanel', () => {
     });
 
     expect(onNoShowReasonChange).toHaveBeenCalledWith('No call, no text');
-    expect(screen.getByText(/client will be notified/i)).toBeInTheDocument();
+    // The panel must state the CONDITION, not promise delivery: shouldNotifyClient
+    // suppresses the no-show email when the client has notifications off or is
+    // inside their quiet hours, and the no-show path passes no `force`, so a
+    // suppressed notice is dropped rather than deferred (rule 75).
+    expect(screen.getByText(/we'll email the client/i)).toBeInTheDocument();
+    expect(screen.getByText(/quiet hours/i)).toBeInTheDocument();
+    // The old unconditional promise must not come back.
+    expect(screen.queryByText(/client will be notified/i)).not.toBeInTheDocument();
   });
 
   it('lets trainers choose whether a no-show deducts a SwanStudios session credit', () => {

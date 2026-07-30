@@ -31,7 +31,18 @@ describe('role dashboard background studio mount contract', () => {
     expect(clientHome).toContain('<DashboardBackgroundSurface>');
     expect(clientHome).toContain('scopeLabel="Client"');
     expect(trainerHome).toContain('<DashboardBackgroundSurface>');
-    expect(trainerHome).toContain('scopeLabel="Trainer"');
+    // The trainer home mounts the SURFACE but deliberately NOT the settings panel.
+    // Commit c3bd5c563 (2026-07-23, Kimi K3 de-dup) evicted the background-theme
+    // picker from the trainer page flow, and TrainerHomeObservatoryParity.test.ts
+    // enforces that with `not.toContain('DashboardBackgroundSettingsPanel')`.
+    //
+    // This line used to assert `scopeLabel="Trainer"`, which can only appear via
+    // <DashboardBackgroundSettingsPanel scopeLabel="Trainer" />. So the two guards
+    // were MUTUALLY UNSATISFIABLE and this one had been sitting red in the failing
+    // baseline. c3bd5c563 changed the design and did not update this sibling
+    // assertion; the parity contract is the newer, intentional decision (this file's
+    // assertion dates to 2026-07-01), so this one yields.
+    expect(trainerHome).not.toContain('DashboardBackgroundSettingsPanel');
     expect(adminHome).toContain('<DashboardBackgroundSurface>');
     expect(adminHome).toContain('scopeLabel="Admin"');
     expect(studio).toContain('useUserDashboardBackgroundPreference(brandLogo)');
