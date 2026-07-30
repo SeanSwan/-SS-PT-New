@@ -12,6 +12,7 @@ import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import { createWorkoutCandidatesHandler } from './workoutBuilderCandidateRouteHandler.mjs';
+import { buildSuggestedWorkouts } from '../services/suggestedWorkoutService.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import { normalizeTrainingStyle } from '../services/workoutBuilderTrainingStyle.mjs';
 import { getCorrectiveExercisesForCompensations } from '../services/ai/correctiveExerciseService.mjs';
@@ -299,6 +300,46 @@ router.post('/plan', async (req, res) => {
       error: 'Failed to generate plan',
       details: safeWorkoutBuilderDetails(err),
     });
+  }
+});
+
+/**
+ * GET /api/workout-builder/suggested/:clientId — Workout-OS C6.
+ * READ-ONLY deterministic suggestions (nothing persists), so this carries its
+ * OWN default-off flag instead of riding the client-selfgen WRITE kill-switch:
+ * ENABLE_SUGGESTED_WORKOUTS=true enables the surface. Client/user roles are
+ * self-scoped; trainer requires an active assignment; admin passes.
+ */
+router.get('/suggested/:clientId', async (req, res) => {
+  try {
+    if (process.env.ENABLE_SUGGESTED_WORKOUTS !== 'true') {
+      return res.status(404).json({ success: false, message: 'Suggested workouts are not enabled' });
+    }
+    const parsedClientId = Number.parseInt(req.params.clientId, 10);
+    if (!Number.isInteger(parsedClientId) || parsedClientId <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid clientId is required' });
+    }
+    const role = req.user?.role;
+    const requesterId = Number(req.user?.id);
+    if (role === 'client' || role === 'user') {
+      if (requesterId !== parsedClientId) {
+        return res.status(403).json({ success: false, message: 'Clients can only view their own suggestions' });
+      }
+    } else {
+      const hasAccess = await assertAssignmentOrAdmin(requesterId, role, parsedClientId);
+      if (!hasAccess) {
+        return res.status(403).json({ success: false, message: 'No active assignment for this client' });
+      }
+    }
+
+    const result = await buildSuggestedWorkouts({
+      clientId: parsedClientId,
+      trainerId: requesterId,
+    });
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('[WorkoutBuilder] suggested-workouts failed', { message: error?.message });
+    return res.status(500).json({ success: false, message: 'Unable to build suggestions right now' });
   }
 });
 

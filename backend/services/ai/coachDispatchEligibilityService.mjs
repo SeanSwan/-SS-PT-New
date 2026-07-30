@@ -73,6 +73,26 @@ export function painVerdictForExercise(exercise, excludedMuscles) {
   return { eligible: true };
 }
 
+/**
+ * ONE fail-closed resolver for a client's pain exclusions (Workout-OS C6).
+ * Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED pain source
+ * state (unavailable, future 'stale', missing) or a critical-data failure
+ * returns null — and null NEVER passes as "no pain". Previously copy-pasted
+ * in this gate and the candidates service (Rule-58 drift risk with a third
+ * consumer); now shared by chat gate + candidates + suggested-workouts.
+ */
+const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
+
+export function resolveClientPainExclusions(clientContext = {}) {
+  if (!KNOWN_PAIN_STATES.includes(clientContext?.pain?.status) || clientContext?.criticalDataUnavailable) {
+    return null;
+  }
+  const excluded = clientContext?.pain?.excludedMuscles
+    || clientContext?.constraints?.excludedMuscles
+    || [];
+  return Array.isArray(excluded) ? excluded : [];
+}
+
 function suggestAlternatives(exercise, registry, excludedMuscles, limit = 3) {
   return registry
     .filter(entry => entry.key !== exercise?.key
@@ -114,16 +134,7 @@ export async function filterEligibleFrontendActions({
   }
   try {
     const context = await loadClientContext(targetUserId, requestingUserId);
-    const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
-    if (!KNOWN_PAIN_STATES.includes(context?.pain?.status) || context?.criticalDataUnavailable) {
-      // Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED source
-      // state (unavailable, future 'stale', missing) fails CLOSED.
-      excludedMuscles = null;
-    } else {
-      excludedMuscles = context?.pain?.excludedMuscles
-        || context?.constraints?.excludedMuscles
-        || [];
-    }
+    excludedMuscles = resolveClientPainExclusions(context);
     // Blocking-tier PARITY with the workout builder (review-queue REVISE item,
     // 2026-07-12): a client whose deterministic gate is review_required 409s
     // in the builder — chat must not be a side door around that review, even

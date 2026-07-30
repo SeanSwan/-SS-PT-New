@@ -4,7 +4,7 @@
  */
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistryFromDB } from './variationEngine.mjs';
-import { painVerdictForExercise } from './ai/coachDispatchEligibilityService.mjs';
+import { painVerdictForExercise, resolveClientPainExclusions } from './ai/coachDispatchEligibilityService.mjs';
 import { buildSwanCoachPlanningSafetyGateFromContext } from './swanCoachPlanningFingerprintService.mjs';
 import { getGoalOptBias, normalizeGoal } from './workoutBuilderGoalConfig.mjs';
 import { phaseCandidateDefaults } from './training-cortex/policy/nasmOptPolicy.mjs';
@@ -212,25 +212,10 @@ function slotInstruction({ hasCandidates, equipmentFilterActive, painFilterActiv
 
 const SAFETY_HOLD_INSTRUCTION = 'This client’s pain/safety data could not be loaded, so exercise recommendations are held. Retry, or review the client’s intake before assigning work.';
 
-/**
- * Resolve the client's pain exclusions for candidate filtering.
- * Returns null when the pain state is UNKNOWN (source unavailable or
- * critical data failed) — unknown never passes as "no pain" (fail-closed,
- * same doctrine as the builder gate and the chat dispatch gate).
- */
-const KNOWN_PAIN_STATES = ['loaded_active_issue', 'loaded_no_active_issue', 'never_collected'];
-
-function resolveCandidatePainExclusions(clientContext = {}) {
-  // Allowlist, not an 'unavailable' blocklist: any UNRECOGNIZED pain source
-  // state (unavailable, future 'stale', missing) fails CLOSED.
-  if (!KNOWN_PAIN_STATES.includes(clientContext?.pain?.status) || clientContext?.criticalDataUnavailable) {
-    return null;
-  }
-  const excluded = clientContext?.pain?.excludedMuscles
-    || clientContext?.constraints?.excludedMuscles
-    || [];
-  return Array.isArray(excluded) ? excluded : [];
-}
+// Pain-exclusion resolution moved to the shared fail-closed resolver in
+// coachDispatchEligibilityService (Workout-OS C6) — one source of truth for
+// chat gate + candidates + suggested-workouts.
+const resolveCandidatePainExclusions = resolveClientPainExclusions;
 
 export async function generateWorkoutCandidates({
   clientId,
