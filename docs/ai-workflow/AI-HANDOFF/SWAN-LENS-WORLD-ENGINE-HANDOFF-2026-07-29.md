@@ -20,31 +20,56 @@ while `recipeResolution.ts` stays fail-closed.
 > **Gate integrity, correctly scoped:** `git diff <session-base>..HEAD -- .../v2/recipeResolution.ts` is EMPTY.
 > Do **not** verify this with `main...HEAD` — see §0.1.
 
-## 0.1 ⚠ BEFORE YOU PUSH — this branch has DIVERGED (measured 2026-07-29 17:44)
-Local `main` is **567 commits behind `origin/main`**, so any `main...HEAD` diff is against a stale ref and reports
-~2,553 files of phantom "changes." Measure against `origin/main`, or against the session base commit for
-"what did this session do."
+## 0.1 REBASE — DONE (2026-07-29). This branch now sits on top of `origin/main` @ `113d7d6e8`.
+39 commits replayed; **0 behind, 39 ahead**. The pre-rebase state is recoverable via the tag
+`pre-rebase-swan-lens-20260729` — resolve it with `git rev-parse pre-rebase-swan-lens-20260729`, do NOT trust a
+SHA written here (the pre- and post-rebase tips share a commit SUBJECT, so a naive SHA remap silently rewrites
+this line to point at the post-rebase tip — it did exactly that once). Still **NOT pushed** — that is Sean's gate.
 
-Counts below were measured at `7f3adf4da` and **the branch-ahead figure grows with every further commit** — so
-re-measure rather than trusting the number. The commands are the durable part:
+> **This branch carries TWO UNMERGED SECURITY FIXES — see 0.2. Pushing it is not just "23 worlds".**
+
+**Local `main` is 567 commits behind `origin/main`.** Never measure with `main...HEAD` from this worktree — it
+reports ~2,553 files of phantom "changes" for a 42-file session. Use `origin/main` after a fetch:
 
 ```bash
-git rev-list --count main..origin/main      # how stale local main is   (was 567)
-git rev-list --count HEAD..origin/main      # origin/main ahead of us   (was 98)
-git rev-list --count origin/main..HEAD      # us ahead of origin/main   (was 38, GROWS)
-git diff --stat 7638c8485..HEAD             # this session only         (was 42 files, +2558/−200)
-git diff --name-only 7638c8485..HEAD | sort > /tmp/mine       # rebase conflict surface:
-comm -12 /tmp/mine <(git diff --name-only HEAD...origin/main | sort)   # was EMPTY — zero overlap
+git fetch origin
+git rev-list --count HEAD..origin/main      # origin/main ahead of us (0 right after the rebase)
+git rev-list --count origin/main..HEAD      # us ahead of origin/main (39, and GROWS with each commit)
+git diff --stat origin/main..HEAD           # everything this branch adds
 ```
 
-**Verified at `7f3adf4da`: ZERO file overlap** between this session's 42 files and the 238 files `origin/main`
-touched — it never went near the style-lens adapter or the Lab. The rebase is conflict-free at the file level.
-Re-run the `comm` check before rebasing, since main keeps moving.
+**Methodology lesson — a conflict-surface check must cover the WHOLE replay set, not just your own commits.**
+Before the rebase this file claimed "conflict-free at the file level", on the strength of a `comm` between *this
+session's* 42 files and the 238 `origin/main` touched. Those sets really were disjoint — and the rebase still
+conflicted on its FIRST commit, because it replays all 39, including 21 that predate this session. The correct
+pre-rebase check uses the full replay range:
 
-`origin/main`'s tip was **16 minutes older than this branch's tip** — main is actively moving (the other agent is
-working). Per Rule 70 the push step is: **rebase onto `origin/main`, then RE-RUN the §5 gates on the rebased tree**
-before pushing. Do not push without that re-verification, and do not rebase without Sean — 37 commits onto a moving
-target is a real conflict surface, and the push is his gate anyway.
+```bash
+git diff --name-only origin/main...HEAD | sort > /tmp/replay   # ALL replayed commits, not just yours
+comm -12 /tmp/replay <(git diff --name-only HEAD...origin/main | sort)
+```
+
+The single conflict was a COMMENT in `PrismCapture/prismCopy.ts`: both sides had independently reworded the same
+`credentialPhrasing` CI false-positive. Resolved by taking `origin/main`'s version, which is strictly more
+informative (it documents *why* the phrase is split). Nothing functional lost. The branch's merge commit
+(`afc9baec0`) was dropped by the rebase, as expected — its content is already in `origin/main`.
+
+**Post-rebase re-verification (Rule 70) — all green ON THE REBASED TREE:** affected vitest 28 files / 311 tests;
+standalone tsc over the full world graph clean; vite production build exit 0 (entry chunk 687,220 B); 23 recipe
+files intact; `git diff origin/main..HEAD -- .../v2/recipeResolution.ts` is 0 lines.
+
+## 0.2 THIS BRANCH SHIPS TWO UNMERGED SECURITY FIXES
+Three of the 39 commits predate the World Engine entirely (SHAs below are POST-rebase) and have been sitting unmerged since **2026-07-22**.
+Verified ABSENT from `origin/main` on 2026-07-29:
+
+| Commit | Severity | What is live on prod right now without it |
+|---|---|---|
+| `e0db0c93a` cap referral credits | **HIGH (money)** | `POST /api/gallery/referral` mints 5 enhancement credits (~$15) per submit. Per-phone dedup is bypassed with a fake phone and the rate limiter is pacing-only, so a visitor can mint **unlimited free paid-enhancement credits**. The anti-farm migration, the `MAX_REFERRAL_CREDITS` lifetime cap and its truth test are all absent from `origin/main`. |
+| `f63603e21` reset-test-data guard + PII scrub | **MED (data loss + PII)** | `POST /admin/gallery/reset-test-data` DELETEs every gallery visitor / donation / referral / message row — real CRM and PII — with **no `NODE_ENV` guard and no confirm token** on `origin/main`. |
+| `49a6e1126` coach/debate schema-drift patch | doc | Handoff for Codex; no runtime effect. |
+
+Both fixes are already on this branch and reach production the moment it is pushed — an argument for pushing
+sooner, not later. Say so explicitly to Sean rather than letting them ride along unannounced.
 
 ## 1. CURRENT STATE
 
@@ -57,22 +82,25 @@ Rev 1 only recorded the need for one; promoting `blueprint-fold` broke three Com
 constants with guard tests, so a future wave that promotes either must pick a fresh holdout or make the Slice-15 call.
 **Retiring the chrome-only concept entirely is Slice 15 — Sean's go-live gate, not the agent's.**
 
+SHAs below are **post-rebase as of `origin/main` @ `113d7d6e8`**. A future rebase invalidates them; re-find a
+round by its subject instead: `git log --oneline origin/main..HEAD | grep "round N"`.
+
 | Slice | Commit | What |
 |---|---|---|
-| Master prompt | `96d719883` | The 25-world build spec. |
-| Slice 1 — engine spine | `3ae82c282` | `worlds/` dir: closed `WorldId` union, registry, ledger, generator, CI layers 1–2. |
-| W0 — variant vocabulary | `52d619a50` | `variantVocabulary.ts` single source (display 5 / body 4 / surface 5 / collection 5 / action 4 / chart 4 + 4 templates). |
-| Wave 1 — 4 worlds | `8681ea6f9` | aurora-index, crystalline-cathedral, coach-ledger, quiet-meridian. |
-| **W0.2 + rounds 1–2** | `b682b6967` | The 2 inert axes made real (see finding 1). |
-| **Round 3** | `3e3ad782e` | a11y + data-legibility defects in the new form CSS. |
-| **Round 4** | `2960b4943` | `worlds/lawA.test.ts` — Law A had zero automated enforcement. |
-| **Round 5** | `6b0365e26` | `registry.test.ts` layer 2b — cross-surface compilation + chart-less distinctness. |
-| **Waves 2–4** | `b83e27881` | **17 worlds authored**; catalog derived from registry; `BuiltWorldEntry`. |
-| **Round 6** | `5e5f2d54b` | `worlds/fontLoading.test.ts` — 15 of 23 worlds asked for unloaded fonts. |
-| **Round 7** | `5aa40b7ed` | `worlds/docTruth.test.ts` — headers must match the code. |
-| **Round 8** | `5def80e7f` | `worldRenderSignature.test.tsx` — distinctness proven at the DOM. |
-| **Round 9** | `da8b33401` | `v2/bundleBoundary.test.ts` — worlds were in the main entry chunk. |
-| **Round 10** | `7bb6b1966` | tsc include was too narrow to see round 9's own type errors. |
+| Master prompt | `f75fa4484` | The 25-world build spec. |
+| Slice 1 — engine spine | `7c3739211` | `worlds/` dir: closed `WorldId` union, registry, ledger, generator, CI layers 1–2. |
+| W0 — variant vocabulary | `38232bc64` | `variantVocabulary.ts` single source (display 5 / body 4 / surface 5 / collection 5 / action 4 / chart 4 + 4 templates). |
+| Wave 1 — 4 worlds | `39d61d740` | aurora-index, crystalline-cathedral, coach-ledger, quiet-meridian. |
+| **W0.2 + rounds 1–2** | `fce846db8` | The 2 inert axes made real (see finding 1). |
+| **Round 3** | `0b525e8b7` | a11y + data-legibility defects in the new form CSS. |
+| **Round 4** | `4793ef8ea` | `worlds/lawA.test.ts` — Law A had zero automated enforcement. |
+| **Round 5** | `5986798fa` | `registry.test.ts` layer 2b — cross-surface compilation + chart-less distinctness. |
+| **Waves 2–4** | `0c7a7d253` | **17 worlds authored**; catalog derived from registry; `BuiltWorldEntry`. |
+| **Round 6** | `6949ef4b3` | `worlds/fontLoading.test.ts` — 15 of 23 worlds asked for unloaded fonts. |
+| **Round 7** | `195e3def6` | `worlds/docTruth.test.ts` — headers must match the code. |
+| **Round 8** | `abe759a29` | `worldRenderSignature.test.tsx` — distinctness proven at the DOM. |
+| **Round 9** | `9af952f29` | `v2/bundleBoundary.test.ts` — worlds were in the main entry chunk. |
+| **Round 10** | `1f652df60` | tsc include was too narrow to see round 9's own type errors. |
 
 ## 2. ARCHITECTURE MAP
 - `frontend/src/adapters/style-lens-swan/worlds/` — the spine. `worldId.ts` (25-id closed union), `registry.ts`
