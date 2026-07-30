@@ -87,7 +87,15 @@
          FEWER requests than the 5 static Plus Jakarta Sans faces it replaces.
          Cormorant gains italic 500/600 (it is not a variable font) for the luxe
          display faces. Enforced by adapters/style-lens-swan/worlds/fontLoading.test.ts,
-         which parses THIS file and fails if a world asks for an unloaded face/weight. -->
+         which parses THIS file and fails if a world asks for an unloaded face/weight.
+
+         CEILINGS ARE THE FAMILY'S, NOT A CHOICE: Google publishes Sora at wght
+         100-800 and Fira Code at 300-700 — those maxima cannot be raised here.
+         Some components still ask for Sora 850/900 and Fira Code 750/800/900,
+         which no configuration can satisfy; the browser clamps them to the top of
+         the range. That is a strict improvement over the previous behaviour (Sora
+         resolved to the system sans entirely), but those call sites are asking for
+         weights that do not exist and should be corrected to <=800 / <=700. -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&family=Fira+Code:wght@300..700&family=Sora:wght@100..800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <noscript>

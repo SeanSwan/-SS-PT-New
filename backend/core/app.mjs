@@ -280,7 +280,16 @@ export const createApp = async () => {
         // whole XSS class but requires nonce/hash migration of any inline scripts and
         // browser QA before it can ship, so it is intentionally deferred (see security notes).
         scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        // fonts.googleapis.com is REQUIRED here, not optional: this service serves
+        // the built SPA (express.static on frontend/dist below), and index.html
+        // pulls its Google Fonts stylesheet from that host. fontSrc already allows
+        // fonts.gstatic.com — permitting the font FILES while blocking the
+        // stylesheet that references them meant NO Google font loaded on this path
+        // at all (Plus Jakarta Sans, Cormorant, Fira Code and Sora alike), silently,
+        // because a blocked stylesheet just falls back to system faces. Found while
+        // landing SWA-103. Adding the stylesheet host is strictly additive and
+        // matches the intent fontSrc already declared.
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev", "https://*.cloudflare.com"],
         connectSrc: ["'self'", "https://api.stripe.com", "https://ss-pt-new.onrender.com", "https://sswanstudios.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
