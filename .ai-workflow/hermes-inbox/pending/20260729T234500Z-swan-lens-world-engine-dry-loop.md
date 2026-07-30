@@ -1,4 +1,4 @@
-# Swan Lens World Engine — 22-round hostile dry-loop (DRY) + Waves 2-4 (SWA-69)
+# Swan Lens World Engine — 22-round dry-loop + REBASE + a second dry-loop (SWA-69)
 
 - **Surface:** Workout Design Lab / Style Lens OS v2 (`frontend/src/adapters/style-lens-swan/`)
 - **Branch:** `claude/build-swan-lens` (git worktree). **Committed, NOT pushed** — batch cadence, Sean pushes.
@@ -62,12 +62,40 @@ still fail-closed, so this is zero live-user risk until Sean's Slice-15 flip.
    very next commit. Docs should carry the COMMAND and stamp the measurement,
    not just the answer.
 
+10. **Scope a conflict check to the WHOLE replay set, not your own commits.** The
+    pre-rebase claim "conflict-free at the file level" compared only THIS
+    session's 42 files against upstream. Those sets really were disjoint — and
+    the rebase conflicted on its first commit anyway, because it replays every
+    commit the branch adds, including 21 that predated the session.
+
+11. **Git pathspecs are CWD-relative, so a check can silently become a no-op.**
+    `git diff A B -- backend/` run from inside `backend/` matches NOTHING and
+    reports a clean diff. It nearly shipped as a finding. Run repo-wide git
+    checks from the repo root, and confirm a "clean" check is even capable of
+    reporting dirty.
+
+12. **A doc SHA is a moving target.** A subject-keyed SHA remap after the rebase
+    rewrote the line recording the PRE-rebase backup tag to point at the
+    POST-rebase tip, because both tips shared a commit subject — corrupting the
+    one line whose entire job is recovering the old state. Prefer a command
+    (`git rev-parse <tag>`) over a written SHA.
+
 ## Owed to Sean (blocking nothing today)
 - **SWA-103 (High):** add the missing font links to `index.html`. Repo-wide, and
   it changes network/FOUT on every page, so it is his call. The worlds already
   degrade deliberately and auto-upgrade the day it lands.
 - Push to Render, the Slice-15 go-live flip, and the theme-collapse track remain
   Sean-gated and untouched.
-- **The branch has DIVERGED**: `origin/main` is ~98 commits ahead, this branch
-  ~39 ahead. Zero file overlap (verified), so the rebase is conflict-free at the
-  file level — but Rule 70 requires rebase-then-re-verify before any push.
+- **REBASE IS DONE** (Sean-authorized). The branch now sits on `origin/main` and
+  is fully re-verified: affected vitest 28 files / 311 tests, standalone tsc
+  clean, production build exit 0. Only a `git push` remains, and that is Sean's.
+- **PUSHING SHIPS TWO SECURITY FIXES THAT HAVE BEEN UNMERGED SINCE 2026-07-22**,
+  both verified absent from `origin/main`:
+  - **HIGH (money)** — the gallery referral endpoint mints ~$15 of enhancement
+    credits per submit, with dedup bypassable via a fake phone and a pacing-only
+    limiter, so credits can be farmed without limit. **The exploit is live now.**
+  - **MED (data loss + PII)** — the admin gallery reset-test-data endpoint
+    deletes every visitor / donation / referral / message row (real CRM + PII)
+    with no environment guard and no confirm token.
+  This is an argument for pushing sooner, and it must be said out loud rather
+  than letting security fixes ride along unannounced inside a design branch.
