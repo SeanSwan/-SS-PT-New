@@ -23,8 +23,10 @@ while `recipeResolution.ts` stays fail-closed.
 > **Gate integrity, correctly scoped:** `git diff <session-base>..HEAD -- .../v2/recipeResolution.ts` is EMPTY.
 > Do **not** verify this with `main...HEAD` — see §0.1.
 
-## 0.1 REBASE — DONE (2026-07-29). This branch now sits on top of `origin/main` @ `113d7d6e8`.
-39 commits replayed; **0 behind, 39 ahead**. The pre-rebase state is recoverable via the tag
+## 0.1 REBASE — DONE (2026-07-29). Rebased onto `origin/main` @ `113d7d6e8`; 39 commits replayed.
+**`main` moves constantly — it was already 26 commits further along within the hour.** So "0 behind" is true only
+at the instant of the rebase; ALWAYS `git fetch` and re-measure before acting. Everything verified below was
+verified against base `113d7d6e8`; a later base means re-running §5, not assuming. The pre-rebase state is recoverable via the tag
 `pre-rebase-swan-lens-20260729` — resolve it with `git rev-parse pre-rebase-swan-lens-20260729`, do NOT trust a
 SHA written here (the pre- and post-rebase tips share a commit SUBJECT, so a naive SHA remap silently rewrites
 this line to point at the post-rebase tip — it did exactly that once). Still **NOT pushed** — that is Sean's gate.
@@ -53,10 +55,11 @@ comm -12 /tmp/replay <(git diff --name-only HEAD...origin/main | sort)
 ```
 
 The single conflict was a COMMENT in `PrismCapture/prismCopy.ts`. Resolved by taking `origin/main`'s version —
-and that resolution is provably LOSSLESS: the blob hash is `1eca5bf05` in all three of `pre-rebase tag`, `HEAD`,
-and `origin/main`. The pre-rebase branch had already absorbed that exact text through the merge commit
+and that resolution is provably LOSSLESS: the BLOB hash (not a commit) is `1eca5bf05` in all three of
+`pre-rebase tag`, `HEAD`, and `origin/main`. The pre-rebase branch had already absorbed that exact text through the merge commit
 `afc9baec0`, so the rebase reproduced the file the branch was already carrying. The conflict only existed because
-the rebase replays `c18a942d8`'s original patch against a base that had since moved past it. The merge commit
+the rebase replays the security commit's ORIGINAL patch (pre-rebase SHA `c18a942d8` — deliberately a historical
+reference; that SHA is reachable only via the backup tag, not on the branch) against a base that had moved past it. The merge commit
 itself was dropped by the rebase, as expected — its content is already in `origin/main`.
 
 **The rebase changed none of this session's work.** Of the 42 files this session touched, the only one differing
