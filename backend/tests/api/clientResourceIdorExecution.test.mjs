@@ -157,6 +157,66 @@ describe('client-resource routes deny cross-user reads (driven, not inspected)',
   });
 });
 
+/**
+ * WRITES. Round 39 of this loop drove only the three GETs and called the surfaces
+ * covered — that was wrong: these routers expose TEN endpoints, and the seven
+ * writes were untested. A cross-client WRITE (planting a note on someone else's
+ * record, deleting their photo) is strictly worse than a read, so the untested half
+ * was the more dangerous half.
+ *
+ * The sharp case is an UNASSIGNED TRAINER, not a client: both POST handlers gate on
+ * role first (`only trainers and admins can create`), so a client is stopped by the
+ * role check and never reaches the ownership check. Only a trainer gets far enough
+ * for ensureClientAccess to be the thing standing between them and another client's
+ * record.
+ *
+ * Both POSTs call the guard BEFORE reading req.body, so a 403 here cannot be a
+ * validation rejection wearing a denial's clothes — which is why these assertions
+ * are meaningful without valid payloads.
+ */
+const WRITES = [
+  { label: 'POST photo', router: () => photoRoutes, mount: '/api/photos', method: 'post', path: (id) => `/api/photos/${id}` },
+  { label: 'DELETE photo', router: () => photoRoutes, mount: '/api/photos', method: 'delete', path: (id) => `/api/photos/${id}/55` },
+  { label: 'POST note', router: () => noteRoutes, mount: '/api/notes', method: 'post', path: (id) => `/api/notes/${id}` },
+  { label: 'PUT note', router: () => noteRoutes, mount: '/api/notes', method: 'put', path: (id) => `/api/notes/${id}/55` },
+  { label: 'DELETE note', router: () => noteRoutes, mount: '/api/notes', method: 'delete', path: (id) => `/api/notes/${id}/55` },
+  { label: 'POST nutrition', router: () => nutritionRoutes, mount: '/api/nutrition', method: 'post', path: (id) => `/api/nutrition/${id}` },
+];
+
+describe('client-resource WRITES deny cross-user mutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    seedUsers();
+    mocks.assignment.findOne.mockResolvedValue(null);
+    mocks.photo.findAll.mockResolvedValue([]);
+    mocks.note.findAll.mockResolvedValue([]);
+    mocks.nutrition.findOne.mockResolvedValue(null);
+  });
+
+  it.each(WRITES)('$label — an UNASSIGNED trainer cannot write to client B', async ({ router, mount, method, path }) => {
+    currentUser = TRAINER;
+    mocks.assignment.findOne.mockResolvedValue(null);
+    const res = await request(app(router(), mount))[method](path(CLIENT_B_ID)).send({ content: 'x', planName: 'x' });
+    expect(res.status).toBe(403);
+  });
+
+  it.each(WRITES)('$label — client A cannot write to client B', async ({ router, mount, method, path }) => {
+    currentUser = CLIENT_A;
+    const res = await request(app(router(), mount))[method](path(CLIENT_B_ID)).send({ content: 'x', planName: 'x' });
+    expect(res.status).toBe(403);
+  });
+
+  it('POST note — an ASSIGNED trainer CAN write (control: the denials above are not blanket)', async () => {
+    currentUser = TRAINER;
+    mocks.assignment.findOne.mockResolvedValue({ id: 5, clientId: CLIENT_B_ID, trainerId: TRAINER.id, status: 'active' });
+    mocks.note.create = vi.fn(async (payload) => ({ id: 9, ...payload }));
+    const res = await request(app(noteRoutes, '/api/notes'))
+      .post(`/api/notes/${CLIENT_B_ID}`)
+      .send({ content: 'legitimate coaching note' });
+    expect(res.status).toBeLessThan(400);
+  });
+});
+
 describe('crafted ids cannot smuggle another user past the guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
