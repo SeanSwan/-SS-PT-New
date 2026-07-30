@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History, UploadCloud, Mic } from 'lucide-react';
+import { Plus, Download, Timer, History, UploadCloud, Mic, Sparkles } from 'lucide-react';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
 import { useLastWeightSuggestions } from './useLastWeightSuggestions';
@@ -35,6 +35,7 @@ import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
 import SessionSummaryForm from './SessionSummaryForm';
 import ContextBar from './runner/shell/zones/ContextBar';
 import ShellNotices from './runner/shell/zones/ShellNotices';
+import CoachDrawer from './runner/shell/zones/CoachDrawer';
 import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
@@ -51,12 +52,9 @@ import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
 import CompactProtocolSection, {
   type ProtocolSectionKey,
-  type ProtocolSelection,
 } from './CompactProtocolSection';
-import {
-  getRecommendedProtocolItems,
-  type NASMDefaultItem,
-} from './NASMProtocolDefaults';
+import { getRecommendedProtocolItems } from './NASMProtocolDefaults';
+import { useProtocolSelections } from './useProtocolSelections';
 import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
 import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
@@ -179,6 +177,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [routeExercise]);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
+  const [showCoachDrawer, setShowCoachDrawer] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
@@ -196,16 +195,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     onComplete: () => toast.info('Rest complete - next set!'),
   });
 
-  const [selectedWarmup, setSelectedWarmup] = useState<ProtocolSelection[]>([]);
-  const [selectedBalanceCore, setSelectedBalanceCore] = useState<ProtocolSelection[]>([]);
-  const [selectedCooldown, setSelectedCooldown] = useState<ProtocolSelection[]>([]);
-  const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<ProtocolSectionKey, boolean>>({
-    warmup: false,
-    balance_core: false,
-    cooldown: false,
-  });
-
   const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
+  const openRolodexForSection = useCallback((section: ProtocolSectionKey) => {
+    setPendingSectionContext(section);
+    setShowExerciseSearch(true);
+  }, []);
+  const {
+    selectedWarmup, selectedBalanceCore, selectedCooldown, nasmSectionsOpen,
+    toggleNasmSection, protocolSectionSetters, addProtocolPreset,
+    addProtocolFromRolodex, removeProtocolItem, requestAddForSection,
+  } = useProtocolSelections(openRolodexForSection);
 
   // Phase 3c.1: in-gym autosave — draft persists per user+client+date, restored on remount.
   const workoutDraft = useWorkoutDraft({
@@ -228,71 +227,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return `${prefix}-local-${Date.now()}-${nextId}`;
   }, []);
 
-  const toggleNasmSection = useCallback((key: ProtocolSectionKey) =>
-    setNasmSectionsOpen(prev => ({ ...prev, [key]: !prev[key] })), []);
-
-  const protocolSectionSetters: Record<
-    ProtocolSectionKey,
-    React.Dispatch<React.SetStateAction<ProtocolSelection[]>>
-  > = {
-    warmup: setSelectedWarmup,
-    balance_core: setSelectedBalanceCore,
-    cooldown: setSelectedCooldown,
-  };
-
-  const addProtocolPreset = useCallback(
-    (section: ProtocolSectionKey, item: NASMDefaultItem) => {
-      const setter = protocolSectionSetters[section];
-      const entry: ProtocolSelection = {
-        id: item.id,
-        name: item.name,
-        source: 'preset',
-        category: item.category,
-      };
-      setter((prev) => (prev.some((p) => p.id === entry.id) ? prev : [...prev, entry]));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const addProtocolFromRolodex = useCallback(
-    (section: ProtocolSectionKey, exercise: ExerciseSlim) => {
-      const setter = protocolSectionSetters[section];
-      const id = `rolodex-${exercise.id}`;
-      const entry: ProtocolSelection = {
-        id,
-        name: exercise.name,
-        source: 'rolodex',
-      };
-      setter((prev) => (prev.some((p) => p.id === id) ? prev : [...prev, entry]));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const removeProtocolItem = useCallback(
-    (section: ProtocolSectionKey, id: string) => {
-      const setter = protocolSectionSetters[section];
-      setter((prev) => prev.filter((p) => p.id !== id));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const requestAddForSection = useCallback((section: ProtocolSectionKey) => {
-    setPendingSectionContext(section);
-    setShowExerciseSearch(true);
-    setNasmSectionsOpen((prev) => ({ ...prev, [section]: true }));
-  }, []);
-
   const loadPhaseTemplate = useCallback((phase: number) => {
     const template = getPhaseTemplate(phase);
     if (!template) return;
 
     const templateExercises = buildPhaseTemplateEntries(template, phase, createWorkoutLoggerLocalId);
-    setSelectedWarmup(templateIdsToSelections(template.warmupIds));
-    setSelectedBalanceCore(templateIdsToSelections(template.balanceCoreIds));
-    setSelectedCooldown(templateIdsToSelections(template.cooldownIds));
+    protocolSectionSetters.warmup(templateIdsToSelections(template.warmupIds));
+    protocolSectionSetters.balance_core(templateIdsToSelections(template.balanceCoreIds));
+    protocolSectionSetters.cooldown(templateIdsToSelections(template.cooldownIds));
 
     setExercises(templateExercises);
     setCurrentOPTPhase(phase);
@@ -600,15 +542,36 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        <WorkoutLoggerCoachTerminal
-          clientId={effectiveClientId}
-          equipmentProfileId={equipmentProfileId}
-          workoutDate={workoutDateValue}
-          scheduledSessionId={scheduledSessionId}
-          scheduledSessionDate={scheduledSessionDate}
-          scheduledSessionCreditHint={scheduledSessionCreditHint}
-          exerciseCount={exercises.length}
-          selfMode={isClientSelfMode}
+        {/* SESSION SHELL zone 5 (Slice 2): ONE Coach surface. Terminal +
+            NASM reference leave the page flow; host composes them so the
+            AI_* wiring and education contracts stay untouched. */}
+        <CoachDrawer
+          open={showCoachDrawer}
+          onClose={() => setShowCoachDrawer(false)}
+          coach={
+            <WorkoutLoggerCoachTerminal
+              clientId={effectiveClientId}
+              equipmentProfileId={equipmentProfileId}
+              workoutDate={workoutDateValue}
+              scheduledSessionId={scheduledSessionId}
+              scheduledSessionDate={scheduledSessionDate}
+              scheduledSessionCreditHint={scheduledSessionCreditHint}
+              exerciseCount={exercises.length}
+              selfMode={isClientSelfMode}
+            />
+          }
+          reference={
+            <>
+              <LearningModeToggle />
+              <NASMPhaseGuide
+                phase={currentOPTPhase}
+                onLoadTemplate={(phase) => {
+                  loadPhaseTemplate(phase);
+                  setShowCoachDrawer(false); // show the loaded template, not the drawer
+                }}
+              />
+            </>
+          }
         />
         {typeof effectiveClientId === 'number' && (
           <WorkoutLoggerVoiceImportSection
@@ -635,11 +598,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             restSecondsLeft={restTimer.secondsLeft}
           />
         )}
-        <LearningModeToggle />
-        <NASMPhaseGuide
-          phase={currentOPTPhase}
-          onLoadTemplate={loadPhaseTemplate}
-        />
         <CompactProtocolSection
           title="Warmup & Corrective"
           icon={<WarmupProtocolIcon size={18} />}
@@ -705,6 +663,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 Dictate
               </RolodexTrigger>
             )}
+            <RolodexTrigger
+              onClick={() => setShowCoachDrawer(true)}
+              aria-haspopup="dialog"
+              aria-label="Open Swan Coach"
+              style={{ borderColor: 'var(--train-coach, #8B5CF6)', color: 'var(--swan-coach-fg, #C4B5FD)' }}
+            >
+              <Sparkles size={18} />
+              Coach
+            </RolodexTrigger>
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               initialQuery={deepLinkExercise}
