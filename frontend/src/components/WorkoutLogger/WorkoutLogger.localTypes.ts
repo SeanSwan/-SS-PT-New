@@ -17,6 +17,9 @@ export interface WorkoutLoggerProps {
 }
 
 
+/** C4a draft-wins gate — moved here when WorkoutDraftGateBanner was absorbed into the shell Notice lane. */
+export type WorkoutDraftGate = 'none' | 'pending' | 'restored' | 'discarded';
+
 export interface WorkoutLoggerExerciseOption {
   id: string;
   name: string;

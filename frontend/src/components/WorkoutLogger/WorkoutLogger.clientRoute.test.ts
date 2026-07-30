@@ -116,8 +116,8 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(LOCAL_TYPES).toMatch(/forceSelfMode\?\s*:\s*boolean\s*;/);
   });
 
-  it('mounts the schedule-origin billing banner from the shared logger surface', () => {
-    expect(SOURCE).toMatch(/ScheduledSessionStatusBanner/);
+  it('mounts the schedule-origin billing notice from the shared logger surface', () => {
+    expect(SOURCE).toMatch(/ShellNotices/);
     expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
     expect(SOURCE).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
     expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);

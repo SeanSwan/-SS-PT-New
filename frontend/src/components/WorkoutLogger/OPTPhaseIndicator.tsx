@@ -1,6 +1,6 @@
 /**
  * ┌─── SUB-COMPONENT: OPTPhaseIndicator ───────────────────────┐
- * │ PARENT: WorkoutLoggerHeader                                  │
+ * │ PARENT: PlanContextSheet (shell zone 1 plan sheet)           │
  * │ PURPOSE: Shows current NASM OPT phase with change modal     │
  * │ WIREFRAME:                                                   │
  * │ ┌─────────────────────────────────────────┐                  │

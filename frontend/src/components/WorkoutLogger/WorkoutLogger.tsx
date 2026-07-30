@@ -30,12 +30,12 @@ import {
   WorkoutLoggerContainer,
 } from './WorkoutLogger.styles';
 import { LiveRegion } from './WorkoutLoggerStatus.styles';
-import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import WorkoutLoggerModeBar from './WorkoutLoggerModeBar';
 import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
 import SessionSummaryForm from './SessionSummaryForm';
-import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
-import ActivePlanContextStrip from './ActivePlanContextStrip';
+import ContextBar from './runner/shell/zones/ContextBar';
+import ShellNotices from './runner/shell/zones/ShellNotices';
+import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
@@ -62,10 +62,10 @@ import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
-import WorkoutDraftGateBanner, { type WorkoutDraftGate } from './WorkoutDraftGateBanner';
 import { toggleSupersetLink, renumberSupersetGroups } from './WorkoutLogger.supersets';
 import FloatingRestTimer from './FloatingRestTimer';
 import type {
+  WorkoutDraftGate,
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
 } from './WorkoutLogger.localTypes';
@@ -567,6 +567,31 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {/* SESSION SHELL zones 1+2 (Slice 1): absorbs WorkoutLoggerHeader,
+            ScheduledSessionStatusBanner, WorkoutDraftGateBanner, plan-strip chip. */}
+        <ContextBar
+          clientFirstName={client.firstName} clientLastName={client.lastName}
+          availableSessions={client.availableSessions ?? 0} clientSource={client.clientSource}
+          workoutDate={workoutDateValue} totalSets={totalSets} estimatedDuration={estimatedDuration}
+          assignment={plannedAssignment || loadedPlanContext}
+          currentOPTPhase={currentOPTPhase} onOPTPhaseChange={setCurrentOPTPhase}
+        />
+        <ShellNotices
+          isOnline={offlineQueue.isOnline} pendingCount={offlineQueue.pendingCount}
+          workoutDraft={workoutDraft} draftOfferVisible={exercises.length === 0 && !sessionNotes}
+          setDraftGate={setDraftGate} setExercises={setExercises}
+          setSessionNotes={setSessionNotes} setOverallIntensity={setOverallIntensity}
+          scheduledSessionId={scheduledSessionId} scheduledSessionCreditHint={scheduledSessionCreditHint}
+          scheduledSessionDate={scheduledSessionDate} clientSource={client.clientSource}
+        />
+        {/* C4b/C6d: plan-loader outcome panel stays inline — only plan CONTEXT moved. */}
+        {exercises.length === 0 && !(plannedAssignment || loadedPlanContext) && planLoadOutcome && (
+          <WorkoutLoggerEmptyPlanState
+            outcome={planLoadOutcome} isClientSelfMode={isClientSelfMode}
+            clientId={effectiveClientId} onAddExercise={addExercise}
+          />
+        )}
+
         {!isClientSelfMode && (
           <EquipmentProfilePicker
             selectedProfileId={equipmentProfileId}
@@ -585,36 +610,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           exerciseCount={exercises.length}
           selfMode={isClientSelfMode}
         />
-        <WorkoutLoggerHeader
-          clientFirstName={client.firstName}
-          clientLastName={client.lastName}
-          availableSessions={client.availableSessions ?? 0}
-          clientSource={client.clientSource}
-          totalSets={totalSets}
-          estimatedDuration={estimatedDuration}
-          currentOPTPhase={currentOPTPhase}
-          onOPTPhaseChange={setCurrentOPTPhase}
-          workoutDate={workoutDateValue}
-        />
-
-        <ScheduledSessionStatusBanner
-          clientSource={client.clientSource}
-          scheduledSessionCreditHint={scheduledSessionCreditHint}
-          scheduledSessionDate={scheduledSessionDate}
-          scheduledSessionId={scheduledSessionId}
-        />
-        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} planLoadOutcome={exercises.length === 0 ? planLoadOutcome : null} isClientSelfMode={isClientSelfMode} clientId={effectiveClientId} onAddExercise={addExercise} />
-
-        <WorkoutDraftGateBanner
-          workoutDraft={workoutDraft}
-          visible={exercises.length === 0 && !sessionNotes}
-          setDraftGate={setDraftGate}
-          setExercises={setExercises}
-          setSessionNotes={setSessionNotes}
-          setOverallIntensity={setOverallIntensity}
-        />
-
-
         {typeof effectiveClientId === 'number' && (
           <WorkoutLoggerVoiceImportSection
             clientId={effectiveClientId}

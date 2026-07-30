@@ -12,7 +12,7 @@ describe('WorkoutLogger shared theme bridge', () => {
     const enhancedLoggerView = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx');
     const logger = read('WorkoutLogger.tsx');
     const loggerStyles = read('WorkoutLogger.styles.ts');
-    const header = read('WorkoutLoggerHeader.tsx');
+    const contextBar = read('runner/shell/zones/ContextBar.tsx');
     const footer = read('WorkoutLoggerFooter.tsx');
 
     expect(dashboardRoutesSource).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
@@ -21,11 +21,11 @@ describe('WorkoutLogger shared theme bridge', () => {
     expect(enhancedLogger).toContain('<EnhancedWorkoutLoggerView');
     expect(enhancedLoggerView).toContain("import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger'");
     expect(enhancedLoggerView).toContain('<WorkoutLogger');
-    expect(logger).toContain('<WorkoutLoggerHeader');
+    expect(logger).toContain('<ContextBar');
     expect(logger).toContain('<WorkoutLoggerFooter');
     expect(logger).toContain('<WorkoutLoggerConfirmDialog');
     expect(loggerStyles).toContain("from './WorkoutLoggerCS'");
-    expect(header).toContain("from './WorkoutLoggerCS'");
+    expect(contextBar).toMatch(/var\(--/);
     expect(footer).toContain("from './WorkoutLoggerCS'");
   });
 
