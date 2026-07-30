@@ -23,57 +23,42 @@ while `recipeResolution.ts` stays fail-closed.
 > **Gate integrity, correctly scoped:** `git diff <session-base>..HEAD -- .../v2/recipeResolution.ts` is EMPTY.
 > Do **not** verify this with `main...HEAD` — see §0.1.
 
-## 0.1 REBASE — DONE (2026-07-29). Rebased onto `origin/main` @ `113d7d6e8`; 39 commits replayed.
-**`main` moves constantly — it was already 26 commits further along within the hour.** So "0 behind" is true only
-at the instant of the rebase; ALWAYS `git fetch` and re-measure before acting. Everything verified below was
-verified against base `113d7d6e8`; a later base means re-running §5, not assuming. The pre-rebase state is recoverable via the tag
-`pre-rebase-swan-lens-20260729` — resolve it with `git rev-parse pre-rebase-swan-lens-20260729`, do NOT trust a
-SHA written here (the pre- and post-rebase tips share a commit SUBJECT, so a naive SHA remap silently rewrites
-this line to point at the post-rebase tip — it did exactly that once). Still **NOT pushed** — that is Sean's gate.
+## 0.1 REBASED TWICE + PUSHED (2026-07-30). Branch is on `origin/main` @ `da3d97455` and is on the remote.
+`git push -u origin claude/build-swan-lens` succeeded. **NOT merged to `main`, so NOT deployed** — Render
+auto-deploys from `main` only. Backups: `pre-rebase-swan-lens-20260729`, `pre-rebase2-swan-lens-20260730`.
 
-> **This branch carries TWO UNMERGED SECURITY FIXES — see 0.2. Pushing it is not just "23 worlds".**
+> **`main` moves constantly** — it advanced 26 commits inside an hour, then 27 more. "0 behind" is true only at
+> the instant of a rebase. ALWAYS `git fetch` and re-measure; a later base means re-running §5, not assuming.
 
-**Local `main` is 567 commits behind `origin/main`.** Never measure with `main...HEAD` from this worktree — it
-reports ~2,553 files of phantom "changes" for a 42-file session. Use `origin/main` after a fetch:
+**Local `main` is ~567 commits behind `origin/main`.** Never measure with `main...HEAD` from this worktree — it
+reports thousands of files of phantom "changes". Use `origin/main` after a fetch.
+
+**Methodology lesson — a conflict-surface check must cover the WHOLE replay set, not just your own commits.**
+Rebase 1 was predicted "conflict-free" from a `comm` between *this session's* files and upstream's. Those sets
+really were disjoint, and it conflicted on its FIRST commit anyway, because a rebase replays every commit the
+branch adds — including ones that predate the session. The correct check:
 
 ```bash
 git fetch origin
-git rev-list --count HEAD..origin/main      # origin/main ahead of us (0 right after the rebase)
-git rev-list --count origin/main..HEAD      # us ahead of origin/main (39, and GROWS with each commit)
-git diff --stat origin/main..HEAD           # everything this branch adds
-```
-
-**Methodology lesson — a conflict-surface check must cover the WHOLE replay set, not just your own commits.**
-Before the rebase this file claimed "conflict-free at the file level", on the strength of a `comm` between *this
-session's* 42 files and the 238 `origin/main` touched. Those sets really were disjoint — and the rebase still
-conflicted on its FIRST commit, because it replays all 39, including 21 that predate this session. The correct
-pre-rebase check uses the full replay range:
-
-```bash
-git diff --name-only origin/main...HEAD | sort > /tmp/replay   # ALL replayed commits, not just yours
+git diff --name-only origin/main...HEAD | sort > /tmp/replay    # ALL replayed commits, not just yours
 comm -12 /tmp/replay <(git diff --name-only HEAD...origin/main | sort)
 ```
 
-The single conflict was a COMMENT in `PrismCapture/prismCopy.ts`. Resolved by taking `origin/main`'s version —
-and that resolution is provably LOSSLESS: the BLOB hash (not a commit) is `1eca5bf05` in all three of
-`pre-rebase tag`, `HEAD`, and `origin/main`. The pre-rebase branch had already absorbed that exact text through the merge commit
-`afc9baec0`, so the rebase reproduced the file the branch was already carrying. The conflict only existed because
-the rebase replays the security commit's ORIGINAL patch (pre-rebase SHA `c18a942d8` — deliberately a historical
-reference; that SHA is reachable only via the backup tag, not on the branch) against a base that had moved past it. The merge commit
-itself was dropped by the rebase, as expected — its content is already in `origin/main`.
+Rebase 2 used it and correctly flagged `frontend/index.html` as overlapping. **File-level overlap is a RISK
+SIGNAL, not a verdict** — upstream's hunk was the viewport meta at line ~17, mine the font block at ~78, so git
+merged them automatically. Both edits verified present afterwards.
 
-**The rebase changed none of this session's work.** Of the 42 files this session touched, the only one differing
-between the pre-rebase tag and `HEAD` is this handoff — and only because it was edited AFTER the rebase. Everything
-else pre/post is byte-identical, including all five security-fix files (`galleryRoutes.mjs`,
-`adminGalleryRoutes.mjs`, the anti-farm migration, its truth test, and `GalleryReferral.mjs`).
+Rebase 1's one real conflict was a COMMENT in `PrismCapture/prismCopy.ts`, resolved to `origin/main`'s version and
+provably LOSSLESS: the BLOB hash (not a commit) `1eca5bf05` is identical in the pre-rebase tag, `HEAD`, and
+`origin/main` — the branch had already absorbed that exact text via the merge commit the rebase then dropped.
 
-> **Pathspec trap, learned the hard way:** `git diff A B -- backend/` is relative to your CWD. Run it from
-> `backend/` and it silently matches NOTHING and reports a clean diff. Always run repo-wide git checks from the
-> repo root, and sanity-check that a "clean" result can actually produce a dirty one.
+> **Pathspec trap:** `git diff A B -- backend/` is CWD-relative. Run it from inside `backend/` and it matches
+> NOTHING and reports clean. Run repo-wide git checks from the repo root, and confirm a "clean" check is even
+> capable of reporting dirty.
 
-**Post-rebase re-verification (Rule 70) — all green ON THE REBASED TREE:** affected vitest 28 files / 311 tests;
-standalone tsc over the full world graph clean; vite production build exit 0 (entry chunk 687,220 B); 23 recipe
-files intact; `git diff origin/main..HEAD -- .../v2/recipeResolution.ts` is 0 lines.
+**Post-rebase re-verification (Rule 70), all green on the pushed tree:** affected vitest 28 files / 311 tests;
+barrel blast radius 15 files / 107 tests; standalone tsc over the full world graph clean; vite production build
+exit 0; Rule 42 backend audit 0 untracked / 0 modified; `recipeResolution.ts` diff vs `origin/main` 0 lines.
 
 ## 0.2 THIS BRANCH SHIPS TWO UNMERGED SECURITY FIXES
 Three of the 39 commits predate the World Engine entirely (SHAs below are POST-rebase) and have been sitting unmerged since **2026-07-22**.
