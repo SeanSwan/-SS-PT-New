@@ -159,6 +159,7 @@ describe('WorkoutLogger assignment-level homework prefill', () => {
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     fireEvent.click(await screen.findByRole('button', { name: /load today/i }));
 
     await waitFor(() => expect(toastMock.success).toHaveBeenCalled());

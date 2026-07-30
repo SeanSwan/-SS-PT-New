@@ -24,6 +24,7 @@ import {
   LoadPlanButton,
   LoadPlanRow,
   LoadingSpinner,
+  FinishEmptyNote,
   RolodexTrigger,
   TimerFAB,
   WarmupProtocolIcon,
@@ -36,6 +37,9 @@ import SessionSummaryForm from './SessionSummaryForm';
 import ContextBar from './runner/shell/zones/ContextBar';
 import ShellNotices from './runner/shell/zones/ShellNotices';
 import CoachDrawer from './runner/shell/zones/CoachDrawer';
+import StageRail from './runner/shell/zones/StageRail';
+import StageCanvas from './runner/shell/primitives/StageCanvas';
+import { createSessionStageStore, switchSessionStage, useSessionStage } from './runner/shell/useSessionStage';
 import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
@@ -178,6 +182,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [routeExercise]);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [showCoachDrawer, setShowCoachDrawer] = useState(false);
+  // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
+  const sessionStageStore = useMemo(() => createSessionStageStore(), []);
+  const [sessionStage] = useSessionStage(sessionStageStore);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
@@ -534,14 +541,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        {!isClientSelfMode && (
-          <EquipmentProfilePicker
-            selectedProfileId={equipmentProfileId}
-            onSelect={setEquipmentProfileId}
-            label="Training Location"
-          />
-        )}
-
         {/* SESSION SHELL zone 5 (Slice 2): ONE Coach surface. Terminal +
             NASM reference leave the page flow; host composes them so the
             AI_* wiring and education contracts stay untouched. */}
@@ -573,44 +572,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             </>
           }
         />
-        {typeof effectiveClientId === 'number' && (
-          <WorkoutLoggerVoiceImportSection
-            clientId={effectiveClientId}
-            isSelfMode={isClientSelfMode}
-            clientName={`${client.firstName} ${client.lastName}`}
-            onParsed={handleVoiceMemoParsed}
-          />
-        )}
-        {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
-        {exercises.length > 0 && (
-          <WorkoutLoggerModeBar
-            isQuickLogMode={isQuickLogMode}
-            onChangeMode={(quick) => {
-              setIsQuickLogMode(quick);
-              writeQuickLogPreference(quick);
-              // Quick Log lives under Classic — picking it while a Runner skin
-              // is active switches back so the toggle is never a silent no-op.
-              if (quick) writeRunnerStyle('classic-ledger');
-            }}
-            isOffline={!offlineQueue.isOnline}
-            pendingCount={offlineQueue.pendingCount}
-            restRunning={restTimer.isRunning}
-            restSecondsLeft={restTimer.secondsLeft}
-          />
-        )}
-        <CompactProtocolSection
-          title="Warmup & Corrective"
-          icon={<WarmupProtocolIcon size={18} />}
-          sectionKey="warmup"
-          selectedItems={selectedWarmup}
-          recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
-          isOpen={nasmSectionsOpen.warmup}
-          onToggleOpen={() => toggleNasmSection('warmup')}
-          onAddFromRolodex={() => requestAddForSection('warmup')}
-          onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
-          onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
-        />
-        <ExerciseSection>
+        {/* SESSION SHELL zones 3+4 (Slice 3): free stage views — IA lands,
+            behavior stays (M7). Existing sections render inline per stage. */}
+        <StageRail store={sessionStageStore} />
+        <StageCanvas stage={sessionStage} store={sessionStageStore}>
+        {sessionStage === 'setup' && (<>
+          {!isClientSelfMode && (
+            <EquipmentProfilePicker
+              selectedProfileId={equipmentProfileId}
+              onSelect={setEquipmentProfileId}
+              label="Training Location"
+            />
+          )}
           {!isClientSelfMode && typeof effectiveClientId === 'number' && (
             <WorkoutPlanAssignmentPicker
               clientId={effectiveClientId}
@@ -644,7 +617,49 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               </LoadPlanButton>
             )}
           </LoadPlanRow>
-
+          {typeof effectiveClientId === 'number' && (
+            <WorkoutLoggerVoiceImportSection
+              clientId={effectiveClientId}
+              isSelfMode={isClientSelfMode}
+              clientName={`${client.firstName} ${client.lastName}`}
+              onParsed={(payload) => {
+                handleVoiceMemoParsed(payload);
+                switchSessionStage(sessionStageStore, 'train'); // show the imported work
+              }}
+            />
+          )}
+        </>)}
+        {sessionStage === 'train' && (<>
+        {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
+        {exercises.length > 0 && (
+          <WorkoutLoggerModeBar
+            isQuickLogMode={isQuickLogMode}
+            onChangeMode={(quick) => {
+              setIsQuickLogMode(quick);
+              writeQuickLogPreference(quick);
+              // Quick Log lives under Classic — picking it while a Runner skin
+              // is active switches back so the toggle is never a silent no-op.
+              if (quick) writeRunnerStyle('classic-ledger');
+            }}
+            isOffline={!offlineQueue.isOnline}
+            pendingCount={offlineQueue.pendingCount}
+            restRunning={restTimer.isRunning}
+            restSecondsLeft={restTimer.secondsLeft}
+          />
+        )}
+        <CompactProtocolSection
+          title="Warmup & Corrective"
+          icon={<WarmupProtocolIcon size={18} />}
+          sectionKey="warmup"
+          selectedItems={selectedWarmup}
+          recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
+          isOpen={nasmSectionsOpen.warmup}
+          onToggleOpen={() => toggleNasmSection('warmup')}
+          onAddFromRolodex={() => requestAddForSection('warmup')}
+          onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
+          onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
+        />
+        <ExerciseSection>
           <ExerciseSearchBar>
             <RolodexTrigger
               onClick={() => {
@@ -745,7 +760,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('cooldown', item)}
           onRemoveSelected={(id) => removeProtocolItem('cooldown', id)}
         />
-        {exercises.length > 0 && (
+        </>)}
+        {sessionStage === 'finish' && (exercises.length > 0 ? (
           <SessionSummaryForm
             overallIntensity={overallIntensity}
             onIntensityChange={setOverallIntensity}
@@ -757,7 +773,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             clientSource={client?.clientSource}
             scheduledSessionCreditHint={scheduledSessionCreditHint}
           />
-        )}
+        ) : (
+          <FinishEmptyNote>
+            Nothing logged yet — log a set in Train and Finish unlocks intensity, notes, and save.
+          </FinishEmptyNote>
+        ))}
+        </StageCanvas>
 
         {lastSaveResponse ? (
           <SaveSuccessPanel

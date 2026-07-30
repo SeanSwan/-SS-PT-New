@@ -61,3 +61,16 @@ export function useSessionStage(store: SessionStageStore): [SessionStage, (next:
   const stage = useSyncExternalStore(store.subscribe, store.getStage, store.getStage);
   return useMemo(() => [stage, store.setStage], [stage, store]);
 }
+
+/**
+ * The ONE way to change stage from UI: saves the outgoing stage's scroll
+ * position BEFORE the swap (anti-jump law 3), then flips the view.
+ * Restore + focus + announce live in StageCanvas. Stage changes push NO
+ * history (law 4) — there is deliberately no history code here.
+ */
+export function switchSessionStage(store: SessionStageStore, next: SessionStage): void {
+  if (store.getStage() === next) return;
+  const scrollTop = typeof document !== 'undefined' ? document.documentElement.scrollTop : 0;
+  store.rememberScroll(store.getStage(), scrollTop);
+  store.setStage(next);
+}

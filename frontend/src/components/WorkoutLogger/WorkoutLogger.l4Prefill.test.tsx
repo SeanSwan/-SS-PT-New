@@ -173,6 +173,7 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
@@ -298,6 +299,7 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
@@ -326,6 +328,7 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
@@ -371,6 +374,7 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
@@ -414,6 +418,7 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // plan loaders live in Setup (shell Slice 3)
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 

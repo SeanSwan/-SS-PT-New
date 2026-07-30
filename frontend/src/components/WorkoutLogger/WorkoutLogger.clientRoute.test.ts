@@ -531,7 +531,7 @@ describe('WorkoutLogger voice/file import surface', () => {
     // display name in self mode (see WorkoutLoggerVoiceImportSection locks).
     expect(SOURCE).toMatch(/<WorkoutLoggerVoiceImportSection[\s\S]*?clientId=\{effectiveClientId\}/);
     expect(SOURCE).toMatch(/isSelfMode=\{isClientSelfMode\}/);
-    expect(SOURCE).toMatch(/onParsed=\{handleVoiceMemoParsed\}/);
+    expect(SOURCE).toMatch(/onParsed=\{[\s\S]{0,200}?handleVoiceMemoParsed\(/);
   });
 
   it('applies parsed uploads through parsedWorkoutToExerciseEntries', () => {

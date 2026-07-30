@@ -1,13 +1,12 @@
 /**
  * ┌─────────────────────────────────────────────────────────────┐
- * │ SESSION SHELL — canonical save-path pin (Slice 0).          │
- * │ THE crown-jewel gate of the strangler migration: the exact  │
- * │ POST /api/workout-forms payload is pinned here BEFORE any   │
- * │ shell code exists. Every shell slice (context bar, action   │
- * │ bar merge, stage rail…) must keep this green — the payload  │
- * │ the billing-sensitive backend receives stays byte-identical │
- * │ no matter which zone owns the Save button.                  │
- * │ Source: SESSION-SHELL-HANDOFF-2026-07-30 §4 Slice 0.        │
+ * │ SESSION SHELL — page-level stage laws (Slice 3).            │
+ * │ The REAL M2 proof, on the full WorkoutLogger:               │
+ * │  · cold load lands on Train (Law 0 — no rail tap needed to  │
+ * │    reach the add-exercise path)                             │
+ * │  · stage swaps preserve exercises + Finish notes (view      │
+ * │    state, not lifecycle)                                    │
+ * │  · stage changes push NO history entries (anti-jump law 4)  │
  * │ Mock harness mirrors WorkoutLogger.submitSuccess.test.tsx.  │
  * └─────────────────────────────────────────────────────────────┘
  */
@@ -16,10 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.setConfig({ testTimeout: 15000 });
 
-const {
-  mockQueueSubmission, submitWorkoutFormMock, apiPostMock, apiGetMock, navigateMock,
-} = vi.hoisted(() => ({
-  mockQueueSubmission: vi.fn(),
+const { submitWorkoutFormMock, apiPostMock, apiGetMock, navigateMock } = vi.hoisted(() => ({
   submitWorkoutFormMock: vi.fn(),
   apiPostMock: vi.fn(),
   apiGetMock: vi.fn(),
@@ -27,9 +23,7 @@ const {
 }));
 
 vi.mock('./../../useOfflineQueue', () => ({
-  useOfflineQueue: () => ({
-    isOnline: true, pendingCount: 0, queueSubmission: mockQueueSubmission, flush: vi.fn(),
-  }),
+  useOfflineQueue: () => ({ isOnline: true, pendingCount: 0, queueSubmission: vi.fn(), flush: vi.fn() }),
 }));
 
 vi.mock('../../../../services/nasmApiService', async () => {
@@ -111,36 +105,25 @@ vi.mock('./../../NASMExerciseRolodex', () => ({
   },
 }));
 
-vi.mock('./../../WorkoutLoggerFooter', () => ({
-  default: (props: any) => (
-    <button data-testid='mock-footer-submit' onClick={props.onSubmit}>Complete & Save Workout</button>
-  ),
-}));
-
 vi.mock('../../../Shared/AITerminalPanel', () => ({ default: () => null }));
-vi.mock('../../../Shared/EquipmentProfilePicker', () => ({
-  default: (props: any) => (
-    <button data-testid='mock-equipment-profile-select' onClick={() => props.onSelect(77)}>
-      Select training location
-    </button>
-  ),
-}));
 
-import { render, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { render, cleanup, fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import WorkoutLogger from '../../WorkoutLogger';
-import { normalizeWorkoutDate } from '../../WorkoutLogger.helpers';
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
-describe('canonical save-path pin — the payload the shell must never change', () => {
+const setup = async () => {
+  render(<MemoryRouter><WorkoutLogger /></MemoryRouter>);
+  return screen.findByRole('tablist', { name: 'Session stages' });
+};
+
+describe('page-level stage laws (M2 + Law 0)', () => {
   beforeEach(() => {
     cleanup();
     window.localStorage.clear();
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    submitWorkoutFormMock.mockReset();
     apiGetMock.mockReset();
-    apiPostMock.mockReset();
     apiGetMock.mockResolvedValue({
       data: {
         success: true,
@@ -151,11 +134,6 @@ describe('canonical save-path pin — the payload the shell must never change', 
       },
     });
     apiPostMock.mockResolvedValue({ data: { success: true } });
-    submitWorkoutFormMock.mockResolvedValue({
-      success: true,
-      data: { id: 'form-pin', clientId: 91, trainerId: 5, date: '2026-07-30' },
-      message: 'Workout logged successfully',
-    });
     localStorage.setItem('token', 'test-token');
   });
 
@@ -164,61 +142,58 @@ describe('canonical save-path pin — the payload the shell must never change', 
     window.localStorage.clear();
   });
 
-  it('minimal session: the EXACT wire body — keys, shapes, omissions — is pinned', async () => {
-    render(<MemoryRouter><WorkoutLogger /></MemoryRouter>);
-
-    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
-    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
-
-    await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
-
-    // toEqual is STRICT on key presence: an extra key, a renamed key, or a
-    // no-longer-omitted null all fail here. This is the byte-shape contract.
-    expect(submitWorkoutFormMock.mock.calls[0][0]).toEqual({
-      clientId: 91,
-      date: normalizeWorkoutDate(null),
-      exercises: [
-        {
-          exerciseId: 'e1',
-          exerciseName: 'Push-ups',
-          painLevel: 0,
-          performanceNotes: '',
-          sets: [
-            { setNumber: 1, weight: 45, reps: 10, tempo: '', restTime: 60, notes: '' },
-          ],
-        },
-      ],
-      sessionNotes: '',
-    });
+  it('Law 0: cold load lands on Train — the add-exercise path needs NO rail tap', async () => {
+    await setup();
+    expect(screen.getByRole('tab', { name: /Train/ })).toHaveAttribute('aria-selected', 'true');
+    // The Train canvas already offers the first-set path.
+    expect(screen.getByText(/Add Your First Exercise/i)).toBeInTheDocument();
   });
 
-  it('optional-key contract: equipment profile rides the wire ONLY when picked', async () => {
-    // Trainer-logging shape (clientId ≠ viewer) — self mode hides the picker.
-    apiGetMock.mockResolvedValueOnce({
-      data: {
-        success: true,
-        client: {
-          id: 77, firstName: 'Training', lastName: 'Client', email: 'training@example.com',
-          availableSessions: 10, clientSource: 'swanstudios',
-        },
-      },
-    });
-    render(<MemoryRouter><WorkoutLogger clientId={77} /></MemoryRouter>);
-
-    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // location picker lives in Setup (shell Slice 3)
-    fireEvent.click(await screen.findByTestId('mock-equipment-profile-select'));
-    fireEvent.click(screen.getByRole('tab', { name: /Train/ }));
-    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+  it('stage swaps preserve exercises and Finish notes — view state, not lifecycle', async () => {
+    await setup();
+    // Log content in Train.
+    fireEvent.click(screen.getByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    expect(screen.getAllByText(/Push-ups/).length).toBeGreaterThan(0);
 
-    await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
-    const body = submitWorkoutFormMock.mock.calls[0][0];
-    expect(body.equipmentProfileId).toBe(77);
-    // Untouched optionals stay OMITTED — never serialized as null.
-    expect('overallIntensity' in body).toBe(false);
-    expect('scheduledSessionId' in body).toBe(false);
-    expect('plannedAssignment' in body).toBe(false);
+    // Finish: type notes.
+    fireEvent.click(screen.getByRole('tab', { name: /Finish/ }));
+    const notes = screen.getByPlaceholderText(/session|notes/i);
+    fireEvent.change(notes, { target: { value: 'strong session' } });
+
+    // Storm: Setup → Train → Setup → Finish → Train → Finish.
+    for (const name of [/Setup/, /Train/, /Setup/, /Finish/, /Train/, /Finish/]) {
+      fireEvent.click(screen.getByRole('tab', { name }));
+    }
+    expect((screen.getByPlaceholderText(/session|notes/i) as HTMLTextAreaElement).value)
+      .toBe('strong session');
+
+    fireEvent.click(screen.getByRole('tab', { name: /Train/ }));
+    expect(screen.getAllByText(/Push-ups/).length).toBeGreaterThan(0);
+  });
+
+  it('Setup stage hosts the plan-loading + location stubs; Train does not', async () => {
+    await setup();
+    expect(screen.queryByRole('button', { name: /load today/i })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: /Setup/ }));
+    expect(screen.getByRole('button', { name: /load today/i })).toBeInTheDocument();
+  });
+
+  it('anti-jump law 2: a stage swap moves focus to the canvas h2 and announces politely', async () => {
+    await setup();
+    fireEvent.click(screen.getByRole('tab', { name: /Setup/ }));
+    const heading = screen.getByRole('heading', { level: 2, name: 'Setup' });
+    expect(document.activeElement).toBe(heading);
+    expect(screen.getByText('Setup stage')).toBeInTheDocument(); // aria-live announcer
+  });
+
+  it('anti-jump law 4: stage changes push NO history entries', async () => {
+    await setup();
+    const pushStateSpy = vi.spyOn(window.history, 'pushState');
+    for (const name of [/Setup/, /Finish/, /Train/]) {
+      fireEvent.click(screen.getByRole('tab', { name }));
+    }
+    expect(pushStateSpy).not.toHaveBeenCalled();
+    pushStateSpy.mockRestore();
   });
 });

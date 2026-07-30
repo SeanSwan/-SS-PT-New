@@ -270,3 +270,13 @@ export const AddExerciseButton = styled(motion.button)`
 
   ${reducedMotionSafe}
 `;
+
+/** SESSION SHELL Finish stub (Slice 3): empty-state note before any set is logged. */
+export const FinishEmptyNote = styled.p`
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px dashed ${withAlpha(CS.text, 0.2)};
+  border-radius: 12px;
+  color: ${CS.textMuted};
+  font: 400 0.9rem 'Sora', sans-serif;
+`;

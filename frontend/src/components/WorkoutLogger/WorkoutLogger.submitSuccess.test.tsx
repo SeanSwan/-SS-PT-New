@@ -388,6 +388,8 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    // Deduction consequence lives in the Finish canvas (shell Slice 3).
+    fireEvent.click(screen.getByRole('tab', { name: /Finish/ }));
     expect(await screen.findByText('No Paid Session Deduction')).toBeInTheDocument();
     expect(screen.queryByText('Will Deduct 1 Session')).not.toBeInTheDocument();
     fireEvent.click(await screen.findByTestId('mock-footer-submit'));
@@ -430,7 +432,9 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // location picker lives in Setup (shell Slice 3)
     fireEvent.click(await screen.findByTestId('mock-equipment-profile-select'));
+    fireEvent.click(screen.getByRole('tab', { name: /Train/ }));
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
     fireEvent.click(await screen.findByTestId('mock-footer-submit'));
