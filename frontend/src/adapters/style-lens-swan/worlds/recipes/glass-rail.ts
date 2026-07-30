@@ -6,6 +6,11 @@
  * Signature motion: a horizontal light-streak passing behind the glass, never in front.
  * Surface fit: onboarding journeys, guided sequences, premium walkthroughs.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): vaulted-editorial display / humanist-serif body /
  * frosted-vault surface / orbit-nodes collection / pill-cluster action / ring-gauge chart /

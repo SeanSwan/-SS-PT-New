@@ -74,6 +74,29 @@ describe('doc truth · every built world header matches its recipe', () => {
     ).toEqual([]);
   });
 
+  it('a world claiming signature motion either ships it or says it does not', () => {
+    // Round 15: every header states an impossible phenomenon and a signature
+    // motion as bare declaratives, but ZERO worlds declare an `atmosphere` and
+    // the representation layer animates nothing. A reader would fairly take
+    // those lines as descriptions of what renders. They are a design brief for a
+    // later slice. This guard AUTO-RELAXES the moment a world actually ships an
+    // atmosphere, so it never blocks the work it is describing.
+    const overclaiming: string[] = [];
+    for (const world of worlds) {
+      const source = readFileSync(resolve(recipeDir, `${world.id}.ts`), 'utf8');
+      const claimsMotion = /signature motion:/i.test(source.split('*/')[0]);
+      const shipsAtmosphere = Boolean((world.recipe as { atmosphere?: unknown }).atmosphere);
+      const disclosed = /NOT YET IMPLEMENTED/.test(source.split('*/')[0]);
+      if (claimsMotion && !shipsAtmosphere && !disclosed) {
+        overclaiming.push(
+          `${world.id}: header states a signature motion, ships no atmosphere, and does not ` +
+            `disclose that the motion is unimplemented`,
+        );
+      }
+    }
+    expect(overclaiming, `\n${overclaiming.join('\n')}\n`).toEqual([]);
+  });
+
   it('the declared codeword equals the recipe it sits above', () => {
     const drift: string[] = [];
     for (const world of worlds) {

@@ -6,6 +6,11 @@
  * Signature motion: a tide-line that settles under each card as it docks.
  * Surface fit: block builders, template libraries, drag-to-assemble surfaces.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): rounded-athletic display / soft-sans body /
  * frosted-vault surface / arcade-cards collection / pill-cluster action / arcade-meter

@@ -6,6 +6,11 @@
  * Signature motion: motes circling the beam, undisturbed by anything the user does.
  * Surface fit: end-of-day review, journaling, coach notes.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): compact-technical-mono display / signal-grotesk body
  * / lightwell surface / orbit-nodes collection / command-rail action / spark-ribbon chart /
