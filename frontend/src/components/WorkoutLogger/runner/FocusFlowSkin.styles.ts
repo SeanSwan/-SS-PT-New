@@ -157,7 +157,8 @@ export const CardStage = styled.div`
 /* ── Thumb bar ────────────────────────────────────────────────── */
 export const ThumbBar = styled.div`
   position: sticky;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 66px);
+  /* Clears the fixed StickyLogActionBar (bottom 1rem + ~4.75rem tall). */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   z-index: 5;
   display: grid;
   grid-template-columns: minmax(44px, auto) 1fr minmax(44px, auto);

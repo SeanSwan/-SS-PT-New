@@ -47,13 +47,21 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
   const { exercises, rest, stats } = engine;
   const [activeIndex, setActiveIndex] = useState<number>(() => firstIncompleteIndex(engine));
 
-  // Clamp when exercises are removed; land on the newest when one is added
-  // while the runner sits on the (previously) last card.
+  // Clamp when exercises are removed. When a session ARRIVES after mount
+  // (draft restore, plan load, repeat-last) re-seed onto the first
+  // incomplete exercise — the mount-time seed saw an empty list.
+  const prevCountRef = React.useRef(exercises.length);
   useEffect(() => {
+    const prevCount = prevCountRef.current;
+    prevCountRef.current = exercises.length;
+    if (prevCount === 0 && exercises.length > 0) {
+      setActiveIndex(firstIncompleteIndex(engine));
+      return;
+    }
     if (activeIndex > exercises.length - 1) {
       setActiveIndex(Math.max(0, exercises.length - 1));
     }
-  }, [exercises.length, activeIndex]);
+  }, [exercises.length, activeIndex, engine]);
 
   const active = exercises[activeIndex];
   const next = exercises[activeIndex + 1];

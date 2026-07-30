@@ -7,6 +7,7 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import ExerciseCardComponent from '../ExerciseCardComponent';
+import QuickLogMode from '../QuickLogMode';
 import { getExerciseEntryRowKey } from '../WorkoutLogger.helpers';
 import { isLinkedToPrevious } from '../WorkoutLogger.supersets';
 import type { ExerciseEntry, ExerciseSet } from '../../../services/nasmApiService';
@@ -23,7 +24,8 @@ interface UseRunnerEngineDeps {
   onAddSet: (exerciseIndex: number) => void;
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   onRemoveExercise: (exerciseIndex: number) => void;
-  getOverload: React.ComponentProps<typeof ExerciseCardComponent>['getOverload'];
+  ghostPreFill: React.ComponentProps<typeof QuickLogMode>['ghostPreFill'] &
+    { getOverload: React.ComponentProps<typeof ExerciseCardComponent>['getOverload'] };
   getLastWeight: React.ComponentProps<typeof ExerciseCardComponent>['getLastWeight'];
   onSetLogged: (exerciseIndex: number, setIndex: number) => void;
   ghostSkip: boolean;
@@ -35,11 +37,12 @@ interface UseRunnerEngineDeps {
 export function useRunnerEngine(deps: UseRunnerEngineDeps): {
   engine: RunnerEngine;
   renderClassicList: () => React.ReactNode;
+  renderQuickLog: () => React.ReactNode;
 } {
   const {
     exercises, effectiveClientId, showSetDetails, onToggleSetDetails, onToggleSuperset,
     onUpdateExercise, onUpdateSet, onAddSet, onRemoveSet, onRemoveExercise,
-    getOverload, getLastWeight, onSetLogged, ghostSkip, stats, restTimer, openRolodex,
+    ghostPreFill, getLastWeight, onSetLogged, ghostSkip, stats, restTimer, openRolodex,
   } = deps;
 
   const renderExerciseCard = useCallback((exerciseIndex: number): React.ReactNode => {
@@ -61,7 +64,7 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
         onAddSet={onAddSet}
         onRemoveSet={onRemoveSet}
         onRemoveExercise={onRemoveExercise}
-        getOverload={getOverload}
+        getOverload={ghostPreFill.getOverload}
         getLastWeight={getLastWeight}
         onSetLogged={onSetLogged}
         ghostSkip={ghostSkip}
@@ -70,7 +73,7 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
   }, [
     exercises, effectiveClientId, showSetDetails, onToggleSetDetails, onToggleSuperset,
     onUpdateExercise, onUpdateSet, onAddSet, onRemoveSet, onRemoveExercise,
-    getOverload, getLastWeight, onSetLogged, ghostSkip,
+    ghostPreFill, getLastWeight, onSetLogged, ghostSkip,
   ]);
 
   const renderClassicList = useCallback((): React.ReactNode => (
@@ -78,6 +81,17 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
       {exercises.map((_exercise, exerciseIndex) => renderExerciseCard(exerciseIndex))}
     </div>
   ), [exercises, renderExerciseCard]);
+
+  /* Phase 6 Quick Log (3-tap streamlined view) — Classic-lane presentation. */
+  const renderQuickLog = useCallback((): React.ReactNode => (
+    <QuickLogMode
+      exercises={exercises}
+      onUpdateSet={onUpdateSet}
+      onAddSet={onAddSet}
+      ghostPreFill={ghostPreFill}
+      onSetLogged={onSetLogged}
+    />
+  ), [exercises, onUpdateSet, onAddSet, ghostPreFill, onSetLogged]);
 
   const engine = useMemo<RunnerEngine>(() => ({
     exercises,
@@ -93,5 +107,5 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
     openRolodex,
   }), [exercises, renderExerciseCard, stats, restTimer, openRolodex]);
 
-  return { engine, renderClassicList };
+  return { engine, renderClassicList, renderQuickLog };
 }

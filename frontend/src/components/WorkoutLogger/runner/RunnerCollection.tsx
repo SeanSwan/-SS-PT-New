@@ -18,6 +18,11 @@ interface RunnerCollectionProps {
   engine: RunnerEngine;
   /** The proven full-stack render (every card) — Classic Ledger + crash fallback. */
   renderClassicList: () => React.ReactNode;
+  /** Quick Log (3-tap legacy view). Only honored under Classic Ledger — a
+   *  Runner skin owns its own presentation, so quick mode never silently
+   *  hides a selected skin (the "looks the same" failure mode). */
+  quickLogActive?: boolean;
+  renderQuickLog?: () => React.ReactNode;
 }
 
 interface BoundaryProps {
@@ -50,11 +55,13 @@ class RunnerSkinBoundary extends React.Component<BoundaryProps, { failed: boolea
   }
 }
 
-const RunnerCollection: React.FC<RunnerCollectionProps> = ({ engine, renderClassicList }) => {
+const RunnerCollection: React.FC<RunnerCollectionProps> = ({
+  engine, renderClassicList, quickLogActive = false, renderQuickLog,
+}) => {
   const [styleId] = useRunnerStyle();
 
   if (styleId === 'classic-ledger') {
-    return <>{renderClassicList()}</>;
+    return <>{quickLogActive && renderQuickLog ? renderQuickLog() : renderClassicList()}</>;
   }
 
   return (

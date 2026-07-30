@@ -101,6 +101,31 @@ describe('RunnerCollection', () => {
     expect(screen.queryByRole('tablist', { name: 'Exercises in this session' })).toBeNull();
   });
 
+  it('Quick Log renders under Classic only — a Runner skin is never silently hidden by quick mode', () => {
+    writeRunnerStyle('classic-ledger');
+    const { unmount } = render(
+      <RunnerCollection
+        engine={makeEngine()}
+        renderClassicList={() => <div data-testid='classic-list' />}
+        quickLogActive
+        renderQuickLog={() => <div data-testid='quick-log' />}
+      />,
+    );
+    expect(screen.getByTestId('quick-log')).toBeInTheDocument();
+    unmount();
+    writeRunnerStyle('focus-flow');
+    render(
+      <RunnerCollection
+        engine={makeEngine()}
+        renderClassicList={() => <div data-testid='classic-list' />}
+        quickLogActive
+        renderQuickLog={() => <div data-testid='quick-log' />}
+      />,
+    );
+    expect(screen.queryByTestId('quick-log')).toBeNull();
+    expect(screen.getByRole('tablist', { name: 'Exercises in this session' })).toBeInTheDocument();
+  });
+
   it('a crashing skin falls back to the classic list (session never lost)', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const engine = makeEngine({

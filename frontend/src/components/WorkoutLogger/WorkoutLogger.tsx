@@ -72,6 +72,7 @@ import type {
 import { coerceToNumericId, ensureWorkoutLoggerExerciseRowIdentity, ensureWorkoutLoggerSetId, hasIncompleteWorkoutSets, normalizeWorkoutDate, isSelfLoggingDashboardRole } from './WorkoutLogger.helpers';
 import RunnerCollection from './runner/RunnerCollection';
 import { useRunnerEngine } from './runner/useRunnerEngine';
+import { writeRunnerStyle } from './runner/runnerStyles';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -80,7 +81,6 @@ import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
 import StickyLogActionBar from './StickyLogActionBar';
-import QuickLogMode from './QuickLogMode';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
 import { useWorkoutAiEvents } from './useWorkoutAiEvents';
@@ -467,7 +467,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // Runner Styles (Swan Lens dimension): one engine, switchable skins.
   const openRolodexForMain = useCallback(() => { setPendingSectionContext(null); setShowExerciseSearch(true); }, []);
-  const { engine: runnerEngine, renderClassicList } = useRunnerEngine({
+  const { engine: runnerEngine, renderClassicList, renderQuickLog } = useRunnerEngine({
     exercises,
     effectiveClientId,
     showSetDetails,
@@ -478,7 +478,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     onAddSet: addSet,
     onRemoveSet: removeSet,
     onRemoveExercise: removeExercise,
-    getOverload: ghostPreFill.getOverload,
+    ghostPreFill,
     getLastWeight,
     onSetLogged: handleSetLogged,
     ghostSkip: isClientSelfMode,
@@ -626,7 +626,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {exercises.length > 0 && (
           <WorkoutLoggerModeBar
             isQuickLogMode={isQuickLogMode}
-            onChangeMode={(quick) => { setIsQuickLogMode(quick); writeQuickLogPreference(quick); }}
+            onChangeMode={(quick) => {
+              setIsQuickLogMode(quick);
+              writeQuickLogPreference(quick);
+              // Quick Log lives under Classic — picking it while a Runner skin
+              // is active switches back so the toggle is never a silent no-op.
+              if (quick) writeRunnerStyle('classic-ledger');
+            }}
             isOffline={!offlineQueue.isOnline}
             pendingCount={offlineQueue.pendingCount}
             restRunning={restTimer.isRunning}
@@ -735,17 +741,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={20} />
               Add Your First Exercise
             </AddExerciseButton>
-          ) : isQuickLogMode ? (
-            /* Phase 6: Quick Log Mode - 3-tap streamlined view */
-            <QuickLogMode
-              exercises={exercises}
-              onUpdateSet={updateSet}
-              onAddSet={addSet}
-              ghostPreFill={ghostPreFill}
-              onSetLogged={handleSetLogged}
-            />
           ) : (
-            <RunnerCollection engine={runnerEngine} renderClassicList={renderClassicList} />
+            <RunnerCollection
+              engine={runnerEngine}
+              renderClassicList={renderClassicList}
+              quickLogActive={isQuickLogMode}
+              renderQuickLog={renderQuickLog}
+            />
           )}
 
           {exercises.length > 0 && (
