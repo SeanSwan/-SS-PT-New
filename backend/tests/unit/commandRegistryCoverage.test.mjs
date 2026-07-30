@@ -41,9 +41,19 @@ describe('command registry execution coverage', () => {
         'create_nutrition_plan',
         'generate_periodization',
       ],
+      // Six lanes added since this lock was last updated. Each is declared
+      // `method: 'FRONTEND_DISPATCH'` in its registry module (bootcampCommands.mjs,
+      // painChartCommands.mjs, workoutCommands.mjs), so having no backend
+      // dispatcher is correct for them — they mutate browser-local UI state. The
+      // lock is doing its job: it forced this to be acknowledged rather than
+      // letting new undispatched commands appear silently.
       frontend_event: [
         'add_exercise_to_form',
+        'bootcamp_set_duration',
+        'bootcamp_set_format',
+        'bootcamp_set_structure',
         'load_phase_template',
+        'painchart_select_region',
         'planner_add_exercise',
         'planner_generate_workout',
         'planner_rearrange_workout',
@@ -51,6 +61,8 @@ describe('command registry execution coverage', () => {
         'planner_swap_exercise',
         'planner_undo_last_change',
         'planner_update_exercise',
+        'rest_adjust',
+        'rest_skip',
         'submit_workout_form',
         'toggle_nasm_item',
         'update_set_data',

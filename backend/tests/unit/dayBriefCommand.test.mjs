@@ -57,7 +57,14 @@ function fakeDaySequelize() {
           { id: 8, availableSessions: 10, streakDays: 0 },
         ];
       }
-      if (/PainEntries/.test(sql)) {
+      // Must match the table the implementation ACTUALLY queries:
+      // client_pain_entries (verified present in the live DB, with userId +
+      // isActive columns). SWA-71 commit 093072b11 corrected 7 coach queries that
+      // were hitting tables which do not exist — pain and goals never loaded — but
+      // this fixture kept matching the old phantom /PainEntries/. It therefore
+      // returned [] for every pain lookup, the "active pain" flag was never set,
+      // and both assertions below broke and were written off as baseline noise.
+      if (/client_pain_entries/.test(sql)) {
         return [{ userId: 7, activePain: 2 }];
       }
       return [];

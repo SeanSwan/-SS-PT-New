@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { GOLDEN_SCENARIOS, DATASET_VERSION } from '../../eval/goldenDataset.mjs';
+import { INTENT_RESOLUTION_SCENARIOS } from '../../eval/intentResolutionScenarios.mjs';
 import { runEvalSuite, computeExitCode } from '../../eval/evalRunner.mjs';
 import { EVAL_THRESHOLDS, checkThresholds } from '../../eval/evalThresholds.mjs';
 import { formatJsonReport, formatMarkdownReport } from '../../eval/evalReport.mjs';
@@ -14,6 +15,27 @@ import { loadBaseline, compareDrift } from '../../eval/driftDetector.mjs';
 import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+
+/**
+ * The dataset the PRODUCTION runner actually evaluates.
+ *
+ * eval/runEval.mjs:41 does `runEvalSuite([...GOLDEN_SCENARIOS,
+ * ...INTENT_RESOLUTION_SCENARIOS])`, but this suite was calling the runner with
+ * GOLDEN_SCENARIOS alone. EVAL_THRESHOLDS declares an
+ * `intent_resolution` category, and validateDataset's check 4 requires every
+ * threshold category to have at least one scenario — so every success-path call
+ * threw "EVAL_THRESHOLDS categories with no scenarios: intent_resolution".
+ *
+ * Because several of those calls sit in `describe` bodies, the throw happened during
+ * COLLECTION: the file reported "0 test" and all ~38 assertions in the AI eval
+ * harness silently stopped existing. It was counted as one failing file in the
+ * baseline, which badly understated it.
+ *
+ * The deliberate negative tests below still pass GOLDEN_SCENARIOS-derived subsets on
+ * purpose — checks 1-3 (unknown category, bad type, missing rationale) all run
+ * BEFORE the coverage guard, so they still throw the error each one asserts.
+ */
+const FULL_DATASET = [...GOLDEN_SCENARIOS, ...INTENT_RESOLUTION_SCENARIOS];
 
 // ── Dataset Integrity (1-4) ──────────────────────────────────────────────────
 
@@ -59,7 +81,7 @@ describe('Eval Runner', () => {
   });
 
   it('6 — produces correct fail for PII scenario (pii_detect_01)', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'pii_detect_01');
     expect(result.pass).toBe(true); // pii_detect_01 expects ok=false, and validator should return ok=false → pass
     expect(result.actual.ok).toBe(false);
@@ -67,7 +89,7 @@ describe('Eval Runner', () => {
   });
 
   it('7 — produces correct fail for invalid schema (schema_invalid_01)', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'schema_invalid_01');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(false);
@@ -75,7 +97,7 @@ describe('Eval Runner', () => {
   });
 
   it('8 — produces correct fail for rule violation (contra_01)', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'contra_01');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(false);
@@ -118,7 +140,7 @@ describe('Threshold Checker', () => {
 
 describe('Report Formatters', () => {
   it('11 — JSON report includes all provenance fields', () => {
-    const { results, summary, knownGaps } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results, summary, knownGaps } = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(summary);
     const report = formatJsonReport({ results, summary, knownGaps }, thresholdCheck);
 
@@ -131,7 +153,7 @@ describe('Report Formatters', () => {
   });
 
   it('12 — Markdown report contains per-category table', () => {
-    const { results, summary, knownGaps } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results, summary, knownGaps } = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(summary);
     const report = formatJsonReport({ results, summary, knownGaps }, thresholdCheck);
     const md = formatMarkdownReport(report);
@@ -145,7 +167,7 @@ describe('Report Formatters', () => {
 
 describe('Warning Scenarios', () => {
   it('13 — warnings_01 produces expected warnings', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'warnings_01');
     expect(result.pass).toBe(true);
     expect(result.actual.warnings).toBeGreaterThan(0);
@@ -156,14 +178,14 @@ describe('Warning Scenarios', () => {
 
 describe('Long-Horizon Scenarios', () => {
   it('14 — valid long-horizon scenario passes (schema_valid_03)', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'schema_valid_03');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(true);
   });
 
   it('15 — long-horizon rule violation caught (contra_03)', () => {
-    const { results } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'contra_03');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(false);
@@ -175,7 +197,7 @@ describe('Long-Horizon Scenarios', () => {
 
 describe('Adversarial & KnownGap', () => {
   it('16 — adversarial_01 phone-space evasion is knownGap (excluded from threshold)', () => {
-    const { results, knownGaps } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results, knownGaps } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'adversarial_01');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(true);
@@ -183,7 +205,7 @@ describe('Adversarial & KnownGap', () => {
   });
 
   it('17 — adversarial_02 email-in-URL caught by PII detector (gated)', () => {
-    const { results, knownGaps } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { results, knownGaps } = runEvalSuite(FULL_DATASET);
     const result = results.find(r => r.scenarioId === 'adversarial_02');
     expect(result.pass).toBe(true);
     expect(result.actual.ok).toBe(false);
@@ -192,7 +214,7 @@ describe('Adversarial & KnownGap', () => {
   });
 
   it('19 — knownGap scenarios excluded from category pass rate', () => {
-    const { summary } = runEvalSuite(GOLDEN_SCENARIOS);
+    const { summary } = runEvalSuite(FULL_DATASET);
     const adversarial = summary.categories.adversarial;
     // 6 total, 4 knownGap, 2 gated
     expect(adversarial.total).toBe(6);
@@ -354,7 +376,7 @@ describe('Threshold Warning Propagation', () => {
 
 describe('Phase 9 Scenario Spot-Checks', () => {
   // Run full suite once for spot-check tests
-  const fullResults = runEvalSuite(GOLDEN_SCENARIOS);
+  const fullResults = runEvalSuite(FULL_DATASET);
 
   it('29 — schema_valid_06 maximal valid passes', () => {
     const r = fullResults.results.find(r => r.scenarioId === 'schema_valid_06');
@@ -555,7 +577,7 @@ describe('Drift Integration', () => {
   });
 
   it('49 — drift with matching baseline → drifted=false', () => {
-    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const evalResults = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(evalResults.summary);
     const report = formatJsonReport(evalResults, thresholdCheck);
     // Compare report against itself (simulates matching baseline)
@@ -565,7 +587,7 @@ describe('Drift Integration', () => {
   });
 
   it('50 — fail-on-drift with REGRESSION triggers warning list', () => {
-    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const evalResults = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(evalResults.summary);
     const currentReport = formatJsonReport(evalResults, thresholdCheck);
 
@@ -592,7 +614,7 @@ describe('Drift Integration', () => {
 
 describe('Report Drift Support', () => {
   it('51 — formatJsonReport includes drift field when provided', () => {
-    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const evalResults = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(evalResults.summary);
     const drift = { drifted: false, changes: [], warnings: [] };
     const report = formatJsonReport(evalResults, thresholdCheck, drift);
@@ -601,14 +623,14 @@ describe('Report Drift Support', () => {
   });
 
   it('51b — formatJsonReport omits drift field when null', () => {
-    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const evalResults = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(evalResults.summary);
     const report = formatJsonReport(evalResults, thresholdCheck);
     expect(report).not.toHaveProperty('drift');
   });
 
   it('51c — formatMarkdownReport includes drift section when present', () => {
-    const evalResults = runEvalSuite(GOLDEN_SCENARIOS);
+    const evalResults = runEvalSuite(FULL_DATASET);
     const thresholdCheck = checkThresholds(evalResults.summary);
     const drift = {
       drifted: true,
@@ -626,10 +648,17 @@ describe('Report Drift Support', () => {
 // ── Helper ───────────────────────────────────────────────────────────────────
 
 /** Get one scenario per category (excluding the given id) to satisfy coverage guard */
+/**
+ * One scenario per category, used to satisfy validateDataset's coverage guard when
+ * a test needs a minimal dataset. It must walk FULL_DATASET, not GOLDEN_SCENARIOS:
+ * the `intent_resolution` category lives only in INTENT_RESOLUTION_SCENARIOS, so
+ * iterating the golden set alone can never cover every EVAL_THRESHOLDS key and the
+ * guard fires anyway.
+ */
 function getOnePerCategory(excludeId) {
   const seen = new Set();
   const result = [];
-  for (const s of GOLDEN_SCENARIOS) {
+  for (const s of FULL_DATASET) {
     if (s.id === excludeId) continue;
     if (!seen.has(s.category)) {
       seen.add(s.category);
