@@ -19,6 +19,7 @@ import FocusFlowSkin from './FocusFlowSkin';
 import LedgerProSkin from './LedgerProSkin';
 import SheetStackSkin from './SheetStackSkin';
 import RunnerCollection from './RunnerCollection';
+import RunnerEmptyState from './RunnerEmptyState';
 import { RUNNER_STYLES, writeRunnerStyle, type RunnerStyleId } from './runnerStyles';
 import type { RunnerEngine } from './RunnerEngine.types';
 
@@ -100,6 +101,27 @@ describe('swap-storm: switching styles never remounts the host or loses the engi
     // The engine object was never cloned/replaced by any skin.
     expect(engine.renderExerciseCard).toBeDefined();
     cleanup();
+  });
+});
+
+describe('RunnerEmptyState (the zero-exercise first impression)', () => {
+  it('speaks the runner language: style-name kicker + both CTAs wired', () => {
+    writeRunnerStyle('ledger-pro');
+    const onAddExercise = vi.fn();
+    const onLoadPlan = vi.fn();
+    render(<RunnerEmptyState onAddExercise={onAddExercise} onLoadPlan={onLoadPlan} />);
+    expect(screen.getByText(/Session Runner · Ledger Pro/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add your first exercise' }));
+    expect(onAddExercise).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: "Use today's plan" }));
+    expect(onLoadPlan).toHaveBeenCalled();
+  });
+
+  it('hides the plan CTA when no loader is provided and disables while loading', () => {
+    const { rerender } = render(<RunnerEmptyState onAddExercise={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: "Use today's plan" })).toBeNull();
+    rerender(<RunnerEmptyState onAddExercise={vi.fn()} onLoadPlan={vi.fn()} isLoadingPlan />);
+    expect(screen.getByRole('button', { name: "Use today's plan" })).toBeDisabled();
   });
 });
 

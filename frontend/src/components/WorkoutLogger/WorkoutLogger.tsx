@@ -71,6 +71,7 @@ import type {
 } from './WorkoutLogger.localTypes';
 import { coerceToNumericId, ensureWorkoutLoggerExerciseRowIdentity, ensureWorkoutLoggerSetId, hasIncompleteWorkoutSets, normalizeWorkoutDate, isSelfLoggingDashboardRole } from './WorkoutLogger.helpers';
 import RunnerCollection from './runner/RunnerCollection';
+import RunnerEmptyState from './runner/RunnerEmptyState';
 import { useRunnerEngine } from './runner/useRunnerEngine';
 import { writeRunnerStyle } from './runner/runnerStyles';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
@@ -733,14 +734,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           {canDictate && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
-            <AddExerciseButton
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowExerciseSearch(true)}
-            >
-              <Plus size={20} />
-              Add Your First Exercise
-            </AddExerciseButton>
+            <RunnerEmptyState
+              onAddExercise={openRolodexForMain}
+              onLoadPlan={loadTodaysPlan}
+              isLoadingPlan={isLoadingPlan || isRepeatingSession}
+            />
           ) : (
             <RunnerCollection
               engine={runnerEngine}
