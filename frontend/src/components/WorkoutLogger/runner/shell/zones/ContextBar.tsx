@@ -16,6 +16,7 @@ import { ClipboardList, User } from 'lucide-react';
 import { getClientSessionSignal } from '../../../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type { PlannedAssignment } from '../../../WorkoutLogger.localTypes';
 import PlanContextSheet from './PlanContextSheet';
+import ContextOverflow, { type ContextOverflowProps } from './ContextOverflow';
 
 const Bar = styled.div`
   position: sticky;
@@ -107,6 +108,8 @@ const PlanChip = styled.button`
 `;
 
 export interface ContextBarProps {
+  /** ⋯ menu (Cancel/PDF/summary-with-lock) — omitted only in bare mounts. */
+  overflow?: ContextOverflowProps;
   clientFirstName: string;
   clientLastName: string;
   availableSessions: number;
@@ -120,6 +123,7 @@ export interface ContextBarProps {
 }
 
 const ContextBar: React.FC<ContextBarProps> = ({
+  overflow,
   clientFirstName,
   clientLastName,
   availableSessions,
@@ -167,6 +171,7 @@ const ContextBar: React.FC<ContextBarProps> = ({
       <Numbers aria-label={`${totalSets} total sets, about ${estimatedDuration} minutes`}>
         {totalSets} sets · ~{estimatedDuration} min
       </Numbers>
+      {overflow && <ContextOverflow {...overflow} />}
       <PlanContextSheet
         open={planOpen}
         onClose={() => setPlanOpen(false)}

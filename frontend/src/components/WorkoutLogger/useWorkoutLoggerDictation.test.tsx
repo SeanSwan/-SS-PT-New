@@ -179,7 +179,7 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
   it('source contract: the logger mounts Dictate + strip behind the admin/trainer gate', () => {
     const source = readFileSync(resolve(__dirname, 'WorkoutLogger.tsx'), 'utf8');
     expect(source).toContain("const canDictate = user?.role === 'admin' || user?.role === 'trainer';");
-    expect(source).toContain('{canDictate && (');
+    expect(source).toContain('canDictate={canDictate}'); // ActionBar mic carries the gate
     expect(source).toContain('{canDictate && <LoggerDictationStrip {...dictation} />}');
   });
 });

@@ -111,11 +111,6 @@ vi.mock('./../../NASMExerciseRolodex', () => ({
   },
 }));
 
-vi.mock('./../../WorkoutLoggerFooter', () => ({
-  default: (props: any) => (
-    <button data-testid='mock-footer-submit' onClick={props.onSubmit}>Complete & Save Workout</button>
-  ),
-}));
 
 vi.mock('../../../Shared/AITerminalPanel', () => ({ default: () => null }));
 vi.mock('../../../Shared/EquipmentProfilePicker', () => ({
@@ -169,7 +164,7 @@ describe('canonical save-path pin — the payload the shell must never change', 
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
 
@@ -211,7 +206,7 @@ describe('canonical save-path pin — the payload the shell must never change', 
     fireEvent.click(screen.getByRole('tab', { name: /Train/ }));
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
     const body = submitWorkoutFormMock.mock.calls[0][0];

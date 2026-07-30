@@ -166,7 +166,8 @@ describe('WorkoutLogger assignment-level homework prefill', () => {
     expect(toastMock.info).not.toHaveBeenCalledWith(expect.stringContaining('No active workout plan'));
     expect(toastMock.success.mock.calls.map((call) => call[0]).join(' | ')).toMatch(/Off-Day Lower Homework/);
 
-    fireEvent.click(await screen.findByRole('button', { name: /complete & save workout/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Train/ })); // Save lives on the Train/Finish bar
+    fireEvent.click(await screen.findByRole('button', { name: /complete and save workout/i }));
 
     await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
     expect(submitWorkoutFormMock.mock.calls[0][0]).toMatchObject({

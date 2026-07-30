@@ -69,16 +69,12 @@ describe('FocusFlowSkin', () => {
     expect(prev).toBeDisabled();
   });
 
-  it('session meter by default; rest bar (countdown, +15s, skip) while resting', () => {
-    const stop = vi.fn();
-    const extend = vi.fn();
-    const engine = makeEngine({ rest: { isRunning: true, secondsLeft: 83, stop, extend } });
+  it('session meter always — rest chrome belongs to the SHELL action bar (Slice 4b)', () => {
+    const engine = makeEngine({ rest: { isRunning: true, secondsLeft: 83, stop: vi.fn(), extend: vi.fn() } });
     render(<FocusFlowSkin engine={engine} />);
-    expect(screen.getByText('1:23')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add 15 seconds of rest' }));
-    expect(extend).toHaveBeenCalledWith(15);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip rest' }));
-    expect(stop).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Skip rest' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add 15 seconds of rest' })).toBeNull();
+    expect(screen.getByText(/\/ 6 sets/)).toBeInTheDocument();
   });
 
   it('Add chip and last-exercise next-up both open the Rolodex', () => {

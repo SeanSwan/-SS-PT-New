@@ -4,12 +4,12 @@
  * │ Whole session visible, maximum set throughput. Set rows ARE │
  * │ the proven ExerciseSetRowComponent (keypad, ghost prefill,  │
  * │ logged colors live in one place — Rule 18). Pinned bottom   │
- * │ bar: session meter / rest controls / Add Exercise.          │
+ * │ bar: session meter / Add Exercise (rest = shell bar).       │
  * │ Design source: RUNNER-STYLES-FINAL-10 §LEDGER #6.           │
  * └─────────────────────────────────────────────────────────────┘
  */
 import React, { useCallback, useState } from 'react';
-import { Plus, TimerOff, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import ExerciseSetRowComponent from '../ExerciseSetRowComponent';
 import { getExerciseEntryRowKey, getExerciseSetRowKey } from '../WorkoutLogger.helpers';
 import type { RunnerEngine } from './RunnerEngine.types';
@@ -33,7 +33,7 @@ const formatRest = (totalSeconds: number): string => {
 };
 
 const LedgerProSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
-  const { exercises, rest, stats, rows } = engine;
+  const { exercises, stats, rows } = engine;
   // Session-level logged toggles (visual accent state; workout DATA lives in
   // the engine — reps>0 is the durable truth used by stats/save).
   const [loggedSetKeys, setLoggedSetKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -116,32 +116,15 @@ const LedgerProSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
         );
       })}
 
+      {/* Rest chrome lives in the SHELL action bar (Slice 4b) — one surface. */}
       <LedgerBottomBar>
-        {rest.isRunning ? (
-          <>
-            <span aria-label={`Rest: ${formatRest(rest.secondsLeft)} remaining`}>
-              {formatRest(rest.secondsLeft)}
-            </span>
-            <span style={{ display: 'inline-flex', gap: 8 }}>
-              <BarButton type='button' onClick={() => rest.extend(15)} aria-label='Add 15 seconds of rest'>
-                +15s
-              </BarButton>
-              <BarButton type='button' onClick={rest.stop} aria-label='Skip rest'>
-                <TimerOff size={14} aria-hidden='true' /> Skip
-              </BarButton>
-            </span>
-          </>
-        ) : (
-          <>
-            <span aria-live='polite'>
-              <b>{stats.completedSets}</b> / {stats.totalSets} sets
-            </span>
-            <BarButton type='button' aria-label='Add another exercise' onClick={engine.openRolodex}>
-              <Plus size={14} aria-hidden='true' />
-              Add exercise
-            </BarButton>
-          </>
-        )}
+        <span aria-live='polite'>
+          <b>{stats.completedSets}</b> / {stats.totalSets} sets
+        </span>
+        <BarButton type='button' aria-label='Add another exercise' onClick={engine.openRolodex}>
+          <Plus size={14} aria-hidden='true' />
+          Add exercise
+        </BarButton>
       </LedgerBottomBar>
     </LedgerShell>
   );

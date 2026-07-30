@@ -164,7 +164,7 @@ export const CardStage = styled.div`
 /* ── Thumb bar ────────────────────────────────────────────────── */
 export const ThumbBar = styled.div`
   position: sticky;
-  /* Clears the fixed StickyLogActionBar (bottom 1rem + ~4.75rem tall). */
+  /* Clears the fixed shell action bar. */
   bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   z-index: 5;
   display: grid;
@@ -224,27 +224,4 @@ export const SessionMeter = styled.span`
   span { color: var(--text-secondary, rgba(224, 236, 244, 0.6)); }
 `;
 
-export const RestReadout = styled.span`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: ${TRAIN.active};
-`;
 
-export const RestAction = styled.button`
-  min-width: 44px;
-  min-height: 44px;
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 45%, transparent);
-  background: transparent;
-  color: ${TRAIN.active};
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring, #8B5CF6);
-    outline-offset: 2px;
-  }
-`;

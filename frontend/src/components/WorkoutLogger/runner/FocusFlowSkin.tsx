@@ -9,7 +9,7 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, TimerOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { RunnerEngine } from './RunnerEngine.types';
 import { isExerciseComplete, exerciseSetProgress } from './RunnerEngine.types';
 import { getExerciseEntryRowKey } from '../WorkoutLogger.helpers';
@@ -26,18 +26,9 @@ import {
   RailChip,
   RailDot,
   RailGroup,
-  RestAction,
-  RestReadout,
   SessionMeter,
   ThumbBar,
 } from './FocusFlowSkin.styles';
-
-const formatRest = (totalSeconds: number): string => {
-  const clamped = Math.max(0, totalSeconds);
-  const m = Math.floor(clamped / 60);
-  const s = clamped % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-};
 
 /** First exercise with unlogged sets — where the session actually is. */
 const firstIncompleteIndex = (engine: RunnerEngine): number => {
@@ -146,25 +137,12 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
           Prev
         </NavButton>
 
-        <BarCenter aria-live='polite'>
-          {rest.isRunning ? (
-            <>
-              <RestReadout aria-label={`Rest: ${formatRest(rest.secondsLeft)} remaining`}>
-                {formatRest(rest.secondsLeft)}
-              </RestReadout>
-              <RestAction type='button' onClick={() => rest.extend(15)} aria-label='Add 15 seconds of rest'>
-                +15s
-              </RestAction>
-              <RestAction type='button' onClick={rest.stop} aria-label='Skip rest'>
-                <TimerOff size={14} aria-hidden='true' /> Skip
-              </RestAction>
-            </>
-          ) : (
-            <SessionMeter>
-              <b>{stats.completedSets}</b>
-              <span> / {stats.totalSets} sets</span>
-            </SessionMeter>
-          )}
+        {/* Rest chrome lives in the SHELL action bar (Slice 4b) — one surface. */}
+        <BarCenter>
+          <SessionMeter>
+            <b>{stats.completedSets}</b>
+            <span> / {stats.totalSets} sets</span>
+          </SessionMeter>
         </BarCenter>
 
         <NavButton

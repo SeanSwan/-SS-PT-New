@@ -13,7 +13,7 @@ describe('WorkoutLogger shared theme bridge', () => {
     const logger = read('WorkoutLogger.tsx');
     const loggerStyles = read('WorkoutLogger.styles.ts');
     const contextBar = read('runner/shell/zones/ContextBar.tsx');
-    const footer = read('WorkoutLoggerFooter.tsx');
+    const actionBar = read('runner/shell/zones/ActionBar.tsx');
 
     expect(dashboardRoutesSource).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
     expect(dashboardRoutesSource).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
@@ -22,11 +22,11 @@ describe('WorkoutLogger shared theme bridge', () => {
     expect(enhancedLoggerView).toContain("import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger'");
     expect(enhancedLoggerView).toContain('<WorkoutLogger');
     expect(logger).toContain('<ContextBar');
-    expect(logger).toContain('<WorkoutLoggerFooter');
+    expect(logger).toContain('<ActionBar');
     expect(logger).toContain('<WorkoutLoggerConfirmDialog');
     expect(loggerStyles).toContain("from './WorkoutLoggerCS'");
     expect(contextBar).toMatch(/var\(--/);
-    expect(footer).toContain("from './WorkoutLoggerCS'");
+    expect(actionBar).toMatch(/var\(--/);
   });
 
   it('routes shared logger color primitives through dashboard theme variables', () => {

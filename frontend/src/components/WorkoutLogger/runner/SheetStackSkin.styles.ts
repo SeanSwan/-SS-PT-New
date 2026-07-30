@@ -163,36 +163,4 @@ export const SheetBody = styled.div`
   padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
 `;
 
-export const SheetRestStrip = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 44px;
-  margin: 0 10px 8px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--world-accent, #60C0F0) 10%, transparent);
-  font-family: 'Fira Code', monospace;
-  font-variant-numeric: tabular-nums;
-  color: ${TRAIN.active};
-  font-weight: 700;
-`;
 
-export const RestChipButton = styled.button`
-  min-width: 44px;
-  min-height: 40px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 45%, transparent);
-  background: transparent;
-  color: ${TRAIN.active};
-  font-family: 'Sora', sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring, #8B5CF6);
-    outline-offset: 2px;
-  }
-`;

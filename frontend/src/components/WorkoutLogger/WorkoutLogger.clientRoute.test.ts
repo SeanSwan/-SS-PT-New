@@ -163,13 +163,13 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     }
   });
 
-  it('WorkoutLoggerFooter receives the guarded cancel handler (not the raw optional prop)', () => {
+  it('the context-bar overflow receives the guarded cancel handler (not the raw optional prop)', () => {
     // The footer is the surface where these handlers actually fire.
     // The earlier draft passed `onCancel={onCancel}` (raw undefined
     // on self-route). The current handler confirms unsaved work before
     // delegating to the resolved route-aware cancel callback.
     expect(SOURCE).toMatch(/const\s+handleCancel\s*=\s*useCallback/);
-    expect(SOURCE).toMatch(/<WorkoutLoggerFooter[\s\S]*?onCancel=\{handleCancel\}/);
+    expect(SOURCE).toMatch(/onCancelSession:\s*handleCancel/);
   });
 
   it('confirms before discarding unsaved workout entries on cancel', () => {

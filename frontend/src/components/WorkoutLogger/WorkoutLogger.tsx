@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History, UploadCloud, Mic, Sparkles } from 'lucide-react';
+import { Plus, Download, History, UploadCloud } from 'lucide-react';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
 import { useLastWeightSuggestions } from './useLastWeightSuggestions';
@@ -26,7 +26,6 @@ import {
   LoadingSpinner,
   FinishEmptyNote,
   RolodexTrigger,
-  TimerFAB,
   WarmupProtocolIcon,
   WorkoutLoggerContainer,
 } from './WorkoutLogger.styles';
@@ -38,6 +37,7 @@ import ContextBar from './runner/shell/zones/ContextBar';
 import ShellNotices from './runner/shell/zones/ShellNotices';
 import CoachDrawer from './runner/shell/zones/CoachDrawer';
 import StageRail from './runner/shell/zones/StageRail';
+import ActionBar from './runner/shell/zones/ActionBar';
 import StageCanvas from './runner/shell/primitives/StageCanvas';
 import { createSessionStageStore, switchSessionStage, useSessionStage } from './runner/shell/useSessionStage';
 import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
@@ -48,7 +48,6 @@ import SaveSuccessPanel from './SaveSuccessPanel';
 import WorkoutLoggerHandoffMount from './handoff/WorkoutLoggerHandoffMount';
 import './workoutLoggerSubmitPayload';
 import './WorkoutLogger.submitGuard';
-import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerLensFrame from './WorkoutLoggerLensFrame';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
 import WorkoutLoggerVoiceImportSection from './WorkoutLoggerVoiceImportSection';
@@ -65,7 +64,6 @@ import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
 import { toggleSupersetLink, renumberSupersetGroups } from './WorkoutLogger.supersets';
-import FloatingRestTimer from './FloatingRestTimer';
 import type {
   WorkoutDraftGate,
   WorkoutLoggerExerciseOption,
@@ -83,7 +81,6 @@ import { reapplyGhostPreFill } from './WorkoutLogger.ghostReapply';
 import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
-import StickyLogActionBar from './StickyLogActionBar';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
 import { useScreenWakeLock } from './useScreenWakeLock';
@@ -181,7 +178,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setShowExerciseSearch(true);
     }
   }, [routeExercise]);
-  const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [showCoachDrawer, setShowCoachDrawer] = useState(false);
   // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
   const sessionStageStore = useMemo(() => createSessionStageStore(), []);
@@ -522,6 +518,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* SESSION SHELL zones 1+2 (Slice 1): absorbs WorkoutLoggerHeader,
             ScheduledSessionStatusBanner, WorkoutDraftGateBanner, plan-strip chip. */}
         <ContextBar
+          overflow={{
+            onCancelSession: handleCancel,
+            onExportPDF: handleExportPDF,
+            onGenerateSummary: handleGenerateSummary,
+            showGenerateSummary: !!submittedFormId,
+            isGeneratingSummary,
+            summaryLockedReason,
+          }}
           clientFirstName={client.firstName} clientLastName={client.lastName}
           availableSessions={client.availableSessions ?? 0} clientSource={client.clientSource}
           workoutDate={workoutDateValue} totalSets={totalSets} estimatedDuration={estimatedDuration}
@@ -597,7 +601,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           <LoadPlanRow>
             {!isClientSelfMode && (
               <LoadPlanButton
-                onClick={handleRepeatLastSession}
+                onClick={() => {
+                  handleRepeatLastSession();
+                  switchSessionStage(sessionStageStore, 'train'); // show the repeated session
+                }}
                 disabled={isRepeatingSession || isLoadingPlan}
                 title="Copy the client's most recent workout as a starting draft"
               >
@@ -605,7 +612,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
               </LoadPlanButton>
             )}
-            <LoadPlanButton onClick={loadTodaysPlan} disabled={isLoadingPlan || isRepeatingSession}>
+            <LoadPlanButton
+              onClick={() => {
+                loadTodaysPlan();
+                switchSessionStage(sessionStageStore, 'train'); // show the loaded session
+              }}
+              disabled={isLoadingPlan || isRepeatingSession}
+            >
               <Download size={16} />
               {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
             </LoadPlanButton>
@@ -674,21 +687,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             >
               <Plus size={18} />
               Search & Add Exercise
-            </RolodexTrigger>
-            {canDictate && (
-              <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
-                <Mic size={18} />
-                Dictate
-              </RolodexTrigger>
-            )}
-            <RolodexTrigger
-              onClick={() => setShowCoachDrawer(true)}
-              aria-haspopup="dialog"
-              aria-label="Open Swan Coach"
-              style={{ borderColor: 'var(--train-coach, #8B5CF6)', color: 'var(--swan-coach-fg, #C4B5FD)' }}
-            >
-              <Sparkles size={18} />
-              Coach
             </RolodexTrigger>
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
@@ -811,44 +809,32 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>
-        {exercises.length > 0 && !submittedFormId && (
-          <StickyLogActionBar
-            completedSets={sessionStats.completedSets}
-            totalSets={sessionStats.totalSets}
-            onSubmit={() => handleSubmit()}
-            isSubmitting={isSubmitting}
-          />
-        )}
-        <WorkoutLoggerFooter
-          onCancel={handleCancel}
-          onExportPDF={handleExportPDF}
-          onSubmit={handleSubmit}
-          onGenerateSummary={handleGenerateSummary}
+        {/* SESSION SHELL zone 6 (Slice 4b): ONE bottom bar — footer + sticky
+            bar + TimerFAB/FloatingRestTimer + skin rest chrome, merged. */}
+        <ActionBar
+          stage={sessionStage}
+          onGoTrain={() => switchSessionStage(sessionStageStore, 'train')}
           hasExercises={exercises.length > 0}
+          completedSets={sessionStats.completedSets}
+          totalSets={sessionStats.totalSets}
           isSubmitting={isSubmitting}
-          isGeneratingSummary={isGeneratingSummary}
-          showGenerateSummary={!!submittedFormId}
-          summaryLockedReason={summaryLockedReason}
+          submitted={!!submittedFormId}
+          onSubmit={() => handleSubmit()}
+          onAddExercise={() => {
+            switchSessionStage(sessionStageStore, 'train'); // rolodex mounts on the Train canvas
+            openRolodexForMain();
+          }}
+          rest={runnerEngine.rest}
+          canDictate={canDictate}
+          dictationActive={dictation.active}
+          onToggleDictation={dictation.toggle}
+          onOpenCoach={() => setShowCoachDrawer(true)}
         />
       </WorkoutLoggerContainer>
-      {showFloatingTimer && (
-        <FloatingRestTimer onClose={() => setShowFloatingTimer(false)} />
-      )}
-
       <WorkoutLoggerConfirmDialog
         request={confirmRequest}
         onClose={() => setConfirmRequest(null)}
       />
-      {exercises.length > 0 && !showFloatingTimer && (
-        <TimerFAB
-          $lift={!submittedFormId}
-          onClick={() => setShowFloatingTimer(true)}
-          aria-label="Open floating rest timer"
-          title="Rest Timer"
-        >
-          <Timer size={18} aria-hidden="true" />
-        </TimerFAB>
-      )}
       </WorkoutLoggerLensFrame>
     </NASMLearningProvider>
   );
