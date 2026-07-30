@@ -115,9 +115,14 @@ async function main() {
   }
   await fs.writeFile(outFile, stub, 'utf8');
   console.log(`scaffolded ${outFile}`);
-  console.log('\nNext (paste into worlds/registry.ts):');
+  // worlds/registry.ts is the ONLY registration edit: catalogV2Map derives its
+  // world entries from the registry, and the ledger reads status from it too.
+  console.log('\nNext — worlds/registry.ts is the ONLY file to register in:');
   console.log(`  import { ${toConst(id)} } from './recipes/${id}';`);
   console.log(`  // …and in BUILT_RECIPES:  '${id}': ${toConst(id)},`);
+  console.log('\nThen: art-direct the scaffold (its placeholder codeword WILL collide),');
+  console.log('update the header to match, and bump the counts in registry.test.ts.');
+  console.log('Gates: docTruth, fontLoading, lawA, registry layer 2b, renderSignature.');
 }
 
 // Run only as a CLI, never on import (so the pure export is test-safe).

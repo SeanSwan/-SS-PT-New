@@ -153,4 +153,16 @@ describe('doc truth · the world generator emits a gate-compatible scaffold', ()
       'the scaffold still tells authors to flip the ledger status — the ledger reads it from the registry',
     ).toBe(false);
   });
+
+  it('the CLI output agrees with the scaffold header (round 13: it did not)', () => {
+    // Round 12 corrected the stub's TODO but left the console guidance saying
+    // "paste into worlds/registry.ts", which reads as one of several edits.
+    // Running the CLI for real is what exposed it — the header and the terminal
+    // output were telling an author two different stories.
+    expect(
+      /Next \(paste into worlds\/registry\.ts\)/.test(stubSource),
+      'the CLI still prints the pre-derivation guidance the scaffold header now contradicts',
+    ).toBe(false);
+    expect(stubSource).toMatch(/ONLY file to register in/);
+  });
 });
