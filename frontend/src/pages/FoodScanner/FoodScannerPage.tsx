@@ -443,6 +443,14 @@ const FoodScannerPage: React.FC = () => {
         if (activeTab === 'history') {
           fetchScanHistory();
         }
+      } else {
+        // Scan-history rows are a denormalized log with no editable columns, so no row ever
+        // matches here and the endpoint answers 400 by design. Say so instead of silently doing
+        // nothing — a button that no-ops with zero feedback reads as a broken app (rule 75).
+        toast({
+          title: 'Favorites not available yet',
+          description: 'Saving products to favorites is coming soon. Your scan is still in your history.',
+        });
       }
     } catch (error: any) {
       console.error('Error saving product:', error);
