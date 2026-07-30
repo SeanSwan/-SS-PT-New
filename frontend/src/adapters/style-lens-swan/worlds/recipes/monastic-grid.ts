@@ -6,6 +6,11 @@
  * Signature motion: a single page-turn per state change, nothing else moves.
  * Surface fit: focus mode, single-task logging, distraction-free review.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): monastic-quiet display / soft-sans body /
  * etched-stone surface / command-rows collection / glass-dock action / ring-gauge chart /

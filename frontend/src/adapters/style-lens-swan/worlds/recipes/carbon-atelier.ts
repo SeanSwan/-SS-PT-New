@@ -6,6 +6,11 @@
  * Signature motion: a single raking light travelling the weave once per view.
  * Surface fit: premium tiers, bespoke programming, concierge surfaces.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): vaulted-editorial display / humanist-serif body /
  * frosted-vault surface / command-rows collection / glass-dock action / ring-gauge chart /

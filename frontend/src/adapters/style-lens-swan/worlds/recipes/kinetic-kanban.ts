@@ -6,6 +6,11 @@
  * Signature motion: a column-settle bounce that lands a beat before the card does.
  * Surface fit: plan boards, session queues, admin triage.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): rounded-athletic display / soft-sans body /
  * floating-candy surface / orbit-nodes collection / pill-cluster action / arcade-meter

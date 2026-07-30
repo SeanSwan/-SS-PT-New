@@ -6,6 +6,11 @@
  * Signature motion: a strike-pulse on the beat, filings drifting down after it.
  * Surface fit: interval work, conditioning, tempo-led sessions.
  *
+ * NOT YET IMPLEMENTED: this world declares no atmosphere, and the representation
+ * layer animates nothing (proven by lensRepresentation.coverage.test.tsx). The
+ * phenomenon and signature motion above are the DESIGN BRIEF for a later slice,
+ * not a description of what renders today.
+ *
  * Structural codeword (>= 3 axes from EVERY other world, measured on a rollout surface with
  * no chart slot — the strictest host): rounded-athletic display / soft-sans body /
  * frosted-vault surface / orbit-nodes collection / command-rail action / arcade-meter chart
