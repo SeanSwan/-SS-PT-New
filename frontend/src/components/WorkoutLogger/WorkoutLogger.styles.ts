@@ -20,7 +20,6 @@ export const WorkoutLoggerContainer = styled(motion.div)`
   position: relative;
   box-sizing: border-box;
   overscroll-behavior: contain;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
 
   &::before {

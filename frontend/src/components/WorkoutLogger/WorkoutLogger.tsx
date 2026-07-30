@@ -673,10 +673,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               // is active switches back so the toggle is never a silent no-op.
               if (quick) writeRunnerStyle('classic-ledger');
             }}
-            isOffline={!offlineQueue.isOnline}
-            pendingCount={offlineQueue.pendingCount}
-            restRunning={restTimer.isRunning}
-            restSecondsLeft={restTimer.secondsLeft}
           />
         )}
         <ExerciseSection>
