@@ -15,11 +15,15 @@ const cancellationReviewServiceSource = readFileSync(resolve(__dirname, '../../s
 const aiCancelServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancelService.mjs'), 'utf8');
 
 /**
- * Comments must be stripped before ANY mount-order indexOf. core/routes.mjs:310-312
- * is a NOTE that quotes "the `app.use('/api', apiRoutes)` fallback", so a raw
- * indexOf resolves the aggregate mount to that comment instead of the real mount at
- * line 808 — the ordering check then fails while the mounts are correctly ordered.
- * Same defect fixed in tests/unit/supportIssueSchemaContract.test.mjs.
+ * Comments must be stripped before ANY mount-order indexOf. core/routes.mjs carries a
+ * NOTE that quotes "the `app.use('/api', apiRoutes)` fallback", positioned ABOVE the
+ * exact /api/sessions mount while the real aggregate mount is far BELOW it — so a raw
+ * indexOf resolves the aggregate to that comment and the ordering check fails while
+ * the mounts are correctly ordered. Same defect fixed in
+ * tests/unit/supportIssueSchemaContract.test.mjs.
+ *
+ * No line numbers on purpose: editing that comment block shifts every line after it,
+ * which already invalidated the numbers an earlier version of this note quoted.
  */
 const stripComments = (source) => source
   .replace(/\/\*[\s\S]*?\*\//g, '')

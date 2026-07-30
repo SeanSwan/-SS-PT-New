@@ -136,12 +136,18 @@ describe("Report Room schema contract", () => {
 
   it("mounts exact user and owner issue routers before the generic API router", () => {
     // Comments must be stripped BEFORE any indexOf ordering check. core/routes.mjs
-    // line 312 contains the prose "the `app.use('/api', apiRoutes)` fallback
-    // further down this file" — so a raw indexOf found the generic mount at the
-    // COMMENT (offset ~17.5k) instead of the real one (~44.2k, line 808) and this
-    // assertion failed even though the mounts were correctly ordered at 384/385
-    // vs 808. It was a false positive sitting in the failing-test baseline, and it
-    // meant the invariant it exists to protect was not actually being checked.
+    // carries a NOTE that quotes the string "the `app.use('/api', apiRoutes)`
+    // fallback further down this file" — so a raw indexOf resolved the generic mount
+    // to that COMMENT, which sits far ABOVE the exact mounts, instead of to the real
+    // mount far below them. The assertion then failed even though the mounts were
+    // correctly ordered. It was a false positive sitting in the failing-test
+    // baseline, and it meant the invariant this test exists to protect was not
+    // actually being checked.
+    //
+    // Deliberately no line numbers here: a later commit of mine edited that very
+    // comment block and shifted every line after it, which invalidated the numbers
+    // an earlier version of this note quoted. The CONDITION is stable; coordinates
+    // in a routes file are a timestamp, not a fact.
     const routes = stripComments(
       readFileSync(resolve(backendRoot, "core/routes.mjs"), "utf8"),
     );
