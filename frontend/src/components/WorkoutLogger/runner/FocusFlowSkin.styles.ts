@@ -25,14 +25,41 @@ export const ProgressRail = styled.div`
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  /* A sideways fling stays in the rail — never chains to the page or to
+     the browser's back-swipe gesture on iOS. */
+  overscroll-behavior-x: contain;
   padding: 4px 2px 8px;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+
+  /* Edge fade = the "there's more" affordance (same idiom as
+     ExerciseFilterChips). Purely visual; it never eats a tap. */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 10px,
+    black calc(100% - 10px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 10px,
+    black calc(100% - 10px),
+    transparent 100%
+  );
 `;
 
-/* Tabs-only group inside the rail (tablist purity — Add sits outside). */
+/* Tabs-only group inside the rail (tablist purity — Add sits outside).
+   `flex: 0 0 auto` is LOAD-BEARING: as a flex item this group would
+   otherwise default to flex-shrink:1, collapse to the rail's width, and
+   clip every chip past the fold — the scroller's scrollWidth would never
+   grow, so there was nothing to scroll to (Sean's 2026-07-31 report:
+   only ~5 of 11 exercises reachable). Regression-locked in
+   FocusFlowSkin.railScroll.test.tsx. */
 export const RailGroup = styled.div`
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
 `;
 

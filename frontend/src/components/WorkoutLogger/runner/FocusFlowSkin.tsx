@@ -59,6 +59,26 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
     }
   }, [exercises.length, activeIndex, engine]);
 
+  // Keep the active chip reachable without ever moving the PAGE: assign the
+  // rail's own scrollLeft (instant). scrollIntoView is banned here — it walks
+  // ancestors and would scroll the shell canvas out from under the trainer.
+  const railRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const rail = railRef.current;
+    const chip = rail?.querySelectorAll<HTMLElement>('[role="tab"]')[activeIndex];
+    if (!rail || !chip) return;
+    const leftEdge = chip.offsetLeft;
+    const rightEdge = leftEdge + chip.offsetWidth;
+    const viewLeft = rail.scrollLeft;
+    const viewRight = viewLeft + rail.clientWidth;
+    const GUTTER = 12; // breathing room so the chip never kisses the fade
+    if (leftEdge < viewLeft + GUTTER) {
+      rail.scrollLeft = Math.max(0, leftEdge - GUTTER);
+    } else if (rightEdge > viewRight - GUTTER) {
+      rail.scrollLeft = rightEdge - rail.clientWidth + GUTTER;
+    }
+  }, [activeIndex, exercises.length]);
+
   const active = exercises[activeIndex];
   const next = exercises[activeIndex + 1];
   const progress = useMemo(
@@ -76,7 +96,7 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
   return (
     <FocusShell data-runner-skin='focus-flow'>
       {/* Add lives OUTSIDE the tablist — a tablist may contain only tabs. */}
-      <ProgressRail>
+      <ProgressRail ref={railRef} data-rail-scroller>
         <RailGroup role='tablist' aria-label='Exercises in this session'>
           {exercises.map((exercise, index) => {
             const state = chipState(index);
