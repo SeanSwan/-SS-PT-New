@@ -225,6 +225,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     exercises,
     sessionNotes,
     overallIntensity,
+    restEndsAt: restTimer.endsAt,
     enabled: !hasInitialExercises && !lastSaveResponse,
   });
 
@@ -548,6 +549,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           workoutDraft={workoutDraft} draftOfferVisible={exercises.length === 0 && !sessionNotes}
           setDraftGate={setDraftGate} setExercises={setExercises}
           setSessionNotes={setSessionNotes} setOverallIntensity={setOverallIntensity}
+          onRestoreRest={(endsAt) => restTimer.start(Math.max(1, Math.ceil((endsAt - Date.now()) / 1000)))}
           scheduledSessionId={scheduledSessionId} scheduledSessionCreditHint={scheduledSessionCreditHint}
           scheduledSessionDate={scheduledSessionDate} clientSource={client.clientSource}
         />

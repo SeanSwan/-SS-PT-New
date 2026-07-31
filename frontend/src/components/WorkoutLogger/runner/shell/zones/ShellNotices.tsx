@@ -60,6 +60,8 @@ export interface ShellNoticesProps {
   setExercises: (exercises: ExerciseEntry[]) => void;
   setSessionNotes: (notes: string) => void;
   setOverallIntensity: (intensity: number | null) => void;
+  /** M6: resume a still-running rest countdown from the restored draft. */
+  onRestoreRest?: (endsAt: number) => void;
   scheduledSessionId: string | null | undefined;
   scheduledSessionCreditHint: number | null | undefined;
   scheduledSessionDate: string | null | undefined;
@@ -75,6 +77,7 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
   setExercises,
   setSessionNotes,
   setOverallIntensity,
+  onRestoreRest,
   scheduledSessionId,
   scheduledSessionCreditHint,
   scheduledSessionDate,
@@ -117,6 +120,10 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
               setExercises(restored.exercises.map((entry) => ensureWorkoutLoggerExerciseRowIdentity(entry)));
               setSessionNotes(restored.sessionNotes);
               setOverallIntensity(restored.overallIntensity);
+              // M6: a rest countdown that was still running resumes.
+              if (restored.restEndsAt && restored.restEndsAt > Date.now()) {
+                onRestoreRest?.(restored.restEndsAt);
+              }
             }}
           >
             Restore

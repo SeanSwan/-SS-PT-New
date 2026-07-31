@@ -39,6 +39,8 @@ export interface WorkoutDraftPayload {
   exercises: ExerciseEntry[];
   sessionNotes: string;
   overallIntensity: number | null;
+  /** M6: absolute rest-timer end (epoch ms) — a mid-rest reload resumes. */
+  restEndsAt?: number | null;
 }
 
 const safeStorage = (): Storage | null => {
@@ -76,6 +78,8 @@ export const parseWorkoutDraft = (raw: string | null): WorkoutDraftPayload | nul
       sessionNotes: typeof parsed.sessionNotes === 'string' ? parsed.sessionNotes : '',
       overallIntensity:
         typeof parsed.overallIntensity === 'number' ? parsed.overallIntensity : null,
+      restEndsAt:
+        typeof parsed.restEndsAt === 'number' && parsed.restEndsAt > 0 ? parsed.restEndsAt : null,
     };
   } catch {
     return null;
@@ -127,6 +131,8 @@ export interface UseWorkoutDraftOptions {
   exercises: ExerciseEntry[];
   sessionNotes: string;
   overallIntensity: number | null;
+  /** M6: live rest-timer endsAt (epoch ms) to ride along with the draft. */
+  restEndsAt?: number | null;
   enabled: boolean;
 }
 
@@ -138,7 +144,7 @@ export interface UseWorkoutDraftResult {
 }
 
 export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraftResult {
-  const { userId, clientId, date, exercises, sessionNotes, overallIntensity, enabled } = options;
+  const { userId, clientId, date, exercises, sessionNotes, overallIntensity, restEndsAt = null, enabled } = options;
   const key = buildWorkoutDraftKey(userId, clientId, date);
   const [pendingDraft, setPendingDraft] = useState<WorkoutDraftPayload | null>(null);
   const offeredKeyRef = useRef<string | null>(null);
@@ -178,6 +184,7 @@ export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraf
           exercises,
           sessionNotes,
           overallIntensity,
+          restEndsAt,
         };
         storage.setItem(key, JSON.stringify(payload));
       } catch {
@@ -190,7 +197,7 @@ export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraf
         persistTimerRef.current = null;
       }
     };
-  }, [enabled, key, exercises, sessionNotes, overallIntensity]);
+  }, [enabled, key, exercises, sessionNotes, overallIntensity, restEndsAt]);
 
   const removeKey = useCallback(() => {
     if (persistTimerRef.current) {
