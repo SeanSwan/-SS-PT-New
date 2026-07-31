@@ -223,7 +223,11 @@ export function checkVolumeBudget(dayType, selected, candidate, totalSlots) {
   if (share === undefined) return { withinBudget: true };
 
   const already = selected.filter((m) => m?.primaryRegion === candidate.primaryRegion).length;
-  const maxAllowed = Math.floor(share * totalSlots);
+  // A nonzero share must never round down to an outright ban — in a 2-slot
+  // full-body class, floor(0.45 * 2) = 0 banned lower-body entirely, which is
+  // exactly the n=4 small-class case this engine exists to handle. A ban is
+  // expressed as share === 0 (see upper_body's `lower: 0`), never by rounding.
+  const maxAllowed = share === 0 ? 0 : Math.max(1, Math.floor(share * totalSlots));
 
   if (already + 1 > maxAllowed) {
     return {

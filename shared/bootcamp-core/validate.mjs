@@ -9,19 +9,12 @@
  * SCOPE: structure only. Never judges whether a class is GOOD — that is the
  * judgment regression suite (Kimi R5). It answers one question: could a Runner,
  * a PDF and a log-back all consume this document without guessing?
- *
- * Five checks exist because a hostile round found them missing, each mapping to
- * a concrete 6am failure: stationCount vs stations[] (empty card, rotation to
- * nowhere) · zero-duration slots (a segment the clock can never be inside) ·
- * duplicate slotIds ("swap slot X" is ambiguous) · swap referencing an unknown
- * station · compiled time > target (the room booking is blown, silently).
+ * Snapshot + log validation live in validateState.mjs (Rule 4 split).
  */
 
-import { isJoint } from './taxonomy.mjs';
-import {
-  CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES, CHIPS, RUNGS, ACTORS, MOMENTS,
-} from './constants.mjs';
+import { CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES, CHIPS, RUNGS } from './constants.mjs';
 import { expandSegments } from './timeline.mjs';
+import { validateSnapshot, validateLog } from './validateState.mjs';
 
 const CHIP_SET = new Set(CHIPS);
 const RUNG_SET = new Set(RUNGS);
@@ -38,6 +31,7 @@ export function validateClassPlan(plan) {
   problems.push(...validateStructure(plan.structure));
   problems.push(...validateBlocks(plan));
   problems.push(...validateStations(plan));
+  problems.push(...validateStationBinding(plan));
   if (plan.snapshot) problems.push(...validateSnapshot(plan.snapshot));
   problems.push(...validateLog(plan));
   problems.push(...validateProvenance(plan.provenance));
@@ -196,61 +190,68 @@ function validateStations(plan) {
   return problems;
 }
 
-function validateSnapshot(snapshot) {
+/**
+ * The slot->station binding. Without this the schema could not express its own
+ * primary product surface — the Audience screen cannot know what station 2 is
+ * doing and the SwapDeck has nothing to target. Found by a Fable hostile round
+ * AFTER the suite was green: fixtures declared 4x3=12 slots, carried 6, and
+ * nothing objected.
+ */
+function validateStationBinding(plan) {
   const problems = [];
-  if (typeof snapshot !== 'object') return ['snapshot is not an object'];
-  if (!snapshot.frozenAt) problems.push('snapshot.frozenAt is required once a snapshot exists');
+  const structure = plan.structure ?? {};
+  if (!Array.isArray(plan.blocks)) return problems;
 
-  const flags = snapshot.jointFlagCounts;
-  if (flags && typeof flags === 'object') {
-    for (const [joint, count] of Object.entries(flags)) {
-      if (!isJoint(joint)) problems.push(`snapshot.jointFlagCounts has unknown joint "${joint}"`);
-      if (!Number.isInteger(count) || count < 0) {
-        problems.push(`snapshot.jointFlagCounts.${joint} must be a non-negative integer — counts only, never identities`);
+  const isStations = structure.shape === 'stations';
+  const perStation = new Map();
+  let workSlotCount = 0;
+
+  plan.blocks.forEach((block, i) => {
+    (block?.slots ?? []).forEach((slot, j) => {
+      if (!slot || typeof slot !== 'object') return;
+      const path = `blocks[${i}].slots[${j}]`;
+
+      if (block.kind !== 'work' || !isStations) {
+        // Warmup, cooldown and full_group are synchronized surfaces — a
+        // station binding there is a category error.
+        if (slot.stationIndex !== null && slot.stationIndex !== undefined) {
+          problems.push(`${path}.stationIndex must be null outside station-shaped work blocks`);
+        }
+        return;
       }
+
+      workSlotCount += 1;
+      const idx = slot.stationIndex;
+      if (!Number.isInteger(idx) || idx < 0 || idx >= structure.stationCount) {
+        problems.push(
+          `${path}.stationIndex must be an integer in [0, ${structure.stationCount}) — `
+          + 'a work slot that does not know its station cannot be rendered or swapped',
+        );
+        return;
+      }
+      perStation.set(idx, (perStation.get(idx) ?? 0) + 1);
+    });
+  });
+
+  if (!isStations) return problems;
+
+  const expectedTotal = structure.stationCount * structure.exercisesPerStation;
+  if (workSlotCount !== expectedTotal) {
+    problems.push(
+      `stations shape declares ${structure.stationCount} stations x ${structure.exercisesPerStation} `
+      + `exercises = ${expectedTotal} work slots, but the plan carries ${workSlotCount}`,
+    );
+    return problems; // per-station counts are noise once the total is wrong
+  }
+  for (let s = 0; s < structure.stationCount; s += 1) {
+    const count = perStation.get(s) ?? 0;
+    if (count !== structure.exercisesPerStation) {
+      problems.push(
+        `station ${s} has ${count} work slot(s); every station needs exactly `
+        + `${structure.exercisesPerStation} — an uneven station stalls its group`,
+      );
     }
   }
-  return problems;
-}
-
-function validateLog(plan) {
-  const problems = [];
-  if (!Array.isArray(plan.log)) return ['log must be an array'];
-
-  const knownStations = new Set(
-    Array.isArray(plan.stations) ? plan.stations.map((s) => s?.stationIndex) : [],
-  );
-
-  plan.log.forEach((event, i) => {
-    const path = `log[${i}]`;
-    if (!event || typeof event !== 'object') {
-      problems.push(`${path} is not an object`);
-      return;
-    }
-    if (!ACTORS.includes(event.actor)) problems.push(`${path}.actor must be one of ${ACTORS.join('|')}`);
-    if (!event.type) problems.push(`${path}.type is required`);
-    if (!event.ts) problems.push(`${path}.ts is required`);
-
-    if (event.type !== 'swap') return;
-
-    if (!Number.isInteger(event.stationIndex)) {
-      problems.push(`${path}.stationIndex is required for a swap — swaps are station-scoped`);
-    } else if (knownStations.size > 0 && !knownStations.has(event.stationIndex)) {
-      problems.push(`${path}.stationIndex ${event.stationIndex} does not exist in stations[]`);
-    }
-    if (!MOMENTS.includes(event.moment)) {
-      problems.push(`${path}.moment must be one of ${MOMENTS.join('|')}`);
-    }
-    // The invariant that makes the dignity rule structural rather than cultural.
-    for (const field of ['attendeeId', 'personId', 'clientId', 'userId', 'memberId']) {
-      if (field in event) {
-        problems.push(
-          `${path} carries a person identifier ("${field}"). There is no per-person swap — `
-          + 'a swap changes the board for everyone; the modification line handles the individual.',
-        );
-      }
-    }
-  });
   return problems;
 }
 

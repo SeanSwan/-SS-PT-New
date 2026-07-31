@@ -105,6 +105,14 @@ export function createExerciseSlot(init = {}) {
     slotId: init.slotId ?? null,
     /** EXERCISE identity — stable across occurrences and across classes. */
     exerciseRef: init.exerciseRef ?? null,
+    /**
+     * WHICH STATION this slot lives at. Required for work slots in the
+     * 'stations' shape; must stay null in warmup/cooldown and full_group.
+     * Without this binding the Audience screen cannot know what station 2 is
+     * doing and the SwapDeck cannot target a station — a hostile round found
+     * the schema could not express its own primary product surface.
+     */
+    stationIndex: init.stationIndex ?? null,
     displayName: init.displayName ?? '',
     movement: init.movement ?? null,
     workSec: init.workSec ?? null,
@@ -129,12 +137,26 @@ export function createConstraintSnapshot(init = {}) {
     frozenAt: init.frozenAt ?? null,
     dayTypeId: init.dayTypeId ?? null,
     equipmentProfileId: init.equipmentProfileId ?? null,
-    availableEquipmentRefs: init.availableEquipmentRefs ?? [],
     /**
-     * AGGREGATE joint flags: `{knee: 3, back: 1}`. Counts, never names.
-     * This shape is the reason a per-person swap is not expressible.
+     * Equipment as COUNTS, not presence: `{eq_kettlebell: 2, eq_dumbbell: 8}`.
+     * Owning ONE kettlebell does not make a kettlebell station viable for
+     * 14 people (master prompt §5.8) — a flat ref list could not say so.
+     * Presence checks derive from Object.keys().
+     */
+    equipmentCounts: init.equipmentCounts ?? {},
+    /**
+     * AGGREGATE joint flags: `{knee: 3, back: 1}`. Counts, never names —
+     * this shape is the reason a per-person swap is not expressible (Rule 8).
      */
     jointFlagCounts: init.jointFlagCounts ?? {},
+    /**
+     * The subset at contraindication severity (main's pain gate fires at 5+).
+     * `{knee: 3}` alone cannot distinguish three mild tweaks from three
+     * contraindications — SwapDeck tier T0 needs the severe band; the mild
+     * remainder drives modification-line visibility only. severe <= total
+     * per joint, enforced by the validator.
+     */
+    severeJointFlagCounts: init.severeJointFlagCounts ?? {},
     headcount: init.headcount ?? null,
     /** Used in the last N weeks — a RANKING input, never a filter (Kimi R1). */
     recentExerciseRefs: init.recentExerciseRefs ?? [],
