@@ -20,7 +20,10 @@ function parseArgs(argv) {
     document: '', seed: '',
     out: 'docs/ai-workflow/AI-HANDOFF/KIMI-DESIGN-REVIEW.md',
     remit: '', effort: process.env.SWAN_KIMI_EFFORT || 'high',
-    maxTokens: Number(process.env.SWAN_KIMI_MAX_TOKENS) || 16_000,
+    // Ceiling, not a charge — billed on tokens actually emitted. Raised 16k → 60k
+    // 2026-07-30 (same truncation class that cut an Opus 5 consult mid-sentence).
+    // The $3 spend cap still governs: 60k out ≈ $0.90 worst case, well under it.
+    maxTokens: Number(process.env.SWAN_KIMI_MAX_TOKENS) || 60_000,
     capUsd: DEFAULT_CAP_USD, confirmSpend: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -157,11 +160,25 @@ async function main() {
   const actualUsd = (inputTokens / 1_000_000) * PRICE_IN_PER_MILLION
     + (outputTokens / 1_000_000) * PRICE_OUT_PER_MILLION;
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
+
+  // Truncation guard: a reply cut off at max_tokens must never be read as finished.
+  const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
+  const truncated = finish === 'length' || finish === 'max_tokens';
+  const banner = truncated
+    ? `> ⚠ **TRUNCATED** — hit max_tokens (${options.maxTokens}); this reply is INCOMPLETE.\n`
+      + `> Re-run with --max-tokens higher, or split the packet into narrower consults.\n\n`
+    : '';
+
   const output = `# Kimi K3 - Review\n\n**Reviewer:** \`${model}\` (${options.effort})\n`
     + `**Document:** ${options.document}\n**Seed:** ${options.seed || '(none)'}\n`
-    + `**Tokens:** ${inputTokens} in / ${outputTokens} out | **Cost:** ~$${actualUsd.toFixed(4)} | **Wall:** ${seconds}s\n\n---\n\n${text}\n`;
+    + `**Tokens:** ${inputTokens} in / ${outputTokens} out | **Cost:** ~$${actualUsd.toFixed(4)} | **Wall:** ${seconds}s`
+    + ` | **finish_reason:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
   writeFileSync(options.out, output, 'utf8');
-  console.log(`[consult-kimi] status=complete cost_usd=$${actualUsd.toFixed(4)} saved=${options.out}`);
+  console.log(`[consult-kimi] status=complete cost_usd=$${actualUsd.toFixed(4)} saved=${options.out} finish=${finish ?? '?'}`);
+  if (truncated) {
+    console.error(`[consult-kimi] ⚠ TRUNCATED at max_tokens=${options.maxTokens} — reply incomplete.`);
+    process.exitCode = 2;
+  }
 }
 
 main().catch((error) => {
