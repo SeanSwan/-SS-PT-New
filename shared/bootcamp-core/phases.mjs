@@ -65,17 +65,28 @@ export function minFontVh(diagonalInches, viewDistanceFt) {
 }
 
 /**
- * How many station cards fit legibly. Empirically a card needs roughly 3x its
- * name's font height once scheme, equipment and the always-visible modification
- * line are stacked; the grid gets ~85vh after the clock band.
+ * How many station cards fit legibly.
+ *
+ * A card is NOT one line of type. Stacked at card scale: exercise name (1.0x
+ * font) + rep scheme (~0.7x) + equipment line (~0.45x) + the ALWAYS-VISIBLE
+ * modification line (~0.5x) + padding (~0.75x) ~= 3.4x the name's font height.
+ * The grid gets ~85vh after the clock band; two columns.
+ *
+ * The 3.4 factor is PINNED BY TEST to the accepted design table
+ * (55" -> 4, 65" -> 6, 75" -> 8 at 20 ft). A prior 3.0 factor yielded 6 cards
+ * on a 55" panel — silently contradicting the spec this function implements.
+ * Changing the factor changes the product's legibility floor: re-derive
+ * against the table, don't eyeball it.
  *
  * Returns null when the space profile has not been measured yet — callers must
  * treat null as "unknown, use the conservative default", never as "unlimited".
  */
+export const CARD_HEIGHT_FACTOR = 3.4;
+
 export function maxStationCards(diagonalInches, viewDistanceFt) {
   const fontVh = minFontVh(diagonalInches, viewDistanceFt);
   if (fontVh === null) return null;
-  const cardHeightVh = fontVh * 3;
+  const cardHeightVh = fontVh * CARD_HEIGHT_FACTOR;
   const usableVh = 85;
   const rows = Math.floor(usableVh / cardHeightVh);
   return Math.max(1, rows * 2); // two columns

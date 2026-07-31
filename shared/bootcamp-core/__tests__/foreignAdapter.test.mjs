@@ -49,6 +49,7 @@ const CLIMBING_LIBRARY = [
   { id: 'hangboard_repeaters', title: 'Hangboard Repeaters', bodyArea: 'pulling_chain', motion: 'pull_vertical', stress: ['elbow'], gear: ['board'] },
   { id: 'campus_ladder', title: 'Campus Ladder', bodyArea: 'pulling_chain', motion: 'pull_vertical', stress: ['shoulder', 'elbow'], gear: ['campus_rungs'] },
   { id: 'ring_row', title: 'Ring Row', bodyArea: 'pulling_chain', motion: 'pull_horizontal', stress: ['elbow'], gear: ['rings'] },
+  { id: 'weighted_pull_up', title: 'Weighted Pull-Up', bodyArea: 'pulling_chain', motion: 'pull_vertical', stress: ['shoulder'], gear: ['bar'] },
   { id: 'front_lever_hold', title: 'Front Lever Hold', bodyArea: 'trunk', motion: 'isometric', stress: [], gear: ['bar'] },
   { id: 'treadmill_intervals', title: 'Treadmill Intervals', bodyArea: 'legs', motion: 'gait', stress: ['knee'], gear: ['treadmill'] },
 ];
@@ -76,10 +77,11 @@ function toCoreMovement(record) {
  * id as the slot id would make "swap this slot" ambiguous. The adapter mints an
  * occurrence-scoped id; core caught the naive version.
  */
-function toSlot(record, occurrence) {
+function toSlot(record, occurrence, stationIndex = null) {
   return createExerciseSlot({
     slotId: `${occurrence}:${record.id}`,
     exerciseRef: record.id,
+    stationIndex,
     displayName: record.title,
     movement: toCoreMovement(record),
     equipmentRefs: record.gear,
@@ -112,10 +114,12 @@ test('FOREIGN: a full class builds, validates and runs end-to-end', () => {
   const registry = createDayTypeRegistry(CLIMBING_DAY_TYPES);
   const power = registry.require('power');
 
+  // Two stations x two exercises: the slot->station binding is part of the
+  // portable contract, so the foreign adapter assigns stations too.
   const legal = CLIMBING_LIBRARY
     .filter((r) => checkDayTypeLegality(power, toCoreMovement(r)).legal)
-    .map((r, i) => toSlot(r, `work${i}`));
-  assert.ok(legal.length >= 3, 'foreign library should yield legal power-day work');
+    .map((r, i) => toSlot(r, `work${i}`, Math.floor(i / 2)));
+  assert.ok(legal.length >= 4, 'foreign library should yield legal power-day work');
 
   const plan = createClassPlan({
     planId: 'climb_power_01',

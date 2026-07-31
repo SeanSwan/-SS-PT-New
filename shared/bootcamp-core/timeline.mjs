@@ -116,7 +116,10 @@ export function expandSegments(plan) {
             round,
             visit,
             position,
-            label: `Round ${round} · station ${visit + 1} · exercise ${position + 1}`,
+            // "rotation", not "station": at any moment every GROUP is at a
+            // DIFFERENT station — visit indexes the rotation step, and naming
+            // it a station on the board would tell 14 people the wrong thing.
+            label: `Round ${round} · rotation ${visit + 1} · exercise ${position + 1}`,
             durationSec: structure.workSec,
           }));
           const isLastInStation = position === structure.exercisesPerStation - 1;
@@ -223,6 +226,13 @@ export function segmentAt(timeline, nowEpochMs) {
  * silently skipping ahead ends the class at the wrong minute, and silently
  * resuming overruns the room's booking. Both are the trainer's call.
  *
+ * THREE GENUINELY DISTINCT options (a hostile round found the original third,
+ * "extend", was numerically identical to resumeHere — two buttons, one action):
+ *   resumeHere — do ALL remaining content; the class ends `lostSec` later.
+ *   skipAhead  — honour the original end time by DROPPING what was missed.
+ *   compress   — do ALL remaining content AND end on time, by scaling the
+ *                remaining segments down (the §5.4 running-behind move).
+ *
  * @param {object} timeline
  * @param {number} expectedNowMs  where the clock believed it was
  * @param {number} actualNowMs    wall clock on wake
@@ -230,17 +240,47 @@ export function segmentAt(timeline, nowEpochMs) {
 export function reconcile(timeline, expectedNowMs, actualNowMs) {
   const lostMs = Math.max(0, actualNowMs - expectedNowMs);
   const lostSec = Math.round(lostMs / 1000);
+  const remainingMs = Math.max(0, timeline.endsAt - expectedNowMs);
+  const compressScale = remainingMs > lostMs ? (remainingMs - lostMs) / remainingMs : 0;
 
   return {
     lostSec,
     significant: lostSec >= 5,
     options: {
-      /** Pick up where we left off; the class now ends `lostSec` later. */
       resumeHere: { newStartedAt: timeline.startedAt + lostMs, endsAt: timeline.endsAt + lostMs },
-      /** Honour the original end time by dropping what was missed. */
       skipAhead: { newStartedAt: timeline.startedAt, endsAt: timeline.endsAt },
-      /** Keep the plan intact and extend — the honest default for a short gap. */
-      extend: { newStartedAt: timeline.startedAt + lostMs, endsAt: timeline.endsAt + lostMs, extendedBySec: lostSec },
+      /** scale <= 0 means the gap ate the rest of the class — offer only the other two. */
+      compress: { scale: compressScale, feasible: compressScale >= 0.5 },
     },
+  };
+}
+
+/**
+ * Apply the compress option: rebuild every segment that ends after `fromMs`
+ * with its duration scaled, so all remaining content fits before the original
+ * `endsAt`. Segments already completed are untouched. Pure — returns a new
+ * timeline. `feasible` above guards against comic outcomes (a 40s work slot
+ * scaled to 6s); the Runner must not offer compress below 0.5.
+ */
+export function compressRemaining(timeline, fromMs, scale) {
+  if (!(scale > 0 && scale <= 1)) {
+    throw new Error(`compressRemaining: scale must be in (0, 1], got ${scale}`);
+  }
+  let cursor = null;
+  const segments = timeline.segments.map((seg) => {
+    if (seg.endsAt <= fromMs) return seg;
+    const startsAt = cursor ?? Math.max(seg.startsAt, fromMs);
+    const durationMs = (seg.endsAt - Math.max(seg.startsAt, fromMs)) * scale
+      + Math.max(0, Math.min(seg.endsAt, fromMs) - seg.startsAt);
+    const endsAt = startsAt + Math.round(durationMs);
+    cursor = endsAt;
+    return { ...seg, startsAt, endsAt, durationSec: Math.round((endsAt - startsAt) / 1000) };
+  });
+  const endsAt = segments[segments.length - 1]?.endsAt ?? timeline.endsAt;
+  return {
+    ...timeline,
+    segments,
+    endsAt,
+    totalSec: Math.round((endsAt - timeline.startedAt) / 1000),
   };
 }

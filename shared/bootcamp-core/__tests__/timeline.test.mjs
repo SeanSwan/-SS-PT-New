@@ -121,7 +121,7 @@ test('remainingSec counts down and never goes negative', () => {
   assert.ok(late >= 0);
 });
 
-test('reconcile surfaces the lost time and offers the trainer the choice', () => {
+test('reconcile offers three GENUINELY distinct options', () => {
   const timeline = compileTimeline(ALL_FIXTURES.fullBodyStationClass(), T0);
   const expected = T0 + 10 * 60 * 1000;
   const actual = expected + 252_000; // laptop slept 4:12
@@ -129,10 +129,14 @@ test('reconcile surfaces the lost time and offers the trainer the choice', () =>
   const result = reconcile(timeline, expected, actual);
   assert.equal(result.lostSec, 252);
   assert.equal(result.significant, true);
-  // resumeHere pushes the end out; skipAhead honours the original booking.
+  // resumeHere pushes the end out; skipAhead honours the original booking;
+  // compress does ALL remaining content AND ends on time via scaling.
   assert.equal(result.options.resumeHere.endsAt, timeline.endsAt + 252_000);
   assert.equal(result.options.skipAhead.endsAt, timeline.endsAt);
-  assert.equal(result.options.extend.extendedBySec, 252);
+  const remaining = timeline.endsAt - expected;
+  const expectedScale = (remaining - 252_000) / remaining;
+  assert.ok(Math.abs(result.options.compress.scale - expectedScale) < 1e-9);
+  assert.equal(typeof result.options.compress.feasible, 'boolean');
 });
 
 test('a sub-5s gap is not significant enough to interrupt a class', () => {
