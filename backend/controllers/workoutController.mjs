@@ -278,8 +278,24 @@ export async function getWorkoutSessionById(req, res) {
     // Authorize: owner (client/user), admin, or a trainer with an ACTIVE
     // assignment to the session's owner. The old check let ANY trainer through
     // (no assignment gate) and its int-vs-string compare denied real owners.
+    //
+    // 404, NOT 403, on an unauthorized READ (SWA-75, 2026-07-31). A 403 here is an
+    // existence oracle: it tells a non-owner that the id they guessed is real, and
+    // session ids are sequential integers, so the whole space is enumerable. The
+    // response must be byte-identical to the miss branch above — same status, same
+    // message — or the distinction leaks anyway.
+    //
+    // Denial is unchanged and still enforced by assertAssignmentOrAdmin; only the
+    // status code stops revealing existence. This restores the posture the retired
+    // /api/workout/sessions GET /:id had by design, and matches the surviving
+    // /:id/handoff route on that router.
+    //
+    // READS ONLY. updateWorkoutSession and deleteWorkoutSession deliberately keep
+    // 403: the retired router did the same, a write cannot succeed either way, and
+    // a trainer who has just lost an assignment needs to know WHY their save failed
+    // rather than being told the client's session vanished.
     if (!(await assertAssignmentOrAdmin(req.user.id, req.user.role, session.userId))) {
-      return errorResponse(res, 403, 'You are not authorized to view this session');
+      return errorResponse(res, 404, 'Workout session not found');
     }
 
     return successResponse(res, { session });
