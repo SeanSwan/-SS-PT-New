@@ -36,6 +36,10 @@ export interface RunnerRowActions {
   onRemoveExercise: (exerciseIndex: number) => void;
   /** Starts the rest timer for the just-logged set. */
   onSetLogged: (exerciseIndex: number, setIndex: number) => void;
+  /** Batch 4: prepend 40/60/80% warm-up sets from the exercise's top set. */
+  onInsertWarmupRamp?: (exerciseIndex: number) => void;
+  /** Batch 4: newest-first top-set weights from past sessions (glance trend). */
+  getTrend?: (exerciseName: string) => number[];
   getOverload?: ComponentProps<typeof ExerciseSetRowComponent>['getOverload'];
   getLastWeight?: ComponentProps<typeof ExerciseSetRowComponent>['getLastWeight'];
 }

@@ -36,7 +36,7 @@ export const RailGroup = styled.div`
   gap: 8px;
 `;
 
-export const RailChip = styled.button<{ $state: 'pending' | 'active' | 'done' }>`
+export const RailChip = styled.button<{ $state: 'pending' | 'active' | 'done'; $linked?: boolean }>`
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -67,6 +67,7 @@ export const RailChip = styled.button<{ $state: 'pending' | 'active' | 'done' }>
     outline: 2px solid var(--focus-ring, #8B5CF6);
     outline-offset: 2px;
   }
+  ${({ $linked }) => ($linked ? 'border-left: 2px solid var(--world-accent, #60c0f0); margin-left: -6px;' : '')}
 `;
 
 /* Non-color state indicator (WCAG 1.4.1 — never color-only). */
@@ -225,3 +226,37 @@ export const SessionMeter = styled.span`
 `;
 
 
+
+/** Batch 4: glanceable top-set trend across recent sessions. */
+export const TrendChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 35%, transparent);
+  font-family: 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: ${TRAIN.pending};
+`;
+
+/** Batch 4: one-tap 40/60/80% warm-up ramp. */
+export const RampButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--world-accent, #60c0f0) 45%, transparent);
+  background: transparent;
+  color: ${TRAIN.active};
+  font: 600 0.78rem 'Sora', sans-serif;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8b5cf6);
+    outline-offset: 2px;
+  }
+`;

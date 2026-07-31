@@ -62,6 +62,8 @@ export interface ShellNoticesProps {
   setOverallIntensity: (intensity: number | null) => void;
   /** M6: resume a still-running rest countdown from the restored draft. */
   onRestoreRest?: (endsAt: number) => void;
+  /** Batch 4: re-anchor the session clock from the restored draft. */
+  onRestoreSessionStart?: (startedAt: number) => void;
   scheduledSessionId: string | null | undefined;
   scheduledSessionCreditHint: number | null | undefined;
   scheduledSessionDate: string | null | undefined;
@@ -78,6 +80,7 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
   setSessionNotes,
   setOverallIntensity,
   onRestoreRest,
+  onRestoreSessionStart,
   scheduledSessionId,
   scheduledSessionCreditHint,
   scheduledSessionDate,
@@ -123,6 +126,10 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
               // M6: a rest countdown that was still running resumes.
               if (restored.restEndsAt && restored.restEndsAt > Date.now()) {
                 onRestoreRest?.(restored.restEndsAt);
+              }
+              // Batch 4: the session clock survives the reload too.
+              if (restored.sessionStartedAt && restored.sessionStartedAt <= Date.now()) {
+                onRestoreSessionStart?.(restored.sessionStartedAt);
               }
             }}
           >

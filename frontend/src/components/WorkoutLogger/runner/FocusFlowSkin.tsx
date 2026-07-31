@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { RunnerEngine } from './RunnerEngine.types';
 import { isExerciseComplete, exerciseSetProgress } from './RunnerEngine.types';
 import { getExerciseEntryRowKey } from '../WorkoutLogger.helpers';
+import { isLinkedToPrevious } from '../WorkoutLogger.supersets';
 import {
   BarCenter,
   CardStage,
@@ -23,11 +24,13 @@ import {
   NowKicker,
   NowPanel,
   ProgressRail,
+  RampButton,
   RailChip,
   RailDot,
   RailGroup,
   SessionMeter,
   ThumbBar,
+  TrendChip,
 } from './FocusFlowSkin.styles';
 
 /** First exercise with unlogged sets — where the session actually is. */
@@ -77,16 +80,19 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
         <RailGroup role='tablist' aria-label='Exercises in this session'>
           {exercises.map((exercise, index) => {
             const state = chipState(index);
+            const linked = isLinkedToPrevious(exercises, index);
             return (
               <RailChip
                 key={getExerciseEntryRowKey(exercise)}
                 type='button'
                 role='tab'
                 aria-selected={index === activeIndex}
-                aria-label={`${exercise.exerciseName}${state === 'done' ? ', completed' : ''}`}
+                aria-label={`${exercise.exerciseName}${linked ? ', superset with previous' : ''}${state === 'done' ? ', completed' : ''}`}
                 $state={state}
+                $linked={linked}
                 onClick={() => setActiveIndex(index)}
               >
+                {linked && <span aria-hidden='true'>⛓</span>}
                 <RailDot $state={state} aria-hidden='true'>
                   {state === 'done' ? '' : index + 1}
                 </RailDot>
@@ -114,6 +120,29 @@ const FocusFlowSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
           </strong>
         </NowKicker>
         <NowExerciseName>{active.exerciseName}</NowExerciseName>
+        {(() => {
+          const trend = engine.rows.getTrend?.(active.exerciseName) ?? [];
+          if (trend.length < 2) return null;
+          const chrono = [...trend].reverse(); // oldest → newest for reading
+          const delta = chrono[chrono.length - 1] - chrono[0];
+          return (
+            <TrendChip aria-label={`Top set last ${chrono.length} sessions: ${chrono.join(', ')} lbs`}>
+              {chrono.join(' → ')} lbs {delta > 0 ? '↑' : delta < 0 ? '↓' : '→'}
+            </TrendChip>
+          );
+        })()}
+        {engine.rows.onInsertWarmupRamp
+          && progress.done === 0
+          && Math.max(0, ...active.sets.map((set) => set.weight || 0)) > 0
+          && !active.sets.some((set) => set.notes === 'warm-up') && (
+          <RampButton
+            type='button'
+            onClick={() => engine.rows.onInsertWarmupRamp?.(activeIndex)}
+            aria-label={`Add warm-up ramp sets for ${active.exerciseName}`}
+          >
+            + Warm-up ramp (40/60/80%)
+          </RampButton>
+        )}
         <NextUpChip
           type='button'
           onClick={() => (next ? setActiveIndex(activeIndex + 1) : engine.openRolodex())}

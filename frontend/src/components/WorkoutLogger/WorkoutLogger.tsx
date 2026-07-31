@@ -42,6 +42,7 @@ import StageCanvas from './runner/shell/primitives/StageCanvas';
 import ShellZoneBoundary from './runner/shell/primitives/ShellZoneBoundary';
 import ReceiptPRStrip from './runner/shell/zones/ReceiptPRStrip';
 import { createSessionStageStore, switchSessionStage, useSessionStage } from './runner/shell/useSessionStage';
+import { usePRToast, useWarmupRamp } from './runner/shell/useSessionPerks';
 import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
@@ -185,6 +186,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [showCoachDrawer, setShowCoachDrawer] = useState(false);
   // Hostile Batch 3: live elapsed clock — anchored to the FIRST logged set.
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+  const lastLoggedAtRef = useRef<number>(0);
   // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
   const sessionStageStore = useMemo(() => createSessionStageStore(), []);
   const [sessionStage] = useSessionStage(sessionStageStore);
@@ -204,6 +206,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const hookClientId = effectiveClientId ?? 0;
   const ghostPreFill = useGhostPreFill(hookClientId, { skip: isClientSelfMode });
   const sessionStats = useSessionStats(exercises);
+  // Batch 4: PR toast — only hand-logged sets celebrate (bulk loads re-baseline).
+  usePRToast(sessionStats.prs, lastLoggedAtRef);
   const offlineQueue = useOfflineQueue(hookClientId);
   const restTimer = useRestTimer({
     defaultSeconds: 60,
@@ -229,7 +233,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     exercises,
     sessionNotes,
     overallIntensity,
-    restEndsAt: restTimer.endsAt,
+    restEndsAt: restTimer.endsAt, sessionStartedAt,
     enabled: !hasInitialExercises && !lastSaveResponse,
   });
 
@@ -347,6 +351,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Added ${exercise.name} to workout`);
   }, [createWorkoutLoggerLocalId, ghostPreFill, isClientSelfMode]);
 
+  const insertWarmupRamp = useWarmupRamp(setExercises, createWorkoutLoggerLocalId);
+
   const addSet = useCallback((exerciseIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
       if (i !== exerciseIndex) return exercise;
@@ -366,6 +372,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const handleSetLogged = useCallback((exerciseIndex: number, setIndex: number) => {
     restTimer.start(exercisesRef.current[exerciseIndex]?.sets[setIndex]?.restTime || 60);
     setSessionStartedAt((prev) => prev ?? Date.now());
+    lastLoggedAtRef.current = Date.now();
     // Premium tactile tick on log (reduced-motion users opt out, same as rest alert).
     if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       navigator.vibrate?.(15);
@@ -451,6 +458,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     ghostPreFill,
     getLastWeight,
     onSetLogged: handleSetLogged,
+    onInsertWarmupRamp: insertWarmupRamp,
     ghostSkip: isClientSelfMode,
     stats: sessionStats,
     restTimer,
@@ -563,6 +571,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           setDraftGate={setDraftGate} setExercises={setExercises}
           setSessionNotes={setSessionNotes} setOverallIntensity={setOverallIntensity}
           onRestoreRest={(endsAt) => restTimer.start(Math.max(1, Math.ceil((endsAt - Date.now()) / 1000)))}
+          onRestoreSessionStart={setSessionStartedAt}
           scheduledSessionId={scheduledSessionId} scheduledSessionCreditHint={scheduledSessionCreditHint}
           scheduledSessionDate={scheduledSessionDate} clientSource={client.clientSource}
         />
@@ -617,18 +626,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         <StageCanvas stage={sessionStage} store={sessionStageStore}>
         {sessionStage === 'setup' && (<>
           {!isClientSelfMode && (
-            <EquipmentProfilePicker
-              selectedProfileId={equipmentProfileId}
-              onSelect={setEquipmentProfileId}
-              label="Training Location"
-            />
+            <EquipmentProfilePicker selectedProfileId={equipmentProfileId} onSelect={setEquipmentProfileId} label="Training Location" />
           )}
           {!isClientSelfMode && typeof effectiveClientId === 'number' && (
-            <WorkoutPlanAssignmentPicker
-              clientId={effectiveClientId}
-              disabled={isLoadingPlan || isRepeatingSession}
-              onApplyAssignment={handleApplyGeneratedPlanDay}
-            />
+            <WorkoutPlanAssignmentPicker clientId={effectiveClientId} disabled={isLoadingPlan || isRepeatingSession} onApplyAssignment={handleApplyGeneratedPlanDay} />
           )}
           {/* Plan loads land on Train — the loaded session is the point. */}
           <LoadPlanRow>

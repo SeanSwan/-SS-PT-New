@@ -41,6 +41,8 @@ export interface WorkoutDraftPayload {
   overallIntensity: number | null;
   /** M6: absolute rest-timer end (epoch ms) — a mid-rest reload resumes. */
   restEndsAt?: number | null;
+  /** Batch 4: session-clock anchor (epoch ms of the first logged set). */
+  sessionStartedAt?: number | null;
 }
 
 const safeStorage = (): Storage | null => {
@@ -80,6 +82,8 @@ export const parseWorkoutDraft = (raw: string | null): WorkoutDraftPayload | nul
         typeof parsed.overallIntensity === 'number' ? parsed.overallIntensity : null,
       restEndsAt:
         typeof parsed.restEndsAt === 'number' && parsed.restEndsAt > 0 ? parsed.restEndsAt : null,
+      sessionStartedAt:
+        typeof parsed.sessionStartedAt === 'number' && parsed.sessionStartedAt > 0 ? parsed.sessionStartedAt : null,
     };
   } catch {
     return null;
@@ -133,6 +137,8 @@ export interface UseWorkoutDraftOptions {
   overallIntensity: number | null;
   /** M6: live rest-timer endsAt (epoch ms) to ride along with the draft. */
   restEndsAt?: number | null;
+  /** Batch 4: session-clock anchor to ride along with the draft. */
+  sessionStartedAt?: number | null;
   enabled: boolean;
 }
 
@@ -144,7 +150,7 @@ export interface UseWorkoutDraftResult {
 }
 
 export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraftResult {
-  const { userId, clientId, date, exercises, sessionNotes, overallIntensity, restEndsAt = null, enabled } = options;
+  const { userId, clientId, date, exercises, sessionNotes, overallIntensity, restEndsAt = null, sessionStartedAt = null, enabled } = options;
   const key = buildWorkoutDraftKey(userId, clientId, date);
   const [pendingDraft, setPendingDraft] = useState<WorkoutDraftPayload | null>(null);
   const offeredKeyRef = useRef<string | null>(null);
@@ -185,6 +191,7 @@ export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraf
           sessionNotes,
           overallIntensity,
           restEndsAt,
+          sessionStartedAt,
         };
         storage.setItem(key, JSON.stringify(payload));
       } catch {
@@ -197,7 +204,7 @@ export function useWorkoutDraft(options: UseWorkoutDraftOptions): UseWorkoutDraf
         persistTimerRef.current = null;
       }
     };
-  }, [enabled, key, exercises, sessionNotes, overallIntensity, restEndsAt]);
+  }, [enabled, key, exercises, sessionNotes, overallIntensity, restEndsAt, sessionStartedAt]);
 
   const removeKey = useCallback(() => {
     if (persistTimerRef.current) {
