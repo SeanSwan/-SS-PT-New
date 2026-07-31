@@ -1,11 +1,14 @@
 /**
  * FocusFlowSkin.styles — chrome for the Focus Flow Runner Style.
- * Crystalline Swan, dark-first, token-with-fallback only (no raw state
- * colors — Train semantics ride train-tokens + --world-accent seam).
+ * Crystalline Swan, dark-first, token-with-fallback only. Every surface and
+ * text color rides the Lens world seam (--world-*) so Appearance Studio
+ * palettes actually land here (Sean, 2026-07-31: the NOW hero wore a
+ * palette-dead --surface-raised and stayed blue under every theme).
+ * Gold = earned and purple = Coach stay brand-fixed semantics.
+ * Rail/nav chrome lives in FocusFlowRail.styles.ts.
  * Mobile-375-first; 44px floors; reduced-motion safe (no loops).
  */
 import styled, { css, keyframes } from 'styled-components';
-import { motion } from 'framer-motion';
 import { TRAIN } from '../../../styles/train-tokens';
 
 /* Pulse rides the Lens seam — the world's accent, never a hardcoded cyan. */
@@ -20,108 +23,16 @@ export const FocusShell = styled.div`
   gap: 12px;
 `;
 
-/* ── Progress rail: one chip per exercise ─────────────────────── */
-export const ProgressRail = styled.div`
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  /* A sideways fling stays in the rail — never chains to the page or to
-     the browser's back-swipe gesture on iOS. */
-  overscroll-behavior-x: contain;
-  padding: 4px 2px 8px;
-  /* Keyboard focus scrolls a chip to rest INSIDE the fade, not under it —
-     otherwise Tab lands on a chip whose focus ring is masked out. */
-  scroll-padding-inline: 14px;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
-
-  /* Edge fade = the "there's more" affordance (same idiom as
-     ExerciseFilterChips). Purely visual; it never eats a tap. */
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    black 10px,
-    black calc(100% - 10px),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    black 10px,
-    black calc(100% - 10px),
-    transparent 100%
-  );
-`;
-
-/* Tabs-only group inside the rail (tablist purity — Add sits outside).
-   `flex: 0 0 auto` is LOAD-BEARING: as a flex item this group would
-   otherwise default to flex-shrink:1, collapse to the rail's width, and
-   clip every chip past the fold — the scroller's scrollWidth would never
-   grow, so there was nothing to scroll to (Sean's 2026-07-31 report:
-   only ~5 of 11 exercises reachable). Regression-locked in
-   FocusFlowSkin.railScroll.test.tsx. */
-export const RailGroup = styled.div`
-  display: flex;
-  flex: 0 0 auto;
-  gap: 8px;
-`;
-
-export const RailChip = styled.button<{ $state: 'pending' | 'active' | 'done'; $linked?: boolean }>`
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-  background: var(--surface-elevated, #141419);
-  border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.14));
-  color: ${TRAIN.pending};
-
-  ${({ $state }) => $state === 'active' && css`
-    border-color: ${TRAIN.active};
-    color: ${TRAIN.active};
-    background: color-mix(in srgb, var(--world-accent, #60C0F0) 12%, var(--surface-elevated, #141419));
-  `}
-  ${({ $state }) => $state === 'done' && css`
-    border-color: ${TRAIN.done};
-    color: ${TRAIN.done};
-  `}
-
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring, #8B5CF6);
-    outline-offset: 2px;
-  }
-  ${({ $linked }) => ($linked ? 'border-left: 2px solid var(--world-accent, #60c0f0); margin-left: -6px;' : '')}
-`;
-
-/* Non-color state indicator (WCAG 1.4.1 — never color-only). */
-export const RailDot = styled.span<{ $state: 'pending' | 'active' | 'done' }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: ${({ $state }) => ($state === 'done' ? 'currentColor' : 'transparent')};
-  font-size: 9px;
-  line-height: 1;
-`;
-
 /* ── NOW hero ─────────────────────────────────────────────────── */
 export const NowPanel = styled.div<{ $resting: boolean }>`
   border-radius: 16px;
   padding: 16px 18px;
+  /* Flat fallback FIRST — iOS < 16.2 has no color-mix (Kimi c.5). */
+  background: var(--world-panel, #141419);
   background: linear-gradient(
     165deg,
-    var(--surface-raised, #003080) 0%,
-    var(--bg-deep, #0A0A0F) 90%
+    color-mix(in srgb, var(--world-accent, #60C0F0) 22%, var(--world-bg, #0A0A0F)) 0%,
+    var(--world-bg, #0A0A0F) 90%
   );
   border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 35%, transparent);
   position: relative;
@@ -157,7 +68,7 @@ export const NowExerciseName = styled.h3`
   font-size: clamp(1.3rem, 5.5vw, 1.8rem);
   font-weight: 700;
   line-height: 1.15;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
   overflow-wrap: anywhere;
 `;
 
@@ -169,16 +80,16 @@ export const NextUpChip = styled.button`
   margin-top: 6px;
   padding: 6px 12px;
   border-radius: 10px;
-  border: 1px dashed var(--border-subtle, rgba(224, 236, 244, 0.2));
+  border: 1px dashed color-mix(in srgb, var(--world-text, #E0ECF4) 20%, transparent);
   background: transparent;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  color: var(--world-muted, #9FB0C8);
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   cursor: pointer;
 
   em {
     font-style: normal;
-    color: var(--text-primary, #E0ECF4);
+    color: var(--world-text, #E0ECF4);
     font-weight: 600;
   }
 
@@ -191,71 +102,6 @@ export const NextUpChip = styled.button`
 export const CardStage = styled.div`
   /* The proven exercise card renders here — behavior untouched. */
 `;
-
-/* ── Thumb bar ────────────────────────────────────────────────── */
-export const ThumbBar = styled.div`
-  position: sticky;
-  /* Clears the fixed shell action bar. */
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
-  z-index: 5;
-  display: grid;
-  grid-template-columns: minmax(44px, auto) 1fr minmax(44px, auto);
-  gap: 10px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--bg-deep, #0A0A0F) 88%, transparent);
-  border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.14));
-  backdrop-filter: blur(10px);
-`;
-
-export const NavButton = styled(motion.button)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.18));
-  background: var(--surface-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring, #8B5CF6);
-    outline-offset: 2px;
-  }
-`;
-
-export const BarCenter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 44px;
-  font-family: 'Fira Code', monospace;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-export const SessionMeter = styled.span`
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-
-  b { color: ${TRAIN.done}; font-weight: 700; }
-  span { color: var(--text-secondary, rgba(224, 236, 244, 0.6)); }
-`;
-
-
 
 /** Batch 4: glanceable top-set trend across recent sessions. */
 export const TrendChip = styled.span`

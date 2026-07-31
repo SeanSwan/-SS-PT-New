@@ -69,12 +69,46 @@ describe('FocusFlowSkin', () => {
     expect(prev).toBeDisabled();
   });
 
-  it('session meter always — rest chrome belongs to the SHELL action bar (Slice 4b)', () => {
+  it('the skin owns NO bottom chrome — rest AND the session meter belong to the shell ActionBar', () => {
+    // 2026-07-31: the sticky ThumbBar was deleted (its meter duplicated the
+    // ActionBar's, and sticky-bottom chrome moved when card height changed —
+    // Sean's "screen jumps" report). Nothing in the skin may resurrect either.
     const engine = makeEngine({ rest: { isRunning: true, secondsLeft: 83, stop: vi.fn(), extend: vi.fn() } });
     render(<FocusFlowSkin engine={engine} />);
     expect(screen.queryByRole('button', { name: 'Skip rest' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add 15 seconds of rest' })).toBeNull();
-    expect(screen.getByText(/\/ 6 sets/)).toBeInTheDocument();
+    expect(screen.queryByText(/\/ 6 sets/)).toBeNull();
+  });
+
+  it('nav lives at the TOP: arrows + rail render before the NOW hero in the DOM', () => {
+    render(<FocusFlowSkin engine={makeEngine()} />);
+    const prev = screen.getByRole('button', { name: 'Previous exercise' });
+    const hero = screen.getByRole('heading', { name: 'Goblet Squat' });
+    expect(prev.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('wayfinding: active chip shows its name, next-incomplete previews its name, done chips are dots', () => {
+    render(<FocusFlowSkin engine={makeEngine()} />);
+    // Active = Goblet Squat (first incomplete). Next incomplete = Plank.
+    expect(screen.getByRole('tab', { name: 'Goblet Squat' }).textContent).toContain('Goblet Squat');
+    expect(screen.getByRole('tab', { name: 'Plank' }).textContent).toContain('Plank');
+    // Done chips carry the name in the LABEL only — visually a numbered dot.
+    expect(screen.getByRole('tab', { name: 'Bench Press, completed' }).textContent)
+      .not.toContain('Bench Press');
+  });
+
+  it('completion pulse: fires when an exercise completes live, never on mount baseline', () => {
+    const engine = makeEngine();
+    const { rerender } = render(<FocusFlowSkin engine={engine} />);
+    // Mount with an already-done exercise: silence (bulk-arrival re-baseline law).
+    expect(document.querySelector('[data-just-completed]')).toBeNull();
+    // Goblet Squat's remaining sets get logged → its chip celebrates once.
+    const done = makeEngine();
+    done.exercises[1].sets = [set(true, 1), set(true, 2), set(true, 3)];
+    rerender(<FocusFlowSkin engine={done} />);
+    const pulsing = document.querySelector('[data-just-completed]');
+    expect(pulsing).not.toBeNull();
+    expect(pulsing?.getAttribute('aria-label')).toContain('Goblet Squat');
   });
 
   it('Add chip and last-exercise next-up both open the Rolodex', () => {
