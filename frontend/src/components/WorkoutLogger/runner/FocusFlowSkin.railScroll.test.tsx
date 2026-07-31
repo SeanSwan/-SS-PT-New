@@ -89,6 +89,15 @@ describe('rail overflow: the scroller can actually reach every chip', () => {
   it('an edge fade signals there is more to scroll (repo idiom: ExerciseFilterChips)', () => {
     expect(block('ProgressRail')).toMatch(/mask-image/);
   });
+
+  it('the fade never eats a focus ring — keyboard scrolling stops inside it', () => {
+    const rail = block('ProgressRail');
+    // scroll-padding must EXCEED the mask's fade width, or a Tab-focused
+    // chip parks flush at the edge with a half-transparent ring.
+    const padding = Number(/scroll-padding-inline:\s*(\d+)px/.exec(rail)?.[1]);
+    const fade = Number(/black\s+(\d+)px/.exec(rail)?.[1]);
+    expect(padding).toBeGreaterThan(fade);
+  });
 });
 
 describe('keep the active chip in view (M3-safe: no scrollIntoView, ever)', () => {

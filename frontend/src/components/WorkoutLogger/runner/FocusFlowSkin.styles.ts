@@ -29,6 +29,9 @@ export const ProgressRail = styled.div`
      the browser's back-swipe gesture on iOS. */
   overscroll-behavior-x: contain;
   padding: 4px 2px 8px;
+  /* Keyboard focus scrolls a chip to rest INSIDE the fade, not under it —
+     otherwise Tab lands on a chip whose focus ring is masked out. */
+  scroll-padding-inline: 14px;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 
