@@ -41,11 +41,11 @@ const StageTab = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) =>
     $active
       ? 'color-mix(in srgb, var(--world-accent, #60c0f0) 55%, transparent)'
-      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 12%, transparent)'};
+      : 'color-mix(in srgb, var(--world-text, #e0ecf4) 12%, transparent)'};
   background: ${({ $active }) =>
     $active ? 'color-mix(in srgb, var(--world-accent, #60c0f0) 14%, transparent)' : 'transparent'};
   color: ${({ $active }) =>
-    $active ? 'var(--text-primary, #e0ecf4)' : 'var(--text-muted, #94a3b8)'};
+    $active ? 'var(--world-text, #e0ecf4)' : 'var(--world-muted, #94a3b8)'};
 
   &:focus-visible {
     outline: 2px solid var(--accent-secondary, #8b5cf6);
@@ -59,7 +59,7 @@ const Dot = styled.span<{ $active: boolean }>`
   height: 7px;
   border-radius: 50%;
   background: ${({ $active }) =>
-    $active ? 'var(--world-accent, #60c0f0)' : 'color-mix(in srgb, var(--text-muted, #94a3b8) 55%, transparent)'};
+    $active ? 'var(--world-accent, #60c0f0)' : 'color-mix(in srgb, var(--world-muted, #94a3b8) 55%, transparent)'};
 `;
 
 export interface StageRailProps {

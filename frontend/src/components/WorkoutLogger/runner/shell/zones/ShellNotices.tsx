@@ -37,10 +37,10 @@ const NoticeAction = styled.button`
   min-height: 44px;
   padding: 0 12px;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 45%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent-primary, #60c0f0) 14%, transparent);
-  color: var(--text-primary, #e0ecf4);
+  background: color-mix(in srgb, var(--world-accent, #60c0f0) 14%, transparent);
+  color: var(--world-text, #e0ecf4);
   font: 600 0.78rem 'Sora', sans-serif;
   cursor: pointer;
 

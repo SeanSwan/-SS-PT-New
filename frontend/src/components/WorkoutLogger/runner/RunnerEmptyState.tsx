@@ -18,9 +18,11 @@ const EmptyHero = styled.div`
   border-radius: 18px;
   padding: clamp(20px, 5vw, 34px);
   text-align: center;
+  /* Flat fallback FIRST — iOS < 16.2 has no color-mix. */
+  background: var(--world-panel, #141419);
   background:
     radial-gradient(120% 140% at 50% -20%, color-mix(in srgb, var(--world-accent, #60C0F0) 16%, transparent) 0%, transparent 55%),
-    linear-gradient(170deg, var(--surface-raised, #003080) 0%, var(--bg-deep, #0A0A0F) 88%);
+    linear-gradient(170deg, color-mix(in srgb, var(--world-accent, #60C0F0) 22%, var(--world-bg, #0A0A0F)) 0%, var(--world-bg, #0A0A0F) 88%);
   border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 32%, transparent);
 `;
 
@@ -40,7 +42,7 @@ const Headline = styled.h3`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: clamp(1.35rem, 5vw, 1.9rem);
   font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
 `;
 
 const Sub = styled.p`
@@ -49,7 +51,7 @@ const Sub = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
+  color: var(--world-muted, rgba(224, 236, 244, 0.68));
 `;
 
 const CtaRow = styled.div`
@@ -67,8 +69,8 @@ const PrimaryCta = styled.button`
   padding: 12px 22px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 55%, transparent);
-  background: color-mix(in srgb, var(--world-accent, #60C0F0) 18%, var(--surface-elevated, #141419));
-  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--world-accent, #60C0F0) 18%, var(--world-panel, #141419));
+  color: var(--world-text, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
@@ -94,7 +96,7 @@ const SecondaryCta = styled.button`
   border-radius: 14px;
   border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.2));
   background: transparent;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;

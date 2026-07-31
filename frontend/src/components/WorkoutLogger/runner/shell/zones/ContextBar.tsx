@@ -28,11 +28,11 @@ const Bar = styled.div`
   gap: 4px 10px;
   min-height: 44px;
   padding: 6px 12px;
-  background: color-mix(in srgb, var(--bg-surface, #1a1a24) 96%, transparent);
+  background: color-mix(in srgb, var(--world-panel, #1a1a24) 96%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 10%, transparent);
-  color: var(--text-primary, #e0ecf4);
+  border-bottom: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 10%, transparent);
+  color: var(--world-text, #e0ecf4);
   font-family: 'Sora', sans-serif;
 `;
 
@@ -51,7 +51,7 @@ const Client = styled.span`
 `;
 
 const Meta = styled.span`
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   font-size: 0.75rem;
   white-space: nowrap;
 `;
@@ -65,7 +65,7 @@ const SignalPill = styled.span<{ $tone: 'warning' | 'gold' | 'neutral' }>`
   color: ${({ $tone }) =>
     $tone === 'warning' ? 'var(--warning, #f59e0b)'
     : $tone === 'gold' ? 'var(--accent-gold, #c6a84b)'
-    : 'var(--text-muted, #94a3b8)'};
+    : 'var(--world-muted, #94a3b8)'};
   border: 1px solid currentColor;
 `;
 
@@ -74,7 +74,7 @@ const Numbers = styled.span`
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   white-space: nowrap;
 `;
 
@@ -88,7 +88,7 @@ const PlanChip = styled.button`
   border: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 40%, transparent);
   border-radius: 10px;
   background: color-mix(in srgb, var(--world-accent, #60c0f0) 10%, transparent);
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
   font: 600 0.78rem 'Sora', sans-serif;
   cursor: pointer;
 

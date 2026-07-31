@@ -33,7 +33,7 @@ const Overlay = styled.div`
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: color-mix(in srgb, var(--bg-base, #030712) 62%, transparent);
+  background: color-mix(in srgb, var(--world-bg, #030712) 62%, transparent);
 
   @media (min-width: 768px) {
     align-items: center;
@@ -46,8 +46,8 @@ const Panel = styled.div`
   max-height: 85dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--surface-dark, #1a1a24);
-  border: 1px solid color-mix(in srgb, var(--frost-white, #e0ecf4) 12%, transparent);
+  background: var(--world-panel, #1a1a24);
+  border: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 12%, transparent);
   border-radius: 16px 16px 0 0;
   padding: 16px;
   animation: ${sheetIn} 160ms ease-out;

@@ -19,7 +19,7 @@ const SheetBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 14px;
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
 `;
 
 const SheetTitle = styled.h2`
@@ -30,7 +30,7 @@ const SheetTitle = styled.h2`
 const EmptyPlanNote = styled.p`
   margin: 0;
   font: 400 0.85rem 'Sora', sans-serif;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
 `;
 
 export interface PlanContextSheetProps {

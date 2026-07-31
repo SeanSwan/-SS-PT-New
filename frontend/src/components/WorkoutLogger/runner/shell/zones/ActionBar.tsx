@@ -35,10 +35,10 @@ const BarWrap = styled.div`
   gap: 8px;
   min-height: 64px;
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  background: color-mix(in srgb, var(--bg-surface, #1a1a24) 96%, transparent);
+  background: color-mix(in srgb, var(--world-panel, #1a1a24) 96%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-top: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 10%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 10%, transparent);
   font-family: 'Sora', sans-serif;
 
   @media (min-width: 1024px) {
@@ -47,7 +47,7 @@ const BarWrap = styled.div`
     width: min(100vw, 720px);
     transform: translateX(-50%);
     border-radius: 14px 14px 0 0;
-    border: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 10%, transparent);
     border-bottom: 0;
   }
 `;
@@ -69,9 +69,9 @@ const IconButton = styled.button<{ $coach?: boolean }>`
   border: 1px solid ${({ $coach }) =>
     $coach
       ? 'color-mix(in srgb, var(--train-coach, #8b5cf6) 50%, transparent)'
-      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 16%, transparent)'};
+      : 'color-mix(in srgb, var(--world-text, #e0ecf4) 16%, transparent)'};
   background: transparent;
-  color: ${({ $coach }) => ($coach ? 'var(--swan-coach-fg, #c4b5fd)' : 'var(--text-primary, #e0ecf4)')};
+  color: ${({ $coach }) => ($coach ? 'var(--swan-coach-fg, #c4b5fd)' : 'var(--world-text, #e0ecf4)')};
 
   &[aria-pressed='true'] {
     background: color-mix(in srgb, var(--train-coach, #8b5cf6) 20%, transparent);
@@ -96,7 +96,7 @@ const Meter = styled.span`
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   white-space: nowrap;
 `;
 
@@ -121,7 +121,7 @@ const RestButton = styled.button`
   border: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 40%, transparent);
   border-radius: 10px;
   background: transparent;
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
   font: 600 0.78rem 'Sora', sans-serif;
   cursor: pointer;
 
@@ -141,8 +141,11 @@ const Primary = styled.button`
   flex-shrink: 0;
   border: none;
   border-radius: 12px;
+  /* BRAND-FIXED by ruling (RAIL-NAV-CONSULT-KIMI-2026-07-31 §e): the commit
+     action must be findable blind under ANY palette — the world seam owns
+     surfaces/text/accents, never this gradient or its label. */
   background: linear-gradient(135deg, var(--accent-primary, #60c0f0), var(--swan-lavender, #4070c0));
-  color: var(--text-primary, #e0ecf4);
+  color: var(--btn-primary-fg, #e0ecf4);
   font: 700 0.88rem 'Sora', sans-serif;
   white-space: nowrap;
   cursor: pointer;

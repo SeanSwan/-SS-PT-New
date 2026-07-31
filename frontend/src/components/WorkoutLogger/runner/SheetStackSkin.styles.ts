@@ -19,10 +19,12 @@ export const StackShell = styled.div`
 export const CanvasNow = styled.div`
   border-radius: 14px;
   padding: 14px 16px;
+  /* Flat fallback FIRST — iOS < 16.2 has no color-mix. */
+  background: var(--world-panel, #141419);
   background: linear-gradient(
     165deg,
-    var(--surface-raised, #003080) 0%,
-    var(--bg-deep, #0A0A0F) 92%
+    color-mix(in srgb, var(--world-accent, #60C0F0) 22%, var(--world-bg, #0A0A0F)) 0%,
+    var(--world-bg, #0A0A0F) 92%
   );
   border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 30%, transparent);
 
@@ -38,7 +40,7 @@ export const CanvasNow = styled.div`
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-primary, #E0ECF4);
+    color: var(--world-text, #E0ECF4);
     overflow-wrap: anywhere;
   }
 `;
@@ -59,12 +61,12 @@ export const CanvasItem = styled.button<{ $state: 'pending' | 'active' | 'done' 
   border-radius: 12px;
   text-align: left;
   cursor: pointer;
-  background: var(--surface-elevated, #141419);
+  background: var(--world-panel, #141419);
   border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.12));
   border-left-width: 3px;
   border-left-color: ${({ $state }) =>
     $state === 'done' ? TRAIN.done : $state === 'active' ? TRAIN.active : 'var(--border-subtle, rgba(224, 236, 244, 0.12))'};
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.92rem;
   font-weight: 600;
@@ -93,9 +95,9 @@ export const SheetHost = styled.div<{ $expanded: boolean; $maxHeight: number }>`
   display: flex;
   flex-direction: column;
   border-radius: 18px 18px 12px 12px;
-  background: color-mix(in srgb, var(--surface-dark, #1A1A24) 96%, transparent);
+  background: color-mix(in srgb, var(--world-panel, #1A1A24) 96%, transparent);
   border: 1px solid color-mix(in srgb, var(--world-accent, #60C0F0) 28%, transparent);
-  box-shadow: 0 -12px 40px color-mix(in srgb, var(--bg-deep, #0A0A0F) 65%, transparent);
+  box-shadow: 0 -12px 40px color-mix(in srgb, var(--world-bg, #0A0A0F) 65%, transparent);
   backdrop-filter: blur(14px);
   max-height: ${({ $expanded, $maxHeight }) => ($expanded ? `${$maxHeight}px` : '76px')};
   overflow: hidden;
@@ -122,14 +124,14 @@ export const SheetGrabber = styled.button`
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
 
   &::before {
     content: '';
     width: 44px;
     height: 4px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--text-primary, #E0ECF4) 35%, transparent);
+    background: color-mix(in srgb, var(--world-text, #E0ECF4) 35%, transparent);
   }
 
   &:focus-visible {

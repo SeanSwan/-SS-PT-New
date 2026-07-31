@@ -20,10 +20,10 @@ const TriggerButton = styled.button`
   min-width: 44px;
   min-height: 44px;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent);
   border-radius: 10px;
   background: transparent;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   cursor: pointer;
 
   &:focus-visible {
@@ -35,7 +35,7 @@ const TriggerButton = styled.button`
 const MenuTitle = styled.h2`
   margin: 0 0 10px;
   font: 700 1rem 'Plus Jakarta Sans', sans-serif;
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
 `;
 
 const ActionRow = styled.button<{ $danger?: boolean }>`
@@ -53,9 +53,9 @@ const ActionRow = styled.button<{ $danger?: boolean }>`
   border: 1px solid ${({ $danger }) =>
     $danger
       ? 'color-mix(in srgb, var(--danger, #ef4444) 45%, transparent)'
-      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent)'};
+      : 'color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent)'};
   background: transparent;
-  color: ${({ $danger }) => ($danger ? 'var(--danger, #ef4444)' : 'var(--text-primary, #e0ecf4)')};
+  color: ${({ $danger }) => ($danger ? 'var(--danger, #ef4444)' : 'var(--world-text, #e0ecf4)')};
 
   &:disabled {
     opacity: 0.55;
