@@ -39,6 +39,8 @@ import CoachDrawer from './runner/shell/zones/CoachDrawer';
 import StageRail from './runner/shell/zones/StageRail';
 import ActionBar from './runner/shell/zones/ActionBar';
 import StageCanvas from './runner/shell/primitives/StageCanvas';
+import ShellZoneBoundary from './runner/shell/primitives/ShellZoneBoundary';
+import ReceiptPRStrip from './runner/shell/zones/ReceiptPRStrip';
 import { createSessionStageStore, switchSessionStage, useSessionStage } from './runner/shell/useSessionStage';
 import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
@@ -181,6 +183,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [routeExercise]);
   const [showCoachDrawer, setShowCoachDrawer] = useState(false);
+  // Hostile Batch 3: live elapsed clock — anchored to the FIRST logged set.
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
   const sessionStageStore = useMemo(() => createSessionStageStore(), []);
   const [sessionStage] = useSessionStage(sessionStageStore);
@@ -361,6 +365,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // Reads through exercisesRef so the callback identity survives keystrokes (keeps card memos alive).
   const handleSetLogged = useCallback((exerciseIndex: number, setIndex: number) => {
     restTimer.start(exercisesRef.current[exerciseIndex]?.sets[setIndex]?.restTime || 60);
+    setSessionStartedAt((prev) => prev ?? Date.now());
+    // Premium tactile tick on log (reduced-motion users opt out, same as rest alert).
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      navigator.vibrate?.(15);
+    }
   }, [restTimer]);
   const [showSetDetails, setShowSetDetails] = useState(false);
   const handleToggleSetDetails = useCallback(() => setShowSetDetails(previous => !previous), []);
@@ -529,7 +538,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       >
         {/* SESSION SHELL zones 1+2 (Slice 1): absorbs WorkoutLoggerHeader,
             ScheduledSessionStatusBanner, WorkoutDraftGateBanner, plan-strip chip. */}
+        <ShellZoneBoundary zone='context-bar'>
         <ContextBar
+          sessionStartedAt={sessionStartedAt} formattedVolume={sessionStats.formattedVolume}
           overflow={{
             onCancelSession: handleCancel,
             onExportPDF: handleExportPDF,
@@ -544,6 +555,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           assignment={plannedAssignment || loadedPlanContext}
           currentOPTPhase={currentOPTPhase} onOPTPhaseChange={setCurrentOPTPhase}
         />
+        </ShellZoneBoundary>
+        <ShellZoneBoundary zone='notice-lane'>
         <ShellNotices
           isOnline={offlineQueue.isOnline} pendingCount={offlineQueue.pendingCount}
           workoutDraft={workoutDraft} draftOfferVisible={exercises.length === 0 && !sessionNotes}
@@ -553,6 +566,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionId={scheduledSessionId} scheduledSessionCreditHint={scheduledSessionCreditHint}
           scheduledSessionDate={scheduledSessionDate} clientSource={client.clientSource}
         />
+        </ShellZoneBoundary>
         {/* C4b/C6d: plan-loader outcome panel stays inline — only plan CONTEXT moved. */}
         {exercises.length === 0 && !(plannedAssignment || loadedPlanContext) && planLoadOutcome && (
           <WorkoutLoggerEmptyPlanState
@@ -597,7 +611,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Receipt terminal state (Slice 5): post-save the rail is NOT
             navigable — the receipt below replaces the staged canvas. */}
         {!lastSaveResponse && (<>
-        <StageRail store={sessionStageStore} variant={pageRecipe.stageRail === 'segmented' ? 'segmented' : 'tabs'} />
+        <ShellZoneBoundary zone='stage-rail'>
+          <StageRail store={sessionStageStore} variant={pageRecipe.stageRail === 'segmented' ? 'segmented' : 'tabs'} />
+        </ShellZoneBoundary>
         <StageCanvas stage={sessionStage} store={sessionStageStore}>
         {sessionStage === 'setup' && (<>
           {!isClientSelfMode && (
@@ -614,38 +630,26 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               onApplyAssignment={handleApplyGeneratedPlanDay}
             />
           )}
+          {/* Plan loads land on Train — the loaded session is the point. */}
           <LoadPlanRow>
             {!isClientSelfMode && (
               <LoadPlanButton
-                onClick={() => {
-                  handleRepeatLastSession();
-                  switchSessionStage(sessionStageStore, 'train'); // show the repeated session
-                }}
+                onClick={() => { handleRepeatLastSession(); switchSessionStage(sessionStageStore, 'train'); }}
                 disabled={isRepeatingSession || isLoadingPlan}
                 title="Copy the client's most recent workout as a starting draft"
               >
-                <History size={16} />
-                {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
+                <History size={16} /> {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
               </LoadPlanButton>
             )}
             <LoadPlanButton
-              onClick={() => {
-                loadTodaysPlan();
-                switchSessionStage(sessionStageStore, 'train'); // show the loaded session
-              }}
+              onClick={() => { loadTodaysPlan(); switchSessionStage(sessionStageStore, 'train'); }}
               disabled={isLoadingPlan || isRepeatingSession}
             >
-              <Download size={16} />
-              {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
+              <Download size={16} /> {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
             </LoadPlanButton>
             {!isClientSelfMode && onOpenHistoryImport && (
-              <LoadPlanButton
-                onClick={onOpenHistoryImport}
-                disabled={isLoadingPlan || isRepeatingSession}
-                title="Open historical workout import"
-              >
-                <UploadCloud size={16} />
-                History Import
+              <LoadPlanButton onClick={onOpenHistoryImport} disabled={isLoadingPlan || isRepeatingSession} title="Open historical workout import">
+                <UploadCloud size={16} /> History Import
               </LoadPlanButton>
             )}
           </LoadPlanRow>
@@ -798,7 +802,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         </StageCanvas>
         </>)}
 
-        {lastSaveResponse ? (
+        {lastSaveResponse ? (<>
+          <ReceiptPRStrip prs={sessionStats.prs} />
           <SaveSuccessPanel
             form={lastSaveResponse}
             completedSets={sessionStats.completedSets}
@@ -810,7 +815,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             onBookNext={isClientSelfMode ? () => navigate('/dashboard/client/schedule') : null}
             exercisesForShare={isClientSelfMode ? exercises : null}
           />
-        ) : (
+        </>) : (
           <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
         )}
         {/* Post-Save Handoff (Slice-2, Chunk C): terminal proof moment, portaled OVER the panel above. */}
@@ -828,6 +833,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         </LiveRegion>
         {/* SESSION SHELL zone 6 (Slice 4b): ONE bottom bar — footer + sticky
             bar + TimerFAB/FloatingRestTimer + skin rest chrome, merged. */}
+        <ShellZoneBoundary
+          zone='action-bar'
+          fallback={exercises.length > 0 && !submittedFormId
+            ? <button type='button' onClick={() => handleSubmit()} disabled={isSubmitting} aria-label='Complete and save workout'>Save workout</button>
+            : null}
+        >
         <ActionBar
           stage={sessionStage}
           onGoTrain={() => switchSessionStage(sessionStageStore, 'train')}
@@ -847,6 +858,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onToggleDictation={dictation.toggle}
           onOpenCoach={() => setShowCoachDrawer(true)}
         />
+        </ShellZoneBoundary>
       </WorkoutLoggerContainer>
       <WorkoutLoggerConfirmDialog
         request={confirmRequest}

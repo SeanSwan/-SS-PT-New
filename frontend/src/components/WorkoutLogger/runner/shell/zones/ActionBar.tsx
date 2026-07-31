@@ -193,7 +193,7 @@ export interface ActionBarProps {
   onOpenCoach: () => void;
 }
 
-const ActionBar: React.FC<ActionBarProps> = ({
+const ActionBar: React.FC<ActionBarProps> = React.memo(({
   stage, onGoTrain, hasExercises, completedSets, totalSets, isSubmitting, submitted,
   onSubmit, onAddExercise, rest, canDictate, dictationActive, onToggleDictation, onOpenCoach,
 }) => {
@@ -203,7 +203,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
     <Primary type='button' onClick={onGoTrain}>Go to Train</Primary>
   ) : hasExercises ? (
     <Primary type='button' onClick={onSubmit} disabled={isSubmitting} aria-label='Complete and save workout'>
-      <Save size={16} aria-hidden='true' /> Save
+      {/* Every set logged → the bar tells you the session is done. */}
+      <Save size={16} aria-hidden='true' /> {totalSets > 0 && completedSets >= totalSets ? 'Finish workout' : 'Save'}
     </Primary>
   ) : (
     <Primary type='button' onClick={onAddExercise}><Plus size={16} aria-hidden='true' /> Add exercise</Primary>
@@ -251,6 +252,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
       <Spacer aria-hidden='true' />
     </>
   );
-};
+});
 
+ActionBar.displayName = 'ActionBar';
 export default ActionBar;

@@ -71,6 +71,18 @@ export interface StageRailProps {
 const StageRail: React.FC<StageRailProps> = ({ store, variant = 'tabs' }) => {
   const [stage] = useSessionStage(store);
 
+  // WAI-ARIA tablist law: Left/Right arrows move AND activate (stages are
+  // free views, so activation is always safe). Wraps at the ends.
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const index = SESSION_STAGES.indexOf(stage);
+    const delta = event.key === 'ArrowRight' ? 1 : -1;
+    const next = SESSION_STAGES[(index + delta + SESSION_STAGES.length) % SESSION_STAGES.length];
+    switchSessionStage(store, next);
+    (event.currentTarget.querySelector(`[data-stage="${next}"]`) as HTMLElement | null)?.focus();
+  };
+
   return (
     <Rail
       data-shell-zone='stage-rail'
@@ -78,12 +90,15 @@ const StageRail: React.FC<StageRailProps> = ({ store, variant = 'tabs' }) => {
       $variant={variant}
       role='tablist'
       aria-label='Session stages'
+      onKeyDown={handleKeyDown}
     >
       {SESSION_STAGES.map((target) => (
         <StageTab
           key={target}
+          data-stage={target}
           type='button'
           role='tab'
+          tabIndex={stage === target ? 0 : -1}
           aria-selected={stage === target}
           $active={stage === target}
           onClick={() => switchSessionStage(store, target)}

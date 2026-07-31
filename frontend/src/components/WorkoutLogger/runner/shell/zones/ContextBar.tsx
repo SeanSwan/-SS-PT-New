@@ -10,7 +10,7 @@
  * │ Source: SESSION-SHELL-HANDOFF-2026-07-30 §3 zone 1 + §4.1.  │
  * └─────────────────────────────────────────────────────────────┘
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { ClipboardList, User } from 'lucide-react';
 import { getClientSessionSignal } from '../../../../DashBoard/workspaces/clients-team/clientSessionSignal';
@@ -110,6 +110,10 @@ const PlanChip = styled.button`
 export interface ContextBarProps {
   /** ⋯ menu (Cancel/PDF/summary-with-lock) — omitted only in bare mounts. */
   overflow?: ContextOverflowProps;
+  /** Epoch ms of the FIRST logged set — flips the numbers to volume · elapsed. */
+  sessionStartedAt?: number | null;
+  /** Live session volume (e.g. "4,120 lbs") shown once the session starts. */
+  formattedVolume?: string;
   clientFirstName: string;
   clientLastName: string;
   availableSessions: number;
@@ -122,8 +126,20 @@ export interface ContextBarProps {
   onOPTPhaseChange: (phase: number) => void;
 }
 
-const ContextBar: React.FC<ContextBarProps> = ({
+const formatElapsed = (startedAt: number, now: number): string => {
+  const total = Math.max(0, Math.floor((now - startedAt) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`;
+};
+
+const ContextBar: React.FC<ContextBarProps> = React.memo(({
   overflow,
+  sessionStartedAt = null,
+  formattedVolume,
   clientFirstName,
   clientLastName,
   availableSessions,
@@ -136,6 +152,14 @@ const ContextBar: React.FC<ContextBarProps> = ({
   onOPTPhaseChange,
 }) => {
   const [planOpen, setPlanOpen] = useState(false);
+  // Consult zone-1 spec: ELAPSED, not an estimate — the ticker lives HERE so
+  // only this memoized bar re-renders each second, never the page.
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!sessionStartedAt) return undefined;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [sessionStartedAt]);
   const signal = getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
   const parsed = workoutDate ? new Date(`${workoutDate}T00:00:00`) : null;
   const displayDate = parsed && !Number.isNaN(parsed.getTime())
@@ -168,9 +192,15 @@ const ContextBar: React.FC<ContextBarProps> = ({
         <ClipboardList size={14} aria-hidden='true' />
         <span>{chipLabel}</span>
       </PlanChip>
-      <Numbers aria-label={`${totalSets} total sets, about ${estimatedDuration} minutes`}>
-        {totalSets} sets · ~{estimatedDuration} min
-      </Numbers>
+      {sessionStartedAt ? (
+        <Numbers aria-label={`Session volume ${formattedVolume ?? ''}, elapsed ${formatElapsed(sessionStartedAt, nowTick)}`}>
+          {formattedVolume} · {formatElapsed(sessionStartedAt, nowTick)}
+        </Numbers>
+      ) : (
+        <Numbers aria-label={`${totalSets} total sets, about ${estimatedDuration} minutes`}>
+          {totalSets} sets · ~{estimatedDuration} min
+        </Numbers>
+      )}
       {overflow && <ContextOverflow {...overflow} />}
       <PlanContextSheet
         open={planOpen}
@@ -182,6 +212,7 @@ const ContextBar: React.FC<ContextBarProps> = ({
       />
     </Bar>
   );
-};
+});
 
+ContextBar.displayName = 'ContextBar';
 export default ContextBar;
