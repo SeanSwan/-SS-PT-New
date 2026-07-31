@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const workoutLoggerSource = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8');
+// The education controls moved into the Coach drawer's Reference tab
+// (2026-07-31) — same controls, one home, reachable in two taps.
+const referenceTabSource = readFileSync(resolve(__dirname, './CoachReferenceTab.tsx'), 'utf8');
 const learningModeSource = readFileSync(resolve(__dirname, './NASMLearningMode.tsx'), 'utf8');
 const phaseGuideSource = readFileSync(resolve(__dirname, './NASMPhaseGuide.tsx'), 'utf8');
 
@@ -13,8 +16,12 @@ function lineCount(source: string): number {
 describe('NASM education action contract', () => {
   it('keeps the education controls on the active WorkoutLogger route', () => {
     expect(workoutLoggerSource).toContain('<NASMLearningProvider>');
-    expect(workoutLoggerSource).toContain('<LearningModeToggle />');
-    expect(workoutLoggerSource).toContain('<NASMPhaseGuide');
+    expect(workoutLoggerSource).toContain('<CoachReferenceTab');
+    expect(referenceTabSource).toContain('<LearningModeToggle />');
+    expect(referenceTabSource).toContain('<NASMPhaseGuide');
+    // The terms index leads the tab — it answers the question trainers
+    // actually arrive with ("what does RPE mean?").
+    expect(referenceTabSource).toContain('<SwanTermsIndex />');
   });
 
   it('keeps every NASM education button explicit and touch-safe', () => {

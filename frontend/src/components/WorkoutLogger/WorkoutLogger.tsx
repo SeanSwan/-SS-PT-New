@@ -61,8 +61,8 @@ import CompactProtocolSection, {
 } from './CompactProtocolSection';
 import { getRecommendedProtocolItems } from './NASMProtocolDefaults';
 import { useProtocolSelections } from './useProtocolSelections';
-import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
-import NASMPhaseGuide from './NASMPhaseGuide';
+import { NASMLearningProvider } from './NASMLearningMode';
+import CoachReferenceTab from './CoachReferenceTab';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
@@ -603,16 +603,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             />
           }
           reference={
-            <>
-              <LearningModeToggle />
-              <NASMPhaseGuide
-                phase={currentOPTPhase}
-                onLoadTemplate={(phase) => {
-                  loadPhaseTemplate(phase);
-                  setShowCoachDrawer(false); // show the loaded template, not the drawer
-                }}
-              />
-            </>
+            <CoachReferenceTab
+              currentOPTPhase={currentOPTPhase}
+              onLoadTemplate={(phase) => {
+                loadPhaseTemplate(phase);
+                setShowCoachDrawer(false); // show the loaded template, not the drawer
+              }}
+            />
           }
         />
         {/* SESSION SHELL zones 3+4 (Slice 3): free stage views — IA lands,
