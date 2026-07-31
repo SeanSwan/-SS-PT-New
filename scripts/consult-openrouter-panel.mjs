@@ -103,19 +103,29 @@ if (!res.ok) {
   process.exit(1);
 }
 const data = await res.json();
+
+// Truncation detection runs BEFORE the empty-reply check. A reasoning model can
+// spend the entire budget on hidden reasoning and return content:null — that is a
+// cap problem, not an empty response, and reporting it as "empty reply" sends the
+// operator hunting the wrong bug. OpenRouter sets finish_reason 'length'; some
+// providers only set native_finish_reason 'max_tokens', so check both.
+const finish = data?.choices?.[0]?.finish_reason ?? data?.choices?.[0]?.native_finish_reason ?? null;
+const truncated = finish === 'length' || finish === 'max_tokens';
+
 const reply = data?.choices?.[0]?.message?.content;
 if (!reply) {
+  if (truncated) {
+    console.error(
+      `[panel] TRUNCATED WITH NO CONTENT — the model hit max_tokens (${MAX_TOKENS}) before emitting any`
+      + ` visible text (reasoning consumed the budget). Raise PANEL_MAX_TOKENS and/or lower`
+      + ` PANEL_REASONING_MAX (currently ${REASONING_MAX}). Nothing was written.`,
+    );
+    process.exit(2);
+  }
   console.error(`[panel] empty reply: ${JSON.stringify(data).slice(0, 500)}`);
   process.exit(1);
 }
 const usage = data?.usage || {};
-
-// Truncation guard. Before this existed the script wrote a reply that stopped
-// mid-sentence and still exited 0 — the gap was only caught by reading the file.
-// OpenRouter reports finish_reason 'length' when max_tokens was hit; some
-// providers use native_finish_reason instead, so check both.
-const finish = data?.choices?.[0]?.finish_reason ?? data?.choices?.[0]?.native_finish_reason ?? null;
-const truncated = finish === 'length' || finish === 'max_tokens';
 const banner = truncated
   ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and its reply is INCOMPLETE.\n`
     + `> Do not treat the tail as a finished thought. Re-run with a higher PANEL_MAX_TOKENS,\n`

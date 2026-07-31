@@ -152,8 +152,23 @@ async function main() {
   }
   const data = await response.json();
   if (data.error) throw new Error(`OpenRouter error: ${data.error.message || 'unknown error'}`);
+  // Truncation is checked before the empty-text guard: a reasoning model can burn
+  // the whole budget on hidden reasoning and return no content, which is a cap
+  // problem, not an empty response. Reporting it as "no visible response" sends the
+  // operator hunting the wrong bug.
+  const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
+  const truncated = finish === 'length' || finish === 'max_tokens';
+
   const text = data.choices?.[0]?.message?.content;
-  if (!text?.trim()) throw new Error('OpenRouter returned no visible Kimi response');
+  if (!text?.trim()) {
+    if (truncated) {
+      throw new Error(
+        `TRUNCATED WITH NO CONTENT — hit max_tokens (${options.maxTokens}) before emitting visible text`
+        + ` (reasoning consumed the budget). Re-run with a higher --max-tokens or --effort low.`,
+      );
+    }
+    throw new Error('OpenRouter returned no visible Kimi response');
+  }
 
   const inputTokens = Number(data.usage?.prompt_tokens) || 0;
   const outputTokens = Number(data.usage?.completion_tokens) || 0;
@@ -162,8 +177,7 @@ async function main() {
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
   // Truncation guard: a reply cut off at max_tokens must never be read as finished.
-  const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
-  const truncated = finish === 'length' || finish === 'max_tokens';
+  // (finish/truncated are computed above, before the empty-text check.)
   const banner = truncated
     ? `> ⚠ **TRUNCATED** — hit max_tokens (${options.maxTokens}); this reply is INCOMPLETE.\n`
       + `> Re-run with --max-tokens higher, or split the packet into narrower consults.\n\n`
