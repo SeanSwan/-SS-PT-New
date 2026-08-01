@@ -40,6 +40,9 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     open: true,
+    fs: {
+      allow: [path.resolve(__dirname), path.resolve(__dirname, '../shared/bootcamp-core')],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:10000',

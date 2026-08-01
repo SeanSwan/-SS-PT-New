@@ -3,7 +3,8 @@ import type { GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import TeachMeToggle from '../Shared/TeachMeToggle';
 import { FloorModeToggle, Subtitle, Title, TopBar } from './BootcampBuilderStyles';
 import { ModeBar, ModeBtn, TimingAlert } from './BootcampModeStyles';
-import type { BuildMode } from './BootcampBuilderPage.constants';
+import type { BuildMode, BootcampWorkflowStage } from './BootcampBuilderPage.constants';
+import BootcampClassRail from './BootcampClassRail';
 import { BOOTCAMP_TEACH_ME_CONTENT } from './BootcampBuilderPage.constants';
 import { HeaderActions } from './BootcampBuilderChrome.styles';
 import { EXERCISE_LIBRARY_CLAIM } from '../../content/marketingStats';
@@ -11,26 +12,27 @@ import { EXERCISE_LIBRARY_CLAIM } from '../../content/marketingStats';
 interface BootcampBuilderChromeProps {
   bootcamp: GeneratedBootcamp | null;
   buildMode: BuildMode;
-  floorMode: boolean;
+  activeStage: BootcampWorkflowStage;
   isOverTime: boolean;
   totalClassMin: number;
   onBuildModeChange: (mode: BuildMode) => void;
   onExportPDF: () => void;
-  onToggleFloorMode: () => void;
+  onStageChange: (stage: BootcampWorkflowStage) => void;
 }
 
 const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
   bootcamp,
   buildMode,
-  floorMode,
+  activeStage,
   isOverTime,
   totalClassMin,
   onBuildModeChange,
   onExportPDF,
-  onToggleFloorMode,
+  onStageChange,
 }) => (
   <>
-    <TopBar>
+    {activeStage !== 'run' && (
+      <TopBar>
       <div>
         <Title className="lens2-display">Boot Camp Class Builder</Title>
         <Subtitle>Swan Coach + manual class creation with {EXERCISE_LIBRARY_CLAIM} exercises and inline regressions</Subtitle>
@@ -41,24 +43,15 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
             <Download size={16} /> PDF
           </FloorModeToggle>
         )}
-        <FloorModeToggle
-          $active={floorMode}
-          onClick={onToggleFloorMode}
-          aria-pressed={floorMode}
-          title="Media-ready station demo mode for floor coaching"
-        >
-          {floorMode ? 'Exit Demo' : 'Demo Mode'}
-        </FloorModeToggle>
-        {!floorMode && (
-          <TeachMeToggle
-            sectionId="bootcamp-builder"
-            title="How to Use the Bootcamp Builder"
-            content={BOOTCAMP_TEACH_ME_CONTENT}
-          />
-        )}
+        <TeachMeToggle
+          sectionId="bootcamp-builder"
+          title="How to Use the Bootcamp Builder"
+          content={BOOTCAMP_TEACH_ME_CONTENT}
+        />
       </HeaderActions>
-    </TopBar>
-    {!floorMode && (
+      </TopBar>
+    )}
+    {activeStage === 'build' && (
       <ModeBar>
         <ModeBtn $active={buildMode === 'ai'} onClick={() => onBuildModeChange('ai')}>
           <Wand2 size={14} /> Swan Coach Generate
@@ -74,6 +67,12 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
         </TimingAlert>
       </ModeBar>
     )}
+    <BootcampClassRail
+      bootcamp={bootcamp}
+      buildMode={buildMode}
+      activeStage={activeStage}
+      onStageChange={onStageChange}
+    />
   </>
 );
 
