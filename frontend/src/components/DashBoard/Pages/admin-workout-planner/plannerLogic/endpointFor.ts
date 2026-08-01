@@ -1,4 +1,4 @@
-/** @since S14 — extracted pure logic. NOT WIRED until S15. */
+/** @since S14; WIRED in S16 — the ONLY planner endpoint selector (contract-fenced). */
 export const plannerScopes = ['single', 'multi_week'] as const;
 export type PlannerScope = typeof plannerScopes[number];
 export type PlannerEndpoint = '/api/workout-builder/generate' | '/api/workout-builder/plan';
