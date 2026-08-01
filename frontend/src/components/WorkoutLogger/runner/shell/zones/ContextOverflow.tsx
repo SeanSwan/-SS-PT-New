@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Download, LogOut, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { ArrowUpRight, Download, LogOut, MessageSquare, MoreHorizontal } from 'lucide-react';
 import Sheet from '../primitives/Sheet';
 
 const TriggerButton = styled.button`
@@ -75,11 +75,13 @@ export interface ContextOverflowProps {
   showGenerateSummary: boolean;
   isGeneratingSummary: boolean;
   summaryLockedReason?: string;
+  /** Parent-owned SPA navigation; exposed only when leaving cannot lose a live draft. */
+  onOpenCoachCommand?: () => void;
 }
 
 const ContextOverflow: React.FC<ContextOverflowProps> = ({
   onCancelSession, onExportPDF, onGenerateSummary,
-  showGenerateSummary, isGeneratingSummary, summaryLockedReason,
+  showGenerateSummary, isGeneratingSummary, summaryLockedReason, onOpenCoachCommand,
 }) => {
   const [open, setOpen] = useState(false);
   // Footer-contract lock: the summary row stays VISIBLE with its reason,
@@ -101,6 +103,11 @@ const ContextOverflow: React.FC<ContextOverflowProps> = ({
       </TriggerButton>
       <Sheet open={open} onClose={() => setOpen(false)} label='Session actions' historyKey='session-actions'>
         <MenuTitle>Session actions</MenuTitle>
+        {onOpenCoachCommand && (
+          <ActionRow type='button' onClick={runAndClose(onOpenCoachCommand)} aria-label='Open full Coach Command Center for this workout'>
+            <ArrowUpRight size={16} aria-hidden='true' /> Full Command Center
+          </ActionRow>
+        )}
         <ActionRow type='button' onClick={runAndClose(onExportPDF)}>
           <Download size={16} aria-hidden='true' /> Export PDF
         </ActionRow>

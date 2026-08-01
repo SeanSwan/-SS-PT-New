@@ -65,8 +65,8 @@ const AiEventsHarness: React.FC<{ stateOut: { exercises: ExerciseEntry[] } }> = 
 };
 
 type DictationApi = ReturnType<typeof useWorkoutLoggerDictation>;
-const DictationHarness: React.FC<{ apiOut: { current: DictationApi | null } }> = ({ apiOut }) => {
-  const api = useWorkoutLoggerDictation({ clientId: 84 });
+const DictationHarness: React.FC<{ apiOut: { current: DictationApi | null }; enabled?: boolean }> = ({ apiOut, enabled = true }) => {
+  const api = useWorkoutLoggerDictation({ clientId: 84, enabled });
   apiOut.current = api;
   return <LoggerDictationStrip {...api} />;
 };
@@ -176,10 +176,49 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
     expect(apiOut.current?.receipt).toEqual({ ok: false, text: denial });
   });
 
-  it('source contract: the logger mounts Dictate + strip behind the admin/trainer gate', () => {
+  it('source contract: the logger mounts Dictate + strip only during an unsaved Train stage', () => {
     const source = readFileSync(resolve(__dirname, 'WorkoutLogger.tsx'), 'utf8');
     expect(source).toContain("const canDictate = user?.role === 'admin' || user?.role === 'trainer';");
-    expect(source).toContain('canDictate={canDictate}'); // ActionBar mic carries the gate
-    expect(source).toContain('{canDictate && <LoggerDictationStrip {...dictation} />}');
+    expect(source).toContain("const canUseDictation = canDictate && sessionStage === 'train' && !submittedFormId;");
+    expect(source).toContain('canDictate={canUseDictation}');
+    expect(source).toContain('{canUseDictation && <LoggerDictationStrip {...dictation} />}');
+  });
+
+  it('never starts browser recognition when the Dictate strip is disabled or unmounted', async () => {
+    const start = vi.fn();
+    class SpeechRecognition { start = start; stop = vi.fn(); }
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: SpeechRecognition });
+    const apiOut = { current: null as DictationApi | null };
+    render(<DictationHarness apiOut={apiOut} enabled={false} />);
+
+    await act(async () => { apiOut.current?.toggle(); });
+
+    expect(start).not.toHaveBeenCalled();
+    expect(apiOut.current?.active).toBe(false);
+  });
+
+  it('uses a one-way stop when eligibility turns off mid-dictation', async () => {
+    const start = vi.fn();
+    const stop = vi.fn();
+    class SpeechRecognition { start = start; stop = stop; }
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: SpeechRecognition });
+    const apiOut = { current: null as DictationApi | null };
+    const view = render(<DictationHarness apiOut={apiOut} enabled />);
+
+    await act(async () => { apiOut.current?.toggle(); });
+    expect(start).toHaveBeenCalledTimes(1);
+    view.rerender(<DictationHarness apiOut={apiOut} enabled={false} />);
+    view.rerender(<DictationHarness apiOut={apiOut} enabled={false} />);
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(apiOut.current?.active).toBe(false);
+  });
+
+  it('uses the speech hook one-way stop in its disabled effect, never its toggle', () => {
+    const source = readFileSync(resolve(__dirname, 'useWorkoutLoggerDictation.ts'), 'utf8');
+    const disabledEffect = source.slice(source.indexOf('useEffect(() => {'), source.indexOf('const toggle'));
+    expect(disabledEffect).toContain('speech.stopListening()');
+    expect(disabledEffect).not.toContain('speech.toggleListening()');
   });
 });

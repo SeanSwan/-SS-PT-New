@@ -200,6 +200,7 @@ const ActionBar: React.FC<ActionBarProps> = React.memo(({
   stage, onGoTrain, hasExercises, completedSets, totalSets, isSubmitting, submitted,
   onSubmit, onAddExercise, rest, canDictate, dictationActive, onToggleDictation, onOpenCoach,
 }) => {
+  const canUseDictation = canDictate && stage === 'train' && !submitted;
   const primary = submitted ? (
     <SavedMarker aria-live='polite'><Check size={16} aria-hidden='true' /> Saved</SavedMarker>
   ) : stage === 'setup' ? (
@@ -216,7 +217,7 @@ const ActionBar: React.FC<ActionBarProps> = React.memo(({
   return (
     <>
       <BarWrap data-shell-zone='action-bar'>
-        {canDictate && (
+        {canUseDictation && (
           <IconButton
             type='button'
             aria-label='Dictate workout log entries'

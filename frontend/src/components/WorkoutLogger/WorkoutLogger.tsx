@@ -32,6 +32,7 @@ import {
 import { LiveRegion } from './WorkoutLoggerStatus.styles';
 import WorkoutLoggerModeBar from './WorkoutLoggerModeBar';
 import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
+import { buildWorkoutLoggerCoachRoute } from './workoutLoggerCoachRoute';
 import SessionSummaryForm from './SessionSummaryForm';
 import ContextBar from './runner/shell/zones/ContextBar';
 import ShellNotices from './runner/shell/zones/ShellNotices';
@@ -122,9 +123,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
       : (allowSelfMode ? userNumericId : undefined);
-  // AI_* logger commands are admin/trainer only — no Dictate surface for client/user roles (R1).
   const canDictate = user?.role === 'admin' || user?.role === 'trainer';
-  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null });
   const isClientSelfMode: boolean =
     allowSelfMode &&
     typeof effectiveClientId === 'number' &&
@@ -132,6 +131,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const workoutDateValue = scheduledSessionDate
     ? normalizeWorkoutDate(scheduledSessionDate)
     : normalizeWorkoutDate(null);
+  const coachCommandRoute = buildWorkoutLoggerCoachRoute({ userRole: user?.role, clientId: effectiveClientId, selfMode: isClientSelfMode, workoutDate: workoutDateValue, scheduledSessionId, scheduledSessionDate, scheduledSessionCreditHint });
 
   // C4a: a stored draft BEATS ?loadPlan=today — synchronous peek (no effect-
   // order race); the plan auto-loads only after an explicit discard.
@@ -197,6 +197,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   useScreenWakeLock(sessionStage === 'train' && exercises.length > 0);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
+  const canUseDictation = canDictate && sessionStage === 'train' && !submittedFormId;
+  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null, enabled: canUseDictation });
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
   // Phase 2.1a: saved form powers SaveSuccessPanel; onComplete deferred to Done.
   const [lastSaveResponse, setLastSaveResponse] = useState<DailyWorkoutForm | null>(null);
@@ -556,6 +558,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             showGenerateSummary: !!submittedFormId,
             isGeneratingSummary,
             summaryLockedReason,
+            onOpenCoachCommand: submittedFormId && coachCommandRoute ? () => navigate(coachCommandRoute) : undefined,
           }}
           clientFirstName={client.firstName} clientLastName={client.lastName}
           availableSessions={client.availableSessions ?? 0} clientSource={client.clientSource}
@@ -726,7 +729,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
-          {canDictate && <LoggerDictationStrip {...dictation} />}
+          {canUseDictation && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
             <RunnerEmptyState
@@ -851,7 +854,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             openRolodexForMain();
           }}
           rest={runnerEngine.rest}
-          canDictate={canDictate}
+          canDictate={canUseDictation}
           dictationActive={dictation.active}
           onToggleDictation={dictation.toggle}
           onOpenCoach={() => setShowCoachDrawer(true)}
