@@ -20,8 +20,8 @@ describe('WorkoutPlanner generation action extraction', () => {
     expect(pageSource).not.toContain('const [explanations, setExplanations]');
     expect(pageSource).not.toContain('handleAIGenerate');
     expect(pageSource).not.toContain('const handleGeneratePlan = useCallback');
-    expect(hookSource).toContain('/api/workout-builder/generate');
-    expect(hookSource).toContain('/api/workout-builder/plan');
+    expect(hookSource).toContain("endpointFor('single')"); // S16: endpoints route through plannerLogic/endpointFor
+    expect(hookSource).toContain("endpointFor('multi_week')");
     expect(hookSource).toContain('resetLoadedPlanState');
     expect(hookSource).toContain('setGeneratedPlan(plan)');
     expect(hookSource).toContain('handleSwanCoachWorkoutGenerate');

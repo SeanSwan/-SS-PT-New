@@ -13,6 +13,8 @@ import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
+import WorkoutPlannerCommandPanelV2 from './WorkoutPlannerCommandPanelV2';
+import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
@@ -82,6 +84,8 @@ const WorkoutPlannerPageLayout: React.FC = () => {
   return (
     <WorkoutPlannerLensFrame>
     <Page>
+      {/* S16: V2 command panel ships DARK — PLANNER_IA_V2 default OFF. */}
+      {isPlannerIaV2Enabled() ? <WorkoutPlannerCommandPanelV2 /> : (
       <WorkoutPlannerCommandPanel
         plannerReturnTo={plannerReturnTo}
         teachModeOpen={teachModeOpen}
@@ -120,6 +124,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
         onGenerateSingle={act.requestSwanCoachWorkoutForSelectedClient}
         onGeneratePlan={act.requestPlanGenerateForSelectedClient}
       />
+      )}
 
       <WorkoutPlannerStatusAssistantStrip
         statusMsg={statusMsg}
