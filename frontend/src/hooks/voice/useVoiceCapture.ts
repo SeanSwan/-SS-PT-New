@@ -33,6 +33,8 @@ export interface UseVoiceCaptureReturn {
   start: () => Promise<void>;
   stop: () => void;
   reset: () => void;
+  /** Live mic RMS 0..1 for the orb's amplitude drive (ruling A1); 0 when unavailable. */
+  getAudioLevel: () => number;
 }
 
 export const VOICE_CAPTURE_MAX_SECONDS = 120;
@@ -70,6 +72,9 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAtRef = useRef(0);
@@ -80,6 +85,12 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
     if (maxStopRef.current) { clearTimeout(maxStopRef.current); maxStopRef.current = null; }
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    levelBufferRef.current = null;
     recorderRef.current = null;
     chunksRef.current = [];
   }, []);
@@ -120,6 +131,23 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       streamRef.current = stream;
+
+      // Amplitude tap for the orb (ruling A1) — recording works without it.
+      try {
+        const AudioContextCtor = window.AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextCtor) {
+          const audioContext = new AudioContextCtor();
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          audioContext.createMediaStreamSource(stream).connect(analyser);
+          audioContextRef.current = audioContext;
+          analyserRef.current = analyser;
+          levelBufferRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+        }
+      } catch {
+        analyserRef.current = null;
+      }
 
       const mime = negotiateVoiceMime();
       setMimeType(mime || 'audio/webm');
@@ -172,5 +200,19 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
     setError(null);
   }, [cleanup]);
 
-  return { state, audioBlob, mimeType, durationSeconds, stoppedByLock, error, start, stop, reset };
+  const getAudioLevel = useCallback((): number => {
+    const analyser = analyserRef.current;
+    const buffer = levelBufferRef.current;
+    if (!analyser || !buffer) return 0;
+    analyser.getByteTimeDomainData(buffer);
+    let sumOfSquares = 0;
+    for (let i = 0; i < buffer.length; i += 1) {
+      const centered = (buffer[i] - 128) / 128;
+      sumOfSquares += centered * centered;
+    }
+    // Speech RMS peaks well under 1.0 — scale up, clamp for UI use.
+    return Math.min(1, Math.sqrt(sumOfSquares / buffer.length) * 3);
+  }, []);
+
+  return { state, audioBlob, mimeType, durationSeconds, stoppedByLock, error, start, stop, reset, getAudioLevel };
 }

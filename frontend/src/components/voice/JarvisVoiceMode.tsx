@@ -10,7 +10,8 @@
 
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useVoiceCapture } from '../../hooks/voice/useVoiceCapture';
+import { useVoiceCapture, isVoiceCaptureSupported } from '../../hooks/voice/useVoiceCapture';
+import { useCoachSpeech } from '../../hooks/voice/useCoachSpeech';
 import { useJarvisVoiceLoop, CLARIFY_TIMEOUT_MS } from '../../hooks/voice/useJarvisVoiceLoop';
 import { transcribeAudio, decodeTranscript, COACH_BUSY_MESSAGE } from '../../services/voice/decodeTranscript';
 import type { ParsedWorkout } from '../WorkoutLogger/VoiceMemoUpload';
@@ -32,8 +33,18 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
   const { authAxios } = useAuth();
   const capture = useVoiceCapture();
   const { loop, send } = useJarvisVoiceLoop();
+  const speech = useCoachSpeech(); // S11 talk-back: tier-1 confirmations only
   const [decoded, setDecoded] = React.useState<{ workout: ParsedWorkout; transcript: string } | null>(null);
+  const [lockSendConfirmed, setLockSendConfirmed] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
+
+  // No MediaRecorder → the overlay opens straight into the honest failure
+  // state with "Type instead" one tap away (never a raw crash).
+  React.useEffect(() => {
+    if (!isVoiceCaptureSupported()) {
+      send({ type: 'FAIL', message: 'This browser cannot record audio — type instead.' });
+    }
+  }, [send]);
 
   // Abort in-flight phases on unmount (S7 contract).
   React.useEffect(() => () => abortRef.current?.abort(), []);
@@ -50,7 +61,11 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
   React.useEffect(() => {
     const blob = capture.audioBlob;
     if (capture.state !== 'stopped' || !blob || processedBlobRef.current === blob) return;
+    // F1 lock-safety: a lock-stopped recording is RETAINED and needs the
+    // trainer's explicit "Send it" before any upload happens.
+    if (capture.stoppedByLock && !lockSendConfirmed) return;
     processedBlobRef.current = blob;
+    setLockSendConfirmed(false);
     send({ type: 'CAPTURED' });
     const controller = new AbortController();
     abortRef.current = controller;
@@ -69,7 +84,7 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
       setDecoded({ workout: phaseB.parsedWorkout as ParsedWorkout, transcript: phaseB.transcript });
       send({ type: 'DECODED' });
     })();
-  }, [authAxios, capture.audioBlob, capture.state, clientId, send]);
+  }, [authAxios, capture.audioBlob, capture.state, capture.stoppedByLock, lockSendConfirmed, clientId, send]);
 
   // Denied/errored capture surfaces through the ladder too.
   React.useEffect(() => {
@@ -78,7 +93,12 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
     }
   }, [capture.state, capture.error, send]);
 
-  const holdStart = () => { send({ type: 'LISTEN' }); void capture.start(); };
+  const holdStart = () => {
+    speech.unlockOnGesture(); // iOS primes TTS on the first gesture
+    speech.cancelSpeech(); // half-duplex barge-in: mic press silences Coach
+    send({ type: 'LISTEN' });
+    void capture.start();
+  };
   const holdEnd = () => capture.stop();
   const exit = () => { abortRef.current?.abort(); capture.reset(); send({ type: 'EXIT_TO_TYPING' }); onExit(); };
 
@@ -87,16 +107,27 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
       <ReviewDecodedWorkout
         workout={decoded.workout}
         transcript={decoded.transcript}
-        onCommit={onCommitRows}
+        onCommit={(rows, meta) => {
+          onCommitRows(rows, meta);
+          // S11: tier-1 confirmation only — generic counts, no names possible.
+          speech.speakConfirmation(`Logged. ${rows.length} exercise${rows.length === 1 ? '' : 's'} added for review.`);
+        }}
         onUndo={onUndoCommit}
         onClose={exit}
       />
     );
   }
 
+  const lockPromptVisible = capture.stoppedByLock && !lockSendConfirmed && Boolean(capture.audioBlob);
   return (
     <VoiceModeOverlay
       loop={loop}
+      getAudioLevel={capture.getAudioLevel}
+      confirmPrompt={lockPromptVisible ? {
+        text: 'Recording stopped when the screen locked — send it?',
+        confirmLabel: 'Send it',
+        onConfirm: () => setLockSendConfirmed(true),
+      } : null}
       onHoldStart={holdStart}
       onHoldEnd={holdEnd}
       onTypeInstead={exit}

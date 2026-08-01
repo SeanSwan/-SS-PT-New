@@ -45,3 +45,24 @@ describe('S10 one-mic cutover', () => {
     expect(read('../WorkoutLogger/useJarvisVoiceCutover.ts')).toContain('applyReviewedExerciseRows(rows)');
   });
 });
+
+describe('R10 hostile-loop fixes (final review)', () => {
+  it('S11 talk-back is actually mounted: tier-1 confirmation on commit, barge-in + iOS unlock on hold', () => {
+    expect(container).toContain('useCoachSpeech');
+    expect(container).toContain('speech.speakConfirmation(`Logged.');
+    expect(container).toContain('speech.cancelSpeech()');
+    expect(container).toContain('speech.unlockOnGesture()');
+  });
+
+  it('unsupported browsers land in the honest failure state, never a raw crash', () => {
+    expect(container).toContain('isVoiceCaptureSupported()');
+    expect(container).toContain('cannot record audio — type instead');
+  });
+
+  it('a lock-stopped recording waits for the explicit Send-it confirm', () => {
+    expect(container).toContain('capture.stoppedByLock && !lockSendConfirmed) return;');
+    expect(container).toContain('Recording stopped when the screen locked — send it?');
+    const overlay = read('VoiceModeOverlay/VoiceModeOverlay.tsx');
+    expect(overlay).toContain('voice-lock-confirm');
+  });
+});

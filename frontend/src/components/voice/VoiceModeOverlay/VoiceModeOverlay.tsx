@@ -35,6 +35,8 @@ export interface VoiceModeOverlayProps {
   loop: JarvisLoopState;
   /** Live mic RMS 0..1; sampled via rAF into a CSS var, never state. */
   getAudioLevel?: () => number;
+  /** F1 lock-safety: ask before sending a lock-stopped recording. */
+  confirmPrompt?: { text: string; confirmLabel: string; onConfirm: () => void } | null;
   onHoldStart: () => void;
   onHoldEnd: () => void;
   onTypeInstead: () => void;
@@ -44,7 +46,7 @@ export interface VoiceModeOverlayProps {
 const FACETS = [0, 1, 2, 3, 4];
 
 const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
-  loop, getAudioLevel, onHoldStart, onHoldEnd, onTypeInstead, onClose,
+  loop, getAudioLevel, confirmPrompt, onHoldStart, onHoldEnd, onTypeInstead, onClose,
 }) => {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const orbRef = React.useRef<HTMLDivElement | null>(null);
@@ -107,6 +109,15 @@ const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
         )}
         {loop.errorMessage && loop.state === 'error' && (
           <ClarifyText role="alert">{loop.errorMessage}</ClarifyText>
+        )}
+
+        {confirmPrompt && (
+          <>
+            <ClarifyText role="status" data-testid="voice-lock-confirm">{confirmPrompt.text}</ClarifyText>
+            <TypeInsteadButton type="button" onClick={confirmPrompt.onConfirm}>
+              {confirmPrompt.confirmLabel}
+            </TypeInsteadButton>
+          </>
         )}
 
         <ButtonRow>

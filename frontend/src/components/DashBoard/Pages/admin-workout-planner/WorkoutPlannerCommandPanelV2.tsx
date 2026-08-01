@@ -43,14 +43,6 @@ const NbaChip = styled.button`
   &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
 `;
 
-const Chip = styled.span`
-  display: inline-flex; align-items: center; gap: 6px;
-  min-height: 44px; padding: 0 12px; border-radius: 999px;
-  border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-  color: var(--world-text, var(--text-primary, #E0ECF4));
-  font-family: 'Sora', sans-serif; font-size: 0.78rem; font-weight: 700;
-`;
-
 const ChipSelect = styled.select`
   min-height: 44px; padding: 0 10px; border-radius: 10px;
   background: var(--world-surface, var(--bg-base, #030712));

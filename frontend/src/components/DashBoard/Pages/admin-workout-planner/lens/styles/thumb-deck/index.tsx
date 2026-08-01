@@ -64,7 +64,7 @@ const ThumbDeck: PlannerLensComponent = ({ rolodex, builder, teach, coachDock })
   const [tab, setTab] = React.useState<'builder' | 'exercises'>('builder');
   return (
     <>
-      <Grid>{rolodex}{builder}</Grid>
+      <Grid>{rolodex}{builder}{teach}</Grid>
       <Stage>
         {builder}
         {teach}
