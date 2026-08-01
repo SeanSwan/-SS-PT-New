@@ -257,5 +257,30 @@ export const useWorkoutAiEvents = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convertAIExercises, effectiveClientId]);
 
-  return { handleVoiceMemoParsed };
+  // S10 (JARVIS): the review surface hands back ALREADY-REVIEWED rows —
+  // re-key identities the same way the manual path does, append, and return
+  // the applied ids so a 5s Undo can remove exactly those rows.
+  const applyReviewedExerciseRows = useCallback((rows: ExerciseEntry[]): string[] => {
+    const keyed = rows.map((exercise) =>
+      ensureWorkoutLoggerExerciseRowIdentity(
+        exercise,
+        () => createWorkoutLoggerLocalId('exercise'),
+        () => createWorkoutLoggerLocalId('set'),
+      )
+    );
+    if (keyed.length === 0) return [];
+    setExercises(prev => [...prev, ...keyed]);
+    toast.success(`Added ${keyed.length} exercise${keyed.length === 1 ? '' : 's'} from voice`);
+    return keyed.map(exercise => exercise.exerciseId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createWorkoutLoggerLocalId]);
+
+  const removeExerciseRowsByIds = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const drop = new Set(ids);
+    setExercises(prev => prev.filter(exercise => !drop.has(exercise.exerciseId)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { handleVoiceMemoParsed, applyReviewedExerciseRows, removeExerciseRowsByIds };
 };

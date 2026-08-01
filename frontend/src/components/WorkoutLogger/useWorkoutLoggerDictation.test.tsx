@@ -181,7 +181,7 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
     expect(source).toContain("const canDictate = user?.role === 'admin' || user?.role === 'trainer';");
     expect(source).toContain("const canUseDictation = canDictate && sessionStage === 'train' && !submittedFormId;");
     expect(source).toContain('canDictate={canUseDictation}');
-    expect(source).toContain('{canUseDictation && <LoggerDictationStrip {...dictation} />}');
+    expect(source).toContain('{canUseDictation && !voiceModeV2 && <LoggerDictationStrip {...dictation} />}');
   });
 
   it('never starts browser recognition when the Dictate strip is disabled or unmounted', async () => {

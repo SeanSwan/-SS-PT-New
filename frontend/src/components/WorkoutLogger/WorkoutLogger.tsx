@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Plus, Download, History, UploadCloud } from 'lucide-react';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
+import { isVoiceModeV2Enabled } from '../../hooks/voice/voiceModeV2Flag';
+import JarvisVoiceMode from '../voice/JarvisVoiceMode';
+import { useJarvisVoiceCutover } from './useJarvisVoiceCutover';
 import { useLastWeightSuggestions } from './useLastWeightSuggestions';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -197,7 +200,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const canUseDictation = canDictate && sessionStage === 'train' && !submittedFormId;
-  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null, enabled: canUseDictation });
+  const voiceModeV2 = isVoiceModeV2Enabled(); // S10 one-mic cutover — see useJarvisVoiceCutover
+  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null, enabled: canUseDictation && !voiceModeV2 });
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
   // Phase 2.1a: saved form powers SaveSuccessPanel; onComplete deferred to Done.
   const [lastSaveResponse, setLastSaveResponse] = useState<DailyWorkoutForm | null>(null);
@@ -268,7 +272,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Loaded Phase ${phase} template - ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
   }, [createWorkoutLoggerLocalId]);
 
-  const { handleVoiceMemoParsed } = useWorkoutAiEvents({
+  const { handleVoiceMemoParsed, applyReviewedExerciseRows, removeExerciseRowsByIds } = useWorkoutAiEvents({
     effectiveClientId,
     createWorkoutLoggerLocalId,
     exercisesRef,
@@ -281,6 +285,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     pendingAiPlanPrefillLoadedRef,
     restTimer,
   });
+  const jarvis = useJarvisVoiceCutover({ applyReviewedExerciseRows, removeExerciseRowsByIds });
 
   const {
     client,
@@ -729,7 +734,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
-          {canUseDictation && <LoggerDictationStrip {...dictation} />}
+          {canUseDictation && !voiceModeV2 && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
             <RunnerEmptyState
@@ -855,12 +860,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           }}
           rest={runnerEngine.rest}
           canDictate={canUseDictation}
-          dictationActive={dictation.active}
-          onToggleDictation={dictation.toggle}
+          dictationActive={voiceModeV2 ? jarvis.jarvisOpen : dictation.active}
+          onToggleDictation={voiceModeV2 ? jarvis.toggleJarvis : dictation.toggle}
           onOpenCoach={() => setShowCoachDrawer(true)}
         />
         </ShellZoneBoundary>
       </WorkoutLoggerContainer>
+      {voiceModeV2 && jarvis.jarvisOpen && typeof effectiveClientId === 'number' && (
+        <JarvisVoiceMode clientId={effectiveClientId} onCommitRows={jarvis.commitRows} onUndoCommit={jarvis.undoCommit} onExit={jarvis.closeJarvis} />
+      )}
       <WorkoutLoggerConfirmDialog
         request={confirmRequest}
         onClose={() => setConfirmRequest(null)}
