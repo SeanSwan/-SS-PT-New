@@ -1,16 +1,13 @@
-# S17 UNBLOCKED — S15/S16 landed (Fable, 2026-07-31)
+# S17/S18 SHIPPED — chain closed through S18 (Fable, 2026-07-31)
 
-S15 contexts cutover committed (`refactor(planner): S15`) and S16 command panel V2 committed
-(`feat(planner): S16`) on `codex/jarvis-s2-vocab-bias-20260731`, on top of S13/S14.
+Pushed to main `dce965656..a2f673f83`: S2-S5 + S13-S18. All PLANNER_IA_V2 work is DARK (flag off).
+S17 `9eafd0af6` (mobile tabs, Rolodex sheet, SaveBar via resolveSaveBar, PlannerSkeleton/Empty/Error).
+S18 `a2f673f83` (Rolodex V2: filters sheet, 150ms debounced search-first, Plan tab, 5s add-Undo).
 
-What now exists for S17:
-- Four contexts under `plannerContexts/` (PlannerData/UI/Actions/Voice) + WorkoutPlannerProvider;
-  page is a 21-line shell; layout consumes contexts with zero props.
-- `PLANNER_IA_V2` flag (`plannerIaV2Flag.ts`, default OFF) gates `WorkoutPlannerCommandPanelV2`.
-- `endpointFor(scope)` is the sole endpoint selector (fenced by `plannerIaV2.contract.test.ts`).
-- S15 fence: `plannerContexts/plannerContextBoundary.test.ts` (page/layout caps, fetch ban).
+Open items for the flag-flip QA pass (recorded, not silently cut):
+- Live axe run + S13 Playwright snapshot re-run at 375/1280 with PLANNER_IA_V2 on AND off.
+- Rolodex deferrals: row media previews, NASM movement-pattern facet, pain-excluded-with-reason
+  (needs Cortex exclusions surfaced into the rolodex feed — backend slice).
+- SaveBar unavailable items: Save as template (S24), Assign/Schedule (schedule link-up), Discard.
 
-Codex next action: recheck the S13 snapshot fence, then build S17 (mobile IA + SaveBar +
-skeleton/empty consolidation, under PLANNER_IA_V2) with the two-review repair protocol.
-`resolveSaveBar` (S14) is still unwired — S17 wires it. Gates at S16 close: planner 363/363,
-logger 721/721, tsc 0, vite build green.
+Next JARVIS slices: FINISHER S6-S10 (voice pipeline), S12, S19 (lens registry) — Fable/Opus lane.
