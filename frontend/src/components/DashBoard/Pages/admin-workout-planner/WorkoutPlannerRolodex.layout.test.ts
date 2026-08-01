@@ -21,6 +21,8 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
     expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 156;');
     expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
+    expect(ROLODEX_PANEL_SOURCE).toMatch(/defaultHeight:\s*520/);
+    expect(ROLODEX_PANEL_SOURCE).not.toMatch(/VIRTUAL_LIST_STYLE = \{ height:/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?display:\s*grid/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/grid-template-columns:\s*clamp\(72px, 24%, 96px\) minmax\(0, 1fr\) 44px/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?display:\s*flex/);

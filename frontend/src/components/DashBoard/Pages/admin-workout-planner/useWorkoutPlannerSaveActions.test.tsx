@@ -107,6 +107,53 @@ describe('useWorkoutPlannerSaveActions', () => {
     });
   });
 
+  it('keeps the generated-plan create body byte-for-byte contract-shaped', async () => {
+    const authAxios = {
+      post: vi.fn((url: string) => (
+        url === '/api/workout-plans'
+          ? Promise.resolve({ data: { plan: { id: 'plan-26', title: 'Client Plan' }, pdfDerivative: { enabled: true, state: 'pending' } } })
+          : Promise.resolve({ data: { success: true } })
+      )),
+      put: vi.fn(),
+    };
+    const input = makeHookInput(authAxios);
+    const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
+
+    // Capture independently before invoking the hook. Reusing the fixture object
+    // here would let a mutation of planData make both actual and expected agree.
+    const expectedPlanData = structuredClone(planData);
+    const expectedRequest = ['/api/workout-plans', {
+      userId: 42,
+      title: "Client's Strength Endurance Plan",
+      description: 'Full Body — strength',
+      nasmPhase: 2,
+      durationWeeks: 26,
+      status: 'draft',
+      planData: expectedPlanData,
+      createdBy: 'swan_coach_planning',
+      metadata: {
+        planHorizon: 'six_month',
+        horizonKey: 'six_month',
+        planDurationKey: 'six_month',
+        durationPreset: '26',
+        durationWeeks: 26,
+        planSource: 'swan_coach_planning',
+        createdByRole: 'trainer',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      },
+    }];
+
+    await act(async () => {
+      await result.current.handleSaveDraft();
+    });
+
+    expect(authAxios.post).toHaveBeenCalledTimes(1);
+    expect(authAxios.put).not.toHaveBeenCalled();
+    expect(JSON.stringify(authAxios.post.mock.calls[0])).toBe(JSON.stringify(expectedRequest));
+  });
+
   it('uses the update derivative response without browser PDF upload', async () => {
     const authAxios = {
       post: vi.fn().mockResolvedValue({ data: { success: true } }),

@@ -20,6 +20,10 @@ export {
 // -----------------------------------------------------------------------------
 // SECTION: Builder Exercise Row
 // -----------------------------------------------------------------------------
+export const BuilderExerciseList = styled.div`
+  container-type: inline-size;
+`;
+
 export const BuilderRow = styled.div`
   display: flex;
   align-items: center;
@@ -34,8 +38,10 @@ export const BuilderRow = styled.div`
 
   &:hover { border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent); }
 
-  @media (max-width: 430px) {
-    flex-wrap: wrap;
+  @container (max-width: 640px) {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 44px 44px;
+    align-items: start;
     padding: 8px 10px;
     gap: 6px;
   }
