@@ -33,7 +33,7 @@ describe('plannerViewMode', () => {
     // Source lock: the initializer must consult the pref, not hardcode 'auto'.
     const { readFileSync } = require('node:fs') as typeof import('node:fs');
     const { resolve } = require('node:path') as typeof import('node:path');
-    const page = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx'), 'utf8');
+    const page = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts'), 'utf8');
     expect(page).toContain('generationModeForPlannerView(readPlannerViewMode())');
     const sections = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.sections.tsx'), 'utf8');
     expect(sections).toContain('data-testid="planner-view-toggle"');

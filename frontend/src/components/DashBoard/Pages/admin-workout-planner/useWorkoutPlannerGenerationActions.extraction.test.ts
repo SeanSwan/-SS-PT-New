@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerGenerationActions.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 const helpersPath = resolve(__dirname, 'workoutPlannerGenerationActions.helpers.ts');
@@ -13,7 +13,7 @@ const helpersSource = existsSync(helpersPath) ? readFileSync(helpersPath, 'utf8'
 
 describe('WorkoutPlanner generation action extraction', () => {
   it('keeps Swan Coach workout and horizon generation outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerGenerationActions'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerGenerationActions'");
     expect(pageSource).not.toContain('const [generating, setGenerating]');
     expect(pageSource).not.toContain('const [generatingPlan, setGeneratingPlan]');
     expect(pageSource).not.toContain('const [degradedIntelligence, setDegradedIntelligence]');

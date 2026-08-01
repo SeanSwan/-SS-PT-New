@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerSaveActions.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 
 describe('WorkoutPlanner save action extraction', () => {
   it('keeps save and update network actions outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerSaveActions'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerSaveActions'");
     expect(pageSource).not.toContain('const [saving, setSaving]');
     expect(pageSource).not.toContain('const handleSaveDraft = useCallback');
     expect(pageSource).not.toContain('const handleSaveAndActivate = useCallback');

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PAGE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerPage.tsx'), 'utf8');
+const PAGE_SOURCE = readFileSync(resolve(__dirname, './plannerContexts/useWorkoutPlannerOrchestration.ts'), 'utf8');
 const CLIENT_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerClientState.ts'), 'utf8');
 const ROLODEX_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerRolodexState.tsx'), 'utf8');
 const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
@@ -94,7 +94,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   it('honors a clientId deep link from Client Hub before defaulting to the first client', () => {
     expect(PAGE_SOURCE).toMatch(/useSearchParams/);
     expect(PAGE_SOURCE).toMatch(/requestedClientId/);
-    expect(PAGE_SOURCE).toContain("from './useWorkoutPlannerClientState'");
+    expect(PAGE_SOURCE).toContain("from '../useWorkoutPlannerClientState'");
     expect(CLIENT_STATE_SOURCE).toMatch(/const requestedOrSelfClientId = requestedClientId \?\? selfClient\?\.id \?\? null;/);
     expect(CLIENT_STATE_SOURCE).toMatch(/setSelectedClientId\(pickWorkoutPlannerClientId\(clients, requestedOrSelfClientId\)\)/);
   });
