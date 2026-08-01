@@ -54,6 +54,36 @@ export const plannerLensRegistry: Partial<Record<PlannerLensId, PlannerLensRegis
     blurb: 'Program-first: a week strip drives the day below.',
     load: () => import('./styles/week-ribbon'),
   },
+  'coach-console': {
+    id: 'coach-console',
+    name: 'Coach Console',
+    blurb: 'Coach and Teach lead; the builder rides shotgun.',
+    load: () => import('./styles/coach-console'),
+  },
+  blueprint: {
+    id: 'blueprint',
+    name: 'Blueprint',
+    blurb: 'Print-calm single column, high contrast, no hover chrome.',
+    load: () => import('./styles/blueprint'),
+  },
+  'focus-lane': {
+    id: 'focus-lane',
+    name: 'Focus Lane',
+    blurb: 'One thing per screen, giant type, explicit Next and Back.',
+    load: () => import('./styles/focus-lane'),
+  },
+  'rolodex-first': {
+    id: 'rolodex-first',
+    name: 'Rolodex First',
+    blurb: 'The library is the hero; the session rides a bottom tray.',
+    load: () => import('./styles/rolodex-first'),
+  },
+  'signal-board': {
+    id: 'signal-board',
+    name: 'Signal Board',
+    blurb: 'Telemetry first — one chart, adherence at a glance.',
+    load: () => import('./styles/signal-board'),
+  },
 };
 
 export const isRegisteredPlannerLensId = (id: string): id is PlannerLensId =>
