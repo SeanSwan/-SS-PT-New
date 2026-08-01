@@ -30,6 +30,30 @@ export const plannerLensRegistry: Partial<Record<PlannerLensId, PlannerLensRegis
     blurb: 'The proven three-panel studio — exactly as today.',
     load: () => ({ default: StudioClassic }),
   },
+  'thumb-deck': {
+    id: 'thumb-deck',
+    name: 'Thumb Deck',
+    blurb: 'Gym-floor mobile: bottom tabs, roomy rows, Coach up front.',
+    load: () => import('./styles/thumb-deck'),
+  },
+  'ledger-grid': {
+    id: 'ledger-grid',
+    name: 'Ledger Grid',
+    blurb: 'Dense desktop ledger — compact, tabular, zero motion.',
+    load: () => import('./styles/ledger-grid'),
+  },
+  'card-stack': {
+    id: 'card-stack',
+    name: 'Card Stack',
+    blurb: 'One day at a time; everything else is a toggle away.',
+    load: () => import('./styles/card-stack'),
+  },
+  'week-ribbon': {
+    id: 'week-ribbon',
+    name: 'Week Ribbon',
+    blurb: 'Program-first: a week strip drives the day below.',
+    load: () => import('./styles/week-ribbon'),
+  },
 };
 
 export const isRegisteredPlannerLensId = (id: string): id is PlannerLensId =>
