@@ -15,6 +15,7 @@ import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
 import WorkoutPlannerCommandPanelV2 from './WorkoutPlannerCommandPanelV2';
 import WorkoutPlannerV2Shell from './WorkoutPlannerV2Shell';
+import WorkoutPlannerRolodexPanelV2 from './WorkoutPlannerRolodexPanelV2';
 import PlannerSaveBarBinding from './PlannerSaveBarBinding';
 import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
@@ -216,7 +217,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
       return iaV2 ? (
         <WorkoutPlannerV2Shell
           teachModeOpen={teachModeOpen}
-          rolodex={rolodexEl}
+          rolodex={<WorkoutPlannerRolodexPanelV2 />}
           builder={builderEl}
           teach={teachEl}
           coachDock={coachDockEl || undefined}
