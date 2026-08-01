@@ -20,6 +20,7 @@ import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 import { OPT_PHASES, PLAN_GOALS, WORKOUT_CATEGORIES, PLAN_DURATIONS, type PlanDuration } from './WorkoutPlannerTypes';
 import type { PlannerScope } from './plannerLogic/endpointFor';
 import { resolveNextBestAction } from './plannerLogic/resolveNextBestAction';
+import { resolveNbaPresentation } from './plannerLogic/resolveNbaPresentation';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import WorkoutPlannerGenerationModeSection from './WorkoutPlannerGenerationModeSection';
 import WorkoutPlannerTrainingStyleSection from './WorkoutPlannerTrainingStyleSection';
@@ -30,6 +31,16 @@ const Bar = styled.section`
   background: var(--world-surface, var(--bg-base, #030712));
   border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
   border-radius: 12px;
+`;
+
+const NbaChip = styled.button`
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
+  color: var(--world-text, var(--text-primary, #E0ECF4));
+  font-family: 'Sora', sans-serif; font-size: 0.78rem; font-weight: 700;
+  &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
 `;
 
 const Chip = styled.span`
@@ -116,6 +127,7 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
   const data = usePlannerData();
   const act = usePlannerActions();
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
+  const clientSelectRef = React.useRef<HTMLSelectElement | null>(null);
 
   const { phaseNumber, category, goal, planDuration, generationMode, sessionsPerWeek } = data.local;
   const { clients, clientsLoading, selectedClientId, clientGenBlocked, isViewerClient } = data.clientState;
@@ -135,10 +147,20 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
     now: Date.now(),
   }), [clients, data.savedPlansState.savedPlans, selectedClientId]);
 
-  const nbaCopy = nba.kind === 'pick_client' ? 'Pick a client to start'
-    : nba.kind === 'missing_plan' ? 'A client has no active plan'
-    : nba.kind === 'plan_expired' ? 'A plan has ended — plan the next block'
-    : 'Ready to build';
+  // S23: chip copy + tap action come from the pure 6-row table mapper.
+  const initialsById = React.useMemo(() => new Map(clients.map(c => [c.id, `${c.firstName?.[0] ?? ''}${c.lastName?.[0] ?? ''}`])), [clients]);
+  const nbaView = resolveNbaPresentation(nba, initialsById);
+  const onNbaTap = () => {
+    const action = nbaView.action;
+    if (action.kind === 'preselect_client') act.clientState.handleClientSelectionChange(String(action.clientId));
+    else if (action.kind === 'preselect_multi_week') {
+      act.clientState.handleClientSelectionChange(String(action.clientId));
+      if (scope !== 'multi_week') act.pageActions.handlePlanDurationChange(durationForScope('multi_week'));
+    }
+    // 'open_safety_review': the SafetyGateModal opens itself on a pending 409
+    // review — nothing to force here. 'focus_client_picker': below.
+    else if (action.kind === 'focus_client_picker') clientSelectRef.current?.focus();
+  };
 
   const setScope = (next: PlannerScope) => {
     if (next !== scope) act.pageActions.handlePlanDurationChange(durationForScope(next));
@@ -153,6 +175,7 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
     <>
       <Bar aria-label="Planner context">
         <ChipSelect
+          ref={clientSelectRef}
           aria-label="Select client"
           value={selectedClientId ?? ''}
           disabled={clientsLoading || isViewerClient}
@@ -168,7 +191,9 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
         >
           {OPT_PHASES.map(p => <option key={p.phase} value={p.phase}>Phase {p.phase} · {p.name}</option>)}
         </ChipSelect>
-        <Chip data-testid="planner-nba-chip"><Sparkles size={14} aria-hidden />{nbaCopy}</Chip>
+        <NbaChip type="button" data-testid="planner-nba-chip" onClick={onNbaTap}>
+          <Sparkles size={14} aria-hidden />{nbaView.copy}
+        </NbaChip>
       </Bar>
 
       <Bar aria-label="Planner scope and generate">
