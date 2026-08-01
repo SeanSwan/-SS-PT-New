@@ -13,12 +13,16 @@ import { usePlannerData } from './plannerContexts/PlannerDataContext';
 import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import WorkoutPlannerSaveBar from './WorkoutPlannerSaveBar';
+import { isPlannerTemplatesEnabled } from './plannerTemplatesFlag';
 
-const UNAVAILABLE: Record<string, string> = {
-  'Save as template': 'Templates are coming soon',
+const BASE_UNAVAILABLE: Record<string, string> = {
   Deactivate: 'Deactivate from the saved plans list below',
   Discard: 'Remove rows individually for now',
 };
+// S24: templates unlock only under PLANNER_TEMPLATES.
+const UNAVAILABLE: Record<string, string> = isPlannerTemplatesEnabled()
+  ? BASE_UNAVAILABLE
+  : { ...BASE_UNAVAILABLE, 'Save as template': 'Templates are coming soon' };
 
 const PlannerSaveBarBinding: React.FC = () => {
   const data = usePlannerData();
@@ -59,6 +63,7 @@ const PlannerSaveBarBinding: React.FC = () => {
     else if (item === 'Delete' && loadedPlan) act.savedPlansState.handleCardArchive(loadedPlan.id, loadedPlan.name);
     else if (item === 'Revert' && loadedPlanId && loadedPlanName) act.pageActions.handleLoadPlan(loadedPlanId, loadedPlanName);
     else if (item === 'View active plan' && activePlan) act.pageActions.handleLoadPlan(activePlan.id, activePlan.name);
+    else if (item === 'Save as template') void act.saveActions.handleSaveAsTemplate();
     else if (item === 'Create PDF') act.pdf.handleCreateBuilderPdf();
   };
 

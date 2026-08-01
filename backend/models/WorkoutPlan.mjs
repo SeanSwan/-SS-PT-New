@@ -175,6 +175,21 @@ WorkoutPlan.init({
     allowNull: true,
     defaultValue: {},
     comment: 'Extra data: equipment preferences, injury notes, etc.'
+  },
+  // S24 (JARVIS §4.6): trainer-owned reusable templates. A template's userId
+  // is the TRAINER's own id (client id is scrubbed at the API boundary).
+  isTemplate: {
+    type: DataTypes.BOOLEAN,
+    field: 'is_template',
+    allowNull: false,
+    defaultValue: false,
+    comment: 'True for client-scrubbed reusable templates (S24)'
+  },
+  templateMeta: {
+    type: DataTypes.JSONB,
+    field: 'template_meta',
+    allowNull: true,
+    comment: 'Template facets: { name, phase, split, weeks, tags[] }'
   }
 }, {
   sequelize,
