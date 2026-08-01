@@ -17,6 +17,7 @@ import WorkoutPlannerCommandPanelV2 from './WorkoutPlannerCommandPanelV2';
 import WorkoutPlannerV2Shell from './WorkoutPlannerV2Shell';
 import WorkoutPlannerRolodexPanelV2 from './WorkoutPlannerRolodexPanelV2';
 import PlannerSaveBarBinding from './PlannerSaveBarBinding';
+import PlanVsActualStrip from './PlanVsActualStrip';
 import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
 import { isPlannerLensStylesEnabled } from './lens/plannerLensFlag';
 import PlannerLensHost from './lens/PlannerLensHost';
@@ -225,6 +226,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
             teach={teachEl}
             coachDock={coachDockEl || undefined}
             saveBar={<PlannerSaveBarBinding />}
+            program={<PlanVsActualStrip />}
           />
         );
       }
