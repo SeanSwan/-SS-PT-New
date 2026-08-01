@@ -132,7 +132,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     ? normalizeWorkoutDate(scheduledSessionDate)
     : normalizeWorkoutDate(null);
   const coachCommandRoute = buildWorkoutLoggerCoachRoute({ userRole: user?.role, clientId: effectiveClientId, selfMode: isClientSelfMode, workoutDate: workoutDateValue, scheduledSessionId, scheduledSessionDate, scheduledSessionCreditHint });
-
   // C4a: a stored draft BEATS ?loadPlan=today — synchronous peek (no effect-
   // order race); the plan auto-loads only after an explicit discard.
   const [draftGate, setDraftGate] = useState<WorkoutDraftGate>(() => (
@@ -280,6 +279,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     currentOPTPhase,
     protocolSectionSetters,
     pendingAiPlanPrefillLoadedRef,
+    restTimer,
   });
 
   const {

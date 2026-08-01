@@ -8,7 +8,7 @@
  * from WorkoutLogger.tsx — behavior, deps, and the deliberate
  * exhaustive-deps exclusions are unchanged.
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import type { ExerciseEntry } from '../../services/nasmApiService';
 import {
@@ -18,6 +18,8 @@ import {
   type WorkoutExerciseTransfer,
 } from '../../utils/parseAIWorkoutPlan';
 import {
+  AI_REST_ADJUST,
+  AI_REST_SKIP,
   AI_UPDATE_SET,
   type AIWorkoutEventAck,
   type AIUpdateSetPayload,
@@ -49,6 +51,7 @@ export interface WorkoutAiEventsParams {
   currentOPTPhase: number;
   protocolSectionSetters: Record<ProtocolSectionKey, React.Dispatch<React.SetStateAction<ProtocolSelection[]>>>;
   pendingAiPlanPrefillLoadedRef: React.MutableRefObject<boolean>;
+  restTimer: { isRunning: boolean; start: (seconds?: number) => void; stop: () => void };
 }
 
 export const useWorkoutAiEvents = ({
@@ -62,7 +65,10 @@ export const useWorkoutAiEvents = ({
   currentOPTPhase,
   protocolSectionSetters,
   pendingAiPlanPrefillLoadedRef,
+  restTimer,
 }: WorkoutAiEventsParams) => {
+  const restTimerRef = useRef(restTimer);
+  restTimerRef.current = restTimer;
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
     return convertAIWorkoutExercisesToEntries(incoming, createWorkoutLoggerLocalId);
   }, [createWorkoutLoggerLocalId]);
@@ -164,6 +170,19 @@ export const useWorkoutAiEvents = ({
         toast.success(`Updated ${detail.exerciseName}`);
       }
     };
+    const onRestSkip = (e: Event) => {
+      const timer = restTimerRef.current;
+      if (!timer.isRunning) { acknowledgeAIWorkoutEvent(e, false); return; }
+      timer.stop();
+      acknowledgeAIWorkoutEvent(e);
+    };
+    const onRestAdjust = (e: Event) => {
+      const timer = restTimerRef.current;
+      const seconds = Number((e as CustomEvent<{ seconds?: unknown }>).detail?.seconds);
+      if (!timer.isRunning || !Number.isFinite(seconds) || seconds < 1 || seconds > 600) { acknowledgeAIWorkoutEvent(e, false); return; }
+      timer.start(Math.round(seconds));
+      acknowledgeAIWorkoutEvent(e);
+    };
     const onToggleItem = (e: Event) => {
       const d = (e as CustomEvent).detail;
       if (!d?.section) return;
@@ -211,11 +230,15 @@ export const useWorkoutAiEvents = ({
     window.addEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
     window.addEventListener('AI_ADD_EXERCISE', onAddExercise);
     window.addEventListener(AI_UPDATE_SET, onUpdateSet);
+    window.addEventListener(AI_REST_SKIP, onRestSkip);
+    window.addEventListener(AI_REST_ADJUST, onRestAdjust);
     window.addEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     return () => {
       window.removeEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
       window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
       window.removeEventListener(AI_UPDATE_SET, onUpdateSet);
+      window.removeEventListener(AI_REST_SKIP, onRestSkip);
+      window.removeEventListener(AI_REST_ADJUST, onRestAdjust);
       window.removeEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
