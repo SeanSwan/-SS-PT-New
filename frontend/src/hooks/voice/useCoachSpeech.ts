@@ -16,7 +16,7 @@
  *   behind VOICE_TTS_DEFAULT_ON tier review (browser TTS is the default).
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const MUTE_KEY = 'ss.coach.speech.muted.v1';
 
@@ -57,8 +57,12 @@ export function useCoachSpeech(rosterNames: readonly string[] = []) {
   const [muted, setMuted] = useState(readCoachSpeechMuted);
   const [speaking, setSpeaking] = useState(false);
   const unlockedRef = useRef(false);
+  const ownsSpeechRef = useRef(false);
+  const speechGenerationRef = useRef(0);
 
-  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const supported = typeof window !== 'undefined'
+    && 'speechSynthesis' in window
+    && typeof SpeechSynthesisUtterance !== 'undefined';
 
   /** Call from any first user gesture — iOS refuses un-primed synthesis. */
   const unlockOnGesture = useCallback(() => {
@@ -71,23 +75,51 @@ export function useCoachSpeech(rosterNames: readonly string[] = []) {
 
   /** Barge-in: synchronous cancel — the mic press calls this FIRST. */
   const cancelSpeech = useCallback(() => {
-    if (supported) window.speechSynthesis.cancel();
+    speechGenerationRef.current += 1;
+    if (supported && ownsSpeechRef.current) window.speechSynthesis.cancel();
+    ownsSpeechRef.current = false;
     setSpeaking(false);
+  }, [supported]);
+
+  // Any next tap is a truthful v1 barge-in: cancel synchronously before the
+  // tapped control continues its own action.
+  useEffect(() => {
+    if (!speaking) return undefined;
+    const cancelOnNextInteraction = () => cancelSpeech();
+    window.addEventListener('pointerdown', cancelOnNextInteraction, { capture: true, once: true });
+    window.addEventListener('keydown', cancelOnNextInteraction, { capture: true, once: true });
+    return () => {
+      window.removeEventListener('pointerdown', cancelOnNextInteraction, { capture: true });
+      window.removeEventListener('keydown', cancelOnNextInteraction, { capture: true });
+    };
+  }, [cancelSpeech, speaking]);
+
+  useEffect(() => () => {
+    speechGenerationRef.current += 1;
+    if (supported && ownsSpeechRef.current) window.speechSynthesis?.cancel();
+    ownsSpeechRef.current = false;
   }, [supported]);
 
   const speakConfirmation = useCallback((text: string) => {
     if (!supported || muted) return false;
     if (!isTierOneConfirmation(text)) return false; // tier-1 only, by law
     const safe = assertNoNames(text, rosterNames);
-    window.speechSynthesis.cancel();
+    cancelSpeech();
+    const generation = ++speechGenerationRef.current;
     const utterance = new SpeechSynthesisUtterance(safe);
     utterance.rate = 1.05;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    const finishOwnedSpeech = () => {
+      if (speechGenerationRef.current !== generation) return;
+      ownsSpeechRef.current = false;
+      setSpeaking(false);
+    };
+    utterance.onend = finishOwnedSpeech;
+    utterance.onerror = finishOwnedSpeech;
+    ownsSpeechRef.current = true;
     setSpeaking(true);
     window.speechSynthesis.speak(utterance);
     return true;
-  }, [supported, muted, rosterNames]);
+  }, [cancelSpeech, supported, muted, rosterNames]);
 
   const toggleMute = useCallback(() => {
     setMuted(current => {

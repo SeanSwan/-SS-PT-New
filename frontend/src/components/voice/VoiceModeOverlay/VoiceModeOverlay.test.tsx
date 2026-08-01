@@ -4,7 +4,6 @@
  * + functional in every state; dialog semantics + Esc close; the orb is the
  * one center object (no waveform); amplitude rides a CSS var, not state.
  */
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -66,5 +65,110 @@ describe('S9 VoiceModeOverlay', () => {
     renderAt(at('clarifying', { clarifyQuestion: 'Which bench?', transcript: 'bench 3x8' }));
     expect(screen.getByRole('status').textContent).toBe('Which bench?');
     expect(screen.getByLabelText('What Coach heard').textContent).toBe('bench 3x8');
+  });
+
+  it('disables hold during non-listenable phases and never calls capture handlers', () => {
+    const onHoldStart = vi.fn();
+    const onHoldEnd = vi.fn();
+    render(
+      <VoiceModeOverlay
+        loop={at('transcribing')}
+        holdDisabled
+        onHoldStart={onHoldStart}
+        onHoldEnd={onHoldEnd}
+        onTypeInstead={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const hold = screen.getByRole('button', { name: /hold to talk/i });
+    expect(hold).toBeDisabled();
+    fireEvent.pointerDown(hold, { pointerId: 7 });
+    fireEvent.click(hold, { detail: 0 });
+    expect(onHoldStart).not.toHaveBeenCalled();
+    expect(onHoldEnd).not.toHaveBeenCalled();
+  });
+
+  it('captures the pointer so release remains owned by the hold button', () => {
+    const onHoldStart = vi.fn();
+    const onHoldEnd = vi.fn();
+    render(
+      <VoiceModeOverlay
+        loop={at('idle')}
+        onHoldStart={onHoldStart}
+        onHoldEnd={onHoldEnd}
+        onTypeInstead={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const hold = screen.getByRole('button', { name: /hold to talk/i });
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(hold, 'setPointerCapture', { configurable: true, value: setPointerCapture });
+    fireEvent.pointerDown(hold, { pointerId: 11 });
+    fireEvent.pointerUp(hold, { pointerId: 11 });
+    expect(setPointerCapture).toHaveBeenCalledWith(11);
+    expect(onHoldStart).toHaveBeenCalledTimes(1);
+    expect(onHoldEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('delivers release once even if the control becomes disabled mid-hold', () => {
+    const onHoldStart = vi.fn();
+    const onHoldEnd = vi.fn();
+    const props = {
+      onHoldStart,
+      onHoldEnd,
+      onTypeInstead: vi.fn(),
+      onClose: vi.fn(),
+    };
+    const { rerender } = render(<VoiceModeOverlay loop={at('idle')} {...props} />);
+    const hold = screen.getByRole('button', { name: /hold to talk/i });
+    Object.defineProperty(hold, 'setPointerCapture', { configurable: true, value: vi.fn() });
+    fireEvent.pointerDown(hold, { pointerId: 17 });
+    rerender(<VoiceModeOverlay loop={at('transcribing')} holdDisabled {...props} />);
+    fireEvent.pointerUp(hold, { pointerId: 17 });
+    fireEvent.pointerCancel(hold, { pointerId: 17 });
+    expect(onHoldStart).toHaveBeenCalledTimes(1);
+    expect(onHoldEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports keyboard and assistive-tech click activation as a start-stop latch', () => {
+    const onHoldStart = vi.fn();
+    const onHoldEnd = vi.fn();
+    render(
+      <VoiceModeOverlay
+        loop={at('idle')}
+        onHoldStart={onHoldStart}
+        onHoldEnd={onHoldEnd}
+        onTypeInstead={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const hold = screen.getByRole('button', { name: /hold to talk/i });
+    fireEvent.click(hold, { detail: 0 });
+    expect(hold.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(hold, { detail: 0 });
+    expect(onHoldStart).toHaveBeenCalledTimes(1);
+    expect(onHoldEnd).toHaveBeenCalledTimes(1);
+    expect(hold.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('does not turn the pointer click following release into a second capture', () => {
+    const onHoldStart = vi.fn();
+    const onHoldEnd = vi.fn();
+    render(
+      <VoiceModeOverlay
+        loop={at('idle')}
+        onHoldStart={onHoldStart}
+        onHoldEnd={onHoldEnd}
+        onTypeInstead={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const hold = screen.getByRole('button', { name: /hold to talk/i });
+    Object.defineProperty(hold, 'setPointerCapture', { configurable: true, value: vi.fn() });
+    fireEvent.pointerDown(hold, { pointerId: 21 });
+    fireEvent.pointerUp(hold, { pointerId: 21 });
+    fireEvent.click(hold, { detail: 1 });
+    expect(onHoldStart).toHaveBeenCalledTimes(1);
+    expect(onHoldEnd).toHaveBeenCalledTimes(1);
   });
 });

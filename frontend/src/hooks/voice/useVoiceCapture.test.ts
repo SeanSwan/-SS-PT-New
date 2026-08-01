@@ -23,11 +23,31 @@ class FakeRecorder {
 }
 
 const getUserMedia = vi.fn();
+const trackStop = vi.fn();
+const audioContextResume = vi.fn().mockResolvedValue(undefined);
+const audioContextClose = vi.fn().mockResolvedValue(undefined);
+
+class FakeAudioContext {
+  static instances: FakeAudioContext[] = [];
+  state: AudioContextState = 'suspended';
+  resume = audioContextResume;
+  close = audioContextClose;
+  createAnalyser = () => ({ fftSize: 256, getByteTimeDomainData: vi.fn() });
+  createMediaStreamSource = () => ({ connect: vi.fn() });
+  constructor() { FakeAudioContext.instances.push(this); }
+}
+
+const mediaStream = () => ({ getTracks: () => [{ stop: trackStop }] });
 
 beforeEach(() => {
   FakeRecorder.instances = [];
-  getUserMedia.mockReset().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] });
+  FakeAudioContext.instances = [];
+  trackStop.mockReset();
+  audioContextResume.mockClear();
+  audioContextClose.mockClear();
+  getUserMedia.mockReset().mockResolvedValue(mediaStream());
   vi.stubGlobal('MediaRecorder', FakeRecorder as unknown as typeof MediaRecorder);
+  vi.stubGlobal('AudioContext', FakeAudioContext as unknown as typeof AudioContext);
   Object.defineProperty(navigator, 'mediaDevices', {
     configurable: true, value: { getUserMedia },
   });
@@ -54,6 +74,7 @@ describe('S6 useVoiceCapture', () => {
     expect(result.current.state).toBe('stopped');
     expect(result.current.audioBlob).not.toBeNull();
     expect(result.current.stoppedByLock).toBe(false);
+    expect(audioContextClose).toHaveBeenCalledTimes(1);
   });
 
   it('auto-stops at the 120s ceiling', async () => {
@@ -96,5 +117,68 @@ describe('S6 useVoiceCapture', () => {
     await act(async () => { await result.current.start(); });
     expect(result.current.state).toBe('denied');
     expect(result.current.error).toMatch(/type instead/i);
+    expect(audioContextClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('primes and resumes AudioContext inside the start gesture before mic permission settles', async () => {
+    let resolvePermission!: (stream: ReturnType<typeof mediaStream>) => void;
+    getUserMedia.mockReturnValue(new Promise(resolve => { resolvePermission = resolve; }));
+    const { result } = renderHook(() => useVoiceCapture());
+    let startPromise!: Promise<void>;
+    act(() => { startPromise = result.current.start(); });
+    expect(FakeAudioContext.instances).toHaveLength(1);
+    expect(audioContextResume).toHaveBeenCalledTimes(1);
+    await act(async () => { resolvePermission(mediaStream()); await startPromise; });
+  });
+
+  it('coalesces repeated starts while the permission request is still pending', async () => {
+    let resolvePermission!: (stream: ReturnType<typeof mediaStream>) => void;
+    getUserMedia.mockReturnValue(new Promise(resolve => { resolvePermission = resolve; }));
+    const { result } = renderHook(() => useVoiceCapture());
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => { first = result.current.start(); second = result.current.start(); });
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    await act(async () => { resolvePermission(mediaStream()); await Promise.all([first, second]); });
+    expect(FakeRecorder.instances).toHaveLength(1);
+  });
+
+  it('stops a late permission stream instead of opening a recorder after unmount', async () => {
+    let resolvePermission!: (stream: ReturnType<typeof mediaStream>) => void;
+    getUserMedia.mockReturnValue(new Promise(resolve => { resolvePermission = resolve; }));
+    const { result, unmount } = renderHook(() => useVoiceCapture());
+    let startPromise!: Promise<void>;
+    act(() => { startPromise = result.current.start(); });
+    unmount();
+    resolvePermission(mediaStream());
+    await startPromise;
+    expect(trackStop).toHaveBeenCalledTimes(1);
+    expect(FakeRecorder.instances).toHaveLength(0);
+    expect(audioContextClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('pagehide always safe-stops even before visibilityState changes', async () => {
+    const { result } = renderHook(() => useVoiceCapture());
+    await act(async () => { await result.current.start(); });
+    const recorder = FakeRecorder.instances[0];
+    act(() => { recorder.ondataavailable?.({ data: new Blob(['take']) }); });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    expect(result.current.state).toBe('stopped');
+    expect(result.current.stoppedByLock).toBe(true);
+  });
+
+  it('a release during the permission prompt never starts an invisible recording later', async () => {
+    let resolvePermission!: (stream: ReturnType<typeof mediaStream>) => void;
+    getUserMedia.mockReturnValue(new Promise(resolve => { resolvePermission = resolve; }));
+    const { result } = renderHook(() => useVoiceCapture());
+    let startPromise!: Promise<void>;
+    act(() => { startPromise = result.current.start(); });
+    act(() => { result.current.stop(); });
+    await act(async () => { resolvePermission(mediaStream()); await startPromise; });
+    expect(trackStop).toHaveBeenCalledTimes(1);
+    expect(FakeRecorder.instances).toHaveLength(0);
+    expect(result.current.state).toBe('error');
+    expect(result.current.error).toMatch(/hold again/i);
   });
 });

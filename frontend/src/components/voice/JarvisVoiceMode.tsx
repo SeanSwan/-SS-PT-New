@@ -37,14 +37,15 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
   const [decoded, setDecoded] = React.useState<{ workout: ParsedWorkout; transcript: string } | null>(null);
   const [lockSendConfirmed, setLockSendConfirmed] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
+  const voiceCaptureSupported = isVoiceCaptureSupported();
 
   // No MediaRecorder → the overlay opens straight into the honest failure
   // state with "Type instead" one tap away (never a raw crash).
   React.useEffect(() => {
-    if (!isVoiceCaptureSupported()) {
+    if (!voiceCaptureSupported) {
       send({ type: 'FAIL', message: 'This browser cannot record audio — type instead.' });
     }
-  }, [send]);
+  }, [send, voiceCaptureSupported]);
 
   // Abort in-flight phases on unmount (S7 contract).
   React.useEffect(() => () => abortRef.current?.abort(), []);
@@ -93,14 +94,29 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
     }
   }, [capture.state, capture.error, send]);
 
+  const lockPromptVisible = capture.stoppedByLock && !lockSendConfirmed && Boolean(capture.audioBlob);
+  const canStartListening = voiceCaptureSupported
+    && !lockPromptVisible
+    && ['idle', 'error', 'speaking'].includes(loop.state)
+    && capture.state !== 'requesting'
+    && capture.state !== 'recording';
+  const holdControlDisabled = lockPromptVisible || (!canStartListening && loop.state !== 'listening');
+
   const holdStart = () => {
+    if (!canStartListening) return;
     speech.unlockOnGesture(); // iOS primes TTS on the first gesture
     speech.cancelSpeech(); // half-duplex barge-in: mic press silences Coach
     send({ type: 'LISTEN' });
     void capture.start();
   };
   const holdEnd = () => capture.stop();
-  const exit = () => { abortRef.current?.abort(); capture.reset(); send({ type: 'EXIT_TO_TYPING' }); onExit(); };
+  const exit = () => {
+    abortRef.current?.abort();
+    speech.cancelSpeech();
+    capture.reset();
+    send({ type: 'EXIT_TO_TYPING' });
+    onExit();
+  };
 
   if (loop.state === 'review' && decoded) {
     return (
@@ -118,7 +134,6 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
     );
   }
 
-  const lockPromptVisible = capture.stoppedByLock && !lockSendConfirmed && Boolean(capture.audioBlob);
   return (
     <VoiceModeOverlay
       loop={loop}
@@ -128,6 +143,7 @@ const JarvisVoiceMode: React.FC<JarvisVoiceModeProps> = ({
         confirmLabel: 'Send it',
         onConfirm: () => setLockSendConfirmed(true),
       } : null}
+      holdDisabled={holdControlDisabled}
       onHoldStart={holdStart}
       onHoldEnd={holdEnd}
       onTypeInstead={exit}

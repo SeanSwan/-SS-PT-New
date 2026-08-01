@@ -65,4 +65,12 @@ describe('R10 hostile-loop fixes (final review)', () => {
     const overlay = read('VoiceModeOverlay/VoiceModeOverlay.tsx');
     expect(overlay).toContain('voice-lock-confirm');
   });
+
+  it('keeps release armed while listening but blocks new holds during owned async phases', () => {
+    expect(container).toContain('const holdControlDisabled');
+    expect(container).toContain('lockPromptVisible');
+    expect(container).toContain("loop.state !== 'listening'");
+    expect(container).toContain('holdDisabled={holdControlDisabled}');
+    expect(container).toContain('if (!canStartListening) return;');
+  });
 });

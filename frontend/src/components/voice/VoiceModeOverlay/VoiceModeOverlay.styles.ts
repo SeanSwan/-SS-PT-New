@@ -89,6 +89,7 @@ export const HoldButton = styled.button`
   font-family: 'Sora', sans-serif; font-size: 0.9rem; font-weight: 800;
   touch-action: none;
   &[aria-pressed='true'] { box-shadow: 0 0 18px color-mix(in srgb, var(--accent-glow, #8B5CF6) 55%, transparent); }
+  &:disabled { cursor: not-allowed; opacity: 0.5; box-shadow: none; }
   &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 3px; }
 `;
 

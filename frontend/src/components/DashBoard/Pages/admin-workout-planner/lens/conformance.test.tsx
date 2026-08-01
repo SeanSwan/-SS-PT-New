@@ -9,11 +9,10 @@
  * L2/L3/L5 hold by construction (SafetyGateModal + SaveBar mount OUTSIDE
  * the lens region in the layout) — asserted structurally here.
  */
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { plannerLensRegistry, PLANNER_LENS_DEFAULT_ID } from './registry';
 import { endpointFor, plannerScopes } from '../plannerLogic/endpointFor';
 
@@ -86,6 +85,88 @@ describe('Planner lens conformance (laws × registered lenses)', () => {
       if (!existsSync(join(STYLES_DIR, entry!.id))) continue; // entry+dir land together
       const loaded = await Promise.resolve(entry!.load());
       expect(typeof loaded.default, entry!.id).toBe('function');
+    }
+  });
+
+  it('thumb-deck mounts every stateful slot exactly once across responsive layouts', async () => {
+    const { default: ThumbDeck } = await Promise.resolve(plannerLensRegistry['thumb-deck']!.load());
+    render(
+      <ThumbDeck
+        teachModeOpen
+        rolodex={<div data-testid={'slot-rolodex-once'} />}
+        builder={<div data-testid={'slot-builder-once'} />}
+        teach={<div data-testid={'slot-teach-once'} />}
+        coachDock={<div data-testid={'slot-dock-once'} />}
+      />,
+    );
+    expect(screen.getAllByTestId('slot-rolodex-once')).toHaveLength(1);
+    expect(screen.getAllByTestId('slot-builder-once')).toHaveLength(1);
+    expect(screen.getAllByTestId('slot-teach-once')).toHaveLength(1);
+    expect(screen.getAllByTestId('slot-dock-once')).toHaveLength(1);
+    expect(screen.getByTestId('slot-builder-once').parentElement?.dataset.thumbDeckRegion).toBe('stage');
+    expect(screen.getByTestId('slot-teach-once').parentElement?.dataset.thumbDeckRegion).toBe('teach');
+    expect(screen.getByTestId('slot-builder-once').parentElement)
+      .not.toBe(screen.getByTestId('slot-teach-once').parentElement);
+    expect(screen.queryByLabelText('Exercise library')).toBeNull();
+  });
+
+  it('thumb-deck mobile sheet owns focus, keyboard close, and inert background', async () => {
+    const { default: ThumbDeck } = await Promise.resolve(plannerLensRegistry['thumb-deck']!.load());
+    render(
+      <ThumbDeck
+        teachModeOpen
+        rolodex={<button type="button">Exercise item</button>}
+        builder={<div>Builder content</div>}
+        teach={<div>Teach content</div>}
+        coachDock={<button type="button">Coach dock</button>}
+      />,
+    );
+    const exercisesTab = screen.getByText('Exercises') as HTMLButtonElement;
+    fireEvent.click(exercisesTab);
+    const dialog = screen.getByRole('dialog', { name: 'Exercise library' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Exercise item' }));
+    for (const id of ['thumb-deck-stage', 'thumb-deck-teach', 'thumb-deck-tabs', 'thumb-deck-coach']) {
+      expect(screen.getByTestId(id).hasAttribute('inert'), `${id} must be inert`).toBe(true);
+    }
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Exercise library' })).toBeNull();
+    expect(document.activeElement).toBe(exercisesTab);
+  });
+
+  it('thumb-deck clears mobile modal state when the viewport becomes desktop', async () => {
+    let matches = true;
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    const originalMatchMedia = window.matchMedia;
+    const mediaQuery = {
+      get matches() { return matches; },
+      media: '(max-width: 1279px)',
+      onchange: null,
+      addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    } as unknown as MediaQueryList;
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => mediaQuery });
+    try {
+      const { default: ThumbDeck } = await Promise.resolve(plannerLensRegistry['thumb-deck']!.load());
+      render(
+        <ThumbDeck
+          teachModeOpen
+          rolodex={<button type="button">Responsive item</button>}
+          builder={<div>Builder</div>}
+          teach={<div>Teach</div>}
+          coachDock={null}
+        />,
+      );
+      fireEvent.click(screen.getByText('Exercises'));
+      expect(screen.getByRole('dialog', { name: 'Exercise library' })).toBeTruthy();
+      matches = false;
+      act(() => listeners.forEach(listener => listener({ matches } as MediaQueryListEvent)));
+      expect(screen.queryByRole('dialog', { name: 'Exercise library' })).toBeNull();
+      expect(screen.getByTestId('thumb-deck-stage').hasAttribute('inert')).toBe(false);
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia });
     }
   });
 });

@@ -37,6 +37,8 @@ export interface VoiceModeOverlayProps {
   getAudioLevel?: () => number;
   /** F1 lock-safety: ask before sending a lock-stopped recording. */
   confirmPrompt?: { text: string; confirmLabel: string; onConfirm: () => void } | null;
+  /** Prevent capture while another phase or explicit lock confirmation owns the loop. */
+  holdDisabled?: boolean;
   onHoldStart: () => void;
   onHoldEnd: () => void;
   onTypeInstead: () => void;
@@ -46,10 +48,27 @@ export interface VoiceModeOverlayProps {
 const FACETS = [0, 1, 2, 3, 4];
 
 const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
-  loop, getAudioLevel, confirmPrompt, onHoldStart, onHoldEnd, onTypeInstead, onClose,
+  loop, getAudioLevel, confirmPrompt, holdDisabled = false,
+  onHoldStart, onHoldEnd, onTypeInstead, onClose,
 }) => {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const orbRef = React.useRef<HTMLDivElement | null>(null);
+  const holdActiveRef = React.useRef(false);
+  const [holdActive, setHoldActive] = React.useState(false);
+
+  const beginHold = () => {
+    if (holdDisabled || holdActiveRef.current) return;
+    holdActiveRef.current = true;
+    setHoldActive(true);
+    onHoldStart();
+  };
+
+  const endHold = () => {
+    if (!holdActiveRef.current) return;
+    holdActiveRef.current = false;
+    setHoldActive(false);
+    onHoldEnd();
+  };
 
   // Amplitude → CSS custom property; one rAF, zero re-renders (ruling A1).
   React.useEffect(() => {
@@ -123,14 +142,26 @@ const VoiceModeOverlay: React.FC<VoiceModeOverlayProps> = ({
         <ButtonRow>
           <HoldButton
             type="button"
-            aria-pressed={loop.state === 'listening'}
-            onPointerDown={onHoldStart}
-            onPointerUp={onHoldEnd}
-            onPointerCancel={onHoldEnd}
-            onKeyDown={event => { if (event.key === ' ' || event.key === 'Enter') onHoldStart(); }}
-            onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') onHoldEnd(); }}
+            disabled={holdDisabled && !holdActive}
+            aria-pressed={holdActive}
+            onPointerDown={event => {
+              if (holdDisabled || holdActiveRef.current) return;
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+              beginHold();
+            }}
+            onPointerUp={endHold}
+            onPointerCancel={endHold}
+            onLostPointerCapture={endHold}
+            onClick={event => {
+              // Pointer clicks follow pointerup and must not restart capture.
+              // Keyboard and assistive-tech clicks have detail=0 and use a
+              // start/stop latch because press-and-hold is unavailable there.
+              if (event.detail !== 0) return;
+              if (holdActiveRef.current) endHold();
+              else beginHold();
+            }}
           >
-            {loop.state === 'listening' ? 'Release to send' : 'Hold to talk'}
+            {holdActive || loop.state === 'listening' ? 'Release to send' : 'Hold to talk'}
           </HoldButton>
           <TypeInsteadButton type="button" onClick={onTypeInstead} data-testid="voice-type-instead">
             Type instead

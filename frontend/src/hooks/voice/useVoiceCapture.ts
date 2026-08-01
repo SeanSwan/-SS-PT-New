@@ -79,6 +79,9 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
   const maxStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAtRef = useRef(0);
   const lockStopRef = useRef(false);
+  const startPendingRef = useRef(false);
+  const stopRequestedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const cleanup = useCallback(() => {
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
@@ -97,28 +100,37 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
 
   const stop = useCallback(() => {
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+    else if (startPendingRef.current) stopRequestedRef.current = true;
   }, []);
 
   // Lock-safety (F1 de-risk 3): stop + retain the blob, never lose the utterance.
   useEffect(() => {
-    const onHidden = () => {
-      if (document.visibilityState === 'hidden' && recorderRef.current?.state === 'recording') {
+    mountedRef.current = true;
+    const safeStopForLock = () => {
+      if (recorderRef.current?.state === 'recording') {
         lockStopRef.current = true;
         recorderRef.current.stop();
       }
     };
-    document.addEventListener('visibilitychange', onHidden);
-    window.addEventListener('pagehide', onHidden);
-    return () => {
-      document.removeEventListener('visibilitychange', onHidden);
-      window.removeEventListener('pagehide', onHidden);
-      recorderRef.current?.state === 'recording' && recorderRef.current.stop();
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') safeStopForLock();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const onPageHide = () => safeStopForLock();
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      mountedRef.current = false;
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onPageHide);
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+      else cleanup();
+    };
+  }, [cleanup]);
 
   const start = useCallback(async () => {
-    if (recorderRef.current?.state === 'recording') return; // already live
+    if (startPendingRef.current || recorderRef.current?.state === 'recording') return;
+    startPendingRef.current = true;
+    stopRequestedRef.current = false;
     try {
       setError(null);
       setAudioBlob(null);
@@ -127,21 +139,45 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
       lockStopRef.current = false;
       setState('requesting');
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-      streamRef.current = stream;
-
-      // Amplitude tap for the orb (ruling A1) — recording works without it.
+      // iOS needs construction/resume in the initiating gesture call stack.
+      // The granted mic stream is connected after permission resolves.
       try {
         const AudioContextCtor = window.AudioContext
           || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (AudioContextCtor) {
           const audioContext = new AudioContextCtor();
+          audioContextRef.current = audioContext;
+          if (audioContext.state === 'suspended') {
+            void audioContext.resume().catch(() => undefined);
+          }
+        }
+      } catch {
+        audioContextRef.current = null;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      if (stopRequestedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        setError('Microphone is ready - hold again to record.');
+        setState('error');
+        cleanup();
+        return;
+      }
+      streamRef.current = stream;
+
+      // Amplitude tap for the orb (ruling A1) — recording works without it.
+      try {
+        const audioContext = audioContextRef.current;
+        if (audioContext) {
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 256;
           audioContext.createMediaStreamSource(stream).connect(analyser);
-          audioContextRef.current = audioContext;
           analyserRef.current = analyser;
           levelBufferRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
         }
@@ -157,6 +193,7 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
 
       recorder.ondataavailable = event => { if (event.data.size > 0) chunksRef.current.push(event.data); };
       recorder.onstop = () => {
+        if (!mountedRef.current) { cleanup(); return; }
         const blob = new Blob(chunksRef.current, { type: mime || 'audio/webm' });
         if (blob.size > VOICE_CAPTURE_MAX_BYTES) {
           setAudioBlob(null);
@@ -170,6 +207,7 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
         cleanup();
       };
       recorder.onerror = () => {
+        if (!mountedRef.current) { cleanup(); return; }
         setError('Recording failed — you can type instead.');
         setState('error');
         cleanup();
@@ -185,13 +223,18 @@ export function useVoiceCapture(): UseVoiceCaptureReturn {
     } catch (err: unknown) {
       const denied = err instanceof DOMException
         && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      if (mountedRef.current) {
       setError(denied ? DENIED_REASON : 'Could not start the microphone — you can type instead.');
       setState(denied ? 'denied' : 'error');
+      }
       cleanup();
+    } finally {
+      startPendingRef.current = false;
     }
   }, [cleanup, stop]);
 
   const reset = useCallback(() => {
+    stopRequestedRef.current = true;
     cleanup();
     setState('idle');
     setAudioBlob(null);
