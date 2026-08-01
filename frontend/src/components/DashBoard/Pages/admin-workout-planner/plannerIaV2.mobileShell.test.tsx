@@ -78,7 +78,7 @@ describe('S17 V2 mobile shell', () => {
   });
 
   it('mounts the shell + SaveBar only under the flag; V1 keeps ThreePanel + header matrix', () => {
-    expect(layoutSource).toContain('iaV2 ? (');
+    expect(layoutSource).toContain('if (iaV2) {');
     expect(layoutSource).toContain('<WorkoutPlannerV2Shell');
     expect(layoutSource).toContain('saveBar={<PlannerSaveBarBinding />}');
     expect(layoutSource).toContain('legacyActionsHidden={iaV2}');

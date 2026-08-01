@@ -18,6 +18,8 @@ import WorkoutPlannerV2Shell from './WorkoutPlannerV2Shell';
 import WorkoutPlannerRolodexPanelV2 from './WorkoutPlannerRolodexPanelV2';
 import PlannerSaveBarBinding from './PlannerSaveBarBinding';
 import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
+import { isPlannerLensStylesEnabled } from './lens/plannerLensFlag';
+import PlannerLensHost from './lens/PlannerLensHost';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
@@ -214,16 +216,25 @@ const WorkoutPlannerPageLayout: React.FC = () => {
       // planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1).
       const coachDockEl = !isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />;
 
-      return iaV2 ? (
-        <WorkoutPlannerV2Shell
-          teachModeOpen={teachModeOpen}
-          rolodex={<WorkoutPlannerRolodexPanelV2 />}
-          builder={builderEl}
-          teach={teachEl}
-          coachDock={coachDockEl || undefined}
-          saveBar={<PlannerSaveBarBinding />}
-        />
-      ) : (
+      if (iaV2) {
+        return (
+          <WorkoutPlannerV2Shell
+            teachModeOpen={teachModeOpen}
+            rolodex={<WorkoutPlannerRolodexPanelV2 />}
+            builder={builderEl}
+            teach={teachEl}
+            coachDock={coachDockEl || undefined}
+            saveBar={<PlannerSaveBarBinding />}
+          />
+        );
+      }
+      // S19: the lens fleet replaces the ThreePanel region ONLY under its
+      // flag; studio-classic renders this exact tree, so OFF and ON-default
+      // are the same pixels (L9).
+      if (isPlannerLensStylesEnabled()) {
+        return <PlannerLensHost teachModeOpen={teachModeOpen} rolodex={rolodexEl} builder={builderEl} teach={teachEl} coachDock={coachDockEl} />;
+      }
+      return (
         <>
           <ThreePanel $teachModeOpen={teachModeOpen}>
             {rolodexEl}
