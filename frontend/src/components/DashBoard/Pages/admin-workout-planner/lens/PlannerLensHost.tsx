@@ -8,8 +8,9 @@
  */
 
 import React from 'react';
-import { plannerLensRegistry, PLANNER_LENS_DEFAULT_ID } from './registry';
-import { readPlannerLensId } from './plannerLensPreference';
+import { plannerLensRegistry, PLANNER_LENS_DEFAULT_ID, type PlannerLensId } from './registry';
+import { readPlannerLensId, writePlannerLensId } from './plannerLensPreference';
+import PlannerLensSwitcher from './PlannerLensSwitcher';
 import StudioClassic from './styles/studio-classic';
 import type { PlannerLensSlots, PlannerLensComponent } from './slots';
 import { PlannerSkeleton } from '../PlannerStateViews';
@@ -38,14 +39,21 @@ const resolveLens = (id: string): PlannerLensComponent | React.LazyExoticCompone
 };
 
 const PlannerLensHost: React.FC<PlannerLensSlots> = (slots) => {
-  const [lensId] = React.useState(readPlannerLensId);
+  const [lensId, setLensId] = React.useState(readPlannerLensId);
+  const selectLens = React.useCallback((id: PlannerLensId) => {
+    writePlannerLensId(id);
+    setLensId(id);
+  }, []);
   const Lens = resolveLens(lensId);
   return (
-    <LensErrorBoundary fallback={<StudioClassic {...slots} />}>
-      <React.Suspense fallback={<PlannerSkeleton variant="panel" />}>
-        <Lens {...slots} />
-      </React.Suspense>
-    </LensErrorBoundary>
+    <>
+      <PlannerLensSwitcher activeLensId={lensId} onSelect={selectLens} />
+      <LensErrorBoundary key={lensId} fallback={<StudioClassic {...slots} />}>
+        <React.Suspense fallback={<PlannerSkeleton variant="panel" />}>
+          <Lens {...slots} />
+        </React.Suspense>
+      </LensErrorBoundary>
+    </>
   );
 };
 
