@@ -37,6 +37,7 @@ const buildContextValues = (o: ReturnType<typeof useWorkoutPlannerOrchestration>
     saveActions: o.saveActions,
   };
   const ui = {
+    plannerActiveTab: o.plannerActiveTab,
     teachModeOpen: o.local.teachModeOpen,
     statusMsg: o.local.statusMsg,
     confirmRequest: o.local.confirmRequest,

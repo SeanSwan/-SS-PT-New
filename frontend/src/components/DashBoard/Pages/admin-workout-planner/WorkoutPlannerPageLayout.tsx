@@ -14,6 +14,8 @@ import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
 import WorkoutPlannerCommandPanelV2 from './WorkoutPlannerCommandPanelV2';
+import WorkoutPlannerV2Shell from './WorkoutPlannerV2Shell';
+import PlannerSaveBarBinding from './PlannerSaveBarBinding';
 import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
@@ -137,7 +139,9 @@ const WorkoutPlannerPageLayout: React.FC = () => {
         onDismissStatus={() => act.setters.setStatusMsg(null)}
       />
 
-      <ThreePanel $teachModeOpen={teachModeOpen}>
+      {(() => {
+      const iaV2 = isPlannerIaV2Enabled();
+      const rolodexEl = (
         <WorkoutPlannerRolodexPanel
           filteredExerciseCount={filteredExerciseCount}
           activeFilterCount={activeFilterCount}
@@ -157,7 +161,10 @@ const WorkoutPlannerPageLayout: React.FC = () => {
           onImpactFilterChange={act.rolodex.setImpactFilter}
           onClearFilters={act.rolodex.clearRolodexFilters}
         />
+      );
+      const builderEl = (
         <WorkoutPlannerBuilderPanel
+          legacyActionsHidden={iaV2}
           degradedIntelligence={degradedIntelligence}
           saving={saving}
           planExercises={planExercises}
@@ -199,11 +206,33 @@ const WorkoutPlannerPageLayout: React.FC = () => {
           onSelectedMesoDayChange={act.setters.setSelectedMesoDay}
           onPhaseNumberChange={act.setters.setPhaseNumber}
         />
-        {teachModeOpen && <TeachModeSidebar exercise={selectedExercise} phaseNumber={phaseNumber} onPhaseChange={act.setters.setPhaseNumber} onClose={act.pageActions.handleTeachModeToggle} />}
-      </ThreePanel>
+      );
+      const teachEl = teachModeOpen
+        ? <TeachModeSidebar exercise={selectedExercise} phaseNumber={phaseNumber} onPhaseChange={act.setters.setPhaseNumber} onClose={act.pageActions.handleTeachModeToggle} />
+        : null;
+      // planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1).
+      const coachDockEl = !isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />;
 
-      {/* planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1). */}
-      {!isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />}
+      return iaV2 ? (
+        <WorkoutPlannerV2Shell
+          teachModeOpen={teachModeOpen}
+          rolodex={rolodexEl}
+          builder={builderEl}
+          teach={teachEl}
+          coachDock={coachDockEl || undefined}
+          saveBar={<PlannerSaveBarBinding />}
+        />
+      ) : (
+        <>
+          <ThreePanel $teachModeOpen={teachModeOpen}>
+            {rolodexEl}
+            {builderEl}
+            {teachEl}
+          </ThreePanel>
+          {coachDockEl}
+        </>
+      );
+      })()}
 
       <WorkoutPlannerSavedPlansSection
         selectedClientId={selectedClientId}

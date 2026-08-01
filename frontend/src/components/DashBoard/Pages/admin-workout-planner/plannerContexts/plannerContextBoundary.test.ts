@@ -50,7 +50,8 @@ describe('S15 planner context boundary', () => {
 
   it('bans fetching from presentational planner surfaces (Lenses never fetch)', () => {
     const presentational = ['WorkoutPlannerPageLayout.tsx', 'WorkoutPlannerCommandPanel.tsx',
-      'WorkoutPlannerCommandPanelV2.tsx',
+      'WorkoutPlannerCommandPanelV2.tsx', 'WorkoutPlannerV2Shell.tsx',
+      'WorkoutPlannerSaveBar.tsx', 'PlannerStateViews.tsx', 'PlannerSaveBarBinding.tsx',
       'WorkoutPlannerBuilderPanel.tsx', 'WorkoutPlannerRolodexPanel.tsx',
       'WorkoutPlannerSavedPlansSection.tsx', 'WorkoutPlannerStatusAssistantStrip.tsx',
       'plannerContexts/PlannerDataContext.tsx', 'plannerContexts/PlannerUIContext.tsx',

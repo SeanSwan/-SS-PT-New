@@ -59,6 +59,8 @@ export const useWorkoutPlannerOrchestration = () => {
   const [selectedMesoDay, setSelectedMesoDay] = useState(1); const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const [selectedHorizonTarget, setSelectedHorizonTarget] = useState<PlannerHorizonSelection | null>(null);
+  // S17: mobile IA tab (PLANNER_IA_V2 shell only; inert for the V1 tree).
+  const [plannerActiveTab, setPlannerActiveTab] = useState<'program' | 'builder' | 'exercises'>('builder');
   const phase = useMemo(() => selectPlannerPhase(phaseNumber), [phaseNumber]);
   const trainingStyle = useWorkoutPlannerTrainingStyleState();
 
@@ -199,8 +201,9 @@ export const useWorkoutPlannerOrchestration = () => {
     },
     setters: {
       setPhaseNumber, setCategory, setGoal, setGenerationMode, setSessionsPerWeek,
-      setSelectedMesoDay, setSelectedHorizonTarget, setStatusMsg,
+      setSelectedMesoDay, setSelectedHorizonTarget, setStatusMsg, setPlannerActiveTab,
     },
+    plannerActiveTab,
     trainingStyle, rolodex, planContent, equipment, generation, clientState,
     savedPlansState, saveActions, pdf, coachDock, pageActions,
     requestSwanCoachWorkoutForSelectedClient, requestPlanGenerateForSelectedClient,

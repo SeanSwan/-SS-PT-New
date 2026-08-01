@@ -27,6 +27,6 @@ describe('WorkoutPlanner page layout extraction', () => {
   });
 
   it('mounts the Coach dock behind the client-viewer gate (planner_* is admin/trainer only)', () => {
-    expect(layoutSource).toContain('{!isViewerClient && <WorkoutPlannerCoachDock');
+    expect(layoutSource).toContain('!isViewerClient && <WorkoutPlannerCoachDock');
   });
 });
