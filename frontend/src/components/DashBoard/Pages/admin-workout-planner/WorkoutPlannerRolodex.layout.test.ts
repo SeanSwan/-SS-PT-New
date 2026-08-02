@@ -66,7 +66,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('translateX(');
     expect(ROW_SOURCE).toMatch(/<ExerciseAddBtn[\s\S]*?type="button"/);
     expect(ROW_SOURCE).not.toMatch(/<ExerciseItem[\s\S]*?role="button"/);
-    expect(ROW_SOURCE).toMatch(/<ExerciseItem[\s\S]*?role="group"/);
+    expect(ROW_SOURCE).toMatch(/<ExerciseItem[\s\S]*?role="listitem"/);
   });
 
   it('keeps rolodex filter chips at the 44px touch-target floor on mobile and desktop', () => {

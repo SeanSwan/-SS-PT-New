@@ -14,7 +14,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import { ChevronDown, Dumbbell, Loader2, Sparkles } from 'lucide-react';
 import { usePlannerData } from './plannerContexts/PlannerDataContext';
 import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 import { OPT_PHASES, PLAN_GOALS, WORKOUT_CATEGORIES, PLAN_DURATIONS, type PlanDuration } from './WorkoutPlannerTypes';
@@ -24,6 +24,7 @@ import { resolveNbaPresentation } from './plannerLogic/resolveNbaPresentation';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import WorkoutPlannerGenerationModeSection from './WorkoutPlannerGenerationModeSection';
 import WorkoutPlannerTrainingStyleSection from './WorkoutPlannerTrainingStyleSection';
+import { Header, HeaderIcon, HeaderLeft, Subtitle, Title } from './WorkoutPlannerShell.styles';
 
 const Bar = styled.section`
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
@@ -71,7 +72,7 @@ const GenerateButton = styled.button`
   min-height: 44px; padding: 0 22px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
   background: var(--btn-primary-bg, #002060);
-  color: var(--world-text, var(--text-primary, #E0ECF4));
+  color: var(--button-primary-text, #E0ECF4);
   font-family: 'Sora', sans-serif; font-size: 0.84rem; font-weight: 800;
   display: inline-flex; align-items: center; gap: 8px;
   &:hover:not(:disabled) { box-shadow: 0 0 14px color-mix(in srgb, var(--accent-glow, #8B5CF6) 45%, transparent); }
@@ -165,6 +166,15 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
 
   return (
     <>
+      <Header>
+        <HeaderLeft>
+          <HeaderIcon><Dumbbell size={22} aria-hidden /></HeaderIcon>
+          <div>
+            <Title className="lens2-display">Workout Planner</Title>
+            <Subtitle>Build intelligent programs while the exercise library stays within reach.</Subtitle>
+          </div>
+        </HeaderLeft>
+      </Header>
       <Bar aria-label="Planner context">
         <ChipSelect
           ref={clientSelectRef}

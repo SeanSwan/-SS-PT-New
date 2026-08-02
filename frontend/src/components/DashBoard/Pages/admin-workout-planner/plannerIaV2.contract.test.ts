@@ -28,8 +28,21 @@ describe('S16 Planner IA V2 contract', () => {
   it('ships DARK: the flag defaults OFF and gates the V2 mount in the layout', () => {
     expect(flagSource).toContain('VITE_ENABLE_PLANNER_IA_V2');
     expect(flagSource).toContain('return false');
-    expect(layoutSource).toContain('isPlannerIaV2Enabled() ? <WorkoutPlannerCommandPanelV2 />');
+    expect(layoutSource).toContain('iaV2 ? <WorkoutPlannerCommandPanelV2 />');
   });
+
+  it('requires both the build flag and the existing per-user pro entitlement', () => {
+    expect(layoutSource).toContain('useFeatureAccess()');
+    expect(layoutSource).toContain("hasFeature('workout-planner-pro')");
+    expect(layoutSource).toContain('const iaV2 = isPlannerIaV2Enabled() && plannerV2Enabled');
+    expect(layoutSource).toContain('iaV2 ? <WorkoutPlannerCommandPanelV2 />');
+    expect(layoutSource.match(/const iaV2 =/g)).toHaveLength(1);
+  });
+
+  it('preserves a page-level heading in the V2 command surface', () => {
+    expect(v2Source).toContain('<Title className="lens2-display">Workout Planner</Title>');
+  });
+
 
   it('endpointFor(scope) is the ONLY endpoint selector in the planner directory', () => {
     const offenders = walk(DIR).filter(f =>

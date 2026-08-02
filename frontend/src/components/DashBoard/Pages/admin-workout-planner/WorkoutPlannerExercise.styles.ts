@@ -161,7 +161,7 @@ export const PhaseLabel = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--accent-secondary, #8B5CF6);
+  color: var(--text-primary, #E0ECF4);
 `;
 
 export const PhaseParams = styled.span`

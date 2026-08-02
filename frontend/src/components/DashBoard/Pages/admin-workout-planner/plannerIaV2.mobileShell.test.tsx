@@ -17,6 +17,7 @@ import { resolveSaveBar } from './plannerLogic/resolveSaveBar';
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8');
 const shellSource = read('WorkoutPlannerV2Shell.tsx');
+const dialogHookSource = read('hooks/usePlannerLibraryDialog.ts');
 const saveBarSource = read('WorkoutPlannerSaveBar.tsx');
 const stateViewsSource = read('PlannerStateViews.tsx');
 const layoutSource = read('WorkoutPlannerPageLayout.tsx');
@@ -77,6 +78,14 @@ describe('S17 V2 mobile shell', () => {
     expect(shellSource).not.toMatch(/z-index:\s*9{3,}/);
   });
 
+  it('keeps the desktop library visible in its own bounded workbench rail', () => {
+    expect(shellSource).toContain('const LibraryPane = styled.aside');
+    expect(shellSource).toContain('position: sticky');
+    expect(shellSource).toContain('max-height: calc(100dvh - 160px)');
+    expect(shellSource).toContain('overflow-y: auto');
+    expect(shellSource).toContain('<LibraryPane aria-label="Exercise library">{rolodex}</LibraryPane>');
+  });
+
   it('mounts the shell + SaveBar only under the flag; V1 keeps ThreePanel + header matrix', () => {
     expect(layoutSource).toContain('if (iaV2) {');
     expect(layoutSource).toContain('<WorkoutPlannerV2Shell');
@@ -84,6 +93,20 @@ describe('S17 V2 mobile shell', () => {
     expect(layoutSource).toContain('legacyActionsHidden={iaV2}');
     expect(layoutSource).toContain('<ThreePanel');
   });
+
+  it('makes the exercise sheet a complete keyboard-safe modal', () => {
+    expect(shellSource).toContain('usePlannerLibraryDialog');
+    expect(shellSource).toContain('ref={dialogRef}');
+    expect(shellSource).toContain('aria-labelledby="planner-library-title"');
+    expect(shellSource).toContain('aria-label="Close exercise library"');
+    expect(shellSource).toContain("aria-controls={tab === 'exercises' ? 'planner-rolodex-sheet' : undefined}");
+    expect(shellSource).toContain('id="planner-library-title"');
+    expect(dialogHookSource).toContain("document.body.style.overflow = 'hidden'");
+    expect(dialogHookSource).toContain("event.key !== 'Tab'");
+    expect(dialogHookSource).toContain("event.key === 'Escape'");
+    expect(dialogHookSource).toContain('openerRef.current.focus()');
+  });
+
 
   it('lands the single skeleton/empty/error trio with reduced-motion safety', () => {
     for (const name of ['PlannerSkeleton', 'PlannerEmpty', 'PlannerError']) {

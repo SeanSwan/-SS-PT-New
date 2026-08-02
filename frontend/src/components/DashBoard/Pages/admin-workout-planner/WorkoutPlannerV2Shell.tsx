@@ -15,6 +15,7 @@ import styled from 'styled-components';
 import { usePlannerUI } from './plannerContexts/PlannerUIContext';
 import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 import { PlannerEmpty } from './PlannerStateViews';
+import { usePlannerLibraryDialog } from './hooks/usePlannerLibraryDialog';
 
 const MOBILE_MAX = '1279px';
 const DESKTOP_MIN = '1280px';
@@ -24,6 +25,16 @@ const DesktopGrid = styled.div<{ $teachModeOpen?: boolean }>`
   grid-template-columns: ${({ $teachModeOpen }) =>
     $teachModeOpen ? 'minmax(280px, 360px) 1fr minmax(280px, 360px)' : 'minmax(280px, 360px) 1fr'};
   @media (max-width: ${MOBILE_MAX}) { display: none; }
+`;
+
+const LibraryPane = styled.aside`
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  max-height: calc(100dvh - 160px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  border-radius: 14px;
 `;
 
 const MobileStage = styled.div`
@@ -109,19 +120,14 @@ const WorkoutPlannerV2Shell: React.FC<WorkoutPlannerV2ShellProps> = ({
   const act = usePlannerActions();
   const setTab = act.setters.setPlannerActiveTab;
   const closeSheet = React.useCallback(() => setTab('builder'), [setTab]);
-
-  // Escape closes the exercise sheet (keyboard parity with the backdrop tap).
-  React.useEffect(() => {
-    if (plannerActiveTab !== 'exercises') return undefined;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') closeSheet(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [plannerActiveTab, closeSheet]);
+  const { dialogRef, open: libraryOpen } = usePlannerLibraryDialog({
+    requestedOpen: plannerActiveTab === 'exercises', onClose: closeSheet,
+  });
 
   return (
     <>
       <DesktopGrid $teachModeOpen={teachModeOpen}>
-        {rolodex}
+        <LibraryPane aria-label="Exercise library">{rolodex}</LibraryPane>
         {builder}
         {teach}
       </DesktopGrid>
@@ -138,11 +144,12 @@ const WorkoutPlannerV2Shell: React.FC<WorkoutPlannerV2ShellProps> = ({
           )
         )}
         {plannerActiveTab !== 'program' && builder}
-        {plannerActiveTab === 'exercises' && (
+        {libraryOpen && (
           <>
             <SheetBackdrop onClick={closeSheet} aria-hidden />
-            <Sheet role="dialog" aria-modal="true" aria-label="Exercise library" data-testid="planner-rolodex-sheet">
-              <SheetClose type="button" onClick={closeSheet}>Close library ▾</SheetClose>
+            <Sheet ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="planner-library-title" id="planner-rolodex-sheet" data-testid="planner-rolodex-sheet" tabIndex={-1}>
+              <span id="planner-library-title">Exercise library</span>
+              <SheetClose type="button" aria-label="Close exercise library" onClick={closeSheet}>Close library ▾</SheetClose>
               {rolodex}
             </Sheet>
           </>
@@ -160,6 +167,8 @@ const WorkoutPlannerV2Shell: React.FC<WorkoutPlannerV2ShellProps> = ({
             type="button"
             $active={plannerActiveTab === tab}
             aria-pressed={plannerActiveTab === tab}
+            aria-controls={tab === 'exercises' ? 'planner-rolodex-sheet' : undefined}
+            aria-expanded={tab === 'exercises' ? libraryOpen : undefined}
             onClick={() => setTab(tab)}
           >
             {tab === 'program' ? 'Program' : tab === 'builder' ? 'Builder' : 'Exercises'}

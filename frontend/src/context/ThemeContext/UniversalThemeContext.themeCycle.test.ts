@@ -269,8 +269,8 @@ describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
 
   it('re-points --wing-purple-rgb at the active theme palette', () => {
     const ruby = generateCSSVariables('ruby-forge' as ThemeId, themes);
-    // ruby-forge wingPurple <- spec.secondary #BE123C -> 190, 18, 60
-    expect(ruby).toContain('--wing-purple-rgb: 190, 18, 60;');
+    // Ruby Forge uses Ice Wing as its deliberate contrasting secondary.
+    expect(ruby).toContain('--wing-purple-rgb: 96, 192, 240;');
     expect(ruby).not.toContain('--wing-purple-rgb: 139, 92, 246;');
   });
 

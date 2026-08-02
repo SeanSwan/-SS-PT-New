@@ -6,6 +6,9 @@
  * S14-S18 refactors from changing the established studio-classic surface.
  */
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { createRequire } from 'node:module';
+
+const AXE_PATH = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
 const adminUser = {
   id: 1, email: 'qa.admin@swanstudios.local', username: 'qa_admin',
@@ -113,12 +116,28 @@ for (const viewport of viewports) {
     await expect(page.getByRole('heading', { name: /workout planner/i, level: 1 })).toBeVisible();
     await page.evaluate(async () => { await document.fonts.ready; });
     await page.getByLabel('Select client').selectOption('91');
-    await expect(page.getByText('Exercise Rolodex', { exact: true })).toBeVisible();
-    await expect(page.getByText('2 results', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Add Goblet Squat' }).click();
-    await page.getByRole('button', { name: 'Add Supported Dumbbell Row' }).click();
-    await expect(page.getByRole('button', { name: 'Remove Goblet Squat' })).toBeVisible();
 
+    const exercisesTab = page.getByRole('button', { name: 'Exercises', exact: true });
+    const plannerV2 = await exercisesTab.getAttribute('aria-controls') === 'planner-rolodex-sheet';
+    const compactV2 = viewport.width < 1280 && plannerV2;
+    let librarySurface = page.locator('body');
+    if (compactV2) {
+      await exercisesTab.click();
+      librarySurface = page.getByRole('dialog', { name: 'Exercise library' });
+      await expect(librarySurface).toBeVisible();
+    }
+    await expect(librarySurface.getByText('Exercise Rolodex', { exact: true })).toBeVisible();
+
+    await expect(librarySurface.getByText('2 results', { exact: true })).toBeVisible();
+    await librarySurface.getByRole('button', { name: 'Add Goblet Squat' }).click();
+    await librarySurface.getByRole('button', { name: 'Add Supported Dumbbell Row' }).click();
+
+    if (compactV2) {
+      await expect(librarySurface.getByText('Already in plan', { exact: true }).first()).toBeVisible();
+      await expect(librarySurface.getByRole('button', { name: 'Goblet Squat already in plan' })).toBeDisabled();
+      await page.getByRole('button', { name: 'Close exercise library' }).click();
+    }
+    await expect(page.getByRole('button', { name: 'Remove Goblet Squat' })).toBeVisible();
     if (viewport.width <= 414) {
       const box = await page.getByRole('button', { name: 'Remove Goblet Squat' }).boundingBox();
       expect(box?.width, `touch target width at ${viewport.width}px`).toBeGreaterThanOrEqual(44);
@@ -148,10 +167,57 @@ for (const viewport of viewports) {
     expect(overflowers, `clipped elements at ${viewport.width}px`).toEqual([]);
     expect(documentOverflow, `planner overflows at ${viewport.width}px`).toBeLessThanOrEqual(1);
     expect(unmockedEndpoints, `unmocked API calls at ${viewport.width}px`).toEqual([]);
-    if (viewport.golden) {
+    if (viewport.golden && !plannerV2) {
       await expect(page).toHaveScreenshot(`planner-studio-classic-${viewport.name}.png`, {
         animations: 'disabled', caret: 'hide', fullPage: true,
       });
     }
+  });
+}
+
+for (const viewport of [
+  { name: 'mobile', width: 375, height: 812 },
+  { name: 'desktop', width: 1280, height: 960 },
+] as const) {
+  test('planner V2 accessibility gate at ' + viewport.name, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/dashboard/admin/workout-planner', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /workout planner/i, level: 1 })).toBeVisible();
+    await page.getByLabel('Select client').selectOption('91');
+    const plannerV2 = await page.getByRole('button', { name: 'Exercises', exact: true })
+      .getAttribute('aria-controls') === 'planner-rolodex-sheet';
+    test.skip(!plannerV2, 'Planner V2 is feature-gated for this run.');
+
+    if (viewport.width < 1280) {
+      await page.getByRole('button', { name: 'Exercises', exact: true }).click();
+      await expect(page.getByRole('dialog', { name: 'Exercise library' })).toBeVisible();
+    } else {
+      await expect(page.getByLabel('Exercise library')).toBeVisible();
+    }
+
+    if (viewport.width >= 1280) {
+      const documentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+      expect(documentHeight, 'desktop library must remain a bounded rail, not a full-page Rolodex')
+        .toBeLessThanOrEqual(viewport.height * 2);
+    }
+
+    await page.addScriptTag({ path: AXE_PATH });
+    const violations = await page.locator('main[data-dashboard-scroll-root="true"]').evaluate(async (scope) => {
+      const axe = (globalThis as unknown as {
+        axe: {
+          run: (
+            root: Element,
+            options: Record<string, unknown>,
+          ) => Promise<{ violations: Array<{ id: string; impact: string | null; nodes: unknown[] }> }>;
+        };
+      }).axe;
+      const result = await axe.run(scope, {
+        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+      });
+      return result.violations;
+    });
+    const blockers = violations.filter(({ impact }) => impact === 'serious' || impact === 'critical');
+    expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([]);
+    expect(unmockedEndpoints, 'unmocked API calls at ' + viewport.name).toEqual([]);
   });
 }

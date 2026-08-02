@@ -14,6 +14,8 @@ import { describe, expect, it } from 'vitest';
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8');
 const v2 = read('WorkoutPlannerRolodexPanelV2.tsx');
+const row = read('WorkoutPlannerExerciseRow.tsx');
+const rolodexState = read('useWorkoutPlannerRolodexState.tsx');
 const layout = read('WorkoutPlannerPageLayout.tsx');
 
 describe('S18 Rolodex V2 contract', () => {
@@ -36,6 +38,14 @@ describe('S18 Rolodex V2 contract', () => {
     expect(v2).toContain("'library' | 'plan'");
     expect(v2).toContain('In plan · {planExercises.length}');
     expect(v2).toContain('never double-add');
+  });
+
+
+  it('shows already-added state on each exercise and disables duplicate adds', () => {
+    expect(rolodexState).toContain('inPlan={planExercises.some');
+    expect(row).toContain('inPlan: boolean');
+    expect(row).toContain('Already in plan');
+    expect(row).toContain('disabled={inPlan}');
   });
 
   it('offers a 5-second Undo wired to the real remove action', () => {

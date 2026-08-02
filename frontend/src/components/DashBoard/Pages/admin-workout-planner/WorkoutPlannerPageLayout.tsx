@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
@@ -42,6 +43,8 @@ const WorkoutPlannerPageLayout: React.FC = () => {
   const ui = usePlannerUI();
   const act = usePlannerActions();
   const { coachDock } = usePlannerVoice();
+  const { hasFeature } = useFeatureAccess();
+  const plannerV2Enabled = hasFeature('workout-planner-pro');
 
   const { plannerReturnTo } = data;
   const {
@@ -71,6 +74,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
   } = data.savedPlansState;
   const { saving } = data.saveActions;
   const hasPlanExercises = planExercises.length > 0 || hasGeneratedHorizonPlan;
+  const iaV2 = isPlannerIaV2Enabled() && plannerV2Enabled;
 
   const location = useLocation();
   const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
@@ -91,7 +95,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
     <WorkoutPlannerLensFrame>
     <Page>
       {/* S16: V2 command panel ships DARK — PLANNER_IA_V2 default OFF. */}
-      {isPlannerIaV2Enabled() ? <WorkoutPlannerCommandPanelV2 /> : (
+      {iaV2 ? <WorkoutPlannerCommandPanelV2 /> : (
       <WorkoutPlannerCommandPanel
         plannerReturnTo={plannerReturnTo}
         teachModeOpen={teachModeOpen}
@@ -144,7 +148,6 @@ const WorkoutPlannerPageLayout: React.FC = () => {
       />
 
       {(() => {
-      const iaV2 = isPlannerIaV2Enabled();
       const rolodexEl = (
         <WorkoutPlannerRolodexPanel
           filteredExerciseCount={filteredExerciseCount}

@@ -29,7 +29,7 @@ const Primary = styled.button`
   min-height: 44px; padding: 0 20px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
   background: var(--btn-primary-bg, #002060);
-  color: var(--world-text, var(--text-primary, #E0ECF4));
+  color: var(--button-primary-text, #E0ECF4);
   font-family: 'Sora', sans-serif; font-size: 0.84rem; font-weight: 800;
   &:hover:not(:disabled) { box-shadow: 0 0 14px color-mix(in srgb, var(--accent-glow, #8B5CF6) 45%, transparent); }
   &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 3px; }
