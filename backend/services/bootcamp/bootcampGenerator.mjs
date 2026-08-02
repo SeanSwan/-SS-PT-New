@@ -33,6 +33,8 @@ import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
 } from './bootcampCapacity.mjs';
+import { chipsForExercise } from './bootcampChips.mjs';
+import { summarizeRelaxations } from '../../../shared/bootcamp-core/relaxation.mjs';
 
 // Preserved named-export surface after the move to bootcampCapacity.mjs.
 export { buildAvailableEquipmentList };
@@ -171,7 +173,15 @@ function buildExerciseRecord(ex, opts) {
   const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
   const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId);
 
+  // SWA-105 Slice 2: the selection explains itself in structured facts, never
+  // prose. `selectionRung` is stamped by the day-type ladder; anything the
+  // ladder did not touch is R0 and simply carries no relaxation chip.
+  const selectionRung = ex.selectionRung ?? 'R0';
+  const selectionChips = chipsForExercise(ex, { setupTimeSec: setupTime });
+
   return {
+    selectionRung,
+    selectionChips,
     stationIndex: opts.stationIndex ?? undefined,
     exerciseName: ex.name ?? formatExerciseName(ex.key),
     durationSec: opts.durationSec,
@@ -505,14 +515,37 @@ export async function generateBootcampClass(options) {
 
   // Step 4a (SWA-105 Slice 1): the DAY-TYPE CONTRACT is the authoritative
   // legality gate — primary-region inclusion + explicit pattern exclusions
-  // (shared/bootcamp-core), with a fail-open ladder so the class always
-  // generates. Replaces the `.some()` muscle filter that could not fail.
+  // (shared/bootcamp-core). Replaces the `.some()` muscle filter that could not
+  // fail. Slice 2 replaced slice 1's fail-open tail with the named relaxation
+  // ladder: R0 -> R3 (pattern fidelity) -> R5 (bodyweight top-up) -> R6. The
+  // class still always generates, but it can no longer generate a WRONG one —
+  // the old tail returned the unfiltered pool and put squats back on upper day.
+  // SWA-105 Slice 2: this must match what selection ACTUALLY consumes from the
+  // pool, or the ladder relaxes against a phantom need. Stations take
+  // `exercisesPerStation - 1` picks each (the last slot is a cardio finisher,
+  // appended from CARDIO_FINISHERS, not drawn from the pool); full-group takes
+  // 5 compound + 5 accessory, its 5 finishers likewise coming from elsewhere.
+  // Over-stating this made a healthy pool look starved and pulled bodyweight
+  // substitutes into classes that never needed them.
   const requiredSlots = classFormat === 'full_group'
-    ? 15
-    : Math.max(1, stationCount * Math.max(1, format.exercisesPerStation ?? 3));
+    ? 10
+    : Math.max(1, stationCount * Math.max(1, (format.exercisesPerStation ?? 4) - 1));
   const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
   availableExercises = contract.pool;
   explanations.push({ type: 'day_type_contract', message: contract.explanation });
+
+  // Step 4a-ii (SWA-105 Slice 2): pool exhaustion is a fact about the POOL, so
+  // it is reported here, at the pool. Whether the shipped class actually used a
+  // relaxed exercise is a different question, answered after selection (Step 9c)
+  // — a widened pool whose widening went unused must not raise an alarm.
+  if (contract.exhausted) {
+    explanations.push({
+      type: 'relaxation',
+      message: `Exercise pool exhausted at ${contract.rung}: only ${contract.pool.length} of the `
+        + `${requiredSlots} slots this class needs could be sourced. `
+        + `${contract.structuralOuts.map((out) => out.label).join(' or ')}.`,
+    });
+  }
 
   if (intensityCategory) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });
@@ -621,6 +654,27 @@ export async function generateBootcampClass(options) {
   const templateName = name ?? `${dayType.replace(/_/g, ' ')} ${classFormat.replace(/_/g, ' ')} — ${new Date().toLocaleDateString()}`;
   const stretchTime = includeStretch ? stretchDurationMin : 0;
 
+  // Step 9c (SWA-105 Slice 2): derived from the FINAL Board-1 selections, never
+  // stored alongside them. A stored summary can disagree with the slots it
+  // summarizes, and "nothing was relaxed" printed over three relaxed rows is
+  // precisely the fabricated justification the structured-chip rule prevents.
+  //
+  // This — not the pool rung — is what the trainer is warned about. A pool that
+  // widened to R5 and then never used a substitute produced no relaxed rows, so
+  // it raises nothing. The alarm fires on what shipped, not on what was
+  // considered.
+  const relaxationSummary = summarizeRelaxations(
+    allExercises.map((ex) => ({ rung: ex.selectionRung })),
+  );
+  if (relaxationSummary.relaxedSlots > 0) {
+    explanations.push({
+      type: 'relaxation',
+      message: `${relaxationSummary.relaxedSlots} exercise(s) in this class needed a relaxed rule `
+        + `(${relaxationSummary.constraints.join(', ')}; deepest ${relaxationSummary.deepest}). `
+        + 'Those rows are marked individually — review them before class.',
+    });
+  }
+
   return {
     name: templateName,
     classFormat, classStyle, dayType, intensityCategory,
@@ -642,6 +696,7 @@ export async function generateBootcampClass(options) {
     flowData,
     painAlerts,
     explanations,
+    relaxationSummary,
     aiGenerated: true,
   };
 }

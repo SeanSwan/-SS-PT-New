@@ -25,7 +25,7 @@ describe('D1 regression — the day-type contract replaces the .some() filter', 
     const gobletSquat = { key: 'goblet_squat', muscles: ['quads', 'core'], category: 'squat' };
     const result = applyDayTypeContract([...UPPERS, gobletSquat], 'upper_body', 3);
 
-    expect(result.ladderStep).toBe('contract');
+    expect(result.rung).toBe('R0');
     expect(result.pool.map((e) => e.key)).not.toContain('goblet_squat');
     expect(result.rejected.excludedPattern + result.rejected.wrongRegion).toBeGreaterThan(0);
   });
@@ -79,20 +79,31 @@ describe('the fail-open ladder — the class always generates', () => {
       { key: 'thruster', muscles: ['anterior_deltoid'], category: 'squat' },
     ];
     const result = applyDayTypeContract([UPPERS[0], ...patternExcluded], 'upper_body', 3);
-    expect(result.ladderStep).toBe('no_pattern_exclusions');
+    expect(result.rung).toBe('R3');
     expect(result.pool.length).toBe(3);
     expect(result.explanation).toMatch(/RELAXED/);
+    expect(result.explanation).toMatch(/PATTERN FIDELITY/);
   });
 
-  it('falls back to the unfiltered pool, loudly, when even the relaxed pool starves', () => {
+  // SWA-105 Slice 2 REPLACED the behavior this slot used to assert. Slice 1's
+  // last rung returned the UNFILTERED pool, which re-opened D1 on exactly the
+  // classes least able to absorb it: a thin pool tripped the fallback and the
+  // fallback put squats back on upper day. R5 now tops up with day-LEGAL
+  // bodyweight movements instead, so a starved room degrades into a simpler
+  // class rather than a wrong one.
+  it('NEVER returns a wrong-day exercise, even when the pool starves', () => {
     const wrongDay = [
       { key: 'back_squat', muscles: ['quads'], category: 'squat' },
       { key: 'rdl', muscles: ['hamstrings'], category: 'hinge' },
     ];
     const result = applyDayTypeContract(wrongDay, 'upper_body', 4);
-    expect(result.ladderStep).toBe('unfiltered');
-    expect(result.pool.length).toBe(2);
-    expect(result.explanation).toMatch(/could not fill/);
+
+    const keys = result.pool.map((e) => e.key);
+    expect(keys).not.toContain('back_squat');
+    expect(keys).not.toContain('rdl');
+    for (const exercise of result.pool) {
+      expect(exercise.coreMovement.primaryRegion).toBe('upper');
+    }
   });
 });
 
