@@ -86,15 +86,16 @@ const BootcampBuilderPage: React.FC = () => {
       setupTimeSec: 5,
     }));
   }, []);
-  const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
+  const handleAddFromRolodex = useCallback((exercise: RolodexExercise, suggestedStationIndex?: number) => {
     const targetDur = parseInt(targetDuration, 10) || 45;
     const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
     const maxPerStation = exercisesPerStation;
     const numStations = stationCount;
     const existingForPlacement = getMainBoardExercises(bootcamp?.exercises || []);
     const stationCounts = countMainBoardExercisesByStation(existingForPlacement);
-    let placedStationIdx = activeStation != null && activeStation < numStations ? activeStation : 0;
-    if (numStations > 0 && activeStation === null) {
+    const hasSuggestedStation = suggestedStationIndex != null && suggestedStationIndex >= 0 && suggestedStationIndex < numStations;
+    let placedStationIdx = hasSuggestedStation ? suggestedStationIndex : activeStation != null && activeStation < numStations ? activeStation : 0;
+    if (numStations > 0 && activeStation === null && !hasSuggestedStation) {
       placedStationIdx = -1;
       for (let i = 0; i < numStations; i++) {
         if ((stationCounts.get(i) || 0) < maxPerStation) {
@@ -281,7 +282,7 @@ const BootcampBuilderPage: React.FC = () => {
           />
         )}
       </FourPane>
-      {workflowStage !== 'run' && <BootcampCoachDockMount structureSummary={`${stationCount} stations × ${exercisesPerStation} · ${targetDuration} min`} aiHandlers={{ setStationCount, setExercisesPerStation, setTargetDuration, setOptPhase, getCurrent: () => ({ stationCount, exercisesPerStation, targetDuration, optPhase }) }} />}{/* CC-3 Coach dock */}
+      {workflowStage !== 'run' && <BootcampCoachDockMount onAddExercise={handleAddFromRolodex} structureSummary={`${stationCount} stations × ${exercisesPerStation} · ${targetDuration} min`} aiHandlers={{ setStationCount, setExercisesPerStation, setTargetDuration, setOptPhase, getCurrent: () => ({ stationCount, exercisesPerStation, targetDuration, optPhase }) }} />}{/* CC-3 Coach dock */}
     </PageWrapper>
   );
 };
