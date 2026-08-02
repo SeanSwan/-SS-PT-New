@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
+import BootcampSlotActionBar from './BootcampSlotActionBar';
 import { StationCard, StationHeader, StationName, TimingBadge } from './BootcampBuilderStyles';
 import { getBootcampFloorStationCount } from './BootcampDemoMode.stationCount';
 import { BoardLabel } from './ClassPreviewPanel.previewStyles';
@@ -25,6 +26,8 @@ interface ClassPreviewMainBoardProps {
   activeStation?: number | null;
   onSelectExercise: (ex: BootcampExercise) => void;
   onDeleteExercise?: (exerciseIndex: number) => void;
+  onDuplicateExercise?: (exerciseIndex: number) => void;
+  onMoveExercise?: (exerciseIndex: number, targetStationIndex: number) => void;
   onSelectStation?: (stationIndex: number) => void;
 }
 
@@ -64,6 +67,8 @@ const ClassPreviewMainBoard: React.FC<ClassPreviewMainBoardProps> = ({
   activeStation,
   onSelectExercise,
   onDeleteExercise,
+  onDuplicateExercise,
+  onMoveExercise,
   onSelectStation,
 }) => {
   const inferredStationCount = getBootcampFloorStationCount(bootcamp, bootcamp.stations.length);
@@ -145,6 +150,16 @@ const ClassPreviewMainBoard: React.FC<ClassPreviewMainBoardProps> = ({
                         <span className="label">{ex.easyVariation ? 'Easier:' : ex.kneeMod ? 'Knee:' : ex.backMod ? 'Back:' : 'Mod:'}</span>
                         {getRegressionText(ex)}
                       </RegressionLine>
+                    )}
+                    {onDeleteExercise && onDuplicateExercise && onMoveExercise && (
+                      <BootcampSlotActionBar
+                        exerciseName={ex.exerciseName}
+                        stationCount={inferredStationCount}
+                        stationIndex={stationIndex}
+                        onDuplicate={() => onDuplicateExercise(deleteIdx)}
+                        onMove={(targetStationIndex) => onMoveExercise(deleteIdx, targetStationIndex)}
+                        onRemove={() => onDeleteExercise(deleteIdx)}
+                      />
                     )}
                   </React.Fragment>
                 );

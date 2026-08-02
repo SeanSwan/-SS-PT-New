@@ -54,6 +54,8 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   onSave,
   onSelectExercise,
   onDeleteExercise,
+  onDuplicateExercise,
+  onMoveExercise,
   onSelectStation,
   activeStation,
 }) => {
@@ -157,6 +159,8 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                 activeStation={activeStation}
                 onSelectExercise={onSelectExercise}
                 onDeleteExercise={onDeleteExercise}
+                onDuplicateExercise={onDuplicateExercise}
+                onMoveExercise={onMoveExercise}
                 onSelectStation={onSelectStation}
               />
             ) : (

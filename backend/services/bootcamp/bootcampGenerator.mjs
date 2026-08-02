@@ -29,6 +29,7 @@ import {
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
@@ -77,79 +78,103 @@ function sampleFromWindow(pool, take, rng = Math.random) {
   return window.slice(0, take);
 }
 
+function isUsedExercise(exercise, usedNames) {
+  return usedNames.has(exercise.key) || usedNames.has(exercise.name);
+}
+
+const STATION_PATTERN_PREFERENCES = Object.freeze({
+  quadriceps: ['squat', 'lunge'],
+  hamstrings: ['hinge', 'lunge'],
+  glutes: ['hinge', 'squat', 'lunge'],
+  pectorals: ['push'],
+  latissimus_dorsi: ['pull'],
+  anterior_deltoid: ['push'],
+  biceps: ['pull'],
+  triceps: ['push'],
+  core: ['core'],
+});
+
+function stationProgrammingQuality(exercise, targetMuscle) {
+  let score = 0;
+  const preferredPatterns = STATION_PATTERN_PREFERENCES[targetMuscle];
+  if (exercise.exerciseType === 'compound') score += 40;
+  if (['squat', 'hinge', 'lunge', 'push', 'pull'].includes(exercise.category)) score += 25;
+  if (preferredPatterns?.includes(exercise.category)) score += 45;
+  else if (preferredPatterns && exercise.category) score -= 20;
+  if (Array.isArray(exercise.equipment) && exercise.equipment.some((item) => !['bodyweight', 'none'].includes(String(item).toLowerCase()))) score += 15;
+  if (exercise.exerciseType === 'stability' || exercise.exerciseType === 'core') score += 8;
+  if (exercise.exerciseType === 'flexibility' || exercise.bodyPartCategory === 'recovery') score -= 80;
+  if (exercise.bodyPartCategory === 'cardio' && exercise.exerciseType !== 'compound') score -= 25;
+  return score;
+}
+
+function rankStationTier(exercises, targetMuscle) {
+  return [...exercises].sort((a, b) => stationProgrammingQuality(b, targetMuscle) - stationProgrammingQuality(a, targetMuscle));
+}
+
 function selectStationExercises(available, stationMuscles, count, usedNames, rng = Math.random, fallbackGate = null) {
-  const primaryMuscle = stationMuscles[0];
+  const targets = normalizeMuscleList(stationMuscles);
+  const primaryMuscle = targets[0];
+  if (!primaryMuscle || count <= 0) return [];
 
-  const primaryMatches = available
-    .filter(ex => {
-      const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-      return exPrimary && exPrimary === primaryMuscle;
-    })
-    .filter(ex => !usedNames.has(ex.key));
+  const eligible = available.filter((exercise) => !isUsedExercise(exercise, usedNames));
+  const primaryMatches = rankStationTier(eligible.filter((exercise) => {
+    const muscles = normalizeMuscleList(exercise.muscles);
+    const primary = canonicalizeMuscle(exercise.primaryMuscle) || muscles[0];
+    return primary === primaryMuscle;
+  }), primaryMuscle);
+  const secondaryMatches = rankStationTier(eligible.filter((exercise) => {
+    const muscles = normalizeMuscleList(exercise.muscles);
+    const primary = canonicalizeMuscle(exercise.primaryMuscle) || muscles[0];
+    return primary !== primaryMuscle && muscles.includes(primaryMuscle);
+  }), primaryMuscle);
 
-  const secondaryMatches = available
-    .filter(ex => {
-      const exMuscles = ex.muscles ?? [];
-      const exPrimary = ex.primaryMuscle || exMuscles[0];
-      if (exPrimary === primaryMuscle) return false;
-      return exMuscles.includes(primaryMuscle);
-    })
-    .filter(ex => !usedNames.has(ex.key));
-
-  const tertiaryMatches = stationMuscles.length > 1
-    ? available
-        .filter(ex => {
-          const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-          return stationMuscles.slice(1).includes(exPrimary);
-        })
-        .filter(ex => !usedNames.has(ex.key))
-        .filter(ex => !primaryMatches.some(p => p.key === ex.key) && !secondaryMatches.some(s => s.key === ex.key))
-    : [];
-
-  const needed = Math.max(1, count - 1);
-
-  // Tier precedence is protocol (primary muscle first, then assisting,
-  // then station-secondary muscles); the sample varies picks WITHIN a tier.
   const selected = [];
-  for (const tier of [primaryMatches, secondaryMatches, tertiaryMatches]) {
-    if (selected.length >= needed) break;
-    selected.push(...sampleFromWindow(tier, needed - selected.length, rng));
+  const tiers = [
+    ['primary', primaryMatches, count],
+    ['secondary', secondaryMatches, 1],
+  ];
+  for (const [tierName, tier, tierLimit] of tiers) {
+    if (selected.length >= count || (tierName === 'secondary' && selected.length === 0)) break;
+    let candidates = tier.filter((exercise) => !selected.some((pick) => pick.key === exercise.key));
+    if (fallbackGate) {
+      const budgeted = candidates.filter(fallbackGate);
+      if (budgeted.length > 0) candidates = budgeted;
+    }
+    const take = Math.min(tierLimit, count - selected.length);
+    const picks = sampleFromWindow(candidates, take, rng);
+    selected.push(...picks.map((exercise) => ({
+      ...exercise,
+      selectionReason: tierName === 'primary'
+        ? `Primary ${primaryMuscle.replace(/_/g, ' ')} match; quality-ranked for this station.`
+        : `One strong secondary ${primaryMuscle.replace(/_/g, ' ')} match; station remains primary-target dominant.`,
+      selectionTier: tierName,
+      programmingQuality: stationProgrammingQuality(exercise, primaryMuscle),
+    })));
   }
-  if (selected.length >= needed) return selected;
-
-  let remainingPool = available
-    .filter(ex => !usedNames.has(ex.key) && !selected.some(s => s.key === ex.key));
-  // SWA-105 Slice 1: this fallback was D1's leak point — it filled leftover
-  // slots with ANYTHING. The pool is now day-legal upstream, and the budget
-  // gate keeps one region from eating the class. Budget prefers, never
-  // starves: an over-budget pick beats an empty slot on a live floor.
-  if (fallbackGate) {
-    const budgeted = remainingPool.filter(fallbackGate);
-    if (budgeted.length > 0) remainingPool = budgeted;
-  }
-  selected.push(...sampleFromWindow(remainingPool, needed - selected.length, rng));
 
   return selected;
 }
-
-function selectFullGroupExercises(available, rng = Math.random) {
+function selectFullGroupExercises(available, rng = Math.random, usedNames = new Set()) {
+  const eligible = available.filter((exercise) => !isUsedExercise(exercise, usedNames));
   const compound = sampleFromWindow(
-    available.filter(ex => (ex.muscles ?? []).length >= 2),
-    5,
+    eligible.filter(ex => (ex.muscles ?? []).length >= 2),
+    6,
     rng,
   );
 
-  const cardio = CARDIO_FINISHERS.slice(0, 5).map(cf => ({
+  const cardioPool = CARDIO_FINISHERS.map(cf => ({
     ...cf,
     key: cf.name.toLowerCase().replace(/\s+/g, '_'),
-    muscles: cf.muscles.split(','),
+    muscles: normalizeMuscleList(cf.muscles),
     isCardio: true,
-  }));
+  })).filter((exercise) => !isUsedExercise(exercise, usedNames));
+  const cardio = sampleFromWindow(cardioPool, 3, rng);
 
   const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
   const accessory = sampleFromWindow(
-    available.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
-    5,
+    eligible.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
+    6,
     rng,
   );
 
@@ -197,6 +222,8 @@ function buildExerciseRecord(ex, opts) {
     board: 'main',
     setupTimeSec: setupTime,
     exerciseLibraryId,
+    selectionReason: ex.selectionReason ?? null,
+    programmingQuality: ex.programmingQuality ?? null,
   };
 }
 
@@ -542,13 +569,13 @@ export async function generateBootcampClass(options) {
 
   // Step 5: Build stations or full-group workout
   if (classFormat === 'full_group') {
-    buildFullGroupWorkout(availableExercises, format, allExercises, explanations);
+    buildFullGroupWorkout(availableExercises, format, allExercises, explanations, combinedExclusions);
   } else {
     buildStationWorkout(
-      availableExercises, targetMuscles, stationCount, format, recentExerciseNames,
+      availableExercises, targetMuscles, stationCount, format, combinedExclusions,
       stations, allExercises, explanations,
       undefined, // rng default
-      { dayTypeId: dayType, totalSlots: requiredSlots },
+      { dayTypeId: dayType, totalSlots: requiredSlots, allowHighImpactFinishers: explicitHighImpactClass },
     );
   }
 
@@ -670,8 +697,8 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations, rng = Math.random) {
-  const selected = selectFullGroupExercises(available, rng);
+function buildFullGroupWorkout(available, format, allExercises, explanations, usedNames, rng = Math.random) {
+  const selected = selectFullGroupExercises(available, rng, usedNames);
   for (let i = 0; i < selected.length; i++) {
     allExercises.push(buildExerciseRecord(selected[i], {
       durationSec: format.durationSec,
@@ -685,29 +712,53 @@ function buildFullGroupWorkout(available, format, allExercises, explanations, rn
   });
 }
 
+function chooseStationFinisher(stationMuscles, usedNames, rng) {
+  const target = canonicalizeMuscle(stationMuscles[0]);
+  if (!target) return null;
+  const candidates = CARDIO_FINISHERS.map((finisher) => {
+    const muscles = normalizeMuscleList(finisher.muscles);
+    return {
+      ...finisher,
+      key: finisher.name.toLowerCase().replace(/\s+/g, '_'),
+      muscles,
+      primaryMuscle: muscles[0] ?? null,
+      selectionReason: `Station-aligned conditioning finisher for ${target.replace(/_/g, ' ')}.`,
+    };
+  }).filter((finisher) => finisher.primaryMuscle === target && !isUsedExercise(finisher, usedNames));
+  return sampleFromWindow(candidates, 1, rng)[0] ?? null;
+}
+
 function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations, rng = Math.random, contractCtx = null) {
   const muscleGroups = distributeMuscleGroups(targetMuscles, stationCount);
-  // Random offset so the finisher rotation also varies press-to-press.
-  const finisherOffset = Math.floor(rng() * CARDIO_FINISHERS.length);
-  // Class-level region tracking for the volume budget (SWA-105 Slice 1).
   const selectedMovements = [];
 
   for (let s = 0; s < stationCount; s++) {
     const stationMuscles = muscleGroups[s];
+    const finisher = contractCtx?.allowHighImpactFinishers
+      ? chooseStationFinisher(stationMuscles, usedNames, rng)
+      : null;
+    const mainSlots = Math.max(1, format.exercisesPerStation - (finisher ? 1 : 0));
+    const stationExclusions = new Set(usedNames);
+    if (finisher) {
+      stationExclusions.add(finisher.key);
+      stationExclusions.add(finisher.name);
+    }
     const fallbackGate = contractCtx
       ? budgetGate(contractCtx.dayTypeId, selectedMovements, contractCtx.totalSlots)
       : null;
-    const stationExes = selectStationExercises(available, stationMuscles, format.exercisesPerStation, usedNames, rng, fallbackGate);
+    const stationExes = selectStationExercises(available, stationMuscles, mainSlots, stationExclusions, rng, fallbackGate);
     for (const ex of stationExes) {
       if (ex.coreMovement) selectedMovements.push(ex.coreMovement);
     }
 
-    // Raw lowercase tokens power the quantity feasibility check; the display
-    // string stays formatted exactly as before.
     const rawEquipment = stationExes
       .flatMap(e => Array.isArray(e.equipment) ? e.equipment : (e.equipment ? [e.equipment] : []))
       .map(t => String(t).trim().toLowerCase())
       .filter((v, i, a) => v && a.indexOf(v) === i);
+    const coverageStatus = stationExes.length < mainSlots ? 'weak' : 'strong';
+    const coverageMessage = coverageStatus === 'weak'
+      ? `Only ${stationExes.length} of ${mainSlots} qualified ${stationMuscles[0]} movements were available; unrelated exercises were not inserted.`
+      : `${stationExes.length} qualified ${stationMuscles[0]} movements selected without unrelated fallback.`;
 
     stations.push({
       stationNumber: s + 1,
@@ -716,6 +767,8 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
       equipmentTokens: rawEquipment,
       setupTimeSec: 0,
       sortOrder: s + 1,
+      coverageStatus,
+      coverageMessage,
     });
 
     for (let e = 0; e < stationExes.length; e++) {
@@ -725,30 +778,34 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
         sortOrder: e + 1,
       }));
       usedNames.add(stationExes[e].key);
+      usedNames.add(stationExes[e].name);
     }
 
-    const finisher = CARDIO_FINISHERS[(s + finisherOffset) % CARDIO_FINISHERS.length];
-    allExercises.push(buildExerciseRecord(finisher, {
-      stationIndex: s,
-      durationSec: format.durationSec,
-      restSec: 0,
-      sortOrder: stationExes.length + 1,
-      isCardioFinisher: true,
-    }));
+    if (finisher) {
+      allExercises.push(buildExerciseRecord(finisher, {
+        stationIndex: s,
+        durationSec: format.durationSec,
+        restSec: 0,
+        sortOrder: stationExes.length + 1,
+        isCardioFinisher: true,
+      }));
+      usedNames.add(finisher.key);
+      usedNames.add(finisher.name);
+    }
   }
 
   explanations.push({
     type: 'format',
-    message: `${stationCount} stations, ${format.exercisesPerStation} exercises each, ${format.durationSec}s per exercise`,
+    message: `${stationCount} stations, up to ${format.exercisesPerStation} qualified exercises each, ${format.durationSec}s per exercise. Station finishers are target-aligned and only used for explicit high-impact/cardio classes.`,
   });
 }
-
 // Style modifiers imported from ./classStyleModifiers.mjs
 // Flow optimization imported from ./flowOptimizer.mjs
 
 export const __testing__ = {
   buildAvailableEquipmentList,
   buildExerciseRecord,
+  buildStationWorkout,
   normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
   resolveBootcampStructure,

@@ -30,6 +30,7 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_STATION_COUNT)');
     expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION)');
     expect(pageSource).not.toContain("useState<ClassFormat>('2x8_r3')");
+    expect(pageSource).toContain("useState<IntensityCategory>('medium_impact')");
     expect(builderConstantsSource.indexOf("'4x4_r2'")).toBeLessThan(builderConstantsSource.indexOf("'2x8_r3'"));
   });
 
@@ -45,8 +46,13 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(generateCall).toContain('equipmentProfileId: equipmentProfileId || undefined');
     expect(generateCall).toContain('optPhase,');
     expect(generateCall).toContain('includeStretch,');
+    expect(generateCall).toContain('exclusionKeys,');
   });
 
+  it('excludes the immediately previous main board when generating again', () => {
+    expect(pageSource).toContain('getMainBoardExclusionKeys');
+    expect(pageSource).toContain('const exclusionKeys = getMainBoardExclusionKeys(bootcamp?.exercises);');
+  });
   it('uses independent station and exercise controls instead of preset-only class formats', () => {
     expect(builderConstantsSource).toContain('BOOTCAMP_STATION_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6]');
     expect(builderConstantsSource).toContain('BOOTCAMP_EXERCISES_PER_STATION_OPTIONS = [1, 2, 3, 4, 5]');

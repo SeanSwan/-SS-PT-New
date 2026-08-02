@@ -16,6 +16,12 @@ describe('bootcamp route format contract', () => {
     expect(routeSource).toContain('VALID_FORMATS.includes(classFormat)');
   });
 
+  it('sanitizes immediate-regeneration exclusions before passing them to the generator', () => {
+    expect(routeSource).toContain('exclusionKeys');
+    expect(routeSource).toContain('Array.isArray(exclusionKeys)');
+    expect(routeSource).toContain('.slice(0, 100)');
+    expect(routeSource).toContain('exclusionKeys: new Set(safeExclusionKeys)');
+  });
   it('maps internal bootcamp route errors to stable public responses without exporting helpers', () => {
     const spaceUpdateRoute = routeSource.slice(
       routeSource.indexOf("router.put('/spaces/:id'"),

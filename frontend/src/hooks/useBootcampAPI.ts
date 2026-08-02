@@ -74,6 +74,7 @@ export function useBootcampAPI() {
     optPhase?: number;
     includeStretch?: boolean;
     stretchDurationMin?: number;
+    exclusionKeys?: string[];
   }): Promise<GeneratedBootcamp> => {
     const data = await apiFetch<{ success: boolean; bootcamp: GeneratedBootcamp }>(
       '/api/bootcamp/generate',

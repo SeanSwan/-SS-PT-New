@@ -33,20 +33,24 @@ import {
   createDayTypeRegistry, SWAN_DAY_TYPES, checkDayTypeLegality, checkVolumeBudget,
 } from '../../../shared/bootcamp-core/dayTypes.mjs';
 import { normalizeMovement } from '../../../shared/bootcamp-core/taxonomy.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 
 /** Swan muscle token -> core region. Covers the 28 registry tokens plus the
  *  CARDIO_FINISHERS aliases (quadriceps, gluteus_maximus, shoulders, full_body). */
 const MUSCLE_REGION = Object.freeze({
   // lower
   adductors: 'lower', calves: 'lower', glute_medius: 'lower', glutes: 'lower',
-  hamstrings: 'lower', hip_abductors: 'lower', hip_flexors: 'lower',
-  it_band: 'lower', quads: 'lower', tfl: 'lower',
+  hamstrings: 'lower', hip_abductors: 'lower', hip_flexors: 'lower', hip_rotators: 'lower',
+  it_band: 'lower', peroneals: 'lower', piriformis: 'lower', posterior_tibialis: 'lower',
+  quads: 'lower', tfl: 'lower', tibialis_anterior: 'lower',
   quadriceps: 'lower', gluteus_maximus: 'lower', gluteus_medius: 'lower',
   // upper
-  anterior_deltoid: 'upper', biceps: 'upper', brachioradialis: 'upper',
-  chest: 'upper', lateral_deltoid: 'upper', lats: 'upper', lower_chest: 'upper',
+  anterior_deltoid: 'upper', biceps: 'upper', brachialis: 'upper', brachioradialis: 'upper',
+  forearms: 'upper', neck_flexors: 'upper', sternocleidomastoid: 'upper',
+  chest: 'upper', pectorals: 'upper', lateral_deltoid: 'upper', lats: 'upper',
+  latissimus_dorsi: 'upper', lower_chest: 'upper', upper_back: 'upper',
   rear_deltoid: 'upper', rhomboids: 'upper', rotator_cuff: 'upper',
-  traps: 'upper', triceps: 'upper', upper_chest: 'upper', shoulders: 'upper',
+  serratus_anterior: 'upper', traps: 'upper', triceps: 'upper', upper_chest: 'upper', shoulders: 'upper',
   // core
   core: 'core', erector_spinae: 'core', obliques: 'core', tva: 'core',
   thoracic_spine: 'core',
@@ -97,8 +101,8 @@ function inferImpact(exercise) {
  * so taxonomy holes are visible instead of silent.
  */
 export function toCoreMovement(exercise) {
-  const muscles = Array.isArray(exercise?.muscles) ? exercise.muscles : [];
-  const primaryToken = exercise?.primaryMuscle || muscles[0];
+  const muscles = normalizeMuscleList(exercise?.muscles);
+  const primaryToken = canonicalizeMuscle(exercise?.primaryMuscle) || muscles[0];
   const primaryRegion = MUSCLE_REGION[primaryToken];
   if (!primaryRegion) return null;
 
@@ -124,7 +128,7 @@ export function getDayTypeRegistry() {
  * @param {Array} exercises  Swan exercise records (registry or Rolodex shape)
  * @param {string} dayTypeId lower_body | upper_body | cardio | full_body
  * @param {number} neededSlots minimum pool size the class needs
- * @returns {{ pool: Array, ladderStep: 'contract'|'no_pattern_exclusions'|'unfiltered',
+ * @returns {{ pool: Array, ladderStep: 'contract'|'no_pattern_exclusions'|'insufficient',
  *             rejected: {wrongRegion: number, excludedPattern: number, unclassified: number},
  *             explanation: string }}
  */
@@ -176,12 +180,11 @@ export function applyDayTypeContract(exercises, dayTypeId, neededSlots = 1) {
     };
   }
   return {
-    pool: exercises,
-    ladderStep: 'unfiltered',
+    pool: regionOnlyLegal,
+    ladderStep: 'insufficient',
     rejected,
-    explanation: `${dayType.label} contract could not fill the class (${regionOnlyLegal.length}/${neededSlots} `
-      + 'even relaxed) — pool left unfiltered so the class still generates. Review the exercise library '
-      + 'coverage for this day type.',
+    explanation: `${dayType.label} contract has thin coverage (${regionOnlyLegal.length}/${neededSlots} `
+      + 'qualified even with pattern exclusions relaxed). Unrelated or unclassified exercises were not admitted.',
   };
 }
 

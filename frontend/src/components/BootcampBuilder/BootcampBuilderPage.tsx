@@ -17,16 +17,17 @@ import type { RolodexExercise } from './ExerciseRolodexPanel';
 import { buildBootcampExerciseFromRolodex } from './BootcampExerciseAlternatives';
 import {
   countMainBoardExercisesByStation,
-  getMainBoardExercises,
+  getMainBoardExercises, getMainBoardExclusionKeys,
   getMainBoardWorkoutSeconds,
   getNextMainBoardSortOrder,
 } from './BootcampBuilderPlacement';
+import { useBootcampSlotActions } from './useBootcampSlotActions';
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI(), classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat;
   const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT); const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
   const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
-  const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
+  const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('medium_impact');
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [targetDuration, setTargetDuration] = useState(DEFAULT_BOOTCAMP_WORKOUT_MIN); const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
@@ -41,12 +42,12 @@ const BootcampBuilderPage: React.FC = () => {
   const [buildMode, setBuildMode] = useState<BuildMode>('ai');
   const [activeStation, setActiveStation] = useState<number | null>(null);
   const [selectedRolodexId, setSelectedRolodexId] = useState<string | number | null>(null);
+  const { handleDeleteExercise, handleDuplicateExercise, handleMoveExercise } = useBootcampSlotActions({ includeStretch, setBootcamp, setActiveStation });
   const totalClassMin = bootcamp
     ? (bootcamp.totalClassMin || (bootcamp.totalWorkoutMin || 0) + 13)
     : parseInt(targetDuration, 10) + (includeStretch ? OVERHEAD_MIN : OVERHEAD_MIN - 3);
   const isOverTime = totalClassMin > 55;
   useEffect(() => {
-    if (buildMode === 'ai') return;
     if (bootcamp) return;
     const targetDur = parseInt(targetDuration, 10) || 45;
     const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
@@ -85,19 +86,6 @@ const BootcampBuilderPage: React.FC = () => {
       setupTimeSec: 5,
     }));
   }, []);
-  const handleDeleteExercise = useCallback((globalIndex: number) => {
-    setBootcamp(prev => {
-      if (!prev) return prev;
-      const updated = prev.exercises.filter((_, i) => i !== globalIndex);
-      const totalExSec = getMainBoardWorkoutSeconds(updated, 35, 15);
-      return {
-        ...prev,
-        exercises: updated,
-        totalWorkoutMin: Math.ceil(totalExSec / 60), demoDuration: 5, clearDuration: 5, stretchDurationMin: includeStretch ? 3 : 0, includeStretch,
-        totalClassMin: Math.ceil(totalExSec / 60) + (includeStretch ? OVERHEAD_MIN : OVERHEAD_MIN - 3),
-      };
-    });
-  }, [includeStretch]);
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
     const targetDur = parseInt(targetDuration, 10) || 45;
     const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
@@ -171,7 +159,7 @@ const BootcampBuilderPage: React.FC = () => {
     });
     toast.success(`Added: ${exercise.name} -> Station ${placedStationIdx + 1}`);
   }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation, stationCount, exercisesPerStation, includeStretch]);
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async () => { const exclusionKeys = getMainBoardExclusionKeys(bootcamp?.exercises);
     setLoading(true);
     setError(null);
     setBootcamp(null);
@@ -189,7 +177,7 @@ const BootcampBuilderPage: React.FC = () => {
         name: className || undefined,
         equipmentProfileId: equipmentProfileId || undefined,
         optPhase,
-        includeStretch,
+        includeStretch, exclusionKeys,
       });
       setBootcamp(result);
     } catch (err) {
@@ -197,7 +185,7 @@ const BootcampBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, classFormat, stationCount, exercisesPerStation, classStyle, dayType, intensityCategory, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase, includeStretch]);
+  }, [api, classFormat, stationCount, exercisesPerStation, classStyle, dayType, intensityCategory, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase, includeStretch, bootcamp]);
   const handleSave = useCallback(async () => {
     if (!bootcamp || saving) return;
     setSaving(true);
@@ -275,8 +263,10 @@ const BootcampBuilderPage: React.FC = () => {
           saving={saving}
           onSave={handleSave}
           onSelectExercise={setSelectedExercise}
-          onDeleteExercise={buildMode !== 'ai' ? handleDeleteExercise : undefined}
-          onSelectStation={buildMode !== 'ai' ? setActiveStation : undefined}
+          onDeleteExercise={handleDeleteExercise}
+          onDuplicateExercise={handleDuplicateExercise}
+          onMoveExercise={handleMoveExercise}
+          onSelectStation={setActiveStation}
           activeStation={activeStation}
         />
         {workflowStage === 'build' && (

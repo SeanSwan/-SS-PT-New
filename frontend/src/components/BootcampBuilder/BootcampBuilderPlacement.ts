@@ -2,6 +2,7 @@ import { getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
 
 type BootcampPlacementExercise = {
   board?: string;
+  exerciseName?: string;
   stationIndex?: number;
   durationSec?: number;
   restSec?: number;
@@ -15,6 +16,12 @@ export function getMainBoardExercises<T extends BootcampPlacementExercise>(exerc
   return exercises.filter(isMainBoardExercise);
 }
 
+export function getMainBoardExclusionKeys(exercises: BootcampPlacementExercise[] = []): string[] {
+  return Array.from(new Set(getMainBoardExercises(exercises).flatMap((exercise) => {
+    const name = exercise.exerciseName?.trim();
+    return name ? [name, name.toLowerCase().replace(/\s+/g, '_')] : [];
+  })));
+}
 export function countMainBoardExercisesByStation(exercises: BootcampPlacementExercise[] = []): Map<number, number> {
   const stationCounts = new Map<number, number>();
 
