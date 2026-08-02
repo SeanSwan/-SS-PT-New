@@ -34,14 +34,14 @@ Specifically:
    NOVELTY_FLOOR = 0.30, it is 0.30. Not 0.25. Not "configurable, defaulting to
    0.3 which seems reasonable."
 2. Never invent a colour, spacing value, font size, or breakpoint. They are all in
-   S11 and S12. If you need one that is not listed, you have misread the spec.
+   §11 and §12. If you need one that is not listed, you have misread the spec.
 3. Never invent an enum member. Every enum is CLOSED.
 4. If something is genuinely unspecified, STOP. Write it in an `UNSPECIFIED:` block
    at the end of your output and do not fill the gap. A named gap is useful to me;
    a guess is damage I have to find later.
 5. Do not refactor, tidy, or improve code you were not asked to touch. Match the
    surrounding style even where you would write it differently.
-6. Do not add dependencies. The stack is fixed in S1.3.
+6. Do not add dependencies. The stack is fixed in §1.3.
 
 You may reason in the style of the models that wrote this spec: state your
 assumptions, prefer the simplest construction that satisfies the requirement, and
@@ -63,7 +63,7 @@ cheapest, not because anyone wrote a rule saying so.
 
 Build slice 3a first. It is small, and it gates everything else: nothing records
 which treatment was applied to an exercise, so the brain cannot rotate what it never
-wrote down. Slice 3a is S4.1 - extend the `exercisesUsed` JSONB shape. It requires
+wrote down. Slice 3a is §4.1 - extend the `exercisesUsed` JSONB shape. It requires
 NO migration. If your diff contains a migration file for slice 3a, you have made a
 mistake.
 
@@ -74,20 +74,20 @@ per response. Do not batch slices.
 
 Per slice, before you tell me it is complete, show me:
 
-1. Each acceptance criterion from S13 for that slice, with the command you ran and
+1. Each acceptance criterion from §13 for that slice, with the command you ran and
    its actual output. Not "should pass" - pasted output.
 2. `node --check` on every file you created or modified.
 3. The existing bootcamp test suite green. Baseline is 99 tests across 15 files.
    A regression is a failed slice.
 4. The `shared/bootcamp-core` suite green. Baseline is 102 tests.
-5. A line count for every file you touched, proving each is <=300 lines.
+5. A line count for every file you touched, proving each is ≤300 lines.
 6. An explicit list of anything you could not verify, and why.
 
 If any of those six is missing, the slice is not done and you should not say it is.
 
 ## THE HARD PROHIBITIONS
 
-Read S14. Violating any of them fails the slice regardless of whether tests pass.
+Read §14. Violating any of them fails the slice regardless of whether tests pass.
 The three most likely to catch you:
 
 - Do not restore the 14-day ban in any form, under any name.
