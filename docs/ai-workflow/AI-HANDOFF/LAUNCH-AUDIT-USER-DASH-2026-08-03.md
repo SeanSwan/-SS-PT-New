@@ -177,11 +177,42 @@ The backend suite has **1 pre-existing failure**: `galleryReferralCreditGuardTru
 
 **Round 2 — independent adversarial review** of all five commits (regressions, incomplete fixes, builder edge cases, prop breakage, claim verification). Findings and dispositions are recorded in §7.1.
 
-### 7.1 Round-2 dispositions
+### 7.1 Dry-loop ledger
 
-_(See the commit log and conflicts file; any defect found in round 2 was either fixed in a follow-up commit or recorded as backlog with rationale.)_
+Each round had to gather **new** evidence from a vantage not yet tried; re-reading the same code is not a round, and the round that applied fixes became the next round's primary attack surface.
+
+| Round | Vantage (new evidence) | Outcome |
+|---|---|---|
+| **1** | Self-review of this lane's own commits — attacked the code I had just written | **2 defects found + fixed** (`e06ae9caa`): DST day-boundary mis-bucketing in my new builder; dead `MOCK_CATEGORIES` fabricated-data export |
+| **2a** | **Rule 31 backend route-ownership / shadow audit** on the touched path — mount order, not source reading | CLEAN — `/api/schedule` mounts `core/routes.mjs:407`, before the `/api` fallback `:814`; no competing router defines `/schedule`; `/api/schedule-ai` is a distinct segment |
+| **2b** | **Impersonation path** — a role-rewriting middleware would invalidate the whole fix | CLEAN — `authMiddleware.mjs:356-372` sets `req.user.role` to the target's *real* role and records impersonation separately in `req.impersonation`; an admin impersonating a client correctly scopes to that client |
+| **2c** | **Type coercion** — `req.user.id` is stringified by `toStringId`, my SQL compares to an integer column | CLEAN — identical to the pre-existing client branch, which works in production; no new coercion risk introduced |
+| **2d** | **Rules 6 + 2 compliance on the CSS I added** (not the logic) | CLEAN — all 4 added hex values sit inside `var(--token, #fallback)`, zero bare hex, all Crystalline Swan (no retired Galaxy tokens); both new buttons `min-height: 44px` |
+| **2e** | **Cross-lane consumer suites** — my leaderboard change is consumed by Lane 3's client dashboard, which the UserDashboard suite never exercises | CLEAN — client-dashboard **277/277 across 54 files**; combined UserDashboard + observatory + gamification hooks **431/431 across 85 files** |
+| **2f** | **Different cwd** (repo root vs `frontend/`) | No defect — vitest's `include` is root-relative, so a root-cwd path filter matches nothing. Known harness quirk, not a code issue |
+| **3** | **Independent adversarial reviewer** — told to refute the 5 commits | **REVISE — 2 blockers, both real.** I gated the proof card on fetch failure and left the day grid beside it ungated (outage → "no workout logged" ×7); and I introduced a SECOND definition of "this week" next to the existing one. Plus `isToday` built-but-never-rendered, `role="status"` wrapping the Retry button, `refetch` receiving a MouseEvent, and my own test cementing a wrong-identity heuristic. Fixed in `4f3b45664`. **Refuted one finding** (trainer projection "narrowed" — `origin/main` shows it was already the trainer shape). |
+| **4** | **Self-attack on round 3's own claim** — "the two windows can never disagree" | **1 fixed** (`5fce87473`). Not true: the proof card used an instant-based sliding window, the grid calendar days, so they disagreed across a ≤24h tail band. Every agreement fixture was mid-window. Both now share `calendarDaysAgo`. |
+| **5** | **Component-state rendering** of `HomeTabTrainingProof` (all prior tests hit the builder) | **CLEAN** — 6/6 first run |
+| **6** | **Independent adversarial reviewer** on round 4 | **REVISE — 3 fixed** (`936a85a7d`). Confirmed the window fix holds (~9,600 brute-forced timestamps, 0 mismatches), then found the gate `isError && !data` is FALSE for the entire pending window (first paint + in-flight + retry + backoff) — the same lie relocated; that rendering `isToday` turned a latent memo staleness into an on-screen lie across midnight; and that my round-3 test comment was **false about its own fixture** (row and member both 640, so the branch I claimed to avoid was the one firing). |
+| **7** | **Independent adversarial reviewer** on round 6, incl. mutation-testing the new tests | **REVISE — 5 blockers + 5 should-ship, fixed in `<this commit>`.** See §7.2. |
 
 ---
+
+### 7.2 Round 7 — the gate class was never actually closed
+
+The round-7 reviewer mutation-tested the new tests rather than reading them, and found the fix had been applied to one consumer instead of the class:
+
+- **The identical defect was live five lines above the fix.** `gamificationUnavailable = gamProfile.isError && !gamProfile.data` — verbatim the expression the round-6 commit declared defective — still drove the Level/XP/streak rail, so a member with an in-flight gamification request saw "Level 1 · 0% · 0 XP · 0 days" as fact.
+- **`isError` WITH stale data resolved to `ready`.** A failed background refetch keeps the cached list; the UI then presented it as current and, worse, withheld the Retry (which was gated on `unavailable`).
+- **A disabled query reported `loading` forever.** `enabled: !!user` goes false on session expiry, leaving a `role="status"` region announcing "Loading your training history…" that could never resolve and offered no way out.
+- **The Quick Stats ticker on the same page was ungated**, asserting "This Week 0 / Training Time 0m" — its `trainingProof ? … : []` guard is dead, because `buildHomeTrainingProof` always returns an object.
+- **The round-6 commit and the hook header over-claimed.** They said a workout logged after midnight would now light a tile. It would not: the hook re-keys the *day*, not the *data*, and nothing refetches.
+- **My unmount test passed against a genuinely leaking timer** — asserting `clearTimeout` was *called* proves a call, not an effect. Proven by mutation.
+- **Nothing tested the derivation that was actually broken.** Reverting `HomeTab`'s gate reintroduced the original bug with the whole suite still green, because every gate test hands the prop directly to a presentation component.
+
+**Fixes:** a single shared `resolveDataStatus` now answers "do we know this member's record?" in one place (`ready | stale | loading | unavailable`), consumed by both the sessions and gamification gates — the class is closed rather than the instance. The Quick Stats ticker is gated on it. `HomeTab` refetches on day rollover, which makes the midnight claim true rather than merely asserted. The hook header now states its scope and its known limits instead of over-promising (Rule 75). The unmount test asserts `vi.getTimerCount() === 0` instead of a spy call. A new `HomeTab.gates.contract.test.ts` pins the derivation itself — **mutation-verified: reverting the gate fails 2 of its 6 assertions.** And `dayClock(dayStart)` replaces the inline `Date.now()`, so `dayStart` is a genuine dependency — ESLint no longer emits the 3 `exhaustive-deps` warnings that would have told the next developer to delete the fix.
+
+**Deferred with reason (recorded, not silently dropped):** the hour-of-day threshold in `assessStreakRisk` is still frozen for an open tab (needs its own timer, not a day boundary); `useDayBoundary` has no `visibilitychange` resync, so a throttled or suspended tab lags until its timer fires; `buildLatestPostView`'s relative timestamps freeze at mount; the grid announces "loading" nine times where `aria-busy` plus one status line is the conventional shape; and "No logged workouts yet" is still wrong for a returning member whose last session is >4 weeks old (the proof card branches on a 4-bucket array). **`ClientDashboardHomeTab.tsx` carries the identical ungated defect feeding a numeric performance score — that is Lane 3's file and is handed off, not edited.**
 
 ## 8. Backlog, ranked by launch impact
 
