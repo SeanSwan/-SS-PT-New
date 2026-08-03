@@ -45,6 +45,7 @@ import {
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
+  buildWeekTrainingDays,
   normalizeHomePercent,
   normalizeHomeWholeNumber,
   parseUnreadNotificationCount,
@@ -104,6 +105,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const trainingProof = useMemo(
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
+    [workoutSessions.data],
+  );
+  // Mon..Sun tiles come from real session dates, never from the streak count.
+  const weekTrainingDays = useMemo(
+    () => buildWeekTrainingDays(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
   const quickStats = useMemo(() => buildSidebarQuickStats({
@@ -230,6 +236,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           pointsToNext={pointsToNext}
           progressPercent={progressPercent}
           streakDays={streakDays}
+          weekDays={weekTrainingDays}
           activeId={activeLens}
           onAction={runAction}
         />

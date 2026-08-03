@@ -102,6 +102,72 @@ export function buildHomeTrainingProof(
   };
 }
 
+/** One tile of the Home left-rail Mon..Sun creator-streak grid. */
+export interface WeekTrainingDay {
+  /** Display label, Monday-first to match the rendered row. */
+  label: string;
+  /** True only when a real session was logged on this calendar day. */
+  trained: boolean;
+  isToday: boolean;
+  /** Later this week — rendered as pending, never as a missed day. */
+  isUpcoming: boolean;
+}
+
+const WEEK_DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+/**
+ * The seven days of the CURRENT week, each marked from real logged sessions.
+ *
+ * Replaces a count-derived fill (`index < streakDays`) that asserted which
+ * days the member trained without reading a single session date.
+ */
+export function buildWeekTrainingDays(
+  sessions: unknown[] | null | undefined,
+  nowMs: number,
+): WeekTrainingDay[] {
+  const now = new Date(nowMs);
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  // Monday-first index: JS getDay() is Sunday-first.
+  const mondayOffset = (startOfToday.getDay() + 6) % 7;
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - mondayOffset);
+
+  const dayStarts = WEEK_DAY_LABELS.map((_, index) => {
+    const dayStart = new Date(startOfWeek);
+    dayStart.setDate(dayStart.getDate() + index);
+    return dayStart.getTime();
+  });
+
+  const trained = WEEK_DAY_LABELS.map(() => false);
+
+  for (const session of sessions || []) {
+    if (!session || typeof session !== 'object') continue;
+    const record = session as Record<string, unknown>;
+    const rawDate = record.date ?? record.completedAt ?? record.createdAt;
+    const timeMs = new Date(String(rawDate || '')).getTime();
+    // Future-dated rows are never proof of a completed session.
+    if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
+
+    for (let index = 0; index < dayStarts.length; index += 1) {
+      const dayStart = dayStarts[index];
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+      if (timeMs >= dayStart && timeMs < dayEnd) {
+        trained[index] = true;
+        break;
+      }
+    }
+  }
+
+  return WEEK_DAY_LABELS.map((label, index) => ({
+    label,
+    trained: trained[index],
+    isToday: index === mondayOffset,
+    isUpcoming: index > mondayOffset,
+  }));
+}
+
 /**
  * Streak rescue (workstream O3): true when the user has a live streak, has
  * NOT logged a session today, and the local evening window has started —

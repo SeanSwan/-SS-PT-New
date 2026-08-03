@@ -213,15 +213,19 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
       ) : (
         <EmptyState>Earn a badge to fill this showcase.</EmptyState>
       )}
-      <LeaderboardList>
-        {leaderboardRows.map((row, index) => (
-          <LeaderboardRow key={row.id}>
-            <LeaderboardRank $gold={index === 0}>{index + 1}</LeaderboardRank>
-            <LeaderboardName>{row.name}</LeaderboardName>
-            <LeaderboardPoints>{compactNumber(row.points)} XP</LeaderboardPoints>
-          </LeaderboardRow>
-        ))}
-      </LeaderboardList>
+      {leaderboardRows.length ? (
+        <LeaderboardList>
+          {leaderboardRows.map((row, index) => (
+            <LeaderboardRow key={row.id}>
+              <LeaderboardRank $gold={index === 0}>{index + 1}</LeaderboardRank>
+              <LeaderboardName>{row.name}</LeaderboardName>
+              <LeaderboardPoints>{compactNumber(row.points)} XP</LeaderboardPoints>
+            </LeaderboardRow>
+          ))}
+        </LeaderboardList>
+      ) : (
+        <EmptyState>The leaderboard is still filling up.</EmptyState>
+      )}
     </Panel>
 
     {/* Workstream O: the Faction War race moved here from the retired Feed

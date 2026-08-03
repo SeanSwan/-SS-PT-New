@@ -47,9 +47,7 @@ export function useHomeTabLiveWidgets({
   const badgeShowcase = useMemo(() => buildHomeBadgeShowcase({
     achievements,
     leaderboard,
-    currentUserName: displayName,
-    currentUserPoints,
-  }), [achievements, currentUserPoints, displayName, leaderboard]);
+  }), [achievements, leaderboard]);
 
   const trendingTags = useMemo(
     () => extractTrendingTagNames(trending.data),
