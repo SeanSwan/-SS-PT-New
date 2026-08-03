@@ -10,7 +10,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import NASMTeachMode from './components/NASMTeachMode';
 import { OHSA_ANTERIOR_KEYS, OHSA_CHECKPOINTS, OHSA_LATERAL_KEYS, PERFORMANCE_TESTS, POSTURAL_CHECKPOINTS, type Assessment, type AssessmentType, type ClientOption } from './TrainerAssessmentsPage.data';
 import { AssessmentCriteria, AssessmentHistoryList, AssessmentTypeSelector, OhsaScoringCard, PerformanceScoringCard, PosturalScoringCard, type CompensationScores, type PerformanceScores } from './TrainerAssessmentsPage.sections';
-import { ActionRow, FieldGroup, FormCard, Header, HeaderRow, Input, Label, PageWrapper, SectionTitle, SectionTitleIcon, Select, SubmitButton, SubmitStatus, Subtitle, TeachModeToggle, Textarea, Title, TitleIcon } from './TrainerAssessmentsPage.styles';
+import { ActionRow, FieldGroup, FieldHint, FormCard, Header, HeaderRow, InlineAlert, InlineAlertText, Input, Label, PageWrapper, RetryButton, SectionTitle, SectionTitleIcon, Select, SubmitButton, SubmitStatus, Subtitle, TeachModeToggle, Textarea, Title, TitleIcon } from './TrainerAssessmentsPage.styles';
 import { normalizeTrainerClientOptions, parseTrainerClientId, resolveTrainerClientSource } from './trainerClientSource';
 
 const defaultCompensationScores = (checkpoints: readonly { key: string }[]): CompensationScores =>
@@ -40,6 +40,12 @@ const TrainerAssessmentsPage = () => {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [submitStatus, setSubmitStatus] = useState<{ msg: string; success: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Launch audit 2026-08-03: both fetches used to swallow their error into an
+  // empty array, so a 500 was indistinguishable from "nothing here yet" and the
+  // trainer had no way to recover without a full page reload.
+  const [historyError, setHistoryError] = useState(false);
+  const [clientsError, setClientsError] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const parsedClientId = parseTrainerClientId(clientId);
 
   const [ohsaScores, setOhsaScores] = useState<CompensationScores>(() => defaultCompensationScores(OHSA_CHECKPOINTS));
@@ -50,24 +56,35 @@ const TrainerAssessmentsPage = () => {
     try {
       const res = await authAxios.get('/api/movement-analysis');
       setHistory(readAssessmentList(res.data));
+      setHistoryError(false);
     } catch {
       setHistory([]);
+      setHistoryError(true);
     }
   }, [authAxios]);
+
+  const loadClients = useCallback(async () => {
+    setClientsLoading(true);
+    try {
+      const source = resolveTrainerClientSource(user);
+      const res = await authAxios.get(source.path);
+      setClients(normalizeTrainerClientOptions(res.data, source.mode));
+      setClientsError(false);
+    } catch {
+      setClients([]);
+      setClientsError(true);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [authAxios, user]);
 
   useEffect(() => {
     const load = async () => {
       await loadHistory();
-      try {
-        const source = resolveTrainerClientSource(user);
-        const res = await authAxios.get(source.path);
-        setClients(normalizeTrainerClientOptions(res.data, source.mode));
-      } catch {
-        setClients([]);
-      }
+      await loadClients();
     };
     load();
-  }, [authAxios, loadHistory, user]);
+  }, [loadClients, loadHistory]);
 
   const buildPayload = useCallback((targetClientId: number) => {
     const selectedClient = clients.find(c => c.id === targetClientId);
@@ -160,15 +177,34 @@ const TrainerAssessmentsPage = () => {
         <AssessmentTypeSelector assessmentType={assessmentType} onSelect={setAssessmentType} />
         <AssessmentCriteria assessmentType={assessmentType} />
 
+        {clientsError && (
+          <InlineAlert role="alert">
+            <InlineAlertText>Your client list could not be loaded, so the picker below is empty.</InlineAlertText>
+            <RetryButton type="button" onClick={loadClients} disabled={clientsLoading}>
+              {clientsLoading ? 'Retrying...' : 'Retry loading clients'}
+            </RetryButton>
+          </InlineAlert>
+        )}
+
         <FieldGroup>
           <Label htmlFor="trainer-assessment-client">Client</Label>
           <Select>
-            <select id="trainer-assessment-client" value={clientId} onChange={event => setClientId(event.target.value)}>
-              <option value="">Select a client...</option>
+            <select
+              id="trainer-assessment-client"
+              value={clientId}
+              onChange={event => setClientId(event.target.value)}
+              disabled={clientsLoading}
+            >
+              <option value="">
+                {clientsLoading ? 'Loading clients...' : 'Select a client...'}
+              </option>
               {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
             </select>
             <ChevronDown size={18} aria-hidden="true" />
           </Select>
+          {!clientsLoading && !clientsError && clients.length === 0 && (
+            <FieldHint>No clients are assigned to you yet. Assessments unlock once a client is assigned.</FieldHint>
+          )}
         </FieldGroup>
 
         {assessmentType === 'movement_screen' && (
@@ -202,7 +238,16 @@ const TrainerAssessmentsPage = () => {
       </FormCard>
 
       <SectionTitle><SectionTitleIcon size={20} aria-hidden="true" />Recent Assessments</SectionTitle>
-      <AssessmentHistoryList history={history} />
+      {historyError ? (
+        <InlineAlert role="alert">
+          <InlineAlertText>
+            Recent assessments could not be loaded. This is a loading failure, not an empty history.
+          </InlineAlertText>
+          <RetryButton type="button" onClick={loadHistory}>Retry loading history</RetryButton>
+        </InlineAlert>
+      ) : (
+        <AssessmentHistoryList history={history} />
+      )}
     </PageWrapper>
   );
 };

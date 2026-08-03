@@ -70,7 +70,7 @@ const RiskBadge = styled.span<{ $level: string }>`
   color: var(--text-primary, #e0ecf4);
   background: ${({ $level }) =>
     $level === 'critical'
-      ? 'color-mix(in srgb, #e05260 35%, transparent)'
+      ? 'color-mix(in srgb, var(--danger, #e05260) 35%, transparent)'
       : $level === 'warning'
         ? 'color-mix(in srgb, var(--luxury-accent, #c6a84b) 30%, transparent)'
         : 'color-mix(in srgb, var(--accent-primary, #60c0f0) 25%, transparent)'};
