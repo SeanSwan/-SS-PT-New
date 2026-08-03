@@ -73,6 +73,9 @@ const ClientProgressDashboardPage: React.FC = () => {
   // outage must not look identical to a client who genuinely did nothing.
   const [weeklyRecapError, setWeeklyRecapError] = useState(false);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordView[]>([]);
+  // Same honesty rule as weeklyRecapError: a PR-fetch failure must not render
+  // as "0 PRs" — zero is a real number that means "no records yet".
+  const [personalRecordsError, setPersonalRecordsError] = useState(false);
 
   useEffect(() => {
     let isMounted = true; const cleanup = () => { isMounted = false; };
@@ -109,6 +112,7 @@ const ClientProgressDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!authAxios || !user?.id) return;
+    setPersonalRecordsError(false);
     // Client-safe namespace: userId is derived from JWT, never from URL.
     authAxios.get(`/api/client/analytics/personal-records`)
       .then(res => {
@@ -116,7 +120,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         const records = payload.data ?? payload.records ?? [];
         setPersonalRecords(normalizeClientPersonalRecords(records));
       })
-      .catch(() => setPersonalRecords([]));
+      .catch(() => { setPersonalRecords([]); setPersonalRecordsError(true); });
   }, [authAxios, user?.id]);
 
   const p = profile.data;
@@ -171,7 +175,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         <StatCard $delay={5}>
           <StatLabel>PRs</StatLabel>
           <StatValue $color="var(--accent-gold, #C6A84B)">
-            {personalRecords.length}
+            {personalRecordsError ? '—' : personalRecords.length}
           </StatValue>
         </StatCard>
       </StatsStrip>

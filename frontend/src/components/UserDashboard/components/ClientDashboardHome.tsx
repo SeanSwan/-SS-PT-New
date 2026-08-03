@@ -29,7 +29,11 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
 
   return (
     <ClientDashboardShell data-testid="client-dashboard-home" $embedded={embedded}>
-      <ClientTopNavigation {...props} />
+      {/* Embedded = mounted inside UniversalDashboardLayout, which already owns
+          navigation (ClientStellarSidebar). Rendering a second full top-nav
+          there duplicated chrome on the canonical /overview (panel launch
+          review 2026-08-03, gap d). Standalone mode keeps it. */}
+      {!embedded && <ClientTopNavigation {...props} />}
       <DashboardFrame $embedded={embedded}>
         {!embedded && <ClientSidebar onNavigate={props.onNavigate} onTarget={props.onTarget} />}
         <MainCanvas $embedded={embedded}>

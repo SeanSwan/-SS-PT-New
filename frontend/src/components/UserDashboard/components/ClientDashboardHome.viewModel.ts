@@ -99,13 +99,21 @@ export function buildTodaySnapshot({
     return Number.isFinite(time) && time >= todayStart.getTime() && time <= now.getTime();
   }).length;
   const calories = macroLoading ? 'Loading' : macroSummary ? `${safeWhole(macroSummary.totalCalories).toLocaleString()} cal` : 'Not available';
+  // Panel launch review 2026-08-03 (gap a): never lead the money surface with a
+  // metric we cannot measure. The 4th tile is real logged data — sessions this
+  // month — instead of a dead "Average Heart Rate: Not available" placeholder.
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const monthCount = (sessions || []).filter((session) => {
+    const time = sessionTime(session);
+    return Number.isFinite(time) && time >= monthStart && time <= now.getTime();
+  }).length;
   return {
     dateLabel: now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
     rows: [
       { label: 'Workouts Logged', value: String(todayCount), meta: todayCount ? 'Today' : 'No log yet' },
       { label: 'Total Workout Time', value: `${proof.minutesThisWeek || 0} min`, meta: 'This week' },
       { label: 'Calories Logged', value: calories, meta: macroSummary ? 'Nutrition log' : 'No calorie log yet' },
-      { label: 'Average Heart Rate', value: 'Not available', meta: 'No wearable source' },
+      { label: 'Sessions This Month', value: String(monthCount), meta: monthCount ? 'Logged sessions' : 'First one starts the story' },
     ],
     weeklyCompleted: Math.min(proof.thisWeekCount, WEEKLY_GOAL),
     weeklyGoal: WEEKLY_GOAL,
@@ -211,11 +219,21 @@ export function buildSessionPreview({
 export function buildInsights(proof: HomeTrainingProof, progressPercent: number, streakDays: number): InsightRow[] {
   const volumeTarget = WEEKLY_GOAL * MINUTES_PER_WORKOUT_GOAL;
   const volumePct = clampDashboardPercent((proof.minutesThisWeek / volumeTarget) * 100);
+  // Panel launch review 2026-08-03 (gap a): the two "Not available" insight
+  // tiles (Strength Score / Recovery — both wearable-dependent) are replaced
+  // with insights computable from the client's REAL logged history. Reintroduce
+  // wearable tiles only when a wearable source actually exists.
+  const weekDeltaStatus = proof.weekDelta == null
+    ? 'Building your baseline'
+    : proof.weekDelta >= 0
+      ? `Up ${proof.weekDelta} vs last week`
+      : `${Math.abs(proof.weekDelta)} fewer than last week`;
+  const bestRecentWeek = proof.weeklyCounts.length ? Math.max(...proof.weeklyCounts) : 0;
   return [
-    { label: 'Strength Score', value: 'Not available', status: 'Awaiting lift data', points: proof.weeklyCounts },
+    { label: 'Workouts This Week', value: String(proof.thisWeekCount || 0), status: weekDeltaStatus, points: proof.weeklyCounts },
     { label: 'Training Volume', value: `${proof.minutesThisWeek || 0} min`, status: `${volumePct}% of weekly target`, points: proof.weeklyCounts },
     { label: 'Consistency', value: `${Math.min(streakDays, 30)}d`, status: `${clampDashboardPercent(progressPercent)}% level momentum`, points: proof.weeklyCounts },
-    { label: 'Recovery', value: 'Not available', status: 'No wearable source', points: proof.weeklyCounts },
+    { label: 'Best Recent Week', value: `${bestRecentWeek} workout${bestRecentWeek === 1 ? '' : 's'}`, status: 'Highest of your last 4 weeks', points: proof.weeklyCounts },
   ];
 }
 
