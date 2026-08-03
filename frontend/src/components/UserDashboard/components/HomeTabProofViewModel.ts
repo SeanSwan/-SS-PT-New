@@ -134,10 +134,13 @@ export function buildWeekTrainingDays(
   const startOfWeek = new Date(startOfToday);
   startOfWeek.setDate(startOfWeek.getDate() - mondayOffset);
 
-  const dayStarts = WEEK_DAY_LABELS.map((_, index) => {
-    const dayStart = new Date(startOfWeek);
-    dayStart.setDate(dayStart.getDate() + index);
-    return dayStart.getTime();
+  // Eight boundaries, one per day plus the week's end. Derived with setDate so
+  // a DST transition (a 23- or 25-hour day) cannot shift a session into the
+  // neighbouring tile the way a fixed +24h offset would.
+  const dayBounds = Array.from({ length: WEEK_DAY_LABELS.length + 1 }, (_, index) => {
+    const boundary = new Date(startOfWeek);
+    boundary.setDate(boundary.getDate() + index);
+    return boundary.getTime();
   });
 
   const trained = WEEK_DAY_LABELS.map(() => false);
@@ -150,10 +153,8 @@ export function buildWeekTrainingDays(
     // Future-dated rows are never proof of a completed session.
     if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
 
-    for (let index = 0; index < dayStarts.length; index += 1) {
-      const dayStart = dayStarts[index];
-      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-      if (timeMs >= dayStart && timeMs < dayEnd) {
+    for (let index = 0; index < WEEK_DAY_LABELS.length; index += 1) {
+      if (timeMs >= dayBounds[index] && timeMs < dayBounds[index + 1]) {
         trained[index] = true;
         break;
       }

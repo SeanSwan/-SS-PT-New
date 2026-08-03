@@ -91,6 +91,23 @@ describe('buildWeekTrainingDays', () => {
     expect(days.every((day) => day.trained === false)).toBe(true);
   });
 
+  it('buckets correctly across a DST transition', () => {
+    // US DST ends Sunday 2026-11-01. Adding a fixed 24h to a day start would
+    // overshoot into the next tile on the 25-hour day.
+    const wednesday = new Date(2026, 10, 4, 12, 0, 0).getTime();
+    const days = buildWeekTrainingDays(
+      [
+        { date: at(2026, 10, 2, 23) }, // Monday late evening
+        { date: at(2026, 10, 3, 1) }, // Tuesday just after midnight
+      ],
+      wednesday,
+    );
+
+    expect(days.map((day) => day.trained)).toEqual([
+      true, true, false, false, false, false, false,
+    ]);
+  });
+
   it('reads the same date fields as the rest of the proof loop', () => {
     expect(buildWeekTrainingDays([{ completedAt: at(2026, 7, 5) }], THURSDAY)[2].trained).toBe(true);
     expect(buildWeekTrainingDays([{ createdAt: at(2026, 7, 5) }], THURSDAY)[2].trained).toBe(true);
