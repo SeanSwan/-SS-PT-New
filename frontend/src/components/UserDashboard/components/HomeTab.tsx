@@ -152,7 +152,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
     progressPercent,
     pointsToNext,
     trainingProof: sessionsKnown ? trainingProof : null,
-  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown]);
+    gamificationKnown: !gamificationUnavailable,
+  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown, gamificationUnavailable]);
   // Rolling the window is not enough on its own: nothing else refetches (no
   // polling, no refetch-on-focus), so an overnight tab would slide to the new
   // day and still hold yesterday's session list — a workout logged at 00:30

@@ -148,6 +148,7 @@ const UserDashboardV3: React.FC = () => {
                 observatoryProgressPct={dashboard.observatoryProgressPct}
                 observatoryXpToNext={dashboard.observatoryXpToNext}
                 observatoryStreakDays={dashboard.observatoryStreakDays}
+                gamificationKnown={dashboard.gamificationKnown}
                 topBadges={dashboard.topBadges}
                 navItems={OBSERVATORY_NAV_ITEMS}
               >
@@ -170,6 +171,7 @@ const UserDashboardV3: React.FC = () => {
                       streakDays={dashboard.observatoryStreakDays}
                       progressPercent={dashboard.observatoryProgressPct}
                       pointsToNext={dashboard.observatoryXpToNext}
+                      gamificationKnown={dashboard.gamificationKnown}
                     />
                   )}
 

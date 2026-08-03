@@ -51,6 +51,8 @@ interface ObservatoryLeftRailProps {
   observatoryProgressPct: number;
   observatoryXpToNext: number;
   observatoryStreakDays: number;
+  /** Whether the gamification record is known. Zeros are NOT the member's record when false. */
+  gamificationKnown?: boolean;
 }
 
 const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
@@ -63,6 +65,7 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   observatoryProgressPct,
   observatoryXpToNext,
   observatoryStreakDays,
+  gamificationKnown = true,
 }) => {
   return (
     <LeftRailContainer aria-label="Dashboard sidebar">
@@ -94,6 +97,22 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
           })}
         </LeftRailNavList>
       </ObservatoryGlassPanel>
+      {/* These numbers all derive from the gamification profile, which resolves
+          through `?? 0` upstream and so ALWAYS yields a plausible record. When
+          it is not known, say so instead of asserting "0 pts / 0 days". */}
+      {!gamificationKnown ? (
+        <LeftRailMomentumCard>
+          <LeftRailMomentumHeader>
+            <Crown size={14} aria-hidden="true" />
+            <LeftRailMomentumLabel>Progress</LeftRailMomentumLabel>
+          </LeftRailMomentumHeader>
+          <LeftRailMomentumMeta role="status">
+            We couldn&apos;t load your level and streak just now. Your logged
+            workouts are safe.
+          </LeftRailMomentumMeta>
+        </LeftRailMomentumCard>
+      ) : (
+      <>
       <LeftRailMomentumCard>
         <LeftRailMomentumHeader>
           <Crown size={14} aria-hidden="true" />
@@ -126,6 +145,8 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
         </LeftRailMomentumValue>
         <LeftRailMomentumMeta>Keep showing up.</LeftRailMomentumMeta>
       </LeftRailMomentumCard>
+      </>
+      )}
     </LeftRailContainer>
   );
 };

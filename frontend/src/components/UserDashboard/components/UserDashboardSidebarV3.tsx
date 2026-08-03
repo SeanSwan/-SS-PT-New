@@ -24,6 +24,14 @@ export interface SidebarQuickStatsInput {
   progressPercent?: number;
   pointsToNext?: number;
   trainingProof?: TrainingProofStats | null;
+  /**
+   * Whether the gamification record is actually known. The gate lives HERE, not
+   * at the call site: every caller that had to remember it forgot, and the
+   * source-grep contract test could not see a caller passing `true` anyway.
+   * When false the gamification-derived tiles are omitted rather than rendered
+   * as zeros — absent is not the same claim as "you have a 0-day streak".
+   */
+  gamificationKnown?: boolean;
 }
 
 interface UserDashboardSidebarV3Props extends SidebarQuickStatsInput {}
@@ -43,6 +51,7 @@ export const buildSidebarQuickStats = ({
   progressPercent = 0,
   pointsToNext = 0,
   trainingProof = null,
+  gamificationKnown = true,
 }: SidebarQuickStatsInput): QuickStatsTickerStat[] => ([
   {
     id: 'workouts',
@@ -51,41 +60,46 @@ export const buildSidebarQuickStats = ({
     caption: 'Logged total',
     Icon: Dumbbell,
   },
-  {
-    id: 'level',
-    label: 'Level',
-    value: statValue(canonicalLevel || displayStats.level),
-    caption: 'Current rank',
-    Icon: Crown,
-  },
-  {
-    id: 'points',
-    label: 'Points',
-    value: statValue(displayStats.points),
-    caption: 'XP balance',
-    Icon: Sparkles,
-  },
-  {
-    id: 'streak',
-    label: 'Streak',
-    value: `${asWhole(streakDays)}d`,
-    caption: 'Training rhythm',
-    Icon: Flame,
-  },
-  {
-    id: 'level-progress',
-    label: 'Level Progress',
-    value: `${asWhole(progressPercent)}%`,
-    caption: 'Toward next level',
-    Icon: TrendingUp,
-  },
-  {
-    id: 'xp-to-next',
-    label: 'XP to Next',
-    value: statValue(pointsToNext),
-    caption: 'Remaining XP',
-    Icon: RadioTower,
-  },
+  // Every one of these derives from the gamification profile, which resolves
+  // through `?? 0` upstream and therefore ALWAYS produces a plausible-looking
+  // record. Omit them outright when that record is not known.
+  ...(gamificationKnown ? [
+    {
+      id: 'level',
+      label: 'Level',
+      value: statValue(canonicalLevel || displayStats.level),
+      caption: 'Current rank',
+      Icon: Crown,
+    },
+    {
+      id: 'points',
+      label: 'Points',
+      value: statValue(displayStats.points),
+      caption: 'XP balance',
+      Icon: Sparkles,
+    },
+    {
+      id: 'streak',
+      label: 'Streak',
+      value: `${asWhole(streakDays)}d`,
+      caption: 'Training rhythm',
+      Icon: Flame,
+    },
+    {
+      id: 'level-progress',
+      label: 'Level Progress',
+      value: `${asWhole(progressPercent)}%`,
+      caption: 'Toward next level',
+      Icon: TrendingUp,
+    },
+    {
+      id: 'xp-to-next',
+      label: 'XP to Next',
+      value: statValue(pointsToNext),
+      caption: 'Remaining XP',
+      Icon: RadioTower,
+    },
+  ] : []),
   // Absent proof is unknown, not zero. Rendering "0 / 0m" here told members on
   // every non-Home tab they had trained nothing this week.
   ...(trainingProof ? [
