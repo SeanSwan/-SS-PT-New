@@ -61,3 +61,23 @@ describe('SuccessPage — never show a paying buyer a raw transport error', () =
     expect(successPage).toMatch(/sessionId=\{sessionId\}/);
   });
 });
+
+describe('CheckoutView — the buyer always has a way out', () => {
+  const sections = read('./CheckoutView.sections.tsx');
+
+  it('renders the Back control even when the route supplies no onCancel', () => {
+    // /checkout mounts CheckoutView with no props, so gating on onCancel left a
+    // buyer with an empty cart, a disabled $0.00 button and no route back.
+    expect(sections).not.toMatch(/\{onCancel && \(\s*<BackButton/);
+    expect(sections).toMatch(/onClick=\{onCancel \?\? goToStore\}/);
+  });
+
+  it('no longer returns null from the return-to-cart action', () => {
+    expect(sections).not.toMatch(/if \(!onCancel\) return null;/);
+  });
+
+  it('gives the unauthenticated checkout panel a way to log in', () => {
+    expect(sections).toMatch(/Log in to continue/);
+    expect(sections).toMatch(/returnUrl=\/checkout/);
+  });
+});

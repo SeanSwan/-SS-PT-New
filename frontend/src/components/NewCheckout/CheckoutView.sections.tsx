@@ -45,17 +45,36 @@ export const AuthRequiredCheckout: React.FC = () => (
       <CheckoutTitle>Authentication Required</CheckoutTitle>
       <CheckoutSubtitle>Please log in to complete your purchase</CheckoutSubtitle>
     </CheckoutHeader>
+    {/* Previously a terminal panel: it named the requirement but gave the buyer
+        no way to satisfy it. */}
+    <ActionButtonContainer>
+      <GlowButton
+        variant="primary"
+        size="large"
+        fullWidth
+        onClick={() => { window.location.href = '/login?returnUrl=/checkout'; }}
+      >
+        Log in to continue
+      </GlowButton>
+    </ActionButtonContainer>
   </CheckoutContainer>
 );
 
+/**
+ * The /checkout route mounts CheckoutView with NO props (routes/main-routes.tsx),
+ * so onCancel is undefined there. Gating the only escape hatches on it left a
+ * buyer standing on /checkout with an empty cart, a disabled $0.00 pay button,
+ * and no way back to the store. A checkout screen must never depend on its
+ * caller to provide a way out.
+ */
+const goToStore = () => { window.location.href = '/store'; };
+
 const CheckoutHero: React.FC<{ onCancel?: () => void }> = ({ onCancel }) => (
   <CheckoutHeader>
-    {onCancel && (
-      <BackButton onClick={onCancel} aria-label="Back to store">
-        <ArrowLeft size={16} aria-hidden="true" />
-        Back
-      </BackButton>
-    )}
+    <BackButton onClick={onCancel ?? goToStore} aria-label="Back to store">
+      <ArrowLeft size={16} aria-hidden="true" />
+      Back
+    </BackButton>
     <CheckoutTitle>Secure Checkout</CheckoutTitle>
     <CheckoutSubtitle>Complete your SwanStudios training package purchase</CheckoutSubtitle>
   </CheckoutHeader>
@@ -153,19 +172,17 @@ const ReturnToCartAction: React.FC<{
   disabled: boolean;
   onCancel?: () => void;
 }> = ({ disabled, onCancel }) => {
-  if (!onCancel) return null;
-
   return (
     <ActionButtonContainer>
       <GlowButton
         variant="ghost"
         size="large"
         fullWidth
-        onClick={onCancel}
+        onClick={onCancel ?? goToStore}
         disabled={disabled}
       >
         <Home size={20} aria-hidden="true" />
-        Return to Cart
+        {onCancel ? 'Return to Cart' : 'Back to Store'}
       </GlowButton>
     </ActionButtonContainer>
   );
