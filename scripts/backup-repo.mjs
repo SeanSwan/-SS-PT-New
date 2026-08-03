@@ -8,8 +8,10 @@
  *
  * WHY THIS EXISTS: 85 branches on this machine hold commits that exist NOWHERE else — not on
  * origin, not on any other disk. Measured 2026-07-29. A disk failure or one careless `rm -rf`
- * would end them. `git bundle --all` packs every ref and its full history into a SINGLE file that
- * `git clone` can restore from directly, so one file is a complete recovery point.
+ * would end them. `git bundle --all` packs every ref — heads, tags AND remote-tracking — with its
+ * full history into a SINGLE file that `git clone` can restore from directly, so one file is a
+ * complete recovery point. (Do not add `--remotes`; see the note at the bundle call for why that
+ * is a regression rather than an improvement.)
  *
  * WHY NOT DRIVE C: the C: drive was 96% full (44G of 931G) when this was written, and a backup on
  * the same disk as the original protects against exactly nothing. Default target is Z:, chosen
@@ -236,6 +238,17 @@ function main() {
   console.log(`  refs to pack : ${refCount}`);
   console.log(`  target       : ${bundlePath}`);
 
+  // DO NOT "fix" this by adding `--remotes`. That was tried on 2026-08-03 and is a REGRESSION.
+  // `git bundle create --all` uses rev-list `--all` semantics, which already include refs/remotes —
+  // verified by inspecting a real bundle: 602 refs, 106 of them refs/remotes, origin/main present,
+  // zero duplicates. Adding `--remotes` lists every remote ref a SECOND time, and a bundle with
+  // duplicate refs cannot be restored with `git clone --mirror` at all:
+  //     fatal: multiple updates for ref 'refs/remotes/origin/<branch>' not allowed
+  //
+  // The false trail that led there: `git clone <bundle>` reports ~329 refs, which looks like the
+  // 435 local refs minus the remotes. That number is a CLONE-MAPPING artifact — a plain clone only
+  // materialises refs/heads and refs/tags — not a statement about bundle contents. Measure coverage
+  // with `git bundle list-heads <file>`, never with the restore test's ref count.
   try {
     execFileSync('git', ['bundle', 'create', bundlePath, '--all'], { stdio: ['ignore', 'ignore', 'pipe'] });
   } catch (error) {
