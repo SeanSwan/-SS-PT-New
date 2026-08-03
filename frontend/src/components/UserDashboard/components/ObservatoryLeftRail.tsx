@@ -14,6 +14,7 @@
  * ============================================================================
  */
 
+import styled from 'styled-components';
 import React from 'react';
 import { Crown, Activity } from 'lucide-react';
 import brandLogo from '../../../assets/Logo.png';
@@ -52,8 +53,27 @@ interface ObservatoryLeftRailProps {
   observatoryXpToNext: number;
   observatoryStreakDays: number;
   /** Whether the gamification record is known. Zeros are NOT the member's record when false. */
-  gamificationKnown?: boolean;
+  gamificationKnown: boolean;
+  onRetryGamification?: () => void;
 }
+
+const RailRetryButton = styled.button`
+  min-height: 44px;
+  width: 100%;
+  margin-top: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
 
 const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   activeTab,
@@ -65,7 +85,8 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   observatoryProgressPct,
   observatoryXpToNext,
   observatoryStreakDays,
-  gamificationKnown = true,
+  gamificationKnown,
+  onRetryGamification,
 }) => {
   return (
     <LeftRailContainer aria-label="Dashboard sidebar">
@@ -110,6 +131,9 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
             We couldn&apos;t load your level and streak just now. Your logged
             workouts are safe.
           </LeftRailMomentumMeta>
+          {onRetryGamification ? (
+            <RailRetryButton type="button" onClick={onRetryGamification}>Retry</RailRetryButton>
+          ) : null}
         </LeftRailMomentumCard>
       ) : (
       <>

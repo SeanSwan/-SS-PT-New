@@ -33,6 +33,8 @@ describe('buildSidebarQuickStats', () => {
       displayStats,
       canonicalLevel: 7,
       trainingProof: null,
+      gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     expect(ids(stats)).not.toContain('this-week');
@@ -52,6 +54,8 @@ describe('buildSidebarQuickStats', () => {
         latestSessionId: null,
         shareLine: null,
       },
+      gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     expect(byId(stats, 'this-week')?.value).toBe('3');
@@ -71,6 +75,8 @@ describe('buildSidebarQuickStats', () => {
         latestSessionId: null,
         shareLine: null,
       },
+      gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     expect(byId(stats, 'this-week')?.value).toBe('0');
@@ -85,6 +91,8 @@ describe('buildSidebarQuickStats', () => {
       progressPercent: 64,
       pointsToNext: 260,
       trainingProof: null,
+      gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     expect(byId(stats, 'streak')?.value).toBe('5d');

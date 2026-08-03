@@ -11,6 +11,8 @@ import profileService, { UserProfile, UserStats, SocialPost, Achievement, Follow
 import { logger } from '@/utils/logger';
 
 interface UseProfileReturn {
+  /** True when the stats fetch failed and `stats` holds substituted zeros. */
+  statsUnavailable: boolean;
   // Profile data
   profile: UserProfile | null;
   stats: UserStats | null;
@@ -70,6 +72,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [statsUnavailable, setStatsUnavailable] = useState(false);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
   const [isLoadingFollowStats, setIsLoadingFollowStats] = useState(false);
@@ -126,9 +129,13 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     try {
       const statsData = await profileService.getUserStats();
       setStats(statsData);
+      setStatsUnavailable(false);
     } catch (err: any) {
       logger.warn('Stats endpoint not available yet:', err.message);
-      // Set default stats instead of showing error
+      // Substituting zeros keeps the UI from crashing, but those zeros are NOT
+      // the member's record. Flag it so consumers can omit the numbers instead
+      // of asserting "0 workouts / 0 posts / Level 1 / bronze" as fact.
+      setStatsUnavailable(true);
       setStats({
         posts: 0,
         followers: 0,
@@ -426,6 +433,8 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     
     // Error states
     error,
+    /** True when the stats fetch failed and `stats` holds substituted zeros. */
+    statsUnavailable,
     
     // Operations
     refreshProfile,

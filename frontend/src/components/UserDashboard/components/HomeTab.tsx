@@ -59,6 +59,10 @@ interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
   displayStats: ProfileStats;
+  /** False when the profile-stats fetch failed and displayStats holds substituted zeros. */
+  profileStatsKnown?: boolean;
+  /** From the controller; HomeTab also resolves its own, this is the shell's view. */
+  gamificationKnown?: boolean;
   profilePosts: SocialPost[];
   followStats: FollowStats | null;
   displayNameOverride: string;
@@ -68,6 +72,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
   displayStats,
+  profileStatsKnown = true,
   displayNameOverride,
 }) => {
   const navigate = useNavigate();
@@ -152,8 +157,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
     progressPercent,
     pointsToNext,
     trainingProof: sessionsKnown ? trainingProof : null,
+    profileStatsKnown,
     gamificationKnown: !gamificationUnavailable,
-  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown, gamificationUnavailable]);
+  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown, gamificationUnavailable, profileStatsKnown]);
   // Rolling the window is not enough on its own: nothing else refetches (no
   // polling, no refetch-on-focus), so an overnight tab would slide to the new
   // day and still hold yesterday's session list — a workout logged at 00:30

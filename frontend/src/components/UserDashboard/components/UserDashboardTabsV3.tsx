@@ -112,6 +112,8 @@ interface UserDashboardTabsV3Props {
   transformationVisibility: PhotoVisibility;
   homeProfile: UserProfile | null;
   homeDisplayStats: ProfileStats;
+  homeProfileStatsKnown?: boolean;
+  homeGamificationKnown?: boolean;
   homeProfilePosts: SocialPost[];
   homeFollowStats: FollowStats | null;
   homeDisplayName: string;
@@ -128,6 +130,8 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
   transformationVisibility,
   homeProfile,
   homeDisplayStats,
+  homeProfileStatsKnown,
+  homeGamificationKnown,
   homeProfilePosts,
   homeFollowStats,
   homeDisplayName,
@@ -146,6 +150,8 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
         <HomeTab onTabChange={(tab) => onTabChange(tab as TabId)}
           profile={homeProfile}
           displayStats={homeDisplayStats}
+          profileStatsKnown={homeProfileStatsKnown}
+          gamificationKnown={homeGamificationKnown}
           profilePosts={homeProfilePosts}
           followStats={homeFollowStats}
           displayNameOverride={homeDisplayName}

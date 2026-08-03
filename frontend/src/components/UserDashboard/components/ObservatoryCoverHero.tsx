@@ -68,6 +68,8 @@ interface ObservatoryCoverHeroProps {
   /** Opens the profile-photo file picker (HiddenInput in UserDashboard.V3). */
   onAvatarClick: () => void;
   dashboardBackgroundControls?: React.ReactNode;
+  /** Whether the gamification record is known; false hides the fabricated rank pill. */
+  gamificationKnown: boolean;
 }
 
 const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
@@ -76,6 +78,7 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
   userInitials,
   tierName,
   rankTitleLabel,
+  gamificationKnown,
   level,
   profilePhoto,
   onEditProfile,
@@ -86,8 +89,14 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
 }) => {
   const { bannerLayer, coverEditorSlot, toggleCoverEditor, bannerFrameHeight } = useHomeCoverBanner(dashboardBackgroundControls);
   const safePhoto = sanitizeImageUrl(profilePhoto ?? undefined);
-  const visibleRankTitle = rankTitleLabel || `Level ${level} | ${tierName}`;
-  const rankSegments = visibleRankTitle.split('|').map((part) => part.trim()).filter(Boolean);
+  // `level` and `tierName` both resolve through `?? 0` upstream, so on an
+  // outage this renders "Level 1 | Bronze Swan" in gold — the single most
+  // prominent number on the page, and a flat contradiction of the rail card
+  // beneath it that correctly says the record could not be loaded.
+  const visibleRankTitle = gamificationKnown
+    ? (rankTitleLabel || `Level ${level} | ${tierName}`)
+    : null;
+  const rankSegments = (visibleRankTitle ?? '').split('|').map((part) => part.trim()).filter(Boolean);
 
   // Level-up pill beat: when the live level climbs mid-session, the gold
   // pill pops + rings in sync with the full-screen celebration overlay.

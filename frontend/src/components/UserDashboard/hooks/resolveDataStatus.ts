@@ -47,23 +47,27 @@ export interface QueryLike {
 export function resolveDataStatus(query: QueryLike | null | undefined): DataStatus {
   if (!query) return 'unavailable';
 
-  // Placeholder rows are fabricated by definition. Never let them read as the
-  // member's record — this surface's entire defect class is invented numbers.
-  if (query.isPlaceholderData) return 'loading';
+  // Placeholder rows are fabricated by definition, so they are NOT data.
+  // Checked as part of the data test rather than ahead of it — returning early
+  // here sent an offline device to 'loading', i.e. a spinner with no exit.
+  const hasData = query.data !== undefined && query.data !== null && !query.isPlaceholderData;
 
-  const hasData = query.data !== undefined && query.data !== null;
-  if (hasData) return query.isError ? 'stale' : 'ready';
+  if (hasData) {
+    // 'paused' means the device is OFFLINE. With React Query's default
+    // networkMode the refetch is PAUSED, never errored — so this, not isError,
+    // is the common "displayable but not refreshed" case. It must read as
+    // stale, or a member who lost signal is told their data is current.
+    if (query.isError || query.fetchStatus === 'paused') return 'stale';
+    return 'ready';
+  }
+
   if (query.isError) return 'unavailable';
 
-  // A query that SUCCEEDED and legitimately resolved to null/undefined is
-  // loaded, not broken. Offering a Retry that returns the same nothing forever
-  // would be its own small lie.
-  if (query.isSuccess) return 'ready';
+  // Succeeded and legitimately resolved to nothing: loaded, not broken.
+  if (query.isSuccess && !query.isPlaceholderData) return 'ready';
 
-  // No data, no error, not settled. 'paused' means the device is offline: the
-  // request is queued and will not progress, so a spinner with no exit is the
-  // very failure this resolver exists to prevent. 'idle' means disabled.
-  // Both are actionable states, not loading states.
+  // No usable data and not settled. 'idle' = disabled; 'paused' = offline with
+  // the request queued. Both are actionable; neither is progress.
   if (query.fetchStatus === 'idle' || query.fetchStatus === 'paused') return 'unavailable';
   return 'loading';
 }
