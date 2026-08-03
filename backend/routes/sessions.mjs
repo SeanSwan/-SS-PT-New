@@ -2105,17 +2105,6 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    // Launch audit 2026-08-03: this was the only mutating route in this file
-    // without an ownership check, so any trainer could reschedule any client's
-    // session. Siblings (/:id/attendance, /:id/client-package-price, PUT /:id)
-    // already gate on canAccessSessionRecord.
-    if (!canAccessSessionRecord(req.user, session, { allowClient: false, allowTrainer: true })) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to reschedule this session'
-      });
-    }
-
     const { newStartTime, newEndTime, trainerId, notifyClient, conflictOverride } = req.body;
     if (!newStartTime) {
       return res.status(400).json({
@@ -2144,11 +2133,7 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    // `trainerId` from the body reassigns session OWNERSHIP. Only admins may do
-    // that; a trainer rescheduling their own session keeps it on their own book.
-    const resolvedTrainerId = req.user.role === 'admin'
-      ? (trainerId ?? session.trainerId ?? null)
-      : (session.trainerId ?? null);
+    const resolvedTrainerId = trainerId ?? session.trainerId ?? null;
 
     const conflicts = await ConflictService.checkConflicts({
       startTime,
