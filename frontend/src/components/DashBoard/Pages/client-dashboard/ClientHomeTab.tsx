@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab';
 import ClientOnboardingLaunchCard from './ClientOnboardingLaunchCard';
 import ClientSessionsRemainingBanner from './ClientSessionsRemainingBanner';
+import ClientTrainerPresenceCard from './ClientTrainerPresenceCard';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   DashboardBackgroundSettingsPanel,
@@ -54,6 +55,10 @@ const ClientHomeTab: React.FC = () => {
       {/* Session balance — the paying client's most important number, surfaced
           at the top of the overview (audit LAUNCH-AUDIT-CLIENT-DASH-2026-08-03). */}
       <ClientSessionsRemainingBanner clientSource={user?.clientSource} />
+      {/* The human they're paying for — panel consensus #1 absence (2026-08-03).
+          Renders nothing when no trainer is assigned; the onboarding card owns
+          that state. */}
+      <ClientTrainerPresenceCard />
       <ClientDashboardHomeTab
         embedded
         backgroundSettings={<DashboardBackgroundSettingsPanel scopeLabel="Client" />}
