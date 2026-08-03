@@ -34,8 +34,13 @@ interface HomeTabVisionLeftRailProps {
   weekDays: WeekTrainingDay[];
   /** True when the gamification queries failed. Zeros are then NOT the member's record. */
   statsUnavailable?: boolean;
-  /** True when the workout-sessions fetch failed. Untrained tiles are then UNKNOWN, not "missed". */
-  sessionsUnavailable?: boolean;
+  /**
+   * Whether the workout sessions are actually known. Anything but 'ready'
+   * means an untrained tile is UNKNOWN, not "missed" — 'loading' covers first
+   * paint, the in-flight request and its retry/backoff, which a boolean keyed
+   * on `isError` left uncovered.
+   */
+  sessionsStatus?: 'ready' | 'loading' | 'unavailable';
   onRetryStats?: () => void;
   activeId: string;
   onAction: (target: VisionTarget) => void;
@@ -155,11 +160,12 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
   streakDays,
   weekDays,
   statsUnavailable = false,
-  sessionsUnavailable = false,
+  sessionsStatus = 'ready',
   onRetryStats,
   activeId,
   onAction,
 }) => {
+  const sessionsKnown = sessionsStatus === 'ready';
 
   return (
     <LeftRail aria-label="Creator dashboard navigation">
@@ -243,17 +249,17 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
             workout logged" seven times is the same lie this grid replaced. */}
         <WeekGrid
           role="list"
-          aria-label={sessionsUnavailable
-            ? 'Last 7 days — training history unavailable'
-            : "Last 7 days' logged workouts"}
+          aria-label={sessionsKnown
+            ? "Last 7 days' logged workouts"
+            : `Last 7 days — training history ${sessionsStatus === 'loading' ? 'loading' : 'unavailable'}`}
         >
           {weekDays.map((day, index) => (
             <WeekDay
               key={`${day.dayName}-${index}`}
               role="listitem"
               aria-label={`${day.dayName}${day.isToday ? ' (today)' : ''}: ${
-                sessionsUnavailable
-                  ? 'unavailable'
+                !sessionsKnown
+                  ? (sessionsStatus === 'loading' ? 'loading' : 'unavailable')
                   : day.trained
                     ? 'workout logged'
                     : 'no workout logged'
@@ -261,19 +267,23 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
             >
               <WeekTile
                 aria-hidden="true"
-                $filled={!sessionsUnavailable && day.trained}
-                $unknown={sessionsUnavailable}
+                $filled={sessionsKnown && day.trained}
+                $unknown={!sessionsKnown}
                 $today={day.isToday}
               >
-                {!sessionsUnavailable && day.trained ? <Sparkles size={12} /> : null}
+                {sessionsKnown && day.trained ? <Sparkles size={12} /> : null}
               </WeekTile>
               <WeekDayLabel aria-hidden="true">{day.label}</WeekDayLabel>
             </WeekDay>
           ))}
         </WeekGrid>
-        {sessionsUnavailable ? (
-          <UnavailableText>Training history unavailable right now.</UnavailableText>
-        ) : null}
+        {sessionsKnown ? null : (
+          <UnavailableText role="status">
+            {sessionsStatus === 'loading'
+              ? 'Loading your training history…'
+              : 'Training history unavailable right now.'}
+          </UnavailableText>
+        )}
       </Panel>
 
     </LeftRail>

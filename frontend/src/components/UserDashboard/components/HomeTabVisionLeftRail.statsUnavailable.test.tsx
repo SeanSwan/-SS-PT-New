@@ -54,7 +54,7 @@ describe('HomeTabVisionLeftRail when gamification is unavailable', () => {
   });
 
   it('does not announce seven missed days when the sessions fetch failed', () => {
-    render(<HomeTabVisionLeftRail {...baseProps} sessionsUnavailable />);
+    render(<HomeTabVisionLeftRail {...baseProps} sessionsStatus="unavailable" />);
 
     const tiles = screen.getAllByRole('listitem');
     expect(tiles).toHaveLength(7);
@@ -65,8 +65,17 @@ describe('HomeTabVisionLeftRail when gamification is unavailable', () => {
     expect(screen.getByText(/history unavailable/i)).toBeTruthy();
   });
 
+  it('does not announce seven missed days while the request is still pending', () => {
+    render(<HomeTabVisionLeftRail {...baseProps} sessionsStatus="loading" />);
+
+    for (const tile of screen.getAllByRole('listitem')) {
+      expect(tile.getAttribute('aria-label')).not.toContain('no workout logged');
+    }
+    expect(screen.getByText(/Loading your training history/i)).toBeTruthy();
+  });
+
   it('does say "no workout logged" when sessions loaded and none were logged', () => {
-    render(<HomeTabVisionLeftRail {...baseProps} sessionsUnavailable={false} />);
+    render(<HomeTabVisionLeftRail {...baseProps} sessionsStatus="ready" />);
 
     const tiles = screen.getAllByRole('listitem');
     expect(tiles.some((tile) => tile.getAttribute('aria-label')?.includes('no workout logged')))

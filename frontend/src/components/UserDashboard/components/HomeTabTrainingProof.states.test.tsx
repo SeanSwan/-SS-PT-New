@@ -30,7 +30,7 @@ describe('HomeTabTrainingProof', () => {
     render(
       <HomeTabTrainingProof
         proof={emptyProof}
-        sessionsUnavailable
+        sessionsStatus="unavailable"
         onRetrySessions={() => {}}
         onShareProgress={() => {}}
       />,
@@ -41,11 +41,40 @@ describe('HomeTabTrainingProof', () => {
     expect(screen.getByText(/Nothing you logged is lost/i)).toBeTruthy();
   });
 
+  it('never claims "no logged workouts" while the request is still pending', () => {
+    // The gate used to be `isError && !data`, which is FALSE during first
+    // paint, the in-flight request, its retry and the backoff between them —
+    // so the card asserted an empty record for the whole pending window.
+    render(
+      <HomeTabTrainingProof
+        proof={emptyProof}
+        sessionsStatus="loading"
+        onShareProgress={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText(/No logged workouts yet/i)).toBeNull();
+    expect(screen.getByText(/Loading your training history/i)).toBeTruthy();
+  });
+
+  it('offers no Retry while loading — there is nothing to retry yet', () => {
+    render(
+      <HomeTabTrainingProof
+        proof={emptyProof}
+        sessionsStatus="loading"
+        onRetrySessions={() => {}}
+        onShareProgress={() => {}}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
+  });
+
   it('keeps the Retry control OUTSIDE the live region so it is not re-announced', () => {
     render(
       <HomeTabTrainingProof
         proof={emptyProof}
-        sessionsUnavailable
+        sessionsStatus="unavailable"
         onRetrySessions={() => {}}
         onShareProgress={() => {}}
       />,
@@ -62,7 +91,7 @@ describe('HomeTabTrainingProof', () => {
     render(
       <HomeTabTrainingProof
         proof={emptyProof}
-        sessionsUnavailable
+        sessionsStatus="unavailable"
         onRetrySessions={onRetrySessions}
         onShareProgress={() => {}}
       />,
