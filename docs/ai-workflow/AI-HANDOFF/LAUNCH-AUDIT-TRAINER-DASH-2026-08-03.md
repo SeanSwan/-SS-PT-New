@@ -486,9 +486,21 @@ that preceded them; re-reading code is not a round and is not counted as one.
 | **4** | **Role vantage** on the new UI — drive the assessments failure/retry states as **admin**, which resolves a different roster endpoint (`/api/admin/clients`). Every prior exercise of that UI was as a trainer. | Nothing. 66/66 trainer-dashboard tests pass (65 → 66 with the new admin case). | **CLEAN** |
 | **5** | **Full backend API suite re-run after every commit** — the last full run predated the round-1 drive-test commit, so the final tree was unverified. | Nothing new. **2172 pass / 1 fail**, that 1 being the same pre-existing `galleryReferralCreditGuardTruth` Lane 1 independently measured on pristine main. | **CLEAN** |
 
-Rounds 4 and 5 are two consecutive clean rounds against different vantages.
+| **6** | **Committed state vs working tree** — `git status` / `git diff` at closeout. Every prior round tested the **working tree**; none had asked whether HEAD matched it. | **P0-severity regression in the committed history.** Commit `bc5d4ef0b` had silently reverted the round-2 session-hijack fix. Cause: proving the drive test against the vulnerable route used `git checkout <ref> -- routes/sessions.mjs`, which writes the **index** as well as the working tree; restoring with `cp` repaired only the working tree, so the vulnerable version stayed staged and the next commit swept it in. **No test could see it** — suites read the working tree, which still had the fix, so everything stayed green while HEAD carried the hole. The pre-commit scanner even printed "Scanned: 2 files" and I did not read it. | **NOT CLEAN** — re-landed as `bc5d4ef0b`'s successor (normal follow-up commit, no amend per rule 45); HEAD re-verified to contain the guard |
+| **7** | **Verify all four fixes against `git show HEAD:<file>`** rather than the working tree — the vantage that would have caught round 6 earlier, applied to every fix in case the index poisoning hit more than one. | Nothing. All four fixes present in committed HEAD (F1 ×3 markers, F2, F3 ×2, F4 ×5 incl. both palette tokens). The other three proofs were safe because each re-`git add`ed its file explicitly. | **CLEAN** |
+| **8** | **Full API suite + the 4 security suites with a clean tree**, so working tree == HEAD and the run exercises the *committed* state. | Nothing new. **2172 pass / 1 fail** (the same pre-existing gallery test); **21/21** across the four security suites. | **CLEAN** |
 
-**DRY-LOOP: CLEAN×2 (rounds: 5)**
+Rounds 7 and 8 are two consecutive clean rounds against different vantages.
+
+**DRY-LOOP: CLEAN×2 (rounds: 8)**
+
+> **The round-6 finding is the most important thing in this document.** A green
+> test suite proved nothing about what was actually committed, and four earlier
+> rounds — including a full 2172-test run — all passed while `main`-bound
+> history carried a P0 cross-tenant hole. Any fail-first proof that restores a
+> file must use `git checkout HEAD -- <path>` or
+> `git restore --source=HEAD --staged --worktree <path>`, never `cp`, and the
+> pre-commit scanner's file count must be read every time.
 
 ## 9b. In-flight self-checks (preceded the ledger above)
 
