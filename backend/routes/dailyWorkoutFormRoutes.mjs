@@ -2524,7 +2524,16 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const DailyWorkoutForm = getDailyWorkoutForm();
 
-    const form = await DailyWorkoutForm.findByPk(req.params.id);
+    // Launch audit 2026-08-03: this read was unscoped while its sibling
+    // GET /:id (line ~1581) already pins trainers to their own forms. Without
+    // it, any trainer could read another trainer's trainerNotes, clientSummary
+    // and full exercise/volume/RPE breakdown by guessing a form id.
+    const whereCondition = { id: req.params.id };
+    if (req.user.role === 'trainer') {
+      whereCondition.trainerId = req.user.id;
+    }
+
+    const form = await DailyWorkoutForm.findOne({ where: whereCondition });
 
     if (!form) {
       return res.status(404).json({
