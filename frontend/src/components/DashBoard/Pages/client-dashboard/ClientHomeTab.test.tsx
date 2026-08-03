@@ -129,6 +129,17 @@ vi.mock('../../../../hooks/social/useSocialFeed', () => ({
   }),
 }));
 
+// The sessions-remaining banner uses react-query via useSessionCredits; mock it
+// so ClientHomeTab renders without a QueryClientProvider (matches the other
+// data-hook mocks above). For non-deducting sources the banner renders null.
+vi.mock('../../../UniversalMasterSchedule/hooks/useSessionCredits', () => ({
+  useSessionCredits: () => ({
+    data: { sessionsRemaining: 8, clientSource: 'swanstudios', packageName: null, expiresAt: null },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 import ClientHomeTab from './ClientHomeTab';
 
 function defaultCurrentWorkoutResponse() {
