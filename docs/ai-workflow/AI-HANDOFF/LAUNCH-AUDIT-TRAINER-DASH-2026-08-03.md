@@ -449,13 +449,16 @@ Recording these so the next reviewer does not re-litigate them.
 
 | Gate | Result |
 |---|---|
-| Backend API suite (full) | **2162 passed / 1 failed / 4 skipped** across 354 files |
+| Backend API suite (full, final) | **2172 passed / 1 failed / 4 skipped** across 356 files |
+| Backend unit suite (`tests/unit/`) | **4467 passed / 529 files** — plus **2 files that fail to load**, pre-existing and out of lane (round 3; flagged to SWA-113) |
+| Frontend wide sweep (`DashBoard/` + `WorkoutLogger/`) | **784 files / 3910 tests passed** |
 | The 1 failure | `tests/api/galleryReferralCreditGuardTruth.test.mjs:12` — **pre-existing on pristine main**, independently measured by Lane 1 at 2157/1 before any lane edited anything. It asserts a source string in `routes/galleryRoutes.mjs`, a file Lane 5 never touched. Stale test, not a missing guard. |
 | Frontend trainer-dashboard suite | **16 files / 65 tests passed** |
 | Frontend production build | **green, 17.46s** |
 | `tsc --noEmit` (whole repo) | **NOT CLEAN — could not run.** OOMs at both 4GB and 8GB heap (`FATAL ERROR: Ineffective mark-compacts near heap limit`). This is the pre-existing tsc-OOM condition already recorded for this repo, not a regression from this lane. Type safety for this lane rests on the green build + passing suites. Disclosed rather than claimed. |
 | Secret scan | CLEAN on all four commits (pre-commit hook) |
-| New tests added | **18** (7 + 4 + 4 backend, 3 frontend) |
+| New tests added | **24** (7 + 4 + 6 + 4 backend, 4 frontend) |
+| Linear | **SWA-113** (siblings: SWA-109/110/111/112). Dead `/live` + `/creators` routes already tracked in **SWA-101** — referenced, not duplicated. |
 | Fail-first proof | every one of the four fixes had its tests executed against the unfixed code and observed to fail |
 
 **Commits (local only, on `claude/launch-audit-lane5-20260803`):**
@@ -468,7 +471,26 @@ Recording these so the next reviewer does not re-litigate them.
 
 ---
 
-## 9. HOSTILE REVIEW LOG (rule 73 — run until dry)
+## 9. DRY-LOOP LEDGER (rule 73 / Dry-Loop Law)
+
+Rounds 1–5 below are the real ledger: each gathered **new evidence from a vantage
+not previously tried**, and the round that applied fixes became the next round's
+primary attack surface. The earlier §9b table records the in-flight self-checks
+that preceded them; re-reading code is not a round and is not counted as one.
+
+| Round | New vantage (not previously tried) | Found | Outcome |
+|---|---|---|---|
+| **1** | **Runtime drive** of `PUT /:id/reschedule` — boot the real router with supertest and attack it as a non-owning trainer, an ownership thief, a string-JWT id, and against an unassigned session. All prior coverage was source-assertion only, which cannot prove the guard *runs*. | **1 fixable defect — my own harness:** `createNotification` was mocked returning `undefined` while the route calls `.catch()` on it, so every allow-path 500'd. Test bug, not a route bug. | **NOT CLEAN** — fixed, re-run 6/6, and re-proved 4/6 fail against the vulnerable route (attacker's write now provably lands pre-fix) |
+| **2** | **Blast radius** — the whole `src/components/DashBoard/` + `src/components/WorkoutLogger/` frontend tree. I had only ever run the trainer directory, so shared consumers of the styled-components I edited were unverified. | Nothing. **784 files / 3910 tests pass.** | **CLEAN** |
+| **3** | **Backend `tests/unit/` tree** — 531 files no lane had executed this session (all prior backend runs were `tests/api/`). | 2 files fail to *load*: `adminWorkoutLoggerHistoryDate`, `editWorkoutDateParsing` — `db.define is not a function` in the gamification import chain. **Proven pre-existing and out of lane** (Lane 5's 13 changed files include no model, no `database.mjs`, nothing in that chain; neither test imports anything Lane 5 touched). | **No in-lane defect.** Sean-gated → flagged to **SWA-113** as a comment, not fixed (Dry-Loop Law: flag, don't fix). |
+| **4** | **Role vantage** on the new UI — drive the assessments failure/retry states as **admin**, which resolves a different roster endpoint (`/api/admin/clients`). Every prior exercise of that UI was as a trainer. | Nothing. 66/66 trainer-dashboard tests pass (65 → 66 with the new admin case). | **CLEAN** |
+| **5** | **Full backend API suite re-run after every commit** — the last full run predated the round-1 drive-test commit, so the final tree was unverified. | Nothing new. **2172 pass / 1 fail**, that 1 being the same pre-existing `galleryReferralCreditGuardTruth` Lane 1 independently measured on pristine main. | **CLEAN** |
+
+Rounds 4 and 5 are two consecutive clean rounds against different vantages.
+
+**DRY-LOOP: CLEAN×2 (rounds: 5)**
+
+## 9b. In-flight self-checks (preceded the ledger above)
 
 | Round | What it looked for | Found | Action |
 |---|---|---|---|
