@@ -17,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
+  adminChargeLimiter,
   cartMutationLimiter,
   checkoutSessionLimiter,
   paymentVerifyLimiter,
@@ -129,5 +130,29 @@ describe('money-path rate limits — wiring', () => {
     expect(webhookSource).not.toContain('moneyPathRateLimits');
     const cartWebhookLine = cartSource.split('\n').find((l) => l.includes("router.post('/webhook'"));
     if (cartWebhookLine) expect(cartWebhookLine).not.toContain('Limiter');
+  });
+});
+
+describe('admin card-on-file charging (Lane 2 handoff)', () => {
+  const adminSource = readSource('routes/adminChargeCardRoutes.mjs');
+
+  it('caps the charge endpoint — it creates a real PaymentIntent per call', async () => {
+    const app = buildApp(adminChargeLimiter);
+    const agent = request(app);
+
+    for (let i = 0; i < 30; i += 1) {
+      const res = await agent.post('/probe').set('x-test-user', '7001');
+      expect(res.status).toBe(200);
+    }
+    const blocked = await agent.post('/probe').set('x-test-user', '7001');
+    expect(blocked.status).toBe(429);
+  });
+
+  it('keeps adminOnly BEFORE the limiter on both charge routes', () => {
+    for (const route of ["router.post('/charge'", "router.post('/test-card'"]) {
+      const line = adminSource.split('\n').find((l) => l.includes(route));
+      expect(line, `missing route ${route}`).toBeTruthy();
+      expect(line).toMatch(/protect,\s*adminOnly,\s*adminChargeLimiter/);
+    }
   });
 });

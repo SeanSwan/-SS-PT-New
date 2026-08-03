@@ -88,4 +88,26 @@ export const paymentVerifyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-export default { cartMutationLimiter, checkoutSessionLimiter, paymentVerifyLimiter };
+/**
+ * Admin card-on-file charging (`/api/admin/charge-card`). Handed to this lane by
+ * the Lane 2 admin audit; the routes are `protect + adminOnly` but uncapped, and
+ * each call creates a real Stripe PaymentIntent against a client's saved card.
+ * Admin trust is not the issue — a stuck retry loop or a compromised admin
+ * session is, and charging a client's card is the least reversible thing this
+ * codebase does. 30/15min is far above deliberate use.
+ */
+export const adminChargeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  keyGenerator: keyByUserThenIp,
+  message: throttleBody('Too many charge attempts. Please wait before charging again.'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export default {
+  cartMutationLimiter,
+  checkoutSessionLimiter,
+  paymentVerifyLimiter,
+  adminChargeLimiter,
+};
