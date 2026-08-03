@@ -217,7 +217,7 @@ DailyWorkoutForm.init(
       allowNull: false,
       field: 'client_id', // Map camelCase to snake_case
       references: { 
-        model: 'users', // Table name in snake_case
+        model: 'Users', // canonical PascalCase user table
         key: 'id' 
       },
       comment: 'ID of the client who performed this workout'
@@ -227,7 +227,7 @@ DailyWorkoutForm.init(
       allowNull: false,
       field: 'trainer_id', // Map camelCase to snake_case
       references: { 
-        model: 'users', // Table name in snake_case
+        model: 'Users', // canonical PascalCase user table
         key: 'id' 
       },
       comment: 'ID of the trainer who logged this workout'

@@ -30,7 +30,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'Challenges',
+      model: 'challenges', // canonical live table (18 rows, matches Challenge.mjs tableName); the empty PascalCase "Challenges" twin is legacy
       key: 'id'
     }
   },

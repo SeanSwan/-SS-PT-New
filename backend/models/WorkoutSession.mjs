@@ -140,7 +140,7 @@ WorkoutSession.init({
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'WorkoutPlans',  // FIXED: Match actual WorkoutPlan table name
+      model: 'workout_plans',  // real table is snake_case (WorkoutPlan.mjs tableName; live-DB verified 2026-08-03)
       key: 'id'
     },
     comment: 'Reference to workout plan if this session was part of a plan'
@@ -149,7 +149,7 @@ WorkoutSession.init({
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'WorkoutPlanDays',  // FIXED: Match actual WorkoutPlanDay table name
+      model: 'workout_plan_days',  // real table is snake_case (WorkoutPlanDay.mjs tableName; "WorkoutPlanDays" does not exist in the live DB)
       key: 'id'
     },
     comment: 'Reference to specific workout plan day if applicable'
