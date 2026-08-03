@@ -39,6 +39,7 @@ import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import HomeGroupsStrip from './groups/HomeGroupsStrip';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
+import useDayBoundary from '../hooks/useDayBoundary';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
@@ -112,18 +113,33 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   // Workstream N4: real training proof from logged workout sessions.
   const workoutSessions = useWorkoutSessions({ limit: 50 });
+  // Recomputes at local midnight. Without it these memos hold the day they
+  // first ran: an overnight tab kept yesterday's window, so the "(today)" ring
+  // and its screen-reader label sat on the wrong day and a workout logged after
+  // midnight lit no tile.
+  const dayStart = useDayBoundary();
   const trainingProof = useMemo(
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
-    [workoutSessions.data],
+    [workoutSessions.data, dayStart],
   );
   // Trailing-7-day tiles come from real session dates, never from the streak
   // count — and the same failure gate as the proof card, so a fetch error
   // cannot render as seven "no workout logged" days.
   const weekTrainingDays = useMemo(
     () => buildWeekTrainingDays(workoutSessions.data, Date.now()),
-    [workoutSessions.data],
+    [workoutSessions.data, dayStart],
   );
-  const sessionsUnavailable = workoutSessions.isError && !workoutSessions.data;
+  // Tri-state, not a boolean. `isError && !data` left the gate OPEN for the
+  // whole pending window — first paint, the in-flight request, its retry and
+  // the backoff between them — during which `data` is undefined and `isError`
+  // is still false. The grid then rendered seven "no workout logged" days and
+  // the proof card claimed "No logged workouts yet": the exact false claim
+  // this lane exists to remove, just at a different moment.
+  const sessionsStatus: 'ready' | 'loading' | 'unavailable' = workoutSessions.data
+    ? 'ready'
+    : workoutSessions.isError
+      ? 'unavailable'
+      : 'loading';
   const quickStats = useMemo(() => buildSidebarQuickStats({
     displayStats: { ...displayStats, points, level },
     canonicalLevel: level,
@@ -135,7 +151,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   // O3 streak rescue: live streak + no session today + evening = escalate.
   const streakAtRisk = useMemo(
     () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
-    [streakDays, workoutSessions.data],
+    [streakDays, workoutSessions.data, dayStart],
   );
   // O3 Quick Post composer can attach the latest real workout-proof session.
   const composer = useHomeComposer({
@@ -166,7 +182,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
       <Panel>
         <HomeTabTrainingProof
           proof={trainingProof}
-          sessionsUnavailable={sessionsUnavailable}
+          sessionsStatus={sessionsStatus}
           onRetrySessions={() => { void workoutSessions.refetch(); }}
           onShareProgress={composer.handleShareProgress}
         />
@@ -252,7 +268,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           streakDays={streakDays}
           weekDays={weekTrainingDays}
           statsUnavailable={gamificationUnavailable}
-          sessionsUnavailable={sessionsUnavailable}
+          sessionsStatus={sessionsStatus}
           onRetryStats={refetchGamification}
           activeId={activeLens}
           onAction={runAction}

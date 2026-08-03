@@ -102,15 +102,19 @@ const RetryLink = styled.button`
 
 interface HomeTabTrainingProofProps {
   proof: HomeTrainingProof;
-  /** True when the workout-sessions fetch failed — an empty proof is then unknown, not "none". */
-  sessionsUnavailable?: boolean;
+  /**
+   * Whether the sessions are actually known. Anything but 'ready' means an
+   * empty proof is UNKNOWN, not "none" — 'loading' covers first paint and the
+   * request's retry/backoff, which a boolean keyed on `isError` left open.
+   */
+  sessionsStatus?: 'ready' | 'loading' | 'unavailable';
   onRetrySessions?: () => void;
   onShareProgress: (line: string) => void;
 }
 
 const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
   proof,
-  sessionsUnavailable = false,
+  sessionsStatus = 'ready',
   onRetrySessions,
   onShareProgress,
 }) => {
@@ -176,16 +180,18 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
             </StyledBox>
           )}
         </>
-      ) : sessionsUnavailable ? (
+      ) : sessionsStatus !== 'ready' ? (
         // "No logged workouts yet" is a claim about the member's record. When
         // the fetch failed we do not know their record, so we must not make it.
         // The live region wraps the MESSAGE only — including the button would
         // re-announce the control every time the region updates.
         <>
           <EmptyCopy role="status">
-            We couldn&apos;t load your training history just now. Nothing you logged is lost.
+            {sessionsStatus === 'loading'
+              ? 'Loading your training history…'
+              : "We couldn't load your training history just now. Nothing you logged is lost."}
           </EmptyCopy>
-          {onRetrySessions ? (
+          {sessionsStatus === 'unavailable' && onRetrySessions ? (
             <RetryLink type="button" onClick={onRetrySessions}>
               Retry
             </RetryLink>

@@ -162,4 +162,21 @@ describe('the grid and the "This Week" count share one definition', () => {
     expect(proof.thisWeekCount).toBe(3);
     expect(days.filter((day) => day.trained)).toHaveLength(3);
   });
+
+  it('holds the real invariant when two sessions land on ONE day', () => {
+    // count === tiles-lit is NOT an invariant: two sessions on the same day
+    // give a count of 2 and a single lit tile. The invariant that always holds
+    // is `count > 0  <=>  some tile lit`. The other fixtures in this file are
+    // one-session-per-day, so they would never have caught the difference.
+    const sessions = [
+      { date: at(2026, 7, 5, 7) },
+      { date: at(2026, 7, 5, 18) },
+    ];
+    const proof = buildHomeTrainingProof(sessions, THURSDAY);
+    const days = buildWeekTrainingDays(sessions, THURSDAY);
+
+    expect(proof.thisWeekCount).toBe(2);
+    expect(days.filter((day) => day.trained)).toHaveLength(1);
+    expect(proof.thisWeekCount > 0).toBe(days.some((day) => day.trained));
+  });
 });

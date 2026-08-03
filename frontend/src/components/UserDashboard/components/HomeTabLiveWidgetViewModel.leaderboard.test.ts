@@ -58,9 +58,12 @@ describe('rank label derived from those rows', () => {
     // it, so the fixture gives the member a distinct point total.
     const { leaderboardRows } = forUser([
       { id: '1', firstName: 'Ada', points: 900 },
-      { id: '2', firstName: 'Test Member', points: 640 },
+      { id: '2', firstName: 'Test Member', points: 641 },
     ]);
 
+    // 640 !== 641, so the points disjunct cannot fire and only the name match
+    // can produce this result. (An earlier version of this test used 640 on
+    // both sides and silently exercised the points branch it claimed to avoid.)
     expect(findClientRank(leaderboardRows, 640, 'Test Member')).toBe('#2');
   });
 });
