@@ -147,16 +147,40 @@ const SkeletonLabel = styled.span`
 interface Props {
   /** the client's source; controls whether a deducting balance applies */
   clientSource?: string | null;
+  /** real logged-session facts for the non-deducting engagement variant */
+  sessionsThisMonth?: number;
+  streakDays?: number;
 }
 
-const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource }) => {
+const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource, sessionsThisMonth, streakDays }) => {
   const navigate = useNavigate();
   // Non-deducting members (Move Fitness / external) do not draw down a Swan
   // session balance — showing them a numeric count would be misleading.
   const deducts = !isNonDeductingClientSource(clientSource);
   const { data, isLoading, isError } = useSessionCredits(deducts);
 
-  if (!deducts) return null;
+  if (!deducts) {
+    // Panel gap (h): non-deducting clients paid real money and previously got
+    // LESS product (no banner at all). Same engagement framing, zero
+    // deduction/booking language, zero Swan-balance claims. Renders only when
+    // real logged facts exist — never a fabricated stat.
+    if (!sessionsThisMonth && !streakDays) return null;
+    return (
+      <Banner $low={false} data-testid="client-engagement-banner">
+        <Left>
+          <Value $low={false} aria-hidden="true">{sessionsThisMonth || streakDays}</Value>
+          <Meta>
+            <Label>
+              {sessionsThisMonth
+                ? `Session${sessionsThisMonth === 1 ? '' : 's'} Completed This Month`
+                : `Day Streak`}
+            </Label>
+            {sessionsThisMonth && streakDays ? <SubMeta>{streakDays}-day streak</SubMeta> : null}
+          </Meta>
+        </Left>
+      </Banner>
+    );
+  }
 
   if (isLoading) {
     return (
