@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
+import { isDataKnown, resolveDataStatus } from './resolveDataStatus';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import { getTier, getTierDisplay } from '../../../types/gamification';
 import { useToast } from '../../../hooks/use-toast';
@@ -38,7 +39,13 @@ export function useUserDashboardV3Controller() {
     getUsernameForDisplay,
     getUserInitials,
   } = useProfile();
-  const { profile: gamProfile, levelProgress } = useGamificationData();
+  const { profile: gamProfile, levelProgress, refetch: refetchGamification } = useGamificationData();
+  // The Observatory rail and the Quick Stats ticker both render these numbers
+  // on EVERY non-Home tab. `levelProgress` is fabricated from `?? 0` upstream,
+  // so without this gate an outage renders as "0 pts now · Creator Streak 0
+  // days" — the same false record the Home rail was fixed to stop asserting.
+  const gamificationStatus = resolveDataStatus(gamProfile);
+  const gamificationKnown = isDataKnown(gamificationStatus);
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -218,6 +225,9 @@ export function useUserDashboardV3Controller() {
     canonicalLevel,
     levelProgress,
     observatoryLevel: canonicalLevel,
+    gamificationKnown,
+    gamificationStatus,
+    refetchGamification,
     observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
     observatoryTierName,
     observatoryRankTitleLabel,

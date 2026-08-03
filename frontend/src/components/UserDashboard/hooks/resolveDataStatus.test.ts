@@ -11,9 +11,34 @@ describe('resolveDataStatus', () => {
       .toBe('loading');
   });
 
-  it('is still loading during the retry backoff, when nothing is fetching yet', () => {
-    expect(resolveDataStatus({ data: undefined, isError: false, fetchStatus: 'paused' }))
+  it('is still loading during the retry backoff', () => {
+    // React Query reports fetchStatus 'fetching' throughout the retry backoff.
+    expect(resolveDataStatus({ data: undefined, isError: false, fetchStatus: 'fetching' }))
       .toBe('loading');
+  });
+
+  it('is unavailable — not loading — when the device is OFFLINE', () => {
+    // fetchStatus 'paused' means offline with the request queued, NOT backoff.
+    // An earlier version of this file asserted 'loading' here and mislabelled
+    // paused as "the retry backoff": a member on a phone with no signal got an
+    // aria-live region announcing "Loading…" forever, with the Retry withheld.
+    expect(resolveDataStatus({ data: undefined, isError: false, fetchStatus: 'paused' }))
+      .toBe('unavailable');
+  });
+
+  it('never presents placeholder data as the member record', () => {
+    expect(resolveDataStatus({
+      data: [{ id: 'PLACEHOLDER' }],
+      isError: false,
+      isPlaceholderData: true,
+      fetchStatus: 'fetching',
+    })).toBe('loading');
+  });
+
+  it('treats a successful null result as loaded, not as an outage', () => {
+    // Otherwise the UI offers a Retry that returns the same nothing forever.
+    expect(resolveDataStatus({ data: null, isError: false, isSuccess: true, fetchStatus: 'idle' }))
+      .toBe('ready');
   });
 
   it('is unavailable — not loading — for a disabled query that will never resolve', () => {

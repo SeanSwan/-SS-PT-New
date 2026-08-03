@@ -77,6 +77,16 @@ const EmptyCopy = styled.p`
   line-height: 1.5;
 `;
 
+const StaleNote = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: var(--vision-soft, #9FB6C9);
+`;
+
 const RetryLink = styled.button`
   display: inline-flex;
   align-items: center;
@@ -143,6 +153,16 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
       </ProofHeader>
       {proof.weeklyCounts.some((count) => count > 0) ? (
         <>
+          {/* 'stale' means the cached list is displayable but the last refresh
+              FAILED. Showing it silently is how an outage reads as current. */}
+          {sessionsStatus === 'stale' ? (
+            <StaleNote role="status">
+              Couldn&apos;t refresh — showing your last saved history.
+              {onRetrySessions ? (
+                <RetryLink type="button" onClick={onRetrySessions}>Retry</RetryLink>
+              ) : null}
+            </StaleNote>
+          ) : null}
           <ProofRow>
             <ProofStat>
               <strong>{proof.thisWeekCount}</strong>
