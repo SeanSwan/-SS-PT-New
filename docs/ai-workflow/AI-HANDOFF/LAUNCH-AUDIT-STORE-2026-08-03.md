@@ -12,7 +12,8 @@ branch `claude/launch-audit-lane4-20260803`. The shared tree
 (`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
 by this lane except its own coordination file.
 **Commits (local, NOT pushed — integrator reconciles):** `8266626ec`, `eb5366b15`,
-`ba94154e5`, `166983237`, `3f473dc74`, `42c84a077`, `79c5f7b23`, `92b8b863a`.
+`ba94154e5`, `166983237`, `3f473dc74`, `42c84a077`, `79c5f7b23`, `92b8b863a`, `ec5a04f13`,
+`03b7f222b`, `df8933420`, `700caec79` (+ this doc commit).
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
@@ -29,7 +30,7 @@ by this lane except its own coordination file.
 | **B1** | **Confirm the Stripe webhook endpoint URL in the Stripe dashboard.** `https://sswanstudios.com/webhooks/stripe` returns **HTTP 200 with an empty body** to any POST (§2 F-1). Stripe reads 2xx as delivered. If the dashboard points there, every payment is marked delivered while **no sessions are credited** — silently, with no 4xx in Stripe, no backend log, and no retry. | A buyer pays $8,400 and receives nothing; nothing alerts anyone | Sean (dashboard access) | ~2 min to check |
 | **B2** | **Confirm live catalog price truth.** Live prod serves **7 packages**, the canonical seeder defines **5** (§3). Prices are invisible to me because the invitation gate strips them from every public response, so I could not verify "$175/session flat" against the live DB. | A wrong price on the money path at the moment YouTube traffic arrives | Sean or an authenticated admin read | ~5 min |
 
-Everything else on the revenue path that I could verify is sound, and **11 real defects
+Everything else on the revenue path that I could verify is sound, and **15 real defects
 found during this audit are fixed with proof** (§1) — including three that would have hit
 buyers directly: a charged customer stranded with a raw axios error and no retry, a
 one-second window that could mint a second Stripe session for the same cart, and a
@@ -44,7 +45,7 @@ because it changes what "launch-ready" means for cold traffic.
 
 ## 1. FIXES SHIPPED THIS LANE (with proof)
 
-All five commits are local to the audit branch. Every claim below was verified in-session.
+All commits are local to the audit branch. Every claim below was verified in-session.
 
 ### F-A · P0 — Catalog reseed would have erased paid order history
 `8266626ec` · `backend/seeders/20260407-seed-storefront-packages.mjs`
@@ -81,7 +82,7 @@ Failing→passing verified: with the guard stashed, 2 of 5 tests fail.
 was already capped at 5/15min (`middleware/rateLimiter.mjs:111`, confirmed live:
 `ratelimit-policy: 5;w=900`). The endpoints that actually cost money were the unprotected
 ones. `POST /api/v2/payments/create-checkout-session` mints a real Stripe object per call
-(`v2PaymentRoutes.mjs:563`), so an authenticated account could loop it to burn Stripe API
+(`v2PaymentRoutes.mjs:564`), so an authenticated account could loop it to burn Stripe API
 quota, flood the dashboard with abandoned sessions, and churn cart rows.
 
 **Fix.** Cart mutations 120/15min; checkout-session creation 20/15min; verify/activation
@@ -104,7 +105,7 @@ double-submits, casual abuse of Stripe-object-minting endpoints — but **not** 
 against a distributed attacker. Move to a shared store if the service is ever scaled
 horizontally.
 
-**Proof.** `backend/tests/api/moneyPathRateLimits.test.mjs` — **13/13 pass**: throttle fires
+**Proof.** `backend/tests/api/moneyPathRateLimits.test.mjs` — **15/15 pass** (13 at the time of this fix, +2 with the Lane 2 charge-card handoff): throttle fires
 at the ceiling through a live express app, per-user keying verified (a throttled buyer does
 not block a neighbour on the same IP), both `message` and `error` keys populated so a
 throttled buyer sees a recoverable message, and the wiring is pinned. Existing money-path
@@ -234,7 +235,7 @@ trap already in `PricingInquiryModal.tsx:105-118` rather than inventing a second
 
 `StoreV2` is not dead code — `lazyLoadWithErrorHandling.tsx:93-101` genuinely renders it when
 the StoreV3 chunk fails to load, and it carries the same `showCart` state
-(`StoreV2.tsx:523`) and the same `CheckoutView` (`:853`). So a buyer who abandoned a Stripe
+(`StoreV2.tsx:524`) and the same `CheckoutView` (`:859`). So a buyer who abandoned a Stripe
 payment and landed on the fallback still got the closed-cart dead end F-D had just removed.
 **I fixed one surface and called the defect closed.**
 
@@ -262,13 +263,13 @@ move to a shared store.
 
 | # | Sev | Finding | Evidence | Why not fixed here |
 |---|---|---|---|---|
-| **F-1** | **P0-risk / config** | `https://sswanstudios.com/webhooks/stripe` returns **empty HTTP 200** to any POST. So does `/webhooks/anything-else` — the static site's SPA rewrite `/*  → /index.html` (`render.yaml:198-200`) swallows the whole prefix; only `/api` is proxied to the backend. Stripe treats 2xx as delivered, so a dashboard pointed here would mark every payment delivered while crediting nothing — no 4xx, no log, no retry. | Live probes: `/webhooks/stripe` → `200`, `Content-Length: 0`; `/webhooks/nonexistent-xyz` → identical `200`/0; `/api/webhook/stripe` → `400 "No stripe-signature header value was provided"`; backend origin `ss-pt-new.onrender.com/webhooks/stripe` → `400` (handler is healthy where reachable) | Requires Stripe dashboard access (Sean) + a `render.yaml` change (shared infra → §6 proposal). **Signature verification itself is intact everywhere it is reachable.** The code comment at `webhooks/stripeWebhook.mjs:47-49` says the dashboard uses `/api/webhook/stripe`, which works — so this is most likely already fine, but it is unverified and the failure mode is silent and total. |
-| **F-2** | P1 | **No `event.id` replay guard on the training-package webhook path.** Replay safety is *state-based* (`cart.sessionsGranted` under `FOR UPDATE`, `SessionGrantService.mjs:196-200`; `Order.paymentAppliedAt` claim, `stripeWebhook.mjs:526-539`), not *event-based*. Gallery credits/donations/prints DO dedupe on session id via `processed_stripe_sessions` (`:606`, `:683`, `:775`); the training path does not. | grep: zero `event.id` references in `backend/webhooks/` | **Tier-3 trigger.** Structural Stripe/idempotency change on the money path — Rule 16 says propose a paid Village pass and ask Sean; do not self-approve. Today's state-based guards do hold, so this is hardening, not an open hole. |
+| **F-1** | **P0-risk / config** | `https://sswanstudios.com/webhooks/stripe` returns **empty HTTP 200** to any POST. So does `/webhooks/anything-else` — the static site's SPA rewrite `/*  → /index.html` (`render.yaml:198-200`) swallows the whole prefix; only `/api` is proxied to the backend. Stripe treats 2xx as delivered, so a dashboard pointed here would mark every payment delivered while crediting nothing — no 4xx, no log, no retry. | Live probes: `/webhooks/stripe` → `200`, `Content-Length: 0`; `/webhooks/nonexistent-xyz` → identical `200`/0; `/api/webhook/stripe` → `400 "No stripe-signature header value was provided"`; backend origin `ss-pt-new.onrender.com/webhooks/stripe` → `400` (handler is healthy where reachable) | Requires Stripe dashboard access (Sean) + a `render.yaml` change (shared infra → §6 proposal). **Signature verification itself is intact everywhere it is reachable.** The code comment at `webhooks/stripeWebhook.mjs:49-51` says the dashboard uses `/api/webhook/stripe`, which works — so this is most likely already fine, but it is unverified and the failure mode is silent and total. |
+| **F-2** | P1 | **No `event.id` replay guard on the training-package webhook path.** Replay safety is *state-based* (`cart.sessionsGranted` under `FOR UPDATE`, `SessionGrantService.mjs:196-200`; `Order.paymentAppliedAt` claim, `stripeWebhook.mjs:242 (claim), 526-539 pre-fix`), not *event-based*. Gallery credits/donations/prints DO dedupe on session id via `processed_stripe_sessions` (`:606`, `:683`, `:775`); the training path does not. | grep: zero `event.id` references in `backend/webhooks/` | **Tier-3 trigger.** Structural Stripe/idempotency change on the money path — Rule 16 says propose a paid Village pass and ask Sean; do not self-approve. Today's state-based guards do hold, so this is hardening, not an open hole. |
 | **F-3** | P1 | **Two revenue routers are registered twice.** `v2PaymentRoutes` at `core/routes.mjs:371` *and* `routes/api.mjs:39`; `sessionPackageRoutes` at `core/routes.mjs:331` *and* `routes/api.mjs:27`. First mount wins; the second is inert. A future "fix" applied to the shadowed registration would silently do nothing. Existing mount-uniqueness guards exist for `/api/cart` and `/api/storefront` (`cartRoutesSecurity.test.mjs:24`, `storefrontRoutesSecurity.test.mjs:21`) but **not** for these two — which is exactly how the duplicates slipped in. | `core/routes.mjs:331,371`; `routes/api.mjs:27,39` | `routes/api.mjs` and `core/routes.mjs` are shared route-tree infrastructure (C4). → §6 proposal. |
 | **F-4** | P2 | **Three overlapping money columns** on `StorefrontItem`: `price`, `totalCost`, `pricePerSession` (`models/StorefrontItem.mjs:51,67,103`). The Stripe cart rail reads `totalCost` first then `price` (`cartRoutes.mjs:179`); the ACH/offline rails read **`price` only** (`achPaymentRoutes.mjs:121`). If the two ever diverge, the same item charges different amounts on different rails. A `beforeValidate` hook keeps them in sync today (`:216-246`). | as cited | Model change = C4 propose-only (admin + client surfaces consume it). |
 | **F-5** | P2 | **`Order.sessionsGranted` (INTEGER count, `Order.mjs:147`) and `ShoppingCart.sessionsGranted` (BOOLEAN flag, `ShoppingCart.mjs:69`)** are the same property name with different types and meanings on two models joined by `cartId`. Also `Order` is a mixed-convention model: implicit camelCase columns above line 84, explicit `field:` snake_case below (`trainer_id`, `tax_amount`, `sessions_granted`, …). Any raw SQL against `orders` must know which half of the table it is touching. | `models/Order.mjs:94-157` | Rule-58 drift report only; no live break observed. Model = C4. |
 | **F-6** | P2 | **~1,700 lines of orphaned Stripe code**: `services/payment/PaymentService.mjs` + `StripeCheckoutStrategy` (`:225` `checkout.sessions.create`) + `StripeElementsStrategy` (`:173` `paymentIntents.create`) + `ManualPaymentStrategy` have **zero importers** outside their own directory. Dead money code a future refactor could re-wire without review. | grep | Rule 34: no blind cleanup. Deletion candidate pending approval, not actioned. |
-| **F-7** | P3 | **Five live Stripe webhook surfaces share one secret** (`webhooks/stripeWebhook.mjs:307,309`; `cartRoutes.mjs:937`; `sessionPackageRoutes.mjs:212`; `subscriptionRoutes.mjs:546`). All verify signatures, so none is exploitable alone — but the `express.json` bypass list (`core/middleware/index.mjs:38-48`) must stay in exact sync. Adding a sixth webhook without updating that list produces silent 100% signature-verification failure. | as cited | Documentation/awareness item. |
+| **F-7** | P3 | **Five live Stripe webhook surfaces share one secret** (`webhooks/stripeWebhook.mjs:309,311`; `cartRoutes.mjs:938`; `sessionPackageRoutes.mjs:212`; `subscriptionRoutes.mjs:546`). All verify signatures, so none is exploitable alone — but the `express.json` bypass list (`core/middleware/index.mjs:38-48`) must stay in exact sync. Adding a sixth webhook without updating that list produces silent 100% signature-verification failure. | as cited | Documentation/awareness item. |
 | **F-8** | — | **CORRECTED — not a finding.** An automated pass flagged `utils/stripeConfig.mjs:54` as logging "the first 8 chars of the live secret key". `'sk_live_'.length === 8`, so `secretKey.substring(0, 8)` is **exactly the environment prefix and zero secret bytes**. Verified by execution. It discloses live-vs-test and key length only. No fix made; recording the correction so it is not re-raised. | `node -e` check | Rule 30 — subagent output is a hypothesis. |
 
 ---
@@ -314,7 +315,7 @@ belong in the admin storefront UI. `CLAUDE.md`'s pending-action line must be ret
 **Historical `/api/cart/add` 404 — `[VERIFIED] DEAD on main.** The route exists and is
 mounted exactly once (`cartRoutes.mjs:350`, mounted `core/routes.mjs:352`). Live probe:
 `POST /api/cart/add` unauthenticated → **401**, not 404. The most likely modern rejection is
-`403 PRICE_ACCESS_REQUIRED` from the invitation gate (`cartRoutes.mjs:429`), which is
+`403 PRICE_ACCESS_REQUIRED` from the invitation gate (`cartRoutes.mjs:430`), which is
 correct behaviour, not a bug.
 
 ---
@@ -330,10 +331,10 @@ This is **intentional and correctly built**, not a defect. `priceVisibilityServi
 records Sean's rule verbatim: prices hidden from everyone — guests, users, clients, trainers
 — until an admin grants that specific user the `store-prices` feature flag. Enforcement is
 server-side and **fail-closed** on every error path (`:105-108`, `:123-126`); the frontend
-merely reflects server truth (`StoreV3.tsx:644`, comment at `:642-643`: "being logged in no
+merely reflects server truth (`StoreV3.tsx:645`, comment at `:643-644`: "being logged in no
 longer reveals prices"). Purchase is independently gated: `canPurchase` requires
-`pricesVisible && isAuthenticated` (`StoreV3.tsx:648`), and the cart API refuses at
-`cartRoutes.mjs:429`.
+`pricesVisible && isAuthenticated` (`StoreV3.tsx:649`), and the cart API refuses at
+`cartRoutes.mjs:430`.
 
 **What this means operationally at launch.** The *only* path from a cold YouTube viewer to a
 price is: inquiry button → `POST /api/contact` → Sean reads it → Sean manually grants the
@@ -371,14 +372,14 @@ load-bearing invariants rather than re-litigating them.
 
 | Control | Status | Evidence |
 |---|---|---|
-| Webhook signature verification | **intact** | `constructEvent` at `stripeWebhook.mjs:71-75`; fail-closed 500 on missing secret; live probes return `400 "No stripe-signature header value was provided"` on both reachable paths |
+| Webhook signature verification | **intact** | `constructEvent` at `stripeWebhook.mjs:76-80`; fail-closed 500 on missing secret; live probes return `400 "No stripe-signature header value was provided"` on both reachable paths |
 | `express.raw` before `express.json` for webhooks | **correct** | `core/middleware/index.mjs:38-48` path-exclusion list covers all five webhook routes |
 | Server-authoritative pricing | **clean on all 3 rails** | cart snapshots DB price (`cartRoutes.mjs:179,485`); v2 builds Stripe line items from persisted `CartItem.price` (`:162-187`); ACH recomputes with `Decimal` and 409s on mismatch (`achPaymentRoutes.mjs:119-163`) |
-| IDOR on money endpoints | **clean** | identity always from `req.user` (`v2PaymentRoutes.mjs:276,738`; `cartRoutes.mjs:184`; `orderRoutes.mjs:29,62`). `cartId` is accepted from the body but scoped `where {id, userId, status:'active'}` (`v2PaymentRoutes.mjs:332-337`) — cross-user checkout not possible |
+| IDOR on money endpoints | **clean** | identity always from `req.user` (`v2PaymentRoutes.mjs:277,738`; `cartRoutes.mjs:183`; `orderRoutes.mjs:29,62`). `cartId` is accepted from the body but scoped `where {id, userId, status:'active'}` (`v2PaymentRoutes.mjs:333-338`) — cross-user checkout not possible |
 | Session-crediting idempotency | **holds** | `sessionsGranted` flag under `SELECT … FOR UPDATE` (`SessionGrantService.mjs:196-200`); session-ownership guard rejects a cart whose `checkoutSessionId` ≠ the paid session (`:190-192`); credit written atomically via `user.increment` (`:213-218`) |
 | Deactivated / retired items unpurchasable | **enforced** | `resolveCartItemSnapshot` returns 409 on `isActive === false` (`cartRoutes.mjs:147-149`) — this is also what makes special-cancel real |
 | Live/test Stripe key safety | **guarded** | `stripeEnvironmentSafety` + `v2PaymentLocalLiveStripeGuard` + `stripeCheckoutSessionErrors` — **9/9 pass**; live key blocked in local dev |
-| Legacy cart checkout | **intentionally dead** | `POST /api/cart/checkout` returns 410 `LEGACY_CART_CHECKOUT_DISABLED` (`cartRoutes.mjs:840-853`) |
+| Legacy cart checkout | **intentionally dead** | `POST /api/cart/checkout` returns 410 `LEGACY_CART_CHECKOUT_DISABLED` (`cartRoutes.mjs:841-854`) |
 | Retired Galaxy-Swan palette on the store surface | **absent** | grep for `#0a0a1a` / `#00FFFF` / `#7851A9` across `pages/shop`, `NewCheckout`, `ShoppingCart`, `pages/checkout` → only hit is the *contract test that forbids them* (`ShoppingCart.themeContract.test.ts:46`) |
 | Custom deals + inquiry button (shipped 2026-07) | **healthy** | `/api/custom-packages/my` → 401 unauth (correct); `YourSpecialCard` self-gates to `role === 'client'` and fails closed (`:38,41,50-52`); inquiry modal wired to `/api/contact` (`PricingInquiryModal.tsx:150-156`) |
 | Live service health | **green** | `/api/health` 200; `/api/storefront` 200; `/api/health/store` 200 `ready:true`; `/api/session-packages` 200 |
@@ -386,7 +387,7 @@ load-bearing invariants rather than re-litigating them.
 **Surface classification (Rule 27).** Canonical: `StoreV3` (`/store`, `/swanstudios-store`,
 `/shop` — `main-routes.tsx:531-554`), with `StoreV2` reachable as a genuine lazy-import
 fallback (`lazyLoadWithErrorHandling.tsx:93-101`); `CheckoutView` (route `/checkout` +
-in-store modal `StoreV3.tsx:1002`); `SuccessPage`; `CheckoutCancel`.
+in-store modal `StoreV3.tsx:1006`); `SuccessPage`; `CheckoutCancel`.
 Dormant/non-public: `store-v4/` (admin Design Studio only, `status: 'parked'`).
 Orphaned: `components/Checkout/OrderSummaryComponent.tsx` (827 lines, zero importers).
 **`StoreV2` fallback parity — measured, not estimated.** Occurrence counts in each file:
@@ -482,7 +483,7 @@ Hostile question from the brief: *"would a YouTube stranger trust this with $8,4
 The trust scaffolding is real — Stripe Secure / SSL / PCI / Money-Back badges
 (`CheckoutView.sections.tsx:64-83`), "Powered by Stripe with SSL encryption and PCI
 compliance" (`CheckoutButton.tsx:76-79`), a 30-day guarantee line
-(`OrderReviewStep.tsx:189-194`), an all-inclusive-pricing promise (`StoreV3.tsx:393-394`),
+(`OrderReviewStep.tsx:189-194`), an all-inclusive-pricing promise (`StoreV3.tsx:395-396`),
 and an explicit "no charges were made" reassurance on cancel (`CheckoutCancel.tsx:204-207`).
 Touch targets are genuinely strong: **every** interactive control on the money path is ≥44px
 (cart close, quantity steppers, remove, dock FAB, fulfillment buttons, GlowButton 44/48/56).
