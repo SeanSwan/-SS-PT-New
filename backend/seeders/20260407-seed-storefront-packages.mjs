@@ -71,6 +71,27 @@ async function seedPackages() {
     }
 
     if (existing > 0) {
+      // FAIL-CLOSED PAID-HISTORY GUARD.
+      // The clear path below is TRUNCATE ... CASCADE, and cart_items/order_items
+      // both carry FKs to storefront_items. TRUNCATE CASCADE truncates those
+      // dependent tables outright — it does NOT honour the order_items
+      // ON DELETE SET NULL tombstone relax — so on a live database this erases
+      // the line items of already-paid orders. The model-destroy fallback below
+      // deletes them explicitly for the same reason. Financial/audit records are
+      // not re-derivable, so refuse rather than ask forgiveness: a catalog fix is
+      // an admin-UI edit, never a truncate.
+      const { default: OrderItem } = await import('../models/OrderItem.mjs');
+      const paidLineItems = await OrderItem.count();
+      if (paidLineItems > 0 && process.env.I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY !== 'true') {
+        throw new Error(
+          `REFUSING TO RESEED: ${paidLineItems} order_items row(s) reference this catalog. ` +
+          'FORCE_RESEED truncates storefront_items CASCADE, which would delete paid order ' +
+          'line items (unrecoverable financial history). Edit the catalog from the admin ' +
+          'storefront UI instead. If you have verified this database is disposable, re-run ' +
+          'with I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY=true.'
+        );
+      }
+
       console.log(`FORCE_RESEED=true — clearing ${existing} existing packages...`);
       const { default: sequelize } = await import('../database.mjs');
       try {
