@@ -100,6 +100,33 @@ describe('TrainerAssessmentsPage error and loading states', () => {
     });
   });
 
+  it('surfaces the same failure notice for an admin on the admin roster endpoint', async () => {
+    mockUser.id = 1;
+    mockUser.role = 'admin';
+    let rosterCalls = 0;
+    mockAuthAxios.get.mockImplementation((path: string) => {
+      if (path === '/api/movement-analysis') return Promise.resolve(HISTORY_RESPONSE);
+      if (path === '/api/admin/clients') {
+        rosterCalls += 1;
+        return rosterCalls === 1
+          ? Promise.reject(new Error('boom'))
+          : Promise.resolve({
+              data: {
+                success: true,
+                data: { clients: [{ id: 515151, firstName: 'Admin', lastName: 'Client', username: 'admin-client' }] },
+              },
+            });
+      }
+      return Promise.reject(new Error(`Unexpected GET ${path}`));
+    });
+
+    render(<TrainerAssessmentsPage />);
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /retry loading clients/i }));
+    expect(await screen.findByRole('option', { name: 'Admin Client' })).toBeInTheDocument();
+  });
+
   it('announces the roster loading state while the fetch is in flight', async () => {
     let resolveRoster: (value: unknown) => void = () => {};
     mockAuthAxios.get.mockImplementation((path: string) => {
