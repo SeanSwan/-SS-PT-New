@@ -34,10 +34,14 @@ describe('AdminSpecialsTable', () => {
       />
     );
 
+    // The scroll wrapper is exposed as a labeled region; without it this
+    // throws — the assertion that actually prevents 320-414px column
+    // clipping from regressing (parentElement checks are useless here:
+    // the test-library render container is itself a div).
+    const scroller = screen.getByRole('region', { name: 'Specials table' });
     const table = screen.getByRole('table');
-    // The direct parent must be the TableScroller div, not the page body —
-    // this is what prevents 320-414px column clipping.
-    expect(table.parentElement?.tagName).toBe('DIV');
+    expect(scroller.contains(table)).toBe(true);
+    expect(scroller).toHaveAttribute('tabindex', '0');
     expect(screen.getByText('Launch Bonus')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
