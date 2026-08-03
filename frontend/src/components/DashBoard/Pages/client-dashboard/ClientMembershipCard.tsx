@@ -77,7 +77,7 @@ const formatDate = (iso: string | null): string | null => {
 };
 
 const ClientMembershipCard: React.FC = () => {
-  const { subscription, loading, cancel } = useSubscription({ withTiers: false });
+  const { subscription, loading, cancel, error } = useSubscription({ withTiers: false });
   const [armed, setArmed] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -85,6 +85,20 @@ const ClientMembershipCard: React.FC = () => {
   const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (disarmTimer.current) clearTimeout(disarmTimer.current); }, []);
+
+  // A transient status-endpoint failure must not silently remove the whole
+  // membership + cancel section — a paying client losing sight of their billing
+  // and cancel path on a 500 is worse than a visible "couldn't load" hint.
+  if (!loading && error && !subscription) {
+    return (
+      <Card>
+        <Title><CreditCard size={18} /> Membership</Title>
+        <Facts role="status">
+          <span>We couldn&apos;t load your membership details right now. Refresh to try again.</span>
+        </Facts>
+      </Card>
+    );
+  }
 
   // Staff get a synthetic entitlement payload with no billing facts — no card.
   if (loading || !subscription || subscription.isAdmin) return null;

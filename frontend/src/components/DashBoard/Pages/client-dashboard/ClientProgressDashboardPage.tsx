@@ -68,11 +68,16 @@ const ClientProgressDashboardPage: React.FC = () => {
   const canRenderCompanionPet = companionPetUserId !== null;
   const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
   const [weeklyRecapSettled, setWeeklyRecapSettled] = useState(false);
+  // Distinguishes a recap network error from a legitimately empty recap so the
+  // stats strip does not render "0 workouts / 0d streak" during an outage — an
+  // outage must not look identical to a client who genuinely did nothing.
+  const [weeklyRecapError, setWeeklyRecapError] = useState(false);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordView[]>([]);
 
   useEffect(() => {
     let isMounted = true; const cleanup = () => { isMounted = false; };
     setWeeklyRecapSettled(false);
+    setWeeklyRecapError(false);
 
     if (!authAxios || !user?.id) {
       setWeeklyRecap(null);
@@ -93,7 +98,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         setWeeklyRecap(recap ?? null);
       })
       .catch(() => {
-        if (isMounted) setWeeklyRecap(null);
+        if (isMounted) { setWeeklyRecap(null); setWeeklyRecapError(true); }
       })
       .finally(() => {
         if (isMounted) setWeeklyRecapSettled(true);
@@ -154,12 +159,14 @@ const ClientProgressDashboardPage: React.FC = () => {
         >
           <StatLabel>Wk Workouts</StatLabel>
           <StatValue $color="var(--accent-secondary, #8B5CF6)">
-            {weekWorkouts}
+            {weeklyRecapError ? '—' : weekWorkouts}
           </StatValue>
         </StatCard>
         <StatCard $delay={4}>
           <StatLabel>Streak</StatLabel>
-          <StatValue $color="var(--accent-gold, #C6A84B)">{streakDays}d</StatValue>
+          <StatValue $color="var(--accent-gold, #C6A84B)">
+            {weeklyRecapError ? '—' : `${streakDays}d`}
+          </StatValue>
         </StatCard>
         <StatCard $delay={5}>
           <StatLabel>PRs</StatLabel>
