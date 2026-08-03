@@ -14,7 +14,20 @@
  */
 import { formatAgo } from './HomeTabLiveWidgetViewModel';
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How many whole calendar days back a timestamp falls, relative to the start of
+ * today. Day-aligned on purpose: an instant-based `(now - t) / 7 days` window
+ * slides by the hour, so a session 6 days and 20 hours old counted as "this
+ * week" while the day grid beside it — which can only draw whole days — showed
+ * nothing. Rounding absorbs DST's 23- and 25-hour days.
+ */
+const calendarDaysAgo = (timeMs: number, startOfTodayMs: number): number => {
+  const sessionDay = new Date(timeMs);
+  sessionDay.setHours(0, 0, 0, 0);
+  return Math.round((startOfTodayMs - sessionDay.getTime()) / DAY_MS);
+};
 /** Hour of day (local) after which an unbroken-but-untrained streak is at risk. */
 const STREAK_RISK_HOUR = 15;
 
@@ -47,6 +60,10 @@ export function buildHomeTrainingProof(
   let minutesThisWeek = 0;
   let last: { timeMs: number; title: string; id: string | null } | null = null;
 
+  const startOfToday = new Date(nowMs);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTodayMs = startOfToday.getTime();
+
   for (const session of sessions || []) {
     if (!isLoggedWorkoutSession(session)) continue;
     const record = session;
@@ -54,7 +71,7 @@ export function buildHomeTrainingProof(
     const timeMs = new Date(String(rawDate || '')).getTime();
     if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
 
-    const weeksAgo = Math.floor((nowMs - timeMs) / WEEK_MS);
+    const weeksAgo = Math.floor(calendarDaysAgo(timeMs, startOfTodayMs) / 7);
     if (weeksAgo < 4) {
       weeklyCounts[3 - weeksAgo] += 1;
       if (weeksAgo === 0) {
