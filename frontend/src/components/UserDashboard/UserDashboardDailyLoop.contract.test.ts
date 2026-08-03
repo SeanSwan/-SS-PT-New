@@ -443,7 +443,9 @@ describe('UserDashboard V3 daily loop contract', () => {
     const viewModelSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.viewModel.ts');
     const sectionsSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.sections.tsx');
 
-    expect(clientHomeTabSource).toContain('buildInsights(trainingProof, progressPercent, streakDays)');
+    // 4th arg = the assigned plan's REAL weekly volume (launch panel gap b) —
+    // still driven by real data, so the contract's intent holds.
+    expect(clientHomeTabSource).toContain('buildInsights(trainingProof, progressPercent, streakDays, currentWorkoutState.workout?.weeklyPlanVolume ?? null)');
     expect(clientHomeTabSource).toContain('buildPerformanceScore(trainingProof, progressPercent, streakDays)');
     expect(viewModelSource).toContain('proof.weeklyCounts');
     expect(viewModelSource).toContain('Math.min(streakDays, 30)');

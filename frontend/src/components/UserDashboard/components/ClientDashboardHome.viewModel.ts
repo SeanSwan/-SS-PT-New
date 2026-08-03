@@ -8,8 +8,12 @@ import type { HomeLeaderboardRow } from './HomeTabViewModel';
 import type { CurrentClientWorkout } from '../../DashBoard/Pages/client-dashboard/observatory/useCurrentClientWorkout';
 import type { Session } from '../../UniversalMasterSchedule/types';
 
+// Generic pacing constant. VISIBLE surfaces must NOT present this as "the
+// client's target" (launch panel 2026-08-03, gap b) — the assigned plan's real
+// weekly volume is threaded into buildInsights instead. Remaining uses:
+// TodaySnapshot.weeklyCompleted/weeklyGoal (currently rendered nowhere) and
+// the composite performance score's weekly weighting.
 const WEEKLY_GOAL = 5;
-const MINUTES_PER_WORKOUT_GOAL = 45;
 const CLIENT_WORKOUTS_PATH = '/dashboard/client/workouts';
 
 export interface MetricRow {
@@ -79,6 +83,16 @@ function sessionTime(session: unknown): number {
   return new Date(String(record.date ?? record.completedAt ?? record.createdAt ?? '')).getTime();
 }
 
+/** Real logged sessions in the current calendar month — shared by the snapshot
+    tile and the non-deducting engagement banner (single source of truth). */
+export function countSessionsThisMonth(sessions: unknown[] | null | undefined, now: Date = new Date()): number {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  return (sessions || []).filter((session) => {
+    const time = sessionTime(session);
+    return Number.isFinite(time) && time >= monthStart && time <= now.getTime();
+  }).length;
+}
+
 export function buildTodaySnapshot({
   sessions,
   proof,
@@ -102,11 +116,7 @@ export function buildTodaySnapshot({
   // Panel launch review 2026-08-03 (gap a): never lead the money surface with a
   // metric we cannot measure. The 4th tile is real logged data — sessions this
   // month — instead of a dead "Average Heart Rate: Not available" placeholder.
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const monthCount = (sessions || []).filter((session) => {
-    const time = sessionTime(session);
-    return Number.isFinite(time) && time >= monthStart && time <= now.getTime();
-  }).length;
+  const monthCount = countSessionsThisMonth(sessions, now);
   return {
     dateLabel: now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
     rows: [
@@ -216,9 +226,14 @@ export function buildSessionPreview({
   };
 }
 
-export function buildInsights(proof: HomeTrainingProof, progressPercent: number, streakDays: number): InsightRow[] {
-  const volumeTarget = WEEKLY_GOAL * MINUTES_PER_WORKOUT_GOAL;
-  const volumePct = clampDashboardPercent((proof.minutesThisWeek / volumeTarget) * 100);
+export function buildInsights(proof: HomeTrainingProof, progressPercent: number, streakDays: number, weeklyPlanVolume?: number | null): InsightRow[] {
+  // Launch panel 2026-08-03 (gap b): a target the trainer didn't set is worse
+  // than no target — it silently contradicts the plan. When the assigned
+  // plan's real weekly session volume is known, the volume tile measures
+  // against IT; when unknown, the tile makes no target claim at all.
+  const volumeStatus = weeklyPlanVolume && weeklyPlanVolume > 0
+    ? `${Math.min(proof.thisWeekCount, weeklyPlanVolume)}/${weeklyPlanVolume} plan sessions logged`
+    : 'This week';
   // Panel launch review 2026-08-03 (gap a): the two "Not available" insight
   // tiles (Strength Score / Recovery — both wearable-dependent) are replaced
   // with insights computable from the client's REAL logged history. Reintroduce
@@ -231,7 +246,7 @@ export function buildInsights(proof: HomeTrainingProof, progressPercent: number,
   const bestRecentWeek = proof.weeklyCounts.length ? Math.max(...proof.weeklyCounts) : 0;
   return [
     { label: 'Workouts This Week', value: String(proof.thisWeekCount || 0), status: weekDeltaStatus, points: proof.weeklyCounts },
-    { label: 'Training Volume', value: `${proof.minutesThisWeek || 0} min`, status: `${volumePct}% of weekly target`, points: proof.weeklyCounts },
+    { label: 'Training Volume', value: `${proof.minutesThisWeek || 0} min`, status: volumeStatus, points: proof.weeklyCounts },
     { label: 'Consistency', value: `${Math.min(streakDays, 30)}d`, status: `${clampDashboardPercent(progressPercent)}% level momentum`, points: proof.weeklyCounts },
     { label: 'Best Recent Week', value: `${bestRecentWeek} workout${bestRecentWeek === 1 ? '' : 's'}`, status: 'Highest of your last 4 weeks', points: proof.weeklyCounts },
   ];

@@ -155,8 +155,8 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const assignment = useMemo(() => buildAssignmentView(currentWorkoutState), [currentWorkoutState]);
   const sessionPreview = useMemo(() => buildSessionPreview(upcomingSessionState), [upcomingSessionState]);
   const insights = useMemo(
-    () => buildInsights(trainingProof, progressPercent, streakDays),
-    [progressPercent, streakDays, trainingProof],
+    () => buildInsights(trainingProof, progressPercent, streakDays, currentWorkoutState.workout?.weeklyPlanVolume ?? null),
+    [currentWorkoutState.workout?.weeklyPlanVolume, progressPercent, streakDays, trainingProof],
   );
   const performanceScore = useMemo(
     () => buildPerformanceScore(trainingProof, progressPercent, streakDays),

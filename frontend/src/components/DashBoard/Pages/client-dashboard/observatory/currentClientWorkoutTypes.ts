@@ -66,6 +66,9 @@ export interface CurrentWorkoutPlanPreview {
   todayAssignment?: TodayAssignmentPreview | null;
   homeworkSummary?: unknown;
   trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
+  /** current-week day list from toCurrentWorkoutPlanResponse — its length is
+      the plan's REAL weekly session volume */
+  days?: unknown[];
 }
 
 export interface CurrentWorkoutResponse {
@@ -95,4 +98,8 @@ export interface CurrentClientWorkout {
   prescribedRevision?: number;
   primaryPlanLabel?: string;
   homeworkSummary?: ClientHomeworkSummary | null;
+  /** sessions in the plan's current week (real planData truth); undefined when
+      the payload carries no week structure — consumers must NOT substitute a
+      hardcoded target (launch panel 2026-08-03, gap b) */
+  weeklyPlanVolume?: number;
 }
