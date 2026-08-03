@@ -111,7 +111,23 @@ async function getExecutedMigrations(seq) {
 
 /** Get all migration filenames sorted */
 function getAllMigrationFiles() {
-  return fs.readdirSync(migrationsDir)
+  const all = fs.readdirSync(migrationsDir);
+  // ⚠ KNOWN GAP (drift audit 2026-08-03): .mjs migrations are INVISIBLE to this runner.
+  // sequelize-cli (which runMigration shells out to) cannot load ESM .mjs files, so they
+  // are deliberately excluded rather than fed to a runner that would fail them and let the
+  // mark-done lane poison SequelizeMeta. Consequence already observed in production: the
+  // marketing-calendar and native-social-publishing .mjs migrations never applied (their
+  // tables are now backfilled via utils/tableCreationOrder.mjs PHASE 13). Any NEW migration
+  // must be .cjs. The warning below makes the invisible backlog loud on every deploy.
+  const invisible = all.filter(f => f.endsWith('.mjs'));
+  if (invisible.length > 0) {
+    console.warn(
+      `⚠ safe-migrate: ${invisible.length} .mjs migration(s) exist that this runner CANNOT execute ` +
+      `(sequelize-cli has no ESM support). They will never apply in production. ` +
+      `Convert to .cjs or cover via startup mechanisms: ${invisible.join(', ')}`
+    );
+  }
+  return all
     .filter(f => f.endsWith('.cjs') || f.endsWith('.js'))
     .sort();
 }
