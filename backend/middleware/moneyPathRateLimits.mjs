@@ -23,6 +23,20 @@
  *
  * CEILINGS are deliberately generous — a false block on the money path costs
  * far more than the abuse it prevents. These stop loops, not customers.
+ *
+ * KNOWN LIMITS — do not over-trust these counters. No `store:` is configured, so
+ * express-rate-limit uses its in-process MemoryStore, which means:
+ *   1. Counters are PER PROCESS. If the backend is ever scaled past one
+ *      instance, the effective ceiling becomes N × the number below. (render.yaml
+ *      carries no numInstances today, and its Redis-for-multi-instance block is
+ *      commented out — so this is a one-instance assumption, not a guarantee.)
+ *   2. Counters RESET ON DEPLOY/RESTART. A determined attacker who can time a
+ *      deploy gets a fresh window.
+ * Both are acceptable for the threat these limiters actually address — runaway
+ * loops, accidental double-submits, and casual abuse of endpoints that mint
+ * Stripe objects. They are NOT a defence against a distributed attacker. If the
+ * service is ever scaled horizontally, move these to a shared store (Redis)
+ * rather than assuming the numbers still mean what they say.
  * ============================================================================
  */
 import rateLimit from 'express-rate-limit';

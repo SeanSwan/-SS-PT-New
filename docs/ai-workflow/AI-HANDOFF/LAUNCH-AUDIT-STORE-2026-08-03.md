@@ -94,6 +94,16 @@ Deliberate non-targets, each verified:
 - **Stripe webhooks stay unlimited** — Stripe retries and bursts by design; a throttled webhook is a lost session credit. Signature verification is the correct control and is in place.
 - Post-payment polling: `SuccessPage` calls activation-status **at most twice per visit** (`SuccessPage.tsx:83`, `:126`) — no polling loop, so the 60-call ceiling cannot throttle a buyer who has already paid.
 
+**Known limits of this control (disclosed rather than over-claimed).** No `store:` is
+configured, so express-rate-limit uses its in-process MemoryStore. Counters are therefore
+**per process** (scaling past one instance multiplies the effective ceiling by N —
+`render.yaml` carries no `numInstances` today and its Redis-for-multi-instance block is
+commented out, so this is an assumption, not a guarantee) and **reset on every
+deploy/restart**. Acceptable for the threat actually addressed — runaway loops, accidental
+double-submits, casual abuse of Stripe-object-minting endpoints — but **not** a defence
+against a distributed attacker. Move to a shared store if the service is ever scaled
+horizontally.
+
 **Proof.** `backend/tests/api/moneyPathRateLimits.test.mjs` — **13/13 pass**: throttle fires
 at the ceiling through a live express app, per-user keying verified (a throttled buyer does
 not block a neighbour on the same IP), both `message` and `error` keys populated so a
@@ -218,6 +228,33 @@ trap already in `PricingInquiryModal.tsx:105-118` rather than inventing a second
 
 **Proof.** ShoppingCart + NewCheckout + pages/shop + pages/checkout **23 files / 90 tests**;
 `tsc` 0 errors.
+
+### F-I · P1 — My own cancel-recovery fix missed the fallback store
+`df8933420` · new `frontend/src/pages/shop/useCartDeepLink.ts`, `StoreV3.tsx`, `StoreV2.tsx`
+
+`StoreV2` is not dead code — `lazyLoadWithErrorHandling.tsx:93-101` genuinely renders it when
+the StoreV3 chunk fails to load, and it carries the same `showCart` state
+(`StoreV2.tsx:523`) and the same `CheckoutView` (`:853`). So a buyer who abandoned a Stripe
+payment and landed on the fallback still got the closed-cart dead end F-D had just removed.
+**I fixed one surface and called the defect closed.**
+
+Extracted `useCartDeepLink` and used it in both rather than copy-pasting — the auth-timing
+rule inside it (F-E defect 1) took a full hostile round to get right, and two hand-copies of
+that would drift.
+
+**Proof.** `StoreV3.cancelRecovery.test.tsx` is now parameterised over both surfaces —
+**14/14 pass** (was 7). Removing the hook from `StoreV2` fails 5 of them (verified, then
+restored and re-confirmed). `pages/shop` + cart auth pipeline **11 files / 53 tests**;
+`tsc` 0 errors.
+
+### F-J · Honesty correction — I claimed a control without disclosing its strength
+`(this commit)` · `moneyPathRateLimits.mjs` docstring + §1 F-B above
+
+F-B reported "the revenue path is now rate limited" without stating that the counters live
+in an in-process MemoryStore — so they are per-process and reset on every deploy. That is
+the same over-claiming this audit flags elsewhere (Rule 75), applied to my own work. Both
+the module and F-B now disclose the limits and name the condition under which they must
+move to a shared store.
 
 ---
 
@@ -352,9 +389,18 @@ fallback (`lazyLoadWithErrorHandling.tsx:93-101`); `CheckoutView` (route `/check
 in-store modal `StoreV3.tsx:1002`); `SuccessPage`; `CheckoutCancel`.
 Dormant/non-public: `store-v4/` (admin Design Studio only, `status: 'parked'`).
 Orphaned: `components/Checkout/OrderSummaryComponent.tsx` (827 lines, zero importers).
-**Note for Lanes 1/2/3/5:** `StoreV2` lacks both `YourSpecialCard` and the inquiry button —
-if the primary chunk ever fails to load, the fallback store silently loses custom deals and
-the only cold-traffic conversion path.
+**`StoreV2` fallback parity — measured, not estimated.** Occurrence counts in each file:
+
+| Component | StoreV3 | StoreV2 | Consequence if the primary chunk fails |
+|---|---|---|---|
+| `YourSpecialCard` | 2 | **0** | a client's own custom deal is invisible |
+| `PricingInquiryModal` | 2 | **0** | **no conversion path at all for cold traffic** — the inquiry button is the only route from a price-hidden card to a human |
+| `StoreCartDock` | 3 | **0** | no cart FAB |
+| `MembershipsSection` | 2 | **0** | subscription tier upsell missing |
+
+`useCartDeepLink` was ported to both in this lane (§1 F-I), so cancel-recovery is at parity;
+the four above are **not** fixed here — porting four features into a fallback surface is a
+scope decision, not a hostile-review fix. Tracked on SWA-112.
 
 ---
 
