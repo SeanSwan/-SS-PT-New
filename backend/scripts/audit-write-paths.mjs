@@ -43,9 +43,13 @@
  *             2 = the audit itself failed (including examining zero models).
  */
 
+// `sequelize` is imported LAZILY inside main(), never at the top level. A top-level import runs
+// before the `--help` guard below, so `--help` died with ERR_MODULE_NOT_FOUND whenever node_modules
+// was absent — which is exactly when someone is most likely to be asking a script what it does.
+// audit-model-health.mjs already deferred its DB import this way; this file did not, and the
+// inconsistency was invisible until the two were run side by side.
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { QueryTypes } from 'sequelize';
 
 import { collectModelFiles } from './lib/model-files.mjs';
 import { divergedModelFiles, divergenceCaveat } from './lib/diverged-from-main.mjs';
@@ -67,6 +71,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 }
 
 async function main() {
+  const { QueryTypes } = await import('sequelize');
   const { default: sequelize } = await import(pathToFileURL(path.join(BACKEND, 'database.mjs')).href);
 
   // Every column the database will refuse to default for us.
