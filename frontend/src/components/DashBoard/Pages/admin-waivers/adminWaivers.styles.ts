@@ -69,8 +69,16 @@ export const SearchInput = styled.input`
   }
 `;
 
+export const TableScroller = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+`;
+
 export const Table = styled.table`
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
