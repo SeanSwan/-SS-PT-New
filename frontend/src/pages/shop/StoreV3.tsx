@@ -649,6 +649,46 @@ const StoreV3: React.FC = () => {
   const cartItemCount = cart?.itemCount || 0;
 
   // ----------------------------------------------------------
+  // Checkout-cancel recovery deep link
+  // ----------------------------------------------------------
+  // /checkout/cancel sends a buyer who backed out of Stripe here with
+  // ?openCart=true (and &retryCheckout=true from "Try again"). Nothing read
+  // those params, so both recovery CTAs dropped the buyer on a plain /store
+  // with the cart closed — on mobile that means hunting for the cart dock right
+  // after an abandoned payment, the worst possible moment to add friction.
+  // Params are consumed once and stripped so a later refresh or back-navigation
+  // doesn't re-open the panel unexpectedly.
+  //
+  // Reads window.location rather than useSearchParams on purpose: this component
+  // is rendered bare (no Router) by its own test suite and by the StoreV2 lazy
+  // fallback path, and a router hook here would throw outside a Router. The deep
+  // link only ever arrives as a fresh mount from /checkout/cancel, so a
+  // mount-time read is sufficient.
+  const cartDeepLinkConsumed = useRef(false);
+  useEffect(() => {
+    if (cartDeepLinkConsumed.current) return;
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openCart') !== 'true') return;
+
+    cartDeepLinkConsumed.current = true;
+
+    // Only authenticated buyers can hold a cart; a guest would just meet the
+    // "Authentication Required" panel, so open nothing and clean the URL.
+    if (isAuthenticated) setShowCart(true);
+
+    params.delete('openCart');
+    params.delete('retryCheckout');
+    const query = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    );
+  }, [isAuthenticated]);
+
+  // ----------------------------------------------------------
   // Data Fetching (same logic as OptimizedGalaxyStoreFront)
   // ----------------------------------------------------------
   const fetchPackages = useCallback(async () => {
