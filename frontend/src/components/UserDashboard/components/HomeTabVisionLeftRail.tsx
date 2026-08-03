@@ -30,16 +30,17 @@ interface HomeTabVisionLeftRailProps {
   pointsToNext: number;
   progressPercent: number;
   streakDays: number;
-  /** REAL Mon..Sun training days from logged sessions — never derived from the streak count. */
+  /** REAL trailing-7-day training days from logged sessions — never derived from the streak count. */
   weekDays: WeekTrainingDay[];
   /** True when the gamification queries failed. Zeros are then NOT the member's record. */
   statsUnavailable?: boolean;
+  /** True when the workout-sessions fetch failed. Untrained tiles are then UNKNOWN, not "missed". */
+  sessionsUnavailable?: boolean;
   onRetryStats?: () => void;
   activeId: string;
   onAction: (target: VisionTarget) => void;
 }
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const LevelHeader = styled(ButtonRow)`
   justify-content: space-between;
@@ -92,7 +93,7 @@ const WeekDay = styled.div`
   text-align: center;
 `;
 
-const WeekTile = styled.div<{ $filled: boolean; $upcoming: boolean }>`
+const WeekTile = styled.div<{ $filled: boolean; $unknown: boolean; $today: boolean }>`
   height: 24px;
   border-radius: 8px;
   display: grid;
@@ -102,12 +103,13 @@ const WeekTile = styled.div<{ $filled: boolean; $upcoming: boolean }>`
       ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 24%, transparent)'
       : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent)'
   )};
-  /* A day still ahead reads as pending, never as a missed day. */
-  border: 1px dashed ${({ $upcoming }) => (
-    $upcoming
-      ? 'color-mix(in srgb, var(--text-primary, #E0ECF4) 16%, transparent)'
-      : 'transparent'
-  )};
+  /* Unknown (fetch failed) reads as dashed-indeterminate, never as a miss.
+     Today gets a solid ring so "not yet" is distinguishable from "missed". */
+  border: 1px ${({ $unknown }) => ($unknown ? 'dashed' : 'solid')} ${({ $unknown, $today }) => {
+    if ($unknown) return 'color-mix(in srgb, var(--text-primary, #E0ECF4) 22%, transparent)';
+    if ($today) return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 55%, transparent)';
+    return 'transparent';
+  }};
   color: var(--accent-gold, #C6A84B);
 `;
 
@@ -153,6 +155,7 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
   streakDays,
   weekDays,
   statsUnavailable = false,
+  sessionsUnavailable = false,
   onRetryStats,
   activeId,
   onAction,
@@ -235,26 +238,42 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
             <StreakUnit>days</StreakUnit>
           </StreakValueRow>
         )}
-        <WeekGrid role="list" aria-label="This week's logged workouts">
+        {/* An untrained tile is only a MISSED day if we actually loaded the
+            sessions. During a fetch failure it is unknown, and saying "no
+            workout logged" seven times is the same lie this grid replaced. */}
+        <WeekGrid
+          role="list"
+          aria-label={sessionsUnavailable
+            ? 'Last 7 days — training history unavailable'
+            : "Last 7 days' logged workouts"}
+        >
           {weekDays.map((day, index) => (
             <WeekDay
-              key={DAY_NAMES[index]}
+              key={`${day.dayName}-${index}`}
               role="listitem"
-              aria-label={`${DAY_NAMES[index]}: ${
-                day.trained
-                  ? 'workout logged'
-                  : day.isUpcoming
-                    ? 'not yet'
+              aria-label={`${day.dayName}${day.isToday ? ' (today)' : ''}: ${
+                sessionsUnavailable
+                  ? 'unavailable'
+                  : day.trained
+                    ? 'workout logged'
                     : 'no workout logged'
               }`}
             >
-              <WeekTile aria-hidden="true" $filled={day.trained} $upcoming={day.isUpcoming}>
-                {day.trained ? <Sparkles size={12} /> : null}
+              <WeekTile
+                aria-hidden="true"
+                $filled={!sessionsUnavailable && day.trained}
+                $unknown={sessionsUnavailable}
+                $today={day.isToday}
+              >
+                {!sessionsUnavailable && day.trained ? <Sparkles size={12} /> : null}
               </WeekTile>
               <WeekDayLabel aria-hidden="true">{day.label}</WeekDayLabel>
             </WeekDay>
           ))}
         </WeekGrid>
+        {sessionsUnavailable ? (
+          <UnavailableText>Training history unavailable right now.</UnavailableText>
+        ) : null}
       </Panel>
 
     </LeftRail>

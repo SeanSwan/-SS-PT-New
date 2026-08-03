@@ -116,11 +116,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
-  // Mon..Sun tiles come from real session dates, never from the streak count.
+  // Trailing-7-day tiles come from real session dates, never from the streak
+  // count — and the same failure gate as the proof card, so a fetch error
+  // cannot render as seven "no workout logged" days.
   const weekTrainingDays = useMemo(
     () => buildWeekTrainingDays(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
+  const sessionsUnavailable = workoutSessions.isError && !workoutSessions.data;
   const quickStats = useMemo(() => buildSidebarQuickStats({
     displayStats: { ...displayStats, points, level },
     canonicalLevel: level,
@@ -163,8 +166,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
       <Panel>
         <HomeTabTrainingProof
           proof={trainingProof}
-          sessionsUnavailable={workoutSessions.isError && !workoutSessions.data}
-          onRetrySessions={workoutSessions.refetch}
+          sessionsUnavailable={sessionsUnavailable}
+          onRetrySessions={() => { void workoutSessions.refetch(); }}
           onShareProgress={composer.handleShareProgress}
         />
       </Panel>
@@ -249,6 +252,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           streakDays={streakDays}
           weekDays={weekTrainingDays}
           statsUnavailable={gamificationUnavailable}
+          sessionsUnavailable={sessionsUnavailable}
           onRetryStats={refetchGamification}
           activeId={activeLens}
           onAction={runAction}
