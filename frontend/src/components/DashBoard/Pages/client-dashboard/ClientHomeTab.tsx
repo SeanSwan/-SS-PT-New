@@ -11,6 +11,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab';
 import ClientOnboardingLaunchCard from './ClientOnboardingLaunchCard';
+import ClientSessionsRemainingBanner from './ClientSessionsRemainingBanner';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   DashboardBackgroundSettingsPanel,
@@ -50,6 +51,9 @@ const ClientHomeTab: React.FC = () => {
         role={user?.role}
         firstName={user?.firstName}
       />
+      {/* Session balance — the paying client's most important number, surfaced
+          at the top of the overview (audit LAUNCH-AUDIT-CLIENT-DASH-2026-08-03). */}
+      <ClientSessionsRemainingBanner clientSource={user?.clientSource} />
       <ClientDashboardHomeTab
         embedded
         backgroundSettings={<DashboardBackgroundSettingsPanel scopeLabel="Client" />}
