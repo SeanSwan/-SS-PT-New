@@ -258,6 +258,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         assignment={assignment}
         sessionPreview={sessionPreview}
         trainingProof={trainingProof}
+        workoutHistorySettled={!workoutSessions.isLoading}
         insights={insights}
         performanceScore={performanceScore}
         macroSummary={macroSummary}

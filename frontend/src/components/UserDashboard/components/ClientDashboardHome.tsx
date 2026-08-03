@@ -23,9 +23,14 @@ import {
 import { ThreeColumnGrid, TwoColumnGrid } from './ClientDashboardHome.cardStyles';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 import SocialProgressAnalyticsPreview from './SocialProgressAnalyticsPreview';
+import FirstSessionOrientationStrip from './FirstSessionOrientationStrip';
 
 const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
   const embedded = !!props.embedded;
+  // Zero-history = the session fetch settled AND no logged session exists in
+  // the history window. Every new signup lands here first (launch panel
+  // 2026-08-03, Q5): swap social noise for first-session orientation.
+  const zeroHistory = !!props.workoutHistorySettled && !props.trainingProof.lastSession;
 
   return (
     <ClientDashboardShell data-testid="client-dashboard-home" $embedded={embedded}>
@@ -46,6 +51,10 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
                   The shelf owns its own loading/empty/error states, so this slot is
                   never conditionally removed. */}
               {props.programShelf}
+              {/* First-session orientation: pre-frames the empty Progress tab
+                  as ANTICIPATED, not broken. Renders only for settled
+                  zero-history clients. */}
+              {zeroHistory && <FirstSessionOrientationStrip />}
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
                 <TrainingFocusCard {...props} />
@@ -53,7 +62,11 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
               </ThreeColumnGrid>
               <TwoColumnGrid>
                 <CommunityFeedCard {...props} />
-                <QuickPostCard {...props} />
+                {/* The quick-post composer invites a brand-new client to post
+                    into a community they have no context for — suppressed
+                    until their first logged workout (conditional render,
+                    trivially reversible). */}
+                {!zeroHistory && <QuickPostCard {...props} />}
               </TwoColumnGrid>
               <TwoColumnGrid>
                 <WeeklyInsightsCard insights={props.insights} />
