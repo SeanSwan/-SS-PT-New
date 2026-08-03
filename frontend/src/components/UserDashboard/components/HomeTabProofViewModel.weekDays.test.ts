@@ -129,6 +129,27 @@ describe('the grid and the "This Week" count share one definition', () => {
     expect(days.filter((day) => day.trained)).toHaveLength(0);
   });
 
+  it('agrees at the tail boundary — the ≤24h band where an instant-based window drifts', () => {
+    // 6 days and 20 hours before THURSDAY 10:00, i.e. the previous Thursday at
+    // 14:00. A sliding `floor((now - t) / 7 days)` window counts this as "this
+    // week"; a day-aligned 7-day grid does not. Both must now agree.
+    const sessions = [{ date: at(2026, 6, 30, 14) }];
+    const proof = buildHomeTrainingProof(sessions, THURSDAY);
+    const days = buildWeekTrainingDays(sessions, THURSDAY);
+
+    expect(days.filter((day) => day.trained)).toHaveLength(0);
+    expect(proof.thisWeekCount).toBe(0);
+  });
+
+  it('agrees for a session logged earlier today', () => {
+    const sessions = [{ date: at(2026, 7, 6, 7) }];
+    const proof = buildHomeTrainingProof(sessions, THURSDAY);
+    const days = buildWeekTrainingDays(sessions, THURSDAY);
+
+    expect(proof.thisWeekCount).toBe(1);
+    expect(days[6].trained).toBe(true);
+  });
+
   it('agrees on a multi-session week', () => {
     const sessions = [
       { date: at(2026, 7, 2) },
