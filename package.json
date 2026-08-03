@@ -1,6 +1,7 @@
 {
   "name": "swanstudios",
   "scripts": {
+    "check:main-parity": "node scripts/check-main-parity.mjs",
     "backup": "node scripts/backup-repo.mjs",
     "backup:verify": "node scripts/backup-repo.mjs --verify-only",
     "build": "cd frontend && npm install && npm run build",

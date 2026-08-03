@@ -5,6 +5,10 @@
   "main": "server.mjs",
   "type": "module",
   "scripts": {
+    "audit:models": "node scripts/audit-model-health.mjs",
+    "audit:exports": "node scripts/audit-named-exports.mjs",
+    "audit:writes": "node scripts/audit-write-paths.mjs",
+    "audit:boot": "npm run audit:exports && npm run audit:models",
     "start": "node scripts/render-start.mjs",
     "start:minimal": "node server-minimal.mjs",
     "dev": "nodemon --exec \"node -r ./preload-env.cjs\" server.mjs",
