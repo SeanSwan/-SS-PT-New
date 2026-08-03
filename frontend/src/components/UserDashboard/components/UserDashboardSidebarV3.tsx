@@ -86,20 +86,24 @@ export const buildSidebarQuickStats = ({
     caption: 'Remaining XP',
     Icon: RadioTower,
   },
-  {
-    id: 'this-week',
-    label: 'This Week',
-    value: statValue(trainingProof?.thisWeekCount),
-    caption: 'Logged workouts',
-    Icon: Medal,
-  },
-  {
-    id: 'training-time',
-    label: 'Training Time',
-    value: `${asWhole(trainingProof?.minutesThisWeek)}m`,
-    caption: 'This week',
-    Icon: Timer,
-  },
+  // Absent proof is unknown, not zero. Rendering "0 / 0m" here told members on
+  // every non-Home tab they had trained nothing this week.
+  ...(trainingProof ? [
+    {
+      id: 'this-week',
+      label: 'This Week',
+      value: statValue(trainingProof.thisWeekCount),
+      caption: 'Logged workouts',
+      Icon: Medal,
+    },
+    {
+      id: 'training-time',
+      label: 'Training Time',
+      value: `${asWhole(trainingProof.minutesThisWeek)}m`,
+      caption: 'This week',
+      Icon: Timer,
+    },
+  ] : []),
   {
     id: 'posts',
     label: 'Posts',

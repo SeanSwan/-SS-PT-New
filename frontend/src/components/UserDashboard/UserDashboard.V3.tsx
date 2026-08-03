@@ -167,6 +167,9 @@ const UserDashboardV3: React.FC = () => {
                     <UserDashboardSidebarV3
                       displayStats={dashboard.displayStats}
                       canonicalLevel={dashboard.canonicalLevel}
+                      streakDays={dashboard.observatoryStreakDays}
+                      progressPercent={dashboard.observatoryProgressPct}
+                      pointsToNext={dashboard.observatoryXpToNext}
                     />
                   )}
 

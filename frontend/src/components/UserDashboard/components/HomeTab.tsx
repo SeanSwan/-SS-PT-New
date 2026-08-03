@@ -72,7 +72,16 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const { user } = useAuth();
   const currentWorkoutState = useCurrentClientWorkout(user?.id);
   const todayTrainingEnabled = clientTodayTrainingModuleEnabled();
-  const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
+  const {
+    profile: gamProfile,
+    levelProgress,
+    leaderboard,
+    refetch: refetchGamification,
+  } = useGamificationData();
+  // The profile query owns level/XP/streak. When it fails, `levelProgress`
+  // still resolves from a `?? 0` fallback — so the rail must be told, or it
+  // reports Level 1 / 0 XP / 0 streak as if that were the member's record.
+  const gamificationUnavailable = gamProfile.isError && !gamProfile.data;
   // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
@@ -154,6 +163,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
       <Panel>
         <HomeTabTrainingProof
           proof={trainingProof}
+          sessionsUnavailable={workoutSessions.isError && !workoutSessions.data}
+          onRetrySessions={workoutSessions.refetch}
           onShareProgress={composer.handleShareProgress}
         />
       </Panel>
@@ -237,6 +248,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
           progressPercent={progressPercent}
           streakDays={streakDays}
           weekDays={weekTrainingDays}
+          statsUnavailable={gamificationUnavailable}
+          onRetryStats={refetchGamification}
           activeId={activeLens}
           onAction={runAction}
         />

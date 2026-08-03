@@ -76,12 +76,44 @@ const EmptyCopy = styled.p`
   line-height: 1.5;
 `;
 
+const RetryLink = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  margin-top: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
 interface HomeTabTrainingProofProps {
   proof: HomeTrainingProof;
+  /** True when the workout-sessions fetch failed — an empty proof is then unknown, not "none". */
+  sessionsUnavailable?: boolean;
+  onRetrySessions?: () => void;
   onShareProgress: (line: string) => void;
 }
 
-const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onShareProgress }) => {
+const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
+  proof,
+  sessionsUnavailable = false,
+  onRetrySessions,
+  onShareProgress,
+}) => {
   const maxCount = Math.max(1, ...proof.weeklyCounts);
 
   return (
@@ -144,6 +176,20 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
             </StyledBox>
           )}
         </>
+      ) : sessionsUnavailable ? (
+        // "No logged workouts yet" is a claim about the member's record. When
+        // the fetch failed we do not know their record, so we must not make it.
+        <EmptyCopy role="status">
+          We couldn&apos;t load your training history just now. Nothing you logged is lost.
+          {onRetrySessions ? (
+            <>
+              {' '}
+              <RetryLink type="button" onClick={onRetrySessions}>
+                Retry
+              </RetryLink>
+            </>
+          ) : null}
+        </EmptyCopy>
       ) : (
         <EmptyCopy>
           No logged workouts yet — your training proof builds here with every session you log.
