@@ -21,6 +21,7 @@ import {
   Fill,
   NavButton,
 } from './HomeTabVisionCards.styles';
+import type { WeekTrainingDay } from './HomeTabProofViewModel';
 
 interface HomeTabVisionLeftRailProps {
   logoSrc: string;
@@ -29,11 +30,13 @@ interface HomeTabVisionLeftRailProps {
   pointsToNext: number;
   progressPercent: number;
   streakDays: number;
+  /** REAL Mon..Sun training days from logged sessions — never derived from the streak count. */
+  weekDays: WeekTrainingDay[];
   activeId: string;
   onAction: (target: VisionTarget) => void;
 }
 
-const week = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const LevelHeader = styled(ButtonRow)`
   justify-content: space-between;
@@ -86,7 +89,7 @@ const WeekDay = styled.div`
   text-align: center;
 `;
 
-const WeekTile = styled.div<{ $filled: boolean }>`
+const WeekTile = styled.div<{ $filled: boolean; $upcoming: boolean }>`
   height: 24px;
   border-radius: 8px;
   display: grid;
@@ -95,6 +98,12 @@ const WeekTile = styled.div<{ $filled: boolean }>`
     $filled
       ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 24%, transparent)'
       : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent)'
+  )};
+  /* A day still ahead reads as pending, never as a missed day. */
+  border: 1px dashed ${({ $upcoming }) => (
+    $upcoming
+      ? 'color-mix(in srgb, var(--text-primary, #E0ECF4) 16%, transparent)'
+      : 'transparent'
   )};
   color: var(--accent-gold, #C6A84B);
 `;
@@ -111,10 +120,10 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
   pointsToNext,
   progressPercent,
   streakDays,
+  weekDays,
   activeId,
   onAction,
 }) => {
-  const filledDays = week.map((_, index) => index < Math.min(streakDays || 0, 7));
 
   return (
     <LeftRail aria-label="Creator dashboard navigation">
@@ -171,13 +180,23 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
           <StreakNumber>{streakDays}</StreakNumber>
           <StreakUnit>days</StreakUnit>
         </StreakValueRow>
-        <WeekGrid>
-          {week.map((day, index) => (
-            <WeekDay key={`${day}-${index}`}>
-              <WeekTile aria-hidden="true" $filled={filledDays[index]}>
-                {filledDays[index] ? <Sparkles size={12} /> : null}
+        <WeekGrid role="list" aria-label="This week's logged workouts">
+          {weekDays.map((day, index) => (
+            <WeekDay
+              key={DAY_NAMES[index]}
+              role="listitem"
+              aria-label={`${DAY_NAMES[index]}: ${
+                day.trained
+                  ? 'workout logged'
+                  : day.isUpcoming
+                    ? 'not yet'
+                    : 'no workout logged'
+              }`}
+            >
+              <WeekTile aria-hidden="true" $filled={day.trained} $upcoming={day.isUpcoming}>
+                {day.trained ? <Sparkles size={12} /> : null}
               </WeekTile>
-              <WeekDayLabel>{day}</WeekDayLabel>
+              <WeekDayLabel aria-hidden="true">{day.label}</WeekDayLabel>
             </WeekDay>
           ))}
         </WeekGrid>

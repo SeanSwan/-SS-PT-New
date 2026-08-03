@@ -189,13 +189,9 @@ export function selectActiveChallengeSummary({
 export function buildHomeBadgeShowcase({
   achievements,
   leaderboard,
-  currentUserName,
-  currentUserPoints,
 }: {
   achievements?: unknown[] | null;
   leaderboard?: unknown[] | null;
-  currentUserName: string;
-  currentUserPoints: number;
 }): { badges: HomeBadgeItem[]; leaderboardRows: HomeLeaderboardRow[] } {
   const badges = (achievements || []).slice(0, 3).map((item, index) => {
     const record = asRecord(item);
@@ -218,10 +214,10 @@ export function buildHomeBadgeShowcase({
     };
   });
 
-  return {
-    badges,
-    leaderboardRows: rows.length ? rows : [{ id: 'current-user', name: currentUserName, points: Math.max(0, Math.round(currentUserPoints || 0)) }],
-  };
+  // No synthetic self-row. An empty or failed leaderboard must render as
+  // "not populated yet" and rank as "Unranked" — a fabricated row sat at
+  // position 1 in gold and made findClientRank report #1 to every member.
+  return { badges, leaderboardRows: rows };
 }
 
 export function extractTrendingTagNames(payload: unknown, limit = 5): TrendingTagSummary[] {
