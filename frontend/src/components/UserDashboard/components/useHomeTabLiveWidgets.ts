@@ -19,7 +19,12 @@ interface UseHomeTabLiveWidgetsInput {
   feedPosts: unknown[];
   achievements?: unknown[] | null;
   leaderboard?: unknown[] | null;
-  currentUserPoints: number;
+  /**
+   * @deprecated Vestigial. It fed a synthetic self-row in the leaderboard that
+   * reported "#1" to every member; that fabrication is gone. Kept on the public
+   * input so existing callers still compile — remove once they stop passing it.
+   */
+  currentUserPoints?: number;
 }
 
 export function useHomeTabLiveWidgets({
@@ -27,7 +32,6 @@ export function useHomeTabLiveWidgets({
   feedPosts,
   achievements,
   leaderboard,
-  currentUserPoints,
 }: UseHomeTabLiveWidgetsInput) {
   const activity = useActivityTicker();
   const challenges = useChallenges();

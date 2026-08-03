@@ -315,8 +315,6 @@ describe('HomeTabViewModel', () => {
         points: 4200,
         client: { firstName: 'Ari', username: 'ari' },
       }],
-      currentUserName: 'Sean',
-      currentUserPoints: 900,
     });
 
     expect(showcase.badges).toEqual([

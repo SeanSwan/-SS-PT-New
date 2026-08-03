@@ -53,6 +53,37 @@ describe('HomeTabVisionLeftRail when gamification is unavailable', () => {
     expect(onRetryStats).toHaveBeenCalledTimes(1);
   });
 
+  it('does not announce seven missed days when the sessions fetch failed', () => {
+    render(<HomeTabVisionLeftRail {...baseProps} sessionsUnavailable />);
+
+    const tiles = screen.getAllByRole('listitem');
+    expect(tiles).toHaveLength(7);
+    for (const tile of tiles) {
+      expect(tile.getAttribute('aria-label')).toContain('unavailable');
+      expect(tile.getAttribute('aria-label')).not.toContain('no workout logged');
+    }
+    expect(screen.getByText(/history unavailable/i)).toBeTruthy();
+  });
+
+  it('does say "no workout logged" when sessions loaded and none were logged', () => {
+    render(<HomeTabVisionLeftRail {...baseProps} sessionsUnavailable={false} />);
+
+    const tiles = screen.getAllByRole('listitem');
+    expect(tiles.some((tile) => tile.getAttribute('aria-label')?.includes('no workout logged')))
+      .toBe(true);
+    expect(screen.queryByText(/history unavailable/i)).toBeNull();
+  });
+
+  it('marks today distinctly so "not yet" is not read as "missed"', () => {
+    render(<HomeTabVisionLeftRail {...baseProps} />);
+
+    const todayTiles = screen
+      .getAllByRole('listitem')
+      .filter((tile) => tile.getAttribute('aria-label')?.includes('(today)'));
+
+    expect(todayTiles).toHaveLength(1);
+  });
+
   it('still renders real values when gamification is healthy', () => {
     render(
       <HomeTabVisionLeftRail

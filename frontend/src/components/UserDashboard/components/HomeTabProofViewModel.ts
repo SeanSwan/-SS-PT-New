@@ -102,48 +102,51 @@ export function buildHomeTrainingProof(
   };
 }
 
-/** One tile of the Home left-rail Mon..Sun creator-streak grid. */
+/** One tile of the Home left-rail trailing-7-day creator-streak grid. */
 export interface WeekTrainingDay {
-  /** Display label, Monday-first to match the rendered row. */
+  /** Weekday initial for this tile's actual date. */
   label: string;
-  /** True only when a real session was logged on this calendar day. */
+  /** Full weekday name, for the screen-reader label. */
+  dayName: string;
+  /** True only when a real session was logged on that calendar day. */
   trained: boolean;
+  /** The last tile — today. */
   isToday: boolean;
-  /** Later this week — rendered as pending, never as a missed day. */
-  isUpcoming: boolean;
 }
 
-const WEEK_DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TRAILING_DAYS = 7;
 
 /**
- * The seven days of the CURRENT week, each marked from real logged sessions.
+ * The trailing seven days ending today, each marked from real logged sessions.
  *
- * Replaces a count-derived fill (`index < streakDays`) that asserted which
- * days the member trained without reading a single session date.
+ * Two things this must NOT do, both of which were live defects:
+ *  - derive tiles from the streak COUNT (`index < streakDays`), which named
+ *    days the member trained without reading a single session date;
+ *  - use a calendar Mon..Sun window while `buildHomeTrainingProof` counts a
+ *    ROLLING 7 days (`weeksAgo === 0` above). Two definitions of "this week"
+ *    rendered side by side disagree — on a Thursday, a session logged last
+ *    Saturday counts as "This Week: 1" while every calendar tile is dark.
+ *    This window is deliberately the same rolling one, so they always agree.
  */
 export function buildWeekTrainingDays(
   sessions: unknown[] | null | undefined,
   nowMs: number,
 ): WeekTrainingDay[] {
-  const now = new Date(nowMs);
-  const startOfToday = new Date(now);
+  const startOfToday = new Date(nowMs);
   startOfToday.setHours(0, 0, 0, 0);
 
-  // Monday-first index: JS getDay() is Sunday-first.
-  const mondayOffset = (startOfToday.getDay() + 6) % 7;
-  const startOfWeek = new Date(startOfToday);
-  startOfWeek.setDate(startOfWeek.getDate() - mondayOffset);
-
-  // Eight boundaries, one per day plus the week's end. Derived with setDate so
-  // a DST transition (a 23- or 25-hour day) cannot shift a session into the
-  // neighbouring tile the way a fixed +24h offset would.
-  const dayBounds = Array.from({ length: WEEK_DAY_LABELS.length + 1 }, (_, index) => {
-    const boundary = new Date(startOfWeek);
-    boundary.setDate(boundary.getDate() + index);
+  // Eight boundaries: the start of each of the 7 days, plus tomorrow's start.
+  // Derived with setDate so a DST transition (a 23- or 25-hour day) cannot
+  // shift a session into the neighbouring tile the way a fixed +24h would.
+  const dayBounds = Array.from({ length: TRAILING_DAYS + 1 }, (_, index) => {
+    const boundary = new Date(startOfToday);
+    boundary.setDate(boundary.getDate() - (TRAILING_DAYS - 1) + index);
     return boundary.getTime();
   });
 
-  const trained = WEEK_DAY_LABELS.map(() => false);
+  const trained = Array.from({ length: TRAILING_DAYS }, () => false);
 
   for (const session of sessions || []) {
     if (!session || typeof session !== 'object') continue;
@@ -153,7 +156,7 @@ export function buildWeekTrainingDays(
     // Future-dated rows are never proof of a completed session.
     if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
 
-    for (let index = 0; index < WEEK_DAY_LABELS.length; index += 1) {
+    for (let index = 0; index < TRAILING_DAYS; index += 1) {
       if (timeMs >= dayBounds[index] && timeMs < dayBounds[index + 1]) {
         trained[index] = true;
         break;
@@ -161,12 +164,15 @@ export function buildWeekTrainingDays(
     }
   }
 
-  return WEEK_DAY_LABELS.map((label, index) => ({
-    label,
-    trained: trained[index],
-    isToday: index === mondayOffset,
-    isUpcoming: index > mondayOffset,
-  }));
+  return trained.map((didTrain, index) => {
+    const weekday = new Date(dayBounds[index]).getDay();
+    return {
+      label: DAY_INITIALS[weekday],
+      dayName: DAY_NAMES[weekday],
+      trained: didTrain,
+      isToday: index === TRAILING_DAYS - 1,
+    };
+  });
 }
 
 /**

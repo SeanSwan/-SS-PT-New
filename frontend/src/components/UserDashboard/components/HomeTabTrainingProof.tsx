@@ -179,17 +179,18 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
       ) : sessionsUnavailable ? (
         // "No logged workouts yet" is a claim about the member's record. When
         // the fetch failed we do not know their record, so we must not make it.
-        <EmptyCopy role="status">
-          We couldn&apos;t load your training history just now. Nothing you logged is lost.
+        // The live region wraps the MESSAGE only — including the button would
+        // re-announce the control every time the region updates.
+        <>
+          <EmptyCopy role="status">
+            We couldn&apos;t load your training history just now. Nothing you logged is lost.
+          </EmptyCopy>
           {onRetrySessions ? (
-            <>
-              {' '}
-              <RetryLink type="button" onClick={onRetrySessions}>
-                Retry
-              </RetryLink>
-            </>
+            <RetryLink type="button" onClick={onRetrySessions}>
+              Retry
+            </RetryLink>
           ) : null}
-        </EmptyCopy>
+        </>
       ) : (
         <EmptyCopy>
           No logged workouts yet — your training proof builds here with every session you log.

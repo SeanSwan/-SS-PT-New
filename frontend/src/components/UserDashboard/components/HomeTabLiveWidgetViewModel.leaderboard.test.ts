@@ -14,12 +14,7 @@ import { buildHomeBadgeShowcase } from './HomeTabLiveWidgetViewModel';
 import { findClientRank } from './ClientDashboardHome.viewModel';
 
 const forUser = (leaderboard: unknown[] | null) =>
-  buildHomeBadgeShowcase({
-    achievements: [],
-    leaderboard,
-    currentUserName: 'Test Member',
-    currentUserPoints: 120,
-  });
+  buildHomeBadgeShowcase({ achievements: [], leaderboard });
 
 describe('buildHomeBadgeShowcase leaderboard rows', () => {
   it('returns no rows when the leaderboard is empty', () => {
@@ -56,11 +51,16 @@ describe('rank label derived from those rows', () => {
   });
 
   it('still reports a real placement when the member is on the board', () => {
+    // Asserted via the NAME match deliberately. findClientRank also matches on
+    // `row.points === points` (ClientDashboardHome.viewModel.ts:231), which
+    // reports a member at a STRANGER's rank whenever their XP totals happen to
+    // coincide. That heuristic is Lane 3's to fix — this test must not cement
+    // it, so the fixture gives the member a distinct point total.
     const { leaderboardRows } = forUser([
       { id: '1', firstName: 'Ada', points: 900 },
-      { id: '2', firstName: 'Test Member', points: 120 },
+      { id: '2', firstName: 'Test Member', points: 640 },
     ]);
 
-    expect(findClientRank(leaderboardRows, 120, 'Test Member')).toBe('#2');
+    expect(findClientRank(leaderboardRows, 640, 'Test Member')).toBe('#2');
   });
 });
