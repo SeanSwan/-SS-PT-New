@@ -56,6 +56,7 @@ import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideo
 import MembershipsSection from './components/MembershipsSection';
 import { logger } from '@/utils/logger';
 import { mapStorefrontItemToStoreItem } from './components/storeCatalog';
+import useCartDeepLink from './useCartDeepLink';
 import type { ProductVariant, StoreItem } from './components/storeCatalog.types';
 import { StyledBox } from '@/components/ui/StyledBox';
 
@@ -648,50 +649,8 @@ const StoreV3: React.FC = () => {
   const canPurchase = pricesVisible && isAuthenticated && !!user;
   const cartItemCount = cart?.itemCount || 0;
 
-  // ----------------------------------------------------------
-  // Checkout-cancel recovery deep link
-  // ----------------------------------------------------------
-  // /checkout/cancel sends a buyer who backed out of Stripe here with
-  // ?openCart=true (and &retryCheckout=true from "Try again"). Nothing read
-  // those params, so both recovery CTAs dropped the buyer on a plain /store
-  // with the cart closed — on mobile that means hunting for the cart dock right
-  // after an abandoned payment, the worst possible moment to add friction.
-  // Params are consumed once and stripped so a later refresh or back-navigation
-  // doesn't re-open the panel unexpectedly.
-  //
-  // Reads window.location rather than useSearchParams on purpose: this component
-  // is rendered bare (no Router) by its own test suite and by the StoreV2 lazy
-  // fallback path, and a router hook here would throw outside a Router. The deep
-  // link only ever arrives as a fresh mount from /checkout/cancel, so a
-  // mount-time read is sufficient.
-  const cartDeepLinkConsumed = useRef(false);
-  useEffect(() => {
-    if (cartDeepLinkConsumed.current) return;
-    if (typeof window === 'undefined') return;
-
-    // Wait for auth before consuming. AuthContext starts with loading=true and
-    // isAuthenticated=false, so acting on the first render would consume the
-    // link while the returning buyer still looks like a guest — the cart would
-    // never open. Leaving the params in place lets this effect re-run and do
-    // the right thing once auth resolves; for a genuine guest the params simply
-    // stay in the URL, which is harmless (the cart dock is hidden for them).
-    if (!isAuthenticated) return;
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('openCart') !== 'true') return;
-
-    cartDeepLinkConsumed.current = true;
-    setShowCart(true);
-
-    params.delete('openCart');
-    params.delete('retryCheckout');
-    const query = params.toString();
-    window.history.replaceState(
-      window.history.state,
-      '',
-      `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
-    );
-  }, [isAuthenticated]);
+  // Checkout-cancel recovery deep link (shared with the StoreV2 fallback).
+  useCartDeepLink(isAuthenticated, useCallback(() => setShowCart(true), []));
 
   // ----------------------------------------------------------
   // Data Fetching (same logic as OptimizedGalaxyStoreFront)

@@ -50,12 +50,16 @@ vi.mock('../../components/NewCheckout', () => ({
 }));
 
 import StoreV3 from './StoreV3';
+import StoreV2 from './StoreV2';
 
 const setUrl = (search: string) => {
   window.history.replaceState({}, '', `/store${search}`);
 };
 
-describe('StoreV3 — checkout-cancel recovery deep link', () => {
+describe.each([
+  ['StoreV3 (canonical)', StoreV3],
+  ['StoreV2 (lazy fallback)', StoreV2],
+])('%s — checkout-cancel recovery deep link', (_label, StoreSurface) => {
   beforeEach(() => {
     mockApiGet.mockReset();
     mockCheckoutView.mockClear();
@@ -83,7 +87,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
   it('opens the cart when returning from a cancelled checkout', async () => {
     setUrl('?openCart=true');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
   });
@@ -91,7 +95,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
   it('opens the cart for the "Try again" variant too', async () => {
     setUrl('?openCart=true&retryCheckout=true');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
   });
@@ -99,7 +103,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
   it('strips the recovery params so a refresh does not re-open the cart', async () => {
     setUrl('?openCart=true&retryCheckout=true');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
     expect(window.location.search).not.toContain('openCart');
@@ -109,7 +113,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
   it('preserves unrelated query params while stripping the recovery ones', async () => {
     setUrl('?utm_source=youtube&openCart=true');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
     expect(window.location.search).toContain('utm_source=youtube');
@@ -121,7 +125,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
     authState.user = null;
     setUrl('?openCart=true');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
     expect(screen.queryByTestId('checkout-view')).not.toBeInTheDocument();
@@ -135,13 +139,13 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
     authState.user = null;
     setUrl('?openCart=true');
 
-    const { rerender } = render(<StoreV3 />);
+    const { rerender } = render(<StoreSurface />);
     await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
     expect(screen.queryByTestId('checkout-view')).not.toBeInTheDocument();
 
     authState.isAuthenticated = true;
     authState.user = { id: 1, role: 'client' };
-    rerender(<StoreV3 />);
+    rerender(<StoreSurface />);
 
     await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
     expect(window.location.search).not.toContain('openCart');
@@ -150,7 +154,7 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
   it('leaves the cart closed on a normal /store visit', async () => {
     setUrl('');
 
-    render(<StoreV3 />);
+    render(<StoreSurface />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
     expect(screen.queryByTestId('checkout-view')).not.toBeInTheDocument();
