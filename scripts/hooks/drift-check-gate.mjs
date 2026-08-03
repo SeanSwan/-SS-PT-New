@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+/**
+ * ============================================================================
+ * FILE: scripts/hooks/drift-check-gate.mjs
+ * PURPOSE: SessionStart hook — automatic drift detection (the `drift-check` skill,
+ *          mechanised so it fires without anyone remembering to invoke it).
+ * AUTHOR: Opus 5 | CREATED: 2026-08-02
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: at session start, runs the two fastest, highest-yield drift
+ * checks and prints a compact warning ONLY when something is actually wrong.
+ *
+ *   1. Mirror drift — AGENTS.md vs CLAUDE.md, per each repo's own contract.
+ *      SS-PT:     AGENTS.md = 45-line Codex adapter + mirrored CLAUDE.md body.
+ *                 Byte-identical would be WRONG — it would delete the adapter.
+ *      SwanGuard: AGENTS.md and CLAUDE.md ARE byte-identical mirrors.
+ *      Same symptom, opposite correct fix. The hook encodes both contracts.
+ *
+ *   2. Branch freshness — commits behind main. A stale branch makes every other
+ *      audit unreliable and means a fix here does not reach main.
+ *
+ * WHY THIS EXISTS: on 2026-08-02 both repos had drifted mirrors. In SwanGuard the
+ * slice-continuity rule lived only in CLAUDE.md, and because context discovery is
+ * first-match-wins (AGENTS.md sorts first), it was invisible to every agent relying
+ * on auto-discovery. Nothing errored. A build ran against the wrong product.
+ *
+ * WHY SILENT WHEN CLEAN: Sean's standing token-economy rule. A hook that prints on
+ * every session becomes noise and gets ignored — which is how the last guard failed.
+ * Zero output on a clean repo; it only speaks when it has something to say.
+ *
+ * SAFETY: read-only. No writes, no network, no npm, no secrets read. Fail-open —
+ * any error exits 0 silently rather than blocking a session.
+ */
+
+import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * Resolve the repo from THIS FILE's location, never process.cwd().
+ *
+ * Caught in hostile review 2026-08-02: with `process.cwd()` the hook printed nothing
+ * and exited 0 whenever the harness invoked it from any other directory — a silent
+ * no-op that looks exactly like "no drift found". That is the precise failure class
+ * `.claude/skills/drift-check/SKILL.md` check #6 warns about: a guard that reads as
+ * protection while covering nothing.
+ *
+ * This file lives at <repo>/scripts/hooks/, so the repo root is two levels up.
+ */
+const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const SWANGUARD = 'C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom';
+
+/** SS-PT contract: AGENTS.md = adapter header + mirrored CLAUDE.md body. */
+const SS_PT_ADAPTER_LINES = 45;
+
+const findings = [];
+
+function read(p) {
+  try { return existsSync(p) ? readFileSync(p, 'utf-8') : null; } catch { return null; }
+}
+
+/** Normalise line endings so CRLF/LF never reports as false drift. */
+const norm = (s) => s.replace(/\r\n/g, '\n');
+
+// ---- Check 1a: SS-PT mirror (adapter + body contract) ----------------------
+try {
+  const agents = read(join(SS_PT, 'AGENTS.md'));
+  const claude = read(join(SS_PT, 'CLAUDE.md'));
+  if (agents && claude) {
+    const body = norm(agents).split('\n').slice(SS_PT_ADAPTER_LINES).join('\n');
+    if (body.trimEnd() !== norm(claude).trimEnd()) {
+      findings.push(
+        'SS-PT AGENTS.md mirror body != CLAUDE.md. ' +
+        'Fix: `node scripts/sync-agents-mirror.mjs` (use --check first). ' +
+        'Do NOT make them byte-identical — lines 1-45 are the Codex adapter.'
+      );
+    }
+  }
+} catch { /* fail-open */ }
+
+// ---- Check 1b: SwanGuard mirror (byte-identical contract) ------------------
+try {
+  const a = read(join(SWANGUARD, 'AGENTS.md'));
+  const c = read(join(SWANGUARD, 'CLAUDE.md'));
+  if (a && c && norm(a) !== norm(c)) {
+    findings.push(
+      'SwanGuard AGENTS.md != CLAUDE.md. These ARE byte-identical mirrors of one ' +
+      'merged document — reconcile and copy one over the other before other work.'
+    );
+  }
+} catch { /* fail-open */ }
+
+// ---- Check 2: branch freshness --------------------------------------------
+try {
+  const out = execFileSync('git', ['rev-list', '--left-right', '--count', 'main...HEAD'],
+    { cwd: SS_PT, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 });
+  const [behind, ahead] = out.trim().split(/\s+/).map(Number);
+  if (Number.isFinite(behind) && behind >= 50) {
+    findings.push(
+      `SS-PT branch is ${behind} commits behind main (${ahead} ahead). Files here may ` +
+      'not reflect reality, tooling may appear "missing" when it exists on main, and ' +
+      'fixes made here do NOT reach main. Verify against main before auditing.'
+    );
+  }
+} catch { /* not a repo / no main / git absent — fail-open */ }
+
+// ---- Emit: silent when clean ----------------------------------------------
+if (findings.length) {
+  process.stdout.write(
+    '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
+    'authoritative may be wrong:\n' +
+    findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
+    '\nFull procedure (6 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps): .claude/skills/drift-check/SKILL.md\n'
+  );
+}
+
+process.exit(0);

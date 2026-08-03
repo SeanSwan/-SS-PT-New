@@ -330,6 +330,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/drift-check-gate.mjs",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   },
   "_guidance": {
