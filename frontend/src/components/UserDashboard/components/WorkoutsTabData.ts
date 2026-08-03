@@ -32,17 +32,6 @@ export const CATEGORY_META: Record<string, { icon: string; color: string }> = {
   Other: { icon: 'OT', color: 'var(--text-muted, #b8c9db)' },
 };
 
-export const MOCK_CATEGORIES: CategoryData[] = Object.entries(CATEGORY_META).map(([key, meta], index) => ({
-  key,
-  label: key,
-  icon: meta.icon,
-  color: meta.color,
-  exercises: [
-    { name: `${key} foundation movement`, count: 24 - index },
-    { name: `${key} accessory movement`, count: 18 - index },
-  ],
-}));
-
 export function computeStats(categories: CategoryData[]): WorkoutSummaryStats {
   let totalExercises = 0;
   let mostActiveCategory = '';
