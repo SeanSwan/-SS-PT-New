@@ -127,6 +127,26 @@ describe('StoreV3 — checkout-cancel recovery deep link', () => {
     expect(screen.queryByTestId('checkout-view')).not.toBeInTheDocument();
   });
 
+  it('still opens the cart when auth resolves AFTER mount', async () => {
+    // AuthContext starts loading=true / isAuthenticated=false, so a returning
+    // buyer looks like a guest on the first render. Consuming the deep link then
+    // would strip it and the cart would never open — the exact defect this pins.
+    authState.isAuthenticated = false;
+    authState.user = null;
+    setUrl('?openCart=true');
+
+    const { rerender } = render(<StoreV3 />);
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(screen.queryByTestId('checkout-view')).not.toBeInTheDocument();
+
+    authState.isAuthenticated = true;
+    authState.user = { id: 1, role: 'client' };
+    rerender(<StoreV3 />);
+
+    await waitFor(() => expect(screen.getByTestId('checkout-view')).toBeInTheDocument());
+    expect(window.location.search).not.toContain('openCart');
+  });
+
   it('leaves the cart closed on a normal /store visit', async () => {
     setUrl('');
 

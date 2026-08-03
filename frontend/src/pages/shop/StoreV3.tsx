@@ -669,14 +669,19 @@ const StoreV3: React.FC = () => {
     if (cartDeepLinkConsumed.current) return;
     if (typeof window === 'undefined') return;
 
+    // Wait for auth before consuming. AuthContext starts with loading=true and
+    // isAuthenticated=false, so acting on the first render would consume the
+    // link while the returning buyer still looks like a guest — the cart would
+    // never open. Leaving the params in place lets this effect re-run and do
+    // the right thing once auth resolves; for a genuine guest the params simply
+    // stay in the URL, which is harmless (the cart dock is hidden for them).
+    if (!isAuthenticated) return;
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('openCart') !== 'true') return;
 
     cartDeepLinkConsumed.current = true;
-
-    // Only authenticated buyers can hold a cart; a guest would just meet the
-    // "Authentication Required" panel, so open nothing and clean the URL.
-    if (isAuthenticated) setShowCart(true);
+    setShowCart(true);
 
     params.delete('openCart');
     params.delete('retryCheckout');

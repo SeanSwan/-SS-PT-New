@@ -80,9 +80,24 @@ async function seedPackages() {
       // deletes them explicitly for the same reason. Financial/audit records are
       // not re-derivable, so refuse rather than ask forgiveness: a catalog fix is
       // an admin-UI edit, never a truncate.
-      const { default: OrderItem } = await import('../models/OrderItem.mjs');
-      const paidLineItems = await OrderItem.count();
-      if (paidLineItems > 0 && process.env.I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY !== 'true') {
+      const acknowledged = process.env.I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY === 'true';
+      let paidLineItems = 0;
+      try {
+        const { default: OrderItem } = await import('../models/OrderItem.mjs');
+        paidLineItems = await OrderItem.count();
+      } catch (countError) {
+        // Could not prove the catalog is safe to destroy. Unverifiable is not the
+        // same as safe, so refuse — the operator can still override explicitly.
+        if (!acknowledged) {
+          throw new Error(
+            `REFUSING TO RESEED: could not verify paid order history (${countError.message}). ` +
+            'FORCE_RESEED truncates storefront_items CASCADE, which would delete paid order ' +
+            'line items. Re-run with I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY=true only if you ' +
+            'have confirmed this database is disposable.'
+          );
+        }
+      }
+      if (paidLineItems > 0 && !acknowledged) {
         throw new Error(
           `REFUSING TO RESEED: ${paidLineItems} order_items row(s) reference this catalog. ` +
           'FORCE_RESEED truncates storefront_items CASCADE, which would delete paid order ' +

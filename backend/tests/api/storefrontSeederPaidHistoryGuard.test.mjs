@@ -82,6 +82,22 @@ describe('storefront seeder — paid-history guard', () => {
     expect(sequelize.query).toHaveBeenCalled();
   });
 
+  it('refuses when the safety count itself fails — unverifiable is not safe', async () => {
+    orderItem.count.mockRejectedValue(new Error('relation "order_items" does not exist'));
+    const seedPackages = await loadSeeder();
+
+    await expect(seedPackages()).rejects.toThrow(/could not verify paid order history/);
+    expect(sequelize.query).not.toHaveBeenCalled();
+  });
+
+  it('the explicit override still wins when the safety count fails', async () => {
+    orderItem.count.mockRejectedValue(new Error('relation "order_items" does not exist'));
+    process.env.I_ACCEPT_DESTROYING_PAID_ORDER_HISTORY = 'true';
+    const seedPackages = await loadSeeder();
+
+    await expect(seedPackages()).resolves.toBeDefined();
+  });
+
   it('never reaches the guard when FORCE_RESEED is absent (skip path preserved)', async () => {
     delete process.env.FORCE_RESEED;
     orderItem.count.mockResolvedValue(3);
