@@ -183,7 +183,14 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
 
       const { checkoutUrl, sessionId } = response.data.data;
       if (!sessionId || !checkoutUrl) {
-        throw new Error(`Missing critical checkout data: sessionId=${!!sessionId}, checkoutUrl=${!!checkoutUrl}`);
+        // The diagnostic detail belongs in the log, not in front of a buyer. The
+        // previous throw interpolated the two boolean flags into its message and
+        // that string rendered verbatim on the payment screen.
+        logger.error('[Checkout] Incomplete session payload', {
+          hasSessionId: !!sessionId,
+          hasCheckoutUrl: !!checkoutUrl,
+        });
+        throw new Error('We could not start the secure payment page. Please try again.');
       }
 
       logger.log('[Checkout] Session created successfully');
@@ -204,10 +211,13 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         logger.warn('[Admin Dashboard] Checkout tracking failed:', trackingError);
       }
 
+      // isProcessing deliberately stays TRUE through the redirect. Clearing it
+      // here re-enabled the pay button for the full second before
+      // window.location.href fires, and a second click in that window creates a
+      // SECOND Stripe Checkout Session for the same cart.
       setCheckoutState(prev => ({
         ...prev,
         success: 'Redirecting to secure payment...',
-        isProcessing: false,
       }));
 
       toastSuccess('Checkout Ready! Redirecting to secure Stripe payment...');
@@ -245,7 +255,11 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         } else if (status === 400) {
           errorMessage = serverMessage || 'Invalid checkout request.';
         } else {
-          errorMessage = serverMessage || `Server error (${status})`;
+          // Never surface a bare HTTP status to a buyer — "Server error (502)"
+          // tells them nothing they can act on. A server-supplied message is
+          // written for humans (the 429 throttle message is the common case);
+          // anything else falls back to plain recoverable copy.
+          errorMessage = serverMessage || 'Checkout could not be completed. Please try again in a moment.';
         }
       } else if (error.request) {
         errorMessage = 'Unable to connect to payment service.';

@@ -4,7 +4,7 @@
  * LAST VALIDATED: 2026-06-09 via SuccessPage auth refresh and theme contract tests.
  */
 import React from 'react';
-import { AlertTriangle, Home, Loader } from 'lucide-react';
+import { AlertTriangle, Home, LifeBuoy, Loader, RefreshCw } from 'lucide-react';
 import GlowButton from '../ui/buttons/GlowButton';
 import {
   ErrorCard,
@@ -36,10 +36,18 @@ export const SuccessPageLoadingState: React.FC = () => (
   </SuccessContainer>
 );
 
+/**
+ * Shown to someone who has ALREADY been through Stripe. Every affordance here
+ * exists because the previous version offered only "Return Home": a buyer whose
+ * card may have been charged had no way to retry, no way to reach a human, and
+ * no reference to quote — the worst dead end on the money path.
+ */
 export const SuccessPageErrorState: React.FC<{
   error: string;
   onGoHome: () => void;
-}> = ({ error, onGoHome }) => (
+  onRetry?: () => void;
+  sessionId?: string | null;
+}> = ({ error, onGoHome, onRetry, sessionId }) => (
   <SuccessContainer
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -49,14 +57,35 @@ export const SuccessPageErrorState: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
+      role="alert"
+      aria-live="assertive"
     >
       <StateIcon $tone="error">
         <AlertTriangle size={48} aria-hidden="true" />
       </StateIcon>
-      <StateTitle $tone="error">Verification Error</StateTitle>
+      <StateTitle $tone="error">We couldn&apos;t confirm your order</StateTitle>
       <StateText>{error}</StateText>
+      {sessionId && (
+        <StateText>
+          Order reference: <strong>{sessionId}</strong>
+        </StateText>
+      )}
       <StateAction>
-        <GlowButton variant="primary" size="medium" onClick={onGoHome}>
+        {onRetry && (
+          <GlowButton variant="primary" size="medium" onClick={onRetry}>
+            <RefreshCw size={16} aria-hidden="true" />
+            Try again
+          </GlowButton>
+        )}
+        <GlowButton
+          variant="primary"
+          size="medium"
+          onClick={() => { window.location.href = '/contact'; }}
+        >
+          <LifeBuoy size={16} aria-hidden="true" />
+          Contact support
+        </GlowButton>
+        <GlowButton variant="secondary" size="medium" onClick={onGoHome}>
           <Home size={16} aria-hidden="true" />
           Return Home
         </GlowButton>

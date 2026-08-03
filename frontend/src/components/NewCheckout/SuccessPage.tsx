@@ -140,8 +140,19 @@ const SuccessPage: React.FC = () => {
         logger.warn('[Success Page] Activation status recovery failed:', activationError);
       }
 
+      // This buyer has already been through Stripe. Never show them a raw
+      // transport string here — "Request failed with status code 500" or
+      // "Network Error" in front of someone who just paid reads like their money
+      // vanished. Server-authored copy is written for humans and is safe to
+      // show; anything else becomes reassurance that does not over-claim (we do
+      // not know the charge settled) but does stop them paying twice.
       const serverDetails = error.response?.data?.error?.details;
-      setError(serverDetails || error.response?.data?.message || error.message || 'Order verification failed');
+      const serverMessage = serverDetails || error.response?.data?.message;
+      logger.error('[Success Page] Verification failed:', error);
+      setError(
+        serverMessage ||
+        "We couldn't confirm your order automatically. If your payment went through it has been received — please don't pay again. Contact support with your order reference below and we'll finish activating your sessions."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +205,14 @@ const SuccessPage: React.FC = () => {
   }
 
   if (error) {
-    return <SuccessPageErrorState error={error} onGoHome={handleGoToHome} />;
+    return (
+      <SuccessPageErrorState
+        error={error}
+        onGoHome={handleGoToHome}
+        onRetry={sessionId ? verifyAndCompleteOrder : undefined}
+        sessionId={sessionId}
+      />
+    );
   }
 
   if (supportReviewMessage) {
