@@ -90,7 +90,7 @@ No P0 anywhere in the admin lane. All 32 admin backend surfaces are server-side 
 | 44px touch targets | `adminSpecials.styles.ts` (ActionButton 28→44), `AdminSocialManagementView.tsx` (ActionIcon 40→44; `.post-actions` container verified flexible) | vitest 24/24; container grep receipt `:403` |
 
 **Tier-A disclosure (rule 56):** vitest targeted suites: 24/24 pass [VERIFIED]. Full `tsc --noEmit` **PASSES: exit 0, zero errors, slice included** [VERIFIED] — but ONLY with `NODE_OPTIONS=--max-old-space-size=14336`; at the previously-documented 8GB it still OOM-crashes (reproduced this session). Operational note for all lanes/CI: the 2026-07-16 memory's 8GB guidance is now insufficient — use 14GB. Baseline main type-checks clean at that heap size.
-**Hostile pass:** 2 rounds; round 1 found the keyboard-scroll gap (fixed), round 2 found nothing new — **run dry.**
+**Hostile pass (dry-loop ledger):** R1 attack on the fix itself → found keyboard-scroll gap (overflow div not keyboard-reachable) → fixed with tabIndex/region. R2 re-verification vantage → targeted suites 24/24 + `.post-actions` container receipt → CLEAN. R3 new vantages: repo-wide importer sweep of every changed export (7 importers, all additive-safe; modals verified not to consume `ActionButton`/`Table`) + full admin-dashboard components suite + sidebar route-parity contract → 150/150 CLEAN (note: first R3 attempt mass-failed from the stale shared tree — wrong-cwd execution error diagnosed, not a regression; rerun from worktree). R4 confirmation vantage: production `vite build` → ✓ built. **DRY-LOOP: CLEAN×2 (rounds: 4).** Linear: SWA-109 (this audit), related SWA-13/SWA-75.
 
 ---
 
