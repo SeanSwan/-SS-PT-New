@@ -3,6 +3,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { cartMutationLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
 import { 
@@ -346,7 +347,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
  * Adds a training package to the user's cart
  * Supports role-based access and automatic user role upgrade
  */
-router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
+router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -561,7 +562,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
  * PUT /api/cart/update/:itemId
  * Updates the quantity of an item in the cart
  */
-router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
+router.put('/update/:itemId', protect, cartMutationLimiter, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -685,7 +686,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
  * DELETE /api/cart/remove/:itemId
  * Removes an item from the cart
  */
-router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
+router.delete('/remove/:itemId', protect, cartMutationLimiter, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -776,7 +777,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
  * DELETE /api/cart/clear
  * Removes all items from the user's cart
  */
-router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
+router.delete('/clear', protect, cartMutationLimiter, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
