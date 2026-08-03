@@ -23,10 +23,30 @@ describe('CartContext auth pipeline', () => {
 
     expect(routeMountSource).toContain("app.use('/api/cart', cartRoutes)");
     expect(cartRoutesSource).toContain("router.get('/', protect, ensureNumericCartUser");
-    expect(cartRoutesSource).toContain("router.post('/add', protect, ensureNumericCartUser");
-    expect(cartRoutesSource).toContain("router.put('/update/:itemId', protect, ensureNumericCartUser");
-    expect(cartRoutesSource).toContain("router.delete('/remove/:itemId', protect, ensureNumericCartUser");
-    expect(cartRoutesSource).toContain("router.delete('/clear', protect, ensureNumericCartUser");
+
+    // Matched by shape rather than by an exact middleware string. The intent of
+    // this guard is "every cart write runs protect FIRST and still resolves a
+    // numeric user" — pinning the literal chain also froze the list, so adding
+    // the money-path rate limiter between them broke the test without weakening
+    // a single thing it protects. Shape-matching keeps the guard honest while
+    // letting middleware be inserted deliberately.
+    const mutationRoutes = [
+      "router.post('/add'",
+      "router.put('/update/:itemId'",
+      "router.delete('/remove/:itemId'",
+      "router.delete('/clear'",
+    ];
+    for (const route of mutationRoutes) {
+      const line = cartRoutesSource
+        .split('\n')
+        .find((candidate) => candidate.includes(route));
+
+      expect(line, `cart mutation route missing: ${route}`).toBeTruthy();
+      // protect must be the FIRST middleware — auth before anything else runs.
+      expect(line).toMatch(new RegExp(`${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')},\\s*protect,`));
+      expect(line).toContain('ensureNumericCartUser');
+      expect(line).toContain('validatePurchaseRole');
+    }
   });
 
   it('keeps cart reads and mutations on the shared API service', () => {
