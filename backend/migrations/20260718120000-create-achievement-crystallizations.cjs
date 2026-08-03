@@ -39,7 +39,12 @@ module.exports = {
             onDelete: 'CASCADE',
           },
           achievementId: {
-            type: Sequelize.UUID,
+            // INTEGER, not UUID: live "Achievements".id is integer serial. The original UUID
+            // declaration made this FK fail with "incompatible types uuid and integer", the
+            // safe-migrate failure lane marked the migration done anyway, and the table was
+            // never created (drift audit 2026-08-03). Creation now also backstopped by
+            // migrateAchievementCrystallizations() in utils/startupMigrations.mjs.
+            type: Sequelize.INTEGER,
             allowNull: false,
             references: { model: 'Achievements', key: 'id' },
             onUpdate: 'CASCADE',
