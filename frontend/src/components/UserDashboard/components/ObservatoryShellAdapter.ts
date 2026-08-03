@@ -17,6 +17,7 @@ import {
   Home,
   Trophy,
   UserPlus,
+  Users,
   Utensils,
   Video,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import { STUDIO_TAB_IDS } from '../types/UserDashboardTypes';
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',          label: 'Home',          Icon: Home },
   { id: 'progress',      label: 'Progress',      Icon: Dumbbell },
+  { id: 'groups',        label: 'Groups',        Icon: Users },
   { id: 'reels',         label: 'Reels',         Icon: Video },
   { id: 'friends',       label: 'Friends',       Icon: UserPlus },
   { id: 'challenges',    label: 'Challenges',    Icon: Trophy },
