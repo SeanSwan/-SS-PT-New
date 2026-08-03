@@ -72,13 +72,36 @@ describe('useDayBoundary', () => {
     expect(result.current).toBe(new Date(2026, 7, 8, 0, 0, 0, 0).getTime());
   });
 
-  it('clears its timer on unmount', () => {
+  it('actually stops the timer on unmount — not merely calls clearTimeout', () => {
+    // Asserting `clearTimeout` was called proves a CALL, not an EFFECT: a
+    // cleanup that calls clearTimeout(undefined) leaks the timer and still
+    // satisfies that spy. Assert the timer is gone instead.
     vi.setSystemTime(new Date(2026, 7, 6, 23, 59, 0));
-    const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
     const { unmount } = renderHook(() => useDayBoundary());
 
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
     unmount();
+    expect(vi.getTimerCount()).toBe(0);
 
-    expect(clearSpy).toHaveBeenCalled();
+    // And nothing fires afterwards.
+    act(() => {
+      vi.advanceTimersByTime(48 * 60 * 60 * 1000);
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps exactly one timer armed at a time across rollovers', () => {
+    vi.setSystemTime(new Date(2026, 7, 6, 23, 59, 0));
+    renderHook(() => useDayBoundary());
+
+    expect(vi.getTimerCount()).toBe(1);
+    act(() => {
+      vi.advanceTimersByTime(2 * 60 * 1000);
+    });
+    expect(vi.getTimerCount()).toBe(1);
+    act(() => {
+      vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    });
+    expect(vi.getTimerCount()).toBe(1);
   });
 });

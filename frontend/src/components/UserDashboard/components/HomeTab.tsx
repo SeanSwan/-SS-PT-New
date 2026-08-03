@@ -2,7 +2,7 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
@@ -39,7 +39,8 @@ import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import HomeGroupsStrip from './groups/HomeGroupsStrip';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
-import useDayBoundary from '../hooks/useDayBoundary';
+import useDayBoundary, { dayClock } from '../hooks/useDayBoundary';
+import { isDataKnown, resolveDataStatus } from '../hooks/resolveDataStatus';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
@@ -82,7 +83,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
   // The profile query owns level/XP/streak. When it fails, `levelProgress`
   // still resolves from a `?? 0` fallback — so the rail must be told, or it
   // reports Level 1 / 0 XP / 0 streak as if that were the member's record.
-  const gamificationUnavailable = gamProfile.isError && !gamProfile.data;
+  // Uses the shared resolver: the hand-rolled `isError && !data` here read
+  // FALSE for the whole pending window, which is exactly the hole this
+  // workstream closed for sessions and left open for gamification.
+  const gamificationStatus = resolveDataStatus(gamProfile);
+  const gamificationUnavailable = !isDataKnown(gamificationStatus);
   // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
@@ -119,38 +124,50 @@ const HomeTab: React.FC<HomeTabProps> = ({
   // midnight lit no tile.
   const dayStart = useDayBoundary();
   const trainingProof = useMemo(
-    () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
+    () => buildHomeTrainingProof(workoutSessions.data, dayClock(dayStart)),
     [workoutSessions.data, dayStart],
   );
   // Trailing-7-day tiles come from real session dates, never from the streak
   // count — and the same failure gate as the proof card, so a fetch error
   // cannot render as seven "no workout logged" days.
   const weekTrainingDays = useMemo(
-    () => buildWeekTrainingDays(workoutSessions.data, Date.now()),
+    () => buildWeekTrainingDays(workoutSessions.data, dayClock(dayStart)),
     [workoutSessions.data, dayStart],
   );
-  // Tri-state, not a boolean. `isError && !data` left the gate OPEN for the
-  // whole pending window — first paint, the in-flight request, its retry and
-  // the backoff between them — during which `data` is undefined and `isError`
-  // is still false. The grid then rendered seven "no workout logged" days and
-  // the proof card claimed "No logged workouts yet": the exact false claim
-  // this lane exists to remove, just at a different moment.
-  const sessionsStatus: 'ready' | 'loading' | 'unavailable' = workoutSessions.data
-    ? 'ready'
-    : workoutSessions.isError
-      ? 'unavailable'
-      : 'loading';
+  // Never hand-roll this gate again — see resolveDataStatus for the three ways
+  // it was got wrong. 'stale' matters here: a failed background refetch keeps
+  // the cached list, which must still be shown but must offer a retry rather
+  // than pass as current.
+  const sessionsStatus = resolveDataStatus(workoutSessions);
+  const sessionsKnown = isDataKnown(sessionsStatus);
+  // buildHomeTrainingProof ALWAYS returns an object, so the `trainingProof ?`
+  // guard inside buildSidebarQuickStats is dead on this path: the ticker
+  // asserted "This Week 0 / Training Time 0m" through the whole pending window
+  // and through any failure. Pass null until the record is actually known, and
+  // the two tiles drop out instead of stating a zero.
   const quickStats = useMemo(() => buildSidebarQuickStats({
     displayStats: { ...displayStats, points, level },
     canonicalLevel: level,
     streakDays,
     progressPercent,
     pointsToNext,
-    trainingProof,
-  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof]);
+    trainingProof: sessionsKnown ? trainingProof : null,
+  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown]);
+  // Rolling the window is not enough on its own: nothing else refetches (no
+  // polling, no refetch-on-focus), so an overnight tab would slide to the new
+  // day and still hold yesterday's session list — a workout logged at 00:30
+  // would light no tile. Pull fresh sessions when the day actually changes.
+  const refetchSessions = workoutSessions.refetch;
+  const mountedDayRef = useRef(dayStart);
+  useEffect(() => {
+    if (mountedDayRef.current === dayStart) return;
+    mountedDayRef.current = dayStart;
+    void refetchSessions();
+  }, [dayStart, refetchSessions]);
+
   // O3 streak rescue: live streak + no session today + evening = escalate.
   const streakAtRisk = useMemo(
-    () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
+    () => assessStreakRisk(workoutSessions.data, streakDays, dayClock(dayStart)),
     [streakDays, workoutSessions.data, dayStart],
   );
   // O3 Quick Post composer can attach the latest real workout-proof session.

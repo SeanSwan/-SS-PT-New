@@ -22,6 +22,7 @@ import {
   NavButton,
 } from './HomeTabVisionCards.styles';
 import type { WeekTrainingDay } from './HomeTabProofViewModel';
+import { isDataKnown, type DataStatus } from '../hooks/resolveDataStatus';
 
 interface HomeTabVisionLeftRailProps {
   logoSrc: string;
@@ -40,7 +41,7 @@ interface HomeTabVisionLeftRailProps {
    * paint, the in-flight request and its retry/backoff, which a boolean keyed
    * on `isError` left uncovered.
    */
-  sessionsStatus?: 'ready' | 'loading' | 'unavailable';
+  sessionsStatus?: DataStatus;
   onRetryStats?: () => void;
   activeId: string;
   onAction: (target: VisionTarget) => void;
@@ -165,7 +166,7 @@ const HomeTabVisionLeftRail: React.FC<HomeTabVisionLeftRailProps> = ({
   activeId,
   onAction,
 }) => {
-  const sessionsKnown = sessionsStatus === 'ready';
+  const sessionsKnown = isDataKnown(sessionsStatus);
 
   return (
     <LeftRail aria-label="Creator dashboard navigation">

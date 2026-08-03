@@ -16,6 +16,7 @@ import { Dumbbell, Share2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Eyebrow } from './HomeTabVision.styles';
 import { ButtonRow, Chip, GlassButton } from './HomeTabVisionCards.styles';
 import type { HomeTrainingProof } from './HomeTabViewModel';
+import { isDataKnown, type DataStatus } from '../hooks/resolveDataStatus';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 const ProofHeader = styled(ButtonRow)`
@@ -107,7 +108,7 @@ interface HomeTabTrainingProofProps {
    * empty proof is UNKNOWN, not "none" — 'loading' covers first paint and the
    * request's retry/backoff, which a boolean keyed on `isError` left open.
    */
-  sessionsStatus?: 'ready' | 'loading' | 'unavailable';
+  sessionsStatus?: DataStatus;
   onRetrySessions?: () => void;
   onShareProgress: (line: string) => void;
 }
@@ -180,7 +181,7 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
             </StyledBox>
           )}
         </>
-      ) : sessionsStatus !== 'ready' ? (
+      ) : !isDataKnown(sessionsStatus) ? (
         // "No logged workouts yet" is a claim about the member's record. When
         // the fetch failed we do not know their record, so we must not make it.
         // The live region wraps the MESSAGE only — including the button would
@@ -191,7 +192,7 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
               ? 'Loading your training history…'
               : "We couldn't load your training history just now. Nothing you logged is lost."}
           </EmptyCopy>
-          {sessionsStatus === 'unavailable' && onRetrySessions ? (
+          {sessionsStatus !== 'loading' && onRetrySessions ? (
             <RetryLink type="button" onClick={onRetrySessions}>
               Retry
             </RetryLink>
