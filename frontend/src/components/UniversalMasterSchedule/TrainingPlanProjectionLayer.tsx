@@ -38,6 +38,7 @@ import {
   CardTop,
   ClientName,
   Coexistence,
+  Overdue,
   ControlButton,
   DateGroup,
   DateHeading,
@@ -209,6 +210,9 @@ const TrainingPlanProjectionLayer: React.FC<TrainingPlanProjectionLayerProps> = 
                             <ClientName>
                               {staffMode ? clientNames.get(String(item.clientId)) || 'Assigned client' : 'Your plan'}
                             </ClientName>
+                            {!completed && item.overdueDays != null && (
+                              <Overdue aria-label={`${item.overdueDays} days behind plan`}>{item.overdueDays}d behind</Overdue>
+                            )}
                             <Status $completed={completed}>{completed ? 'Completed' : 'Planned'}</Status>
                           </CardTop>
                           <PlanTitle>{item.title}</PlanTitle>
