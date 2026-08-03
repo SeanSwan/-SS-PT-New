@@ -28,6 +28,7 @@ import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
+import { chipsForExercise } from './bootcampChips.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 import {
@@ -196,6 +197,12 @@ function buildExerciseRecord(ex, opts) {
   const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
   const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId);
 
+  // SWA-105 Slice 2: the selection explains itself in structured facts, never
+  // prose. `selectionRung` is stamped by the day-type ladder; anything the
+  // ladder did not touch is R0 and simply carries no relaxation chip.
+  const selectionRung = ex.selectionRung ?? 'R0';
+  const selectionChips = chipsForExercise(ex, { setupTimeSec: setupTime });
+
   return {
     stationIndex: opts.stationIndex ?? undefined,
     exerciseName: ex.name ?? formatExerciseName(ex.key),
@@ -222,6 +229,8 @@ function buildExerciseRecord(ex, opts) {
     board: 'main',
     setupTimeSec: setupTime,
     exerciseLibraryId,
+    selectionRung,
+    selectionChips,
     selectionReason: ex.selectionReason ?? null,
     programmingQuality: ex.programmingQuality ?? null,
   };
@@ -534,12 +543,32 @@ export async function generateBootcampClass(options) {
   // legality gate — primary-region inclusion + explicit pattern exclusions
   // (shared/bootcamp-core), with a fail-open ladder so the class always
   // generates. Replaces the `.some()` muscle filter that could not fail.
+  // SWA-105 Slice 2: this must match what selection ACTUALLY consumes from the
+  // pool, or the ladder relaxes against a phantom need. Stations take
+  // `exercisesPerStation - 1` picks each (the last slot is a cardio finisher,
+  // appended from CARDIO_FINISHERS, not drawn from the pool); full-group takes
+  // 5 compound + 5 accessory, its 5 finishers likewise coming from elsewhere.
+  // Over-stating this made a healthy pool look starved and pulled bodyweight
+  // substitutes into classes that never needed them.
   const requiredSlots = classFormat === 'full_group'
-    ? 15
-    : Math.max(1, stationCount * Math.max(1, format.exercisesPerStation ?? 3));
+    ? 10
+    : Math.max(1, stationCount * Math.max(1, (format.exercisesPerStation ?? 4) - 1));
   const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
   availableExercises = contract.pool;
   explanations.push({ type: 'day_type_contract', message: contract.explanation });
+
+  // Step 4a-ii (SWA-105 Slice 2): pool exhaustion is a fact about the POOL, so
+  // it is reported here, at the pool. Whether the shipped class actually used a
+  // relaxed exercise is a different question, answered after selection — a
+  // widened pool whose widening went unused must not raise an alarm.
+  if (contract.exhausted) {
+    explanations.push({
+      type: 'relaxation',
+      message: `Exercise pool exhausted at ${contract.rung}: only ${contract.pool.length} of the `
+        + `${requiredSlots} slots this class needs could be sourced. `
+        + `${contract.structuralOuts.map((out) => out.label).join(' or ')}.`,
+    });
+  }
 
   if (intensityCategory) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });

@@ -12,12 +12,11 @@
  * Snapshot + log validation live in validateState.mjs (Rule 4 split).
  */
 
-import { CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES, CHIPS, RUNGS } from './constants.mjs';
+import { CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES } from './constants.mjs';
 import { expandSegments } from './timeline.mjs';
 import { validateSnapshot, validateLog } from './validateState.mjs';
+import { validateSlot } from './validateSlots.mjs';
 
-const CHIP_SET = new Set(CHIPS);
-const RUNG_SET = new Set(RUNGS);
 
 export function validateClassPlan(plan) {
   const problems = [];
@@ -120,46 +119,6 @@ function validateBlocks(plan) {
   return problems;
 }
 
-function validateSlot(slot, path, structure) {
-  const problems = [];
-  if (!slot || typeof slot !== 'object') return [`${path} is not an object`];
-  if (!slot.displayName) problems.push(`${path}.displayName is required`);
-
-  // A zero-length segment has startsAt === endsAt, so the clock can never be
-  // "inside" it — the Runner skips it while the board still shows the exercise.
-  for (const field of ['workSec', 'restSec']) {
-    const value = slot[field];
-    if (value === null || value === undefined) continue;
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-      problems.push(`${path}.${field} must be a number when present`);
-    } else if (field === 'workSec' && value <= 0) {
-      problems.push(`${path}.workSec must be > 0 — a zero-duration segment is unreachable by the clock`);
-    } else if (field === 'restSec' && value < 0) {
-      problems.push(`${path}.restSec must be >= 0`);
-    }
-  }
-  if ((slot.workSec === null || slot.workSec === undefined) && !(structure?.workSec > 0)) {
-    problems.push(`${path}.workSec is null and structure.workSec is not usable as a fallback`);
-  }
-
-  if (!Array.isArray(slot.chips)) {
-    problems.push(`${path}.chips must be an array`);
-  } else {
-    if (slot.chips.length > 2) {
-      problems.push(`${path}.chips has ${slot.chips.length} entries; max 2 (three chips is a paragraph at 6am)`);
-    }
-    const unknown = slot.chips.filter((c) => !CHIP_SET.has(c));
-    if (unknown.length > 0) {
-      problems.push(`${path}.chips contains non-enum value(s): ${unknown.join(', ')} — free-text reasons are forbidden`);
-    }
-  }
-
-  if (!RUNG_SET.has(slot.rung)) problems.push(`${path}.rung must be one of ${RUNGS.join('|')}`);
-  if (slot.rung === 'R6') {
-    problems.push(`${path}.rung R6 means "no swap exists" and cannot be a committed slot`);
-  }
-  return problems;
-}
 
 function validateStations(plan) {
   const problems = [];

@@ -34,7 +34,39 @@ export const CHIPS = Object.freeze([
   'new',
   'coach_favorite',
   'was_here',
+  // Relaxed (SWA-105 Slice 2) — one per relaxable rung, naming the bent rule.
+  // Added deliberately: without these, a relaxed selection has no vocabulary to
+  // confess with, and the ladder's whole point is that the trainer SEES which
+  // rule was broken. The pairing is enforced by validate.mjs, not by review.
+  'used_recently',
+  'familiar',
+  'different_pattern',
+  'repeated_this_class',
+  'bodyweight_sub',
 ]);
+
+/** Rung -> the single constraint it relaxes. R0 relaxes nothing; R6 is structural. */
+export const RUNG_CONSTRAINT = Object.freeze({
+  R0: null,
+  R1: 'anti_repeat',
+  R2: 'novelty',
+  R3: 'pattern_fidelity',
+  R4: 'not_used_this_class',
+  R5: 'equipment',
+  R6: 'structure',
+});
+
+/**
+ * Rung -> the chip that CONFESSES it. R0 has none (nothing to confess) and R6
+ * has none (an R6 item cannot exist — R6 offers structural outs, not exercises).
+ */
+export const RUNG_CHIP = Object.freeze({
+  R1: 'used_recently',
+  R2: 'familiar',
+  R3: 'different_pattern',
+  R4: 'repeated_this_class',
+  R5: 'bodyweight_sub',
+});
 
 /**
  * Relaxation rungs (Opus 5 §A3). Each relaxes EXACTLY ONE constraint.

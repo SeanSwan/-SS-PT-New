@@ -258,7 +258,12 @@ export const relaxedSwapClass = () => {
     equipmentRefs: ['eq_box'],
     // R3 = pattern fidelity relaxed; the gold-outline row in the SwapDeck.
     rung: 'R3',
-    chips: ['joint_safe', 'same_kit'],
+    // Slice 2 made the confession MANDATORY: this fixture originally carried
+    // ['joint_safe', 'same_kit'] and the new insufficiency rule rejected it —
+    // a relaxed row that advertises only its virtues is the exact half-truth
+    // the ladder exists to prevent. The bent rule leads; the earned fact fills
+    // the second and last chip slot.
+    chips: ['different_pattern', 'joint_safe'],
   });
   plan.log = [
     {

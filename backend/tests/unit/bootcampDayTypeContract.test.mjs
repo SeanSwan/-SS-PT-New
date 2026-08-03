@@ -25,7 +25,7 @@ describe('D1 regression — the day-type contract replaces the .some() filter', 
     const gobletSquat = { key: 'goblet_squat', muscles: ['quads', 'core'], category: 'squat' };
     const result = applyDayTypeContract([...UPPERS, gobletSquat], 'upper_body', 3);
 
-    expect(result.ladderStep).toBe('contract');
+    expect(result.rung).toBe('R0');
     expect(result.pool.map((e) => e.key)).not.toContain('goblet_squat');
     expect(result.rejected.excludedPattern + result.rejected.wrongRegion).toBeGreaterThan(0);
   });
@@ -71,7 +71,7 @@ describe('D1 regression — the day-type contract replaces the .some() filter', 
   });
 });
 
-describe('the coverage ladder — constraints never silently fail open', () => {
+describe('the fail-open ladder — the class always generates', () => {
   it('drops pattern exclusions when the strict pool cannot fill the class', () => {
     // Region-legal but pattern-excluded on upper day: squats tagged upper.
     const patternExcluded = [
@@ -79,20 +79,31 @@ describe('the coverage ladder — constraints never silently fail open', () => {
       { key: 'thruster', muscles: ['anterior_deltoid'], category: 'squat' },
     ];
     const result = applyDayTypeContract([UPPERS[0], ...patternExcluded], 'upper_body', 3);
-    expect(result.ladderStep).toBe('no_pattern_exclusions');
+    expect(result.rung).toBe('R3');
     expect(result.pool.length).toBe(3);
     expect(result.explanation).toMatch(/RELAXED/);
+    expect(result.explanation).toMatch(/PATTERN FIDELITY/);
   });
 
-  it('returns only region-legal candidates and reports insufficient coverage when the pool starves', () => {
+  // SWA-105 Slice 2 REPLACED the behavior this slot used to assert. Slice 1's
+  // last rung returned the UNFILTERED pool, which re-opened D1 on exactly the
+  // classes least able to absorb it: a thin pool tripped the fallback and the
+  // fallback put squats back on upper day. R5 now tops up with day-LEGAL
+  // bodyweight movements instead, so a starved room degrades into a simpler
+  // class rather than a wrong one.
+  it('NEVER returns a wrong-day exercise, even when the pool starves', () => {
     const wrongDay = [
       { key: 'back_squat', muscles: ['quads'], category: 'squat' },
       { key: 'rdl', muscles: ['hamstrings'], category: 'hinge' },
     ];
     const result = applyDayTypeContract(wrongDay, 'upper_body', 4);
-    expect(result.ladderStep).toBe('insufficient');
-    expect(result.pool).toEqual([]);
-    expect(result.explanation).toMatch(/thin coverage/);
+
+    const keys = result.pool.map((e) => e.key);
+    expect(keys).not.toContain('back_squat');
+    expect(keys).not.toContain('rdl');
+    for (const exercise of result.pool) {
+      expect(exercise.coreMovement.primaryRegion).toBe('upper');
+    }
   });
 });
 
@@ -177,7 +188,22 @@ describe('equipment feasibility on real quantities (§5.8)', () => {
   });
 });
 
-describe('selection never crosses station intent to satisfy a budget', () => {
+describe('selection fallback honors the budget gate', () => {
+  // REMOVED 2026-08-02 during the Slice 2 re-integration. This test asserted
+  // that a starved station borrows a budget-legal exercise from an unrelated
+  // region rather than returning empty. It exercised the third "remainingPool"
+  // fallback tier — which Slice 1's own comment called "D1's leak point" and
+  // Slice 2 merely budget-GATED.
+  //
+  // The generator rewrite on main DELETED that tier outright: selection now has
+  // exactly two tiers (primary, secondary). You cannot leak through a path that
+  // does not exist, so main's fix is strictly stronger than gating it. The
+  // surviving test below — 'returns a thin station instead of borrowing an
+  // unrelated region' — encodes the newer, safer contract and asserts the
+  // opposite outcome for the identical fixture.
+  //
+  // Keeping both was impossible: same setup, contradictory expectations.
+
   it('returns a thin station instead of borrowing an unrelated region', () => {
     const lowerMove = { primaryRegion: 'lower', regions: ['lower'], pattern: 'squat', joints: [], impact: 'low' };
     const upperMove = { primaryRegion: 'upper', regions: ['upper'], pattern: 'push_horizontal', joints: [], impact: 'low' };
