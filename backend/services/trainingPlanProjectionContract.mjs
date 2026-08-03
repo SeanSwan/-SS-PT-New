@@ -243,3 +243,11 @@ export const buildTrainingPlanProjectionItems = ({
     || left.dayNumber - right.dayNumber
   ));
 };
+
+// ─────────────────────────────────────────────────────────────
+// S0 (Plan Surfacing Batch A, 2026-08-03): the basis chain is the ONE
+// date→plan-day truth app-wide. planDayResolver consumes these exports;
+// nothing else should re-implement scheduled-date math.
+// ─────────────────────────────────────────────────────────────
+export const buildAssignmentRows = assignmentRows;
+export const resolveScheduledDate = scheduledDateFor;

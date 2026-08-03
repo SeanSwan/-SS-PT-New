@@ -244,7 +244,13 @@ describe('WorkoutLogger.loadTodaysPlanIntoLogger', () => {
     );
     expect(toastMock.success).not.toHaveBeenCalled();
   });
-  it('preserves display context when loading the legacy plan-day fallback without planned submit metadata', async () => {
+  it('S0: never guesses a day — weekday fallback deleted, honest no_current_day outcome instead', async () => {
+    // INTENT PRESERVED FROM THE OLD PIN: when the cursor session and today's
+    // assignment both miss but plan.days exist, the user still gets a
+    // truthful, recoverable state. The OLD behavior (weekday-name match with
+    // `days[dayOfWeek % length]` fallback) silently loaded days the plan
+    // never scheduled — W2·Tue vs W5·Tue are indistinguishable by weekday.
+    // The new law: nothing prefills, and the outcome names the recovery path.
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const todayName = dayNames[new Date().getDay()];
 
@@ -265,24 +271,24 @@ describe('WorkoutLogger.loadTodaysPlanIntoLogger', () => {
         },
       },
     });
+    const setPlanLoadOutcome = vi.fn();
     const params = {
       ...baseParams(),
       setLoadedPlanContext: vi.fn(),
-    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+      setPlanLoadOutcome,
+    } as ReturnType<typeof baseParams> & {
+      setLoadedPlanContext: ReturnType<typeof vi.fn>;
+      setPlanLoadOutcome: ReturnType<typeof vi.fn>;
+    };
 
     await loadTodaysPlanIntoLogger(params);
 
-    expect(params.setExercises).toHaveBeenCalledTimes(1);
+    expect(params.setExercises).not.toHaveBeenCalled();
     expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
-    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(expect.objectContaining({
-      assignmentKey: null,
-      planId: 'legacy-plan',
-      source: 'workout_plan',
-      title: `${todayName}'s plan`,
-      dayLabel: todayName,
-      exerciseCount: 1,
-      firstExerciseName: 'Legacy Squat',
-    }));
-    expect(toastMock.success).toHaveBeenCalledWith(`Loaded 1 exercises from ${todayName}'s plan`);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(null);
+    expect(setPlanLoadOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'no_current_day' }),
+    );
+    expect(toastMock.success).not.toHaveBeenCalled();
   });
 });
