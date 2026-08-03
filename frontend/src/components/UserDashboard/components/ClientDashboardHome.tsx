@@ -24,6 +24,7 @@ import { ThreeColumnGrid, TwoColumnGrid } from './ClientDashboardHome.cardStyles
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 import SocialProgressAnalyticsPreview from './SocialProgressAnalyticsPreview';
 import FirstSessionOrientationStrip from './FirstSessionOrientationStrip';
+import CoachVoiceRecapCard from './CoachVoiceRecapCard';
 
 const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
   const embedded = !!props.embedded;
@@ -55,6 +56,10 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
                   as ANTICIPATED, not broken. Renders only for settled
                   zero-history clients. */}
               {zeroHistory && <FirstSessionOrientationStrip />}
+              {/* Deterministic coach-voice recap of the REAL logged week —
+                  sentences, not axes (panel Q2 #1). Self-hides on zero history
+                  or unsettled data. */}
+              <CoachVoiceRecapCard proof={props.trainingProof} settled={!!props.workoutHistorySettled} />
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
                 <TrainingFocusCard {...props} />
