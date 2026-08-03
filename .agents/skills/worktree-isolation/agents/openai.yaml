@@ -1,0 +1,7 @@
+interface:
+  display_name: "Worktree Isolation"
+  short_description: "Prepare a safe isolated Git workspace"
+  default_prompt: "Use $worktree-isolation to prepare and verify an isolated Git worktree for this task."
+
+policy:
+  allow_implicit_invocation: true

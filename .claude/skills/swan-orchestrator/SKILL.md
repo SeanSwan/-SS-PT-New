@@ -1,6 +1,6 @@
 ---
 name: swan-orchestrator
-description: Pre-task gate for SwanStudios work. Enforces recursive planning (rule 15), dual-pass completion (rule 17), canonical surface receipts (rule 26), and repo-hygiene scan triggers (rule 32). Dispatches to the right Swan skill for the task type. Invoke at the start of any non-trivial task to force the required rule artifacts before implementation begins.
+description: Pre-task gate for SwanStudios work. Classifies normal, Wayfinder, goal-contract, guided-setup, and workspace-isolation modes, then enforces recursive planning, dual-pass completion, canonical surface receipts, and repo-hygiene triggers before implementation.
 ---
 
 # Swan Orchestrator
@@ -24,6 +24,22 @@ Do NOT invoke for:
 - A single-typo fix
 - A comment-only change
 - Reading/exploring with no plan to modify
+
+## Front-door environment and mode classification
+
+Run two passes before producing the project gate:
+
+1. **Environment preflight (always before mutation):** classify the checkout. Dirty, stale, shared, concurrent, or otherwise risky work runs `worktree-isolation` and produces its receipt before any execution mode.
+2. **Execution mode:** choose the smallest mode after workspace safety is resolved.
+
+| Condition | Route |
+|---|---|
+| Clear and finishable in one focused session | Continue with this orchestrator |
+| Multi-session and materially foggy, even when partly mechanical | Run `wayfinder` first; downgrade a clarified long slice to `goal-contract` |
+| Clear destination with a long mechanical slice | Write a `goal-contract`; create a persistent goal only when the user explicitly asks |
+| Installation, authentication, deployment setup, environment wiring, or unfamiliar tooling | Use `guided-setup` |
+
+Record the workspace result, selected mode, and why. Do not use Wayfinder for clear work merely because it is large, and do not create a persistent Codex goal implicitly.
 
 ## Output (mandatory)
 
@@ -69,7 +85,14 @@ RULE 17 — Dual-pass plan:
   [ ] Hostile review checklist understood for this task type
   [ ] Verification plan named
 
+MODE: [normal | wayfinder | goal-contract | guided-setup]
+WORKSPACE: [read-only-audit | shared-lane | isolated-worktree | stale-or-dirty]
+
 DISPATCH:
+  [ ] worktree-isolation      (if workspace requires it)
+  [ ] wayfinder               (if multi-session + materially foggy)
+  [ ] goal-contract           (if a clear long slice needs measurable stop conditions)
+  [ ] guided-setup            (if setup interaction is the task)
   [ ] swan-design-router      (if UI/visual work)
   [ ] canonical-surface-audit (if rule 26 not already satisfied)
   [ ] repo-hygiene-scan       (if rule 32 triggered)
@@ -85,7 +108,11 @@ Do not proceed to implementation if any mandatory box is unchecked for the task 
 - **UI/visual work** → `swan-design-router` drives the implementation; this orchestrator runs first
 - **Route/data-truth bug** → `canonical-surface-audit` runs first to produce the surface receipt, then implementation
 - **Repo-structural work or fresh confusing session** → `repo-hygiene-scan` runs first
-- **All tasks** → `closeout-evidence-lock` runs at the end
+- **Foggy multi-session planning** -> `wayfinder` resolves the frontier before this gate
+- **Long measurable execution** -> `goal-contract` defines acceptance and stop conditions
+- **Unsafe workspace** -> `worktree-isolation` verifies the baseline before edits
+- **Setup walkthrough** -> `guided-setup` owns one-step progression
+- **All tasks** -> `closeout-evidence-lock` runs at the end
 
 Multiple dispatches are allowed and often required. E.g., a UI fix on a dashboard surface needs canonical-surface-audit (is this the live surface?) + swan-design-router (how do I make it premium?) + closeout-evidence-lock (can I claim this is fixed?).
 
@@ -95,7 +122,8 @@ Multiple dispatches are allowed and often required. E.g., a UI fix on a dashboar
 2. **No "I'll plan as I go" escape.** Rule 15 is mandatory; the gate forces it up front.
 3. **No dispatching to non-Swan design skills by default.** Design work goes to `swan-design-router`, not `frontend-design`, not `ui-ux-pro-max`, not `high-end-visual-design`.
 4. **No dispatching to `requesting-code-review`.** It depends on missing `superpowers:code-reviewer` infrastructure. Use `closeout-evidence-lock` instead, which preserves the substantive review checklist.
-5. **No bypass by subagent.** Spawning an Explore or general-purpose agent does not skip this gate — the agent's output is a hypothesis (rule 30), and the gate still needs to be satisfied manually after the agent reports.
+5. **No implicit persistent goal.** A goal contract does not authorize `create_goal`; the user must explicitly request a goal.
+6. **No bypass or authority expansion by subagent.** Spawning an Explore or general-purpose agent does not skip this gate. Every subagent inherits the parent mode's authority, constraints, acceptance, exclusions, and stop conditions verbatim; its output remains a hypothesis (rule 30), and the gate still needs to be satisfied manually after it reports.
 
 ## Integration with existing CLAUDE.md flow
 

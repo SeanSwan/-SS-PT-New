@@ -214,8 +214,7 @@ Not badges-and-points. A full RPG compulsion loop.
 4. Capcut Pro or DaVinci for anatomy overlays
 
 **Split skills:**
-- `seedance-swan-workout-video` — exercise demos, anatomy overlay, regression-first
-- `seedance-swan-cinematic-video` — hero loops, card loops, brand films
+- `seedance-swan-video` — unified skill with workout mode (exercise demos/anatomy overlays) and cinematic mode (hero/card loops and brand films)
 
 #### G) Wearable Integrations (8 platforms)
 
