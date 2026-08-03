@@ -35,6 +35,23 @@ describe('resolveDataStatus', () => {
     })).toBe('loading');
   });
 
+  it('is STALE, not ready, when offline with cached data', () => {
+    // The common real-world case: React Query PAUSES an offline refetch rather
+    // than erroring it, so keying staleness off isError alone told a member who
+    // lost signal that their data was current, with no retry offered.
+    expect(resolveDataStatus({ data: [{ id: 1 }], isError: false, fetchStatus: 'paused' }))
+      .toBe('stale');
+  });
+
+  it('does not send an offline device with placeholder rows to a dead spinner', () => {
+    expect(resolveDataStatus({
+      data: [{ id: 'PLACEHOLDER' }],
+      isPlaceholderData: true,
+      isError: false,
+      fetchStatus: 'paused',
+    })).toBe('unavailable');
+  });
+
   it('treats a successful null result as loaded, not as an outage', () => {
     // Otherwise the UI offers a Retry that returns the same nothing forever.
     expect(resolveDataStatus({ data: null, isError: false, isSuccess: true, fetchStatus: 'idle' }))

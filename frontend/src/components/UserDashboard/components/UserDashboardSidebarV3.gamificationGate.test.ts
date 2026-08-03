@@ -36,6 +36,7 @@ describe('Quick Stats gamification gate', () => {
       progressPercent: 0,
       pointsToNext: 0,
       gamificationKnown: false,
+      profileStatsKnown: true,
     });
 
     for (const tile of GAMIFICATION_TILES) {
@@ -48,6 +49,7 @@ describe('Quick Stats gamification gate', () => {
       displayStats,
       canonicalLevel: 0,
       gamificationKnown: false,
+      profileStatsKnown: true,
     });
 
     const rendered = stats.map((s) => `${s.label} ${s.value}`).join(' | ');
@@ -61,6 +63,7 @@ describe('Quick Stats gamification gate', () => {
       displayStats,
       canonicalLevel: 0,
       gamificationKnown: false,
+      profileStatsKnown: true,
     });
 
     expect(ids(stats)).toContain('workouts');
@@ -75,6 +78,7 @@ describe('Quick Stats gamification gate', () => {
       progressPercent: 64,
       pointsToNext: 260,
       gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     for (const tile of GAMIFICATION_TILES) {
@@ -91,6 +95,7 @@ describe('Quick Stats gamification gate', () => {
       progressPercent: 0,
       pointsToNext: 0,
       gamificationKnown: true,
+      profileStatsKnown: true,
     });
 
     expect(stats.find((s) => s.id === 'streak')?.value).toBe('0d');

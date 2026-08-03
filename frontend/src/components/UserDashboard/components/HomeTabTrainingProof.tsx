@@ -151,18 +151,22 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
           {proof.thisWeekCount > 0 && <Chip $tone="gold">{proof.thisWeekCount} this week</Chip>}
         </ButtonRow>
       </ProofHeader>
+      {/* 'stale' = the cached list is displayable but the last refresh FAILED.
+          Hoisted ABOVE the three-way split on purpose: nested inside the
+          has-data branch it could never reach the case that matters most —
+          a cached zero plus a failed refresh, where the member is told
+          "No logged workouts yet" with no hint the number is stale. */}
+      {sessionsStatus === 'stale' ? (
+        <StaleNote role="status">
+          Couldn&apos;t refresh — showing your last saved history.
+          {onRetrySessions ? (
+            <RetryLink type="button" onClick={onRetrySessions}>Retry</RetryLink>
+          ) : null}
+        </StaleNote>
+      ) : null}
       {proof.weeklyCounts.some((count) => count > 0) ? (
         <>
-          {/* 'stale' means the cached list is displayable but the last refresh
-              FAILED. Showing it silently is how an outage reads as current. */}
-          {sessionsStatus === 'stale' ? (
-            <StaleNote role="status">
-              Couldn&apos;t refresh — showing your last saved history.
-              {onRetrySessions ? (
-                <RetryLink type="button" onClick={onRetrySessions}>Retry</RetryLink>
-              ) : null}
-            </StaleNote>
-          ) : null}
+
           <ProofRow>
             <ProofStat>
               <strong>{proof.thisWeekCount}</strong>

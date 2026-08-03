@@ -25,6 +25,10 @@ const buildStats = () => buildSidebarQuickStats({
     thisWeekCount: 3,
     minutesThisWeek: 145,
   },
+  // Both flags are REQUIRED: omitting them suppresses the tiles, because the
+  // builder now fails closed rather than fabricating a record.
+  gamificationKnown: true,
+  profileStatsKnown: true,
 });
 
 describe('UserDashboardQuickStatsTicker', () => {
@@ -122,7 +126,14 @@ describe('UserDashboardQuickStatsTicker', () => {
   });
 
   it('upgrades the non-home sidebar to use the same ticker surface', () => {
-    render(<UserDashboardSidebarV3 displayStats={displayStats} canonicalLevel={7} />);
+    render(
+      <UserDashboardSidebarV3
+        displayStats={displayStats}
+        canonicalLevel={7}
+        gamificationKnown
+        profileStatsKnown
+      />,
+    );
 
     expect(screen.getByLabelText('Quick stats ticker')).toBeInTheDocument();
     expect(screen.getByText('Workouts')).toBeInTheDocument();

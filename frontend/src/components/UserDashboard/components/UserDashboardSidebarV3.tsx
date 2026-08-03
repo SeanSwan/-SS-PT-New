@@ -31,7 +31,13 @@ export interface SidebarQuickStatsInput {
    * When false the gamification-derived tiles are omitted rather than rendered
    * as zeros — absent is not the same claim as "you have a 0-day streak".
    */
-  gamificationKnown?: boolean;
+  gamificationKnown: boolean;
+  /**
+   * Whether the profile-stats fetch succeeded. `useProfile` substitutes zeros
+   * (and `level: 1, tier: 'bronze'`) on failure with no error surface, so
+   * without this the ticker asserts "Workouts 0 / Posts 0" as the record.
+   */
+  profileStatsKnown: boolean;
 }
 
 interface UserDashboardSidebarV3Props extends SidebarQuickStatsInput {}
@@ -51,15 +57,16 @@ export const buildSidebarQuickStats = ({
   progressPercent = 0,
   pointsToNext = 0,
   trainingProof = null,
-  gamificationKnown = true,
+  gamificationKnown,
+  profileStatsKnown,
 }: SidebarQuickStatsInput): QuickStatsTickerStat[] => ([
-  {
+  ...(profileStatsKnown ? [{
     id: 'workouts',
     label: 'Workouts',
     value: statValue(displayStats.workouts),
     caption: 'Logged total',
     Icon: Dumbbell,
-  },
+  }] : []),
   // Every one of these derives from the gamification profile, which resolves
   // through `?? 0` upstream and therefore ALWAYS produces a plausible-looking
   // record. Omit them outright when that record is not known.
@@ -118,13 +125,13 @@ export const buildSidebarQuickStats = ({
       Icon: Timer,
     },
   ] : []),
-  {
+  ...(profileStatsKnown ? [{
     id: 'posts',
     label: 'Posts',
     value: statValue(displayStats.posts),
     caption: 'Community shares',
     Icon: MessageCircle,
-  },
+  }] : []),
   {
     id: 'followers',
     label: 'Followers',
