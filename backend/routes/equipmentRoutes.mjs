@@ -33,13 +33,14 @@
  */
 import express from 'express';
 import multer from 'multer';
-import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { protect } from '../middleware/authMiddleware.mjs';
 import {
   getEquipmentProfile,
   getEquipmentItem,
   getEquipmentExerciseMap,
   getEquipmentScanSession,
   getEquipmentScanCandidate,
+  getClientTrainerAssignment,
 } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { isEquipmentScanConfigured, scanEquipmentImageMulti } from '../services/equipmentScanService.mjs';
@@ -78,6 +79,20 @@ const VALID_RESISTANCE_TYPES = [
   'bodyweight', 'dumbbell', 'barbell', 'cable', 'band', 'machine', 'kettlebell', 'other'
 ];
 const VALID_LOCATION_TYPES = ['gym', 'park', 'home', 'client_home', 'custom'];
+// ─ S4 all-roles ownership policy ─────────────────────────────────────
+// `trainerId` on equipment_profiles is the GENERIC owner id (any role) since
+// migration 20260804120000; `ownerRole` records the owner's role.
+const VALID_OWNER_ROLES = ['trainer', 'client', 'user', 'admin'];
+// Roles with full trainer-grade equipment powers. Every OTHER role (client,
+// user, or anything unrecognized — fail-closed) is a "limited owner":
+// 3-profile cap, home/park/custom locations only, 5/hr scan budget, no
+// default-profile auto-seed.
+const FULL_ACCESS_ROLES = ['trainer', 'admin'];
+const LIMITED_OWNER_LOCATION_TYPES = ['home', 'park', 'custom'];
+const LIMITED_OWNER_MAX_ACTIVE_PROFILES = 3;
+function isLimitedOwnerRole(role) {
+  return !FULL_ACCESS_ROLES.includes(role);
+}
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -95,15 +110,23 @@ const upload = multer({
   },
 });
 
-// All routes require authentication + trainer/admin role
-router.use(protect, authorize(['admin', 'trainer']));
+// All routes require authentication. S4: role gating is per-route policy —
+// every role gets in, but each handler enforces per-row ownership (owner or
+// admin; trainers additionally get READ-ONLY access to assigned clients'
+// profiles) plus the limited-owner creation/scan caps above.
+router.use(protect);
 
-// Rate limit tracking for AI scans (in-memory, per-trainer)
+// Rate limit tracking for AI scans (in-memory, per-owner)
 const scanRateMap = new Map();
-const SCAN_LIMIT = 10;
+const SCAN_LIMIT = 10;         // trainer/admin scans per hour
+const SCAN_LIMIT_LIMITED = 5;  // client/user scans per hour (S4)
 const SCAN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-function checkScanRate(trainerId) {
+function scanLimitForRole(role) {
+  return isLimitedOwnerRole(role) ? SCAN_LIMIT_LIMITED : SCAN_LIMIT;
+}
+
+function checkScanRate(trainerId, limit = SCAN_LIMIT) {
   const now = Date.now();
   const entry = scanRateMap.get(trainerId);
 
@@ -120,15 +143,41 @@ function checkScanRate(trainerId) {
     scanRateMap.set(trainerId, { windowStart: now, count: 1 });
     return true;
   }
-  if (entry.count >= SCAN_LIMIT) return false;
+  if (entry.count >= limit) return false;
   entry.count++;
   return true;
 }
 
 /**
- * Check profile ownership. Returns the profile or sends 403/404.
+ * S4: trainers get READ-ONLY visibility into profiles owned by clients who
+ * are ACTIVELY assigned to them (ClientTrainerAssignment status 'active' —
+ * the canonical filter used across authRoutes/clientTrainerAssignmentRoutes).
+ * Fail-closed: any lookup problem or missing model denies access.
  */
-async function getOwnedProfile(req, res) {
+async function trainerHasActiveAssignment(trainerUserId, ownerUserId) {
+  try {
+    const ClientTrainerAssignment = typeof getClientTrainerAssignment === 'function'
+      ? getClientTrainerAssignment()
+      : null;
+    if (!ClientTrainerAssignment?.findOne) return false;
+    const assignment = await ClientTrainerAssignment.findOne({
+      where: { trainerId: trainerUserId, clientId: ownerUserId, status: 'active' },
+    });
+    return !!assignment;
+  } catch (err) {
+    logger.warn('[EquipmentRoutes] Assignment lookup failed (fail-closed)', { error: err.message });
+    return false;
+  }
+}
+
+/**
+ * Check profile ownership. Returns the profile or sends 403/404.
+ * S4 policy: the requester owns a profile when profile.trainerId (generic
+ * owner id) === req.user.id — ANY role — or when the requester is admin.
+ * With `allowAssignedTrainerRead` (GET routes only), a trainer may also READ
+ * a profile owned by a client actively assigned to them.
+ */
+async function getOwnedProfile(req, res, { allowAssignedTrainerRead = false } = {}) {
   const profileId = parseInt(req.params.id, 10);
   if (isNaN(profileId)) {
     res.status(400).json({ success: false, error: 'Invalid profile ID' });
@@ -141,6 +190,10 @@ async function getOwnedProfile(req, res) {
     return null;
   }
   if (profile.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (allowAssignedTrainerRead && req.user.role === 'trainer'
+        && await trainerHasActiveAssignment(req.user.id, profile.trainerId)) {
+      return profile; // read-only path — writes never pass this flag
+    }
     res.status(403).json({ success: false, error: 'Access denied' });
     return null;
   }
@@ -150,8 +203,8 @@ async function getOwnedProfile(req, res) {
 /**
  * Check item ownership via profile. Returns the item or sends error.
  */
-async function getOwnedItem(req, res) {
-  const profile = await getOwnedProfile(req, res);
+async function getOwnedItem(req, res, options = {}) {
+  const profile = await getOwnedProfile(req, res, options);
   if (!profile) return null;
   const itemId = parseInt(req.params.itemId, 10);
   if (isNaN(itemId)) {
@@ -184,9 +237,24 @@ router.get('/', async (req, res) => {
   try {
     const EquipmentProfile = getEquipmentProfile();
     const where = { isActive: true };
-    const trainerId = req.user.role !== 'admin'
-      ? req.user.id
-      : req.query.trainerId ? parseInt(req.query.trainerId, 10) : null;
+    // S4 owner resolution: admin may browse any owner (?trainerId=), everyone
+    // else defaults to their own rows. A trainer may LIST an actively
+    // assigned client's profiles via ?trainerId=<clientId> (read-only view);
+    // any other cross-owner request is denied fail-closed.
+    const requestedOwner = req.query.trainerId ? parseInt(req.query.trainerId, 10) : null;
+    let trainerId; // generic owner id filter (column name kept as deprecated alias)
+    if (req.user.role === 'admin') {
+      trainerId = requestedOwner;
+    } else if (requestedOwner && requestedOwner !== req.user.id) {
+      if (req.user.role === 'trainer'
+          && await trainerHasActiveAssignment(req.user.id, requestedOwner)) {
+        trainerId = requestedOwner;
+      } else {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    } else {
+      trainerId = req.user.id;
+    }
 
     if (trainerId) {
       where.trainerId = trainerId;
@@ -205,10 +273,17 @@ router.get('/', async (req, res) => {
     // with request filters (e.g. ?locationType=custom), so an empty filtered
     // result must not re-seed defaults for a trainer who already owns
     // (possibly renamed or archived) profiles.
+    // S4: seeds ONLY the requester's OWN list, and ONLY for trainer/admin —
+    // clients/users start empty, and browsing someone ELSE'S empty list
+    // (admin ?trainerId=, trainer viewing an assigned client) must never
+    // plant gym defaults on that owner.
     if (profiles.length === 0 && trainerId
+        && trainerId === req.user.id
+        && FULL_ACCESS_ROLES.includes(req.user.role)
         && (await EquipmentProfile.count({ where: { trainerId } })) === 0) {
       try {
-        const defaults = DEFAULT_PROFILES.map(d => ({ ...d, trainerId }));
+        const seedRole = req.user.role === 'admin' ? 'admin' : 'trainer';
+        const defaults = DEFAULT_PROFILES.map(d => ({ ...d, trainerId, ownerRole: seedRole }));
         await EquipmentProfile.bulkCreate(defaults);
         profiles = await EquipmentProfile.findAll({
           where,
@@ -289,6 +364,28 @@ router.post('/', async (req, res) => {
 
     const EquipmentProfile = getEquipmentProfile();
 
+    // ─ S4 limited-owner creation policy (client/user) ─────────────────
+    // Location subset + active-profile cap. Checked BEFORE the duplicate
+    // lookup so the cheapest rejection wins. Trainer/admin unchanged.
+    if (isLimitedOwnerRole(req.user.role)) {
+      if (locationType !== undefined && locationType !== null
+          && !LIMITED_OWNER_LOCATION_TYPES.includes(locationType)) {
+        return res.status(400).json({
+          success: false,
+          error: `locationType must be one of: ${LIMITED_OWNER_LOCATION_TYPES.join(', ')}`,
+        });
+      }
+      const activeCount = await EquipmentProfile.count({
+        where: { trainerId: req.user.id, isActive: true },
+      });
+      if (activeCount >= LIMITED_OWNER_MAX_ACTIVE_PROFILES) {
+        return res.status(409).json({
+          success: false,
+          error: `Profile limit reached (max ${LIMITED_OWNER_MAX_ACTIVE_PROFILES}). Archive a profile before creating another.`,
+        });
+      }
+    }
+
     // Check for duplicate name — ACTIVE profiles only (archived names must be
     // re-creatable), CASE-INSENSITIVE to match the partial lower(name) index.
     // (Name length is already validated ≤100 above, matching STRING(100).)
@@ -301,6 +398,10 @@ router.post('/', async (req, res) => {
 
     const profile = await EquipmentProfile.create({
       trainerId: req.user.id,
+      // S4: stamp the owner's role; unrecognized roles are clamped to the
+      // most-restricted 'user' (they already went through the limited-owner
+      // policy above, since isLimitedOwnerRole is fail-closed).
+      ownerRole: VALID_OWNER_ROLES.includes(req.user.role) ? req.user.role : 'user',
       name: name.trim(),
       locationType: VALID_LOCATION_TYPES.includes(locationType) ? locationType : 'custom',
       description: description?.slice(0, 1000) || null,
@@ -323,7 +424,7 @@ router.post('/', async (req, res) => {
 // GET /api/equipment-profiles/:id — Get profile with items
 router.get('/:id', async (req, res) => {
   try {
-    const profile = await getOwnedProfile(req, res);
+    const profile = await getOwnedProfile(req, res, { allowAssignedTrainerRead: true });
     if (!profile) return;
 
     const EquipmentItem = getEquipmentItem();
@@ -354,6 +455,14 @@ router.put('/:id', async (req, res) => {
       updates.name = name.trim().slice(0, 100);
     }
     if (locationType !== undefined && VALID_LOCATION_TYPES.includes(locationType)) {
+      // S4: limited owners (client/user) can't sidestep the creation subset
+      // via update — same home/park/custom restriction applies.
+      if (isLimitedOwnerRole(req.user.role) && !LIMITED_OWNER_LOCATION_TYPES.includes(locationType)) {
+        return res.status(400).json({
+          success: false,
+          error: `locationType must be one of: ${LIMITED_OWNER_LOCATION_TYPES.join(', ')}`,
+        });
+      }
       updates.locationType = locationType;
     }
     // P0.3c input hardening: both fields feed .slice — non-string must be a
@@ -418,7 +527,7 @@ router.delete('/:id', async (req, res) => {
 // GET /api/equipment-profiles/:id/items — List items in profile
 router.get('/:id/items', async (req, res) => {
   try {
-    const profile = await getOwnedProfile(req, res);
+    const profile = await getOwnedProfile(req, res, { allowAssignedTrainerRead: true });
     if (!profile) return;
 
     const EquipmentItem = getEquipmentItem();
@@ -613,11 +722,12 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       });
     }
 
-    // Rate limit: 10 scans/hour per trainer
-    if (!checkScanRate(req.user.id)) {
+    // Rate limit: 10 scans/hour for trainer/admin, 5/hour for client/user (S4)
+    const scanLimit = scanLimitForRole(req.user.role);
+    if (!checkScanRate(req.user.id, scanLimit)) {
       return res.status(429).json({
         success: false,
-        error: 'Rate limit exceeded. Maximum 10 scans per hour.',
+        error: `Rate limit exceeded. Maximum ${scanLimit} scans per hour.`,
       });
     }
 
@@ -810,7 +920,10 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       possibleItems: possibleCandidates,
       duplicates: duplicateCandidates,
       scanSession: scanSessionResponse,
-
+      // V3 honesty flags: the UI shows a "limited scan" banner instead of
+      // pretending a caption fallback saw the whole scene.
+      degraded: scanSession.degraded === true,
+      pipelineVersion: scanSession.pipelineVersion || null,
       scanResult: scanResultResponse,
     });
   } catch (err) {
@@ -893,8 +1006,8 @@ router.put('/:id/scan-candidates/:candidateIndex/review', async (req, res) => {
 // POST /api/equipment-profiles/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan
 // "Scan this spot closer" — crop re-scan of a `possible` candidate's region.
 // The trainer re-uploads the ORIGINAL photo as multipart `photo`; the server
-// NEVER fetches remote URLs (SSRF forbidden). Counts against the same 10/hr
-// scan rate limiter as /scan.
+// NEVER fetches remote URLs (SSRF forbidden). Counts against the same
+// per-role scan rate limiter as /scan (10/hr trainer/admin, 5/hr client/user).
 router.post('/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan', upload.single('photo'), async (req, res) => {
   try {
     const profile = await getOwnedProfile(req, res);
@@ -946,11 +1059,12 @@ router.post('/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan', u
       });
     }
 
-    // Shares the /scan budget: 10 AI scans per hour per trainer.
-    if (!checkScanRate(req.user.id)) {
+    // Shares the /scan budget: 10/hr trainer/admin, 5/hr client/user (S4).
+    const scanLimit = scanLimitForRole(req.user.role);
+    if (!checkScanRate(req.user.id, scanLimit)) {
       return res.status(429).json({
         success: false,
-        error: 'Rate limit exceeded. Maximum 10 scans per hour.',
+        error: `Rate limit exceeded. Maximum ${scanLimit} scans per hour.`,
       });
     }
 
@@ -1208,7 +1322,7 @@ router.put('/:id/items/:itemId/reject', async (req, res) => {
 // GET /api/equipment-profiles/:id/items/:itemId/exercises — List mappings
 router.get('/:id/items/:itemId/exercises', async (req, res) => {
   try {
-    const result = await getOwnedItem(req, res);
+    const result = await getOwnedItem(req, res, { allowAssignedTrainerRead: true });
     if (!result) return;
 
     const EquipmentExerciseMap = getEquipmentExerciseMap();
