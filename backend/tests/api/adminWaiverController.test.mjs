@@ -521,13 +521,14 @@ describe('attachUser', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
-  it('F2 — returns 400 if userId not provided', async () => {
+  it('F2 — returns 400 if userId not provided (no transaction opened for invalid input)', async () => {
     const req = makeReq({ params: { id: '10' }, body: {} });
     const res = makeRes();
     await attachUser(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(mockRollback).toHaveBeenCalled();
+    // SWA-140 S1: validation now runs BEFORE the transaction opens.
+    expect(mockRollback).not.toHaveBeenCalled();
   });
 
   it('F3 — returns 404 if waiver record not found', async () => {
@@ -776,5 +777,76 @@ describe('markReconsentRequired', () => {
     await markReconsentRequired(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+// ── SWA-140 S1: malformed input returns 400, not a Postgres 500 (W7) ──
+describe('SWA-140 S1 — id and filter validation', () => {
+  it('W7.1 — getWaiverRecordDetail 400s on non-numeric id', async () => {
+    const req = makeReq({ params: { id: 'abc' } });
+    const res = makeRes();
+    await getWaiverRecordDetail(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindByPk).not.toHaveBeenCalled();
+  });
+
+  it('W7.2 — approveMatch 400s on non-numeric matchId without opening a transaction', async () => {
+    const req = makeReq({ params: { matchId: '1; DROP TABLE' } });
+    const res = makeRes();
+    await approveMatch(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindByPk).not.toHaveBeenCalled();
+    expect(mockRollback).not.toHaveBeenCalled();
+  });
+
+  it('W7.3 — rejectMatch 400s on non-numeric matchId', async () => {
+    const req = makeReq({ params: { matchId: 'null' } });
+    const res = makeRes();
+    await rejectMatch(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindByPk).not.toHaveBeenCalled();
+  });
+
+  it('W7.4 — attachUser 400s on non-numeric record id and non-integer userId', async () => {
+    const badRecord = makeReq({ params: { id: 'x' }, body: { userId: 42 } });
+    const res1 = makeRes();
+    await attachUser(badRecord, res1);
+    expect(res1.status).toHaveBeenCalledWith(400);
+
+    const badUser = makeReq({ params: { id: '10' }, body: { userId: 'not-an-id' } });
+    const res2 = makeRes();
+    await attachUser(badUser, res2);
+    expect(res2.status).toHaveBeenCalledWith(400);
+    expect(mockFindByPk).not.toHaveBeenCalled();
+  });
+
+  it('W7.5 — revokeWaiver 400s on non-numeric id', async () => {
+    const req = makeReq({ params: { id: '10.5' } });
+    const res = makeRes();
+    await revokeWaiver(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindByPk).not.toHaveBeenCalled();
+  });
+
+  it('W7.6 — listWaiverRecords 400s on out-of-enum status/source filters', async () => {
+    const badStatus = makeReq({ query: { status: 'exploded' } });
+    const res1 = makeRes();
+    await listWaiverRecords(badStatus, res1);
+    expect(res1.status).toHaveBeenCalledWith(400);
+
+    const badSource = makeReq({ query: { source: 'carrier_pigeon' } });
+    const res2 = makeRes();
+    await listWaiverRecords(badSource, res2);
+    expect(res2.status).toHaveBeenCalledWith(400);
+    expect(mockFindAndCountAll).not.toHaveBeenCalled();
+  });
+
+  it('W7.7 — valid enum filters still pass through', async () => {
+    mockFindAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+    const req = makeReq({ query: { status: 'linked', source: 'qr' } });
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+    expect(mockFindAndCountAll).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 });

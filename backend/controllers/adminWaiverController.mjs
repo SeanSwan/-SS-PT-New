@@ -30,12 +30,23 @@ const BADGE_LABELS = {
 
 const POSITIVE_INTEGER = /^[1-9]\d*$/;
 
+// Query-filter allowlists — out-of-range values must 400, not surface as
+// Postgres enum errors dressed up as 500s (SWA-140 W7).
+const VALID_RECORD_STATUSES = ['pending_match', 'linked', 'superseded', 'revoked'];
+const VALID_RECORD_SOURCES = ['qr', 'header_waiver', 'admin_tablet', 'in_app'];
+
 function parseOptionalPositiveInteger(value) {
   if (value === undefined || value === null || String(value).trim() === '') return null;
   const normalized = String(value).trim();
   if (!POSITIVE_INTEGER.test(normalized)) return Number.NaN;
   const parsed = Number(normalized);
   return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
+}
+
+/** Required route/body id: returns a safe positive integer or null (SWA-140 W7). */
+function parseRequiredId(value) {
+  const parsed = parseOptionalPositiveInteger(value);
+  return parsed === null || Number.isNaN(parsed) ? null : parsed;
 }
 
 function applyClientWaiverFilter(where, clientId) {
@@ -143,8 +154,18 @@ export const listWaiverRecords = async (req, res) => {
     }
 
     const where = {};
-    if (req.query.status) where.status = req.query.status;
-    if (req.query.source) where.source = req.query.source;
+    if (req.query.status) {
+      if (!VALID_RECORD_STATUSES.includes(req.query.status)) {
+        return res.status(400).json({ success: false, error: 'Invalid status filter' });
+      }
+      where.status = req.query.status;
+    }
+    if (req.query.source) {
+      if (!VALID_RECORD_SOURCES.includes(req.query.source)) {
+        return res.status(400).json({ success: false, error: 'Invalid source filter' });
+      }
+      where.source = req.query.source;
+    }
     if (req.query.search) {
       const term = `%${req.query.search}%`;
       where[Op.or] = [
@@ -180,8 +201,13 @@ export const listWaiverRecords = async (req, res) => {
 // ─── 2. Waiver Record Detail ────────────────────────────────
 export const getWaiverRecordDetail = async (req, res) => {
   try {
+    const recordId = parseRequiredId(req.params.id);
+    if (recordId === null) {
+      return res.status(400).json({ success: false, error: 'Invalid waiver record id' });
+    }
+
     const WaiverRecord = getModel('WaiverRecord');
-    const record = await WaiverRecord.findByPk(req.params.id, {
+    const record = await WaiverRecord.findByPk(recordId, {
       include: detailIncludes(),
     });
 
@@ -200,12 +226,18 @@ export const getWaiverRecordDetail = async (req, res) => {
 
 // ─── 3. Approve Match (§10.2) ───────────────────────────────
 export const approveMatch = async (req, res) => {
+  const matchId = parseRequiredId(req.params.matchId);
+  if (matchId === null) {
+    return res.status(400).json({ success: false, error: 'Invalid match id' });
+  }
+
   const transaction = await sequelize.transaction();
   try {
     const PendingWaiverMatch = getModel('PendingWaiverMatch');
     const WaiverRecord = getModel('WaiverRecord');
+    const AiConsentLog = getModel('AiConsentLog');
 
-    const match = await PendingWaiverMatch.findByPk(req.params.matchId, {
+    const match = await PendingWaiverMatch.findByPk(matchId, {
       include: [{ association: 'waiverRecord' }],
       transaction,
     });
@@ -257,6 +289,20 @@ export const approveMatch = async (req, res) => {
       },
     );
 
+    // Audit: approving a match is the action that legally binds a signed
+    // document to an identity — it must be queryable, not a log line (SWA-140 W8).
+    await AiConsentLog.create(
+      {
+        userId: match.candidateUserId,
+        action: 'override_used',
+        sourceType: 'waiver_record',
+        sourceId: match.waiverRecordId,
+        actorUserId: req.user.id,
+        reason: `Match ${match.id} approved (${match.matchMethod || 'unknown method'})`,
+      },
+      { transaction },
+    );
+
     await transaction.commit();
     logger.info(`[AdminWaiverController] Match ${match.id} approved by admin ${req.user.id}`);
     return res.json({ success: true, message: 'Match approved and waiver linked' });
@@ -270,8 +316,13 @@ export const approveMatch = async (req, res) => {
 // ─── 4. Reject Match (§10.2) ────────────────────────────────
 export const rejectMatch = async (req, res) => {
   try {
+    const matchId = parseRequiredId(req.params.matchId);
+    if (matchId === null) {
+      return res.status(400).json({ success: false, error: 'Invalid match id' });
+    }
+
     const PendingWaiverMatch = getModel('PendingWaiverMatch');
-    const match = await PendingWaiverMatch.findByPk(req.params.matchId, {
+    const match = await PendingWaiverMatch.findByPk(matchId, {
       include: [{ association: 'waiverRecord' }],
     });
 
@@ -291,6 +342,18 @@ export const rejectMatch = async (req, res) => {
 
     await match.update({ status: 'rejected', reviewedByUserId: req.user.id, reviewedAt: new Date() });
 
+    // Audit row for the negative decision too — "who decided this was NOT the
+    // same person" is discovery material exactly like the approval (SWA-140 W8).
+    const AiConsentLog = getModel('AiConsentLog');
+    await AiConsentLog.create({
+      userId: match.candidateUserId || null,
+      action: 'override_used',
+      sourceType: 'waiver_record',
+      sourceId: match.waiverRecordId,
+      actorUserId: req.user.id,
+      reason: `Match ${match.id} rejected (${match.matchMethod || 'unknown method'})`,
+    });
+
     logger.info(`[AdminWaiverController] Match ${match.id} rejected by admin ${req.user.id}`);
     return res.json({ success: true, message: 'Match rejected' });
   } catch (error) {
@@ -301,6 +364,15 @@ export const rejectMatch = async (req, res) => {
 
 // ─── 5. Manual Attach User (§10.2: /:id/attach-user) ───────
 export const attachUser = async (req, res) => {
+  const recordId = parseRequiredId(req.params.id);
+  if (recordId === null) {
+    return res.status(400).json({ success: false, error: 'Invalid waiver record id' });
+  }
+  const userId = parseRequiredId(req.body?.userId);
+  if (userId === null) {
+    return res.status(400).json({ success: false, error: 'userId is required and must be a positive integer' });
+  }
+
   const transaction = await sequelize.transaction();
   try {
     const WaiverRecord = getModel('WaiverRecord');
@@ -308,13 +380,7 @@ export const attachUser = async (req, res) => {
     const PendingWaiverMatch = getModel('PendingWaiverMatch');
     const AiConsentLog = getModel('AiConsentLog');
 
-    const { userId } = req.body;
-    if (!userId) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, error: 'userId is required' });
-    }
-
-    const record = await WaiverRecord.findByPk(req.params.id, { transaction });
+    const record = await WaiverRecord.findByPk(recordId, { transaction });
     if (!record) {
       await transaction.rollback();
       return res.status(404).json({ success: false, error: 'Waiver record not found' });
@@ -376,13 +442,18 @@ export const attachUser = async (req, res) => {
 
 // ─── 6. Revoke Waiver ──────────────────────────────────────
 export const revokeWaiver = async (req, res) => {
+  const recordId = parseRequiredId(req.params.id);
+  if (recordId === null) {
+    return res.status(400).json({ success: false, error: 'Invalid waiver record id' });
+  }
+
   const transaction = await sequelize.transaction();
   try {
     const WaiverRecord = getModel('WaiverRecord');
     const AiConsentLog = getModel('AiConsentLog');
     const PendingWaiverMatch = getModel('PendingWaiverMatch');
 
-    const record = await WaiverRecord.findByPk(req.params.id, {
+    const record = await WaiverRecord.findByPk(recordId, {
       include: [{ association: 'consentFlags' }],
       transaction,
     });

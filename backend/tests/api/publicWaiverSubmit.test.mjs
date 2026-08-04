@@ -54,6 +54,7 @@ vi.mock('../../database.mjs', () => ({
 import {
   getCurrentWaiverVersions,
   submitPublicWaiver,
+  __clearVersionsCache,
 } from '../../controllers/publicWaiverController.mjs';
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -134,6 +135,9 @@ function setupModels(versionRows = makeVersionRows()) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The controller caches /versions/current for 60s at module level — each
+  // spec must see its own mocked data, not the previous spec's payload.
+  __clearVersionsCache();
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -301,7 +305,7 @@ describe('submitPublicWaiver', () => {
         return {
           create: vi.fn().mockImplementation((data) => {
             createCalls.push({ model: 'WaiverRecord', data });
-            return { id: 42 };
+            return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) };
           }),
         };
       }
@@ -355,7 +359,7 @@ describe('submitPublicWaiver', () => {
     mockGetModel.mockImplementation((name) => {
       if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(versions) };
       if (name === 'WaiverRecord') {
-        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42 }; }) };
+        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) }; }) };
       }
       if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
       if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
@@ -381,7 +385,7 @@ describe('submitPublicWaiver', () => {
     mockGetModel.mockImplementation((name) => {
       if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(versions) };
       if (name === 'WaiverRecord') {
-        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42 }; }) };
+        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) }; }) };
       }
       if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
       if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
@@ -489,7 +493,7 @@ describe('submitPublicWaiver', () => {
     mockGetModel.mockImplementation((name) => {
       if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(versions) };
       if (name === 'WaiverRecord') {
-        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42 }; }) };
+        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) }; }) };
       }
       if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
       if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
@@ -564,7 +568,7 @@ describe('submitPublicWaiver', () => {
     mockGetModel.mockImplementation((name) => {
       if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(versions) };
       if (name === 'WaiverRecord') {
-        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42 }; }) };
+        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) }; }) };
       }
       if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
       if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
@@ -580,5 +584,40 @@ describe('submitPublicWaiver', () => {
     expect(res.statusCode).toBe(201);
     expect(recordArgs.userId).toBeNull();
     expect(recordArgs.status).toBe('pending_match');
+  });
+});
+
+// ── SWA-140 S1: evidence columns persisted (Drift-1/2 regression) ──
+describe('SWA-140 S1 — typed evidence columns are written', () => {
+  it('S1.1 — persists activityTypes, ipAddress, userAgent, signedAt to their columns (not only metadata)', async () => {
+    const versions = makeVersionRows();
+    let recordArgs;
+
+    mockGetModel.mockImplementation((name) => {
+      if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(versions) };
+      if (name === 'WaiverRecord') {
+        return { create: vi.fn().mockImplementation((data) => { recordArgs = data; return { id: 42, metadata: data.metadata, update: vi.fn().mockResolvedValue(undefined) }; }) };
+      }
+      if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
+      if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
+      if (name === 'User') return { findAll: vi.fn().mockResolvedValue([]) };
+      if (name === 'PendingWaiverMatch') return { bulkCreate: vi.fn().mockResolvedValue([]) };
+      return {};
+    });
+
+    const req = makeReq({ ...VALID_BODY });
+    const res = makeRes();
+    await submitPublicWaiver(req, res);
+
+    expect(res.statusCode).toBe(201);
+    // Drift-1: the typed activityTypes column must carry the validated selection.
+    expect(recordArgs.activityTypes).toEqual(VALID_BODY.activityTypes);
+    // Drift-2: ip/user-agent land in their typed columns…
+    expect(recordArgs.ipAddress).toBe('127.0.0.1');
+    expect(recordArgs.userAgent).toBe('test-agent');
+    expect(recordArgs.signedAt).toBeInstanceOf(Date);
+    // …while the legal-evidence metadata copies remain (continuity, not either/or).
+    expect(recordArgs.metadata.ipAddress).toBe('127.0.0.1');
+    expect(recordArgs.metadata.userAgent).toBe('test-agent');
   });
 });
