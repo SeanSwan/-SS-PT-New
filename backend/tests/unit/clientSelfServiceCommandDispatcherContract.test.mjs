@@ -160,13 +160,18 @@ describe('client self-service command dispatchers', () => {
       where: { userId: 17 },
     }));
     expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isCompleted: true } });
-    // SWA-87: `isNew` is NOT a column on "UserAchievements" (and it collides with
-    // Sequelize's own instance flag), so this WHERE could never have run against
-    // the real table. The unseen-badge count is now derived from the real column
-    // pair isCompleted + notificationSent.
-    expect(UserAchievement.count).toHaveBeenCalledWith({
-      where: { userId: 17, isCompleted: true, notificationSent: false },
-    });
+    // "New" has been defined wrong twice, each time producing a plausible wrong NUMBER rather
+    // than an error: `isNew` (not a column — always 0), then `notificationSent: false` (a real
+    // column that NOTHING ever sets to true — always all-completed). It is now a recency window
+    // over `earnedAt`, the only signal the data actually carries. See achievementRecency.mjs.
+    const newCountCall = UserAchievement.count.mock.calls
+      .map(([args]) => args)
+      .find((args) => args?.where?.earnedAt);
+    expect(newCountCall).toBeDefined();
+    expect(newCountCall.where).toMatchObject({ userId: 17, isCompleted: true });
+    expect(UserAchievement.count).not.toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ notificationSent: false }) }),
+    );
     expect(xp).toEqual({
       userId: 17,
       level: 7,
