@@ -68,7 +68,24 @@ if (argv.includes('--help') || argv.includes('-h')) {
 
 const verifyOnly = argv.includes('--verify-only');
 const keepIdx = argv.indexOf('--keep');
-const KEEP = keepIdx !== -1 && argv[keepIdx + 1] ? Math.max(1, Number(argv[keepIdx + 1])) : 10;
+// VALIDATE, do not coerce. The previous line was `Math.max(1, Number(arg))`, and Number('2o') is
+// NaN — Math.max(1, NaN) is NaN, and `array.slice(NaN)` is `array.slice(0)`, i.e. EVERYTHING.
+// Reproduced 2026-08-04: `--keep 2o` took a successful backup and then pruned 10 of 10 dumps,
+// including the one it had just written, printed `retained: NaN`, and exited 0. A single typo in
+// the one argument whose entire job is "how much history do I keep" silently destroyed all of it.
+// Fail loudly instead: the whole point of this file is that a backup you cannot trust is worse
+// than none, and that applies hardest to its own arguments.
+let KEEP = 10;
+if (keepIdx !== -1) {
+  const raw = argv[keepIdx + 1];
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    console.error(`  --keep expects a positive integer, got "${raw ?? ''}"`);
+    console.error('  Refusing to run: an unparseable retention value would prune every dump.');
+    process.exit(2);
+  }
+  KEEP = n;
+}
 const DEST = process.env.SWAN_DB_BACKUP_DIR || 'Z:/SwanStudios-backups/db';
 
 /** Read DATABASE_URL without ever echoing it. */
@@ -167,11 +184,18 @@ function tableCounts(url, db) {
   return map;
 }
 
+/** md5 over the highest-value table. Taken pre-dump so the comparison is against the same
+ *  instant pg_dump snapshots — see the note at its use site. */
+function digestOf(url, db) {
+  return psqlScalar(url,
+    `SELECT md5(string_agg(t::text, '|' ORDER BY t.id)) FROM (SELECT id, email, role FROM "Users") t`, db);
+}
+
 /**
  * The real test: restore into a scratch database and compare against the source.
  * The scratch database is dropped in `finally` — including when the restore throws.
  */
-function proveRestorable(url, file, srcTables, srcCounts) {
+function proveRestorable(url, file, srcTables, srcCounts, srcDigest) {
   const scratch = `swan_restoretest_${process.pid}`;
   const admin = url.replace(/\/[^/?]+(\?|$)/, '/postgres$1');
   let created = false;
@@ -222,10 +246,15 @@ function proveRestorable(url, file, srcTables, srcCounts) {
 
     // Content check on the highest-value table: identical rows produce an identical digest, so this
     // catches truncated text and encoding corruption that a row count cannot see.
-    const digest = (db) => psqlScalar(url,
-      `SELECT md5(string_agg(t::text, '|' ORDER BY t.id)) FROM (SELECT id, email, role FROM "Users") t`, db);
-    const srcDigest = digest(null);
-    const gotDigest = digest(scratch);
+    //
+    // The baseline is passed IN, captured before pg_dump ran. It used to be computed here — after
+    // dump and restore, potentially minutes later — and compared against a dump that is an MVCC
+    // snapshot as of dump START. Any user changing their email or role in that window produced a
+    // mismatch, and the mismatch path DELETES the dump. So a routine profile edit during a backup
+    // could destroy a perfectly good backup. The row-count check never had this flaw because it is
+    // asymmetric (only FEWER rows is fatal); the digest is an equality test and fails both ways,
+    // which is exactly why its baseline has to be taken at the same instant the dump sees.
+    const gotDigest = digestOf(url, scratch);
     const digestNote = srcDigest && gotDigest
       ? (srcDigest === gotDigest ? 'Users digest MATCHES' : 'Users digest DIFFERS')
       : 'Users digest unavailable';
@@ -304,6 +333,8 @@ function main() {
     console.error('  could not read the source schema — refusing to write a backup I cannot compare against');
     process.exit(2);
   }
+  // Baseline captured BEFORE pg_dump, same as the counts — see digestOf.
+  const srcDigest = digestOf(url);
   const srcTables = srcCounts.size;
   const srcRows = [...srcCounts.values()].reduce((a, b) => a + b, 0);
   console.log(`  source       : ${srcTables} tables, ${srcRows} rows (exact)`);
@@ -326,7 +357,7 @@ function main() {
   const v = verifyArchive(file);
   console.log(`  archive check: ${v.ok ? `OK — ${v.entries} objects` : 'FAILED'}`);
 
-  const rr = v.ok ? proveRestorable(url, file, srcTables, srcCounts) : { ok: false, detail: 'skipped — archive check failed' };
+  const rr = v.ok ? proveRestorable(url, file, srcTables, srcCounts, srcDigest) : { ok: false, detail: 'skipped — archive check failed' };
   console.log(`  restore test : ${rr.ok ? `OK — ${rr.detail}` : 'FAILED'}`);
 
   if (!v.ok || !rr.ok) {
