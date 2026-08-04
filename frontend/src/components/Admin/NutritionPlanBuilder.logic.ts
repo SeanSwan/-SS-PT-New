@@ -1,4 +1,4 @@
-import type { MealDraft, NutritionPayloadInput, NutritionPlanPayload } from './NutritionPlanBuilder.types';
+import type { MealDraft, NutritionApiErrorMap, NutritionPayloadInput, NutritionPlanPayload } from './NutritionPlanBuilder.types';
 
 export const defaultMeal: MealDraft = { name: '', time: '', items: '' };
 
@@ -58,3 +58,50 @@ export const buildNutritionPayload = ({
   startDate: startDate || new Date().toISOString().split('T')[0],
   endDate: endDate || null,
 });
+
+/**
+ * Fields the backend validators (nutritionPlanValidation + nutritionTargetService)
+ * name at the start of their error strings, e.g. "proteinGrams must be between 0 and 500".
+ * Anything that doesn't match (like the cross-field 4/4/9 macro check) is a form-level error.
+ */
+const NUTRITION_ERROR_FIELDS = [
+  'planName',
+  'dailyCalories',
+  'proteinGrams',
+  'carbsGrams',
+  'fatGrams',
+  'fiberGrams',
+  'hydrationTargetLiters',
+  'hydrationTarget',
+  'notes',
+  'mealsJson',
+  'groceryListJson',
+  'startDate',
+  'endDate',
+] as const;
+
+/**
+ * Map the backend's 400 `{ errors: [...] }` strings onto the form fields they
+ * describe so they can render inline next to the matching input. Unrecognized
+ * messages (e.g. "macro grams imply more calories than dailyCalories allows")
+ * land in `form` and render at the grid level.
+ */
+export const mapNutritionApiErrors = (errors: unknown): NutritionApiErrorMap => {
+  const fields: Record<string, string[]> = {};
+  const form: string[] = [];
+
+  if (!Array.isArray(errors)) return { fields, form };
+
+  for (const raw of errors) {
+    if (typeof raw !== 'string' || !raw.trim()) continue;
+    const message = raw.trim();
+    const field = NUTRITION_ERROR_FIELDS.find((name) => message.startsWith(name));
+    if (field) {
+      (fields[field] ??= []).push(message);
+    } else {
+      form.push(message);
+    }
+  }
+
+  return { fields, form };
+};

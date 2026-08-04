@@ -4,7 +4,7 @@
  * Crystalline Swan themed admin UI for creating nutrition plans for clients.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ErrorText } from '../UniversalMasterSchedule/ui';
 import { useNutritionPlan } from '../../hooks/useNutritionPlan';
@@ -14,6 +14,7 @@ import {
   defaultMeal,
   generateGroceryListText,
   mapExistingPlanMeals,
+  mapNutritionApiErrors,
 } from './NutritionPlanBuilder.logic';
 import {
   BuilderHeader,
@@ -29,11 +30,11 @@ import type { MealDraft } from './NutritionPlanBuilder.types';
 
 const NutritionPlanBuilder: React.FC = () => {
   const { clientId: clientIdParam } = useParams();
-  const [clientIdInput, setClientIdInput] = useState(clientIdParam || '');
-  const numericClientId = useMemo(() => {
-    const parsed = Number(clientIdInput);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }, [clientIdInput]);
+  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() => {
+    const parsed = Number(clientIdParam);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+  });
+  const numericClientId = selectedClientId;
 
   const { data: existingPlan, isLoading, error: loadError, refetch } = useNutritionPlan(numericClientId);
 
@@ -48,8 +49,31 @@ const NutritionPlanBuilder: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Switching clients starts a fresh conversation — stale save results,
+  // bounds errors, AND form values from the previous client must not linger
+  // (a leftover plan silently written to the wrong client is a data hazard).
+  // If the new client has a plan, the existingPlan effect below refills it.
+  useEffect(() => {
+    setFormError(null);
+    setFieldErrors({});
+    setFormErrors([]);
+    setSuccessMessage(null);
+    setPlanName('');
+    setDailyCalories('');
+    setProteinGrams('');
+    setCarbsGrams('');
+    setFatGrams('');
+    setNotes('');
+    setMeals([{ ...defaultMeal }]);
+    setGroceryListText('');
+    setStartDate('');
+    setEndDate('');
+  }, [numericClientId]);
 
   useEffect(() => {
     if (!existingPlan) return;
@@ -90,10 +114,12 @@ const NutritionPlanBuilder: React.FC = () => {
 
   const handleSubmit = async () => {
     setFormError(null);
+    setFieldErrors({});
+    setFormErrors([]);
     setSuccessMessage(null);
 
     if (!numericClientId) {
-      setFormError('Valid client ID is required.');
+      setFormError('Select a client before saving.');
       return;
     }
 
@@ -127,35 +153,62 @@ const NutritionPlanBuilder: React.FC = () => {
       const result = response.data;
 
       if (result?.success === false) {
-        setFormError(result?.message || 'Failed to save nutrition plan.');
+        applyApiErrors(result?.errors, result?.message);
         return;
       }
 
-      setSuccessMessage('Nutrition plan saved successfully.');
+      // The backend now also activates a versioned nutrition target when macro
+      // fields are present, and returns it as `target`.
+      setSuccessMessage(
+        result?.target
+          ? 'Nutrition plan saved. Macro targets are now active for adherence tracking.'
+          : 'Nutrition plan saved successfully.'
+      );
       await refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving nutrition plan:', error);
-      setFormError('Network error saving nutrition plan.');
+      const data = error?.response?.data;
+      if (Array.isArray(data?.errors) && data.errors.length > 0) {
+        applyApiErrors(data.errors, data?.message);
+      } else if (data?.message) {
+        setFormError(data.message);
+      } else {
+        setFormError('Network error saving nutrition plan.');
+      }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  /** Surface the backend's 400 `{ errors: [...] }` bounds violations inline. */
+  const applyApiErrors = (errors: unknown, message?: string) => {
+    const mapped = mapNutritionApiErrors(errors);
+    const hasInline = Object.keys(mapped.fields).length > 0 || mapped.form.length > 0;
+    setFieldErrors(mapped.fields);
+    setFormErrors(mapped.form);
+    setFormError(
+      hasInline
+        ? message || 'Some values are out of bounds — fix the highlighted fields.'
+        : message || 'Failed to save nutrition plan.'
+    );
   };
 
   return (
     <PageWrapper>
       <BuilderHeader />
       <ClientSelectionCard
-        clientIdInput={clientIdInput}
         isLoading={isLoading}
         loadError={loadError}
-        numericClientId={numericClientId}
-        onClientIdChange={setClientIdInput}
+        onSelectClient={setSelectedClientId}
+        selectedClientId={selectedClientId}
       />
       <PlanOverviewCard
         carbsGrams={carbsGrams}
         dailyCalories={dailyCalories}
         endDate={endDate}
         fatGrams={fatGrams}
+        fieldErrors={fieldErrors}
+        formErrors={formErrors}
         planName={planName}
         proteinGrams={proteinGrams}
         setCarbsGrams={setCarbsGrams}
@@ -180,7 +233,7 @@ const NutritionPlanBuilder: React.FC = () => {
       />
       <NotesCard notes={notes} onNotesChange={setNotes} />
 
-      {formError && <ErrorText>{formError}</ErrorText>}
+      {formError && <ErrorText role="alert">{formError}</ErrorText>}
       <NutritionSubmitFooter
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}

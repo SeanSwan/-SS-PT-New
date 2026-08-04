@@ -1,280 +1,54 @@
+/**
+ * FoodScannerPage
+ * ===============
+ * Public food ingredient scanner — barcode scan / product search / scan history.
+ * Phase 4E (2026-08-04): styles extracted to FoodScannerPage.styles.ts and fully
+ * tokenized (51 raw color literals removed); framer animations now respect
+ * prefers-reduced-motion. Logic, API calls, and component structure unchanged.
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import BarcodeScanner from '../../components/FoodScanner/BarcodeScanner';
 import ProductAnalysis, { foodScannerRatingLabel, type FoodProduct } from '../../components/FoodScanner/ProductAnalysis';
 import axios from 'axios';
 import { StyledBox } from '@/components/ui/StyledBox';
-
-// Styled components
-const PageContainer = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-secondary, #002060), var(--bg-elevated, #1e1e3f));
-  color: var(--text-primary, #E0ECF4);
-  padding: 1rem 1rem 6rem;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  padding: 1rem 0 2rem;
-`;
-
-const Title = styled(motion.h1)`
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: 300;
-  background: linear-gradient(to right, #a9f8fb, #46cdcf, #7b2cbf, #c8b6ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const Subtitle = styled.p`
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  max-width: 600px;
-  margin: 0 auto;
-
-  @media (max-width: 768px) {
-    font-size: 0.9rem;
-  }
-`;
-
-const ContentContainer = styled.div`
-  max-width: 600px;
-  margin: 0 auto;
-`;
-
-const ScanResultsContainer = styled(motion.div)`
-  width: 100%;
-`;
-
-const InstructionsCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.6);
-  border-radius: 15px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-`;
-
-const StepsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 1.5rem 0;
-  text-align: left;
-`;
-
-const Step = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-`;
-
-const StepNumber = styled.div`
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  color: white;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  flex-shrink: 0;
-`;
-
-const StepContent = styled.div`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.95rem;
-`;
-
-const SearchContainer = styled.div`
-  display: flex;
-  margin-bottom: 2rem;
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px 0 0 8px;
-  padding: 0.8rem 1rem;
-  color: white;
-  font-size: 0.9rem;
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: rgba(139, 92, 246, 0.5);
-  }
-`;
-
-const SearchButton = styled.button`
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  color: white;
-  border: none;
-  border-radius: 0 8px 8px 0;
-  padding: 0 1.5rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: linear-gradient(135deg, #8961b9, #20ffff);
-  }
-`;
-
-const TabsContainer = styled.div`
-  display: flex;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-  background: transparent;
-  color: ${({ $active }) => $active ? 'white' : 'rgba(255, 255, 255, 0.5)'};
-  border: none;
-  padding: 0.8rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 2px solid ${({ $active }) => $active ? '#60C0F0' : 'transparent'};
-  transition: all 0.3s ease;
-
-  &:hover {
-    color: white;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-`;
-
-const LoadingSpinner = styled(motion.div)`
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #60C0F0;
-  margin-bottom: 1rem;
-`;
-
-const LoadingText = styled.div`
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-`;
-
-const ErrorMessage = styled.div`
-  background: rgba(255, 70, 70, 0.1);
-  border: 1px solid rgba(255, 70, 70, 0.2);
-  color: rgba(255, 255, 255, 0.9);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  text-align: center;
-`;
-
-const ScanHistoryList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const ScanHistoryItem = styled.div`
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  }
-`;
-
-const ScanHistoryImage = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const ScanHistoryContent = styled.div`
-  flex: 1;
-`;
-
-const ScanHistoryName = styled.div`
-  font-weight: 500;
-  margin-bottom: 0.2rem;
-`;
-
-const ScanHistoryDetails = styled.div`
-  display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-const ScanHistoryRating = styled.div<{ rating: string }>`
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  background: ${({ rating }) => {
-    switch (rating) {
-      case 'good': return 'rgba(0, 200, 83, 0.2)';
-      case 'bad': return 'rgba(255, 70, 70, 0.2)';
-      case 'okay': return 'rgba(255, 193, 7, 0.2)';
-      default: return 'rgba(100, 100, 100, 0.2)';
-    }
-  }};
-  color: ${({ rating }) => {
-    switch (rating) {
-      case 'good': return '#00c853';
-      case 'bad': return '#ff4646';
-      case 'okay': return '#ffc107';
-      default: return '#aaa';
-    }
-  }};
-  border: 1px solid ${({ rating }) => {
-    switch (rating) {
-      case 'good': return 'rgba(0, 200, 83, 0.3)';
-      case 'bad': return 'rgba(255, 70, 70, 0.3)';
-      case 'okay': return 'rgba(255, 193, 7, 0.3)';
-      default: return 'rgba(100, 100, 100, 0.3)';
-    }
-  }};
-`;
-
-const NoResultsMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-style: italic;
-`;
+import {
+  ContentContainer,
+  ErrorMessage,
+  FavoriteStar,
+  Header,
+  InstructionsCard,
+  LoadingContainer,
+  LoadingSpinner,
+  LoadingText,
+  NoResultsMessage,
+  PageContainer,
+  PrimaryActionButton,
+  ScanHistoryContent,
+  ScanHistoryDetails,
+  ScanHistoryImage,
+  ScanHistoryItem,
+  ScanHistoryList,
+  ScanHistoryName,
+  ScanHistoryRating,
+  ScanResultsContainer,
+  SearchButton,
+  SearchContainer,
+  SearchInput,
+  SecondaryActionButton,
+  Step,
+  StepContent,
+  StepNumber,
+  StepsList,
+  Subtitle,
+  TabButton,
+  TabsContainer,
+  Title,
+} from './FoodScannerPage.styles';
 
 // Types
 // /api/food-scanner/history returns a denormalized scan log (backend schema-truth fix
@@ -282,7 +56,7 @@ const NoResultsMessage = styled.div`
 // product object, and favorites/ratings need a DB migration before they can return (SWA-87).
 // The legacy optional fields below keep old code paths compile-safe; they are absent from
 // API responses today, so every consumer must optional-chain them.
-interface ScanHistoryItem {
+interface ScanHistoryItemShape {
   id: number;
   scanDate: string;
   productName: string;
@@ -306,13 +80,21 @@ const FoodScannerPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scannedProduct, setScannedProduct] = useState<FoodProduct | null>(null);
-  const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryItemShape[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [logLoading, setLogLoading] = useState(false);
 
   const { isAuthenticated, authAxios } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
+
+  /** prefers-reduced-motion guard: collapse enter/exit transitions to instant. */
+  const motionTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.3 };
+  const spinnerAnimate = prefersReducedMotion ? undefined : { rotate: 360 };
+  const spinnerTransition = prefersReducedMotion
+    ? undefined
+    : { duration: 1, repeat: Infinity, ease: 'linear' as const };
 
   // Fetch user's scan history
   const fetchScanHistory = useCallback(async () => {
@@ -501,9 +283,9 @@ const FoodScannerPage: React.FC = () => {
     <PageContainer>
       <Header>
         <Title
-          initial={{ opacity: 0, y: -20 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
         >
           Food Ingredient Scanner
         </Title>
@@ -533,10 +315,10 @@ const FoodScannerPage: React.FC = () => {
           {activeTab === 'scan' ? (
             <motion.div
               key="scan-tab"
-              initial={{ opacity: 0, x: -20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, x: 20 }}
+              transition={motionTransition}
             >
               {!scannedProduct && (
                 <>
@@ -584,14 +366,7 @@ const FoodScannerPage: React.FC = () => {
 
               {loading ? (
                 <LoadingContainer>
-                  <LoadingSpinner
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  />
+                  <LoadingSpinner animate={spinnerAnimate} transition={spinnerTransition} />
                   <LoadingText>Processing...</LoadingText>
                 </LoadingContainer>
               ) : (
@@ -603,9 +378,9 @@ const FoodScannerPage: React.FC = () => {
                     />
                   ) : (
                     <ScanResultsContainer
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                     >
                       <ProductAnalysis
                         product={scannedProduct}
@@ -618,23 +393,14 @@ const FoodScannerPage: React.FC = () => {
                       />
 
                       <StyledBox as="div" $style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                        <StyledBox as="button"
+                        <SecondaryActionButton
+                          type="button"
                           onClick={() => {
                             setScannedProduct(null);
                           }}
-                          $style={{
-                            background: 'rgba(60, 60, 100, 0.5)',
-                            color: 'white',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            borderRadius: '8px',
-                            padding: '0.8rem 1.5rem',
-                            fontSize: '0.9rem',
-                            fontWeight: 500,
-                            cursor: 'pointer'
-                          }}
                         >
                           Scan Another Product
-                        </StyledBox>
+                        </SecondaryActionButton>
                       </StyledBox>
                     </ScanResultsContainer>
                   )}
@@ -644,10 +410,10 @@ const FoodScannerPage: React.FC = () => {
           ) : (
             <motion.div
               key="history-tab"
-              initial={{ opacity: 0, x: 20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, x: -20 }}
+              transition={motionTransition}
             >
               {!isAuthenticated ? (
                 <InstructionsCard>
@@ -655,32 +421,13 @@ const FoodScannerPage: React.FC = () => {
                   <StyledBox as="p" $style={{ margin: '1rem 0' }}>
                     Please login to view your scan history and save products
                   </StyledBox>
-                  <StyledBox as="button"
-                    onClick={() => navigate('/login')}
-                    $style={{
-                      background: 'linear-gradient(135deg, #8B5CF6, #60C0F0)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '0.8rem 1.5rem',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
+                  <PrimaryActionButton type="button" onClick={() => navigate('/login')}>
                     Login
-                  </StyledBox>
+                  </PrimaryActionButton>
                 </InstructionsCard>
               ) : loading ? (
                 <LoadingContainer>
-                  <LoadingSpinner
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  />
+                  <LoadingSpinner animate={spinnerAnimate} transition={spinnerTransition} />
                   <LoadingText>Loading scan history...</LoadingText>
                 </LoadingContainer>
               ) : error ? (
@@ -723,9 +470,7 @@ const FoodScannerPage: React.FC = () => {
                       <ScanHistoryRating rating={scan.product?.overallRating ?? ''}>
                         {foodScannerRatingLabel(scan.product?.overallRating ?? '')}
                       </ScanHistoryRating>
-                      {scan.isFavorite && (
-                        <StyledBox as="div" $style={{ color: '#ffc107', fontSize: '1.2rem' }}>&#9733;</StyledBox>
-                      )}
+                      {scan.isFavorite && <FavoriteStar>&#9733;</FavoriteStar>}
                     </ScanHistoryItem>
                   ))}
                 </ScanHistoryList>

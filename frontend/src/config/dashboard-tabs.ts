@@ -202,6 +202,9 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
   { id: 'pain-charts', section: 'training', label: 'Pain Charts', icon: 'Heart', prefix: '/dashboard/admin/body-map', description: 'Client pain and injury tracking (body map)' },
   { id: 'nutrition', section: 'training', label: 'Nutrition', icon: 'Apple', prefix: '/dashboard/admin/meal-planner', description: 'Nutrition intelligence and meal planning' },
+  // Phase 4E (2026-08-04): the Plan Builder was a registered route with no nav
+  // entry — the only macro-target writer was URL-only (HY3 UX-crime #2).
+  { id: 'nutrition-plan-builder', section: 'training', label: 'Nutrition Plan Builder', icon: 'ClipboardCheck', prefix: '/dashboard/admin/nutrition', description: 'Set client macro targets and build structured nutrition plans' },
 
   // ── BUSINESS — revenue, growth, engagement ──
   { id: 'store', section: 'business', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },
