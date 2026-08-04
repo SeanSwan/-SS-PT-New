@@ -162,7 +162,14 @@ beforeAll(async () => {
     seen.add(key);
     return true;
   });
-}, 180000);
+// 600s, not because booting takes 600s (it takes ~7s alone) but because FOUR
+// suites in this repo each boot the full Express app, and vitest may schedule
+// them concurrently. Under that contention this hook once blew a 120s budget and
+// vitest SKIPPED all of this file's security assertions — a skipped security test
+// is worse than a failing one, because the summary still reads green-ish. The
+// budget is deliberately far above any real boot so contention can never silence
+// these checks.
+}, 600000);
 
 afterAll(() => {
   if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
