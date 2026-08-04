@@ -22,7 +22,7 @@ const Streak = db.define('Streak', {
   },
   // What this streak tracks
   streakType: {
-    type: DataTypes.ENUM('workout', 'login', 'goal_progress', 'challenge', 'custom'),
+    type: DataTypes.ENUM('workout', 'login', 'goal_progress', 'challenge', 'custom', 'nutrition'),
     allowNull: false,
     defaultValue: 'workout',
   },

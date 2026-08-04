@@ -159,6 +159,31 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
 }
 
 /**
+ * S3.1/S3.2: fire the reward loop AFTER a successful commit. BEST-EFFORT and
+ * fire-and-forget by law — the user's log write must never fail or wait on
+ * gamification, so nothing here is awaited by the caller and every layer is
+ * caught. Lazy imports keep the gamification graph off this module's load path.
+ */
+function fireNutritionRewardHooks({ userId, localDate }) {
+  (async () => {
+    const [{ evaluateNutritionLogAchievements }, { applyNutritionLogChallengeProgress }, { getAllModels }] =
+      await Promise.all([
+        import('../gamification/nutritionLogAchievementEvaluator.mjs'),
+        import('../gamification/challengeNutritionLoggingBridge.mjs'),
+        import('../../models/index.mjs'),
+      ]);
+    const models = getAllModels();
+    await evaluateNutritionLogAchievements({ userId, models }).catch(() => {});
+    await applyNutritionLogChallengeProgress({
+      userId,
+      localDate,
+      models,
+      sequelize: DailyMacroLog.sequelize,
+    }).catch(() => {});
+  })().catch(() => {});
+}
+
+/**
  * Create a single DailyMacroLog entry.
  * Used by the POST /api/macros route adapter.
  * The route is responsible for its own HTTP-layer validation; this function
@@ -169,13 +194,15 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
  * @returns {Promise<DailyMacroLog>}
  */
 export async function createSingleMacroEntry(sanitizedData, { userId, source = 'manual' }) {
-  return DailyMacroLog.create({
+  const row = await DailyMacroLog.create({
     ...sanitizedData,
     userId,
     date: resolveMacroLogDate(sanitizedData.date),
     source: normalizeMacroSource(source),
     verified: false,
   });
+  fireNutritionRewardHooks({ userId, localDate: row.date });
+  return row;
 }
 
 /**
@@ -206,6 +233,8 @@ export async function createMacroEntries(meals, { clientId, date }) {
       date: targetDate,
       count: rows.length,
     });
+
+    fireNutritionRewardHooks({ userId: clientId, localDate: targetDate });
 
     return {
       mealsLogged:   rows.length,
