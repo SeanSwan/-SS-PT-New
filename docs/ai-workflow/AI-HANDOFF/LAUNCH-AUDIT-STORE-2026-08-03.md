@@ -12,7 +12,7 @@ branch `claude/launch-audit-lane4-20260803`. The shared tree
 (`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
 by this lane except its own coordination file.
 **Commits: 22, local, NOT pushed — integrator reconciles.** `git log 0949eaf6b..HEAD`
-on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **23 rounds, CLEAN×2**.
+on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **27 rounds, CLEAN×2**.
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
@@ -335,6 +335,66 @@ path instead.
 **Proof.** `cartContextContracts` **9/9** (5 new), `moneyPathSafety` **12/12** (2 new), lane
 frontend **40 files / 199 tests**, `tsc` 0 errors.
 
+### F-O · P1 (latent) — The displayed total and the charged total are computed twice, and disagree
+`eec738893` · `backend/routes/v2PaymentRoutes.mjs`, new `checkoutDisplayedVsChargedTotal.test.mjs`
+
+Every earlier round audited routing, auth, idempotency and copy. None audited the **money
+arithmetic**. Doing so found that what the buyer SEES and what Stripe CHARGES come from two
+entirely independent implementations — `cartHelpers.calculateCartTotals` persists
+`ShoppingCart.total` for the cart UI, while `v2PaymentRoutes.resolveCheckoutLineItem:162`
+builds the Stripe lines. They disagree on malformed quantity, and **every disagreement
+overcharges**:
+
+| cart row | buyer SEES | Stripe CHARGES |
+|---|---|---|
+| `quantity: 0` | **$0.00** | **$175.00** — `Number(0) > 0` is false, so the resolver silently defaults the quantity to 1 |
+| `quantity: -1` | -$175.00 | **$175.00** |
+| `quantity: '2'` (string) | item skipped entirely | **$350.00** |
+
+Proven by executing both rule sets side by side, not by reading them.
+
+**Reachability, stated honestly: LATENT, not live.** Route writes gate quantity through
+`parsePositiveInteger`, so such a row cannot be created through the API today. It matters
+because the **price** column already comes back from Sequelize as a *string* — which is
+precisely why the total helper carries explicit string handling — so the same thing
+happening to `quantity`, or any admin/repair/import path writing `cart_items` directly,
+makes it live with no other change.
+
+**Fix.** Checkout now fails closed: any cart item whose quantity is not a positive safe
+integer is refused with a recoverable 409 **before** the Stripe lines are built. Refusing
+costs a healthy cart nothing (every legitimate row is a positive integer), and never
+charging for a line the buyer's total did not include is the only safe direction. Scoped
+deliberately to quantity — a null or zero *price* costs the buyer $0 on both paths, so it is
+not a money divergence and guarding it would have blocked a legitimately free line.
+
+**Proof.** `checkoutDisplayedVsChargedTotal.test.mjs` **9/9**; with the route stashed **3 of
+9 fail**. v2 payment suites **6 files / 18 tests**.
+
+### F-P · P2 (latent) — The cart's session count disagreed with what actually gets granted
+`9af42bfa5` · `backend/utils/cartHelpers.mjs`, new `cartSessionCountMatchesGrant.test.mjs`
+
+Same root cause as F-O, different quantity. The count shown in the cart keyed on
+`typeof … === 'number'`; the count credited comes from
+`SessionGrantService.getStorefrontSessionCredits:36`. They disagree:
+
+- `sessions: 0, totalSessions: 48` → cart showed **0**, grant credits **48**. `0` *is* a
+  number, so the old branch was taken and `totalSessions` was never consulted — a monthly
+  package rendering as **"$8,400 for 0 sessions."**
+- `sessions: '8'` (string) → cart showed **0**, grant credits **8**.
+
+Neither overcharges, so this is not F-O's class of harm. It is a **truth** defect — a cart
+that disagrees with what the buyer receives — and at 0 a **conversion** defect. Live data
+uses `sessions: null`, which both implementations handled alike, so this was latent.
+
+**Fix by de-duplication, not by patching the symptom:** `cartHelpers` now calls the same
+canonical helper the grant uses. `sessionPackageRoutes` and `v2PaymentRoutes` already did;
+this was the last divergent copy, and the audit breakdown's `sessionsPerItem` was a *third*
+variant (`||` chaining) now also canonical. No import cycle — verified by import-execution.
+
+**Proof.** `cartSessionCountMatchesGrant.test.mjs` **9/9** (displayed == credited across all
+five shapes); with `cartHelpers` stashed **4 of 9 fail**. Cart + grant suites **7 files / 40
+tests**.
+
 ---
 
 ## 2. FINDINGS NOT FIXED IN-LANE (ranked)
@@ -535,7 +595,7 @@ needs verification I could not do without dashboard access.
 | Gate | Result | Scope |
 |---|---|---|
 | Backend money-path suites | **7 files / 83 tests pass**, plus webhook-replay safety **6/6** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
-| Full backend suite | **1038 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
+| Full backend suite | **1040 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
 | Frontend importer-closure sweep | **47 files / 242 tests pass** | every module importing anything this lane changed — `context`, `pages/shop`, `ShoppingCart`, `NewCheckout`, `pages/checkout`, `content/marketingStats`, `routes` |
 | Full frontend suite | **1516 / 1517 files pass** — measured at round 12 | see the disclosure below: the round-18 re-run had to be substituted |
 | `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide** | full frontend |
@@ -546,7 +606,7 @@ needs verification I could not do without dashboard access.
 | `node --check` | clean on **every** `.mjs` this lane touched | full diff sweep |
 | Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
 | Pre-commit secret scan | CLEAN on all commits | staged blobs |
-| Dry-loop | **23 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+| Dry-loop | **27 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
 
 **Full-frontend-suite disclosure (Rule 56).** The 1516/1517 figure was measured at round 12.
 The round-18 re-run was started twice and **stopped producing output for 25+ minutes** with
