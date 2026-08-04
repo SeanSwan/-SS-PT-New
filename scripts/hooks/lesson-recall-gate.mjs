@@ -167,6 +167,18 @@ export const findSingleLayerGuards = (written) => {
   return guardFiles.length === 1 ? guardFiles[0] : null;
 };
 
+/**
+ * A lesson reads like a sentence someone could act on. Template field labels
+ * ("When:", "Surface:", "Owner gate:") are not lessons, and letting them through
+ * turns the recall list into noise the reader learns to skip.
+ */
+export const isLessonLike = (text) => {
+  if (!text || text.length < 25 || text.length > 140) return false;
+  if (text.endsWith(':')) return false;
+  const words = text.split(/\s+/).filter(Boolean);
+  return words.length >= 4;
+};
+
 /** Lessons this session already wrote down — the things being repeated. */
 export const collectSessionLessons = (repoRoot, listMemos, gitSubjects) => {
   const lessons = [];
@@ -176,7 +188,14 @@ export const collectSessionLessons = (repoRoot, listMemos, gitSubjects) => {
       const text = readFileSync(memo, 'utf8');
       for (const line of text.split('\n')) {
         const m = line.match(/^\s*-\s+\*\*(.+?)\*\*/);
-        if (m && m[1].length < 140) lessons.push(m[1].trim());
+        if (!m) continue;
+        const candidate = m[1].trim();
+        // A lesson is a SENTENCE, not a template field label. The first version
+        // scraped every bolded fragment, so the recall list came out as
+        // "When:", "Surface:", "Type:" — noise, which is how advisory output gets
+        // tuned out, which is how the gate quietly stops working.
+        if (!isLessonLike(candidate)) continue;
+        lessons.push(candidate);
       }
     } catch {
       /* ignore unreadable memo */

@@ -22,6 +22,7 @@ import {
   buildBlockReason,
   defaultGrep,
   declaresSameValue,
+  isLessonLike,
 } from './lesson-recall-gate.mjs';
 
 const dir = mkdtempSync(path.join(tmpdir(), 'lesson-recall-'));
@@ -213,4 +214,31 @@ test('declaresSameValue requires the value to match, not just the name', () => {
   assert.equal(declaresSameValue(f, 'DSV_NAME', '5'), true);
   assert.equal(declaresSameValue(f, 'DSV_NAME', '6'), false);
   assert.equal(declaresSameValue('/nope/missing.mjs', 'DSV_NAME', '5'), false);
+});
+
+test('recall output rejects template field labels — noise gets tuned out', () => {
+  // The first version scraped every bolded fragment, so the real recall list came out
+  // as "When:", "Surface:", "Type:", "Owner gate:" — advice nobody reads.
+  for (const noise of ['When:', 'Surface:', 'Type:', 'Owner gate:', 'Cost/abuse sweep:']) {
+    assert.equal(isLessonLike(noise), false, `should reject: ${noise}`);
+  }
+});
+
+test('recall output keeps real, actionable lessons', () => {
+  for (const real of [
+    'Fixing one layer of a two-layer rule leaves the gap open.',
+    'Do not reuse a status code for two meanings on one route.',
+  ]) {
+    assert.equal(isLessonLike(real), true, `should keep: ${real}`);
+  }
+});
+
+test('the memo scraper drops labels but keeps sentences', () => {
+  const memo = file('memos/mixed.md', [
+    '- **When:** 2026-08-04',
+    '- **Surface:** cart',
+    '- **Fixing one layer of a two-layer rule leaves the gap open.** detail',
+  ].join('\n'));
+  const lessons = collectSessionLessons(dir, () => [memo], () => []);
+  assert.deepEqual(lessons, ['Fixing one layer of a two-layer rule leaves the gap open.']);
 });
