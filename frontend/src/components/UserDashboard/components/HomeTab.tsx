@@ -218,6 +218,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           level={level}
           progressPercent={progressPercent}
           tierName={tierName}
+          gamificationKnown={!gamificationUnavailable}
           logWorkoutPath={logWorkoutPath}
           nutritionAction={nutritionAction}
           onOpenNutrition={() => onTabChange('nutrition')}
@@ -300,6 +301,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <HomeTabVisionCenter
           points={points}
+          gamificationKnown={!gamificationUnavailable}
           activeLens={activeLens}
           postText={composer.postText}
           activeMood={composer.activeMood}
@@ -348,6 +350,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <HomeTabVisionRightRail
           progressPercent={progressPercent}
+          gamificationKnown={!gamificationUnavailable}
           liveActivityItems={liveWidgets.liveActivityItems}
           liveActivityConnected={liveWidgets.liveActivityConnected}
           activeChallenge={liveWidgets.activeChallenge}

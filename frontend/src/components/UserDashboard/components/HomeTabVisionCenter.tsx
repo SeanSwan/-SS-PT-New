@@ -70,6 +70,8 @@ interface HomeTabVisionCenterProps {
   proofAttached: boolean;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
   postIntentPreview: { type: string; label: string | null; hashtags: string[] } | null;
+  /** Whether the XP balance is actually known; false hides the pill rather than showing 0. */
+  gamificationKnown: boolean;
   /** Real latest feed post — null renders honest empty states. */
   latestPost: HomeLatestPostView | null;
   canPost: boolean;
@@ -86,6 +88,7 @@ interface HomeTabVisionCenterProps {
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   points,
+  gamificationKnown,
   activeLens,
   postText,
   activeMood,
@@ -129,10 +132,14 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
           {count > 0 && <NotifyDot>{count}</NotifyDot>}
         </IconButton>
       ))}
-      <XpPill type="button" aria-label={`${points.toLocaleString()} XP balance`}>
-        <span>XP</span>
-        {points.toLocaleString()} XP
-      </XpPill>
+      {/* `points` resolves through `?? 0`, so an outage announced "0 XP
+          balance" to screen readers as the member's balance. */}
+      {gamificationKnown ? (
+        <XpPill type="button" aria-label={`${points.toLocaleString()} XP balance`}>
+          <span>XP</span>
+          {points.toLocaleString()} XP
+        </XpPill>
+      ) : null}
     </TopBar>
 
     <LensStrip aria-label="Creator dashboard sections">

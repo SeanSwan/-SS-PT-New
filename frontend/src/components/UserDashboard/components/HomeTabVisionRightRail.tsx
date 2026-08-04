@@ -88,6 +88,8 @@ interface HomeTabVisionRightRailProps {
   streakDays: number;
   onAction: (target: VisionTarget) => void;
   onLogWorkout: () => void;
+  /** Whether the gamification record is known; false hides the momentum ring. */
+  gamificationKnown: boolean;
 }
 
 function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
@@ -101,6 +103,7 @@ function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
 
 const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   progressPercent,
+  gamificationKnown,
   liveActivityItems,
   liveActivityConnected,
   activeChallenge,
@@ -211,7 +214,11 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
           ))}
         </ButtonRow>
       ) : (
-        <EmptyState>Earn a badge to fill this showcase.</EmptyState>
+        <EmptyState>
+          {gamificationKnown
+            ? 'Earn a badge to fill this showcase.'
+            : "We couldn't load your badges just now."}
+        </EmptyState>
       )}
       {leaderboardRows.length ? (
         <LeaderboardList>
@@ -224,7 +231,11 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
           ))}
         </LeaderboardList>
       ) : (
-        <EmptyState>The leaderboard is still filling up.</EmptyState>
+        <EmptyState>
+          {gamificationKnown
+            ? 'The leaderboard is still filling up.'
+            : "We couldn't load the leaderboard just now."}
+        </EmptyState>
       )}
     </Panel>
 
@@ -237,6 +248,9 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
       trendingLoading={trendingLoading}
     />
 
+    {/* `progressPercent` resolves through `?? 0`, so an outage drew a 0% ring
+        and labelled it the member's weekly momentum. */}
+    {gamificationKnown ? (
     <Panel>
       <RailHeader $spaced>
         <Eyebrow>Weekly Momentum</Eyebrow>
@@ -254,6 +268,7 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         </MomentumRing>
       </MomentumLayout>
     </Panel>
+    ) : null}
 
     <Panel>
       <Eyebrow>Transformation</Eyebrow>
