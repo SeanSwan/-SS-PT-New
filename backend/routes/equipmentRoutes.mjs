@@ -18,6 +18,7 @@
  *
  * AI SCAN:
  *   POST   /api/equipment-profiles/:id/scan      Upload photo + AI scan
+ *   POST   /api/equipment-profiles/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan  Crop re-scan of a `possible` candidate
  *   PUT    /api/equipment-profiles/:id/items/:itemId/approve  Approve AI scan result
  *   PUT    /api/equipment-profiles/:id/items/:itemId/reject   Reject AI scan result
  *
@@ -33,11 +34,18 @@
 import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
-import { getEquipmentProfile, getEquipmentItem, getEquipmentExerciseMap } from '../models/index.mjs';
+import {
+  getEquipmentProfile,
+  getEquipmentItem,
+  getEquipmentExerciseMap,
+  getEquipmentScanSession,
+  getEquipmentScanCandidate,
+} from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { isEquipmentScanConfigured, scanEquipmentImageMulti } from '../services/equipmentScanService.mjs';
 import { matchExistingEquipment } from '../services/equipmentScanV2Support.mjs';
 import { persistEquipmentScanReviewSession } from '../services/equipmentScanReviewPersistence.mjs';
+import { rescanEquipmentRegion } from '../services/equipmentScanCropRescan.mjs';
 import {
   recordEquipmentScanCandidateAction,
   recordEquipmentScanCandidateReview,
@@ -882,6 +890,208 @@ router.put('/:id/scan-candidates/:candidateIndex/review', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to record scan candidate review' });
   }
 });
+// POST /api/equipment-profiles/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan
+// "Scan this spot closer" — crop re-scan of a `possible` candidate's region.
+// The trainer re-uploads the ORIGINAL photo as multipart `photo`; the server
+// NEVER fetches remote URLs (SSRF forbidden). Counts against the same 10/hr
+// scan rate limiter as /scan.
+router.post('/:id/scan-sessions/:sessionId/candidates/:candidateIndex/rescan', upload.single('photo'), async (req, res) => {
+  try {
+    const profile = await getOwnedProfile(req, res);
+    if (!profile) return;
+
+    const sessionId = parseInt(req.params.sessionId, 10);
+    const candidateIndex = parseInt(req.params.candidateIndex, 10);
+    if (isNaN(sessionId) || isNaN(candidateIndex) || candidateIndex < 0) {
+      return res.status(400).json({ success: false, error: 'Invalid session or candidate reference' });
+    }
+
+    if (!req.file) {
+      return res.status(422).json({
+        success: false,
+        error: 'Original scan photo is required — attach it as the multipart "photo" field. Remote URLs are not fetched.',
+      });
+    }
+
+    // Graceful check before burning rate-limit quota (same as /scan).
+    if (!isEquipmentScanConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI scanning is not configured. Please add equipment manually or contact admin.',
+        configurable: true,
+      });
+    }
+
+    const EquipmentScanSession = getEquipmentScanSession();
+    const EquipmentScanCandidate = getEquipmentScanCandidate();
+    const session = await EquipmentScanSession.findOne({
+      where: { id: sessionId, profileId: profile.id },
+    });
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Scan session not found' });
+    }
+
+    const candidate = await EquipmentScanCandidate.findOne({
+      where: { sessionId: session.id, profileId: profile.id, candidateIndex },
+      order: [['createdAt', 'DESC']],
+    });
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: 'Scan candidate not found' });
+    }
+
+    if (candidate.status !== 'possible') {
+      return res.status(409).json({
+        success: false,
+        error: `Only 'possible' candidates can be re-scanned (current status: ${candidate.status})`,
+      });
+    }
+
+    // Shares the /scan budget: 10 AI scans per hour per trainer.
+    if (!checkScanRate(req.user.id)) {
+      return res.status(429).json({
+        success: false,
+        error: 'Rate limit exceeded. Maximum 10 scans per hour.',
+      });
+    }
+
+    const rescan = await rescanEquipmentRegion({
+      imageBuffer: req.file.buffer,
+      mimeType: req.file.mimetype,
+      boundingBox: candidate.boundingBox,
+    });
+
+    if (rescan.outcome !== 'identified') {
+      return res.json({ success: true, outcome: 'still_uncertain', candidate });
+    }
+
+    const best = rescan.candidate;
+    const EquipmentItem = getEquipmentItem();
+    // Same stored-name duplicate guard as /scan (lower(name) partial index semantics).
+    const storedNameDuplicate = await EquipmentItem.findOne({
+      where: {
+        profileId: profile.id,
+        name: { [Op.iLike]: escapeLikeLiteral(best.suggestedName) },
+        isActive: true,
+      },
+    });
+    if (storedNameDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: 'Identified equipment already exists in this profile',
+        duplicateOfItemId: storedNameDuplicate.id,
+        candidate,
+      });
+    }
+
+    const scannedAt = new Date().toISOString();
+    // Same aiScanData field mapping as /scan; photo reuses the session's saved URL.
+    const item = await EquipmentItem.create({
+      profileId: profile.id,
+      photoUrl: session.photoUrl || null,
+      name: best.suggestedName,
+      category: best.suggestedCategory,
+      resistanceType: best.resistanceType,
+      description: best.description,
+      quantity: best.quantity,
+      aiScanData: {
+        schemaVersion: rescan.schemaVersion,
+        promptVersion: rescan.promptVersion,
+        imageQuality: rescan.imageQuality,
+        sceneSummary: rescan.sceneSummary,
+        confidence: best.confidence,
+        visibility: best.visibility,
+        boundingBox: best.boundingBox,
+        suggestedName: best.suggestedName,
+        suggestedCategory: best.suggestedCategory,
+        equipmentKind: best.equipmentKind,
+        quantity: best.quantity,
+        alternateNames: best.alternateNames,
+        suggestedExercises: best.suggestedExercises,
+        movementPatterns: best.movementPatterns,
+        targetMuscles: best.targetMuscles,
+        safetyNotes: best.safetyNotes,
+        dedupeKey: best.dedupeKey,
+        needsHumanReview: best.needsHumanReview,
+        reasoning: best.reasoning,
+        candidateIndex,
+        rawResponse: rescan.rawResponse,
+        latencyMs: rescan.latencyMs,
+        model: rescan.model,
+        scannedAt,
+        rescan: {
+          sessionId: session.id,
+          sourceStatus: 'possible',
+          regionBox: rescan.regionBox,
+          croppedToRegion: rescan.croppedToRegion,
+        },
+      },
+      approvalStatus: 'pending',
+      isActive: true,
+    });
+
+    // Census-only re-scans normally carry no exercise suggestions; mirror the
+    // /scan mapping when the model returns them anyway.
+    if (best.suggestedExercises?.length > 0) {
+      const EquipmentExerciseMap = getEquipmentExerciseMap();
+      const mappings = best.suggestedExercises.map(exercise => ({
+        equipmentItemId: item.id,
+        exerciseKey: exercise.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        exerciseName: exercise,
+        isCustomExercise: false,
+        isPrimary: false,
+        isAiSuggested: true,
+        confirmed: false,
+      }));
+      await EquipmentExerciseMap.bulkCreate(mappings, { ignoreDuplicates: true });
+    }
+
+    // Flip the ledger candidate possible → approved via the existing
+    // best-effort review-outcome service (returns null if the ledger is out).
+    const review = await recordEquipmentScanCandidateAction({
+      profileId: profile.id,
+      reviewSessionId: session.id,
+      candidateIndex,
+      candidateStatus: 'possible',
+      reviewedBy: req.user.id,
+      status: 'approved',
+      equipmentItemId: item.id,
+      trainerCorrection: { name: best.suggestedName, category: best.suggestedCategory },
+    });
+
+    res.status(201).json({
+      success: true,
+      outcome: 'identified',
+      item,
+      candidate: review || {
+        candidateId: candidate.id,
+        sessionId: session.id,
+        status: candidate.status,
+        ledgerUpdated: false,
+      },
+    });
+  } catch (err) {
+    logger.error('[EquipmentRoutes] Crop re-scan error:', err);
+    // Race backstop: the lower(name) partial unique index rejects a concurrent duplicate.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        success: false,
+        error: 'Identified equipment duplicates an item that was just added. Refresh the inventory.',
+      });
+    }
+    const msg = err.message || 'Equipment re-scan failed';
+    if (msg.includes('GOOGLE_API_KEY') || msg.includes('GEMINI_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
+      return res.status(503).json({ success: false, error: 'AI scanning is not available. Please add equipment manually.' });
+    }
+    if (msg.includes('Invalid image type') || msg.includes('Image too large')) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    if (msg.includes('[GoogleGenerativeAI Error]') || msg.includes('Gemini') || msg.includes('generateContent')) {
+      return res.status(502).json({ success: false, error: 'AI scanner is temporarily unavailable. Try again or add manually.' });
+    }
+    res.status(500).json({ success: false, error: 'Equipment re-scan failed. Try again or add manually.' });
+  }
+});
+
 // PUT /api/equipment-profiles/:id/items/:itemId/approve — Approve AI scan
 router.put('/:id/items/:itemId/approve', async (req, res) => {
   try {
