@@ -11,6 +11,7 @@
  */
 
 import express from 'express';
+import { directoryAttributes, isStaffViewer } from '../utils/memberDirectoryAccess.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import getModels from '../models/associations.mjs';
 import logger from '../utils/logger.mjs';
@@ -167,7 +168,15 @@ router.get('/leaderboard', async (req, res) => {
 
     const leaderboard = await Streak.findAll({
       where: { streakType: type, isActive: true },
-      include: [{ model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'username', 'photo'] }],
+      // Same policy as every other member-facing board: surnames are
+      // staff-only, and a member who opted out of public ranking stays out.
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: directoryAttributes(req.user),
+        where: isStaffViewer(req.user) ? undefined : { leaderboardOptIn: true },
+        required: true,
+      }],
       order: [[sort, 'DESC']],
       limit,
     });

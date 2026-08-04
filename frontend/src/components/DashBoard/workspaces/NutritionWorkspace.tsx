@@ -76,8 +76,25 @@ const NutritionWorkspace: React.FC = () => {
   // refetched after a save while the summary endpoint was down; only a full
   // reload recovered.
   const [diarySaveTick, setDiarySaveTick] = useState(0);
-  const { isPro, isElite, isTrial } = useSubscription();
-  const hasAINutrition = isPro || isElite || isTrial;
+  // `loading` starts TRUE and stays true until /subscriptions/status answers,
+  // and `subscription` stays null if that call fails. Reading only the three
+  // entitlement booleans therefore told a PAYING Pro/Elite member "Upgrade to
+  // Swan Guardian" for the whole pending window of every page load — and
+  // permanently after a failed fetch — with the CTA pointing at /ascension to
+  // re-buy what they already own.
+  //
+  // `hasGuardianAccess` is the hook's own derivation; re-deriving it here was a
+  // second copy of the same policy. The lock now renders ONLY when we actually
+  // know the member lacks access. While it is unknown we withhold the upsell
+  // rather than accuse a customer — the server enforces entitlement on every
+  // AI-nutrition call regardless, so the UI failing quiet is the safe direction.
+  const {
+    hasGuardianAccess,
+    loading: subscriptionLoading,
+    error: subscriptionError,
+  } = useSubscription();
+  const entitlementKnown = !subscriptionLoading && !subscriptionError;
+  const hasAINutrition = hasGuardianAccess || !entitlementKnown;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const trainingDay = hasWorkoutLoggedOnDate(workoutSessions.data, summary?.date);

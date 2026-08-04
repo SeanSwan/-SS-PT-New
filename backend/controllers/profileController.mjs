@@ -3,6 +3,7 @@
  * Handles user profile operations including photo upload and profile updates
  */
 import fs from 'fs/promises';
+import { directoryAttributes } from '../utils/memberDirectoryAccess.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Op } from 'sequelize';
@@ -944,7 +945,9 @@ export const getUserFollowStats = async (req, res) => {
         {
           model: User,
           as: 'requester',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          // Surnames are staff-only; `role` is retained because the UI badges
+          // trainers, and it is not PII.
+          attributes: directoryAttributes(req.user, ['role'])
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -960,7 +963,7 @@ export const getUserFollowStats = async (req, res) => {
         {
           model: User,
           as: 'recipient',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: directoryAttributes(req.user, ['role'])
         }
       ],
       order: [['createdAt', 'DESC']]

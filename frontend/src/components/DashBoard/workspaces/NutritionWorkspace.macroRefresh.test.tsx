@@ -42,6 +42,11 @@ vi.mock('../../../hooks/useMacroSummary', () => ({
 
 vi.mock('../../../hooks/useSubscription', () => ({
   useSubscription: () => ({
+    // The workspace reads the hook's own derivation plus its fetch state:
+    // omitting them made a PAYING member render as locked.
+    hasGuardianAccess: true,
+    loading: false,
+    error: null,
     isPro: true,
     isElite: false,
     isTrial: false,
