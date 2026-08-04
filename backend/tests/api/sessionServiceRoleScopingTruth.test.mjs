@@ -15,6 +15,16 @@
  * Both are now fail-closed: only recognised staff roles widen the projection /
  * the query. These tests assert the projection and the where-clause directly,
  * so they fail if either guard is removed.
+ *
+ * BLAST RADIUS (verified, hostile round 24 — the first phrasing of this was
+ * imprecise): three consumers DO reference `trainer.email` —
+ * BlockedTimeModal / RecurringSeriesModal / RecurringSessionModal — but only as
+ * the middle link of a display-label fallback chain:
+ *     `"first last".trim() || trainer.email || `Trainer ${id}``
+ * For a non-staff viewer the label now lands on `Trainer ${id}`, which is the
+ * CORRECT outcome: rendering a trainer's email address as a dropdown label to a
+ * client would itself be the leak this fix exists to close. Staff keep the
+ * email fallback. No consumer breaks; the chain already had a final fallback.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
