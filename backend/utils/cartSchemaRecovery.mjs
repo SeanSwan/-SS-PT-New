@@ -49,9 +49,34 @@ const RECOVERABLE_CART_ITEM_COLUMNS = [
  * Normalize authenticated user ID into an integer required by cart tables.
  */
 export function normalizeAuthenticatedUserId(userId) {
-  const parsed = Number.parseInt(String(userId), 10);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Invalid authenticated userId for cart routes: ${userId}`);
+  // REJECT, never coerce. This previously used Number.parseInt(String(userId)),
+  // and parseInt stops at the first non-digit:
+  //   parseInt('12f3a9…', 10) === 12
+  //   parseInt('42abc',   10) === 42
+  // so a non-numeric or prefixed id — a legacy token, an SSO-issued subject, a
+  // migrated identifier — silently became a DIFFERENT, REAL user id. Every cart
+  // route then scopes on that id (`where userId = ?`, and the checkout
+  // compare-and-swap), so the caller would read and mutate someone else's cart.
+  // That is an IDOR produced by coercion rather than by a missing check.
+  //
+  // The same file's sibling parser in cartRoutes (parsePositiveInteger) already
+  // rejects these correctly with a regex — identity was the one input still
+  // being coerced.
+  if (typeof userId === 'number') {
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      throw new Error('Invalid authenticated userId for cart routes');
+    }
+    return userId;
+  }
+
+  if (typeof userId !== 'string' || !/^[1-9]\d*$/.test(userId.trim())) {
+    // Deliberately does not echo the id back — it lands in logs and responses.
+    throw new Error('Invalid authenticated userId for cart routes');
+  }
+
+  const parsed = Number(userId.trim());
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error('Invalid authenticated userId for cart routes');
   }
   return parsed;
 }
