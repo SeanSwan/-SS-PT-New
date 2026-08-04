@@ -194,6 +194,27 @@ services:
         name: Content-Security-Policy
         value: "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: data: https: wss:; frame-src 'self' https:; worker-src 'self' blob: https:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; frame-ancestors 'self'"
     routes:
+      # /webhooks/* must NEVER be answered by the SPA (Lane 4 audit, 2026-08-04).
+      #
+      # Verified live before this rule existed: POST https://sswanstudios.com/webhooks/stripe
+      # returned "200 OK, Content-Length: 0" — and so did /webhooks/anything-else, because the
+      # catch-all rewrite below served index.html for the whole prefix. Only /api is proxied to
+      # the backend at the apex.
+      #
+      # Stripe treats ANY 2xx as "delivered". So if the Stripe dashboard were ever pointed at
+      # the apex /webhooks/stripe, every payment event would be marked delivered while nothing
+      # credited the buyer: no 4xx in Stripe, no backend log, no retry, no alert. Silent and
+      # total revenue loss.
+      #
+      # Redirecting converts that silent success into a VISIBLE failure — Stripe does not
+      # follow redirects for webhook delivery, so a misconfigured endpoint starts erroring in
+      # the dashboard where it can be seen and fixed. It deliberately does NOT make the apex a
+      # working webhook endpoint; the working URL is /api/webhook/stripe (proxied) or the
+      # backend origin directly. Confirming the dashboard URL is still the real fix.
+      - type: redirect
+        source: /webhooks/*
+        destination: https://ss-pt-new.onrender.com/webhooks/*
+
       # SPA routing - serve index.html for all non-file routes
       - type: rewrite
         source: /*

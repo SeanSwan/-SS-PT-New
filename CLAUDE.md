@@ -991,8 +991,19 @@ These skills have been moved off the default-exposed surface. Their sources now 
 
 ### Storefront Packages (PENDING CONFIRMATION)
 - **Seeder corrected 2026-04-11** → 5 packages, $175/session flat (NO volume discounts), 30-min 10-pack $110
-- **NEEDS:** Run `FORCE_RESEED=true node seeders/20260407-seed-storefront-packages.mjs` in Render shell to wipe bad data
-- **Unresolved:** `/api/cart/add` returning 404 in production — not yet root-caused
+- **⛔ DO NOT RESEED (retracted 2026-08-04, Lane 4 audit).** The old instruction here told a
+  future session to run `FORCE_RESEED=true` on the storefront seeder "to wipe bad data". That
+  was written when the catalog was disposable and has since become **destructive**: the seeder
+  clears with `TRUNCATE storefront_items RESTART IDENTITY CASCADE`, and `TRUNCATE … CASCADE`
+  truncates dependent tables outright — it does **not** honour the `ON DELETE SET NULL`
+  tombstone relax — so it would erase the line items of **already-paid orders**. Live prod also
+  carries 2 packages the seeder does not define (10-Session, 24-Session) plus a renamed 30-min
+  pack, so a reseed would delete live catalog rows too. The seeder now refuses when any
+  `order_items` row exists. **Correct the catalog from the admin storefront UI instead.**
+- **✅ RESOLVED (2026-08-04):** `/api/cart/add` is mounted exactly once (`cartRoutes.mjs`) and
+  returns **401** unauthenticated in production, not 404 — verified by live probe. The modern
+  rejection to expect on that path is **403 `PRICE_ACCESS_REQUIRED`** from the invitation gate,
+  which is correct behaviour, not a bug.
 - **Packages:** Single ($175) · 3-Month ($8,400) · 6-Month ($16,800) · 12-Month ($33,600) · 30-min pack ($1,100)
 
 ### Deferred UI / Code Quality
