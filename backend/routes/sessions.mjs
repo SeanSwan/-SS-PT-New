@@ -1495,9 +1495,15 @@ router.get("/client/:userId", protect, async (req, res) => {
  * GET /api/sessions/users/trainers
  * Get all trainers for dropdown selection
  */
-router.get("/users/trainers", protect, async (req, res) => {
+// SECURITY: was `protect` only, while its sibling /users/clients is
+// trainerOrAdminOnly. It returned the full legal name, EMAIL and PHONE of every
+// trainer and admin, unpaginated, to any account created through the public
+// signup form. All three live consumers are admin/trainer schedule modals that
+// need a name for a dropdown. Gated here AND narrowed in the service, so a
+// future caller cannot re-leak it.
+router.get("/users/trainers", protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const trainers = await unifiedSessionService.getTrainers();
+    const trainers = await unifiedSessionService.getTrainers(req.user);
 
     return res.status(200).json(trainers);
   } catch (error) {

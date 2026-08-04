@@ -236,10 +236,13 @@ const socialController = {
         success: true,
         followers: followers.rows,
         pagination: {
-          total: followers.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(followers.count / normalizedLimit)
+          // An exact follower count for an arbitrary account is an oracle, and
+          // echoing the REQUESTED page while the offset is pinned to 0 returned
+          // page 1's rows labelled "page 5".
+          total: directoryTotal(req.user, followers.count, followers.rows.length),
+          page: isStaffViewer(req.user) ? normalizedPage : 1,
+          limit: effectiveLimit,
+          pages: isStaffViewer(req.user) ? Math.ceil(followers.count / normalizedLimit) : 1
         }
       });
     } catch (error) {
@@ -288,10 +291,10 @@ const socialController = {
         success: true,
         following: following.rows,
         pagination: {
-          total: following.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(following.count / normalizedLimit)
+          total: directoryTotal(req.user, following.count, following.rows.length),
+          page: isStaffViewer(req.user) ? normalizedPage : 1,
+          limit: directoryLimit(req.user, normalizedLimit),
+          pages: isStaffViewer(req.user) ? Math.ceil(following.count / normalizedLimit) : 1
         }
       });
     } catch (error) {
@@ -491,7 +494,16 @@ const socialController = {
         id: { [Op.ne]: currentUserId }
       });
 
-      if (level) whereClause.level = level;
+      // `level` is the surviving partition key now that offset is pinned to 0:
+      // ?level=1,2,3... are disjoint slices that compose with tier. Validated
+      // as a bounded integer (it is an INTEGER column, so a non-numeric value
+      // also threw a Postgres cast error straight into the 500 handler).
+      // Uses the file's sanctioned helper (raw parseInt is banned here by
+      // socialControllerSecurity.test.mjs — it returns NaN/partial parses).
+      const parsedLevel = parsePositiveInteger(level);
+      if (parsedLevel && parsedLevel <= 1000) {
+        whereClause.level = parsedLevel;
+      }
       // Unvalidated `tier` partitions the table into independently-walkable
       // slices; allowlisted against the values the system can actually store.
       if (tier && isKnownTier(tier)) whereClause.tier = tier;
@@ -556,7 +568,7 @@ const socialController = {
           ['level', 'DESC'],
           ['createdAt', 'DESC']
         ],
-        limit: normalizedLimit,
+        limit: effectiveLimit,
         offset,
         distinct: true
       });

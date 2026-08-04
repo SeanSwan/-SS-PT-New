@@ -1,6 +1,11 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { Op, Sequelize } from 'sequelize';
+import {
+  MEMBER_ROLES,
+  directoryAttributes,
+  isStaffViewer,
+} from '../../utils/memberDirectoryAccess.mjs';
 import sequelize from '../../database.mjs';
 import { Friendship } from '../../models/social/index.mjs';
 import User from '../../models/User.mjs';
@@ -535,7 +540,13 @@ router.get('/search', searchLimiter, async (req, res) => {
  */
 router.get('/suggestions', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    // SECURITY: was `parseInt(req.query.limit) || 10` with no cap, so
+    // ?limit=100000 returned the surname of every client AND trainer in one
+    // response. Capped, and staff are no longer suggested to members.
+    const requestedLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, 50)
+      : 10;
     
     // Get the current user's friends
     const friendships = await Friendship.findAll({
@@ -578,9 +589,13 @@ router.get('/suggestions', async (req, res) => {
     const suggestedUsers = await User.findAll({
       where: {
         id: { [Op.notIn]: excludeIds },
-        role: { [Op.in]: ['client', 'trainer'] } // Only suggest clients or trainers
+        // Members are suggested MEMBERS. Suggesting staff is what put trainer
+        // surnames in a member-facing response.
+        ...(isStaffViewer(req.user)
+          ? { role: { [Op.in]: ['client', 'trainer'] } }
+          : { role: { [Op.in]: [...MEMBER_ROLES] } })
       },
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+      attributes: directoryAttributes(req.user, ['role']),
       limit,
       order: [['createdAt', 'DESC']] // For simplicity, suggest newer users first
     });

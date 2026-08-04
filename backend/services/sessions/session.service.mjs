@@ -34,6 +34,7 @@ import logger from '../../utils/logger.mjs';
 import Session from '../../models/Session.mjs';
 import User from '../../models/User.mjs';
 import { Op } from 'sequelize';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
@@ -2463,11 +2464,13 @@ class UnifiedSessionService {
    * Includes admin users since admins also conduct training sessions
    * @returns {Array} List of trainers and admins
    */
-  async getTrainers() {
+  async getTrainers(viewer = null) {
     try {
+      // Contact details are staff-only. This is a dropdown feed: a name, a
+      // photo and a speciality are all any caller renders.
       const trainers = await this.User.findAll({
         where: { role: { [Op.in]: ['trainer', 'admin'] } },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
+        attributes: directoryAttributes(viewer, ['specialties', 'bio']),
         order: [['role', 'ASC'], ['firstName', 'ASC']]
       });
 

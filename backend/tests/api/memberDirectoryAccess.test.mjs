@@ -25,6 +25,7 @@ import {
   isKnownTier,
   isStaffViewer,
   scopeToMembers,
+  scopeToRankable,
 } from '../../utils/memberDirectoryAccess.mjs';
 import { RANK_TITLES } from '../../utils/levelingAlgorithm.mjs';
 
@@ -98,6 +99,39 @@ describe('member directory policy', () => {
     expect(isKnownTier(undefined)).toBe(false);
   });
 
+  it('cannot be bypassed by injecting a staff field through `extra`', () => {
+    // A reviewer defeated the previous version in ONE line: the staff gate ran,
+    // then `extra` was spread straight past it, and the guard suite stayed
+    // 11/11 green. An escape hatch that is not filtered is not a policy.
+    const injected = directoryAttributes(
+      { role: 'user' },
+      ['lastName', 'email', 'phone', 'healthConcerns', 'points'],
+    );
+
+    expect(injected).not.toContain('lastName');
+    expect(injected).not.toContain('email');
+    expect(injected).not.toContain('phone');
+    expect(injected).not.toContain('healthConcerns');
+    // ...while a legitimate extra still comes through.
+    expect(injected).toContain('points');
+  });
+
+  it('still lets staff request the fields they are entitled to', () => {
+    const staffView = directoryAttributes({ role: 'admin' }, ['email', 'phone']);
+
+    expect(staffView).toContain('email');
+    expect(staffView).toContain('phone');
+  });
+
+  it('keeps an opted-out member off a member-facing ranking', () => {
+    // `leaderboardOptIn` existed and was honoured by TWO unmounted leaderboard
+    // implementations, while the only one actually served ignored it.
+    expect(scopeToRankable({ role: 'user' }).leaderboardOptIn).toBe(true);
+    expect(scopeToRankable({ role: 'client' }).leaderboardOptIn).toBe(true);
+    // Staff boards are administrative and still show everyone.
+    expect(scopeToRankable({ role: 'admin' }).leaderboardOptIn).toBeUndefined();
+  });
+
   it('classifies viewers correctly', () => {
     expect(isStaffViewer(member)).toBe(false);
     expect(isStaffViewer(client)).toBe(false);
@@ -137,11 +171,29 @@ describe('every member-facing directory surface uses the policy', () => {
     expect(handler).toContain('isKnownTier(');
   });
 
+  it('keeps staff contact details out of the trainer dropdown', () => {
+    const sessionService = read('services/sessions/session.service.mjs');
+    const handler = sessionService.slice(
+      sessionService.indexOf('async getTrainers('),
+      sessionService.indexOf('async getTrainers(') + 900,
+    );
+    // Was: ['id','firstName','lastName','email','phone',...] to any member.
+    expect(handler).toContain('directoryAttributes(viewer');
+    expect(handler).not.toContain("'email'");
+    expect(handler).not.toContain("'phone'");
+  });
+
+  it('caps and scopes the friend-suggestion feed', () => {
+    const friendships = read('routes/social/friendships.mjs');
+    expect(friendships).toContain('directoryAttributes(req.user');
+    expect(friendships).toContain('Math.min(requestedLimit, 50)');
+  });
+
   it('keeps the leaderboard on the same policy', () => {
     // Two implementations of one rule is how this class kept re-opening.
     expect(progressSource).toContain("from '../utils/memberDirectoryAccess.mjs'");
     expect(progressSource).toContain('directoryOffset(req.user, rawOffset)');
-    expect(progressSource).toContain('scopeToMembers(req.user)');
+    expect(progressSource).toContain('scopeToRankable(req.user)');
     expect(progressSource).toContain('isKnownTier(tier)');
   });
 });
