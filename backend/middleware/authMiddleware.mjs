@@ -660,8 +660,34 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
     // Fix: parse req.user.id to a number on the comparison side. Both sides
     // are now compared as numbers. NaN === NaN is false, so malformed
     // inputs still fall through to the deny branch safely.
-    const clientId = parseInt(req.params.clientId || req.body.clientId, 10);
+    // CONFUSED-DEPUTY GUARD (Kimi security audit F1, 2026-08-04): this
+    // middleware authorizes exactly ONE clientId, but a handler that later
+    // re-reads req.body.clientId independently could act on a DIFFERENT client
+    // than the one authorized. The `||` short-circuit means a request can carry
+    // params.clientId=A (authorized) AND body.clientId=B (acted on). Reject any
+    // request where both are present and disagree — fail loudly instead of
+    // silently authorizing one id while the handler uses another.
+    const paramClientRaw = req.params.clientId;
+    const bodyClientRaw = req.body?.clientId;
+    if (
+      paramClientRaw !== undefined && paramClientRaw !== null
+      && bodyClientRaw !== undefined && bodyClientRaw !== null
+      && parseInt(paramClientRaw, 10) !== parseInt(bodyClientRaw, 10)
+    ) {
+      logger.warn('checkTrainerClientRelationship: params/body clientId disagreement', {
+        userId: req.user?.id, paramClientId: paramClientRaw, bodyClientId: bodyClientRaw, path: req.path,
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Ambiguous client reference: URL and body client IDs disagree.',
+      });
+    }
+
+    const clientId = parseInt(paramClientRaw ?? bodyClientRaw, 10);
     const userNumericId = parseInt(req.user.id, 10);
+    // Pin the authorized id so handlers can consume ONLY this (never re-read
+    // params/body independently) — the durable fix for the confused-deputy.
+    req.authorizedClientId = Number.isNaN(clientId) ? null : clientId;
     if (isWorkoutSelfAccessRole(req.user.role) && userNumericId === clientId) {
       return next();
     }
