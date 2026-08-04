@@ -161,12 +161,16 @@ class TrainerAssignmentService {
     const client = await User.findOne({
       where: { 
         id: clientId,
-        role: ['client', 'member'] // Support both role types
+        // 'member' is NOT a value of enum_Users_role (user|client|trainer|admin) — Postgres
+        // rejected the whole IN-list with `invalid input value for enum`, so EVERY trainer
+        // assignment threw. Live-proven 2026-08-04. 'user' is the real second role here: it
+        // is the DB default for new signups, who are exactly the people being assigned.
+        role: ['client', 'user']
       }
     });
 
     if (!client) {
-      throw new Error(`Client with ID ${clientId} not found or not a client/member`);
+      throw new Error(`Client with ID ${clientId} not found or not a client`);
     }
 
     return { trainer, client };

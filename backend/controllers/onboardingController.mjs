@@ -7,6 +7,7 @@ import { triggerSequence } from '../services/automationService.mjs';
 import { generateChallengesFromGoals } from '../services/gamification/goalChallengeService.mjs';
 import { transformQuestionnaireToMasterPrompt } from '../services/onboardingMasterPromptBuilder.mjs';
 import { computeDerivedFields } from '../utils/onboardingHelpers.mjs';
+import logger from '../utils/logger.mjs';
 import { buildOnboardingResetLinkHandoff } from '../services/onboardingResetHandoffService.mjs';
 import {
   parseHeightInches,
@@ -74,6 +75,46 @@ export const createClientOnboarding = async (req, res) => {
     let user = await User.findOne({ where: { email: formData.email } });
 
     if (user) {
+      // SECURITY (authz sweep 2026-08-04): this path keys on a BODY-SUPPLIED email and used to
+      // overwrite whatever account matched — including `role: 'client'`. Any trainer could post
+      // an admin's email and (a) demote that admin (protect re-reads role from the DB per
+      // request, so it took effect on their very next call, no token rotation needed) and
+      // (b) overwrite their name/phone/DOB/gender/weight/height. Staff accounts are now
+      // off-limits to this client-onboarding endpoint entirely.
+      // Two independent refusals, both answered with the SAME 409 body so this endpoint is
+      // not an account-enumeration oracle (Kimi review: a staff-specific 403 told any trainer
+      // which emails belong to staff):
+      //   (a) staff accounts are never onboardable as clients;
+      //   (b) an existing client may only be overwritten by an admin or by a trainer with an
+      //       ACTIVE assignment to them. Without this, any trainer could overwrite any
+      //       client's name/phone/DOB/gender/weight/height — cross-tenant PII tampering on
+      //       minors, and a phone overwrite is a step toward SMS-based account recovery abuse.
+      const isStaffAccount = user.role === 'admin' || user.role === 'trainer';
+      let mayOverwrite = req.user?.role === 'admin';
+      if (!mayOverwrite && !isStaffAccount && req.user?.role === 'trainer') {
+        const { ClientTrainerAssignment } = await import('../models/index.mjs')
+          .then((m) => m.getAllModels());
+        const assignment = ClientTrainerAssignment
+          ? await ClientTrainerAssignment.findOne({
+              where: { clientId: user.id, trainerId: req.user.id, status: 'active' },
+            })
+          : null;
+        mayOverwrite = Boolean(assignment);
+      }
+
+      if (isStaffAccount || !mayOverwrite) {
+        logger.warn('[onboarding] refused overwrite of an existing account', {
+          actorId: req.user?.id,
+          actorRole: req.user?.role,
+          targetUserId: user.id,
+          reason: isStaffAccount ? 'staff-account' : 'no-active-assignment',
+        });
+        return res.status(409).json({
+          success: false,
+          message: 'An account already exists for that email. Link the existing account instead of re-onboarding it.',
+        });
+      }
+
       // Generate anonymous alias using client ID
       const anonymousAlias = generateSpiritName(formData, user.id);
 
@@ -82,7 +123,8 @@ export const createClientOnboarding = async (req, res) => {
         firstName: formData.fullName.split(' ')[0],
         lastName: formData.fullName.split(' ').slice(1).join(' '),
         phone: formData.phone,
-        role: 'client',
+        // Only promote a plain signup into a client; never rewrite an existing role.
+        role: user.role === 'user' ? 'client' : user.role,
         masterPromptJson: masterPromptJson,
         spiritName: anonymousAlias, // Store client ID alias (replaces spirit name)
         // Update other client-specific fields

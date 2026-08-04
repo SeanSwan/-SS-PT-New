@@ -18,12 +18,19 @@ const parseLimit = (value) => {
   return Math.min(parsed ?? 50, 100);
 };
 
-const orderByFor = (sort) => ({
+// hasOwnProperty, not plain indexing: `map[key] || default` resolves INHERITED keys, so
+// sort=constructor/toString yields a function that stringifies into ORDER BY and 500s
+// (same class proven live on the public /api/videos route, 2026-08-04).
+const ORDER_BY_MAP = {
   timesPerformed: '"timesPerformed" DESC',
   totalVolume: '"totalVolume" DESC',
   lastPerformed: '"lastPerformedDate" DESC',
   alphabetical: '"exerciseName" ASC',
-}[sort] || '"timesPerformed" DESC');
+};
+const orderByFor = (sort) =>
+  (typeof sort === 'string' && Object.prototype.hasOwnProperty.call(ORDER_BY_MAP, sort))
+    ? ORDER_BY_MAP[sort]
+    : ORDER_BY_MAP.timesPerformed;
 
 const parseCursor = (cursor) => {
   if (!cursor || typeof cursor !== 'string') return null;

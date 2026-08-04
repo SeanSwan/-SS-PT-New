@@ -170,8 +170,8 @@ async function seedQABotWorkouts() {
         CREATE TABLE IF NOT EXISTS daily_workout_forms (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           session_id UUID,
-          client_id INTEGER NOT NULL REFERENCES users(id),
-          trainer_id INTEGER NOT NULL REFERENCES users(id),
+          client_id INTEGER NOT NULL REFERENCES "Users"(id),
+          trainer_id INTEGER NOT NULL REFERENCES "Users"(id),
           date DATE NOT NULL DEFAULT CURRENT_DATE,
           form_data JSONB NOT NULL,
           session_deducted BOOLEAN NOT NULL DEFAULT false,
@@ -198,7 +198,7 @@ async function seedQABotWorkouts() {
 
     // Verify seed users exist
     const [existingUsers] = await sequelize.query(
-      `SELECT id FROM users WHERE id IN (${SEED_USERS.join(',')})`
+      `SELECT id FROM "Users" WHERE id IN (${SEED_USERS.join(',')})`
     );
     const validUserIds = existingUsers.map(u => u.id);
     console.log(`Found users: ${validUserIds.join(', ')}`);

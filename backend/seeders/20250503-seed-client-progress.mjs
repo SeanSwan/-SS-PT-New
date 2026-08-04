@@ -19,7 +19,7 @@ export async function up(queryInterface, Sequelize) {
 
   // First, find existing client users to use their IDs
   const clientUsers = await queryInterface.sequelize.query(
-    `SELECT id FROM users WHERE role = 'client' LIMIT 5`,
+    `SELECT id FROM "Users" WHERE role = 'client' LIMIT 5`,
     { type: Sequelize.QueryTypes.SELECT }
   );
   

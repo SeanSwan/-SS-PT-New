@@ -632,7 +632,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -677,7 +677,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -837,6 +837,21 @@ export const setupRoutes = async (app) => {
         return res.status(400).json({ error: 'Invalid photo path' });
       }
 
+      // Sensitive categories (body/health photos) require the SAME short-TTL signed
+      // URL the protected `/api/serve-photo/photos/...` twin enforces. Without this
+      // gate here, swapping the path prefix served a client's measurement photo from
+      // a bare, unauthenticated, non-expiring link — defeating the leaked-link
+      // defense (found 2026-08-04, security audit). Legit measurement rendering mints
+      // signed `/api/serve-photo/...` URLs, so this only blocks the bypass. FAIL-CLOSED.
+      const { SENSITIVE_PHOTO_CATEGORIES, verifySignedPhotoPath } =
+        await import('../services/photoUrlSigner.mjs');
+      if (SENSITIVE_PHOTO_CATEGORIES.has(category)) {
+        const barePath = `/api/serve-photo/${objectKey}`;
+        if (!verifySignedPhotoPath(barePath, req.query.exp, req.query.sig)) {
+          return res.status(401).json({ error: 'Signed URL required or expired' });
+        }
+      }
+
       const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');
       if (r2Configured) {
         const { GetObjectCommand } = await import('@aws-sdk/client-s3');
@@ -849,7 +864,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 

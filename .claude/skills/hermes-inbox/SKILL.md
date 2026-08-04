@@ -38,6 +38,23 @@ Full protocol lives at `.ai-workflow/hermes-inbox/README.md`. This skill is the 
    `tg-claude` | `tg-codex` | `local-qwen`. Stamp an explicit UTC timestamp (no clock helper).
 3. **Fill it short.** Bullets: what you did/learned · why it matters to Hermes · state right now ·
    Sean owes/blockers. A memo, not an essay.
+3b. **MISTAKES SECTION — MANDATORY, NOT OPTIONAL (Sean 2026-08-04).** Every memo for substantial
+   work carries a `## Mistakes I made` section. Sean: *"give a report to Hermes, especially about
+   the mistakes that you made so I can learn from them… this should be automatic."*
+   - List **your own errors**: what you got wrong → how it was caught → the rule that prevents
+     the repeat. Include errors you caught and fixed **mid-task** — a mistake that never reached
+     Sean is still the most useful training data.
+   - Include **wrong claims you walked back**, tools that reported **false success**, and wrong
+     severity calls. **If you repeated a mistake you had already written up, say exactly that**
+     — that repeat is the highest-signal entry a memo can contain.
+   - If a **paid/external model** (Kimi, HY3, Village, Fable) was consulted, add an
+     **`## External-model calibration`** line: findings real vs disproven on verification. That is
+     how Hermes learns what a model is worth per task class.
+   - Honest-empty is allowed but rare: `## Mistakes I made — none surfaced this task`, and only
+     after a hostile pass genuinely ran dry. **Never omit the heading** — an absent section reads
+     as "nothing went wrong," which is almost never true.
+   - Enforced deterministically: `scripts/hooks/hermes-closeout-gate.mjs` reads the emitted memo
+     and BLOCKS the turn when the heading is missing (fail-open if unreadable).
 4. **Privacy gate (Rules 8 / 44 / 59 — this dir is committed + LLM-read):** IDs/roles only. No client
    names, medical/immigration/PII, secrets, keys, tokens, DB URLs, or absolute user paths. Run
    `bash scripts/scan-secrets.sh <file>` and **hard-fail on any hit** (reuse the continuity

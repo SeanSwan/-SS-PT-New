@@ -107,6 +107,47 @@ describe('GET /api/assignments/my-trainer — executed scoping probe', () => {
     // Target is derived from the token only — no request-controlled id.
     expect(handler).toContain('req.user.id');
     expect(handler).not.toMatch(/req\.(params|query|body)/);
+
+    // LOOP-5 HARDENING (Kimi F10). The assertions above are a DENY-LIST: they
+    // only fail on the literal tokens they name. These leak PII while keeping
+    // a deny-list green — so forbid the whole shape class, not the spelling:
+    //   trainer.toJSON() / .get({plain:true}) / {...assignment.trainer}
+    // each serialize EVERY selected column, and a nested include can carry
+    // contact fields in on an association instead of an attribute.
+    expect(handler).not.toMatch(/toJSON\s*\(/);
+    expect(handler).not.toMatch(/\.get\s*\(\s*\{\s*plain/);
+    expect(handler).not.toMatch(/\.\.\.\s*assignment/);
+    expect(handler).not.toMatch(/\.\.\.\s*\w*[Tt]rainer/);
+    // Exactly ONE include (the trainer) — a second one is a new data path
+    // that this contract has not reviewed.
+    expect((handler.match(/model:\s*User/g) || []).length).toBe(1);
+    // The response object is built field-by-field from an allowlist literal.
+    expect(handler).toMatch(/id:\s*assignment\.trainer\.id/);
+    expect(handler).toMatch(/firstName:\s*assignment\.trainer\.firstName/);
+    expect(handler).toMatch(/lastName:\s*assignment\.trainer\.lastName/);
+    expect(handler).toMatch(/photo:\s*assignment\.trainer\.photo/);
+  });
+
+  /**
+   * KIMI F4 (loop 5): production currently holds 7 `inactive` assignments
+   * alongside 4 active ones, so the status predicate is load-bearing — an
+   * ex-trainer must not resolve as "your trainer" after deactivation. The
+   * populated branch can't run without DB rows here, so the predicate is
+   * asserted as a source contract (same technique that closed the F10 class).
+   */
+  it('resolves ONLY active assignments — a deactivated trainer must not resurface', () => {
+    const routePath = fileURLToPath(
+      new URL('../../routes/clientTrainerAssignmentRoutes.mjs', import.meta.url),
+    );
+    const source = readFileSync(routePath, 'utf8');
+    const handler = source.slice(
+      source.indexOf("router.get('/my-trainer'"),
+      source.indexOf("router.get('/test'"),
+    );
+    expect(handler).toMatch(/where:\s*\{\s*clientId,\s*status:\s*'active'\s*\}/);
+    // Ordering by newest keeps a re-activated assignment authoritative over a
+    // stale one; losing it would make the resolved trainer arbitrary.
+    expect(handler).toContain("order: [['createdAt', 'DESC']]");
   });
 
   it('non-positive-integer user ids fail safe to trainer:null (never a query with garbage)', async () => {

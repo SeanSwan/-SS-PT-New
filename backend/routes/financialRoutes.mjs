@@ -134,11 +134,37 @@ router.post('/track-checkout-start', async (req, res) => {
       });
     }
 
+    // SECURITY (Kimi review 2026-08-04, rated HIGH — money ledger): the cart must belong to
+    // the caller. cartId is an enumerable integer, so without this any authenticated user
+    // could attribute tracking rows to other people's carts.
+    const { ShoppingCart } = getAllModels();
+    if (ShoppingCart) {
+      const ownedCart = await ShoppingCart.findOne({
+        where: { id: normalizedCartId, userId },
+        attributes: ['id'],
+      });
+      if (!ownedCart) {
+        // 404, not 403 — do not confirm that someone else's cart id exists.
+        return res.status(404).json({
+          success: false,
+          message: 'Cart not found',
+          error: { code: 'CART_NOT_FOUND' }
+        });
+      }
+    }
+
     // Create checkout tracking entry for admin analytics
     const trackingData = {
       userId,
       cartId: normalizedCartId,
-      stripePaymentIntentId: sessionId, // Use session ID as tracking reference
+      // NAMESPACED (Kimi review 2026-08-04): this previously stored the raw client-supplied
+      // sessionId in the UNIQUE stripePaymentIntentId column. Any authenticated user could
+      // squat known/guessed pi_*/cs_* keys; /log-transaction then matches on that column
+      // ALONE with no ownership check and UPDATEs the row — so admin reconciliation would
+      // write real payment data onto the squatter's row (userId = attacker), and the unique
+      // constraint blocked the legitimate writer. A server-namespaced key cannot collide
+      // with a real Stripe identifier.
+      stripePaymentIntentId: `track:${userId}:${String(sessionId).slice(0, 80)}`,
       amount: normalizedAmount,
       currency: 'USD',
       status: 'pending', // enum_financial_transactions_status has no 'checkout_started' — every tracking insert threw (drift sweep 2026-08-04); checkout-start context lives in metadata.source
@@ -460,22 +486,19 @@ router.get('/transactions', async (req, res) => {
  * GET /api/financial/metrics
  * Get business metrics for charts and analytics
  */
-router.get('/metrics', async (req, res) => {
+// ⚠ ADMIN-ONLY. Returns company-wide business metrics (revenue, customer counts,
+// conversion/refund rates, health score). The gate used to be `if (req.query.adminOnly
+// && role !== 'admin')` — inverted: it only fired when the CALLER volunteered
+// adminOnly=true, so any authenticated user (incl. a free `user`) who omitted the param
+// received full financials. Now gated by the same `adminOnly` middleware its siblings
+// (/log-transaction, /update-metrics) use. Found 2026-08-04, security audit.
+router.get('/metrics', adminOnly, async (req, res) => {
   try {
-    const { 
-      startDate, 
-      endDate, 
-      period = 'daily',
-      adminOnly = false 
+    const {
+      startDate,
+      endDate,
+      period = 'daily'
     } = req.query;
-
-    // Check admin access for sensitive metrics
-    if (adminOnly && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required for this data'
-      });
-    }
 
     let metrics;
 

@@ -5,6 +5,9 @@
   "main": "server.mjs",
   "type": "module",
   "scripts": {
+    "audit:idor": "node scripts/audit-idor-surface.mjs",
+    "backup:db": "node scripts/backup-db.mjs",
+    "backup:db:verify": "node scripts/backup-db.mjs --verify-only",
     "audit:models": "node scripts/audit-model-health.mjs",
     "audit:exports": "node scripts/audit-named-exports.mjs",
     "audit:writes": "node scripts/audit-write-paths.mjs",
