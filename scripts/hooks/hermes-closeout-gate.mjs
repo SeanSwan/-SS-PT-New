@@ -39,7 +39,7 @@ const MISTAKES_BLOCK_REASON = (p) =>
   `after a hostile pass genuinely ran dry: "## Mistakes I made — none surfaced this task". ` +
   `Never omit the heading — an absent section reads as "nothing went wrong".`;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
-const GIT_ACTIVITY_RE = /git\s+(commit|push)\b/;
+const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 
 const BLOCK_REASON =
   'Before stopping, run the Hermes closeout gate. This turn shows substantial completed work ' +
@@ -141,29 +141,21 @@ export function analyzeTurn(entries) {
   return signals;
 }
 
-/**
- * A memo without a mistakes section teaches Hermes nothing about how the work
- * actually went (Sean 2026-08-04: "especially about the mistakes that you made
- * so I can learn from them… this should be automatic"). Detecting the FILE was
- * never enough — the section is the payload. Reads the memo Write tool actually
- * produced; unreadable/absent file -> fail-open (this gate is heuristic, and a
- * false block is worse than a missed nudge).
- */
+/** Pure decision: returns null (allow) or a block reason string. */
 export function memoMissingMistakes(memoPaths, readFile) {
   for (const p of memoPaths) {
     let text;
     try {
       text = readFile(p);
     } catch {
-      continue; // cannot read -> do not punish
+      continue; // unreadable -> do not punish (heuristic gate, fail-open)
     }
-    // Accept the honest-empty form too; only a MISSING heading blocks.
+    // Accept the honest-empty form; only a MISSING heading blocks.
     if (!/^\s*#{1,4}\s*Mistakes\b/im.test(text)) return p;
   }
   return null;
 }
 
-/** Pure decision: returns null (allow) or a block reason string. */
 export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(p, 'utf8')) {
   if (hookInput?.stop_hook_active) return null;
   const signals = analyzeTurn(parseTranscript(transcriptRaw));

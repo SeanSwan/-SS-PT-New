@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { analyzeTurn, decide, parseTranscript } from './hermes-closeout-gate.mjs';
+import { analyzeTurn, decide, memoMissingMistakes, parseTranscript } from './hermes-closeout-gate.mjs';
 
 // Resolved from this file, not process.cwd(): read relatively, the suite failed
 // outright from any other directory (found 2026-08-03 by running it from C:/tmp).
@@ -127,4 +127,50 @@ test('counts a memo citation in string-form assistant content (no false re-block
 test('tolerates malformed transcript lines (fail-open per line)', () => {
   const raw = ['not-json{{{', userText('hi'), 'also-bad', assistantText('hello')].join('\n');
   assert.equal(decide({}, raw), null);
+});
+
+// ── Mistakes-section contract (Sean 2026-08-04) ─────────────────────────────
+// "Give a report to Hermes, especially about the mistakes that you made so I
+// can learn from them… this should be automatic." Detecting that a memo FILE
+// exists was never enough — the mistakes section is the payload Hermes learns
+// from, so the gate reads the emitted memo and blocks when the heading is gone.
+const memoTurn = [
+  userText('build'),
+  toolUse('Write', {
+    file_path: '.ai-workflow/hermes-inbox/pending/20260804T000000Z-vs-claude-x.md',
+  }),
+].join('\n');
+
+test('memo WITHOUT a mistakes section is blocked', () => {
+  const reason = decide({}, memoTurn, () => `## What I did
+- shipped x`) ?? '';
+  assert.match(reason, /missing its mistakes section/);
+});
+
+test('memo WITH a mistakes section passes', () => {
+  assert.equal(decide({}, memoTurn, () => `## Mistakes I made
+- got x wrong -> caught by y -> rule: z`), null);
+});
+
+test('honest-empty mistakes form passes (heading present, hostile pass ran dry)', () => {
+  assert.equal(
+    decide({}, memoTurn, () => '## Mistakes I made — none surfaced this task'),
+    null,
+  );
+});
+
+test('unreadable memo fails OPEN — a heuristic gate must never false-block', () => {
+  assert.equal(decide({}, memoTurn, () => { throw new Error('ENOENT'); }), null);
+});
+
+test('memoMissingMistakes accepts any heading depth and names the offending file', () => {
+  assert.equal(memoMissingMistakes(['a.md'], () => '#### Mistakes I made'), null);
+  assert.equal(memoMissingMistakes(['bad.md'], () => 'no heading at all'), 'bad.md');
+});
+
+test('stop_hook_active still short-circuits even with a non-compliant memo', () => {
+  assert.equal(
+    decide({ stop_hook_active: true }, memoTurn, () => 'no mistakes heading'),
+    null,
+  );
 });
