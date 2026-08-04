@@ -201,6 +201,19 @@ router.post('/log', async (req, res) => {
  * existence-confirming). Body: { attendees: [{userId} | {guest}] }.
  */
 router.post('/class-logs/:id/attendance', async (req, res) => {
+  // DEFAULT-OFF GATE (SWA-105): the attendance write path carries a known-open
+  // HIGH finding (Kimi F1 / Opus §4.1 — idempotency TOCTOU + transaction-less
+  // write loop can duplicate DailyWorkoutForms). No frontend calls it yet, so
+  // it is dormant; this flag makes that guarantee explicit and enforced rather
+  // than incidental. The real fix (unique-indexed idempotencyKey column + a
+  // transaction) rides the roster-check-in UI slice that makes the path live —
+  // flip SWAN_BOOTCAMP_ATTENDANCE_ENABLED=true only after that lands.
+  if (process.env.SWAN_BOOTCAMP_ATTENDANCE_ENABLED !== 'true') {
+    return res.status(503).json({
+      success: false,
+      message: 'Bootcamp attendance log-back is not yet enabled.',
+    });
+  }
   try {
     const { recordBootcampAttendance } = await import('../services/bootcamp/bootcampAttendance.mjs');
     const { getBootcampClassLog } = await import('../models/index.mjs');
