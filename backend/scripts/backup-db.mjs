@@ -123,10 +123,55 @@ function verifyArchive(file) {
 }
 
 /**
+ * Drop any scratch database left behind by a previous run.
+ *
+ * `finally` does not run if the process is SIGKILLed, the machine loses power, or the terminal is
+ * closed mid-restore. What survives is a COMPLETE UNENCRYPTED COPY OF PRODUCTION sitting on the
+ * database server under a predictable name. Sweeping at startup means the window is one run, not
+ * forever. Named-pattern only, and never touches anything that is not ours.
+ */
+function reapScratchDatabases(url) {
+  const admin = url.replace(/\/[^/?]+(\?|$)/, '/postgres$1');
+  const list = spawnSync('psql', [admin, '-tAc',
+    `SELECT datname FROM pg_database WHERE datname LIKE 'swan\\_restoretest\\_%'`],
+  { encoding: 'utf8', timeout: 60000 });
+  const names = (list.stdout || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  for (const n of names) {
+    if (!/^swan_restoretest_\d+$/.test(n)) continue; // belt-and-braces: never drop an unexpected name
+    spawnSync('psql', [admin, '-tAc',
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${n}'`],
+    { encoding: 'utf8', timeout: 60000 });
+    const rm = spawnSync('psql', [admin, '-tAc', `DROP DATABASE IF EXISTS ${n}`], { encoding: 'utf8', timeout: 120000 });
+    console.log(`  reaped       : leftover scratch database ${n}${rm.status === 0 ? '' : ' (DROP FAILED — drop it manually)'}`);
+  }
+  return names.length;
+}
+
+/** Exact per-table row counts. Not pg_stat estimates — those are ANALYZE-refreshed and lie. */
+function tableCounts(url, db) {
+  const target = db ? url.replace(/\/[^/?]+(\?|$)/, `/${db}$1`) : url;
+  const sql = `SELECT string_agg(t || '=' || n, ',' ORDER BY t) FROM (
+     SELECT c.relname AS t, (xpath('/row/c/text()',
+       query_to_xml(format('SELECT count(*) AS c FROM %I.%I', n.nspname, c.relname), false, true, '')))[1]::text::bigint AS n
+       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE c.relkind='r' AND n.nspname='public') s`;
+  const r = spawnSync('psql', [target, '-tAc', sql], { encoding: 'utf8', timeout: 600000 });
+  if (r.status !== 0) return null;
+  const out = (r.stdout || '').trim();
+  if (!out) return null;
+  const map = new Map();
+  for (const pair of out.split(',')) {
+    const i = pair.lastIndexOf('=');
+    if (i > 0) map.set(pair.slice(0, i), Number(pair.slice(i + 1)));
+  }
+  return map;
+}
+
+/**
  * The real test: restore into a scratch database and compare against the source.
  * The scratch database is dropped in `finally` — including when the restore throws.
  */
-function proveRestorable(url, file, srcTables, srcRows) {
+function proveRestorable(url, file, srcTables, srcCounts) {
   const scratch = `swan_restoretest_${process.pid}`;
   const admin = url.replace(/\/[^/?]+(\?|$)/, '/postgres$1');
   let created = false;
@@ -145,21 +190,53 @@ function proveRestorable(url, file, srcTables, srcRows) {
     spawnSync('pg_restore', ['--no-owner', '--no-privileges', '-d', target, file],
       { encoding: 'utf8', timeout: 900000 });
 
-    const t = psqlScalar(url, `SELECT count(*) FROM information_schema.tables WHERE table_schema='public'`, scratch);
-    const rows = psqlScalar(url, `SELECT COALESCE(sum(n_live_tup),0) FROM pg_stat_user_tables`, scratch);
-    const gotTables = Number(t);
-    const gotRows = Number(rows);
-    if (!Number.isFinite(gotTables) || gotTables === 0) {
+    // PER-TABLE EXACT COUNTS, not a summed estimate. The first version compared
+    // sum(n_live_tup) — an ANALYZE-refreshed estimate — which cannot distinguish "restored
+    // correctly" from "one table truncated and another over-counted to match". It also drifted
+    // against a live source, so the check had to be given a tolerance, and a tolerance on the only
+    // number that mattered made the whole test decorative.
+    const gotCounts = tableCounts(url, scratch);
+    if (!gotCounts || gotCounts.size === 0) {
       return { ok: false, detail: 'restored database has ZERO tables' };
     }
-    // Tables must match exactly. Rows are compared with tolerance: pg_stat_user_tables is an
-    // estimate refreshed by ANALYZE, and the source is live and moving while the dump is taken.
-    if (gotTables !== srcTables) {
-      return { ok: false, detail: `table count ${gotTables} != source ${srcTables}` };
+    if (gotCounts.size !== srcTables) {
+      return { ok: false, detail: `table count ${gotCounts.size} != source ${srcTables}` };
     }
+
+    // Compare table by table against the source snapshot taken just before the dump. A table that
+    // GAINED rows is the live source moving under us — expected, and not a restore failure. A table
+    // that LOST rows means the dump did not capture what was there. Only the second is fatal.
+    const missing = [];
+    const short = [];
+    for (const [t, srcN] of srcCounts) {
+      if (!gotCounts.has(t)) { missing.push(t); continue; }
+      const got = gotCounts.get(t);
+      if (got < srcN) short.push(`${t} ${got}<${srcN}`);
+    }
+    if (missing.length) {
+      return { ok: false, detail: `${missing.length} table(s) absent from the restore: ${missing.slice(0, 5).join(', ')}` };
+    }
+    if (short.length) {
+      return { ok: false, detail: `${short.length} table(s) restored with FEWER rows: ${short.slice(0, 5).join(', ')}` };
+    }
+
+    // Content check on the highest-value table: identical rows produce an identical digest, so this
+    // catches truncated text and encoding corruption that a row count cannot see.
+    const digest = (db) => psqlScalar(url,
+      `SELECT md5(string_agg(t::text, '|' ORDER BY t.id)) FROM (SELECT id, email, role FROM "Users") t`, db);
+    const srcDigest = digest(null);
+    const gotDigest = digest(scratch);
+    const digestNote = srcDigest && gotDigest
+      ? (srcDigest === gotDigest ? 'Users digest MATCHES' : 'Users digest DIFFERS')
+      : 'Users digest unavailable';
+    if (srcDigest && gotDigest && srcDigest !== gotDigest) {
+      return { ok: false, detail: 'restored "Users" content does not match the source digest' };
+    }
+
+    const total = [...gotCounts.values()].reduce((a, b) => a + b, 0);
     return {
       ok: true,
-      detail: `restored ${gotTables} tables, ~${gotRows} rows (source ${srcTables} tables, ~${srcRows} rows)`,
+      detail: `restored ${gotCounts.size} tables, ${total} rows, every table >= source; ${digestNote}`,
     };
   } finally {
     if (created) {
@@ -217,13 +294,19 @@ function main() {
     process.exit(2);
   }
 
-  const srcTables = Number(psqlScalar(url, `SELECT count(*) FROM information_schema.tables WHERE table_schema='public'`));
-  const srcRows = Number(psqlScalar(url, `SELECT COALESCE(sum(n_live_tup),0) FROM pg_stat_user_tables`));
-  if (!Number.isFinite(srcTables) || srcTables === 0) {
+  // Sweep first: a previous run killed mid-restore leaves a full unencrypted copy of production
+  // on the server, and `finally` cannot help once the process is gone.
+  reapScratchDatabases(url);
+
+  // Exact per-table counts, captured BEFORE the dump so the comparison has a real baseline.
+  const srcCounts = tableCounts(url);
+  if (!srcCounts || srcCounts.size === 0) {
     console.error('  could not read the source schema — refusing to write a backup I cannot compare against');
     process.exit(2);
   }
-  console.log(`  source       : ${srcTables} tables, ~${srcRows} rows`);
+  const srcTables = srcCounts.size;
+  const srcRows = [...srcCounts.values()].reduce((a, b) => a + b, 0);
+  console.log(`  source       : ${srcTables} tables, ${srcRows} rows (exact)`);
 
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   const file = path.join(DEST, `swanstudios-${stamp}.dump`);
@@ -243,7 +326,7 @@ function main() {
   const v = verifyArchive(file);
   console.log(`  archive check: ${v.ok ? `OK — ${v.entries} objects` : 'FAILED'}`);
 
-  const rr = v.ok ? proveRestorable(url, file, srcTables, srcRows) : { ok: false, detail: 'skipped — archive check failed' };
+  const rr = v.ok ? proveRestorable(url, file, srcTables, srcCounts) : { ok: false, detail: 'skipped — archive check failed' };
   console.log(`  restore test : ${rr.ok ? `OK — ${rr.detail}` : 'FAILED'}`);
 
   if (!v.ok || !rr.ok) {
