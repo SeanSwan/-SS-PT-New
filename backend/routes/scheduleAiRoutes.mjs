@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { generateScheduleAiProposal } from '../services/schedule-ai/scheduleAiProposalEngine.mjs';
 
 const router = express.Router();
@@ -38,7 +39,11 @@ function errorPayload(code, message) {
   };
 }
 
-router.post('/proposals', protect, async (req, res) => {
+// Launch audit 2026-08-04 — cost abuse. Routes 2000-char messages to Gemini
+// with no limiter, no tier gate and no per-user cap, so any authenticated
+// account could loop paid completions. Sibling AI routes already apply
+// aiRateLimiter (e.g. mealPlanRoutes.mjs:205).
+router.post('/proposals', protect, aiRateLimiter, async (req, res) => {
   const message = normalizeMessage(req.body?.message);
   if (!message) {
     return res

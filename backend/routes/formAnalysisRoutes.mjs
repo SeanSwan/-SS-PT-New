@@ -21,6 +21,7 @@ import {
   verifyClientAccessByUserId,
 } from '../middleware/verifyClientAccess.mjs';
 import { requireTier } from '../middleware/requireTier.mjs';
+import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import {
   createFormAnalysis,
   processFormAnalysis,
@@ -250,7 +251,18 @@ router.get('/:id', async (req, res) => {
 /**
  * POST /:id/reprocess — Retry a failed analysis
  */
-router.post('/:id/reprocess', async (req, res) => {
+// Launch audit 2026-08-04 — cost abuse. This re-runs the FULL Gemini form
+// analysis, re-uploading a video up to 100MB, and carried neither a tier gate
+// nor a limiter while its sibling /upload requires ('elite','video.formcheck').
+// Ownership IS enforced (getAnalysisById scopes by req.user.id + role), so this
+// is not an IDOR — but a user could loop reprocess on their OWN analysis and
+// bill unbounded paid inference. The `analysisStatus !== 'failed'` guard does
+// not throttle: the async job resets to pending and re-arms on failure.
+// aiRateLimiter is per-user, which is the right control here.
+// NOTE (Sean's call, SWA-128): whether reprocess should ALSO require the same
+// 'elite' tier as /upload is a product/entitlement decision, not a security
+// one, so it is deliberately NOT changed here.
+router.post('/:id/reprocess', aiRateLimiter, async (req, res) => {
   try {
     const analysis = await getAnalysisById(
       parseInt(req.params.id, 10),
