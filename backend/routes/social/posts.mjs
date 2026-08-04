@@ -485,14 +485,27 @@ router.get('/trending', async (req, res) => {
 
       // Check if current user liked each post
       const postIds = posts.rows.map(p => p.id);
+      // Schema-drift fix (launch audit 2026-08-04): SocialLike has NO `postId`
+      // column — it is a polymorphic table keyed on (targetType, targetId)
+      // (models/social/SocialLike.mjs). Querying `postId` raised Postgres
+      // 42703 "column postId does not exist", and the inner catch below only
+      // swallows 42P01 (missing table), so it re-threw into the outer handler
+      // and this endpoint returned 500 for EVERY request where at least one
+      // post existed — i.e. it worked on an empty feed and broke the moment
+      // the site had content. /feed already used the correct shape; /trending
+      // was the lone hand-rolled outlier. Matched to the canonical pattern.
       const userLikes = postIds.length > 0
         ? await SocialLike.findAll({
-            where: { postId: { [Op.in]: postIds }, userId: req.user.id },
-            attributes: ['postId'],
+            where: {
+              userId: req.user.id,
+              targetType: 'post',
+              targetId: { [Op.in]: postIds },
+            },
+            attributes: ['targetId'],
             raw: true,
           })
         : [];
-      const likedSet = new Set(userLikes.map(l => l.postId));
+      const likedSet = new Set(userLikes.map(l => l.targetId));
 
       return res.json({
         success: true,
