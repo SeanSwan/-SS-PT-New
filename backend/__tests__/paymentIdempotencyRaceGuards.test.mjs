@@ -9,7 +9,10 @@ import {
   buildGalleryPrintAttemptKey,
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
-import * as paymentIdempotencyMigration from '../migrations/20260520000001-add-payment-idempotency-unique-indexes.mjs';
+// Migration retired to quarantine (SWA-115): it never ran in prod (runner cannot load
+// .mjs) and its indexes exist live via another path — kept as the reference implementation
+// these guards source-lock.
+import * as paymentIdempotencyMigration from '../migrations/retired-mjs-20260804/20260520000001-add-payment-idempotency-unique-indexes.mjs';
 
 describe('payment idempotency race guards', () => {
   it('reuses an existing ACH/offline order before creating a duplicate', async () => {
