@@ -367,10 +367,18 @@ const progressController = {
       // Members get a bounded, member-only, surname-free board; staff keep the
       // full one the admin surfaces already consume.
       const isStaffViewer = req.user?.role === 'admin' || req.user?.role === 'trainer';
-      const MEMBER_MAX_OFFSET = 1000;
+      // A member-facing leaderboard is a TOP-N, not a paging cursor over the
+      // user table. Capping total reachable rows (not just the page depth) is
+      // what closes slice-walking: an offset-only cap still let a member page
+      // each `tier` separately and flip `metric` to reverse the sort, reaching
+      // both ends of every slice. Real member callers ask for 5-20 rows and
+      // never page, so this costs nothing.
+      const MEMBER_MAX_ROWS = 100;
 
       const rawOffset = (normalizedPage - 1) * normalizedLimit;
-      const offset = isStaffViewer ? rawOffset : Math.min(rawOffset, MEMBER_MAX_OFFSET);
+      const offset = isStaffViewer
+        ? rawOffset
+        : Math.min(rawOffset, Math.max(0, MEMBER_MAX_ROWS - normalizedLimit));
 
       // A member-facing leaderboard ranks members. Staff are not competitors,
       // and listing them here is what exposed their names.

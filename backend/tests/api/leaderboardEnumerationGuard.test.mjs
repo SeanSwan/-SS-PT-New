@@ -58,10 +58,24 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
     countMock.mockReset();
   });
 
-  it('caps how deep a member can page, so the user table cannot be walked', async () => {
+  it('caps TOTAL reachable rows for a member, not just page depth', async () => {
     const options = await callLeaderboard({ role: 'user', query: { limit: 100, page: 500 } });
 
-    expect(options.offset).toBeLessThanOrEqual(1000);
+    expect(options.offset + options.limit).toBeLessThanOrEqual(100);
+  });
+
+  it('cannot be slice-walked by filtering tier and reversing the sort', async () => {
+    // An offset-only cap let a member page each tier separately, and flip
+    // `metric` to read the other end of each slice.
+    for (const tier of ['bronze', 'silver', 'gold']) {
+      for (const metric of ['points', 'workouts']) {
+        const options = await callLeaderboard({
+          role: 'user',
+          query: { tier, metric, limit: 100, page: 99 },
+        });
+        expect(options.offset + options.limit).toBeLessThanOrEqual(100);
+      }
+    }
   });
 
   it('does not rank trainers and admins on the member-facing board', async () => {
