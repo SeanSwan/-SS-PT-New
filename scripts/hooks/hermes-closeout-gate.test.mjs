@@ -18,12 +18,19 @@ const toolUse = (name, input) =>
 const assistantText = (text) =>
   line({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
 
-test('registers exactly one command-type Stop hook and no prompt hook', () => {
+test('is registered as a command-type Stop hook, and no prompt hook survives', () => {
+  // Was `commandHooks.length === 1`, which pinned a world that stopped existing the
+  // moment a second Stop hook was added — it has been permanently red since dry-loop
+  // and linear-sync landed, and adding lesson-recall made it no more wrong, just more
+  // obviously so. The real intent of this test is that the original PROMPT-type hook was
+  // replaced by a deterministic COMMAND hook (it blocked 100% of trivial turns), not that
+  // this gate is the only one. Assert that intent, so siblings can be added without
+  // falsifying it.
   assert.equal(stopHooks.filter((h) => h.type === 'prompt').length, 0);
   const commandHooks = stopHooks.filter((h) => h.type === 'command');
-  assert.equal(commandHooks.length, 1);
-  assert.match(commandHooks[0].command, /hermes-closeout-gate\.mjs/);
-  assert.equal(commandHooks[0].timeout, 30);
+  const own = commandHooks.find((h) => /hermes-closeout-gate\.mjs/.test(h.command));
+  assert.ok(own, 'hermes-closeout-gate must be registered as a Stop command hook');
+  assert.equal(own.timeout, 30);
 });
 
 test('stop_hook_active passes deterministically (no-loop guard)', () => {

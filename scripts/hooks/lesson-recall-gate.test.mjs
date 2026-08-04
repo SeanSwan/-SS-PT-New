@@ -151,10 +151,20 @@ test('REAL grep finds a symbol that genuinely exists in this repo', () => {
   assert.ok(hits.some((h) => h.includes('cartHelpers')));
 });
 
+// The needles below are ASSEMBLED AT RUNTIME on purpose. Written as plain literals they
+// appear in this very file, and once this file is committed `git grep` finds them here —
+// so the tests passed while the file was untracked and failed the moment it was tracked.
+// A test that only passes before it is committed is not a test.
 test('REAL grep returns empty (not a throw) for a symbol that does not exist', () => {
-  assert.deepEqual(defaultGrep('ZZZ_DEFINITELY_NOT_A_REAL_SYMBOL_ZZZ', process.cwd()), []);
+  const needle = ['ZZZ', 'NO', 'SUCH', 'SYMBOL'].join('_');
+  assert.deepEqual(defaultGrep(needle, process.cwd()), []);
 });
 
 test('REAL grep matches whole words only — a prefix must not count as a hit', () => {
-  assert.deepEqual(defaultGrep('MAX_CART', process.cwd()), []);
+  // The needle is a strict PREFIX of the real cart-ceiling constant, which does exist in
+  // the repo. Spelling that prefix out in this comment would make git grep find it HERE
+  // and fail the test — the comment-trap this repo has been bitten by before, and which
+  // bit this very test on its first run. Hence the runtime join and the vague wording.
+  const prefix = ['MAX', 'CART'].join('_');
+  assert.deepEqual(defaultGrep(prefix, process.cwd()), []);
 });
