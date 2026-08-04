@@ -31,7 +31,7 @@ export type Tab =
   | 'supplements'
   | 'meal-plan';
 
-interface NutritionTabConfig {
+export interface NutritionTabConfig {
   id: Tab;
   label: string;
   icon: ReactNode;
@@ -45,7 +45,7 @@ const NUTRITION_PRIMARY_TABS: NutritionTabConfig[] = [
   { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
 ];
 
-export const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
+const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
   { id: 'today', label: 'Today Dashboard', icon: <CalendarCheck size={16} /> },
   { id: 'hydration', label: 'Hydration', icon: <Droplets size={16} /> },
   { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
@@ -57,17 +57,13 @@ export const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
   { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
 ];
 
-const ALL_TABS = [...NUTRITION_PRIMARY_TABS, ...NUTRITION_MORE_TABS];
+/** Every nutrition tab (id + label + icon). The SegmentedTabBar groups these
+ *  ids into 4 intent segments — see NutritionWorkspace.segments.ts. */
+export const NUTRITION_ALL_TABS: readonly NutritionTabConfig[] = [...NUTRITION_PRIMARY_TABS, ...NUTRITION_MORE_TABS];
 
-export const NUTRITION_TAB_LABELS = ALL_TABS.reduce<Record<Tab, string>>((labels, tab) => {
+export const NUTRITION_TAB_LABELS = NUTRITION_ALL_TABS.reduce<Record<Tab, string>>((labels, tab) => {
   labels[tab.id] = tab.label;
   return labels;
 }, {} as Record<Tab, string>);
-
-
-
-export const isMoreNutritionTab = (tab: Tab) =>
-  NUTRITION_MORE_TABS.some((secondaryTab) => secondaryTab.id === tab);
-
 
 export const nutritionPanelId = (tab: Tab) => `nutrition-tab-${tab}`;

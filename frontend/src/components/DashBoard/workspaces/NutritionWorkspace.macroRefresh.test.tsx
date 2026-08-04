@@ -1,6 +1,6 @@
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../../context/AuthContext', () => ({
@@ -173,6 +173,10 @@ vi.mock('../../Charts/charts/radar/NutritionBalanceRadar', () => ({
   ),
 }));
 
+// 4B helpers: tool names now exist in both the capture rail and the pill
+// row, and the "Views & tools" <select> was replaced by the segmented bar.
+const captureRail = () => screen.getByRole('navigation', { name: /nutrition capture modes/i });
+
 describe('NutritionWorkspace macro summary refresh', () => {
   beforeEach(() => {
     mocks.refetchMacroSummary.mockClear();
@@ -187,7 +191,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /manual meal/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /manual meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful meal log/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -198,7 +202,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /manual meal/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /manual meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed meal log/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
@@ -209,7 +213,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'meal-plan');
+    await user.click(screen.getByRole('button', { name: /^fuel$/i })); // 4B: Fuel segment lands on meal-plan
     await user.click(await screen.findByRole('button', { name: /simulate successful meal plan save/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -220,7 +224,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'meal-plan');
+    await user.click(screen.getByRole('button', { name: /^fuel$/i })); // 4B: Fuel segment lands on meal-plan
     await user.click(await screen.findByRole('button', { name: /simulate failed meal plan save/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
@@ -231,7 +235,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /speak a meal/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /speak a meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful voice meal save/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -242,7 +246,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /food search/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /food search/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful food search add/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -253,9 +257,9 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /speak a meal/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /speak a meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed voice meal save/i }));
-    await user.click(screen.getByRole('button', { name: /food search/i }));
+    await user.click(within(captureRail()).getByRole('button', { name: /food search/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed food search add/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
@@ -266,7 +270,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    await user.click(screen.getByRole('button', { name: /^insights$/i })); // 4B: Insights segment lands on macros
 
     const radar = await screen.findByTestId('nutrition-radar');
     expect(radar).toHaveAttribute('data-protein', '52');
@@ -284,7 +288,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    await user.click(screen.getByRole('button', { name: /^insights$/i })); // 4B: Insights segment lands on macros
 
     expect(await screen.findByTestId('nutrition-radar')).toHaveAttribute('data-loading', 'true');
   });
@@ -293,7 +297,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
     expect(mocks.useHydration).not.toHaveBeenCalled();
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    await user.click(screen.getByRole('button', { name: /^insights$/i })); // 4B: Insights segment lands on macros
     await screen.findByTestId('nutrition-radar');
 
     // Intent lock: hydration initializes only AFTER the tab opens. Exact

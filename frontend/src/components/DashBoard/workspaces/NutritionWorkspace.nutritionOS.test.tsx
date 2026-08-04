@@ -126,21 +126,27 @@ describe('NutritionWorkspace Nutrition OS command center', () => {
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
     expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('region', { name: /today dashboard/i })).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    // 4B: the <select> is gone — the Insights segment lands on My Macros.
+    await user.click(screen.getByRole('button', { name: /^insights$/i }));
     expect(screen.getByRole('region', { name: /my macros/i })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
-  it('keeps non-capture nutrition surfaces in the Views and tools selector', async () => {
+  it('keeps non-capture nutrition surfaces reachable through the segmented bar', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    expect(screen.getByRole('button', { name: /restaurant/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /garden/i })).not.toBeInTheDocument();
+    const captureRail = screen.getByRole('navigation', { name: /nutrition capture modes/i });
+    expect(within(captureRail).getByRole('button', { name: /restaurant/i })).toBeInTheDocument();
+    // Capture segment is active by default — Insights tools are not rendered yet.
+    expect(screen.queryByRole('button', { name: /^garden$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /farm finder/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /supplements/i })).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'garden');
+    // 4B: the <select> is gone — Insights segment, then the Garden pill.
+    await user.click(screen.getByRole('button', { name: /^insights$/i }));
+    const insightsTools = screen.getByRole('group', { name: /insights tools/i });
+    await user.click(within(insightsTools).getByRole('button', { name: /^garden$/i }));
 
     expect(screen.getByRole('region', { name: /^garden$/i })).toBeInTheDocument();
     expect(await screen.findByLabelText(/garden nutrition tool/i)).toBeInTheDocument();
