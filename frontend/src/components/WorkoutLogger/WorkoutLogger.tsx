@@ -625,9 +625,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Receipt terminal state (Slice 5): post-save the rail is NOT
             navigable — the receipt below replaces the staged canvas. */}
         {!lastSaveResponse && (<>
-        {/* F11 (blueprint §10a #1): the equipment context chip stays visible
-            across setup AND train stages — the plan/log always knows which
-            location's inventory it draws from. */}
+        {/* F11 §10a#1: context chip visible across setup AND train stages. */}
         {!isClientSelfMode && (
           <EquipmentContextChip selectedProfileId={equipmentProfileId} onSelect={setEquipmentProfileId} />
         )}
