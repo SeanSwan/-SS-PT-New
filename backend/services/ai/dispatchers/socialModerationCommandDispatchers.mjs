@@ -90,7 +90,9 @@ export const dispatchViewModerationStats = async () => {
     STATS_STATUSES.map((status) => countByStatus(SocialComment, status))
   );
   const openReports = toNumber(await PostReport.count({
-    where: { status: { [Op.in]: ['pending', 'under_review'] } },
+    // live enum label is hyphenated 'under-review' (drift sweep 2026-08-04; the model's
+    // own helper at PostReport.mjs uses the hyphen — this dispatcher was the drifted copy)
+    where: { status: { [Op.in]: ['pending', 'under-review'] } },
   }));
 
   return {

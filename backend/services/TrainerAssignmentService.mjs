@@ -347,7 +347,10 @@ class TrainerAssignmentService {
 
       // Create admin notification
       await AdminNotification.create({
-        type: 'trainer_assignment',
+        // enum_admin_notifications_type has no 'trainer_assignment' — this create threw on
+        // every assignment (drift sweep 2026-08-04). 'system_alert' matches the two other
+        // AdminNotification.create sites; the specifics stay in data.
+        type: 'system_alert',
         title: 'Trainer Assignment Completed',
         message: `${trainer.firstName} ${trainer.lastName} has been assigned ${sessions.length} sessions for client ${client.firstName} ${client.lastName}`,
         data: JSON.stringify({
