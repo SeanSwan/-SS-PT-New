@@ -11,7 +11,7 @@ import {
   directoryLimit,
   isKnownTier,
   isStaffViewer as isStaffDirectoryViewer,
-  scopeToMembers,
+  scopeToRankable,
 } from '../utils/memberDirectoryAccess.mjs';
 import db from '../database.mjs';
 
@@ -391,7 +391,7 @@ const progressController = {
 
       // A member-facing leaderboard ranks members. Staff are not competitors,
       // and listing them here is what exposed their names.
-      const whereClause = scopeToMembers(req.user);
+      const whereClause = scopeToRankable(req.user);
       let orderBy;
       let includeProgressData = false;
 

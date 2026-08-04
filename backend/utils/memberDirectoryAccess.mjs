@@ -57,17 +57,39 @@ export const isKnownTier = (tier, extraKeys) =>
   && (STORABLE_TIER_KEYS.has(tier) || Boolean(extraKeys?.has?.(tier)));
 
 /**
+ * Fields that must never reach a member about ANOTHER user, whatever a caller
+ * passes. A reviewer defeated the previous version in ONE line by injecting
+ * 'lastName' through `extra` — the staff gate ran, then `extra` was spread
+ * straight past it, and the guard suite still reported 11/11 green. A policy
+ * with an unfiltered escape hatch is a suggestion, not a policy.
+ */
+export const STAFF_ONLY_FIELDS = Object.freeze(new Set([
+  'lastName', 'email', 'phone', 'dateOfBirth', 'address',
+  'emergencyContact', 'emergencyContactPhone', 'healthConcerns',
+  'medicalNotes', 'stripeCustomerId', 'registrationIP', 'lastLoginIP',
+  'password', 'refreshTokenHash', 'weight', 'height',
+]));
+
+/**
  * Attributes safe to return about OTHER users.
- * Surnames are staff-only: member surfaces render firstName/username.
+ * Surnames and contact details are staff-only: member surfaces render
+ * firstName/username. `extra` is FILTERED, not trusted — see above.
  */
 export function directoryAttributes(user, extra = []) {
+  const staff = isStaffViewer(user);
+  const safeExtra = staff
+    ? extra
+    : extra.filter((field) => !STAFF_ONLY_FIELDS.has(
+      typeof field === 'string' ? field : field?.[1] ?? field?.[0],
+    ));
+
   return [
     'id',
     'firstName',
-    ...(isStaffViewer(user) ? ['lastName'] : []),
+    ...(staff ? ['lastName'] : []),
     'username',
     'photo',
-    ...extra,
+    ...safeExtra,
   ];
 }
 
@@ -90,6 +112,23 @@ export const directoryTotal = (user, trueTotal, returnedRowCount) =>
 export function scopeToMembers(user, whereClause = {}) {
   if (isStaffViewer(user)) return whereClause;
   return { ...whereClause, role: { [Op.in]: [...MEMBER_ROLES] } };
+}
+
+/**
+ * Restrict a RANKING query to people who agreed to be ranked.
+ *
+ * `User.leaderboardOptIn` exists precisely so a member can stay off public
+ * boards. Two unmounted leaderboard implementations honoured it and a privacy
+ * contract test certified THOSE — while the only implementation actually served
+ * ignored it, so an opted-out member was still ranked by name, photo, points,
+ * level, tier, streak and workout count to every other member.
+ *
+ * Staff keep the full board: admin surfaces exist to see everyone.
+ */
+export function scopeToRankable(user, whereClause = {}) {
+  const scoped = scopeToMembers(user, whereClause);
+  if (isStaffViewer(user)) return scoped;
+  return { ...scoped, leaderboardOptIn: true };
 }
 
 export default {

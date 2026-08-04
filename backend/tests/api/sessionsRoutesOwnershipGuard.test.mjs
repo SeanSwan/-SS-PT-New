@@ -137,7 +137,11 @@ describe('unified sessions route ownership guards', () => {
     expect(clientUsersRouteIndex).toBeLessThan(idRouteIndex);
 
     const userDropdownRoutes = routeSource.slice(trainerUsersRouteIndex, idRouteIndex);
-    expect(userDropdownRoutes).toContain('unifiedSessionService.getTrainers()');
+    // The dropdown feed is now viewer-aware: it was returning the full legal
+    // name, EMAIL and PHONE of every trainer and admin to any authenticated
+    // account, unpaginated. Route is staff-gated and the service narrows.
+    expect(userDropdownRoutes).toContain('unifiedSessionService.getTrainers(req.user)');
+    expect(userDropdownRoutes).toContain('trainerOrAdminOnly');
     expect(userDropdownRoutes).toContain('unifiedSessionService.getClients(req.user)');
     expect(userDropdownRoutes).toContain('trainerOrAdminOnly');
   });
