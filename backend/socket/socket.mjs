@@ -49,7 +49,12 @@ const socketAuthMiddleware = async (socket, next) => {
     // Only access tokens open a socket — a refresh / force-password-change temp
     // token (signature-valid because the refresh secret defaults to JWT_SECRET)
     // must NOT authenticate a live connection.
-    if (decoded.tokenType && decoded.tokenType !== 'access') {
+    // Launch audit 2026-08-04: this was `decoded.tokenType && decoded.tokenType
+    // !== 'access'` — truthiness-gated, so a token OMITTING tokenType passed
+    // straight through, contradicting the guarantee the comment above makes.
+    // No signer omits it today (all three set tokenType:'access'), so failing
+    // closed breaks nothing now and removes the trap for any future signer.
+    if (decoded.tokenType !== 'access') {
       return next(new Error('Authentication error: Invalid token type'));
     }
     const userId = decoded.userId ?? decoded.id;

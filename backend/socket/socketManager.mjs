@@ -269,7 +269,9 @@ async function authenticateSocketUser(token) {
       return null;
     }
     // Only access tokens may open a socket (refresh/temp tokens share the secret).
-    if (decoded.tokenType && decoded.tokenType !== 'access') {
+    // Launch audit 2026-08-04: was truthiness-gated, so a token OMITTING
+    // tokenType passed — the opposite of what this comment promises. Fail closed.
+    if (decoded.tokenType !== 'access') {
       logger.warn('Non-access token rejected for socket connection');
       return null;
     }
