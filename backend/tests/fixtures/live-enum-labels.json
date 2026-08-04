@@ -1,0 +1,2066 @@
+{
+ "_note": "GENERATED SNAPSHOT of live production pg_enum labels. Regenerate with: node --env-file=.env scripts/dump-live-enums.mjs. Do NOT hand-edit — if a label is missing here, add it to the DB with a migration, do not add it to this file.",
+ "capturedAt": "2026-08-04",
+ "typeCount": 279,
+ "labels": {
+  "badge_category_enum": [
+   "strength",
+   "cardio",
+   "skill",
+   "flexibility",
+   "endurance",
+   "general"
+  ],
+  "badge_criteria_type_enum": [
+   "exercise_completion",
+   "streak_achievement",
+   "challenge_completion",
+   "social_engagement",
+   "milestone_reached",
+   "custom_criteria"
+  ],
+  "badge_difficulty_enum": [
+   "beginner",
+   "intermediate",
+   "advanced",
+   "expert"
+  ],
+  "difficulty_enum": [
+   "beginner",
+   "intermediate",
+   "advanced"
+  ],
+  "earning_type_enum": [
+   "automatic",
+   "manual",
+   "admin_granted"
+  ],
+  "enum_Achievements_category": [
+   "fitness",
+   "social",
+   "streak",
+   "milestone",
+   "special",
+   "community"
+  ],
+  "enum_Achievements_rarity": [
+   "common",
+   "rare",
+   "epic",
+   "legendary"
+  ],
+  "enum_Achievements_skillTree": [
+   "awakening",
+   "forge_nasm",
+   "iron_gravity",
+   "tribe_social",
+   "free_spirit",
+   "unbroken_streaks"
+  ],
+  "enum_BadgeCollections_theme": [
+   "skill_based",
+   "challenge_based",
+   "seasonal",
+   "achievement_series",
+   "custom"
+  ],
+  "enum_Badges_category": [
+   "strength",
+   "cardio",
+   "skill",
+   "flexibility",
+   "endurance",
+   "general"
+  ],
+  "enum_Badges_criteriaType": [
+   "exercise_completion",
+   "streak_achievement",
+   "challenge_completion",
+   "social_engagement",
+   "milestone_reached",
+   "custom_criteria"
+  ],
+  "enum_Badges_difficulty": [
+   "beginner",
+   "intermediate",
+   "advanced",
+   "expert"
+  ],
+  "enum_ChallengeParticipants_status": [
+   "active",
+   "inactive",
+   "completed"
+  ],
+  "enum_Challenges_category": [
+   "workout",
+   "steps",
+   "weight",
+   "nutrition",
+   "water",
+   "sleep",
+   "custom"
+  ],
+  "enum_Challenges_status": [
+   "upcoming",
+   "active",
+   "completed",
+   "cancelled"
+  ],
+  "enum_Challenges_type": [
+   "individual",
+   "team",
+   "global"
+  ],
+  "enum_Challenges_visibility": [
+   "public",
+   "private",
+   "invite-only"
+  ],
+  "enum_ComebackChallenges_status": [
+   "pending",
+   "accepted",
+   "completed",
+   "expired"
+  ],
+  "enum_ComebackChallenges_type": [
+   "welcome_back",
+   "fresh_start",
+   "streak_recovery"
+  ],
+  "enum_CommunicationDrafts_status": [
+   "pending_approval",
+   "approved",
+   "sent",
+   "rejected"
+  ],
+  "enum_CommunicationDrafts_type": [
+   "email",
+   "sms"
+  ],
+  "enum_Communities_activityLevel": [
+   "very_low",
+   "low",
+   "moderate",
+   "high",
+   "very_high"
+  ],
+  "enum_Communities_category": [
+   "fitness",
+   "nutrition",
+   "weight_loss",
+   "muscle_building",
+   "cardio",
+   "yoga",
+   "crossfit",
+   "running",
+   "cycling",
+   "swimming",
+   "dancing",
+   "mental_health",
+   "motivation",
+   "challenges",
+   "competitions",
+   "professionals",
+   "beginners",
+   "advanced",
+   "local",
+   "virtual"
+  ],
+  "enum_Communities_contentModeration": [
+   "none",
+   "basic",
+   "strict",
+   "custom"
+  ],
+  "enum_Communities_membershipType": [
+   "open",
+   "approval_required",
+   "invite_only",
+   "premium"
+  ],
+  "enum_Communities_privacyLevel": [
+   "public",
+   "private",
+   "hidden"
+  ],
+  "enum_Communities_status": [
+   "active",
+   "inactive",
+   "archived",
+   "suspended",
+   "deleted"
+  ],
+  "enum_CommunityMemberships_engagementLevel": [
+   "very_low",
+   "low",
+   "moderate",
+   "high",
+   "very_high"
+  ],
+  "enum_CommunityMemberships_role": [
+   "member",
+   "contributor",
+   "moderator",
+   "admin",
+   "owner"
+  ],
+  "enum_CommunityMemberships_status": [
+   "pending",
+   "active",
+   "inactive",
+   "banned",
+   "left"
+  ],
+  "enum_CommunityMemberships_subscriptionStatus": [
+   "none",
+   "basic",
+   "premium",
+   "lifetime"
+  ],
+  "enum_ConversationParticipants_role": [
+   "participant",
+   "moderator",
+   "admin"
+  ],
+  "enum_ConversationParticipants_status": [
+   "active",
+   "left",
+   "removed",
+   "banned"
+  ],
+  "enum_Conversations_moderationLevel": [
+   "none",
+   "basic",
+   "strict"
+  ],
+  "enum_Conversations_type": [
+   "direct",
+   "group",
+   "community",
+   "broadcast",
+   "support"
+  ],
+  "enum_CreatorProfiles_analyticsAccess": [
+   "basic",
+   "advanced",
+   "premium"
+  ],
+  "enum_CreatorProfiles_creatorStatus": [
+   "pending",
+   "active",
+   "suspended",
+   "verified",
+   "featured"
+  ],
+  "enum_CreatorProfiles_primaryCategory": [
+   "fitness_trainer",
+   "nutritionist",
+   "yoga_instructor",
+   "dance_instructor",
+   "motivation_coach",
+   "lifestyle_influencer",
+   "product_reviewer",
+   "transformation_coach",
+   "mental_health_advocate",
+   "wellness_expert"
+  ],
+  "enum_CreatorProfiles_priority": [
+   "standard",
+   "rising",
+   "featured",
+   "top_creator"
+  ],
+  "enum_CreatorProfiles_verificationLevel": [
+   "none",
+   "email",
+   "phone",
+   "identity",
+   "business",
+   "premium"
+  ],
+  "enum_EnhancedNotifications_actionType": [
+   "none",
+   "navigate",
+   "modal",
+   "external_link",
+   "api_call"
+  ],
+  "enum_EnhancedNotifications_category": [
+   "social",
+   "fitness",
+   "community",
+   "system",
+   "commercial",
+   "personal"
+  ],
+  "enum_EnhancedNotifications_interactionType": [
+   "none",
+   "clicked",
+   "action_taken",
+   "dismissed",
+   "snoozed"
+  ],
+  "enum_EnhancedNotifications_priority": [
+   "low",
+   "normal",
+   "high",
+   "urgent",
+   "critical"
+  ],
+  "enum_EnhancedNotifications_relatedEntityType": [
+   "post",
+   "comment",
+   "user",
+   "workout",
+   "achievement",
+   "challenge",
+   "community",
+   "message",
+   "order",
+   "product",
+   "event"
+  ],
+  "enum_EnhancedNotifications_status": [
+   "pending",
+   "sent",
+   "delivered",
+   "read",
+   "failed",
+   "cancelled"
+  ],
+  "enum_EnhancedNotifications_type": [
+   "like",
+   "comment",
+   "share",
+   "mention",
+   "follow",
+   "friend_request",
+   "friend_accepted",
+   "message",
+   "reaction",
+   "workout_completed",
+   "achievement_earned",
+   "milestone_reached",
+   "challenge_invitation",
+   "challenge_update",
+   "streak_reminder",
+   "workout_reminder",
+   "goal_progress",
+   "community_invitation",
+   "community_post",
+   "community_event",
+   "community_challenge",
+   "role_change",
+   "community_mention",
+   "welcome",
+   "feature_update",
+   "security_alert",
+   "policy_update",
+   "maintenance",
+   "promotional",
+   "newsletter",
+   "ai_recommendation",
+   "ai_insight",
+   "ai_tip",
+   "ai_summary",
+   "order_update",
+   "payment_reminder",
+   "product_recommendation",
+   "live_stream_start",
+   "live_chat",
+   "typing_indicator"
+  ],
+  "enum_EnhancedSocialPosts_category": [
+   "fitness",
+   "nutrition",
+   "mental_health",
+   "transformation",
+   "motivation",
+   "education",
+   "community",
+   "challenge",
+   "achievement",
+   "lifestyle",
+   "product_review",
+   "tips"
+  ],
+  "enum_EnhancedSocialPosts_contentType": [
+   "text",
+   "rich_text",
+   "markdown",
+   "workout_summary",
+   "achievement_showcase",
+   "transformation_story",
+   "recipe_share",
+   "challenge_update",
+   "live_stream",
+   "poll",
+   "question",
+   "tip"
+  ],
+  "enum_EnhancedSocialPosts_mediaProcessingStatus": [
+   "pending",
+   "processing",
+   "completed",
+   "failed"
+  ],
+  "enum_EnhancedSocialPosts_moderationStatus": [
+   "pending",
+   "approved",
+   "flagged",
+   "removed",
+   "appealed"
+  ],
+  "enum_EnhancedSocialPosts_status": [
+   "draft",
+   "published",
+   "archived",
+   "deleted"
+  ],
+  "enum_EnhancedSocialPosts_visibility": [
+   "public",
+   "friends",
+   "followers",
+   "private",
+   "subscribers_only"
+  ],
+  "enum_EventAttendances_checkInMethod": [
+   "qr_code",
+   "manual",
+   "geolocation",
+   "automatic"
+  ],
+  "enum_EventAttendances_paymentStatus": [
+   "pending",
+   "paid",
+   "refunded",
+   "failed"
+  ],
+  "enum_EventAttendances_preferredContactMethod": [
+   "email",
+   "sms",
+   "push",
+   "in_app"
+  ],
+  "enum_EventAttendances_previousStatus": [
+   "interested",
+   "going",
+   "maybe",
+   "not_going",
+   "waitlist"
+  ],
+  "enum_EventAttendances_status": [
+   "interested",
+   "going",
+   "maybe",
+   "not_going",
+   "waitlist",
+   "attended",
+   "no_show"
+  ],
+  "enum_EventDiscussions_messageType": [
+   "comment",
+   "question",
+   "announcement",
+   "update"
+  ],
+  "enum_EventPhotos_photoType": [
+   "before",
+   "during",
+   "after",
+   "group",
+   "achievement",
+   "venue"
+  ],
+  "enum_EventPhotos_visibility": [
+   "public",
+   "event_attendees",
+   "private"
+  ],
+  "enum_Exercises_exerciseType": [
+   "core",
+   "balance",
+   "stability",
+   "flexibility",
+   "calisthenics",
+   "isolation",
+   "stabilizers",
+   "injury_prevention",
+   "injury_recovery",
+   "compound"
+  ],
+  "enum_Friendships_status": [
+   "pending",
+   "accepted",
+   "declined",
+   "blocked"
+  ],
+  "enum_Gamifications_currentTier": [
+   "bronze",
+   "silver",
+   "gold",
+   "platinum"
+  ],
+  "enum_Hashtags_category": [
+   "fitness",
+   "creative",
+   "community",
+   "general"
+  ],
+  "enum_LiveStreams_category": [
+   "workout",
+   "yoga",
+   "cardio",
+   "strength_training",
+   "dance",
+   "nutrition",
+   "cooking",
+   "meditation",
+   "motivation",
+   "q_and_a",
+   "challenge",
+   "competition",
+   "tutorial",
+   "review",
+   "lifestyle"
+  ],
+  "enum_LiveStreams_quality": [
+   "360p",
+   "480p",
+   "720p",
+   "1080p",
+   "1440p",
+   "4k"
+  ],
+  "enum_LiveStreams_status": [
+   "scheduled",
+   "live",
+   "ended",
+   "cancelled",
+   "processing"
+  ],
+  "enum_LiveStreams_visibility": [
+   "public",
+   "followers",
+   "subscribers",
+   "private",
+   "community"
+  ],
+  "enum_Messages_aiSentiment": [
+   "positive",
+   "neutral",
+   "negative"
+  ],
+  "enum_Messages_contentType": [
+   "text",
+   "rich_text",
+   "media",
+   "voice",
+   "video",
+   "file",
+   "location",
+   "contact",
+   "poll",
+   "workout_share",
+   "achievement_share",
+   "system",
+   "reaction_only"
+  ],
+  "enum_Messages_mediaProcessingStatus": [
+   "pending",
+   "processing",
+   "completed",
+   "failed"
+  ],
+  "enum_Messages_moderationAction": [
+   "none",
+   "flagged",
+   "hidden",
+   "deleted"
+  ],
+  "enum_Messages_status": [
+   "sending",
+   "sent",
+   "delivered",
+   "read",
+   "failed",
+   "deleted"
+  ],
+  "enum_Milestones_tier": [
+   "bronze",
+   "silver",
+   "gold",
+   "platinum"
+  ],
+  "enum_ModerationActions_action": [
+   "approve",
+   "reject",
+   "flag",
+   "hide",
+   "delete",
+   "warn-user",
+   "suspend-user",
+   "ban-user",
+   "restore"
+  ],
+  "enum_ModerationActions_contentType": [
+   "post",
+   "comment",
+   "user"
+  ],
+  "enum_PointTransactions_source": [
+   "workout_completion",
+   "exercise_completion",
+   "streak_bonus",
+   "level_up",
+   "achievement_earned",
+   "milestone_reached",
+   "reward_redemption",
+   "package_purchase",
+   "friend_referral",
+   "admin_adjustment",
+   "trainer_award",
+   "challenge_completion",
+   "social_engagement",
+   "goal_milestone",
+   "goal_completed"
+  ],
+  "enum_PointTransactions_transactionType": [
+   "earn",
+   "spend",
+   "adjustment",
+   "bonus",
+   "expire"
+  ],
+  "enum_PostReports_actionTaken": [
+   "no-action",
+   "content-approved",
+   "content-flagged",
+   "content-removed",
+   "user-warned",
+   "user-suspended",
+   "user-banned"
+  ],
+  "enum_PostReports_contentType": [
+   "post",
+   "comment"
+  ],
+  "enum_PostReports_priority": [
+   "low",
+   "medium",
+   "high",
+   "urgent"
+  ],
+  "enum_PostReports_reason": [
+   "inappropriate-content",
+   "harassment",
+   "spam",
+   "false-information",
+   "copyright-violation",
+   "adult-content",
+   "violence",
+   "hate-speech",
+   "impersonation",
+   "other"
+  ],
+  "enum_PostReports_status": [
+   "pending",
+   "under-review",
+   "resolved",
+   "dismissed"
+  ],
+  "enum_Rewards_rewardType": [
+   "session",
+   "product",
+   "discount",
+   "service",
+   "other"
+  ],
+  "enum_Rewards_tier": [
+   "bronze",
+   "silver",
+   "gold",
+   "platinum"
+  ],
+  "enum_SocialAnalytics_entityType": [
+   "user",
+   "post",
+   "community",
+   "event",
+   "product",
+   "live_stream",
+   "story",
+   "challenge",
+   "workout",
+   "brand",
+   "hashtag",
+   "location"
+  ],
+  "enum_SocialAnalytics_period": [
+   "hourly",
+   "daily",
+   "weekly",
+   "monthly",
+   "yearly"
+  ],
+  "enum_SocialComments_moderationStatus": [
+   "pending",
+   "approved",
+   "flagged",
+   "rejected",
+   "hidden"
+  ],
+  "enum_SocialConnections_connectionSource": [
+   "manual",
+   "contacts",
+   "recommendations",
+   "mutual_friends",
+   "location",
+   "gym",
+   "challenge",
+   "trainer_referral",
+   "ai_suggested"
+  ],
+  "enum_SocialConnections_connectionType": [
+   "follow",
+   "friend_request",
+   "friendship",
+   "family",
+   "trainer_client",
+   "business"
+  ],
+  "enum_SocialConnections_privacyLevel": [
+   "public",
+   "friends",
+   "close_friends",
+   "family",
+   "private"
+  ],
+  "enum_SocialConnections_professionalRole": [
+   "trainer",
+   "nutritionist",
+   "coach",
+   "therapist",
+   "other"
+  ],
+  "enum_SocialConnections_restrictionLevel": [
+   "none",
+   "limited",
+   "restricted",
+   "blocked"
+  ],
+  "enum_SocialConnections_status": [
+   "pending",
+   "accepted",
+   "declined",
+   "blocked",
+   "muted",
+   "unfollowed"
+  ],
+  "enum_SocialEvents_category": [
+   "workout_class",
+   "group_training",
+   "running_club",
+   "yoga_session",
+   "dance_class",
+   "cycling_group",
+   "hiking",
+   "swimming",
+   "martial_arts",
+   "nutrition_workshop",
+   "wellness_seminar",
+   "mental_health",
+   "meditation",
+   "competition",
+   "challenge",
+   "social_meetup",
+   "virtual_event",
+   "outdoor_activity",
+   "fitness_bootcamp",
+   "sports_game",
+   "other"
+  ],
+  "enum_SocialEvents_eventType": [
+   "one_time",
+   "recurring",
+   "series"
+  ],
+  "enum_SocialEvents_fitnessLevel": [
+   "beginner",
+   "intermediate",
+   "advanced",
+   "all_levels"
+  ],
+  "enum_SocialEvents_locationType": [
+   "in_person",
+   "virtual",
+   "hybrid"
+  ],
+  "enum_SocialEvents_status": [
+   "draft",
+   "published",
+   "live",
+   "completed",
+   "cancelled",
+   "postponed"
+  ],
+  "enum_SocialEvents_visibility": [
+   "public",
+   "private",
+   "community_only",
+   "followers_only"
+  ],
+  "enum_SocialLikes_targetType": [
+   "post",
+   "comment"
+  ],
+  "enum_SocialPosts_moderationStatus": [
+   "pending",
+   "approved",
+   "flagged",
+   "rejected",
+   "hidden"
+  ],
+  "enum_SocialPosts_type": [
+   "general",
+   "workout",
+   "achievement",
+   "challenge",
+   "milestone",
+   "creative",
+   "dance",
+   "music",
+   "art",
+   "gaming",
+   "singing",
+   "comedy"
+  ],
+  "enum_SocialPosts_visibility": [
+   "public",
+   "friends",
+   "private"
+  ],
+  "enum_SocialProducts_category": [
+   "fitness_equipment",
+   "supplements",
+   "workout_gear",
+   "activewear",
+   "nutrition",
+   "meal_plans",
+   "workout_programs",
+   "courses",
+   "accessories",
+   "books",
+   "digital_content",
+   "services",
+   "health_tech",
+   "recovery_tools",
+   "home_gym",
+   "other"
+  ],
+  "enum_SocialProducts_moderationStatus": [
+   "pending",
+   "approved",
+   "rejected",
+   "flagged"
+  ],
+  "enum_SocialProducts_productType": [
+   "physical",
+   "digital",
+   "service",
+   "subscription"
+  ],
+  "enum_SocialProducts_sellerType": [
+   "individual",
+   "creator",
+   "brand",
+   "verified_business"
+  ],
+  "enum_SocialProducts_status": [
+   "draft",
+   "active",
+   "inactive",
+   "discontinued",
+   "out_of_stock"
+  ],
+  "enum_UserPreferences_contentLength": [
+   "short",
+   "medium",
+   "long",
+   "mixed"
+  ],
+  "enum_UserPreferences_eventLocations": [
+   "local",
+   "virtual",
+   "travel",
+   "mixed"
+  ],
+  "enum_UserPreferences_feedbackFrequency": [
+   "never",
+   "occasional",
+   "frequent"
+  ],
+  "enum_UserPreferences_groupSize": [
+   "small",
+   "medium",
+   "large",
+   "any"
+  ],
+  "enum_UserPreferences_interactionStyle": [
+   "passive",
+   "moderate",
+   "active",
+   "highly_active"
+  ],
+  "enum_UserPreferences_personalizationLevel": [
+   "minimal",
+   "moderate",
+   "aggressive"
+  ],
+  "enum_UserPreferences_privacyLevel": [
+   "open",
+   "selective",
+   "private"
+  ],
+  "enum_UserPreferences_shoppingBehavior": [
+   "impulse",
+   "research_heavy",
+   "deal_seeker",
+   "brand_loyal"
+  ],
+  "enum_UserPreferences_skillLevel": [
+   "beginner",
+   "intermediate",
+   "advanced",
+   "expert"
+  ],
+  "enum_UserPreferences_timeCommitment": [
+   "short",
+   "medium",
+   "long",
+   "flexible"
+  ],
+  "enum_UserRewards_status": [
+   "pending",
+   "fulfilled",
+   "cancelled",
+   "expired"
+  ],
+  "enum_Users_accountStatus": [
+   "stub",
+   "invited",
+   "active"
+  ],
+  "enum_Users_role": [
+   "user",
+   "client",
+   "trainer",
+   "admin"
+  ],
+  "enum_WorkoutPlans_status": [
+   "active",
+   "archived",
+   "draft"
+  ],
+  "enum_WorkoutSessions_status": [
+   "planned",
+   "in_progress",
+   "completed",
+   "skipped",
+   "cancelled"
+  ],
+  "enum_achievements_category": [
+   "fitness",
+   "social",
+   "streak",
+   "milestone",
+   "special"
+  ],
+  "enum_achievements_rarity": [
+   "common",
+   "rare",
+   "epic",
+   "legendary"
+  ],
+  "enum_admin_notifications_priority": [
+   "low",
+   "medium",
+   "high",
+   "critical"
+  ],
+  "enum_admin_notifications_type": [
+   "purchase",
+   "new_user",
+   "payment_failed",
+   "high_value_purchase",
+   "refund_request",
+   "system_alert",
+   "revenue_milestone",
+   "security_alert",
+   "performance_alert"
+  ],
+  "enum_ai_consent_logs_action": [
+   "granted",
+   "withdrawn",
+   "override_used"
+  ],
+  "enum_ai_consent_logs_sourceType": [
+   "ai_privacy_profile",
+   "waiver_record",
+   "admin_override"
+  ],
+  "enum_ai_metrics_buckets_granularity": [
+   "hourly",
+   "daily"
+  ],
+  "enum_ai_monitoring_alerts_severity": [
+   "info",
+   "warning",
+   "critical"
+  ],
+  "enum_ai_monitoring_alerts_status": [
+   "active",
+   "resolved",
+   "acknowledged"
+  ],
+  "enum_automation_logs_channel": [
+   "sms",
+   "email",
+   "push"
+  ],
+  "enum_automation_logs_status": [
+   "pending",
+   "sent",
+   "failed",
+   "cancelled",
+   "processing"
+  ],
+  "enum_avatar_homes_activeRoom": [
+   "bedroom",
+   "kitchen",
+   "training_room"
+  ],
+  "enum_avatar_homes_avatarBodyType": [
+   "athletic",
+   "average",
+   "muscular",
+   "slim",
+   "curvy"
+  ],
+  "enum_avatar_homes_homeTier": [
+   "starter",
+   "mid",
+   "premium",
+   "luxury"
+  ],
+  "enum_body_measurements_circumferenceUnit": [
+   "inches",
+   "cm"
+  ],
+  "enum_body_measurements_measurementMethod": [
+   "manual_tape",
+   "smart_scale",
+   "dexa_scan",
+   "caliper",
+   "import"
+  ],
+  "enum_body_measurements_weightUnit": [
+   "lbs",
+   "kg"
+  ],
+  "enum_bootcamp_exercises_board": [
+   "main",
+   "alternative",
+   "lowImpact"
+  ],
+  "enum_bootcamp_overflow_plans_strategy": [
+   "lap_rotation",
+   "split_groups",
+   "add_stations",
+   "condense"
+  ],
+  "enum_bootcamp_sprints_progressionStrategy": [
+   "linear",
+   "undulating",
+   "block",
+   "random"
+  ],
+  "enum_bootcamp_sprints_status": [
+   "draft",
+   "generating",
+   "active",
+   "completed",
+   "archived"
+  ],
+  "enum_bootcamp_templates_classFormat": [
+   "stations_4x",
+   "stations_3x5",
+   "stations_2x7",
+   "full_group",
+   "custom",
+   "2x5_r4",
+   "2x5_r3",
+   "2x6_r3",
+   "2x6_r2",
+   "2x7_r3",
+   "2x7_r2",
+   "2x8_r3",
+   "2x8_r2",
+   "2x10_r2",
+   "3x4_r3",
+   "3x4_r2",
+   "3x5_r2",
+   "3x5_r3",
+   "3x6_r2",
+   "3x6_r1",
+   "3x8_r1",
+   "4x4_r2",
+   "4x4_r1",
+   "4x5_r2",
+   "4x5_r1",
+   "4x6_r1",
+   "5x3_r2",
+   "5x3_r1",
+   "5x4_r1",
+   "stations_3x4",
+   "stations_5x3",
+   "circuit",
+   "emom",
+   "tabata",
+   "amrap",
+   "partner",
+   "hybrid"
+  ],
+  "enum_bootcamp_templates_classStyle": [
+   "standard",
+   "pyramid",
+   "superset",
+   "mixed",
+   "ladder",
+   "descending",
+   "chipper",
+   "countdown",
+   "death_by",
+   "ygig",
+   "contrast",
+   "density"
+  ],
+  "enum_bootcamp_templates_dayType": [
+   "lower_body",
+   "upper_body",
+   "cardio",
+   "full_body",
+   "custom"
+  ],
+  "enum_bootcamp_templates_difficultyBase": [
+   "easy",
+   "medium",
+   "hard",
+   "mixed"
+  ],
+  "enum_bootcamp_templates_intensityCategory": [
+   "high_impact",
+   "medium_impact",
+   "calisthenics",
+   "stability",
+   "flexibility",
+   "cardio"
+  ],
+  "enum_business_metrics_period": [
+   "daily",
+   "weekly",
+   "monthly",
+   "yearly"
+  ],
+  "enum_challenge_participants_reminderFrequency": [
+   "daily",
+   "every_2_days",
+   "weekly",
+   "never"
+  ],
+  "enum_challenge_participants_status": [
+   "joined",
+   "active",
+   "completed",
+   "failed",
+   "quit",
+   "disqualified"
+  ],
+  "enum_challenges_category": [
+   "fitness",
+   "nutrition",
+   "mindfulness",
+   "social",
+   "streak",
+   "dance",
+   "music",
+   "art",
+   "gaming",
+   "community_meetup",
+   "singing",
+   "comedy"
+  ],
+  "enum_challenges_challengeType": [
+   "daily",
+   "weekly",
+   "monthly",
+   "community",
+   "custom"
+  ],
+  "enum_challenges_leaderboardType": [
+   "progress",
+   "completion_time",
+   "total_score",
+   "custom"
+  ],
+  "enum_challenges_status": [
+   "draft",
+   "active",
+   "completed",
+   "cancelled",
+   "archived"
+  ],
+  "enum_client_notes_noteType": [
+   "observation",
+   "red_flag",
+   "achievement",
+   "concern",
+   "general"
+  ],
+  "enum_client_notes_severity": [
+   "low",
+   "medium",
+   "high",
+   "critical"
+  ],
+  "enum_client_notes_visibility": [
+   "private",
+   "trainer_only",
+   "admin_only"
+  ],
+  "enum_client_nutrition_plans_source": [
+   "manual",
+   "ai_generated"
+  ],
+  "enum_client_nutrition_plans_status": [
+   "active",
+   "completed",
+   "archived"
+  ],
+  "enum_client_onboarding_coverage_items_status": [
+   "known",
+   "unknown",
+   "trainer_pending",
+   "client_requested",
+   "not_applicable",
+   "blocked"
+  ],
+  "enum_client_onboarding_questionnaires_status": [
+   "in_progress",
+   "submitted",
+   "completed",
+   "archived"
+  ],
+  "enum_client_opt_phases_current_phase": [
+   "phase_1_stabilization",
+   "phase_2_strength_endurance",
+   "phase_3_hypertrophy",
+   "phase_4_maximal_strength",
+   "phase_5_power"
+  ],
+  "enum_client_pain_entries_painType": [
+   "sharp",
+   "dull",
+   "aching",
+   "burning",
+   "tingling",
+   "numbness",
+   "stiffness",
+   "throbbing"
+  ],
+  "enum_client_pain_entries_posturalSyndrome": [
+   "upper_crossed",
+   "lower_crossed",
+   "none"
+  ],
+  "enum_client_pain_entries_side": [
+   "left",
+   "right",
+   "center",
+   "bilateral"
+  ],
+  "enum_client_photos_photoType": [
+   "front",
+   "side",
+   "back",
+   "other"
+  ],
+  "enum_client_photos_visibility": [
+   "public",
+   "private",
+   "trainer_only"
+  ],
+  "enum_clients_pii_status": [
+   "active",
+   "inactive",
+   "archived"
+  ],
+  "enum_contacts_priority": [
+   "low",
+   "normal",
+   "high",
+   "urgent"
+  ],
+  "enum_corrective_protocols_status": [
+   "active",
+   "completed",
+   "archived"
+  ],
+  "enum_credentials_credentialStatus": [
+   "active",
+   "expired",
+   "historical",
+   "in_progress"
+  ],
+  "enum_equipment_availability": [
+   "common",
+   "specialized",
+   "rare"
+  ],
+  "enum_equipment_category": [
+   "free_weight",
+   "machine",
+   "bodyweight",
+   "cable",
+   "cardio",
+   "resistance_band",
+   "kettlebell",
+   "medicine_ball",
+   "stability",
+   "other"
+  ],
+  "enum_exercise_library_exercise_type": [
+   "strength",
+   "stabilization",
+   "power",
+   "plyometric",
+   "corrective",
+   "flexibility",
+   "cardio",
+   "core",
+   "balance",
+   "saq"
+  ],
+  "enum_exercise_muscle_groups_activationType": [
+   "primary",
+   "secondary",
+   "stabilizer"
+  ],
+  "enum_exercise_trends_impactLevel": [
+   "low",
+   "medium",
+   "high",
+   "plyometric"
+  ],
+  "enum_exercise_trends_nasmRating": [
+   "approved",
+   "approved_with_caveats",
+   "not_recommended",
+   "dangerous"
+  ],
+  "enum_exercise_trends_source": [
+   "youtube",
+   "reddit",
+   "instagram",
+   "trainer_input",
+   "nasm_library"
+  ],
+  "enum_exercises_exerciseType": [
+   "core",
+   "balance",
+   "stability",
+   "flexibility",
+   "calisthenics",
+   "isolation",
+   "stabilizers",
+   "injury_prevention",
+   "injury_recovery",
+   "compound"
+  ],
+  "enum_financial_transactions_status": [
+   "pending",
+   "processing",
+   "succeeded",
+   "failed",
+   "cancelled",
+   "refunded",
+   "partially_refunded"
+  ],
+  "enum_food_ingredients_healthRating": [
+   "good",
+   "bad",
+   "okay"
+  ],
+  "enum_food_products_overallRating": [
+   "good",
+   "bad",
+   "okay"
+  ],
+  "enum_gallery_donations_method": [
+   "stripe",
+   "venmo",
+   "zelle"
+  ],
+  "enum_gallery_enhancement_requests_status": [
+   "requested",
+   "in_progress",
+   "completed",
+   "delivered"
+  ],
+  "enum_goal_comments_commentType": [
+   "encouragement",
+   "tip",
+   "celebration",
+   "general"
+  ],
+  "enum_goal_likes_reactionType": [
+   "like",
+   "celebrate",
+   "support",
+   "fire",
+   "inspire"
+  ],
+  "enum_knowledge_concepts_evidenceStatus": [
+   "supported",
+   "mixed",
+   "contested",
+   "historical"
+  ],
+  "enum_knowledge_rules_confidenceLevel": [
+   "verified",
+   "likely",
+   "hypothesis"
+  ],
+  "enum_knowledge_rules_historicalStatus": [
+   "current",
+   "historical",
+   "superseded"
+  ],
+  "enum_knowledge_rules_ruleType": [
+   "selection",
+   "progression",
+   "regression",
+   "contraindication",
+   "stop_condition",
+   "referral",
+   "dosage",
+   "coaching_cue",
+   "eligibility",
+   "methodology"
+  ],
+  "enum_knowledge_rules_sourceStrength": [
+   "level1_exact_page",
+   "level2_chapter",
+   "level3_course_record",
+   "level4_documented_experience",
+   "level5_unverified_recollection"
+  ],
+  "enum_knowledge_rules_status": [
+   "draft",
+   "extracted",
+   "needs_source_verification",
+   "needs_sean_review",
+   "sean_approved",
+   "professionally_reviewed",
+   "current_with_qualifications",
+   "conflicting_evidence",
+   "restricted_use",
+   "client_specific_only",
+   "experimental",
+   "deprecated",
+   "superseded",
+   "archived",
+   "prohibited"
+  ],
+  "enum_knowledge_sources_copyrightSensitivity": [
+   "open",
+   "cite_only",
+   "restricted",
+   "prohibited_user_facing"
+  ],
+  "enum_knowledge_sources_evidenceLevel": [
+   "high",
+   "moderate",
+   "low",
+   "anecdotal",
+   "unrated"
+  ],
+  "enum_knowledge_sources_historicalStatus": [
+   "current",
+   "historical",
+   "superseded",
+   "requires_verification"
+  ],
+  "enum_knowledge_sources_reviewStatus": [
+   "pending",
+   "reviewed",
+   "flagged"
+  ],
+  "enum_knowledge_sources_sourceCategory": [
+   "formal_certification",
+   "continuing_education",
+   "textbook",
+   "live_workshop",
+   "personal_notes",
+   "professional_recollection",
+   "peer_reviewed_research",
+   "org_guidance",
+   "government_guidance",
+   "manufacturer_guidance",
+   "healthcare_direction",
+   "practical_experience",
+   "swan_original",
+   "client_outcome",
+   "historical_method",
+   "industry_practice",
+   "unverified",
+   "superseded",
+   "conflicting",
+   "user_submitted"
+  ],
+  "enum_lead_activities_type": [
+   "status_change",
+   "note_added",
+   "email_sent",
+   "email_opened",
+   "call_made",
+   "sms_sent",
+   "meeting_scheduled",
+   "ai_draft",
+   "follow_up_set",
+   "score_changed",
+   "assigned"
+  ],
+  "enum_leads_sms_consent_status": [
+   "unknown",
+   "opted_in",
+   "opted_out"
+  ],
+  "enum_leads_source": [
+   "gallery",
+   "walk_in",
+   "website",
+   "referral",
+   "social_media",
+   "other"
+  ],
+  "enum_leads_status": [
+   "new",
+   "contacted",
+   "qualified",
+   "scheduled",
+   "converted",
+   "lost"
+  ],
+  "enum_long_term_program_plans_sourceType": [
+   "manual",
+   "template_only",
+   "ai_assisted",
+   "ai_assisted_edited"
+  ],
+  "enum_long_term_program_plans_status": [
+   "draft",
+   "approved",
+   "active",
+   "archived",
+   "superseded"
+  ],
+  "enum_measurement_milestones_milestoneType": [
+   "weight_loss_5lbs",
+   "weight_loss_10lbs",
+   "weight_loss_20lbs",
+   "weight_loss_50lbs",
+   "waist_loss_1inch",
+   "waist_loss_2inches",
+   "waist_loss_4inches",
+   "body_fat_drop_1pct",
+   "body_fat_drop_5pct",
+   "muscle_gain_5lbs",
+   "muscle_gain_10lbs",
+   "bmi_normal_range",
+   "goal_weight_achieved",
+   "custom"
+  ],
+  "enum_movement_analyses_source": [
+   "orientation",
+   "admin_dashboard",
+   "in_session"
+  ],
+  "enum_movement_analyses_status": [
+   "draft",
+   "completed",
+   "linked",
+   "archived"
+  ],
+  "enum_movement_assessments_assessment_type": [
+   "overhead_squat",
+   "single_leg_squat_left",
+   "single_leg_squat_right",
+   "pushing_assessment",
+   "pulling_assessment",
+   "gait_analysis"
+  ],
+  "enum_muscle_groups_bodyRegion": [
+   "upper_body",
+   "lower_body",
+   "core",
+   "full_body"
+  ],
+  "enum_notification_settings_notificationType": [
+   "ADMIN",
+   "ORIENTATION",
+   "ORDER",
+   "SYSTEM",
+   "ALL"
+  ],
+  "enum_notifications_type": [
+   "orientation",
+   "system",
+   "order",
+   "workout",
+   "client",
+   "admin",
+   "session",
+   "achievement",
+   "reward",
+   "measurement"
+  ],
+  "enum_olympic_events_eventType": [
+   "pullups",
+   "pushups",
+   "sprint"
+  ],
+  "enum_orders_status": [
+   "pending",
+   "processing",
+   "completed",
+   "refunded",
+   "failed",
+   "pending_payment"
+  ],
+  "enum_orientations_experienceLevel": [
+   "Beginner",
+   "Intermediate",
+   "Advanced"
+  ],
+  "enum_orientations_status": [
+   "pending",
+   "scheduled",
+   "completed",
+   "cancelled"
+  ],
+  "enum_pending_movement_analysis_matches_status": [
+   "pending_review",
+   "auto_linked",
+   "approved",
+   "rejected"
+  ],
+  "enum_pending_waiver_matches_status": [
+   "pending_review",
+   "auto_linked",
+   "approved",
+   "rejected"
+  ],
+  "enum_personal_records_metric": [
+   "weight",
+   "est1rm"
+  ],
+  "enum_print_orders_product_type": [
+   "print",
+   "canvas",
+   "metal",
+   "photobook",
+   "poster"
+  ],
+  "enum_print_orders_status": [
+   "pending",
+   "paid",
+   "processing",
+   "shipped",
+   "delivered",
+   "cancelled"
+  ],
+  "enum_program_mesocycle_blocks_nasmFramework": [
+   "OPT",
+   "CES",
+   "GENERAL"
+  ],
+  "enum_progress_data_dataSource": [
+   "automatic",
+   "manual",
+   "imported",
+   "calculated",
+   "estimated"
+  ],
+  "enum_progress_reports_reportPeriod": [
+   "monthly",
+   "quarterly",
+   "bi_annual",
+   "annual"
+  ],
+  "enum_renewal_alerts_status": [
+   "active",
+   "contacted",
+   "renewed",
+   "dismissed"
+  ],
+  "enum_rule_conflicts_resolutionStatus": [
+   "open",
+   "resolved_a_wins",
+   "resolved_b_wins",
+   "resolved_merged",
+   "deferred"
+  ],
+  "enum_rule_sources_citationLevel": [
+   "level1",
+   "level2",
+   "level3",
+   "level4",
+   "level5"
+  ],
+  "enum_session_packages_packageType": [
+   "individual",
+   "bundle",
+   "subscription"
+  ],
+  "enum_sessions_status": [
+   "available",
+   "requested",
+   "scheduled",
+   "completed",
+   "cancelled",
+   "confirmed",
+   "blocked",
+   "booked",
+   "assigned"
+  ],
+  "enum_sets_setType": [
+   "warmup",
+   "working",
+   "dropset",
+   "superset",
+   "failure",
+   "amrap",
+   "rest_pause"
+  ],
+  "enum_shopping_carts_status": [
+   "active",
+   "pending_payment",
+   "completed",
+   "cancelled"
+  ],
+  "enum_source_files_accessRestriction": [
+   "sean_only",
+   "trainer_internal",
+   "system_internal"
+  ],
+  "enum_source_files_sourceFormat": [
+   "pdf",
+   "image",
+   "audio",
+   "video",
+   "markdown",
+   "physical",
+   "other"
+  ],
+  "enum_sprint_class_slots_status": [
+   "planned",
+   "generated",
+   "taught",
+   "skipped"
+  ],
+  "enum_streaks_streakType": [
+   "workout",
+   "login",
+   "goal_progress",
+   "challenge",
+   "custom"
+  ],
+  "enum_subscribers_status": [
+   "pending",
+   "confirmed",
+   "unsubscribed"
+  ],
+  "enum_subscriptions_paymentMethod": [
+   "stripe",
+   "zelle",
+   "venmo",
+   "manual"
+  ],
+  "enum_subscriptions_status": [
+   "active",
+   "trial",
+   "past_due",
+   "cancelled",
+   "paused"
+  ],
+  "enum_subscriptions_tier": [
+   "free",
+   "supporter",
+   "premium",
+   "pro",
+   "elite"
+  ],
+  "enum_trainer_availability_type": [
+   "available",
+   "blocked",
+   "vacation"
+  ],
+  "enum_trainer_certifications_certification_type": [
+   "NASM-CPT",
+   "NASM-CES",
+   "NASM-PES",
+   "NASM-FNS",
+   "NASM-WLS",
+   "NASM-BCS",
+   "OTHER"
+  ],
+  "enum_trainer_certifications_status": [
+   "active",
+   "expired",
+   "pending_renewal"
+  ],
+  "enum_trainer_commissions_lead_source": [
+   "platform",
+   "trainer_brought",
+   "resign"
+  ],
+  "enum_trainer_permissions_permissionType": [
+   "edit_workouts",
+   "view_progress",
+   "manage_clients",
+   "access_nutrition",
+   "modify_schedules",
+   "view_analytics"
+  ],
+  "enum_user_follows_relationshipType": [
+   "follow",
+   "friend",
+   "workout_buddy",
+   "training_partner",
+   "mentor",
+   "mentee"
+  ],
+  "enum_user_follows_status": [
+   "pending",
+   "accepted",
+   "blocked",
+   "muted"
+  ],
+  "enum_users_role": [
+   "user",
+   "admin",
+   "trainer",
+   "client"
+  ],
+  "enum_users_tier": [
+   "bronze",
+   "silver",
+   "gold",
+   "platinum"
+  ],
+  "enum_video_access_grants_grant_status": [
+   "active",
+   "expired",
+   "revoked"
+  ],
+  "enum_video_access_grants_grant_type": [
+   "role_based",
+   "individual",
+   "purchase"
+  ],
+  "enum_video_catalog_access_tier": [
+   "free",
+   "member",
+   "premium"
+  ],
+  "enum_video_catalog_content_type": [
+   "exercise",
+   "tutorial",
+   "behind_scenes",
+   "vlog",
+   "testimonial",
+   "course_lesson"
+  ],
+  "enum_video_catalog_source": [
+   "upload",
+   "youtube"
+  ],
+  "enum_video_catalog_status": [
+   "draft",
+   "published",
+   "archived"
+  ],
+  "enum_video_catalog_visibility": [
+   "public",
+   "members_only",
+   "unlisted"
+  ],
+  "enum_video_catalog_youtube_cta_strategy": [
+   "watch_on_youtube",
+   "subscribe",
+   "playlist_cta",
+   "none"
+  ],
+  "enum_video_collections_type": [
+   "playlist",
+   "series",
+   "course"
+  ],
+  "enum_video_job_log_job_type": [
+   "youtube_import",
+   "youtube_sync",
+   "analytics_rollup",
+   "backfill",
+   "checksum_verify",
+   "draft_cleanup"
+  ],
+  "enum_video_job_log_status": [
+   "queued",
+   "processing",
+   "completed",
+   "failed"
+  ],
+  "enum_video_outbound_clicks_click_type": [
+   "watch_on_youtube",
+   "subscribe",
+   "playlist",
+   "channel"
+  ],
+  "enum_video_sessions_assessmentType": [
+   "movement_screen",
+   "postural_analysis",
+   "performance_test",
+   "general"
+  ],
+  "enum_video_sessions_status": [
+   "pending",
+   "active",
+   "completed",
+   "cancelled"
+  ],
+  "enum_video_sessions_transcriptionStatus": [
+   "none",
+   "processing",
+   "complete",
+   "failed"
+  ],
+  "enum_waiver_records_source": [
+   "qr",
+   "header_waiver",
+   "admin_tablet",
+   "in_app"
+  ],
+  "enum_waiver_records_status": [
+   "pending_match",
+   "linked",
+   "superseded",
+   "revoked"
+  ],
+  "enum_waiver_versions_activityType": [
+   "HOME_GYM_PT",
+   "PARK_TRAINING",
+   "SWIMMING_LESSONS"
+  ],
+  "enum_waiver_versions_waiverType": [
+   "core",
+   "activity_addendum",
+   "ai_notice"
+  ],
+  "enum_workout_plan_days_dayType": [
+   "training",
+   "active_recovery",
+   "rest",
+   "assessment",
+   "specialization"
+  ],
+  "enum_workout_plan_days_optPhase": [
+   "stabilization_endurance",
+   "strength_endurance",
+   "hypertrophy",
+   "maximal_strength",
+   "power"
+  ],
+  "enum_workout_plans_status": [
+   "active",
+   "archived",
+   "draft",
+   "paused",
+   "completed"
+  ],
+  "enum_workout_sessions_status": [
+   "planned",
+   "in_progress",
+   "completed",
+   "skipped",
+   "cancelled"
+  ],
+  "enum_workout_templates_difficulty_level": [
+   "beginner",
+   "intermediate",
+   "advanced"
+  ],
+  "enum_workout_templates_opt_phase": [
+   "phase_1_stabilization",
+   "phase_2_strength_endurance",
+   "phase_3_hypertrophy",
+   "phase_4_maximal_strength",
+   "phase_5_power"
+  ],
+  "enum_workshop_notes_capturedVia": [
+   "typed",
+   "grill_me_interview",
+   "plaud_transcript",
+   "scan"
+  ],
+  "enum_workshop_notes_confidence": [
+   "verified",
+   "clear_memory",
+   "fuzzy_memory",
+   "uncertain"
+  ],
+  "equipment_enum": [
+   "barbell",
+   "dumbbell",
+   "kettlebell",
+   "resistance_band",
+   "cable",
+   "bodyweight",
+   "medicine_ball",
+   "stability_ball",
+   "trx",
+   "bosu",
+   "foam_roller",
+   "bench",
+   "machine",
+   "other"
+  ],
+  "muscle_group_enum": [
+   "chest",
+   "back",
+   "shoulders",
+   "biceps",
+   "triceps",
+   "forearms",
+   "abs",
+   "obliques",
+   "quads",
+   "hamstrings",
+   "glutes",
+   "calves",
+   "hip_flexors",
+   "adductors",
+   "abductors"
+  ]
+ }
+}

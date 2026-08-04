@@ -4,6 +4,9 @@
  * Validates in-app notification creation for session events.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const { loggerWarnMock, mockNotification, mockNotificationModel } = vi.hoisted(() => {
   const mockNotification = {
@@ -147,10 +150,19 @@ describe('Session Notifications', () => {
     expect(result.success).toBe(false);
   });
 
-  it('notification type must be valid', async () => {
-    // 'session' is in the allowed types for Notification model
-    const validTypes = ['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward'];
-    expect(validTypes).toContain('session');
+  it('notification type must be valid — checked against the MODEL, not a local copy', async () => {
+    // WAS: a `validTypes` array literal declared here, asserted to contain one of its own
+    // elements. Mathematically incapable of failing, and it was the named guard for exactly
+    // the bug that shipped: all 8 session notifications wrote type:'session' while the live
+    // enum_notifications_type lacked that label, so every one silently failed for months.
+    // Now: read the real model's allowlist. Live-DB coverage of the same class lives in
+    // tests/unit/enumLabelDrift.test.mjs (model enums vs a pg_enum snapshot).
+    const src = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../../models/Notification.mjs'), 'utf8');
+    const isIn = src.match(/isIn:\s*\{[\s\S]{0,80}?args:\s*\[\[([\s\S]*?)\]\]/);
+    expect(isIn, 'Notification.mjs must declare an isIn allowlist for `type`').toBeTruthy();
+    const modelTypes = [...isIn[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    expect(modelTypes).toContain('session');
   });
 
   it('admin notification uses type admin', async () => {

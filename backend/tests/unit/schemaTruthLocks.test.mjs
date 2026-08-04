@@ -11,9 +11,12 @@
  * the live DB first — do not "fix" the test to match new code.
  */
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+
+const require_fs = () => fs;
 
 const backend = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (p) => readFileSync(resolve(backend, p), 'utf8');
@@ -118,6 +121,36 @@ describe('column-name truths in raw SQL', () => {
     // (the identifier alone appears at ~50 call sites earlier in the file).
     expect(read('services/aiChatService.mjs'))
       .toMatch(/const safeQuery = async[\s\S]{0,600}?logger\.warn/);
+  });
+});
+
+describe('quarantined twins stay quarantined (forward-looking)', () => {
+  // Historical migrations legitimately mention `users` / "WorkoutSessions" — that was the
+  // truth when they ran, and two assertions in dailyWorkoutFormSchemaDrift.test.mjs lock
+  // that history on purpose. What must NOT happen is a NEW migration targeting a table that
+  // is now quarantined as _dead_*_20260803: it would fail at deploy, or worse, resurrect the
+  // twin. Anything dated on/after the 2026-08-04 quarantine is held to the canonical names.
+  const QUARANTINED = [/\busers\b(?!_)/, /"WorkoutPlans"/, /"WorkoutSessions"/];
+  const migrationsDir = resolve(backend, 'migrations');
+
+  // The quarantine migration itself must name the tables it renames — exempt by exact name.
+  const EXEMPT = new Set(['20260804001000-repoint-and-rename-dead-twin-tables.cjs']);
+
+  it('no migration dated 2026-08-04 or later references a quarantined twin table', () => {
+    const { readdirSync } = require_fs();
+    const offenders = [];
+    for (const file of readdirSync(migrationsDir)) {
+      if (EXEMPT.has(file)) continue;
+      if (!/^202608(0[4-9]|[1-9]\d)|^2026(09|1[0-2])|^20[3-9]\d/.test(file)) continue;
+      if (!/\.(cjs|mjs|js)$/.test(file)) continue;
+      const src = readFileSync(resolve(migrationsDir, file), 'utf8');
+      // Strip comments — the fix migrations explain the dead twins in prose.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      for (const pattern of QUARANTINED) {
+        if (pattern.test(code)) offenders.push(`${file} :: ${pattern}`);
+      }
+    }
+    expect(offenders, `New migrations must target canonical tables, not the _dead_*_20260803 twins:\n  ${offenders.join('\n  ')}`).toEqual([]);
   });
 });
 
