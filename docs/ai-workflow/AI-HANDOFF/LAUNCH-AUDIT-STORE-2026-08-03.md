@@ -405,6 +405,67 @@ tests**.
 
 ---
 
+### F-Q · SECURITY P1 — Cart identity was COERCED, not validated (parseInt IDOR)
+`5d3256881` · `backend/utils/cartSchemaRecovery.mjs`, new `cartUserIdCoercionIdor.test.mjs`
+*(found by Kimi K3 external hostile review, verified here)*
+
+`normalizeAuthenticatedUserId` did `Number.parseInt(String(userId), 10)`. **`parseInt` stops at
+the first non-digit**: `parseInt('12f3a9…')` is `12`; `parseInt('42abc')` is `42`. Every cart
+route scopes on that return value — `where userId = ?` on read/update/remove/clear, and the
+checkout compare-and-swap — so a non-numeric or prefixed identifier (legacy token, SSO subject,
+migrated id) silently resolved to a **different, real user**, and the caller then read and
+mutated **that user's cart**. An IDOR produced by coercion rather than by a missing check, on
+the money path, in the one function whose entire job is to establish who is asking.
+
+The diagnosis is the irony: `cartRoutes.parsePositiveInteger` already rejects these correctly
+with a regex. **Identity was the single input still being coerced** — two implementations of
+"parse a positive integer", one safe, one not.
+
+Now rejects rather than coerces, and deliberately does not echo the rejected id back (that
+message reaches logs and a 401 body).
+
+**Proof.** 26/26; **13 of 26 fail** against the pre-fix version. Runtime probe over a real HTTP
+server: `12f3a9` → **401** (pre-fix: 200 → user 12), `42` → 200 → user 42.
+
+### F-R · P1 — My own quantity ceiling only guarded NEW writes
+`987b8cba7` · `cartHelpers.mjs`, `cartRoutes.mjs`, `v2PaymentRoutes.mjs`
+
+The 99/line cap lived at the cart routes. The checkout gate rejected non-positive and
+non-integer quantities but **not over-cap ones**, so a row of quantity 500 — predating the cap,
+or written by any path bypassing the routes — passed the last gate before Stripe and was
+charged. Fixed by enforcing the ceiling at checkout *and* moving `MAX_CART_ITEM_QUANTITY` into
+`cartHelpers` so both layers read **one** value. Also: `CART_ITEM_QUANTITY_INVALID` returned
+**409**, the same status as `CART_CHECKOUT_IN_PROGRESS` — one transient and retryable, one
+permanent — so a client retrying 409s would spin forever. Now **422**.
+
+### F-S · Six tests named for the double-credit invariant proved nothing
+`32c9e61db` · `tests/api/payments.test.mjs`, `__tests__/SessionGrantService.replay.test.mjs`
+
+`'should skip session grant for idempotent requests'` declared `const sessionsToAdd = 0` and
+asserted it equalled 0, never calling the service, wrapped in an `if` so it could pass with zero
+assertions. The **entire** "Webhook vs Verify-Session Race Condition" block built literal objects
+with `sessionsGranted: true` hardcoded and asserted they were true. **This is why round 19 found
+the real replay defense untested — the names made it look covered.** Tautologies removed (with
+comments so they are not "restored"), scenarios rewritten against the real service.
+
+### Kimi K3 findings VERIFIED AND REFUTED (recorded so they are not re-raised)
+
+| Kimi claim | Reality |
+|---|---|
+| CRIT-1: the five webhook surfaces may not all verify signatures | **All four handler files call `constructEvent`**, and `core/middleware/index.mjs` enumerates all five paths in the `express.json` bypass list |
+| CRIT-2: missing-secret branch may fail open | Returns **500 before any processing** — fail-closed |
+| CRIT-3: ACH grant-before-money | `completed` skips unless `payment_status === 'paid'`; `payment_intent.processing` only sets `Order.status`, it does **not** grant |
+| CRIT-4: fatten a claimed cart, then pay the still-live session | Cart mutations all scope to `status:'active'` so a claimed cart cannot be fattened; and cancel **refuses if already paid, expires the Stripe session server-side, clears `checkoutSessionId`**, scoped to `pending_payment` |
+| HIGH-2: out-of-order expired event releases a live claim | Canonical handler only sets a flag; the cart-route release is scoped to `checkoutSessionId: session.id` — the conditional release Kimi recommended already exists |
+| HIGH-4: XFF spoofing defeats the IP limiter | `trust proxy` is **1** (hop count), not `true` |
+| HIGH-4: success page polls every 2s → buyer gets 429'd | activation-status is called **at most twice per visit**; no polling loop |
+| MED-2: price gate is display-only, purchase open | `cartRoutes.mjs:430` gates purchase with `isPriceAccessGranted` → 403 `PRICE_ACCESS_REQUIRED` |
+
+**Confirmed and routed out-of-lane:** no refund/chargeback clawback (`charge.refunded` /
+`charge.dispute.created` unhandled) → **SWA-139**.
+
+---
+
 ## 2. FINDINGS NOT FIXED IN-LANE (ranked)
 
 | # | Sev | Finding | Evidence | Why not fixed here |
