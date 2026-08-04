@@ -541,6 +541,29 @@ Blockers B1 (Stripe webhook URL) and B2 (live price truth) are Sean-owned and sh
 cleared first — B1 in particular, because the rehearsal would not detect a
 misconfigured dashboard URL if the rehearsal itself is driven through the working path.
 
+## 9b. PROCESS HAZARD FOUND DURING THIS AUDIT (worth carrying forward)
+
+**Removing a git worktree can destroy another worktree's `node_modules` on Windows.**
+To compare a finding against a pristine baseline I created a second worktree at the base
+commit and linked its `backend/node_modules` to the audit worktree's with a directory
+junction (`mklink /J`) instead of running a second multi-minute install. When that baseline
+worktree was later removed with `git worktree remove --force`, the delete **followed the
+junction** and emptied the *real* `backend/node_modules` it pointed at — 0 files left, while
+`frontend/node_modules` (never junctioned) survived intact at 724.
+
+Why it matters beyond the inconvenience: for a while afterwards the backend proof in this
+record was **stale** — the tests it cited could no longer run. Nothing in the tooling said
+so; the failure only surfaced because a later round tried to execute the money-path code
+over real HTTP and got `ERR_MODULE_NOT_FOUND`. That error is also the exact signature of the
+Rule-42 production boot crash, which is what made it worth chasing rather than shrugging at.
+It was **not** a real dependency problem: `express-rate-limit@^7.5.1` is properly declared at
+`backend/package.json:123`, so production installs it normally.
+
+Carry-forward rule: **never junction `node_modules` into a throwaway worktree.** Either pay
+for the second install, or copy rather than link. And after any worktree teardown, re-run the
+suites a claim depends on before trusting that claim — deps were reinstalled and the backend
+money-path proof re-established at **83/83** before this record was finalised.
+
 ## 10. POST-TASK HYGIENE (Rule 38)
 
 Created: 2 backend test files, 1 frontend test file, 1 new backend middleware module, this
