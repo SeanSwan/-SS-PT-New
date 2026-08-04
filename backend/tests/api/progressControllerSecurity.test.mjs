@@ -41,7 +41,12 @@ describe('progress controller security hardening', () => {
     expect(controllerSource).toContain('const normalizedLimit = parseBoundedPositiveInteger(limit, 100, 500);');
     expect(controllerSource).toContain('const normalizedPage = parsePositiveInteger(page, 1);');
     expect(controllerSource).toContain('const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);');
-    expect(controllerSource).toContain('const offset = (normalizedPage - 1) * normalizedLimit;');
+    // The raw offset is still derived from the normalized page/limit, but a
+    // member's reachable window is then CAPPED — an uncapped offset let any
+    // authenticated account page the whole user table.
+    expect(controllerSource).toContain('const rawOffset = (normalizedPage - 1) * normalizedLimit;');
+    expect(controllerSource).toContain('MEMBER_MAX_ROWS');
+    expect(controllerSource).toMatch(/offset = isStaffViewer\s*\?\s*rawOffset/);
     expect(controllerSource).toContain('limit: normalizedLimit');
     expect(controllerSource).toContain('page: normalizedPage');
     expect(controllerSource).not.toContain('parseInt(');
