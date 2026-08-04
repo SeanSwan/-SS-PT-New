@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { sliceBetween } from '../helpers/sliceBetween.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const authRoutesSource = readFileSync(
@@ -28,12 +29,21 @@ describe('authenticated password-change refresh credential revocation', () => {
   });
 
   it('revokes the existing refresh credential when profile update changes the password', () => {
-    const updateStart = authControllerSource.indexOf('export const updateProfile');
-    const updateEnd = authControllerSource.indexOf(
-      'export const updateAppearanceProfile',
-      updateStart
+    // Launch audit 2026-08-04: the end anchor used to be
+    // 'export const updateAppearanceProfile', which DOES NOT EXIST in this
+    // controller. `indexOf` returned -1, so `slice(start, -1)` silently
+    // widened the window from the updateProfile body to ~16k chars — the
+    // entire rest of the file. This credential-revocation guard was therefore
+    // measuring unrelated code, and passed only because its target string
+    // happens to occur exactly once in the whole file; the day any other
+    // function nulled refreshTokenHash it would have gone green over a real
+    // regression. sliceBetween now throws if either anchor drifts.
+    const updateBlock = sliceBetween(
+      authControllerSource,
+      'export const updateProfile',
+      'export const validateToken',
+      { label: 'authController.updateProfile' },
     );
-    const updateBlock = authControllerSource.slice(updateStart, updateEnd);
     const passwordStart = updateBlock.indexOf('if (newPassword) {');
     const passwordEnd = updateBlock.indexOf('\n    // Update user fields', passwordStart);
     const passwordBlock = updateBlock.slice(passwordStart, passwordEnd);
