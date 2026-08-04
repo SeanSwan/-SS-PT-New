@@ -81,8 +81,28 @@ Failing→passing verified: with the guard stashed, 2 of 5 tests fail.
 was already capped at 5/15min (`middleware/rateLimiter.mjs:111`, confirmed live:
 `ratelimit-policy: 5;w=900`). The endpoints that actually cost money were the unprotected
 ones. `POST /api/v2/payments/create-checkout-session` mints a real Stripe object per call
-(`v2PaymentRoutes.mjs:564`), so an authenticated account could loop it to burn Stripe API
-quota, flood the dashboard with abandoned sessions, and churn cart rows.
+(`v2PaymentRoutes.mjs:564`).
+
+> **IMPACT CORRECTED (hostile round 21).** The original wording here said an authenticated
+> account "could loop it to burn Stripe API quota, flood the dashboard with abandoned
+> sessions, and churn cart rows." That overstates it, and an overstated threat in a security
+> record misdirects future effort. Two defenses already existed and I had not traced them:
+> 1. **An atomic cart claim.** `ShoppingCart.update(..., { where: { id, userId, status:
+>    'active' } })` (`v2PaymentRoutes.mjs:543-549`) is a compare-and-swap: the first call
+>    flips the cart `active → pending_payment`, and every subsequent call matches 0 rows and
+>    returns **409 `CART_CHECKOUT_IN_PROGRESS`**. A same-cart loop therefore does *not* mint
+>    N Stripe sessions — it mints one and then 409s.
+> 2. **A real Stripe idempotency key** (`:541`, `:587`), derived from `userId`, `cart.id`, an
+>    item fingerprint, and the cart's *prior* `lastCheckoutAttempt` — and built **before**
+>    that field is rewritten (`:541` precedes `:547`), so a genuine repeat returns the same
+>    Stripe session rather than a new one.
+>
+> What remains true, and is why the limiter still earns its place: **no limiter existed on
+> any money endpoint**, and the claim/idempotency pair bounds the *same-cart* case only. It
+> does not bound repeated cancel→reopen→checkout cycles, cross-cart churn, or an accidental
+> client-side retry storm. The limiter is defense-in-depth against those, not the sole
+> guard — and it is the only thing that was missing, rather than the only thing standing
+> between the endpoint and abuse.
 
 **Fix.** Cart mutations 120/15min; checkout-session creation 20/15min; verify/activation
 60/15min. **Keyed per authenticated user id, falling back to IP** — IP alone would bucket
