@@ -22,6 +22,12 @@
  *
  * Rule 75 (Trailhead-Truth): the message a user sees must describe what the code can actually do
  * right now. "Coming soon" is true for a feature with no table; it is a lie for a broken one.
+ *
+ * `degraded: true` is NOT a new invention — it is the flag this codebase already uses for
+ * partial-service responses (`adminNotificationsRoutes`, `adminSocialPublishingRoutes`) and which
+ * `frontend/src/services/apiClientFactory.ts` reads to set `apiError.isDegraded`. Emitting it here
+ * means these responses participate in the handling that already exists, instead of requiring every
+ * consumer to learn a second, parallel signal.
  */
 
 /**
@@ -55,7 +61,7 @@ export function isMissingTableError(error) {
  * to the success case — a consumer destructuring `{ streams }` must not get `undefined`.
  */
 export function respondComingSoon(res, emptyPayload, message) {
-  return res.json({ ...emptyPayload, status: 'coming_soon', message });
+  return res.json({ ...emptyPayload, status: 'coming_soon', degraded: true, message });
 }
 
 /**
@@ -65,5 +71,5 @@ export function respondComingSoon(res, emptyPayload, message) {
  * is deliberately omitted — we cannot honestly predict when the feature ships.
  */
 export function respondComingSoonWrite(res, message) {
-  return res.status(503).json({ success: false, status: 'coming_soon', message });
+  return res.status(503).json({ success: false, status: 'coming_soon', degraded: true, message });
 }
