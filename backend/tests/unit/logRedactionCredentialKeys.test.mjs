@@ -88,6 +88,19 @@ describe('credential key names are redacted regardless of value shape', () => {
     expect(out.d).toBeInstanceOf(Date);
   });
 
+  it('redacts a credential key whose value is an object or array, not just a string', () => {
+    // A structured credential — { authorization: { scheme, token } } — must not survive because
+    // the walk descended into it looking for redactable strings. The key alone is the verdict.
+    const out = redactLogValue({
+      authorization: { scheme: 'Bearer', token: 'abc' },
+      apiKey: ['k1', 'k2'],
+      password: { hash: 'x', salt: 'y' },
+    });
+    expect(JSON.stringify(out)).not.toContain('Bearer');
+    expect(JSON.stringify(out)).not.toContain('k1');
+    expect(JSON.stringify(out)).not.toContain('salt');
+  });
+
   it('never throws — a redaction failure must not suppress a log line', () => {
     const circular = { password: 'p' };
     circular.self = circular;
