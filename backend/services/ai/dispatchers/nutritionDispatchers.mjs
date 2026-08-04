@@ -179,6 +179,22 @@ const toProductData = (product) => (
   product && typeof product.toJSON === 'function' ? product.toJSON() : product
 );
 
+// S0.6b: Open Food Facts / FatSecret product names are crowd-sourced, unmoderated
+// strings that land inside coach command results and confirmation UI. Same
+// discipline as aiChatRoutes' sanitizeFoodContext: strip control chars and
+// backticks, restrict to food-safe characters, hard length cap. Third-party
+// text is data, never instructions.
+const FOOD_SAFE_RE = /[^\w\s.,'\-+%/()&À-ž]/g;
+const sanitizeThirdPartyFoodString = (value) => {
+  if (value === null || value === undefined) return null;
+  const s = String(value)
+    .replace(/[\r\n\t`\\]/g, ' ')
+    .replace(FOOD_SAFE_RE, '')
+    .trim()
+    .slice(0, 120);
+  return s || null;
+};
+
 const nutritionValue = (nutrition, keys) => {
   for (const key of keys) {
     const value = toFiniteNumber(nutrition?.[key]);
@@ -197,8 +213,8 @@ const buildFoodSummary = (product, searchMode, counts) => {
     resultCount: counts.resultCount,
     totalMatches: counts.totalMatches,
     firstProductId: data?.id ?? null,
-    firstProductName: data?.name ?? null,
-    firstBrand: data?.brand ?? null,
+    firstProductName: sanitizeThirdPartyFoodString(data?.name),
+    firstBrand: sanitizeThirdPartyFoodString(data?.brand),
     overallRating: data?.overallRating ?? null,
     isOrganic: data ? Boolean(data.isOrganic) : false,
     isNonGMO: data ? Boolean(data.isNonGMO) : false,

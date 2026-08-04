@@ -22,6 +22,8 @@ import { generateMealPlan, getGolfPresets, getGolfPreset } from '../services/mea
 import { analyzeMealPhoto } from '../services/foodPhotoService.mjs';
 import { parseNutritionTranscript } from '../services/nutrition/nutritionTranscriptParserService.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
+import { requireAiConsent } from '../middleware/aiConsent.mjs';
+import { getAiPrivacyProfile } from '../models/index.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -176,7 +178,21 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
  * Analyzes a meal photo using Gemini Vision.
  * Multipart form: file (image)
  */
-router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.coaching'), uploadMealPhoto, async (req, res) => {
+// S0.6: a raw user photo (faces, homes, receipts) goes to a third-party LLM —
+// that egress requires the same explicit AI consent gate the workout generator
+// uses (AiPrivacyProfile, fail-closed). The photo is analyzed in-memory and
+// never persisted server-side; Gemini retention is governed by the consent doc.
+// Adapter: this route is always SELF-targeted (every role analyzes their own
+// meal photo), but requireAiConsent resolves non-client roles via req.body.userId
+// — which multipart bodies don't carry before multer runs. Pin the target to the
+// authenticated user; multer then replaces req.body without re-running the gate.
+const photoConsentGate = requireAiConsent(getAiPrivacyProfile);
+const selfPhotoConsentGate = (req, res, next) => {
+  req.body = { ...(req.body || {}), userId: req.user?.id };
+  return photoConsentGate(req, res, next);
+};
+
+router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.coaching'), selfPhotoConsentGate, uploadMealPhoto, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No photo uploaded. Send an image as "photo" field.' });

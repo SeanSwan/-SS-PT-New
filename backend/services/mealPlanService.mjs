@@ -161,6 +161,25 @@ export async function generateMealPlan(params) {
   const targetCarbs = carbs || Math.round(calories * 0.4 / 4);
   const targetFat = fat || Math.round(calories * 0.3 / 9);
 
+  // S0.6: diagnoses never leave the system (Rule 8). Each allowlisted condition
+  // maps to the dietary CONSTRAINTS it implies; the model gets actionable rules
+  // ("low glycemic load") instead of PHI labels ("Diabetes"). Same nutrition
+  // outcome, zero diagnosis egress — and constraints steer generation more
+  // directly than a naked condition name anyway.
+  const CONDITION_CONSTRAINTS = {
+    'Diabetes': 'low glycemic load; distribute carbohydrates evenly across meals; avoid added sugars',
+    'Hypertension': 'sodium under 1500mg/day; emphasize potassium-rich vegetables; avoid processed foods',
+    'Celiac Disease': 'strictly gluten-free; no wheat, barley, rye, or cross-contaminated oats',
+    'Lactose Intolerance': 'no lactose-containing dairy; lactose-free or plant-based alternatives only',
+    'IBS': 'low-FODMAP preference; avoid common trigger foods; moderate fiber introduction',
+    'GERD': 'avoid acidic, spicy, and fried foods; smaller more frequent meals; no late heavy meals',
+    'High Cholesterol': 'minimize saturated fat; no trans fat; emphasize soluble fiber and omega-3 sources',
+    'Kidney Disease': 'moderate protein; limit sodium, potassium, and phosphorus; avoid processed meats',
+  };
+  const dietaryConstraints = healthConditions
+    .map((c) => CONDITION_CONSTRAINTS[c])
+    .filter(Boolean);
+
   const userContext = `
 User Profile:
 - Daily calorie target: ${calories} kcal
@@ -168,7 +187,7 @@ User Profile:
 - Activity type: ${activityType}
 - NASM OPT Phase: ${optPhase}
 ${restrictions.length ? `- Dietary restrictions: ${restrictions.join(', ')}` : ''}
-${healthConditions.length ? `- Health conditions: ${healthConditions.join(', ')}` : ''}
+${dietaryConstraints.length ? `- Medical dietary constraints (MANDATORY):\n${dietaryConstraints.map((c) => `  * ${c}`).join('\n')}` : ''}
 
 Create a complete daily meal plan that meets these targets.`;
 
