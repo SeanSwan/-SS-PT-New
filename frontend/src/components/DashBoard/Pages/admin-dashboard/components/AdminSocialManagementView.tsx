@@ -453,8 +453,8 @@ const StatusBadge = styled.span<{ $status: string }>`
 `;
 
 const ActionIcon = styled(motion.button)<{ $variant?: 'approve' | 'reject' | 'flag' | 'default' }>`
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, ${props => getVariantColor(props.$variant)} 20%, transparent);
   cursor: pointer;

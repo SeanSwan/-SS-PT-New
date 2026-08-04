@@ -35,8 +35,16 @@ export const AddButton = styled.button`
   }
 `;
 
+export const TableScroller = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+`;
+
 export const Table = styled.table`
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
@@ -69,6 +77,8 @@ export const StatusBadge = styled.span<{ $active: boolean }>`
 
 export const ActionButton = styled.button<{ $variant?: 'edit' | 'delete' | 'toggle' }>`
   padding: 6px 12px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 4px;
   border: none;
   cursor: pointer;

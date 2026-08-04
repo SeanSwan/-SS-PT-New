@@ -1,7 +1,7 @@
 import React from 'react';
 import type { WaiverRecordSummary } from './adminWaivers.types';
 import {
-  Table, Th, Td, Tr, StatusBadge, ActionButton, EmptyState,
+  Table, TableScroller, Th, Td, Tr, StatusBadge, ActionButton, EmptyState,
 } from './adminWaivers.styles';
 
 interface Props {
@@ -25,6 +25,7 @@ const AdminWaiversTable: React.FC<Props> = ({ records, onView }) => {
   }
 
   return (
+    <TableScroller tabIndex={0} role="region" aria-label="Waiver records table">
     <Table>
       <thead>
         <tr>
@@ -61,6 +62,7 @@ const AdminWaiversTable: React.FC<Props> = ({ records, onView }) => {
         ))}
       </tbody>
     </Table>
+    </TableScroller>
   );
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { AdminSpecial, Package } from './adminSpecials.types';
 import {
   Table,
+  TableScroller,
   Th,
   Td,
   StatusBadge,
@@ -41,6 +42,7 @@ const AdminSpecialsTable: React.FC<AdminSpecialsTableProps> = ({
   }
 
   return (
+    <TableScroller tabIndex={0} role="region" aria-label="Specials table">
     <Table>
       <thead>
         <tr>
@@ -86,6 +88,7 @@ const AdminSpecialsTable: React.FC<AdminSpecialsTableProps> = ({
         ))}
       </tbody>
     </Table>
+    </TableScroller>
   );
 };
 
