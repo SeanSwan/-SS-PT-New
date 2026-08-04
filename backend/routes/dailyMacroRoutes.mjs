@@ -20,6 +20,13 @@ import logger from '../utils/logger.mjs';
 import dailyMacroDraftRoutes from './dailyMacroDraftRoutes.mjs';
 import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
 import { recordMacroLogRevision } from '../services/nutrition/nutritionLogRevisionService.mjs';
+import { getActiveNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import { getCurrentLogStreak, summarizeAdherence } from '../services/nutrition/nutritionAdherenceService.mjs';
+
+// S1.2: additive target/adherence enrichment. Best-effort by contract — a
+// failure here degrades to the pre-S1.2 response shape, never a 500.
+const loadTargetSafe = (userId, onDate = null) =>
+  getActiveNutritionTarget(userId, onDate).catch(() => null);
 import {
   ALLOWED_MEAL_TYPES,
   ALLOWED_SOURCES,
@@ -205,6 +212,25 @@ router.get('/summary', async (req, res) => {
 
     const summary = buildDailyMacroSummary(entries, date, targetUserId);
 
+    // S1.2: the goal denominator this endpoint never had. Additive fields —
+    // target null when none is set, streak best-effort.
+    const [nutritionTarget, currentLogStreak] = await Promise.all([
+      loadTargetSafe(targetUserId, date),
+      getCurrentLogStreak(targetUserId),
+    ]);
+    summary.target = nutritionTarget ? {
+      dailyCalories: nutritionTarget.dailyCalories,
+      proteinGrams: nutritionTarget.proteinGrams,
+      carbsGrams: nutritionTarget.carbsGrams,
+      fatGrams: nutritionTarget.fatGrams,
+      fiberGrams: nutritionTarget.fiberGrams,
+      sodiumLimitMg: nutritionTarget.sodiumLimitMg,
+      hydrationTargetLiters: nutritionTarget.hydrationTargetLiters,
+      effectiveFrom: nutritionTarget.effectiveFrom,
+      status: nutritionTarget.status,
+    } : null;
+    summary.currentLogStreak = currentLogStreak;
+
     return res.json({ success: true, summary });
   } catch (err) {
     // Non-fatal: table may not exist yet (daily_macro_logs not migrated)
@@ -261,6 +287,18 @@ router.get('/weekly', async (req, res) => {
       ? Math.round(days.reduce((s, d) => s + d.calories, 0) / days.length)
       : 0;
 
+    // S1.2: adherence spine — same numbers the coach context and triage read.
+    const rangeDays = Math.round(msRange / (24 * 60 * 60 * 1000)) + 1;
+    const [weeklyTarget, weeklyStreak] = await Promise.all([
+      loadTargetSafe(weeklyUserId),
+      getCurrentLogStreak(weeklyUserId),
+    ]);
+    const adherence = summarizeAdherence(
+      entries.map((e) => e.get ? e.get({ plain: true }) : e),
+      weeklyTarget,
+      rangeDays
+    );
+
     return res.json({
       success: true,
       startDate,
@@ -268,6 +306,14 @@ router.get('/weekly', async (req, res) => {
       days,
       daysLogged: days.length,
       avgCalories,
+      target: weeklyTarget ? {
+        dailyCalories: weeklyTarget.dailyCalories,
+        proteinGrams: weeklyTarget.proteinGrams,
+        carbsGrams: weeklyTarget.carbsGrams,
+        fatGrams: weeklyTarget.fatGrams,
+        fiberGrams: weeklyTarget.fiberGrams,
+      } : null,
+      adherence: { ...adherence, currentLogStreak: weeklyStreak },
     });
   } catch (err) {
     logger.error('[DailyMacroRoutes] Get weekly error:', err.message);

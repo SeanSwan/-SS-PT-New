@@ -9,6 +9,8 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { searchFoodCatalog } from '../services/nutrition/foodCatalogSearchService.mjs';
 import { validateNutritionPlanBody } from '../services/nutrition/nutritionPlanValidation.mjs';
+import { setNutritionTarget, getActiveNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import { getUserLocalToday } from '../services/nutrition/nutritionAdherenceService.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -80,10 +82,26 @@ router.get('/:userId/current', protect, async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // S1.4: the versioned target is the adherence truth; the plan document is
+    // supporting context. Surface the target even when no plan document exists.
+    const activeTarget = await getActiveNutritionTarget(clientId).catch(() => null);
+    const targetPayload = activeTarget ? {
+      id: activeTarget.id,
+      dailyCalories: activeTarget.dailyCalories,
+      proteinGrams: parseFloat(activeTarget.proteinGrams) || null,
+      carbsGrams: parseFloat(activeTarget.carbsGrams) || null,
+      fatGrams: parseFloat(activeTarget.fatGrams) || null,
+      fiberGrams: parseFloat(activeTarget.fiberGrams) || null,
+      sodiumLimitMg: activeTarget.sodiumLimitMg,
+      hydrationTargetLiters: parseFloat(activeTarget.hydrationTargetLiters) || null,
+      effectiveFrom: activeTarget.effectiveFrom,
+    } : null;
+
     if (!plan) {
       return res.status(200).json({
         success: true,
         data: null,
+        target: targetPayload,
         message: 'No nutrition plan available. Complete your onboarding to receive personalized guidance.'
       });
     }
@@ -154,6 +172,41 @@ router.post('/:userId', protect, async (req, res) => {
       });
     }
 
+    // S1.4: targets route through the SINGLE WRITER (nutritionTargetService),
+    // so /api/macros/summary, the coach context, and this Builder all agree on
+    // one adherence denominator. Bounds are validated BEFORE the plan document
+    // is created — a rejected target rejects the whole write with a 400 the
+    // Builder can show, instead of a plan that silently "didn't take".
+    const targetFields = {
+      dailyCalories: validation.plan.dailyCalories,
+      proteinGrams: validation.plan.proteinGrams,
+      carbsGrams: validation.plan.carbsGrams,
+      fatGrams: validation.plan.fatGrams,
+      fiberGrams: validation.plan.fiberGrams,
+      hydrationTargetLiters: validation.plan.hydrationTarget,
+    };
+    const hasTargetFields = Object.values(targetFields).some((v) => v !== undefined && v !== null);
+
+    let targetResult = null;
+    if (hasTargetFields) {
+      const { todayLocal } = await getUserLocalToday(clientId);
+      targetResult = await setNutritionTarget({
+        userId: clientId,
+        fields: targetFields,
+        createdBy: req.user.id,
+        source: 'manual',
+        activate: true,
+        effectiveFrom: todayLocal,
+      });
+      if (!targetResult.ok) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nutrition targets failed validation',
+          errors: targetResult.errors
+        });
+      }
+    }
+
     const plan = await ClientNutritionPlan.create({
       ...validation.plan,
       userId: clientId,
@@ -167,6 +220,7 @@ router.post('/:userId', protect, async (req, res) => {
     return res.status(201).json({
       success: true,
       data: plan,
+      target: targetResult?.target ?? null,
       message: 'Nutrition plan created successfully'
     });
   } catch (error) {
