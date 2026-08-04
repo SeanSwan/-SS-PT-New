@@ -353,8 +353,7 @@ const progressController = {
         metric = 'points',
         tier,
         limit: rawLimit = 20,
-        page = 1,
-        includeUser
+        page = 1
       } = req.query;
 
       const normalizedPage = parsePositiveInteger(page, 1);
@@ -386,9 +385,14 @@ const progressController = {
       let orderBy;
       let includeProgressData = false;
 
-      // Build where clause
-      if (tier && tier !== 'all') {
-        whereClause.tier = tier;
+      // Build where clause. `tier` is allowlisted: an unvalidated value both
+      // reaches the query and echoes back in `filters`, and each distinct tier
+      // is a DISJOINT slice — so without a fixed, small set of slices the
+      // per-query row cap can be unioned over the parameter space.
+      const LEADERBOARD_TIERS = new Set(['bronze', 'silver', 'gold', 'platinum']);
+      const safeTier = tier && tier !== 'all' && LEADERBOARD_TIERS.has(tier) ? tier : null;
+      if (safeTier) {
+        whereClause.tier = safeTier;
       }
 
       // Configure ordering and includes based on metric and timeframe
@@ -487,22 +491,16 @@ const progressController = {
         };
       });
 
-      // Get user's position if requested
-      let userRank = null;
-      if (includeUser) {
-        const userPosition = await User.count({
-          where: {
-            ...whereClause,
-            [metric === 'points' ? 'lifetimePointsEarned' : metric === 'level' ? 'level' : metric === 'streak' ? 'streakDays' : 'totalWorkouts']: {
-              [Op.gt]: metric === 'points' ? (await User.findByPk(includeUser))?.lifetimePointsEarned || 0 :
-                       metric === 'level' ? (await User.findByPk(includeUser))?.level || 0 :
-                       metric === 'streak' ? (await User.findByPk(includeUser))?.streakDays || 0 :
-                       (await User.findByPk(includeUser))?.totalWorkouts || 0
-            }
-          }
-        });
-        userRank = userPosition + 1;
-      }
+      // SECURITY: `includeUser` was an unauthenticated-by-design stat oracle.
+      // It fed an attacker-controlled id straight into User.findByPk with no
+      // ownership check, and findByPk bypasses the role filter entirely — so a
+      // member could rank ANY account (staff included) and, by switching
+      // `metric`, read that account's points/level/streak/workouts one
+      // comparison at a time. The `?.x || 0` fallback also made it an existence
+      // oracle. It had ZERO callers in the entire repo, so it is removed rather
+      // than guarded: the safest parameter is the one that does not exist.
+      // Members already receive their own rank via /gamification/profile.
+      const userRank = null;
 
       const total = await User.count({ where: whereClause });
 
@@ -510,15 +508,22 @@ const progressController = {
         success: true,
         leaderboard: rankedLeaderboard,
         pagination: {
-          total,
-          page: normalizedPage,
+          // Members see the size of the window they can actually read, not the
+          // member population (which, with `tier` set, is an exact per-tier
+          // headcount). And `page` reports the page ACTUALLY SERVED: the offset
+          // is clamped, so echoing the requested page told a member they were
+          // reading page 7 while they were served rows 1-100.
+          total: isStaffViewer ? total : Math.min(total, MEMBER_MAX_ROWS),
+          page: isStaffViewer ? normalizedPage : Math.floor(offset / normalizedLimit) + 1,
           limit: normalizedLimit,
-          pages: Math.ceil(total / normalizedLimit)
+          pages: isStaffViewer
+            ? Math.ceil(total / normalizedLimit)
+            : Math.ceil(Math.min(total, MEMBER_MAX_ROWS) / normalizedLimit)
         },
         filters: {
           timeframe,
           metric,
-          tier
+          tier: safeTier
         },
         userRank
       });
