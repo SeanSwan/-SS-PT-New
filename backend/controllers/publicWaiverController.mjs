@@ -52,7 +52,7 @@ const WAIVER_SANITIZE_OPTIONS = {
   },
 };
 
-function sanitizeWaiverDisplayHtml(html) {
+export function sanitizeWaiverDisplayHtml(html) {
   if (typeof html !== 'string' || html.length === 0) return html;
   return sanitizeHtml(html, WAIVER_SANITIZE_OPTIONS);
 }

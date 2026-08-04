@@ -343,7 +343,12 @@ const seedInitialData = async () => {
       logger.info(`ℹ️  Waiver version seeding skipped: ${waiverResult.reason}`);
     }
   } catch (waiverSeedError) {
-    logger.warn(`⚠️  Waiver version seeding failed (non-critical): ${waiverSeedError.message}`);
+    // ERROR, not warn: an empty waiver_versions table means the public waiver
+    // flow 400s on every submit AND every client is locked out of Swan Coach
+    // features by the eligibility service — a fully broken legal gate that
+    // otherwise presents as a green deploy (SWA-140 W11). Boot continues
+    // (crashing the whole app for this would be worse), but loudly.
+    logger.error(`❌ Waiver version seeding FAILED — public waiver flow may be broken if waiver_versions is empty: ${waiverSeedError.message}`);
   }
 
   // Seed exercises — idempotent, skips if exercises already exist

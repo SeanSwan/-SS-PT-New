@@ -850,3 +850,50 @@ describe('SWA-140 S1 — id and filter validation', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 });
+
+// ── SWA-140 S3: list responses must never ship evidence blobs (W5/W12) ──
+describe('SWA-140 S3 — list attribute allowlist', () => {
+  it('S3.1 — findAndCountAll is called with an attributes allowlist excluding signatureData/metadata/guardianTypedSignature', async () => {
+    mockFindAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+    const req = makeReq();
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+
+    const callArgs = mockFindAndCountAll.mock.calls[0][0];
+    expect(Array.isArray(callArgs.attributes)).toBe(true);
+    expect(callArgs.attributes).not.toContain('signatureData');
+    expect(callArgs.attributes).not.toContain('metadata');
+    expect(callArgs.attributes).not.toContain('guardianTypedSignature');
+    expect(callArgs.attributes).toContain('status');
+    expect(callArgs.attributes).toContain('fullName');
+  });
+
+  it('S3.2 — detail response sanitizes snapshot text and drops artifactHtml', async () => {
+    const record = makeRecord({
+      toJSON() {
+        const { toJSON, update, ...plain } = this;
+        return { ...plain };
+      },
+      metadata: {
+        versionTextSnapshots: [
+          { id: 1, textHash: 'h', displayText: '<p>ok</p><script>alert(1)</script>' },
+        ],
+        artifactHtml: '<!DOCTYPE html><html>big</html>',
+        ipAddress: '127.0.0.1',
+      },
+    });
+    mockFindByPk.mockResolvedValue(record);
+
+    const req = makeReq({ params: { id: '10' } });
+    const res = makeRes();
+    await getWaiverRecordDetail(req, res);
+
+    const payload = res.json.mock.calls[0][0];
+    expect(payload.success).toBe(true);
+    const meta = payload.data.record.metadata;
+    expect(meta.artifactHtml).toBeUndefined();
+    expect(meta.versionTextSnapshots[0].displayText).not.toContain('<script>');
+    expect(meta.versionTextSnapshots[0].displayText).toContain('<p>ok</p>');
+    expect(meta.ipAddress).toBe('127.0.0.1');
+  });
+});

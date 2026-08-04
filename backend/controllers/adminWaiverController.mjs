@@ -17,6 +17,17 @@
 import logger from '../utils/logger.mjs';
 import { getModel, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
+import { sanitizeWaiverDisplayHtml } from './publicWaiverController.mjs';
+
+// List responses must not ship signature blobs, typed guardian signatures, or
+// raw metadata (which carries unsanitized legal-text snapshots + the full
+// artifact HTML) — 100 records/page of that is a PII/XSS surface, not a list
+// (SWA-140 W5). The detail endpoint returns the record with sanitized text.
+const LIST_ATTRIBUTES = [
+  'id', 'userId', 'status', 'fullName', 'dateOfBirth', 'email', 'phone',
+  'activityTypes', 'source', 'signedAt', 'submittedByGuardian',
+  'participantName', 'createdAt', 'updatedAt',
+];
 
 // ─── §11.2 Status Badge Computation ─────────────────────────
 const BADGE_LABELS = {
@@ -178,6 +189,7 @@ export const listWaiverRecords = async (req, res) => {
 
     const { rows, count } = await WaiverRecord.findAndCountAll({
       where,
+      attributes: LIST_ATTRIBUTES,
       include: summaryIncludes(),
       order: [['createdAt', 'DESC']],
       limit,
@@ -217,7 +229,26 @@ export const getWaiverRecordDetail = async (req, res) => {
 
     const badges = computeBadges(record);
 
-    return res.json({ success: true, data: { record, badges } });
+    // The stored snapshots/artifact are verbatim legal evidence (deliberately
+    // unsanitized at rest). Anything SERVED to a browser goes through the same
+    // sanitizer as the public page, or the 5W XSS fix is bypassed on the admin
+    // surface (SWA-140 W5). The artifact HTML is dropped from the payload —
+    // it's large and the admin modal has no renderer for it.
+    const safeRecord = typeof record.toJSON === 'function' ? record.toJSON() : { ...record };
+    if (safeRecord.metadata && typeof safeRecord.metadata === 'object') {
+      const { artifactHtml, ...restMeta } = safeRecord.metadata;
+      safeRecord.metadata = {
+        ...restMeta,
+        versionTextSnapshots: Array.isArray(restMeta.versionTextSnapshots)
+          ? restMeta.versionTextSnapshots.map((s) => ({
+              ...s,
+              displayText: sanitizeWaiverDisplayHtml(s.displayText),
+            }))
+          : restMeta.versionTextSnapshots,
+      };
+    }
+
+    return res.json({ success: true, data: { record: safeRecord, badges } });
   } catch (error) {
     logger.error('[AdminWaiverController] getWaiverRecordDetail error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch waiver record' });
