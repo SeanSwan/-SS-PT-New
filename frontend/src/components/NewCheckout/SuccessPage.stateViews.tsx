@@ -85,7 +85,7 @@ export const SuccessPageErrorState: React.FC<{
           <LifeBuoy size={16} aria-hidden="true" />
           Contact support
         </GlowButton>
-        <GlowButton variant="secondary" size="medium" onClick={onGoHome}>
+        <GlowButton variant="ghost" size="medium" onClick={onGoHome}>
           <Home size={16} aria-hidden="true" />
           Return Home
         </GlowButton>
