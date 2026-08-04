@@ -18,6 +18,24 @@ import logger from '../utils/logger.mjs';
 // PURPOSE: Avoid circular imports — load model at runtime
 // ─────────────────────────────────────────────────────────────
 let CommunicationDraft = null;
+/**
+ * May this requester act on this draft?
+ *
+ * ONE definition, used by every mutating handler. Previously the ownership rule lived inline in
+ * `approveDraft` only — `rejectDraft` and `deleteDraft` had NO check at all, so any trainer could
+ * reject or permanently `destroy()` another trainer's pending client communications. The router is
+ * gated to `['trainer','admin']`, so this was trainer-to-trainer tampering, not public exposure.
+ *
+ * Admins are intentionally unscoped (they administer every trainer's queue). Trainers are scoped to
+ * their own drafts. Anything else is denied rather than defaulted-open.
+ */
+function canActOnDraft(user, draft) {
+  if (!user || !draft) return false;
+  if (user.role === 'admin') return true;
+  if (user.role === 'trainer') return String(draft.trainerId) === String(user.id);
+  return false;
+}
+
 const getDraftModel = async () => {
   if (!CommunicationDraft) {
     const mod = await import('../models/CommunicationDraft.mjs');
@@ -68,9 +86,9 @@ export const approveDraft = async (req, res) => {
       return res.status(400).json({ success: false, message: `Draft is already ${draft.status}` });
     }
 
-    // Trainers can only approve their own drafts
-    if (req.user.role === 'trainer' && String(draft.trainerId) !== String(req.user.id)) {
-      return res.status(403).json({ success: false, message: 'You can only approve your own drafts' });
+    // 404 rather than 403: a 403 confirms the draft exists, letting an attacker enumerate IDs.
+    if (!canActOnDraft(req.user, draft)) {
+      return res.status(404).json({ success: false, message: 'Draft not found' });
     }
 
     // Send the actual communication
@@ -127,6 +145,12 @@ export const rejectDraft = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Draft not found' });
     }
 
+    // Ownership BEFORE state: a foreign draft must look identical to a missing one, so an
+    // attacker cannot learn another trainer's draft status from the error message.
+    if (!canActOnDraft(req.user, draft)) {
+      return res.status(404).json({ success: false, message: 'Draft not found' });
+    }
+
     if (draft.status !== 'pending_approval') {
       return res.status(400).json({ success: false, message: `Draft is already ${draft.status}` });
     }
@@ -152,6 +176,12 @@ export const deleteDraft = async (req, res) => {
     const draft = await Draft.findByPk(req.params.draftId);
 
     if (!draft) {
+      return res.status(404).json({ success: false, message: 'Draft not found' });
+    }
+
+    // This is an irreversible destroy(). Without this check any trainer could permanently delete
+    // another trainer's pending client communications.
+    if (!canActOnDraft(req.user, draft)) {
       return res.status(404).json({ success: false, message: 'Draft not found' });
     }
 
