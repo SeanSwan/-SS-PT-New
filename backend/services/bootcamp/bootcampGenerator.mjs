@@ -30,6 +30,7 @@ import {
 import { applyPainAwareGating } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
 import { pickFinishers } from './bootcampFinishers.mjs';
+import { orderPoolWithBrain } from './bootcampBrain.mjs';
 import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
@@ -607,6 +608,36 @@ export async function generateBootcampClass(options) {
     }
   }
 
+  // Step 4c (SWA-105 Slice 4): Layer 2 — JUDGMENT over the legal pool. The
+  // brain orders and subsets; it can never introduce (its output is validated
+  // as a subset of pool keys and discarded wholesale otherwise). LLM only when
+  // SWAN_BOOTCAMP_BRAIN=llm with a provider module; every failure falls back
+  // to the deterministic heuristic WITH a recorded reason — an uninstrumented
+  // fallback is how a brain stays down for three weeks unnoticed.
+  const brainResult = await orderPoolWithBrain({
+    pool: availableExercises,
+    dayTypeId: dayType,
+    recentKeys: new Set(recentExerciseNames),
+    headcount: expectedParticipants,
+    mode: equipmentProfileId ? 'strict' : 'open_gym',
+    completionFn: await resolveBrainProvider(),
+  });
+  availableExercises = brainResult.pool;
+  if (brainResult.brainUsed === 'llm') {
+    explanations.push({
+      type: 'brain',
+      message: 'Swan Coach ordered this class (fatigue sequencing, freshness, setup flow).'
+        + (brainResult.declaredAssumptions.length > 0
+          ? ` Assumptions: ${brainResult.declaredAssumptions.join(' | ')}`
+          : ''),
+    });
+  } else if (brainResult.fallbackReason) {
+    explanations.push({
+      type: 'brain_fallback',
+      message: `Generated with the deterministic engine (coach brain unavailable: ${brainResult.fallbackReason.replace(/_/g, ' ')}).`,
+    });
+  }
+
   // Step 5: Build stations or full-group workout
   const contractCtx = {
     dayTypeId: dayType,
@@ -736,8 +767,33 @@ export async function generateBootcampClass(options) {
     painAlerts,
     explanations,
     relaxationSummary,
-    aiGenerated: true,
+    // Provenance truth (Rule 75): aiGenerated was hardcoded `true` while
+    // nothing AI ran. It now reports what actually happened, with the
+    // fallback reason preserved for instrumentation.
+    aiGenerated: brainResult.brainUsed === 'llm',
+    brainUsed: brainResult.brainUsed,
+    brainFallbackReason: brainResult.fallbackReason,
+    declaredAssumptions: brainResult.declaredAssumptions,
   };
+}
+
+/**
+ * Resolve the LLM completion function. Deliberately decoupled from any chat
+ * service: SWAN_BOOTCAMP_BRAIN_PROVIDER_MODULE names an ES module whose
+ * default export is `async (prompt) => string`. Absent/broken -> null, and
+ * the brain records fallbackReason 'no_provider'. This is the ONE integration
+ * point a future provider wires into.
+ */
+async function resolveBrainProvider() {
+  if (process.env.SWAN_BOOTCAMP_BRAIN !== 'llm') return null;
+  const moduleId = process.env.SWAN_BOOTCAMP_BRAIN_PROVIDER_MODULE;
+  if (!moduleId) return null;
+  try {
+    const mod = await import(moduleId);
+    return typeof mod.default === 'function' ? mod.default : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
