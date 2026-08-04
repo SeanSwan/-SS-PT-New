@@ -154,6 +154,7 @@ export async function generateMealPlan(params) {
     healthConditions = [],
     activityType = 'general fitness',
     optPhase = 'Phase 1 — Stabilization',
+    allergenExclusions = [],
   } = params;
 
   // Calculate macros from calories if not provided
@@ -187,6 +188,7 @@ User Profile:
 - Activity type: ${activityType}
 - NASM OPT Phase: ${optPhase}
 ${restrictions.length ? `- Dietary restrictions: ${restrictions.join(', ')}` : ''}
+${allergenExclusions.length ? `- ABSOLUTE ALLERGY EXCLUSIONS (never include these or their derivatives in ANY form): ${allergenExclusions.slice(0, 40).join(', ')}` : ''}
 ${dietaryConstraints.length ? `- Medical dietary constraints (MANDATORY):\n${dietaryConstraints.map((c) => `  * ${c}`).join('\n')}` : ''}
 
 Create a complete daily meal plan that meets these targets.`;

@@ -12,6 +12,7 @@ import { validateNutritionPlanBody } from '../services/nutrition/nutritionPlanVa
 import { setNutritionTarget, getActiveNutritionTarget, activateNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
 import NutritionTarget from '../models/NutritionTarget.mjs';
 import { getUserLocalToday } from '../services/nutrition/nutritionAdherenceService.mjs';
+import { getDietaryIdentity, declareDietaryIdentity } from '../services/nutrition/dietaryIdentityService.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -136,6 +137,53 @@ router.get('/:userId/current', protect, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching nutrition plan:', error);
     return sendInternalError(res, 'Server error fetching nutrition plan');
+  }
+});
+
+/**
+ * GET /api/nutrition/:userId/dietary-identity
+ * PUT /api/nutrition/:userId/dietary-identity
+ * User-scoped allergy/restriction record (SWA-71 P0 — kills the fail-open
+ * plan-JSONB allergies). GET returns the tri-state; PUT records an explicit
+ * declaration (empty allergies array is a VALID "declared none" here because
+ * a human is asserting it, with provenance).
+ */
+router.get('/:userId/dietary-identity', protect, async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const identity = await getDietaryIdentity(access.clientId);
+    return res.json({ success: true, identity });
+  } catch (error) {
+    logger.error('Error fetching dietary identity:', error);
+    return sendInternalError(res, 'Server error fetching dietary identity');
+  }
+});
+
+router.put('/:userId/dietary-identity', protect, async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const { allergies, dietaryRestrictions } = req.body || {};
+    const result = await declareDietaryIdentity({
+      userId: access.clientId,
+      allergies: allergies ?? [],
+      dietaryRestrictions: dietaryRestrictions ?? [],
+      capturedBy: req.user.id,
+      captureSource: ['trainer', 'admin'].includes(req.user.role) && access.clientId !== req.user.id
+        ? 'trainer' : 'client_settings',
+    });
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid dietary identity payload', errors: result.errors });
+    }
+    return res.json({ success: true, identity: await getDietaryIdentity(access.clientId) });
+  } catch (error) {
+    logger.error('Error declaring dietary identity:', error);
+    return sendInternalError(res, 'Server error saving dietary identity');
   }
 });
 

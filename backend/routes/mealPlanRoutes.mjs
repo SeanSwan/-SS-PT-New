@@ -23,6 +23,7 @@ import { analyzeMealPhoto } from '../services/foodPhotoService.mjs';
 import { parseNutritionTranscript } from '../services/nutrition/nutritionTranscriptParserService.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { requireAiConsent } from '../middleware/aiConsent.mjs';
+import { getDietaryIdentity } from '../services/nutrition/dietaryIdentityService.mjs';
 import { getAiPrivacyProfile } from '../models/index.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
@@ -155,6 +156,14 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
       return res.status(400).json({ success: false, message: 'Calories must be between 800 and 6000' });
     }
 
+    // SWA-71 P0: consult the user-scoped dietary identity. Declared allergens
+    // become ABSOLUTE exclusions in the plan; an unknown status is surfaced so
+    // the UI can prompt capture — unknown is never treated as "no allergies".
+    const identity = await getDietaryIdentity(req.user.id);
+    const allergenExclusions = identity.status === 'declared'
+      ? identity.allergies.map((a) => a.rawText || a.label || a.allergen).filter(Boolean)
+      : [];
+
     const plan = await generateMealPlan({
       calories: calorieTarget,
       protein: optionalMealPlanTarget(protein),
@@ -164,9 +173,17 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
       healthConditions: allowlistedArray(healthConditions, ALLOWED_HEALTH_CONDITIONS),
       activityType: allowlistedString(activityType, ALLOWED_ACTIVITY_TYPES, DEFAULT_ACTIVITY_TYPE),
       optPhase: allowlistedString(optPhase, ALLOWED_OPT_PHASES, DEFAULT_OPT_PHASE),
+      allergenExclusions,
     });
 
-    res.json({ success: true, plan });
+    res.json({
+      success: true,
+      plan,
+      allergyStatus: identity.status,
+      ...(identity.status !== 'declared' ? {
+        allergyWarning: 'Allergy information has not been captured for this account — this plan cannot account for food allergies.'
+      } : {}),
+    });
   } catch (err) {
     logger.error('[MealPlanRoutes] Generate error:', err.message);
     return sendMealPlanError(res, 500, 'Meal plan generation failed');
