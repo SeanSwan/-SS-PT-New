@@ -280,6 +280,70 @@ export class PIISafeLogger {
       console.info('AI_GENERATION:', String(generationType || ''));
     }
   }
+
+  /**
+   * Shared emitter for the domain trackers below.
+   *
+   * These seven trackers were CALLED in 47 places but never defined, so every call threw a
+   * TypeError. Because each call site sits inside a `try`, the throw was laundered into whatever
+   * that `catch` did — most visibly a blanket HTTP 500 on all five mounted `/api/master-prompt`
+   * route files, for every role including admin. `trackSecurityEvent` was among the missing, so
+   * suspicious-request / auth-failure / permission-denial audit events were lost rather than logged.
+   *
+   * One emitter, seven wrappers: seven near-identical bodies is how the next one drifts.
+   * `userId` is an ID only — never a name or email (Rule 8); `meta` is scrubbed downstream by
+   * `formatLog`, the single chokepoint every level funnels through.
+   *
+   * @param {'info'|'warn'} level    - severity to emit at
+   * @param {string} operationType   - stable machine-readable category for querying logs
+   * @param {string} label           - human-readable prefix in the message
+   * @param {string} eventName       - the specific event, e.g. 'permission_denied'
+   * @param {string|number|null} userId - client ID only
+   * @param {Object} meta            - additional non-PII context
+   */
+  async trackDomainEvent(level, operationType, label, eventName, userId, meta = {}) {
+    try {
+      await this[level](`${label}: ${eventName}`, {
+        operation_type: operationType,
+        event_name: eventName,
+        user_id: userId ?? null,
+        timestamp: new Date().toISOString(),
+        ...meta
+      });
+    } catch (error) {
+      // Never rethrow: a failed audit line must not take down the caller's request.
+      console.info(`${operationType.toUpperCase()}:`, String(eventName || ''));
+    }
+  }
+
+  /** Security/intrusion signals — emitted at warn so they surface above routine traffic. */
+  async trackSecurityEvent(eventName, userId, meta = {}) {
+    return this.trackDomainEvent('warn', 'security_event', 'Security Event', eventName, userId, meta);
+  }
+
+  async trackAccessibilityUsage(eventName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'accessibility_usage', 'Accessibility', eventName, userId, meta);
+  }
+
+  async trackUserAction(actionName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'user_action', 'User Action', actionName, userId, meta);
+  }
+
+  async trackPrivacyOperation(operationName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'privacy_operation', 'Privacy Operation', operationName, userId, meta);
+  }
+
+  async trackPrivacyAccess(eventName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'privacy_access', 'Privacy Access', eventName, userId, meta);
+  }
+
+  async trackGamificationEngagement(eventName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'gamification_engagement', 'Gamification', eventName, userId, meta);
+  }
+
+  async trackGamificationEvent(eventName, userId, meta = {}) {
+    return this.trackDomainEvent('info', 'gamification_event', 'Gamification', eventName, userId, meta);
+  }
 }
 
 // Export singleton instance
