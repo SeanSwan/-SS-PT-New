@@ -265,7 +265,16 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         errorMessage = 'Unable to connect to payment service.';
         errorDetails = 'Please check your internet connection and try again.';
       } else {
-        errorMessage = error.message || 'An unexpected error occurred.';
+        // Reached only for non-HTTP throws. Our own throws here are deliberate,
+        // human-written copy (e.g. the secure-payment-page failure) and use a
+        // plain Error, so they should show. A genuine runtime fault —
+        // TypeError, ReferenceError — must NOT: "Cannot read properties of
+        // undefined" in front of a buyer at the payment step is worse than
+        // saying nothing useful.
+        const isDeliberateCopy = error instanceof Error && error.name === 'Error';
+        errorMessage = (isDeliberateCopy && error.message?.trim())
+          ? error.message
+          : 'An unexpected error occurred. Please try again.';
       }
 
       const fullErrorMessage = errorDetails ? `${errorMessage} ${errorDetails}` : errorMessage;
