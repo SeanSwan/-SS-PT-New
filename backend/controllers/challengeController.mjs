@@ -198,12 +198,23 @@ const challengeController = {
       const { Challenge, User, ChallengeParticipant } = models;
       const { id } = req.params;
 
+      // Surnames are dropped OUTRIGHT here, not role-gated. This handler is
+      // required to stay identity-free — it may read neither the requesting
+      // account nor the client address — because challenge views are recorded
+      // anonymously so no per-viewer profile can be built.
+      // challengeControllerSecurity.test.mjs pins that invariant by scanning
+      // this section's source, so even naming those request fields in a comment
+      // breaks it. A role check here would have silently broken it for real.
+      // Nothing on this surface renders a creator or participant surname, so
+      // withholding it costs nothing.
+      const personAttributes = ['id', 'firstName', 'username', 'photo'];
+
       const challenge = await Challenge.findByPk(id, {
         include: [
           {
             model: User,
             as: 'creator',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: personAttributes
           },
           {
             model: ChallengeParticipant,
@@ -212,7 +223,7 @@ const challengeController = {
             include: [{
               model: User,
               as: 'user',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+              attributes: personAttributes
             }],
             order: [['progressPercentage', 'DESC'], ['joinedAt', 'ASC']]
           }
@@ -805,12 +816,22 @@ const challengeController = {
           break;
       }
 
+      // Same class as the gamification leaderboard: surnames are staff-only.
+      // A member-facing board renders firstName/username, so shipping
+      // `lastName` handed every participant's full legal name — trainers and
+      // admins included — to any client who opened a public challenge.
+      const isStaffViewer = req.user?.role === 'admin' || req.user?.role === 'trainer';
+
       const leaderboard = await ChallengeParticipant.findAll({
         where: { challengeId: id },
         include: [{
           model: User,
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'level', 'points']
+          attributes: [
+            'id', 'firstName',
+            ...(isStaffViewer ? ['lastName'] : []),
+            'username', 'photo', 'level', 'points'
+          ]
         }],
         order: orderBy,
         limit: normalizedLimit
@@ -960,7 +981,12 @@ const challengeController = {
           include: [{
             model: User,
             as: 'creator',
-            attributes: ['id', 'firstName', 'lastName', 'username']
+            // Creator surname is staff-only, same as the other two sites.
+            attributes: [
+              'id', 'firstName',
+              ...((req.user?.role === 'admin' || req.user?.role === 'trainer') ? ['lastName'] : []),
+              'username'
+            ]
           }]
         }],
         order: [['joinedAt', 'DESC']],

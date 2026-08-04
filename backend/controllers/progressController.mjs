@@ -6,6 +6,7 @@
  */
 
 import { Op } from 'sequelize';
+import { KNOWN_TIER_KEYS } from '../utils/levelingAlgorithm.mjs';
 import db from '../database.mjs';
 
 // Import models through associations for proper relationships
@@ -366,18 +367,23 @@ const progressController = {
       // Members get a bounded, member-only, surname-free board; staff keep the
       // full one the admin surfaces already consume.
       const isStaffViewer = req.user?.role === 'admin' || req.user?.role === 'trainer';
-      // A member-facing leaderboard is a TOP-N, not a paging cursor over the
-      // user table. Capping total reachable rows (not just the page depth) is
-      // what closes slice-walking: an offset-only cap still let a member page
-      // each `tier` separately and flip `metric` to reverse the sort, reaching
-      // both ends of every slice. Real member callers ask for 5-20 rows and
-      // never page, so this costs nothing.
+      // A member-facing leaderboard shows the TOP of a slice. It is not a
+      // cursor over the user table, so members get NO paging at all: offset is
+      // forced to 0.
+      //
+      // Capping offset instead of eliminating it was two fixes ago, and it was
+      // still wrong — the cap bound each QUERY while the reachable set is the
+      // UNION over the parameter space. `tier` partitions the table and
+      // `metric` re-sorts it, so a bounded-offset member could still walk past
+      // the top of every slice. With offset pinned to 0 the top is all there
+      // is, whatever tier/metric/timeframe is requested.
       const MEMBER_MAX_ROWS = 100;
 
       const rawOffset = (normalizedPage - 1) * normalizedLimit;
-      const offset = isStaffViewer
-        ? rawOffset
-        : Math.min(rawOffset, Math.max(0, MEMBER_MAX_ROWS - normalizedLimit));
+      const offset = isStaffViewer ? rawOffset : 0;
+      const effectiveLimit = isStaffViewer
+        ? normalizedLimit
+        : Math.min(normalizedLimit, MEMBER_MAX_ROWS);
 
       // A member-facing leaderboard ranks members. Staff are not competitors,
       // and listing them here is what exposed their names.
@@ -389,8 +395,11 @@ const progressController = {
       // reaches the query and echoes back in `filters`, and each distinct tier
       // is a DISJOINT slice — so without a fixed, small set of slices the
       // per-query row cap can be unioned over the parameter space.
-      const LEADERBOARD_TIERS = new Set(['bronze', 'silver', 'gold', 'platinum']);
-      const safeTier = tier && tier !== 'all' && LEADERBOARD_TIERS.has(tier) ? tier : null;
+      // Allowlisted against the CANONICAL domain. A hand-copied
+      // ['bronze','silver','gold','platinum'] matched nothing at all, because
+      // the column stores `bronze_forge`-style keys — so every legitimate tier
+      // filter was silently discarded and the slice protection was accidental.
+      const safeTier = tier && tier !== 'all' && KNOWN_TIER_KEYS.has(tier) ? tier : null;
       if (safeTier) {
         whereClause.tier = safeTier;
       }
@@ -465,7 +474,7 @@ const progressController = {
         ],
         include: includeClause,
         order: orderBy,
-        limit: normalizedLimit,
+        limit: effectiveLimit,
         offset,
         subQuery: false,
         distinct: true
@@ -508,17 +517,14 @@ const progressController = {
         success: true,
         leaderboard: rankedLeaderboard,
         pagination: {
-          // Members see the size of the window they can actually read, not the
-          // member population (which, with `tier` set, is an exact per-tier
-          // headcount). And `page` reports the page ACTUALLY SERVED: the offset
-          // is clamped, so echoing the requested page told a member they were
-          // reading page 7 while they were served rows 1-100.
-          total: isStaffViewer ? total : Math.min(total, MEMBER_MAX_ROWS),
-          page: isStaffViewer ? normalizedPage : Math.floor(offset / normalizedLimit) + 1,
-          limit: normalizedLimit,
-          pages: isStaffViewer
-            ? Math.ceil(total / normalizedLimit)
-            : Math.ceil(Math.min(total, MEMBER_MAX_ROWS) / normalizedLimit)
+          // Members are told the size of what they received, never the
+          // population. `Math.min(total, CAP)` still disclosed any count BELOW
+          // the cap exactly — and with `tier` set that is an exact per-segment
+          // headcount, which at launch scale is the whole roster.
+          total: isStaffViewer ? total : leaderboard.length,
+          page: isStaffViewer ? normalizedPage : 1,
+          limit: effectiveLimit,
+          pages: isStaffViewer ? Math.ceil(total / normalizedLimit) : 1
         },
         filters: {
           timeframe,

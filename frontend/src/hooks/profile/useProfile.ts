@@ -167,7 +167,12 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       // the member's record. Flag it so consumers can omit the numbers instead
       // of asserting "0 workouts / 0 posts / Level 1 / bronze" as fact.
       setStatsStatus('unavailable');
-      setStats({
+      // Zeros exist only so a FIRST load cannot render undefined. A failed
+      // REFRESH must not destroy a record we already hold: overwriting it threw
+      // away the member's real numbers, so a recovered outage could not restore
+      // them without a full reload. `statsStatus` is what licenses display, so
+      // keeping the last known values here is safe and strictly more useful.
+      setStats((current) => current ?? {
         posts: 0,
         followers: 0,
         following: 0,

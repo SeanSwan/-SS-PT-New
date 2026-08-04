@@ -86,7 +86,19 @@ describe('useProfile stats lifecycle', () => {
     expect(result.current.statsKnown).toBe(false);
   });
 
-  it('never licenses the substituted zeros as the record', async () => {
+  it('never licenses the substituted zeros as the record on a FIRST load', async () => {
+    getUserStatsMock.mockImplementation(() => Promise.reject(new Error('500')));
+    const useProfile = await loadHook();
+    const { result } = renderHook(() => useProfile());
+
+    await waitFor(() => expect(result.current.statsStatus).toBe('unavailable'));
+    // Zeros exist so the UI cannot render undefined — but statsKnown is the
+    // permission slip, and it must be denied.
+    expect(result.current.stats?.workouts).toBe(0);
+    expect(result.current.statsKnown).toBe(false);
+  });
+
+  it('keeps the last known record when a REFRESH fails, but withholds permission', async () => {
     getUserStatsMock.mockResolvedValue(realStats);
     const useProfile = await loadHook();
     const { result } = renderHook(() => useProfile());
@@ -95,9 +107,11 @@ describe('useProfile stats lifecycle', () => {
     getUserStatsMock.mockImplementationOnce(() => Promise.reject(new Error('500')));
     await act(async () => { await result.current.refreshStats(); });
 
-    // The zeros are still there so the UI cannot crash — but statsKnown is the
-    // permission slip, and it must be denied.
-    expect(result.current.stats?.workouts).toBe(0);
+    // Overwriting with zeros threw away the member's real numbers, so a
+    // recovered outage could not restore them without a full reload.
+    expect(result.current.stats?.workouts).toBe(22);
+    // ...but the status still denies permission to present them as current.
+    expect(result.current.statsStatus).toBe('unavailable');
     expect(result.current.statsKnown).toBe(false);
   });
 
@@ -138,9 +152,12 @@ describe('useProfile stats lifecycle', () => {
       .mockImplementationOnce(() => new Promise((resolve) => { resolveSlow = resolve; }))
       .mockResolvedValueOnce({ ...realStats, workouts: 99 });
 
-    act(() => { slowDone = result.current.refreshStats(); });
-    await act(async () => { await result.current.refreshStats(); });
-    // The stale first response lands LAST and must be discarded.
+    // Capture ONE reference: `result.current` re-renders between calls, and a
+    // fresh closure would start its own sequence rather than superseding.
+    const refresh = result.current.refreshStats;
+    act(() => { slowDone = refresh(); });
+    await act(async () => { await refresh(); });
+    // The stale FIRST response lands last and must be discarded.
     await act(async () => {
       resolveSlow({ ...realStats, workouts: 1 });
       await slowDone;
