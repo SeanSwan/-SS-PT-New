@@ -4,7 +4,6 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import React from 'react';
 
 import ConsoleView, { type ConsoleStationVM } from './ConsoleView';
 import { buildSwapDeck, type SwapCandidate } from './swapDeck';

@@ -41,12 +41,18 @@ const ACH = (id, name, extra = {}) => ({
 });
 
 describe('evaluateWorkoutAchievements', () => {
-  it('awards a qualifying pure-count achievement', async () => {
+  it('awards a qualifying pure-count achievement and grants its XP through the ledger seam', async () => {
     const { models, created } = makeModels({
       completedWorkouts: 10,
       catalog: [ACH(1, 'workout_count_5')],
     });
-    const result = await evaluateWorkoutAchievements({ userId: 42, models });
+    const awardPoints = vi.fn(async ({ xpReward }) => ({
+      pointsAwarded: xpReward,
+      newBalance: 410,
+      newLevel: 3,
+      newTier: 'first_flight',
+    }));
+    const result = await evaluateWorkoutAchievements({ userId: 42, models, awardPoints });
 
     expect(result.awarded).toHaveLength(1);
     expect(result.completedWorkouts).toBe(10);
@@ -54,8 +60,18 @@ describe('evaluateWorkoutAchievements', () => {
       userId: 42, achievementId: 1, isCompleted: true, progress: 100, pointsAwarded: 10,
     });
     expect(created[0].earnedAt).toBeInstanceOf(Date);
+    expect(awardPoints).toHaveBeenCalledWith(expect.objectContaining({
+      achievementId: 1,
+      name: 'workout_count_5',
+      xpReward: 10,
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      pointsAwarded: 10,
+      newBalance: 410,
+      newLevel: 3,
+      newTier: 'first_flight',
+    }));
   });
-
   it('REFUSES an achievement carrying an unmet encoded requirement (weekend_warrior)', async () => {
     const { models, created } = makeModels({
       completedWorkouts: 100,
@@ -86,18 +102,16 @@ describe('evaluateWorkoutAchievements', () => {
     expect(where.category).toBeDefined(); // streak/special excluded
   });
 
-  it('swallows a unique-violation — a concurrent request already awarded it', async () => {
+  it('surfaces a unique violation so the caller can roll back its savepoint cleanly', async () => {
     const dup = Object.assign(new Error('duplicate key'), { parent: { code: '23505' } });
     const { models } = makeModels({
       completedWorkouts: 10,
       catalog: [ACH(1, 'workout_count_5')],
       createImpl: () => { throw dup; },
     });
-    const result = await evaluateWorkoutAchievements({ userId: 42, models });
-    // The desired state holds, so this is not an error and not a double-award.
-    expect(result.awarded).toHaveLength(0);
+    await expect(evaluateWorkoutAchievements({ userId: 42, models }))
+      .rejects.toThrow('duplicate key');
   });
-
   it('does NOT swallow a real database error — that must surface', async () => {
     const boom = Object.assign(new Error('connection terminated'), { parent: { code: '57P01' } });
     const { models } = makeModels({

@@ -118,6 +118,20 @@ describe('recordBootcampAttendance — ownership + idempotency', () => {
     expect(result.created).toBe(1);
   });
 
+  it('records an explicitly confirmed zero-attendee class without creating forms', async () => {
+    const d = deps(classLog());
+    const result = await recordBootcampAttendance(d, {
+      ...args,
+      attendees: [],
+      noShowConfirmed: true,
+    });
+
+    expect(result).toMatchObject({ alreadyRecorded: false, created: 0, guests: 0 });
+    expect(d.createWorkoutForm).not.toHaveBeenCalled();
+    expect(d.saved[0]).toMatchObject({ actualParticipants: 0 });
+    expect(d.saved[0].attendance.attendees).toEqual([]);
+  });
+
   it('a second submission is a no-op returning the ORIGINAL record', async () => {
     const original = { recordedAt: 'earlier', attendees: [{ userId: 5 }], workoutFormIds: [90] };
     const d = deps(classLog({ attendance: original }));
@@ -169,5 +183,71 @@ describe('recordBootcampAttendance — ownership + idempotency', () => {
     const d = deps(classLog());
     delete d.verifyClientAccess; // simulate a route that forgot to wire it
     await expect(recordBootcampAttendance(d, args)).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('runs the read, batched authorization, form insert, and roster save inside one atomic boundary', async () => {
+    const getClassLog = vi.fn(async () => classLog());
+    const verifyClientAccessBatch = vi.fn(async () => true);
+    const createWorkoutForms = vi.fn(async () => ['form-11', 'form-12']);
+    const saveClassLog = vi.fn(async () => undefined);
+    const runAtomically = vi.fn(async (operation) => operation({
+      getClassLog,
+      verifyClientAccessBatch,
+      createWorkoutForms,
+      saveClassLog,
+    }));
+    const d = deps(classLog(), { runAtomically });
+
+    const result = await recordBootcampAttendance(d, {
+      ...args,
+      attendees: [{ userId: 11 }, { userId: 12 }],
+    });
+
+    expect(runAtomically).toHaveBeenCalledTimes(1);
+    expect(verifyClientAccessBatch).toHaveBeenCalledWith([11, 12]);
+    expect(createWorkoutForms).toHaveBeenCalledTimes(1);
+    expect(createWorkoutForms.mock.calls[0][0]).toHaveLength(2);
+    expect(d.createWorkoutForm).not.toHaveBeenCalled();
+    expect(saveClassLog.mock.calls[0][1].attendance.workoutFormIds).toEqual(['form-11', 'form-12']);
+    expect(result).toMatchObject({ alreadyRecorded: false, created: 2 });
+  });
+
+  it('deduplicates a repeated registered attendee before authorization and form creation', async () => {
+    const verifyClientAccessBatch = vi.fn(async () => true);
+    const createWorkoutForms = vi.fn(async (forms) => forms.map((form) => `form-${form.clientId}`));
+    const runAtomically = vi.fn(async (operation) => operation({
+      getClassLog: vi.fn(async () => classLog()),
+      verifyClientAccessBatch,
+      createWorkoutForms,
+      saveClassLog: vi.fn(async () => undefined),
+    }));
+    const d = deps(classLog(), { runAtomically });
+
+    const result = await recordBootcampAttendance(d, {
+      ...args,
+      attendees: [{ userId: 11 }, { userId: 11 }],
+    });
+
+    expect(verifyClientAccessBatch).toHaveBeenCalledWith([11]);
+    expect(createWorkoutForms.mock.calls[0][0]).toHaveLength(1);
+    expect(result).toMatchObject({ created: 1 });
+  });
+
+  it('fails closed on a batched assignment denial before creating forms', async () => {
+    const createWorkoutForms = vi.fn(async () => ['should-not-exist']);
+    const runAtomically = vi.fn(async (operation) => operation({
+      getClassLog: vi.fn(async () => classLog()),
+      verifyClientAccessBatch: vi.fn(async () => false),
+      createWorkoutForms,
+      saveClassLog: vi.fn(async () => undefined),
+    }));
+    const d = deps(classLog(), { runAtomically });
+
+    await expect(recordBootcampAttendance(d, {
+      ...args,
+      attendees: [{ userId: 11 }, { userId: 12 }],
+    })).rejects.toMatchObject({ statusCode: 403 });
+    expect(createWorkoutForms).not.toHaveBeenCalled();
+    expect(d.createWorkoutForm).not.toHaveBeenCalled();
   });
 });

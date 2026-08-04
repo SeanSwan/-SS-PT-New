@@ -16,6 +16,8 @@ const dashboardRoutesSource = read('../../UniversalDashboardLayout.routes.tsx');
 const sidebarSource = read('./ClientStellarSidebar.tsx');
 const backendMountSource = read('../../../../../../backend/core/routes.mjs');
 const profileRoutesSource = read('../../../../../../backend/routes/profileRoutes.mjs');
+const authControllerSource = stripComments(read('../../../../../../backend/controllers/authController.mjs'));
+const authContextSource = stripComments(read('../../../../context/AuthContextProvider.tsx'));
 
 describe('ClientProfilePage auth pipeline', () => {
   it('is mounted as the client profile/settings dashboard surface backed by protected profile routes', () => {
@@ -56,5 +58,16 @@ describe('ClientProfilePage auth pipeline', () => {
     expect(pageSource).not.toContain("localStorage.getItem('token')");
     expect(pageSource).not.toMatch(/\bfetch\s*\(/);
     expect(pageSource).not.toMatch(/Authorization\s*:/);
+  });
+  it('round-trips saved notification preferences through the auth refresh payload', () => {
+    expect(authControllerSource).toContain('emailNotifications: user.emailNotifications !== false');
+    expect(authControllerSource).toContain('smsNotifications: user.smsNotifications !== false');
+    expect(authControllerSource).toContain('notificationPreferences: user.notificationPreferences ?? null');
+    expect(authContextSource).toContain('emailNotifications?: boolean');
+    expect(authContextSource).toContain('smsNotifications?: boolean');
+    expect(authContextSource).toContain('notificationPreferences?: NotificationPreferences | null');
+    expect(authContextSource).toContain('emailNotifications: userData.emailNotifications ?? fallback?.emailNotifications ?? true');
+    expect(authContextSource).toContain('smsNotifications: userData.smsNotifications ?? fallback?.smsNotifications ?? true');
+    expect(authContextSource).toContain('notificationPreferences: userData.notificationPreferences ?? fallback?.notificationPreferences ?? null');
   });
 });

@@ -30,8 +30,9 @@
  *
  * SAFETY: additive only — it INSERTs `UserAchievements` rows and never updates or deletes one.
  * Idempotent by construction (skips what the user already has) and again at the DB level (the
- * unique `(userId, achievementId)` index makes a concurrent double-award impossible, and that
- * violation is swallowed rather than surfaced).
+ * unique `(userId, achievementId)` index makes a concurrent double-award impossible. A violation
+ * propagates to the caller's savepoint so the optional award batch rolls back without poisoning
+ * the already-earned workout XP.
  *
  * FAILURE POLICY: the caller MUST treat this as best-effort. Logging a workout is the user's real
  * intent; a gamification miss must never fail that write.
@@ -51,12 +52,6 @@ const SUPPORTED_PROGRESS_UNIT = 'workouts';
  */
 const EXCLUDED_CATEGORIES = ['streak', 'special'];
 
-/** Is this a unique-constraint violation (someone else awarded it in a concurrent request)? */
-function isUniqueViolation(error) {
-  const code = error?.parent?.code || error?.original?.code || error?.code;
-  return code === '23505' || error?.name === 'SequelizeUniqueConstraintError';
-}
-
 /**
  * Award every `workouts`-unit achievement the user has now qualified for.
  *
@@ -65,9 +60,10 @@ function isUniqueViolation(error) {
  * @param {object}  models           - { UserAchievement, Achievement, WorkoutSession }
  * @param {object} [transaction]     - passed through so awards join the caller's transaction
  * @returns {Promise<{awarded: Array<{achievementId: number, name: string, xpReward: number}>,
- *                    completedWorkouts: number}>}
+ *                    completedWorkouts: number, pointsAwarded?: number,
+ *                    newBalance?: number, newLevel?: number, newTier?: string}>}
  */
-export async function evaluateWorkoutAchievements({ userId, models, transaction } = {}) {
+export async function evaluateWorkoutAchievements({ userId, models, transaction, awardPoints } = {}) {
   const { UserAchievement, Achievement, WorkoutSession } = models || {};
   if (!userId || !UserAchievement?.findAll || !Achievement?.findAll || !WorkoutSession?.count) {
     return { awarded: [], completedWorkouts: 0 };
@@ -116,29 +112,44 @@ export async function evaluateWorkoutAchievements({ userId, models, transaction 
 
   const earnedAt = new Date();
   const awarded = [];
+  let pointsAwarded = 0;
+  let latestLedger = {};
 
   for (const achievement of eligible) {
-    try {
-      await UserAchievement.create({
-        userId,
-        achievementId: achievement.id,
-        isCompleted: true,
-        progress: 100,
-        earnedAt,
-        pointsAwarded: Number.isFinite(Number(achievement.xpReward)) ? Number(achievement.xpReward) : 0,
-      }, options);
-      awarded.push({
+    const xpReward = Number.isFinite(Number(achievement.xpReward)) ? Number(achievement.xpReward) : 0;
+    await UserAchievement.create({
+      userId,
+      achievementId: achievement.id,
+      isCompleted: true,
+      progress: 100,
+      earnedAt,
+      pointsAwarded: xpReward,
+    }, options);
+
+    if (xpReward > 0 && typeof awardPoints === 'function') {
+      latestLedger = await awardPoints({
         achievementId: achievement.id,
         name: achievement.name,
-        xpReward: Number(achievement.xpReward) || 0,
+        xpReward,
       });
-    } catch (error) {
-      // A concurrent request already awarded it. Not an error — the desired state holds.
-      if (!isUniqueViolation(error)) throw error;
+      pointsAwarded += Number(latestLedger?.pointsAwarded) || 0;
     }
+
+    awarded.push({
+      achievementId: achievement.id,
+      name: achievement.name,
+      xpReward,
+    });
   }
 
-  return { awarded, completedWorkouts };
+  return {
+    awarded,
+    completedWorkouts,
+    pointsAwarded,
+    newBalance: latestLedger?.newBalance,
+    newLevel: latestLedger?.newLevel,
+    newTier: latestLedger?.newTier,
+  };
 }
 
 export default { evaluateWorkoutAchievements };

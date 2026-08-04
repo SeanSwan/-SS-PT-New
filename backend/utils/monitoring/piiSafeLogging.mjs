@@ -198,6 +198,55 @@ export class PIISafeLogger {
   }
 
   /**
+   * Common non-throwing observability seam used by the domain-specific wrappers below.
+   */
+  async trackDomainEvent(domain, event, userId, meta = {}) {
+    try {
+      await this.info(`${domain} Event: ${event}`, {
+        operation_type: `${domain.toLowerCase()}_event`,
+        event_name: event,
+        user_id: userId ?? null,
+        timestamp: new Date().toISOString(),
+        ...meta
+      });
+    } catch (error) {
+      console.info('DOMAIN_EVENT:', scrubPII(String(event || '')));
+    }
+  }
+
+  async trackAccessibilityUsage(event, userId, meta = {}) {
+    await this.trackDomainEvent('Accessibility', event, userId, meta);
+  }
+
+  async trackGamificationEngagement(event, userId, meta = {}) {
+    await this.trackDomainEvent('Gamification', event, userId, meta);
+  }
+
+  async trackGamificationEvent(event, userId, meta = {}) {
+    await this.trackDomainEvent('Gamification', event, userId, meta);
+  }
+
+  async trackPrivacyAccess(event, userId, meta = {}) {
+    await this.trackDomainEvent('Privacy', event, userId, meta);
+  }
+
+  async trackPrivacyOperation(event, userId, meta = {}) {
+    await this.trackDomainEvent('Privacy', event, userId, meta);
+  }
+
+  async trackSecurityEvent(event, userId, meta = {}) {
+    await this.trackDomainEvent('Security', event, userId, meta);
+  }
+
+  async trackUserAction(event, userId, meta = {}) {
+    await this.trackDomainEvent('User', event, userId, meta);
+  }
+
+  scrubText(value) {
+    return scrubPII(value);
+  }
+
+  /**
    * Track an AI generation event (ethical review, plan generation, human-review flag).
    *
    * WHY THIS EXISTS: four call sites invoked `piiSafeLogger.trackAIGeneration(...)` while the

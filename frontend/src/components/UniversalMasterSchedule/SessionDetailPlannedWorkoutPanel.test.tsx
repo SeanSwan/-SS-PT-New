@@ -5,7 +5,6 @@
  * completed wears earned gold, projection failure degrades without
  * blanking the day, and gold NEVER appears outside the completed state.
  */
-import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 

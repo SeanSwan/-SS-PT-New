@@ -113,6 +113,39 @@ describe('ClientDashboardHome assignment view model', () => {
       complete: true,
     });
   });
+  it('excludes planned and in-progress rows from completed-session dashboard counts', () => {
+    const now = new Date('2026-08-03T18:00:00Z');
+    const proof = {
+      thisWeekCount: 1,
+      minutesThisWeek: 45,
+      weeklyCounts: [0, 0, 0, 1],
+      weekDelta: 1,
+      lastSession: { title: 'Completed lift', when: '2h ago' },
+      latestSessionId: 'completed',
+      shareLine: 'Logged 1 workout this week.',
+    };
+    const snapshot = buildTodaySnapshot({
+      sessions: [
+        { id: 'completed', status: 'completed', date: '2026-08-03T16:00:00Z' },
+        { id: 'planned', status: 'planned', date: '2026-08-03T17:00:00Z' },
+        { id: 'active', status: 'in_progress', date: '2026-08-03T17:30:00Z' },
+      ],
+      proof,
+      now,
+    });
+
+    expect(snapshot.rows).toContainEqual({
+      label: 'Workouts Logged',
+      value: '1',
+      meta: 'Today',
+    });
+    expect(snapshot.rows).toContainEqual({
+      label: 'Sessions This Month',
+      value: '1',
+      meta: 'Logged sessions',
+    });
+  });
+
   it('labels nutrition calories as logged intake rather than calories burned', () => {
     const snapshot = buildTodaySnapshot({
       sessions: [],

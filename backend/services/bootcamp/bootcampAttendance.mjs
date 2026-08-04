@@ -38,9 +38,12 @@ const MAX_ATTENDEES = 60;
  * Exercises become time-based entries (the bootcamp truth: durations, not
  * reps), shaped for DailyWorkoutForm.formData.
  */
-export function buildAttendancePayloads({ classLog, attendees, nowIso }) {
-  if (!Array.isArray(attendees) || attendees.length === 0) {
-    throw badRequest('attendees must be a non-empty array');
+export function buildAttendancePayloads({ classLog, attendees, nowIso, allowEmpty = false }) {
+  if (!Array.isArray(attendees)) {
+    throw badRequest('attendees must be an array');
+  }
+  if (attendees.length === 0 && !allowEmpty) {
+    throw badRequest('attendees must be a non-empty array unless no-show is explicitly confirmed');
   }
   if (attendees.length > MAX_ATTENDEES) {
     throw badRequest(`attendees exceeds the ${MAX_ATTENDEES} cap`);
@@ -108,11 +111,18 @@ export function buildAttendancePayloads({ classLog, attendees, nowIso }) {
 
 /**
  * Record attendance for a class log. Dependency-injected for tests:
- * deps = { getClassLog, createWorkoutForm, saveClassLog, now }.
+ * deps may provide runAtomically(operation); the route uses it to inject row-locked, transactional persistence functions.
  */
-export async function recordBootcampAttendance(deps, { classLogId, trainerId, requesterRole, attendees }) {
+async function recordBootcampAttendanceWithin(deps, {
+  classLogId, trainerId, requesterRole, attendees, noShowConfirmed = false,
+}) {
   const {
-    getClassLog, createWorkoutForm, saveClassLog, now = () => new Date(),
+    getClassLog,
+    createWorkoutForm,
+    createWorkoutForms,
+    saveClassLog,
+    verifyClientAccessBatch,
+    now = () => new Date(),
     // SWA-105 security fix (Kimi-target #1): owning the class LOG is not
     // authority to write a workout onto an arbitrary client. Every registered
     // attendee must be a client this requester may write to — an active
@@ -134,7 +144,10 @@ export async function recordBootcampAttendance(deps, { classLogId, trainerId, re
   }
 
   const payload = buildAttendancePayloads({
-    classLog, attendees, nowIso: now().toISOString(),
+    classLog,
+    attendees,
+    nowIso: now().toISOString(),
+    allowEmpty: noShowConfirmed === true,
   });
 
   // Fail-closed authorization on EVERY registered client before any write.
@@ -142,19 +155,41 @@ export async function recordBootcampAttendance(deps, { classLogId, trainerId, re
   // unauthorized attendee rejects the whole submission — partial writes of a
   // roster the trainer half-owns are worse than an error they can correct.
   if (requesterRole !== 'admin') {
-    for (const clientId of payload.registered) {
-      // A trainer logging themselves as an attendee is always allowed.
-      if (Number(clientId) === Number(trainerId)) continue;
-      // eslint-disable-next-line no-await-in-loop
-      const allowed = await verifyClientAccess(clientId);
-      if (!allowed) throw forbidden(`Not authorized to log attendance for client ${clientId}`);
+    const clientsRequiringAssignment = payload.registered
+      .filter((clientId) => Number(clientId) !== Number(trainerId));
+
+    if (clientsRequiringAssignment.length > 0 && typeof verifyClientAccessBatch === 'function') {
+      const allowed = await verifyClientAccessBatch(clientsRequiringAssignment);
+      if (!allowed) throw forbidden('Not authorized to log attendance for one or more clients');
+    } else {
+      for (const clientId of clientsRequiringAssignment) {
+        // Compatibility fallback for non-route callers. Production injects the
+        // batch verifier so a 60-person roster costs one assignment query.
+        // eslint-disable-next-line no-await-in-loop
+        const allowed = await verifyClientAccess(clientId);
+        if (!allowed) throw forbidden('Not authorized to log attendance for one or more clients');
+      }
     }
   }
 
-  const workoutFormIds = [];
-  for (const form of payload.workoutForms) {
-    const id = await createWorkoutForm(form);
-    if (id !== null && id !== undefined) workoutFormIds.push(id);
+  let workoutFormIds = [];
+  if (typeof createWorkoutForms === 'function') {
+    const ids = await createWorkoutForms(payload.workoutForms);
+    workoutFormIds = Array.isArray(ids)
+      ? ids.filter((id) => id !== null && id !== undefined)
+      : [];
+  } else {
+    for (const form of payload.workoutForms) {
+      // Compatibility fallback for unit/non-route callers. Production uses
+      // one bulk insert inside the class-row transaction.
+      // eslint-disable-next-line no-await-in-loop
+      const id = await createWorkoutForm(form);
+      if (id !== null && id !== undefined) workoutFormIds.push(id);
+    }
+  }
+
+  if (workoutFormIds.length !== payload.workoutForms.length) {
+    throw new Error('Attendance workout form write count mismatch');
   }
 
   const attendance = { ...payload.attendanceRecord, workoutFormIds };
@@ -164,6 +199,23 @@ export async function recordBootcampAttendance(deps, { classLogId, trainerId, re
   });
 
   return { alreadyRecorded: false, attendance, created: workoutFormIds.length, guests: payload.guests.length };
+}
+
+/**
+ * Execute attendance atomically when the caller supplies a transaction seam.
+ * The production route injects a SELECT FOR UPDATE class-log reader, batched
+ * assignment verifier, bulk form writer, and transactional class-log saver.
+ */
+export async function recordBootcampAttendance(deps, args) {
+  if (typeof deps?.runAtomically === 'function') {
+    return deps.runAtomically((atomicDeps = {}) =>
+      recordBootcampAttendanceWithin(
+        { ...deps, ...atomicDeps, runAtomically: undefined },
+        args,
+      ));
+  }
+
+  return recordBootcampAttendanceWithin(deps, args);
 }
 
 function badRequest(message) {

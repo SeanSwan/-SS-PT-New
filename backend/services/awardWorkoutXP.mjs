@@ -22,7 +22,7 @@ import GamificationSettings from '../models/GamificationSettings.mjs';
 import PointTransaction from '../models/PointTransaction.mjs';
 import GamificationPointsService from './gamification/GamificationPointsService.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
-import logger from '../utils/logger.mjs';
+import { awardWorkoutAchievementsBestEffort } from './gamification/workoutAchievementAwardStep.mjs';
 import { Op } from 'sequelize';
 import {
   buildWorkoutProgressStats,
@@ -190,31 +190,6 @@ export async function awardWorkoutXP({
 
   await user.update(updatedStats, { transaction });
 
-  // ── Achievement awards ─────────────────────────────────────────────
-  // Production had 1,067 active achievements and ZERO ever awarded: the only achievement check in
-  // the codebase hangs off `updateWorkoutSession` transitioning a session to completed, but the
-  // canonical logger creates sessions already completed, so it never ran. This is the connection.
-  //
-  // BEST-EFFORT BY DESIGN: logging the workout is the user's actual intent. A gamification failure
-  // must never roll back or fail that write, so this is caught and only logged.
-  let awardedAchievements = [];
-  try {
-    const { evaluateWorkoutAchievements } = await import('./gamification/workoutAchievementEvaluator.mjs');
-    const { getAllModels } = await import('../models/index.mjs');
-    const result = await evaluateWorkoutAchievements({
-      userId,
-      models: getAllModels(),
-      transaction,
-    });
-    awardedAchievements = result.awarded;
-  } catch (achievementError) {
-    logger.error('Achievement evaluation failed (workout XP still awarded)', {
-      userId,
-      workoutId,
-      error: achievementError?.message,
-    });
-  }
-
   // ── Milestone detection + awards ───────────────────────────────────
   const { awardedMilestones, totalMilestoneBonus } = await collectWorkoutMilestones({
     userId,
@@ -264,7 +239,18 @@ export async function awardWorkoutXP({
     transaction,
   });
 
-  const totalPoints = pointsToAward + totalMilestoneBonus;
+  const achievementResult = await awardWorkoutAchievementsBestEffort({
+    userId,
+    workoutId,
+    awardedBy,
+    transaction,
+  });
+  const achievementPoints = Number(achievementResult.pointsAwarded) || 0;
+  if (achievementResult.newBalance !== undefined) {
+    finalNewBalance = achievementResult.newBalance;
+  }
+
+  const totalPoints = pointsToAward + totalMilestoneBonus + achievementPoints;
   await emitWorkoutXpSideEffects({
     userId,
     workoutId,
@@ -282,6 +268,7 @@ export async function awardWorkoutXP({
     streakDays: updatedStats.streakDays,
     totalWorkouts: updatedStats.totalWorkouts,
     awardedMilestones,
+    awardedAchievements: achievementResult.awarded,
     combos: comboResult.combos,
     comboMultiplier: comboResult.bestMultiplier,
   };
