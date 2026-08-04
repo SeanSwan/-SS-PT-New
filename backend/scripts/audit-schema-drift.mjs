@@ -33,6 +33,15 @@ const { default: getModels } = await import('../models/associations.mjs');
 
 const models = await getModels();
 
+// COVERAGE (round-2 depth, 2026-08-04): getModels() registers 163 models, but 9 more were
+// db.define'd without registration (Hashtag/Faction/Party/SocialGroup families) and were
+// therefore INVISIBLE to this auditor. Sweep sequelize.models too — anything defined
+// anywhere gets audited, keyed with an unregistered:: prefix so provenance is obvious.
+const registeredInstances = new Set(Object.values(models));
+for (const m of Object.values(sequelize.models)) {
+  if (!registeredInstances.has(m)) models['unregistered::' + m.name] = m;
+}
+
 // ---- live DB: columns ----
 const [dbCols] = await sequelize.query(`
   SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
