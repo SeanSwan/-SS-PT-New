@@ -491,16 +491,39 @@ Touch targets are genuinely strong: **every** interactive control on the money p
 (cart close, quantity steppers, remove, dock FAB, fulfillment buttons, GlowButton 44/48/56).
 `prefers-reduced-motion` is honoured in 10+ files. The retired Galaxy-Swan palette is absent.
 
-Ranked gaps, none fixed (all P2 — presentation, not correctness):
+> **CORRECTION (hostile round 13, live-browser evidence).** An earlier revision of this
+> section asserted concrete 320px *consequences* — overflow, a title colliding with the close
+> button — derived from **reading CSS, never from rendering the page**. Driving the live site
+> in a real browser at a **true 320px CSS viewport** disproves them for the store surface.
+>
+> Methodology note that matters: the first attempt reported `innerWidth: 465` after asking
+> for 320 — the harness scales viewport requests by 1.5×, so a naive run would have "verified
+> 320px" while actually measuring 480. Requesting 213 yields a genuine `innerWidth: 320`.
+>
+> Measured at true 320px on `https://sswanstudios.com/store`:
+> - **Horizontal overflow: 0px** (`scrollWidth 304` vs `clientWidth 304`). The page does not
+>   scroll sideways.
+> - **Genuinely sub-44px touch targets: 0.** A first pass flagged 26 — all were rounding
+>   artifacts at 43.9x; re-measured at a 43.5 threshold, none are real.
+> - **The cold-traffic conversion path works.** All 7 "Ask About Pricing" buttons render
+>   140×48 inside the viewport. Opening one produces a dialog that **fits the viewport**
+>   (left 14 → right 290 of 320), with all four fields at 240×44+, "Send inquiry" at 240×48,
+>   and a 44×44 close — **nothing clipped, nothing below the fold**.
+> - **Escape closes the dialog and returns focus to the button that opened it** (WCAG 2.4.3),
+>   verified live.
+>
+> What remains true is only the CSS fact, with no proven consequence:
 
-1. **No breakpoint below 480px anywhere on the money path.** Smallest is `max-width: 480px`;
-   the responsive matrix requires 320px. Concrete consequences: the cart modal keeps
-   **2rem (64px) horizontal padding at every width** (`ShoppingCart.styles.ts:87,158,177`),
-   and `CartTitle` at 1.6rem sits under an absolutely-positioned 44px close button
-   (`:95-96` vs `:121-129`) — roughly 192px of usable title width at 320px.
-2. **`CartBody { max-height: calc(85vh - 150px) }`** (`ShoppingCart.styles.ts:156`) hardcodes
-   a 150px header+footer assumption that breaks when the header wraps or the footer stacks
-   at ≤480px (`ShoppingCart.summaryStyles.ts:74-77`).
+1. **No breakpoint below 480px is declared anywhere on the money path** — smallest is
+   `max-width: 480px`, while the responsive matrix asks for 320px. On the **store** surface
+   this provably does not manifest (evidence above). The **cart modal and `/checkout`**
+   remain **`[UNKNOWN]` at 320px** — both require an authenticated session, which this audit
+   could not drive (§7 disclosed gap). The specific mechanisms worth checking there when
+   someone *can* log in: `ShoppingCart.styles.ts:87,158,177` keeps 2rem horizontal padding at
+   every width, and `CartBody { max-height: calc(85vh - 150px) }` (`:156`) hardcodes a 150px
+   header+footer assumption that a wrapped header or a footer stacking at ≤480px
+   (`ShoppingCart.summaryStyles.ts:74-77`) would break. Stated as **hypotheses to test**, not
+   as findings.
 3. **`PackageCard.tsx` bypasses the token system**: a private `const T = {…}` object holds 6
    raw hex values (`:33-39`, incl. `#00D4AA`, `#8B5CF6`) interpolated ~20×, plus ~30 raw
    `rgba()` literals. It is the single worst Rule-6 offender on the store→checkout path, and
