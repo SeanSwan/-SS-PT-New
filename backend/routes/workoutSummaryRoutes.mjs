@@ -12,6 +12,14 @@
 import { Router } from 'express';
 import { protect, trainerOrAdminOnly } from '../middleware/auth.mjs';
 import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
+
+/** Minimal HTML entity escape for text interpolated into outbound email markup. */
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -200,7 +208,12 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ bodyF
             to: client.email,
             subject: `Your Workout Summary — ${date}`,
             text: summaryText,
-            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
+            // ESCAPED (Kimi security review 2026-08-04): summaryText interpolates caller-
+            // supplied sessionNotes. The assignment gate limits WHO can send, but that is an
+            // authz control applied to an output-encoding bug — a compromised or malicious
+            // trainer could still inject markup into a SwanStudios-branded email aimed at
+            // their own clients (and minors' parents), who are the most likely to trust it.
+            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${escapeHtml(summaryText)}</pre>`,
           });
           emailSent = true;
           // Log the client id only — never the email (PII, incl. minors).

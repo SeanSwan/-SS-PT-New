@@ -81,13 +81,37 @@ export const createClientOnboarding = async (req, res) => {
       // request, so it took effect on their very next call, no token rotation needed) and
       // (b) overwrite their name/phone/DOB/gender/weight/height. Staff accounts are now
       // off-limits to this client-onboarding endpoint entirely.
-      if (user.role === 'admin' || user.role === 'trainer') {
-        logger.warn('[onboarding] refused: attempt to onboard a staff account', {
-          actorId: req.user?.id, actorRole: req.user?.role, targetUserId: user.id, targetRole: user.role,
+      // Two independent refusals, both answered with the SAME 409 body so this endpoint is
+      // not an account-enumeration oracle (Kimi review: a staff-specific 403 told any trainer
+      // which emails belong to staff):
+      //   (a) staff accounts are never onboardable as clients;
+      //   (b) an existing client may only be overwritten by an admin or by a trainer with an
+      //       ACTIVE assignment to them. Without this, any trainer could overwrite any
+      //       client's name/phone/DOB/gender/weight/height — cross-tenant PII tampering on
+      //       minors, and a phone overwrite is a step toward SMS-based account recovery abuse.
+      const isStaffAccount = user.role === 'admin' || user.role === 'trainer';
+      let mayOverwrite = req.user?.role === 'admin';
+      if (!mayOverwrite && !isStaffAccount && req.user?.role === 'trainer') {
+        const { ClientTrainerAssignment } = await import('../models/index.mjs')
+          .then((m) => m.getAllModels());
+        const assignment = ClientTrainerAssignment
+          ? await ClientTrainerAssignment.findOne({
+              where: { clientId: user.id, trainerId: req.user.id, status: 'active' },
+            })
+          : null;
+        mayOverwrite = Boolean(assignment);
+      }
+
+      if (isStaffAccount || !mayOverwrite) {
+        logger.warn('[onboarding] refused overwrite of an existing account', {
+          actorId: req.user?.id,
+          actorRole: req.user?.role,
+          targetUserId: user.id,
+          reason: isStaffAccount ? 'staff-account' : 'no-active-assignment',
         });
-        return res.status(403).json({
+        return res.status(409).json({
           success: false,
-          message: 'That email belongs to a staff account and cannot be onboarded as a client.',
+          message: 'An account already exists for that email. Link the existing account instead of re-onboarding it.',
         });
       }
 

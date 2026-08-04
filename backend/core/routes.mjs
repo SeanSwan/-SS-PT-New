@@ -632,7 +632,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -677,7 +677,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -864,7 +864,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 

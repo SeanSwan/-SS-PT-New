@@ -44,15 +44,13 @@ const parseSearchLimit = (value, fallback = 20, max = 100) => {
 const authenticate = protect;
 const requireAdmin = adminOnly;
 const requireTrainer = trainerOrAdminOnly;
-// 'user' included (authz sweep 2026-08-04): it is a live enum_Users_role value AND the DB
-// default for every new signup, so omitting it 403'd freshly-registered members on ~25
-// endpoints here — join/leave a challenge, all goals, follow/feed, dashboard, activity feed,
-// notifications — until a purchase promoted them to 'client'. requireAnyRole has no admin
-// override, so the omission was a hard deny. requireProfileReader on the next line already
-// treated the two as equivalent, as do WORKOUT_SELF_ACCESS_ROLES, clientOnly and
-// verifyClientAccess — this line was the outlier. Fails closed, so it was lost engagement,
-// not a bypass.
-const requireUser = requireAnyRole('user', 'client', 'trainer', 'admin');
+// DELIBERATE: 'user' is EXCLUDED here. An authz sweep flagged the omission as a bug (role
+// 'user' is the DB default for new signups, so they 403 on join/goals/follow), but
+// gamificationLeaderboardRoleContract.test.mjs encodes the actual product boundary —
+// "allows user/client/trainer/admin to read the global leaderboard ONLY". Unpromoted signups
+// get the read-only surface via requireProfileReader below; participation (joining
+// challenges, creating goals) requires client tier. Do not widen this without Sean's call.
+const requireUser = requireAnyRole('client', 'trainer', 'admin');
 const requireProfileReader = requireAnyRole('user', 'client', 'trainer', 'admin');
 
 // Rate limiter for point-earning actions (20 per hour per user)

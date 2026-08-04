@@ -51,7 +51,13 @@ describe('challenge controller security hardening', () => {
     );
     expect(coreRoutesSource).toContain("app.use('/api/v1/gamification', gamificationV1Routes)");
     expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
-    expect(routeSource).toContain("router.get('/challenges', challengeController.getAllChallenges)");
+    // Asserts the route EXISTS and is authenticated. It was unauthenticated until the
+    // 2026-08-04 authz sweep (live-proven: anonymous GET returned 200 while the payload
+    // carried member names/usernames/photos + per-member progress). Matched by regex so
+    // adding further middleware does not break this, but dropping `authenticate` does.
+    expect(routeSource).toMatch(
+      /router\.get\(\s*'\/challenges',\s*authenticate,[\s\S]{0,80}?challengeController\.getAllChallenges\)/,
+    );
     expect(routeSource).toContain("router.get('/challenges/manage', authenticate, requireTrainer, challengeController.getManagedChallenges)");
     expect(routeSource.indexOf("router.get('/challenges/manage'")).toBeLessThan(routeSource.indexOf("router.get('/challenges/:id'"));
     expect(routeSource).toContain("router.get('/challenge-templates', authenticate, requireTrainer, challengeController.getChallengeTemplates)");
