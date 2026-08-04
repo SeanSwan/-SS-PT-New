@@ -16,6 +16,7 @@
  * G: Dashboard (8)            H: Trainer Mgmt (6)    I: Goals (6)
  * J: Onboarding (6)           K: System (4)          L: Client Self-Service (10)
  * M: Hermes Agent (2)       N: Intake Workspace (16)
+ * O: Equipment Intelligence (4)
  */
 import { register as registerClient } from './clientCommands.mjs';
 import { register as registerWorkout } from './workoutCommands.mjs';
@@ -36,6 +37,7 @@ import { register as registerHermes } from './hermesCommands.mjs';
 import { register as registerCoachIntake } from './coachIntakeCommands.mjs';
 import { register as registerPlaudStructuredActions } from './plaudStructuredActionCommands.mjs';
 import { register as registerPlaud } from './plaudCommands.mjs';
+import { register as registerEquipment } from './equipmentCommands.mjs';
 import { getAllCommands } from './baseSchemas.mjs';
 import logger from '../../../utils/logger.mjs';
 
@@ -75,6 +77,7 @@ export function initializeRegistry() {
   registerCoachIntake();
   registerPlaudStructuredActions();
   registerPlaud();
+  registerEquipment();
 
   initialized = true;
 
