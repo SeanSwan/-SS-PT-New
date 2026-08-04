@@ -16,6 +16,7 @@ import { CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES } from './constants
 import { expandSegments } from './timeline.mjs';
 import { validateSnapshot, validateLog } from './validateState.mjs';
 import { validateSlot } from './validateSlots.mjs';
+import { validatePacing, isPacedBlock } from './pacing.mjs';
 
 export function validateClassPlan(plan) {
   const problems = [];
@@ -92,6 +93,7 @@ function validateBlocks(plan) {
     if (!BLOCK_KINDS.includes(block?.kind)) {
       problems.push(`blocks[${i}].kind must be one of ${BLOCK_KINDS.join('|')}`);
     }
+    problems.push(...validatePacing(block, `blocks[${i}]`));
     if (!Array.isArray(block?.slots)) {
       problems.push(`blocks[${i}].slots must be an array`);
       return;
@@ -165,6 +167,10 @@ function validateStationBinding(plan) {
   let workSlotCount = 0;
 
   plan.blocks.forEach((block, i) => {
+    // A paced block is synchronized — it lives outside the circuit math, so
+    // its slots neither need stations nor count toward the circuit total.
+    // (validatePacing separately rejects stationIndex inside paced blocks.)
+    if (isPacedBlock(block)) return;
     (block?.slots ?? []).forEach((slot, j) => {
       if (!slot || typeof slot !== 'object') return;
       const path = `blocks[${i}].slots[${j}]`;

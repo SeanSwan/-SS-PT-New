@@ -2,7 +2,7 @@
   "name": "swanstudios",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "test:bootcamp-core": "node --test shared/bootcamp-core/__tests__/classPlan.test.mjs shared/bootcamp-core/__tests__/timeline.test.mjs shared/bootcamp-core/__tests__/hostile.test.mjs shared/bootcamp-core/__tests__/foreignAdapter.test.mjs shared/bootcamp-core/__tests__/fableReview.test.mjs shared/bootcamp-core/__tests__/relaxation.test.mjs",
+    "test:bootcamp-core": "node --test shared/bootcamp-core/__tests__/classPlan.test.mjs shared/bootcamp-core/__tests__/timeline.test.mjs shared/bootcamp-core/__tests__/hostile.test.mjs shared/bootcamp-core/__tests__/foreignAdapter.test.mjs shared/bootcamp-core/__tests__/fableReview.test.mjs shared/bootcamp-core/__tests__/pacing.test.mjs shared/bootcamp-core/__tests__/relaxation.test.mjs",
     "start": "npm run start:backend",
     "start:backend": "cd backend && npm start",
     "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",

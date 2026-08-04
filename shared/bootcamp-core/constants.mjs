@@ -79,6 +79,20 @@ export const RUNG_CHIP = Object.freeze({
   R5: 'bodyweight_sub',
 });
 
+/**
+ * Block pacing modes (SWA-105 Slice 3 — Sean ratified 2026-07-31: shipped
+ * class styles ride into V2 as schema, not folklore).
+ *  - interval: the default; timing comes from structure / per-slot overrides.
+ *  - amrap:  ONE timed window (blockMin); slots are the menu, the clock is the
+ *            whole block. The screen shows the list, not a per-exercise timer.
+ *  - emom:   every minute on the minute; each 60s segment binds one slot,
+ *            cycling. rounds = total minutes.
+ *  - tabata: rounds x (workSec/restSec) — classic 8 x 20/10 — cycling slots.
+ * A non-interval block is SYNCHRONIZED (everyone together): its slots carry no
+ * stationIndex and it sits outside the station circuit math.
+ */
+export const PACING_MODES = Object.freeze(['interval', 'amrap', 'emom', 'tabata']);
+
 /** Who acted. A ROLE, never a person — Rule 8 by construction. */
 export const ACTORS = Object.freeze(['system', 'trainer', 'brain']);
 

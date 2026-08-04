@@ -29,6 +29,7 @@ import {
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
+import { pickFinishers } from './bootcampFinishers.mjs';
 import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
@@ -134,14 +135,47 @@ function selectStationExercises(available, stationMuscles, count, usedNames, rng
   return selected;
 }
 
-function selectFullGroupExercises(available, rng = Math.random) {
+function selectFullGroupExercises(available, rng = Math.random, contractCtx = null) {
+  // SWA-105 Slice 3 (D3): full_group was completely day-blind — it never saw
+  // targetMuscles, so upper day and lower day produced near-identical classes.
+  // The pool is day-legal upstream (slice 1); here the BUDGET spreads it and
+  // the cardio five become day-aware instead of "first five in the array".
+  // ONE ledger spans compound AND accessory — a per-tier ledger lets a region
+  // capped in tier one re-enter in tier two (caught by this slice's own test).
+  const ledger = [];
+  const budgeted = (pool) => {
+    if (!contractCtx) return pool;
+    const kept = [];
+    const provisional = [...ledger];
+    const liveGate = budgetGate(contractCtx.dayTypeId, provisional, 15);
+    for (const ex of pool) {
+      if (liveGate(ex)) {
+        kept.push(ex);
+        if (ex.coreMovement) provisional.push(ex.coreMovement);
+      }
+    }
+    return kept.length > 0 ? kept : pool; // budget prefers, never starves
+  };
+  const commitPicks = (picks) => {
+    for (const ex of picks) if (ex.coreMovement) ledger.push(ex.coreMovement);
+  };
+
   const compound = sampleFromWindow(
-    available.filter(ex => (ex.muscles ?? []).length >= 2),
+    budgeted(available.filter(ex => (ex.muscles ?? []).length >= 2)),
     5,
     rng,
   );
+  commitPicks(compound);
 
-  const cardio = CARDIO_FINISHERS.slice(0, 5).map(cf => ({
+  const cardioSource = contractCtx
+    ? pickFinishers({
+        dayTypeId: contractCtx.dayTypeId,
+        count: 5,
+        highImpactAllowed: contractCtx.highImpactAllowed ?? false,
+        rng,
+      }).finishers
+    : CARDIO_FINISHERS.slice(0, 5);
+  const cardio = cardioSource.map(cf => ({
     ...cf,
     key: cf.name.toLowerCase().replace(/\s+/g, '_'),
     muscles: cf.muscles.split(','),
@@ -150,7 +184,7 @@ function selectFullGroupExercises(available, rng = Math.random) {
 
   const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
   const accessory = sampleFromWindow(
-    available.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
+    budgeted(available.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2)),
     5,
     rng,
   );
@@ -574,14 +608,19 @@ export async function generateBootcampClass(options) {
   }
 
   // Step 5: Build stations or full-group workout
+  const contractCtx = {
+    dayTypeId: dayType,
+    totalSlots: requiredSlots,
+    highImpactAllowed: explicitHighImpactClass,
+  };
   if (classFormat === 'full_group') {
-    buildFullGroupWorkout(availableExercises, format, allExercises, explanations);
+    buildFullGroupWorkout(availableExercises, format, allExercises, explanations, undefined, contractCtx);
   } else {
     buildStationWorkout(
       availableExercises, targetMuscles, stationCount, format, recentExerciseNames,
       stations, allExercises, explanations,
       undefined, // rng default
-      { dayTypeId: dayType, totalSlots: requiredSlots },
+      contractCtx,
     );
   }
 
@@ -725,8 +764,8 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations, rng = Math.random) {
-  const selected = selectFullGroupExercises(available, rng);
+function buildFullGroupWorkout(available, format, allExercises, explanations, rng = Math.random, contractCtx = null) {
+  const selected = selectFullGroupExercises(available, rng, contractCtx);
   for (let i = 0; i < selected.length; i++) {
     allExercises.push(buildExerciseRecord(selected[i], {
       durationSec: format.durationSec,
@@ -742,8 +781,21 @@ function buildFullGroupWorkout(available, format, allExercises, explanations, rn
 
 function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations, rng = Math.random, contractCtx = null) {
   const muscleGroups = distributeMuscleGroups(targetMuscles, stationCount);
-  // Random offset so the finisher rotation also varies press-to-press.
-  const finisherOffset = Math.floor(rng() * CARDIO_FINISHERS.length);
+  // SWA-105 Slice 3 (D2): finishers are now day- and impact-aware — strength
+  // days spare the day's prime movers, low-impact classes exclude jump work,
+  // and the rng offset inside pickFinishers preserves press-to-press variety.
+  const finisherPick = pickFinishers({
+    dayTypeId: contractCtx?.dayTypeId,
+    count: stationCount,
+    highImpactAllowed: contractCtx?.highImpactAllowed ?? false,
+    rng,
+  });
+  if (finisherPick.relaxed) {
+    explanations.push({
+      type: 'finisher_policy',
+      message: `Finisher policy relaxed (${finisherPick.relaxed.replace(/_/g, ' ')}) — too few finishers fit the day.`,
+    });
+  }
   // Class-level region tracking for the volume budget (SWA-105 Slice 1).
   const selectedMovements = [];
 
@@ -782,7 +834,7 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
       usedNames.add(stationExes[e].key);
     }
 
-    const finisher = CARDIO_FINISHERS[(s + finisherOffset) % CARDIO_FINISHERS.length];
+    const finisher = finisherPick.finishers[s];
     allExercises.push(buildExerciseRecord(finisher, {
       stationIndex: s,
       durationSec: format.durationSec,
