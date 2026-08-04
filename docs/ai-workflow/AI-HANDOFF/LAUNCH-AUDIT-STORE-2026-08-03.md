@@ -11,9 +11,8 @@ supersedes: none
 branch `claude/launch-audit-lane4-20260803`. The shared tree
 (`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
 by this lane except its own coordination file.
-**Commits (local, NOT pushed — integrator reconciles):** `8266626ec`, `eb5366b15`,
-`ba94154e5`, `166983237`, `3f473dc74`, `42c84a077`, `79c5f7b23`, `92b8b863a`, `ec5a04f13`,
-`03b7f222b`, `df8933420`, `700caec79` (+ this doc commit).
+**Commits: 22, local, NOT pushed — integrator reconciles.** `git log 0949eaf6b..HEAD`
+on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **18 rounds, CLEAN×2**.
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
