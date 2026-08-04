@@ -94,6 +94,29 @@ const parsePositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+/**
+ * Upper bound on a single cart line's quantity.
+ *
+ * parsePositiveInteger has no ceiling, and training packages carry
+ * stockQuantity: null (verified on live), so getAvailableStock returns null and
+ * the stock check below is skipped entirely for them. That left the only limit
+ * as Number.MAX_SAFE_INTEGER. ShoppingCart.total is DECIMAL(10,2) — max
+ * 99,999,999.99 — so a large enough quantity overflows the column and turns a
+ * money-path request into a 500. Below that it still lets a client mint an
+ * absurd real Stripe Checkout Session.
+ *
+ * 99 is far above how these are actually sold (a package already bundles up to
+ * 192 sessions, so quantity counts PACKAGES) while keeping any cart total
+ * comfortably inside the column.
+ */
+const MAX_CART_ITEM_QUANTITY = 99;
+
+const quantityCeilingError = (res) => res.status(400).json({
+  success: false,
+  message: `Quantity must be ${MAX_CART_ITEM_QUANTITY} or fewer per item. For a larger order, please contact us.`,
+  code: 'QUANTITY_LIMIT_EXCEEDED'
+});
+
 const parseOptionalPositiveInteger = (value) => {
   if (value === undefined || value === null || value === '') return null;
   return parsePositiveInteger(value);
@@ -369,6 +392,10 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       });
     }
 
+    if (normalizedQuantity && normalizedQuantity > MAX_CART_ITEM_QUANTITY) {
+      return quantityCeilingError(res);
+    }
+
     if (!normalizedQuantity) {
       return res.status(400).json({
         success: false,
@@ -466,6 +493,9 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       }
       // Update quantity if item exists
       const nextQuantity = cartItem.quantity + normalizedQuantity;
+      if (nextQuantity > MAX_CART_ITEM_QUANTITY) {
+        return quantityCeilingError(res);
+      }
       const availableStock = getAvailableStock(snapshot.storefrontItem, snapshot.variant);
       if (typeof availableStock === 'number' && nextQuantity > availableStock) {
         return res.status(409).json({
@@ -588,6 +618,10 @@ router.put('/update/:itemId', protect, cartMutationLimiter, ensureNumericCartUse
         success: false, 
         message: 'Quantity must be a positive whole number'
       });
+    }
+
+    if (normalizedQuantity > MAX_CART_ITEM_QUANTITY) {
+      return quantityCeilingError(res);
     }
 
     // Get the cart item
