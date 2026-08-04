@@ -83,6 +83,7 @@ export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-d
 export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 export const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
+export const MyEquipmentPage = React.lazy(() => import('../MyEquipment/MyEquipmentPage'));
 export const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 export const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 export const VideoCallPage = React.lazy(() => import('../VideoChat/VideoCallPage'));

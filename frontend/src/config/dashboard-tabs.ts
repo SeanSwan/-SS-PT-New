@@ -108,6 +108,15 @@ export const TRAINER_DASHBOARD_TABS: DashboardTab[] = [
 export const CLIENT_DASHBOARD_TABS: DashboardTab[] = [
   ...COMMON_DASHBOARD_TABS,
   {
+    key: 'my-equipment',
+    label: 'My Equipment',
+    icon: 'Dumbbell',
+    order: 7.5,
+    status: 'real',
+    route: '/dashboard/client/my-equipment',
+    description: 'Your training locations & gear — powers your workout plans',
+  },
+  {
     key: 'creative',
     label: 'Creative Hub',
     icon: 'Palette',

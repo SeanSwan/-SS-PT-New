@@ -64,6 +64,7 @@ export const clientNavConfig = [
     section: 'TRAIN',
     items: [
       { label: 'My Workouts', path: '/dashboard/client/workouts', icon: Dumbbell },
+      { label: 'My Equipment', path: '/dashboard/client/my-equipment', icon: Dumbbell },
       { label: 'Book Session', path: '/dashboard/client/schedule', icon: Calendar },
       { label: 'Swan Coach', path: '/dashboard/client/coach-assistant', icon: Brain },
     ],
