@@ -221,23 +221,10 @@ async function main() {
     console.log('');
   }
 
-  // Count the two OUTCOMES separately. Lumping everything non-ON-MAIN into "branch artefacts"
-  // mislabels ABSENT, which is not a staleness artefact at all — it means the path does not exist
-  // on this branch either, i.e. a typo, a wrong-cwd relative path, or a file already deleted
-  // locally. Telling someone their typo is "a branch artefact, not a finding" sends them looking
-  // for staleness that isn't there, and this tool exists precisely to stop bad classification.
   const real = buckets['ON-MAIN'].length;
-  const stale = buckets['MAIN-DELETED'].length + buckets['BRANCH-NEW'].length;
-  const bad = buckets.ABSENT.length;
-
-  if (real === paths.length) {
-    console.log('  every path exists on main — no staleness artefacts\n');
-  } else {
-    const parts = [];
-    if (stale) parts.push(`${stale} branch artefact(s), not findings`);
-    if (bad) parts.push(`${bad} path(s) not on this branch either — check the path, not main`);
-    console.log(`  ${real} of ${paths.length} path(s) are real findings; ${parts.join('; ')}\n`);
-  }
+  console.log(real === paths.length
+    ? '  every path exists on main — no staleness artefacts\n'
+    : `  ${paths.length - real} of ${paths.length} path(s) are branch artefacts, not findings\n`);
 
   process.exit(real === paths.length ? 0 : 1);
 }
