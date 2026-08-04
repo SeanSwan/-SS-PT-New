@@ -128,7 +128,13 @@ for (const { day, names, forbidden } of DAY_CASES) {
 
     // The REAL day-type control (buildMode defaults to 'ai', so ConfigPanel shows).
     await page.getByLabel('Day Type').selectOption(day);
+    // Gate on the generate round-trip BEFORE asserting the board — under the
+    // reused dev server (shared across specs) the response can lag past the
+    // default assertion timeout, which is exactly what made this flaky in the
+    // combined run. Waiting for the response makes the render deterministic.
+    const generateResponse = page.waitForResponse('**/api/bootcamp/generate');
     await page.getByRole('button', { name: /generate class/i }).click();
+    await generateResponse;
 
     // The board shows the day's exercises (rendered as "N. Name")...
     for (const name of names) {
