@@ -6,6 +6,7 @@ import BootcampCommandDeck from './BootcampCommandDeck';
 import BootcampTaughtPanel from './BootcampTaughtPanel';
 import ClassPreviewAlternatives from './ClassPreviewAlternatives';
 import ClassPreviewMainBoard from './ClassPreviewMainBoard';
+import ExplanationsStrip from './ExplanationsStrip';
 import BootcampDemoMode from './BootcampDemoMode';
 import type { BoardView, ClassPreviewPanelProps } from './ClassPreviewPanel.types';
 import {
@@ -87,6 +88,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
         {bootcamp && (
           <motion.div initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <BootcampCommandDeck bootcamp={bootcamp} buildMode={buildMode} floorMode={floorMode} />
+            <ExplanationsStrip explanations={bootcamp.explanations} />
             <TimingBadgeRow>
               <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>
               <TimingBadge>{bootcamp.demoDuration} min demo</TimingBadge>
