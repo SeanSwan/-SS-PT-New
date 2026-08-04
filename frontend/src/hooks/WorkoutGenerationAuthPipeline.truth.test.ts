@@ -16,7 +16,9 @@ describe('workout generation auth pipeline', () => {
     expect(routeSource).toContain("path: 'variation-engine'");
     expect(routeSource).toContain('<VariationEngine />');
     expect(routeSource).toContain("path: 'workout-builder'");
-    expect(routeSource).toContain('<WorkoutBuilder />');
+    // Workout-OS C7c retired the legacy authoring surface on purpose — the
+    // route is now a role-gated redirect shim to the planner, not <WorkoutBuilder />.
+    expect(routeSource).toContain('<LegacyWorkoutRedirect surface="builder" />');
 
     expect(backendMounts).toContain("app.use('/api/custom-exercises', customExerciseRoutes)");
     expect(backendMounts).toContain("app.use('/api/variation', variationRoutes)");

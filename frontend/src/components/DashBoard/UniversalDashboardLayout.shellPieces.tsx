@@ -4,6 +4,7 @@ import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import TrainerStellarSidebar from './Pages/trainer-dashboard/TrainerStellarSidebar';
 import ClientStellarSidebar from './Pages/client-dashboard/ClientStellarSidebar';
 import { UniversalButton } from './UniversalDashboardLayout.controls';
+import TabErrorBoundary from './TabErrorBoundary';
 import type { DashboardRouteDefinition } from './UniversalDashboardLayout.routes';
 import {
   ErrorActions,
@@ -92,7 +93,7 @@ export const DashboardRoutes: React.FC<{
     <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${dashboardDefaultPath}`} replace />} />
     <Route path={`/${activeRole}/*`} element={(
       <Routes>
-        {visibleRoleRoutes.map(({ path, component: Component }) => (
+        {visibleRoleRoutes.map(({ path, component: Component, title }) => (
           <Route
             key={path}
             path={path.replace(/^\//, '')}
@@ -103,7 +104,9 @@ export const DashboardRoutes: React.FC<{
                 animate={{ opacity: 1, y: 0 }}
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6 }}
               >
-                <Component />
+                <TabErrorBoundary tabLabel={title}>
+                  <Component />
+                </TabErrorBoundary>
               </UniversalPageContainer>
             )}
           />

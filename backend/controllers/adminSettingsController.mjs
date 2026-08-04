@@ -172,7 +172,7 @@ const DEFAULT_NOTIFICATION_SETTINGS = {
   email: {
     enabled: true,
     provider: 'sendgrid',
-    fromAddress: 'noreply@swanstudios.com',
+    fromAddress: 'noreply@sswanstudios.com',
     fromName: 'SwanStudios',
     templates: {
       welcome: 'welcome-template',

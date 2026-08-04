@@ -95,7 +95,7 @@ export const sendEmailNotification = async (options) => {
     if (sendgridReady) {
       const msg = {
         to: options.to,
-        from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@swanstudios.com',
+        from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@sswanstudios.com',
         subject: options.subject,
         text: options.text,
         html: options.html,

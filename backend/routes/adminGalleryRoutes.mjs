@@ -1470,7 +1470,7 @@ router.get('/photos/:photoId/original-url', async (req, res) => {
  * gated (inherited). Idempotent + fail-closed via the fulfillment service (a stuck
  * 'paid' order — provider outage, missing SKU/master — is retryable from the admin view).
  */
-router.post('/print-orders/:orderId/retry-fulfillment', async (req, res) => {
+router.post('/print-orders/:orderId/retry-fulfillment', galleryAdminOnly, async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
     if (!Number.isInteger(orderId) || orderId <= 0) {
@@ -1519,7 +1519,7 @@ router.get('/print-orders', async (req, res) => {
  * Manual admin mark-shipped (manually-fulfilled orders or an override). Idempotent —
  * only advances a non-terminal order; never regresses shipped/delivered/cancelled.
  */
-router.post('/print-orders/:orderId/mark-shipped', async (req, res) => {
+router.post('/print-orders/:orderId/mark-shipped', galleryAdminOnly, async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
     if (!Number.isInteger(orderId) || orderId <= 0) {
@@ -1554,7 +1554,7 @@ router.post('/print-orders/:orderId/mark-shipped', async (req, res) => {
  * (never trusts client). NOTE: does NOT auto-cancel a Prodigi order already in production —
  * the admin handles provider cancellation separately if the order already shipped.
  */
-router.post('/print-orders/:orderId/refund', async (req, res) => {
+router.post('/print-orders/:orderId/refund', galleryAdminOnly, async (req, res) => {
   try {
     // Refunds move real money — admin only (the file gate allows trainers for operational
     // routes, but a financial reversal is not a trainer capability).
@@ -1606,7 +1606,7 @@ router.post('/print-orders/:orderId/refund', async (req, res) => {
  * DELETE /api/admin/gallery/photos/:photoId
  * Delete an individual photo from an event
  */
-router.delete('/photos/:photoId', async (req, res) => {
+router.delete('/photos/:photoId', galleryAdminOnly, async (req, res) => {
   try {
     // Use raw SQL to avoid Sequelize referencing columns not yet migrated (e.g. source_type)
     const [rows] = await sequelize.query(
