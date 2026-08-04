@@ -180,7 +180,9 @@ const normalizeCandidateQuantity = (quantity: number | undefined): number => {
   return Math.max(1, Math.round(quantity));
 };
 
-const normalizeNameKey = (value: string | null | undefined): string => (
+// Exported so equipmentScanSessionMerge.ts reuses the SAME normalization for
+// cross-photo dedupe keys (Walk-the-Gym, blueprint §10a #9).
+export const normalizeNameKey = (value: string | null | undefined): string => (
   typeof value === 'string' ? value.trim().toLowerCase() : ''
 );
 

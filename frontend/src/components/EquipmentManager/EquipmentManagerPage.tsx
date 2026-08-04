@@ -47,6 +47,19 @@ import {
 } from './equipmentScanBatch';
 import type { EquipmentScanBatch } from './equipmentScanBatch';
 import { approveSelectedScanItems, rejectSelectedScanItems } from './equipmentScanBatchActions';
+import { countBatchDetections, mergeScanBatches } from './equipmentScanSessionMerge';
+import type { MergeReceiptEntry } from './equipmentScanSessionMerge';
+import WalkTheGymSummary from './WalkTheGymSummary';
+import type { WalkTheGymFileChip } from './WalkTheGymSummary';
+
+// S7 Walk-the-Gym: one multi-photo queue run is presented as ONE merged tray
+// with a merge receipt, instead of N sequential per-photo trays.
+interface ScanSessionSummaryState {
+  photoCount: number;
+  uniqueItemCount: number;
+  receipt: MergeReceiptEntry[];
+  files: WalkTheGymFileChip[];
+}
 
 // Staged honest scan copy (§10a #5 — LOCKED): stages, never a spinner.
 const SCAN_STAGE_COPY = [
@@ -719,6 +732,16 @@ const EquipmentManagerPage: React.FC = () => {
   // SAME image (or fall back to manual) instead of losing it. (Sean, 2026-06-17)
   const [failedScanItem, setFailedScanItem] = useState<EquipmentScanQueueItem | null>(null);
   const [lastScanBatch, setLastScanBatch] = useState<EquipmentScanBatch | null>(null);
+  // S7 Walk-the-Gym session accumulation. Refs (not state) because the scan
+  // callback needs the CURRENT queue/run at async completion time, not the
+  // values captured when the callback was created.
+  const scanQueueRef = useRef<EquipmentScanQueueItem[]>([]);
+  // chips also record photos that scanned clean but found nothing, so the
+  // filmstrip always shows every photo the header counts.
+  const scanRunRef = useRef<{ photoCount: number; batches: EquipmentScanBatch[]; chips: WalkTheGymFileChip[] }>(
+    { photoCount: 0, batches: [], chips: [] },
+  );
+  const [scanSessionSummary, setScanSessionSummary] = useState<ScanSessionSummaryState | null>(null);
   const [batchActionPending, setBatchActionPending] = useState(false);
   const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -838,6 +861,10 @@ const EquipmentManagerPage: React.FC = () => {
       setActiveScanItem(null);
       setScanError(null);
       setLastScanBatch(null);
+      setScanSessionSummary(null);
+      // If a walk-the-gym run was mid-flight when this photo failed and the
+      // trainer resolved it manually, surface the accumulated merged tray now.
+      if (scanQueueRef.current.length === 0) finalizeScanRun();
       loadItems(selectedProfile.id);
       loadProfiles();
     } catch (err) {
@@ -884,6 +911,39 @@ const EquipmentManagerPage: React.FC = () => {
     }
   }, []);
 
+  // Queue writes go through here so scanQueueRef is ALWAYS in sync — the scan
+  // completion callback reads the ref to know whether the run is finished.
+  const updateScanQueue = useCallback((next: EquipmentScanQueueItem[]) => {
+    scanQueueRef.current = next;
+    setScanQueue(next);
+  }, []);
+
+  const resetScanRun = useCallback(() => {
+    scanRunRef.current = { photoCount: 0, batches: [], chips: [] };
+  }, []);
+
+  // Present the accumulated walk-the-gym run as ONE merged tray + receipt.
+  // Returns false when nothing was accumulated (caller keeps prior behavior).
+  // The photo preview is cleared: the merged tray spans several photos, so a
+  // single photo's constellation overlay would mis-map the boxes.
+  const finalizeScanRun = useCallback((): boolean => {
+    const run = scanRunRef.current;
+    scanRunRef.current = { photoCount: 0, batches: [], chips: [] };
+    if (run.batches.length === 0) return false;
+    setScanPreview(null);
+    const { merged, receipt } = mergeScanBatches(run.batches);
+    setLastScanBatch(merged);
+    setScanSessionSummary(run.photoCount > 1
+      ? {
+        photoCount: run.photoCount,
+        uniqueItemCount: countBatchDetections(merged),
+        receipt,
+        files: run.chips,
+      }
+      : null);
+    return true;
+  }, []);
+
   const scanQueuedItem = useCallback(async (queueItem: EquipmentScanQueueItem, attempt = 0) => {
     if (!selectedProfile) return;
 
@@ -903,19 +963,44 @@ const EquipmentManagerPage: React.FC = () => {
       const result = await api.scanEquipment(selectedProfile.id, queueItem.file);
       const batch = buildEquipmentScanBatch(result, queueItem.fileName);
       const reviewItem = result.item || result.items?.[0] || null;
-      setLastScanBatch(batch);
 
-      if (reviewItem && shouldAutoOpenScanApproval(batch)) {
-        const scanResult = result.scanResult || reviewItem.aiScanData;
-        setShowApproval(reviewItem);
-        setApprovalOverrides({
-          name: scanResult?.suggestedName || reviewItem.name,
-          trainerLabel: '',
-          category: scanResult?.suggestedCategory || reviewItem.category,
-        });
-      } else {
+      // S7 Walk-the-Gym: accumulate this photo's result into the current run.
+      scanRunRef.current.photoCount += 1;
+      if (batch) scanRunRef.current.batches.push(batch);
+      scanRunRef.current.chips.push({
+        fileName: queueItem.fileName,
+        itemCount: batch ? countBatchDetections(batch) : 0,
+        degraded: batch?.degraded === true,
+      });
+
+      if (scanQueueRef.current.length > 0) {
+        // More photos queued in this run: hold the tray, release the slot so
+        // the queue effect advances to the next photo immediately.
         setActiveScanItem(null);
-        if (!batch) setScanPreview(null);
+      } else if (scanRunRef.current.photoCount > 1) {
+        // Multi-photo run complete: ONE merged tray + merge receipt.
+        if (!finalizeScanRun()) {
+          setLastScanBatch(null);
+          setScanSessionSummary(null);
+          setScanPreview(null);
+        }
+        setActiveScanItem(null);
+      } else {
+        // Single-photo run: today's behavior, unchanged.
+        resetScanRun();
+        setLastScanBatch(batch);
+        if (reviewItem && shouldAutoOpenScanApproval(batch)) {
+          const scanResult = result.scanResult || reviewItem.aiScanData;
+          setShowApproval(reviewItem);
+          setApprovalOverrides({
+            name: scanResult?.suggestedName || reviewItem.name,
+            trainerLabel: '',
+            category: scanResult?.suggestedCategory || reviewItem.category,
+          });
+        } else {
+          setActiveScanItem(null);
+          if (!batch) setScanPreview(null);
+        }
       }
       loadItems(selectedProfile.id);
     } catch (err) {
@@ -947,7 +1032,7 @@ const EquipmentManagerPage: React.FC = () => {
         resetScanInputs();
       }
     }
-  }, [api, cancelAutoRetry, loadItems, resetScanInputs, selectedProfile]);
+  }, [api, cancelAutoRetry, finalizeScanRun, loadItems, resetScanInputs, resetScanRun, selectedProfile]);
 
   useEffect(() => {
     if (
@@ -958,9 +1043,9 @@ const EquipmentManagerPage: React.FC = () => {
     }
 
     const [nextScan, ...remainingQueue] = scanQueue;
-    setScanQueue(remainingQueue);
+    updateScanQueue(remainingQueue);
     void scanQueuedItem(nextScan);
-  }, [activeScanItem, failedScanItem, lastScanBatch, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
+  }, [activeScanItem, failedScanItem, lastScanBatch, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval, updateScanQueue]);
 
   // Clear any pending auto-retry timer if the component unmounts mid-wait.
   useEffect(() => cancelAutoRetry, [cancelAutoRetry]);
@@ -977,6 +1062,7 @@ const EquipmentManagerPage: React.FC = () => {
     if (validationError) {
       setScanError(validationError);
       setLastScanBatch(null);
+      setScanSessionSummary(null);
       resetScanInputs();
       return;
     }
@@ -984,12 +1070,13 @@ const EquipmentManagerPage: React.FC = () => {
     const queuedFiles = createEquipmentScanQueue(filesToQueue, source, Date.now());
     setScanError(null);
     setLastScanBatch(null);
-    setScanQueue(currentQueue => [...currentQueue, ...queuedFiles]);
+    setScanSessionSummary(null);
+    updateScanQueue([...scanQueueRef.current, ...queuedFiles]);
     resetScanInputs();
   };
 
   const handleClearScanQueue = () => {
-    setScanQueue([]);
+    updateScanQueue([]);
   };
 
   // Re-scan the same failed photo; the file was retained.
@@ -1009,7 +1096,11 @@ const EquipmentManagerPage: React.FC = () => {
     setActiveScanItem(null);
     setScanError(null); // lets the queue effect advance to the next queued photo
     setLastScanBatch(null);
-  }, [cancelAutoRetry]);
+    setScanSessionSummary(null);
+    // Queue empty means the run ends here — don't strand the photos that DID
+    // scan successfully earlier in this walk-the-gym run.
+    if (scanQueueRef.current.length === 0) finalizeScanRun();
+  }, [cancelAutoRetry, finalizeScanRun]);
 
   // "Add manually instead" from the error box: open the manual form but do not
   // discard the failed photo yet. Cancel returns the trainer to Try Again.
@@ -1071,11 +1162,13 @@ const EquipmentManagerPage: React.FC = () => {
     setSelectedProfile(null);
     setItems([]);
     setScanPreview(null);
-    setScanQueue([]);
+    updateScanQueue([]);
+    resetScanRun();
     setActiveScanItem(null);
     setFailedScanItem(null);
     setScanError(null);
     setLastScanBatch(null);
+    setScanSessionSummary(null);
     resetScanInputs();
   };
 
@@ -1251,6 +1344,7 @@ const EquipmentManagerPage: React.FC = () => {
 
   const handleDismissScanBatch = () => {
     setLastScanBatch(null);
+    setScanSessionSummary(null);
     setScanPreview(null);
   };
 
@@ -1551,6 +1645,14 @@ const EquipmentManagerPage: React.FC = () => {
           </ScanErrorBox>
         )}
 
+        {scanSessionSummary && lastScanBatch && (
+          <WalkTheGymSummary
+            photoCount={scanSessionSummary.photoCount}
+            uniqueItemCount={scanSessionSummary.uniqueItemCount}
+            receipt={scanSessionSummary.receipt}
+            files={scanSessionSummary.files}
+          />
+        )}
         {lastScanBatch && (
           <EquipmentScanBatchPanel
             batch={lastScanBatch}
