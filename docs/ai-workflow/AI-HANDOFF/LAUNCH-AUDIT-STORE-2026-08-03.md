@@ -639,7 +639,7 @@ needs verification I could not do without dashboard access.
 | `node --check` | clean on **every** `.mjs` this lane touched | full diff sweep |
 | Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
 | Pre-commit secret scan | CLEAN on all commits | staged blobs |
-| Dry-loop | **27 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+| Dry-loop | **31 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
 
 **Full-frontend-suite disclosure (Rule 56).** The 1516/1517 figure was measured at round 12.
 The round-18 re-run was started twice and **stopped producing output for 25+ minutes** with
@@ -649,6 +649,19 @@ sweep enumerated **every importer** of every file rounds 13–16 touched — `ca
 surfaces), `CheckoutView` (→ `main-routes`, `CheckoutCancel`, both stores) — and ran that
 complete closure green at 47 files / 242 tests. That is dependency-complete for this lane's
 changes but is **not** the same claim as a green full-suite run, and is labelled accordingly.
+
+**Mergeability against current `origin/main` — verified, not assumed (round 30).** A clean
+textual merge is not semantic safety, and main had moved 81 commits including a schema rename
+(`users` → `_dead_users`, `fe9a69c6f`) beneath a live payment path. So the branch was actually
+merged onto current main on a throwaway probe branch and the suites re-run there:
+
+- `git merge-tree` + a real trial merge: **zero conflicts**.
+- This lane's money-path suites on the **merged** tree: **7 files / 63 tests pass**.
+- Full backend on the **merged** tree: **1055 pass / 3 fail** — the same three
+  (`galleryReferralCreditGuardTruth`, `adminWorkoutLoggerHistoryDate`, `editWorkoutDateParsing`).
+  None of them can be this lane's: the diff `0949eaf6b..HEAD` has **zero filename intersection**
+  with gallery/referral/workout files.
+- Probe branch deleted; audit branch restored; tree clean.
 
 **Not verified — disclosed gaps.** (a) Live catalog *prices* — invisible behind the
 invitation gate without an admin credential (B2). (b) The Stripe dashboard's configured
