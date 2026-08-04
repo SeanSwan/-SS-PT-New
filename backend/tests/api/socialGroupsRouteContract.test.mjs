@@ -59,11 +59,14 @@ describe('engagement routes respect the group boundary (hostile-review fixes)', 
   it('repost blocks group posts (private-content exfiltration guard)', () => {
     expect(postsSrc).toMatch(/if \(original\.groupId\) \{[\s\S]*?cannot be reposted/);
   });
-  it('comments/reactions/unlike/report gate group posts via assertGroupPostAccess', () => {
+  it('comments/reactions/unlike/report gate posts via assertPostInteractionAccess (group gate + non-group visibility)', () => {
     expect(postsSrc).toContain("import { assertGroupPostAccess");
-    const gateCount = (postsSrc.match(/assertGroupPostAccess\(post, req\.user\)/g) || []).length;
-    // like + unlike + comment + report = 4 engagement gates
+    // SWA-129: the 4 engagement handlers now route through the visibility-aware
+    // wrapper (like + unlike + comment + report), not the bare group gate.
+    const gateCount = (postsSrc.match(/assertPostInteractionAccess\(post, req\.user\)/g) || []).length;
     expect(gateCount).toBeGreaterThanOrEqual(4);
+    // The wrapper must still preserve the group boundary by calling the group gate.
+    expect(postsSrc).toMatch(/assertPostInteractionAccess[\s\S]*?await assertGroupPostAccess\(post, user\)/);
   });
   it('the three activity broadcasts are skipped for group posts', () => {
     expect(postsSrc).toMatch(/if \(!groupPost && visibility === 'public'\) \{[\s\S]*?post_created/);
