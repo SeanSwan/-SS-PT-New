@@ -39,22 +39,22 @@ Full protocol lives at `.ai-workflow/hermes-inbox/README.md`. This skill is the 
 3. **Fill it short.** Bullets: what you did/learned · why it matters to Hermes · state right now ·
    Sean owes/blockers. A memo, not an essay.
 3b. **MISTAKES SECTION — MANDATORY, NOT OPTIONAL (Sean 2026-08-04).** Every memo for substantial
-   work carries a `## Mistakes I made` section. Sean's words: *"give a report to Hermes, especially
-   about the mistakes that you made so I can learn from them… this should be automatic."*
-   - List **your own errors**, each with: what you did wrong → how it was caught → the rule that
-     prevents the repeat. Include errors you caught yourself and corrected mid-task — a mistake
-     that never reached Sean is still the most useful kind of training data.
-   - Include **wrong claims you made and walked back**, tools that reported false success, wrong
-     severity calls, and anything a reviewer (human or model) had to correct.
-   - If a **paid/external model** (Kimi, HY3, Village, Fable) was consulted, add a
-     **calibration line**: how many of its findings were real vs dead on verification. This is how
-     Hermes learns what a given model is worth on a given task class.
-   - Honest empty is allowed but rare: `## Mistakes I made — none surfaced this task` and only
-     when a hostile pass actually ran dry. Never omit the heading; an absent section reads as
-     "nothing went wrong," which is almost never true.
-   - **Do not soften.** "Recorded the lesson" is not the same as "applied it" — if you repeated a
-     mistake you had already written up, say exactly that. That repeat is the highest-signal entry
-     a memo can contain.
+   work carries a `## Mistakes I made` section. Sean: *"give a report to Hermes, especially about
+   the mistakes that you made so I can learn from them… this should be automatic."*
+   - List **your own errors**: what you got wrong → how it was caught → the rule that prevents
+     the repeat. Include errors you caught and fixed **mid-task** — a mistake that never reached
+     Sean is still the most useful training data.
+   - Include **wrong claims you walked back**, tools that reported **false success**, and wrong
+     severity calls. **If you repeated a mistake you had already written up, say exactly that**
+     — that repeat is the highest-signal entry a memo can contain.
+   - If a **paid/external model** (Kimi, HY3, Village, Fable) was consulted, add an
+     **`## External-model calibration`** line: findings real vs disproven on verification. That is
+     how Hermes learns what a model is worth per task class.
+   - Honest-empty is allowed but rare: `## Mistakes I made — none surfaced this task`, and only
+     after a hostile pass genuinely ran dry. **Never omit the heading** — an absent section reads
+     as "nothing went wrong," which is almost never true.
+   - Enforced deterministically: `scripts/hooks/hermes-closeout-gate.mjs` reads the emitted memo
+     and BLOCKS the turn when the heading is missing (fail-open if unreadable).
 4. **Privacy gate (Rules 8 / 44 / 59 — this dir is committed + LLM-read):** IDs/roles only. No client
    names, medical/immigration/PII, secrets, keys, tokens, DB URLs, or absolute user paths. Run
    `bash scripts/scan-secrets.sh <file>` and **hard-fail on any hit** (reuse the continuity
@@ -73,10 +73,10 @@ Full protocol lives at `.ai-workflow/hermes-inbox/README.md`. This skill is the 
 2. **Absorb** into Hermes memory; promote anything worth keeping *forever* into durable Hermes
    memory / the learning corpus (the inbox is not the long-term store).
 3. **Clear = archive, never hard-delete (Rule 34):** consumed memos move to `consumed/<YYYY-MM>/`.
-   Because the Pi runs read-only (Rule 47) and is SSD-power blocked (`MEMORY.md`), Hermes records a
+   Hermes shares this filesystem now (desktop 5090; Pi RETIRED — doc 170 §A) but stays a repo READER: it records a
    **high-water mark** (last-consumed UTC) in its own memory and reports *"consumed through <ts>"*;
    the physical archive move is done in-repo by a terminal agent / a prune step (mirror
-   `scripts/coordination-prune.mjs`). Hermes does not git-write from the Pi.
+   `scripts/coordination-prune.mjs`). Hermes does not git-write — three repo-writers need Rule 67 claims, not habits.
 4. **Report** in Sean's channel: what was absorbed + the high-water mark.
 
 ## Guarantee it fires (Sean's #1 ask: "this can't be a maybe")
@@ -88,9 +88,10 @@ Layered so it doesn't:
 2. **This skill** — the exact procedure.
 3. **Folded into `closeout-evidence-lock` (Rule 41)** — auto-routes at every substantial task close,
    so the flush recurs mechanically.
-4. **True guarantee (recommended, opt-in):** a `Stop`/`SessionEnd` hook in `.claude/settings.json`.
-   Hooks are **harness-executed**, so this is the only deterministic "always fires." Tiny token cost
-   (like `prompt-watcher`). Requires Sean's yes — it changes shared session config.
+4. **`SessionStart` hook** (`scripts/hooks/hermes-inbox-reminder.mjs`, wired in
+   `.claude/settings.json`) — harness-executed, the only deterministic "always fires." Injects a
+   once-per-session reminder + pending count. Tiny token cost (like `prompt-watcher`). SessionStart
+   (once/session) over `Stop` (every turn) on purpose — a per-turn reminder would be noise.
 
 ## Integration
 - **Reuses, does not reinvent:** the continuity sanitizer (`scripts/scan-secrets.sh` +
@@ -105,12 +106,18 @@ Layered so it doesn't:
 - **Wired into BOTH operating files:** CLAUDE.md Rule 69 + AGENTS.md mirror + the skills table (a
   skill isn't done until Claude AND Codex see it).
 - Honors Rule 8 (zero PII), Rule 34 (archive not delete), Rule 44/59 (write/read-time secret scan),
-  Rule 47 (Pi read-only).
+  Rule 47 (read-only launcher posture; the Pi deployment itself is retired).
 
 ## Non-goals
 - Does **not** hard-delete memos — archive to `consumed/` (Rule 34).
-- Does **not** touch the Pi without Sean (Hermes Pi work is SSD-power BLOCKED per `MEMORY.md`); the
-  drain/report loop wires up when that clears — the write side works today.
+- Does **not** modify the Hermes runtime without Sean (config edits = T2 per the operator bridge);
+  the drain hook wires via doc 170 §E step 8 — the write side works today.
 - Does **not** invent a new Hermes transport — extends the proven daemon repo-read path.
 - Does **not** replace the learning-packet or continuity bridge — it's the third, lower-friction lane.
 - Does **not** carry PII/secrets — committed + LLM-read, so IDs/roles only.
+
+## Automatic closeout override (Sean opted in 2026-07-11)
+
+The `SessionStart` hook still injects the pending count. A deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs`, fail-open, zero model calls) now evaluates
+completed turns and blocks the first stop only when substantial work needs a memo. It passes trivial
+turns, already-emitted closeouts, and `stop_hook_active` continuations to avoid noise and loops.
