@@ -12,7 +12,7 @@ branch `claude/launch-audit-lane4-20260803`. The shared tree
 (`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
 by this lane except its own coordination file.
 **Commits: 22, local, NOT pushed — integrator reconciles.** `git log 0949eaf6b..HEAD`
-on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **18 rounds, CLEAN×2**.
+on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **23 rounds, CLEAN×2**.
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
@@ -534,8 +534,8 @@ needs verification I could not do without dashboard access.
 
 | Gate | Result | Scope |
 |---|---|---|
-| Backend money-path suites | **7 files / 83 tests pass** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
-| Full backend suite | **1037 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
+| Backend money-path suites | **7 files / 83 tests pass**, plus webhook-replay safety **6/6** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
+| Full backend suite | **1038 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
 | Frontend importer-closure sweep | **47 files / 242 tests pass** | every module importing anything this lane changed — `context`, `pages/shop`, `ShoppingCart`, `NewCheckout`, `pages/checkout`, `content/marketingStats`, `routes` |
 | Full frontend suite | **1516 / 1517 files pass** — measured at round 12 | see the disclosure below: the round-18 re-run had to be substituted |
 | `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide** | full frontend |
@@ -546,7 +546,7 @@ needs verification I could not do without dashboard access.
 | `node --check` | clean on **every** `.mjs` this lane touched | full diff sweep |
 | Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
 | Pre-commit secret scan | CLEAN on all commits | staged blobs |
-| Dry-loop | **18 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+| Dry-loop | **23 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
 
 **Full-frontend-suite disclosure (Rule 56).** The 1516/1517 figure was measured at round 12.
 The round-18 re-run was started twice and **stopped producing output for 25+ minutes** with
