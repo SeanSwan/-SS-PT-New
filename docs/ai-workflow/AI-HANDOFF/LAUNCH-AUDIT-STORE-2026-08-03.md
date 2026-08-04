@@ -9,10 +9,18 @@ supersedes: none
 **Auditor:** VS-Claude (Fable 5), Lane 4 · **Date:** 2026-08-03
 **Base:** `origin/main` @ `0949eaf6b` in isolated worktree `c:/tmp/ss-launch-audit-lane4-20260803`,
 branch `claude/launch-audit-lane4-20260803`. The shared tree
-(`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
-by this lane except its own coordination file.
-**Commits: 22, local, NOT pushed — integrator reconciles.** `git log 0949eaf6b..HEAD`
-on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **27 rounds, CLEAN×2**.
+(`wip/comms-notifications-2026-07-05`) was already far behind main at audit start and was
+**not edited** by this lane except its own coordination file.
+
+**Commits: local, NOT pushed — integrator reconciles.** For the current count and list, run
+`git log --oneline 0949eaf6b..HEAD` on `claude/launch-audit-lane4-20260803`.
+
+> **No self-staling numbers in this header, deliberately.** It has carried a wrong figure
+> three separate times — a hand-maintained SHA list (round 9), a hardcoded commit count, and
+> a "N commits behind main" reading that was stale within a day. Each was corrected and each
+> rotted again, because a number written into a document that keeps changing is a number that
+> will be wrong. Counts that still appear in this record are scoped to *when they were
+> measured* (§7) or are enumerable from §1 rather than asserted here.
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
@@ -29,9 +37,9 @@ on `claude/launch-audit-lane4-20260803`. Dry-loop closed at **27 rounds, CLEAN×
 | **B1** | **Confirm the Stripe webhook endpoint URL in the Stripe dashboard.** `https://sswanstudios.com/webhooks/stripe` returns **HTTP 200 with an empty body** to any POST (§2 F-1). Stripe reads 2xx as delivered. If the dashboard points there, every payment is marked delivered while **no sessions are credited** — silently, with no 4xx in Stripe, no backend log, and no retry. | A buyer pays $8,400 and receives nothing; nothing alerts anyone | Sean (dashboard access) | ~2 min to check |
 | **B2** | **Confirm live catalog price truth.** Live prod serves **7 packages**, the canonical seeder defines **5** (§3). Prices are invisible to me because the invitation gate strips them from every public response, so I could not verify "$175/session flat" against the live DB. | A wrong price on the money path at the moment YouTube traffic arrives | Sean or an authenticated admin read | ~5 min |
 
-Everything else on the revenue path that I could verify is sound, and **15 real defects
-found during this audit are fixed with proof** (§1) — including three that would have hit
-buyers directly: a charged customer stranded with a raw axios error and no retry, a
+Everything else on the revenue path that I could verify is sound, and **every defect found
+during this audit is fixed with proof and enumerated in §1** (F-A … F-P) — including the
+ones that would have hit buyers directly: a charged customer stranded with a raw axios error and no retry, a
 one-second window that could mint a second Stripe session for the same cart, and a
 `/checkout` screen with no route back to the store.
 
