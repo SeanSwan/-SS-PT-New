@@ -137,7 +137,9 @@ describe('unified sessions route ownership guards', () => {
     expect(clientUsersRouteIndex).toBeLessThan(idRouteIndex);
 
     const userDropdownRoutes = routeSource.slice(trainerUsersRouteIndex, idRouteIndex);
-    expect(userDropdownRoutes).toContain('unifiedSessionService.getTrainers()');
+    // Launch audit 2026-08-03: getTrainers now takes the requesting user so it
+    // can withhold trainer/admin contact PII from non-staff callers.
+    expect(userDropdownRoutes).toContain('unifiedSessionService.getTrainers(req.user)');
     expect(userDropdownRoutes).toContain('unifiedSessionService.getClients(req.user)');
     expect(userDropdownRoutes).toContain('trainerOrAdminOnly');
   });

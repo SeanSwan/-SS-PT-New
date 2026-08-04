@@ -1497,7 +1497,7 @@ router.get("/client/:userId", protect, async (req, res) => {
  */
 router.get("/users/trainers", protect, async (req, res) => {
   try {
-    const trainers = await unifiedSessionService.getTrainers();
+    const trainers = await unifiedSessionService.getTrainers(req.user);
 
     return res.status(200).json(trainers);
   } catch (error) {

@@ -2359,15 +2359,23 @@ class UnifiedSessionService {
       // Base filters
       let whereClause = {};
       
-      // **CRITICAL: Role-based filtering**
-      if (user.role === 'client') {
-        // Client total = only THEIR sessions (not all available system slots)
-        whereClause = { userId: user.id };
-      } else if (user.role === 'trainer') {
+      // **CRITICAL: Role-based filtering — FAIL CLOSED**
+      // Launch audit (2026-08-03): this used to scope only 'client' and
+      // 'trainer', so the DEFAULT signup role 'user' fell through to the
+      // unscoped admin branch and received platform-wide session counts.
+      // Only 'admin' may see everything; every other role — known or not —
+      // is scoped to its own sessions.
+      if (user?.role === 'admin') {
+        // Admins see stats for all sessions
+        whereClause = {};
+      } else if (user?.role === 'trainer') {
         // Trainers see stats for their assigned sessions
         whereClause = { trainerId: user.id };
+      } else {
+        // 'client', the default 'user' role, and anything unrecognised:
+        // only THEIR sessions (not all available system slots).
+        whereClause = { userId: user?.id ?? null };
       }
-      // Admins see stats for all sessions
 
       // Get counts with role-based filtering
       const totalSessions = await this.Session.count({ where: whereClause });
@@ -2463,11 +2471,21 @@ class UnifiedSessionService {
    * Includes admin users since admins also conduct training sessions
    * @returns {Array} List of trainers and admins
    */
-  async getTrainers() {
+  async getTrainers(requestingUser = null) {
     try {
+      // Launch audit (2026-08-03): this endpoint feeds trainer dropdowns, so it
+      // stays readable by any authenticated user — but it previously returned
+      // `email` + `phone` for every trainer AND admin, handing out the owner's
+      // personal contact details to anyone who registered. Contact fields are
+      // now projected only for staff roles; everyone else gets the display
+      // fields the dropdowns actually consume. Fail closed on an unknown role.
+      const isStaff = requestingUser?.role === 'admin' || requestingUser?.role === 'trainer';
+      const displayAttributes = ['id', 'firstName', 'lastName', 'photo', 'specialties', 'bio'];
+      const staffAttributes = [...displayAttributes, 'email', 'phone'];
+
       const trainers = await this.User.findAll({
         where: { role: { [Op.in]: ['trainer', 'admin'] } },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
+        attributes: isStaff ? staffAttributes : displayAttributes,
         order: [['role', 'ASC'], ['firstName', 'ASC']]
       });
 
