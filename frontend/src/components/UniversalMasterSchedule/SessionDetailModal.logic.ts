@@ -160,3 +160,10 @@ export const canSessionBeCompleted = (session: SessionDetail | null) => {
     && session.attendanceStatus !== 'no_show'
   );
 };
+
+/** S1: local-date-only string for the Plan Reveal — never toISOString()
+ *  (UTC would shift an evening session onto tomorrow's plan day). */
+export const sessionDateToLocalISO = (date: Date | null | undefined): string | null => {
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};

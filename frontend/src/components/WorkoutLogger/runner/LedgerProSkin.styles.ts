@@ -24,22 +24,22 @@ export const LedgerHeader = styled.div`
   min-height: 44px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-deep, #0A0A0F) 92%, transparent);
+  background: color-mix(in srgb, var(--world-bg, #0A0A0F) 92%, transparent);
   border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.14));
   backdrop-filter: blur(8px);
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
 
   b { color: ${TRAIN.done}; }
-  span { color: var(--text-secondary, rgba(224, 236, 244, 0.62)); }
+  span { color: var(--world-muted, rgba(224, 236, 244, 0.62)); }
 `;
 
 export const ExerciseBlock = styled.section`
   border-radius: 12px;
   border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.1));
-  background: var(--surface-elevated, #141419);
+  background: var(--world-panel, #141419);
   overflow: hidden;
 `;
 
@@ -57,7 +57,7 @@ export const ExerciseRow = styled.header<{ $done: boolean }>`
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--text-primary, #E0ECF4);
+    color: var(--world-text, #E0ECF4);
     overflow-wrap: anywhere;
   }
 `;
@@ -78,10 +78,10 @@ export const IconAction = styled.button`
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.62));
+  color: var(--world-muted, rgba(224, 236, 244, 0.62));
   cursor: pointer;
 
-  &:hover { color: var(--text-primary, #E0ECF4); }
+  &:hover { color: var(--world-text, #E0ECF4); }
   &:focus-visible {
     outline: 2px solid var(--focus-ring, #8B5CF6);
     outline-offset: 2px;
@@ -127,12 +127,12 @@ export const LedgerBottomBar = styled.div`
   min-height: 52px;
   padding: 8px 12px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-deep, #0A0A0F) 88%, transparent);
+  background: color-mix(in srgb, var(--world-bg, #0A0A0F) 88%, transparent);
   border: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.14));
   backdrop-filter: blur(10px);
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--world-text, #E0ECF4);
 
   b { color: ${TRAIN.done}; }
 `;

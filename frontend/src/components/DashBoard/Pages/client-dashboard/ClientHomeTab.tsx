@@ -7,10 +7,14 @@
  * the same premium home experience.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab';
+import { countSessionsThisMonth } from '../../../UserDashboard/components/ClientDashboardHome.viewModel';
+import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
 import ClientOnboardingLaunchCard from './ClientOnboardingLaunchCard';
+import ClientSessionsRemainingBanner from './ClientSessionsRemainingBanner';
+import ClientTrainerPresenceCard from './ClientTrainerPresenceCard';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   DashboardBackgroundSettingsPanel,
@@ -40,6 +44,13 @@ const CLIENT_TAB_ROUTES: Partial<Record<TabId, string>> = {
 const ClientHomeTab: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  // Same query key as the inner home tab — react-query dedupes, zero extra
+  // network. Feeds the non-deducting engagement banner real logged facts.
+  const workoutSessions = useWorkoutSessions({ limit: 50 });
+  const sessionsThisMonth = useMemo(
+    () => countSessionsThisMonth(workoutSessions.data),
+    [workoutSessions.data],
+  );
 
   return (
     <DashboardBackgroundSurface>
@@ -50,6 +61,16 @@ const ClientHomeTab: React.FC = () => {
         role={user?.role}
         firstName={user?.firstName}
       />
+      {/* Session balance — the paying client's most important number, surfaced
+          at the top of the overview (audit LAUNCH-AUDIT-CLIENT-DASH-2026-08-03). */}
+      <ClientSessionsRemainingBanner
+        clientSource={user?.clientSource}
+        sessionsThisMonth={sessionsThisMonth}
+      />
+      {/* The human they're paying for — panel consensus #1 absence (2026-08-03).
+          Renders nothing when no trainer is assigned; the onboarding card owns
+          that state. */}
+      <ClientTrainerPresenceCard />
       <ClientDashboardHomeTab
         embedded
         backgroundSettings={<DashboardBackgroundSettingsPanel scopeLabel="Client" />}

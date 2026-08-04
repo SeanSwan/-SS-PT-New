@@ -331,6 +331,16 @@
             "type": "command",
             "command": "node scripts/hooks/linear-sync-gate.mjs",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/dual-tier-gate.mjs",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/backup-after-work.mjs",
+            "timeout": 15
           }
         ]
       }

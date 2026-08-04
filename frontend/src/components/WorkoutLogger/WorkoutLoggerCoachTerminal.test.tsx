@@ -52,8 +52,7 @@ describe('WorkoutLoggerCoachTerminal', () => {
     expect(screen.getByRole('button', { name: /adjust safely/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /load phase/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add missing work/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open full coach command center for this workout/i }))
-      .toHaveAttribute('href', coachCommandRoute);
+    expect(screen.queryByRole('link', { name: /open full coach command center for this workout/i })).not.toBeInTheDocument();
 
     expect(panelPropsMock).toHaveBeenCalledWith(expect.objectContaining({
       context: 'workout_generation',

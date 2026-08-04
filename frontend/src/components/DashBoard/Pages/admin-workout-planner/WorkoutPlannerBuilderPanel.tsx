@@ -53,6 +53,8 @@ interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   onUpdateAndActivate: () => void;
   onDuplicateLoadedPlan: () => void;
   onCreatePdf: () => void;
+  /** S17: the V2 SaveBar owns save/activate — hides the header matrix under PLANNER_IA_V2. */
+  legacyActionsHidden?: boolean;
   swapTarget: RolodexSwapTarget | null;
   onSelectExercise: (exercise: ExerciseSlim) => void;
   onUpdateExercise: (id: string, field: keyof PlanExercise, value: unknown) => void;
@@ -91,6 +93,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onUpdateAndActivate,
   onDuplicateLoadedPlan,
   onCreatePdf,
+  legacyActionsHidden = false,
   swapTarget,
   onSelectExercise,
   onUpdateExercise,
@@ -117,7 +120,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
     <DegradedPanel $degraded={degradedIntelligence}>
       <PanelHeader>
         <PanelTitle><Zap size={16} /> Plan Builder</PanelTitle>
-        <BuilderActionMatrix
+        {!legacyActionsHidden && <BuilderActionMatrix
           saving={saving}
           hasExercises={hasExercises}
           loadedPlanId={loadedPlanId}
@@ -130,7 +133,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
           onDuplicateLoadedPlan={onDuplicateLoadedPlan}
           onCreatePdf={onCreatePdf}
           showCreatePdf={!generatedPlan}
-        />
+        />}
       </PanelHeader>
 
       <PanelBody>

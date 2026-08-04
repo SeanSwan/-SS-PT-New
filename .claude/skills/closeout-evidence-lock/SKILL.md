@@ -1,6 +1,6 @@
 ---
 name: closeout-evidence-lock
-description: End-of-task closeout gate for SwanStudios. Enforces Claim-to-Evidence Lock (rule 28), dual-pass hostile review (rule 17), post-task hygiene check (rule 38), and forbidden-language filter (rule 34). Inherits the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) from the retired requesting-code-review skill. Use at the end of every non-trivial task before declaring complete.
+description: End-of-task closeout gate for SwanStudios. Enforces claim-to-evidence, recursive hostile review, post-task hygiene, forbidden-language filtering, substantive code review, and canonical decision-source promotion before any non-trivial completion claim.
 ---
 
 # Closeout Evidence Lock
@@ -23,6 +23,14 @@ At the end of every task that touched any of:
 Do NOT invoke for:
 - Read-only exploration with no changes
 - Pure discussion with no commits planned
+
+This trigger is concrete: invoke for any runtime/test/config/UI/API/relied-upon-doc mutation, every `goal-contract` completion, and every cross-session handoff. File count alone never exempts a risky surface.
+
+## Durable evidence and next decision
+
+Before worktree cleanup is even offered, copy the closeout artifact into the primary checkout or record content hashes plus a committed/canonical artifact location that survives cleanup. A temporary worktree path alone is not durable evidence.
+
+Link the mode's one canonical decision source. Promote every unresolved `NEEDS_USER` entry into the next session handoff's first blocking question; do not create a second uncertainty register.
 
 ## Mandatory output (produce all sections)
 
@@ -90,8 +98,10 @@ Loop mechanics (each round, before the checklists below):
      fixed | found → flagged (gated) | CLEAN. The ledger must end with TWO
      consecutive CLEAN rounds.
   4. Findings that are Sean-gated (rule 34 cleanup, DECISION-class, paid spend)
-     count as "flagged", not "fixable" — they don't keep the loop alive, but
-     they MUST be captured to Linear (linear-todo Mode 1) before dry is declared.
+     count as "flagged", not "fixable". With recorded current-session authorization
+     naming Linear and the allowed write type, capture them there before dry is declared.
+     Without that authority, record the pending board action in the durable closeout or
+     Hermes memo and do not perform an external write.
   5. Scale rounds to blast radius: trivial one-liners may dry in 2 rounds
      (1 find-nothing + 1 confirm); production/money/auth surfaces should expect
      3-5+. Token cost is not a reason to stop early — Sean's standing directive.
@@ -223,6 +233,11 @@ Did this work create:
   [ ] New obsolete files? — [list]
 If any yes, add to cleanup backlog or archive plan.
 
+=== SECTION 6.25 - Canonical Decision Source ===
+Canonical source: [Wayfinder `map.md#Decisions` | goal contract `#Uncertainty-Register` | grill-me brainstorm | N/A]
+Source link/path: [exact path or URL]
+Next blocking `NEEDS_USER` question: [one promoted question with recommendation | none]
+No duplicate closeout decision table was created: [Y/N - if N, fail closeout]
 === SECTION 6.5 — Hermes Closeout Emission (rules 68-69) ===
 Substantial transferable work completed? [Y/N + reason]
 Hermes Inbox memo: [path | not required]
@@ -230,14 +245,13 @@ Fable-tier permanent lesson? [Y/N + originating model]
 Hermes Learning Packet: [path | not required | QUARANTINE]
 Privacy/secret scan: [command + result | not applicable]
 
-=== SECTION 6.6 — Linear Board Sync (linear-todo Mode 1/2) ===
+=== SECTION 6.6 - Linear Board Sync (authority-gated) ===
+Current-session Linear authorization recorded? [Y - create/update scope + named tracker | N]
 Does this task have (or deserve) a SWA issue? [Y/N]
-  - If it advanced/finished an EXISTING issue: update that issue THIS turn — final state,
-    commit range, evidence, Done/Todo transition. Do NOT wait for Sean to ask (the whole
-    system exists so he never has to). SWA issue: [SWA-N updated | none applies + why]
-  - If it was substantial NET-NEW work with no issue: capture one (Mode 1, dedup first).
-  - New Sean-gated findings surfaced this turn (Rule 34 / DECISION / spend): [SWA-N each | none]
-Board synced? [Y — SWA-N | N/A — trivial/no-issue task]
+  - If authorized: dedup, then update/create only within the recorded scope.
+  - If not authorized: do not write externally; record the exact pending board action in
+    this durable closeout or the Hermes memo for a later authorized session.
+Board result: [SWA-N updated/created | pending local handoff | N/A - trivial/no issue]
 
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:

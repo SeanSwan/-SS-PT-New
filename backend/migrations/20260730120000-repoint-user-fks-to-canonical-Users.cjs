@@ -47,7 +47,20 @@
  * inside one transaction so a partial repoint cannot be left behind.
  */
 
-/** Pull every FK currently pointing at the given table, with its parts. */
+/**
+ * Pull every FK currently pointing at the given table, with its parts.
+ *
+ * RESOLVES THE TARGET BY OID, NOT BY RENDERED TEXT. `confrelid::regclass::text` renders a
+ * mixed-case relation WITH quotes — `"Users"`, not `Users` — so comparing it to the bare string
+ * `'Users'` matches NOTHING. That is not hypothetical: a count query using the bare form returned 0
+ * while 172 FKs demonstrably targeted that table. `down()` used the bare form, so it would have
+ * found zero constraints and silently reverted nothing while reporting success.
+ *
+ * `to_regclass` resolves a name to an OID using normal identifier rules, so the caller passes the
+ * SQL-quoted form ('"Users"' / 'users') and casing is handled by Postgres rather than by guessing
+ * how it will print. It also returns NULL for a missing table instead of raising, which keeps a
+ * dropped-table case a normal empty result rather than a migration crash.
+ */
 async function fksTargeting(queryInterface, transaction, target) {
   const [rows] = await queryInterface.sequelize.query(
     `SELECT c.conname                    AS name,
@@ -55,7 +68,7 @@ async function fksTargeting(queryInterface, transaction, target) {
             pg_get_constraintdef(c.oid)  AS def
        FROM pg_constraint c
       WHERE c.contype = 'f'
-        AND c.confrelid::regclass::text = :target
+        AND c.confrelid = to_regclass(:target)
       ORDER BY 1`,
     { replacements: { target }, transaction },
   );
@@ -71,6 +84,27 @@ async function fksTargeting(queryInterface, transaction, target) {
       actions: (m[3] || '').trim(),
     };
   });
+}
+
+/**
+ * Bound how long this transaction will WAIT for a lock. Measured 2026-08-04: the server has
+ * `lock_timeout`, `statement_timeout` and `idle_in_transaction_session_timeout` all set to 0 —
+ * wait forever. This migration takes DDL locks across 31 tables in ONE transaction, so a single
+ * conflicting long-running query would block it indefinitely AND queue every subsequent query on
+ * `sessions`, `orders`, `notifications` and 28 others behind it. That is an outage, not a slow
+ * migration.
+ *
+ * 5s, and FAILING, is the better outcome: the transaction rolls back whole (nothing is left
+ * half-repointed) and can be retried in a quieter moment. This matters most for `down()`, which by
+ * definition runs during an incident — the worst possible time to hold a queue open.
+ *
+ * SET LOCAL scopes it to this transaction only; the session default is untouched.
+ *
+ * Today the risk is small — 17 live rows across all 31 tables, which is why `up()` ran instantly —
+ * but the guard costs one statement and the row count only goes up.
+ */
+async function boundLockWait(queryInterface, transaction) {
+  await queryInterface.sequelize.query("SET LOCAL lock_timeout = '5s'", { transaction });
 }
 
 /** Repoint every FK from `from` to `to`, preserving columns and action clauses. */
@@ -122,6 +156,9 @@ async function repoint(queryInterface, transaction, from, to) {
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
+      await boundLockWait(queryInterface, transaction);
+      // Targets are passed as SQL identifiers: bare `users` folds to lowercase, `"Users"`
+      // must stay quoted or Postgres would fold it to `users` and resolve the WRONG table.
       await repoint(queryInterface, transaction, 'users', 'Users');
     });
   },
@@ -132,7 +169,10 @@ module.exports = {
    */
   async down(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      const fks = await fksTargeting(queryInterface, transaction, 'Users');
+      await boundLockWait(queryInterface, transaction);
+      // '"Users"' — quoted. The bare form resolves to lowercase `users` and finds nothing,
+      // which is exactly the bug this line used to have.
+      const fks = await fksTargeting(queryInterface, transaction, '"Users"');
       // Only move back the ones this migration created; everything else legitimately
       // targeted "Users" beforehand and must be left alone.
       const ours = fks.filter((f) => MOVED.has(f.name));

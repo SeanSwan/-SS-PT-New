@@ -1,0 +1,7 @@
+interface:
+  display_name: "Guided Setup"
+  short_description: "Guide setup one verified step at a time"
+  default_prompt: "Use $guided-setup to guide this setup one verified step at a time while preserving the remaining checklist."
+
+policy:
+  allow_implicit_invocation: true

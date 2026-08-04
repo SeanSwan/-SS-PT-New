@@ -33,13 +33,13 @@ const Tab = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) =>
     $active
       ? 'color-mix(in srgb, var(--train-coach, #8b5cf6) 55%, transparent)'
-      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent)'};
+      : 'color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent)'};
   background: ${({ $active }) =>
     $active
       ? 'color-mix(in srgb, var(--train-coach, #8b5cf6) 18%, transparent)'
       : 'transparent'};
   color: ${({ $active }) =>
-    $active ? 'var(--swan-coach-fg, #c4b5fd)' : 'var(--text-muted, #94a3b8)'};
+    $active ? 'var(--swan-coach-fg, #c4b5fd)' : 'var(--world-muted, #94a3b8)'};
 
   &:focus-visible {
     outline: 2px solid var(--train-coach, #8b5cf6);
@@ -48,7 +48,7 @@ const Tab = styled.button<{ $active: boolean }>`
 `;
 
 const Body = styled.div`
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
 `;
 
 export interface CoachDrawerProps {

@@ -96,6 +96,14 @@ describe('dashboard theme synchronization contract', () => {
     expect(pendingOrders).not.toContain('rgba(0,255,136');
   });
 
+  it('keeps the mounted dashboard canvas independent from the active lens background', () => {
+    const universalStyles = readSource('src/components/DashBoard/UniversalDashboardLayout.styles.ts');
+
+    expect(universalStyles).toMatch(/body \{[\s\S]*?background: var\(--app-canvas, #0A0A0F\);/);
+    expect(universalStyles).toMatch(/UniversalLayoutContainer[\s\S]*?background: var\(--app-canvas, #0A0A0F\);/);
+    expect(universalStyles).toMatch(/UniversalMainContent[\s\S]*?background: var\(--app-canvas, #0A0A0F\);/);
+  });
+
   it('keeps the hydration controls theme-responsive', () => {
     const hydration = readSource('src/components/DashBoard/workspaces/NutritionHydrationTab.tsx');
 

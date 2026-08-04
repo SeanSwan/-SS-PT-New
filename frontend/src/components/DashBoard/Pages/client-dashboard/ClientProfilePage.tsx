@@ -210,12 +210,28 @@ const ClientProfilePage: React.FC = () => {
     photo?: string;
   }) | null;
   const [goalText, setGoalText] = useState(user?.fitnessGoal || '');
-  const [notifPrefs, setNotifPrefs] = useState({ email: true, push: true, sms: false });
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    // Seed from the client's actual saved preferences — not hardcoded defaults —
+    // so the toggles reflect real state and a save round-trips correctly.
+    const u = user as (typeof user & {
+      emailNotifications?: boolean;
+      smsNotifications?: boolean;
+      notificationPreferences?: { email?: boolean; push?: boolean; sms?: boolean } | null;
+    }) | null;
+    const np = u?.notificationPreferences ?? null;
+    return {
+      email: np?.email ?? u?.emailNotifications ?? true,
+      push: np?.push ?? true,
+      sms: np?.sms ?? u?.smsNotifications ?? false,
+    };
+  });
   const [chartVisibility, setChartVisibility] = useState<ProfileChartVisibility>(
     () => profileUser?.chartVisibility || DEFAULT_CHART_VISIBILITY
   );
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [prefsStatus, setPrefsStatus] = useState<string | null>(null);
 
   const initials = `${(user?.firstName || '')[0] || ''}${(user?.lastName || '')[0] || ''}`.toUpperCase() || '?';
   const memberSince = user?.createdAt
@@ -249,6 +265,31 @@ const ClientProfilePage: React.FC = () => {
       setSaving(false);
     }
   }, [chartVisibility]);
+
+  const handleSavePreferences = useCallback(async () => {
+    setSavingPrefs(true);
+    setPrefsStatus(null);
+    try {
+      const res = await apiService.put('/api/profile', {
+        fitnessGoal: goalText,
+        emailNotifications: notifPrefs.email,
+        smsNotifications: notifPrefs.sms,
+        notificationPreferences: notifPrefs,
+      }, {
+        validateStatus: status => status < 500,
+      });
+      if (res.status >= 200 && res.status < 300) {
+        setPrefsStatus('Saved');
+        setTimeout(() => setPrefsStatus(null), 3000);
+      } else {
+        setPrefsStatus('Error saving');
+      }
+    } catch {
+      setPrefsStatus('Error saving');
+    } finally {
+      setSavingPrefs(false);
+    }
+  }, [goalText, notifPrefs]);
 
   return (
     <PageWrap>
@@ -348,6 +389,15 @@ const ClientProfilePage: React.FC = () => {
           <ToggleLabel>SMS Notifications</ToggleLabel>
           <Toggle $active={notifPrefs.sms} onClick={() => toggleNotif('sms')} aria-label="Toggle SMS" />
         </ToggleRow>
+        <SaveRow>
+          <SaveButton onClick={handleSavePreferences} disabled={savingPrefs}>
+            <Save size={14} />
+            {savingPrefs ? 'Saving...' : 'Save Goals & Notifications'}
+          </SaveButton>
+          {prefsStatus && (
+            <SaveStatus $success={prefsStatus === 'Saved'}>{prefsStatus}</SaveStatus>
+          )}
+        </SaveRow>
       </Card>
 
       {/* Theme */}

@@ -93,7 +93,26 @@ const TABLE_CREATION_ORDER = [
   // PHASE 12: CRM Lead Management (leads first, then activities)
   'leads',                       // Lead — depends on Users, gallery_visitors
   'lead_activities',             // LeadActivity — depends on leads, Users
-  'page_views'                   // PageView — standalone, anonymous page view persistence
+  'page_views',                  // PageView — standalone, anonymous page view persistence
+
+  // PHASE 13: Drift-audit backfill (2026-08-03) — live-wired models whose tables
+  // were never created in production because they were absent from this list AND
+  // had no .cjs migration visible to safe-migrate.mjs (which cannot load .mjs files).
+  // Every entry below was verified missing against the live DB via
+  // scripts/audit-schema-drift.mjs before being added. Depends only on Users,
+  // which is created in PHASE 1.
+  'progress_data',               // ProgressData — /api/gamification progress endpoints
+  'user_follows',                // UserFollow — social follow/leaderboard/feed endpoints
+  'session_packages',            // SessionPackage — gallery VIP Stripe fulfillment
+  'video_sessions',              // VideoSession — /api/video-sessions (VideoChat/ROM)
+  'olympic_events',              // OlympicEvent — /api/olympics (Virtual Olympics)
+  'marketing_calendar_items',    // MarketingCalendarItem — admin marketing calendar
+  'social_publishing_accounts',  // SocialPublishingAccount
+  'social_publishing_jobs',      // SocialPublishingJob — publish queue
+  'social_publishing_attempts'   // SocialPublishingAttempt — per-attempt audit trail
+  // DDL dry-run 2026-08-03: none of the three social_publishing tables declare hard FK
+  // constraints to each other (cross-refs are plain integer columns); the only REFERENCES
+  // targets across all nine PHASE 13 tables are "Users". Order above is logical, not load-bearing.
 ];
 
 /**

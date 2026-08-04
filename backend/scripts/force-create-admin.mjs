@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import { QueryTypes } from 'sequelize';
-import crypto from 'crypto';
 
 // --- Environment Loading ---
 const __filename = fileURLToPath(import.meta.url);
@@ -52,7 +51,7 @@ async function forceCreateAdmin() {
       `SELECT table_name 
        FROM information_schema.tables 
        WHERE table_schema = 'public' 
-       AND table_name = 'users'`,
+       AND table_name = 'Users'`,
       { type: QueryTypes.SELECT }
     );
     
@@ -64,7 +63,7 @@ async function forceCreateAdmin() {
     // 3. Check if admin user already exists
     console.log('Checking if admin user already exists...');
     const existingAdmin = await sequelize.query(
-      `SELECT id, username FROM users WHERE username = :username`,
+      `SELECT id, username FROM "Users" WHERE username = :username`,
       {
         replacements: { username: ADMIN_USERNAME },
         type: QueryTypes.SELECT
@@ -80,7 +79,7 @@ async function forceCreateAdmin() {
       const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, salt);
       
       await sequelize.query(
-        `UPDATE users
+        `UPDATE "Users"
          SET password = :password,
              "updatedAt" = NOW()
          WHERE username = :username`,
@@ -102,12 +101,11 @@ async function forceCreateAdmin() {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, salt);
       
-      // Generate UUID for ID
-      const uuid = crypto.randomUUID();
-      
+      // "Users".id is INTEGER serial (live-DB verified 2026-08-03) — let Postgres assign it.
+      // The old version inserted a crypto.randomUUID() id into the dead lowercase `users`
+      // table, which both targeted the wrong table and failed the integer id column.
       await sequelize.query(
-        `INSERT INTO users (
-           id,
+        `INSERT INTO "Users" (
            username,
            email,
            "firstName",
@@ -118,7 +116,6 @@ async function forceCreateAdmin() {
            "createdAt",
            "updatedAt"
          ) VALUES (
-           :id,
            :username,
            :email,
            :firstName,
@@ -131,7 +128,6 @@ async function forceCreateAdmin() {
          )`,
         {
           replacements: {
-            id: uuid,
             username: ADMIN_USERNAME,
             email: ADMIN_EMAIL,
             firstName: ADMIN_FIRST_NAME,

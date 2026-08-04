@@ -120,6 +120,7 @@ export const PlannerMediaThumb = styled.div`
   > div [role='img'] > div {
     max-width: 100%;
     overflow: hidden;
+    overflow-wrap: anywhere;
     text-overflow: ellipsis;
   }
 

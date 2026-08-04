@@ -15,6 +15,9 @@ import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
 import { getVideoCatalog } from '../../models/index.mjs';
 import { getCatalogVideoSamplesByExercise } from '../exerciseCatalogVideoSamples.mjs';
+import {
+  decodeRolodexList, muscleSearchTerms, normalizeMovementCategory, normalizeMuscleList,
+} from './bootcampTaxonomy.mjs';
 
 // ── Setup Time Estimates by Equipment ─────────────────────────────────
 // How long (seconds) it takes a participant to set up each equipment type
@@ -67,25 +70,21 @@ export async function queryExercisesForBootcamp(filters = {}) {
   } = filters;
 
   try {
-    // Use "Exercises" table (883+ exercises). exercise_library exists but is empty.
-    // Check which table has actual data.
-    let tableName = 'Exercises';
-    try {
-      const [countCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM "Exercises"`);
-      if (parseInt(countCheck[0]?.c || 0) === 0) {
-        const [altCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM exercise_library`);
-        if (parseInt(altCheck[0]?.c || 0) > 0) tableName = 'exercise_library';
-      }
-    } catch { /* use default */ }
+    // "Exercises" only (916 live rows; all 28 selected columns verified against the live
+    // DB 2026-08-03). The old exercise_library fallback could never work: that table is
+    // snake_case (primary_muscle, movement_patterns, …) so this PascalCase SELECT list
+    // would throw "column does not exist" and the .catch below would silently return [].
+    const tableName = 'Exercises';
 
     // Build WHERE conditions
-    const conditions = [`"isActive" = true OR "isActive" IS NULL`];
+    const conditions = [`("isActive" = true OR "isActive" IS NULL)`];
     const replacements = {};
 
     // Muscle group filter (JSON array contains)
     if (muscleGroups.length > 0) {
-      const muscleConditions = muscleGroups.map((m, i) => {
-        replacements[`muscle_${i}`] = `%${m}%`;
+      const searchTerms = [...new Set(muscleGroups.flatMap(muscleSearchTerms))];
+      const muscleConditions = searchTerms.map((term, i) => {
+        replacements[`muscle_${i}`] = `%${term}%`;
         return `("primaryMuscles"::text ILIKE :muscle_${i} OR "secondaryMuscles"::text ILIKE :muscle_${i})`;
       });
       conditions.push(`(${muscleConditions.join(' OR ')})`);
@@ -144,7 +143,14 @@ export async function queryExercisesForBootcamp(filters = {}) {
         "kneeMod", "shoulderMod", "ankleMod", "wristMod", "backMod"
       FROM "${tableName}"
       ${whereClause}
-      ORDER BY COALESCE(difficulty, 500) ASC, name ASC
+      ORDER BY
+        CASE
+          WHEN "exerciseType" = 'compound' THEN 0
+          WHEN "exerciseType" IN ('stability', 'calisthenics', 'core') THEN 1
+          WHEN "exerciseType" = 'flexibility' OR "bodyPartCategory" = 'recovery' THEN 3
+          ELSE 2
+        END ASC,
+        COALESCE(difficulty, 500) DESC, name ASC
       LIMIT :limit
     `;
 
@@ -204,9 +210,11 @@ async function loadCatalogVideoSamples(exercises) {
 }
 
 function formatForBootcamp(ex, sample = null) {
-  const primaryMuscles = parseJsonField(ex.primaryMuscles);
-  const secondaryMuscles = parseJsonField(ex.secondaryMuscles);
-  const equipment = parseJsonField(ex.equipmentNeeded ?? ex.equipment) || ['bodyweight'];
+  const primaryMuscles = normalizeMuscleList(ex.primaryMuscles);
+  const secondaryMuscles = normalizeMuscleList(ex.secondaryMuscles);
+  const equipment = decodeRolodexList(ex.equipmentNeeded ?? ex.equipment);
+  const movementPattern = normalizeMovementCategory(ex.nasmMovementPattern)
+    ?? normalizeMovementCategory(ex.name);
 
   return {
     exerciseLibraryId: ex.id,
@@ -214,11 +222,13 @@ function formatForBootcamp(ex, sample = null) {
     name: ex.name,
     muscles: [...primaryMuscles, ...secondaryMuscles],
     primaryMuscle: primaryMuscles[0] ?? null,
-    equipment,
+    equipment: equipment.length > 0 ? equipment : ['bodyweight'],
+    category: movementPattern,
+    movementPattern,
     difficulty: ex.difficulty ?? 500,
     exerciseType: ex.exerciseType ?? 'compound',
     bodyPartCategory: ex.bodyPartCategory ?? 'full_body',
-    optPhases: parseJsonField(ex.optPhases) || [1, 2, 3, 4, 5],
+    optPhases: decodeRolodexList(ex.optPhases).length > 0 ? decodeRolodexList(ex.optPhases) : [1, 2, 3, 4, 5],
     source: ex.source ?? 'unknown',
     description: ex.description ?? null,
     instructions: ex.instructions ?? null,
@@ -241,8 +251,4 @@ function formatForBootcamp(ex, sample = null) {
   };
 }
 
-function parseJsonField(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  try { return JSON.parse(value); } catch { return []; }
-}
+export const __testing__ = { formatForBootcamp };

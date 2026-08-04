@@ -22,7 +22,7 @@ TrainerAvailability.init(
       allowNull: false,
       field: 'trainer_id',
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id'
       },
       comment: 'Trainer user ID'

@@ -131,6 +131,16 @@ export function hasIncompleteWorkoutSets(exercises: ExerciseEntry[] = []): boole
 export function plannedExerciseToEntry(
   exercise: PlannedExercise,
   createLocalId: () => string,
+  // S0: identity of the plan day this row was materialized FROM — powers
+  // reconcile-by-identity (S5) and prescribed-vs-actual. Optional: ad-hoc
+  // and non-plan paths simply omit it.
+  sourcePlanDay?: {
+    planId: string | null;
+    contentRevision: number | null;
+    weekNumber: number | null;
+    dayNumber: number | null;
+    exerciseIndex: number;
+  },
 ): ExerciseEntry {
   const setCount = Array.isArray(exercise.sets)
     ? exercise.sets.length
@@ -155,16 +165,30 @@ export function plannedExerciseToEntry(
     notes: compactString(recordField(set, 'notes')) || exerciseNotes,
   });
 
+  const builtSets = Array.isArray(exercise.sets)
+    ? exercise.sets.map(buildSet)
+    : Array.from({ length: setCount }, (_, index) => buildSet(null, index));
+
   return {
     loggerExerciseId: createLocalId(),
     exerciseId: String(exercise.exerciseId || exercise.id || createLocalId()),
     exerciseName: exercise.exerciseName || exercise.name || 'Unknown Exercise',
-    sets: Array.isArray(exercise.sets)
-      ? exercise.sets.map(buildSet)
-      : Array.from({ length: setCount }, (_, index) => buildSet(null, index)),
+    sets: builtSets,
     formRating: null,
     painLevel: 0,
     performanceNotes: '',
+    ...(sourcePlanDay ? { sourcePlanDay } : {}),
+    // Immutable prescription snapshot — captured BEFORE any edit so
+    // plan-vs-actual can always answer "what was the target?".
+    prescribed: {
+      sets: builtSets.map((set) => ({
+        setNumber: set.setNumber,
+        weight: set.weight,
+        reps: set.reps,
+        ...(set.tempo ? { tempo: set.tempo } : {}),
+        restTime: set.restTime,
+      })),
+    },
   };
 }
 
@@ -306,20 +330,12 @@ export function planAssignmentPickerItemToSubmitAssignment(
     ? planAssignmentPickerItemToContext(item)
     : null;
 }
-export function getPlanDayForDate(
-  days: PlannedDay[] | undefined,
-  date = new Date(),
-): PlannedDay | null {
-  if (!days?.length) return null;
-
-  const dayOfWeek = date.getDay();
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const todayName = dayNames[dayOfWeek];
-
-  return days.find((day) => day.dayName?.toLowerCase() === todayName.toLowerCase())
-    || days[dayOfWeek % days.length]
-    || null;
-}
+// S0 (Plan Surfacing, 2026-08-03): getPlanDayForDate is DELETED, not moved.
+// Weekday-name matching cannot distinguish W2·Tue from W5·Tue and silently
+// guessed (`days[dayOfWeek % length]`) when names didn't match. Date→plan-day
+// questions are answered server-side by planDayResolver's basis chain
+// (`GET /api/workouts/:id/current?forDate=`); the cursor question stays with
+// `currentSession`/`todayAssignment`. Do NOT reintroduce a client-side mapper.
 
 // ── Extracted from WorkoutLogger.tsx (Phase 2.1a ratchet) ───────────────────
 const SELF_LOGGING_DASHBOARD_ROLES = new Set(['client', 'user']);

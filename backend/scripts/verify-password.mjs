@@ -75,7 +75,7 @@ async function verifyPassword() {
     console.log(`\nLooking for user '${username}'...`);
     const users = await sequelize.query(
       `SELECT id, username, "firstName", "lastName", email, role, password
-       FROM users
+       FROM "Users"
        WHERE username = :username`,
       {
         replacements: { username },

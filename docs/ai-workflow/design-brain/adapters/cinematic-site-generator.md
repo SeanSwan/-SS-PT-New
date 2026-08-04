@@ -37,7 +37,7 @@
 ## 6. Video / image asset plan
 
 - Every section's asset answers the four storyboarding questions (design system §D): emotional job → archetype → fallback chain (poster → gradient → removed) → motion-with-a-job.
-- Produce Seedance briefs per `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` templates, via the split skills: `seedance-swan-cinematic-video` (hero/card/icon loops, b-roll, brand film) and `seedance-swan-workout-video` (exercise demos). Briefs name Crystalline tokens in the palette field; loops 4–8s for headers, 10–20s scroll-scrubbed.
+- Produce Seedance briefs per `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` templates, via the unified `seedance-swan-video` skill in cinematic mode (hero/card/icon loops, b-roll, brand film) or workout mode (exercise demos). Briefs name Crystalline tokens in the palette field; loops 4–8s for headers, 10–20s scroll-scrubbed.
 - No full-bleed stock photography (ban §B.8). Every asset is Swan-story-specific.
 
 ## 7. 3D / GSAP / Three.js usage

@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Download, LogOut, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { ArrowUpRight, Download, LogOut, MessageSquare, MoreHorizontal } from 'lucide-react';
 import Sheet from '../primitives/Sheet';
 
 const TriggerButton = styled.button`
@@ -20,10 +20,10 @@ const TriggerButton = styled.button`
   min-width: 44px;
   min-height: 44px;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent);
   border-radius: 10px;
   background: transparent;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   cursor: pointer;
 
   &:focus-visible {
@@ -35,7 +35,7 @@ const TriggerButton = styled.button`
 const MenuTitle = styled.h2`
   margin: 0 0 10px;
   font: 700 1rem 'Plus Jakarta Sans', sans-serif;
-  color: var(--text-primary, #e0ecf4);
+  color: var(--world-text, #e0ecf4);
 `;
 
 const ActionRow = styled.button<{ $danger?: boolean }>`
@@ -53,9 +53,9 @@ const ActionRow = styled.button<{ $danger?: boolean }>`
   border: 1px solid ${({ $danger }) =>
     $danger
       ? 'color-mix(in srgb, var(--danger, #ef4444) 45%, transparent)'
-      : 'color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent)'};
+      : 'color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent)'};
   background: transparent;
-  color: ${({ $danger }) => ($danger ? 'var(--danger, #ef4444)' : 'var(--text-primary, #e0ecf4)')};
+  color: ${({ $danger }) => ($danger ? 'var(--danger, #ef4444)' : 'var(--world-text, #e0ecf4)')};
 
   &:disabled {
     opacity: 0.55;
@@ -75,11 +75,13 @@ export interface ContextOverflowProps {
   showGenerateSummary: boolean;
   isGeneratingSummary: boolean;
   summaryLockedReason?: string;
+  /** Parent-owned SPA navigation; exposed only when leaving cannot lose a live draft. */
+  onOpenCoachCommand?: () => void;
 }
 
 const ContextOverflow: React.FC<ContextOverflowProps> = ({
   onCancelSession, onExportPDF, onGenerateSummary,
-  showGenerateSummary, isGeneratingSummary, summaryLockedReason,
+  showGenerateSummary, isGeneratingSummary, summaryLockedReason, onOpenCoachCommand,
 }) => {
   const [open, setOpen] = useState(false);
   // Footer-contract lock: the summary row stays VISIBLE with its reason,
@@ -101,6 +103,11 @@ const ContextOverflow: React.FC<ContextOverflowProps> = ({
       </TriggerButton>
       <Sheet open={open} onClose={() => setOpen(false)} label='Session actions' historyKey='session-actions'>
         <MenuTitle>Session actions</MenuTitle>
+        {onOpenCoachCommand && (
+          <ActionRow type='button' onClick={runAndClose(onOpenCoachCommand)} aria-label='Open full Coach Command Center for this workout'>
+            <ArrowUpRight size={16} aria-hidden='true' /> Full Command Center
+          </ActionRow>
+        )}
         <ActionRow type='button' onClick={runAndClose(onExportPDF)}>
           <Download size={16} aria-hidden='true' /> Export PDF
         </ActionRow>

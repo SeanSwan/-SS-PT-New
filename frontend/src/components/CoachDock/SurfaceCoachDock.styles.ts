@@ -62,7 +62,7 @@ export const OpenBtn = styled.button`
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
   background: var(--btn-primary-bg, #002060);
-  color: var(--text-primary, #E0ECF4);
+  color: var(--button-primary-text, #E0ECF4);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;

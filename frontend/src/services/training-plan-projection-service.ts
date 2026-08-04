@@ -42,6 +42,9 @@ export interface TrainingPlanProjection {
   prescribedHash: string | null;
   completionState: 'planned' | 'completed';
   completedAt: string | null;
+  /** S2: planned day behind the client's local today (>=1) — honest drift.
+   *  Optional for rolling-deploy tolerance: absent from older servers. */
+  overdueDays?: number | null;
   coexistenceKey: string;
 }
 
@@ -72,7 +75,7 @@ const ITEM_KEYS = new Set<keyof TrainingPlanProjection>([
   'clientId', 'trainerId', 'planStatus', 'scheduledDate', 'dateBasis', 'timeZone',
   'weekNumber', 'dayNumber', 'title', 'dayLabel', 'focus', 'assignmentType',
   'exerciseCount', 'exercisePreview', 'prescribedRevision', 'prescribedHash',
-  'completionState', 'completedAt', 'coexistenceKey',
+  'completionState', 'completedAt', 'overdueDays', 'coexistenceKey',
 ]);
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const HASH = /^[a-f0-9]{64}$/;
@@ -130,6 +133,10 @@ const normalizeItem = (value: unknown): TrainingPlanProjection => {
     || !['planned', 'completed'].includes(String(value.completionState))
     || !nullableCompletedAt(value.completedAt)
     || (value.completionState === 'completed') !== (value.completedAt !== null)
+    // S2 overdueDays: tolerant-optional (absent = older server), else null or
+    // a positive integer — and NEVER present on a completed day.
+    || !(!('overdueDays' in value) || value.overdueDays === null || positive(value.overdueDays))
+    || (value.completionState === 'completed' && value.overdueDays != null)
     || value.coexistenceKey !== `${value.clientId}:${value.scheduledDate}`
   ) return invalid();
   return value as unknown as TrainingPlanProjection;

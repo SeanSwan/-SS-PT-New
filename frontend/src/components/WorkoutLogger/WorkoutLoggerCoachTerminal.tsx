@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
-import { ArrowUpRight, CheckCircle2, CalendarDays, Repeat2, Sparkles } from 'lucide-react';
+import { CheckCircle2, CalendarDays, Repeat2, Sparkles } from 'lucide-react';
 import AITerminalPanel from '../Shared/AITerminalPanel';
-import { useAuth } from '../../context/AuthContext';
 import type { AIRequestContext } from '../../hooks/useAIChat';
 import type { AITerminalQuickPrompt } from '../Shared/AITerminalPanel.types';
-import { buildWorkoutLoggerCoachRoute } from './workoutLoggerCoachRoute';
 
 interface WorkoutLoggerCoachTerminalProps {
   clientId?: number;
@@ -14,7 +12,6 @@ interface WorkoutLoggerCoachTerminalProps {
   scheduledSessionId?: string | null;
   scheduledSessionDate?: string | null;
   scheduledSessionCreditHint?: number | null;
-  coachCommandRoute?: string | null;
   exerciseCount: number;
   selfMode?: boolean;
 }
@@ -35,35 +32,14 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
   scheduledSessionId,
   scheduledSessionDate,
   scheduledSessionCreditHint,
-  coachCommandRoute,
   exerciseCount,
   selfMode = false,
 }) => {
-  const { user } = useAuth();
   const dateLabel = labelForDate(scheduledSessionDate || workoutDate);
   const workoutSubject = selfMode ? 'your workout' : 'the selected client';
   const scopedWorkout = selfMode ? `your ${dateLabel} workout` : `this selected client's ${dateLabel} workout`;
   const scopedSession = selfMode ? `your ${dateLabel} session` : `this selected client's ${dateLabel} session`;
   const hasStartedWorkout = exerciseCount > 0;
-  const resolvedCoachCommandRoute = useMemo(() => coachCommandRoute ?? buildWorkoutLoggerCoachRoute({
-    userRole: user?.role,
-    clientId,
-    selfMode,
-    workoutDate,
-    scheduledSessionId,
-    scheduledSessionDate,
-    scheduledSessionCreditHint,
-  }), [
-    clientId,
-    coachCommandRoute,
-    scheduledSessionCreditHint,
-    scheduledSessionDate,
-    scheduledSessionId,
-    selfMode,
-    user?.role,
-    workoutDate,
-  ]);
-
   const requestContext = useMemo<AIRequestContext | null>(() => {
     const selectedWorkoutDate = isoDateOrNull(scheduledSessionDate) || isoDateOrNull(workoutDate);
     const contextPayload: AIRequestContext = {
@@ -146,15 +122,6 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
             {exerciseCountLabel(exerciseCount)}
           </ContextPill>
         </ContextPills>
-        {resolvedCoachCommandRoute && (
-          <CommandCenterLink
-            href={resolvedCoachCommandRoute}
-            aria-label="Open full Coach Command Center for this workout"
-          >
-            <span>Full Command Center</span>
-            <ArrowUpRight size={15} aria-hidden="true" />
-          </CommandCenterLink>
-        )}
       </StripHeader>
 
       <AITerminalPanel
@@ -199,50 +166,6 @@ const StripHeader = styled.div`
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 10px;
-`;
-
-const CommandCenterLink = styled.a`
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid var(--workout-coach-command-link-border, #60c0f04d);
-  border-radius: 10px;
-  background: linear-gradient(
-    135deg,
-    var(--workout-coach-command-link-bg-a, #60c0f024),
-    var(--workout-coach-command-link-bg-b, #8b5cf624)
-  );
-  color: var(--workout-coach-command-link-text, #e0ecf4);
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1;
-  padding: 0 12px;
-  text-decoration: none;
-  white-space: nowrap;
-  box-shadow: 0 10px 28px var(--workout-coach-command-link-shadow, #00000033);
-  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
-
-  &:hover,
-  &:focus-visible {
-    border-color: var(--workout-coach-command-link-hover-border, #c6a84b);
-    background: linear-gradient(
-      135deg,
-      var(--workout-coach-command-link-hover-bg-a, #60c0f038),
-      var(--workout-coach-command-link-hover-bg-b, #8b5cf638)
-    );
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--workout-coach-command-link-focus, #8b5cf6);
-    outline-offset: 2px;
-  }
-
-  @media (max-width: 430px) {
-    width: 100%;
-  }
 `;
 
 const StripTitle = styled.h2`

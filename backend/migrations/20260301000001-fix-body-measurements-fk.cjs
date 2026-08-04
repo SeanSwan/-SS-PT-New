@@ -56,7 +56,7 @@ module.exports = {
       fields: ['userId'],
       type: 'foreign key',
       name: 'body_measurements_userId_fkey',
-      references: { table: 'users', field: 'id' },
+      references: { table: 'Users', field: 'id' }, // drift audit 2026-08-03: rollback must never re-point at the dead lowercase `users` table
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE',
     });
@@ -65,7 +65,7 @@ module.exports = {
       fields: ['recordedBy'],
       type: 'foreign key',
       name: 'body_measurements_recordedBy_fkey',
-      references: { table: 'users', field: 'id' },
+      references: { table: 'Users', field: 'id' }, // drift audit 2026-08-03: rollback must never re-point at the dead lowercase `users` table
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE',
     });

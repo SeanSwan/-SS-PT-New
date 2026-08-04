@@ -43,6 +43,7 @@ import {
   FooterVersion,
 } from './ClientStellarSidebar.styles';
 import { isNonDeductingClientSource } from '../../workspaces/clients-team/clientSessionSignal';
+import { resolveBrandIdentity } from '../../../../services/pdf/brandIdentity';
 import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 import { StyledBox } from '@/components/ui/StyledBox';
 
@@ -162,6 +163,14 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
   const showLabel = !collapsed;
   const canBookSwanStudiosSessions = !isNonDeductingClientSource(clientSource);
 
+  // White-label the nav chrome by client source so a Move Fitness member never
+  // sees SwanStudios branding on their own dashboard (rule 8 / white-label
+  // business risk). Fail-safe: unknown/external sources resolve to SwanStudios.
+  const brand = resolveBrandIdentity(clientSource);
+  const isMoveFitness = brand.brandKey === 'move_fitness';
+  const logoMark = isMoveFitness ? 'MF' : 'SS';
+  const footerWordmark = isMoveFitness ? brand.wordmark : 'SwanStudios v2.1';
+
   return (
     <>
       {isMobile && !isMobileOpen && (
@@ -184,7 +193,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
       >
         <SidebarHeader $collapsed={collapsed}>
           <LogoBrand>
-            <LogoMark>SS</LogoMark>
+            <LogoMark>{logoMark}</LogoMark>
             <LogoLabel $visible={showLabel}>Client</LogoLabel>
           </LogoBrand>
 
@@ -236,7 +245,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
         </NavScroll>
 
         <SidebarFooter $collapsed={collapsed}>
-          {showLabel && <FooterVersion>SwanStudios v2.1</FooterVersion>}
+          {showLabel && <FooterVersion>{footerWordmark}</FooterVersion>}
         </SidebarFooter>
       </SidebarWrap>
     </>

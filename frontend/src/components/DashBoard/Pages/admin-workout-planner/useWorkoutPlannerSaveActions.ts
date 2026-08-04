@@ -7,6 +7,7 @@ import { logApiError } from '../../../../utils/logApiError';
 import type { PlannerClient } from './WorkoutPlannerTypes';
 import { buildPlanPdfFileFromPlanData } from './workoutPlannerPlanPdfAdapter';
 import { buildWorkoutPlanSaveFields } from './workoutPlannerSavePayload';
+import { scrubPlanTemplate } from './plannerLogic/scrubPlanTemplate';
 import type {
   PdfAttachResult,
   RunSaveOperationInput,
@@ -253,11 +254,41 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to update & activate plan.',
     });
   }, [runSaveOperation, updateLoadedPlan]);
+  // S24 (JARVIS §4.6): save the CURRENT builder as a client-scrubbed,
+  // trainer-owned template. The scrub is pure + unit-fenced; the server
+  // re-enforces it (forces owner id, drops notes). Dark behind
+  // PLANNER_TEMPLATES — the SaveBar only offers this when the flag is on.
+  const handleSaveAsTemplate = useCallback(async () => {
+    setSaving(true);
+    try {
+      const { planData, saveFields } = buildSaveContext();
+      const payload = scrubPlanTemplate({
+        title: phaseName + ' template',
+        planData,
+        nasmPhase: phaseNumber,
+        durationWeeks: saveFields.durationWeeks,
+        goal,
+      });
+      await authAxios.post('/api/workout-plans', {
+        ...payload,
+        userId: undefined, // server assigns the trainer as owner
+        status: 'draft',
+        createdBy: saveFields.createdBy,
+      });
+      setStatusMsg({ type: 'success', text: 'Template saved — structure only, no client details.' });
+    } catch {
+      setStatusMsg({ type: 'error', text: 'Failed to save template.' });
+    } finally {
+      setSaving(false);
+    }
+  }, [authAxios, buildSaveContext, goal, phaseName, phaseNumber, setStatusMsg]);
+
   return {
     saving,
     handleSaveDraft,
     handleSaveAndActivate,
     handleUpdateLoaded,
     handleUpdateAndActivate,
+    handleSaveAsTemplate,
   };
 };

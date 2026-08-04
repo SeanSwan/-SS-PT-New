@@ -14,8 +14,9 @@
  */
 
 export const TRAIN = {
-  /** Planned / not-yet-logged — recedes into the surface. */
-  pending: 'var(--train-pending, var(--text-muted, #94a3b8))',
+  /** Planned / not-yet-logged — recedes into the surface. Rides the Lens
+   *  world seam (same laddering as `active`) so palettes reach it. */
+  pending: 'var(--train-pending, var(--world-muted, var(--text-muted, #94a3b8)))',
   /**
    * The set/session being worked RIGHT NOW — the single loud accent.
    * Swan Lens seam: a world recipe's --world-accent drives this hue (theme

@@ -41,14 +41,16 @@ export const WorkoutLoggerContainer = styled(motion.div)`
   }
 
   @media (min-width: 2560px) {
-    max-width: 2400px;
+    /* SESSION SHELL (consult §3): the shell column caps at 1440px on
+       QHD/4K — the canvas never stretches to monitor width. */
+    max-width: 1440px;
     margin: 0 auto;
     padding: 2.5rem;
     font-size: 1.0625rem;
   }
 
   @media (min-width: 3840px) {
-    max-width: 3200px;
+    max-width: 1440px;
     padding: 3rem;
     font-size: 1.125rem;
   }

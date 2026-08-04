@@ -101,9 +101,21 @@ const getWorkoutPlan = () => getModel('WorkoutPlan');
 router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
-    const { userId, clientId, status, trainerId } = req.query;
+    const { userId, clientId, status, trainerId, scope } = req.query;
 
-    const where = {};
+    // S24 (JARVIS §4.6): templates are trainer-scoped and never mix into
+    // client lists. scope=templates returns ONLY the caller's own templates
+    // (org sharing is a separate owner-gated flag, intentionally absent).
+    if (scope === 'templates') {
+      const templates = await WorkoutPlan.findAll({
+        where: { isTemplate: true, trainerId: Number(req.user.id) },
+        order: [['updatedAt', 'DESC']],
+        limit: 50,
+      });
+      return res.json({ success: true, plans: templates, count: templates.length });
+    }
+
+    const where = { isTemplate: false };
     // Support both userId and clientId query params (frontend may use either)
     if (userId !== undefined || clientId !== undefined) {
       const targetUserId = parseStrictPositiveInteger(userId ?? clientId);
@@ -443,7 +455,17 @@ router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
  * @access Trainer/Admin
  */
 // fallow-ignore-next-line complexity
-router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId', bodyField: 'userId' }), async (req, res) => {
+// S24: template creation targets NO client — the handler below forces the
+// caller's own id as owner and drops personal fields, so the client-access
+// gate has nothing to protect on that path. The bypass is scoped to THIS
+// route only (a body flag must never weaken the gate anywhere else).
+const clientAccessUnlessTemplate = (req, res, next) => (
+  req.body?.isTemplate === true
+    ? next()
+    : verifyClientAccessByUserId({ paramName: 'userId', bodyField: 'userId' })(req, res, next)
+);
+
+router.post('/', protect, trainerOrAdminOnly, clientAccessUnlessTemplate, async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
     const {
@@ -452,7 +474,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
       planData, progressNotes, createdBy, metadata
     } = req.body;
 
-    if (!userId || !title) {
+    if ((!userId && req.body.isTemplate !== true) || !title) {
       return res.status(400).json({
         success: false,
         message: 'userId and title are required'
@@ -471,11 +493,24 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
     const safeProgressNotes = sanitizeWorkoutPlanProgressNotesForPersistence(progressNotes);
     const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(metadata);
 
+    // S24 (JARVIS §4.6): a template is trainer-owned and client-scrubbed —
+    // the server FORCES userId to the trainer's own id and drops personal
+    // notes regardless of what the client sent (defense in depth over the
+    // frontend scrub).
+    const isTemplate = req.body.isTemplate === true;
+    const templateMeta = isTemplate && req.body.templateMeta && typeof req.body.templateMeta === 'object'
+      ? { name: String(req.body.templateMeta.name ?? title), phase: req.body.templateMeta.phase ?? null,
+          split: req.body.templateMeta.split ?? null, weeks: req.body.templateMeta.weeks ?? null,
+          tags: Array.isArray(req.body.templateMeta.tags) ? req.body.templateMeta.tags.slice(0, 12).map(String) : [] }
+      : null;
+
     const plan = await createWorkoutPlanRecord({
       sequelize,
       WorkoutPlan,
       values: {
-        userId: parseInt(userId, 10),
+        isTemplate,
+        templateMeta,
+        userId: isTemplate ? Number(req.user.id) : parseInt(userId, 10),
         trainerId: req.user.id,
         title,
         description: description || null,
@@ -487,7 +522,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
         currentWeek: 1,
         currentDay: 1,
         planData: safePlanData,
-        progressNotes: safeProgressNotes,
+        progressNotes: isTemplate ? null : safeProgressNotes,
         createdBy: createdBy || 'trainer',
         metadata: safeMetadata
       },

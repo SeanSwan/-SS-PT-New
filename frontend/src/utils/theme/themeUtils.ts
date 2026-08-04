@@ -122,8 +122,14 @@ export const generateCSSVariables = (
   const buttonSecondaryText = getReadableAccentText(theme.colors.secondary);
   const commandPrimary = theme.colors.primary;
   const commandPrimaryDeep = theme.colors.primaryDeep || theme.colors.primary;
+  const appCanvas = '#0A0A0F';
   const commandPrimaryLight = theme.colors.primaryLight || theme.colors.primary;
   const commandSecondary = theme.colors.secondary;
+  const actionPrimary = theme.colors.primary;
+  const actionSecondary = theme.colors.secondary;
+  const counterAccent = theme.colors.accent;
+  const dataAccent = theme.colors.primaryBlue || theme.colors.primaryLight || theme.colors.primary;
+  const surfaceTint = theme.colors.secondaryDeep || theme.background.secondary;
   return `
     /* === FOUNDATION COLORS === */
     --color-deep-space: ${theme.colors.deepSpace};
@@ -206,8 +212,16 @@ export const generateCSSVariables = (
     --font-data: ${theme.fonts.data};
     --font-ui: ${theme.fonts.ui};
 
+    --app-canvas: ${appCanvas};
     /* === SEMANTIC VARIABLES (Social Master Strategy Â§3.1) === */
     --bg-base: ${theme.background.primary};
+    /* === CONTRAST ROLE SYSTEM === */
+    --action-primary: ${actionPrimary};
+    --action-secondary: ${actionSecondary};
+    --counter-accent: ${counterAccent};
+    --data-accent: ${dataAccent};
+    --surface-tint: ${surfaceTint};
+
     --bg-elevated: ${theme.background.elevated};
     --bg-glass: ${theme.gradients.glass};
     --bg-surface: ${theme.background.surface};
@@ -225,16 +239,16 @@ export const generateCSSVariables = (
     --success: ${theme.colors.success};
     --warning: ${theme.colors.warning};
     --danger: ${theme.colors.error};
-    --info: ${theme.colors.primary};
+    --info: ${dataAccent};
 
     /* === DASHBOARD VARIABLE BRIDGE (AI Village consensus 2026-03-22) === */
     /* These variables unify all 3 dashboards with the 14-theme changer */
     --brand-primary: ${theme.colors.primaryDeep || theme.colors.primary};
     --brand-secondary: ${theme.colors.secondaryDeep || theme.colors.secondary};
     --brand-tertiary: ${theme.colors.secondary};
-    --accent-cyan: ${theme.colors.primary};
+    --accent-cyan: ${dataAccent};
     --accent-purple: ${theme.colors.secondary};
-    --data-cyan: ${theme.colors.primaryLight || theme.colors.primary};
+    --data-cyan: ${dataAccent};
     --gradient-cosmic-nebula: linear-gradient(135deg, ${theme.colors.secondary} 0%, ${theme.colors.primary} 100%);
     --gradient-vault-glass: linear-gradient(180deg, ${theme.background.elevated} 0%, ${theme.background.surface} 100%);
 
@@ -260,11 +274,11 @@ export const generateCSSVariables = (
     --accent-purple: ${theme.colors.secondary};
     --accent-success: ${theme.colors.success};
     --accent-error: ${theme.colors.error};
-    --accent-glow: ${theme.colors.primary};
+    --accent-glow: ${actionSecondary};
     --primary: ${theme.colors.primaryDeep || theme.colors.primary};
     --tertiary: ${theme.colors.secondary};
-    --arctic-cyan: ${theme.colors.primaryLight || theme.colors.primary};
-    --cyan-glow: ${theme.colors.primaryNeon || theme.colors.primary};
+    --arctic-cyan: ${dataAccent};
+    --cyan-glow: ${dataAccent};
 
     /* === UNIVERSAL MASTER SCHEDULE SESSION DETAIL === */
     --schedule-command-panel-bg: linear-gradient(135deg, color-mix(in srgb, ${theme.background.elevated} 84%, ${commandPrimary} 16%), color-mix(in srgb, ${theme.background.surface} 86%, ${commandSecondary} 10%));
@@ -319,9 +333,9 @@ export const generateCSSVariables = (
     --input-bg: ${theme.background.surface};
     --accent-tertiary: ${theme.colors.secondaryLight || theme.colors.secondary};
     --glow-accent: ${(theme.colors as { wingPurple?: string }).wingPurple ?? theme.colors.secondary};
-    --focus-ring: ${(theme.colors as { wingPurple?: string }).wingPurple ?? theme.colors.secondary};
-    --primary-cyan: ${theme.colors.primary};
-    --chart-primary: ${theme.colors.primaryLight || theme.colors.primary};
+    --focus-ring: ${actionSecondary};
+    --primary-cyan: ${dataAccent};
+    --chart-primary: ${dataAccent};
     --border-accent: color-mix(in srgb, ${theme.colors.primary} 40%, transparent);
     --border-accent-soft: color-mix(in srgb, ${theme.colors.primary} 18%, transparent);
     --glass-bg: color-mix(in srgb, ${theme.background.secondary} 55%, transparent);

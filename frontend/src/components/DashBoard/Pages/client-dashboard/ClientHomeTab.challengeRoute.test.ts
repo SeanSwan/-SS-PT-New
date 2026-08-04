@@ -42,7 +42,9 @@ describe('ClientHomeTab challenge route contract', () => {
     expect(clientChallengesPageSource).toContain('<ClientChallengeSubmissionGate />');
   });
   it('keeps Challenges as a first-viewport client home quick action without displacing workout priority', () => {
-    const logWorkoutIndex = dashboardHomeTabSource.indexOf("{ label: 'Log Workout', path: logWorkoutPath }");
+    // quickLogPath = assignment-aware route (panel launch review 2026-08-03,
+    // gap e) with logWorkoutPath as the unsettled-state fallback.
+    const logWorkoutIndex = dashboardHomeTabSource.indexOf("{ label: 'Log Workout', path: quickLogPath }");
     const progressIndex = dashboardHomeTabSource.indexOf("{ label: 'View Progress', target: 'progress' }");
     const challengesIndex = dashboardHomeTabSource.indexOf("{ label: 'View Challenges', target: 'challenges' }");
     const bookSessionIndex = dashboardHomeTabSource.indexOf("{ label: 'Book Session', path: '/dashboard/client/schedule' }");

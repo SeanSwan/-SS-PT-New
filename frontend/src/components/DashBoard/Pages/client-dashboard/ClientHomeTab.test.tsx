@@ -100,6 +100,9 @@ vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
 }));
 
 // Mock dashboard data hooks consumed by the redesigned overview.
+// Workout sessions are configurable per test: [] = zero-history (orientation
+// strip renders, community composer suppressed); non-empty = returning client.
+const mockWorkoutSessionsData = vi.hoisted(() => ({ value: [] as unknown[] }));
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useMessageSummary: () => ({
     data: [],
@@ -110,7 +113,7 @@ vi.mock('../../../../hooks/useDashboardQueries', () => ({
     isLoading: false,
   }),
   useWorkoutSessions: () => ({
-    data: [],
+    data: mockWorkoutSessionsData.value,
     isLoading: false,
   }),
   useTrendingHashtags: () => ({
@@ -126,6 +129,17 @@ vi.mock('../../../../hooks/social/useSocialFeed', () => ({
     error: null,
     createPost: mockCreatePostMutate,
     isCreatingPost: false,
+  }),
+}));
+
+// The sessions-remaining banner uses react-query via useSessionCredits; mock it
+// so ClientHomeTab renders without a QueryClientProvider (matches the other
+// data-hook mocks above). For non-deducting sources the banner renders null.
+vi.mock('../../../UniversalMasterSchedule/hooks/useSessionCredits', () => ({
+  useSessionCredits: () => ({
+    data: { sessionsRemaining: 8, clientSource: 'swanstudios', packageName: null, expiresAt: null },
+    isLoading: false,
+    isError: false,
   }),
 }));
 
@@ -165,6 +179,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     mockCreatePostMutate.mockResolvedValue({ success: true });
     mockGetUpcomingSessions.mockReset();
     mockGetUpcomingSessions.mockResolvedValue([]);
+    mockWorkoutSessionsData.value = [];
     mockApiGet.mockReset();
     Object.defineProperty(window.URL, 'createObjectURL', {
       configurable: true,
@@ -551,8 +566,27 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(text).not.toMatch(/weight progression/i);
   });
 
+  it('swaps community noise for the orientation strip on a zero-history client', async () => {
+    // Default mock = zero logged sessions (what every new signup sees).
+    await renderClientHomeSettled();
+
+    expect(screen.getByTestId('first-session-orientation-strip')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/write a community post/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps the composer and hides the orientation strip once history exists', async () => {
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
+    await renderClientHomeSettled();
+
+    expect(screen.queryByTestId('first-session-orientation-strip')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/write a community post/i)).toBeInTheDocument();
+  });
+
   it('turns the Reels spotlight into a structured workout post action', async () => {
     const user = userEvent.setup();
+    // The composer is a with-history surface — zero-history clients get the
+    // orientation strip instead (panel Q5 suppression).
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
     render(<ClientHomeTab />);
 
     await user.click(screen.getByRole('button', { name: /^Training$/i }));
@@ -568,6 +602,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('queues selected media through the existing social post mutation', async () => {
     const user = userEvent.setup();
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
     render(<ClientHomeTab />);
     const file = new File(['training clip'], 'training-clip.mp4', { type: 'video/mp4' });
 

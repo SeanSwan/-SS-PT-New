@@ -210,6 +210,15 @@ function firstExercise(context: CurrentWorkoutContext): string | undefined {
   return cleanString(context.assignment.firstExerciseName) || exerciseNames(context)[0];
 }
 
+function weeklyPlanVolume(context: CurrentWorkoutContext): number | undefined {
+  // The /current response's `days` is the CURRENT plan week flattened by the
+  // backend shape service — its length is the plan's real weekly session
+  // volume. No days array (assignment-only payloads, legacy shapes) → no
+  // volume claim.
+  const days = context.plan.days;
+  return Array.isArray(days) && days.length > 0 ? days.length : undefined;
+}
+
 function buildCurrentClientWorkout(context: CurrentWorkoutContext): CurrentClientWorkout {
   return {
     title: stringWithFallback([context.assignment.title, context.plan.title, context.plan.name], 'Today\'s Assignment'),
@@ -229,6 +238,7 @@ function buildCurrentClientWorkout(context: CurrentWorkoutContext): CurrentClien
     prescribedRevision: toPositiveInteger(context.assignment.prescribedRevision),
     primaryPlanLabel: primaryPlanLabel(context.catalog),
     homeworkSummary: normalizeClientHomeworkSummary(context.homeworkSummary),
+    weeklyPlanVolume: weeklyPlanVolume(context),
   };
 }
 

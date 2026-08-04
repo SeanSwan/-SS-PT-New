@@ -1,6 +1,6 @@
 ---
 name: skill-harvest
-description: Meta-skill that turns Sean's repeated requests into new skills. Scans recent work (this session, recent commits, brainstorm/handoff docs, continuity log) for requests that repeat or multi-step things Sean keeps re-explaining, then proposes turning each into a reusable .claude/skill so next time it's one sentence instead of ten — and names what Sean is still doing by hand that should be delegated. Proposes; never writes a skill without Sean's yes. Use periodically, or when Sean says "what should I turn into a skill" / "automate this" / "build your own tools."
+description: Use when Sean asks to harvest, automate, or turn repeated work or an external transcript/repository into reusable skills. Gap-filters current workflows, pins source and license, audits side effects, ranks leverage, and proposes ADOPT/MERGE/DEFER/REJECT before building; never creates or removes a skill without Sean's authorization.
 ---
 
 # Skill Harvest
@@ -28,6 +28,20 @@ This is literally the loop that created Chromie, attack-the-site, and copy-tourn
 4. **Name what Sean is still doing by hand.** Beyond skills, flag the manual work that should be delegated: "you keep pasting transcripts and asking for analysis — that's a skill"; "you keep checking the deploy manually — that's a `/loop` or a scheduled routine." Tie each to a concrete delegation.
 5. **Rank by leverage.** Most-repeated × most-painful first. A 10-step thing Sean does weekly beats a 2-step thing he did once.
 
+## External source intake
+
+When a candidate comes from a transcript, repository, marketplace, or another agent's skill pack, add an intake record before recommending installation:
+
+1. Pin the source URL and commit or immutable version.
+2. Record the license; preserve its notice if substantial text will be copied.
+3. Inventory network calls, paid services, self-update behavior, external writes, credentials, destructive actions, and platform assumptions.
+4. Classify every capability `ADOPT`, `MERGE`, `DEFER`, or `REJECT` against current rules, skills, hooks, tools, and operator tiers.
+5. Prefer a small adapter that uses current native tools over copied vendor assumptions.
+6. If approved for both runtimes, create validated `.agents` and `.claude` entrypoints and run `node scripts/ai-workflow/validate-skill-registry.mjs` plus the relevant contract tests.
+7. Regenerate `AGENTS.md` mechanically; never hand-edit its mirrored body.
+
+Reject safety-evasion prompts, blind secret copying, self-modifying instructions, root-by-default remote execution, and default paid/external side effects.
+
 ## Output — the harvest proposal (propose, never auto-build)
 
 Summarize in chat (and write to `docs/ai-workflow/brainstorms/skill-harvest-<YYYY-MM-DD>.md` if the list is long; session date, never a date function):
@@ -48,7 +62,7 @@ A skill is **never finished on the first try.** Every use is data. When Sean use
 
 ## Integration
 - Complements **`auto-research`** (which optimizes existing skills) — skill-harvest finds *new* ones to create.
-- Feeds the **CLAUDE.md / AGENTS.md** skills table and rule set — a harvested skill isn't done until it's wired into both operating files (so Claude *and* Codex see it).
+- Feeds the **CLAUDE.md / AGENTS.md** skills table, operator registry, and rule set. A dual-runtime skill is not done until both entrypoints validate and the mirror check passes.
 - Honors rule 8 (no PII in committed proposal docs), rule 35 (proposals live in `brainstorms/`, not root), and rule 34/closeout (no auto-deletion or auto-creation without Sean's yes).
 
 ## Non-goals

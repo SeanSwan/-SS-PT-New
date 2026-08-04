@@ -38,7 +38,7 @@ const RoleBadge = styled.span`
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 45%, transparent);
-  color: var(--accent-secondary, #8B5CF6);
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;

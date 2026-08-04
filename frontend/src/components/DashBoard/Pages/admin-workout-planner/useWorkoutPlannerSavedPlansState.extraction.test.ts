@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerSavedPlansState.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 
 describe('WorkoutPlanner saved plans state extraction', () => {
   it('keeps saved-plan list state and card actions outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerSavedPlansState'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerSavedPlansState'");
     expect(pageSource).not.toContain('const [savedPlans, setSavedPlans]');
     expect(pageSource).not.toContain('const fetchSavedPlans = useCallback');
     expect(pageSource).not.toContain('const handleCardActivate = useCallback');

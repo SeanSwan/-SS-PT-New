@@ -81,8 +81,14 @@ describe('processPendingMigrations', () => {
     expect(result.failed).toBe(1);
   });
 
-  it('keeps the legacy mark-done behavior for genuinely failed schema migrations', async () => {
+  it('QUARANTINES a genuinely failed schema migration: marked done (pipeline unwedged) AND ledgered for retry', async () => {
+    // SWA-115 redesign (2026-08-03): the old lane marked failures done and
+    // FORGOT them (achievement_crystallizations was silently lost for weeks).
+    // New contract: still marked done — unmarking would wedge sequelize-cli's
+    // `--to` pipeline behind the failure — but the quarantine callback must
+    // record it so main() re-arms and retries it on the next run.
     const markCompleted = vi.fn();
+    const quarantine = vi.fn();
     const result = await processPendingMigrations({
       pending: [
         '20260101000000-add-some-column.cjs',
@@ -93,14 +99,75 @@ describe('processPendingMigrations', () => {
         '20260102000000-add-other-column.cjs': { code: 0, combined: '' },
       }),
       markCompleted,
+      quarantine,
       logger: quiet,
     });
 
     expect(markCompleted).toHaveBeenCalledWith('20260101000000-add-some-column.cjs');
+    expect(quarantine).toHaveBeenCalledTimes(1);
+    expect(quarantine.mock.calls[0][0]).toBe('20260101000000-add-some-column.cjs');
+    expect(quarantine.mock.calls[0][1]).toContain('ERROR');
+    expect(result.quarantined).toEqual(['20260101000000-add-some-column.cjs']);
     expect(result.halted).toBe(false);
     expect(result.dataCriticalFailures).toEqual([]);
     expect(result.applied).toBe(1);
     expect(result.failed).toBe(1);
+    // The successful migration is resolved — main() clears any ledger row for it.
+    expect(result.resolvedNames).toEqual(['20260102000000-add-other-column.cjs']);
+  });
+
+  it('does NOT quarantine already-exists skips or clean applies; both count as resolved', async () => {
+    const markCompleted = vi.fn();
+    const quarantine = vi.fn();
+    const result = await processPendingMigrations({
+      pending: ['20260101000000-add-some-column.cjs', '20260103000000-add-index.cjs'],
+      runMigration: runnerFor({
+        '20260101000000-add-some-column.cjs':
+          { code: 1, combined: 'ERROR: column "x" of relation "y" already exists' },
+        '20260103000000-add-index.cjs': { code: 0, combined: '' },
+      }),
+      markCompleted,
+      quarantine,
+      logger: quiet,
+    });
+    expect(quarantine).not.toHaveBeenCalled();
+    expect(result.quarantined).toEqual([]);
+    expect(result.resolvedNames).toEqual([
+      '20260101000000-add-some-column.cjs',
+      '20260103000000-add-index.cjs',
+    ]);
+  });
+
+  it('does NOT route DATA-CRITICAL failures through quarantine — their stricter never-mark lane is untouched', async () => {
+    const markCompleted = vi.fn();
+    const quarantine = vi.fn();
+    const result = await processPendingMigrations({
+      pending: ['20260715011000-backfill-workout-plan-content-identity.cjs'],
+      runMigration: runnerFor({
+        '20260715011000-backfill-workout-plan-content-identity.cjs':
+          { code: 1, combined: 'ERROR: Invalid workout plan identities remain after backfill' },
+      }),
+      markCompleted,
+      quarantine,
+      logger: quiet,
+    });
+    expect(quarantine).not.toHaveBeenCalled();
+    expect(markCompleted).not.toHaveBeenCalled();
+    expect(result.halted).toBe(true);
+  });
+
+  it('tolerates a missing quarantine callback (defaults to no-op) without changing lane behavior', async () => {
+    const markCompleted = vi.fn();
+    const result = await processPendingMigrations({
+      pending: ['20260101000000-add-some-column.cjs'],
+      runMigration: runnerFor({
+        '20260101000000-add-some-column.cjs': { code: 1, combined: 'ERROR: genuinely broke' },
+      }),
+      markCompleted,
+      logger: quiet,
+    });
+    expect(markCompleted).toHaveBeenCalledWith('20260101000000-add-some-column.cjs');
+    expect(result.quarantined).toEqual(['20260101000000-add-some-column.cjs']);
   });
 
   it('still marks an already-applied data-critical migration as done and continues', async () => {

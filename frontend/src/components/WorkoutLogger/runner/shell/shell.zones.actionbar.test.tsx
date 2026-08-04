@@ -85,17 +85,27 @@ describe('REST is a state of the bar (skin rest coverage transplanted here)', ()
   });
 });
 
-describe('persistent segment — never unmounts across stages', () => {
-  it.each(['setup', 'train', 'finish'] as const)('mic + coach live on the bar in %s', (stage) => {
-    render(<ActionBar {...baseProps} stage={stage} />);
+describe('persistent segment — Coach persists; Dictate is Train-only', () => {
+  it('shows Dictate only in eligible Train state', () => {
+    render(<ActionBar {...baseProps} stage='train' />);
     expect(screen.getByRole('button', { name: 'Dictate workout log entries' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Swan Coach' })).toBeInTheDocument();
   });
 
-  it('mic hidden for roles without dictation; coach stays', () => {
-    render(<ActionBar {...baseProps} canDictate={false} />);
-    expect(screen.queryByRole('button', { name: 'Dictate workout log entries' })).toBeNull();
+  it.each([
+    { stage: 'setup' as const, submitted: false, canDictate: true },
+    { stage: 'finish' as const, submitted: false, canDictate: true },
+    { stage: 'train' as const, submitted: true, canDictate: true },
+    { stage: 'train' as const, submitted: false, canDictate: false },
+  ])('hides Dictate outside the eligible role/stage/save matrix: %o', ({ stage, submitted, canDictate }) => {
+    render(<ActionBar {...baseProps} stage={stage} submitted={submitted} canDictate={canDictate} />);
+    expect(screen.queryByRole('button', { name: 'Dictate workout log entries' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Swan Coach' })).toBeInTheDocument();
+  });
+
+  it('hides Dictate after save', () => {
+    render(<ActionBar {...baseProps} submitted />);
+    expect(screen.queryByRole('button', { name: 'Dictate workout log entries' })).not.toBeInTheDocument();
   });
 
   it('mic reflects dictation state via aria-pressed', () => {

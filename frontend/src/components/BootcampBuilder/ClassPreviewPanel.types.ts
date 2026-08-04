@@ -21,6 +21,8 @@ export interface ClassPreviewPanelProps {
   onSave: () => void;
   onSelectExercise: (ex: BootcampExercise) => void;
   onDeleteExercise?: (exerciseIndex: number) => void;
+  onDuplicateExercise?: (exerciseIndex: number) => void;
+  onMoveExercise?: (exerciseIndex: number, targetStationIndex: number) => void;
   onSelectStation?: (stationIndex: number) => void;
   activeStation?: number | null;
 }

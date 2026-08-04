@@ -17,6 +17,9 @@ describe('BootcampBuilderPage workflow contract', () => {
   const builderConstantsSource = read('./BootcampBuilderConstants.ts');
   const stylesSource = read('./BootcampBuilderStyles.ts');
   const modeStylesSource = read('./BootcampModeStyles.ts');
+  const railSource = read('./BootcampClassRail.tsx');
+  const railStylesSource = read('./BootcampClassRail.styles.ts');
+  const chromeSource = read('./BootcampBuilderChrome.tsx');
   const teachMeSource = constantsSource.match(/const BOOTCAMP_TEACH_ME_CONTENT = \[([\s\S]*?)\]\.join\(''\);/)?.[1] ?? '';
 
   it('defaults new classes to the custom four-station structure instead of a preset-only format', () => {
@@ -27,6 +30,7 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_STATION_COUNT)');
     expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION)');
     expect(pageSource).not.toContain("useState<ClassFormat>('2x8_r3')");
+    expect(pageSource).toContain("useState<IntensityCategory>('medium_impact')");
     expect(builderConstantsSource.indexOf("'4x4_r2'")).toBeLessThan(builderConstantsSource.indexOf("'2x8_r3'"));
   });
 
@@ -42,8 +46,13 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(generateCall).toContain('equipmentProfileId: equipmentProfileId || undefined');
     expect(generateCall).toContain('optPhase,');
     expect(generateCall).toContain('includeStretch,');
+    expect(generateCall).toContain('exclusionKeys,');
   });
 
+  it('excludes the immediately previous main board when generating again', () => {
+    expect(pageSource).toContain('getMainBoardExclusionKeys');
+    expect(pageSource).toContain('const exclusionKeys = getMainBoardExclusionKeys(bootcamp?.exercises);');
+  });
   it('uses independent station and exercise controls instead of preset-only class formats', () => {
     expect(builderConstantsSource).toContain('BOOTCAMP_STATION_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6]');
     expect(builderConstantsSource).toContain('BOOTCAMP_EXERCISES_PER_STATION_OPTIONS = [1, 2, 3, 4, 5]');
@@ -98,6 +107,32 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(previewSource).toContain('<BootcampCommandDeck');
     expect(previewSource).toContain('buildMode={buildMode}');
     expect(pageSource).toContain('buildMode={buildMode}');
+  });
+
+  it('mounts one continuous Build to Preflight to Run rail on the canonical page', () => {
+    expect(constantsSource).toContain("type BootcampWorkflowStage = 'build' | 'preflight' | 'run'");
+    expect(pageSource).toContain('useBootcampWorkflowStage()');
+    expect(pageSource).toContain('const { workflowStage, floorMode, onStageChange } = useBootcampWorkflowStage()');
+    expect(chromeSource).toContain('<BootcampClassRail');
+    expect(pageSource).toContain('activeStage={workflowStage}');
+    expect(pageSource).toContain('onStageChange={onStageChange}');
+    expect(railSource).toContain('getBootcampClassRailModel');
+    expect(railSource).toContain('aria-current');
+    expect(railSource).toContain('model.hardBlockers');
+    expect(railSource).toContain('model.warnings');
+  });
+
+  it('makes the rail the only class-stage control instead of leaving a competing demo toggle', () => {
+    expect(chromeSource).not.toContain('onToggleFloorMode');
+    expect(chromeSource).not.toContain("floorMode ? 'Exit Demo' : 'Demo Mode'");
+    expect(railSource).toContain('model.primaryAction');
+    expect(railSource).toContain('onStageChange');
+  });
+
+  it('keeps the rail touch-safe and responsive from phone through QHD and 4K', () => {
+    expect(railStylesSource).toMatch(/min-height: (?:4[4-9]|[5-9]\\d)px/);
+    expect(railStylesSource).toContain('@media (max-width: 430px)');
+    expect(railStylesSource).toContain('@media (min-width: 2200px)');
   });
 
   it('keeps Bootcamp Builder styling on theme variables instead of fixed neon drift', () => {

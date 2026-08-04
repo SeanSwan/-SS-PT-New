@@ -27,9 +27,10 @@ describe('useExerciseTeachData auth pipeline', () => {
     expect(routeComponentsSource).toMatch(/export const CoachCommandCenterPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/CoachCommandCenterPage'\)\)/);
     expect(dashboardRoutesSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
     expect(dashboardRoutesSource).toMatch(/path: '\/coach-assistant', component: CoachCommandCenterPage/);
-    expect(workoutPlannerSource).toMatch(/teachModeProps:\s*\{\s*exercise:\s*selectedExercise,\s*phaseNumber,\s*onPhaseChange:\s*setPhaseNumber\s*\}/);
+    // S15 contexts cutover: teach-mode wiring moved from the page shell into the layout.
+    expect(workoutPlannerLayoutSource).toMatch(/exercise=\{selectedExercise\} phaseNumber=\{phaseNumber\} onPhaseChange=\{act\.setters\.setPhaseNumber\}/);
     expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);
-    expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar \{\.\.\.teachModeProps\} onClose=\{onTeachModeToggle\} \/>/);
+    expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar exercise=\{selectedExercise\}[\s\S]*onClose=\{act\.pageActions\.handleTeachModeToggle\} \/>/);
     expect(plannerSidebarSource).toMatch(/useExerciseTeachData\(\s*exercise\?\.id \?\? null/);
     expect(coachPageSource).toMatch(/<CoachTeachModePanel teachMode=\{teachMode\} \/>/);
     expect(coachPanelSource).toMatch(/useExerciseTeachData\(\s*teachMode\.selectedExercise\?\.id \?\? null/);

@@ -19,6 +19,7 @@ import type { ExerciseSlim } from './exerciseSearchWorker';
 export type WorkoutLoggerPlanLoadOutcomeKind =
   | 'no_plan'
   | 'no_exercises_today'
+  | 'no_current_day' // S0: honest outcome replacing the deleted weekday-guess tier
   | 'assignment_changed'
   | 'not_loggable'
   | 'no_client';
@@ -83,6 +84,7 @@ const CtaButton = styled.button`
 const TITLES: Record<WorkoutLoggerPlanLoadOutcomeKind, string> = {
   no_plan: 'No active plan yet',
   no_exercises_today: 'Nothing scheduled today',
+  no_current_day: "Couldn't match a plan day",
   assignment_changed: "Today's assignment changed",
   not_loggable: 'This assignment is not loggable',
   no_client: 'No client selected',

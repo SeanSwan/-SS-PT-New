@@ -125,9 +125,16 @@ describe('goal gamification command dispatchers', () => {
         { streakType: 'workout', currentCount: 6, longestCount: 9, isActive: true },
         { streakType: 'login', currentCount: 4, longestCount: 5, isActive: true },
       ],
+      // "New" = completed AND earned inside the recency window (achievementRecency.mjs). This
+      // fixture has been wrong twice: first carrying `isNew` (no such column — production always
+      // computed 0), then `notificationSent: false` (nothing ever sets that flag — production
+      // would have counted EVERY completed achievement). Both were wrong VALUES, not errors, so
+      // the `newAchievements: 1` assertion below passed either way. It now discriminates: one
+      // recent completion, one old completion, one incomplete.
       achievements: [
-        { isCompleted: true, isNew: true },
-        { isCompleted: false, isNew: false },
+        { isCompleted: true, earnedAt: new Date() },
+        { isCompleted: true, earnedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        { isCompleted: false, earnedAt: new Date() },
       ],
     });
 
@@ -154,7 +161,9 @@ describe('goal gamification command dispatchers', () => {
       totalExercises: 80,
       activeStreaks: 2,
       longestStreak: 9,
-      completedAchievements: 1,
+      // 2 completed (one recent, one 30 days old) but only 1 "new" — these MUST differ, or the
+      // assertion cannot tell a working recency filter from one that counts every completion.
+      completedAchievements: 2,
       newAchievements: 1,
     });
     expect(JSON.stringify(result)).not.toContain('Private');

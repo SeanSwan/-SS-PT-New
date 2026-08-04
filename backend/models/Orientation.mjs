@@ -52,7 +52,7 @@ Orientation.init(
       type: DataTypes.INTEGER,
       allowNull: true, // Allow null for prospect submissions
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id'
       }
     },

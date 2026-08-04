@@ -62,6 +62,16 @@ export const BuilderParamGroup = styled.div`
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+
+  @container (max-width: 640px) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+
+    & > div { min-width: 0; }
+    input { box-sizing: border-box; width: 100%; }
+  }
 `;
 
 export const ParamField = styled.div`

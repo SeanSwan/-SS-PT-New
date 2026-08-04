@@ -486,3 +486,55 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
     expect(JSON.stringify(res.body)).not.toContain('database password leaked in stack');
   });
 });
+
+describe('S0 (Plan Surfacing): GET /:userId/current?forDate=', () => {
+  const planFixture = () => ({
+    id: 'plan-9',
+    title: 'Anchored Plan',
+    durationWeeks: 2,
+    status: 'active',
+    currentWeek: 1,
+    currentDay: 1,
+    startDate: '2026-08-03',
+    createdAt: '2026-08-01T00:00:00.000Z',
+    planData: {
+      weeks: [1, 2].map((weekNumber) => ({
+        weekNumber,
+        days: [1, 2].map((dayNumber) => ({
+          dayNumber,
+          name: `W${weekNumber}D${dayNumber}`,
+          exercises: [{ exerciseId: `e${weekNumber}${dayNumber}`, exerciseName: `Move W${weekNumber}D${dayNumber}`, sets: 3, targetReps: '10' }],
+        })),
+      })),
+    },
+  });
+
+  it('answers the calendar question via the basis chain (additive field)', async () => {
+    mockWorkoutPlanFindOne.mockResolvedValue(planFixture());
+    // startDate 2026-08-03 → W2D2 = start + 7 + 1 = 2026-08-11
+    const res = await request(buildApp()).get('/api/workouts/42/current?forDate=2026-08-11');
+    expect(res.status).toBe(200);
+    expect(res.body.dayForDate).toMatchObject({
+      basis: 'plan_start',
+      weekNumber: 2,
+      dayNumber: 2,
+      scheduledDate: '2026-08-11',
+    });
+    // The cursor answer is untouched — /current remains the next-workout truth.
+    expect(res.body.currentSession).toBeTruthy();
+  });
+
+  it('a date outside the plan answers basis none — never a guess', async () => {
+    mockWorkoutPlanFindOne.mockResolvedValue(planFixture());
+    const res = await request(buildApp()).get('/api/workouts/42/current?forDate=2027-01-01');
+    expect(res.status).toBe(200);
+    expect(res.body.dayForDate.basis).toBe('none');
+  });
+
+  it('without forDate the field is absent (zero behavior change)', async () => {
+    mockWorkoutPlanFindOne.mockResolvedValue(planFixture());
+    const res = await request(buildApp()).get('/api/workouts/42/current');
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('dayForDate');
+  });
+});

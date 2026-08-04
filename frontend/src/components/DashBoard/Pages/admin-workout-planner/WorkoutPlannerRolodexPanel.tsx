@@ -37,7 +37,7 @@ import {
 } from './WorkoutPlannerPage.styles';
 
 const WORKOUT_PLANNER_ROW_HEIGHT = 156;
-const VIRTUAL_LIST_STYLE = { height: 520, overflowX: 'hidden' as const };
+const VIRTUAL_LIST_STYLE = { overflowX: 'hidden' as const };
 
 type ExerciseRowRenderer = (props: {
   ariaAttributes: {
@@ -195,6 +195,7 @@ const WorkoutPlannerRolodexPanel: React.FC<WorkoutPlannerRolodexPanelProps> = ({
           </EmptyMessage>
         ) : (
           React.createElement(List, {
+            defaultHeight: 520,
             rowComponent: exerciseRowRenderer,
             rowCount: filteredExerciseCount,
             rowHeight: WORKOUT_PLANNER_ROW_HEIGHT,

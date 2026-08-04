@@ -37,9 +37,9 @@ const Lane = styled.div`
   gap: 8px;
   min-height: 44px;
   padding: 4px 12px;
-  background: color-mix(in srgb, var(--bg-surface, #1a1a24) 92%, var(--accent-primary, #60c0f0));
-  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #e0ecf4) 14%, transparent);
-  color: var(--text-primary, #e0ecf4);
+  background: color-mix(in srgb, var(--world-panel, #1a1a24) 92%, var(--world-accent, #60c0f0));
+  border-bottom: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 14%, transparent);
+  color: var(--world-text, #e0ecf4);
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
 `;
@@ -63,7 +63,7 @@ const DismissButton = styled.button`
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--text-muted, #94a3b8);
+  color: var(--world-muted, #94a3b8);
   cursor: pointer;
 
   &:focus-visible {

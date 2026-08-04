@@ -25,9 +25,13 @@ interface UseRunnerEngineDeps {
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   onRemoveExercise: (exerciseIndex: number) => void;
   ghostPreFill: React.ComponentProps<typeof QuickLogMode>['ghostPreFill'] &
-    { getOverload: React.ComponentProps<typeof ExerciseCardComponent>['getOverload'] };
+    {
+      getOverload: React.ComponentProps<typeof ExerciseCardComponent>['getOverload'];
+      getTrend?: (exerciseName: string) => number[];
+    };
   getLastWeight: React.ComponentProps<typeof ExerciseCardComponent>['getLastWeight'];
   onSetLogged: (exerciseIndex: number, setIndex: number) => void;
+  onInsertWarmupRamp?: (exerciseIndex: number) => void;
   ghostSkip: boolean;
   stats: RunnerSessionStats;
   restTimer: { isRunning: boolean; secondsLeft: number; stop: () => void; start: (seconds: number) => void };
@@ -42,7 +46,7 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
   const {
     exercises, effectiveClientId, showSetDetails, onToggleSetDetails, onToggleSuperset,
     onUpdateExercise, onUpdateSet, onAddSet, onRemoveSet, onRemoveExercise,
-    ghostPreFill, getLastWeight, onSetLogged, ghostSkip, stats, restTimer, openRolodex,
+    ghostPreFill, getLastWeight, onSetLogged, onInsertWarmupRamp, ghostSkip, stats, restTimer, openRolodex,
   } = deps;
 
   const renderExerciseCard = useCallback((exerciseIndex: number): React.ReactNode => {
@@ -111,12 +115,14 @@ export function useRunnerEngine(deps: UseRunnerEngineDeps): {
       onAddSet,
       onRemoveExercise,
       onSetLogged,
+      onInsertWarmupRamp,
+      getTrend: ghostPreFill.getTrend,
       getOverload: ghostPreFill.getOverload,
       getLastWeight,
     },
   }), [
     exercises, renderExerciseCard, stats, restTimer, openRolodex,
-    onUpdateSet, onRemoveSet, onAddSet, onRemoveExercise, onSetLogged, ghostPreFill, getLastWeight,
+    onUpdateSet, onRemoveSet, onAddSet, onRemoveExercise, onSetLogged, onInsertWarmupRamp, ghostPreFill, getLastWeight,
   ]);
 
   return { engine, renderClassicList, renderQuickLog };

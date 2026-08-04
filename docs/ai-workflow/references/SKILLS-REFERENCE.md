@@ -1,27 +1,32 @@
 # AI Agent Skills
 > Reference doc extracted from CLAUDE.md. Loaded on-demand, not every message.
 > Read when: skill management, installed skills overview
-> **Last updated:** 2026-04-12 (Phase 3 quarantine move — Swan visual operating system)
+> **Last updated:** 2026-08-02 (workflow router and deterministic inventory)
 
 ---
 
 ## Strict-model discipline (MANDATORY)
 
+- **`AGENT-WORKFLOW-ROUTER.md` is the front door for task mode.** It selects normal execution, Wayfinder, goal contract, workspace isolation, or guided setup before project gates.
 - **`swan-design-router` is the ONLY default-exposed design brain.** All UI/visual work auto-routes through it (CLAUDE.md rule 40).
 - **`closeout-evidence-lock` is the default closeout skill.** All substantial task closeouts auto-route through it (rule 41).
 - **`swan-oracle` is advisory only.** It creates GPT Pro / GPT-5.5-class review packets and classifies returned recommendations. It does not override `swan-design-router`, Codex/Claude review gates, tests, privacy, or repo evidence.
 - **`requesting-code-review` is REMOVED from default use.** It depends on a missing `superpowers:code-reviewer` subagent and silently fails. Its substantive checklist is preserved inside `closeout-evidence-lock`. Do NOT dispatch to `requesting-code-review` from any new code path.
-- **8 skills are quarantined from default-steering** (explicit-invocation-only): `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`.
+- **Quarantined skills are explicit-invocation-only.** Discover current entrypoints from disk and keep the archive classification below.
 
 ---
 
-## Swan orchestration layer (6 skills, all default-active)
+## Swan orchestration and workflow layer
 
 Location: `.claude/skills/`
 
 | Skill | Role |
 |---|---|
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15 (recursive planning), 17 (dual-pass), 26 (Canonical Surface Receipt), 32 (hygiene trigger). Dispatches to the right Swan skill for the task type. |
+| `wayfinder` | Situational map, fog/frontier, claims, and dependency-ordered decision tickets only when work is both multi-session and materially foggy. Exits early otherwise. |
+| `goal-contract` | Measurable objective, validation, constraints, checkpoints, uncertainty, and stop conditions. Never creates a persistent goal implicitly. |
+| `worktree-isolation` | Classifies read-only/shared/isolated/stale workspaces and produces a verified baseline, environment, dependency, port, service, and cleanup receipt. |
+| `guided-setup` | Guides installation/auth/deployment/environment setup one verified current step at a time while preserving the remaining checklist. |
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership / Shadow Audit. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
 | `swan-design-router` | Only default-exposed design brain. Loads `SWAN-CINEMATIC-DESIGN-SYSTEM.md` + `SWAN-ASSET-STORYBOARDING.md`. Enforces styled-components-first, Crystalline Swan palette, Dual-Button Glow rule, 2-3 concept-direction ideation gate for net-new surfaces. |
@@ -30,7 +35,7 @@ Location: `.claude/skills/`
 
 ---
 
-## KEEP core skills (8, default-active, unchanged)
+## KEEP core skills
 
 | Skill | Purpose |
 |---|---|
@@ -56,7 +61,7 @@ These sources are **not in `.claude/skills/`**. They are **not archived** and **
 
 ---
 
-## Quarantined skills — explicit-invocation-only (8)
+## Quarantined skills — explicit-invocation-only
 
 These skills have been relocated from `.agents/skills/` to `archive/quarantined-skills/2026-04-12/` as of Phase 3 (2026-04-12). Their former `.claude/skills/` junction entries have been removed from the default-exposed surface. Invoke only when Sean explicitly names the skill by slash-command. The Phase 3 move is reversible via `git mv` back.
 
@@ -73,20 +78,26 @@ These skills have been relocated from `.agents/skills/` to `archive/quarantined-
 
 ---
 
-## Skill count summary (post-Phase-3, 2026-04-12)
+## Inventory truth
 
-- **Default-exposed `.claude/skills/`:** 14 (6 Swan orchestration + 8 KEEP core)
-- **Reference libraries (router-loaded from `.agents/skills/`, not default-exposed):** 2 (`frontend-design`, `ui-ux-pro-max`)
-- **Quarantined (relocated to `archive/quarantined-skills/2026-04-12/`, explicit-invocation-only):** 8
-- **Broader installed library (`.agents/skills/`):** 26 entries remaining after Phase 3 quarantine — including 16 additional technical reference docs not mirrored into `.claude/skills/` (their default-steering behavior is not relied on here) and the 2 reference libraries loaded by `swan-design-router`
+Do not maintain exact totals in prose. Enumerate and validate both repo-local roots from the filesystem:
+
+```powershell
+node scripts/ai-workflow/validate-skill-registry.mjs
+node scripts/ai-workflow/validate-skill-registry.mjs --json
+node --test scripts/ai-workflow/validate-skill-registry.test.mjs
+```
+
+The validator checks exact `SKILL.md` casing and required frontmatter, and reports runtime-specific and shared adapters. Counts may change as installed skill packs evolve; the command output is authoritative for the current checkout.
 
 ---
 
 ## Maintenance commands
 
-`npx skills check` | `npx skills update` | `npx skills find <keyword>`
+`node scripts/ai-workflow/validate-skill-registry.mjs` | `npx skills check` | `npx skills update` | `npx skills find <keyword>`
 
 Full Swan layer documentation:
+- `docs/ai-workflow/references/AGENT-WORKFLOW-ROUTER.md` (task mode and third-party skill intake)
 - `CLAUDE.md` rules 26-41 (mandatory discipline)
 - `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` (rules 32-39 workflow)
 - `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` (visual source of truth, loaded by `swan-design-router`)

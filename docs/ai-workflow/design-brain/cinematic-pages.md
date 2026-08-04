@@ -80,7 +80,7 @@ Total: 8.5vh · 1 pin · 1 signature moment · temperature arc cold → sapphire
 
 ## 6. Video/image asset plan
 
-- **Route every asset through `SWAN-ASSET-STORYBOARDING.md`** (emotional job → archetype → fallback → motion, its four questions) and generate briefs via the two Seedance skills: `seedance-swan-cinematic-video` for hero loops/brand film/b-roll/icon motion; `seedance-swan-workout-video` for any exercise/training footage.
+- **Route every asset through `SWAN-ASSET-STORYBOARDING.md`** (emotional job → archetype → fallback → motion, its four questions) and generate briefs via the unified `seedance-swan-video` skill, selecting cinematic mode for hero/brand/b-roll/icon motion or workout mode for exercise/training footage.
 - **Asset archetypes per act (default casting):**
   - Act 1: one hero video loop (4–8s, seamless) OR a scroll-scrubbed sequence (10–20s source) — the signature moment's raw material.
   - Act 2: stills + short UI-truth loops (product proof), letterform-embedded media if C4 is in play.

@@ -28,6 +28,26 @@
 
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { redactTranscriptPII } from './redactTranscriptPII.mjs';
+
+/**
+ * S7 fail-closed privacy gate (JARVIS §6.2): if the redactor errors, NO text
+ * may reach the LLM — throw a typed 422-class error instead of parsing raw.
+ * Exported for its unit fence.
+ */
+export function redactOrFailClosed(transcript, nameHints) {
+  try {
+    const { text } = redactTranscriptPII(transcript, { nameHints });
+    if (typeof text !== 'string' || text.length === 0) {
+      throw new Error('redactor returned no text');
+    }
+    return text;
+  } catch (err) {
+    const failure = new Error('REDACTION_FAILED');
+    failure.statusCode = 422;
+    failure.cause = err;
+    throw failure;
+  }
+}
 import logger from '../utils/logger.mjs';
 
 // ─────────────────────────────────────────────────────────────
@@ -435,7 +455,7 @@ export async function parseWorkoutTranscript({ transcript, clientId, trainerId, 
   // redactor also strips emails/phones/SSN while preserving injury/movement language.
   // The ORIGINAL transcript is untouched (confidence + any human-review copy use it).
   const nameHints = clientContext?.clientName ? [clientContext.clientName] : [];
-  const { text: redactedTranscript } = redactTranscriptPII(transcript, { nameHints });
+  const redactedTranscript = redactOrFailClosed(transcript, nameHints);
 
   const parsed = await runProviderChain({ systemPrompt, transcript: redactedTranscript });
 

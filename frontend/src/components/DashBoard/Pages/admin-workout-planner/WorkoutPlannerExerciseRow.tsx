@@ -17,6 +17,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import { Plus } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import ExerciseMediaPreview from '../../../WorkoutLogger/ExerciseMediaPreview';
@@ -63,11 +64,21 @@ function formatNasmSignal(exercise: ExerciseSlim): string | null {
   return null;
 }
 
+const InPlanBadge = styled.span`
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--success, #22C55E) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success, #22C55E) 12%, transparent);
+  color: var(--success, #22C55E);
+  font: 700 0.68rem/1.2 'Sora', sans-serif;
+`;
 interface WorkoutPlannerExerciseRowProps {
   exercise: ExerciseSlim;
   equipmentLabel: string;
   impact: string;
   selected: boolean;
+  inPlan: boolean;
   style: React.CSSProperties;
   onAdd: (exercise: ExerciseSlim) => void;
   onSelect: (exercise: ExerciseSlim) => void;
@@ -78,11 +89,12 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
   equipmentLabel,
   impact,
   selected,
+  inPlan,
   style,
   onAdd,
   onSelect,
 }) => {
-  const handleAdd = () => onAdd(exercise);
+  const handleAdd = () => { if (!inPlan) onAdd(exercise); };
   const handleSelect = () => onSelect(exercise);
   const exerciseDisplayName = formatWorkoutPlannerExerciseName(exercise.name);
   const planDefaults = formatPlanDefaults(exercise);
@@ -91,7 +103,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
   return (
     <StyledBox as="div" $style={style}>
       <ExerciseItem
-        role="group"
+        role="listitem"
         aria-label={`${exerciseDisplayName} exercise`}
         $selected={selected}
         onClick={handleSelect}
@@ -103,6 +115,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
         <ExerciseRowContent>
           <ExerciseName>{exerciseDisplayName}</ExerciseName>
           <ExerciseDetailLine>{formatMuscles(exercise)}</ExerciseDetailLine>
+          {inPlan && <InPlanBadge>Already in plan</InPlanBadge>}
           <ExerciseMeta>
             <MetaTag>{exercise.bodyPartCategory}</MetaTag>
             <MetaTag>{exercise.exerciseType}</MetaTag>
@@ -119,11 +132,12 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
         </ExerciseRowContent>
         <ExerciseAddBtn
           type="button"
+          disabled={inPlan}
           onClick={(e) => {
             e.stopPropagation();
             handleAdd();
           }}
-          aria-label={`Add ${exerciseDisplayName}`}
+          aria-label={inPlan ? `${exerciseDisplayName} already in plan` : `Add ${exerciseDisplayName}`}
         >
           <Plus size={18} />
         </ExerciseAddBtn>

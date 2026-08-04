@@ -5,9 +5,14 @@
  */
 import { crystallizeAchievement } from '../services/crystallizeService.mjs';
 
-// achievementId is a UUID (Achievement.id) — validate the shape so a malformed id is a clean 400,
-// not a Postgres "invalid input syntax for type uuid" cast error surfaced as a generic 500.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// achievementId is an INTEGER (live "Achievements".id is integer serial — verified against the
+// production DB 2026-08-03; the earlier UUID assumption rejected every real id with a 400).
+// Validate shape AND int4 range so a malformed/overflow id is a clean 400, not a Postgres
+// cast error surfaced as a generic 500.
+const INT_ID_RE = /^[1-9][0-9]{0,9}$/;
+const INT4_MAX = 2147483647;
+const isValidAchievementId = (raw) =>
+  INT_ID_RE.test(String(raw)) && Number(raw) <= INT4_MAX;
 
 export async function postCrystallize(req, res) {
   const userId = req.user?.id;
@@ -16,7 +21,7 @@ export async function postCrystallize(req, res) {
     typeof req.body?.worldKey === 'string' ? req.body.worldKey.slice(0, 64) : 'default';
 
   if (!userId) return res.status(401).json({ error: 'Not authenticated.' });
-  if (!achievementId || !UUID_RE.test(achievementId)) {
+  if (!achievementId || !isValidAchievementId(achievementId)) {
     return res.status(400).json({ error: 'Invalid achievement id.' });
   }
 

@@ -252,9 +252,10 @@ const makePremiumTheme = (spec: PremiumThemeSpec) => {
 export const premiumThemeAdditions = {
   'ruby-forge': makePremiumTheme({
     id: 'ruby-forge', name: 'Ruby Forge', bg: '#10070A', bg2: '#1C0B10', surface: 'rgba(38, 12, 20, 0.82)', elevated: '#32111B',
-    primary: '#FB7185', primaryBlue: '#F43F5E', primaryDeep: '#9F1239', primaryLight: '#FDA4AF',
-    secondary: '#BE123C', secondaryLight: '#FB7185', secondaryDeep: '#7F1D1D', accent: '#FBBF24', accentLight: '#FDE68A', accentWarm: '#D97706',
+    primary: '#FB7185', primaryBlue: '#50A0F0', primaryDeep: '#9F1239', primaryLight: '#FDA4AF',
+    secondary: '#60C0F0', secondaryLight: '#A5E3FA', secondaryDeep: '#1D4ED8', accent: '#FBBF24', accentLight: '#FDE68A', accentWarm: '#D97706',
     text: '#FFF1F3', textSecondary: 'rgba(255, 241, 243, 0.84)', muted: 'rgba(255, 241, 243, 0.62)',
+    danger: '#EF4444',
   }),
   'emerald-vault': makePremiumTheme({
     id: 'emerald-vault', name: 'Emerald Vault', bg: '#04110D', bg2: '#08231B', surface: 'rgba(9, 45, 34, 0.78)', elevated: '#0B3A2B',
@@ -264,8 +265,8 @@ export const premiumThemeAdditions = {
   }),
   'solar-gold': makePremiumTheme({
     id: 'solar-gold', name: 'Solar Gold', bg: '#120C05', bg2: '#221408', surface: 'rgba(54, 32, 10, 0.8)', elevated: '#3A240D',
-    primary: '#F6C453', primaryBlue: '#F59E0B', primaryDeep: '#B45309', primaryLight: '#FDE68A',
-    secondary: '#9A3412', secondaryLight: '#FB923C', secondaryDeep: '#7C2D12', accent: '#F97316', accentLight: '#FDBA74', accentWarm: '#C2410C',
+    primary: '#F6C453', primaryBlue: '#2DD4BF', primaryDeep: '#B45309', primaryLight: '#FDE68A',
+    secondary: '#4F46E5', secondaryLight: '#818CF8', secondaryDeep: '#312E81', accent: '#2DD4BF', accentLight: '#99F6E4', accentWarm: '#0F766E',
     text: '#FFF7ED', textSecondary: 'rgba(255, 247, 237, 0.84)', muted: 'rgba(255, 247, 237, 0.62)',
   }),
   'amethyst-night': makePremiumTheme({
@@ -276,8 +277,8 @@ export const premiumThemeAdditions = {
   }),
   'rose-quartz': makePremiumTheme({
     id: 'rose-quartz', name: 'Rose Quartz', bg: '#160A12', bg2: '#26101F', surface: 'rgba(56, 20, 44, 0.78)', elevated: '#3A1830',
-    primary: '#FB7185', primaryBlue: '#F472B6', primaryDeep: '#BE185D', primaryLight: '#FBCFE8',
-    secondary: '#A21CAF', secondaryLight: '#F0ABFC', secondaryDeep: '#701A75', accent: '#F9A8D4', accentLight: '#FCE7F3', accentWarm: '#DB2777',
+    primary: '#FB7185', primaryBlue: '#2DD4BF', primaryDeep: '#BE185D', primaryLight: '#FBCFE8',
+    secondary: '#7E22CE', secondaryLight: '#C084FC', secondaryDeep: '#581C87', accent: '#2DD4BF', accentLight: '#99F6E4', accentWarm: '#0F766E',
     text: '#FFF1F7', textSecondary: 'rgba(255, 241, 247, 0.84)', muted: 'rgba(255, 241, 247, 0.62)',
   }),
   'copper-patina': makePremiumTheme({
@@ -305,9 +306,9 @@ export const premiumThemeAdditions = {
     text: '#FFF8F0', textSecondary: 'rgba(255, 248, 240, 0.84)', muted: 'rgba(245, 231, 211, 0.62)',
   }),
   'circuit-lime': makePremiumTheme({
-    id: 'circuit-lime', name: 'Circuit Lime', bg: '#071104', bg2: '#102008', surface: 'rgba(25, 50, 12, 0.78)', elevated: '#1D340D',
-    primary: '#A3E635', primaryBlue: '#84CC16', primaryDeep: '#4D7C0F', primaryLight: '#D9F99D',
-    secondary: '#22C55E', secondaryLight: '#86EFAC', secondaryDeep: '#166534', accent: '#38BDF8', accentLight: '#BAE6FD', accentWarm: '#0284C7',
+    id: 'circuit-lime', name: 'Circuit Lime', bg: '#0D0618', bg2: '#1A0D2E', surface: 'rgba(42, 22, 64, 0.8)', elevated: '#2B1745',
+    primary: '#A3E635', primaryBlue: '#38BDF8', primaryDeep: '#4D7C0F', primaryLight: '#D9F99D',
+    secondary: '#7C3AED', secondaryLight: '#A78BFA', secondaryDeep: '#4C1D95', accent: '#38BDF8', accentLight: '#BAE6FD', accentWarm: '#0284C7',
     text: '#F7FEE7', textSecondary: 'rgba(247, 254, 231, 0.84)', muted: 'rgba(247, 254, 231, 0.62)',
   }),
 

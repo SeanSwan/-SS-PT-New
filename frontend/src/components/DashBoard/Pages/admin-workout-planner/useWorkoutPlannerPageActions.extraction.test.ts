@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerPageActions.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 
 describe('WorkoutPlanner page action extraction', () => {
   it('keeps page-level event handlers outside the mounted page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerPageActions'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerPageActions'");
     expect(pageSource).not.toContain('const removeExercise = useCallback');
     expect(pageSource).not.toContain('const updateExercise = useCallback');
     expect(pageSource).not.toContain('const handleLoadPlan = useCallback');

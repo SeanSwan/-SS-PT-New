@@ -90,6 +90,13 @@ function contrastRatio(foreground: string, background: string): number {
 }
 
 describe('theme CSS variable bridge aliases', () => {
+  it('keeps the application canvas dark when a lens supplies a colored background', () => {
+    const rubyCss = generateCSSVariables('ruby-forge', themes);
+
+    expect(cssValue(rubyCss, 'app-canvas')).toBe('#0A0A0F');
+    expect(cssValue(rubyCss, 'bg-base')).toBe('#10070A');
+  });
+
   it('emits every dashboard alias used by mounted user-dashboard surfaces', () => {
     for (const themeId of themeCycle) {
       const css = generateCSSVariables(themeId as ThemeId, themes);
@@ -135,13 +142,41 @@ describe('theme CSS variable bridge aliases', () => {
     }
   });
 
-  it('ties premium session detail modal modules to the selected non-blue theme', () => {
+  it('emits a multi-color semantic role system instead of one-color aliases', () => {
+    const roles = ['action-primary', 'action-secondary', 'counter-accent', 'data-accent', 'surface-tint'] as const;
+    for (const themeId of themeCycle) {
+      const css = generateCSSVariables(themeId as ThemeId, themes);
+      const values = roles.map(role => cssValue(css, role));
+      for (const [index, value] of values.entries()) {
+        expect(value, `${themeId} missing --${roles[index]}`).not.toBe('');
+      }
+      expect(new Set(values).size, `${themeId} collapses semantic roles into one color`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('gives the priority Swan Lens colorways deliberate complementary accents', () => {
+    const expected = {
+      'solar-gold': ['#F6C453', '#4F46E5', '#2DD4BF'],
+      'rose-quartz': ['#FB7185', '#7E22CE', '#2DD4BF'],
+      'circuit-lime': ['#A3E635', '#7C3AED', '#38BDF8'],
+      'ruby-forge': ['#FB7185', '#60C0F0', '#FBBF24'],
+    } as const;
+
+    for (const [themeId, [primary, secondary, counter]] of Object.entries(expected)) {
+      const css = generateCSSVariables(themeId as ThemeId, themes);
+      expect(cssValue(css, 'action-primary')).toBe(primary);
+      expect(cssValue(css, 'action-secondary')).toBe(secondary);
+      expect(cssValue(css, 'counter-accent')).toBe(counter);
+    }
+  });
+
+  it('ties premium session detail modules to each selected contrast palette', () => {
     const rubyCss = generateCSSVariables('ruby-forge', themes);
     const emeraldCss = generateCSSVariables('emerald-vault', themes);
 
     expect(cssValue(rubyCss, 'schedule-command-panel-bg')).toContain('#32111B');
     expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#9F1239');
-    expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#BE123C');
+    expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#60C0F0');
     expect(cssValue(rubyCss, 'schedule-notification-accent')).toBe('#FB7185');
     expect(cssValue(emeraldCss, 'schedule-command-panel-bg')).toContain('#0B3A2B');
     expect(cssValue(emeraldCss, 'schedule-command-action-bg')).toContain('#047857');

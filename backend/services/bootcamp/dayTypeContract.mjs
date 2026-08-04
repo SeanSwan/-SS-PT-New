@@ -52,20 +52,24 @@ import {
 import { normalizeMovement } from '../../../shared/bootcamp-core/taxonomy.mjs';
 import { runLadder } from '../../../shared/bootcamp-core/relaxation.mjs';
 import { alwaysLegalTopUp } from './alwaysLegal.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 
 /** Swan muscle token -> core region. Covers the 28 registry tokens plus the
  *  CARDIO_FINISHERS aliases (quadriceps, gluteus_maximus, shoulders, full_body). */
 const MUSCLE_REGION = Object.freeze({
   // lower
   adductors: 'lower', calves: 'lower', glute_medius: 'lower', glutes: 'lower',
-  hamstrings: 'lower', hip_abductors: 'lower', hip_flexors: 'lower',
-  it_band: 'lower', quads: 'lower', tfl: 'lower',
+  hamstrings: 'lower', hip_abductors: 'lower', hip_flexors: 'lower', hip_rotators: 'lower',
+  it_band: 'lower', peroneals: 'lower', piriformis: 'lower', posterior_tibialis: 'lower',
+  quads: 'lower', tfl: 'lower', tibialis_anterior: 'lower',
   quadriceps: 'lower', gluteus_maximus: 'lower', gluteus_medius: 'lower',
   // upper
-  anterior_deltoid: 'upper', biceps: 'upper', brachioradialis: 'upper',
-  chest: 'upper', lateral_deltoid: 'upper', lats: 'upper', lower_chest: 'upper',
+  anterior_deltoid: 'upper', biceps: 'upper', brachialis: 'upper', brachioradialis: 'upper',
+  forearms: 'upper', neck_flexors: 'upper', sternocleidomastoid: 'upper',
+  chest: 'upper', pectorals: 'upper', lateral_deltoid: 'upper', lats: 'upper',
+  latissimus_dorsi: 'upper', lower_chest: 'upper', upper_back: 'upper',
   rear_deltoid: 'upper', rhomboids: 'upper', rotator_cuff: 'upper',
-  traps: 'upper', triceps: 'upper', upper_chest: 'upper', shoulders: 'upper',
+  serratus_anterior: 'upper', traps: 'upper', triceps: 'upper', upper_chest: 'upper', shoulders: 'upper',
   // core
   core: 'core', erector_spinae: 'core', obliques: 'core', tva: 'core',
   thoracic_spine: 'core',
@@ -116,8 +120,11 @@ function inferImpact(exercise) {
  * so taxonomy holes are visible instead of silent.
  */
 export function toCoreMovement(exercise) {
-  const muscles = Array.isArray(exercise?.muscles) ? exercise.muscles : [];
-  const primaryToken = exercise?.primaryMuscle || muscles[0];
+  // Main's 0f447562b evolution honored: Rolodex records arrive with alias
+  // forms (JSON strings, display casing, synonyms) — canonicalize BEFORE the
+  // region lookup or real DB rows silently classify as unknown.
+  const muscles = normalizeMuscleList(exercise?.muscles);
+  const primaryToken = canonicalizeMuscle(exercise?.primaryMuscle) || muscles[0];
   const primaryRegion = MUSCLE_REGION[primaryToken];
   if (!primaryRegion) return null;
 

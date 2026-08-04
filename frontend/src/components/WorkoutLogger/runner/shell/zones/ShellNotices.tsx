@@ -37,10 +37,10 @@ const NoticeAction = styled.button`
   min-height: 44px;
   padding: 0 12px;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--world-accent, #60c0f0) 45%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent-primary, #60c0f0) 14%, transparent);
-  color: var(--text-primary, #e0ecf4);
+  background: color-mix(in srgb, var(--world-accent, #60c0f0) 14%, transparent);
+  color: var(--world-text, #e0ecf4);
   font: 600 0.78rem 'Sora', sans-serif;
   cursor: pointer;
 
@@ -60,6 +60,10 @@ export interface ShellNoticesProps {
   setExercises: (exercises: ExerciseEntry[]) => void;
   setSessionNotes: (notes: string) => void;
   setOverallIntensity: (intensity: number | null) => void;
+  /** M6: resume a still-running rest countdown from the restored draft. */
+  onRestoreRest?: (endsAt: number) => void;
+  /** Batch 4: re-anchor the session clock from the restored draft. */
+  onRestoreSessionStart?: (startedAt: number) => void;
   scheduledSessionId: string | null | undefined;
   scheduledSessionCreditHint: number | null | undefined;
   scheduledSessionDate: string | null | undefined;
@@ -75,6 +79,8 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
   setExercises,
   setSessionNotes,
   setOverallIntensity,
+  onRestoreRest,
+  onRestoreSessionStart,
   scheduledSessionId,
   scheduledSessionCreditHint,
   scheduledSessionDate,
@@ -117,6 +123,14 @@ const ShellNotices: React.FC<ShellNoticesProps> = ({
               setExercises(restored.exercises.map((entry) => ensureWorkoutLoggerExerciseRowIdentity(entry)));
               setSessionNotes(restored.sessionNotes);
               setOverallIntensity(restored.overallIntensity);
+              // M6: a rest countdown that was still running resumes.
+              if (restored.restEndsAt && restored.restEndsAt > Date.now()) {
+                onRestoreRest?.(restored.restEndsAt);
+              }
+              // Batch 4: the session clock survives the reload too.
+              if (restored.sessionStartedAt && restored.sessionStartedAt <= Date.now()) {
+                onRestoreSessionStart?.(restored.sessionStartedAt);
+              }
             }}
           >
             Restore

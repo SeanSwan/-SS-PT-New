@@ -23,7 +23,13 @@ describe('client voice logging un-gate', () => {
 
   it('self mode drops the display name and shows the privacy disclosure', () => {
     expect(section).toMatch(/isSelfMode \? undefined : clientName/);
-    expect(section).toMatch(/removed before any AI processing/i);
+    // Rule 75 (Trailhead-Truth, fixed 2026-07-31): the old copy claimed names
+    // were "removed before any AI processing" — false: raw AUDIO reaches the
+    // transcription provider; redaction happens on the TRANSCRIPT before the
+    // parse LLM. The disclosure must state the honest boundary and the old
+    // overclaim must never return.
+    expect(section).toMatch(/removed from the transcript before analysis/i);
+    expect(section).not.toMatch(/before any AI processing/i);
     expect(section).toMatch(/review every parsed exercise/i);
   });
 });

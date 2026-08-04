@@ -14,7 +14,7 @@ ClientNutritionPlan.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
       onUpdate: 'CASCADE',
@@ -102,7 +102,7 @@ ClientNutritionPlan.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
       onUpdate: 'CASCADE',

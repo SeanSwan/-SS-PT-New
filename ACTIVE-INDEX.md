@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `AGENTS.md` / `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-07-07 (fable-mode skill + Rule 71 landed; Hermes-OS/second-brain consult review indexed)
+**Last updated:** 2026-08-02 (agent workflow router, portable workflow skills, deterministic skill inventory)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -12,8 +12,9 @@
 
 ## 🔥 Operating core (read first)
 
-- **`CLAUDE.md`** — root operating rules, 41 mandatory rules, load order, common gotchas
+- **`CLAUDE.md`** — root operating rules, mandatory rules, load order, common gotchas
 - **`ACTIVE-INDEX.md`** — this file (surface/archive map)
+- **`docs/ai-workflow/references/AGENT-WORKFLOW-ROUTER.md`** — task/fog/workspace mode selection, decision discipline, and third-party skill intake
 - **`docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`** — cleanup workflow driven by rules 32–39
 - **`docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`** — plan-before-build, mandatory
 - **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — Swan visual source of truth (stack, narrative arc B2, C1-C12 pattern library)
@@ -38,6 +39,8 @@ These files are the operating base. Everything else is loaded on-demand.
 ## 📘 Active handoff docs (current session continuity)
 
 Location: `docs/ai-workflow/AI-HANDOFF/`
+
+- **`AGENT-WORKFLOW-SKILL-INTEGRATION-AUDIT-2026-08-02.md`** — two-transcript + 44-skill triage, independent GPT-5-class verdict, Kimi spend-gate status, adopted/rejected capability map, and verification contract
 
 - **⭐ USER-DASHBOARD 7★ UPGRADE AUDIT (2026-07-06, active):** `USER-DASHBOARD-7STAR-UPGRADE-AUDIT-2026-07-06/` — 10-doc upgrade audit for future AI builders (read `00-MASTER-ROADMAP.md` first: engraved prompt, domain scorecard, "wire what exists" Wave 1-3 roadmap, Sean decision queue D1-D6, trust flags incl. verified feed private-post leak, algorithm spec index). 9 domain docs: home IA · chart truth · gamification · social · nudges · NBA extension · activation · trainer/admin proof · mobile polish. Complements (does not repeat) FABLE-VISION-REBUILD-DEEP-AUDIT; excludes the workout-logger lane.
 - **⭐ FABLE VISION ARC — Rule-48 AUDIT RECORD (2026-07-06):** `FABLE-VISION-ARC-AUDIT-RECORD-2026-07-06.md` — self-contained re-audit snapshot of shipped slices 0.1→2.1b (billing policy, write-path unification, NBA+D1/D2, Save-Success+share, chart modals, shared picker, archiver outage): files, security posture, rollback per slice, 10 future review hooks. Sign-off pending Sean; arc continues.
@@ -80,18 +83,22 @@ Location: `scripts/swan-video-studio/`
 
 ## 🎨 Swan visual operating system (Phase 3 landed 2026-04-12)
 
-**Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). `.claude/skills/` contains exactly **13** default-exposed entries.
+**Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Skill inventory is discovered from disk with `node scripts/ai-workflow/validate-skill-registry.mjs`; do not trust a static total.
 
-### Default-exposed `.claude/skills/` (13 total)
+### Default-exposed `.claude/skills/`
 
-**Swan orchestration (5):**
+**Swan orchestration and workflow modes:**
 - `swan-orchestrator` — pre-task gate for rules 15/17/26/32
+- `wayfinder` — situational map/frontier for multi-session work with material fog
+- `goal-contract` — measurable acceptance, validation, checkpoints, uncertainty, and stop conditions
+- `worktree-isolation` — verified current baseline and isolated workspace receipt
+- `guided-setup` — one verified setup action at a time with the remaining ledger preserved
 - `canonical-surface-audit` — rules 26-31 execution surface
 - `repo-hygiene-scan` — rules 32-39 execution surface
 - `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md from `docs/ai-workflow/references/`, and the two reference libraries from `.agents/skills/`)
 - `closeout-evidence-lock` — end-of-task evidence gate (preserves substantive code-review checklist from retired `requesting-code-review`)
 
-**KEEP core (8, unchanged):**
+**KEEP core:**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
 
 ### Reference libraries loaded by `swan-design-router`, NOT default-exposed
@@ -115,6 +122,8 @@ Phase 3 move is reversible via `git mv` back if any quarantined skill needs to r
 ---
 
 ## 📗 Compact references (load on-demand, full table in CLAUDE.md)
+
+- `docs/ai-workflow/references/AGENT-WORKFLOW-ROUTER.md` — clear/foggy mode selection, goal contracts, workspace isolation, guided setup, decision discipline, and external skill intake
 
 Location: `docs/ai-workflow/references/`
 

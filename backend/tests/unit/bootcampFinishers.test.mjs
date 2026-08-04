@@ -75,7 +75,7 @@ describe('D3 — full-group selection is day-aware', () => {
       mk('bench', ['chest', 'triceps'], upperMove),
       mk('row', ['lats', 'biceps'], upperMove),
     ];
-    const picked = __testing__.selectFullGroupExercises(pool, rngFixed, {
+    const picked = __testing__.selectFullGroupExercises(pool, rngFixed, new Set(), {
       dayTypeId: 'full_body', totalSlots: 15, highImpactAllowed: false,
     });
     const compoundLegs = picked.filter((e) => !e.isCardio && e.coreMovement === lowerMove).length;
@@ -85,7 +85,7 @@ describe('D3 — full-group selection is day-aware', () => {
 
   it('full-group cardio five come from the day-aware picker, not the array head', () => {
     const pool = [mk('bench', ['chest', 'triceps'], upperMove)];
-    const picked = __testing__.selectFullGroupExercises(pool, rngFixed, {
+    const picked = __testing__.selectFullGroupExercises(pool, rngFixed, new Set(), {
       dayTypeId: 'lower_body', totalSlots: 15, highImpactAllowed: false,
     });
     const cardio = picked.filter((e) => e.isCardio);
@@ -98,6 +98,6 @@ describe('D3 — full-group selection is day-aware', () => {
   it('without a context the legacy shape is unchanged (fail-safe default)', () => {
     const pool = [mk('bench', ['chest', 'triceps'], upperMove)];
     const picked = __testing__.selectFullGroupExercises(pool, rngFixed);
-    expect(picked.filter((e) => e.isCardio)).toHaveLength(5);
+    expect(picked.filter((e) => e.isCardio)).toHaveLength(3); // reconciled: main's shape samples 3
   });
 });

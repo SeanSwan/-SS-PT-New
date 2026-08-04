@@ -9,6 +9,7 @@
  */
 
 import logger from '../utils/logger.mjs';
+import { redactTranscriptPII } from './redactTranscriptPII.mjs';
 
 // Rate limiting: per-user transcription counts
 const userTranscriptions = new Map(); // userId → { count, resetAt }
@@ -89,9 +90,10 @@ function getGeminiApiKey() {
  * Transcribe an audio file buffer using Gemini Flash multimodal.
  * @param {Buffer} buffer - Audio file buffer
  * @param {string} filename - Original filename (for format detection)
+ * @param {{ biasTerms?: string[], piiNameHints?: string[] }} [options] - Safe domain hints for Gemini
  * @returns {Promise<string>} Transcribed text
  */
-export async function transcribeAudio(buffer, filename) {
+export async function transcribeAudio(buffer, filename, options = {}) {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error('No Gemini API key configured (GOOGLE_API_KEY or GEMINI_API_KEY) — cannot transcribe audio');
@@ -109,13 +111,17 @@ export async function transcribeAudio(buffer, filename) {
   const base64Audio = buffer.toString('base64');
   const model = process.env.AI_GEMINI_TRANSCRIPTION_MODEL || 'gemini-2.5-flash';
 
+  const biasTerms = sanitizeBiasTerms(options.biasTerms, options.piiNameHints);
+  const vocabularyHint = biasTerms.length > 0
+    ? `\n\nFitness vocabulary hints (transcribe these terms accurately when spoken): ${biasTerms.join(', ')}.`
+    : '';
   const requestBody = {
     contents: [
       {
         role: 'user',
         parts: [
           {
-            text: 'Transcribe this audio exactly as spoken. Return ONLY the transcribed text with no additional commentary, labels, or formatting. If the audio is unclear or silent, return "[inaudible]".',
+            text: `Transcribe this audio exactly as spoken. Return ONLY the transcribed text with no additional commentary, labels, or formatting. If the audio is unclear or silent, return "[inaudible]".${vocabularyHint}`,
           },
           {
             inlineData: {
@@ -228,6 +234,21 @@ export async function extractText(buffer, mimetype) {
  */
 export function isAudioFile(mimetype) {
   return mimetype?.startsWith('audio/') || false;
+}
+
+function sanitizeBiasTerms(biasTerms, piiNameHints) {
+  if (!Array.isArray(biasTerms)) return [];
+  const hints = Array.isArray(piiNameHints) ? piiNameHints : [];
+  const safeTerms = new Set();
+  for (const candidate of biasTerms) {
+    const term = String(candidate ?? '').trim().slice(0, 80);
+    if (!term) continue;
+    const redaction = redactTranscriptPII(term, { nameHints: hints });
+    if (redaction.detections.length > 0 || redaction.hasCriticalPII || redaction.text !== term) continue;
+    safeTerms.add(term);
+    if (safeTerms.size >= 250) break;
+  }
+  return [...safeTerms];
 }
 
 function getMimeType(filename) {

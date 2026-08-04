@@ -188,8 +188,8 @@ describe('equipment feasibility on real quantities (§5.8)', () => {
   });
 });
 
-describe('selection fallback honors the budget gate', () => {
-  it('prefers budget-legal picks in the fallback and never starves a slot', () => {
+describe('selection never crosses station intent to satisfy a budget', () => {
+  it('returns a thin station instead of borrowing an unrelated region', () => {
     const lowerMove = { primaryRegion: 'lower', regions: ['lower'], pattern: 'squat', joints: [], impact: 'low' };
     const upperMove = { primaryRegion: 'upper', regions: ['upper'], pattern: 'push_horizontal', joints: [], impact: 'low' };
     const pool = [
@@ -201,6 +201,6 @@ describe('selection fallback honors the budget gate', () => {
     // fallback, which is exactly the D1 leak path.
     const gate = budgetGate('full_body', [lowerMove, lowerMove], 6); // lower spent
     const picks = __testing__.selectStationExercises(pool, ['hip_flexors'], 3, new Set(), () => 0.5, gate);
-    expect(picks.map((p) => p.key)).toEqual(['bench_a']);
+    expect(picks).toEqual([]);
   });
 });

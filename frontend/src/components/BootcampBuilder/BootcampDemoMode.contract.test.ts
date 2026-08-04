@@ -10,10 +10,14 @@ describe('Bootcamp demo mode contract', () => {
   const floorStylesSource = read('./BootcampDemoMode.floorStyles.ts');
   const previewSource = read('./ClassPreviewPanel.tsx');
   const chromeSource = read('./BootcampBuilderChrome.tsx');
+  const runnerSource = read('./BootcampRunnerClock.tsx');
+  const runnerStylesSource = read('./BootcampRunnerClock.styles.ts');
+  const runnerLogicSource = read('./BootcampRunner.logic.ts');
+  const railSource = read('./BootcampClassRail.tsx');
 
   it('renders a floor-display demo board from the same class preview surface', () => {
     expect(previewSource).toContain('BootcampDemoMode');
-    expect(previewSource).toContain('floorMode && activeBoard === \'main\'');
+    expect(previewSource).toContain('if (floorMode && bootcamp) {');
     expect(demoSource).toContain('Station Demo Board');
     expect(demoSource).toContain('stationExercises');
     expect(demoSource).toContain('onSelectExercise');
@@ -51,10 +55,44 @@ describe('Bootcamp demo mode contract', () => {
     expect(demoStylesSource).toContain('@media (min-width: 2200px)');
     expect(demoStylesSource).not.toContain('font-size: 1vw');
     expect(demoStylesSource).not.toContain('font-size: 2vw');
-    expect(chromeSource).toContain('Demo Mode');
-    expect(chromeSource).toContain('Exit Demo');
+    expect(chromeSource).toContain('BootcampClassRail');
+    expect(chromeSource).not.toContain("floorMode ? 'Exit Demo' : 'Demo Mode'");
+    expect(chromeSource).toMatch(/activeStage !== 'run' && \(\s*<TopBar>/);
+    expect(railSource).toMatch(/activeStage !== 'run' && \(\s*<RailBody>/);
+
   });
 
+  it('mounts the absolute-deadline runner with truthful end times and accessible controls', () => {
+    expect(demoSource).toContain("from './BootcampRunnerClock'");
+    expect(demoSource).toContain('<BootcampRunnerClock bootcamp={bootcamp} />');
+    expect(runnerSource).toContain('role="timer"');
+    expect(runnerSource).toContain('Planned End');
+    expect(runnerSource).toContain('Projected End');
+    expect(runnerSource).toContain('runner.pause');
+    expect(runnerSource).toContain('runner.resume');
+    expect(runnerSource).toContain('runner.skip');
+    expect(runnerSource).toContain('aria-label="Replay current interval"');
+    expect(runnerSource).toContain('aria-label="Skip to next interval"');
+    expect(runnerSource).toContain("<span>{paused ? 'Resume' : 'Pause'}</span>");
+    expect(runnerSource).toContain('role="progressbar"');
+    expect(runnerSource).toContain('aria-valuenow={Math.round(runner.progress * 100)}');
+    expect(runnerSource).toContain('projectionSlipMinutes');
+    expect(runnerSource).toContain('<SlipBadge>+{projectionSlipMinutes}m</SlipBadge>');
+    expect(runnerLogicSource).toContain('segmentEndsAt');
+    expect(runnerLogicSource).toContain('while (nowMs >= segmentEndsAt)');
+    expect(runnerStylesSource).toContain('min-height: 56px');
+    expect(runnerStylesSource).toContain('font-size: clamp(4.5rem, 12vw, 11rem)');
+    expect(runnerStylesSource).toContain('export const SlipBadge');
+    expect(runnerStylesSource).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(railSource).toContain('carried into Run');
+  });
+
+  it('honors reduced-motion preferences in preview and runner surfaces', () => {
+    expect(previewSource).toContain('useReducedMotion');
+    expect(previewSource).toContain('const reduceMotion = Boolean(useReducedMotion())');
+    expect(previewSource).toContain('initial={reduceMotion ? false : { opacity: 0, y: 10 }}');
+    expect(runnerStylesSource).toContain('@media (prefers-reduced-motion: reduce)');
+  });
   it('renders floor-director controls for station focus and remote-style navigation', () => {
     expect(demoSource).toContain('FloorDirectorRail');
     expect(demoSource).toContain('getFloorDirectorModel');

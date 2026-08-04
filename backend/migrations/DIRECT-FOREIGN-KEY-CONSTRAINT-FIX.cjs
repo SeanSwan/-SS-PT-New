@@ -216,7 +216,9 @@ module.exports = {
               type: 'foreign key',
               name: 'sessions_userId_fkey',
               references: {
-                table: 'users',
+                // drift audit 2026-08-03: must target canonical "Users" — the lowercase
+                // `users` twin is the dead table this constraint once wrongly pointed at.
+                table: 'Users',
                 field: 'id'
               },
               onUpdate: 'CASCADE',

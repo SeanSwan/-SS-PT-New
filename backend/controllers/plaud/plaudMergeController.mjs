@@ -44,7 +44,7 @@ import { readClip, ClipNotFoundError } from '../../services/plaudClipStorageDual
 import { acquireLock, releaseLock, verifyHolder, heartbeat } from '../../services/plaudMergeLockService.mjs';
 import { encryptPayload } from '../../services/plaudCipherService.mjs';
 import { detectBoundary } from '../../services/clientNameBoundaryDetector.mjs';
-import { getFitnessVocabBiasPrompt } from '../../services/fitnessTranscriptionVocabService.mjs';
+import { getClientFitnessBias } from '../../services/fitnessTranscriptionVocabService.mjs';
 import { transcribeAudio } from '../../services/voiceTranscriptionService.mjs';
 import { parseWorkoutTranscript } from '../../services/workoutLogParserService.mjs';
 import { assertTrainerAssignedToClient, PlaudAuthzError } from '../../middleware/plaudAuthz.mjs';
@@ -275,11 +275,8 @@ export async function mergeHandler(req, res) {
     // Transcribe (existing service) with fitness vocab bias
     let transcript;
     try {
-      const vocabPrompt = getFitnessVocabBiasPrompt();
-      transcript = await transcribeAudio(mergedBuffer, `${mergeRequestId}.mp3`, { vocabPrompt }).catch(async () => {
-        // fall back to call without vocabPrompt if signature differs
-        return transcribeAudio(mergedBuffer, `${mergeRequestId}.mp3`);
-      });
+      const vocabulary = await getClientFitnessBias(clientId);
+      transcript = await transcribeAudio(mergedBuffer, `${mergeRequestId}.mp3`, vocabulary);
     } catch (err) {
       await markMergeFailed(mergeRequestId, 'TRANSCRIPTION_FAILED', err.message);
       return jsonError(res, 502, 'TRANSCRIPTION_FAILED', err.message);

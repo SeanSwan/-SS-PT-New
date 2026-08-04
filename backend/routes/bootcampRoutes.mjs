@@ -63,7 +63,7 @@ router.post('/generate', async (req, res) => {
       stationCount, exercisesPerStation,
       targetDuration, expectedParticipants,
       spaceProfileId, equipmentProfileId,
-      name, includeStretch, stretchDurationMin,
+      name, includeStretch, stretchDurationMin, exclusionKeys,
     } = req.body;
 
     const VALID_STYLES = [
@@ -89,6 +89,11 @@ router.post('/generate', async (req, res) => {
     const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
     const safeDuration = Math.min(Math.max(parseInt(targetDuration, 10) || 45, 20), 90);
     const safeParticipants = Math.min(Math.max(parseInt(expectedParticipants, 10) || 12, 1), 50);
+    const safeExclusionKeys = (Array.isArray(exclusionKeys) ? exclusionKeys : [])
+      .filter(key => typeof key === 'string')
+      .map(key => key.trim().slice(0, 200))
+      .filter(Boolean)
+      .slice(0, 100);
 
     const result = await generateBootcampClass({
       trainerId: req.user.id,
@@ -106,6 +111,7 @@ router.post('/generate', async (req, res) => {
       name: typeof name === 'string' ? name.slice(0, 200) : undefined,
       includeStretch: includeStretch !== false,
       stretchDurationMin: Math.min(Math.max(parseInt(stretchDurationMin, 10) || 3, 1), 10),
+      exclusionKeys: new Set(safeExclusionKeys),
     });
 
     return res.json({ success: true, bootcamp: result });

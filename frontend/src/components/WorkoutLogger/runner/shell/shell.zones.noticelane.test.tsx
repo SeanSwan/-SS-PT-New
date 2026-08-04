@@ -180,6 +180,34 @@ describe('draft-gate behavior — VERBATIM transplant of WorkoutDraftGateBanner'
     expect(workoutDraft.discard).toHaveBeenCalledTimes(1);
   });
 
+  it('M6: Restore resumes a STILL-RUNNING rest countdown from the draft', () => {
+    const onRestoreRest = vi.fn();
+    const future = Date.now() + 45_000;
+    const workoutDraft = makeDraft({
+      pendingDraft: { ...draftPayload, restEndsAt: future } as never,
+      restore: vi.fn(() => ({ ...draftPayload, restEndsAt: future } as never)),
+    });
+    render(
+      <ShellNotices {...baseProps} workoutDraft={workoutDraft} draftOfferVisible onRestoreRest={onRestoreRest} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Restore/i }));
+    expect(onRestoreRest).toHaveBeenCalledWith(future);
+  });
+
+  it('M6: an EXPIRED rest countdown never resurrects on restore', () => {
+    const onRestoreRest = vi.fn();
+    const past = Date.now() - 5_000;
+    const workoutDraft = makeDraft({
+      pendingDraft: { ...draftPayload, restEndsAt: past } as never,
+      restore: vi.fn(() => ({ ...draftPayload, restEndsAt: past } as never)),
+    });
+    render(
+      <ShellNotices {...baseProps} workoutDraft={workoutDraft} draftOfferVisible onRestoreRest={onRestoreRest} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Restore/i }));
+    expect(onRestoreRest).not.toHaveBeenCalled();
+  });
+
   it('the draft offer is a decision, not dismissible chrome (no dismiss button)', () => {
     render(<ShellNotices {...baseProps} workoutDraft={makeDraft()} draftOfferVisible />);
     expect(screen.queryByRole('button', { name: /Dismiss notice/i })).toBeNull();

@@ -75,6 +75,14 @@ export interface ClientDashboardHomeProps {
   assignment: AssignmentView;
   sessionPreview: SessionPreview;
   trainingProof: HomeTrainingProof;
+  /**
+   * True once the workout-session fetch has settled. With trainingProof
+   * .lastSession === null this identifies a genuine ZERO-HISTORY client (the
+   * state every new signup lands in) — the home then swaps social noise for
+   * the first-session orientation strip. Never assume zero-history while the
+   * fetch is still loading.
+   */
+  workoutHistorySettled?: boolean;
   insights: InsightRow[];
   performanceScore: number | null;
   macroSummary: MacroSummary | null;

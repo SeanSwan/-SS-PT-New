@@ -15,6 +15,8 @@ describe('ClassPreviewPanel composition contract', () => {
     expect(source).toContain("from './ClassPreviewPanel.previewStyles'");
     expect(source).not.toContain('styled.');
     expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(source).toContain('if (floorMode && bootcamp) {');
+    expect(source).toContain('<BootcampDemoMode bootcamp={bootcamp} onSelectExercise={onSelectExercise} />');
   });
 
   it('keeps extracted preview modules under the project file cap', () => {

@@ -228,12 +228,13 @@ export function useWorkoutPlannerRolodexState({
         equipmentLabel={equipment.length > 0 ? equipment.slice(0, 2).join(', ') : 'Bodyweight'}
         impact={impact}
         selected={selectedExercise?.id === exercise.id}
+        inPlan={planExercises.some(planExercise => planExercise.exerciseSlim.id === exercise.id)}
         {...reactWindowStyleProps(style)}
         onAdd={addExercise}
         onSelect={setSelectedExercise}
       />
     );
-  }, [filteredExercises, selectedExercise, addExercise]);
+  }, [filteredExercises, selectedExercise, planExercises, addExercise]);
 
   const clearSearchForBrowse = useCallback(() => {
     setSearchQuery('');

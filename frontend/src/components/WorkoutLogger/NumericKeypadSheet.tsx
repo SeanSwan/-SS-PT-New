@@ -13,6 +13,8 @@
  * dirty Esc/backdrop COMMITS, never discards; empty + Done keeps prior value (no zero-commit);
  * safe-area-inset-bottom; landscape max-height 70dvh; focus trapped while open, returned by caller.
  */
+import { formatPlateBreakdown } from './runner/shell/sessionTools';
+import { PlateHint } from './NumericKeypadSheet.styles';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Delete } from 'lucide-react';
@@ -22,6 +24,8 @@ import {
 } from './NumericKeypadSheet.styles';
 
 export interface NumericKeypadSheetProps {
+  /** Batch 4: show the plate-per-side breakdown of the live entry (weight fields). */
+  showPlateMath?: boolean;
   open: boolean;
   label: string;
   /** Current committed value — shown as placeholder context; NOT pre-typed. */
@@ -43,7 +47,7 @@ const vibrate = (ms: number) => {
 };
 
 const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
-  open, label, value, allowDecimal, lastSessionValue, onCommit, onClose, onUseSystemKeyboard,
+  open, label, value, allowDecimal, lastSessionValue, onCommit, onClose, onUseSystemKeyboard, showPlateMath = false,
 }) => {
   const [entry, setEntry] = useState('');
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -100,6 +104,11 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
         <Display aria-live="polite">
           {entry === '' ? <span className="ghosted">{value ?? 0}</span> : entry}
         </Display>
+        {showPlateMath && (() => {
+          const liveWeight = entry === '' ? (value ?? 0) : Number.parseFloat(entry);
+          const plates = formatPlateBreakdown(liveWeight);
+          return plates ? <PlateHint aria-live="polite">{plates}</PlateHint> : null;
+        })()}
         {lastSessionValue != null && (
           <QuickChip
             type="button"

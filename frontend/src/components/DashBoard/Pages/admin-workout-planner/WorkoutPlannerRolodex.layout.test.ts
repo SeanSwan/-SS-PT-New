@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PAGE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerPage.tsx'), 'utf8');
+const PAGE_SOURCE = readFileSync(resolve(__dirname, './plannerContexts/useWorkoutPlannerOrchestration.ts'), 'utf8');
 const CLIENT_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerClientState.ts'), 'utf8');
 const ROLODEX_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerRolodexState.tsx'), 'utf8');
 const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
@@ -21,6 +21,8 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
     expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 156;');
     expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
+    expect(ROLODEX_PANEL_SOURCE).toMatch(/defaultHeight:\s*520/);
+    expect(ROLODEX_PANEL_SOURCE).not.toMatch(/VIRTUAL_LIST_STYLE = \{ height:/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?display:\s*grid/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/grid-template-columns:\s*clamp\(72px, 24%, 96px\) minmax\(0, 1fr\) 44px/);
     expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?display:\s*flex/);
@@ -64,7 +66,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('translateX(');
     expect(ROW_SOURCE).toMatch(/<ExerciseAddBtn[\s\S]*?type="button"/);
     expect(ROW_SOURCE).not.toMatch(/<ExerciseItem[\s\S]*?role="button"/);
-    expect(ROW_SOURCE).toMatch(/<ExerciseItem[\s\S]*?role="group"/);
+    expect(ROW_SOURCE).toMatch(/<ExerciseItem[\s\S]*?role="listitem"/);
   });
 
   it('keeps rolodex filter chips at the 44px touch-target floor on mobile and desktop', () => {
@@ -92,7 +94,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   it('honors a clientId deep link from Client Hub before defaulting to the first client', () => {
     expect(PAGE_SOURCE).toMatch(/useSearchParams/);
     expect(PAGE_SOURCE).toMatch(/requestedClientId/);
-    expect(PAGE_SOURCE).toContain("from './useWorkoutPlannerClientState'");
+    expect(PAGE_SOURCE).toContain("from '../useWorkoutPlannerClientState'");
     expect(CLIENT_STATE_SOURCE).toMatch(/const requestedOrSelfClientId = requestedClientId \?\? selfClient\?\.id \?\? null;/);
     expect(CLIENT_STATE_SOURCE).toMatch(/setSelectedClientId\(pickWorkoutPlannerClientId\(clients, requestedOrSelfClientId\)\)/);
   });

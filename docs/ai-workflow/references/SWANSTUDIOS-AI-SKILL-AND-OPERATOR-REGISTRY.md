@@ -1,7 +1,7 @@
 # SwanStudios AI Skill & Operator Registry
 
 - **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL — the single map of who/what may do which job at which tier
-- **Companions:** `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` (defines T0-T4 + actors) · `FABLE-WORKFLOW-INTEGRATION-SPEC.md` (Fable routing) · `FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` (token-economy startup rule) · `docs/ai-workflow/hermes-agentic-os/command-effect-registry.md` (runtime command detail)
+- **Companions:** `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` (defines T0-T4 + actors) · `FABLE-WORKFLOW-INTEGRATION-SPEC.md` (Fable routing) · `FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` (token-economy startup rule) · `AGENT-WORKFLOW-ROUTER.md` (task mode + external skill intake) · `docs/ai-workflow/hermes-agentic-os/command-effect-registry.md` (runtime command detail)
 
 ---
 
@@ -37,6 +37,11 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | grill-me (rule 64) | Claude Code | T1 | repo | KEEP | Checkpoint doc must exist in `brainstorms/` per grill |
 | chromie (rule 65) | Claude Code | T1 | repo | KEEP | Only for unproven bets; output = spec + 3 failure modes + gap ranking |
 | swan-orchestrator | Claude Code | T1 | repo | KEEP | Pre-task gate artifacts (rules 15/17/26/32) present before build |
+| wayfinder (rule 78) | Claude Code/Codex | T1 local map; external tracker write requires explicit authority | repo | KEEP SITUATIONAL | Multi-session + material fog only; Linear owns implementation status when authorized, local map stores decision evidence; exits early otherwise |
+| goal-contract (rule 78) | Claude Code/Codex | T1 contract; persistent goal API only on explicit user request | repo | KEEP | Objective, validation, constraints, checkpoints, uncertainty, and stop conditions; anti-reward-hacking |
+| worktree-isolation (rule 78) | Claude Code/Codex | T0 inspect -> T2 bounded repo/worktree write | repo | KEEP | Verify current baseline, exact branch/path, env/dependencies/ports/services; cleanup is separately authorized |
+| guided-setup (rule 78) | Claude Code/Codex + Human | T0/T1; sensitive step uses its own tier | repo/app-meta | KEEP | One verified current step; stable remaining ledger; human performs auth/financial/irreversible steps |
+| validate-skill-registry | Deterministic Script | T0 | repo | KEEP | Exact `SKILL.md` casing, frontmatter, and filesystem inventory; no model calls |
 | swan-design-router (rule 40) | Claude Code | T1 | repo | KEEP | Loads Design Brain and suitability-filtered World Engine context; refuses unlicensed M4 |
 | swan-world-factory | Codex/Claude builders | T1 plan → T2 bounded ignored writes | repo/public | KEEP MANUAL ONLY | Sean supplies N/purpose/seed/budget; delegates each site to the canonical cinematic generator; worker pool ≤3; ignored experiments + receipts only; no production promotion |
 | closeout-evidence-lock (rule 41) | Claude Code | T1 | repo | KEEP | Claim-to-evidence lock; forbidden-language filter |
@@ -51,7 +56,7 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | seedance workout/cinematic video skills | Claude Code | T1 | public | KEEP | Prompt artifacts only; media generation is external+manual |
 | swan-oracle | Claude Code | T1 | redacted packets | KEEP | Privacy-safe packets only |
 | requesting-code-review | — | — | — | **DELETE (quarantined)** | Broken dependency; checklist already preserved in closeout-evidence-lock. Do not dispatch |
-| Grill-Me → Chromie → Orchestrator → Design Router → Build → Closeout pipeline | Claude Code | T1→T2 | repo | KEEP | The rule 64/65 build path; unchanged by this registry |
+| Mode Router → Wayfinder if foggy → Grill-Me/Chromie as needed → Goal Contract if long/measurable → Worktree/Rule-67 execution → Orchestrator → Design Router if UI → Build → Closeout | Claude Code/Codex | T0 classification → T1/T2 | repo | KEEP | Rule 78 selects the smallest mode; existing project gates remain authoritative |
 
 ## 6. Fable section
 
