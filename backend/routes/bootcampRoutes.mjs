@@ -188,6 +188,53 @@ router.post('/log', async (req, res) => {
 });
 
 // GET /api/bootcamp/history
+/**
+ * SWA-105 Slice 8 — attendance log-back. Closes the Product Core Loop: every
+ * registered attendee gets a real DailyWorkoutForm; guests get roster rows.
+ * Idempotent per class; ownership enforced inside the service (404, never
+ * existence-confirming). Body: { attendees: [{userId} | {guest}] }.
+ */
+router.post('/class-logs/:id/attendance', async (req, res) => {
+  try {
+    const { recordBootcampAttendance } = await import('../services/bootcamp/bootcampAttendance.mjs');
+    const { getBootcampClassLog } = await import('../models/index.mjs');
+    const { getAllModels } = await import('../models/index.mjs');
+    const models = getAllModels();
+    const ClassLog = getBootcampClassLog();
+
+    const result = await recordBootcampAttendance(
+      {
+        getClassLog: (id) => ClassLog.findByPk(id),
+        createWorkoutForm: async (form) => {
+          if (!models.DailyWorkoutForm) return null;
+          const row = await models.DailyWorkoutForm.create({
+            clientId: form.clientId,
+            trainerId: Number(req.user.id),
+            date: form.date,
+            formData: { ...form.formData, idempotencyKey: form.idempotencyKey },
+            sessionDeducted: form.sessionDeducted,
+            mcpProcessed: form.mcpProcessed,
+            submittedAt: new Date(),
+          });
+          return row.id;
+        },
+        saveClassLog: (log, patch) => log.update(patch),
+      },
+      {
+        classLogId: Number(req.params.id),
+        trainerId: Number(req.user.id),
+        requesterRole: req.user.role,
+        attendees: req.body?.attendees,
+      },
+    );
+    res.status(result.alreadyRecorded ? 200 : 201).json({ success: true, ...result });
+  } catch (error) {
+    const status = error.statusCode ?? 500;
+    if (status >= 500) logger.error('[Bootcamp] attendance failed:', error);
+    res.status(status).json({ success: false, message: status >= 500 ? 'Attendance recording failed' : error.message });
+  }
+});
+
 router.get('/history', async (req, res) => {
   try {
     const { dayType, limit, offset } = req.query;
