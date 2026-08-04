@@ -20,6 +20,17 @@ vi.mock('../../services/schedule-ai/scheduleAiProposalEngine.mjs', () => ({
   generateScheduleAiProposal: mockGenerateScheduleAiProposal,
 }));
 
+// This suite drives 6 requests as the SAME user to assert ERROR-CODE MAPPING
+// (409/503). /proposals gained the per-user aiRateLimiter in the 2026-08-04
+// spend-cap fix (SWA-128), and the real limit is 3/minute — so from the 4th
+// request on, every assertion here would see 429 instead of the status under
+// test. Pass the limiter through: rate limiting is covered by its own suite
+// (aiSpendLimiterCoverage.test.mjs pins that the middleware is ON this route),
+// and this file must keep testing what its name says.
+vi.mock('../../middleware/aiRateLimiter.mjs', () => ({
+  aiRateLimiter: (_req, _res, next) => next(),
+}));
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
