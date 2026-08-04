@@ -137,6 +137,9 @@ const LEGACY_TIER_ALIASES = {
  * a list: a hand-written `['bronze','silver','gold','platinum']` silently
  * matched nothing, because the column stores `bronze_forge`-style keys.
  */
+/** Legacy alias keys still stored on existing rows (User.tier defaults to one). */
+export const LEGACY_TIER_ALIAS_KEYS = Object.freeze(Object.keys(LEGACY_TIER_ALIASES));
+
 export const KNOWN_TIER_KEYS = Object.freeze(
   new Set([...Object.keys(LEGACY_TIER_ALIASES), ...Object.values(LEGACY_TIER_ALIASES)]),
 );
