@@ -12,6 +12,13 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.mjs';
 import { requireTier } from '../middleware/requireTier.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  isMissingTableError,
+  respondComingSoon,
+  respondComingSoonWrite,
+} from './featureAvailability.mjs';
+
+const COMING_SOON = 'Live streaming coming soon';
 
 const router = Router();
 
@@ -50,8 +57,14 @@ router.get('/', async (req, res) => {
     });
     res.json({ streams });
   } catch (err) {
+    // Only a missing table means "not built yet". Anything else is a real failure and must not be
+    // renamed "coming soon" — that hid outages from users and from the logs (SWA-101).
+    if (isMissingTableError(err)) {
+      logger.warn('LiveStreams table absent — serving coming-soon', { error: err.message });
+      return respondComingSoon(res, { streams: [] }, COMING_SOON);
+    }
     logger.error('Error fetching live streams', { error: err.message });
-    res.json({ streams: [], status: 'coming_soon', message: 'Live streaming coming soon' });
+    res.status(500).json({ message: 'Error fetching live streams' });
   }
 });
 
@@ -65,8 +78,12 @@ router.get('/trending', async (req, res) => {
     const streams = await LiveStream.getTrendingStreams?.() || [];
     res.json({ streams });
   } catch (err) {
+    if (isMissingTableError(err)) {
+      logger.warn('LiveStreams table absent — serving coming-soon', { error: err.message });
+      return respondComingSoon(res, { streams: [] }, COMING_SOON);
+    }
     logger.error('Error fetching trending streams', { error: err.message });
-    res.json({ streams: [], status: 'coming_soon', message: 'Live streaming coming soon' });
+    res.status(500).json({ message: 'Error fetching trending streams' });
   }
 });
 
@@ -81,6 +98,12 @@ router.get('/:id', async (req, res) => {
     if (!stream) return res.status(404).json({ message: 'Stream not found' });
     res.json({ stream });
   } catch (err) {
+    // Was an unguarded 500: a client following a stream link saw a broken page rather than an
+    // honest "not available yet" (SWA-101).
+    if (isMissingTableError(err)) {
+      logger.warn('LiveStreams table absent — serving coming-soon', { error: err.message });
+      return respondComingSoon(res, { stream: null }, COMING_SOON);
+    }
     logger.error('Error fetching stream', { error: err.message });
     res.status(500).json({ message: 'Error fetching stream details' });
   }
@@ -116,6 +139,12 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ stream });
   } catch (err) {
+    // WRITE path: 503, never a 200 "coming soon" — the stream was not created and the trainer
+    // must not be told otherwise (SWA-101).
+    if (isMissingTableError(err)) {
+      logger.warn('LiveStreams table absent — refusing create', { error: err.message });
+      return respondComingSoonWrite(res, COMING_SOON);
+    }
     logger.error('Error creating stream', { error: err.message });
     res.status(500).json({ message: 'Error creating stream' });
   }
