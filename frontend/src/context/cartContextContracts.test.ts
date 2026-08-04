@@ -69,3 +69,38 @@ describe('cart context contracts', () => {
     expect(parsePositiveCartInteger('2.5')).toBeNull();
   });
 });
+
+describe('getCartErrorMessage — no raw transport strings in the cart panel', () => {
+  const axiosErr = (data: unknown, message: string) => Object.assign(new Error(message), {
+    isAxiosError: true,
+    response: { status: 500, data },
+  });
+
+  it('prefers server-authored copy (e.g. the quantity ceiling)', () => {
+    const err = axiosErr(
+      { message: 'Quantity must be 99 or fewer per item. For a larger order, please contact us.' },
+      'Request failed with status code 400'
+    );
+    expect(getCartErrorMessage(err, 'fallback')).toMatch(/99 or fewer/);
+  });
+
+  it('never surfaces "Request failed with status code 500" to a buyer', () => {
+    const err = axiosErr({}, 'Request failed with status code 500');
+    expect(getCartErrorMessage(err, 'We could not update your cart.')).toBe('We could not update your cart.');
+  });
+
+  it('never surfaces a bare "Network Error"', () => {
+    const err = Object.assign(new Error('Network Error'), { isAxiosError: true, response: undefined });
+    expect(getCartErrorMessage(err, 'We could not reach the cart.')).toBe('We could not reach the cart.');
+  });
+
+  it('never surfaces an axios timeout string', () => {
+    const err = Object.assign(new Error('timeout of 30000ms exceeded'), { isAxiosError: true, response: undefined });
+    expect(getCartErrorMessage(err, 'fallback')).toBe('fallback');
+  });
+
+  it('STILL shows intentional copy thrown by our own code', () => {
+    const err = new Error('Please login to add items to cart');
+    expect(getCartErrorMessage(err, 'fallback')).toBe('Please login to add items to cart');
+  });
+});

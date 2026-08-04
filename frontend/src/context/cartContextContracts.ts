@@ -202,11 +202,25 @@ export const normalizeCartResponse = (payload: unknown, previous?: Cart | null):
 };
 
 export const getCartErrorMessage = (error: unknown, fallback: string): string => {
-  if (isAxiosError(error) && isRecord(error.response?.data)) {
-    const serverMessage = readString(error.response.data.message);
-    if (serverMessage) return serverMessage;
+  if (isAxiosError(error)) {
+    if (isRecord(error.response?.data)) {
+      // Server-authored copy is written for humans — e.g. the cart quantity
+      // ceiling explains the limit and points at a person.
+      const serverMessage = readString(error.response.data.message);
+      if (serverMessage) return serverMessage;
+    }
+
+    // Deliberately does NOT fall through to error.message for transport
+    // failures: axios yields "Request failed with status code 500", "Network
+    // Error", "timeout of 30000ms exceeded". Those render straight into the
+    // cart panel (ShoppingCart StatusMessage) and tell a buyer nothing they can
+    // act on. Same defect class already fixed on the checkout and success
+    // screens; the cart was the surface still leaking it.
+    return fallback;
   }
 
+  // A plain Error thrown by our own code carries intentional, user-facing copy
+  // (e.g. "Please login to add items to cart") — that one should still show.
   return error instanceof Error && error.message.trim() ? error.message : fallback;
 };
 
