@@ -92,7 +92,7 @@ export function validateBrainOrdering(keys, pool) {
   return ordered;
 }
 
-function buildBrainPrompt({ pool, dayTypeId, headcount, mode }) {
+function buildBrainPrompt({ tokens, dayTypeId, headcount, mode }) {
   // Keys + aggregate context ONLY (Rule 8). No names, no notes, no history text.
   return [
     `Order these exercise keys for a ${dayTypeId} group class`
@@ -103,8 +103,24 @@ function buildBrainPrompt({ pool, dayTypeId, headcount, mode }) {
       ? 'No equipment profile is set: assume common gym equipment and list every assumption you make.'
       : 'Equipment is pre-filtered; do not reason about it.',
     'Reply ONLY with JSON: {"orderedKeys": [...], "assumptions": [...]}.',
-    `Keys: ${pool.map((ex) => ex.key).join(', ')}`,
+    // OPAQUE TOKENS, never raw keys (Kimi security F2). Exercise keys are
+    // trainer-authored free text — a key like `johns-post-op-knee-rehab` is
+    // client PII, and a key containing newlines is a prompt-injection vector.
+    // The model sees ex_0..ex_N; the caller maps back after validation. This
+    // kills both the PII side-channel and key-borne injection in one move.
+    `Keys: ${tokens.join(', ')}`,
   ].join('\n');
+}
+
+/** Bidirectional opaque-token map so raw keys never touch the LLM wire. */
+function buildTokenMap(pool) {
+  const tokenToKey = new Map();
+  const tokens = pool.map((ex, i) => {
+    const token = `ex_${i}`;
+    tokenToKey.set(token, ex.key);
+    return token;
+  });
+  return { tokens, tokenToKey };
 }
 
 function sanitizeAssumptions(value) {
@@ -143,18 +159,36 @@ export async function orderPoolWithBrain({
     return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'no_provider', declaredAssumptions: [] };
   }
 
-  const timeoutMs = Number(env.SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
+  // Clamp the timeout to a sane band (Kimi F4): env is ops-set, but defense in
+  // depth against a mis-set 99999999 that would let a hung provider pin a
+  // request for a day.
+  const rawTimeout = Number(env.SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
+  const timeoutMs = Math.min(30_000, Math.max(1_000, rawTimeout));
+  const { tokens, tokenToKey } = buildTokenMap(pool);
+  let timer = null;
   try {
     const raw = await Promise.race([
-      completionFn(buildBrainPrompt({ pool, dayTypeId, headcount, mode })),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('brain_timeout')), timeoutMs)),
+      completionFn(buildBrainPrompt({ tokens, dayTypeId, headcount, mode })),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('brain_timeout')), timeoutMs); }),
     ]);
-    const match = String(raw).match(/\{[\s\S]*\}/);
+    // Cap the response BEFORE the regex/parse (Kimi F4): an unbounded body is a
+    // memory/CPU event per request. 64KB is generous for a key ordering.
+    const rawStr = String(raw);
+    if (rawStr.length > 64_000) {
+      return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'oversized_reply', declaredAssumptions: [] };
+    }
+    const match = rawStr.match(/\{[\s\S]*\}/);
     if (!match) {
       return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'unparseable_reply', declaredAssumptions: [] };
     }
     const parsed = JSON.parse(match[0]);
-    const ordered = validateBrainOrdering(parsed.orderedKeys, pool);
+    // Map opaque tokens back to real keys before validation — the model only
+    // ever spoke tokens. An unknown token maps to undefined and fails the
+    // subset check, which is the correct rejection.
+    const mappedKeys = Array.isArray(parsed.orderedKeys)
+      ? parsed.orderedKeys.map((t) => tokenToKey.get(t))
+      : null;
+    const ordered = validateBrainOrdering(mappedKeys, pool);
     if (!ordered) {
       return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'invalid_ordering', declaredAssumptions: [] };
     }
@@ -167,6 +201,10 @@ export async function orderPoolWithBrain({
   } catch (err) {
     const reason = err?.message === 'brain_timeout' ? 'timeout' : 'provider_error';
     return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: reason, declaredAssumptions: [] };
+  } finally {
+    // Clear the race timer on every settle (Kimi F4) — a leaked timer keeps the
+    // event loop alive after the request resolved.
+    if (timer) clearTimeout(timer);
   }
 }
 

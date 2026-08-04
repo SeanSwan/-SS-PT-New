@@ -125,13 +125,51 @@ describe('instrumented fallback — every failure has a name', () => {
     expect(r.pool).toHaveLength(basePool.length);
   });
 
-  it('a valid reply is used and attributed', async () => {
+  it('a valid reply (in OPAQUE TOKENS) is used and attributed', async () => {
+    // basePool = [squat_a, squat_b, squat_c, hinge_a] -> ex_0..ex_3.
+    // The model speaks tokens; hinge_a is ex_3.
     const r = await run({
-      completionFn: async () => '{"orderedKeys": ["hinge_a", "squat_a", "squat_b", "squat_c"]}',
+      completionFn: async () => '{"orderedKeys": ["ex_3", "ex_0", "ex_1", "ex_2"]}',
     });
     expect(r.brainUsed).toBe('llm');
     expect(r.pool[0].key).toBe('hinge_a');
     expect(r.fallbackReason).toBeNull();
+  });
+
+  // ── Kimi F2: keys never reach the LLM raw; tokens map back ──────────────
+  it('the prompt sent to the model contains NO raw exercise key — only tokens', async () => {
+    let seenPrompt = '';
+    await run({ completionFn: async (prompt) => { seenPrompt = prompt; return '{"orderedKeys":["ex_0"]}'; } });
+    // A trainer-authored key (PII/injection risk) must not appear on the wire.
+    expect(seenPrompt).not.toContain('squat_a');
+    expect(seenPrompt).toContain('ex_0');
+  });
+
+  it('a reply echoing a RAW key (not a token) is rejected — injection cannot select', async () => {
+    const r = await run({ completionFn: async () => '{"orderedKeys": ["squat_a"]}' });
+    expect(r.fallbackReason).toBe('invalid_ordering'); // raw key is not a known token
+  });
+
+  // ── Kimi F4: oversized reply + timeout clamp ───────────────────────────
+  it('an oversized reply is dropped before parse (memory-event guard)', async () => {
+    const huge = `{"orderedKeys":["ex_0"],"pad":"${'x'.repeat(70_000)}"}`;
+    const r = await run({ completionFn: async () => huge });
+    expect(r.fallbackReason).toBe('oversized_reply');
+  });
+
+  it('the timeout is clamped to a sane band — a too-small env value still waits the 1s floor', async () => {
+    // 50ms would let a flaky-slow provider get cut off mid-flight; the floor
+    // holds it to 1s. (The 30s ceiling is the same Math clamp; not timed here
+    // because it collides with vitest's own 30s test budget.)
+    const start = Date.now();
+    const r = await run({
+      completionFn: () => new Promise(() => {}),
+      env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' },
+    });
+    expect(r.fallbackReason).toBe('timeout');
+    const elapsed = Date.now() - start;
+    expect(elapsed).toBeGreaterThanOrEqual(950); // clamped UP to the 1s floor, not 50ms
+    expect(elapsed).toBeLessThan(3_000);
   });
 });
 
@@ -141,7 +179,7 @@ describe('the Open Gym assumption channel (Kimi R4)', () => {
       pool: CLUMPED.slice(0, 2), dayTypeId: 'cardio', mode: 'open_gym',
       env: { SWAN_BOOTCAMP_BRAIN: 'llm' },
       completionFn: async () => JSON.stringify({
-        orderedKeys: ['squat_a', 'squat_b'],
+        orderedKeys: ['ex_0', 'ex_1'],
         assumptions: ['Assumed dumbbells available', '', 42, 'x'.repeat(500), 'Assumed floor space'],
       }),
     });
@@ -152,7 +190,7 @@ describe('the Open Gym assumption channel (Kimi R4)', () => {
     const r = await orderPoolWithBrain({
       pool: CLUMPED.slice(0, 2), dayTypeId: 'cardio', mode: 'strict',
       env: { SWAN_BOOTCAMP_BRAIN: 'llm' },
-      completionFn: async () => '{"orderedKeys": ["squat_a"], "assumptions": ["should be ignored"]}',
+      completionFn: async () => '{"orderedKeys": ["ex_0"], "assumptions": ["should be ignored"]}',
     });
     expect(r.declaredAssumptions).toEqual([]);
   });
