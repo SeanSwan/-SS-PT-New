@@ -30,14 +30,31 @@ const backend = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const snapshot = JSON.parse(readFileSync(resolve(backend, 'tests/fixtures/live-enum-labels.json'), 'utf8'));
 const liveLabels = snapshot.labels;
 
-/** Labels any migration adds to a named enum type (covers post-snapshot migrations). */
-const migrationLabelsFor = (typeName) => {
+/**
+ * Migration sources, read ONCE. The first version re-read all ~345 migration files for every
+ * enum attribute checked (~100+), i.e. ~34,500 reads — it took 103s and only passed on vitest's
+ * retry, which is precisely the "retry masks flakiness into green" trap. Scan once, reuse.
+ */
+let migrationSourcesCache = null;
+const migrationSources = () => {
+  if (migrationSourcesCache) return migrationSourcesCache;
   const dir = resolve(backend, 'migrations');
-  const found = new Set();
-  if (!existsSync(dir)) return found;
+  migrationSourcesCache = [];
+  if (!existsSync(dir)) return migrationSourcesCache;
   for (const file of readdirSync(dir)) {
     if (!/\.(cjs|mjs|js)$/.test(file)) continue;
-    const src = readFileSync(resolve(dir, file), 'utf8');
+    migrationSourcesCache.push(readFileSync(resolve(dir, file), 'utf8'));
+  }
+  return migrationSourcesCache;
+};
+
+/** Labels any migration adds to a named enum type (covers post-snapshot migrations). */
+const labelsByType = new Map();
+const migrationLabelsFor = (typeName) => {
+  if (labelsByType.has(typeName)) return labelsByType.get(typeName);
+  const found = new Set();
+  labelsByType.set(typeName, found);
+  for (const src of migrationSources()) {
     if (!src.includes(typeName)) continue;
     // ADD VALUE 'x' / ADD VALUE IF NOT EXISTS 'x'
     for (const m of src.matchAll(/ADD\s+VALUE\s+(?:IF\s+NOT\s+EXISTS\s+)?'([^']+)'/gi)) found.add(m[1]);
