@@ -36,6 +36,29 @@ describe('judgment regression suite (Kimi R5)', () => {
     expect(brain.recentInHead).toBe(0);
   });
 
+  it('enforces "recently-taught, never first" even when ALL scores are bad (Opus §2.8)', () => {
+    // Every exercise recent except one; that one must lead regardless of pattern.
+    const pool = [
+      ex('recent_a', 'squat'), ex('recent_b', 'squat'), ex('fresh_c', 'squat'),
+    ];
+    const recentKeys = new Set(['recent_a', 'recent_b']);
+    const ordered = heuristicBrain({ pool, recentKeys });
+    expect(recentKeys.has(ordered[0].key)).toBe(false);
+    expect(ordered[0].key).toBe('fresh_c');
+  });
+
+  it('leaves the head alone when it is already fresh', () => {
+    const pool = [ex('fresh_a', 'squat'), ex('recent_b', 'hinge')];
+    const ordered = heuristicBrain({ pool, recentKeys: new Set(['recent_b']) });
+    expect(ordered[0].key).toBe('fresh_a');
+  });
+
+  it('when EVERYTHING is recent, does not loop or throw (no fresh to promote)', () => {
+    const pool = [ex('r1', 'squat'), ex('r2', 'hinge')];
+    const ordered = heuristicBrain({ pool, recentKeys: new Set(['r1', 'r2']) });
+    expect(ordered).toHaveLength(2);
+  });
+
   it('is deterministic — same input, same order', () => {
     const a = heuristicBrain({ pool: CLUMPED }).map((e) => e.key);
     const b = heuristicBrain({ pool: CLUMPED }).map((e) => e.key);

@@ -55,6 +55,20 @@ export function heuristicBrain({ pool, recentKeys = new Set() }) {
     ordered.push(pick);
     lastPattern = pick.coreMovement?.pattern ?? lastPattern;
   }
+
+  // ENFORCE the "recently-taught, never first" invariant the header claims —
+  // the -30 score only DISCOURAGES it, so when every candidate scored poorly a
+  // recent one can still land at position 0. If the head is recent and a
+  // non-recent exercise exists anywhere, promote the first non-recent to front.
+  // (Opus 5 review §2.8: an asserted invariant that the code doesn't enforce is
+  // a Rule-75 over-claim; enforce it rather than soften the claim.)
+  if (ordered.length > 1 && recentKeys.has(ordered[0].key)) {
+    const firstFresh = ordered.findIndex((ex) => !recentKeys.has(ex.key));
+    if (firstFresh > 0) {
+      const [fresh] = ordered.splice(firstFresh, 1);
+      ordered.unshift(fresh);
+    }
+  }
   return ordered;
 }
 
