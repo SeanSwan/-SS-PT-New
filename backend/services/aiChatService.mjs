@@ -1099,9 +1099,15 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
     // Helper: safe query that always returns array
     const safeQuery = async (sql, replacements) => {
       try {
-        const result = await sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT }).catch(() => []);
+        const result = await sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
         return Array.isArray(result) ? result : [];
-      } catch { return []; }
+      } catch (err) {
+        // Degrade the enrichment block but NEVER silently (Kimi review 2026-08-04: three
+        // schema-drift bugs — experiencePoints, bootcamp template columns — hid for months
+        // behind the old swallow-all catch; a disconnected fire alarm audits nothing).
+        logger.warn(`[aiChat.safeQuery] enrichment query failed (block degraded): ${err.message} :: ${String(sql).replace(/\s+/g, ' ').slice(0, 140)}`);
+        return [];
+      }
     };
 
     // ── PARALLEL FETCH: Fire ALL 17 queries concurrently for speed ──
@@ -1258,8 +1264,11 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          WHERE "userId" = :userId
          ORDER BY "measurementDate" DESC LIMIT 5`, { userId }),
       // 8. Gamification (user XP/level)
+      // "Users" has no experiencePoints column (live-DB verified 2026-08-04) — the real
+      // column is `points`. Aliased so downstream readers keep their key; the old query
+      // failed on every call and safeQuery silently blanked the whole gamification block.
       safeQuery(
-        `SELECT u."experiencePoints", u.level, u.tier
+        `SELECT u.points AS "experiencePoints", u.level, u.tier
          FROM "Users" u WHERE u.id = :userId LIMIT 1`, { userId }),
       // 8b. Streaks
       safeQuery(
@@ -1467,8 +1476,15 @@ You can log workouts, check progress, and manage plans for ANY of these clients.
             { trainerId: userId }
           ).catch(() => []),
           safeQuery(
-            `SELECT id, name, "classFormat", "classStyle", "dayType", "stationCount",
-                    "targetDuration", "expectedParticipants"
+            // Live columns are targetDurationMin / optimalParticipants, and stations live
+            // in bootcamp_stations (no stationCount column) — the old column names made
+            // this query fail on every call, silently dropping "Saved Templates" from the
+            // coach prompt (live-DB verified 2026-08-04). Aliased to the reader's keys.
+            `SELECT id, name, "classFormat", "classStyle", "dayType",
+                    (SELECT COUNT(*) FROM bootcamp_stations bs
+                      WHERE bs."templateId" = bootcamp_templates.id) AS "stationCount",
+                    "targetDurationMin" AS "targetDuration",
+                    "optimalParticipants" AS "expectedParticipants"
              FROM bootcamp_templates
              WHERE "trainerId" = :trainerId AND "isActive" = true
              ORDER BY "updatedAt" DESC LIMIT 5`,

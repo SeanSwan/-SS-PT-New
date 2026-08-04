@@ -253,6 +253,16 @@ Does this task have (or deserve) a SWA issue? [Y/N]
     this durable closeout or the Hermes memo for a later authorized session.
 Board result: [SWA-N updated/created | pending local handoff | N/A - trivial/no issue]
 
+MARKER (tightened 2026-08-04 — Sean: "are we updating Linear as well… this should be automatic"):
+the closeout must carry an EXPLICIT claim, not an incidental citation. Write one of:
+  - `LINEAR: SWA-<n>`        — this issue was actually updated/created this turn, OR
+  - `LINEAR: N/A — <reason>` — this build genuinely maps to no issue.
+A bare "SWA-123" mention no longer satisfies the Stop gate. Reason: closeouts cite issues for
+context constantly ("see SWA-111"), so citing had become indistinguishable from syncing and the
+gate effectively never fired — a governance change once shipped with zero board activity and
+still passed. An actual `save_issue`/`save_comment` call needs no marker at all (preferred).
+Enforced by `scripts/hooks/linear-sync-gate.mjs` (12/12 contract tests, mutation-proven).
+
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:
   - [explicit list]

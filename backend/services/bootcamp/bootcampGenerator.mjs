@@ -29,11 +29,15 @@ import {
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
+import { pickFinishers } from './bootcampFinishers.mjs';
+import { orderPoolWithBrain } from './bootcampBrain.mjs';
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
 } from './bootcampCapacity.mjs';
+import { chipsForExercise } from './bootcampChips.mjs';
+import { summarizeRelaxations } from '../../../shared/bootcamp-core/relaxation.mjs';
 
 // Preserved named-export surface after the move to bootcampCapacity.mjs.
 export { buildAvailableEquipmentList };
@@ -155,25 +159,58 @@ function selectStationExercises(available, stationMuscles, count, usedNames, rng
 
   return selected;
 }
-function selectFullGroupExercises(available, rng = Math.random, usedNames = new Set()) {
+function selectFullGroupExercises(available, rng = Math.random, usedNames = new Set(), contractCtx = null) {
   const eligible = available.filter((exercise) => !isUsedExercise(exercise, usedNames));
+
+  // RECONCILED (merge of 0f447562b + slice 3): main's shape — taxonomy-
+  // normalized cardio, usedNames exclusions, sampled tiers — carrying my D3
+  // layers: ONE budget ledger spanning compound AND accessory (a per-tier
+  // ledger lets a capped region re-enter in tier two), and a day-aware cardio
+  // five instead of the array head.
+  const ledger = [];
+  const budgeted = (pool) => {
+    if (!contractCtx) return pool;
+    const kept = [];
+    const provisional = [...ledger];
+    const liveGate = budgetGate(contractCtx.dayTypeId, provisional, 15);
+    for (const ex of pool) {
+      if (liveGate(ex)) {
+        kept.push(ex);
+        if (ex.coreMovement) provisional.push(ex.coreMovement);
+      }
+    }
+    return kept.length > 0 ? kept : pool; // budget prefers, never starves
+  };
+  const commitPicks = (picks) => {
+    for (const ex of picks) if (ex.coreMovement) ledger.push(ex.coreMovement);
+  };
+
   const compound = sampleFromWindow(
-    eligible.filter(ex => (ex.muscles ?? []).length >= 2),
+    budgeted(eligible.filter(ex => (ex.muscles ?? []).length >= 2)),
     6,
     rng,
   );
+  commitPicks(compound);
 
-  const cardioPool = CARDIO_FINISHERS.map(cf => ({
+  const cardioSource = contractCtx
+    ? pickFinishers({
+        dayTypeId: contractCtx.dayTypeId,
+        count: 3,
+        highImpactAllowed: contractCtx.highImpactAllowed ?? false,
+        rng,
+      }).finishers
+    : CARDIO_FINISHERS;
+  const cardioPool = cardioSource.map(cf => ({
     ...cf,
     key: cf.name.toLowerCase().replace(/\s+/g, '_'),
     muscles: normalizeMuscleList(cf.muscles),
     isCardio: true,
   })).filter((exercise) => !isUsedExercise(exercise, usedNames));
-  const cardio = sampleFromWindow(cardioPool, 3, rng);
+  const cardio = contractCtx ? cardioPool.slice(0, 3) : sampleFromWindow(cardioPool, 3, rng);
 
   const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
   const accessory = sampleFromWindow(
-    eligible.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
+    budgeted(eligible.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2)),
     6,
     rng,
   );
@@ -196,7 +233,15 @@ function buildExerciseRecord(ex, opts) {
   const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
   const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId);
 
+  // SWA-105 Slice 2: the selection explains itself in structured facts, never
+  // prose. `selectionRung` is stamped by the day-type ladder; anything the
+  // ladder did not touch is R0 and simply carries no relaxation chip.
+  const selectionRung = ex.selectionRung ?? 'R0';
+  const selectionChips = chipsForExercise(ex, { setupTimeSec: setupTime });
+
   return {
+    selectionRung,
+    selectionChips,
     stationIndex: opts.stationIndex ?? undefined,
     exerciseName: ex.name ?? formatExerciseName(ex.key),
     durationSec: opts.durationSec,
@@ -532,14 +577,37 @@ export async function generateBootcampClass(options) {
 
   // Step 4a (SWA-105 Slice 1): the DAY-TYPE CONTRACT is the authoritative
   // legality gate — primary-region inclusion + explicit pattern exclusions
-  // (shared/bootcamp-core), with a fail-open ladder so the class always
-  // generates. Replaces the `.some()` muscle filter that could not fail.
+  // (shared/bootcamp-core). Replaces the `.some()` muscle filter that could not
+  // fail. Slice 2 replaced slice 1's fail-open tail with the named relaxation
+  // ladder: R0 -> R3 (pattern fidelity) -> R5 (bodyweight top-up) -> R6. The
+  // class still always generates, but it can no longer generate a WRONG one —
+  // the old tail returned the unfiltered pool and put squats back on upper day.
+  // SWA-105 Slice 2: this must match what selection ACTUALLY consumes from the
+  // pool, or the ladder relaxes against a phantom need. Stations take
+  // `exercisesPerStation - 1` picks each (the last slot is a cardio finisher,
+  // appended from CARDIO_FINISHERS, not drawn from the pool); full-group takes
+  // 5 compound + 5 accessory, its 5 finishers likewise coming from elsewhere.
+  // Over-stating this made a healthy pool look starved and pulled bodyweight
+  // substitutes into classes that never needed them.
   const requiredSlots = classFormat === 'full_group'
-    ? 15
-    : Math.max(1, stationCount * Math.max(1, format.exercisesPerStation ?? 3));
+    ? 10
+    : Math.max(1, stationCount * Math.max(1, (format.exercisesPerStation ?? 4) - 1));
   const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
   availableExercises = contract.pool;
   explanations.push({ type: 'day_type_contract', message: contract.explanation });
+
+  // Step 4a-ii (SWA-105 Slice 2): pool exhaustion is a fact about the POOL, so
+  // it is reported here, at the pool. Whether the shipped class actually used a
+  // relaxed exercise is a different question, answered after selection (Step 9c)
+  // — a widened pool whose widening went unused must not raise an alarm.
+  if (contract.exhausted) {
+    explanations.push({
+      type: 'relaxation',
+      message: `Exercise pool exhausted at ${contract.rung}: only ${contract.pool.length} of the `
+        + `${requiredSlots} slots this class needs could be sourced. `
+        + `${contract.structuralOuts.map((out) => out.label).join(' or ')}.`,
+    });
+  }
 
   if (intensityCategory) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });
@@ -567,9 +635,44 @@ export async function generateBootcampClass(options) {
     }
   }
 
+  // Step 4c (SWA-105 Slice 4): Layer 2 — JUDGMENT over the legal pool. The
+  // brain orders and subsets; it can never introduce (its output is validated
+  // as a subset of pool keys and discarded wholesale otherwise). LLM only when
+  // SWAN_BOOTCAMP_BRAIN=llm with a provider module; every failure falls back
+  // to the deterministic heuristic WITH a recorded reason — an uninstrumented
+  // fallback is how a brain stays down for three weeks unnoticed.
+  const brainResult = await orderPoolWithBrain({
+    pool: availableExercises,
+    dayTypeId: dayType,
+    recentKeys: new Set(recentExerciseNames),
+    headcount: expectedParticipants,
+    mode: equipmentProfileId ? 'strict' : 'open_gym',
+    completionFn: await resolveBrainProvider(),
+  });
+  availableExercises = brainResult.pool;
+  if (brainResult.brainUsed === 'llm') {
+    explanations.push({
+      type: 'brain',
+      message: 'Swan Coach ordered this class (fatigue sequencing, freshness, setup flow).'
+        + (brainResult.declaredAssumptions.length > 0
+          ? ` Assumptions: ${brainResult.declaredAssumptions.join(' | ')}`
+          : ''),
+    });
+  } else if (brainResult.fallbackReason) {
+    explanations.push({
+      type: 'brain_fallback',
+      message: `Generated with the deterministic engine (coach brain unavailable: ${brainResult.fallbackReason.replace(/_/g, ' ')}).`,
+    });
+  }
+
   // Step 5: Build stations or full-group workout
+  const contractCtx = {
+    dayTypeId: dayType,
+    totalSlots: requiredSlots,
+    highImpactAllowed: explicitHighImpactClass,
+  };
   if (classFormat === 'full_group') {
-    buildFullGroupWorkout(availableExercises, format, allExercises, explanations, combinedExclusions);
+    buildFullGroupWorkout(availableExercises, format, allExercises, explanations, combinedExclusions, undefined, contractCtx);
   } else {
     buildStationWorkout(
       availableExercises, targetMuscles, stationCount, format, combinedExclusions,
@@ -648,6 +751,27 @@ export async function generateBootcampClass(options) {
   const templateName = name ?? `${dayType.replace(/_/g, ' ')} ${classFormat.replace(/_/g, ' ')} — ${new Date().toLocaleDateString()}`;
   const stretchTime = includeStretch ? stretchDurationMin : 0;
 
+  // Step 9c (SWA-105 Slice 2): derived from the FINAL Board-1 selections, never
+  // stored alongside them. A stored summary can disagree with the slots it
+  // summarizes, and "nothing was relaxed" printed over three relaxed rows is
+  // precisely the fabricated justification the structured-chip rule prevents.
+  //
+  // This — not the pool rung — is what the trainer is warned about. A pool that
+  // widened to R5 and then never used a substitute produced no relaxed rows, so
+  // it raises nothing. The alarm fires on what shipped, not on what was
+  // considered.
+  const relaxationSummary = summarizeRelaxations(
+    allExercises.map((ex) => ({ rung: ex.selectionRung })),
+  );
+  if (relaxationSummary.relaxedSlots > 0) {
+    explanations.push({
+      type: 'relaxation',
+      message: `${relaxationSummary.relaxedSlots} exercise(s) in this class needed a relaxed rule `
+        + `(${relaxationSummary.constraints.join(', ')}; deepest ${relaxationSummary.deepest}). `
+        + 'Those rows are marked individually — review them before class.',
+    });
+  }
+
   return {
     name: templateName,
     classFormat, classStyle, dayType, intensityCategory,
@@ -669,8 +793,34 @@ export async function generateBootcampClass(options) {
     flowData,
     painAlerts,
     explanations,
-    aiGenerated: true,
+    relaxationSummary,
+    // Provenance truth (Rule 75): aiGenerated was hardcoded `true` while
+    // nothing AI ran. It now reports what actually happened, with the
+    // fallback reason preserved for instrumentation.
+    aiGenerated: brainResult.brainUsed === 'llm',
+    brainUsed: brainResult.brainUsed,
+    brainFallbackReason: brainResult.fallbackReason,
+    declaredAssumptions: brainResult.declaredAssumptions,
   };
+}
+
+/**
+ * Resolve the LLM completion function. Deliberately decoupled from any chat
+ * service: SWAN_BOOTCAMP_BRAIN_PROVIDER_MODULE names an ES module whose
+ * default export is `async (prompt) => string`. Absent/broken -> null, and
+ * the brain records fallbackReason 'no_provider'. This is the ONE integration
+ * point a future provider wires into.
+ */
+async function resolveBrainProvider() {
+  if (process.env.SWAN_BOOTCAMP_BRAIN !== 'llm') return null;
+  const moduleId = process.env.SWAN_BOOTCAMP_BRAIN_PROVIDER_MODULE;
+  if (!moduleId) return null;
+  try {
+    const mod = await import(moduleId);
+    return typeof mod.default === 'function' ? mod.default : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -697,8 +847,8 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations, usedNames, rng = Math.random) {
-  const selected = selectFullGroupExercises(available, rng, usedNames);
+function buildFullGroupWorkout(available, format, allExercises, explanations, usedNames, rng = Math.random, contractCtx = null) {
+  const selected = selectFullGroupExercises(available, rng, usedNames, contractCtx);
   for (let i = 0; i < selected.length; i++) {
     allExercises.push(buildExerciseRecord(selected[i], {
       durationSec: format.durationSec,

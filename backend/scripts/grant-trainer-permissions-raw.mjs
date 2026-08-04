@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 /**
- * Grant trainer permissions via raw SQL (bypasses broken model schema-drift).
+ * Grant trainer permissions via raw SQL.
  *
- * The TrainerPermissions.mjs model has `field:` mappings to snake_case
- * column names (trainer_id, permission_type, etc.) but the real production
- * DB has camelCase columns (trainerId, permissionType). The model also
- * references audit fields (deactivatedBy, deactivatedAt, reason) that don't
- * exist in the DB (DB has revokedAt, notes instead). Using raw SQL to
- * bypass the drift while a separate slice fixes the model.
+ * ORIGINAL REASON (historical): `TrainerPermissions.mjs` mapped every attribute to snake_case
+ * column names (trainer_id, permission_type, …) while the real DB has camelCase columns, and it
+ * declared audit fields (deactivatedBy, deactivatedAt, reason) that do not exist — the DB has
+ * revokedAt and notes. Every query through the model threw, so this script bypassed it.
+ *
+ * THAT DRIFT IS NOW FIXED (SWA-87): the model matches the real columns and
+ * `TrainerPermissions.create(...)` works. Prefer the model or the
+ * `/api/trainer-permissions/grant` route for normal grants.
+ *
+ * This script is kept as a direct-SQL utility for when you need to grant permissions without
+ * booting the app or loading model/association wiring. Its SQL was independently correct about
+ * the schema and still is — it names the same real columns the fixed model does.
  *
  * Usage:
  *   node backend/scripts/grant-trainer-permissions-raw.mjs <trainerId> [--granted-by=<adminId>]

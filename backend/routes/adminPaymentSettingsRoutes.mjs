@@ -84,7 +84,20 @@ router.get('/public', async (_req, res) => {
 
 /**
  * GET /api/admin/payment-settings
- * Admin only — returns full payment settings.
+ *
+ * Admin OR TRAINER — not admin-only, despite living under /api/admin. The header
+ * used to say "Admin only" while the code below has always allowed trainers
+ * (rule 75: the doc describes what the code does now). Corrected rather than
+ * tightened, because tightening would gain nothing: the fields this returns are
+ * the same zelle/venmo/checkPayee values that GET /public hands to anonymous
+ * callers by design, so a trainer reading them learns nothing new.
+ *
+ * ⚠️ That equivalence is the reason this is safe, and it is not guaranteed to
+ * hold. `settings` is a JSON blob — the moment a genuinely admin-only key is
+ * stored in it, this route starts leaking it to every trainer. Add such a key and
+ * you must tighten this check to admin-only at the same time.
+ *
+ * PUT below is correctly admin-only.
  */
 router.get('/', protect, async (req, res) => {
   try {

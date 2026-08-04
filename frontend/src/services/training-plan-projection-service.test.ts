@@ -169,3 +169,24 @@ describe('createTrainingPlanProjectionService', () => {
     })).rejects.toThrow('Invalid training plan projection response');
   });
 });
+describe('S2: overdueDays tolerant-optional validation', () => {
+  it('accepts absent (older server), null, and positive integers', () => {
+    for (const item of [
+      projection, // absent — rolling-deploy tolerance
+      { ...projection, overdueDays: null },
+      { ...projection, overdueDays: 3 },
+    ]) {
+      expect(() => normalizeTrainingPlanProjectionResponse(payload([item]))).not.toThrow();
+    }
+  });
+
+  it('fails closed on garbage drift and on drift stamped onto a completed day', () => {
+    for (const item of [
+      { ...projection, overdueDays: -1 },
+      { ...projection, overdueDays: 'three' },
+      { ...projection, completionState: 'completed', completedAt: '2026-07-15T18:00:00.000Z', overdueDays: 2 },
+    ]) {
+      expect(() => normalizeTrainingPlanProjectionResponse(payload([item]))).toThrow();
+    }
+  });
+});

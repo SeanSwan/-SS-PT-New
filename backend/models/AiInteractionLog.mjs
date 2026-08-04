@@ -24,10 +24,10 @@ AiInteractionLog.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
-      comment: 'FK to users table — who triggered this AI call',
+      comment: 'FK to "Users" (canonical) — who triggered this AI call',
     },
     provider: {
       type: DataTypes.STRING(50),

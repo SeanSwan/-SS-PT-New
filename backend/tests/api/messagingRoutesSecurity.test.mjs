@@ -75,4 +75,34 @@ describe('messaging routes security hardening', () => {
     expect(controllerSource).toContain("'lastName', u.\"lastName\"");
     expect(controllerSource).toContain("'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END");
   });
+
+  it('escapes LIKE wildcards in user search so `%` cannot dump the directory', () => {
+    // Regression 2026-08-04 (Kimi hostile pass): the search wrapped raw input as
+    // `%${query}%`, so query=`%` became `%%%` and ILIKE-matched every user — a
+    // one-character dump of the whole directory. The query replacement must run the
+    // input through the LIKE-escape helper, never interpolate it raw.
+    const controllerSource = readMessagingControllerSource();
+    expect(controllerSource).toContain('const escapeLikePattern =');
+    expect(controllerSource).toContain('`%${escapeLikePattern(query)}%`');
+    expect(controllerSource).not.toContain('query: `%${query}%`');
+  });
+
+  it('user search does not enumerate by email or leak activity timestamps', () => {
+    // Sean-approved hardening 2026-08-04: email as a search key lets any authenticated
+    // user confirm an address has an account (enumeration); lastLogin/lastActive in the
+    // response over-shares activity to the whole directory. Both removed; timestamps
+    // stay in ORDER BY only. The NewConversationModal renders none of these fields.
+    const controllerSource = readMessagingControllerSource();
+    const searchStart = controllerSource.indexOf('export const searchUsers');
+    const searchEnd = controllerSource.indexOf('export const', searchStart + 20);
+    const search = controllerSource.slice(searchStart, searchEnd === -1 ? undefined : searchEnd);
+    expect(search).not.toContain('OR email ILIKE');
+    // The SELECT column list must not carry the activity columns. ORDER BY may still
+    // reference them via COALESCE — assert on the exact old column-list string instead
+    // of a greedy SELECT..lastActive match (which would span into the ORDER BY).
+    expect(search).not.toContain('role, "lastActive", "lastLogin"');
+    expect(search).not.toContain('lastActive: u.lastActive');
+    // Sanity: the ordering still uses activity recency (columns exist, just not selected).
+    expect(search).toContain('ORDER BY COALESCE("lastActive", "lastLogin")');
+  });
 });

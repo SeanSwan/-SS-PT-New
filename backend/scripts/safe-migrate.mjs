@@ -11,9 +11,19 @@
  * applies schema changes at boot — and the migration system, which expects
  * to be the sole schema manager.
  *
+ * QUARANTINE LEDGER (SWA-115, 2026-08-03): a GENUINE schema failure is no
+ * longer silently absorbed. It is still marked done (unmarking would wedge
+ * sequelize-cli's `--to` pipeline behind it), but it is also recorded in the
+ * migration_quarantine table, re-armed (meta row deleted) and retried on every
+ * subsequent run until it succeeds or hits the attempt cap (default 5, env
+ * SAFE_MIGRATE_MAX_QUARANTINE_ATTEMPTS). Capped entries are PARKED but shouted
+ * on every run until resolved. DATA-CRITICAL failures keep their own stricter
+ * lane: never marked done, halt the remainder.
+ *
  * Usage:
  *   node scripts/safe-migrate.mjs            # production (uses DATABASE_URL)
  *   node scripts/safe-migrate.mjs development # explicit env
+ *   node scripts/safe-migrate.mjs production --retry-quarantined  # re-arm PARKED entries too
  */
 
 import { spawn } from 'child_process';
@@ -25,7 +35,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const backendDir = path.resolve(__dirname, '..');
 const migrationsDir = path.join(backendDir, 'migrations');
-const env = process.argv[2] || 'production';
+// Flags (e.g. --retry-quarantined) must not be mistaken for the env positional.
+const env = (process.argv[2] && !process.argv[2].startsWith('--')) ? process.argv[2] : 'production';
 
 export {
   isAlreadyAppliedError,
@@ -98,6 +109,71 @@ async function markAsCompleted(seq, name) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Quarantine ledger (SWA-115 / Kimi H1 redesign, 2026-08-03)
+// A genuinely-failed schema migration is marked done in SequelizeMeta (so the
+// sequelize-cli `--to` pipeline is never wedged behind it) but ALSO recorded
+// here. At the start of every run, ledger entries under the attempt cap get
+// their SequelizeMeta row deleted ("re-armed") and are retried. Entries at the
+// cap stop retrying but are reported loudly on every run until a human
+// resolves them (fix + `--retry-quarantined`, or manual reconciliation).
+// ---------------------------------------------------------------------------
+const MAX_QUARANTINE_ATTEMPTS =
+  parseInt(process.env.SAFE_MIGRATE_MAX_QUARANTINE_ATTEMPTS, 10) || 5;
+const RETRY_QUARANTINED = process.argv.includes('--retry-quarantined');
+
+async function ensureQuarantineTable(seq) {
+  await seq.query(`
+    CREATE TABLE IF NOT EXISTS migration_quarantine (
+      name TEXT PRIMARY KEY,
+      attempts INTEGER NOT NULL DEFAULT 1,
+      first_failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_error TEXT
+    )
+  `);
+}
+
+async function getQuarantineLedger(seq) {
+  const [rows] = await seq.query(
+    `SELECT name, attempts, last_error FROM migration_quarantine ORDER BY name`
+  );
+  return rows;
+}
+
+/** Re-arm eligible quarantined migrations: delete their SequelizeMeta row so
+ *  they become pending again this run. Returns the re-armed names. */
+async function rearmQuarantined(seq, ledger) {
+  const eligible = ledger.filter(
+    r => RETRY_QUARANTINED || r.attempts < MAX_QUARANTINE_ATTEMPTS
+  );
+  for (const row of eligible) {
+    await seq.query(`DELETE FROM "SequelizeMeta" WHERE name = :name`, {
+      replacements: { name: row.name },
+    });
+  }
+  return eligible.map(r => r.name);
+}
+
+async function recordQuarantine(seq, name, errorText) {
+  await seq.query(
+    `INSERT INTO migration_quarantine (name, attempts, first_failed_at, last_attempt_at, last_error)
+     VALUES (:name, 1, NOW(), NOW(), :err)
+     ON CONFLICT (name) DO UPDATE
+       SET attempts = migration_quarantine.attempts + 1,
+           last_attempt_at = NOW(),
+           last_error = :err`,
+    { replacements: { name, err: String(errorText).slice(0, 4000) } }
+  );
+}
+
+async function clearQuarantine(seq, names) {
+  if (!names.length) return;
+  await seq.query(`DELETE FROM migration_quarantine WHERE name = ANY(ARRAY[:names])`, {
+    replacements: { names },
+  });
+}
+
 /** Get list of already-executed migration names */
 async function getExecutedMigrations(seq) {
   try {
@@ -111,26 +187,46 @@ async function getExecutedMigrations(seq) {
 
 /** Get all migration filenames sorted */
 function getAllMigrationFiles() {
-  return fs.readdirSync(migrationsDir)
+  const all = fs.readdirSync(migrationsDir);
+  // .mjs migrations are UNRUNNABLE here (sequelize-cli has no ESM support). The historical
+  // backlog of 32 was audited and RETIRED to migrations/retired-mjs-20260804/ (SWA-115 item
+  // 3, 2026-08-04) — 19 were dangerous, the rest already satisfied or pointless. New .mjs
+  // files are blocked by tests/unit/noMjsMigrations.test.mjs; this runtime warning is the
+  // second net in case one slips through anyway.
+  const invisible = all.filter(f => f.endsWith('.mjs'));
+  if (invisible.length > 0) {
+    console.warn(
+      `⚠ safe-migrate: ${invisible.length} .mjs migration(s) present that this runner CANNOT execute ` +
+      `— they will NEVER apply in production. Rewrite as .cjs. ` +
+      `(Policy: migrations/retired-mjs-20260804/README.md): ${invisible.join(', ')}`
+    );
+  }
+  return all
     .filter(f => f.endsWith('.cjs') || f.endsWith('.js'))
     .sort();
 }
 
 /**
- * Run every pending migration through the three-lane policy:
- *  - exit 0                          -> applied
+ * Run every pending migration through the four-lane policy:
+ *  - exit 0                          -> applied (clears any quarantine record)
  *  - already-exists class failure    -> mark done, continue (legacy skip lane;
  *    DATA-CRITICAL files only skip on STRUCTURAL already-exists errors — FK
  *    violations / duplicate keys are plausible genuine backfill failures)
- *  - genuine failure, schema lane    -> mark done, continue (legacy behavior,
- *    deliberately unchanged: blocking boot on schema drift caused the
- *    crash-loop incidents this runner exists to prevent)
+ *  - genuine failure, schema lane    -> mark done AND QUARANTINE (SWA-115 /
+ *    Kimi H1 redesign 2026-08-03). Marking done is FUNCTIONAL, not cosmetic:
+ *    sequelize-cli `--to X` re-runs everything still pending before X, so an
+ *    unmarked failure would wedge every later migration behind it forever.
+ *    The quarantine ledger is the antidote to the old silent poison: at the
+ *    START of each run, quarantined names under the attempt cap get their
+ *    SequelizeMeta row deleted (re-armed) and are retried; every run reports
+ *    the standing ledger loudly. Nothing genuinely failed is silent anymore.
  *  - genuine failure, DATA-CRITICAL  -> never mark done, HALT remaining
  *    migrations (they may depend on this data), report for retry next deploy
  */
-export async function processPendingMigrations({ pending, runMigration, markCompleted, logger = console }) {
+export async function processPendingMigrations({ pending, runMigration, markCompleted, quarantine = async () => {}, logger = console }) {
   const summary = {
     applied: 0, skipped: 0, failed: 0,
+    quarantined: [], resolvedNames: [],
     dataCriticalFailures: [], halted: false, haltedRemaining: [],
   };
 
@@ -143,6 +239,7 @@ export async function processPendingMigrations({ pending, runMigration, markComp
     if (result.code === 0) {
       logger.log(`  ${migration} ... migrated`);
       summary.applied++;
+      summary.resolvedNames.push(migration);
       continue;
     }
 
@@ -153,6 +250,7 @@ export async function processPendingMigrations({ pending, runMigration, markComp
       await markCompleted(migration);
       logger.log(`  ${migration} ... already applied (marked as done)`);
       summary.skipped++;
+      summary.resolvedNames.push(migration);
       continue;
     }
 
@@ -175,13 +273,17 @@ export async function processPendingMigrations({ pending, runMigration, markComp
       break;
     }
 
-    logger.log(`  ${migration} ... FAILED`);
+    logger.log(`  ${migration} ... FAILED (QUARANTINED)`);
     logger.error(`    Error: ${errorLines}`);
-    // Legacy schema lane: mark as done to prevent blocking future deploys.
-    // (Historical rationale cited sync({ alter: true }); that sync is gated
-    // off in production — kept ONLY for schema files to avoid re-run loops.)
+    // Schema lane (SWA-115 redesign): mark done so sequelize-cli's `--to`
+    // pipeline is not wedged behind this failure, AND record it in the
+    // quarantine ledger so it is re-armed and retried next run instead of
+    // being silently forgotten (the old behavior poisoned SequelizeMeta —
+    // achievement_crystallizations was lost this way for weeks).
     await markCompleted(migration);
-    logger.log('    (schema lane: marked as done to prevent blocking)');
+    await quarantine(migration, errorLines);
+    summary.quarantined.push(migration);
+    logger.log('    (marked done to keep the pipeline moving; QUARANTINED for retry next deploy)');
   }
 
   return summary;
@@ -214,6 +316,23 @@ async function main() {
     process.exit(1);
   }
 
+  await ensureQuarantineTable(seq);
+  const ledger = await getQuarantineLedger(seq);
+  const rearmed = await rearmQuarantined(seq, ledger);
+  const parked = ledger.filter(r => !rearmed.includes(r.name));
+  if (rearmed.length > 0) {
+    console.log(`Quarantine: re-armed ${rearmed.length} previously-failed migration(s) for retry:`);
+    for (const n of rearmed) console.log(`  - ${n}`);
+    console.log('');
+  }
+  if (parked.length > 0) {
+    console.error(`⚠ Quarantine: ${parked.length} migration(s) hit the ${MAX_QUARANTINE_ATTEMPTS}-attempt cap and are PARKED`);
+    console.error('  (still marked done so the pipeline moves; NOT retried). Resolve manually,');
+    console.error('  then re-run with --retry-quarantined:');
+    for (const r of parked) console.error(`  - ${r.name} (attempts: ${r.attempts})`);
+    console.error('');
+  }
+
   const allFiles = getAllMigrationFiles();
   const executed = await getExecutedMigrations(seq);
   const pending = allFiles.filter(f => !executed.has(f));
@@ -232,14 +351,28 @@ async function main() {
     pending,
     runMigration: runSingleMigration,
     markCompleted: (name) => markAsCompleted(seq, name),
+    quarantine: (name, err) => recordQuarantine(seq, name, err),
     logger: console,
   });
 
+  // A migration that applied or proved already-applied is resolved — drop its ledger row.
+  await clearQuarantine(seq, summary.resolvedNames);
+
   console.log('\n=====================');
-  console.log(`Applied:  ${summary.applied}`);
-  console.log(`Skipped:  ${summary.skipped} (already existed)`);
-  console.log(`Failed:   ${summary.failed}`);
+  console.log(`Applied:      ${summary.applied}`);
+  console.log(`Skipped:      ${summary.skipped} (already existed)`);
+  console.log(`Failed:       ${summary.failed}`);
+  console.log(`Quarantined:  ${summary.quarantined.length} (will retry next deploy, cap ${MAX_QUARANTINE_ATTEMPTS})`);
   console.log('=====================\n');
+
+  const finalLedger = await getQuarantineLedger(seq);
+  if (finalLedger.length > 0) {
+    console.error('⚠ QUARANTINE LEDGER (genuinely-failed migrations — none of these are silent):');
+    for (const r of finalLedger) {
+      console.error(`  - ${r.name} (attempts: ${r.attempts}/${MAX_QUARANTINE_ATTEMPTS})`);
+    }
+    console.error('');
+  }
 
   await seq.close();
 
@@ -256,8 +389,9 @@ async function main() {
   }
 
   if (summary.failed > 0) {
-    console.log('WARNING: Some schema migrations had genuine failures (marked done — legacy lane).');
-    console.log('Review the errors above and reconcile the schema manually if needed.');
+    console.log('WARNING: Some schema migrations had genuine failures. They are QUARANTINED');
+    console.log('(marked done to keep the pipeline moving, but re-armed and retried on the');
+    console.log(`next deploy, up to ${MAX_QUARANTINE_ATTEMPTS} attempts). See the ledger above.`);
   }
 }
 

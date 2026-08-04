@@ -32,8 +32,11 @@ import { CLASS_PLAN_SCHEMA_VERSION } from './constants.mjs';
 
 export {
   CLASS_PLAN_SCHEMA_VERSION, BLOCK_KINDS, WORK_SHAPES, CHIPS, RUNGS, ACTORS, MOMENTS,
+  RUNG_CONSTRAINT, RUNG_CHIP,
 } from './constants.mjs';
 export { validateClassPlan, assertValidClassPlan } from './validate.mjs';
+export { runLadder, pickTop, summarizeRelaxations, STRUCTURAL_OUTS } from './relaxation.mjs';
+export { deriveChips, toneChips, chipTone, CHIP_TONE } from './chips.mjs';
 
 /**
  * Create an empty, valid-shaped ClassPlan. Every field a consumer reads is

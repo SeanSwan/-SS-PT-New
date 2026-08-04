@@ -67,6 +67,11 @@ export const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
       $active ? 'drop-shadow(0 0 6px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent))' : 'none'};
     transition: all 250ms ease;
   }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+    svg { transition: none; }
+  }
 `;
 export const NavIcon = styled.span`
   display: flex;

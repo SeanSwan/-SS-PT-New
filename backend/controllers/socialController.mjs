@@ -91,7 +91,7 @@ const socialController = {
       const follow = await UserFollow.create({
         followerId,
         followingId: targetUserId,
-        status: 'active',
+        status: 'accepted', // UserFollow enum is pending|accepted|blocked|muted — 'active' never existed (live-DB verified 2026-08-04)
         followedAt: new Date()
       }, { transaction });
 
@@ -204,7 +204,7 @@ const socialController = {
       const followers = await UserFollow.findAndCountAll({
         where: {
           followingId: userId,
-          status: 'active'
+          status: 'accepted'
         },
         include: [{
           model: User,
@@ -259,7 +259,7 @@ const socialController = {
       const following = await UserFollow.findAndCountAll({
         where: {
           followerId: userId,
-          status: 'active'
+          status: 'accepted'
         },
         include: [{
           model: User,
@@ -325,7 +325,7 @@ const socialController = {
         where: {
           followerId: currentUserId,
           followingId: targetUserId,
-          status: 'active'
+          status: 'accepted'
         }
       });
 
@@ -334,7 +334,7 @@ const socialController = {
         where: {
           followerId: targetUserId,
           followingId: currentUserId,
-          status: 'active'
+          status: 'accepted'
         }
       });
 
@@ -371,7 +371,7 @@ const socialController = {
       const followersCount = await UserFollow.count({
         where: {
           followingId: userId,
-          status: 'active'
+          status: 'accepted'
         }
       });
 
@@ -379,7 +379,7 @@ const socialController = {
       const followingCount = await UserFollow.count({
         where: {
           followerId: userId,
-          status: 'active'
+          status: 'accepted'
         }
       });
 
@@ -387,7 +387,7 @@ const socialController = {
       const mutualFollows = await UserFollow.findAll({
         where: {
           followerId: userId,
-          status: 'active'
+          status: 'accepted'
         },
         include: [{
           model: UserFollow,
@@ -395,7 +395,7 @@ const socialController = {
           where: {
             followerId: db.col('UserFollow.followingId'),
             followingId: userId,
-            status: 'active'
+            status: 'accepted'
           },
           required: true
         }]
@@ -479,7 +479,7 @@ const socialController = {
 
       // Get users already followed by current user
       const alreadyFollowing = await UserFollow.findAll({
-        where: { followerId: currentUserId, status: 'active' },
+        where: { followerId: currentUserId, status: 'accepted' },
         attributes: ['followingId']
       });
 
@@ -494,13 +494,13 @@ const socialController = {
       if (mutualFollows === 'true') {
         // Find users who follow people that the current user follows
         const mutualFollowCandidates = await db.query(`
-          SELECT DISTINCT uf2."followingId" as userId
+          SELECT DISTINCT uf2."followingId" as "userId"
           FROM "user_follows" uf1
           JOIN "user_follows" uf2 ON uf1."followingId" = uf2."followerId"
           WHERE uf1."followerId" = :currentUserId
           AND uf2."followingId" != :currentUserId
-          AND uf2."status" = 'active'
-          AND uf1."status" = 'active'
+          AND uf2."status" = 'accepted'
+          AND uf1."status" = 'accepted'
         `, {
           replacements: { currentUserId },
           type: db.QueryTypes.SELECT
@@ -595,7 +595,7 @@ const socialController = {
 
       // Get users that current user follows
       const following = await UserFollow.findAll({
-        where: { followerId: currentUserId, status: 'active' },
+        where: { followerId: currentUserId, status: 'accepted' },
         attributes: ['followingId']
       });
 
@@ -700,7 +700,7 @@ const socialController = {
         const newFollows = await UserFollow.findAll({
           where: {
             followingId: { [Op.in]: followingIds },
-            status: 'active',
+            status: 'accepted', // UserFollow enum is pending|accepted|blocked|muted — 'active' never existed (live-DB verified 2026-08-04)
             followedAt: { [Op.gte]: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } // Last 3 days
           },
           include: [
@@ -773,7 +773,7 @@ const socialController = {
       return await UserFollow.count({
         where: {
           followingId: userId,
-          status: 'active',
+          status: 'accepted', // UserFollow enum is pending|accepted|blocked|muted — 'active' never existed (live-DB verified 2026-08-04)
           followedAt: { [Op.gte]: startDate }
         }
       });

@@ -50,6 +50,15 @@ const BootcampClassLog = sequelize.define('BootcampClassLog', {
   energyLevel: {
     type: DataTypes.STRING(20),
   },
+  /**
+   * SWA-105 Slice 8: { recordedAt, attendees: [{userId}|{guest}],
+   * workoutFormIds: number[] }. NULL = never recorded; presence = recorded
+   * exactly once (the service no-ops a second submission).
+   */
+  attendance: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
 }, {
   tableName: 'bootcamp_class_log',
   timestamps: true,

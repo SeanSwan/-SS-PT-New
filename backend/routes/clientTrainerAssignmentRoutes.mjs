@@ -324,6 +324,56 @@ const getClientOnboardingQuestionnaireModel = () => {
 };
 
 /**
+ * @route   GET /api/assignments/my-trainer
+ * @desc    The calling CLIENT's active trainer — id, name, photo only.
+ *          Added 2026-08-03 (client-dash launch panel): both reviewers ranked
+ *          "the trainer/human is invisible on the client home" as the #1
+ *          absence, and no client-readable assignment endpoint existed
+ *          (/client/:clientId is adminOnly). Self-scoped: the target client is
+ *          ALWAYS req.user.id — no request-controlled id, no IDOR surface.
+ *          Deliberately excludes trainer email/phone (rule 8 minimal exposure).
+ * @access  Any authenticated user (self-scoped; non-clients just get null)
+ */
+router.get('/my-trainer', protect, async (req, res) => {
+  try {
+    const clientId = parsePositiveInteger(req.user.id);
+    if (!clientId) {
+      return res.json({ success: true, trainer: null });
+    }
+
+    const ClientTrainerAssignment = getClientTrainerAssignment();
+    const User = getUser();
+
+    const assignment = await ClientTrainerAssignment.findOne({
+      where: { clientId, status: 'active' },
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'photo'],
+          required: false
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    const trainer = assignment?.trainer
+      ? {
+          id: assignment.trainer.id,
+          firstName: assignment.trainer.firstName,
+          lastName: assignment.trainer.lastName,
+          photo: assignment.trainer.photo || null
+        }
+      : null;
+
+    res.json({ success: true, trainer });
+  } catch (error) {
+    logger.error('Error fetching own trainer assignment:', error);
+    sendInternalError(res, 'Failed to fetch trainer');
+  }
+});
+
+/**
  * @route   GET /api/assignments/test
  * @desc    Test endpoint — returns table schema for debugging
  * @access  Admin Only

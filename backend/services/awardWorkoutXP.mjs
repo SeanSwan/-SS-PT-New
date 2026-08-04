@@ -22,6 +22,7 @@ import GamificationSettings from '../models/GamificationSettings.mjs';
 import PointTransaction from '../models/PointTransaction.mjs';
 import GamificationPointsService from './gamification/GamificationPointsService.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
+import { awardWorkoutAchievementsBestEffort } from './gamification/workoutAchievementAwardStep.mjs';
 import { Op } from 'sequelize';
 import {
   buildWorkoutProgressStats,
@@ -238,7 +239,18 @@ export async function awardWorkoutXP({
     transaction,
   });
 
-  const totalPoints = pointsToAward + totalMilestoneBonus;
+  const achievementResult = await awardWorkoutAchievementsBestEffort({
+    userId,
+    workoutId,
+    awardedBy,
+    transaction,
+  });
+  const achievementPoints = Number(achievementResult.pointsAwarded) || 0;
+  if (achievementResult.newBalance !== undefined) {
+    finalNewBalance = achievementResult.newBalance;
+  }
+
+  const totalPoints = pointsToAward + totalMilestoneBonus + achievementPoints;
   await emitWorkoutXpSideEffects({
     userId,
     workoutId,
@@ -256,6 +268,7 @@ export async function awardWorkoutXP({
     streakDays: updatedStats.streakDays,
     totalWorkouts: updatedStats.totalWorkouts,
     awardedMilestones,
+    awardedAchievements: achievementResult.awarded,
     combos: comboResult.combos,
     comboMultiplier: comboResult.bestMultiplier,
   };

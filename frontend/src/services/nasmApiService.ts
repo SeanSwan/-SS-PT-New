@@ -104,6 +104,23 @@ export interface ExerciseEntry {
   exerciseId: string;
   exerciseName: string;
   sets: ExerciseSet[];
+  /**
+   * Plan Surfacing S0 — row identity for reconcile-by-identity (auto-load S5:
+   * same-day no-op, never append-duplicate) + immutable prescription baseline
+   * so "did they hit the target?" survives edits. UI-ONLY: the submit payload
+   * builder picks fields explicitly, so neither ever reaches the byte-pinned
+   * POST /api/workout-forms body.
+   */
+  sourcePlanDay?: {
+    planId: string | null;
+    contentRevision: number | null;
+    weekNumber: number | null;
+    dayNumber: number | null;
+    exerciseIndex: number;
+  };
+  prescribed?: {
+    sets: Array<{ setNumber: number; weight: number; reps: number; tempo?: string; restTime: number }>;
+  };
   // Phase 16: null = not rated.
   formRating: number | null; // 1-5, null = not rated
   painLevel: number; // 0-10 (kept as number, painLevel null-honesty deferred to Phase 16.1)

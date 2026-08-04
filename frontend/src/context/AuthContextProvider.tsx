@@ -18,6 +18,13 @@ import { AuthContext } from './authContextState';
 // This version is for LIVE PRODUCTION use where real authentication is required
 
 // Enhanced User Interface aligned with backend model
+interface NotificationPreferences {
+  email?: boolean;
+  sms?: boolean;
+  push?: boolean;
+  quietHours?: unknown;
+  [key: string]: unknown;
+}
 export interface User {
   id: string;
   email: string;
@@ -27,6 +34,9 @@ export interface User {
   lastName: string;
   role: 'admin' | 'trainer' | 'client' | 'user';
   fitnessGoal?: string;
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
+  notificationPreferences?: NotificationPreferences | null;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   hasLinkedWaiver?: boolean;
   waiverStatus?: 'linked' | 'missing' | 'unverified' | 'invalid_user' | 'not_required';
@@ -242,6 +252,9 @@ const formatAuthUser = (
   lastName: userData.lastName || '',
   role: userData.role || 'user',
   clientSource: userData.clientSource,
+  emailNotifications: userData.emailNotifications ?? fallback?.emailNotifications ?? true,
+  smsNotifications: userData.smsNotifications ?? fallback?.smsNotifications ?? true,
+  notificationPreferences: userData.notificationPreferences ?? fallback?.notificationPreferences ?? null,
   ...resolveWaiverFields(userData, fallback),
   profileImageUrl: userData.profileImageUrl || userData.photo,
   photo: userData.photo,

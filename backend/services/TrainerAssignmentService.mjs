@@ -161,12 +161,16 @@ class TrainerAssignmentService {
     const client = await User.findOne({
       where: { 
         id: clientId,
-        role: ['client', 'member'] // Support both role types
+        // 'member' is NOT a value of enum_Users_role (user|client|trainer|admin) — Postgres
+        // rejected the whole IN-list with `invalid input value for enum`, so EVERY trainer
+        // assignment threw. Live-proven 2026-08-04. 'user' is the real second role here: it
+        // is the DB default for new signups, who are exactly the people being assigned.
+        role: ['client', 'user']
       }
     });
 
     if (!client) {
-      throw new Error(`Client with ID ${clientId} not found or not a client/member`);
+      throw new Error(`Client with ID ${clientId} not found or not a client`);
     }
 
     return { trainer, client };
@@ -347,7 +351,10 @@ class TrainerAssignmentService {
 
       // Create admin notification
       await AdminNotification.create({
-        type: 'trainer_assignment',
+        // enum_admin_notifications_type has no 'trainer_assignment' — this create threw on
+        // every assignment (drift sweep 2026-08-04). 'system_alert' matches the two other
+        // AdminNotification.create sites; the specifics stay in data.
+        type: 'system_alert',
         title: 'Trainer Assignment Completed',
         message: `${trainer.firstName} ${trainer.lastName} has been assigned ${sessions.length} sessions for client ${client.firstName} ${client.lastName}`,
         data: JSON.stringify({

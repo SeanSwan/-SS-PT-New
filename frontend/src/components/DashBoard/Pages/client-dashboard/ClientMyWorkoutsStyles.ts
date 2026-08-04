@@ -78,7 +78,7 @@ export const LogBtn = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent); }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ export const WorkoutHeader = styled.button`
   min-height: 44px;
   color: var(--text-primary, #E0ECF4);
   &:hover { background: rgba(96,192,240,0.05); }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: -2px; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: -2px; }
 `;
 
 export const WorkoutInfo = styled.div`

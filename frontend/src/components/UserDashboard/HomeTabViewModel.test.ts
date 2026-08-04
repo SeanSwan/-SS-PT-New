@@ -142,11 +142,11 @@ describe('HomeTabViewModel', () => {
     const nowMs = new Date('2026-06-12T12:00:00Z').getTime();
     const day = 24 * 60 * 60 * 1000;
     const proof = buildHomeTrainingProof([
-      { id: 'w1', title: 'Push Day', date: new Date(nowMs - 1 * day).toISOString(), duration: 45 },
-      { id: 'w2', date: new Date(nowMs - 2 * day).toISOString(), duration: 30 },
-      { id: 'w3', title: 'Leg Day', date: new Date(nowMs - 9 * day).toISOString(), duration: 60 },
-      { id: 'w4', date: new Date(nowMs - 22 * day).toISOString() },
-      { id: 'old', date: new Date(nowMs - 60 * day).toISOString() },
+      { id: 'w1', status: 'completed', title: 'Push Day', date: new Date(nowMs - 1 * day).toISOString(), duration: 45 },
+      { id: 'w2', status: 'completed', date: new Date(nowMs - 2 * day).toISOString(), duration: 30 },
+      { id: 'w3', status: 'completed', title: 'Leg Day', date: new Date(nowMs - 9 * day).toISOString(), duration: 60 },
+      { id: 'w4', status: 'completed', date: new Date(nowMs - 22 * day).toISOString() },
+      { id: 'old', status: 'completed', date: new Date(nowMs - 60 * day).toISOString() },
     ], nowMs);
 
     // w4 is 22d ago (4th week back → bucket 0); w3 is 9d (bucket 2); w1+w2 this week (bucket 3).
@@ -159,6 +159,19 @@ describe('HomeTabViewModel', () => {
     expect(proof.weekDelta).toBe(1);
     expect(proof.latestSessionId).toBe('w1');
     expect(proof.shareLine).toBe('Logged 2 workouts this week — 75 focused minutes, up 1 from last week. Progress you can see.');
+  });
+
+  it('excludes planned and in-progress workout rows from training proof', () => {
+    const nowMs = new Date('2026-08-03T18:00:00Z').getTime();
+    const proof = buildHomeTrainingProof([
+      { id: 'done', status: 'completed', date: '2026-08-03T16:00:00Z', duration: 45 },
+      { id: 'planned', status: 'planned', date: '2026-08-03T17:00:00Z', duration: 60 },
+      { id: 'active', status: 'in_progress', date: '2026-08-03T17:30:00Z', duration: 30 },
+    ], nowMs);
+
+    expect(proof.thisWeekCount).toBe(1);
+    expect(proof.minutesThisWeek).toBe(45);
+    expect(proof.latestSessionId).toBe('done');
   });
 
   it('reports honest zeros and no share line when nothing is logged', () => {
@@ -175,8 +188,8 @@ describe('HomeTabViewModel', () => {
   it('flags streak risk only when the streak is live, today is unlogged, and evening started (O3)', () => {
     const eveningMs = new Date('2026-06-12T19:00:00').getTime();
     const morningMs = new Date('2026-06-12T09:00:00').getTime();
-    const todaySession = [{ id: 's1', date: new Date('2026-06-12T07:30:00').toISOString() }];
-    const yesterdaySession = [{ id: 's2', date: new Date('2026-06-11T18:00:00').toISOString() }];
+    const todaySession = [{ id: 's1', status: 'completed', date: new Date('2026-06-12T07:30:00').toISOString() }];
+    const yesterdaySession = [{ id: 's2', status: 'completed', date: new Date('2026-06-11T18:00:00').toISOString() }];
 
     // Live streak + nothing today + evening → rescue fires.
     expect(assessStreakRisk(yesterdaySession, 4, eveningMs)).toBe(true);

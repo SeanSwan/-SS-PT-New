@@ -70,16 +70,11 @@ export async function queryExercisesForBootcamp(filters = {}) {
   } = filters;
 
   try {
-    // Use "Exercises" table (883+ exercises). exercise_library exists but is empty.
-    // Check which table has actual data.
-    let tableName = 'Exercises';
-    try {
-      const [countCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM "Exercises"`);
-      if (parseInt(countCheck[0]?.c || 0) === 0) {
-        const [altCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM exercise_library`);
-        if (parseInt(altCheck[0]?.c || 0) > 0) tableName = 'exercise_library';
-      }
-    } catch { /* use default */ }
+    // "Exercises" only (916 live rows; all 28 selected columns verified against the live
+    // DB 2026-08-03). The old exercise_library fallback could never work: that table is
+    // snake_case (primary_muscle, movement_patterns, …) so this PascalCase SELECT list
+    // would throw "column does not exist" and the .catch below would silently return [].
+    const tableName = 'Exercises';
 
     // Build WHERE conditions
     const conditions = [`("isActive" = true OR "isActive" IS NULL)`];

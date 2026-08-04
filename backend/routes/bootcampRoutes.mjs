@@ -16,6 +16,8 @@
  */
 
 import { Router } from 'express';
+import { Op } from 'sequelize';
+import sequelize from '../database.mjs';
 import eventBus from '../services/eventBus.mjs';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { FORMAT_CONFIG } from '../services/bootcamp/bootcampConstants.mjs';
@@ -194,6 +196,91 @@ router.post('/log', async (req, res) => {
 });
 
 // GET /api/bootcamp/history
+/**
+ * SWA-105 Slice 8 — attendance log-back. Closes the Product Core Loop: every
+ * registered attendee gets a real DailyWorkoutForm; guests get roster rows.
+ * Idempotent per class; ownership enforced inside the service (404, never
+ * existence-confirming). Body: { attendees: [{userId} | {guest}] }. A legitimate
+ * zero-attendee class requires { attendees: [], noShowConfirmed: true }.
+ */
+router.post('/class-logs/:id/attendance', async (req, res) => {
+  // DEFAULT-OFF PRODUCT GATE (SWA-105): the write path is now transactionally
+  // serialized on the class-log row and uses batched authorization/insertion.
+  // It remains dormant until the roster-check-in UI is ready and explicitly enabled.
+  if (process.env.SWAN_BOOTCAMP_ATTENDANCE_ENABLED !== 'true') {
+    return res.status(503).json({
+      success: false,
+      message: 'Bootcamp attendance log-back is not yet enabled.',
+    });
+  }
+  try {
+    const { recordBootcampAttendance } = await import('../services/bootcamp/bootcampAttendance.mjs');
+    const { getBootcampClassLog, getAllModels } = await import('../models/index.mjs');
+    const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+    const models = getAllModels();
+    const ClassLog = getBootcampClassLog();
+
+    const result = await recordBootcampAttendance(
+      {
+        runAtomically: (operation) => sequelize.transaction(async (transaction) =>
+          operation({
+            getClassLog: (id) => ClassLog.findByPk(id, {
+              transaction,
+              lock: transaction.LOCK.UPDATE,
+            }),
+            createWorkoutForms: async (forms) => {
+              if (forms.length === 0) return [];
+              if (!models.DailyWorkoutForm) {
+                throw new Error('DailyWorkoutForm model unavailable');
+              }
+              const rows = await models.DailyWorkoutForm.bulkCreate(
+                forms.map((form) => ({
+                  clientId: form.clientId,
+                  trainerId: Number(req.user.id),
+                  date: form.date,
+                  formData: { ...form.formData, idempotencyKey: form.idempotencyKey },
+                  sessionDeducted: form.sessionDeducted,
+                  mcpProcessed: form.mcpProcessed,
+                  submittedAt: new Date(),
+                })),
+                { transaction, returning: true },
+              );
+              return rows.map((row) => row.id);
+            },
+            saveClassLog: (log, patch) => log.update(patch, { transaction }),
+            verifyClientAccessBatch: async (clientIds) => {
+              if (clientIds.length === 0) return true;
+              const assignedCount = await ClientTrainerAssignment.count({
+                where: {
+                  trainerId: Number(req.user.id),
+                  clientId: { [Op.in]: clientIds },
+                  status: 'active',
+                },
+                distinct: true,
+                col: 'clientId',
+                transaction,
+              });
+              return assignedCount === clientIds.length;
+            },
+          })),
+      },
+      {
+        classLogId: Number(req.params.id),
+        trainerId: Number(req.user.id),
+        requesterRole: req.user.role,
+        attendees: req.body?.attendees,
+        noShowConfirmed: req.body?.noShowConfirmed === true,
+      },
+    );
+
+    res.status(result.alreadyRecorded ? 200 : 201).json({ success: true, ...result });
+  } catch (error) {
+    const status = error.statusCode ?? 500;
+    if (status >= 500) logger.error('[Bootcamp] attendance failed:', error);
+    res.status(status).json({ success: false, message: status >= 500 ? 'Attendance recording failed' : error.message });
+  }
+});
+
 router.get('/history', async (req, res) => {
   try {
     const { dayType, limit, offset } = req.query;

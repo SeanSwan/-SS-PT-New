@@ -55,9 +55,14 @@ async function calculateServerTotal(items) {
     throw new Error('All items must have a storefrontItemId');
   }
 
-  // Query database for source-of-truth prices
+  // Query database for source-of-truth prices.
+  // isActive:true (Kimi security audit F1 residual, SWA-129): a retired/
+  // unpublished item must not be purchasable by id even though there is no
+  // per-item visibility model — an id-guessing user should only be able to
+  // buy live catalog items. Items absent from this result are rejected
+  // downstream (unknown price), so this fails closed.
   const dbItems = await StorefrontItem.findAll({
-    where: { id: itemIds, isSpecialOffer: false },
+    where: { id: itemIds, isSpecialOffer: false, isActive: true },
     attributes: [
       'id',
       'price',

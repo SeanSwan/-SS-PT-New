@@ -155,9 +155,13 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const assignment = useMemo(() => buildAssignmentView(currentWorkoutState), [currentWorkoutState]);
   const sessionPreview = useMemo(() => buildSessionPreview(upcomingSessionState), [upcomingSessionState]);
   const insights = useMemo(
-    () => buildInsights(trainingProof, progressPercent, streakDays),
-    [progressPercent, streakDays, trainingProof],
+    () => buildInsights(trainingProof, progressPercent, streakDays, currentWorkoutState.workout?.weeklyPlanVolume ?? null),
+    [currentWorkoutState.workout?.weeklyPlanVolume, progressPercent, streakDays, trainingProof],
   );
+  // Settled means SUCCESSFULLY settled — a failed fetch must never be read as
+  // "zero history" (a veteran client with a transient error would get the
+  // first-session orientation strip + lose the composer).
+  const workoutHistorySettled = !workoutSessions.isLoading && !workoutSessions.error;
   const performanceScore = useMemo(
     () => buildPerformanceScore(trainingProof, progressPercent, streakDays),
     [progressPercent, streakDays, trainingProof],
@@ -167,13 +171,21 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     [displayName, liveWidgets.leaderboardRows, points],
   );
 
+  // Panel launch review 2026-08-03 (gap e): the quick action must carry the
+  // assignment-aware route the viewmodel already computed — a bare
+  // ?loadPlan=today drops assignmentKey/assignmentType and routes completed or
+  // trainer-led days into the logger instead of history/schedule. Fall back to
+  // the bare logger path only while the assignment is loading/absent/errored.
+  const assignmentSettled = !assignment.loading && !assignment.error && !assignment.empty;
+  const quickLogPath = assignmentSettled ? assignment.actionPath : logWorkoutPath;
+
   const quickActions = useMemo<ClientDashboardAction[]>(() => [
-    { label: 'Log Workout', path: logWorkoutPath },
+    { label: 'Log Workout', path: quickLogPath },
     { label: 'Ask Coach', path: homeTrainingCoachPath },
     { label: 'View Progress', target: 'progress' },
     { label: 'View Challenges', target: 'challenges' },
     ...(canBookSessions ? [{ label: 'Book Session', path: '/dashboard/client/schedule' }] : []),
-  ], [canBookSessions, homeTrainingCoachPath, logWorkoutPath]);
+  ], [canBookSessions, homeTrainingCoachPath, quickLogPath]);
 
   const handleTarget = (target: ClientDashboardTarget) => {
     if (target === 'dashboard') onTabChange('home');
@@ -250,6 +262,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         assignment={assignment}
         sessionPreview={sessionPreview}
         trainingProof={trainingProof}
+        workoutHistorySettled={workoutHistorySettled}
         insights={insights}
         performanceScore={performanceScore}
         macroSummary={macroSummary}

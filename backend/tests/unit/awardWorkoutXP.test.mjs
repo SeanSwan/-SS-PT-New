@@ -21,6 +21,7 @@ const mockWorkoutSession = {
 const mockEventBus = { safeEmit: vi.fn() };
 const mockCreateWorkoutAutoPost = vi.fn();
 const mockCreateStreakAutoPost = vi.fn();
+const mockAwardWorkoutAchievementsBestEffort = vi.fn();
 
 const makeUser = (overrides = {}) => ({
   id: 42,
@@ -40,6 +41,9 @@ vi.mock('../../models/GamificationSettings.mjs', () => ({ default: mockSettings 
 vi.mock('../../models/PointTransaction.mjs', () => ({ default: mockPointTransaction }));
 vi.mock('../../services/gamification/GamificationPointsService.mjs', () => ({
   default: mockGamificationPointsService,
+}));
+vi.mock('../../services/gamification/workoutAchievementAwardStep.mjs', () => ({
+  awardWorkoutAchievementsBestEffort: mockAwardWorkoutAchievementsBestEffort,
 }));
 vi.mock('../../models/Milestone.mjs', () => ({ default: mockMilestone }));
 vi.mock('../../models/UserMilestone.mjs', () => ({ default: mockUserMilestone }));
@@ -70,6 +74,7 @@ describe('awardWorkoutXP progression sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPointTransaction.findOne.mockResolvedValue(null);
+    mockAwardWorkoutAchievementsBestEffort.mockResolvedValue({ awarded: [], pointsAwarded: 0 });
     mockPointTransaction.create.mockResolvedValue({});
     mockWorkoutSession.findOne.mockResolvedValue(null);
     mockWorkoutSession.count.mockResolvedValue(0);
@@ -264,6 +269,41 @@ describe('awardWorkoutXP progression sync', () => {
       streakDays: 7,
     }));
     expect(mockPointTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it('includes newly earned achievement XP and the ledger balance in the workout receipt', async () => {
+    const user = makeUser({ points: 350 });
+    mockUserModel.findByPk.mockResolvedValue(user);
+    mockGamificationPointsService.recordLedgerEntry.mockResolvedValue({
+      pointsAwarded: 50,
+      newBalance: 400,
+    });
+    mockAwardWorkoutAchievementsBestEffort.mockResolvedValue({
+      awarded: [{ achievementId: 7, name: 'Five Workouts', xpReward: 25 }],
+      pointsAwarded: 25,
+      newBalance: 425,
+    });
+
+    const result = await awardWorkoutXP({
+      userId: 42,
+      workoutId: 'workout-achievement',
+      duration: 30,
+      exercisesCompleted: 0,
+      workoutDate: '2026-05-15T12:00:00.000Z',
+      awardedBy: 1,
+    }, mockTransaction);
+
+    expect(mockAwardWorkoutAchievementsBestEffort).toHaveBeenCalledWith({
+      userId: 42,
+      workoutId: 'workout-achievement',
+      awardedBy: 1,
+      transaction: mockTransaction,
+    });
+    expect(result).toEqual(expect.objectContaining({
+      pointsAwarded: 75,
+      newBalance: 425,
+      awardedAchievements: [{ achievementId: 7, name: 'Five Workouts', xpReward: 25 }],
+    }));
   });
 
   it('records milestone bonus XP through the central ledger after workout XP', async () => {

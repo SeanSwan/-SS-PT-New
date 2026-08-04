@@ -44,6 +44,12 @@ const parseSearchLimit = (value, fallback = 20, max = 100) => {
 const authenticate = protect;
 const requireAdmin = adminOnly;
 const requireTrainer = trainerOrAdminOnly;
+// DELIBERATE: 'user' is EXCLUDED here. An authz sweep flagged the omission as a bug (role
+// 'user' is the DB default for new signups, so they 403 on join/goals/follow), but
+// gamificationLeaderboardRoleContract.test.mjs encodes the actual product boundary —
+// "allows user/client/trainer/admin to read the global leaderboard ONLY". Unpromoted signups
+// get the read-only surface via requireProfileReader below; participation (joining
+// challenges, creating goals) requires client tier. Do not widen this without Sean's call.
 const requireUser = requireAnyRole('client', 'trainer', 'admin');
 const requireProfileReader = requireAnyRole('user', 'client', 'trainer', 'admin');
 
@@ -155,7 +161,15 @@ router.post('/users/:userId/challenges/progress-events/workout-completed', authe
  * @desc    Get all challenges with filters (FRONTEND EXPECTED)
  * @access  Public
  */
-router.get('/challenges', challengeController.getAllChallenges);
+// SECURITY (authz sweep 2026-08-04): this was UNAUTHENTICATED and live-verified returning
+// HTTP 200 to an anonymous caller. Its payload embeds real member identities — creator and
+// up to 5 participants each with {id, firstName, lastName, username, photo} plus per-member
+// currentProgress/progressPercentage (challengeListService) — over the CANONICAL `challenges`
+// table. It reads empty today only because challenge content is stale; seeding fresh
+// challenges would have armed an anonymous member-roster + fitness-progress harvest.
+// `authenticate` only (no role gate): every SwanStudios member may browse public challenges,
+// which is what the dashboards that consume this actually need.
+router.get('/challenges', authenticate, challengeController.getAllChallenges);
 
 /**
  * @route   GET /api/v1/gamification/challenges/manage
@@ -183,7 +197,9 @@ router.get('/challenges/:id/results', authenticate, requireTrainer, challengeRes
  * @desc    Get single challenge with full details
  * @access  Public
  */
-router.get('/challenges/:id', challengeController.getChallengeById);
+// Same exposure, worse payload: the detail route loads the FULL participant list (unlimited)
+// with nested user identities. Authenticated members only.
+router.get('/challenges/:id', authenticate, challengeController.getChallengeById);
 
 /**
  * @route   POST /api/v1/gamification/challenges

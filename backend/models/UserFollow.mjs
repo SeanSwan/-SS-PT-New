@@ -16,18 +16,20 @@ const UserFollow = db.define('UserFollow', {
     allowNull: false
   },
   
-  // Foreign Keys
+  // Foreign Keys — INTEGER, not UUID: live "Users".id is integer serial. The UUID
+  // declarations made boot-time CREATE TABLE fail with 'foreign key constraint
+  // "user_follows_followerId_fkey" cannot be implemented' (deploy 2026-08-03).
   followerId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
       key: 'id'
     }
   },
-  
+
   followingId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',

@@ -25,6 +25,14 @@ const toPositiveInt = (value) => {
   return Number.isInteger(next) && next > 0 ? next : null;
 };
 
+/**
+ * Escape LIKE/ILIKE wildcard metacharacters so user input is matched literally.
+ * Backslash first (it is the default escape char), then % and _. Without this a
+ * search of `%` matches the entire user table.
+ */
+const escapeLikePattern = (value) =>
+  String(value).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+
 export const getMessagesForConversation = async (req, res) => {
   const conversationId = toPositiveInt(req.params.id);
   const userId = req.user?.id;
@@ -87,9 +95,14 @@ export const searchUsers = async (req, res) => {
   if (!currentUserId) return res.status(401).json({ error: 'Authentication required.' });
 
   try {
+    // Response columns deliberately EXCLUDE email + lastLogin/lastActive: this is a
+    // directory any authenticated user can query, and exposing activity timestamps to
+    // everyone is more than "find someone to message" needs. lastActive/lastLogin are
+    // still used in ORDER BY (Postgres allows ordering by non-selected columns) so the
+    // most-recently-active users still surface first. Found 2026-08-04, security audit.
     const users = !query || query.length < 2
       ? await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        `SELECT id, "firstName", "lastName", username, photo, role
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
@@ -99,28 +112,34 @@ export const searchUsers = async (req, res) => {
         { replacements: { currentUserId }, type: QueryTypes.SELECT }
       )
       : await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        // email is NOT a search key: matching on email lets any authenticated user
+        // confirm whether an address has an account (enumeration). Name/username only.
+        `SELECT id, "firstName", "lastName", username, photo, role
          FROM "Users"
          WHERE (
              "firstName" ILIKE :query
              OR "lastName" ILIKE :query
              OR ("firstName" || ' ' || "lastName") ILIKE :query
              OR username ILIKE :query
-             OR email ILIKE :query
            )
            AND id != :currentUserId
            AND "deletedAt" IS NULL
            AND ("isActive" = true OR "isActive" IS NULL)
          ORDER BY COALESCE("lastActive", "lastLogin") DESC NULLS LAST, "createdAt" DESC
          LIMIT 20`,
-        { replacements: { query: `%${query}%`, currentUserId }, type: QueryTypes.SELECT }
+        // Escape LIKE/ILIKE metacharacters before wrapping in %…%. Without this, a
+        // query of `%` becomes `%%%` and matches every user — a one-character dump of
+        // the whole directory (name, username, photo, role, activity). Escaping keeps
+        // literal substring search intact while blocking wildcard injection. The
+        // default backslash escape char applies (no ESCAPE clause needed).
+        // Found 2026-08-04, security audit (Kimi hostile pass).
+        { replacements: { query: `%${escapeLikePattern(query)}%`, currentUserId }, type: QueryTypes.SELECT }
       );
 
     const normalized = users.map(u => ({
       ...u,
       role: u.role === 'user' ? 'client' : u.role,
       displayName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
-      lastActive: u.lastActive || u.lastLogin || null,
     }));
 
     return res.json(normalized);

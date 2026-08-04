@@ -81,6 +81,17 @@ function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, bo
     pyramidDrops: null,
     supersetOrder: null,
     supersetGroupId: null,
+    // SWA-105 Slice 2: a Board-2/3 alternative is a DIFFERENT exercise, derived
+    // from a modification name rather than selected by the ladder. The spread
+    // above would otherwise hand it the parent's rung and chips — so a
+    // joint-friendly substitute would render "bodyweight substitute" because
+    // the exercise it replaces was one. Cleared for the same reason the
+    // pyramid/superset fields above are cleared: inherited state that was never
+    // about this row. No chips are invented in their place; nothing here is
+    // provable from a modification string, and the board label already says
+    // what this row is.
+    selectionRung: 'R0',
+    selectionChips: [],
   };
 }
 

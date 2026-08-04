@@ -23,7 +23,6 @@ import {
   getCurrentWorkoutPlanId,
   getCurrentWorkoutTodayAssignment,
   getCurrentWorkoutTodayAssignmentExercises,
-  getPlanDayForDate,
   isCurrentWorkoutAssignmentLoggable,
   planAssignmentPickerItemToContext,
   planAssignmentPickerItemToEntries,
@@ -248,40 +247,21 @@ export async function loadTodaysPlanIntoLogger({
       return;
     }
 
-    const planDay = getPlanDayForDate(data.plan.days);
-    const dayLabel = planDay?.dayName || new Date().toLocaleDateString('en-US', { weekday: 'long' });
-
-    if (!planDay?.exercises?.length) {
-      setPlannedAssignment(null);
-      setLoadedPlanContext?.(null);
-      toast.info(`No exercises scheduled for ${dayLabel} in the active plan`);
-      setPlanLoadOutcome?.({ kind: 'no_exercises_today', message: 'Your plan has a rest day here.' });
-      return;
-    }
-
-    const prefilled = planDay.exercises.map((exercise) =>
-      plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
-    );
-    const firstExercise = planDay.exercises[0] ?? null;
-    setExercises(prev => [...prev, ...prefilled]);
+    // S0 (Plan Surfacing, 2026-08-03): tier 3 — the weekday-name guess — is
+    // DELETED, not re-pointed. `getPlanDayForDate` could not distinguish
+    // W2·Tue from W5·Tue and fell back to `days[dayOfWeek % length]`,
+    // silently loading a day the plan never scheduled for today. When the
+    // cursor session AND today's assignment both miss, the honest answer is
+    // "no matched day". Date→day questions belong to the server resolver
+    // (`/current?forDate=`, planDayResolver basis chain), which the
+    // schedule's Plan Reveal consumes.
     setPlannedAssignment(null);
-    setLoadedPlanContext?.({
-      assignmentId: null,
-      assignmentKey: null,
-      planId: getCurrentWorkoutPlanId(data),
-      assignmentType: null,
-      source: 'workout_plan',
-      isLoggable: true,
-      isBillable: false,
-      shouldDeductSession: false,
-      status: null,
-      title: `${dayLabel}'s plan`,
-      dayLabel,
-      exerciseCount: prefilled.length,
-      firstExerciseName: firstExercise?.exerciseName || firstExercise?.name || null,
-      exercises: planDay.exercises,
+    setLoadedPlanContext?.(null);
+    toast.info('No plan day matches today — open your plan to pick a day.');
+    setPlanLoadOutcome?.({
+      kind: 'no_current_day',
+      message: 'Your plan has days, but none is marked current for today. Open the plan vault to pick one, or ask your trainer.',
     });
-    toast.success(`Loaded ${prefilled.length} exercises from ${dayLabel}'s plan`);
   } catch (error: unknown) {
     if (isMissingCurrentPlanContext(error)) {
       setPlannedAssignment(null);

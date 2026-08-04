@@ -5,10 +5,15 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
-import { analyzeTurn, decide, parseTranscript } from './hermes-closeout-gate.mjs';
+import { fileURLToPath } from 'node:url';
+import { analyzeTurn, decide, memoMissingMistakes, parseTranscript } from './hermes-closeout-gate.mjs';
 
-const settings = JSON.parse(readFileSync('.claude/settings.json', 'utf8'));
+// Resolved from this file, not process.cwd(): read relatively, the suite failed
+// outright from any other directory (found 2026-08-03 by running it from C:/tmp).
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const settings = JSON.parse(readFileSync(join(REPO_ROOT, '.claude/settings.json'), 'utf8'));
 const stopHooks = settings.hooks?.Stop?.flatMap((group) => group.hooks ?? []) ?? [];
 
 const line = (obj) => JSON.stringify(obj);
@@ -18,19 +23,24 @@ const toolUse = (name, input) =>
 const assistantText = (text) =>
   line({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
 
-test('is registered as a command-type Stop hook, and no prompt hook survives', () => {
-  // Was `commandHooks.length === 1`, which pinned a world that stopped existing the
-  // moment a second Stop hook was added — it has been permanently red since dry-loop
-  // and linear-sync landed, and adding lesson-recall made it no more wrong, just more
-  // obviously so. The real intent of this test is that the original PROMPT-type hook was
-  // replaced by a deterministic COMMAND hook (it blocked 100% of trivial turns), not that
-  // this gate is the only one. Assert that intent, so siblings can be added without
-  // falsifying it.
-  assert.equal(stopHooks.filter((h) => h.type === 'prompt').length, 0);
-  const commandHooks = stopHooks.filter((h) => h.type === 'command');
-  const own = commandHooks.find((h) => /hermes-closeout-gate\.mjs/.test(h.command));
-  assert.ok(own, 'hermes-closeout-gate must be registered as a Stop command hook');
-  assert.equal(own.timeout, 30);
+test('is registered as a command-type Stop hook, and no Stop hook is prompt-type', () => {
+  // Was "exactly one command Stop hook" — true only while this was the ONLY Stop
+  // hook. Others have landed since (dry-loop, linear-sync, dual-tier), so the count
+  // assertion had been failing for weeks, reporting a broken suite while nothing was
+  // wrong. A test that fails for a reason nobody intends is one everybody ignores.
+  //
+  // The intent it was really protecting: this gate must run as a deterministic
+  // COMMAND hook (harness-executed, zero model calls) rather than a prompt hook that
+  // asks the model to police itself — the point of rule 69's fifth layer.
+  assert.equal(
+    stopHooks.filter((h) => h.type === 'prompt').length, 0,
+    'a prompt-type Stop hook would put enforcement back in the model\'s hands',
+  );
+  const mine = stopHooks.filter(
+    (h) => h.type === 'command' && /hermes-closeout-gate\.mjs/.test(String(h.command ?? '')),
+  );
+  assert.equal(mine.length, 1, 'this gate must be registered exactly once as a command hook');
+  assert.equal(mine[0].timeout, 30, 'timeout must stay 30s');
 });
 
 test('stop_hook_active passes deterministically (no-loop guard)', () => {
@@ -117,4 +127,76 @@ test('counts a memo citation in string-form assistant content (no false re-block
 test('tolerates malformed transcript lines (fail-open per line)', () => {
   const raw = ['not-json{{{', userText('hi'), 'also-bad', assistantText('hello')].join('\n');
   assert.equal(decide({}, raw), null);
+});
+
+// ── Mistakes-section contract (Sean 2026-08-04) ─────────────────────────────
+// "Give a report to Hermes, especially about the mistakes that you made so I
+// can learn from them… this should be automatic." Detecting that a memo FILE
+// exists was never enough — the mistakes section is the payload Hermes learns
+// from, so the gate reads the emitted memo and blocks when the heading is gone.
+const memoTurn = [
+  userText('build'),
+  toolUse('Write', {
+    file_path: '.ai-workflow/hermes-inbox/pending/20260804T000000Z-vs-claude-x.md',
+  }),
+].join('\n');
+
+test('memo WITHOUT a mistakes section is blocked', () => {
+  const reason = decide({}, memoTurn, () => `## What I did
+- shipped x`) ?? '';
+  assert.match(reason, /missing its mistakes section/);
+});
+
+test('memo WITH a mistakes section passes', () => {
+  assert.equal(decide({}, memoTurn, () => `## Mistakes I made
+- got x wrong -> caught by y -> rule: z`), null);
+});
+
+test('honest-empty mistakes form passes (heading present, hostile pass ran dry)', () => {
+  assert.equal(
+    decide({}, memoTurn, () => '## Mistakes I made — none surfaced this task'),
+    null,
+  );
+});
+
+test('unreadable memo fails OPEN — a heuristic gate must never false-block', () => {
+  assert.equal(decide({}, memoTurn, () => { throw new Error('ENOENT'); }), null);
+});
+
+test('memoMissingMistakes accepts any heading depth and names the offending file', () => {
+  assert.equal(memoMissingMistakes(['a.md'], () => '#### Mistakes I made'), null);
+  assert.equal(memoMissingMistakes(['bad.md'], () => 'no heading at all'), 'bad.md');
+});
+
+// HOSTILE ROUND 2026-08-04: headings that only LOOK like the contract must not
+// satisfy it — otherwise the gate can be waived by renaming, which is exactly
+// the deny-list failure this whole enforcement chain exists to prevent.
+test('lookalike headings do not satisfy the mistakes contract', () => {
+  for (const text of [
+    '## Mistakes-adjacent notes',      // hyphen-joined word, not the section
+    '## Mistaken assumptions\n- x',    // different word entirely
+    'prose mentioning Mistakes I made but with no heading',
+    'Some text ## Mistakes I made',    // not at line start
+  ]) {
+    assert.equal(memoMissingMistakes(['bad.md'], () => text), 'bad.md', text);
+  }
+});
+
+test('legitimate heading variations still satisfy it', () => {
+  for (const text of [
+    '## Mistakes I made\n- x',
+    '## mistakes i made\n- x',         // case-insensitive
+    '   ## Mistakes I made',           // indented
+    '##Mistakes I made',               // no space after hashes
+    '## Mistakes I made — none surfaced this task',
+  ]) {
+    assert.equal(memoMissingMistakes(['ok.md'], () => text), null, text);
+  }
+});
+
+test('stop_hook_active still short-circuits even with a non-compliant memo', () => {
+  assert.equal(
+    decide({ stop_hook_active: true }, memoTurn, () => 'no mistakes heading'),
+    null,
+  );
 });

@@ -967,19 +967,21 @@ class BadgeService {
   }
 
   /**
-   * Update collection badge count
+   * Touch a collection's updatedAt after badge membership changes.
+   *
+   * Formerly "updateCollectionBadgeCount": it wrote a `badgeCount` column that does NOT
+   * exist on live "BadgeCollections" (columns: id/name/description/theme/icon/isActive/
+   * createdAt/updatedAt — live-DB verified 2026-08-04) and not on the model either, so
+   * every badge create/update/delete that touched a collection THREW here. No reader
+   * anywhere consumes a stored badgeCount (both call sites compute counts in JS), so the
+   * denormalized counter is dropped rather than added.
    * @param {string} collectionId - Collection ID
    */
   async updateCollectionBadgeCount(collectionId) {
-    const queryText = `
-      UPDATE "BadgeCollections"
-      SET "badgeCount" = (
-        SELECT COUNT(*) FROM "Badges" WHERE "collectionId" = $1 AND "isActive" = true
-      ), "updatedAt" = NOW()
-      WHERE id = $1
-    `;
-
-    await sequelize.query(queryText, { type: QueryTypes.UPDATE, bind: [collectionId] });
+    await sequelize.query(
+      `UPDATE "BadgeCollections" SET "updatedAt" = NOW() WHERE id = $1`,
+      { type: QueryTypes.UPDATE, bind: [collectionId] },
+    );
   }
 
   // Placeholder methods for reward application

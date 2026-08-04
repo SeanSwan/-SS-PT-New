@@ -11,8 +11,24 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAssignmentView,
+  buildInsights,
   buildTodaySnapshot,
 } from './ClientDashboardHome.viewModel';
+import type { HomeTrainingProof } from './HomeTabProofViewModel';
+
+const baseProof: HomeTrainingProof = {
+  thisWeekCount: 0,
+  minutesThisWeek: 0,
+  weeklyCounts: [0, 0, 0, 0],
+  weekDelta: null,
+  lastSession: null,
+  latestSessionId: null,
+  shareLine: null,
+};
+const volumeStatus = (rows: ReturnType<typeof buildInsights>) =>
+  rows.find((r) => r.label === 'Training Volume')?.status;
+const weekStatus = (rows: ReturnType<typeof buildInsights>) =>
+  rows.find((r) => r.label === 'Workouts This Week')?.status;
 
 const baseWorkout = {
   title: 'Strength Base Day 2',
@@ -28,6 +44,53 @@ const baseWorkout = {
   primaryPlanLabel: '6 Month Plan',
   homeworkSummary: null,
 };
+
+describe('buildInsights — target truth (launch panel gap b)', () => {
+  it('measures volume against the ASSIGNED plan when its weekly volume is known', () => {
+    const rows = buildInsights({ ...baseProof, thisWeekCount: 2, minutesThisWeek: 90 }, 40, 3, 4);
+    expect(volumeStatus(rows)).toBe('2/4 plan sessions logged');
+  });
+
+  it('caps the logged count at the plan volume instead of reporting 5/4', () => {
+    const rows = buildInsights({ ...baseProof, thisWeekCount: 6, minutesThisWeek: 240 }, 40, 3, 4);
+    expect(volumeStatus(rows)).toBe('4/4 plan sessions logged');
+  });
+
+  it('makes NO target claim when the plan volume is unknown — never a hardcoded goal', () => {
+    for (const unknown of [undefined, null, 0]) {
+      const rows = buildInsights({ ...baseProof, thisWeekCount: 2, minutesThisWeek: 90 }, 40, 3, unknown);
+      expect(volumeStatus(rows)).toBe('This week');
+      expect(volumeStatus(rows)).not.toMatch(/target|goal|%/i);
+    }
+  });
+
+  it('does not compare against an empty first week (hollow "Up N vs last week")', () => {
+    const rows = buildInsights(
+      { ...baseProof, thisWeekCount: 3, weeklyCounts: [0, 0, 0, 3], weekDelta: 3 },
+      40, 3, 4,
+    );
+    expect(weekStatus(rows)).toBe('Building your baseline');
+    expect(weekStatus(rows)).not.toMatch(/last week/);
+  });
+
+  it('reports a real week-over-week rise, flat week, and dip in plain language', () => {
+    const up = buildInsights({ ...baseProof, thisWeekCount: 4, weeklyCounts: [1, 2, 2, 4], weekDelta: 2 }, 40, 3, 4);
+    expect(weekStatus(up)).toBe('Up 2 vs last week');
+    const flat = buildInsights({ ...baseProof, thisWeekCount: 3, weeklyCounts: [1, 2, 3, 3], weekDelta: 0 }, 40, 3, 4);
+    expect(weekStatus(flat)).toBe('Matching last week');
+    expect(weekStatus(flat)).not.toMatch(/Up 0/);
+    const down = buildInsights({ ...baseProof, thisWeekCount: 1, weeklyCounts: [1, 2, 4, 1], weekDelta: -3 }, 40, 3, 4);
+    expect(weekStatus(down)).toBe('3 fewer than last week');
+  });
+
+  it('never reintroduces a wearable tile it cannot source', () => {
+    const rows = buildInsights({ ...baseProof, thisWeekCount: 2 }, 40, 3, 4);
+    expect(rows.map((r) => r.label)).toEqual([
+      'Workouts This Week', 'Training Volume', 'Consistency', 'Best Recent Week',
+    ]);
+    expect(rows.some((r) => r.value === 'Not available')).toBe(false);
+  });
+});
 
 describe('ClientDashboardHome assignment view model', () => {
   it('routes completed current assignments to workout history instead of another log attempt', () => {
@@ -50,6 +113,39 @@ describe('ClientDashboardHome assignment view model', () => {
       complete: true,
     });
   });
+  it('excludes planned and in-progress rows from completed-session dashboard counts', () => {
+    const now = new Date('2026-08-03T18:00:00Z');
+    const proof = {
+      thisWeekCount: 1,
+      minutesThisWeek: 45,
+      weeklyCounts: [0, 0, 0, 1],
+      weekDelta: 1,
+      lastSession: { title: 'Completed lift', when: '2h ago' },
+      latestSessionId: 'completed',
+      shareLine: 'Logged 1 workout this week.',
+    };
+    const snapshot = buildTodaySnapshot({
+      sessions: [
+        { id: 'completed', status: 'completed', date: '2026-08-03T16:00:00Z' },
+        { id: 'planned', status: 'planned', date: '2026-08-03T17:00:00Z' },
+        { id: 'active', status: 'in_progress', date: '2026-08-03T17:30:00Z' },
+      ],
+      proof,
+      now,
+    });
+
+    expect(snapshot.rows).toContainEqual({
+      label: 'Workouts Logged',
+      value: '1',
+      meta: 'Today',
+    });
+    expect(snapshot.rows).toContainEqual({
+      label: 'Sessions This Month',
+      value: '1',
+      meta: 'Logged sessions',
+    });
+  });
+
   it('labels nutrition calories as logged intake rather than calories burned', () => {
     const snapshot = buildTodaySnapshot({
       sessions: [],

@@ -11,6 +11,7 @@ import ScheduleConfirmDialog, {
   type ScheduleConfirmRequest,
 } from './ScheduleConfirmDialog';
 import SessionDetailBodyPanels from './SessionDetailBodyPanels';
+import SessionDetailPlannedWorkoutPanel from './SessionDetailPlannedWorkoutPanel';
 import SessionDetailFooterActions from './SessionDetailFooterActions';
 import { useSessionAttendance } from './hooks/useSessionAttendance';
 import { useSessionCancellation } from './hooks/useSessionCancellation';
@@ -25,6 +26,7 @@ import { getSessionDate } from './SessionDetailModal.actions';
 import {
   buildScheduleLogWorkoutLabel,
   getStatusTone,
+  sessionDateToLocalISO,
 } from './SessionDetailModal.logic';
 
 const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
@@ -215,6 +217,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         />
       )}
     >
+      {/* S1 Plan Reveal - the modal's HERO, self-fetching (prop chain never widens). */}
+      <SessionDetailPlannedWorkoutPanel
+        clientId={session.userId != null ? Number(session.userId) : null}
+        sessionDateISO={sessionDateToLocalISO(sessionDate)}
+      />
       <SessionDetailBodyPanels
         formError={formError}
         session={session}

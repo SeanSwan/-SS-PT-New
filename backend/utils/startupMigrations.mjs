@@ -729,6 +729,43 @@ async function migratePointTransactionIdempotencyKey() {
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
+/**
+ * Migration 15: Create achievement_crystallizations (drift audit 2026-08-03)
+ * - The .cjs migration 20260718120000 declared achievementId as UUID while the live
+ *   "Achievements".id is INTEGER serial → FK failed with "incompatible types",
+ *   safe-migrate's failure lane marked it done anyway, and the table was never created.
+ *   Result: POST /api/achievements/:id/crystallize 500s on the INSERT.
+ * - Idempotent: to_regclass guard; mirrors the (corrected) migration DDL exactly.
+ */
+async function migrateAchievementCrystallizations() {
+  try {
+    const [existing] = await sequelize.query(
+      `SELECT to_regclass('public.achievement_crystallizations') AS t`
+    );
+    if (existing?.[0]?.t) {
+      logger.info('[Migration] achievement_crystallizations already exists - no change needed');
+      return;
+    }
+
+    logger.info('[Migration] Creating achievement_crystallizations table...');
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS achievement_crystallizations (
+        id UUID PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES "Users"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+        "achievementId" INTEGER NOT NULL REFERENCES "Achievements"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+        "worldKey" VARCHAR(64) NOT NULL DEFAULT 'default',
+        "crystallizedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT achievement_crystallizations_user_achievement_unique UNIQUE ("userId", "achievementId")
+      );
+    `);
+    logger.info('[Migration] achievement_crystallizations created successfully');
+  } catch (error) {
+    logger.warn(`[Migration] achievement_crystallizations creation failed (non-critical): ${error.message}`);
+  }
+}
+
 export async function runStartupMigrations() {
   try {
     logger.info('[Migrations] Running startup migrations...');
@@ -747,6 +784,7 @@ export async function runStartupMigrations() {
     await migrateAiConversationTargetUserId();
     await migrateSocialPostMediaType();
     await migratePointTransactionIdempotencyKey();
+    await migrateAchievementCrystallizations();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;

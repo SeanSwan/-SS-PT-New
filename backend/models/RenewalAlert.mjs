@@ -13,7 +13,7 @@ export default (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
     },
@@ -44,7 +44,7 @@ export default (sequelize) => {
     contactedBy: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'users',
+        model: 'Users',
         key: 'id',
       },
     },

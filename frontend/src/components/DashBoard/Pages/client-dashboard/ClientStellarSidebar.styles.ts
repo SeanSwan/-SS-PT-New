@@ -178,17 +178,20 @@ export const MobileCloseBtn = styled.button`
   min-width: 44px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(201, 42, 84, 0.2);
-  background: rgba(201, 42, 84, 0.08);
-  color: #C92A54;
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 20%, transparent);
+  background: color-mix(in srgb, var(--danger, #ef4444) 8%, transparent);
+  color: var(--danger, #ef4444);
   display: none;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
   &:hover {
-    background: rgba(201, 42, 84, 0.15);
-    box-shadow: 0 0 12px rgba(201, 42, 84, 0.2);
+    background: color-mix(in srgb, var(--danger, #ef4444) 15%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--danger, #ef4444) 20%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
   @media (max-width: 1024px) {
     display: flex;

@@ -42,9 +42,12 @@ describe('goal command dispatchers', () => {
           title: 'Private goal text',
           status: 'active',
           progressPercentage: 40,
-          // Relative deadline: a hardcoded '2026-07-01' became a time bomb —
-          // the goal counted overdue once the calendar passed it.
-          deadline: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+          // Relative, not a literal. This was '2026-07-01T00:00:00.000Z' while the test asserts
+          // overdueGoals: 0 — so it passed until that date arrived and has failed every run since.
+          // It was red for five weeks before anyone looked, because nothing runs the suite.
+          // The intent is "an active goal whose deadline has NOT passed is not overdue"; a
+          // hardcoded future date only expresses that until it becomes a past one.
+          deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
           id: 'goal-2',

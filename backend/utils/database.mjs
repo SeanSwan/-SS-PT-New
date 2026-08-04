@@ -106,64 +106,23 @@ export const testConnection = async () => {
 };
 
 /**
- * Initialize database tables if they don't exist
- * @returns {Promise<void>}
+ * DEPRECATED — DO NOT CALL (drift audit 2026-08-03).
+ *
+ * This legacy bootstrap created three tables whose schemas contradict the real app:
+ *   - lowercase `users` — the DEAD duplicate of canonical "Users" (the exact dual-table
+ *     hazard CLAUDE.md's gotcha list warns about; it seeded FKs pointing at the wrong table)
+ *   - a minimal `sessions` with "scheduledDate" (the real table uses "sessionDate")
+ *   - a minimal `packages` (canonical catalog is storefront_items / StorefrontItem)
+ * It has zero runtime callers (verified by repo-wide grep). Table creation belongs to
+ * migrations + utils/tableCreationOrder.mjs, never this helper. The function is kept as a
+ * fail-fast stub so any future caller surfaces immediately instead of resurrecting drift.
+ * @returns {Promise<never>}
  */
 export const initializeDatabase = async () => {
-  try {
-    console.log('🔧 Initializing database tables...');
-    
-    // Create packages table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS packages (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10, 2) NOT NULL,
-        sessions INTEGER NOT NULL,
-        features TEXT[],
-        "isActive" BOOLEAN DEFAULT true,
-        "displayOrder" INTEGER DEFAULT 0,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    // Create users table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        "firstName" VARCHAR(255),
-        "lastName" VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'client',
-        "isActive" BOOLEAN DEFAULT true,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    // Create sessions table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id SERIAL PRIMARY KEY,
-        "userId" INTEGER REFERENCES users(id),
-        "trainerId" INTEGER REFERENCES users(id),
-        "packageId" INTEGER REFERENCES packages(id),
-        "scheduledDate" TIMESTAMP,
-        status VARCHAR(50) DEFAULT 'scheduled',
-        notes TEXT,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    console.log('✅ Database tables initialized successfully');
-  } catch (error) {
-    console.error('❌ Database initialization failed:', error);
-    throw error;
-  }
+  throw new Error(
+    'initializeDatabase() is retired: it created the dead lowercase `users` table and ' +
+    'schema-drifted sessions/packages tables. Use migrations or utils/tableCreationOrder.mjs.'
+  );
 };
 
 /**

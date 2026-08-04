@@ -84,7 +84,10 @@ describe('server-owned custom-deal pricing', () => {
 
 describe('alternate payment rail containment', () => {
   it('keeps hidden specials out of offline-payment order creation', () => {
-    expect(offlineSource).toMatch(/where:\s*\{\s*id:\s*itemIds,\s*isSpecialOffer:\s*false\s*\}/);
+    // SWA-129 (Kimi F1 residual): the offline-payment lookup now also filters
+    // isActive:true so a retired item can't be purchased by id-guess. Both
+    // containment filters (isSpecialOffer:false AND isActive:true) must be present.
+    expect(offlineSource).toMatch(/where:\s*\{\s*id:\s*itemIds,\s*isSpecialOffer:\s*false,\s*isActive:\s*true\s*\}/);
   });
 
   it('keeps hidden specials out of both ACH storefront lookups', () => {

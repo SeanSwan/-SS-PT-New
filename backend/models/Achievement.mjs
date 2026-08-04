@@ -15,7 +15,8 @@
  *   Achievement ← UserAchievement (junction to Users)
  *
  * KEY DECISIONS:
- * - UUID primary keys (not auto-increment) for cross-system compatibility
+ * - INTEGER auto-increment primary key (matches live "Achievements".id serial — the earlier
+ *   "UUID for cross-system compatibility" note described an intent that never reached the DB)
  * - Both `title` and `name` fields exist (legacy — `name` is the dedup key)
  * - 6 rarity levels: common, rare, epic, legendary, mythic, secret
  * - 6 skill trees: awakening, forge_nasm, iron_gravity, the_tribe, free_spirit, the_unbroken
@@ -30,9 +31,14 @@ import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const Achievement = db.define('Achievement', {
+  // SCHEMA TRUTH (live DB verified 2026-08-03, CLAUDE.md rule 58): "Achievements".id is
+  // INTEGER with nextval('"Achievements_id_seq"') — 1,067 live rows. The previous UUID
+  // declaration made every Achievement.create() fail (uuid string into int column) and,
+  // via belongsTo target-PK inference, silently re-typed UserAchievement.achievementId
+  // back to UUID at runtime despite that model's correct INTEGER declaration.
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
     allowNull: false
   },

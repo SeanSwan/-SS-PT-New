@@ -1,5 +1,15 @@
 import express from 'express';
 import { Challenge, ChallengeParticipant, ChallengeTeam } from '../../models/social/index.mjs';
+// Canonical lane (SWA-115, 2026-08-04): /active now reads the REAL `challenges` table
+// (18 live rows) instead of the empty PascalCase "Challenges" twin the social models
+// map to — the bug that made both client dashboards render zero challenges forever.
+// Only /active is repointed: it is the sole endpoint here with live frontend callers
+// (useDashboardQueries.useSocialChallenges → ClientObservatoryHome + ClientCommunityPage).
+// The remaining endpoints keep the legacy social models pending the SWA-115 product
+// decision on the PascalCase challenge family.
+import { getChallenge, getChallengeParticipant } from '../../models/index.mjs';
+import { mapChallengeToSocialPreview } from './challengePreviewMapper.mjs';
+import { isMissingTableError } from '../featureAvailability.mjs';
 import User from '../../models/User.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { Op } from 'sequelize';
@@ -20,6 +30,13 @@ const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 // The biometric/habit categories have no workout-event evidence source and
 // stay self-reportable. (Sean policy 2026-07-15.)
 const EVIDENCE_REQUIRED_CATEGORIES = new Set(['workout']);
+
+const parseBoundedInteger = (value, fallback, { min, max }) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isSafeInteger(parsed)
+    ? Math.min(Math.max(parsed, min), max)
+    : fallback;
+};
 
 const router = express.Router();
 
@@ -48,95 +65,61 @@ const upload = multer({
  * Get active challenges
  */
 router.get('/active', async (req, res) => {
+  const limit = parseBoundedInteger(req.query.limit, 10, { min: 1, max: 50 });
+  const offset = parseBoundedInteger(req.query.offset, 0, { min: 0, max: 10000 });
+
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = parseInt(req.query.offset) || 0;
-    
-    // Get active challenges — try with creator include, fall back without if association missing
-    let challenges;
-    try {
-      challenges = await Challenge.findAll({
-        where: {
-          status: 'active',
-          startDate: { [Op.lte]: new Date() },
-          endDate: { [Op.gte]: new Date() }
-        },
+    const now = new Date();
+
+    // CANONICAL lane (see import note above): real challenges, public only —
+    // this is a community surface; private/draft challenges must not leak here.
+    // Window is "not yet ended" rather than "currently running": upcoming public
+    // challenges are joinable content the dashboards should surface (live-DB truth
+    // 2026-08-04: most historical challenges have ended; hiding upcoming ones would
+    // keep the community page empty for no reason).
+    const CanonicalChallenge = getChallenge();
+    const CanonicalParticipant = getChallengeParticipant();
+
+    const activeWhere = {
+      status: 'active',
+      isPublic: true,
+      endDate: { [Op.gte]: now },
+    };
+
+    const [challenges, total] = await Promise.all([
+      CanonicalChallenge.findAll({
+        where: activeWhere,
         limit,
         offset,
         order: [['startDate', 'DESC']],
-        include: [
-          {
-            model: User,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
-          }
-        ]
-      });
-    } catch (includeErr) {
-      // Association may not be set up — query without include
-      challenges = await Challenge.findAll({
-        where: {
-          status: 'active',
-          startDate: { [Op.lte]: new Date() },
-          endDate: { [Op.gte]: new Date() }
-        },
-        limit,
-        offset,
-        order: [['startDate', 'DESC']]
-      });
-    }
-    
-    // Get challenge IDs
-    const challengeIds = challenges.map(challenge => challenge.id);
-    
-    // Get user participation for these challenges
-    const participations = await ChallengeParticipant.findAll({
-      where: {
-        challengeId: { [Op.in]: challengeIds },
-        userId: req.user.id
-      }
-    });
-    
-    // Create a map for quick lookup
+      }),
+      CanonicalChallenge.count({ where: activeWhere }),
+    ]);
+
+    // The requesting user's canonical participation rows for these challenges.
+    const challengeIds = challenges.map(c => c.id);
+    const participations = challengeIds.length > 0
+      ? await CanonicalParticipant.findAll({
+          where: { challengeId: { [Op.in]: challengeIds }, userId: req.user.id },
+        })
+      : [];
     const participationMap = {};
-    participations.forEach(part => {
-      participationMap[part.challengeId] = part;
-    });
-    
-    // Format challenges with participation data
-    const formattedChallenges = challenges.map(challenge => {
-      const challengeObj = challenge.toJSON();
-      
-      // Add participation data if available
-      if (participationMap[challenge.id]) {
-        challengeObj.participation = participationMap[challenge.id];
-        challengeObj.isParticipating = true;
-      } else {
-        challengeObj.isParticipating = false;
-      }
-      
-      return challengeObj;
-    });
-    
+    for (const part of participations) participationMap[part.challengeId] = part.toJSON();
+
+    const formattedChallenges = challenges.map(c =>
+      mapChallengeToSocialPreview(c.toJSON(), participationMap[c.id] || null, now),
+    );
+
     return res.status(200).json({
       success: true,
       challenges: formattedChallenges,
-      pagination: {
-        limit,
-        offset,
-        total: await Challenge.count({
-          where: {
-            status: 'active',
-            startDate: { [Op.lte]: new Date() },
-            endDate: { [Op.gte]: new Date() }
-          }
-        })
-      }
+      pagination: { limit, offset, total },
     });
   } catch (error) {
-    // Non-fatal: table may not be migrated yet in production
-    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
-      return res.status(200).json({ success: true, challenges: [], pagination: { limit: 10, offset: 0, total: 0 } });
+    // A genuinely absent relation can degrade in a fresh environment. Missing
+    // columns and every other database failure stay visible as real 500s.
+    if (isMissingTableError(error)) {
+      return res.status(200).json({ success: true, challenges: [], pagination: { limit, offset, total: 0 } });
     }
     logger.error('Error fetching active challenges:', { error: error.message, stack: error.stack });
     return res.status(500).json({

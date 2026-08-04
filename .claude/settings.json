@@ -334,7 +334,18 @@
           },
           {
             "type": "command",
-            "command": "node scripts/hooks/lesson-recall-gate.mjs"
+            "command": "node scripts/hooks/dual-tier-gate.mjs",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/backup-after-work.mjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/lesson-recall-gate.mjs",
+            "timeout": 30
           }
         ]
       }

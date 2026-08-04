@@ -288,3 +288,12 @@ export const Footer = styled.footer`
 
   @media (max-width: 480px) { align-items: stretch; flex-direction: column; }
 `;
+/** S2: honest drift — caution semantics, never earned gold. */
+export const Overdue = styled.span`
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  color: var(--warning, #f59e0b);
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 42%, transparent);
+  border-radius: 999px;
+  font: 700 0.68rem/1 var(--font-ui, 'Sora', sans-serif);
+`;

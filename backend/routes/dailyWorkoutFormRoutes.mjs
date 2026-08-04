@@ -2524,7 +2524,18 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const DailyWorkoutForm = getDailyWorkoutForm();
 
-    const form = await DailyWorkoutForm.findByPk(req.params.id);
+    // Trainer-scope the lookup exactly like the sibling GET /:id (line ~1581):
+    // a bare findByPk let any trainer read ANY other trainer's client form —
+    // exercises, RPE, clientSummary, and free-text trainerNotes — by id
+    // enumeration. Admins still see all (no trainerId constraint added).
+    // Found 2026-08-04, security audit; this was the lone handler in the file
+    // missing the object-level scope every sibling enforces.
+    const whereCondition = { id: req.params.id };
+    if (req.user.role === 'trainer') {
+      whereCondition.trainerId = req.user.id;
+    }
+
+    const form = await DailyWorkoutForm.findOne({ where: whereCondition });
 
     if (!form) {
       return res.status(404).json({

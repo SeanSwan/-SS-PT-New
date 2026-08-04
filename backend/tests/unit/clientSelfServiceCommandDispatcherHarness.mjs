@@ -63,7 +63,10 @@ export async function loadDispatcher() {
   const UserAchievement = {
     // SWA-87: keyed on notificationSent, not the phantom `isNew` column. "New" =
     // earned but not yet notified; 5 completed total, 1 of them unseen.
-    count: vi.fn(async (options = {}) => (options.where?.notificationSent === false ? 1 : 5)),
+    // Keyed on the recency filter the dispatcher actually sends (achievementRecency.mjs). Keyed on
+    // `notificationSent` previously — a real column, but one NOTHING ever sets to true, so the
+    // stub modelled a query whose production answer was always "all completed".
+    count: vi.fn(async (options = {}) => (options.where?.earnedAt ? 1 : 5)),
   };
   const painEntryRows = [
     { id: 11, bodyRegion: 'lower_back', painLevel: 8, createdAt: new Date('2026-05-31T12:00:00Z') },

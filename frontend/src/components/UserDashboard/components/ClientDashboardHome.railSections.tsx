@@ -24,8 +24,10 @@ import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
 import RecoveryBoardPanel from '../../RecoveryBoard/RecoveryBoardPanel';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 
-export function ClientRightRail({ activeChallenge, challengeLoading, badges, leaderboardRows, trendingTags, trendingLoading, onTarget }: Pick<ClientDashboardHomeProps,
-  'activeChallenge' | 'challengeLoading' | 'badges' | 'leaderboardRows' | 'trendingTags' | 'trendingLoading' | 'onTarget'>) {
+export function ClientRightRail({ activeChallenge, challengeLoading, badges, leaderboardRows, trendingTags, trendingLoading, onTarget, workoutHistorySettled, trainingProof }: Pick<ClientDashboardHomeProps,
+  'activeChallenge' | 'challengeLoading' | 'badges' | 'leaderboardRows' | 'trendingTags' | 'trendingLoading' | 'onTarget' | 'workoutHistorySettled' | 'trainingProof'>) {
+  // Zero-history clients get orientation, not community noise (panel Q5).
+  const zeroHistory = !!workoutHistorySettled && !trainingProof.lastSession;
   return (
     <>
       <PanelCard>
@@ -47,10 +49,17 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
         empty="Leaderboard is not populated yet."
         items={leaderboardRows.map((row, index) => [`${index + 1}. ${row.name}`, row.points.toLocaleString()])}
       />
-      <PanelCard>
-        <PanelHeader><Kicker>Trending tags</Kicker>{trendingLoading && <TinyText>Loading</TinyText>}</PanelHeader>
-        <TagGrid>{(trendingTags.length ? trendingTags : [{ name: 'SwanStudios', count: 0 }]).map((tag) => <TagPill key={tag.name}>#{tag.name}</TagPill>)}</TagGrid>
-      </PanelCard>
+      {/* Real tags or nothing — a fabricated fallback tag is mock-data-as-truth
+          (doctrine violation) and would show SwanStudios branding to
+          white-labeled clients. Empty/error → the whole card hides. Also
+          hidden for zero-history clients (community context comes after the
+          first logged session). */}
+      {!zeroHistory && (trendingLoading || trendingTags.length > 0) && (
+        <PanelCard>
+          <PanelHeader><Kicker>Trending tags</Kicker>{trendingLoading && <TinyText>Loading</TinyText>}</PanelHeader>
+          <TagGrid>{trendingTags.map((tag) => <TagPill key={tag.name}>#{tag.name}</TagPill>)}</TagGrid>
+        </PanelCard>
+      )}
     </>
   );
 }

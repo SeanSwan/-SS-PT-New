@@ -16,9 +16,11 @@ const ProgressData = db.define('ProgressData', {
     allowNull: false
   },
   
-  // Foreign Key
+  // Foreign Key — INTEGER, not UUID: live "Users".id is integer serial. The UUID
+  // declaration made boot-time CREATE TABLE fail with 'foreign key constraint
+  // "progress_data_userId_fkey" cannot be implemented' (deploy 2026-08-03).
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',

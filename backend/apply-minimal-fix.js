@@ -27,7 +27,7 @@ async function applyMinimalFix() {
     console.log(''); 
  
     console.log('🔗 Creating foreign key constraint...'); 
-    await sequelize.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_userId_fkey FOREIGN KEY ("userId") REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL;`); 
+    await sequelize.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_userId_fkey FOREIGN KEY ("userId") REFERENCES "Users"(id) ON UPDATE CASCADE ON DELETE SET NULL;`); 
     console.log('✅ Foreign key constraint created successfully'); 
     console.log(''); 
  

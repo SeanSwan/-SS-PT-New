@@ -265,11 +265,12 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
   });
 
-  it('falls back to legacy day-of-week match when currentSession is null', async () => {
-    // The legacy branch resolves the day name via `new Date().getDay()`,
-    // so the response fixture seeds `dayName` from whatever today's
-    // system clock reports. We assert structural shape (day name appears,
-    // and Week-N format does NOT) rather than pinning the calendar.
+  it('S0: currentSession null + plan.days present → honest no-match, never a weekday guess', async () => {
+    // INTENT PRESERVED: this pin used to prove the weekday fallback fired.
+    // That fallback (deleted in Plan Surfacing S0) guessed days the plan
+    // never scheduled (W2·Tue vs W5·Tue indistinguishable; `% length`
+    // rotation). The new law at the real caller path: nothing prefills,
+    // no success toast, and the user is told how to recover.
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const todayName = dayNames[new Date().getDay()];
 
@@ -303,10 +304,10 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
-    await waitFor(() => expect(toastMock.success).toHaveBeenCalled());
-    const successMsg = toastMock.success.mock.calls.map((c) => c[0]).join(' | ');
-    expect(successMsg).toMatch(new RegExp(`${todayName}'s plan`));
-    expect(successMsg).not.toMatch(/Week \d+ —/);
+    await waitFor(() => expect(toastMock.info).toHaveBeenCalledWith(
+      'No plan day matches today — open your plan to pick a day.',
+    ));
+    expect(toastMock.success).not.toHaveBeenCalled();
   });
 
   it('shows the no-active-plan toast when neither currentSession nor plan.days[] are usable', async () => {
@@ -384,10 +385,11 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     expect(successMsg).toMatch(/1 exercises/);
   });
 
-  it('treats currentSession.exercises=[] as empty and falls through to legacy match', async () => {
-    // Empty cursor must not block the fallback — an empty array is not
-    // a hit. Pin the legacy day to today so the regex assertion holds
-    // regardless of the test machine's calendar.
+  it('S0: currentSession.exercises=[] is still empty — and the answer is honesty, not a guess', async () => {
+    // INTENT PRESERVED: an empty cursor array is NOT a hit (that half of the
+    // old pin survives — the empty cursor must not read as "loaded"). The
+    // deleted half is the weekday fallback it used to fall through TO; the
+    // real caller path now reports no_current_day with a recovery pointer.
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const todayName = dayNames[new Date().getDay()];
 
@@ -422,9 +424,9 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     const loadBtn = await screen.findByRole('button', { name: /load today/i });
     fireEvent.click(loadBtn);
 
-    await waitFor(() => expect(toastMock.success).toHaveBeenCalled());
-    const successMsg = toastMock.success.mock.calls.map((c) => c[0]).join(' | ');
-    expect(successMsg).toMatch(new RegExp(`${todayName}'s plan`));
-    expect(successMsg).not.toMatch(/Week 1 —/);
+    await waitFor(() => expect(toastMock.info).toHaveBeenCalledWith(
+      'No plan day matches today — open your plan to pick a day.',
+    ));
+    expect(toastMock.success).not.toHaveBeenCalled();
   });
 });

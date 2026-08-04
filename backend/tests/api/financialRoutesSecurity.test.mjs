@@ -70,4 +70,14 @@ describe('financial routes security', () => {
     expect(routeSource).toContain('const dayCount = Math.min(parsePositiveInteger(days) || 30, 365)');
     expect(routeSource).toContain('startDate.setDate(endDate.getDate() - dayCount)');
   });
+
+  it('gates GET /metrics with the adminOnly middleware, not a client-supplied flag', () => {
+    // Regression 2026-08-04: the gate was `if (adminOnly && role !== 'admin')` where
+    // `adminOnly` came from req.query and defaulted to false — so any authenticated
+    // user who omitted the param received company-wide financials. It must be gated by
+    // the same middleware its siblings use, and must NOT read the flag from the query.
+    expect(routeSource).toContain("router.get('/metrics', adminOnly,");
+    expect(routeSource).not.toContain('adminOnly = false');
+    expect(routeSource).not.toMatch(/if \(adminOnly && req\.user\.role !== 'admin'\)/);
+  });
 });

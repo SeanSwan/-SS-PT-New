@@ -257,3 +257,29 @@ describe('buildTrainingPlanProjectionItems hostile date audit', () => {
     });
   });
 });
+describe('S2: overdueDays — honest drift on planned-but-past days', () => {
+  it('stamps positive drift for planned days behind local today, never on completed', async () => {
+    const { buildTrainingPlanProjectionItems } = await import('../services/trainingPlanProjectionContract.mjs');
+    const plan = {
+      id: 'p-drift', userId: 7, trainerId: 3, status: 'active', title: 'Drift Plan',
+      currentWeek: 1, currentDay: 1, durationWeeks: 1, contentRevision: 2,
+      startDate: '2026-08-01',
+      planData: { weeks: [{ weekNumber: 1, days: [
+        { dayNumber: 1, name: 'D1', exercises: [{ exerciseName: 'Row' }] },
+        { dayNumber: 2, name: 'D2', exercises: [{ exerciseName: 'Press' }] },
+      ] }] },
+    };
+    const items = buildTrainingPlanProjectionItems({
+      plans: [plan],
+      receipts: [],
+      clientDateContexts: new Map([[7, { localDate: '2026-08-04', timeZone: 'UTC' }]]),
+      startDate: '2026-08-01',
+      endDate: '2026-08-10',
+    });
+    const d1 = items.find((item) => item.dayNumber === 1); // scheduled 08-01 → 3 behind
+    const d2 = items.find((item) => item.dayNumber === 2); // scheduled 08-02 → 2 behind
+    expect(d1.overdueDays).toBe(3);
+    expect(d2.overdueDays).toBe(2);
+    expect(items.every((item) => item.completionState === 'planned')).toBe(true);
+  });
+});

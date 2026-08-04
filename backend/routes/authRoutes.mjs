@@ -314,7 +314,6 @@ import {
   logout,
   validateToken,
   refreshToken,
-  getUserById,
   getProfile,
   changePasswordForced,
   forgotPassword,
