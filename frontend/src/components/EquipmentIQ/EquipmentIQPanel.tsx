@@ -94,7 +94,7 @@ const EquipmentIQPanel: React.FC<EquipmentIQPanelProps> = ({
           </HairlineTrack>
         </StateWrap>
       ) : error ? (
-        <StateWrap data-testid="iq-error" role="alert">
+        <StateWrap data-testid="iq-error" role="status">
           <span>{error}</span>
           <RetryButton type="button" onClick={refetch}>
             Try again

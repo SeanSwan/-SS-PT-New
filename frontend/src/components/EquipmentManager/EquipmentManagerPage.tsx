@@ -51,6 +51,7 @@ import { countBatchDetections, mergeScanBatches } from './equipmentScanSessionMe
 import type { MergeReceiptEntry } from './equipmentScanSessionMerge';
 import WalkTheGymSummary from './WalkTheGymSummary';
 import type { WalkTheGymFileChip } from './WalkTheGymSummary';
+import { EquipmentIQPanel } from '../EquipmentIQ';
 
 // S7 Walk-the-Gym: one multi-photo queue run is presented as ONE merged tray
 // with a merge receipt, instead of N sequential per-photo trays.
@@ -1555,6 +1556,10 @@ const EquipmentManagerPage: React.FC = () => {
             )}
           </ScanActionGroup>
         </Header>
+
+        {/* Equipment IQ band (§10a #4/#12): full-width pattern-coverage web —
+            the eye lands on the weakest pattern before the inventory list. */}
+        {selectedProfile && <EquipmentIQPanel profileId={selectedProfile.id} />}
 
         {actionError && (
           <ErrorNotice role="alert">

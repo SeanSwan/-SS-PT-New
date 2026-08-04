@@ -30,6 +30,7 @@ import useMyEquipmentData from './useMyEquipmentData';
 import { USER_LOCATION_LABELS, USER_LOCATION_TYPES, getVisibleItems } from './myEquipmentPatterns';
 import type { UserLocationType } from './myEquipmentPatterns';
 import MyEquipmentInventory from './MyEquipmentInventory';
+import { EquipmentIQPanel } from '../EquipmentIQ';
 import {
   AddPlaceButton, CapHint, Container, ErrorActions, ErrorNotice, ErrorText,
   GhostButton, Header, HeroActions, HeroCard, HeroCopy, HeroGalleryButton,
@@ -215,6 +216,10 @@ const MyEquipmentPage: React.FC = () => {
           />
         )}
 
+        {/* Equipment IQ band (§10a #4): what your gear unlocks, gap in gold. */}
+        {data.activeProfile && data.items.length > 0 && (
+          <EquipmentIQPanel profileId={data.activeProfile.id} />
+        )}
         {(data.activeProfile || (!data.profilesLoading && !data.profilesError && data.profiles.length === 0)) && (
           <MyEquipmentInventory
             items={data.activeProfile ? data.items : []}
