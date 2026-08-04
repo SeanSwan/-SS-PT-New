@@ -78,7 +78,18 @@ const buildForm = (profile: UserProfile | null): SettingsForm => {
 
 const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProfile }) => {
   const navigate = useNavigate();
-  const { subscription, hasGuardianAccess, hasCrystallineAccess } = useSubscription();
+  const {
+    subscription,
+    hasGuardianAccess,
+    hasCrystallineAccess,
+    loading: subscriptionLoading,
+    error: subscriptionError,
+  } = useSubscription();
+  // Revenue-facing. `subscription?.tierName || 'Swan Starter'` names the FREE
+  // tier whenever the fetch is pending or failed, so a paying Crystalline
+  // member is told they are on the free plan, directly beside a "Manage
+  // Membership" CTA. Name the plan only when it is actually known.
+  const planKnown = Boolean(subscription?.tierName) && !subscriptionError;
   const [form, setForm] = useState<SettingsForm>(() => buildForm(profile));
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -158,9 +169,17 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
         </div>
         <PlanCard>
           <span>Current plan</span>
-          <strong>{subscription?.tierName || 'Swan Starter'}</strong>
-          {subscription?.isInTrial && <small>{subscription.trialDaysRemaining} trial days remaining</small>}
-          <FlagRow><Flag $on={hasGuardianAccess}>Guardian analytics</Flag><Flag $on={hasCrystallineAccess}>Crystalline tools</Flag></FlagRow>
+          {planKnown ? (
+            <strong>{subscription!.tierName}</strong>
+          ) : (
+            <strong aria-live="polite">
+              {subscriptionLoading ? 'Checking your plan…' : 'Plan unavailable right now'}
+            </strong>
+          )}
+          {planKnown && subscription?.isInTrial && <small>{subscription.trialDaysRemaining} trial days remaining</small>}
+          {planKnown && (
+            <FlagRow><Flag $on={hasGuardianAccess}>Guardian analytics</Flag><Flag $on={hasCrystallineAccess}>Crystalline tools</Flag></FlagRow>
+          )}
           <SecondaryButton type="button" onClick={() => navigate('/ascension')}>Manage Membership</SecondaryButton>
         </PlanCard>
       </Hero>
