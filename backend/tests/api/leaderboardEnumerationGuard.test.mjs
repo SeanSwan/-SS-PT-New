@@ -22,7 +22,12 @@ const { findAllMock, countMock } = vi.hoisted(() => ({
 
 vi.mock('../../models/associations.mjs', () => ({
   default: async () => ({
-    User: { findAll: findAllMock, count: countMock, findByPk: (...args) => findByPkMock(...args) },
+    User: {
+      findAll: findAllMock,
+      count: countMock,
+      findByPk: (...args) => findByPkMock(...args),
+      findOne: (...args) => findOneMock(...args),
+    },
     ProgressData: null,
     Achievement: null,
   }),
@@ -38,6 +43,7 @@ const makeRes = () => {
 };
 
 const findByPkMock = vi.fn();
+const findOneMock = vi.fn();
 
 const callLeaderboard = async ({ role = 'user', query = {} } = {}) => {
   const controller = await loadController();
@@ -113,15 +119,64 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
     expect(options.offset).toBe(49900);
   });
 
-  it('never probes an arbitrary account — the includeUser oracle is gone', async () => {
+  it('never lets a caller-supplied id reach ANY user lookup, by any method', async () => {
+    // Pinning `findByPk` alone was method-pinned, not behaviour-pinned: the
+    // same oracle walks straight back in through findAll/findOne. Assert the
+    // invariant instead — no query anywhere in this handler may be shaped by an
+    // id the caller supplied.
     findByPkMock.mockReset();
+    findOneMock.mockReset();
 
-    await callLeaderboard({ role: 'user', query: { includeUser: 9999, metric: 'streak' } });
+    const attackerId = 424242;
+    const { options, body } = await callLeaderboard({
+      role: 'user',
+      query: { includeUser: attackerId, metric: 'streak' },
+    });
 
-    // findByPk fed an attacker-controlled id with no ownership check, and it
-    // bypassed the role filter, so a member could rank (and binary-read) any
-    // account's stats including staff. The parameter had zero callers.
     expect(findByPkMock).not.toHaveBeenCalled();
+    expect(findOneMock).not.toHaveBeenCalled();
+
+    const everyQuery = [
+      ...findAllMock.mock.calls.map((call) => call[0]),
+      ...countMock.mock.calls.map((call) => call[0]),
+    ];
+    for (const query of everyQuery) {
+      expect(JSON.stringify(query ?? {})).not.toContain(String(attackerId));
+    }
+    expect(JSON.stringify(options ?? {})).not.toContain(String(attackerId));
+
+    // And nothing about that account may come back.
+    expect(body?.userRank ?? null).toBeNull();
+    expect(JSON.stringify(body ?? {})).not.toContain(String(attackerId));
+  });
+
+  it('shows members only the TOP of a slice — offset is not merely capped', async () => {
+    // A capped offset still bound each QUERY while the reachable set is the
+    // UNION over tier x metric x timeframe. Pinning offset to 0 makes the top
+    // the only thing reachable, whatever slice is requested.
+    for (const tier of ['bronze_forge', 'titanium_core', 'crystalline_swan']) {
+      for (const metric of ['points', 'workouts', 'streak', 'level']) {
+        const { options } = await callLeaderboard({
+          role: 'user',
+          query: { tier, metric, limit: 100, page: 42 },
+        });
+        expect(options.offset).toBe(0);
+        expect(options.limit).toBeLessThanOrEqual(100);
+      }
+    }
+  });
+
+  it('honours a REAL tier value — the allowlist matches the stored domain', async () => {
+    // `['bronze','silver','gold','platinum']` matched nothing: the column
+    // stores `bronze_forge`-style keys, so every legitimate filter was dropped
+    // and the slice protection was accidental rather than designed.
+    const { options, body } = await callLeaderboard({
+      role: 'user',
+      query: { tier: 'bronze_forge' },
+    });
+
+    expect(options.where.tier).toBe('bronze_forge');
+    expect(body?.filters?.tier).toBe('bronze_forge');
   });
 
   it('ignores an unrecognised tier instead of querying and echoing it', async () => {

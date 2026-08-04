@@ -131,6 +131,16 @@ const LEGACY_TIER_ALIASES = {
   crystalline_swan: 'grand_crystalline_swan',
 };
 
+/**
+ * Every tier key the system will ever store or accept, modern + legacy alias.
+ * Exported so callers ALLOWLIST against the real domain instead of hand-copying
+ * a list: a hand-written `['bronze','silver','gold','platinum']` silently
+ * matched nothing, because the column stores `bronze_forge`-style keys.
+ */
+export const KNOWN_TIER_KEYS = Object.freeze(
+  new Set([...Object.keys(LEGACY_TIER_ALIASES), ...Object.values(LEGACY_TIER_ALIASES)]),
+);
+
 function slugifyRankName(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
