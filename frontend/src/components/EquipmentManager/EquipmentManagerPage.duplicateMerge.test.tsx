@@ -95,7 +95,7 @@ const itemsResponse = (items: EquipmentItem[]) => ({
 async function openProfileDetail() {
   const { container } = render(<EquipmentManagerPage />);
   fireEvent.click(await screen.findByText(/Hotel Gym/));
-  await screen.findByText('Swan Coach Scan');
+  await screen.findByText('Scan Equipment');
   const galleryInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
   expect(galleryInput).toBeTruthy();
   return galleryInput;

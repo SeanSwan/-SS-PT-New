@@ -1,4 +1,9 @@
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
+
+const pipPulse = keyframes`
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.75; }
+`;
 
 export const Panel = styled.section`
   padding: 16px;
@@ -72,29 +77,110 @@ export const PreviewOverlay = styled.div`
   pointer-events: none;
 `;
 
-export const DetectionBox = styled.div`
+/* Corner-bracket constellation treatment (blueprint §10a #2 — LOCKED):
+   brackets are drawn as 8 gradient strips (two per corner), so the box reads
+   as "Swan Coach saw this," not CV-debugger chrome. Uncertain items switch to
+   a dashed full border + pulsing pip; duplicates go Gilded Fern. When any box
+   is focused, the focused box dims everything OUTSIDE itself via the
+   100vmax box-shadow spotlight (clipped by PreviewFrame's overflow). */
+const bracketColor = (color: string) => css`
+  background:
+    linear-gradient(${color}, ${color}) left 0 top 0 / 16px 2px,
+    linear-gradient(${color}, ${color}) left 0 top 0 / 2px 16px,
+    linear-gradient(${color}, ${color}) right 0 top 0 / 16px 2px,
+    linear-gradient(${color}, ${color}) right 0 top 0 / 2px 16px,
+    linear-gradient(${color}, ${color}) left 0 bottom 0 / 16px 2px,
+    linear-gradient(${color}, ${color}) left 0 bottom 0 / 2px 16px,
+    linear-gradient(${color}, ${color}) right 0 bottom 0 / 16px 2px,
+    linear-gradient(${color}, ${color}) right 0 bottom 0 / 2px 16px;
+  background-repeat: no-repeat;
+`;
+
+export const DetectionBox = styled.button`
   position: absolute;
   min-width: 18px;
   min-height: 18px;
-  border: 2px solid var(--accent-primary, #60C0F0);
+  padding: 0;
+  border: none;
   border-radius: 6px;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--surface-base, #001040) 72%, transparent),
-    0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 160ms ease;
+  ${bracketColor('var(--accent-primary, #60C0F0)')};
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent));
 
   &[data-status="possible"] {
-    border-color: var(--accent-secondary, #8B5CF6);
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--surface-base, #001040) 72%, transparent),
-      0 0 16px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 32%, transparent);
+    background: none;
+    border: 2px dashed var(--accent-secondary, #8B5CF6);
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent));
   }
 
   &[data-status="duplicate"] {
-    border-color: var(--accent-warning, #C6A84B);
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--surface-base, #001040) 72%, transparent),
-      0 0 16px color-mix(in srgb, var(--accent-warning, #C6A84B) 32%, transparent);
+    ${bracketColor('var(--accent-warning, #C6A84B)')};
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-warning, #C6A84B) 40%, transparent));
   }
+
+  &[data-dimmed="true"] {
+    opacity: 0.25;
+  }
+
+  &[data-focused="true"] {
+    box-shadow: 0 0 0 100vmax rgba(10, 10, 15, 0.55);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text-primary, #E0ECF4);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const PipDot = styled.span`
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-base, #0A0A0F);
+  border: 1.5px solid var(--accent-primary, #60C0F0);
+  color: var(--accent-primary, #60C0F0);
+  font-size: 12px;
+  font-weight: 800;
+
+  [data-status='possible'] & {
+    border-color: var(--accent-secondary, #8B5CF6);
+    color: var(--accent-secondary, #8B5CF6);
+    animation: ${pipPulse} 1.6s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  [data-status='duplicate'] & {
+    border-color: var(--accent-warning, #C6A84B);
+    color: var(--accent-warning, #C6A84B);
+  }
+`;
+
+export const DegradedBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent-warning, #C6A84B);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-warning, #C6A84B) 10%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 13px;
 `;
 
 export const DetectionLabel = styled.span`

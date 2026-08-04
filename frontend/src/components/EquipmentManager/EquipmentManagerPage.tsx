@@ -48,6 +48,13 @@ import {
 import type { EquipmentScanBatch } from './equipmentScanBatch';
 import { approveSelectedScanItems, rejectSelectedScanItems } from './equipmentScanBatchActions';
 
+// Staged honest scan copy (§10a #5 — LOCKED): stages, never a spinner.
+const SCAN_STAGE_COPY = [
+  'Scanning the room…',
+  'Identifying equipment…',
+  'Matching to your inventory…',
+] as const;
+
 // --- Keyframes ---
 
 const scanLine = keyframes`
@@ -694,6 +701,16 @@ const EquipmentManagerPage: React.FC = () => {
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  // Staged honest loading copy (§10a #5) — no spinners; stages advance on a
+  // timer and hold on the last one until the scan resolves.
+  const [scanStageIndex, setScanStageIndex] = useState(0);
+  useEffect(() => {
+    if (!scanning) { setScanStageIndex(0); return undefined; }
+    const timer = setInterval(() => {
+      setScanStageIndex((index) => Math.min(index + 1, SCAN_STAGE_COPY.length - 1));
+    }, 2600);
+    return () => clearInterval(timer);
+  }, [scanning]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const [scanQueue, setScanQueue] = useState<EquipmentScanQueueItem[]>([]);
@@ -1435,7 +1452,7 @@ const EquipmentManagerPage: React.FC = () => {
           <ScanActionGroup>
             <GhostButton onClick={() => setShowAddItem(true)}>+ Add Manually</GhostButton>
             <PrimaryButton onClick={() => handleScanClick()} disabled={scanning}>
-              {scanning ? 'Scanning...' : 'Swan Coach Scan'}
+              {scanning ? 'Scanning...' : 'Scan Equipment'}
             </PrimaryButton>
             {mobileScanDevice && (
               <GhostButton onClick={() => handleScanClick('gallery')} disabled={scanning}>
@@ -1505,7 +1522,9 @@ const EquipmentManagerPage: React.FC = () => {
               <ScanLineEl />
             </ScanOverlay>
             <ScanningText>
-              {activeScanItem ? `Analyzing ${activeScanItem.fileName}...` : 'Analyzing equipment...'}
+              {activeScanItem
+                ? `${activeScanItem.fileName} — ${SCAN_STAGE_COPY[scanStageIndex]}`
+                : SCAN_STAGE_COPY[scanStageIndex]}
             </ScanningText>
           </CameraArea>
         )}
@@ -1560,7 +1579,7 @@ const EquipmentManagerPage: React.FC = () => {
         ) : items.length === 0 && !scanning ? (
           <EmptyState>
             <EmptyTitle>No equipment here yet</EmptyTitle>
-            <p>Tap Swan Coach Scan or choose multiple library photos to queue equipment scans.</p>
+            <p>Tap Scan Equipment or choose photos from your library — Swan Coach identifies what you&apos;ve got and what it unlocks.</p>
           </EmptyState>
         ) : (
           <AnimatePresence>
