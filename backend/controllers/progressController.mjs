@@ -6,7 +6,13 @@
  */
 
 import { Op } from 'sequelize';
-import { KNOWN_TIER_KEYS } from '../utils/levelingAlgorithm.mjs';
+import {
+  directoryOffset,
+  directoryLimit,
+  isKnownTier,
+  isStaffViewer as isStaffDirectoryViewer,
+  scopeToMembers,
+} from '../utils/memberDirectoryAccess.mjs';
 import db from '../database.mjs';
 
 // Import models through associations for proper relationships
@@ -366,7 +372,7 @@ const progressController = {
       // ?limit=100&page=1..N and harvest the whole user table, staff included.
       // Members get a bounded, member-only, surname-free board; staff keep the
       // full one the admin surfaces already consume.
-      const isStaffViewer = req.user?.role === 'admin' || req.user?.role === 'trainer';
+      const isStaffViewer = isStaffDirectoryViewer(req.user);
       // A member-facing leaderboard shows the TOP of a slice. It is not a
       // cursor over the user table, so members get NO paging at all: offset is
       // forced to 0.
@@ -380,14 +386,12 @@ const progressController = {
       const MEMBER_MAX_ROWS = 100;
 
       const rawOffset = (normalizedPage - 1) * normalizedLimit;
-      const offset = isStaffViewer ? rawOffset : 0;
-      const effectiveLimit = isStaffViewer
-        ? normalizedLimit
-        : Math.min(normalizedLimit, MEMBER_MAX_ROWS);
+      const offset = directoryOffset(req.user, rawOffset);
+      const effectiveLimit = directoryLimit(req.user, normalizedLimit);
 
       // A member-facing leaderboard ranks members. Staff are not competitors,
       // and listing them here is what exposed their names.
-      const whereClause = isStaffViewer ? {} : { role: { [Op.in]: ['user', 'client'] } };
+      const whereClause = scopeToMembers(req.user);
       let orderBy;
       let includeProgressData = false;
 
@@ -399,7 +403,7 @@ const progressController = {
       // ['bronze','silver','gold','platinum'] matched nothing at all, because
       // the column stores `bronze_forge`-style keys — so every legitimate tier
       // filter was silently discarded and the slice protection was accidental.
-      const safeTier = tier && tier !== 'all' && KNOWN_TIER_KEYS.has(tier) ? tier : null;
+      const safeTier = tier && tier !== 'all' && isKnownTier(tier) ? tier : null;
       if (safeTier) {
         whereClause.tier = safeTier;
       }
