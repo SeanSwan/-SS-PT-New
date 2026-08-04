@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import logger from '../utils/logger.mjs';
+import { foodScannerLimiter } from '../middleware/rateLimiter.mjs';
 import {
   buildIngredientExplanation,
   buildProductExplanation,
@@ -7,6 +8,16 @@ import {
 } from '../services/foodScannerExplainService.mjs';
 
 const router = Router();
+
+// These endpoints stay PUBLIC on purpose: the /food-scanner page works logged-out
+// and its explain calls carry no auth token. They are deterministic template
+// generators (no LLM, no DB write), so the exposure is compute only — the shared
+// scanner limiter bounds that. Auth lands when the scanner is folded into the
+// authenticated workspace (blueprint Phase 4E).
+// Per-route, NOT router.use(): this router is mounted at /api/food-scanner ahead
+// of the scanner router, so a router-level middleware would also run for every
+// scanner request falling through it — double-charging each scan against the
+// shared cap (caught by foodScannerSurfaceLockdown.test.mjs).
 
 const productFromBody = (body = {}) => {
   const product = body.product;
@@ -20,7 +31,7 @@ const ingredientFromBody = (body = {}) => {
   return null;
 };
 
-router.post('/explain-product', (req, res) => {
+router.post('/explain-product', foodScannerLimiter, (req, res) => {
   try {
     const product = productFromBody(req.body);
     if (!product) return res.status(400).json({ success: false, message: 'Product payload is required' });
@@ -31,7 +42,7 @@ router.post('/explain-product', (req, res) => {
   }
 });
 
-router.post('/explain-ingredient', (req, res) => {
+router.post('/explain-ingredient', foodScannerLimiter, (req, res) => {
   try {
     const ingredient = ingredientFromBody(req.body);
     if (!ingredient) return res.status(400).json({ success: false, message: 'Ingredient payload is required' });
@@ -45,7 +56,7 @@ router.post('/explain-ingredient', (req, res) => {
   }
 });
 
-router.post('/video-brief', (req, res) => {
+router.post('/video-brief', foodScannerLimiter, (req, res) => {
   try {
     const product = productFromBody(req.body);
     if (!product) return res.status(400).json({ success: false, message: 'Product payload is required' });
