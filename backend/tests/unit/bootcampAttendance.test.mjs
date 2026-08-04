@@ -32,6 +32,9 @@ const deps = (log, over = {}) => {
     getClassLog: vi.fn(async () => log),
     createWorkoutForm: vi.fn(async (form) => { created.push(form); formId += 1; return formId; }),
     saveClassLog: vi.fn(async (l, patch) => { saved.push(patch); }),
+    // Default: the trainer IS assigned to every client (the happy path). The
+    // IDOR tests below override this to deny.
+    verifyClientAccess: vi.fn(async () => true),
     now: () => new Date('2026-08-03T14:00:00Z'),
     ...over,
   };
@@ -128,5 +131,43 @@ describe('recordBootcampAttendance — ownership + idempotency', () => {
   it('a missing log is the same 404 as a foreign one', async () => {
     const d = deps(null, { getClassLog: vi.fn(async () => null) });
     await expect(recordBootcampAttendance(d, args)).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  // ── IDOR fix (Kimi security target #1) ──────────────────────────────────
+  it('REJECTS 403 when the trainer is not assigned to an attendee — no write happens', async () => {
+    const d = deps(classLog(), { verifyClientAccess: vi.fn(async () => false) });
+    await expect(recordBootcampAttendance(d, { ...args, attendees: [{ userId: 999 }] }))
+      .rejects.toMatchObject({ statusCode: 403 });
+    expect(d.createWorkoutForm).not.toHaveBeenCalled(); // fail BEFORE any DB write
+    expect(d.saveClassLog).not.toHaveBeenCalled();
+  });
+
+  it('ONE unauthorized attendee rejects the WHOLE roster (no partial write)', async () => {
+    const d = deps(classLog(), {
+      verifyClientAccess: vi.fn(async (id) => id === 11), // 11 ok, 12 not
+    });
+    await expect(recordBootcampAttendance(d, { ...args, attendees: [{ userId: 11 }, { userId: 12 }] }))
+      .rejects.toMatchObject({ statusCode: 403 });
+    expect(d.createWorkoutForm).not.toHaveBeenCalled();
+  });
+
+  it('a trainer may always log THEMSELVES without an assignment', async () => {
+    const d = deps(classLog(), { verifyClientAccess: vi.fn(async () => false) });
+    const result = await recordBootcampAttendance(d, { ...args, attendees: [{ userId: 7 }] }); // trainerId is 7
+    expect(result.created).toBe(1);
+    expect(d.verifyClientAccess).not.toHaveBeenCalled(); // self short-circuits
+  });
+
+  it('an ADMIN bypasses the per-client check', async () => {
+    const d = deps(classLog({ trainerId: 999 }), { verifyClientAccess: vi.fn(async () => false) });
+    const result = await recordBootcampAttendance(d, { ...args, requesterRole: 'admin', attendees: [{ userId: 500 }] });
+    expect(result.created).toBe(1);
+    expect(d.verifyClientAccess).not.toHaveBeenCalled();
+  });
+
+  it('the service fails CLOSED when verifyClientAccess is not wired', async () => {
+    const d = deps(classLog());
+    delete d.verifyClientAccess; // simulate a route that forgot to wire it
+    await expect(recordBootcampAttendance(d, args)).rejects.toMatchObject({ statusCode: 403 });
   });
 });

@@ -111,7 +111,16 @@ export function buildAttendancePayloads({ classLog, attendees, nowIso }) {
  * deps = { getClassLog, createWorkoutForm, saveClassLog, now }.
  */
 export async function recordBootcampAttendance(deps, { classLogId, trainerId, requesterRole, attendees }) {
-  const { getClassLog, createWorkoutForm, saveClassLog, now = () => new Date() } = deps;
+  const {
+    getClassLog, createWorkoutForm, saveClassLog, now = () => new Date(),
+    // SWA-105 security fix (Kimi-target #1): owning the class LOG is not
+    // authority to write a workout onto an arbitrary client. Every registered
+    // attendee must be a client this requester may write to — an active
+    // assignment (trainer), self (client), or admin. Without this a trainer
+    // who owns one class log can log a bootcamp DailyWorkoutForm onto ANY
+    // userId. Defaults to deny-all so a missing wiring fails closed.
+    verifyClientAccess = async () => false,
+  } = deps;
 
   const classLog = await getClassLog(classLogId);
   // Existence is not confirmed to non-owners (same posture as SWA-75): the
@@ -127,6 +136,20 @@ export async function recordBootcampAttendance(deps, { classLogId, trainerId, re
   const payload = buildAttendancePayloads({
     classLog, attendees, nowIso: now().toISOString(),
   });
+
+  // Fail-closed authorization on EVERY registered client before any write.
+  // Admins pass wholesale; everyone else is checked per-client. One
+  // unauthorized attendee rejects the whole submission — partial writes of a
+  // roster the trainer half-owns are worse than an error they can correct.
+  if (requesterRole !== 'admin') {
+    for (const clientId of payload.registered) {
+      // A trainer logging themselves as an attendee is always allowed.
+      if (Number(clientId) === Number(trainerId)) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const allowed = await verifyClientAccess(clientId);
+      if (!allowed) throw forbidden(`Not authorized to log attendance for client ${clientId}`);
+    }
+  }
 
   const workoutFormIds = [];
   for (const form of payload.workoutForms) {
@@ -152,5 +175,11 @@ function badRequest(message) {
 function notFound(message) {
   const error = new Error(message);
   error.statusCode = 404;
+  return error;
+}
+
+function forbidden(message) {
+  const error = new Error(message);
+  error.statusCode = 403;
   return error;
 }

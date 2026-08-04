@@ -225,6 +225,16 @@ router.post('/class-logs/:id/attendance', async (req, res) => {
           return row.id;
         },
         saveClassLog: (log, patch) => log.update(patch),
+        // SWA-105 security fix (IDOR): a trainer may only log attendees who are
+        // their active clients. Mirrors checkTrainerClientRelationship
+        // (authMiddleware.mjs). Admin bypass is handled in the service.
+        verifyClientAccess: async (clientId) => {
+          const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+          const assignment = await ClientTrainerAssignment.findOne({
+            where: { trainerId: Number(req.user.id), clientId: Number(clientId), status: 'active' },
+          });
+          return !!assignment;
+        },
       },
       {
         classLogId: Number(req.params.id),
