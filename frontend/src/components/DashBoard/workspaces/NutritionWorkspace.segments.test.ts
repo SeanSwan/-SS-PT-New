@@ -17,16 +17,17 @@ import { NUTRITION_ALL_TABS, type Tab } from './NutritionWorkspace.tabs';
 const ALL_TAB_IDS: Tab[] = [
   'today', 'log', 'voice', 'search', 'barcode', 'restaurant', 'hydration',
   'macros', 'intelligence', 'learn', 'garden', 'farms', 'supplements', 'meal-plan',
+  'quality', // 4E Food Quality resurrection
 ];
 
 describe('NutritionWorkspace segments (4B IA)', () => {
-  it('covers every one of the 14 tab ids in exactly one segment', () => {
+  it('covers every one of the 15 tab ids in exactly one segment', () => {
     const seen = new Map<Tab, number>();
     NUTRITION_SEGMENTS.forEach((segment) => {
       segment.tabs.forEach((tab) => seen.set(tab, (seen.get(tab) || 0) + 1));
     });
 
-    expect(ALL_TAB_IDS).toHaveLength(14);
+    expect(ALL_TAB_IDS).toHaveLength(15); // +quality (4E Food Quality resurrection)
     ALL_TAB_IDS.forEach((tab) => {
       expect(seen.get(tab), `tab "${tab}" segment count`).toBe(1);
     });
@@ -45,7 +46,7 @@ describe('NutritionWorkspace segments (4B IA)', () => {
     expect(byId.capture).toEqual(['today', 'log', 'voice', 'barcode', 'restaurant', 'hydration']);
     expect(byId.insights).toEqual(['macros', 'intelligence', 'garden', 'farms']);
     expect(byId.fuel).toEqual(['meal-plan', 'supplements']);
-    expect(byId.explore).toEqual(['search', 'learn']);
+    expect(byId.explore).toEqual(['search', 'quality', 'learn']);
   });
 
   it('marks exactly the CrystallineLockOverlay-gated tabs as locked', () => {

@@ -11,6 +11,7 @@ import {
   Pill,
   ScanBarcode,
   Search,
+  ShieldCheck,
   Sprout,
   Utensils,
 } from 'lucide-react';
@@ -29,7 +30,8 @@ export type Tab =
   | 'garden'
   | 'farms'
   | 'supplements'
-  | 'meal-plan';
+  | 'meal-plan'
+  | 'quality';
 
 export interface NutritionTabConfig {
   id: Tab;
@@ -55,6 +57,8 @@ const NUTRITION_MORE_TABS: NutritionTabConfig[] = [
   { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
   { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
   { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
+  // 4E resurrection: the 727-line ingredient-safety intelligence, finally reachable.
+  { id: 'quality', label: 'Food Quality', icon: <ShieldCheck size={16} /> },
 ];
 
 /** Every nutrition tab (id + label + icon). The SegmentedTabBar groups these

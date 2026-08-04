@@ -25,6 +25,9 @@ import QuickAddFab from '../../FoodTracker/QuickAddFab';
 import StreakRing from '../../FoodTracker/StreakRing';
 import CelebrationToast from '../../FoodTracker/CelebrationToast';
 import SwanErrorCard from '../../FoodTracker/SwanErrorCard';
+// Lazy: the Food Quality surface (resurrected ingredient-safety intelligence)
+// is heavy and reached only through the Explore segment.
+const FoodQualityTab = lazy(() => import('../../FoodTracker/FoodQualityTab'));
 import {
   detectStreakMilestone,
   readCurrentLogStreak,
@@ -230,6 +233,11 @@ const NutritionWorkspace: React.FC = () => {
             {activeTab === 'garden' && <GardeningTab />}
             {activeTab === 'farms' && <FarmFinderTab />}
             {activeTab === 'supplements' && <SupplementsTab />}
+            {activeTab === 'quality' && (
+              <Suspense fallback={<CosmicSuspenseLoader />}>
+                <FoodQualityTab />
+              </Suspense>
+            )}
             {activeTab === 'meal-plan' && (
               <CrystallineLockOverlay
                 isLocked={!hasAINutrition}

@@ -56,7 +56,7 @@ export const NUTRITION_SEGMENTS: readonly NutritionSegmentConfig[] = [
     id: 'explore',
     label: 'Explore',
     icon: Compass,
-    tabs: ['search', 'learn'],
+    tabs: ['search', 'quality', 'learn'],
   },
 ];
 
