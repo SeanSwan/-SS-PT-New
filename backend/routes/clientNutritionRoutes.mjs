@@ -8,6 +8,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { searchFoodCatalog } from '../services/nutrition/foodCatalogSearchService.mjs';
+import { validateNutritionPlanBody } from '../services/nutrition/nutritionPlanValidation.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -142,39 +143,25 @@ router.post('/:userId', protect, async (req, res) => {
       return res.status(500).json({ success: false, message: 'Nutrition model not available' });
     }
 
-    const {
-      planName,
-      dailyCalories,
-      proteinGrams,
-      carbsGrams,
-      fatGrams,
-      fiberGrams,
-      mealsJson,
-      groceryListJson,
-      dietaryRestrictions,
-      allergies,
-      hydrationTarget,
-      notes,
-      startDate,
-      endDate
-    } = req.body;
+    // S0.2: strict allowlist + bounds. Garbage types 400 instead of 500ing in
+    // the DECIMAL columns, and the JSONB fields are shape- and size-capped.
+    const validation = validateNutritionPlanBody(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid nutrition plan payload',
+        errors: validation.errors
+      });
+    }
 
     const plan = await ClientNutritionPlan.create({
+      ...validation.plan,
       userId: clientId,
-      planName: planName || 'Custom Nutrition Plan',
-      dailyCalories,
-      proteinGrams,
-      carbsGrams,
-      fatGrams,
-      fiberGrams,
-      mealsJson,
-      groceryListJson,
-      dietaryRestrictions,
-      allergies,
-      hydrationTarget,
-      notes,
-      startDate: startDate || new Date(),
-      endDate
+      planName: validation.plan.planName || 'Custom Nutrition Plan',
+      startDate: validation.plan.startDate || new Date(),
+      // Attribution was never captured before S0.2 — the createdByUser
+      // association was unusable and no audit story existed for plan writes.
+      createdBy: req.user.id
     });
 
     return res.status(201).json({
