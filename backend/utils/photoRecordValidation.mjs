@@ -85,6 +85,71 @@ export function isSafePhotoUrl(url, clientId, storageKey) {
   return path === storageKey && isOwnedPhotoStorageKey(path, clientId);
 }
 
+const SERVE_PHOTO_PREFIX = '/api/serve-photo/';
+
+/**
+ * Parse a stored/served measurement photo path of the canonical shape
+ *   /api/serve-photo/photos/{category}/{ownerId}/{...}
+ * (the exact shape photoUrlSigner signs). Returns { key, category, ownerId }
+ * or null if it is not a well-formed, traversal-free, internal serve-photo path.
+ * External URLs, dangerous schemes (javascript:/data:/file:), protocol-relative
+ * URLs, and traversal all fail to parse → null.
+ * @param {unknown} entry
+ */
+export function parseServePhotoPath(entry) {
+  if (typeof entry !== 'string' || entry.length === 0 || entry.length > 2048) return null;
+  const bare = entry.split('?')[0];
+  if (!bare.startsWith(SERVE_PHOTO_PREFIX)) return null;
+  const key = bare.slice(SERVE_PHOTO_PREFIX.length); // photos/{category}/{ownerId}/...
+  if (!key.startsWith('photos/')) return null;
+  if (hasUnsafeSegments(key)) return null;
+  const parts = key.split('/');
+  if (parts.length < 4) return null;
+  if (parts.some((p) => p.length === 0)) return null;
+  if (!/^\d+$/.test(parts[2])) return null; // owner segment must be a bare integer id
+  return { key, category: parts[1], ownerId: parts[2] };
+}
+
+/**
+ * SWA-129 (Kimi call 5, IDOR-by-path + arbitrary-URL): the measurement
+ * `photoUrls[]` array was persisted verbatim (stripPhotoSignatures only removes
+ * `?exp&sig`). Because photoUrlSigner HMAC-signs ANY `.../photos/measurements/{id}/...`
+ * path on read, a caller could store a path pointing at ANOTHER user's (a
+ * minor's) measurement photo and read it back signed — or store an external /
+ * javascript: URL that renders in the trainer/admin dashboard.
+ *
+ * A submitted entry is allowed iff it is a well-formed owned serve-photo path
+ * whose owner segment equals the uploader (`req.user.id`), OR it is already
+ * present in the measurement's stored list (so multi-editor re-submits of
+ * existing photos are not broken). Everything else is rejected — fail closed.
+ *
+ * @param {unknown} photoUrls
+ * @param {{ uploaderId: number|string, existing?: unknown[] }} ctx
+ * @returns {{ ok: true } | { ok: false, message: string }}
+ */
+export function validateMeasurementPhotoUrls(photoUrls, { uploaderId, existing = [] } = {}) {
+  if (photoUrls === undefined || photoUrls === null) return { ok: true };
+  if (!Array.isArray(photoUrls)) return { ok: false, message: 'photoUrls must be an array' };
+  if (photoUrls.length > 20) return { ok: false, message: 'Too many photos (max 20)' };
+  const existingBare = new Set(
+    (Array.isArray(existing) ? existing : [])
+      .filter((e) => typeof e === 'string')
+      .map((e) => e.split('?')[0]),
+  );
+  for (const entry of photoUrls) {
+    const bare = typeof entry === 'string' ? entry.split('?')[0] : entry;
+    if (typeof bare === 'string' && existingBare.has(bare)) continue; // already stored → preserve
+    const parsed = parseServePhotoPath(entry);
+    if (!parsed) {
+      return { ok: false, message: 'photoUrls contains a value that is not a valid measurement photo path' };
+    }
+    if (String(parsed.ownerId) !== String(uploaderId)) {
+      return { ok: false, message: 'photoUrls references a photo not owned by the uploader' };
+    }
+  }
+  return { ok: true };
+}
+
 /**
  * Validate a photo record submission. Returns { ok } or { ok:false, message }.
  */
