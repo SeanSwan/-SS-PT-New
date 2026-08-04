@@ -72,6 +72,21 @@ describe('useDayBoundary', () => {
     expect(result.current).toBe(new Date(2026, 7, 8, 0, 0, 0, 0).getTime());
   });
 
+  it('lands on the real next midnight across a DST transition', () => {
+    // US DST ends Sunday 2026-11-01 (a 25-hour day). Deriving the next boundary
+    // by adding 86_400_000 overshoots past midnight; setDate re-reads the clock
+    // and lands on it. The hook's header claims DST-safety — this defends it.
+    vi.setSystemTime(new Date(2026, 9, 31, 23, 30, 0));
+    const { result } = renderHook(() => useDayBoundary());
+
+    act(() => {
+      vi.advanceTimersByTime(60 * 60 * 1000);
+    });
+
+    expect(result.current).toBe(new Date(2026, 10, 1, 0, 0, 0, 0).getTime());
+    expect(new Date(result.current).getHours()).toBe(0);
+  });
+
   it('actually stops the timer on unmount — not merely calls clearTimeout', () => {
     // Asserting `clearTimeout` was called proves a CALL, not an EFFECT: a
     // cleanup that calls clearTimeout(undefined) leaks the timer and still

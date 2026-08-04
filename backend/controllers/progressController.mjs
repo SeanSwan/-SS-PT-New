@@ -359,9 +359,22 @@ const progressController = {
 
       const normalizedPage = parsePositiveInteger(page, 1);
       const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);
-      const offset = (normalizedPage - 1) * normalizedLimit;
 
-      const whereClause = {};
+      // SECURITY: this route is open to ANY authenticated account, and `page`
+      // was unbounded with no role filter and surnames in the projection — so a
+      // member created through the public signup form could walk
+      // ?limit=100&page=1..N and harvest the whole user table, staff included.
+      // Members get a bounded, member-only, surname-free board; staff keep the
+      // full one the admin surfaces already consume.
+      const isStaffViewer = req.user?.role === 'admin' || req.user?.role === 'trainer';
+      const MEMBER_MAX_OFFSET = 1000;
+
+      const rawOffset = (normalizedPage - 1) * normalizedLimit;
+      const offset = isStaffViewer ? rawOffset : Math.min(rawOffset, MEMBER_MAX_OFFSET);
+
+      // A member-facing leaderboard ranks members. Staff are not competitors,
+      // and listing them here is what exposed their names.
+      const whereClause = isStaffViewer ? {} : { role: { [Op.in]: ['user', 'client'] } };
       let orderBy;
       let includeProgressData = false;
 
@@ -431,7 +444,10 @@ const progressController = {
       const leaderboard = await User.findAll({
         where: whereClause,
         attributes: [
-          'id', 'firstName', 'lastName', 'username', 'photo',
+          'id', 'firstName',
+          // Surnames are staff-only: the member UI renders firstName/username.
+          ...(isStaffViewer ? ['lastName'] : []),
+          'username', 'photo',
           ['lifetimePointsEarned', 'points'], 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises'
         ],

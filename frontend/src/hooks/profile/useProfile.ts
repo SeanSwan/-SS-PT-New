@@ -11,8 +11,16 @@ import profileService, { UserProfile, UserStats, SocialPost, Achievement, Follow
 import { logger } from '@/utils/logger';
 
 interface UseProfileReturn {
-  /** True when the stats fetch failed and `stats` holds substituted zeros. */
-  statsUnavailable: boolean;
+  /**
+   * Lifecycle of the stats fetch. A boolean cannot express this: a negative
+   * flag defaulting to false is open for the whole pending window, and a
+   * positive one cannot tell "not started" from "failed", so a consumer either
+   * fabricates zeros or flashes an outage card before the request fires.
+   * 'ready' is the ONLY value that licenses rendering `stats` as the record.
+   */
+  statsStatus: 'loading' | 'ready' | 'unavailable';
+  /** Convenience: `statsStatus === 'ready'`. */
+  statsKnown: boolean;
   // Profile data
   profile: UserProfile | null;
   stats: UserStats | null;
@@ -72,7 +80,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [statsUnavailable, setStatsUnavailable] = useState(false);
+  const [statsStatus, setStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
   const [isLoadingFollowStats, setIsLoadingFollowStats] = useState(false);
@@ -122,20 +130,27 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
    * Load user statistics
    */
   const loadStats = useCallback(async () => {
-    if (!user) return;
-    
+    // No user means the request will never fire. That is unavailable, not
+    // loading — returning early while the status still read 'loading' left a
+    // spinner that could never resolve, and left any boolean gate wide open.
+    if (!user) {
+      setStatsStatus('unavailable');
+      return;
+    }
+
+    setStatsStatus('loading');
     setIsLoadingStats(true);
     
     try {
       const statsData = await profileService.getUserStats();
       setStats(statsData);
-      setStatsUnavailable(false);
+      setStatsStatus('ready');
     } catch (err: any) {
       logger.warn('Stats endpoint not available yet:', err.message);
       // Substituting zeros keeps the UI from crashing, but those zeros are NOT
       // the member's record. Flag it so consumers can omit the numbers instead
       // of asserting "0 workouts / 0 posts / Level 1 / bronze" as fact.
-      setStatsUnavailable(true);
+      setStatsStatus('unavailable');
       setStats({
         posts: 0,
         followers: 0,
@@ -433,8 +448,8 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     
     // Error states
     error,
-    /** True when the stats fetch failed and `stats` holds substituted zeros. */
-    statsUnavailable,
+    statsStatus,
+    statsKnown: statsStatus === 'ready',
     
     // Operations
     refreshProfile,
