@@ -8,6 +8,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
+import { validatePhotoRecord } from '../utils/photoRecordValidation.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -122,8 +123,16 @@ router.post('/:userId', protect, async (req, res) => {
 
     const { url, storageKey, photoType, takenAt, tags, visibility } = req.body;
 
-    if (!url || !storageKey) {
-      return res.status(400).json({ success: false, message: 'URL and storageKey are required' });
+    // SWA-129 (Kimi upload audit RANK-1/2, CRITICAL): bind the client-supplied
+    // storageKey + url to THIS authorized client. Without this a client could
+    // record a row pointing at another user's (a minor's) R2 object, or at an
+    // arbitrary external URL (stored phishing / XSS-on-view / SSRF-on-fetch).
+    const validation = validatePhotoRecord({ url, storageKey, clientId });
+    if (!validation.ok) {
+      logger.warn('[ClientPhoto] rejected photo record submission', {
+        uploadedBy: req.user?.id, clientId, reason: validation.message,
+      });
+      return res.status(400).json({ success: false, message: validation.message });
     }
 
     const photo = await ClientPhoto.create({
