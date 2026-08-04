@@ -53,4 +53,24 @@ Kimi returned 12 findings, several labeled P0. On verification against real code
 ## What went right (so the correction isn't over-applied)
 The mutation-testing discipline itself, the live-DB verification pass, and verifying every Kimi claim before acting are what caught all of the above. The app's actual security posture held up under all five loops: 0 client-to-client IDOR across ~95 endpoints, all guards allow-list shaped, 170/172 models clean against the production DB.
 
+---
+
+## ADDENDUM — three more mistakes, made while building the mistakes-reporting gate itself
+
+## M9 — I edited STALE copies and ported them over newer main files (near-miss regression)
+The shared tree is ~1,500 commits behind main. I edited `CLAUDE.md`, `AGENTS.md`, the hermes-inbox SKILL and the Stop hook **there**, then copied them into my worktree over main's current versions. Diffs: `CLAUDE.md` **+105 / −249** — it would have DELETED ~249 lines of newer operating doctrine; the SKILL would have deleted main's Pi-retired / desktop-5090 reader posture; the hook would have reverted main's `git -C <path> commit|push` detection.
+- **Caught by:** main's own hook test suite (10 cases vs the stale tree's 9 — the stale tree reported 9/0 green while the worktree exposed a failure), then an explicit `git diff --stat origin/main HEAD` per file.
+- **Rule:** never edit a file in a stale tree and port it forward. `git checkout origin/main -- <file>`, re-apply ONLY the delta, then prove `git diff origin/main` shows insertions and no unintended deletions.
+
+## M10 — A shell heredoc silently injected a BACKSPACE (0x08) into the regex, so the guard matched nothing
+Writing `\b` through a python heredoc produced a literal control character: the guard read `Mistakes<BS>` and could never match — meaning the gate I built to enforce mistakes reporting would have **blocked every memo, including compliant ones**. It looked correct in every normal read; `cat -A` exposed it.
+- **Sub-mistake:** my first "5/5 behavioral PASS" was run against the shared-tree copy (written with the Edit tool, correct) while the broken copy sat in the worktree — **I proved the wrong file**.
+- **Rule:** never write regex/escape sequences through a shell heredoc — use the editor tool. Verify a guard with a real test file, not shell one-liners, and confirm which copy you actually exercised.
+
+## M11 — I ran a mutation, printed "MUTATED", and believed it without checking it applied
+The first mutation of the new guard reported success and the suite stayed green — I nearly recorded "the guard bites" from a **no-op mutation** (the anchor string never matched). Only re-running with an explicit `if (!s.includes(anchor)) exit(1)` proved the real result (test 11 red).
+- **Rule:** a mutation is not applied until asserted — check the anchor exists before writing, and confirm the marker is present in the file afterward.
+
+**Net:** the gate now passes 16/16 with 6 new contract tests and is mutation-proven — but three of these four errors came from *how I edited*, not from the design. Tooling discipline is the weak link, not intent.
+
 **No PII, no secrets.** Board: SWA-111 (ledger), SWA-126 (new), SWA-124 (main's red test).
