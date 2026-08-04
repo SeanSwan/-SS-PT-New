@@ -13,7 +13,14 @@ const parseId = (value) => {
   return null;
 };
 
-const isClientEquivalentRole = (role) => role === 'client' || role === 'user';
+/**
+ * `'user'` is the DEFAULT role minted by public self-registration, so any
+ * check that means "is this the client themselves?" must treat it as
+ * client-equivalent. Exported (launch audit 2026-08-04) because several call
+ * sites had hand-rolled `role === 'client'`, which silently fails OPEN for
+ * default-role accounts. Import this instead of re-deriving it.
+ */
+export const isClientEquivalentRole = (role) => role === 'client' || role === 'user';
 
 const isTrainerAssigned = async (models, clientId, trainerId) => {
   const { ClientTrainerAssignment } = models;

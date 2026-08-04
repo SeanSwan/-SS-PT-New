@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { ensureClientAccess } from '../utils/clientAccess.mjs';
+import { ensureClientAccess, isClientEquivalentRole } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -69,7 +69,13 @@ router.get('/:userId', protect, async (req, res) => {
 
     // ClientNote visibility values are internal-only. Clients do not receive
     // trainer/admin notes through this endpoint.
-    if (req.user?.role === 'client') {
+    // Launch audit 2026-08-04: this was `role === 'client'`, which let the
+    // DEFAULT public-signup role ('user') straight past the guard and return
+    // every trainer/admin note written ABOUT that member — including
+    // 'red_flag'/'concern' notes at 'critical' severity. No ClientNote
+    // visibility value is client-facing, so all client-equivalent roles get
+    // the empty set.
+    if (isClientEquivalentRole(req.user?.role)) {
       return res.status(200).json({ success: true, data: [] });
     }
 

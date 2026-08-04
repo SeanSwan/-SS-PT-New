@@ -14,7 +14,18 @@ describe('client note route privacy', () => {
   it('does not expose trainer-only notes to client-role requests', () => {
     expect(coreRoutesSource).toContain("app.use('/api/notes', clientNoteRoutes)");
     expect(modelSource).toContain("DataTypes.ENUM('private', 'trainer_only', 'admin_only')");
-    expect(routeSource).toContain("if (req.user?.role === 'client') {\n      return res.status(200).json({ success: true, data: [] });\n    }");
+    // Launch audit 2026-08-04: this assertion used to pin the literal string
+    //   if (req.user?.role === 'client') { return ... data: [] }
+    // which meant the test was PROTECTING A BUG. `'user'` is the default role
+    // minted by public self-registration, so a normal member walked straight
+    // past that guard and received every trainer/admin note written about
+    // them — including 'red_flag'/'concern' notes at 'critical' severity —
+    // while this green test advertised the opposite. The guard must cover all
+    // client-equivalent roles via the canonical shared helper.
+    expect(routeSource).toContain("isClientEquivalentRole(req.user?.role)");
+    expect(routeSource).toContain("from '../utils/clientAccess.mjs'");
+    // And it must NOT regress to the bare-'client' check.
+    expect(routeSource).not.toContain("if (req.user?.role === 'client')");
     expect(routeSource).not.toContain("where.visibility = 'trainer_only'");
   });
 

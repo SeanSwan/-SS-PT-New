@@ -32,6 +32,20 @@ export const optionalAuth = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
 
+    // Token-PURPOSE check (launch audit 2026-08-04). `protect` enforces this;
+    // this path did not, and several non-access tokens are signed with the
+    // SAME secret and handed to the client — notably the 15-minute
+    // `force-password-change` token returned in the login 200 body
+    // (controllers/authController.mjs). Without this check, a user an admin
+    // has locked behind a mandatory password change could present that token
+    // as a Bearer here and regain an authenticated identity, defeating the
+    // admin's security action. Anything that is not an access token is
+    // treated as anonymous — correct for OPTIONAL auth, which must degrade
+    // to "not logged in" rather than reject.
+    if (decoded?.tokenType !== 'access') {
+      return next();
+    }
+
     // Fetch user from DB (lazy loading pattern)
     const User = getUser();
     const user = await User.findByPk(decoded.id);

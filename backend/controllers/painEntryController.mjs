@@ -48,9 +48,18 @@ const parsePainLevel = (value) => {
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : null;
 };
 
+const STAFF_ROLES = new Set(['trainer', 'admin']);
+
 const sanitizePainEntryForRequester = (entry, requester) => {
   const data = entry?.toJSON ? entry.toJSON() : { ...entry };
-  if (requester?.role !== 'client') {
+  // FAIL CLOSED (launch audit 2026-08-04). This used to be
+  // `if (role !== 'client') return data;`, which handed the UNREDACTED entry —
+  // trainerNotes, aiNotes, posturalSyndrome, assessmentFindings — to any role
+  // that was not literally 'client'. The default public-signup role is 'user',
+  // and the route gate correctly admits 'user' for self-access, so a normal
+  // member read their own trainer-private clinical notes. Only explicit staff
+  // roles now see the full record; everyone else is redacted.
+  if (STAFF_ROLES.has(requester?.role)) {
     return data;
   }
 

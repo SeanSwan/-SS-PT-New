@@ -25,7 +25,17 @@ describe('pain entry route access guard', () => {
   it('does not expose trainer-only pain-entry fields to client-role responses', () => {
     expect(modelSource).toContain("comment: 'Internal trainer/admin notes");
     expect(controllerSource).toContain('const sanitizePainEntryForRequester = (entry, requester) => {');
-    expect(controllerSource).toContain("if (requester?.role !== 'client')");
+    // Launch audit 2026-08-04: this assertion used to pin
+    //   if (requester?.role !== 'client')
+    // which meant the test was PROTECTING A BUG — it returned the UNREDACTED
+    // entry to every role that was not literally 'client'. The default
+    // public-signup role is 'user', and the route gate correctly admits
+    // 'user' for self-access, so a normal member read their own
+    // trainer-private clinical notes while this green test claimed otherwise.
+    // Redaction is now fail-closed: only explicit staff roles see the full row.
+    expect(controllerSource).toContain("const STAFF_ROLES = new Set(['trainer', 'admin'])");
+    expect(controllerSource).toContain('if (STAFF_ROLES.has(requester?.role))');
+    expect(controllerSource).not.toContain("if (requester?.role !== 'client')");
     expect(controllerSource).toContain('delete data.trainerNotes;');
     expect(controllerSource).toContain('delete data.aiNotes;');
     expect(controllerSource).toContain('delete data.posturalSyndrome;');

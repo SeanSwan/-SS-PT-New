@@ -12,6 +12,19 @@ import logger from './logger.mjs';
 import { createTablesInOrder, validateTableOrder } from './tableCreationOrder.mjs';
 
 /**
+ * Gate for the MUTATIVE `sequelize.sync({ alter })` boot step.
+ *
+ * Fail-closed by design: mutative DDL against a live production database must
+ * be an explicit, deliberate act, never a side effect of deploying. Additive
+ * table/column creation is unaffected and still runs on every boot.
+ *
+ * Break-glass: STARTUP_SCHEMA_ALTER=true for one deploy, then unset.
+ */
+export const shouldRunSchemaAlter = ({
+  startupSchemaAlter = process.env.STARTUP_SCHEMA_ALTER,
+} = {}) => startupSchemaAlter === 'true';
+
+/**
  * Check if a table exists in the database
  */
 const tableExists = async (tableName) => {
@@ -272,11 +285,14 @@ const syncIndexesAndConstraints = async () => {
         drop: false  // Never drop existing constraints
       },
       hooks: false,  // Skip hooks for performance
+      // Launch audit 2026-08-04: the previous filter logged only statements
+      // containing CONSTRAINT/INDEX — at debug level — which made the
+      // genuinely dangerous statements (ALTER COLUMN ... TYPE, SET NOT NULL)
+      // invisible in production logs exactly when they matter. Every DDL
+      // statement this step emits is now recorded at info, because if this
+      // step ever runs it is a break-glass event that must be auditable.
       logging: (sql) => {
-        // Only log constraint-related operations
-        if (sql.includes('CONSTRAINT') || sql.includes('INDEX')) {
-          logger.debug(`DB Constraint: ${sql}`);
-        }
+        logger.info(`[schema-alter DDL] ${sql}`);
       }
     });
     
@@ -320,8 +336,34 @@ export const syncDatabaseSafely = async () => {
     // Step 2: Add missing columns that migrations may not have applied
     const columnResult = await addMissingColumns();
 
-    // Step 3: Sync indexes and constraints (safer approach)
-    const constraintResult = await syncIndexesAndConstraints();
+    // Step 3: Sync indexes and constraints — MUTATIVE DDL, OFF BY DEFAULT.
+    //
+    // Launch audit 2026-08-04 (Kimi K3 hostile review, verified in-repo):
+    // this step runs `sequelize.sync({ alter })`, which does NOT merely add
+    // indexes — it emits `ALTER COLUMN ... TYPE` / `SET NOT NULL` /
+    // `ADD CONSTRAINT` against the LIVE production database, driven by model
+    // definitions. This repo has a documented history of models disagreeing
+    // with the live schema (Achievement.id, ProgressData.userId and
+    // UserFollow were all corrected UUID->INTEGER in the 2026-08-03 batch
+    // *because the models were wrong*), so healing "toward the models" can
+    // heal toward the wrong target. Realistic failure modes: an uncastable
+    // type change aborts boot (restart loop); a castable one rewrites the
+    // table under ACCESS EXCLUSIVE (lock brownout); a lossy-but-legal one
+    // silently coerces live data with no error at all.
+    //
+    // Steps 1 and 2 above are ADDITIVE and stay on — they are what creates
+    // the intentionally boot-created tables.
+    //
+    // Break-glass: set STARTUP_SCHEMA_ALTER=true for a single deploy, then
+    // unset it. To *detect* drift without mutating anything, run the
+    // read-only auditor instead: `node backend/scripts/audit-schema-drift.mjs`.
+    const constraintResult = shouldRunSchemaAlter()
+      ? await syncIndexesAndConstraints()
+      : (logger.info(
+          '⏭️  Schema ALTER sync skipped (mutative DDL disabled by default). '
+          + 'Set STARTUP_SCHEMA_ALTER=true to force it for one deploy; '
+          + 'use scripts/audit-schema-drift.mjs to detect drift read-only.',
+        ), { success: true, skipped: true });
     
     // Enhanced Summary with detailed error categorization
     const summary = {
