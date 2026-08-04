@@ -186,4 +186,17 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
       'deductionDate: shouldStampScheduledSessionDeduction ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate'
     );
   });
+
+  it('scopes GET /:id/summary to the requesting trainer (no cross-trainer IDOR)', () => {
+    // Regression 2026-08-04: /:id/summary did a bare findByPk(req.params.id) with no
+    // trainer-client scope, so any trainer could read another trainer's client form
+    // (exercises, RPE, clientSummary, free-text trainerNotes) by id enumeration. It
+    // must mirror the sibling GET /:id: constrain trainerId for the trainer role.
+    const summaryIdx = routeSource.indexOf("router.get('/:id/summary'");
+    expect(summaryIdx).toBeGreaterThan(-1);
+    const handler = routeSource.slice(summaryIdx, summaryIdx + 1200);
+    expect(handler).not.toContain('findByPk(req.params.id)');
+    expect(handler).toContain("req.user.role === 'trainer'");
+    expect(handler).toContain('whereCondition.trainerId = req.user.id');
+  });
 });

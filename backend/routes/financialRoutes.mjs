@@ -460,22 +460,19 @@ router.get('/transactions', async (req, res) => {
  * GET /api/financial/metrics
  * Get business metrics for charts and analytics
  */
-router.get('/metrics', async (req, res) => {
+// ⚠ ADMIN-ONLY. Returns company-wide business metrics (revenue, customer counts,
+// conversion/refund rates, health score). The gate used to be `if (req.query.adminOnly
+// && role !== 'admin')` — inverted: it only fired when the CALLER volunteered
+// adminOnly=true, so any authenticated user (incl. a free `user`) who omitted the param
+// received full financials. Now gated by the same `adminOnly` middleware its siblings
+// (/log-transaction, /update-metrics) use. Found 2026-08-04, security audit.
+router.get('/metrics', adminOnly, async (req, res) => {
   try {
-    const { 
-      startDate, 
-      endDate, 
-      period = 'daily',
-      adminOnly = false 
+    const {
+      startDate,
+      endDate,
+      period = 'daily'
     } = req.query;
-
-    // Check admin access for sensitive metrics
-    if (adminOnly && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required for this data'
-      });
-    }
 
     let metrics;
 
