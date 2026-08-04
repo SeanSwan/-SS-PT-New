@@ -1,12 +1,16 @@
 /**
  * SWA-105 Phase 2 — day-type hostile spec.
- * Presses the REAL controls (day-type select, Generate Class button) for all
+ * Presses the REAL controls (Day Type select, Generate Class button) for all
  * four rotations and asserts the two things the whole program exists for:
  *   1. the board never shows a wrong-day exercise;
  *   2. the safety rail (ExplanationsStrip) is VISIBLE — contract verdict,
  *      small-class collapse, equipment warning, brain provenance — with the
- *      warning rows styled gold.
- * Auth + APIs are route-mocked (the 4k spec's pattern): no prod writes.
+ *      warning rows styled distinctly from info rows.
+ *
+ * Auth + APIs are route-mocked using the 4k spec's proven catch-all pattern
+ * (auth/me + profile + subscriptions must be mocked or the page hangs on its
+ * auth bootstrap). NO prod writes: save/log POSTs are refused loudly, so a
+ * surprise persist fails the test instead of the DB.
  */
 import { expect, test, type Page, type Route } from '@playwright/test';
 
@@ -41,7 +45,7 @@ const ex = (exerciseName: string, stationIndex: number, sortOrder: number) => ({
   durationSec: 40, restSec: 15, isCardioFinisher: false,
   muscleTargets: 'mixed', board: 'main',
   easyVariation: null, mediumVariation: null, hardVariation: null,
-  kneeMod: 'Knee-friendly variant shown here', shoulderMod: null, ankleMod: null,
+  kneeMod: null, shoulderMod: null, ankleMod: null,
   wristMod: null, backMod: null, elbowMod: null, footMod: null, hipMod: null,
   description: null, equipmentRequired: 'dumbbell', videoUrl: null,
   previewVideoUrl: null, imageUrl: null, thumbnailUrl: null,
@@ -56,9 +60,12 @@ const DAY_CASES = [
 ] as const;
 
 function generatedPayload(day: string, names: readonly string[]) {
+  // The hook reads data.bootcamp (useBootcampAPI.generateClass); the backend
+  // returns { success, bootcamp } (bootcampRoutes.mjs:117). Match it exactly —
+  // a wrong key here is the test lying, not the app.
   return {
     success: true,
-    generatedClass: {
+    bootcamp: {
       name: `QA ${day} class`, classFormat: '4x4_r2', classStyle: 'standard',
       dayType: day, stationCount: 2, exercisesPerStation: 1, rounds: 2,
       exerciseDurationSec: 40, targetDuration: 45, totalWorkoutMin: 30,
@@ -83,34 +90,47 @@ function generatedPayload(day: string, names: readonly string[]) {
   };
 }
 
-async function mockBootcampApis(page: Page, day: string, names: readonly string[]) {
-  await page.route('**/api/bootcamp/generate', (route) => fulfillJson(route, generatedPayload(day, names)));
-  // Read endpoints the page touches on load — empty is fine.
-  await page.route('**/api/bootcamp/templates*', (r) => fulfillJson(r, { success: true, templates: [] }));
-  await page.route('**/api/bootcamp/history*', (r) => fulfillJson(r, { success: true, history: [], classLogs: [] }));
-  await page.route('**/api/bootcamp/spaces*', (r) => fulfillJson(r, { success: true, spaces: [] }));
-  await page.route('**/api/bootcamp/exercises*', (r) => fulfillJson(r, { success: true, exercises: [] }));
-  await page.route('**/api/equipment/**', (r) => fulfillJson(r, { success: true, profiles: [], items: [] }));
-  // ANY persisting bootcamp POST outside generate is refused loudly — the spec
-  // must never write, and a surprise write should fail the test, not the DB.
-  await page.route('**/api/bootcamp/save', (r) => fulfillJson(r, { success: false, message: 'BLOCKED BY SPEC' }, 500));
-  await page.route('**/api/bootcamp/log', (r) => fulfillJson(r, { success: false, message: 'BLOCKED BY SPEC' }, 500));
+/**
+ * Superset of the 4k spec's catch-all: the page's auth bootstrap requires
+ * /api/auth/me + /api/profile, or ConfigPanel never renders. The bootcamp
+ * generate override and the write-block sit ON TOP of the catch-all.
+ */
+async function mockApis(page: Page, day: string, names: readonly string[]) {
+  await page.route('**/api/**', async (route) => {
+    const endpoint = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+
+    if (endpoint === '/api/bootcamp/generate') return fulfillJson(route, generatedPayload(day, names));
+    // Writes are refused loudly — this spec must never persist.
+    if (method === 'POST' && (endpoint === '/api/bootcamp/save' || endpoint === '/api/bootcamp/log')) {
+      return fulfillJson(route, { success: false, message: 'BLOCKED BY SPEC' }, 500);
+    }
+    if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
+    if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+    if (endpoint === '/api/subscriptions/status') {
+      return fulfillJson(route, {
+        success: true,
+        subscription: { tier: 'pro', tierName: 'Swan Guardian', status: 'active', hasFullAIAccess: true, isInTrial: false },
+        usage: {},
+      });
+    }
+    return fulfillJson(route, { success: true, data: [], plans: [], templates: [], history: [], classLogs: [], spaces: [], profiles: [], items: [], exercises: [], stats: {} });
+  });
 }
 
 for (const { day, names, forbidden } of DAY_CASES) {
   test(`generate ${day}: right exercises on the board, wrong-day absent, safety rail visible`, async ({ page }) => {
     await installAdminSession(page);
-    await mockBootcampApis(page, day, names);
-    await page.goto('/dashboard/admin/bootcamp');
+    await mockApis(page, day, names);
+    await page.goto('/dashboard/admin/bootcamp', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /boot camp class builder/i })).toBeVisible();
 
-    // The REAL day-type control (styled Select under the "Day Type" label).
-    const daySelect = page.locator('div').filter({ hasText: /^Day Type/ }).locator('select').first();
-    await daySelect.selectOption(day);
-
-    // The REAL button.
+    // The REAL day-type control (buildMode defaults to 'ai', so ConfigPanel shows).
+    await page.getByLabel('Day Type').selectOption(day);
     await page.getByRole('button', { name: /generate class/i }).click();
 
-    // The board shows the day's exercises...
+    // The board shows the day's exercises (rendered as "N. Name")...
     for (const name of names) {
       await expect(page.getByText(name).first()).toBeVisible();
     }
@@ -122,7 +142,7 @@ for (const { day, names, forbidden } of DAY_CASES) {
       await expect(page.getByTestId(`explanation-${kind}`)).toBeVisible();
     }
 
-    // Warning rows read GOLD (Gilded Fern family), info reads cyan-side.
+    // Warning rows read GOLD; info reads cyan-side — the two tones must differ.
     const warnColor = await page.getByTestId('explanation-equipment_feasibility')
       .evaluate((el) => getComputedStyle(el).color);
     const infoColor = await page.getByTestId('explanation-day_type_contract')

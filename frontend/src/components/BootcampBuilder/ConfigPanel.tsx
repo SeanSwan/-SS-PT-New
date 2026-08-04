@@ -93,7 +93,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     <FormGroup>
       <Label>Day Type</Label>
-      <Select value={dayType} onChange={e => setDayType(e.target.value as DayType)}>
+      <Select aria-label="Day Type" value={dayType} onChange={e => setDayType(e.target.value as DayType)}>
         {DAY_TYPES.map(d => (
           <option key={d.value} value={d.value}>{d.label}</option>
         ))}
