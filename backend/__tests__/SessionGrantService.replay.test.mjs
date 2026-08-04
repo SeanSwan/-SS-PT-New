@@ -125,3 +125,60 @@ describe('grantSessionsForCart — Stripe replay safety', () => {
     expect(opts.transaction).toBe(transaction);
   });
 });
+
+/**
+ * Race ordering between the two crediting entry points.
+ *
+ * These scenarios previously "existed" in tests/api/payments.test.mjs under
+ * "Webhook vs Verify-Session Race Condition" — but those tests built a literal
+ * object with sessionsGranted: true and then asserted it was true. They never
+ * called production code, so they proved nothing while their names claimed the
+ * highest-risk concurrency case on the money path was covered. Rewritten here
+ * against the real service.
+ */
+describe('grantSessionsForCart — webhook vs verify-session ordering', () => {
+  beforeEach(() => {
+    for (const m of [transaction.commit, transaction.rollback, cartUpdate, userIncrement, userUpdate, findCart, findUser]) m.mockReset();
+    findUser.mockResolvedValue({ id: 42, increment: userIncrement, update: userUpdate });
+  });
+
+  it('webhook first, then verify-session: credits once, second call is a no-op', async () => {
+    findCart.mockResolvedValueOnce(paidCart());
+    await grantSessionsForCart(100, 42, 'webhook', { checkoutSessionId: 'cs_test_original' });
+
+    findCart.mockResolvedValueOnce(paidCart({ sessionsGranted: true, status: 'completed' }));
+    const second = await grantSessionsForCart(100, 42, 'verify-session', { checkoutSessionId: 'cs_test_original' });
+
+    expect(userIncrement).toHaveBeenCalledTimes(1);
+    expect(second).toMatchObject({ alreadyProcessed: true });
+  });
+
+  it('verify-session first, then webhook: credits once, second call is a no-op', async () => {
+    findCart.mockResolvedValueOnce(paidCart());
+    await grantSessionsForCart(100, 42, 'verify-session', { checkoutSessionId: 'cs_test_original' });
+
+    findCart.mockResolvedValueOnce(paidCart({ sessionsGranted: true, status: 'completed' }));
+    const second = await grantSessionsForCart(100, 42, 'webhook', { checkoutSessionId: 'cs_test_original' });
+
+    expect(userIncrement).toHaveBeenCalledTimes(1);
+    expect(second).toMatchObject({ alreadyProcessed: true });
+  });
+
+  it('either ordering reaches the SAME final cart state', async () => {
+    findCart.mockResolvedValue(paidCart());
+    await grantSessionsForCart(100, 42, 'webhook', { checkoutSessionId: 'cs_test_original' });
+    const [webhookWrite] = cartUpdate.mock.calls[0];
+
+    cartUpdate.mockReset();
+    findCart.mockResolvedValue(paidCart());
+    await grantSessionsForCart(100, 42, 'verify-session', { checkoutSessionId: 'cs_test_original' });
+    const [verifyWrite] = cartUpdate.mock.calls[0];
+
+    // Asserted from what the service actually wrote, not from a literal.
+    for (const write of [webhookWrite, verifyWrite]) {
+      expect(write).toMatchObject({ status: 'completed', paymentStatus: 'paid', sessionsGranted: true });
+    }
+    expect(webhookWrite.status).toBe(verifyWrite.status);
+    expect(webhookWrite.sessionsGranted).toBe(verifyWrite.sessionsGranted);
+  });
+});
