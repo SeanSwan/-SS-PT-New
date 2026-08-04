@@ -18,6 +18,12 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 /** Hour of day (local) after which an unbroken-but-untrained streak is at risk. */
 const STREAK_RISK_HOUR = 15;
 
+export function isLoggedWorkoutSession(session: unknown): session is Record<string, unknown> {
+  return !!session
+    && typeof session === 'object'
+    && (session as Record<string, unknown>).status === 'completed';
+}
+
 /** Real training proof from logged workout sessions — the Product Core Loop on Home. */
 export interface HomeTrainingProof {
   thisWeekCount: number;
@@ -42,8 +48,8 @@ export function buildHomeTrainingProof(
   let last: { timeMs: number; title: string; id: string | null } | null = null;
 
   for (const session of sessions || []) {
-    if (!session || typeof session !== 'object') continue;
-    const record = session as Record<string, unknown>;
+    if (!isLoggedWorkoutSession(session)) continue;
+    const record = session;
     const rawDate = record.date ?? record.completedAt ?? record.createdAt;
     const timeMs = new Date(String(rawDate || '')).getTime();
     if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
@@ -111,8 +117,8 @@ export function assessStreakRisk(
   const startOfToday = new Date(nowMs);
   startOfToday.setHours(0, 0, 0, 0);
   const trainedToday = (sessions || []).some((session) => {
-    if (!session || typeof session !== 'object') return false;
-    const record = session as Record<string, unknown>;
+    if (!isLoggedWorkoutSession(session)) return false;
+    const record = session;
     const rawDate = record.date ?? record.completedAt ?? record.createdAt;
     const timeMs = new Date(String(rawDate || '')).getTime();
     return Number.isFinite(timeMs) && timeMs >= startOfToday.getTime() && timeMs <= nowMs;

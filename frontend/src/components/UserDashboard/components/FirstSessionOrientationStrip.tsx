@@ -67,7 +67,7 @@ const StepMeta = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   line-height: 1.4;
-  color: var(--text-secondary, #4070C0);
+  color: var(--text-secondary, #9FB0C8);
 `;
 
 const FirstSessionOrientationStrip: React.FC = () => (

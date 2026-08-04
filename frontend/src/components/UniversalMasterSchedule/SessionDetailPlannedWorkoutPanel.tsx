@@ -144,6 +144,12 @@ const BasisNote = styled.span`
   text-transform: none;
 `;
 
+const KickerMeta = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 const BASIS_COPY: Record<string, string | null> = {
   explicit: null, // scheduled outright — nothing to caveat
   plan_start: null, // anchored to the plan's start — solid
@@ -196,11 +202,11 @@ const SessionDetailPlannedWorkoutPanel: React.FC<SessionDetailPlannedWorkoutPane
     <Panel aria-label={heading}>
       <Kicker>
         <span><ClipboardList size={14} aria-hidden='true' /> {heading}</span>
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+        <KickerMeta>
           {basisNote && <BasisNote>{basisNote}</BasisNote>}
           {planned.completionState === 'completed' && <CompletedBadge>✓ Completed</CompletedBadge>}
           {pin && <CursorPin aria-label={`Week ${planned.weekNumber}, day ${planned.dayNumber}`}>{pin}</CursorPin>}
-        </span>
+        </KickerMeta>
       </Kicker>
       {(planned.planTitle || planned.dayLabel) && (
         <Title>{planned.dayLabel || planned.planTitle}</Title>

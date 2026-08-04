@@ -3,7 +3,7 @@
  * PURPOSE: Data shaping for the client dashboard Home redesign.
  */
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
-import type { HomeTrainingProof } from './HomeTabProofViewModel';
+import { isLoggedWorkoutSession, type HomeTrainingProof } from './HomeTabProofViewModel';
 import type { HomeLeaderboardRow } from './HomeTabViewModel';
 import type { CurrentClientWorkout } from '../../DashBoard/Pages/client-dashboard/observatory/useCurrentClientWorkout';
 import type { Session } from '../../UniversalMasterSchedule/types';
@@ -89,7 +89,7 @@ export function countSessionsThisMonth(sessions: unknown[] | null | undefined, n
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   return (sessions || []).filter((session) => {
     const time = sessionTime(session);
-    return Number.isFinite(time) && time >= monthStart && time <= now.getTime();
+    return isLoggedWorkoutSession(session) && Number.isFinite(time) && time >= monthStart && time <= now.getTime();
   }).length;
 }
 
@@ -110,7 +110,7 @@ export function buildTodaySnapshot({
   todayStart.setHours(0, 0, 0, 0);
   const todayCount = (sessions || []).filter((session) => {
     const time = sessionTime(session);
-    return Number.isFinite(time) && time >= todayStart.getTime() && time <= now.getTime();
+    return isLoggedWorkoutSession(session) && Number.isFinite(time) && time >= todayStart.getTime() && time <= now.getTime();
   }).length;
   const calories = macroLoading ? 'Loading' : macroSummary ? `${safeWhole(macroSummary.totalCalories).toLocaleString()} cal` : 'Not available';
   // Panel launch review 2026-08-03 (gap a): never lead the money surface with a

@@ -4,7 +4,7 @@
  * drops the sentence, zero history returns null (never a fabricated recap).
  */
 import { describe, expect, it } from 'vitest';
-import { buildCoachVoiceRecap } from './CoachVoiceRecapCard';
+import { buildCoachVoiceRecap } from './CoachVoiceRecapCard.logic';
 import type { HomeTrainingProof } from './HomeTabProofViewModel';
 
 const base: HomeTrainingProof = {

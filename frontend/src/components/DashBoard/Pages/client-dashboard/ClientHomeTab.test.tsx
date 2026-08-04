@@ -587,7 +587,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
   });
 
   it('keeps the composer and hides the orientation strip once history exists', async () => {
-    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45, status: 'completed' }];
     await renderClientHomeSettled();
 
     expect(screen.queryByTestId('first-session-orientation-strip')).not.toBeInTheDocument();
@@ -598,7 +598,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const user = userEvent.setup();
     // The composer is a with-history surface — zero-history clients get the
     // orientation strip instead (panel Q5 suppression).
-    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45, status: 'completed' }];
     render(<ClientHomeTab />);
 
     await user.click(screen.getByRole('button', { name: /^Training$/i }));
@@ -614,7 +614,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('queues selected media through the existing social post mutation', async () => {
     const user = userEvent.setup();
-    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }];
+    mockWorkoutSessionsData.value = [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45, status: 'completed' }];
     render(<ClientHomeTab />);
     const file = new File(['training clip'], 'training-clip.mp4', { type: 'video/mp4' });
 

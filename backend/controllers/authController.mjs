@@ -359,7 +359,10 @@ const sanitizeUser = (user) => {
     photo: user.photo,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
-    isOnboardingComplete: user.isOnboardingComplete === true
+    isOnboardingComplete: user.isOnboardingComplete === true,
+    emailNotifications: user.emailNotifications !== false,
+    smsNotifications: user.smsNotifications !== false,
+    notificationPreferences: user.notificationPreferences ?? null
   };
 
   // Only include additional fields if they exist

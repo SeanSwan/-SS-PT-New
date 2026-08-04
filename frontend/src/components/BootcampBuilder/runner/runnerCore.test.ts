@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  createRunnerState, applyCommand, locate, effectiveNow, acceptRemoteState,
+  createRunnerState, applyCommand, locate, acceptRemoteState,
   type RunnerCommand, type RunnerState,
 } from './runnerProtocol';
 import {

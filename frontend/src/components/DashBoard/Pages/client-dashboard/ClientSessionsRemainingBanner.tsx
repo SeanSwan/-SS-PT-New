@@ -86,7 +86,7 @@ const Label = styled.span`
 const SubMeta = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
-  color: var(--text-secondary, #4070C0);
+  color: var(--text-secondary, #9FB0C8);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

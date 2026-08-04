@@ -9,6 +9,7 @@
  */
 import React from 'react';
 import type { AudienceVM, StationCardVM } from './audienceDirector';
+import { pageSlice } from './AudienceView.logic';
 import {
   AudienceRoot, ClockBand, PhaseLabel, Timer, MetaCorner, StageArea,
   HeroWrap, HeroName, HeroCue, StationGrid, StationCard, StationTag,
@@ -21,14 +22,6 @@ const fmtClock = (sec: number) => {
   const s = sec % 60;
   return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : String(s);
 };
-
-/** Which slice of station cards this page shows (alternating rooms). */
-export function pageSlice(cards: StationCardVM[], perPage: number, page: number): StationCardVM[] {
-  if (perPage <= 0 || cards.length <= perPage) return cards;
-  const pages = Math.ceil(cards.length / perPage);
-  const start = (page % pages) * perPage;
-  return cards.slice(start, start + perPage);
-}
 
 const Card: React.FC<{ card: StationCardVM }> = ({ card }) => (
   <StationCard data-testid={`station-card-${card.stationIndex}`}>

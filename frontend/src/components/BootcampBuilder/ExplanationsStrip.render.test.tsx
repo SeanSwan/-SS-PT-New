@@ -5,7 +5,6 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import React from 'react';
 
 import ExplanationsStrip from './ExplanationsStrip';
 

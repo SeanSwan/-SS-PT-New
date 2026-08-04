@@ -16,6 +16,8 @@
  */
 
 import { Router } from 'express';
+import { Op } from 'sequelize';
+import sequelize from '../database.mjs';
 import eventBus from '../services/eventBus.mjs';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { FORMAT_CONFIG } from '../services/bootcamp/bootcampConstants.mjs';
@@ -198,16 +200,13 @@ router.post('/log', async (req, res) => {
  * SWA-105 Slice 8 — attendance log-back. Closes the Product Core Loop: every
  * registered attendee gets a real DailyWorkoutForm; guests get roster rows.
  * Idempotent per class; ownership enforced inside the service (404, never
- * existence-confirming). Body: { attendees: [{userId} | {guest}] }.
+ * existence-confirming). Body: { attendees: [{userId} | {guest}] }. A legitimate
+ * zero-attendee class requires { attendees: [], noShowConfirmed: true }.
  */
 router.post('/class-logs/:id/attendance', async (req, res) => {
-  // DEFAULT-OFF GATE (SWA-105): the attendance write path carries a known-open
-  // HIGH finding (Kimi F1 / Opus §4.1 — idempotency TOCTOU + transaction-less
-  // write loop can duplicate DailyWorkoutForms). No frontend calls it yet, so
-  // it is dormant; this flag makes that guarantee explicit and enforced rather
-  // than incidental. The real fix (unique-indexed idempotencyKey column + a
-  // transaction) rides the roster-check-in UI slice that makes the path live —
-  // flip SWAN_BOOTCAMP_ATTENDANCE_ENABLED=true only after that lands.
+  // DEFAULT-OFF PRODUCT GATE (SWA-105): the write path is now transactionally
+  // serialized on the class-log row and uses batched authorization/insertion.
+  // It remains dormant until the roster-check-in UI is ready and explicitly enabled.
   if (process.env.SWAN_BOOTCAMP_ATTENDANCE_ENABLED !== 'true') {
     return res.status(503).json({
       success: false,
@@ -216,46 +215,64 @@ router.post('/class-logs/:id/attendance', async (req, res) => {
   }
   try {
     const { recordBootcampAttendance } = await import('../services/bootcamp/bootcampAttendance.mjs');
-    const { getBootcampClassLog } = await import('../models/index.mjs');
-    const { getAllModels } = await import('../models/index.mjs');
+    const { getBootcampClassLog, getAllModels } = await import('../models/index.mjs');
+    const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
     const models = getAllModels();
     const ClassLog = getBootcampClassLog();
 
     const result = await recordBootcampAttendance(
       {
-        getClassLog: (id) => ClassLog.findByPk(id),
-        createWorkoutForm: async (form) => {
-          if (!models.DailyWorkoutForm) return null;
-          const row = await models.DailyWorkoutForm.create({
-            clientId: form.clientId,
-            trainerId: Number(req.user.id),
-            date: form.date,
-            formData: { ...form.formData, idempotencyKey: form.idempotencyKey },
-            sessionDeducted: form.sessionDeducted,
-            mcpProcessed: form.mcpProcessed,
-            submittedAt: new Date(),
-          });
-          return row.id;
-        },
-        saveClassLog: (log, patch) => log.update(patch),
-        // SWA-105 security fix (IDOR): a trainer may only log attendees who are
-        // their active clients. Mirrors checkTrainerClientRelationship
-        // (authMiddleware.mjs). Admin bypass is handled in the service.
-        verifyClientAccess: async (clientId) => {
-          const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
-          const assignment = await ClientTrainerAssignment.findOne({
-            where: { trainerId: Number(req.user.id), clientId: Number(clientId), status: 'active' },
-          });
-          return !!assignment;
-        },
+        runAtomically: (operation) => sequelize.transaction(async (transaction) =>
+          operation({
+            getClassLog: (id) => ClassLog.findByPk(id, {
+              transaction,
+              lock: transaction.LOCK.UPDATE,
+            }),
+            createWorkoutForms: async (forms) => {
+              if (forms.length === 0) return [];
+              if (!models.DailyWorkoutForm) {
+                throw new Error('DailyWorkoutForm model unavailable');
+              }
+              const rows = await models.DailyWorkoutForm.bulkCreate(
+                forms.map((form) => ({
+                  clientId: form.clientId,
+                  trainerId: Number(req.user.id),
+                  date: form.date,
+                  formData: { ...form.formData, idempotencyKey: form.idempotencyKey },
+                  sessionDeducted: form.sessionDeducted,
+                  mcpProcessed: form.mcpProcessed,
+                  submittedAt: new Date(),
+                })),
+                { transaction, returning: true },
+              );
+              return rows.map((row) => row.id);
+            },
+            saveClassLog: (log, patch) => log.update(patch, { transaction }),
+            verifyClientAccessBatch: async (clientIds) => {
+              if (clientIds.length === 0) return true;
+              const assignedCount = await ClientTrainerAssignment.count({
+                where: {
+                  trainerId: Number(req.user.id),
+                  clientId: { [Op.in]: clientIds },
+                  status: 'active',
+                },
+                distinct: true,
+                col: 'clientId',
+                transaction,
+              });
+              return assignedCount === clientIds.length;
+            },
+          })),
       },
       {
         classLogId: Number(req.params.id),
         trainerId: Number(req.user.id),
         requesterRole: req.user.role,
         attendees: req.body?.attendees,
+        noShowConfirmed: req.body?.noShowConfirmed === true,
       },
     );
+
     res.status(result.alreadyRecorded ? 200 : 201).json({ success: true, ...result });
   } catch (error) {
     const status = error.statusCode ?? 500;
