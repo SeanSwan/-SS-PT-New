@@ -19,6 +19,7 @@ import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
 import dailyMacroDraftRoutes from './dailyMacroDraftRoutes.mjs';
 import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
+import { recordMacroLogRevision } from '../services/nutrition/nutritionLogRevisionService.mjs';
 import {
   ALLOWED_MEAL_TYPES,
   ALLOWED_SOURCES,
@@ -65,7 +66,29 @@ router.post('/', async (req, res) => {
       items,
       source = 'manual',
       aiConversationId,
+      clientRequestId,
     } = req.body;
+
+    // S0.4 idempotency: optional client-generated key. A retried mobile request
+    // (flaky gym wifi, double-tap) replays the original row instead of
+    // double-logging the meal. Uniqueness is enforced by a partial unique index
+    // on (userId, clientRequestId), so the guarantee holds across instances.
+    let safeClientRequestId = null;
+    if (clientRequestId !== undefined && clientRequestId !== null && clientRequestId !== '') {
+      if (typeof clientRequestId !== 'string' || !/^[A-Za-z0-9._-]{8,64}$/.test(clientRequestId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'clientRequestId must be 8-64 characters of letters, digits, dot, dash, underscore'
+        });
+      }
+      safeClientRequestId = clientRequestId;
+      const existing = await DailyMacroLog.findOne({
+        where: { userId: req.user.id, clientRequestId: safeClientRequestId }
+      });
+      if (existing) {
+        return res.status(200).json({ success: true, entry: existing, replayed: true });
+      }
+    }
 
     // Validate description
     if (!description || typeof description !== 'string' || description.trim().length === 0) {
@@ -114,11 +137,22 @@ router.post('/', async (req, res) => {
       sodium:           sanitizeNumber(sodium),
       items:            safeItems,
       aiConversationId: safeAiConversationId,
+      clientRequestId:  safeClientRequestId,
       verified:         false,
     }, { userId: req.user.id, source: safeSource });
 
     return res.status(201).json({ success: true, entry });
   } catch (err) {
+    // Race window: two concurrent retries can both miss the pre-check; the
+    // partial unique index rejects the loser — return the winner's row.
+    if (err?.name === 'SequelizeUniqueConstraintError' && req.body?.clientRequestId) {
+      const winner = await DailyMacroLog.findOne({
+        where: { userId: req.user.id, clientRequestId: String(req.body.clientRequestId) }
+      }).catch(() => null);
+      if (winner) {
+        return res.status(200).json({ success: true, entry: winner, replayed: true });
+      }
+    }
     logger.error('[DailyMacroRoutes] Create entry error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to log food entry' });
   }
@@ -258,6 +292,10 @@ router.patch('/:id', async (req, res) => {
 
     const updates = buildMacroEntryUpdates(entry, req.body);
 
+    // S0.5: capture the before-state first — best-effort, never blocks the edit.
+    await recordMacroLogRevision({
+      entry, action: 'update', actorUserId: req.user.id, actorRole: req.user.role,
+    });
     await entry.update(updates);
 
     return res.json({ success: true, entry });
@@ -282,6 +320,10 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
+    // S0.5: the audit row deliberately has no FK — it survives this destroy.
+    await recordMacroLogRevision({
+      entry, action: 'delete', actorUserId: req.user.id, actorRole: req.user.role,
+    });
     await entry.destroy();
 
     return res.json({ success: true, message: 'Entry deleted' });

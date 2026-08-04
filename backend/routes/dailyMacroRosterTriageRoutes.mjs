@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
+import { recordMacroLogRevision } from '../services/nutrition/nutritionLogRevisionService.mjs';
 import {
   ESTIMATE_REVIEW_SOURCES,
   addTodayEntry,
@@ -131,6 +132,11 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
       return res.json({ success: true, entry: timelineEntry(entry) });
     }
 
+    // S0.5: verify flips are trainer/admin actions on a client's record —
+    // capture the before-state first (best-effort, never blocks the verify).
+    await recordMacroLogRevision({
+      entry, action: 'verify', actorUserId: req.user.id, actorRole: req.user.role,
+    });
     const updatedEntry = await entry.update({
       verified: true,
       reviewStatus: 'verified',
