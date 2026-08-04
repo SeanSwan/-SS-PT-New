@@ -34,6 +34,72 @@ export const FormCard = styled.div`
 
 export const FieldGroup = styled.div`margin-bottom: 20px;`;
 
+/**
+ * Inline failure notice. Before the 2026-08-03 launch audit a failed roster or
+ * history fetch collapsed to an empty array, so a 500 looked exactly like
+ * "no clients yet" and the trainer had nothing to act on.
+ */
+export const InlineAlert = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--danger-border, rgba(201, 42, 84, 0.35));
+  background: var(--danger-soft, rgba(201, 42, 84, 0.1));
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.85rem;
+  line-height: 1.5;
+`;
+
+export const InlineAlertText = styled.span`
+  flex: 1 1 220px;
+  min-width: 0;
+`;
+
+export const RetryButton = styled.button`
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-primary, #60C0F0);
+  background: transparent;
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, box-shadow 200ms ease;
+
+  &:hover {
+    background: var(--accent-primary-soft, rgba(96, 192, 240, 0.12));
+    box-shadow: 0 0 12px var(--glow-accent, rgba(139, 92, 246, 0.25));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const FieldHint = styled.span`
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
+`;
+
 export const Label = styled.label`
   display: block;
   font-size: 0.8rem;

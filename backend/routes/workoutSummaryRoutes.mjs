@@ -12,11 +12,19 @@
 import { Router } from 'express';
 import { protect, trainerOrAdminOnly } from '../middleware/auth.mjs';
 import { getAllModels } from '../models/index.mjs';
+import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+// The summary text is assembled from trainer-supplied prose (sessionNotes,
+// exerciseName). It is interpolated into an HTML mail body below, so it must be
+// escaped or the platform sender becomes a content-injection vector.
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 
 const parseStrictPositiveInteger = (value) => {
   if (typeof value === 'string' && value.trim() === '') return null;
@@ -72,6 +80,13 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'exercises or formId is required' });
     }
 
+    // Launch audit 2026-08-03: this route was `protect` + `trainerOrAdminOnly`
+    // only, so any trainer could summarize, persist to, and email ANY client.
+    const access = await ensureClientAccess(req, parsedClientId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+
     const models = getAllModels();
     const { User, DailyWorkoutForm } = models;
 
@@ -82,6 +97,17 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
 
     if (!client) {
       return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // A caller authorized for client A must not be able to overwrite a form
+    // belonging to client B by passing that form's id.
+    if (normalizedFormId && DailyWorkoutForm?.findByPk) {
+      const targetForm = await DailyWorkoutForm.findByPk(normalizedFormId, {
+        attributes: ['id', 'clientId'],
+      });
+      if (targetForm && Number(targetForm.clientId) !== parsedClientId) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
     }
 
     // Build summary from provided exercises
@@ -182,7 +208,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
             to: client.email,
             subject: `Your Workout Summary — ${date}`,
             text: summaryText,
-            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
+            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${escapeHtml(summaryText)}</pre>`,
           });
           emailSent = true;
           // Log the client id only — never the email (PII, incl. minors).

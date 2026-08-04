@@ -4,9 +4,11 @@ import { resolve } from 'node:path';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { dailyWorkoutFormUpdate, userFindByPk } = vi.hoisted(() => ({
+const { dailyWorkoutFormUpdate, dailyWorkoutFormFindByPk, userFindByPk, assignmentFindOne } = vi.hoisted(() => ({
   dailyWorkoutFormUpdate: vi.fn(),
+  dailyWorkoutFormFindByPk: vi.fn(),
   userFindByPk: vi.fn(),
+  assignmentFindOne: vi.fn(),
 }));
 
 vi.mock('../../middleware/auth.mjs', () => ({
@@ -20,7 +22,8 @@ vi.mock('../../middleware/auth.mjs', () => ({
 vi.mock('../../models/index.mjs', () => ({
   getAllModels: () => ({
     User: { findByPk: userFindByPk },
-    DailyWorkoutForm: { update: dailyWorkoutFormUpdate },
+    DailyWorkoutForm: { update: dailyWorkoutFormUpdate, findByPk: dailyWorkoutFormFindByPk },
+    ClientTrainerAssignment: { findOne: assignmentFindOne },
   }),
 }));
 
@@ -38,13 +41,19 @@ function makeApp() {
 describe('workout summary route payload validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // `role` and an active assignment row are required since the launch audit
+    // (2026-08-03) put `ensureClientAccess` in front of this route — the mock
+    // registry must model a real assigned client, not a role-less stub.
     userFindByPk.mockResolvedValue({
       id: 42,
+      role: 'client',
       firstName: 'Client',
       lastName: 'Example',
 
       email: null,
     });
+    assignmentFindOne.mockResolvedValue({ id: 1, clientId: 42, trainerId: 7, status: 'active' });
+    dailyWorkoutFormFindByPk.mockResolvedValue({ id: 'f1f4f73e-cc3d-4a7f-81c1-419e5fd931f7', clientId: 42 });
     dailyWorkoutFormUpdate.mockResolvedValue([1]);
   });
 
