@@ -440,6 +440,43 @@ router.post('/create-checkout-session', protect, checkoutSessionLimiter, checkSt
     }
 
     // Step 2: Calculate totals. Stripe Tax owns taxable physical product tax.
+
+    // FAIL CLOSED ON QUANTITY. What the buyer SEES and what Stripe CHARGES are
+    // computed by two independent implementations — cartHelpers.calculateCartTotals
+    // persists ShoppingCart.total for the cart UI, while resolveCheckoutLineItem
+    // below builds the Stripe lines. They disagree on malformed quantities, and
+    // they disagree in the direction that overcharges:
+    //   quantity 0  -> total shows $0.00,  Stripe charges one unit at full price
+    //                  (`Number(0) > 0` is false, so the resolver defaults to 1)
+    //   quantity -1 -> total shows -$175,  Stripe charges $175
+    //   quantity "2" (a string) -> the item is skipped from the total entirely
+    //                  (`typeof quantity !== 'number'`), Stripe charges for 2
+    // Route writes currently gate quantity through parsePositiveInteger, so a row
+    // like this cannot be created through the API today — but the price column
+    // already comes back from Sequelize as a STRING, which is why the total helper
+    // carries explicit string handling. The same thing happening to quantity, or
+    // any admin/repair/import path writing cart_items directly, turns this from
+    // latent into live. Refusing costs a healthy cart nothing (every legitimate
+    // row is a positive integer) and is the only safe direction: never charge for
+    // a line the buyer's displayed total did not include.
+    const invalidQuantityItem = cart.cartItems.find((item) => (
+      typeof item?.quantity !== 'number'
+      || !Number.isSafeInteger(item.quantity)
+      || item.quantity <= 0
+    ));
+    if (invalidQuantityItem) {
+      logger.error('[v2 Payment] Refusing checkout: cart item quantity is not a positive integer', {
+        cartId: cart.id,
+        cartItemId: invalidQuantityItem.id,
+        quantityType: typeof invalidQuantityItem.quantity,
+      });
+      return res.status(409).json({
+        success: false,
+        message: 'Your cart needs to be refreshed before checkout. Please reload the store and try again.',
+        error: { code: 'CART_ITEM_QUANTITY_INVALID' }
+      });
+    }
+
     const checkoutLines = cart.cartItems.map(resolveCheckoutLineItem);
     const subtotal = checkoutLines.reduce((sum, item) => sum + item.subtotal, 0);
     const taxableProductSubtotal = checkoutLines.reduce((sum, item) => (
