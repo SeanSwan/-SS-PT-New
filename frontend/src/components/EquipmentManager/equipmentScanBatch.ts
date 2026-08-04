@@ -13,8 +13,29 @@ export interface EquipmentScanBatch {
   possibleItems: EquipmentScanCandidate[];
   duplicates: EquipmentScanDuplicate[];
   scanSession?: EquipmentScanSession;
+  /** V3 honesty flag — caption fallback only saw the dominant object. */
+  degraded?: boolean;
   error?: string;
 }
+
+/**
+ * Trust tiers (blueprint §10a #3 — LOCKED, Kimi+HY3): user-facing copy never
+ * shows raw confidence decimals; exact numbers live in the edit sheet only.
+ */
+export type TrustTier = 'confident' | 'likely' | 'uncertain';
+
+export function getTrustTier(confidence: number | undefined): TrustTier {
+  if (typeof confidence !== 'number' || Number.isNaN(confidence)) return 'uncertain';
+  if (confidence >= 0.8) return 'confident';
+  if (confidence >= 0.55) return 'likely';
+  return 'uncertain';
+}
+
+export const TRUST_TIER_LABELS: Record<TrustTier, string> = {
+  confident: 'Confident',
+  likely: 'Likely — quick check',
+  uncertain: 'Not sure — scan this spot closer?',
+};
 
 const byItemId = (items: EquipmentItem[]): EquipmentItem[] => {
   const seen = new Set<number>();
@@ -49,6 +70,7 @@ export function buildEquipmentScanBatch(
     possibleItems,
     duplicates,
     scanSession,
+    degraded: response.degraded === true,
     error: 'error' in response && typeof response.error === 'string' ? response.error : undefined,
   };
 }
@@ -86,6 +108,9 @@ export interface EquipmentScanBoundingBox {
   id: string;
   label: string;
   status: 'created' | 'possible' | 'duplicate';
+  /** 1-based constellation pip number, assigned in render order. */
+  pip: number;
+  tier: TrustTier;
   left: number;
   top: number;
   width: number;
@@ -111,13 +136,14 @@ const normalizeBoundingBox = (box: RawBoundingBox | null | undefined) => {
   return { left, top, width, height };
 };
 
-const boxFromItem = (item: EquipmentItem): EquipmentScanBoundingBox | null => {
+const boxFromItem = (item: EquipmentItem): Omit<EquipmentScanBoundingBox, 'pip'> | null => {
   const box = normalizeBoundingBox(item.aiScanData?.boundingBox);
   if (!box) return null;
   return {
     id: `created-${item.id}`,
     label: item.trainerLabel || item.name,
     status: 'created',
+    tier: getTrustTier(item.aiScanData?.confidence),
     ...box,
   };
 };
@@ -126,7 +152,7 @@ const boxFromCandidate = (
   candidate: EquipmentScanCandidate | EquipmentScanDuplicate,
   index: number,
   status: EquipmentScanBoundingBox['status'],
-): EquipmentScanBoundingBox | null => {
+): Omit<EquipmentScanBoundingBox, 'pip'> | null => {
   const box = normalizeBoundingBox(candidate.boundingBox);
   if (!box) return null;
   const label = getCandidateName(candidate);
@@ -134,6 +160,7 @@ const boxFromCandidate = (
     id: `${status}-${candidate.dedupeKey || label}-${index}`,
     label,
     status,
+    tier: getTrustTier(candidate.confidence),
     ...box,
   };
 };
@@ -143,7 +170,9 @@ export function getBatchBoundingBoxes(batch: EquipmentScanBatch): EquipmentScanB
     ...batch.createdItems.map(boxFromItem),
     ...batch.possibleItems.map((candidate, index) => boxFromCandidate(candidate, index, 'possible')),
     ...batch.duplicates.map((candidate, index) => boxFromCandidate(candidate, index, 'duplicate')),
-  ].filter((box): box is EquipmentScanBoundingBox => Boolean(box));
+  ]
+    .filter((box): box is Omit<EquipmentScanBoundingBox, 'pip'> => Boolean(box))
+    .map((box, index) => ({ ...box, pip: index + 1 }));
 }
 
 const normalizeCandidateQuantity = (quantity: number | undefined): number => {
@@ -151,7 +180,9 @@ const normalizeCandidateQuantity = (quantity: number | undefined): number => {
   return Math.max(1, Math.round(quantity));
 };
 
-const normalizeNameKey = (value: string | null | undefined): string => (
+// Exported so equipmentScanSessionMerge.ts reuses the SAME normalization for
+// cross-photo dedupe keys (Walk-the-Gym, blueprint §10a #9).
+export const normalizeNameKey = (value: string | null | undefined): string => (
   typeof value === 'string' ? value.trim().toLowerCase() : ''
 );
 

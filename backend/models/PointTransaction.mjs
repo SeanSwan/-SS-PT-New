@@ -43,7 +43,8 @@ const PointTransaction = db.define('PointTransaction', {
       'goal_completed',
       'admin_adjustment',
       'trainer_award',
-      'challenge_completion'
+      'challenge_completion',
+      'nutrition_log'
     ),
     allowNull: false
   },

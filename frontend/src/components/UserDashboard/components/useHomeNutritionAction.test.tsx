@@ -98,13 +98,19 @@ describe('useHomeNutritionAction', () => {
     expect(result.current).toBeNull();
   });
 
-  it('withholds nutrition guidance on macro errors instead of showing false zeroes', () => {
+  it('degrades to a numberless generic invitation on macro errors — no false zeroes, no vanishing', () => {
+    // 4D fix (2026-08-04): the old contract returned null here, which silently
+    // ERASED nutrition from Home on any transient fetch failure and trained
+    // users to ignore the slot. The false-zeroes concern is still honored:
+    // the fallback carries NO numeric claims at all.
     mocks.macro.summary = null;
     mocks.macro.error = 'Macro summary unavailable. Try refreshing your dashboard.';
 
     const { result } = renderHook(() => useHomeNutritionAction());
 
-    expect(result.current).toBeNull();
+    expect(result.current).not.toBeNull();
+    expect(result.current?.target).toBe('log');
+    expect(`${result.current?.title} ${result.current?.copy}`).not.toMatch(/\d/);
   });
 
   it('withholds Home nutrition guidance when Gentle Mode is enabled', () => {

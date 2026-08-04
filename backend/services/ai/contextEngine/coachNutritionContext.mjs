@@ -34,16 +34,53 @@ const uniqueStrings = (rows, field) => [
 
 const countTruthy = (rows, field) => rows.filter((row) => row?.[field] === true).length;
 
+// S2.4 (2026-08-04): derived adherence fields computed from rows already
+// loaded — zero new queries, and they flow to every coach surface through
+// buildCoachContext automatically. Dates are compared as ISO strings; rows
+// arrive DESC by (date, createdAt) from the domain loader.
+const isoDay = (value) => {
+  if (!value) return null;
+  const s = value.toISOString?.()?.slice(0, 10) || String(value).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+};
+
+const dayBeforeIso = (isoDate) => {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+};
+
+const consecutiveDayRun = (dateSet, fromDay) => {
+  let cursor = fromDay;
+  let run = 0;
+  while (dateSet.has(cursor)) {
+    run += 1;
+    cursor = dayBeforeIso(cursor);
+  }
+  return run;
+};
+
 export function summarizeNutritionLogs(rows) {
   const logs = Array.isArray(rows) ? rows : [];
-  const loggedDates = new Set(logs.map((row) => row?.date).filter(Boolean));
+  const loggedDates = new Set(logs.map((row) => isoDay(row?.date)).filter(Boolean));
   const latest = logs[0] || null;
+  const latestDay = isoDay(latest?.date);
+
+  // Run of consecutive logged days ending at the most recent log. Server-zone
+  // "today" is deliberately NOT used here — the streak is relative to the
+  // client's own latest entry, so timezone drift can't fake a broken streak.
+  const currentLogRun = latestDay ? consecutiveDayRun(loggedDates, latestDay) : 0;
+  const daysSinceLastLog = latestDay
+    ? Math.max(0, Math.round((Date.now() - new Date(`${latestDay}T12:00:00Z`).getTime()) / 86400000))
+    : null;
 
   return {
     sampleEntries: logs.length,
     loggedDays: loggedDates.size,
     latestDate: latest?.date || null,
     latestMealType: latest?.mealType || null,
+    currentLogRun,
+    daysSinceLastLog,
+    inferredEntryCount: logs.filter((row) => row?.source === 'coach_inferred').length,
     verifiedCount: logs.filter((row) => row?.verified === true).length,
     estimateCount: logs.filter((row) => row?.verified !== true).length,
     sodiumFlagCount: countTruthy(logs, 'flagSodium'),

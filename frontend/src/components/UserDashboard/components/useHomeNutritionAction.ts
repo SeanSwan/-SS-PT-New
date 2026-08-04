@@ -23,12 +23,27 @@ export function useHomeNutritionAction(): HomeNutritionAction | null {
   const hydration = useHydration();
 
   return useMemo(() => {
+    // Gentle mode intentionally hides the nutrition mission — that null stays.
     if (readNutritionGentleModePreference()) {
       return null;
     }
 
-    if (macro.loading || hydration.loading || macro.error || !macro.summary) {
+    // Still fetching: keep the slot empty for this render pass only.
+    if (macro.loading || hydration.loading) {
       return null;
+    }
+
+    // 4D fix (2026-08-04): a transient /api/macros/summary failure used to
+    // silently ERASE nutrition from Home — users saw the mission once, then it
+    // vanished and trained them to ignore it. Degrade to a generic, always-true
+    // invitation instead of disappearing.
+    if (macro.error || !macro.summary) {
+      return {
+        title: 'Log a meal',
+        copy: 'A quick note about your last meal keeps your story moving.',
+        target: 'log',
+        label: 'Open Nutrition Today',
+      };
     }
 
     return {

@@ -11,6 +11,7 @@ export interface NutritionTimelineEntry {
   sodium?: number | string | null;
   source?: string | null;
   verified?: boolean | null;
+  reviewStatus?: string | null;
   createdAt?: string | null;
 }
 
@@ -22,16 +23,9 @@ export interface NutritionTimelineRow {
   sourceLabel: string;
   reviewLabels: string[];
   canVerify: boolean;
+  /** Wing Purple left-border marker for needs-review diary rows (HY3 §(a)6). */
+  needsAttention: boolean;
   createdAtLabel: string;
-}
-
-export interface NutritionProvenanceSummary {
-  estimateCount: number;
-  pendingReviewCount: number;
-  sourceLine: string;
-  totalCount: number;
-  verifiedCount: number;
-  verificationLine: string;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -82,42 +76,25 @@ const reviewLabels = (entry: NutritionTimelineEntry, label: string): string[] =>
   if (entry.verified) return ['Verified'];
   return isManualSource(entry.source) ? ['Needs verification', label] : ['Needs review', label];
 };
+// NOTE (Phase 4A): the provenance summary card was superseded by
+// NutritionAdherenceHero flag chips (Verify N / N estimated) per HY3 §(a).
 
-const plural = (count: number, singular: string, pluralLabel: string): string =>
-  `${count} ${count === 1 ? singular : pluralLabel}`;
-
-const createdAtLabel = (createdAt: string | null | undefined): string => {
+const createdAtLabel = (createdAt: string | null | undefined, withDate: boolean): string => {
   if (!createdAt) return 'Time pending';
   const parsed = new Date(createdAt);
   if (Number.isNaN(parsed.getTime())) return 'Time pending';
-  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const time = parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (!withDate) return time;
+  return `${parsed.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} ${time}`;
 };
 
-export const buildNutritionProvenanceSummary = (
-  entries: NutritionTimelineEntry[],
-): NutritionProvenanceSummary => {
-  const totalCount = entries.length;
-  const verifiedCount = entries.filter((entry) => entry.verified === true).length;
-  const pendingReviewCount = totalCount - verifiedCount;
-  const estimateCount = entries.filter((entry) =>
-    entry.verified !== true && !isManualSource(entry.source)
-  ).length;
-  const sourceLabels = Array.from(new Set(entries.map((entry) => sourceLabel(entry.source))));
-
-  return {
-    estimateCount,
-    pendingReviewCount,
-    sourceLine: sourceLabels.length > 0 ? sourceLabels.join(', ') : 'No sources yet',
-    totalCount,
-    verifiedCount,
-    verificationLine: totalCount === 0
-      ? 'No nutrition rows for this date'
-      : `${plural(verifiedCount, 'verified', 'verified')} / ${plural(pendingReviewCount, 'pending review', 'pending reviews')}`,
-  };
-};
+const needsAttention = (entry: NutritionTimelineEntry): boolean =>
+  !entry.verified
+  && (entry.reviewStatus === 'needs_review' || !isManualSource(entry.source));
 
 export const buildNutritionTimelineRows = (
   entries: NutritionTimelineEntry[],
+  options: { withDateLabels?: boolean } = {},
 ): NutritionTimelineRow[] =>
   entries.map((entry) => {
     const label = sourceLabel(entry.source);
@@ -129,6 +106,7 @@ export const buildNutritionTimelineRows = (
       sourceLabel: label,
       reviewLabels: reviewLabels(entry, label),
       canVerify: !entry.verified,
-      createdAtLabel: createdAtLabel(entry.createdAt),
+      needsAttention: needsAttention(entry),
+      createdAtLabel: createdAtLabel(entry.createdAt, options.withDateLabels === true),
     };
   });

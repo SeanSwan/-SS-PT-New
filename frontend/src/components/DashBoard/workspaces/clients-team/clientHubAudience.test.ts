@@ -24,7 +24,9 @@ describe('clientHubAudience', () => {
     expect(trainer.coachAssistantBase).toBe('/dashboard/trainer/coach-assistant');
     expect(trainer.workoutPlannerBase).toBe('/dashboard/trainer/workout-planner');
     expect(trainer.canManageAccounts).toBe(false);
-    expect(trainer.showRosterOpsPanels).toBe(false);
+    // Phase 4A: roster nutrition panels enabled for trainers (backend routes
+    // scope every userId through assertAssignmentOrAdmin).
+    expect(trainer.showRosterOpsPanels).toBe(true);
   });
 
   it('hides the admin-only Overview and Settings tabs from trainers', () => {

@@ -328,9 +328,52 @@ async function runNutritionDebate(job) {
   if (finalRound) {
     job.finalPlan = finalRound;
     job.state = DEBATE_STATES.COMPLETE;
-    emitProgress(job, 'complete', 'Nutrition plan debate complete');
+    // S2.2 (2026-08-04): the debate outcome used to be generated and thrown
+    // away — no plan → adherence → outcome loop existed. Persist it as a DRAFT
+    // NutritionTarget (the single-writer service forces ai_generated → draft;
+    // bounds-validates; only a human can activate). Best-effort: a persistence
+    // failure must not fail the debate the trainer is watching.
+    await persistNutritionDraftTarget(job).catch((err) => {
+      logger.warn(`[DebateOrchestrator] draft target persistence failed: ${err.message}`);
+    });
+    emitProgress(job, 'complete', job.draftTargetId
+      ? `Nutrition plan debate complete — draft target #${job.draftTargetId} saved for review`
+      : 'Nutrition plan debate complete');
   } else {
     handleFallback(job, 'Final nutrition round failed');
+  }
+}
+
+async function persistNutritionDraftTarget(job) {
+  const clientId = Number(job.options?.clientId);
+  if (!Number.isSafeInteger(clientId) || clientId <= 0) return;
+  const plan = job.finalPlan;
+  if (!plan?.dailyCalories && !plan?.macroSplit) return;
+
+  const { setNutritionTarget } = await import('../../nutrition/nutritionTargetService.mjs');
+  const { getUserLocalToday } = await import('../../nutrition/nutritionAdherenceService.mjs');
+
+  // macroSplit arrives as percentages; convert to grams via 4/4/9.
+  const kcal = plan.dailyCalories || null;
+  const fields = { dailyCalories: kcal };
+  if (kcal && plan.macroSplit) {
+    fields.proteinGrams = Math.round((kcal * plan.macroSplit.protein) / 100 / 4);
+    fields.carbsGrams = Math.round((kcal * plan.macroSplit.carbs) / 100 / 4);
+    fields.fatGrams = Math.round((kcal * plan.macroSplit.fat) / 100 / 9);
+  }
+
+  const { todayLocal } = await getUserLocalToday(clientId);
+  const result = await setNutritionTarget({
+    userId: clientId,
+    fields,
+    createdBy: job.userId,
+    source: 'ai_generated',   // forced draft — the model proposes, a human activates
+    effectiveFrom: todayLocal,
+  });
+  if (result.ok) {
+    job.draftTargetId = result.target.id;
+  } else {
+    logger.warn(`[DebateOrchestrator] draft target rejected by bounds validator: ${result.errors.join('; ')}`);
   }
 }
 

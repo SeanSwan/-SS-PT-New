@@ -110,6 +110,20 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     throw new Error('Food description is required');
   }
 
+  // S0.7: FDA extended fields moved here from the legacy raw-SQL path
+  // (aiDataWriteService.insertMacroLog) so ONE writer owns the full column
+  // set. Flags auto-compute from per-meal thresholds: sodium >33% of 2,300mg
+  // DV, added sugar >50% AHA women's limit, cholesterol >33% of 300mg DV,
+  // saturated fat >33% of 20g DV, ANY trans fat, NOVA group 4 ultra-processed.
+  const sodium       = sanitizeNumber(data.sodium);
+  const addedSugar   = sanitizeNumber(data.addedSugar);
+  const cholesterol  = sanitizeNumber(data.cholesterol);
+  const saturatedFat = sanitizeNumber(data.saturatedFat);
+  const transFat     = sanitizeNumber(data.transFat);
+  const novaParsed   = toFiniteDecimalNumber(data.novaGroup);
+  const novaGroup    = Number.isInteger(novaParsed) && novaParsed >= 1 && novaParsed <= 4
+                         ? novaParsed : null;
+
   return {
     userId,
     date:             resolveMacroLogDate(data.date),
@@ -121,13 +135,52 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     fat:              sanitizeNumber(data.fat),
     fiber:            sanitizeNumber(data.fiber),
     sugar:            sanitizeNumber(data.sugar),
-    sodium:           sanitizeNumber(data.sodium),
+    sodium,
+    addedSugar,
+    saturatedFat,
+    transFat,
+    cholesterol,
+    novaGroup,
+    brandName:        sanitizeNutritionCopy(data.brandName, '', 200) || null,
+    mealSource:       sanitizeNutritionCopy(data.mealSource, '', 50) || null,
+    flagSodium:       (sodium ?? 0) > 800,
+    flagSugar:        (addedSugar ?? 0) > 12,
+    flagCholesterol:  (cholesterol ?? 0) > 100,
+    flagSaturatedFat: (saturatedFat ?? 0) > 7,
+    flagTransFat:     (transFat ?? 0) > 0,
+    flagProcessed:    novaGroup === 4,
     items:            Array.isArray(data.items) ? data.items.slice(0, 50).map(sanitizeMacroItem) : [],
     aiConversationId: Number.isSafeInteger(data.aiConversationId) && data.aiConversationId > 0
                         ? data.aiConversationId : null,
+    clientRequestId:  typeof data.clientRequestId === 'string' && data.clientRequestId ? data.clientRequestId : null,
     source:           normalizeMacroSource(source),
     verified:         false,
   };
+}
+
+/**
+ * S3.1/S3.2: fire the reward loop AFTER a successful commit. BEST-EFFORT and
+ * fire-and-forget by law — the user's log write must never fail or wait on
+ * gamification, so nothing here is awaited by the caller and every layer is
+ * caught. Lazy imports keep the gamification graph off this module's load path.
+ */
+function fireNutritionRewardHooks({ userId, localDate }) {
+  (async () => {
+    const [{ evaluateNutritionLogAchievements }, { applyNutritionLogChallengeProgress }, { getAllModels }] =
+      await Promise.all([
+        import('../gamification/nutritionLogAchievementEvaluator.mjs'),
+        import('../gamification/challengeNutritionLoggingBridge.mjs'),
+        import('../../models/index.mjs'),
+      ]);
+    const models = getAllModels();
+    await evaluateNutritionLogAchievements({ userId, models }).catch(() => {});
+    await applyNutritionLogChallengeProgress({
+      userId,
+      localDate,
+      models,
+      sequelize: DailyMacroLog.sequelize,
+    }).catch(() => {});
+  })().catch(() => {});
 }
 
 /**
@@ -141,13 +194,15 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
  * @returns {Promise<DailyMacroLog>}
  */
 export async function createSingleMacroEntry(sanitizedData, { userId, source = 'manual' }) {
-  return DailyMacroLog.create({
+  const row = await DailyMacroLog.create({
     ...sanitizedData,
     userId,
     date: resolveMacroLogDate(sanitizedData.date),
     source: normalizeMacroSource(source),
     verified: false,
   });
+  fireNutritionRewardHooks({ userId, localDate: row.date });
+  return row;
 }
 
 /**
@@ -178,6 +233,8 @@ export async function createMacroEntries(meals, { clientId, date }) {
       date: targetDate,
       count: rows.length,
     });
+
+    fireNutritionRewardHooks({ userId: clientId, localDate: targetDate });
 
     return {
       mealsLogged:   rows.length,

@@ -47,9 +47,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  findingKey, loadBaseline, diffBaseline, writeBaseline, reportRatchet,
+} from './lib/audit-baseline.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROUTES = path.join(HERE, '..', 'routes');
 const verbose = process.argv.includes('--verbose');
+const updateBaseline = process.argv.includes('--update-baseline');
+const BASELINE = path.join(HERE, 'baselines', 'idor-surface.json');
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('usage: node backend/scripts/audit-idor-surface.mjs [--verbose]');
@@ -201,9 +207,32 @@ function main() {
 
   console.log('\n  NOTE: a flagged handler may still be safe via a service-layer check this reader');
   console.log('  cannot follow, and a passing one is NOT proven safe. Only a two-user negative test');
-  console.log('  proves either. This ranks where to point those tests.\n');
+  console.log('  proves either. This ranks where to point those tests.');
 
-  process.exit(unchecked.length === 0 ? 0 : 1);
+  // RATCHET. Keyed on verb+route+file — NOT the line number, which churns whenever anyone adds a
+  // comment above a handler and would otherwise resurrect a known finding as "new".
+  const keys = unchecked.map((r) => findingKey([r.verb, r.route, r.file]));
+  const describe = (k) => { const [v, rt, f] = k.split('|'); return `${v.padEnd(6)} ${rt.padEnd(52)} ${f}`; };
+
+  if (updateBaseline) {
+    const n = writeBaseline(BASELINE, keys, { audit: 'idor-surface', scanned: scanned });
+    console.log(`\n  baseline written: ${n} accepted finding(s) -> ${path.relative(process.cwd(), BASELINE)}`);
+    console.log('  Commit it. A gitignored baseline is a local opinion; a committed one is a');
+    console.log('  reviewable record of what was accepted and when.\n');
+    process.exit(0);
+  }
+
+  const baseline = loadBaseline(BASELINE);
+  if (!baseline.exists) {
+    // No baseline yet: report honestly and keep the old behaviour rather than inventing acceptance.
+    console.log(`\n  no baseline at ${path.relative(process.cwd(), BASELINE)} — every finding counts as new.`);
+    console.log('  Record the current state with --update-baseline once you have reviewed it.\n');
+    process.exit(unchecked.length === 0 ? 0 : 1);
+  }
+
+  process.exit(reportRatchet({
+    diff: diffBaseline(baseline, keys), label: 'unguarded handler(s)', baselineFile: BASELINE, describe,
+  }));
 }
 
 main();

@@ -142,6 +142,9 @@ export interface EquipmentScanResponse {
   possibleItems?: EquipmentScanCandidate[];
   duplicates?: EquipmentScanDuplicate[];
   scanSession?: EquipmentScanSession;
+  /** V3 honesty flags: caption-fallback scans admit they saw a limited scene. */
+  degraded?: boolean;
+  pipelineVersion?: string | null;
 }
 
 export type EquipmentScanCandidateStatus = 'created_item' | 'duplicate' | 'possible';

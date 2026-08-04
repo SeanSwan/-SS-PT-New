@@ -1,43 +1,54 @@
+/**
+ * ============================================================================
+ * FILE: NutritionTabContent.tsx
+ * PURPOSE: Phase 4A coach nutrition tab orchestrator — composes the HY3
+ *          30-second IA: status header -> adherence hero -> actual-vs-target
+ *          -> date stepper (+7-day range) -> trend -> verifiable diary.
+ * AUTHOR: Claude Fable 5 | LAST MODIFIED: 2026-08-04
+ * ============================================================================
+ *
+ * DATA CONTRACT (S1.2/S1.3): GET /api/macros/client-timeline supports
+ * ?userId&date=YYYY-MM-DD OR ?userId&start&end (<=31 days) and returns
+ * { entries, target|null, adherence } — target/adherence parsed defensively.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../../../../../services/api.service';
 import { useAuth } from '../../../../../context/AuthContext';
 import { formatLocalCalendarDate } from '../nutritionDate';
 import { getNumericClientId } from './clientTabId';
 import {
-  buildNutritionProvenanceSummary,
   buildNutritionTimelineRows,
   type NutritionTimelineEntry,
   type NutritionTimelineRow,
 } from './NutritionTabContent.logic';
 import {
-  NutritionProvenanceCard,
-  NutritionProvenanceCopy,
-  NutritionProvenanceGrid,
-  NutritionProvenanceLabel,
-  NutritionProvenanceMetric,
-  NutritionProvenanceTitle,
-  NutritionTimelineActions,
-  NutritionTimelineBadge,
-  NutritionTimelineBadges,
-  NutritionTimelineClient,
-  NutritionTimelineDate,
-  NutritionTimelineDescription,
-  NutritionTimelineHeader,
-  NutritionTimelineList,
-  NutritionTimelineMeal,
-  NutritionTimelineMeta,
-  NutritionTimelineRowCard,
-  NutritionTimelineRowHeader,
+  buildActualVsTargetRows,
+  buildAdherenceHeroView,
+  buildLastLogView,
+  buildNutritionRangeParams,
+  buildNutritionTrendPoints,
+  stepNutritionDate,
+  type NutritionAdherenceSummary,
+  type NutritionTargetSummary,
+} from './NutritionCoachTab.logic';
+import CoachClientNutritionHeader from './CoachClientNutritionHeader';
+import NutritionAdherenceHero from './NutritionAdherenceHero';
+import NutritionActualVsTargetGrid from './NutritionActualVsTargetGrid';
+import NutritionDateStepper from './NutritionDateStepper';
+import NutritionTrendPanel from './NutritionTrendPanel';
+import NutritionDiaryList from './NutritionDiaryList';
+import {
   NutritionTimelineShell,
   NutritionTimelineState,
-  NutritionTimelineTime,
-  NutritionTimelineTitle,
-  NutritionTimelineTitleGroup,
-  NutritionTimelineVerifyButton,
-  SetTargetsButton,
 } from './NutritionTabContent.styles';
+import {
+  NutritionErrorCard,
+  NutritionErrorCopy,
+  NutritionRetryButton,
+  NutritionSkeletonBlock,
+  NutritionSkeletonStack,
+} from './NutritionCoachTab.styles';
 
 interface NutritionTabContentProps {
   clientId: number | string;
@@ -50,6 +61,8 @@ interface TimelineResponse {
   data?: {
     success?: boolean;
     entries?: NutritionTimelineEntry[];
+    target?: NutritionTargetSummary | null;
+    adherence?: NutritionAdherenceSummary | null;
   };
 }
 
@@ -60,11 +73,21 @@ interface TimelineVerifyResponse {
   };
 }
 
-const getEntriesFromResponse = (response: TimelineResponse): NutritionTimelineEntry[] => {
+interface TimelinePayload {
+  entries: NutritionTimelineEntry[];
+  target: NutritionTargetSummary | null;
+  adherence: NutritionAdherenceSummary | null;
+}
+
+const getPayloadFromResponse = (response: TimelineResponse): TimelinePayload => {
   if (!response.data?.success || !Array.isArray(response.data.entries)) {
     throw new Error('Nutrition timeline response was not successful');
   }
-  return response.data.entries;
+  return {
+    entries: response.data.entries,
+    target: response.data.target && typeof response.data.target === 'object' ? response.data.target : null,
+    adherence: response.data.adherence && typeof response.data.adherence === 'object' ? response.data.adherence : null,
+  };
 };
 
 const getVerifiedEntryFromResponse = (response: TimelineVerifyResponse): NutritionTimelineEntry => {
@@ -79,12 +102,16 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
   const navigate = useNavigate();
   const { user } = useAuth();
   const canSetTargets = user?.role === 'admin' || user?.role === 'trainer';
-  const [entries, setEntries] = useState<NutritionTimelineEntry[]>([]);
+  const todayIso = useMemo(() => formatLocalCalendarDate(), []);
+  const [selectedDate, setSelectedDate] = useState(todayIso);
+  const [rangeMode, setRangeMode] = useState(false);
+  const [payload, setPayload] = useState<TimelinePayload>({ entries: [], target: null, adherence: null });
   const [status, setStatus] = useState<TimelineState>('loading');
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<number | string | null>(null);
-  const date = useMemo(() => formatLocalCalendarDate(), []);
-  const rows = useMemo(() => buildNutritionTimelineRows(entries), [entries]);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const range = useMemo(() => buildNutritionRangeParams(selectedDate, 7), [selectedDate]);
 
   useEffect(() => {
     if (!numericClientId) return;
@@ -94,14 +121,16 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
       setStatus('loading');
       setVerifyError(null);
       try {
-        const params = new URLSearchParams({ date, userId: String(numericClientId) });
+        const params = rangeMode
+          ? new URLSearchParams({ start: range.start, end: range.end, userId: String(numericClientId) })
+          : new URLSearchParams({ date: selectedDate, userId: String(numericClientId) });
         const response = await apiService.get(`/api/macros/client-timeline?${params.toString()}`);
         if (cancelled) return;
-        setEntries(getEntriesFromResponse(response as TimelineResponse));
+        setPayload(getPayloadFromResponse(response as TimelineResponse));
         setStatus('loaded');
       } catch {
         if (cancelled) return;
-        setEntries([]);
+        setPayload({ entries: [], target: null, adherence: null });
         setStatus('error');
       }
     };
@@ -110,7 +139,25 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
     return () => {
       cancelled = true;
     };
-  }, [date, numericClientId]);
+  }, [numericClientId, selectedDate, rangeMode, range, reloadKey]);
+
+  const rows = useMemo(
+    () => buildNutritionTimelineRows(payload.entries, { withDateLabels: rangeMode }),
+    [payload.entries, rangeMode],
+  );
+  const heroView = useMemo(
+    () => buildAdherenceHeroView(payload.adherence, rangeMode ? 'range' : 'day'),
+    [payload.adherence, rangeMode],
+  );
+  const targetResult = useMemo(
+    () => buildActualVsTargetRows(payload.entries, payload.target, rangeMode ? 'range' : 'day'),
+    [payload.entries, payload.target, rangeMode],
+  );
+  const trendPoints = useMemo(
+    () => buildNutritionTrendPoints(payload.entries, range.start, range.end),
+    [payload.entries, range],
+  );
+  const lastLog = useMemo(() => buildLastLogView(payload.entries, todayIso), [payload.entries, todayIso]);
 
   const handleVerify = async (row: NutritionTimelineRow) => {
     if (!row.canVerify || verifyingId !== null) return;
@@ -120,9 +167,12 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
     try {
       const response = await apiService.patch(`/api/macros/client-timeline/${encodeURIComponent(String(row.id))}/verify`);
       const verifiedEntry = getVerifiedEntryFromResponse(response as TimelineVerifyResponse);
-      setEntries((currentEntries) => currentEntries.map((entry) =>
-        String(entry.id) === String(row.id) ? { ...entry, ...verifiedEntry, verified: true } : entry
-      ));
+      setPayload((current) => ({
+        ...current,
+        entries: current.entries.map((entry) =>
+          String(entry.id) === String(row.id) ? { ...entry, ...verifiedEntry, verified: true } : entry
+        ),
+      }));
     } catch {
       setVerifyError('Nutrition verification unavailable');
     } finally {
@@ -130,96 +180,74 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
     }
   };
 
+  const handleSetTargets = () => {
+    navigate(`/dashboard/${user?.role}/nutrition/${numericClientId}`);
+  };
+
   if (!numericClientId) {
     return <NutritionTimelineState>Nutrition identity unavailable</NutritionTimelineState>;
   }
 
-  const stateMessage = status === 'loading'
-    ? 'Loading nutrition timeline...'
-    : status === 'error'
-      ? 'Nutrition timeline unavailable'
-      : rows.length === 0
-        ? 'No meals logged for this date'
-        : null;
-  const provenanceSummary = buildNutritionProvenanceSummary(entries);
-
   return (
     <NutritionTimelineShell aria-busy={status === 'loading'}>
-      <NutritionTimelineHeader>
-        <NutritionTimelineTitleGroup>
-          <NutritionTimelineTitle>Nutrition Timeline</NutritionTimelineTitle>
-          <NutritionTimelineClient>{clientName}</NutritionTimelineClient>
-        </NutritionTimelineTitleGroup>
-        {canSetTargets && numericClientId && (
-          <SetTargetsButton
-            type="button"
-            onClick={() => navigate(`/dashboard/${user?.role}/nutrition/${numericClientId}`)}
-            aria-label={`Set nutrition targets for ${clientName}`}
-          >
-            <Target size={14} aria-hidden="true" />
-            Set targets
-          </SetTargetsButton>
-        )}
-        <NutritionTimelineDate>{date}</NutritionTimelineDate>
-      </NutritionTimelineHeader>
+      <CoachClientNutritionHeader
+        clientName={clientName}
+        lastLog={lastLog}
+        canSetTargets={canSetTargets}
+        onSetTargets={handleSetTargets}
+      />
 
-      {status === 'loaded' ? (
-        <NutritionProvenanceCard role="region" aria-label="Nutrition provenance">
-          <NutritionProvenanceTitle>Provenance</NutritionProvenanceTitle>
-          <NutritionProvenanceGrid>
-            <NutritionProvenanceMetric>
-              <NutritionProvenanceLabel>Verification</NutritionProvenanceLabel>
-              <strong>{provenanceSummary.verificationLine}</strong>
-            </NutritionProvenanceMetric>
-            <NutritionProvenanceMetric>
-              <NutritionProvenanceLabel>Sources</NutritionProvenanceLabel>
-              <strong>{provenanceSummary.sourceLine}</strong>
-            </NutritionProvenanceMetric>
-          </NutritionProvenanceGrid>
-          <NutritionProvenanceCopy>Source and verification status only</NutritionProvenanceCopy>
-        </NutritionProvenanceCard>
-      ) : null}
-
-      {verifyError ? (
-        <NutritionTimelineState role="alert">{verifyError}</NutritionTimelineState>
-      ) : null}
-
-      {stateMessage ? (
-        <NutritionTimelineState role={status === 'error' ? 'alert' : 'status'}>{stateMessage}</NutritionTimelineState>
+      {status === 'loading' ? (
+        <NutritionSkeletonStack role="status" aria-label="Loading nutrition timeline">
+          <NutritionSkeletonBlock $height={84} />
+          <NutritionSkeletonBlock $height={148} />
+          <NutritionSkeletonBlock $height={64} />
+        </NutritionSkeletonStack>
+      ) : status === 'error' ? (
+        <NutritionErrorCard role="alert">
+          <NutritionErrorCopy>The swan lost its way — nutrition timeline unavailable.</NutritionErrorCopy>
+          <NutritionRetryButton type="button" onClick={() => setReloadKey((key) => key + 1)}>
+            Retry
+          </NutritionRetryButton>
+        </NutritionErrorCard>
       ) : (
-        <NutritionTimelineList>
-          {rows.map((row) => (
-            <NutritionTimelineRowCard key={row.id}>
-              <NutritionTimelineRowHeader>
-                <NutritionTimelineMeal>{row.title}</NutritionTimelineMeal>
-                <NutritionTimelineTime>{row.createdAtLabel}</NutritionTimelineTime>
-              </NutritionTimelineRowHeader>
-              <NutritionTimelineDescription>{row.description}</NutritionTimelineDescription>
-              <NutritionTimelineMeta>{row.macroLine} / {row.sourceLabel}</NutritionTimelineMeta>
-              <NutritionTimelineBadges aria-label={`${row.title} review status`}>
-                {row.reviewLabels.map((label) => (
-                  <NutritionTimelineBadge key={label} $attention={label === 'Needs review'}>
-                    {label}
-                  </NutritionTimelineBadge>
-                ))}
-              </NutritionTimelineBadges>
-              {row.canVerify ? (
-                <NutritionTimelineActions>
-                  <NutritionTimelineVerifyButton
-                    type="button"
-                    aria-label={`Mark ${row.title} verified`}
-                    disabled={verifyingId !== null}
-                    aria-busy={verifyingId === row.id}
-                    onClick={() => handleVerify(row)}
-                  >
-                    <CheckCircle2 size={16} aria-hidden="true" />
-                    Mark verified
-                  </NutritionTimelineVerifyButton>
-                </NutritionTimelineActions>
-              ) : null}
-            </NutritionTimelineRowCard>
-          ))}
-        </NutritionTimelineList>
+        <>
+          <NutritionAdherenceHero view={heroView} />
+          <NutritionActualVsTargetGrid
+            result={targetResult}
+            canSetTargets={canSetTargets}
+            onSetTargets={handleSetTargets}
+          />
+          <NutritionDateStepper
+            dateIso={selectedDate}
+            todayIso={todayIso}
+            rangeMode={rangeMode}
+            onStep={(delta) => setSelectedDate((current) => stepNutritionDate(current, delta, todayIso))}
+            onToggleRange={() => setRangeMode((current) => !current)}
+          />
+          {rangeMode ? (
+            <NutritionTrendPanel
+              points={trendPoints}
+              targetCalories={
+                payload.target && typeof payload.target.dailyCalories === 'number' && payload.target.dailyCalories > 0
+                  ? payload.target.dailyCalories
+                  : null
+              }
+            />
+          ) : null}
+
+          {verifyError ? (
+            <NutritionTimelineState role="alert">{verifyError}</NutritionTimelineState>
+          ) : null}
+
+          {rows.length === 0 ? (
+            <NutritionTimelineState role="status">
+              {rangeMode ? 'No meals logged in this range' : 'No meals logged for this date'}
+            </NutritionTimelineState>
+          ) : (
+            <NutritionDiaryList rows={rows} verifyingId={verifyingId} onVerify={handleVerify} />
+          )}
+        </>
       )}
     </NutritionTimelineShell>
   );

@@ -2,6 +2,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
+import { foodScannerLimiter } from '../middleware/rateLimiter.mjs';
 import foodScannerService from '../services/foodScannerService.mjs';
 import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodProduct from '../models/FoodProduct.mjs';
@@ -70,7 +71,7 @@ const buildFoodProductUpdatePayload = (body = {}) => {
  * @desc    Scan a product by barcode
  * @access  Public (enhanced with user history if authenticated)
  */
-router.get('/scan/:barcode', async (req, res) => {
+router.get('/scan/:barcode', foodScannerLimiter, async (req, res) => {
   try {
     const { barcode } = req.params;
     const userId = req.user?.id || null; // Use user ID if authenticated
@@ -149,7 +150,7 @@ router.post('/analyze-ingredients', protect, aiRateLimiter, async (req, res) => 
  * @desc    Search for products
  * @access  Public
  */
-router.get('/search', async (req, res) => {
+router.get('/search', foodScannerLimiter, async (req, res) => {
   try {
     const {
       query,
@@ -160,15 +161,20 @@ router.get('/search', async (req, res) => {
       limit,
       offset
     } = req.query;
-    
+
+    // Public endpoint: clamp pagination before it reaches the service, where
+    // parseInt(garbage) becomes NaN and an unbounded limit becomes a full-table read.
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+    const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
     const searchResults = await foodScannerService.searchProducts({
       query,
       category,
       healthRating,
       organic: organic === 'true',
       nonGMO: nonGMO === 'true',
-      limit,
-      offset
+      limit: safeLimit,
+      offset: safeOffset
     });
     
     return res.status(200).json({
@@ -190,7 +196,7 @@ router.get('/search', async (req, res) => {
  * @desc    Get product details by ID
  * @access  Public
  */
-router.get('/product/:id', async (req, res) => {
+router.get('/product/:id', foodScannerLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -275,7 +281,7 @@ router.put('/history/:id', protect, async (req, res) => {
  * @desc    Get ingredient details by ID
  * @access  Public
  */
-router.get('/ingredient/:id', async (req, res) => {
+router.get('/ingredient/:id', foodScannerLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -429,10 +435,18 @@ router.put('/admin/product/:id', protect, async (req, res) => {
 /**
  * @route   GET /api/food-scanner/stats
  * @desc    Get food scanner statistics
- * @access  Public
+ * @access  Admin only — aggregate counts + top-scanned products are operator
+ *          telemetry, not public content. No frontend surface consumes this
+ *          route (verified 2026-08-04), so restricting it breaks nothing.
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', protect, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Admin access required'
+      });
+    }
     const productCount = await FoodProduct.count();
     const ingredientCount = await FoodIngredient.count();
     const scanCount = await FoodScanHistory.count();

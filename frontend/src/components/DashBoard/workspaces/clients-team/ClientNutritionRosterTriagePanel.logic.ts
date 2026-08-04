@@ -1,5 +1,8 @@
 export const MAX_ROSTER_TRIAGE_CLIENTS = 12;
 
+/** Phase 4A: default visible rows; "Show all N" expands (HY3 §0.4 truncation fix). */
+export const ROSTER_TRIAGE_COLLAPSED_COUNT = 4;
+
 export interface NutritionRosterClient {
   id: number;
   displayName: string;
@@ -120,3 +123,9 @@ export const buildNutritionRosterRows = (
     }];
   }).sort((a, b) => b.attentionScore - a.attentionScore || a.clientName.localeCompare(b.clientName));
 };
+
+/** Visible slice for the panel: 4 rows collapsed, everything when expanded. */
+export const selectVisibleRosterRows = (
+  rows: NutritionRosterRow[],
+  expanded: boolean,
+): NutritionRosterRow[] => (expanded ? rows : rows.slice(0, ROSTER_TRIAGE_COLLAPSED_COUNT));

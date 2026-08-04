@@ -103,7 +103,7 @@ const EMPTY_ITEMS = {
 async function openProfileDetail() {
   const { container } = render(<EquipmentManagerPage />);
   fireEvent.click(await screen.findByText(/Hotel Gym/));
-  await screen.findByText('Swan Coach Scan');
+  await screen.findByText('Scan Equipment');
   const galleryInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
   expect(galleryInput).toBeTruthy();
   return galleryInput;
@@ -172,7 +172,7 @@ describe('EquipmentManagerPage V2 batch scan tray', () => {
     expect(within(tray).getByText('Exercise Bike')).toBeTruthy();
     expect(within(tray).getByText('Dumbbell Rack')).toBeTruthy();
     expect(within(tray).getAllByText(/Duplicate match/i).length).toBeGreaterThan(0);
-    expect(within(tray).getByText(/42% confidence/)).toBeTruthy();
+    expect(within(tray).getByText(/Not sure — scan this spot closer/)).toBeTruthy();
     expect(within(tray).getByRole('button', { name: /add foam roller to inventory/i })).toBeTruthy();
     expect(screen.queryByText('Review AI Scan')).toBeNull();
 
@@ -211,7 +211,7 @@ describe('EquipmentManagerPage V2 batch scan tray', () => {
 
     const tray = await screen.findByLabelText('Latest equipment scan review');
     fireEvent.click(within(tray).getByRole('checkbox', { name: /select all pending scan items/i }));
-    fireEvent.click(within(tray).getByRole('button', { name: /approve selected/i }));
+    fireEvent.click(within(tray).getByRole('button', { name: /add 2 selected items/i }));
 
     await waitFor(() => expect(approveItemMock).toHaveBeenCalledTimes(2));
     expect(approveItemMock).toHaveBeenCalledWith(1, RACK.id, expect.objectContaining({ name: 'Squat Rack', category: 'rack' }));

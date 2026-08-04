@@ -1,12 +1,10 @@
 import { Plus, Save, Sparkles, Trash2 } from 'lucide-react';
 import {
   BodyText,
-  Card,
   CardBody,
   CardHeader,
   ErrorText,
   FormField,
-  GridContainer,
   HelperText,
   Label,
   OutlinedButton,
@@ -18,7 +16,19 @@ import {
   StyledTextarea,
   PageTitle,
 } from '../UniversalMasterSchedule/ui';
-import { ActionRow, HeaderRow, MealCard, MealHeader, Subheading, SuccessText } from './NutritionPlanBuilder.styles';
+import {
+  ActionRow,
+  BuilderCard,
+  FieldErrorText,
+  FormErrorList,
+  FormGrid,
+  HeaderRow,
+  MealCard,
+  MealHeader,
+  Subheading,
+  SuccessText,
+} from './NutritionPlanBuilder.styles';
+import NutritionPlanBuilderClientPicker from './NutritionPlanBuilderClientPicker';
 import type { MealDraft } from './NutritionPlanBuilder.types';
 
 export const BuilderHeader = () => (
@@ -31,39 +41,35 @@ export const BuilderHeader = () => (
 );
 
 export const ClientSelectionCard = ({
-  clientIdInput,
   isLoading,
   loadError,
-  numericClientId,
-  onClientIdChange,
+  onSelectClient,
+  selectedClientId,
 }: {
-  clientIdInput: string;
   isLoading: boolean;
   loadError: string | null;
-  numericClientId?: number;
-  onClientIdChange: (value: string) => void;
+  onSelectClient: (clientId: number) => void;
+  selectedClientId?: number;
 }) => (
-  <Card>
+  <BuilderCard>
     <CardHeader>
-      <SectionTitle>Client Selection</SectionTitle>
+      <SectionTitle>Client</SectionTitle>
     </CardHeader>
     <CardBody>
       <FormField>
-        <Label htmlFor="nutrition-client-id" required>Client ID</Label>
-        <StyledInput
-          id="nutrition-client-id"
-          type="number"
-          value={clientIdInput}
-          onChange={(event) => onClientIdChange(event.target.value)}
-          placeholder="Enter client user ID"
-          hasError={!numericClientId && clientIdInput.length > 0}
+        {/* The dropdown trigger carries its own aria-label; htmlFor would
+            dangle when the picker renders the dropdown branch. */}
+        <Label as="span" required>Client</Label>
+        <NutritionPlanBuilderClientPicker
+          selectedClientId={selectedClientId}
+          onSelectClient={onSelectClient}
         />
-        <HelperText>Use the numeric user ID from the client profile.</HelperText>
+        <HelperText>Search by name or email — recent clients appear first.</HelperText>
       </FormField>
       {loadError && <ErrorText>{loadError}</ErrorText>}
       {isLoading && <SmallText secondary>Loading existing plan...</SmallText>}
     </CardBody>
-  </Card>
+  </BuilderCard>
 );
 
 export const PlanOverviewCard = ({
@@ -71,6 +77,8 @@ export const PlanOverviewCard = ({
   dailyCalories,
   endDate,
   fatGrams,
+  fieldErrors,
+  formErrors,
   planName,
   proteinGrams,
   setCarbsGrams,
@@ -86,6 +94,8 @@ export const PlanOverviewCard = ({
   dailyCalories: string;
   endDate: string;
   fatGrams: string;
+  fieldErrors: Record<string, string[]>;
+  formErrors: string[];
   planName: string;
   proteinGrams: string;
   setCarbsGrams: (value: string) => void;
@@ -97,25 +107,31 @@ export const PlanOverviewCard = ({
   setStartDate: (value: string) => void;
   startDate: string;
 }) => (
-  <Card>
+  <BuilderCard>
     <CardHeader>
       <SectionTitle>Plan Overview</SectionTitle>
     </CardHeader>
     <CardBody>
-      <GridContainer columns={2} gap="1.5rem">
-        <NutritionInput id="plan-name" label="Plan Name" required value={planName} onChange={setPlanName} placeholder="Custom Nutrition Plan" />
-        <NutritionInput id="daily-calories" label="Daily Calories" required type="number" value={dailyCalories} onChange={setDailyCalories} placeholder="2200" />
-        <NutritionInput id="protein-grams" label="Protein (g)" type="number" value={proteinGrams} onChange={setProteinGrams} placeholder="150" />
-        <NutritionInput id="carbs-grams" label="Carbs (g)" type="number" value={carbsGrams} onChange={setCarbsGrams} placeholder="200" />
-        <NutritionInput id="fat-grams" label="Fat (g)" type="number" value={fatGrams} onChange={setFatGrams} placeholder="70" />
-        <NutritionInput id="nutrition-start-date" label="Start Date" type="date" value={startDate} onChange={setStartDate} />
-        <NutritionInput id="nutrition-end-date" label="End Date" type="date" value={endDate} onChange={setEndDate} />
-      </GridContainer>
+      <FormGrid>
+        <NutritionInput id="plan-name" label="Plan Name" required value={planName} onChange={setPlanName} placeholder="Custom Nutrition Plan" error={fieldErrors.planName?.[0]} />
+        <NutritionInput id="daily-calories" label="Daily Calories" required type="number" value={dailyCalories} onChange={setDailyCalories} placeholder="2200" error={fieldErrors.dailyCalories?.[0]} />
+        <NutritionInput id="protein-grams" label="Protein (g)" type="number" value={proteinGrams} onChange={setProteinGrams} placeholder="150" error={fieldErrors.proteinGrams?.[0]} />
+        <NutritionInput id="carbs-grams" label="Carbs (g)" type="number" value={carbsGrams} onChange={setCarbsGrams} placeholder="200" error={fieldErrors.carbsGrams?.[0]} />
+        <NutritionInput id="fat-grams" label="Fat (g)" type="number" value={fatGrams} onChange={setFatGrams} placeholder="70" error={fieldErrors.fatGrams?.[0]} />
+        <NutritionInput id="nutrition-start-date" label="Start Date" type="date" value={startDate} onChange={setStartDate} error={fieldErrors.startDate?.[0]} />
+        <NutritionInput id="nutrition-end-date" label="End Date" type="date" value={endDate} onChange={setEndDate} error={fieldErrors.endDate?.[0]} />
+      </FormGrid>
+      {formErrors.length > 0 && (
+        <FormErrorList role="alert">
+          {formErrors.map((message) => <li key={message}>{message}</li>)}
+        </FormErrorList>
+      )}
     </CardBody>
-  </Card>
+  </BuilderCard>
 );
 
 const NutritionInput = ({
+  error,
   id,
   label,
   onChange,
@@ -124,6 +140,7 @@ const NutritionInput = ({
   type,
   value,
 }: {
+  error?: string;
   id: string;
   label: string;
   onChange: (value: string) => void;
@@ -141,7 +158,11 @@ const NutritionInput = ({
       placeholder={placeholder}
       type={type}
       value={value}
+      hasError={!!error}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={error ? `${id}-error` : undefined}
     />
+    {error && <FieldErrorText id={`${id}-error`}>{error}</FieldErrorText>}
   </FormField>
 );
 
@@ -156,7 +177,7 @@ export const MealsCard = ({
   onMealChange: (index: number, field: keyof MealDraft, value: string) => void;
   onRemoveMeal: (index: number) => void;
 }) => (
-  <Card>
+  <BuilderCard>
     <CardHeader>
       <SectionTitle>Meals</SectionTitle>
       <SecondaryButton type="button" onClick={onAddMeal}><Plus size={16} /> Add Meal</SecondaryButton>
@@ -168,10 +189,10 @@ export const MealsCard = ({
             <Subheading>Meal {index + 1}</Subheading>
             <OutlinedButton type="button" onClick={() => onRemoveMeal(index)}><Trash2 size={16} /> Remove</OutlinedButton>
           </MealHeader>
-          <GridContainer columns={2} gap="1rem">
+          <FormGrid>
             <NutritionInput id={`meal-name-${index}`} label="Meal Name" value={meal.name} onChange={(value) => onMealChange(index, 'name', value)} placeholder="Breakfast" />
             <NutritionInput id={`meal-time-${index}`} label="Time" value={meal.time} onChange={(value) => onMealChange(index, 'time', value)} placeholder="7:00 AM" />
-          </GridContainer>
+          </FormGrid>
           <FormField>
             <Label htmlFor={`meal-items-${index}`}>Ingredients</Label>
             <StyledTextarea
@@ -186,7 +207,7 @@ export const MealsCard = ({
         </MealCard>
       ))}
     </CardBody>
-  </Card>
+  </BuilderCard>
 );
 
 export const GroceryListCard = ({
@@ -198,7 +219,7 @@ export const GroceryListCard = ({
   onGenerate: () => void;
   onGroceryListChange: (value: string) => void;
 }) => (
-  <Card>
+  <BuilderCard>
     <CardHeader>
       <SectionTitle>Grocery List</SectionTitle>
       <SecondaryButton type="button" onClick={onGenerate}><Sparkles size={16} /> Generate from Meals</SecondaryButton>
@@ -215,11 +236,11 @@ export const GroceryListCard = ({
         />
       </FormField>
     </CardBody>
-  </Card>
+  </BuilderCard>
 );
 
 export const NotesCard = ({ notes, onNotesChange }: { notes: string; onNotesChange: (value: string) => void }) => (
-  <Card>
+  <BuilderCard>
     <CardHeader>
       <SectionTitle>Notes</SectionTitle>
     </CardHeader>
@@ -235,7 +256,7 @@ export const NotesCard = ({ notes, onNotesChange }: { notes: string; onNotesChan
         />
       </FormField>
     </CardBody>
-  </Card>
+  </BuilderCard>
 );
 
 export const NutritionSubmitFooter = ({
@@ -248,7 +269,7 @@ export const NutritionSubmitFooter = ({
   successMessage: string | null;
 }) => (
   <>
-    {successMessage && <SuccessText>{successMessage}</SuccessText>}
+    {successMessage && <SuccessText role="status">{successMessage}</SuccessText>}
     <ActionRow>
       <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting}>
         <Save size={16} />

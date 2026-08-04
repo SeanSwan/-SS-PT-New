@@ -56,6 +56,9 @@
  *   G09: brief_client → briefClientDispatcher (cross-domain de-identified brief; fail-closed clientAccess gate)
  *   exec-substrate-v18 (Day Sheet, Slice A2):
  *   G10: brief_my_day → dayBriefDispatcher (trainer own-day / admin all-day; de-identified per-client flags; gamification joins engine profile domain)
+ *   exec-substrate-v19 (Equipment Intelligence, Slice S6):
+ *   O01-O04: equipment_list_profiles / equipment_list_items / equipment_gap_report (T0 reads)
+ *            + equipment_add_item (confirmed manual-status write) → equipmentDispatchers
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -200,6 +203,12 @@ import { dispatchSubmitOnboarding } from './dispatchers/onboardingSubmitDispatch
 import { dispatchViewOnboardingStatus } from './dispatchers/onboardingStatusDispatcher.mjs';
 import { dispatchFillBaselineMeasurements } from './dispatchers/onboardingBaselineDispatcher.mjs';
 import { dispatchViewOrientationQueue } from './dispatchers/onboardingQueueDispatcher.mjs';
+import {
+  dispatchEquipmentAddItem,
+  dispatchEquipmentGapReport,
+  dispatchEquipmentListItems,
+  dispatchEquipmentListProfiles,
+} from './dispatchers/equipmentDispatchers.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -319,6 +328,10 @@ const DISPATCHERS = new Map([
   ['plaud_group_session_candidates', dispatchPlaudGroupSessionCandidates],
   ['plaud_merge_candidate_group',   dispatchPlaudMergeCandidateGroup],
   ['plaud_request_confirmation',    dispatchPlaudRequestConfirmation],
+  ['equipment_list_profiles',       dispatchEquipmentListProfiles],
+  ['equipment_list_items',          dispatchEquipmentListItems],
+  ['equipment_gap_report',          dispatchEquipmentGapReport],
+  ['equipment_add_item',            dispatchEquipmentAddItem],
 ]);
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────

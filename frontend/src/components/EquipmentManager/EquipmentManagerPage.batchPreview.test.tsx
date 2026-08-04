@@ -99,7 +99,7 @@ const EMPTY_ITEMS = {
 async function openProfileDetail() {
   const { container } = render(<EquipmentManagerPage />);
   fireEvent.click(await screen.findByText(/Hotel Gym/));
-  await screen.findByText('Swan Coach Scan');
+  await screen.findByText('Scan Equipment');
   const galleryInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
   expect(galleryInput).toBeTruthy();
   return galleryInput;
@@ -157,8 +157,8 @@ describe('EquipmentManagerPage V2 scan preview overlay', () => {
 
     const tray = await screen.findByLabelText('Latest equipment scan review');
     expect(await within(tray).findByAltText(/scan preview for gym.jpg/i)).toBeTruthy();
-    const rackBox = within(tray).getByLabelText(/squat rack detection box/i);
+    const rackBox = within(tray).getByLabelText(/squat rack — Confident/i);
     expect(rackBox).toHaveStyle({ left: '10%', top: '20%', width: '30%', height: '40%' });
-    expect(within(tray).getByLabelText(/foam roller detection box/i)).toBeTruthy();
+    expect(within(tray).getByLabelText(/foam roller — Not sure/i)).toBeTruthy();
   });
 });

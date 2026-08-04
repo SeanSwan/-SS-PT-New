@@ -117,7 +117,8 @@ describe('NutritionWorkspace Gentle Mode', () => {
     expect(screen.queryByRole('button', { name: /review macros/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask coach for gentle support/i })).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    // 4B: the <select> is gone — the Insights segment lands on My Macros.
+    await user.click(screen.getByRole('button', { name: /^insights$/i }));
 
     expect(screen.getByRole('region', { name: /gentle mode macro charts hidden/i })).toBeInTheDocument();
     expect(screen.queryByLabelText('macro donut')).not.toBeInTheDocument();
