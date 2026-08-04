@@ -71,6 +71,7 @@ async function mockBootcampQaApi(page: Page) {
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: adminUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: adminUser });
+    if (endpoint === '/api/cart') return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
     if (endpoint === '/api/exercises/library') return fulfillJson(route, { success: true, exercises });
     if (endpoint === '/api/workout/recommendations') return fulfillJson(route, { success: true, exercises });
     if (endpoint === '/api/workout/plans') return fulfillJson(route, { success: true, plans: [] });
@@ -106,8 +107,12 @@ async function buildUploadedMediaBootcamp(page: Page) {
   }
 
   await expect(page.getByText('Floor visuals ready')).toBeVisible();
-  await page.getByRole('button', { name: /demo mode/i }).click();
+  await expect(page.getByLabel('Bootcamp class workflow')).toContainText('Run-ready');
+  await page.getByRole('button', { name: /prepare class/i }).click();
+  await expect(page.getByRole('button', { name: /start class/i })).toBeVisible();
+  await page.getByRole('button', { name: /start class/i }).click();
   await expect(page.getByLabel('Bootcamp station exercise demo mode')).toBeVisible();
+  await expect(page.getByLabel('Live bootcamp class runner')).toBeVisible();
   await expect(page.getByLabel('Floor director status')).toContainText('4/4 demos');
   await expect(page.getByLabel('Floor director status')).toContainText('Class 16/16 demos ready');
 }

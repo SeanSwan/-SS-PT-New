@@ -75,7 +75,7 @@ export const UniversalGlobalStyles = createGlobalStyle`
   body {
     font-family: 'Plus Jakarta Sans', 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary, #E0ECF4);
-    background: var(--bg-base, #0A0A0F);
+    background: var(--app-canvas, #0A0A0F);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -131,7 +131,7 @@ export const UniversalLayoutContainer = styled.div`
   display: flex;
   min-height: 100dvh;
   width: 100%;
-  background: var(--bg-base, #0A0A0F);
+  background: var(--app-canvas, #0A0A0F);
   position: relative;
   overflow-x: hidden;
 `;
@@ -146,7 +146,7 @@ export const UniversalMainContent = styled(motion.main)<{ $compactMobileTop?: bo
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
-  background: var(--bg-base, #0A0A0F);
+  background: var(--app-canvas, #0A0A0F);
   /* No overflow-y here: the DOCUMENT owns vertical scroll (sidebars are
      position: fixed). An inner overflow-y:auto made this a nested scroller
      that swallowed touch gestures before the page moved. clip keeps the
@@ -229,10 +229,10 @@ export const MobileDashboardSafeArea = styled.div`
     border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
     background:
       linear-gradient(180deg,
-        color-mix(in srgb, var(--bg-base, #0A0A0F) 98%, transparent) 0%,
-        color-mix(in srgb, var(--bg-base, #0A0A0F) 97%, transparent) 76%,
-        color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent) 100%);
-    box-shadow: 0 16px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 32%, transparent);
+        color-mix(in srgb, var(--app-canvas, #0A0A0F) 98%, transparent) 0%,
+        color-mix(in srgb, var(--app-canvas, #0A0A0F) 97%, transparent) 76%,
+        color-mix(in srgb, var(--app-canvas, #0A0A0F) 88%, transparent) 100%);
+    box-shadow: 0 16px 28px color-mix(in srgb, var(--app-canvas, #0A0A0F) 32%, transparent);
     backdrop-filter: blur(12px);
   }
 

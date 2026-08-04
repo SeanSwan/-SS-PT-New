@@ -83,61 +83,17 @@ describe('workoutSessionRoutes live-surface hardening', () => {
     expect(serviceSource).not.toContain('/api/workout/sessions/statistics');
   });
 
-  it('rejects malformed pagination before querying workout sessions', async () => {
-    const res = await request(buildApp())
-      .get('/api/workout/sessions?page=2junk&limit=10')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ success: false, message: 'Invalid page' });
-    expect(mocks.findAndCountAll).not.toHaveBeenCalled();
-  });
-
-  it('rejects unapproved sort fields before querying workout sessions', async () => {
-    const res = await request(buildApp())
-      .get('/api/workout/sessions?sortBy=DROP_TABLE&sortDirection=desc')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ success: false, message: 'Invalid sortBy' });
-    expect(mocks.findAndCountAll).not.toHaveBeenCalled();
-  });
-
-  it('does not disclose internal list errors to the client', async () => {
-    mocks.findAndCountAll.mockRejectedValue(new Error('database hostname and schema detail'));
-
-    const res = await request(buildApp())
-      .get('/api/workout/sessions')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({
-      success: false,
-      message: 'Failed to get workout sessions',
-      code: 'INTERNAL_ERROR',
-    });
-    expect(JSON.stringify(res.body)).not.toContain('database hostname and schema detail');
-  });
-
-  it('does not disclose internal detail errors to the client', async () => {
-    mocks.findByPk.mockRejectedValue(new Error('private lookup stack'));
-
-    const res = await request(buildApp())
-      .get('/api/workout/sessions/session-1')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({
-      success: false,
-      message: 'Server error',
-      code: 'INTERNAL_ERROR',
-    });
-    expect(JSON.stringify(res.body)).not.toContain('private lookup stack');
-  });
+  // REMOVED 2026-07-30 (SWA-75): these four covered GET / and GET /:id on this
+  // router. Those routes were UNREACHABLE — /api/workout is mounted ahead of
+  // /api/workout/sessions — and have now been deleted. The tests passed only
+  // because they mounted this router DIRECTLY, bypassing the real mount order,
+  // so they were asserting security properties on code no request could reach.
+  //
+  // Where the coverage went, against the endpoint that actually serves traffic:
+  //   pagination + sort rejection -> tests/api/workoutSessionsListValidation.test.mjs
+  //   internal-error non-disclosure -> utils/responseUtils.errorResponse gates
+  //     detail on NODE_ENV !== 'production' (verified), and the live controller
+  //     routes every 500 through it.
 
   it('does not keep raw error.message response payloads in the route source', () => {
     const routeSource = readFileSync(resolve(__dirname, '../../routes/workoutSessionRoutes.mjs'), 'utf8');

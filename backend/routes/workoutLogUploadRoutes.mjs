@@ -186,7 +186,11 @@ export const resolveVoiceUploadScope = ({ role, requestedClientId, userId }) => 
  */
 router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLimiter, uploadFile, async (req, res) => {
   try {
-    if (!req.file) {
+    // S7 (JARVIS §6.2): the voice lane sends an already-transcribed `transcript`
+    // text field — same route, same parser, no file required. Field addition
+    // per ruling A9 (no new endpoints anywhere in this program).
+    const directTranscript = typeof req.body?.transcript === 'string' ? req.body.transcript.trim() : '';
+    if (!req.file && !directTranscript) {
       return res.status(400).json({ error: 'No file provided' });
     }
 
@@ -225,13 +229,13 @@ router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLi
     logger.info('[WorkoutLogUpload] Processing upload', {
       trainerId: parsedTrainerId,
       clientId: parsedClientId,
-      filename: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
+      filename: file ? file.originalname : '(direct transcript field)',
+      mimetype: file ? file.mimetype : 'text/plain',
+      size: file ? file.size : directTranscript.length,
     });
 
-    // Step 1: Get transcript
-    const transcript = await extractTranscriptFromFile(file);
+    // Step 1: Get transcript (direct field wins; file path unchanged)
+    const transcript = directTranscript || await extractTranscriptFromFile(file);
 
     if (!transcript || transcript.trim().length < 5) {
       return res.status(422).json({ error: 'Could not extract meaningful text from file' });
@@ -251,9 +255,9 @@ router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLi
       transcript,
       parsedWorkout,
       metadata: {
-        filename: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
+        filename: file ? file.originalname : 'transcript-field',
+        mimetype: file ? file.mimetype : 'text/plain',
+        size: file ? file.size : transcript.length,
         clientId: parsedClientId,
         trainerId: parsedTrainerId,
         sessionId: parsedSessionId,
@@ -262,6 +266,10 @@ router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLi
   } catch (err) {
     logger.error('[WorkoutLogUpload] Upload failed', { error: err.message, stack: err.stack });
 
+    // S7 fail-closed privacy gate: redaction failure is a 4xx, never a retry-me 500.
+    if (err?.message === 'REDACTION_FAILED') {
+      return res.status(422).json({ error: 'Could not safely process this transcript. Please edit it and try again.' });
+    }
     res.status(500).json({ error: 'Failed to process upload. Please try again.' });
   }
 });

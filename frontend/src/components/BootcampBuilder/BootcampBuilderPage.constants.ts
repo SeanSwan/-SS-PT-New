@@ -1,4 +1,5 @@
 export type BuildMode = 'ai' | 'manual' | 'hybrid';
+export type BootcampWorkflowStage = 'build' | 'preflight' | 'run';
 
 export const BOOTCAMP_TEACH_ME_CONTENT = [
   '<strong>3 Build Modes:</strong>',

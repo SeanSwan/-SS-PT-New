@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerLoadPlanActions.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 const hydrationPath = resolve(__dirname, 'workoutPlannerLoadPlanHydration.ts');
@@ -13,7 +13,7 @@ const hydrationSource = existsSync(hydrationPath) ? readFileSync(hydrationPath, 
 
 describe('WorkoutPlanner load plan action extraction', () => {
   it('keeps saved-plan hydration outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerLoadPlanActions'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerLoadPlanActions'");
     expect(pageSource).not.toContain('const loadPlanIntoBuilder = useCallback');
     expect(hookSource).toContain('/api/workout-plans/${planId}');
     expect(hydrationSource).toContain('resolveWorkoutPlannerPlanClientId');

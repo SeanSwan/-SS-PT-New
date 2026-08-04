@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History, UploadCloud, Mic } from 'lucide-react';
+import { Plus, Download, History, UploadCloud } from 'lucide-react';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
+import { isVoiceModeV2Enabled } from '../../hooks/voice/voiceModeV2Flag';
+import JarvisVoiceMode from '../voice/JarvisVoiceMode';
+import { useJarvisVoiceCutover } from './useJarvisVoiceCutover';
 import { useLastWeightSuggestions } from './useLastWeightSuggestions';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -24,18 +27,27 @@ import {
   LoadPlanButton,
   LoadPlanRow,
   LoadingSpinner,
+  FinishEmptyNote,
   RolodexTrigger,
-  TimerFAB,
   WarmupProtocolIcon,
   WorkoutLoggerContainer,
 } from './WorkoutLogger.styles';
 import { LiveRegion } from './WorkoutLoggerStatus.styles';
-import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import WorkoutLoggerModeBar from './WorkoutLoggerModeBar';
 import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
+import { buildWorkoutLoggerCoachRoute } from './workoutLoggerCoachRoute';
 import SessionSummaryForm from './SessionSummaryForm';
-import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
-import ActivePlanContextStrip from './ActivePlanContextStrip';
+import ContextBar from './runner/shell/zones/ContextBar';
+import ShellNotices from './runner/shell/zones/ShellNotices';
+import CoachDrawer from './runner/shell/zones/CoachDrawer';
+import StageRail from './runner/shell/zones/StageRail';
+import ActionBar from './runner/shell/zones/ActionBar';
+import StageCanvas from './runner/shell/primitives/StageCanvas';
+import ShellZoneBoundary from './runner/shell/primitives/ShellZoneBoundary';
+import ReceiptPRStrip from './runner/shell/zones/ReceiptPRStrip';
+import { createSessionStageStore, switchSessionStage, useSessionStage } from './runner/shell/useSessionStage';
+import { usePRToast, useWarmupRamp } from './runner/shell/useSessionPerks';
+import WorkoutLoggerEmptyPlanState from './WorkoutLoggerEmptyPlanState';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
@@ -43,7 +55,6 @@ import SaveSuccessPanel from './SaveSuccessPanel';
 import WorkoutLoggerHandoffMount from './handoff/WorkoutLoggerHandoffMount';
 import './workoutLoggerSubmitPayload';
 import './WorkoutLogger.submitGuard';
-import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerLensFrame from './WorkoutLoggerLensFrame';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
 import WorkoutLoggerVoiceImportSection from './WorkoutLoggerVoiceImportSection';
@@ -51,21 +62,17 @@ import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
 import CompactProtocolSection, {
   type ProtocolSectionKey,
-  type ProtocolSelection,
 } from './CompactProtocolSection';
-import {
-  getRecommendedProtocolItems,
-  type NASMDefaultItem,
-} from './NASMProtocolDefaults';
-import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
-import NASMPhaseGuide from './NASMPhaseGuide';
+import { getRecommendedProtocolItems } from './NASMProtocolDefaults';
+import { useProtocolSelections } from './useProtocolSelections';
+import { NASMLearningProvider } from './NASMLearningMode';
+import CoachReferenceTab from './CoachReferenceTab';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, hasStoredWorkoutDraft } from './useWorkoutDraft';
-import WorkoutDraftGateBanner, { type WorkoutDraftGate } from './WorkoutDraftGateBanner';
 import { toggleSupersetLink, renumberSupersetGroups } from './WorkoutLogger.supersets';
-import FloatingRestTimer from './FloatingRestTimer';
 import type {
+  WorkoutDraftGate,
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
 } from './WorkoutLogger.localTypes';
@@ -74,6 +81,8 @@ import RunnerCollection from './runner/RunnerCollection';
 import RunnerEmptyState from './runner/RunnerEmptyState';
 import { useRunnerEngine } from './runner/useRunnerEngine';
 import { writeRunnerStyle } from './runner/runnerStyles';
+import { useRunnerStyle } from './runner/useRunnerStyle';
+import { getRecipe } from './runner/shell/recipes';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -81,9 +90,9 @@ import { reapplyGhostPreFill } from './WorkoutLogger.ghostReapply';
 import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
-import StickyLogActionBar from './StickyLogActionBar';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import { useWorkoutAiEvents } from './useWorkoutAiEvents';
 import { useWorkoutSubmit } from './useWorkoutSubmit';
 import { useWorkoutPlanLoading } from './useWorkoutPlanLoading';
@@ -117,9 +126,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
       : (allowSelfMode ? userNumericId : undefined);
-  // AI_* logger commands are admin/trainer only — no Dictate surface for client/user roles (R1).
   const canDictate = user?.role === 'admin' || user?.role === 'trainer';
-  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null });
   const isClientSelfMode: boolean =
     allowSelfMode &&
     typeof effectiveClientId === 'number' &&
@@ -127,7 +134,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const workoutDateValue = scheduledSessionDate
     ? normalizeWorkoutDate(scheduledSessionDate)
     : normalizeWorkoutDate(null);
-
+  const coachCommandRoute = buildWorkoutLoggerCoachRoute({ userRole: user?.role, clientId: effectiveClientId, selfMode: isClientSelfMode, workoutDate: workoutDateValue, scheduledSessionId, scheduledSessionDate, scheduledSessionCreditHint });
   // C4a: a stored draft BEATS ?loadPlan=today — synchronous peek (no effect-
   // order race); the plan auto-loads only after an explicit discard.
   const [draftGate, setDraftGate] = useState<WorkoutDraftGate>(() => (
@@ -178,9 +185,23 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setShowExerciseSearch(true);
     }
   }, [routeExercise]);
-  const [showFloatingTimer, setShowFloatingTimer] = useState(false);
+  const [showCoachDrawer, setShowCoachDrawer] = useState(false);
+  // Hostile Batch 3: live elapsed clock — anchored to the FIRST logged set.
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+  const lastLoggedAtRef = useRef<number>(0);
+  // SESSION SHELL M2: stage is a free VIEW — in-memory store, Train default.
+  const sessionStageStore = useMemo(() => createSessionStageStore(), []);
+  const [sessionStage] = useSessionStage(sessionStageStore);
+  // M4: the active runner style's page recipe — DATA driving zone chrome.
+  const [runnerStyleId] = useRunnerStyle();
+  const pageRecipe = getRecipe(runnerStyleId);
+  // M6: keep the screen awake while a live session is on the Train canvas.
+  useScreenWakeLock(sessionStage === 'train' && exercises.length > 0);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
+  const canUseDictation = canDictate && sessionStage === 'train' && !submittedFormId;
+  const voiceModeV2 = isVoiceModeV2Enabled(); // S10 one-mic cutover — see useJarvisVoiceCutover
+  const dictation = useWorkoutLoggerDictation({ clientId: effectiveClientId ?? null, enabled: canUseDictation && !voiceModeV2 });
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
   // Phase 2.1a: saved form powers SaveSuccessPanel; onComplete deferred to Done.
   const [lastSaveResponse, setLastSaveResponse] = useState<DailyWorkoutForm | null>(null);
@@ -190,22 +211,24 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const hookClientId = effectiveClientId ?? 0;
   const ghostPreFill = useGhostPreFill(hookClientId, { skip: isClientSelfMode });
   const sessionStats = useSessionStats(exercises);
+  // Batch 4: PR toast — only hand-logged sets celebrate (bulk loads re-baseline).
+  usePRToast(sessionStats.prs, lastLoggedAtRef);
   const offlineQueue = useOfflineQueue(hookClientId);
   const restTimer = useRestTimer({
     defaultSeconds: 60,
     onComplete: () => toast.info('Rest complete - next set!'),
   });
 
-  const [selectedWarmup, setSelectedWarmup] = useState<ProtocolSelection[]>([]);
-  const [selectedBalanceCore, setSelectedBalanceCore] = useState<ProtocolSelection[]>([]);
-  const [selectedCooldown, setSelectedCooldown] = useState<ProtocolSelection[]>([]);
-  const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<ProtocolSectionKey, boolean>>({
-    warmup: false,
-    balance_core: false,
-    cooldown: false,
-  });
-
   const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
+  const openRolodexForSection = useCallback((section: ProtocolSectionKey) => {
+    setPendingSectionContext(section);
+    setShowExerciseSearch(true);
+  }, []);
+  const {
+    selectedWarmup, selectedBalanceCore, selectedCooldown, nasmSectionsOpen,
+    toggleNasmSection, protocolSectionSetters, addProtocolPreset,
+    addProtocolFromRolodex, removeProtocolItem, requestAddForSection, openSections,
+  } = useProtocolSelections(openRolodexForSection);
 
   // Phase 3c.1: in-gym autosave — draft persists per user+client+date, restored on remount.
   const workoutDraft = useWorkoutDraft({
@@ -215,6 +238,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     exercises,
     sessionNotes,
     overallIntensity,
+    restEndsAt: restTimer.endsAt, sessionStartedAt,
     enabled: !hasInitialExercises && !lastSaveResponse,
   });
 
@@ -228,78 +252,27 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return `${prefix}-local-${Date.now()}-${nextId}`;
   }, []);
 
-  const toggleNasmSection = useCallback((key: ProtocolSectionKey) =>
-    setNasmSectionsOpen(prev => ({ ...prev, [key]: !prev[key] })), []);
-
-  const protocolSectionSetters: Record<
-    ProtocolSectionKey,
-    React.Dispatch<React.SetStateAction<ProtocolSelection[]>>
-  > = {
-    warmup: setSelectedWarmup,
-    balance_core: setSelectedBalanceCore,
-    cooldown: setSelectedCooldown,
-  };
-
-  const addProtocolPreset = useCallback(
-    (section: ProtocolSectionKey, item: NASMDefaultItem) => {
-      const setter = protocolSectionSetters[section];
-      const entry: ProtocolSelection = {
-        id: item.id,
-        name: item.name,
-        source: 'preset',
-        category: item.category,
-      };
-      setter((prev) => (prev.some((p) => p.id === entry.id) ? prev : [...prev, entry]));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const addProtocolFromRolodex = useCallback(
-    (section: ProtocolSectionKey, exercise: ExerciseSlim) => {
-      const setter = protocolSectionSetters[section];
-      const id = `rolodex-${exercise.id}`;
-      const entry: ProtocolSelection = {
-        id,
-        name: exercise.name,
-        source: 'rolodex',
-      };
-      setter((prev) => (prev.some((p) => p.id === id) ? prev : [...prev, entry]));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const removeProtocolItem = useCallback(
-    (section: ProtocolSectionKey, id: string) => {
-      const setter = protocolSectionSetters[section];
-      setter((prev) => prev.filter((p) => p.id !== id));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const requestAddForSection = useCallback((section: ProtocolSectionKey) => {
-    setPendingSectionContext(section);
-    setShowExerciseSearch(true);
-    setNasmSectionsOpen((prev) => ({ ...prev, [section]: true }));
-  }, []);
-
   const loadPhaseTemplate = useCallback((phase: number) => {
     const template = getPhaseTemplate(phase);
     if (!template) return;
 
     const templateExercises = buildPhaseTemplateEntries(template, phase, createWorkoutLoggerLocalId);
-    setSelectedWarmup(templateIdsToSelections(template.warmupIds));
-    setSelectedBalanceCore(templateIdsToSelections(template.balanceCoreIds));
-    setSelectedCooldown(templateIdsToSelections(template.cooldownIds));
+    protocolSectionSetters.warmup(templateIdsToSelections(template.warmupIds));
+    protocolSectionSetters.balance_core(templateIdsToSelections(template.balanceCoreIds));
+    protocolSectionSetters.cooldown(templateIdsToSelections(template.cooldownIds));
+    // M5: the plan decides which bands open — filled bands show themselves.
+    openSections(([
+      ['warmup', template.warmupIds.length] as const,
+      ['balance_core', template.balanceCoreIds.length] as const,
+      ['cooldown', template.cooldownIds.length] as const,
+    ]).filter(([, count]) => count > 0).map(([key]) => key));
 
     setExercises(templateExercises);
     setCurrentOPTPhase(phase);
     toast.success(`Loaded Phase ${phase} template - ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
   }, [createWorkoutLoggerLocalId]);
 
-  const { handleVoiceMemoParsed } = useWorkoutAiEvents({
+  const { handleVoiceMemoParsed, applyReviewedExerciseRows, removeExerciseRowsByIds } = useWorkoutAiEvents({
     effectiveClientId,
     createWorkoutLoggerLocalId,
     exercisesRef,
@@ -310,7 +283,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     currentOPTPhase,
     protocolSectionSetters,
     pendingAiPlanPrefillLoadedRef,
+    restTimer,
   });
+  const jarvis = useJarvisVoiceCutover({ applyReviewedExerciseRows, removeExerciseRowsByIds });
 
   const {
     client,
@@ -383,6 +358,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Added ${exercise.name} to workout`);
   }, [createWorkoutLoggerLocalId, ghostPreFill, isClientSelfMode]);
 
+  const insertWarmupRamp = useWarmupRamp(setExercises, createWorkoutLoggerLocalId);
+
   const addSet = useCallback((exerciseIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
       if (i !== exerciseIndex) return exercise;
@@ -401,6 +378,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // Reads through exercisesRef so the callback identity survives keystrokes (keeps card memos alive).
   const handleSetLogged = useCallback((exerciseIndex: number, setIndex: number) => {
     restTimer.start(exercisesRef.current[exerciseIndex]?.sets[setIndex]?.restTime || 60);
+    setSessionStartedAt((prev) => prev ?? Date.now());
+    lastLoggedAtRef.current = Date.now();
+    // Premium tactile tick on log (reduced-motion users opt out, same as rest alert).
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      navigator.vibrate?.(15);
+    }
   }, [restTimer]);
   const [showSetDetails, setShowSetDetails] = useState(false);
   const handleToggleSetDetails = useCallback(() => setShowSetDetails(previous => !previous), []);
@@ -482,6 +465,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     ghostPreFill,
     getLastWeight,
     onSetLogged: handleSetLogged,
+    onInsertWarmupRamp: insertWarmupRamp,
     ghostSkip: isClientSelfMode,
     stats: sessionStats,
     restTimer,
@@ -567,63 +551,130 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {!isClientSelfMode && (
-          <EquipmentProfilePicker
-            selectedProfileId={equipmentProfileId}
-            onSelect={setEquipmentProfileId}
-            label="Training Location"
+        {/* SESSION SHELL zones 1+2 (Slice 1): absorbs WorkoutLoggerHeader,
+            ScheduledSessionStatusBanner, WorkoutDraftGateBanner, plan-strip chip. */}
+        <ShellZoneBoundary zone='context-bar'>
+        <ContextBar
+          sessionStartedAt={sessionStartedAt} formattedVolume={sessionStats.formattedVolume}
+          overflow={{
+            onCancelSession: handleCancel,
+            onExportPDF: handleExportPDF,
+            onGenerateSummary: handleGenerateSummary,
+            showGenerateSummary: !!submittedFormId,
+            isGeneratingSummary,
+            summaryLockedReason,
+            onOpenCoachCommand: submittedFormId && coachCommandRoute ? () => navigate(coachCommandRoute) : undefined,
+          }}
+          clientFirstName={client.firstName} clientLastName={client.lastName}
+          availableSessions={client.availableSessions ?? 0} clientSource={client.clientSource}
+          workoutDate={workoutDateValue} totalSets={totalSets} estimatedDuration={estimatedDuration}
+          assignment={plannedAssignment || loadedPlanContext}
+          currentOPTPhase={currentOPTPhase} onOPTPhaseChange={setCurrentOPTPhase}
+        />
+        </ShellZoneBoundary>
+        <ShellZoneBoundary zone='notice-lane'>
+        <ShellNotices
+          isOnline={offlineQueue.isOnline} pendingCount={offlineQueue.pendingCount}
+          workoutDraft={workoutDraft} draftOfferVisible={exercises.length === 0 && !sessionNotes}
+          setDraftGate={setDraftGate} setExercises={setExercises}
+          setSessionNotes={setSessionNotes} setOverallIntensity={setOverallIntensity}
+          onRestoreRest={(endsAt) => restTimer.start(Math.max(1, Math.ceil((endsAt - Date.now()) / 1000)))}
+          onRestoreSessionStart={setSessionStartedAt}
+          scheduledSessionId={scheduledSessionId} scheduledSessionCreditHint={scheduledSessionCreditHint}
+          scheduledSessionDate={scheduledSessionDate} clientSource={client.clientSource}
+        />
+        </ShellZoneBoundary>
+        {/* C4b/C6d: plan-loader outcome panel stays inline — only plan CONTEXT moved. */}
+        {exercises.length === 0 && !(plannedAssignment || loadedPlanContext) && planLoadOutcome && (
+          <WorkoutLoggerEmptyPlanState
+            outcome={planLoadOutcome} isClientSelfMode={isClientSelfMode}
+            clientId={effectiveClientId} onAddExercise={addExercise}
           />
         )}
 
-        <WorkoutLoggerCoachTerminal
-          clientId={effectiveClientId}
-          equipmentProfileId={equipmentProfileId}
-          workoutDate={workoutDateValue}
-          scheduledSessionId={scheduledSessionId}
-          scheduledSessionDate={scheduledSessionDate}
-          scheduledSessionCreditHint={scheduledSessionCreditHint}
-          exerciseCount={exercises.length}
-          selfMode={isClientSelfMode}
+        {/* SESSION SHELL zone 5 (Slice 2): ONE Coach surface. Terminal +
+            NASM reference leave the page flow; host composes them so the
+            AI_* wiring and education contracts stay untouched. */}
+        <CoachDrawer
+          open={showCoachDrawer}
+          onClose={() => setShowCoachDrawer(false)}
+          coach={
+            <WorkoutLoggerCoachTerminal
+              clientId={effectiveClientId}
+              equipmentProfileId={equipmentProfileId}
+              workoutDate={workoutDateValue}
+              scheduledSessionId={scheduledSessionId}
+              scheduledSessionDate={scheduledSessionDate}
+              scheduledSessionCreditHint={scheduledSessionCreditHint}
+              exerciseCount={exercises.length}
+              selfMode={isClientSelfMode}
+            />
+          }
+          reference={
+            <CoachReferenceTab
+              currentOPTPhase={currentOPTPhase}
+              onLoadTemplate={(phase) => {
+                loadPhaseTemplate(phase);
+                setShowCoachDrawer(false); // show the loaded template, not the drawer
+              }}
+            />
+          }
         />
-        <WorkoutLoggerHeader
-          clientFirstName={client.firstName}
-          clientLastName={client.lastName}
-          availableSessions={client.availableSessions ?? 0}
-          clientSource={client.clientSource}
-          totalSets={totalSets}
-          estimatedDuration={estimatedDuration}
-          currentOPTPhase={currentOPTPhase}
-          onOPTPhaseChange={setCurrentOPTPhase}
-          workoutDate={workoutDateValue}
-        />
-
-        <ScheduledSessionStatusBanner
-          clientSource={client.clientSource}
-          scheduledSessionCreditHint={scheduledSessionCreditHint}
-          scheduledSessionDate={scheduledSessionDate}
-          scheduledSessionId={scheduledSessionId}
-        />
-        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} planLoadOutcome={exercises.length === 0 ? planLoadOutcome : null} isClientSelfMode={isClientSelfMode} clientId={effectiveClientId} onAddExercise={addExercise} />
-
-        <WorkoutDraftGateBanner
-          workoutDraft={workoutDraft}
-          visible={exercises.length === 0 && !sessionNotes}
-          setDraftGate={setDraftGate}
-          setExercises={setExercises}
-          setSessionNotes={setSessionNotes}
-          setOverallIntensity={setOverallIntensity}
-        />
-
-
-        {typeof effectiveClientId === 'number' && (
-          <WorkoutLoggerVoiceImportSection
-            clientId={effectiveClientId}
-            isSelfMode={isClientSelfMode}
-            clientName={`${client.firstName} ${client.lastName}`}
-            onParsed={handleVoiceMemoParsed}
-          />
-        )}
-        {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
+        {/* SESSION SHELL zones 3+4 (Slice 3): free stage views — IA lands,
+            behavior stays (M7). Existing sections render inline per stage. */}
+        {/* Receipt terminal state (Slice 5): post-save the rail is NOT
+            navigable — the receipt below replaces the staged canvas. */}
+        {!lastSaveResponse && (<>
+        <ShellZoneBoundary zone='stage-rail'>
+          <StageRail store={sessionStageStore} variant={pageRecipe.stageRail === 'segmented' ? 'segmented' : 'tabs'} />
+        </ShellZoneBoundary>
+        <StageCanvas stage={sessionStage} store={sessionStageStore}>
+        {sessionStage === 'setup' && (<>
+          {!isClientSelfMode && (
+            <EquipmentProfilePicker selectedProfileId={equipmentProfileId} onSelect={setEquipmentProfileId} label="Training Location" />
+          )}
+          {!isClientSelfMode && typeof effectiveClientId === 'number' && (
+            <WorkoutPlanAssignmentPicker clientId={effectiveClientId} disabled={isLoadingPlan || isRepeatingSession} onApplyAssignment={handleApplyGeneratedPlanDay} />
+          )}
+          {/* Plan loads land on Train — the loaded session is the point. */}
+          <LoadPlanRow>
+            {!isClientSelfMode && (
+              <LoadPlanButton
+                onClick={() => { handleRepeatLastSession(); switchSessionStage(sessionStageStore, 'train'); }}
+                disabled={isRepeatingSession || isLoadingPlan}
+                title="Copy the client's most recent workout as a starting draft"
+              >
+                <History size={16} /> {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
+              </LoadPlanButton>
+            )}
+            <LoadPlanButton
+              onClick={() => { loadTodaysPlan(); switchSessionStage(sessionStageStore, 'train'); }}
+              disabled={isLoadingPlan || isRepeatingSession}
+            >
+              <Download size={16} /> {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
+            </LoadPlanButton>
+            {!isClientSelfMode && onOpenHistoryImport && (
+              <LoadPlanButton onClick={onOpenHistoryImport} disabled={isLoadingPlan || isRepeatingSession} title="Open historical workout import">
+                <UploadCloud size={16} /> History Import
+              </LoadPlanButton>
+            )}
+          </LoadPlanRow>
+          {typeof effectiveClientId === 'number' && (
+            <WorkoutLoggerVoiceImportSection
+              clientId={effectiveClientId}
+              isSelfMode={isClientSelfMode}
+              clientName={`${client.firstName} ${client.lastName}`}
+              onParsed={(payload) => {
+                handleVoiceMemoParsed(payload);
+                switchSessionStage(sessionStageStore, 'train'); // show the imported work
+              }}
+            />
+          )}
+        </>)}
+        {sessionStage === 'train' && (<>
+        {/* M4 statsStrip knob: expanded recipes keep the Train strip; collapsed
+            recipes lean on the context bar's 2 numbers. Finish always shows it. */}
+        {exercises.length > 0 && pageRecipe.statsStrip === 'expanded' && <SessionStatsBar stats={sessionStats} />}
         {exercises.length > 0 && (
           <WorkoutLoggerModeBar
             isQuickLogMode={isQuickLogMode}
@@ -634,64 +685,22 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               // is active switches back so the toggle is never a silent no-op.
               if (quick) writeRunnerStyle('classic-ledger');
             }}
-            isOffline={!offlineQueue.isOnline}
-            pendingCount={offlineQueue.pendingCount}
-            restRunning={restTimer.isRunning}
-            restSecondsLeft={restTimer.secondsLeft}
           />
         )}
-        <LearningModeToggle />
-        <NASMPhaseGuide
-          phase={currentOPTPhase}
-          onLoadTemplate={loadPhaseTemplate}
-        />
-        <CompactProtocolSection
-          title="Warmup & Corrective"
-          icon={<WarmupProtocolIcon size={18} />}
-          sectionKey="warmup"
-          selectedItems={selectedWarmup}
-          recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
-          isOpen={nasmSectionsOpen.warmup}
-          onToggleOpen={() => toggleNasmSection('warmup')}
-          onAddFromRolodex={() => requestAddForSection('warmup')}
-          onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
-          onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
-        />
         <ExerciseSection>
-          {!isClientSelfMode && typeof effectiveClientId === 'number' && (
-            <WorkoutPlanAssignmentPicker
-              clientId={effectiveClientId}
-              disabled={isLoadingPlan || isRepeatingSession}
-              onApplyAssignment={handleApplyGeneratedPlanDay}
-            />
-          )}
-          <LoadPlanRow>
-            {!isClientSelfMode && (
-              <LoadPlanButton
-                onClick={handleRepeatLastSession}
-                disabled={isRepeatingSession || isLoadingPlan}
-                title="Copy the client's most recent workout as a starting draft"
-              >
-                <History size={16} />
-                {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
-              </LoadPlanButton>
-            )}
-            <LoadPlanButton onClick={loadTodaysPlan} disabled={isLoadingPlan || isRepeatingSession}>
-              <Download size={16} />
-              {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
-            </LoadPlanButton>
-            {!isClientSelfMode && onOpenHistoryImport && (
-              <LoadPlanButton
-                onClick={onOpenHistoryImport}
-                disabled={isLoadingPlan || isRepeatingSession}
-                title="Open historical workout import"
-              >
-                <UploadCloud size={16} />
-                History Import
-              </LoadPlanButton>
-            )}
-          </LoadPlanRow>
-
+          {/* M5: protocol sections are phase BANDS bookending the collection. */}
+          <CompactProtocolSection
+            title="Warmup & Corrective"
+            icon={<WarmupProtocolIcon size={18} />}
+            sectionKey="warmup"
+            selectedItems={selectedWarmup}
+            recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
+            isOpen={nasmSectionsOpen.warmup}
+            onToggleOpen={() => toggleNasmSection('warmup')}
+            onAddFromRolodex={() => requestAddForSection('warmup')}
+            onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
+            onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
+          />
           <ExerciseSearchBar>
             <RolodexTrigger
               onClick={() => {
@@ -704,12 +713,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
-            {canDictate && (
-              <RolodexTrigger onClick={dictation.toggle} aria-pressed={dictation.active} aria-label="Dictate workout log entries">
-                <Mic size={18} />
-                Dictate
-              </RolodexTrigger>
-            )}
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
               initialQuery={deepLinkExercise}
@@ -731,7 +734,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               }}
             />
           </ExerciseSearchBar>
-          {canDictate && <LoggerDictationStrip {...dictation} />}
+          {canUseDictation && !voiceModeV2 && <LoggerDictationStrip {...dictation} />}
 
           {exercises.length === 0 ? (
             <RunnerEmptyState
@@ -758,8 +761,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               Add Another Exercise
             </AddExerciseButton>
           )}
-        </ExerciseSection>
-        <CompactProtocolSection
+          <CompactProtocolSection
           title="Balance, Core & Stability"
           icon={<BalanceProtocolIcon size={18} />}
           sectionKey="balance_core"
@@ -783,7 +785,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onQuickAddPreset={(item) => addProtocolPreset('cooldown', item)}
           onRemoveSelected={(id) => removeProtocolItem('cooldown', id)}
         />
-        {exercises.length > 0 && (
+        </ExerciseSection>
+        </>)}
+        {sessionStage === 'finish' && (exercises.length > 0 ? (<>
+          <SessionStatsBar stats={sessionStats} />
           <SessionSummaryForm
             overallIntensity={overallIntensity}
             onIntensityChange={setOverallIntensity}
@@ -795,9 +800,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             clientSource={client?.clientSource}
             scheduledSessionCreditHint={scheduledSessionCreditHint}
           />
-        )}
+        </>) : (
+          <FinishEmptyNote>
+            Nothing logged yet — log a set in Train and Finish unlocks intensity, notes, and save.
+          </FinishEmptyNote>
+        ))}
+        </StageCanvas>
+        </>)}
 
-        {lastSaveResponse ? (
+        {lastSaveResponse ? (<>
+          <ReceiptPRStrip prs={sessionStats.prs} />
           <SaveSuccessPanel
             form={lastSaveResponse}
             completedSets={sessionStats.completedSets}
@@ -809,7 +821,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             onBookNext={isClientSelfMode ? () => navigate('/dashboard/client/schedule') : null}
             exercisesForShare={isClientSelfMode ? exercises : null}
           />
-        ) : (
+        </>) : (
           <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
         )}
         {/* Post-Save Handoff (Slice-2, Chunk C): terminal proof moment, portaled OVER the panel above. */}
@@ -825,44 +837,42 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>
-        {exercises.length > 0 && !submittedFormId && (
-          <StickyLogActionBar
-            completedSets={sessionStats.completedSets}
-            totalSets={sessionStats.totalSets}
-            onSubmit={() => handleSubmit()}
-            isSubmitting={isSubmitting}
-          />
-        )}
-        <WorkoutLoggerFooter
-          onCancel={handleCancel}
-          onExportPDF={handleExportPDF}
-          onSubmit={handleSubmit}
-          onGenerateSummary={handleGenerateSummary}
+        {/* SESSION SHELL zone 6 (Slice 4b): ONE bottom bar — footer + sticky
+            bar + TimerFAB/FloatingRestTimer + skin rest chrome, merged. */}
+        <ShellZoneBoundary
+          zone='action-bar'
+          fallback={exercises.length > 0 && !submittedFormId
+            ? <button type='button' onClick={() => handleSubmit()} disabled={isSubmitting} aria-label='Complete and save workout'>Save workout</button>
+            : null}
+        >
+        <ActionBar
+          stage={sessionStage}
+          onGoTrain={() => switchSessionStage(sessionStageStore, 'train')}
           hasExercises={exercises.length > 0}
+          completedSets={sessionStats.completedSets}
+          totalSets={sessionStats.totalSets}
           isSubmitting={isSubmitting}
-          isGeneratingSummary={isGeneratingSummary}
-          showGenerateSummary={!!submittedFormId}
-          summaryLockedReason={summaryLockedReason}
+          submitted={!!submittedFormId}
+          onSubmit={() => handleSubmit()}
+          onAddExercise={() => {
+            switchSessionStage(sessionStageStore, 'train'); // rolodex mounts on the Train canvas
+            openRolodexForMain();
+          }}
+          rest={runnerEngine.rest}
+          canDictate={canUseDictation}
+          dictationActive={voiceModeV2 ? jarvis.jarvisOpen : dictation.active}
+          onToggleDictation={voiceModeV2 ? jarvis.toggleJarvis : dictation.toggle}
+          onOpenCoach={() => setShowCoachDrawer(true)}
         />
+        </ShellZoneBoundary>
       </WorkoutLoggerContainer>
-      {showFloatingTimer && (
-        <FloatingRestTimer onClose={() => setShowFloatingTimer(false)} />
+      {voiceModeV2 && jarvis.jarvisOpen && typeof effectiveClientId === 'number' && (
+        <JarvisVoiceMode clientId={effectiveClientId} onCommitRows={jarvis.commitRows} onUndoCommit={jarvis.undoCommit} onExit={jarvis.closeJarvis} />
       )}
-
       <WorkoutLoggerConfirmDialog
         request={confirmRequest}
         onClose={() => setConfirmRequest(null)}
       />
-      {exercises.length > 0 && !showFloatingTimer && (
-        <TimerFAB
-          $lift={!submittedFormId}
-          onClick={() => setShowFloatingTimer(true)}
-          aria-label="Open floating rest timer"
-          title="Rest Timer"
-        >
-          <Timer size={18} aria-hidden="true" />
-        </TimerFAB>
-      )}
       </WorkoutLoggerLensFrame>
     </NASMLearningProvider>
   );

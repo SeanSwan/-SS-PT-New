@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const stripPath = resolve(__dirname, 'WorkoutPlannerStatusAssistantStrip.tsx');
 const stripSource = existsSync(stripPath) ? readFileSync(stripPath, 'utf8') : '';
 
 describe('WorkoutPlanner status assistant strip extraction', () => {
   it('keeps status, degraded warning, and assistant shell outside the page', () => {
-    expect(pageSource).toContain("from './WorkoutPlannerStatusAssistantStrip'");
+    expect(pageSource).toContain("from '../WorkoutPlannerStatusAssistantStrip'");
     expect(pageSource).not.toContain('<StatusBanner');
     expect(pageSource).not.toContain('<DegradedBanner');
     expect(pageSource).not.toContain('<PanelErrorBoundary');
@@ -24,6 +24,7 @@ describe('WorkoutPlanner status assistant strip extraction', () => {
   });
 
   it('treats generated horizon plans as content for degraded safety banners', () => {
-    expect(pageSource).toContain('hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan');
+    const layoutSource = read('WorkoutPlannerPageLayout.tsx');
+    expect(layoutSource).toContain('hasPlanExercises = planExercises.length > 0 || hasGeneratedHorizonPlan');
   });
 });

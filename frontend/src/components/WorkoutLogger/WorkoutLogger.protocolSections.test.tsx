@@ -189,9 +189,11 @@ describe('Phase 16.1-UX — loadPhaseTemplate no longer revives the giant checkl
     const fn = SOURCE.indexOf('const loadPhaseTemplate');
     expect(fn).toBeGreaterThan(-1);
     const body = SOURCE.slice(fn, fn + 2500);
-    expect(body).toMatch(/setSelectedWarmup\s*\(/);
-    expect(body).toMatch(/setSelectedBalanceCore\s*\(/);
-    expect(body).toMatch(/setSelectedCooldown\s*\(/);
+    // Slice 2 extraction: the setters live in useProtocolSelections and are
+    // reached through the protocolSectionSetters map — same records, one home.
+    expect(body).toMatch(/protocolSectionSetters\.warmup\s*\(/);
+    expect(body).toMatch(/protocolSectionSetters\.balance_core\s*\(/);
+    expect(body).toMatch(/protocolSectionSetters\.cooldown\s*\(/);
     // Phase 3c.1 extraction: records are built via templateIdsToSelections
     // (WorkoutLogger.phaseTemplate.ts), which resolves through
     // findProtocolDefaultById — not by marking `.completed` on the old

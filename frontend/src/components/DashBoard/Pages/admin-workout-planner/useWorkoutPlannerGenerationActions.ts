@@ -6,7 +6,6 @@
  * 409 SWAN_COACH_REVIEW_REQUIRED opens the SafetyGateModal and the retry
  * carries planningReviewAcknowledged + the trainer's written reason.
  */
-
 import { useCallback, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { logApiError } from '../../../../utils/logApiError';
@@ -43,6 +42,7 @@ import { isGuidedGenerationMode } from './workoutPlannerGuidedCandidates.helpers
 import { useWorkoutPlannerGuidedCandidateActions } from './useWorkoutPlannerGuidedCandidateActions';
 import type { PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
+import { endpointFor } from './plannerLogic/endpointFor';
 
 interface PlannerAuthClient {
   post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
@@ -151,7 +151,7 @@ export const useWorkoutPlannerGenerationActions = ({
     setShowExplanations(false);
     clearGuidedCandidates();
     try {
-      const res = await authAxios.post('/api/workout-builder/generate', {
+      const res = await authAxios.post(endpointFor('single'), {
         ...buildWorkoutGenerationRequest({
           selectedClientId,
           // Spoken overrides win over dropdown state for the immediate call (H4).
@@ -202,7 +202,7 @@ export const useWorkoutPlannerGenerationActions = ({
     clearGuidedCandidates();
     resetLoadedPlanState();
     try {
-      const res = await authAxios.post('/api/workout-builder/plan', {
+      const res = await authAxios.post(endpointFor('multi_week'), {
         ...buildPlanGenerationRequest({
           selectedClientId,
           goal,

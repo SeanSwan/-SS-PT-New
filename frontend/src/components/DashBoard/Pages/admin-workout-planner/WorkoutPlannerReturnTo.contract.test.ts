@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx'), 'utf8');
+const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts'), 'utf8');
 const stripSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStatusAssistantStrip.tsx'), 'utf8');
 readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.tsx'), 'utf8');
 const commandPanelSectionsSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.sections.tsx'), 'utf8');
@@ -16,7 +16,7 @@ const returnToSource = readFileSync(resolve(process.cwd(), 'src/components/DashB
 describe('WorkoutPlannerPage returnTo contract', () => {
   it('renders a role-scoped safe Client Hub return action when opened from Clients & Team', () => {
     expect(source).toContain("useNavigate");
-    expect(source).toContain("from './workoutPlannerReturnTo'");
+    expect(source).toContain("from '../workoutPlannerReturnTo'");
     expect(source).toContain("resolveWorkoutPlannerReturnTo(searchParams.get('returnTo'), user?.role)");
     expect(returnToSource).toContain("if (normalizedRole === 'admin') return '/dashboard/admin/';");
     expect(returnToSource).toContain("if (normalizedRole === 'trainer') return '/dashboard/trainer/';");
@@ -46,7 +46,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
   });
 
   it('uses strict client identity helpers after the deep-link parser', () => {
-    expect(source).toContain("from './WorkoutPlannerClientIdentity'");
+    expect(source).toContain("from '../WorkoutPlannerClientIdentity'");
     expect(clientStateHookSource).toContain('parseWorkoutPlannerClientId(user?.id)');
     expect(clientStateHookSource).toContain('pickWorkoutPlannerClientId(clients, requestedOrSelfClientId)');
     expect(loadPlanHydrationSource).toContain('resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)');

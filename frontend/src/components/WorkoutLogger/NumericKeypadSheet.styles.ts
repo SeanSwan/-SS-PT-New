@@ -138,3 +138,13 @@ export const SystemKeyboardBtn = styled.button`
   cursor: pointer;
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
+
+/** Batch 4: plate-per-side breakdown of the live weight entry. */
+export const PlateHint = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--world-accent, #60c0f0);
+  padding-bottom: 4px;
+`;

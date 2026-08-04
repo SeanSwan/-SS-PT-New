@@ -8,7 +8,7 @@
  * the form. NO chat fallback here — command-or-honest-failure only
  * (06-bans §8); non-commands return the exact 02 §D receipt sentence.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
 import {
   useCoachBrowserSpeechInput,
@@ -17,7 +17,7 @@ import {
 
 export interface LoggerDictationReceipt { ok: boolean; text: string }
 
-export function useWorkoutLoggerDictation({ clientId }: { clientId: number | null }): {
+export function useWorkoutLoggerDictation({ clientId, enabled = true }: { clientId: number | null; enabled?: boolean }): {
   active: boolean; toggle: () => void; interim: string;
   text: string; setText: (t: string) => void;
   submitting: boolean; send: () => Promise<void>;
@@ -41,9 +41,16 @@ export function useWorkoutLoggerDictation({ clientId }: { clientId: number | nul
     setText: setTextState,
   });
 
+  useEffect(() => {
+    if (enabled) return;
+    speech.stopListening();
+    setActive(false);
+  }, [enabled, speech.stopListening]);
+
   const toggle = useCallback(() => {
+    if (!enabled) return;
     if (active) {
-      if (speech.listening) speech.toggleListening();
+      speech.stopListening();
       setActive(false);
       setTextState('');
       setReceipt(null);
@@ -55,16 +62,16 @@ export function useWorkoutLoggerDictation({ clientId }: { clientId: number | nul
     if (!speech.speechSupported) {
       setReceipt({ ok: false, text: 'Voice input is not available in this browser — type the entry instead.' });
     }
-  }, [active, speech]);
+  }, [active, enabled, speech]);
 
   const stopListening = useCallback(() => {
-    if (speech.listening) speech.toggleListening();
-  }, [speech]);
+    speech.stopListening();
+  }, [speech.stopListening]);
 
   const send = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed || submitting) return;
-    if (speech.listening) speech.toggleListening();
+    speech.stopListening();
     setSubmitting(true);
     setReceipt(null);
     try {

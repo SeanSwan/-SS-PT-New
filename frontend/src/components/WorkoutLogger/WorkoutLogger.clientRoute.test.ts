@@ -116,8 +116,8 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(LOCAL_TYPES).toMatch(/forceSelfMode\?\s*:\s*boolean\s*;/);
   });
 
-  it('mounts the schedule-origin billing banner from the shared logger surface', () => {
-    expect(SOURCE).toMatch(/ScheduledSessionStatusBanner/);
+  it('mounts the schedule-origin billing notice from the shared logger surface', () => {
+    expect(SOURCE).toMatch(/ShellNotices/);
     expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
     expect(SOURCE).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
     expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
@@ -163,13 +163,13 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     }
   });
 
-  it('WorkoutLoggerFooter receives the guarded cancel handler (not the raw optional prop)', () => {
+  it('the context-bar overflow receives the guarded cancel handler (not the raw optional prop)', () => {
     // The footer is the surface where these handlers actually fire.
     // The earlier draft passed `onCancel={onCancel}` (raw undefined
     // on self-route). The current handler confirms unsaved work before
     // delegating to the resolved route-aware cancel callback.
     expect(SOURCE).toMatch(/const\s+handleCancel\s*=\s*useCallback/);
-    expect(SOURCE).toMatch(/<WorkoutLoggerFooter[\s\S]*?onCancel=\{handleCancel\}/);
+    expect(SOURCE).toMatch(/onCancelSession:\s*handleCancel/);
   });
 
   it('confirms before discarding unsaved workout entries on cancel', () => {
@@ -531,7 +531,7 @@ describe('WorkoutLogger voice/file import surface', () => {
     // display name in self mode (see WorkoutLoggerVoiceImportSection locks).
     expect(SOURCE).toMatch(/<WorkoutLoggerVoiceImportSection[\s\S]*?clientId=\{effectiveClientId\}/);
     expect(SOURCE).toMatch(/isSelfMode=\{isClientSelfMode\}/);
-    expect(SOURCE).toMatch(/onParsed=\{handleVoiceMemoParsed\}/);
+    expect(SOURCE).toMatch(/onParsed=\{[\s\S]{0,200}?handleVoiceMemoParsed\(/);
   });
 
   it('applies parsed uploads through parsedWorkoutToExerciseEntries', () => {

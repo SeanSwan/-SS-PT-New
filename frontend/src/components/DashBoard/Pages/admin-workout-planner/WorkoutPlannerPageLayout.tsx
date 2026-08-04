@@ -1,69 +1,81 @@
 /**
  * COMPONENT: WorkoutPlannerPageLayout
- * PURPOSE: Owns the rendered workout planner shell while WorkoutPlannerPage
- * keeps behavior orchestration, query parsing, and hook wiring.
+ * PURPOSE: Owns the rendered workout planner shell. S15: consumes the four
+ * planner contexts (Data / UI / Actions / Voice) instead of a 179-prop
+ * boundary — the JSX below is byte-equivalent to the pre-S15 tree so the
+ * S13 golden snapshots hold. Panels keep their prop APIs; only this
+ * boundary changed. Zero props (blueprint cap: ≤12).
  */
 
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCoachDock from './WorkoutPlannerCoachDock';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
+import WorkoutPlannerCommandPanelV2 from './WorkoutPlannerCommandPanelV2';
+import WorkoutPlannerV2Shell from './WorkoutPlannerV2Shell';
+import WorkoutPlannerRolodexPanelV2 from './WorkoutPlannerRolodexPanelV2';
+import PlannerSaveBarBinding from './PlannerSaveBarBinding';
+import PlanVsActualStrip from './PlanVsActualStrip';
+import { isPlannerIaV2Enabled } from './plannerIaV2Flag';
+import { isPlannerLensStylesEnabled } from './lens/plannerLensFlag';
+import PlannerLensHost from './lens/PlannerLensHost';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip from './WorkoutPlannerStatusAssistantStrip';
 import WorkoutPlannerLensFrame from './WorkoutPlannerLensFrame';
 import SafetyGateModal from '../../../cortex/SafetyGateModal';
-import type { SafetyGateReviewState } from './useWorkoutPlannerSafetyGate';
 import { Page, ThreePanel } from './WorkoutPlannerStyles';
+import { usePlannerData } from './plannerContexts/PlannerDataContext';
+import { usePlannerUI } from './plannerContexts/PlannerUIContext';
+import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
+import { usePlannerVoice } from './plannerContexts/PlannerVoiceContext';
 import {
   buildWorkoutPlannerCoachReviewRoute,
   buildWorkoutPlannerLoggerRoute,
 } from './workoutPlannerHandoffRoutes';
 
-type CommandProps = React.ComponentProps<typeof WorkoutPlannerCommandPanel>;
-type StatusProps = React.ComponentProps<typeof WorkoutPlannerStatusAssistantStrip>;
-type RolodexProps = React.ComponentProps<typeof WorkoutPlannerRolodexPanel>;
-type BuilderProps = React.ComponentProps<typeof WorkoutPlannerBuilderPanel>;
-type TeachModeProps = React.ComponentProps<typeof TeachModeSidebar>;
-type SavedPlansProps = React.ComponentProps<typeof WorkoutPlannerSavedPlansSection>;
-type ConfirmDialogProps = React.ComponentProps<typeof WorkoutPlannerConfirmDialog>;
+const WorkoutPlannerPageLayout: React.FC = () => {
+  const data = usePlannerData();
+  const ui = usePlannerUI();
+  const act = usePlannerActions();
+  const { coachDock } = usePlannerVoice();
+  const { hasFeature } = useFeatureAccess();
+  const plannerV2Enabled = hasFeature('workout-planner-pro');
 
-type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
-  SavedPlansProps & ConfirmDialogProps & {
-    teachModeProps: TeachModeProps;
-    coachDock: Omit<React.ComponentProps<typeof WorkoutPlannerCoachDock>, 'clientName'>;
-    // Cortex P0 §5.3: acknowledged-review contract surface
-    safetyGateReview: SafetyGateReviewState | null;
-    acknowledgingSafetyGate: boolean;
-    onConfirmSafetyGate: (reason: string) => void;
-    onCancelSafetyGate: () => void;
-  };
+  const { plannerReturnTo } = data;
+  const {
+    phaseNumber, category, goal, planDuration, sessionsPerWeek, generationMode,
+    planExercises, generatedPlan, selectedMesoDay, phase,
+  } = data.local;
+  const { teachModeOpen, statusMsg, confirmRequest, safetyGateReview, acknowledgingSafetyGate } = ui;
+  const { trainingIntensityMode, hardcoreMethod } = data.trainingStyle;
+  const {
+    clients, clientsLoading, selectedClientId, selectedClient,
+    clientSelfGenStatus, isViewerClient, clientGenBlocked,
+  } = data.clientState;
+  const { equipmentProfiles, equipmentProfilesLoading, selectedEquipmentProfileId } = data.equipment;
+  const {
+    generating, generatingPlan, degradedIntelligence, explanations, showExplanations,
+    guidedCandidates, generatingCandidates,
+  } = data.generation;
+  const {
+    selectedExercise, swapTarget, filteredExerciseCount, activeFilterCount, exercisesLoading,
+    searchQuery, filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter,
+    exerciseRowRenderer,
+  } = data.rolodex;
+  const { loadedPlanId, hasGeneratedHorizonPlan, isDirty } = data.planContent;
+  const {
+    savedPlans, savedPlansLoading, archiveBlockedFor,
+    pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening,
+  } = data.savedPlansState;
+  const { saving } = data.saveActions;
+  const hasPlanExercises = planExercises.length > 0 || hasGeneratedHorizonPlan;
+  const iaV2 = isPlannerIaV2Enabled() && plannerV2Enabled;
 
-const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
-  plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
-  phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
-  trainingIntensityMode, hardcoreMethod, generationMode,
-  equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
-  clientGenBlocked, clientSelfGenStatus, isViewerClient, onReturnToClientHub, onTeachModeToggle,
-  onClientSelectionChange, onPhaseNumberChange, onCategoryChange, onGoalChange, onPlanDurationChange,
-  onEquipmentProfileChange, onSessionsPerWeekChange, onTrainingIntensityModeChange,
-  onHardcoreMethodChange, onGenerationModeChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
-  hasPlanExercises, onDismissStatus, filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
-  filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer,
-  onSearchQueryChange, onFilterCategoryChange, onSourceFilterChange, onExerciseTypeFilterChange,
-  onEquipmentFilterChange, onImpactFilterChange, onClearFilters, saving, planExercises, hasGeneratedHorizonPlan,
-  loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations, onSaveDraft,
-  onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onCreatePdf, onSelectExercise,
-  onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onSelectGuidedCandidate, onClearGuidedCandidates, onToggleExplanations, teachModeProps,
-  swapTarget, onBeginSwap, onCancelSwap, onBeginHorizonSwap, onRemoveHorizonExercise, onHorizonSelectionChange,
-  generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
-  onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
-  pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose, onPlansChanged,
-  safetyGateReview, acknowledgingSafetyGate, onConfirmSafetyGate, onCancelSafetyGate, coachDock,
-}) => {
   const location = useLocation();
   const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
     pathname: location.pathname,
@@ -82,6 +94,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   return (
     <WorkoutPlannerLensFrame>
     <Page>
+      {/* S16: V2 command panel ships DARK — PLANNER_IA_V2 default OFF. */}
+      {iaV2 ? <WorkoutPlannerCommandPanelV2 /> : (
       <WorkoutPlannerCommandPanel
         plannerReturnTo={plannerReturnTo}
         teachModeOpen={teachModeOpen}
@@ -105,21 +119,22 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         clientGenBlocked={clientGenBlocked}
         clientSelfGenStatus={clientSelfGenStatus}
         isViewerClient={isViewerClient}
-        onReturnToClientHub={onReturnToClientHub}
-        onTeachModeToggle={onTeachModeToggle}
-        onClientSelectionChange={onClientSelectionChange}
-        onPhaseNumberChange={onPhaseNumberChange}
-        onCategoryChange={onCategoryChange}
-        onGoalChange={onGoalChange}
-        onEquipmentProfileChange={onEquipmentProfileChange}
-        onPlanDurationChange={onPlanDurationChange}
-        onSessionsPerWeekChange={onSessionsPerWeekChange}
-        onTrainingIntensityModeChange={onTrainingIntensityModeChange}
-        onHardcoreMethodChange={onHardcoreMethodChange}
-        onGenerationModeChange={onGenerationModeChange}
-        onGenerateSingle={onGenerateSingle}
-        onGeneratePlan={onGeneratePlan}
+        onReturnToClientHub={act.pageActions.handleReturnToClientHub}
+        onTeachModeToggle={act.pageActions.handleTeachModeToggle}
+        onClientSelectionChange={act.clientState.handleClientSelectionChange}
+        onPhaseNumberChange={act.setters.setPhaseNumber}
+        onCategoryChange={act.setters.setCategory}
+        onGoalChange={act.setters.setGoal}
+        onEquipmentProfileChange={act.equipment.handleEquipmentProfileChange}
+        onPlanDurationChange={act.pageActions.handlePlanDurationChange}
+        onSessionsPerWeekChange={act.setters.setSessionsPerWeek}
+        onTrainingIntensityModeChange={act.trainingStyle.handleTrainingIntensityModeChange}
+        onHardcoreMethodChange={act.trainingStyle.setHardcoreMethod}
+        onGenerationModeChange={act.setters.setGenerationMode}
+        onGenerateSingle={act.requestSwanCoachWorkoutForSelectedClient}
+        onGeneratePlan={act.requestPlanGenerateForSelectedClient}
       />
+      )}
 
       <WorkoutPlannerStatusAssistantStrip
         statusMsg={statusMsg}
@@ -128,11 +143,12 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         selectedClientId={selectedClientId}
         degradedIntelligence={degradedIntelligence}
         hasPlanExercises={hasPlanExercises}
-        onReturnToClientHub={onReturnToClientHub}
-        onDismissStatus={onDismissStatus}
+        onReturnToClientHub={act.pageActions.handleReturnToClientHub}
+        onDismissStatus={() => act.setters.setStatusMsg(null)}
       />
 
-      <ThreePanel $teachModeOpen={teachModeOpen}>
+      {(() => {
+      const rolodexEl = (
         <WorkoutPlannerRolodexPanel
           filteredExerciseCount={filteredExerciseCount}
           activeFilterCount={activeFilterCount}
@@ -144,15 +160,18 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           equipmentFilter={equipmentFilter}
           impactFilter={impactFilter}
           exerciseRowRenderer={exerciseRowRenderer}
-          onSearchQueryChange={onSearchQueryChange}
-          onFilterCategoryChange={onFilterCategoryChange}
-          onSourceFilterChange={onSourceFilterChange}
-          onExerciseTypeFilterChange={onExerciseTypeFilterChange}
-          onEquipmentFilterChange={onEquipmentFilterChange}
-          onImpactFilterChange={onImpactFilterChange}
-          onClearFilters={onClearFilters}
+          onSearchQueryChange={act.rolodex.setSearchQuery}
+          onFilterCategoryChange={act.rolodex.setFilterCategory}
+          onSourceFilterChange={act.rolodex.setSourceFilter}
+          onExerciseTypeFilterChange={act.rolodex.setExerciseTypeFilter}
+          onEquipmentFilterChange={act.rolodex.setEquipmentFilter}
+          onImpactFilterChange={act.rolodex.setImpactFilter}
+          onClearFilters={act.rolodex.clearRolodexFilters}
         />
+      );
+      const builderEl = (
         <WorkoutPlannerBuilderPanel
+          legacyActionsHidden={iaV2}
           degradedIntelligence={degradedIntelligence}
           saving={saving}
           planExercises={planExercises}
@@ -172,33 +191,65 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           selectedMesoDay={selectedMesoDay}
           phaseNumber={phaseNumber}
           selectedClient={selectedClient}
-          onSaveDraft={onSaveDraft}
-          onSaveAndActivate={onSaveAndActivate}
-          onUpdateLoaded={onUpdateLoaded}
-          onUpdateAndActivate={onUpdateAndActivate}
-          onDuplicateLoadedPlan={onDuplicateLoadedPlan}
-          onCreatePdf={onCreatePdf}
+          onSaveDraft={act.saveActions.handleSaveDraft}
+          onSaveAndActivate={act.saveActions.handleSaveAndActivate}
+          onUpdateLoaded={act.saveActions.handleUpdateLoaded}
+          onUpdateAndActivate={act.saveActions.handleUpdateAndActivate}
+          onDuplicateLoadedPlan={act.pageActions.handleDuplicateLoadedPlan}
+          onCreatePdf={act.pdf.handleCreateBuilderPdf}
           swapTarget={swapTarget}
-          onSelectExercise={onSelectExercise}
-          onUpdateExercise={onUpdateExercise}
-          onRemoveExercise={onRemoveExercise}
-          onBeginSwap={onBeginSwap}
-          onCancelSwap={onCancelSwap}
-          onBeginHorizonSwap={onBeginHorizonSwap}
-          onRemoveHorizonExercise={onRemoveHorizonExercise}
-          onHorizonSelectionChange={onHorizonSelectionChange}
-          onBrowseAddExercise={onBrowseAddExercise}
-          onSelectGuidedCandidate={onSelectGuidedCandidate}
-          onClearGuidedCandidates={onClearGuidedCandidates}
-          onToggleExplanations={onToggleExplanations}
-          onSelectedMesoDayChange={onSelectedMesoDayChange}
-          onPhaseNumberChange={onPhaseNumberChange}
+          onSelectExercise={act.rolodex.setSelectedExercise}
+          onUpdateExercise={act.pageActions.updateExercise}
+          onRemoveExercise={act.pageActions.removeExercise}
+          onBeginSwap={act.rolodex.beginSwap}
+          onCancelSwap={act.rolodex.cancelSwap}
+          onBeginHorizonSwap={act.rolodex.beginHorizonSwap}
+          onRemoveHorizonExercise={act.rolodex.removeHorizonExerciseAt}
+          onHorizonSelectionChange={act.setters.setSelectedHorizonTarget}
+          onBrowseAddExercise={act.pageActions.handleBrowseAddExercise}
+          onSelectGuidedCandidate={act.generation.handleSelectGuidedCandidate}
+          onClearGuidedCandidates={act.generation.clearGuidedCandidates}
+          onToggleExplanations={act.generation.handleToggleExplanations}
+          onSelectedMesoDayChange={act.setters.setSelectedMesoDay}
+          onPhaseNumberChange={act.setters.setPhaseNumber}
         />
-        {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
-      </ThreePanel>
+      );
+      const teachEl = teachModeOpen
+        ? <TeachModeSidebar exercise={selectedExercise} phaseNumber={phaseNumber} onPhaseChange={act.setters.setPhaseNumber} onClose={act.pageActions.handleTeachModeToggle} />
+        : null;
+      // planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1).
+      const coachDockEl = !isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />;
 
-      {/* planner_* commands are admin/trainer only — no dock for client self-planner viewers (R1). */}
-      {!isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />}
+      if (iaV2) {
+        return (
+          <WorkoutPlannerV2Shell
+            teachModeOpen={teachModeOpen}
+            rolodex={<WorkoutPlannerRolodexPanelV2 />}
+            builder={builderEl}
+            teach={teachEl}
+            coachDock={coachDockEl || undefined}
+            saveBar={<PlannerSaveBarBinding />}
+            program={<PlanVsActualStrip />}
+          />
+        );
+      }
+      // S19: the lens fleet replaces the ThreePanel region ONLY under its
+      // flag; studio-classic renders this exact tree, so OFF and ON-default
+      // are the same pixels (L9).
+      if (isPlannerLensStylesEnabled()) {
+        return <PlannerLensHost teachModeOpen={teachModeOpen} rolodex={rolodexEl} builder={builderEl} teach={teachEl} coachDock={coachDockEl} />;
+      }
+      return (
+        <>
+          <ThreePanel $teachModeOpen={teachModeOpen}>
+            {rolodexEl}
+            {builderEl}
+            {teachEl}
+          </ThreePanel>
+          {coachDockEl}
+        </>
+      );
+      })()}
 
       <WorkoutPlannerSavedPlansSection
         selectedClientId={selectedClientId}
@@ -206,32 +257,32 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         savedPlansLoading={savedPlansLoading}
         loadedPlanId={loadedPlanId}
         archiveBlockedFor={archiveBlockedFor}
-        onLoad={onLoad}
-        onActivate={onActivate}
-        onRename={onRename}
-        onDuplicate={onDuplicate}
-        onArchive={onArchive}
-        onSetPrimary={onSetPrimary}
+        onLoad={act.pageActions.handleLoadPlan}
+        onActivate={act.savedPlansState.handleCardActivate}
+        onRename={act.savedPlansState.handleCardRename}
+        onDuplicate={act.savedPlansState.handleCardDuplicate}
+        onArchive={act.savedPlansState.handleCardArchive}
+        onSetPrimary={act.savedPlansState.handlePlanSetPrimary}
         pdfDialogPlan={pdfDialogPlan}
         pdfDialogMode={pdfDialogMode}
         pdfSaving={pdfSaving}
         pdfOpening={pdfOpening}
-        onViewPdf={onViewPdf}
-        onUpdatePdf={onUpdatePdf}
-        onSavePdf={onSavePdf}
-        onUploadPdf={onUploadPdf}
-        onClosePdfDialog={onClosePdfDialog}
+        onViewPdf={act.savedPlansState.handlePlanPdfView}
+        onUpdatePdf={act.savedPlansState.handlePlanPdfUpdate}
+        onSavePdf={act.savedPlansState.handlePlanPdfSave}
+        onUploadPdf={act.savedPlansState.handlePlanPdfUpload}
+        onClosePdfDialog={act.savedPlansState.closePlanPdfDialog}
         activePlanLoggerRoute={activePlanLoggerRoute}
-        onPlansChanged={onPlansChanged}
+        onPlansChanged={() => { void act.savedPlansState.fetchSavedPlans(selectedClientId); }}
       />
-      <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
+      <WorkoutPlannerConfirmDialog request={confirmRequest} onClose={act.closeConfirmDialog} />
       <SafetyGateModal
         open={Boolean(safetyGateReview)}
         signals={safetyGateReview?.signals ?? []}
         missingData={safetyGateReview?.missingData ?? []}
         confirming={acknowledgingSafetyGate}
-        onConfirm={onConfirmSafetyGate}
-        onCancel={onCancelSafetyGate}
+        onConfirm={act.generation.confirmSafetyGateReview}
+        onCancel={act.generation.cancelSafetyGateReview}
       />
     </Page>
     </WorkoutPlannerLensFrame>

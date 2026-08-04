@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerRolodexState.tsx');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 
 describe('WorkoutPlanner rolodex state extraction', () => {
   it('keeps exercise search, filters, and row renderer outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerRolodexState'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerRolodexState'");
     expect(pageSource).not.toContain('useExerciseSearch');
     expect(pageSource).not.toContain('const filteredExercises = useMemo');
     expect(pageSource).not.toContain('const ExerciseRowRenderer = useCallback');

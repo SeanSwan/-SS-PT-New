@@ -32,6 +32,7 @@ export interface BootcampAiEventHandlers {
   setTargetDuration: (minutes: string) => void;
   setClassStyle?: (style: string) => void;
   setOptPhase: (phase: number) => void;
+  proposeExercise?: (proposal: { exerciseName: string; stationIndex?: number }) => void;
   /**
    * Current builder values — when provided, every applied receipt carries an Undo action
    * restoring the REAL previous state (Kimi law: execute live, aggregate undo; never a
@@ -111,20 +112,32 @@ export function useBootcampAiEvents(handlers: BootcampAiEventHandlers): void {
       return ack(e, true);
     };
 
-    /** v1 honesty: placement/templates need the board APIs (CC-3c) — ack(false) so the dock says so. */
-    const onUnsupported = (e: Event) => ack(e, false);
+    /** Placement is proposal-only; the dock resolves an exact Rolodex match before a trainer applies it. */
+    const onPlaceExercise = (e: Event) => {
+      const d = (e as CustomEvent<AckDetail>).detail || {};
+      const exerciseName = typeof d.exerciseName === 'string' ? d.exerciseName.trim() : '';
+      const stationIndex = d.stationIndex == null ? undefined : Number(d.stationIndex);
+      if (!exerciseName || exerciseName.length > 120 || (stationIndex != null && (!Number.isInteger(stationIndex) || stationIndex < 0 || stationIndex > 5))) return ack(e, false);
+      const h = handlersRef.current;
+      if (!h.proposeExercise) return ack(e, false);
+      h.proposeExercise({ exerciseName, ...(stationIndex == null ? {} : { stationIndex }) });
+      h.pushReceipt?.({ ok: true, text: `Exercise proposal awaits review — ${exerciseName}` });
+      return ack(e, true);
+    };
+
+    const onLoadTemplate = (e: Event) => ack(e, false);
 
     window.addEventListener(AI_BOOTCAMP_SET_STRUCTURE, onSetStructure);
     window.addEventListener(AI_BOOTCAMP_SET_DURATION, onSetDuration);
     window.addEventListener(AI_BOOTCAMP_SET_FORMAT, onSetFormat);
-    window.addEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onUnsupported);
-    window.addEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onUnsupported);
+    window.addEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onPlaceExercise);
+    window.addEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onLoadTemplate);
     return () => {
       window.removeEventListener(AI_BOOTCAMP_SET_STRUCTURE, onSetStructure);
       window.removeEventListener(AI_BOOTCAMP_SET_DURATION, onSetDuration);
       window.removeEventListener(AI_BOOTCAMP_SET_FORMAT, onSetFormat);
-      window.removeEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onUnsupported);
-      window.removeEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onUnsupported);
+      window.removeEventListener(AI_BOOTCAMP_PLACE_EXERCISE, onPlaceExercise);
+      window.removeEventListener(AI_BOOTCAMP_LOAD_TEMPLATE, onLoadTemplate);
     };
   }, []);
 }

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Goal Contract"
+  short_description: "Define measurable autonomous execution contracts"
+  default_prompt: "Use $goal-contract to define measurable acceptance, validation, checkpoints, and stop conditions."
+
+policy:
+  allow_implicit_invocation: true

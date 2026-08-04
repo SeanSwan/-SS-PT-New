@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   countMainBoardExercisesByStation,
   getMainBoardExercises,
+  getMainBoardExclusionKeys,
   getMainBoardWorkoutSeconds,
   getNextMainBoardSortOrder,
 } from './BootcampBuilderPlacement';
@@ -34,6 +35,15 @@ describe('BootcampBuilder placement helpers', () => {
     expect(getNextMainBoardSortOrder(exercises, 0)).toBe(2);
   });
 
+  it('builds unique name and key exclusions from the current main board only', () => {
+    const exclusions = getMainBoardExclusionKeys([
+      { board: 'main', exerciseName: 'Front Squat' },
+      { board: 'alternative', exerciseName: 'Chair Squat' },
+      { board: 'main', exerciseName: 'Front Squat' },
+      { board: 'main', exerciseName: 'Kroc Row' },
+    ]);
+    expect(exclusions).toEqual(['Front Squat', 'front_squat', 'Kroc Row', 'kroc_row']);
+  });
   it('normalizes malformed station assignments in placement math', () => {
     const malformed = [
       { exerciseName: 'Battle Rope', stationIndex: -1, durationSec: 35, restSec: 15 },

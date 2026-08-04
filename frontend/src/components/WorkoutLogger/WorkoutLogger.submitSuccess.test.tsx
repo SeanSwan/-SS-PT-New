@@ -162,23 +162,6 @@ vi.mock('./NASMExerciseRolodex', () => ({
 // Mocked footer that exposes onSubmit via a test button so the test can
 // trigger the canonical save path without depending on the real footer's
 // render-gating logic.
-vi.mock('./WorkoutLoggerFooter', () => ({
-  default: (props: any) => (
-    <div>
-      <button data-testid="mock-footer-cancel" onClick={props.onCancel}>
-        Cancel
-      </button>
-      <button data-testid="mock-footer-submit" onClick={props.onSubmit}>
-        Complete & Save Workout
-      </button>
-      {props.showGenerateSummary && (
-        <button data-testid="mock-footer-summary" onClick={props.onGenerateSummary}>
-          Generate & Send Summary
-        </button>
-      )}
-    </div>
-  ),
-}));
 
 vi.mock('../Shared/AITerminalPanel', () => ({ default: () => null }));
 vi.mock('../Shared/EquipmentProfilePicker', () => ({
@@ -272,7 +255,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
 
       // Trigger the canonical save path via the mocked footer button.
-      fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
       // Wait for the success path to settle.
       await waitFor(() => {
@@ -319,7 +302,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(toastWarningMock).toHaveBeenCalledWith('A workout form already exists for this client on this date');
@@ -327,7 +310,8 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     expect(toastErrorMock).not.toHaveBeenCalledWith('A workout form already exists for this client on this date');
     expect(mockQueueSubmission).not.toHaveBeenCalled();
 
-    fireEvent.click(await screen.findByTestId('mock-footer-summary'));
+    fireEvent.click(screen.getByRole('button', { name: 'Session actions' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Generate & Send Summary/ }));
 
     await waitFor(() => {
       expect(apiPostMock).toHaveBeenCalledWith(
@@ -388,9 +372,11 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    // Deduction consequence lives in the Finish canvas (shell Slice 3).
+    fireEvent.click(screen.getByRole('tab', { name: /Finish/ }));
     expect(await screen.findByText('No Paid Session Deduction')).toBeInTheDocument();
     expect(screen.queryByText('Will Deduct 1 Session')).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
@@ -430,10 +416,12 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       </MemoryRouter>,
     );
 
+    fireEvent.click(await screen.findByRole('tab', { name: /Setup/ })); // location picker lives in Setup (shell Slice 3)
     fireEvent.click(await screen.findByTestId('mock-equipment-profile-select'));
+    fireEvent.click(screen.getByRole('tab', { name: /Train/ }));
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
@@ -458,7 +446,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
@@ -479,7 +467,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith('Workout submission timed out. Please try again.');
@@ -505,7 +493,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Complete and save workout' }));
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith('Client has no available sessions remaining');
@@ -524,7 +512,8 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
 
     fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
-    fireEvent.click(await screen.findByTestId('mock-footer-cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Session actions' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel session' }));
 
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(await screen.findByRole('dialog', { name: /discard unsaved workout/i })).toBeInTheDocument();
@@ -533,7 +522,8 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     fireEvent.click(screen.getByRole('button', { name: /keep logging/i }));
     expect(navigateMock).not.toHaveBeenCalled();
 
-    fireEvent.click(await screen.findByTestId('mock-footer-cancel'));
+    fireEvent.click(screen.getByRole('button', { name: 'Session actions' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel session' }));
     fireEvent.click(await screen.findByRole('button', { name: /discard workout/i }));
 
     await waitFor(() => {

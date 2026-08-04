@@ -1033,7 +1033,9 @@ router.delete('/conversations/:id', async (req, res) => {
  * Transcribe an uploaded audio file using Gemini Flash multimodal.
  * Rate limited to 10 transcriptions per hour per user.
  */
-router.post('/transcribe', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, audioUpload.single('audio'), async (req, res) => {
+// S7/A9 (JARVIS): strictPiiMiddleware closes the voice-audit gap — any text
+// fields riding the multipart body are sanitized like every other AI route.
+router.post('/transcribe', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, audioUpload.single('audio'), strictPiiMiddleware, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No audio file provided' });

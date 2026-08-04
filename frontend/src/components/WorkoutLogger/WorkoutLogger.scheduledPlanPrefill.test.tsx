@@ -169,7 +169,7 @@ describe('WorkoutLogger scheduled-session plan prefill', () => {
     expect(successMsg).toMatch(/Paid Session Day/);
     expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
 
-    fireEvent.click(await screen.findByRole('button', { name: /complete & save workout/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /complete and save workout/i }));
 
     await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
     expect(submitWorkoutFormMock.mock.calls[0][0]).toMatchObject({

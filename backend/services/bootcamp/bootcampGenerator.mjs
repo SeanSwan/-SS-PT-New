@@ -28,6 +28,15 @@ import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
+import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
+import {
+  buildAvailableEquipmentList, buildEquipmentCountMap,
+  collapseStationCountForParticipants, assessEquipmentFeasibility,
+} from './bootcampCapacity.mjs';
+
+// Preserved named-export surface after the move to bootcampCapacity.mjs.
+export { buildAvailableEquipmentList };
 
 const PROFILE_ACCESS_DENIED_CODE = 'BOOTCAMP_PROFILE_ACCESS_DENIED';
 
@@ -69,71 +78,103 @@ function sampleFromWindow(pool, take, rng = Math.random) {
   return window.slice(0, take);
 }
 
-function selectStationExercises(available, stationMuscles, count, usedNames, rng = Math.random) {
-  const primaryMuscle = stationMuscles[0];
+function isUsedExercise(exercise, usedNames) {
+  return usedNames.has(exercise.key) || usedNames.has(exercise.name);
+}
 
-  const primaryMatches = available
-    .filter(ex => {
-      const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-      return exPrimary && exPrimary === primaryMuscle;
-    })
-    .filter(ex => !usedNames.has(ex.key));
+const STATION_PATTERN_PREFERENCES = Object.freeze({
+  quadriceps: ['squat', 'lunge'],
+  hamstrings: ['hinge', 'lunge'],
+  glutes: ['hinge', 'squat', 'lunge'],
+  pectorals: ['push'],
+  latissimus_dorsi: ['pull'],
+  anterior_deltoid: ['push'],
+  biceps: ['pull'],
+  triceps: ['push'],
+  core: ['core'],
+});
 
-  const secondaryMatches = available
-    .filter(ex => {
-      const exMuscles = ex.muscles ?? [];
-      const exPrimary = ex.primaryMuscle || exMuscles[0];
-      if (exPrimary === primaryMuscle) return false;
-      return exMuscles.includes(primaryMuscle);
-    })
-    .filter(ex => !usedNames.has(ex.key));
+function stationProgrammingQuality(exercise, targetMuscle) {
+  let score = 0;
+  const preferredPatterns = STATION_PATTERN_PREFERENCES[targetMuscle];
+  if (exercise.exerciseType === 'compound') score += 40;
+  if (['squat', 'hinge', 'lunge', 'push', 'pull'].includes(exercise.category)) score += 25;
+  if (preferredPatterns?.includes(exercise.category)) score += 45;
+  else if (preferredPatterns && exercise.category) score -= 20;
+  if (Array.isArray(exercise.equipment) && exercise.equipment.some((item) => !['bodyweight', 'none'].includes(String(item).toLowerCase()))) score += 15;
+  if (exercise.exerciseType === 'stability' || exercise.exerciseType === 'core') score += 8;
+  if (exercise.exerciseType === 'flexibility' || exercise.bodyPartCategory === 'recovery') score -= 80;
+  if (exercise.bodyPartCategory === 'cardio' && exercise.exerciseType !== 'compound') score -= 25;
+  return score;
+}
 
-  const tertiaryMatches = stationMuscles.length > 1
-    ? available
-        .filter(ex => {
-          const exPrimary = ex.primaryMuscle || (ex.muscles ?? [])[0];
-          return stationMuscles.slice(1).includes(exPrimary);
-        })
-        .filter(ex => !usedNames.has(ex.key))
-        .filter(ex => !primaryMatches.some(p => p.key === ex.key) && !secondaryMatches.some(s => s.key === ex.key))
-    : [];
+function rankStationTier(exercises, targetMuscle) {
+  return [...exercises].sort((a, b) => stationProgrammingQuality(b, targetMuscle) - stationProgrammingQuality(a, targetMuscle));
+}
 
-  const needed = Math.max(1, count - 1);
+function selectStationExercises(available, stationMuscles, count, usedNames, rng = Math.random, fallbackGate = null) {
+  const targets = normalizeMuscleList(stationMuscles);
+  const primaryMuscle = targets[0];
+  if (!primaryMuscle || count <= 0) return [];
 
-  // Tier precedence is protocol (primary muscle first, then assisting,
-  // then station-secondary muscles); the sample varies picks WITHIN a tier.
+  const eligible = available.filter((exercise) => !isUsedExercise(exercise, usedNames));
+  const primaryMatches = rankStationTier(eligible.filter((exercise) => {
+    const muscles = normalizeMuscleList(exercise.muscles);
+    const primary = canonicalizeMuscle(exercise.primaryMuscle) || muscles[0];
+    return primary === primaryMuscle;
+  }), primaryMuscle);
+  const secondaryMatches = rankStationTier(eligible.filter((exercise) => {
+    const muscles = normalizeMuscleList(exercise.muscles);
+    const primary = canonicalizeMuscle(exercise.primaryMuscle) || muscles[0];
+    return primary !== primaryMuscle && muscles.includes(primaryMuscle);
+  }), primaryMuscle);
+
   const selected = [];
-  for (const tier of [primaryMatches, secondaryMatches, tertiaryMatches]) {
-    if (selected.length >= needed) break;
-    selected.push(...sampleFromWindow(tier, needed - selected.length, rng));
+  const tiers = [
+    ['primary', primaryMatches, count],
+    ['secondary', secondaryMatches, 1],
+  ];
+  for (const [tierName, tier, tierLimit] of tiers) {
+    if (selected.length >= count || (tierName === 'secondary' && selected.length === 0)) break;
+    let candidates = tier.filter((exercise) => !selected.some((pick) => pick.key === exercise.key));
+    if (fallbackGate) {
+      const budgeted = candidates.filter(fallbackGate);
+      if (budgeted.length > 0) candidates = budgeted;
+    }
+    const take = Math.min(tierLimit, count - selected.length);
+    const picks = sampleFromWindow(candidates, take, rng);
+    selected.push(...picks.map((exercise) => ({
+      ...exercise,
+      selectionReason: tierName === 'primary'
+        ? `Primary ${primaryMuscle.replace(/_/g, ' ')} match; quality-ranked for this station.`
+        : `One strong secondary ${primaryMuscle.replace(/_/g, ' ')} match; station remains primary-target dominant.`,
+      selectionTier: tierName,
+      programmingQuality: stationProgrammingQuality(exercise, primaryMuscle),
+    })));
   }
-  if (selected.length >= needed) return selected;
-
-  const remainingPool = available
-    .filter(ex => !usedNames.has(ex.key) && !selected.some(s => s.key === ex.key));
-  selected.push(...sampleFromWindow(remainingPool, needed - selected.length, rng));
 
   return selected;
 }
-
-function selectFullGroupExercises(available, rng = Math.random) {
+function selectFullGroupExercises(available, rng = Math.random, usedNames = new Set()) {
+  const eligible = available.filter((exercise) => !isUsedExercise(exercise, usedNames));
   const compound = sampleFromWindow(
-    available.filter(ex => (ex.muscles ?? []).length >= 2),
-    5,
+    eligible.filter(ex => (ex.muscles ?? []).length >= 2),
+    6,
     rng,
   );
 
-  const cardio = CARDIO_FINISHERS.slice(0, 5).map(cf => ({
+  const cardioPool = CARDIO_FINISHERS.map(cf => ({
     ...cf,
     key: cf.name.toLowerCase().replace(/\s+/g, '_'),
-    muscles: cf.muscles.split(','),
+    muscles: normalizeMuscleList(cf.muscles),
     isCardio: true,
-  }));
+  })).filter((exercise) => !isUsedExercise(exercise, usedNames));
+  const cardio = sampleFromWindow(cardioPool, 3, rng);
 
   const usedKeys = new Set([...compound.map(e => e.key), ...cardio.map(e => e.key)]);
   const accessory = sampleFromWindow(
-    available.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
-    5,
+    eligible.filter(ex => !usedKeys.has(ex.key) && (ex.muscles ?? []).length <= 2),
+    6,
     rng,
   );
 
@@ -181,6 +222,8 @@ function buildExerciseRecord(ex, opts) {
     board: 'main',
     setupTimeSec: setupTime,
     exerciseLibraryId,
+    selectionReason: ex.selectionReason ?? null,
+    programmingQuality: ex.programmingQuality ?? null,
   };
 }
 
@@ -193,41 +236,16 @@ function normalizeExerciseLibraryId(value) {
   return null;
 }
 
-function addEquipmentToken(tokens, value) {
-  if (typeof value !== 'string') return;
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return;
+// buildAvailableEquipmentList moved to bootcampCapacity.mjs (imported above)
+// alongside its new quantity-aware sibling buildEquipmentCountMap.
 
-  tokens.add(normalized);
-  if (normalized.includes('_')) tokens.add(normalized.replace(/_/g, ' '));
-  if (normalized.includes(' ')) tokens.add(normalized.replace(/\s+/g, '_'));
-}
-
-export function buildAvailableEquipmentList(equipmentItems = []) {
-  const tokens = new Set(['bodyweight', 'none']);
-
-  for (const item of equipmentItems) {
-    if (
-      !item
-      || item.isActive === false
-      || item.approvalStatus === 'rejected'
-      || item.approvalStatus === 'pending'
-    ) {
-      continue;
-    }
-
-    addEquipmentToken(tokens, item.trainerLabel);
-    addEquipmentToken(tokens, item.name);
-    addEquipmentToken(tokens, item.category);
-    addEquipmentToken(tokens, item.resistanceType);
-    addEquipmentToken(tokens, item.equipmentType);
+async function getEquipmentInventoryForBootcamp(equipmentProfileId, requester) {
+  // equipmentCounts stays null whenever quantities are unknowable (no profile,
+  // query failure) — the feasibility check treats null as "cannot judge",
+  // never as "everything is fine".
+  if (!equipmentProfileId) {
+    return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
   }
-
-  return [...tokens];
-}
-
-async function getAvailableEquipmentForBootcamp(equipmentProfileId, requester) {
-  if (!equipmentProfileId) return buildAvailableEquipmentList([]);
 
   try {
     const { getAllModels } = await import('../../models/index.mjs');
@@ -239,7 +257,9 @@ async function getAvailableEquipmentForBootcamp(equipmentProfileId, requester) {
       : null;
 
     assertProfileAccess(profile, { ...requester, requireActive: true });
-    if (!models.EquipmentItem) return buildAvailableEquipmentList([]);
+    if (!models.EquipmentItem) {
+      return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
+    }
 
     const equipmentItems = await models.EquipmentItem.findAll({
       where: {
@@ -250,12 +270,15 @@ async function getAvailableEquipmentForBootcamp(equipmentProfileId, requester) {
       raw: true,
     });
 
-    return buildAvailableEquipmentList(equipmentItems);
+    return {
+      availableEquipment: buildAvailableEquipmentList(equipmentItems),
+      equipmentCounts: buildEquipmentCountMap(equipmentItems),
+    };
   } catch (eqErr) {
     if (isProfileAccessDenied(eqErr)) throw eqErr;
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
-    return buildAvailableEquipmentList([]);
+    return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
   }
 }
 
@@ -416,6 +439,11 @@ export async function generateBootcampClass(options) {
   });
   let { classFormat, format, stationCount } = structure;
 
+  // Declared early: the small-class collapse (Step 2b) already explains itself.
+  const stations = [];
+  const allExercises = [];
+  const explanations = [];
+
   // Step 2: Load space profile constraints
   let spaceProfile = null;
   if (spaceProfileId) {
@@ -432,6 +460,22 @@ export async function generateBootcampClass(options) {
     }
   }
 
+  // Step 2b (SWA-105 Slice 1): small-class collapse. The real 6am class can be
+  // 4 people; station math built for 12 yields empty stations and dead
+  // transitions at 4. Applies AFTER the space-profile cap so the tighter of
+  // the two wins, and is loud — silent overrides of a trainer's request are
+  // how trust dies.
+  const collapse = collapseStationCountForParticipants(stationCount, expectedParticipants);
+  if (collapse.collapsed) {
+    stationCount = collapse.stationCount;
+    if (classFormat === 'custom') format = { ...format, fixedStations: stationCount };
+    explanations.push({
+      type: 'small_class',
+      message: `Small class: ${expectedParticipants} participant(s) — collapsed to ${stationCount} `
+        + 'station(s) so every station keeps at least a pair. Empty stations kill class energy.',
+    });
+  }
+
   // Step 3: Get recent class logs for freshness
   const recentExerciseNames = await getRecentExerciseNames(trainerId);
 
@@ -443,18 +487,20 @@ export async function generateBootcampClass(options) {
   }
 
   let availableExercises = [];
+  let equipmentCounts = null;
 
   // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
   try {
-    const availableEquipment = await getAvailableEquipmentForBootcamp(equipmentProfileId, {
+    const inventory = await getEquipmentInventoryForBootcamp(equipmentProfileId, {
       trainerId,
       requesterRole,
     });
+    equipmentCounts = inventory.equipmentCounts;
 
     const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
     const rolodexResults = await queryExercisesForBootcamp({
       muscleGroups: targetMuscles,
-      availableEquipment,
+      availableEquipment: inventory.availableEquipment,
       excludeNames: [...combinedExclusions],
       limit: 240,
     });
@@ -472,18 +518,28 @@ export async function generateBootcampClass(options) {
     logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);
   }
 
-  // Fallback: use full exercise registry if Rolodex didn't produce results
+  // Fallback: use full exercise registry if Rolodex didn't produce results.
+  // The old `.some(targetMuscles)` pre-filter is GONE on purpose: it was both
+  // too loose (`core` is in every DAY_TYPE_MUSCLES list, so any core-tagged
+  // exercise passed every day — SWA-105 D1) and too tight (a traps-primary row
+  // isn't in the upper list at all). The day-type CONTRACT below is the gate.
   if (availableExercises.length === 0) {
     const registry = getExerciseRegistry();
     availableExercises = Object.entries(registry)
-      .filter(([, ex]) => (ex.muscles ?? []).some(m => targetMuscles.includes(m)))
       .filter(([key]) => !combinedExclusions.has(key))
       .map(([key, ex]) => ({ key, ...ex }));
   }
 
-  const stations = [];
-  const allExercises = [];
-  const explanations = [];
+  // Step 4a (SWA-105 Slice 1): the DAY-TYPE CONTRACT is the authoritative
+  // legality gate — primary-region inclusion + explicit pattern exclusions
+  // (shared/bootcamp-core), with a fail-open ladder so the class always
+  // generates. Replaces the `.some()` muscle filter that could not fail.
+  const requiredSlots = classFormat === 'full_group'
+    ? 15
+    : Math.max(1, stationCount * Math.max(1, format.exercisesPerStation ?? 3));
+  const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
+  availableExercises = contract.pool;
+  explanations.push({ type: 'day_type_contract', message: contract.explanation });
 
   if (intensityCategory) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });
@@ -513,9 +569,28 @@ export async function generateBootcampClass(options) {
 
   // Step 5: Build stations or full-group workout
   if (classFormat === 'full_group') {
-    buildFullGroupWorkout(availableExercises, format, allExercises, explanations);
+    buildFullGroupWorkout(availableExercises, format, allExercises, explanations, combinedExclusions);
   } else {
-    buildStationWorkout(availableExercises, targetMuscles, stationCount, format, recentExerciseNames, stations, allExercises, explanations);
+    buildStationWorkout(
+      availableExercises, targetMuscles, stationCount, format, combinedExclusions,
+      stations, allExercises, explanations,
+      undefined, // rng default
+      { dayTypeId: dayType, totalSlots: requiredSlots, allowHighImpactFinishers: explicitHighImpactClass },
+    );
+  }
+
+  // Step 5b (SWA-105 Slice 1): equipment feasibility on REAL quantities.
+  // A station is only viable if the room has enough implements for the people
+  // standing at it — presence was never enough (§5.8). Warning, not a block.
+  const feasibilityFindings = assessEquipmentFeasibility({
+    stations, equipmentCounts, expectedParticipants, stationCount,
+  });
+  if (feasibilityFindings.length > 0) {
+    explanations.push({
+      type: 'equipment_feasibility',
+      message: `Equipment may bottleneck: ${feasibilityFindings.join('; ')}. `
+        + 'Stagger starts at those stations or swap to a higher-count implement.',
+    });
   }
 
   // Step 6: Calculate timing
@@ -622,8 +697,8 @@ async function getRecentExerciseNames(trainerId) {
   return names;
 }
 
-function buildFullGroupWorkout(available, format, allExercises, explanations, rng = Math.random) {
-  const selected = selectFullGroupExercises(available, rng);
+function buildFullGroupWorkout(available, format, allExercises, explanations, usedNames, rng = Math.random) {
+  const selected = selectFullGroupExercises(available, rng, usedNames);
   for (let i = 0; i < selected.length; i++) {
     allExercises.push(buildExerciseRecord(selected[i], {
       durationSec: format.durationSec,
@@ -637,25 +712,63 @@ function buildFullGroupWorkout(available, format, allExercises, explanations, rn
   });
 }
 
-function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations, rng = Math.random) {
+function chooseStationFinisher(stationMuscles, usedNames, rng) {
+  const target = canonicalizeMuscle(stationMuscles[0]);
+  if (!target) return null;
+  const candidates = CARDIO_FINISHERS.map((finisher) => {
+    const muscles = normalizeMuscleList(finisher.muscles);
+    return {
+      ...finisher,
+      key: finisher.name.toLowerCase().replace(/\s+/g, '_'),
+      muscles,
+      primaryMuscle: muscles[0] ?? null,
+      selectionReason: `Station-aligned conditioning finisher for ${target.replace(/_/g, ' ')}.`,
+    };
+  }).filter((finisher) => finisher.primaryMuscle === target && !isUsedExercise(finisher, usedNames));
+  return sampleFromWindow(candidates, 1, rng)[0] ?? null;
+}
+
+function buildStationWorkout(available, targetMuscles, stationCount, format, usedNames, stations, allExercises, explanations, rng = Math.random, contractCtx = null) {
   const muscleGroups = distributeMuscleGroups(targetMuscles, stationCount);
-  // Random offset so the finisher rotation also varies press-to-press.
-  const finisherOffset = Math.floor(rng() * CARDIO_FINISHERS.length);
+  const selectedMovements = [];
 
   for (let s = 0; s < stationCount; s++) {
     const stationMuscles = muscleGroups[s];
-    const stationExes = selectStationExercises(available, stationMuscles, format.exercisesPerStation, usedNames, rng);
+    const finisher = contractCtx?.allowHighImpactFinishers
+      ? chooseStationFinisher(stationMuscles, usedNames, rng)
+      : null;
+    const mainSlots = Math.max(1, format.exercisesPerStation - (finisher ? 1 : 0));
+    const stationExclusions = new Set(usedNames);
+    if (finisher) {
+      stationExclusions.add(finisher.key);
+      stationExclusions.add(finisher.name);
+    }
+    const fallbackGate = contractCtx
+      ? budgetGate(contractCtx.dayTypeId, selectedMovements, contractCtx.totalSlots)
+      : null;
+    const stationExes = selectStationExercises(available, stationMuscles, mainSlots, stationExclusions, rng, fallbackGate);
+    for (const ex of stationExes) {
+      if (ex.coreMovement) selectedMovements.push(ex.coreMovement);
+    }
+
+    const rawEquipment = stationExes
+      .flatMap(e => Array.isArray(e.equipment) ? e.equipment : (e.equipment ? [e.equipment] : []))
+      .map(t => String(t).trim().toLowerCase())
+      .filter((v, i, a) => v && a.indexOf(v) === i);
+    const coverageStatus = stationExes.length < mainSlots ? 'weak' : 'strong';
+    const coverageMessage = coverageStatus === 'weak'
+      ? `Only ${stationExes.length} of ${mainSlots} qualified ${stationMuscles[0]} movements were available; unrelated exercises were not inserted.`
+      : `${stationExes.length} qualified ${stationMuscles[0]} movements selected without unrelated fallback.`;
 
     stations.push({
       stationNumber: s + 1,
       stationName: `Station ${s + 1}: ${formatExerciseName(stationMuscles[0] ?? 'mixed')}`,
-      equipmentNeeded: stationExes
-        .flatMap(e => Array.isArray(e.equipment) ? e.equipment : (e.equipment ? [e.equipment] : []))
-        .filter((v, i, a) => v && a.indexOf(v) === i)
-        .map(eq => formatExerciseName(eq))
-        .join(', ') || 'Bodyweight',
+      equipmentNeeded: rawEquipment.map(eq => formatExerciseName(eq)).join(', ') || 'Bodyweight',
+      equipmentTokens: rawEquipment,
       setupTimeSec: 0,
       sortOrder: s + 1,
+      coverageStatus,
+      coverageMessage,
     });
 
     for (let e = 0; e < stationExes.length; e++) {
@@ -665,30 +778,34 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
         sortOrder: e + 1,
       }));
       usedNames.add(stationExes[e].key);
+      usedNames.add(stationExes[e].name);
     }
 
-    const finisher = CARDIO_FINISHERS[(s + finisherOffset) % CARDIO_FINISHERS.length];
-    allExercises.push(buildExerciseRecord(finisher, {
-      stationIndex: s,
-      durationSec: format.durationSec,
-      restSec: 0,
-      sortOrder: stationExes.length + 1,
-      isCardioFinisher: true,
-    }));
+    if (finisher) {
+      allExercises.push(buildExerciseRecord(finisher, {
+        stationIndex: s,
+        durationSec: format.durationSec,
+        restSec: 0,
+        sortOrder: stationExes.length + 1,
+        isCardioFinisher: true,
+      }));
+      usedNames.add(finisher.key);
+      usedNames.add(finisher.name);
+    }
   }
 
   explanations.push({
     type: 'format',
-    message: `${stationCount} stations, ${format.exercisesPerStation} exercises each, ${format.durationSec}s per exercise`,
+    message: `${stationCount} stations, up to ${format.exercisesPerStation} qualified exercises each, ${format.durationSec}s per exercise. Station finishers are target-aligned and only used for explicit high-impact/cardio classes.`,
   });
 }
-
 // Style modifiers imported from ./classStyleModifiers.mjs
 // Flow optimization imported from ./flowOptimizer.mjs
 
 export const __testing__ = {
   buildAvailableEquipmentList,
   buildExerciseRecord,
+  buildStationWorkout,
   normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
   resolveBootcampStructure,

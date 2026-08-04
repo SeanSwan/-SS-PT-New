@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), 'utf8');
 
 const loggerSource = read('src/components/WorkoutLogger/WorkoutLogger.tsx');
-const bannerSource = read('src/components/WorkoutLogger/WorkoutDraftGateBanner.tsx');
+const bannerSource = read('src/components/WorkoutLogger/runner/shell/zones/ShellNotices.tsx');
 const planLoadingSource = read('src/components/WorkoutLogger/useWorkoutPlanLoading.ts');
 const submitSource = read('src/components/WorkoutLogger/useWorkoutSubmit.ts');
 
@@ -27,10 +27,10 @@ describe('draft beats ?loadPlan=today', () => {
 
   it('the restore banner no longer excludes the canonical today URL', () => {
     const bannerMount = loggerSource.slice(
-      loggerSource.indexOf('<WorkoutDraftGateBanner'),
-      loggerSource.indexOf('/>', loggerSource.indexOf('<WorkoutDraftGateBanner')),
+      loggerSource.indexOf('<ShellNotices'),
+      loggerSource.indexOf('/>', loggerSource.indexOf('<ShellNotices')),
     );
-    expect(bannerMount).toContain('visible={exercises.length === 0 && !sessionNotes}');
+    expect(bannerMount).toContain('draftOfferVisible={exercises.length === 0 && !sessionNotes}');
     expect(bannerMount).not.toContain('autoLoadTodayPlan');
   });
 

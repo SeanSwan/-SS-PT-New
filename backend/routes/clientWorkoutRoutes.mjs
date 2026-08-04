@@ -14,6 +14,7 @@ import logger from '../utils/logger.mjs';
 // L1 REV 2 (2026-05-02, Codex follow-up): plan shape stays in the shared
 // service. The history-row mapper lives in a shared service for route/tests.
 import { planDataToAllWeeks, toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
+import { resolveDayForDate } from '../services/planDayResolver.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 import { buildClientTrainingAssignmentPicker } from '../services/clientTrainingAssignmentPickerService.mjs';
 import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
@@ -157,6 +158,13 @@ router.get('/:userId/current', protect, async (req, res) => {
 
     const formattedPlan = toCurrentWorkoutPlanResponse(plan);
     const currentSession = formattedPlan.currentSession || null;
+    // S0 (Plan Surfacing): ?forDate=YYYY-MM-DD answers the CALENDAR question
+    // via the one basis-chain authority. /current stays the cursor endpoint —
+    // this is an additive field, never a second next-workout truth.
+    const forDate = typeof req.query.forDate === 'string' ? req.query.forDate : null;
+    const dayForDate = forDate
+      ? resolveDayForDate(plan, forDate, { localDate: today })
+      : undefined;
     const overview = buildClientTrainingOverview({
       activePlan: activePlanWithPdfStatus,
       plans: plansWithPdfStatus,
@@ -189,6 +197,7 @@ router.get('/:userId/current', protect, async (req, res) => {
       homeworkSummary: overview.homeworkSummary,
       assignmentPicker,
       trainingDateContext,
+      ...(dayForDate !== undefined ? { dayForDate } : {}),
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);

@@ -12,6 +12,7 @@ import type { PlanExercise } from './WorkoutPlannerTypes';
 import type { RolodexSwapTarget } from './useWorkoutPlannerRolodexState';
 import {
   ActionBtn,
+  BuilderExerciseList,
   BuilderRow,
   BuilderRowInfo,
   BuilderRowNumber,
@@ -181,7 +182,7 @@ export const BuilderWorkoutContent: React.FC<BuilderWorkoutContentProps> = ({
   }
 
   return (
-    <>
+    <BuilderExerciseList>
       {swapTarget && (
         <SwapModeBanner role="status" aria-live="polite">
           <span>
@@ -202,7 +203,7 @@ export const BuilderWorkoutContent: React.FC<BuilderWorkoutContentProps> = ({
           onBeginSwap={onBeginSwap}
         />
       ))}
-    </>
+    </BuilderExerciseList>
   );
 };
 

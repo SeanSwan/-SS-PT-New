@@ -421,7 +421,7 @@ import {
 
 // Explicit attribute list for UserAchievement — the real "UserAchievements" columns.
 //
-// HISTORY (rule 78): this list existed because the model declared ~45 attributes (maxProgress,
+// HISTORY (rule 79): this list existed because the model declared ~45 attributes (maxProgress,
 // progressPercentage, …) that are not columns, so any unscoped SELECT threw. That was a
 // workaround for a KNOWN, DOCUMENTED drift left live for months — this comment was the fossil
 // recording it. The model was fixed to schema truth in SWA-87 and now declares exactly these

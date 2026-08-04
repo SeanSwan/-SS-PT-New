@@ -9,7 +9,7 @@ description: Intent-extraction + advisory gate. Phase 1 relentlessly interviews 
 
 > "The toughest part about building good skills and a good operating system is getting everything from your brain into your system... A skill can just be a prompt you don't want to have to say every single time."
 
-This is the front door for net-new building and planning. It runs **before** recursive planning (rule 15), before `swan-orchestrator`, and before `swan-design-router`. It feeds those gates the intent they would otherwise have to guess at.
+Rule 78 environment preflight is the front door before any write. After the checkout is verified or isolated, this is the intent front door for clear net-new building and planning; foggy multi-session work reaches it through the current Wayfinder `GRILL-HITL` ticket. It runs before recursive planning, `swan-orchestrator`, and `swan-design-router`.
 
 ## Two phases: Extract, then Synthesize & Advise
 
@@ -22,7 +22,7 @@ Suggestions can also surface *inline* during Phase 1 (every question already car
 
 ## When to invoke (auto-route)
 
-Invoke at the very start of any task that is:
+Invoke after Rule 78 environment preflight at the start of a bounded task that is:
 - A **net-new component, page, dashboard surface, or feature** where Sean's preferences aren't already captured
 - A **redesign** of an existing surface
 - A **new system, integration, or product direction** (Swan Coach lane, gamification, nutrition, social, Hermes scope, etc.)
@@ -36,6 +36,20 @@ Do NOT invoke for:
 - Pure exploration/read-only research with no plan to build
 
 If a brainstorm doc already covers the surface, **read it first**. Only re-grill the gaps or the new information Sean brings.
+
+## Environment and fog preflight
+
+Before creating or appending a brainstorm, complete Rule 78 environment preflight and run `worktree-isolation` when required. Then decide whether this is one product decision or a genuinely foggy multi-session project. If the broader effort has several unresolved dependency branches, route through `wayfinder` first and open one `GRILL-HITL` ticket for the current blocking decision. Keep the full map on disk; do not make Sean answer the entire tree in one sitting.
+
+When a choice is material, present only the next blocking decision:
+
+1. Offer two or three mutually exclusive options.
+2. Put the recommended option first.
+3. State the tradeoff in one sentence.
+4. Wait only when the choice changes product direction, security, billing, data behavior, production, or an irreversible action.
+5. Record the answer at its canonical source and link a short gist from the Wayfinder map if one exists.
+
+If the answer is discoverable from the repo, discover it instead of asking.
 
 ## The core method (Matt PCO's original, preserved)
 
@@ -75,7 +89,7 @@ Know the boundary, though — this lens is still **extraction**, not strategy pr
 - If the question is *"what does Sean want / what is this / how should it feel,"* that's grill-me (with or without the lens).
 - If the question becomes *"will this actually win — PMF, moat, monetization, what kills it,"* that's **`chromie`**, the dedicated CEO pressure-test (founder panel, hostile pushback, spec + 3 ways it fails + absence-first gap ranking). Hand off: finish capturing the vision here, then say *"the vision's captured — want me to run Chromie to pressure-test whether it wins before we plan?"*
 
-Order stays: grill-me (intent) → chromie (strategy, if the bet is unproven) → swan-orchestrator → swan-design-router (if UI) → build → closeout.
+Order stays: Rule 78 environment preflight -> Wayfinder only for multi-session material fog -> grill-me (intent) -> chromie (strategy, if the bet is unproven) -> swan-orchestrator -> swan-design-router (if UI) -> build -> closeout.
 
 ### How to ask in Claude Code
 - Use the **`AskUserQuestion` tool** when the question has discrete, mutually-exclusive options (it gives Sean tap-to-answer chips and renders option previews for UI/layout choices — use the `preview` field for ASCII mockups or code snippets when comparing concrete artifacts).
@@ -87,7 +101,7 @@ Order stays: grill-me (intent) → chromie (strategy, if the bet is unproven) �
 The danger in a long grill (they can run an hour+) is the context window filling and Claude misremembering early answers. So **every answer is checkpointed to disk immediately.**
 
 - Brainstorm docs live in **`docs/ai-workflow/brainstorms/`** (NOT repo root — honors rule 35 root-minimalism; this is the one deviation from the original skill, which used project root).
-- At the start of a grill, create the doc immediately: `docs/ai-workflow/brainstorms/<kebab-topic>-<YYYY-MM-DD>.md`. The current date is provided in session context — use it; never call a date function (rule against `Date.now()` in scripts; for the filename just use the session's stated current date).
+- After environment preflight returns a safe workspace, create the doc: `docs/ai-workflow/brainstorms/<kebab-topic>-<YYYY-MM-DD>.md`. The current date is provided in session context; use it and never create the file before preflight.
 - **After every single Q&A exchange, append to the doc.** Do not wait until the end. The doc is the source of truth, not the chat scrollback.
 
 ### Brainstorm doc structure
@@ -163,7 +177,7 @@ Brainstorm docs are durable. Later, Sean can say "grill me again on <topic>, her
 
 ## Integration with the SwanStudios operating system
 
-- **Order:** grill-me (extract intent) → swan-orchestrator (pre-task gate, rule 15/17/26/32) → swan-design-router (if UI) → build → closeout-evidence-lock.
+- **Order:** Rule 78 environment preflight -> Wayfinder only for multi-session material fog -> grill-me -> swan-orchestrator -> swan-design-router (if UI) -> build -> closeout-evidence-lock.
 - **Feeds rule 15:** recursive planning is only as good as the intent behind it. Grill-me is the intent layer that makes the plan match Sean's head.
 - **Honors rule 49:** answer from the codebase, not by asking Sean to read code; build a launcher if a structural question comes up mid-grill.
 - **Honors rule 62:** for product/UX/roadmap topics, the grill questions should pull on the Best-in-Class strategy gate (next-best-action, first-party record, activation loops, monetization, privacy).

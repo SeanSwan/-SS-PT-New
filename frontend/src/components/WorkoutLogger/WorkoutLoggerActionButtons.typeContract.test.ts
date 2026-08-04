@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const footerSource = readFileSync(resolve(__dirname, './WorkoutLoggerFooter.tsx'), 'utf8');
+const actionBarSource = readFileSync(resolve(__dirname, './runner/shell/zones/ActionBar.tsx'), 'utf8');
+const overflowSource = readFileSync(resolve(__dirname, './runner/shell/zones/ContextOverflow.tsx'), 'utf8');
 const restTimerSource = readFileSync(resolve(__dirname, './RestTimer.tsx'), 'utf8');
 
 function lineCount(source: string): number {
@@ -10,27 +11,31 @@ function lineCount(source: string): number {
 }
 
 describe('WorkoutLogger action button contract', () => {
-  it('keeps footer actions explicit non-submit buttons with touch-safe sizing', () => {
-    expect(footerSource.match(/type="button"/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
-    expect(footerSource).toMatch(/const Button = styled\(motion\.button\)[\s\S]*min-height: 48px;/);
-    expect(footerSource).toMatch(/const Button = styled\(motion\.button\)[\s\S]*&:focus-visible/);
+  it('keeps action-bar actions explicit non-submit buttons with touch-safe sizing', () => {
+    expect(actionBarSource.match(/type='button'/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    expect(actionBarSource).toMatch(/const Primary = styled\.button[\s\S]*min-height: 48px;/);
+    expect(actionBarSource).toMatch(/const Primary = styled\.button[\s\S]*&:focus-visible/);
+    expect(actionBarSource).toMatch(/const IconButton = styled\.button[\s\S]*min-height: 44px;[\s\S]*&:focus-visible/);
   });
 
-  it('keeps footer visual states on shared Crystalline Swan tokens', () => {
-    expect(footerSource).toContain('withAlpha');
-    expect(footerSource).not.toMatch(/rgba\((255, 255, 255|80, 160, 240|96, 192, 240|239, 68, 68)/);
-    expect(footerSource).not.toMatch(/#(?:ffffff|f87171)/i);
+  it('keeps action-bar visual states on shared theme tokens', () => {
+    expect(actionBarSource).toMatch(/var\(--/);
+    const offenders = actionBarSource
+      .split(String.fromCharCode(10))
+      .filter((line) => /#[0-9A-Fa-f]{3,8}|rgba?\(/.test(line))
+      .filter((line) => !/var\(--|color-mix\(/.test(line));
+    expect(offenders).toEqual([]);
   });
 
   it('keeps the summary action visible with an explicit save-first lock state', () => {
     const loggerSource = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8');
 
-    expect(footerSource).toContain('summaryLockedReason?: string');
-    expect(footerSource).toContain('showGenerateSummary || summaryLockedReason');
-    expect(footerSource).toContain('disabled={!showGenerateSummary || isGeneratingSummary}');
-    expect(footerSource).toContain('Save Workout to Send Summary');
+    expect(overflowSource).toContain('summaryLockedReason?: string');
+    expect(overflowSource).toContain('showGenerateSummary || summaryLockedReason');
+    expect(overflowSource).toContain('disabled={!showGenerateSummary || isGeneratingSummary}');
+    expect(overflowSource).toContain('Save Workout to Send Summary');
     expect(loggerSource).toContain('hasIncompleteWorkoutSets');
-    expect(loggerSource).toContain('summaryLockedReason={summaryLockedReason}');
+    expect(loggerSource).toContain('summaryLockedReason,');
     expect(loggerSource).toContain('Enter reps or weight, then save');
   });
 
@@ -46,7 +51,8 @@ describe('WorkoutLogger action button contract', () => {
   });
 
   it('keeps action components under the project file cap', () => {
-    expect(lineCount(footerSource)).toBeLessThanOrEqual(300);
+    expect(lineCount(actionBarSource)).toBeLessThanOrEqual(300);
+    expect(lineCount(overflowSource)).toBeLessThanOrEqual(300);
     expect(lineCount(restTimerSource)).toBeLessThanOrEqual(300);
   });
 });

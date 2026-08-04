@@ -57,7 +57,10 @@ describe('WorkoutLogger style extraction', () => {
     expect(source).toContain('min-height: min(100%, 100dvh)');
     expect(source).toContain('scrollbar-gutter: stable');
     expect(source).toContain('overscroll-behavior: contain');
-    expect(source).toContain('scroll-behavior: smooth');
+    // SESSION SHELL M3 (consult-ratified): programmatic scrolls must be
+    // INSTANT — smooth on the container would animate every StageCanvas
+    // scroll restore into a visible jump. The old pin is inverted forever.
+    expect(source).not.toContain('scroll-behavior: smooth');
   });
 
   it('raises the logger readability floor on QHD and 4K screens without viewport font scaling', () => {

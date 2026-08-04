@@ -12,7 +12,7 @@
  * calls execute through useBootcampAiEvents with real-option validation. Receipts
  * from BOTH paths land in one feed via the shared per-surface sink.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import SurfaceCoachDock from './SurfaceCoachDock';
 import {
   pushSurfaceCoachReceipt,
@@ -22,6 +22,7 @@ import {
 } from './useSurfaceCoachDock';
 import { useBootcampAiEvents, type BootcampAiEventHandlers } from '../BootcampBuilder/useBootcampAiEvents';
 import { dispatchAIWorkoutEvent } from '../../utils/aiWorkoutEvents';
+import BootcampVoiceProposalTray, { type BootcampVoiceProposal } from './BootcampVoiceProposalTray';
 
 const SURFACE = 'bootcamp-builder' as const;
 
@@ -36,10 +37,12 @@ export interface BootcampCoachDockMountProps {
   /** Live structure summary for the context chip, e.g. "4 stations × 4 · 40 min". */
   structureSummary: string;
   aiHandlers: Omit<BootcampAiEventHandlers, 'pushReceipt'>;
+  onAddExercise: (exercise: import('../WorkoutLogger/useExerciseSearch').ExerciseSlim, stationIndex?: number) => void;
 }
 
-const BootcampCoachDockMount: React.FC<BootcampCoachDockMountProps> = ({ structureSummary, aiHandlers }) => {
-  useBootcampAiEvents({ ...aiHandlers, pushReceipt: pushBootcampCoachReceipt });
+const BootcampCoachDockMount: React.FC<BootcampCoachDockMountProps> = ({ structureSummary, aiHandlers, onAddExercise }) => {
+  const [voiceProposal, setVoiceProposal] = useState<BootcampVoiceProposal | null>(null);
+  useBootcampAiEvents({ ...aiHandlers, proposeExercise: setVoiceProposal, pushReceipt: pushBootcampCoachReceipt });
 
   const dock = useSurfaceCoachDock({
     surface: SURFACE,
@@ -54,7 +57,11 @@ const BootcampCoachDockMount: React.FC<BootcampCoachDockMountProps> = ({ structu
     dispatchAIWorkoutEvent(action.eventName, action.payload ?? {});
   }, []);
 
-  return (
+  return <>
+    {voiceProposal && <BootcampVoiceProposalTray proposal={voiceProposal} onApplyExercise={(exercise, stationIndex) => {
+      onAddExercise(exercise, stationIndex);
+      setVoiceProposal(null);
+    }} onDismiss={() => setVoiceProposal(null)} />}
     <SurfaceCoachDock
       title="Swan Coach — talk to build this class"
       contextChip={`class: ${structureSummary}`}
@@ -62,7 +69,7 @@ const BootcampCoachDockMount: React.FC<BootcampCoachDockMountProps> = ({ structu
       onReceiptAction={onReceiptAction}
       {...dock}
     />
-  );
+  </>;
 };
 
 export default BootcampCoachDockMount;

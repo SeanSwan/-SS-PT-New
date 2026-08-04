@@ -1,0 +1,261 @@
+/**
+ * HOOK: useVoiceCapture (S6 — JARVIS blueprint §6.2, failure-mode F1)
+ * PURPOSE: THE one microphone for Swan Coach voice. MediaRecorder-primary
+ * (SpeechRecognition is demoted), seeded from the proven useVoiceRecorder
+ * path. Laws:
+ * - Permission is requested ONLY inside start() — a user gesture. Never on
+ *   mount, never ambient. Hold-to-talk (press=start, release=stop) and
+ *   tap-to-toggle both ride the same two functions.
+ * - Noise posture: echoCancellation + noiseSuppression + autoGainControl.
+ * - 120s auto-stop; blob hard cap 8MB (over-cap → error, blob dropped).
+ * - Screen lock / backgrounding (visibilitychange·pagehide) stops the
+ *   recorder and RETAINS the blob with `stoppedByLock` so the UI can ask
+ *   "Recording stopped when the screen locked — send it?".
+ * - Denied permission → state 'denied' with a human reason; callers must
+ *   focus typed input ("Type instead" is one tap away in every state).
+ * DARK until S10 cutover (VOICE_MODE_V2). Device matrix (iOS Safari 17+
+ * standalone PWA, iOS tab, Android Chrome) is a flag-flip gate recorded in
+ * docs/breadcrumbs/S6.md — the flag stays OFF until Sean's device pass.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+export type VoiceCaptureState = 'idle' | 'requesting' | 'recording' | 'stopped' | 'denied' | 'error';
+
+export interface UseVoiceCaptureReturn {
+  state: VoiceCaptureState;
+  audioBlob: Blob | null;
+  mimeType: string;
+  durationSeconds: number;
+  /** True when the last stop was forced by screen lock / backgrounding. */
+  stoppedByLock: boolean;
+  error: string | null;
+  start: () => Promise<void>;
+  stop: () => void;
+  reset: () => void;
+  /** Live mic RMS 0..1 for the orb's amplitude drive (ruling A1); 0 when unavailable. */
+  getAudioLevel: () => number;
+}
+
+export const VOICE_CAPTURE_MAX_SECONDS = 120;
+export const VOICE_CAPTURE_MAX_BYTES = 8 * 1024 * 1024;
+
+const IOS_RE = /iPad|iPhone|iPod/;
+
+/** iOS Safari only reliably records audio/mp4; everyone else prefers opus. */
+export const negotiateVoiceMime = (): string => {
+  if (typeof MediaRecorder === 'undefined') return '';
+  if (IOS_RE.test(navigator.userAgent)) {
+    return MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+  }
+  for (const mime of ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return '';
+};
+
+export const isVoiceCaptureSupported = (): boolean =>
+  typeof window !== 'undefined'
+  && typeof window.MediaRecorder !== 'undefined'
+  && typeof navigator.mediaDevices?.getUserMedia === 'function';
+
+const DENIED_REASON = 'Microphone access is off for this site. You can type instead, or enable the mic in your browser settings.';
+
+export function useVoiceCapture(): UseVoiceCaptureReturn {
+  const [state, setState] = useState<VoiceCaptureState>('idle');
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [mimeType, setMimeType] = useState('');
+  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [stoppedByLock, setStoppedByLock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const maxStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedAtRef = useRef(0);
+  const lockStopRef = useRef(false);
+  const startPendingRef = useRef(false);
+  const stopRequestedRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  const cleanup = useCallback(() => {
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    if (maxStopRef.current) { clearTimeout(maxStopRef.current); maxStopRef.current = null; }
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    levelBufferRef.current = null;
+    recorderRef.current = null;
+    chunksRef.current = [];
+  }, []);
+
+  const stop = useCallback(() => {
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+    else if (startPendingRef.current) stopRequestedRef.current = true;
+  }, []);
+
+  // Lock-safety (F1 de-risk 3): stop + retain the blob, never lose the utterance.
+  useEffect(() => {
+    mountedRef.current = true;
+    const safeStopForLock = () => {
+      if (recorderRef.current?.state === 'recording') {
+        lockStopRef.current = true;
+        recorderRef.current.stop();
+      }
+    };
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') safeStopForLock();
+    };
+    const onPageHide = () => safeStopForLock();
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      mountedRef.current = false;
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onPageHide);
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+      else cleanup();
+    };
+  }, [cleanup]);
+
+  const start = useCallback(async () => {
+    if (startPendingRef.current || recorderRef.current?.state === 'recording') return;
+    startPendingRef.current = true;
+    stopRequestedRef.current = false;
+    try {
+      setError(null);
+      setAudioBlob(null);
+      setDurationSeconds(0);
+      setStoppedByLock(false);
+      lockStopRef.current = false;
+      setState('requesting');
+
+      // iOS needs construction/resume in the initiating gesture call stack.
+      // The granted mic stream is connected after permission resolves.
+      try {
+        const AudioContextCtor = window.AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextCtor) {
+          const audioContext = new AudioContextCtor();
+          audioContextRef.current = audioContext;
+          if (audioContext.state === 'suspended') {
+            void audioContext.resume().catch(() => undefined);
+          }
+        }
+      } catch {
+        audioContextRef.current = null;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      if (stopRequestedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        setError('Microphone is ready - hold again to record.');
+        setState('error');
+        cleanup();
+        return;
+      }
+      streamRef.current = stream;
+
+      // Amplitude tap for the orb (ruling A1) — recording works without it.
+      try {
+        const audioContext = audioContextRef.current;
+        if (audioContext) {
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          audioContext.createMediaStreamSource(stream).connect(analyser);
+          analyserRef.current = analyser;
+          levelBufferRef.current = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+        }
+      } catch {
+        analyserRef.current = null;
+      }
+
+      const mime = negotiateVoiceMime();
+      setMimeType(mime || 'audio/webm');
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = event => { if (event.data.size > 0) chunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        if (!mountedRef.current) { cleanup(); return; }
+        const blob = new Blob(chunksRef.current, { type: mime || 'audio/webm' });
+        if (blob.size > VOICE_CAPTURE_MAX_BYTES) {
+          setAudioBlob(null);
+          setError('That recording is too large to send — try a shorter take.');
+          setState('error');
+        } else {
+          setAudioBlob(blob);
+          setStoppedByLock(lockStopRef.current);
+          setState('stopped');
+        }
+        cleanup();
+      };
+      recorder.onerror = () => {
+        if (!mountedRef.current) { cleanup(); return; }
+        setError('Recording failed — you can type instead.');
+        setState('error');
+        cleanup();
+      };
+
+      recorder.start(250);
+      startedAtRef.current = Date.now();
+      setState('recording');
+      tickRef.current = setInterval(() => {
+        setDurationSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000));
+      }, 500);
+      maxStopRef.current = setTimeout(stop, VOICE_CAPTURE_MAX_SECONDS * 1000);
+    } catch (err: unknown) {
+      const denied = err instanceof DOMException
+        && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      if (mountedRef.current) {
+      setError(denied ? DENIED_REASON : 'Could not start the microphone — you can type instead.');
+      setState(denied ? 'denied' : 'error');
+      }
+      cleanup();
+    } finally {
+      startPendingRef.current = false;
+    }
+  }, [cleanup, stop]);
+
+  const reset = useCallback(() => {
+    stopRequestedRef.current = true;
+    cleanup();
+    setState('idle');
+    setAudioBlob(null);
+    setDurationSeconds(0);
+    setStoppedByLock(false);
+    setError(null);
+  }, [cleanup]);
+
+  const getAudioLevel = useCallback((): number => {
+    const analyser = analyserRef.current;
+    const buffer = levelBufferRef.current;
+    if (!analyser || !buffer) return 0;
+    analyser.getByteTimeDomainData(buffer);
+    let sumOfSquares = 0;
+    for (let i = 0; i < buffer.length; i += 1) {
+      const centered = (buffer[i] - 128) / 128;
+      sumOfSquares += centered * centered;
+    }
+    // Speech RMS peaks well under 1.0 — scale up, clamp for UI use.
+    return Math.min(1, Math.sqrt(sumOfSquares / buffer.length) * 3);
+  }, []);
+
+  return { state, audioBlob, mimeType, durationSeconds, stoppedByLock, error, start, stop, reset, getAudioLevel };
+}

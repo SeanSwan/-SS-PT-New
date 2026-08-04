@@ -73,10 +73,12 @@ function playRestCompleteBeep(): void {
 }
 
 interface UseRestTimerReturn {
-  /** Seconds remaining */
+  /** Seconds remaining — always recomputed from the wall clock (M6). */
   secondsLeft: number;
   /** Whether timer is currently counting down */
   isRunning: boolean;
+  /** Epoch ms the countdown ends, null when idle (draft-persist seam). */
+  endsAt: number | null;
   /** Start the countdown (optionally with a custom duration) */
   start: (seconds?: number) => void;
   /** Stop/pause the timer */
@@ -95,11 +97,14 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
 
   const [secondsLeft, setSecondsLeft] = useState(defaultSeconds);
   const [isRunning, setIsRunning] = useState(false);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  /** M6: the single source of countdown truth — epoch ms, not tick counts. */
+  const endsAtRef = useRef<number | null>(null);
 
   // Check reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
@@ -132,79 +137,90 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
     onCompleteRef.current?.();
   }, [enableVibration, enableAudio, prefersReducedMotion]);
 
-  // Fallback: use setInterval on main thread
-  const startFallbackInterval = useCallback((duration: number) => {
-    let remaining = duration;
+  /**
+   * M6 tick: recompute remaining from the wall clock. Ticks are only a
+   * refresh cadence — a throttled tab that misses every tick still lands
+   * on the truth the moment tick() runs again (visibilitychange below).
+   */
+  const tick = useCallback(() => {
+    const target = endsAtRef.current;
+    if (target === null) return;
+    const remaining = Math.max(0, Math.ceil((target - Date.now()) / 1000));
     setSecondsLeft(remaining);
-    setIsRunning(true);
-
-    intervalRef.current = setInterval(() => {
-      remaining--;
-      setSecondsLeft(remaining);
-      if (remaining <= 0) {
-        setIsRunning(false);
-        fireAlert();
-        cleanup();
-      }
-    }, 1000);
+    if (remaining <= 0) {
+      endsAtRef.current = null;
+      setEndsAt(null);
+      setIsRunning(false);
+      fireAlert();
+      cleanup();
+    }
   }, [cleanup, fireAlert]);
+
+  // Fallback: main-thread metronome (the worker is also just a metronome now).
+  const startFallbackInterval = useCallback(() => {
+    intervalRef.current = setInterval(() => tick(), 1000);
+  }, [tick]);
 
   // Start the timer
   const start = useCallback((seconds?: number) => {
     cleanup();
 
     const duration = seconds ?? defaultSeconds;
+    const target = Date.now() + duration * 1000;
+    endsAtRef.current = target;
+    setEndsAt(target);
     setSecondsLeft(duration);
     setIsRunning(true);
 
-    // Try Web Worker for background precision
+    // Try a Web Worker metronome — worker timers throttle less in background.
     try {
       const workerBlob = new Blob([
-        `let count = ${duration};
-         let timer = setInterval(() => {
-           count--;
-           postMessage(count);
-           if (count <= 0) { clearInterval(timer); }
-         }, 1000);
-         onmessage = () => { clearInterval(timer); };`
+        'let timer = setInterval(() => postMessage(1), 1000);'
+        + ' onmessage = () => { clearInterval(timer); };'
       ], { type: 'application/javascript' });
 
       const worker = new Worker(URL.createObjectURL(workerBlob));
       workerRef.current = worker;
-
-      worker.onmessage = (e: MessageEvent<number>) => {
-        const remaining = e.data;
-        setSecondsLeft(remaining);
-        if (remaining <= 0) {
-          setIsRunning(false);
-          fireAlert();
-          cleanup();
-        }
-      };
-
+      worker.onmessage = () => tick();
       worker.onerror = () => {
         // Fallback to setInterval if Worker fails (CSP restriction, etc.)
         cleanup();
-        startFallbackInterval(duration);
+        startFallbackInterval();
       };
     } catch {
       // Web Worker not available — use setInterval fallback
-      startFallbackInterval(duration);
+      startFallbackInterval();
     }
-  }, [cleanup, defaultSeconds, fireAlert, startFallbackInterval]);
+  }, [cleanup, defaultSeconds, startFallbackInterval, tick]);
 
   // Stop the timer (pause)
   const stop = useCallback(() => {
     cleanup();
+    endsAtRef.current = null;
+    setEndsAt(null);
     setIsRunning(false);
   }, [cleanup]);
 
   // Reset to default
   const reset = useCallback(() => {
     cleanup();
+    endsAtRef.current = null;
+    setEndsAt(null);
     setSecondsLeft(defaultSeconds);
     setIsRunning(false);
   }, [cleanup, defaultSeconds]);
+
+  // M6 reconcile: the instant the tab is visible/focused again, land on truth.
+  useEffect(() => {
+    if (!isRunning) return undefined;
+    const reconcile = () => tick();
+    document.addEventListener('visibilitychange', reconcile);
+    window.addEventListener('focus', reconcile);
+    return () => {
+      document.removeEventListener('visibilitychange', reconcile);
+      window.removeEventListener('focus', reconcile);
+    };
+  }, [isRunning, tick]);
 
   // Cleanup on unmount (CEO Ruling: custom useTimer hook with cleanup in useEffect)
   useEffect(() => {
@@ -213,5 +229,5 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
     };
   }, [cleanup]);
 
-  return { secondsLeft, isRunning, start, stop, reset };
+  return { secondsLeft, isRunning, endsAt, start, stop, reset };
 }

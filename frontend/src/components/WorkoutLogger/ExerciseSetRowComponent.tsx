@@ -138,6 +138,7 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
           label={keypad.openFor === 'weight' ? `Set ${set.setNumber} — Weight (lbs)` : `Set ${set.setNumber} — Reps`}
           value={keypad.openFor === 'weight' ? set.weight ?? 0 : set.reps ?? 0}
           allowDecimal={keypad.openFor === 'weight'}
+          showPlateMath={keypad.openFor === 'weight'}
           lastSessionValue={keypad.openFor === 'weight' ? lastWeight?.weight ?? null : null}
           onCommit={keypad.onCommit}
           onClose={keypad.onClose}

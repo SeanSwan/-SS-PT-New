@@ -31,6 +31,8 @@ export interface OverloadSuggestion {
 
 // Module-level cache shared across all hook instances
 const preFillCache = new Map<string, PreFillData[] | null>();
+/** Batch 4: newest-first top-set weight per past workout (glance trend). */
+const trendCache = new Map<string, number[]>();
 
 // Compound movements get +5 lbs suggestion, isolation gets +2.5
 const COMPOUND_PATTERNS = /squat|deadlift|bench|press|row|pull.?up|chin.?up|lunge|clean|snatch|thrust/i;
@@ -95,6 +97,19 @@ export function useGhostPreFill(
         return;
       }
 
+      // Batch 4: while we're here, cache the TREND — top set per workout
+      // (newest first) across the whole response, for the glance chip.
+      const trend: number[] = [];
+      for (const workout of data.workouts) {
+        const logs = workout.logs || workout.exercises || [];
+        const tops = logs
+          .filter((log: any) => log.exerciseName?.toLowerCase() === exerciseName.toLowerCase())
+          .map((log: any) => Number(log.weight) || 0);
+        if (tops.length > 0) trend.push(Math.max(...tops));
+        if (trend.length >= 5) break;
+      }
+      trendCache.set(cacheKey, trend);
+
       // Find most recent workout containing this exercise
       for (const workout of data.workouts) {
         const logs = workout.logs || workout.exercises || [];
@@ -145,6 +160,10 @@ export function useGhostPreFill(
   const fetchExerciseHistory = skip ? noOpFetchExerciseHistory : fetchExerciseHistoryReal;
 
   /** Get pre-fill values for a specific set */
+  const getTrend = useCallback((exerciseName: string): number[] => {
+    return trendCache.get(`${clientId}:${exerciseName}`) ?? [];
+  }, [clientId]);
+
   const getPreFill = useCallback((exerciseName: string, setIndex: number): PreFillData | null => {
     const cacheKey = `${clientId}:${exerciseName}`;
     const cached = preFillCache.get(cacheKey);
@@ -204,6 +223,7 @@ export function useGhostPreFill(
     fetchExerciseHistory,
     getPreFill,
     getOverload,
+    getTrend,
     createPreFilledSet,
   };
 }

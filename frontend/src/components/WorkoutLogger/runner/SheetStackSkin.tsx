@@ -9,7 +9,7 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, TimerOff } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { getExerciseEntryRowKey } from '../WorkoutLogger.helpers';
 import type { RunnerEngine } from './RunnerEngine.types';
 import { isExerciseComplete, exerciseSetProgress } from './RunnerEngine.types';
@@ -17,12 +17,10 @@ import {
   CanvasItem,
   CanvasList,
   CanvasNow,
-  RestChipButton,
   SheetBody,
   SheetContext,
   SheetGrabber,
   SheetHost,
-  SheetRestStrip,
   StackShell,
 } from './SheetStackSkin.styles';
 
@@ -56,7 +54,7 @@ function useSheetMaxHeight(): number {
 }
 
 const SheetStackSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
-  const { exercises, rest, stats } = engine;
+  const { exercises, stats } = engine;
   const [activeIndex, setActiveIndex] = useState<number>(() => firstIncompleteIndex(engine));
   const [expanded, setExpanded] = useState(true);
   const maxHeight = useSheetMaxHeight();
@@ -134,19 +132,7 @@ const SheetStackSkin: React.FC<{ engine: RunnerEngine }> = ({ engine }) => {
             <em>Set {Math.min(progress.done + 1, progress.total)} of {progress.total}</em>
           </SheetContext>
         </SheetGrabber>
-        {rest.isRunning && (
-          <SheetRestStrip>
-            <span aria-label={`Rest: ${formatRest(rest.secondsLeft)} remaining`}>
-              {formatRest(rest.secondsLeft)}
-            </span>
-            <RestChipButton type='button' onClick={() => rest.extend(15)} aria-label='Add 15 seconds of rest'>
-              +15s
-            </RestChipButton>
-            <RestChipButton type='button' onClick={rest.stop} aria-label='Skip rest'>
-              <TimerOff size={12} aria-hidden='true' /> Skip
-            </RestChipButton>
-          </SheetRestStrip>
-        )}
+        {/* Rest chrome lives in the SHELL action bar (Slice 4b) — one surface. */}
         {expanded && <SheetBody>{engine.renderExerciseCard(activeIndex)}</SheetBody>}
       </SheetHost>
     </StackShell>

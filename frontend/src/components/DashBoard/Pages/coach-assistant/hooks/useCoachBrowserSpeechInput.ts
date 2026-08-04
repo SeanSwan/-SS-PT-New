@@ -212,19 +212,24 @@ export function useCoachBrowserSpeechInput({
     recognition.start();
   }, [reportRuntimeFailure, setText]);
 
+  const stopListening = useCallback(() => {
+    // A one-way stop for lifecycle transitions. Null first so a late onend
+    // from the browser cannot restart recognition after eligibility ends.
+    armedRef.current = false;
+    const current = recognitionRef.current;
+    recognitionRef.current = null;
+    current?.stop();
+    setListening(false);
+    setInterim('');
+  }, []);
+
   const toggleListening = useCallback(() => {
     const SpeechRecognition = getBrowserSpeechRecognition();
     if (!SpeechRecognition || runtimeUnavailable) return;
 
     if (listening) {
       // Intentional finish: text stays in the composer for review + Send.
-      // Null the ref FIRST so the instance's async onend is ignored.
-      armedRef.current = false;
-      const current = recognitionRef.current;
-      recognitionRef.current = null;
-      current?.stop();
-      setListening(false);
-      setInterim('');
+      stopListening();
       return;
     }
 
@@ -243,6 +248,7 @@ export function useCoachBrowserSpeechInput({
     runtimeUnavailable,
     setInputError,
     startRecognition,
+    stopListening,
   ]);
 
   useEffect(() => () => {
@@ -254,6 +260,7 @@ export function useCoachBrowserSpeechInput({
     listening,
     interim,
     clearInterim,
+    stopListening,
     toggleListening,
     speechSupported: Boolean(getBrowserSpeechRecognition()) && !runtimeUnavailable,
   };

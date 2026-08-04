@@ -78,18 +78,18 @@ describe('legacy workoutSessionRoutes enforces trainer assignment (no role bypas
     mocks.create.mockResolvedValue({ id: 'session-new' });
   });
 
-  it('denies an UNASSIGNED trainer reading another user\'s session by id (404 — no existence oracle)', async () => {
-    mocks.assertAssignmentOrAdmin.mockResolvedValue(false);
-    const res = await request(buildApp())
-      .get('/api/workout/sessions/5')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'trainer');
-    // GET /:id returns 404 (not 403) on an unauthorized read so a non-owner can't distinguish
-    // "exists-not-yours" from "doesn't-exist" — matches the miss branch + /:id/handoff. Denial is
-    // still enforced (assertAssignmentOrAdmin gates it); only the status code hides existence.
-    expect(res.status).toBe(404);
-    expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(42, 'trainer', 999);
-  });
+  // REMOVED 2026-07-30 (SWA-75): two blocks here covered GET /:id on this router.
+  // That route was UNREACHABLE (/api/workout is mounted ahead of
+  // /api/workout/sessions) and has now been deleted. They passed only because this
+  // suite mounts the router DIRECTLY, bypassing the real mount order.
+  //
+  // WORTH KNOWING, and filed on SWA-75 rather than silently changed: the deleted
+  // route answered an unauthorized read with 404 BY DESIGN, so a non-owner could
+  // not distinguish 'exists-not-yours' from 'doesn't-exist'. The live endpoint
+  // (workoutController.getWorkoutSessionById) answers 403 — which IS an existence
+  // oracle. Denial is enforced in both; only the live one reveals that the session
+  // exists. Changing a live security response is Sean's call, not a cleanup.
+  // The surviving /:id/handoff route on this router still uses the 404 posture.
 
   it('denies an UNASSIGNED trainer reading another user\'s statistics (403)', async () => {
     mocks.assertAssignmentOrAdmin.mockResolvedValue(false);
@@ -122,16 +122,6 @@ describe('legacy workoutSessionRoutes enforces trainer assignment (no role bypas
       .send({ title: 'x', userId: 999 });
     expect(res.status).toBe(403);
     expect(mocks.create).not.toHaveBeenCalled();
-  });
-
-  it('ALLOWS an ASSIGNED trainer to read another user\'s session (200)', async () => {
-    mocks.assertAssignmentOrAdmin.mockResolvedValue(true);
-    const res = await request(buildApp())
-      .get('/api/workout/sessions/5')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'trainer');
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
   });
 
   it('source: imports the shared assignment gate and drops the role-only bypass', () => {

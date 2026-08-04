@@ -65,15 +65,10 @@ describe.each(SKINS)('conformance: $id', ({ id, Skin }) => {
     expect(engine.openRolodex).toHaveBeenCalled();
   });
 
-  it('while resting: countdown visible, +15s and Skip both fire the engine', () => {
-    const stop = vi.fn();
-    const extend = vi.fn();
-    render(<Skin engine={makeEngine({ rest: { isRunning: true, secondsLeft: 65, stop, extend } })} />);
-    expect(screen.getByLabelText(/Rest: 1:05 remaining/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add 15 seconds of rest' }));
-    expect(extend).toHaveBeenCalledWith(15);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip rest' }));
-    expect(stop).toHaveBeenCalled();
+  it('skins render NO rest controls — the SHELL action bar owns rest (Slice 4b law)', () => {
+    render(<Skin engine={makeEngine({ rest: { isRunning: true, secondsLeft: 65, stop: vi.fn(), extend: vi.fn() } })} />);
+    expect(screen.queryByRole('button', { name: 'Skip rest' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add 15 seconds of rest' })).toBeNull();
   });
 
   it('registry ships this skin', () => {

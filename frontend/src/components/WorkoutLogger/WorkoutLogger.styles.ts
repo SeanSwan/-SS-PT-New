@@ -7,46 +7,6 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
-export const TimerFAB = styled.button<{ $lift?: boolean }>`
-  position: fixed;
-  /* Lifted above the fixed Save bar when it's mounted so the FAB never
-     overlaps / tap-intercepts the Save action (esp. at phone widths where the
-     pill is wider). Stacks vertically instead of competing for the bottom-right. */
-  bottom: ${({ $lift }) => (
-    $lift
-      ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))'
-      : 'calc(2rem + env(safe-area-inset-bottom, 0px))'
-  )};
-  right: 2rem;
-  z-index: 9989;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  background: var(--bg-elevated, ${CS.surface});
-  border: 1px solid var(--accent-primary, ${withAlpha(CS.gaming, 0.3)});
-  color: var(--text-primary, ${CS.text});
-  cursor: pointer;
-  box-shadow: 0 4px 16px ${withAlpha(CS.bgDeep, 0.4)}, 0 0 16px ${withAlpha(CS.gaming, 0.15)};
-  transition: transform 0.2s, box-shadow 0.2s, bottom 0.2s;
-
-  &:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 20px 4px ${withAlpha(CS.secondary, 0.4)};
-  }
-
-  @media (max-width: 430px) {
-    bottom: ${({ $lift }) => (
-      $lift
-        ? 'calc(5.25rem + env(safe-area-inset-bottom, 0px))'
-        : 'calc(1rem + env(safe-area-inset-bottom, 0px))'
-    )};
-    right: 1rem;
-  }
-`;
 
 export const WorkoutLoggerContainer = styled(motion.div)`
   min-height: min(100%, 100dvh);
@@ -60,7 +20,6 @@ export const WorkoutLoggerContainer = styled(motion.div)`
   position: relative;
   box-sizing: border-box;
   overscroll-behavior: contain;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
 
   &::before {
@@ -82,14 +41,16 @@ export const WorkoutLoggerContainer = styled(motion.div)`
   }
 
   @media (min-width: 2560px) {
-    max-width: 2400px;
+    /* SESSION SHELL (consult §3): the shell column caps at 1440px on
+       QHD/4K — the canvas never stretches to monitor width. */
+    max-width: 1440px;
     margin: 0 auto;
     padding: 2.5rem;
     font-size: 1.0625rem;
   }
 
   @media (min-width: 3840px) {
-    max-width: 3200px;
+    max-width: 1440px;
     padding: 3rem;
     font-size: 1.125rem;
   }
@@ -269,4 +230,14 @@ export const AddExerciseButton = styled(motion.button)`
   &:active { transform: scale(0.98); }
 
   ${reducedMotionSafe}
+`;
+
+/** SESSION SHELL Finish stub (Slice 3): empty-state note before any set is logged. */
+export const FinishEmptyNote = styled.p`
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px dashed ${withAlpha(CS.text, 0.2)};
+  border-radius: 12px;
+  color: ${CS.textMuted};
+  font: 400 0.9rem 'Sora', sans-serif;
 `;

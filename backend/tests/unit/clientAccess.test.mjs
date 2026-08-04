@@ -5,7 +5,12 @@
  * Context Engine's security posture.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { checkClientAccess } from '../../services/ai/contextEngine/clientAccess.mjs';
+import {
+  checkClientAccess,
+  REAL_RELATIONSHIP_STATUSES,
+  SESSION_HISTORY_WINDOW_DAYS,
+  sessionHistoryCutoff,
+} from '../../services/ai/contextEngine/clientAccess.mjs';
 
 const ASSIGNMENT_SQL = /client_trainer_assignments/;
 const SESSION_SQL = /FROM sessions/;
@@ -106,5 +111,68 @@ describe('checkClientAccess matrix', () => {
     expect(r.allowed).toBe(false);
     const assignmentCall = sequelize.query.mock.calls.find(([sql]) => ASSIGNMENT_SQL.test(sql));
     expect(assignmentCall[0]).toMatch(/status = 'active'/);
+  });
+});
+
+/**
+ * The session-history fallback is BOUNDED (Sean's ruling, 2026-07-30).
+ *
+ * Before: `SELECT 1 FROM sessions WHERE trainerId=? AND userId=?` — no status
+ * filter, no date bound. One row, including a CANCELLED session from any date,
+ * granted permanent Coach context access. So unassigning a trainer revoked their
+ * photos/notes/nutrition (utils/clientAccess.mjs) but NOT their Coach access:
+ * unassignment was not a complete revocation.
+ *
+ * WHAT THESE TESTS PROVE, precisely: that the guard ASKS the right question — the
+ * emitted SQL carries a status allowlist and a recency bound, and the bound
+ * parameters are correct. They do NOT prove Postgres' evaluation of that SQL; the
+ * fake sequelize returns whatever rows it is handed regardless of the WHERE clause,
+ * which is exactly why the pre-existing "allowed via session history" test kept
+ * passing while the query was unbounded. End-to-end proof would need seeded
+ * production rows, which is not something a test may create.
+ */
+describe('session-history fallback is bounded, not unlimited', () => {
+  const sessionCall = (sequelize) => sequelize.query.mock.calls.find(([sql]) => SESSION_SQL.test(sql));
+
+  it('filters on a status allowlist and a sessionDate floor', async () => {
+    const sequelize = fakeSequelize({ assignmentRows: [], sessionRows: [] });
+    await checkClientAccess(TRAINER, 7, sequelize);
+
+    const [sql, opts] = sessionCall(sequelize);
+    expect(sql).toMatch(/status IN \(:realStatuses\)/);
+    expect(sql).toMatch(/"sessionDate" >= :sessionHistoryCutoff/);
+    expect(sql).toMatch(/"sessionDate" IS NOT NULL/);
+    expect(opts.replacements.realStatuses).toEqual(REAL_RELATIONSHIP_STATUSES);
+    expect(opts.replacements.sessionHistoryCutoff).toBeInstanceOf(Date);
+  });
+
+  it.each(['cancelled', 'available', 'blocked', 'requested'])(
+    'a %s session can never grant access',
+    (status) => {
+      // Verified against the live enum_sessions_status. `cancelled` is the case
+      // that motivated the ruling: a session that never happened must not confer
+      // standing access to a client's history.
+      expect(REAL_RELATIONSHIP_STATUSES).not.toContain(status);
+    },
+  );
+
+  it('counts the statuses that DO evidence a real working relationship', () => {
+    expect(REAL_RELATIONSHIP_STATUSES).toEqual(
+      expect.arrayContaining(['completed', 'confirmed', 'scheduled', 'booked', 'assigned']),
+    );
+  });
+
+  it('the cutoff is the configured window in the past, not the epoch', () => {
+    const now = Date.UTC(2026, 6, 30, 12, 0, 0);
+    const cutoff = sessionHistoryCutoff(now);
+    const daysBack = (now - cutoff.getTime()) / (24 * 60 * 60 * 1000);
+    expect(daysBack).toBe(SESSION_HISTORY_WINDOW_DAYS);
+    expect(SESSION_HISTORY_WINDOW_DAYS).toBeGreaterThan(0);
+    // A regression to "no bound" would show up as an absurdly old cutoff.
+    expect(SESSION_HISTORY_WINDOW_DAYS).toBeLessThanOrEqual(365);
+  });
+
+  it('the allowlist is frozen so a caller cannot widen it at runtime', () => {
+    expect(Object.isFrozen(REAL_RELATIONSHIP_STATUSES)).toBe(true);
   });
 });

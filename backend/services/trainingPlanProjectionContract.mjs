@@ -230,6 +230,12 @@ export const buildTrainingPlanProjectionItems = ({
         prescribedHash: receiptHash || planHash,
         completionState: receipt ? 'completed' : 'planned',
         completedAt: receipt ? completionTime(receipt.completedAt) : null,
+        // S2 (Plan Surfacing): honest drift — a planned day whose scheduled
+        // date is behind the client's local today is N days overdue. The
+        // cursor model otherwise slides silently; this is the visible truth.
+        overdueDays: (!receipt && dateOnly(context?.localDate) && scheduledDate < context.localDate)
+          ? Math.round((utcTime(context.localDate) - utcTime(scheduledDate)) / 86400000)
+          : null,
         coexistenceKey: `${Number(plan.userId)}:${scheduledDate}`,
       });
     });
@@ -243,3 +249,11 @@ export const buildTrainingPlanProjectionItems = ({
     || left.dayNumber - right.dayNumber
   ));
 };
+
+// ─────────────────────────────────────────────────────────────
+// S0 (Plan Surfacing Batch A, 2026-08-03): the basis chain is the ONE
+// date→plan-day truth app-wide. planDayResolver consumes these exports;
+// nothing else should re-implement scheduled-date math.
+// ─────────────────────────────────────────────────────────────
+export const buildAssignmentRows = assignmentRows;
+export const resolveScheduledDate = scheduledDateFor;

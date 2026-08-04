@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
-const pageSource = read('WorkoutPlannerPage.tsx');
+const pageSource = read('plannerContexts/useWorkoutPlannerOrchestration.ts');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerClientState.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
 
 describe('WorkoutPlanner client state extraction', () => {
   it('keeps client loading, selection, and self-generation gates outside the page shell', () => {
-    expect(pageSource).toContain("from './useWorkoutPlannerClientState'");
+    expect(pageSource).toContain("from '../useWorkoutPlannerClientState'");
     expect(pageSource).not.toContain('const [clients, setClients]');
     expect(pageSource).not.toContain('const [selectedClientId, setSelectedClientId]');
     expect(pageSource).not.toContain('const [clientsLoading, setClientsLoading]');

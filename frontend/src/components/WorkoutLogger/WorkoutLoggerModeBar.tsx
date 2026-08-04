@@ -17,19 +17,21 @@ import {
 interface WorkoutLoggerModeBarProps {
   isQuickLogMode: boolean;
   onChangeMode: (quickLog: boolean) => void;
-  isOffline: boolean;
-  pendingCount: number;
-  restRunning: boolean;
-  restSecondsLeft: number;
+  /** Deprecated (Slice 4b dry-loop): offline lives in the Notice lane. */
+  isOffline?: boolean;
+  pendingCount?: number;
+  /** Deprecated (Slice 4b dry-loop): rest lives in the shell action bar. */
+  restRunning?: boolean;
+  restSecondsLeft?: number;
 }
 
 const WorkoutLoggerModeBar: React.FC<WorkoutLoggerModeBarProps> = ({
   isQuickLogMode,
   onChangeMode,
-  isOffline,
-  pendingCount,
-  restRunning,
-  restSecondsLeft,
+  isOffline = false,
+  pendingCount = 0,
+  restRunning = false,
+  restSecondsLeft = 0,
 }) => (
   <>
     <ModeToggle>

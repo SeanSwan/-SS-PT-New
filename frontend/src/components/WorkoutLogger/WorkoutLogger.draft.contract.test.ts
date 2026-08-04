@@ -13,11 +13,11 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 // Slice D1/D2 decomposition: AI-events + submit clusters live in hooks;
-// C4a: the banner moved to WorkoutDraftGateBanner (shell line cap).
+// C4a: the draft offer moved into the shell Notice lane (ShellNotices).
 const source = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8')
   + readFileSync(resolve(__dirname, './useWorkoutAiEvents.ts'), 'utf8')
   + readFileSync(resolve(__dirname, './useWorkoutSubmit.ts'), 'utf8')
-  + readFileSync(resolve(__dirname, './WorkoutDraftGateBanner.tsx'), 'utf8');
+  + readFileSync(resolve(__dirname, './runner/shell/zones/ShellNotices.tsx'), 'utf8');
 
 describe('WorkoutLogger draft autosave contract', () => {
   it('mounts useWorkoutDraft with the live form state', () => {
@@ -36,8 +36,8 @@ describe('WorkoutLogger draft autosave contract', () => {
   });
 
   it('only offers the restore banner into an empty form', () => {
-    expect(source).toContain('WorkoutDraftRestoreBanner');
-    expect(source).toMatch(/visible=\{exercises\.length === 0 && !sessionNotes\}/);
+    expect(source).toContain('workoutDraft.pendingDraft');
+    expect(source).toMatch(/draftOfferVisible=\{exercises\.length === 0 && !sessionNotes\}/);
     // Restored rows must re-run row-identity assignment (stable loggerExerciseIds).
     expect(source).toMatch(/restore\(\)/);
     expect(source).toMatch(/ensureWorkoutLoggerExerciseRowIdentity/);

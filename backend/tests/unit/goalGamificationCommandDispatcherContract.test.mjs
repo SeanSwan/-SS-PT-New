@@ -127,7 +127,7 @@ describe('goal gamification command dispatchers', () => {
       ],
       // Real "UserAchievements" columns only. These rows previously carried `isNew`, a column that
       // does not exist — so the fixture modelled data the DB can never return, and the
-      // `newAchievements: 1` assertion below passed while production always computed 0 (rule 78).
+      // `newAchievements: 1` assertion below passed while production always computed 0 (rule 79).
       achievements: [
         { isCompleted: true, notificationSent: false },
         { isCompleted: false, notificationSent: true },
