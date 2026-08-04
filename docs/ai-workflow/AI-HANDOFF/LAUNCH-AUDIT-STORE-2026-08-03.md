@@ -546,6 +546,31 @@ scope decision, not a hostile-review fix. Tracked on SWA-112.
 
 ## 6. SHARED-INFRA PROPOSALS (C4 — integrator applies, I did not)
 
+> **RE-VALIDATED AGAINST CURRENT `origin/main` (hostile round 28).** This audit was built on
+> `0949eaf6b`; `origin/main` has since advanced **81 commits** to `c21a709757`. That is
+> exactly the staleness Ground Rule 1 warns about, so every proposal below was re-checked
+> against the *current* tip rather than assumed to still apply.
+>
+> **All three still apply, and none of this lane's audited files changed upstream** (verified
+> per-file with `git rev-list --count 0949eaf6b..origin/main -- <path>` — zero for every file
+> this lane touched, so the fixes still merge cleanly and the findings still hold).
+>
+> **Anchors below are given for CURRENT main**, because the integrator will apply them there,
+> not against this audit's base:
+>
+> | Proposal | Current-main anchor | Status |
+> |---|---|---|
+> | P-1 | `CLAUDE.md:1019` (FORCE_RESEED line) and `:1020` (the stale "/api/cart/add returning 404" line) | **still present — still needed** |
+> | P-2 | `render.yaml:198-200` (`type: rewrite` / `source: /*` / `destination: /index.html`) | **unchanged upstream — still needed** |
+> | P-3 | `routes/api.mjs:27` + `core/routes.mjs:332` (sessionPackageRoutes ×2); `routes/api.mjs:39` + `core/routes.mjs:378` (v2PaymentRoutes ×2) | **still duplicated — and now more timely:** `66288d074` just unmounted `/api/packages` as a dead surface (`core/routes.mjs:339`, now commented out), so duplicate-mount cleanup is actively in progress and these two were missed |
+>
+> One upstream change worth flagging to whoever merges this: `fe9a69c6f` renames `users` →
+> `_dead_users` and repoints canonical FKs (SWA-115). This lane's money path reaches users
+> only through the Sequelize models, so nothing here targets the renamed table directly — but
+> that is a schema move under a live payment path and deserves its own verification pass by
+> whoever owns SWA-115.
+
+
 **P-1 — `CLAUDE.md` → Open Items → "Storefront Packages (PENDING CONFIRMATION)".**
 Retract the FORCE_RESEED instruction; it is now destructive and the seeder will refuse it.
 
