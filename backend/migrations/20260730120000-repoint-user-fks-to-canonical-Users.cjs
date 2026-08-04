@@ -86,6 +86,27 @@ async function fksTargeting(queryInterface, transaction, target) {
   });
 }
 
+/**
+ * Bound how long this transaction will WAIT for a lock. Measured 2026-08-04: the server has
+ * `lock_timeout`, `statement_timeout` and `idle_in_transaction_session_timeout` all set to 0 —
+ * wait forever. This migration takes DDL locks across 31 tables in ONE transaction, so a single
+ * conflicting long-running query would block it indefinitely AND queue every subsequent query on
+ * `sessions`, `orders`, `notifications` and 28 others behind it. That is an outage, not a slow
+ * migration.
+ *
+ * 5s, and FAILING, is the better outcome: the transaction rolls back whole (nothing is left
+ * half-repointed) and can be retried in a quieter moment. This matters most for `down()`, which by
+ * definition runs during an incident — the worst possible time to hold a queue open.
+ *
+ * SET LOCAL scopes it to this transaction only; the session default is untouched.
+ *
+ * Today the risk is small — 17 live rows across all 31 tables, which is why `up()` ran instantly —
+ * but the guard costs one statement and the row count only goes up.
+ */
+async function boundLockWait(queryInterface, transaction) {
+  await queryInterface.sequelize.query("SET LOCAL lock_timeout = '5s'", { transaction });
+}
+
 /** Repoint every FK from `from` to `to`, preserving columns and action clauses. */
 async function repoint(queryInterface, transaction, from, to) {
   const fks = await fksTargeting(queryInterface, transaction, from);
@@ -135,6 +156,7 @@ async function repoint(queryInterface, transaction, from, to) {
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
+      await boundLockWait(queryInterface, transaction);
       // Targets are passed as SQL identifiers: bare `users` folds to lowercase, `"Users"`
       // must stay quoted or Postgres would fold it to `users` and resolve the WRONG table.
       await repoint(queryInterface, transaction, 'users', 'Users');
@@ -147,6 +169,7 @@ module.exports = {
    */
   async down(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
+      await boundLockWait(queryInterface, transaction);
       // '"Users"' — quoted. The bare form resolves to lowercase `users` and finds nothing,
       // which is exactly the bug this line used to have.
       const fks = await fksTargeting(queryInterface, transaction, '"Users"');
