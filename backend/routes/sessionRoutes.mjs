@@ -929,6 +929,7 @@ router.get("/trainers", protect, adminOnly, async (req, res) => {
  * @critical FIXED: Now properly validates and deducts available sessions
  */
 router.post("/book/:userId", protect, async (req, res) => {
+  let transaction = null;
   try {
     const Session = getSession();
     const User = getUser();
@@ -937,31 +938,51 @@ router.post("/book/:userId", protect, async (req, res) => {
 
     // Ensure the user can only book for themselves or admin is booking
     if (req.user.id.toString() !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: "You can only book sessions for yourself." 
+      return res.status(403).json({
+        message: "You can only book sessions for yourself."
       });
     }
 
+    // SWA-129 (Kimi call 6): this handler is the un-hardened twin of
+    // POST /:sessionId/book. It previously did a check-then-decrement of
+    // availableSessions with NO transaction and NO row lock (concurrent books
+    // of two different available sessions with availableSessions=1 both
+    // succeed → a client consumes more paid sessions than they hold), AND it
+    // never set session.sessionDeducted=true — so the money invariant "a credit
+    // was taken <=> sessionDeducted === true" was violated on every booking
+    // here, causing double-deduction at completion/settlement and a silently
+    // lost credit on cancel. Mirror the sibling: lock both rows and set the flag
+    // inside one transaction.
+    transaction = await sequelize.transaction();
+
     const session = await Session.findOne({
       where: { id: sessionId, status: "available" },
+      lock: transaction.LOCK.UPDATE,
+      transaction,
     });
-    
+
     if (!session) {
+      await transaction.rollback();
       return res
         .status(400)
         .json({ message: "Session is not available for booking." });
     }
 
     // CRITICAL FIX: Check and deduct available sessions BEFORE booking
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(userId, {
+      lock: transaction.LOCK.UPDATE,
+      transaction,
+    });
     if (!user) {
-      return res.status(404).json({ 
-        message: "User not found." 
+      await transaction.rollback();
+      return res.status(404).json({
+        message: "User not found."
       });
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
     if (isNonDeductingClient(user)) {
+      await transaction.rollback();
       return res.status(403).json({
         success: false,
         message: "This client account does not have session booking access. Use the Workout Logger to track training."
@@ -970,25 +991,34 @@ router.post("/book/:userId", protect, async (req, res) => {
 
     // Check if user has available sessions (admins can bypass this check)
     if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions <= 0)) {
-      return res.status(400).json({ 
+      await transaction.rollback();
+      return res.status(400).json({
         message: "No available sessions. Please purchase a session package to book this session.",
         availableSessions: user.availableSessions || 0
       });
     }
 
-    // Book the session
+    // Book the session (within the transaction)
     session.userId = userId;
     session.status = "scheduled";
     session.bookedAt = new Date();
-    await session.save();
+    await session.save({ transaction });
 
     // Deduct the session (if not admin)
     if (req.user.role !== 'admin') {
       user.availableSessions -= 1;
-      await user.save();
-      
+      await user.save({ transaction });
+
+      // Money invariant: a taken credit MUST be recorded on the session, or
+      // completion/settlement double-deducts and cancel loses the credit.
+      session.sessionDeducted = true;
+      await session.save({ transaction });
+
       console.log(`Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
     }
+
+    // Commit before the (non-transactional) notification side effects.
+    await transaction.commit();
 
     // Notify the user via email/SMS/push (respect notifyClient + preferences)
     if (user) {
@@ -1094,6 +1124,12 @@ router.post("/book/:userId", protect, async (req, res) => {
       session
     });
   } catch (error) {
+    // Roll back only if the transaction was opened and not yet committed —
+    // the commit happens before the notification side effects, so a post-commit
+    // throw must NOT roll back a finished transaction.
+    if (transaction && !transaction.finished) {
+      try { await transaction.rollback(); } catch { /* already resolved */ }
+    }
     console.error("Error booking session:", error.message);
     res.status(500).json({ message: "Server error booking session." });
   }
