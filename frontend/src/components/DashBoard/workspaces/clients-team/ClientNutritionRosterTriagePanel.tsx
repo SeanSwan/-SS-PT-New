@@ -5,12 +5,15 @@ import { getClientDisplayName } from './clientIdentity';
 import { formatLocalCalendarDate } from './nutritionDate';
 import {
   buildNutritionRosterRows,
+  ROSTER_TRIAGE_COLLAPSED_COUNT,
   selectRosterClientIds,
+  selectVisibleRosterRows,
   type NutritionRosterClient,
   type RosterTriageRecord,
 } from './ClientNutritionRosterTriagePanel.logic';
 import {
   RosterClientName,
+  RosterShowAllButton,
   RosterTriageCard,
   RosterTriageFlag,
   RosterTriageFlags,
@@ -41,6 +44,7 @@ const ClientNutritionRosterTriagePanel: React.FC<ClientNutritionRosterTriagePane
   const rosterClientIds = useMemo(() => selectRosterClientIds(rosterClients), [rosterClients]);
   const [state, setState] = useState<LoadState>('loading');
   const [records, setRecords] = useState<RosterTriageRecord[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (hidden || rosterClientIds.length === 0) return undefined;
@@ -71,10 +75,13 @@ const ClientNutritionRosterTriagePanel: React.FC<ClientNutritionRosterTriagePane
 
   if (hidden || rosterClientIds.length === 0) return null;
 
-  const rows = buildNutritionRosterRows(
+  // Phase 4A truncation-truth fix: never silently hide rows behind "N tracked".
+  const allRows = buildNutritionRosterRows(
     rosterClients.filter((client) => rosterClientIds.includes(client.id)),
     records
-  ).slice(0, 4);
+  );
+  const rows = selectVisibleRosterRows(allRows, expanded);
+  const showToggle = allRows.length > ROSTER_TRIAGE_COLLAPSED_COUNT;
 
   return (
     <RosterTriageShell aria-labelledby="nutrition-roster-triage-title">
@@ -88,6 +95,7 @@ const ClientNutritionRosterTriagePanel: React.FC<ClientNutritionRosterTriagePane
       ) : state === 'error' ? (
         <RosterTriageMeta role="alert">Nutrition roster triage unavailable</RosterTriageMeta>
       ) : (
+        <>
         <RosterTriageGrid>
           {rows.map((row) => (
             <RosterTriageCard key={row.clientId} $attention={row.attentionScore > 0}>
@@ -110,6 +118,16 @@ const ClientNutritionRosterTriagePanel: React.FC<ClientNutritionRosterTriagePane
             </RosterTriageCard>
           ))}
         </RosterTriageGrid>
+        {showToggle ? (
+          <RosterShowAllButton
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((current) => !current)}
+          >
+            {expanded ? 'Show fewer' : `Show all ${allRows.length}`}
+          </RosterShowAllButton>
+        ) : null}
+        </>
       )}
     </RosterTriageShell>
   );

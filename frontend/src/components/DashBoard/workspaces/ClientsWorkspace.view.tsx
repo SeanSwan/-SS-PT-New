@@ -307,7 +307,13 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
       )}
       {audienceConfig.showRosterOpsPanels && (
         <>
-          <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
+          {/* Activation queue hits admin-only /api/admin/clients/activation-queue —
+              gate on canManageAccounts so the trainer roster flip (4A) doesn't
+              hand trainers a guaranteed 403 card. Nutrition panels below are
+              per-trainer scoped server-side (assertAssignmentOrAdmin). */}
+          {audienceConfig.canManageAccounts && (
+            <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
+          )}
           <ClientNutritionRosterTriagePanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
           <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
         </>

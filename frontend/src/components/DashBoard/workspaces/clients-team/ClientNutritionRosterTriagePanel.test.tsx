@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiGetMock = vi.hoisted(() => vi.fn());
@@ -102,5 +103,39 @@ describe('ClientNutritionRosterTriagePanel', () => {
     expect(await screen.findByText('Nutrition roster triage unavailable')).toBeInTheDocument();
     expect(screen.queryByText(/provider table trace/i)).not.toBeInTheDocument();
     expect(screen.queryByText('No nutrition data')).not.toBeInTheDocument();
+  });
+
+  it('collapses to four rows with a Show-all toggle instead of silently truncating', async () => {
+    const sixClients: ClientOption[] = Array.from({ length: 6 }, (_, index) => ({
+      id: index + 1,
+      firstName: `Client${index + 1}`,
+      lastName: 'Roster',
+      email: `client${index + 1}@example.test`,
+    }));
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        clients: sixClients.map((client) => ({
+          userId: client.id,
+          mealCountToday: 1,
+          weeklyLoggedDays: 3,
+          totalProtein: 40,
+          flags: { noMealsToday: false, sodiumAttention: false, sugarAttention: false, sparseWeekly: false },
+        })),
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<ClientNutritionRosterTriagePanel clients={sixClients} />);
+
+    const toggle = await screen.findByRole('button', { name: 'Show all 6' });
+    expect(screen.getAllByText(/1 meal today/)).toHaveLength(4);
+
+    await user.click(toggle);
+    expect(screen.getAllByText(/1 meal today/)).toHaveLength(6);
+    expect(screen.getByRole('button', { name: 'Show fewer' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show fewer' }));
+    expect(screen.getAllByText(/1 meal today/)).toHaveLength(4);
   });
 });

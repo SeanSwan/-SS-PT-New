@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render as rtlRender, screen } from '@testing-library/react';
+import { cleanup, render as rtlRender, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const navigateMock = vi.hoisted(() => vi.fn());
@@ -26,127 +26,143 @@ vi.mock('../../../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 7, role: 'admin' } }),
 }));
 
-// 5.4: the tab now uses useNavigate for the Set-targets context path.
 const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 import NutritionTabContent from './NutritionTabContent';
-import { formatLocalCalendarDate } from '../nutritionDate';
+import { formatLocalCalendarDate, getLocalCalendarDateDaysAgo } from '../nutritionDate';
 
-describe('NutritionTabContent', () => {
+const today = formatLocalCalendarDate();
+
+const timelineEntry = (overrides: Record<string, unknown> = {}) => ({
+  id: 77,
+  mealType: 'lunch',
+  description: 'chicken bowl',
+  calories: 620,
+  protein: 44,
+  carbs: 62,
+  fat: 18,
+  fiber: 9,
+  sugar: 11,
+  sodium: 790,
+  source: 'food-scanner',
+  verified: false,
+  reviewStatus: 'needs_review',
+  createdAt: `${today}T19:00:00.000Z`,
+  ...overrides,
+});
+
+const timelinePayload = (overrides: Record<string, unknown> = {}) => ({
+  data: {
+    success: true,
+    entries: [timelineEntry()],
+    target: {
+      dailyCalories: 2100, proteinGrams: 150, carbsGrams: 220, fatGrams: 70,
+      fiberGrams: 25, sodiumLimitMg: 2300, hydrationTargetLiters: 2.5,
+    },
+    adherence: {
+      loggedDays: 5, consistencyScore: 71, proteinTargetHitRate: 60,
+      avgCaloriesPctOfTarget: 92, inferredEntryCount: 2, needsReviewCount: 1,
+      currentLogStreak: 4,
+    },
+    ...overrides,
+  },
+});
+
+describe('NutritionTabContent (Phase 4A coach tab)', () => {
   beforeEach(() => {
     apiGetMock.mockReset();
     apiPatchMock.mockReset();
+    navigateMock.mockReset();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('loads selected-client timeline through apiService and renders estimate review flags', async () => {
-    const today = formatLocalCalendarDate();
-    apiGetMock.mockResolvedValue({
-      data: {
-        success: true,
-        entries: [
-          {
-            id: 77,
-            mealType: 'lunch',
-            description: 'chicken bowl',
-            calories: 620,
-            protein: 44,
-            carbs: 62,
-            fat: 18,
-            fiber: 9,
-            sugar: 11,
-            sodium: 790,
-            source: 'food-scanner',
-            verified: false,
-            createdAt: `${today}T19:00:00.000Z`,
-          },
-        ],
-      },
-    });
+  it('renders the 30-second IA: header, adherence hero, targets, stepper, diary', async () => {
+    apiGetMock.mockResolvedValue(timelinePayload());
 
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
 
-    expect(await screen.findByText('Nutrition Timeline')).toBeInTheDocument();
-    expect(screen.getByText('Alpha Client')).toBeInTheDocument();
-    const provenance = await screen.findByRole('region', { name: /nutrition provenance/i });
-    expect(provenance).toHaveTextContent('0 verified / 1 pending review');
-    expect(provenance).toHaveTextContent('Photo estimate');
-    expect(provenance).toHaveTextContent('Source and verification status only');
-    expect(screen.queryByText(/confidence|photo ref|model version/i)).not.toBeInTheDocument();
+    expect(await screen.findByText('Alpha Client')).toBeInTheDocument();
+    expect(screen.getByText(/last log: today/i)).toBeInTheDocument();
+
+    const hero = screen.getByLabelText('Nutrition adherence');
+    expect(hero).toHaveTextContent('71%');
+    expect(hero).toHaveTextContent('4-day streak');
+    expect(hero).toHaveTextContent('Verify 1');
+    expect(hero).toHaveTextContent('2 estimated');
+
+    const grid = screen.getByLabelText('Actual versus target nutrition');
+    expect(grid).toHaveTextContent('Today actual vs target');
+    expect(grid).toHaveTextContent('620 cal / 2,100 cal');
+
+    expect(screen.getByRole('button', { name: 'Previous day' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled();
+
     expect(screen.getByText('chicken bowl')).toBeInTheDocument();
-    expect(screen.getByText('620 cal - 44g protein - 9g fiber / Photo estimate')).toBeInTheDocument();
-    expect(screen.getAllByText('Photo estimate').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Needs review')).toBeInTheDocument();
     expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/client-timeline?date=${today}&userId=101`);
   });
 
-  it('does not render manual unverified meals as estimates in the selected-client timeline', async () => {
-    const today = formatLocalCalendarDate();
-    apiGetMock.mockResolvedValue({
-      data: {
-        success: true,
-        entries: [
-          {
-            id: 88,
-            mealType: 'snack',
-            description: 'Greek yogurt',
-            calories: 180,
-            protein: 20,
-            fiber: 0,
-            source: 'manual',
-            verified: false,
-            createdAt: `${today}T19:00:00.000Z`,
-          },
-        ],
-      },
-    });
+  it('steps back a day and refetches that date, re-enabling forward stepping', async () => {
+    apiGetMock.mockResolvedValue(timelinePayload({ entries: [] }));
+    const user = userEvent.setup();
+
+    render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+    await screen.findByRole('button', { name: 'Previous day' });
+
+    await user.click(screen.getByRole('button', { name: 'Previous day' }));
+
+    const yesterday = getLocalCalendarDateDaysAgo(1);
+    await waitFor(() => expect(apiGetMock).toHaveBeenCalledWith(
+      `/api/macros/client-timeline?date=${yesterday}&userId=101`,
+    ));
+    expect(await screen.findByRole('button', { name: 'Next day' })).toBeEnabled();
+  });
+
+  it('switches to start/end range fetching when the 7-day toggle is pressed', async () => {
+    apiGetMock.mockResolvedValue(timelinePayload());
+    const user = userEvent.setup();
+
+    render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+    await screen.findByRole('button', { name: 'Toggle 7-day range view' });
+
+    await user.click(screen.getByRole('button', { name: 'Toggle 7-day range view' }));
+
+    const start = getLocalCalendarDateDaysAgo(6);
+    await waitFor(() => expect(apiGetMock).toHaveBeenCalledWith(
+      `/api/macros/client-timeline?start=${start}&end=${today}&userId=101`,
+    ));
+    expect(await screen.findByRole('button', { name: /7-day calorie trend/i })).toBeInTheDocument();
+    expect(screen.getByLabelText('Actual versus target nutrition')).toHaveTextContent('Daily average vs target');
+  });
+
+  it('renders the no-targets empty state with the set-targets affordance', async () => {
+    apiGetMock.mockResolvedValue(timelinePayload({ target: null }));
+    const user = userEvent.setup();
 
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
 
-    const provenance = await screen.findByRole('region', { name: /nutrition provenance/i });
-    expect(provenance).toHaveTextContent('0 verified / 1 pending review');
-    expect(provenance).toHaveTextContent('Manual');
-    expect(screen.getByText('Greek yogurt')).toBeInTheDocument();
-    expect(screen.getByText('180 cal - 20g protein - 0g fiber / Manual')).toBeInTheDocument();
-    expect(screen.getByText('Needs verification')).toBeInTheDocument();
-    expect(screen.queryByText('Manual estimate')).not.toBeInTheDocument();
+    expect(await screen.findByText(/no targets yet/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Set targets for this client' }));
+    expect(navigateMock).toHaveBeenCalledWith('/dashboard/admin/nutrition/101');
   });
 
-  it('shows loading copy before the selected-client timeline request resolves', () => {
+  it('shows a skeleton loading state before the timeline request resolves', () => {
     apiGetMock.mockReturnValue(new Promise(() => undefined));
 
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
 
-    expect(screen.getByText('Loading nutrition timeline...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading nutrition timeline' })).toBeInTheDocument();
     expect(screen.queryByText('No meals logged for this date')).not.toBeInTheDocument();
   });
 
   it('marks an unverified estimate as verified through the timeline review action', async () => {
-    const today = formatLocalCalendarDate();
-    const entry = {
-      id: 77,
-      mealType: 'lunch',
-      description: 'chicken bowl',
-      calories: 620,
-      protein: 44,
-      carbs: 62,
-      fat: 18,
-      fiber: 9,
-      sugar: 11,
-      sodium: 790,
-      source: 'food-scanner',
-      verified: false,
-      createdAt: `${today}T19:00:00.000Z`,
-    };
-    apiGetMock.mockResolvedValue({ data: { success: true, entries: [entry] } });
+    const entry = timelineEntry();
+    apiGetMock.mockResolvedValue(timelinePayload({ entries: [entry] }));
     apiPatchMock.mockResolvedValue({
-      data: {
-        success: true,
-        entry: { ...entry, verified: true },
-      },
+      data: { success: true, entry: { ...entry, verified: true, reviewStatus: 'verified' } },
     });
 
     const user = userEvent.setup();
@@ -160,25 +176,7 @@ describe('NutritionTabContent', () => {
   });
 
   it('uses safe fixed copy when timeline verification fails', async () => {
-    const today = formatLocalCalendarDate();
-    apiGetMock.mockResolvedValue({
-      data: {
-        success: true,
-        entries: [
-          {
-            id: 77,
-            mealType: 'lunch',
-            description: 'chicken bowl',
-            calories: 620,
-            protein: 44,
-            fiber: 9,
-            source: 'photo',
-            verified: false,
-            createdAt: `${today}T19:00:00.000Z`,
-          },
-        ],
-      },
-    });
+    apiGetMock.mockResolvedValue(timelinePayload());
     apiPatchMock.mockRejectedValue(new Error('SQLSTATE raw tenant trace'));
 
     const user = userEvent.setup();
@@ -191,102 +189,46 @@ describe('NutritionTabContent', () => {
     expect(screen.getByText('Needs review')).toBeInTheDocument();
   });
 
-  it('clears stale verification errors when the selected-client timeline reloads', async () => {
-    const today = formatLocalCalendarDate();
+  it('uses a branded retry card for timeline load failures and retries on demand', async () => {
     apiGetMock
-      .mockResolvedValueOnce({
-        data: {
-          success: true,
-          entries: [
-            {
-              id: 77,
-              mealType: 'lunch',
-              description: 'chicken bowl',
-              calories: 620,
-              protein: 44,
-              fiber: 9,
-              source: 'photo',
-              verified: false,
-              createdAt: `${today}T19:00:00.000Z`,
-            },
-          ],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          success: true,
-          entries: [
-            {
-              id: 88,
-              mealType: 'dinner',
-              description: 'salmon plate',
-              calories: 540,
-              protein: 42,
-              fiber: 6,
-              source: 'manual',
-              verified: true,
-              createdAt: `${today}T20:00:00.000Z`,
-            },
-          ],
-        },
-      });
-    apiPatchMock.mockRejectedValueOnce(new Error('SQLSTATE raw tenant trace'));
-
+      .mockRejectedValueOnce(new Error('SQLSTATE raw tenant trace'))
+      .mockResolvedValueOnce(timelinePayload());
     const user = userEvent.setup();
-    const { rerender } = rtlRender(<MemoryRouter><NutritionTabContent clientId={101} clientName="Alpha Client" /></MemoryRouter>);
-
-    await user.click(await screen.findByRole('button', { name: /mark lunch verified/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Nutrition verification unavailable');
-
-    rerender(<MemoryRouter><NutritionTabContent clientId={202} clientName="Beta Client" /></MemoryRouter>);
-
-    expect(await screen.findByText('salmon plate')).toBeInTheDocument();
-    expect(screen.getByText('Beta Client')).toBeInTheDocument();
-    expect(screen.queryByText('Nutrition verification unavailable')).not.toBeInTheDocument();
-  });
-
-  it('uses safe fixed copy for timeline load failures', async () => {
-    apiGetMock.mockRejectedValue(new Error('SQLSTATE raw tenant trace'));
 
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
 
-    expect(await screen.findByText('Nutrition timeline unavailable')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Nutrition timeline unavailable');
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/nutrition timeline unavailable/i);
     expect(screen.queryByText(/SQLSTATE|tenant trace/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: /nutrition provenance/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('chicken bowl')).toBeInTheDocument();
   });
 
   it('does not render false-success responses as an empty timeline', async () => {
-    apiGetMock.mockResolvedValue({
-      data: {
-        success: false,
-        error: 'provider table trace',
-      },
-    });
+    apiGetMock.mockResolvedValue({ data: { success: false, error: 'provider table trace' } });
 
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
 
-    expect(await screen.findByText('Nutrition timeline unavailable')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/nutrition timeline unavailable/i);
     expect(screen.queryByText(/provider table trace/i)).not.toBeInTheDocument();
     expect(screen.queryByText('No meals logged for this date')).not.toBeInTheDocument();
   });
-});
-
-describe('NutritionTabContent 5.4 set-targets path', () => {
-  beforeEach(() => {
-    apiGetMock.mockReset();
-    navigateMock.mockReset();
-    apiGetMock.mockResolvedValue({ data: { success: true, entries: [] } });
-  });
-
-  afterEach(() => {
-    cleanup();
-  });
 
   it('staff header action routes to the Nutrition Plan Builder in client context', async () => {
+    apiGetMock.mockResolvedValue(timelinePayload({ entries: [] }));
+    const user = userEvent.setup();
+
     render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
     const button = await screen.findByRole('button', { name: 'Set nutrition targets for Alpha Client' });
-    await userEvent.click(button);
+    await user.click(button);
     expect(navigateMock).toHaveBeenCalledWith('/dashboard/admin/nutrition/101');
+  });
+
+  it('reports an identity failure instead of fetching with a bad client id', () => {
+    render(<NutritionTabContent clientId="not-a-number" clientName="Alpha Client" />);
+
+    expect(screen.getByText('Nutrition identity unavailable')).toBeInTheDocument();
+    expect(apiGetMock).not.toHaveBeenCalled();
   });
 });
