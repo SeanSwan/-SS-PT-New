@@ -86,7 +86,7 @@ describe('checkout refuses rather than overcharges', () => {
   it('fails closed with a recoverable message, not a silent substitution', () => {
     expect(routeSource).toMatch(/CART_ITEM_QUANTITY_INVALID/);
     expect(routeSource).toMatch(/needs to be refreshed before checkout/i);
-    expect(routeSource).toMatch(/status\(409\)/);
+    expect(routeSource).toMatch(/status\(422\)/);
   });
 
   it('does not log the buyer cart contents while reporting the refusal', () => {
@@ -94,5 +94,44 @@ describe('checkout refuses rather than overcharges', () => {
     const block = routeSource.slice(idx, idx + 400);
     expect(block).toContain('quantityType');
     expect(block).not.toMatch(/price/);
+  });
+});
+
+
+describe('checkout enforces the ceiling on PRE-EXISTING rows, not just new writes', () => {
+  const MAX = 99;
+  const guardRejects = (q) =>
+    typeof q !== 'number' || !Number.isSafeInteger(q) || q <= 0 || q > MAX;
+
+  it('rejects a legacy row above the cap — the cart cap alone did not cover it', () => {
+    // A row can exceed the cap without passing through the cart routes: it
+    // predates the cap, or an admin/repair/import path wrote it directly.
+    for (const q of [100, 500, 10000]) {
+      expect(guardRejects(q), `should reject legacy quantity ${q}`).toBe(true);
+    }
+  });
+
+  it('still accepts every realistic quantity', () => {
+    for (const q of [1, 2, 50, 99]) expect(guardRejects(q)).toBe(false);
+  });
+
+  it('reads ONE shared ceiling rather than a second copy of the number', () => {
+    expect(routeSource).toMatch(/import \{ MAX_CART_ITEM_QUANTITY \} from '\.\.\/utils\/cartHelpers\.mjs'/);
+    expect(routeSource).toMatch(/item\.quantity > MAX_CART_ITEM_QUANTITY/);
+    // The literal 99 must not reappear here — that is how the two layers drift.
+    const guardBlock = routeSource.slice(
+      routeSource.indexOf('const invalidQuantityItem'),
+      routeSource.indexOf('const invalidQuantityItem') + 600
+    );
+    expect(guardBlock).not.toMatch(/99/);
+  });
+
+  it('uses 422, not 409 — 409 already means CART_CHECKOUT_IN_PROGRESS here', () => {
+    // Two meanings on one status code makes a client that retries 409s spin
+    // forever on a permanent validation error.
+    const idx = routeSource.indexOf('CART_ITEM_QUANTITY_INVALID');
+    const block = routeSource.slice(Math.max(0, idx - 500), idx + 100);
+    expect(block).toMatch(/status\(422\)/);
+    expect(routeSource).toMatch(/CART_CHECKOUT_IN_PROGRESS/);
   });
 });

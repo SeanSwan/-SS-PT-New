@@ -28,6 +28,7 @@ import {
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
+const { MAX_CART_ITEM_QUANTITY } = cartHelpers;
 
 const router = express.Router();
 const STOREFRONT_CART_ATTRIBUTES = [
@@ -109,7 +110,8 @@ const parsePositiveInteger = (value) => {
  * 192 sessions, so quantity counts PACKAGES) while keeping any cart total
  * comfortably inside the column.
  */
-const MAX_CART_ITEM_QUANTITY = 99;
+// MAX_CART_ITEM_QUANTITY is imported from utils/cartHelpers.mjs — one value,
+// enforced by BOTH the cart routes and the checkout gate.
 
 const quantityCeilingError = (res) => res.status(400).json({
   success: false,

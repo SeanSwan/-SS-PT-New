@@ -65,8 +65,17 @@ describe('cart quantity — the unbounded-input hole this closes', () => {
 });
 
 describe('cart quantity ceiling — enforced on every entry point', () => {
-  it('declares a single ceiling constant rather than scattering magic numbers', () => {
-    expect(source).toMatch(/const MAX_CART_ITEM_QUANTITY = 99;/);
+  it('declares the ceiling in ONE shared place, consumed by both layers', () => {
+    // Moved to utils/cartHelpers.mjs so the cart routes AND the checkout gate
+    // read the same value. Two copies would drift — the defect class this audit
+    // kept finding.
+    const helpers = fs.readFileSync(path.join(backendRoot, 'utils/cartHelpers.mjs'), 'utf8');
+    expect(helpers).toMatch(/export const MAX_CART_ITEM_QUANTITY = 99;/);
+    expect(source).toMatch(/MAX_CART_ITEM_QUANTITY \} = cartHelpers/);
+    expect(source).not.toMatch(/const MAX_CART_ITEM_QUANTITY = 99;/);
+
+    const checkout = fs.readFileSync(path.join(backendRoot, 'routes/v2PaymentRoutes.mjs'), 'utf8');
+    expect(checkout).toMatch(/import \{ MAX_CART_ITEM_QUANTITY \}/);
   });
 
   it('guards POST /add', () => {

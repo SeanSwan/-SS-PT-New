@@ -32,6 +32,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { checkoutSessionLimiter, paymentVerifyLimiter } from '../middleware/moneyPathRateLimits.mjs';
+import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
@@ -463,6 +464,11 @@ router.post('/create-checkout-session', protect, checkoutSessionLimiter, checkSt
       typeof item?.quantity !== 'number'
       || !Number.isSafeInteger(item.quantity)
       || item.quantity <= 0
+      // Also enforce the CEILING here, not just at the cart routes. A row can
+      // exceed the cap without ever passing through those routes — it predates
+      // the cap, or an admin/repair/import path wrote it directly — and this is
+      // the last gate before Stripe is charged. Same constant, one source.
+      || item.quantity > MAX_CART_ITEM_QUANTITY
     ));
     if (invalidQuantityItem) {
       logger.error('[v2 Payment] Refusing checkout: cart item quantity is not a positive integer', {
@@ -470,7 +476,11 @@ router.post('/create-checkout-session', protect, checkoutSessionLimiter, checkSt
         cartItemId: invalidQuantityItem.id,
         quantityType: typeof invalidQuantityItem.quantity,
       });
-      return res.status(409).json({
+      // 422, deliberately NOT 409. This route already returns 409 for
+      // CART_CHECKOUT_IN_PROGRESS, which is a transient conflict a client may
+      // sensibly retry. An unprocessable cart row is not transient — retrying
+      // spins forever. Two meanings on one status code is how that happens.
+      return res.status(422).json({
         success: false,
         message: 'Your cart needs to be refreshed before checkout. Please reload the store and try again.',
         error: { code: 'CART_ITEM_QUANTITY_INVALID' }

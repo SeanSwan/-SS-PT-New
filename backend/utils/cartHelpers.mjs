@@ -20,6 +20,18 @@
 
 import logger from './logger.mjs';
 import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
+
+/**
+ * Upper bound on a single cart line's quantity — the SINGLE source of truth.
+ *
+ * Lives here rather than in cartRoutes because BOTH layers must agree: the cart
+ * routes reject an over-cap write, and checkout must reject an over-cap ROW.
+ * A row can exceed the cap without ever passing through the cart routes — it
+ * predates the cap, or an admin/repair/import path wrote it directly — and
+ * checkout is the last gate before Stripe is charged. Two copies of this number
+ * would drift, which is the exact defect class this audit kept finding.
+ */
+export const MAX_CART_ITEM_QUANTITY = 99;
 // 🚀 ENHANCED P0 FIX: Coordinated model imports for production stability
 import { 
   getShoppingCart,
