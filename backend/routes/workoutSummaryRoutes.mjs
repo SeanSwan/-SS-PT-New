@@ -11,6 +11,7 @@
 
 import { Router } from 'express';
 import { protect, trainerOrAdminOnly } from '../middleware/auth.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -36,7 +37,17 @@ const normalizeOptionalUuid = (value) => {
  * POST /api/workout-summaries
  * Generates a workout summary from exercise data and optionally emails it.
  */
-router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
+// SECURITY (authz sweep 2026-08-04): `protect + trainerOrAdminOnly` was the ENTIRE guard, so
+// any trainer could act on any user id in the system. Three concrete abuses were open:
+//   1. cross-tenant WRITE — the persist below updated DailyWorkoutForm by formId alone,
+//      overwriting another trainer's client's client-facing summary with arbitrary text;
+//   2. PII disclosure + enumeration — the client lookup had no role filter, so it resolved
+//      trainers/admins too, and 200-vs-404 was a clean existence oracle over the id space;
+//   3. brand-authenticated phishing — sendEmail:true mails attacker-supplied text, rendered
+//      unescaped into HTML, to ANY user's address from the SwanStudios sender.
+// verifyClientAccessByUserId resolves clientId from the body and enforces self/admin/actively
+// -assigned-trainer, matching every sibling handler for this same data.
+router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ bodyField: 'clientId' }), async (req, res) => {
   try {
     // Phase 2 Slice 2.1 (2026-05-03): null-honest destructuring.
     // Was `overallIntensity = 5` — when the trainer omitted intensity
@@ -162,10 +173,17 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     // Persist summary to form if formId provided
     if (normalizedFormId && DailyWorkoutForm) {
       try {
-        await DailyWorkoutForm.update(
+        // Scope the write to the authorized client: `where: { id }` alone let a caller
+        // overwrite ANY form in the system by supplying its id (authz sweep 2026-08-04).
+        const [updatedCount] = await DailyWorkoutForm.update(
           { clientSummary: summaryText },
-          { where: { id: normalizedFormId } }
+          { where: { id: normalizedFormId, clientId: parsedClientId } }
         );
+        if (updatedCount === 0) {
+          logger.warn('[WorkoutSummary] No form updated — id does not belong to this client', {
+            formId: normalizedFormId, clientId: parsedClientId,
+          });
+        }
       } catch (persistErr) {
         logger.warn('[WorkoutSummary] Failed to persist summary to form:', persistErr.message);
       }
