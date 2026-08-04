@@ -27,6 +27,29 @@ describe('ClientProfilePage auth pipeline', () => {
     expect(profileRoutesSource).toContain("router.put('/', protect, updateUserProfile)");
   });
 
+  it('persists goals + notification prefs to the fields the backend accepts', () => {
+    // These controls were interactive-but-saving-nothing before 2026-08-03.
+    // The payload keys must stay in the backend allowlist (profileController
+    // allowedFields), or the save silently no-ops again.
+    expect(pageSource).toContain('fitnessGoal: goalText');
+    expect(pageSource).toContain('emailNotifications: notifPrefs.email');
+    expect(pageSource).toContain('smsNotifications: notifPrefs.sms');
+    expect(pageSource).toContain('notificationPreferences: notifPrefs');
+    for (const field of ['fitnessGoal', 'emailNotifications', 'smsNotifications', 'notificationPreferences']) {
+      expect(read('../../../../../../backend/controllers/profileController.mjs')).toContain(`'${field}'`);
+    }
+    // Seeded from the client's real saved prefs, never hardcoded-on.
+    expect(pageSource).not.toMatch(/useState\(\{\s*email:\s*true,\s*push:\s*true,\s*sms:\s*false\s*\}\)/);
+  });
+
+  it('refreshes the auth user after BOTH saves so a remount shows persisted values', () => {
+    // Without this the context keeps the pre-save snapshot and reopening the
+    // page re-seeds the controls from stale data (deep loop 2 finding).
+    const refreshCalls = pageSource.match(/void refreshUser\?\.\(\)/g) || [];
+    expect(refreshCalls.length).toBe(2);
+    expect(pageSource).toContain('const { user, refreshUser } = useAuth()');
+  });
+
   it('saves chart settings through shared apiService auth transport', () => {
     expect(pageSource).toContain("import apiService from '../../../../services/api.service'");
     expect(pageSource).toContain("apiService.put('/api/profile', { chartVisibility }");
