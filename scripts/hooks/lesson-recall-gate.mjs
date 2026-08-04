@@ -36,6 +36,7 @@ import path from 'node:path';
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const CODE_RE = /\.(mjs|cjs|js|jsx|ts|tsx)$/;
 const DOC_RE = /\.(md|txt|ya?ml|json)$/;
+const TEST_FILE_RE = /\.(test|spec)\.[cm]?[jt]sx?$|[\/]__tests__[\/]/;
 const ESCAPE_RE = /LESSON-RECALL:\s*N\/A\s*[—:-]/i;
 
 /** A named constant bound to a numeric or quoted-string literal. */
@@ -99,6 +100,10 @@ export const findDuplicatedConstants = (written, repoRoot, grep) => {
 
   for (const file of written) {
     if (!CODE_RE.test(file) || !existsSync(file)) continue;
+    // Tests legitimately mirror a production constant to assert against it. That is
+    // still worth improving (import the real one), but it is not worth BLOCKING —
+    // a gate that stops people writing tests gets switched off.
+    if (TEST_FILE_RE.test(file)) continue;
 
     let source;
     try {
@@ -111,7 +116,19 @@ export const findDuplicatedConstants = (written, repoRoot, grep) => {
     let match;
     while ((match = CONST_DECL_RE.exec(source)) !== null) {
       const [, name, literal] = match;
-      const elsewhere = grep(name, repoRoot).filter((hit) => path.resolve(hit) !== path.resolve(file));
+
+      // Match on a DECLARATION of the same name bound to the SAME literal — not on a
+      // mention. Grepping for the bare name matched imports, usages and comments, which
+      // made three everyday patterns false-positive: a test asserting against a
+      // production constant, a common name like INTERNAL_ERROR that merely EXISTS
+      // elsewhere with a different value, and — worst — creating a shared module during
+      // the very refactor this gate recommends. Requiring name AND value AND a real
+      // declaration is what "one value living in two homes" actually means.
+      const elsewhere = grep(name, repoRoot)
+        .filter((hit) => path.resolve(hit) !== path.resolve(file))
+        .filter((hit) => !TEST_FILE_RE.test(hit))
+        .filter((hit) => declaresSameValue(hit, name, literal));
+
       if (elsewhere.length > 0) {
         hits.push({ name, literal, declaredIn: file, alsoIn: elsewhere.slice(0, 3) });
       }
@@ -119,6 +136,19 @@ export const findDuplicatedConstants = (written, repoRoot, grep) => {
   }
 
   return hits;
+};
+
+/** True when `file` really DECLARES `name` bound to the same literal. */
+export const declaresSameValue = (file, name, literal) => {
+  try {
+    const source = readFileSync(file, 'utf8');
+    const decl = new RegExp(
+      `(?:^|\\n)\\s*(?:export\\s+)?const\\s+${name}\\s*=\\s*${literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*;`,
+    );
+    return decl.test(source);
+  } catch {
+    return false;
+  }
 };
 
 /** Shape 1 — a new refusal/guard added in exactly one code file this turn. */
