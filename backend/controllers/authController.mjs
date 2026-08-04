@@ -1406,37 +1406,6 @@ export const validateToken = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get user by ID (for admin dashboard)
- * @route   GET /api/auth/users/:id
- * @access  Private (Admin only)
- */
-export const getUserById = async (req, res) => {
-  try {
-    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
-    const user = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: await withWaiverAccessStatus(user)
-    });
-  } catch (error) {
-    logger.error('Get user by ID error:', { error: error.message, stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'Server error fetching user'
-    });
-  }
-};
 
 // Export the original controller function for backward compatibility
 export const authController = async (req, res) => {
