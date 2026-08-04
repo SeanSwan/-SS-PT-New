@@ -31,6 +31,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { checkoutSessionLimiter, paymentVerifyLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
@@ -271,7 +272,7 @@ async function captureVerifiedCheckoutLead({ user, session, cart = null, session
  * - Order data available for analytics
  * - Financial transaction tracking
  */
-router.post('/create-checkout-session', protect, checkStripeAvailability, async (req, res) => {
+router.post('/create-checkout-session', protect, checkoutSessionLimiter, checkStripeAvailability, async (req, res) => {
   try {
     const userId = req.user.id;
     const { cartId, customerInfo, fulfillmentIntent } = req.body;
@@ -720,7 +721,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
  * - Updates user sessions
  * - Provides data for analytics
  */
-router.post('/verify-session', protect, checkStripeAvailability, async (req, res) => {
+router.post('/verify-session', protect, paymentVerifyLimiter, checkStripeAvailability, async (req, res) => {
   try {
     const sessionValidation = validateCheckoutSessionId(req.body?.sessionId);
     if (!sessionValidation.ok) {
@@ -920,7 +921,7 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
  * This endpoint intentionally does not depend on live Stripe availability:
  * checkout/payment truth is read from the local cart/order/session state.
  */
-router.get('/activation-status', protect, async (req, res) => {
+router.get('/activation-status', protect, paymentVerifyLimiter, async (req, res) => {
   try {
     const sessionId = req.query.sessionId || req.query.session_id;
     const status = await resolvePaidClientActivationStatus({

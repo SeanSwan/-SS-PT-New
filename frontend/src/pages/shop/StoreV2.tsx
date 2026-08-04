@@ -42,6 +42,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 // Existing Store Components
 import PackagesGrid from './components/PackagesGrid';
 import FloatingCart from './components/FloatingCart';
+import useCartDeepLink from './useCartDeepLink';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
 import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideoBackground';
@@ -594,6 +595,11 @@ const StoreV2: React.FC = () => {
   const handleHideCart = useCallback(() => {
     setShowCart(false);
   }, []);
+
+  // Checkout-cancel recovery deep link. StoreV2 is the lazy-import fallback, so
+  // a buyer who abandoned a payment can land HERE when the primary chunk fails —
+  // without this they get the closed-cart dead end the fix was meant to remove.
+  useCartDeepLink(isAuthenticated, useCallback(() => setShowCart(true), []));
 
   const handleAddToCart = useCallback(
     async (pkg: StoreItem, productVariant?: ProductVariant | null) => {

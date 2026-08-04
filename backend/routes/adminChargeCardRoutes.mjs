@@ -15,6 +15,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { adminChargeLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { applyPackagePayment } from '../services/sessionDeductionService.mjs';
 import { mapServiceError } from './sessionDeductionRoute.helpers.mjs';
 import { isValidUUID } from '../utils/paymentRecovery.constants.mjs';
@@ -107,7 +108,7 @@ router.get('/payment-methods/:clientId', protect, adminOnly, async (req, res) =>
 });
 
 // ── POST /charge ────────────────────────────────────────────────
-router.post('/charge', protect, adminOnly, async (req, res) => {
+router.post('/charge', protect, adminOnly, adminChargeLimiter, async (req, res) => {
   try {
     const earlyReturn = stripeRequired(res);
     if (earlyReturn) return;
@@ -298,7 +299,7 @@ router.post('/charge', protect, adminOnly, async (req, res) => {
 });
 
 // ── POST /test-card ─────────────────────────────────────────────
-router.post('/test-card', protect, adminOnly, async (req, res) => {
+router.post('/test-card', protect, adminOnly, adminChargeLimiter, async (req, res) => {
   try {
     const earlyReturn = stripeRequired(res);
     if (earlyReturn) return;

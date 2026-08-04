@@ -181,9 +181,32 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
     }
   }, [cart?.totalSessions, updateSessionProgress]);
 
+  // Escape to close, plus a real focus trap. This dialog declares
+  // aria-modal="true", which promises assistive tech that the rest of the page
+  // is inert — but Tab used to walk straight out into the page behind it. The
+  // cycle below mirrors the working pattern in PricingInquiryModal.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);

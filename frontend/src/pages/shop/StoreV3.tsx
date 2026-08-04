@@ -56,6 +56,7 @@ import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideo
 import MembershipsSection from './components/MembershipsSection';
 import { logger } from '@/utils/logger';
 import { mapStorefrontItemToStoreItem } from './components/storeCatalog';
+import useCartDeepLink from './useCartDeepLink';
 import type { ProductVariant, StoreItem } from './components/storeCatalog.types';
 import { StyledBox } from '@/components/ui/StyledBox';
 
@@ -647,6 +648,9 @@ const StoreV3: React.FC = () => {
   const canViewPrices = pricesVisible;
   const canPurchase = pricesVisible && isAuthenticated && !!user;
   const cartItemCount = cart?.itemCount || 0;
+
+  // Checkout-cancel recovery deep link (shared with the StoreV2 fallback).
+  useCartDeepLink(isAuthenticated, useCallback(() => setShowCart(true), []));
 
   // ----------------------------------------------------------
   // Data Fetching (same logic as OptimizedGalaxyStoreFront)

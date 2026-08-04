@@ -55,9 +55,14 @@ const stripeWebhookHandler = async (req, res) => {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     
     if (!webhookSecret) {
+      // Deliberately does NOT log the body. This branch fires BEFORE signature
+      // verification, so the payload is unauthenticated attacker-controlled input
+      // on a publicly reachable route — echoing it into the log store lets anyone
+      // write arbitrary content (including forged/looted-looking payment data)
+      // into operator logs. Byte length is enough to diagnose a misconfiguration.
       logger.error('CRITICAL: Stripe webhook secret not configured. Rejecting request.', {
         ip: req.ip,
-        bodyPreview: typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200)
+        bodyBytes: Buffer.isBuffer(req.body) ? req.body.length : undefined
       });
       return res.status(500).json({ error: 'Webhook configuration error' });
     }
