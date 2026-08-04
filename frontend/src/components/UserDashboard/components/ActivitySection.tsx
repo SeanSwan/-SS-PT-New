@@ -45,7 +45,7 @@ import type { ActivityFilterId, ProfileActivityPost, ProfileStatsSnapshot } from
 const ActivitySection: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<ActivityFilterId>('all');
   const [showMore, setShowMore] = useState(false);
-  const { stats, posts, isLoadingStats, isLoadingPosts, statsUnavailable} = useProfile();
+  const { stats, posts, isLoadingStats, isLoadingPosts, statsStatus } = useProfile();
 
   const activityStats = useMemo(
     () => buildActivityStats(stats as ProfileStatsSnapshot | null),
@@ -65,7 +65,7 @@ const ActivitySection: React.FC = () => {
   // `useProfile` substitutes zeros on a stats failure with no error surface,
   // so a loading-only gate let "Workouts 0 - Streak 0 - Followers 0 - Level 1"
   // render as the member's record.
-  if (!isLoadingStats && statsUnavailable) {
+  if (statsStatus === 'unavailable') {
     return (
       <ActivityContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <LoadingContainer role="status">
@@ -77,7 +77,7 @@ const ActivitySection: React.FC = () => {
     );
   }
 
-  if (isLoadingStats || isLoadingPosts) {
+  if (statsStatus === 'loading' || isLoadingPosts) {
     return (
       <ActivityContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <LoadingContainer>

@@ -132,13 +132,13 @@ export const buildSidebarQuickStats = ({
     caption: 'Community shares',
     Icon: MessageCircle,
   }] : []),
-  {
-    id: 'followers',
-    label: 'Followers',
-    value: statValue(displayStats.followers),
-    caption: 'People watching',
-    Icon: Star,
-  },
+  ...(profileStatsKnown ? [{
+      id: 'followers',
+      label: 'Followers',
+      value: statValue(displayStats.followers),
+      caption: 'People watching',
+      Icon: Star,
+  }] : []),
 ]);
 
 const UserDashboardSidebarV3: React.FC<UserDashboardSidebarV3Props> = (props) => {
