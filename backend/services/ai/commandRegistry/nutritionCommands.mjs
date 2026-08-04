@@ -65,13 +65,15 @@ const commands = [
   },
   {
     type: 'view_nutrition_log',
-    description: "Show what a client ate today (current-day snapshot)",
-    // NOTE: date support is not yet wired — this command always returns today's log.
-    // "yesterday" pattern removed: the Zod schema has no date field, so extracted dates
-    // are stripped at stepValidate. Honest scope: today only.
-    naturalLanguagePatterns: ['{client}\'s meals today', 'show {client}\'s nutrition log', 'what did {client} eat today', '{client}\'s food log'],
-    method: 'GET', endpoint: '/api/macros/summary?date=today&userId={clientId}',
-    inputSchema: z.object({ clientId: z.number().int().positive() }),
+    description: "Show what a client ate on a day (today by default; up to 14 days back)",
+    // S2.3 (2026-08-04): date is wired — optional YYYY-MM-DD, validated and
+    // clamped in the dispatcher to a 14-day lookback, never a future date.
+    naturalLanguagePatterns: ['{client}\'s meals today', 'show {client}\'s nutrition log', 'what did {client} eat today', 'what did {client} eat yesterday', '{client}\'s food log', 'what did {client} eat on {date}'],
+    method: 'GET', endpoint: '/api/macros/summary?date={date}&userId={clientId}',
+    inputSchema: z.object({
+      clientId: z.number().int().positive(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: true, category: 'E',

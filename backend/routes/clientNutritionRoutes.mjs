@@ -9,7 +9,8 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { searchFoodCatalog } from '../services/nutrition/foodCatalogSearchService.mjs';
 import { validateNutritionPlanBody } from '../services/nutrition/nutritionPlanValidation.mjs';
-import { setNutritionTarget, getActiveNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import { setNutritionTarget, getActiveNutritionTarget, activateNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import NutritionTarget from '../models/NutritionTarget.mjs';
 import { getUserLocalToday } from '../services/nutrition/nutritionAdherenceService.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
@@ -135,6 +136,51 @@ router.get('/:userId/current', protect, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching nutrition plan:', error);
     return sendInternalError(res, 'Server error fetching nutrition plan');
+  }
+});
+
+/**
+ * PATCH /api/nutrition/targets/:targetId/activate
+ * Human activation of an AI-drafted nutrition target (S2.2 activation law:
+ * the model proposes — a debate lands as status='draft' — and ONLY a
+ * trainer/admin with access to that client can make it the live adherence
+ * denominator).
+ */
+router.patch('/targets/:targetId/activate', protect, async (req, res) => {
+  try {
+    if (!['trainer', 'admin'].includes(req.user?.role)) {
+      return res.status(403).json({ success: false, message: 'Only trainers and admins can activate nutrition targets' });
+    }
+
+    const targetId = Number(req.params.targetId);
+    if (!Number.isSafeInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid target id' });
+    }
+
+    const draft = await NutritionTarget.findByPk(targetId);
+    if (!draft) {
+      return res.status(404).json({ success: false, message: 'Target not found' });
+    }
+
+    const access = await ensureClientAccess(req, draft.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+
+    const { todayLocal } = await getUserLocalToday(draft.userId);
+    const result = await activateNutritionTarget({
+      targetId,
+      activatedBy: req.user.id,
+      effectiveFrom: todayLocal,
+    });
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: 'Activation failed', errors: result.errors });
+    }
+
+    return res.json({ success: true, target: result.target });
+  } catch (error) {
+    logger.error('Error activating nutrition target:', error);
+    return sendInternalError(res, 'Server error activating nutrition target');
   }
 });
 

@@ -77,25 +77,35 @@ export async function logMeals(params, ctx) {
 
 /**
  * Dispatcher for view_nutrition_log.
- * Returns today's macro totals for a client as flat scalars.
+ * Returns a single day's macro totals for a client as flat scalars.
+ * S2.3 (2026-08-04): optional params.date unlocks "what did she eat
+ * yesterday" — capped server-side at a 14-day lookback (Kimi (d)5: an
+ * unbounded per-day tool loop is a slow exfiltration oracle) and never a
+ * future date. Invalid/out-of-window dates fall back to today rather than
+ * erroring — the coach answer stays useful.
  *
- * @param {{ clientId?: number }} params
+ * @param {{ clientId?: number, date?: string }} params
  * @param {{ resolvedClient?: { id: number } }} ctx
  * @returns {Promise<{ date, mealCount, totalCalories, totalProtein, totalCarbs, totalFat }>}
  */
 export async function viewNutritionLog(params, ctx) {
   const clientId = resolveCommandClientId(params, ctx);
   const today = formatDisplayDate();
-  const empty = { date: today, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
+  let date = today;
+  if (typeof params?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+    const oldest = addCalendarDays(today, -14);
+    if (params.date >= oldest && params.date <= today) date = params.date;
+  }
+  const empty = { date, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
   try {
     const rows = await DailyMacroLog.findAll({
-      where: { userId: clientId, date: today },
+      where: { userId: clientId, date },
       attributes: ['calories', 'protein', 'carbs', 'fat'],
     });
     if (rows.length === 0) return empty;
     const round1 = (n) => Math.round(n * 10) / 10;
     return {
-      date: today,
+      date,
       mealCount: rows.length,
       totalCalories: round1(rows.reduce((s, r) => s + (r.calories || 0), 0)),
       totalProtein:  round1(rows.reduce((s, r) => s + (r.protein  || 0), 0)),
