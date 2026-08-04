@@ -204,7 +204,7 @@ const ThemeNote = styled.p`
 // ─────────────────────────────────────────────────────────────
 
 const ClientProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const profileUser = user as (typeof user & {
     chartVisibility?: ProfileChartVisibility;
     photo?: string;
@@ -256,6 +256,7 @@ const ClientProfilePage: React.FC = () => {
       if (res.status >= 200 && res.status < 300) {
         setSaveStatus('Saved');
         setTimeout(() => setSaveStatus(null), 3000);
+        void refreshUser?.();
       } else {
         setSaveStatus('Error saving');
       }
@@ -264,7 +265,7 @@ const ClientProfilePage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [chartVisibility]);
+  }, [chartVisibility, refreshUser]);
 
   const handleSavePreferences = useCallback(async () => {
     setSavingPrefs(true);
@@ -281,6 +282,9 @@ const ClientProfilePage: React.FC = () => {
       if (res.status >= 200 && res.status < 300) {
         setPrefsStatus('Saved');
         setTimeout(() => setPrefsStatus(null), 3000);
+        // Sync the auth user so a remount re-seeds these controls from the
+        // PERSISTED values, not the stale pre-save context snapshot.
+        void refreshUser?.();
       } else {
         setPrefsStatus('Error saving');
       }
@@ -289,7 +293,7 @@ const ClientProfilePage: React.FC = () => {
     } finally {
       setSavingPrefs(false);
     }
-  }, [goalText, notifPrefs]);
+  }, [goalText, notifPrefs, refreshUser]);
 
   return (
     <PageWrap>

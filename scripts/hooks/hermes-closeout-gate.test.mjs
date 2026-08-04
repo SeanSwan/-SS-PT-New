@@ -5,10 +5,15 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { analyzeTurn, decide, parseTranscript } from './hermes-closeout-gate.mjs';
 
-const settings = JSON.parse(readFileSync('.claude/settings.json', 'utf8'));
+// Resolved from this file, not process.cwd(): read relatively, the suite failed
+// outright from any other directory (found 2026-08-03 by running it from C:/tmp).
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const settings = JSON.parse(readFileSync(join(REPO_ROOT, '.claude/settings.json'), 'utf8'));
 const stopHooks = settings.hooks?.Stop?.flatMap((group) => group.hooks ?? []) ?? [];
 
 const line = (obj) => JSON.stringify(obj);
@@ -18,12 +23,24 @@ const toolUse = (name, input) =>
 const assistantText = (text) =>
   line({ type: 'assistant', message: { content: [{ type: 'text', text }] } });
 
-test('registers exactly one command-type Stop hook and no prompt hook', () => {
-  assert.equal(stopHooks.filter((h) => h.type === 'prompt').length, 0);
-  const commandHooks = stopHooks.filter((h) => h.type === 'command');
-  assert.equal(commandHooks.length, 1);
-  assert.match(commandHooks[0].command, /hermes-closeout-gate\.mjs/);
-  assert.equal(commandHooks[0].timeout, 30);
+test('is registered as a command-type Stop hook, and no Stop hook is prompt-type', () => {
+  // Was "exactly one command Stop hook" — true only while this was the ONLY Stop
+  // hook. Others have landed since (dry-loop, linear-sync, dual-tier), so the count
+  // assertion had been failing for weeks, reporting a broken suite while nothing was
+  // wrong. A test that fails for a reason nobody intends is one everybody ignores.
+  //
+  // The intent it was really protecting: this gate must run as a deterministic
+  // COMMAND hook (harness-executed, zero model calls) rather than a prompt hook that
+  // asks the model to police itself — the point of rule 69's fifth layer.
+  assert.equal(
+    stopHooks.filter((h) => h.type === 'prompt').length, 0,
+    'a prompt-type Stop hook would put enforcement back in the model\'s hands',
+  );
+  const mine = stopHooks.filter(
+    (h) => h.type === 'command' && /hermes-closeout-gate\.mjs/.test(String(h.command ?? '')),
+  );
+  assert.equal(mine.length, 1, 'this gate must be registered exactly once as a command hook');
+  assert.equal(mine[0].timeout, 30, 'timeout must stay 30s');
 });
 
 test('stop_hook_active passes deterministically (no-loop guard)', () => {

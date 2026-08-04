@@ -31,6 +31,30 @@ const handleProductImageUpload = (req, res, next) => {
   });
 };
 
+// Fields a request body must never set on a storefront item, even from an admin.
+// `id` + the Sequelize-managed timestamps are never client-authored; `stripeProductId`
+// / `stripePriceId` are owned by the Stripe sync path, and mass-assigning them from a
+// raw body silently repoints a package at a different Stripe product (a billing bug).
+// Found 2026-08-04: both create and update passed `req.body` straight through.
+const PROTECTED_ITEM_FIELDS = new Set([
+  'id', 'createdAt', 'updatedAt', 'stripeProductId', 'stripePriceId',
+]);
+
+/**
+ * Shallow copy of a body with protected fields stripped.
+ *
+ * Built with Object.fromEntries, NOT `out[key] = value`: bracket-assigning a
+ * `__proto__` key mutates the object's prototype instead of setting a property, so
+ * the loop form is a prototype-pollution vector. fromEntries defines true own
+ * properties and is safe. `constructor`/`prototype` are dropped for the same reason.
+ */
+const sanitizeItemBody = (body) => Object.fromEntries(
+  Object.entries(body || {}).filter(
+    ([key]) => !PROTECTED_ITEM_FIELDS.has(key)
+      && key !== '__proto__' && key !== 'constructor' && key !== 'prototype',
+  ),
+);
+
 const parsePositiveInteger = (value) => {
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
@@ -232,7 +256,7 @@ router.post('/', async (req, res) => {
     }
 
     // Create the item
-    const item = await StorefrontItem.create(req.body);
+    const item = await StorefrontItem.create(sanitizeItemBody(req.body));
     
     logger.info(`Admin created new storefront item: ${item.name} (ID: ${item.id})`, { actorId: req.user?.id });
     
@@ -288,7 +312,7 @@ router.put('/:id', async (req, res) => {
     }
     
     // Update the item
-    await item.update(req.body);
+    await item.update(sanitizeItemBody(req.body));
     
     logger.info(`Admin updated storefront item: ${item.name} (ID: ${item.id})`, { actorId: req.user?.id });
     

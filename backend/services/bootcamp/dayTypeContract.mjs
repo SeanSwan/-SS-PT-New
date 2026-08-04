@@ -24,15 +24,34 @@
  *  - An exercise this map cannot classify is EXCLUDED, never guessed in —
  *    guessing is how core-tagged squats reached upper day.
  *
- * FAIL-OPEN LADDER (the class always generates): full contract → drop pattern
- * exclusions → unfiltered pool, each step surfaced in `explanations`. This is
- * slice-2's relaxation ladder in embryo, scoped to pool construction.
+ * RELAXATION LADDER (SWA-105 Slice 2 — replaces slice 1's fail-open embryo).
+ * Pool construction now walks the real, named ladder from relaxation.mjs:
+ *
+ *   R0  full contract — primary region + pattern exclusions both hold
+ *   R3  pattern fidelity relaxed — region still enforced
+ *   R5  equipment relaxed — top up from the pinned always-legal bodyweight set,
+ *       which is STILL run through the day contract
+ *   R6  exhausted — reported, with structural outs; never a silent bypass
+ *
+ * SLICE 1'S HOLE, CLOSED. The old last step returned the UNFILTERED pool, which
+ * re-opened D1 precisely when the pool was thinnest: a narrow equipment profile
+ * starved the contract, the starve tripped the fallback, and the fallback put
+ * squats back on upper day. R5 tops up with day-LEGAL bodyweight movements
+ * instead, so a thin room degrades into a simpler class rather than a wrong one.
+ *
+ * R1 (anti-repeat) IS DELIBERATELY NOT WIRED HERE. The 14-day freshness
+ * exclusion is applied upstream in the generator as a hard filter, and demoting
+ * it to a preference is live product behavior tied to the Mark-as-Taught button
+ * — Sean's call, not the builder's. The rung exists and is tested in core, so
+ * wiring it is a small change the day that ruling lands.
  */
 
 import {
   createDayTypeRegistry, SWAN_DAY_TYPES, checkDayTypeLegality, checkVolumeBudget,
 } from '../../../shared/bootcamp-core/dayTypes.mjs';
 import { normalizeMovement } from '../../../shared/bootcamp-core/taxonomy.mjs';
+import { runLadder } from '../../../shared/bootcamp-core/relaxation.mjs';
+import { alwaysLegalTopUp } from './alwaysLegal.mjs';
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
 
 /** Swan muscle token -> core region. Covers the 28 registry tokens plus the
@@ -101,6 +120,9 @@ function inferImpact(exercise) {
  * so taxonomy holes are visible instead of silent.
  */
 export function toCoreMovement(exercise) {
+  // Main's 0f447562b evolution honored: Rolodex records arrive with alias
+  // forms (JSON strings, display casing, synonyms) — canonicalize BEFORE the
+  // region lookup or real DB rows silently classify as unknown.
   const muscles = normalizeMuscleList(exercise?.muscles);
   const primaryToken = canonicalizeMuscle(exercise?.primaryMuscle) || muscles[0];
   const primaryRegion = MUSCLE_REGION[primaryToken];
@@ -123,13 +145,20 @@ export function getDayTypeRegistry() {
 }
 
 /**
- * Apply the day-type contract to a pool, with the fail-open ladder.
+ * Apply the day-type contract to a pool by walking the relaxation ladder.
+ *
+ * Every returned exercise carries `selectionRung` — the rung IT personally
+ * needed, not the rung the batch reached. A pool that descended to R5 still
+ * marks its strict members R0, so only the genuinely relaxed rows wear a gold
+ * outline. Labelling the whole pool by its worst member is how a mostly-clean
+ * class ends up looking broken.
  *
  * @param {Array} exercises  Swan exercise records (registry or Rolodex shape)
  * @param {string} dayTypeId lower_body | upper_body | cardio | full_body
  * @param {number} neededSlots minimum pool size the class needs
- * @returns {{ pool: Array, ladderStep: 'contract'|'no_pattern_exclusions'|'insufficient',
+ * @returns {{ pool: Array, rung: 'R0'|'R3'|'R5'|'R6', relaxedCounts: object,
  *             rejected: {wrongRegion: number, excludedPattern: number, unclassified: number},
+ *             exhausted: boolean, shortfall: number, structuralOuts: Array,
  *             explanation: string }}
  */
 export function applyDayTypeContract(exercises, dayTypeId, neededSlots = 1) {
@@ -137,9 +166,10 @@ export function applyDayTypeContract(exercises, dayTypeId, neededSlots = 1) {
   const dayType = registry.has(dayTypeId) ? registry.require(dayTypeId) : registry.require('full_body');
 
   const rejected = { wrongRegion: 0, excludedPattern: 0, unclassified: 0 };
-  const legal = [];
-  const regionOnlyLegal = []; // ladder step 2: ignore pattern exclusions
+  const candidates = [];
 
+  // Classify once. `regionLegal` is the hard floor (never relaxed);
+  // `patternLegal` is the R3 constraint the ladder may bend.
   for (const exercise of exercises) {
     const movement = toCoreMovement(exercise);
     if (!movement) {
@@ -147,45 +177,95 @@ export function applyDayTypeContract(exercises, dayTypeId, neededSlots = 1) {
       continue;
     }
     const verdict = checkDayTypeLegality(dayType, movement);
-    const annotated = { ...exercise, coreMovement: movement };
-    if (verdict.legal) {
-      legal.push(annotated);
-      regionOnlyLegal.push(annotated);
-    } else if (verdict.reason === 'excluded_pattern') {
-      rejected.excludedPattern += 1;
-      // Region still qualifies — eligible if the ladder relaxes patterns.
-      if (dayType.primaryRegions.includes(movement.primaryRegion)) regionOnlyLegal.push(annotated);
-    } else {
+    const regionLegal = dayType.primaryRegions.includes(movement.primaryRegion);
+    if (!regionLegal) {
       rejected.wrongRegion += 1;
+      continue;
     }
+    if (!verdict.legal && verdict.reason === 'excluded_pattern') rejected.excludedPattern += 1;
+    candidates.push({
+      ...exercise,
+      coreMovement: movement,
+      __patternLegal: verdict.legal || verdict.reason !== 'excluded_pattern',
+    });
   }
 
-  if (legal.length >= neededSlots) {
+  const classifyPinned = (exercise) => {
+    const movement = toCoreMovement(exercise);
+    if (!movement) return null;
+    if (!dayType.primaryRegions.includes(movement.primaryRegion)) return null;
+    const verdict = checkDayTypeLegality(dayType, movement);
     return {
-      pool: legal,
-      ladderStep: 'contract',
-      rejected,
-      explanation: `${dayType.label} contract: ${legal.length} exercises qualify `
-        + `(${rejected.wrongRegion} wrong primary region, ${rejected.excludedPattern} excluded pattern, `
-        + `${rejected.unclassified} unclassified).`,
+      ...exercise,
+      coreMovement: movement,
+      __patternLegal: verdict.legal || verdict.reason !== 'excluded_pattern',
     };
-  }
-  if (regionOnlyLegal.length >= neededSlots) {
-    return {
-      pool: regionOnlyLegal,
-      ladderStep: 'no_pattern_exclusions',
-      rejected,
-      explanation: `${dayType.label} contract RELAXED (pattern exclusions dropped): the strict pool `
-        + `had ${legal.length} of the ${neededSlots} needed. Region rule still enforced.`,
-    };
-  }
-  return {
-    pool: regionOnlyLegal,
-    ladderStep: 'insufficient',
-    rejected,
-    explanation: `${dayType.label} contract has thin coverage (${regionOnlyLegal.length}/${neededSlots} `
-      + 'qualified even with pattern exclusions relaxed). Unrelated or unclassified exercises were not admitted.',
   };
+
+  // The pinned set is classified through the SAME contract — R5 relaxes
+  // equipment, never day legality. A bodyweight squat still stays off upper day.
+  const pinned = alwaysLegalTopUp(candidates)
+    .map(classifyPinned)
+    .filter((entry) => entry !== null && entry.__patternLegal);
+
+  const result = runLadder({
+    candidates,
+    need: neededSlots,
+    // Hard floor: primary region already filtered above, so anything reaching
+    // the ladder is region-legal. Pattern legality is the R3 constraint.
+    hardFilter: () => true,
+    constraints: { pattern_fidelity: (entry) => entry.__patternLegal === true },
+    alwaysLegal: pinned,
+    identify: (entry) => entry.key ?? entry.name,
+  });
+
+  const pool = result.admitted.map(({ item, rung }) => {
+    const { __patternLegal, ...rest } = item;
+    return { ...rest, selectionRung: rung };
+  });
+
+  return {
+    pool,
+    rung: result.rung,
+    relaxedCounts: result.relaxedCounts,
+    rejected,
+    exhausted: result.exhausted,
+    shortfall: result.shortfall,
+    structuralOuts: result.structuralOuts,
+    explanation: describeContract({ dayType, neededSlots, pool, result, rejected }),
+  };
+}
+
+/** The class explanation — names WHICH constraint relaxed, per Kimi R3's DoD. */
+function describeContract({ dayType, neededSlots, pool, result, rejected }) {
+  const census = `(${rejected.wrongRegion} wrong primary region, `
+    + `${rejected.excludedPattern} excluded pattern, ${rejected.unclassified} unclassified)`;
+
+  if (result.rung === 'R0') {
+    return `${dayType.label} contract: ${pool.length} exercises qualify ${census}.`;
+  }
+
+  const relaxed = [];
+  if (result.relaxedCounts.R3) {
+    relaxed.push(`${result.relaxedCounts.R3} admitted by relaxing PATTERN FIDELITY `
+      + `(a movement pattern ${dayType.label} normally excludes)`);
+  }
+  if (result.relaxedCounts.R5) {
+    relaxed.push(`${result.relaxedCounts.R5} bodyweight substitute(s) added by relaxing EQUIPMENT`);
+  }
+
+  // `relaxed` can legitimately be empty at R6 — the pool ran out before any
+  // constraint had something to bend. Joining an empty list into the sentence
+  // produced ". ." on the trainer's screen, so the clause is conditional.
+  const detail = relaxed.length > 0 ? ` ${relaxed.join('; ')}.` : '';
+
+  if (result.exhausted) {
+    return `${dayType.label} contract EXHAUSTED at R6: ${pool.length} of the ${neededSlots} needed `
+      + `${census}.${detail} The class still generates — hold stations longer or drop a `
+      + 'station. Review exercise library coverage for this day type.';
+  }
+  return `${dayType.label} contract RELAXED to ${result.rung}: ${pool.length} exercises available, `
+    + `${neededSlots} needed ${census}.${detail}`;
 }
 
 /**

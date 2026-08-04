@@ -26,6 +26,7 @@
  */
 
 import { PHASES } from './phases.mjs';
+import { isPacedBlock, expandPacedBlock } from './pacing.mjs';
 
 /**
  * Expand a ClassPlan into an ordered, time-relative segment list.
@@ -64,6 +65,13 @@ export function expandSegments(plan) {
     }
 
     if (block.kind !== 'work') return;
+
+    // SWA-105 Slice 3: a paced block (amrap/emom/tabata) is a per-block timing
+    // law — synchronized, outside both the circuit math and structure timing.
+    if (isPacedBlock(block)) {
+      segments.push(...expandPacedBlock(block, blockIndex));
+      return;
+    }
 
     if (structure.shape === 'full_group') {
       for (let round = 1; round <= structure.rounds; round += 1) {

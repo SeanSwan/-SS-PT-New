@@ -111,7 +111,14 @@ beforeAll(async () => {
   }
 
   adminGets = [...new Set(collected.filter((p) => p.startsWith('/api/admin')))];
-}, 180000);
+// 600s, not because booting takes 600s (it takes ~7s alone) but because FOUR
+// suites in this repo each boot the full Express app, and vitest may schedule
+// them concurrently. Under that contention this hook once blew a 120s budget and
+// vitest SKIPPED all of this file's security assertions — a skipped security test
+// is worse than a failing one, because the summary still reads green-ish. The
+// budget is deliberately far above any real boot so contention can never silence
+// these checks.
+}, 600000);
 
 /** Fill path params with an id that will not match a real row. */
 const concrete = (p) => p.replace(/:[A-Za-z0-9_]+/g, '999999').replace(/\/$/, '') || '/';

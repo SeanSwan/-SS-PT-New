@@ -128,7 +128,16 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     exerciseDurationSec: generatedClass.exerciseDurationSec ?? null,
     includeStretch: generatedClass.includeStretch ?? true,
     stretchDurationMin: generatedClass.stretchDurationMin ?? 3,
-    metadata: { explanations: generatedClass.explanations },
+    // SWA-105 Slice 2: the relaxation summary rides in metadata alongside the
+    // explanations. Per-exercise chips are NOT persisted — the exercise columns
+    // are an explicit whitelist and adding two more is a migration, deferred to
+    // the slice that needs them at rest. Losing the class-level record too
+    // would mean a template saved from a thin room reloads looking clean, so
+    // the summary is kept here where a JSON column already exists.
+    metadata: {
+      explanations: generatedClass.explanations,
+      relaxationSummary: generatedClass.relaxationSummary ?? null,
+    },
   });
 
   // Create stations

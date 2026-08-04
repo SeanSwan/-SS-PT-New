@@ -31,7 +31,8 @@ import userRoutes from '../routes/userRoutes.mjs';
 // ===================== USER MANAGEMENT =====================
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
-import packageRoutes from '../routes/packageRoutes.mjs';
+// packageRoutes import retired with its mount (SWA-115) — see the /api/packages note below.
+// import packageRoutes from '../routes/packageRoutes.mjs';
 // trainingSessionRoutes was disabled for a deployment hotfix and never re-enabled.
 // The module was deleted 2026-07-27 (launch audit). Session endpoints are served
 // by sessionRoutes / sessions.mjs / sessionPackageRoutes above.
@@ -329,7 +330,13 @@ export const setupRoutes = async (app) => {
   // `400 Invalid session id`. Do NOT add new single-segment routes to sessionRoutes; they will be
   // dead on arrival, and dead-but-present routes are how unguarded copies survive unnoticed.
   app.use('/api/session-packages', sessionPackageRoutes);
-  app.use('/api/packages', packageRoutes);
+  // /api/packages RETIRED (SWA-115, 2026-08-04): the Package model's `packages` table never
+  // existed in production, so every one of these five handlers 500'd since inception, and a
+  // repo-wide + frontend-wide grep found ZERO consumers. Canonical catalog surface is
+  // StorefrontItem (/api/storefront, /api/admin/packages). Unmounting converts a guaranteed
+  // 500 into a clean 404. Model/routes files intentionally left in place (Rule 34) pending
+  // the SWA-115 retire/delete decision.
+  // app.use('/api/packages', packageRoutes);
 
   // ===================== ONBOARDING ROUTES (AI-POWERED PERSONAL TRAINING) =====================
   // Onboarding-to-Database Pipeline - transforms 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md
@@ -828,6 +835,21 @@ export const setupRoutes = async (app) => {
           !/^\d{4}-\d{2}$/.test(yearMonth) ||
           !/^[\w-]+\.\w+$/.test(filename)) {
         return res.status(400).json({ error: 'Invalid photo path' });
+      }
+
+      // Sensitive categories (body/health photos) require the SAME short-TTL signed
+      // URL the protected `/api/serve-photo/photos/...` twin enforces. Without this
+      // gate here, swapping the path prefix served a client's measurement photo from
+      // a bare, unauthenticated, non-expiring link — defeating the leaked-link
+      // defense (found 2026-08-04, security audit). Legit measurement rendering mints
+      // signed `/api/serve-photo/...` URLs, so this only blocks the bypass. FAIL-CLOSED.
+      const { SENSITIVE_PHOTO_CATEGORIES, verifySignedPhotoPath } =
+        await import('../services/photoUrlSigner.mjs');
+      if (SENSITIVE_PHOTO_CATEGORIES.has(category)) {
+        const barePath = `/api/serve-photo/${objectKey}`;
+        if (!verifySignedPhotoPath(barePath, req.query.exp, req.query.sig)) {
+          return res.status(401).json({ error: 'Signed URL required or expired' });
+        }
       }
 
       const { r2Configured, getR2Client } = await import('../services/r2StorageService.mjs');

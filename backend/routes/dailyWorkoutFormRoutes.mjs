@@ -2524,10 +2524,17 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const DailyWorkoutForm = getDailyWorkoutForm();
 
-    // Launch audit 2026-08-03: this read was unscoped while its sibling
-    // GET /:id (line ~1581) already pins trainers to their own forms. Without
-    // it, any trainer could read another trainer's trainerNotes, clientSummary
-    // and full exercise/volume/RPE breakdown by guessing a form id.
+    // Trainer-scope the lookup exactly like the sibling GET /:id (line ~1581):
+    // a bare findByPk let any trainer read ANY other trainer's client form —
+    // exercises, RPE, clientSummary, and free-text trainerNotes — by id
+    // enumeration. Admins still see all (no trainerId constraint added).
+    // This was the lone handler in the file missing the object-level scope
+    // every sibling enforces.
+    //
+    // Found INDEPENDENTLY TWICE — launch-audit lane 5 (2026-08-03) and the
+    // main-line security audit (2026-08-04) — which arrived at byte-identical
+    // code and collided here only on the comment. Two unrelated reviewers
+    // reaching the same fix is strong confirmation the exposure was real.
     const whereCondition = { id: req.params.id };
     if (req.user.role === 'trainer') {
       whereCondition.trainerId = req.user.id;

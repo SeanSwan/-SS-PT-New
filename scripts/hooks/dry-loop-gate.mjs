@@ -95,12 +95,40 @@ const REVIEW_BLOCK_REASON =
   '(linear-todo Mode 1) and write `AWAITING SEAN: <decision>` — that is the ONLY way to end a ' +
   'review turn early. Never fabricate the marker without the rounds behind it.';
 
+/**
+ * A Stop hook's own feedback is written back into the transcript as a `user` entry.
+ * Counting it as the user speaking reset the turn window to the moment of the
+ * complaint, so the gate could no longer see the work it had just judged: fileWrites
+ * fell to 0, buildShaped went false, and the gate passed silently while enforcing
+ * nothing. Measured 2026-08-03 — lastUserIdx landed on the gate's own feedback text
+ * while the required marker sat in the closeout just above it.
+ *
+ * Excluding feedback can only widen the window (start it earlier), never narrow it,
+ * so the failure direction is "the gate sees more of the turn" — the safe one.
+ *
+ * KEEP IN LOCKSTEP: all four Stop gates carry a byte-identical copy of this predicate.
+ * `gate-window-parity.test.mjs` fails if they drift. Deliberately duplicated rather
+ * than shared: a failed import of a common module would break all four at load time,
+ * before each gate's own fail-open can catch it.
+ */
+const HOOK_FEEDBACK_RE = /^\s*Stop hook feedback:/i;
+
 export function isRealUserLine(entry) {
   if (!entry || entry.type !== 'user') return false;
   const content = entry.message?.content;
-  if (typeof content === 'string') return content.trim().length > 0;
+  if (typeof content === 'string') {
+    return content.trim().length > 0 && !HOOK_FEEDBACK_RE.test(content);
+  }
   if (Array.isArray(content)) {
-    return content.some((c) => c?.type === 'text') && !content.some((c) => c?.type === 'tool_result');
+    if (!content.some((c) => c?.type === 'text')) return false;
+    if (content.some((c) => c?.type === 'tool_result')) return false;
+    const text = content
+      .filter((c) => c?.type === 'text')
+      .map((c) => String(c.text ?? ''))
+      .join('\n');
+    // Non-blank required, matching the string branch above. The array branch used to
+    // accept a whitespace-only block, so an empty message could reset the window too.
+    return text.trim().length > 0 && !HOOK_FEEDBACK_RE.test(text);
   }
   return false;
 }

@@ -263,6 +263,17 @@ const initializeDatabases = async () => {
       }
     }
 
+    // SWA-115 item 4 (2026-08-04): boot-time schema-drift tripwire. Warn-only —
+    // logs every model whose table is missing from the live DB (the class that
+    // shipped 12 table-less models undetected). Never blocks boot.
+    try {
+      const { default: getModels } = await import('../models/associations.mjs');
+      const { runModelTableGuard } = await import('../utils/modelTableGuard.mjs');
+      await runModelTableGuard(await getModels(), sequelize);
+    } catch (guardError) {
+      logger.warn(`[ModelTableGuard] wiring failed (non-critical): ${guardError.message}`);
+    }
+
     // Phase 15.2 (2026-04-15): the Phase 15 schema guard has been moved
     // to `criticalDatabasePreflight()` and now runs PRE-LISTEN in
     // `initializeServer()` — before `startServer(app)` is called. The

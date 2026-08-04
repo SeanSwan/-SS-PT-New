@@ -158,6 +158,10 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     () => buildInsights(trainingProof, progressPercent, streakDays, currentWorkoutState.workout?.weeklyPlanVolume ?? null),
     [currentWorkoutState.workout?.weeklyPlanVolume, progressPercent, streakDays, trainingProof],
   );
+  // Settled means SUCCESSFULLY settled — a failed fetch must never be read as
+  // "zero history" (a veteran client with a transient error would get the
+  // first-session orientation strip + lose the composer).
+  const workoutHistorySettled = !workoutSessions.isLoading && !workoutSessions.error;
   const performanceScore = useMemo(
     () => buildPerformanceScore(trainingProof, progressPercent, streakDays),
     [progressPercent, streakDays, trainingProof],
@@ -258,7 +262,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         assignment={assignment}
         sessionPreview={sessionPreview}
         trainingProof={trainingProof}
-        workoutHistorySettled={!workoutSessions.isLoading}
+        workoutHistorySettled={workoutHistorySettled}
         insights={insights}
         performanceScore={performanceScore}
         macroSummary={macroSummary}

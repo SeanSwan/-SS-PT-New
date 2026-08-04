@@ -194,6 +194,76 @@ router.post('/log', async (req, res) => {
 });
 
 // GET /api/bootcamp/history
+/**
+ * SWA-105 Slice 8 — attendance log-back. Closes the Product Core Loop: every
+ * registered attendee gets a real DailyWorkoutForm; guests get roster rows.
+ * Idempotent per class; ownership enforced inside the service (404, never
+ * existence-confirming). Body: { attendees: [{userId} | {guest}] }.
+ */
+router.post('/class-logs/:id/attendance', async (req, res) => {
+  // DEFAULT-OFF GATE (SWA-105): the attendance write path carries a known-open
+  // HIGH finding (Kimi F1 / Opus §4.1 — idempotency TOCTOU + transaction-less
+  // write loop can duplicate DailyWorkoutForms). No frontend calls it yet, so
+  // it is dormant; this flag makes that guarantee explicit and enforced rather
+  // than incidental. The real fix (unique-indexed idempotencyKey column + a
+  // transaction) rides the roster-check-in UI slice that makes the path live —
+  // flip SWAN_BOOTCAMP_ATTENDANCE_ENABLED=true only after that lands.
+  if (process.env.SWAN_BOOTCAMP_ATTENDANCE_ENABLED !== 'true') {
+    return res.status(503).json({
+      success: false,
+      message: 'Bootcamp attendance log-back is not yet enabled.',
+    });
+  }
+  try {
+    const { recordBootcampAttendance } = await import('../services/bootcamp/bootcampAttendance.mjs');
+    const { getBootcampClassLog } = await import('../models/index.mjs');
+    const { getAllModels } = await import('../models/index.mjs');
+    const models = getAllModels();
+    const ClassLog = getBootcampClassLog();
+
+    const result = await recordBootcampAttendance(
+      {
+        getClassLog: (id) => ClassLog.findByPk(id),
+        createWorkoutForm: async (form) => {
+          if (!models.DailyWorkoutForm) return null;
+          const row = await models.DailyWorkoutForm.create({
+            clientId: form.clientId,
+            trainerId: Number(req.user.id),
+            date: form.date,
+            formData: { ...form.formData, idempotencyKey: form.idempotencyKey },
+            sessionDeducted: form.sessionDeducted,
+            mcpProcessed: form.mcpProcessed,
+            submittedAt: new Date(),
+          });
+          return row.id;
+        },
+        saveClassLog: (log, patch) => log.update(patch),
+        // SWA-105 security fix (IDOR): a trainer may only log attendees who are
+        // their active clients. Mirrors checkTrainerClientRelationship
+        // (authMiddleware.mjs). Admin bypass is handled in the service.
+        verifyClientAccess: async (clientId) => {
+          const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+          const assignment = await ClientTrainerAssignment.findOne({
+            where: { trainerId: Number(req.user.id), clientId: Number(clientId), status: 'active' },
+          });
+          return !!assignment;
+        },
+      },
+      {
+        classLogId: Number(req.params.id),
+        trainerId: Number(req.user.id),
+        requesterRole: req.user.role,
+        attendees: req.body?.attendees,
+      },
+    );
+    res.status(result.alreadyRecorded ? 200 : 201).json({ success: true, ...result });
+  } catch (error) {
+    const status = error.statusCode ?? 500;
+    if (status >= 500) logger.error('[Bootcamp] attendance failed:', error);
+    res.status(status).json({ success: false, message: status >= 500 ? 'Attendance recording failed' : error.message });
+  }
+});
+
 router.get('/history', async (req, res) => {
   try {
     const { dayType, limit, offset } = req.query;

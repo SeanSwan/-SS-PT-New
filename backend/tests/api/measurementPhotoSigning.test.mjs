@@ -132,4 +132,19 @@ describe('S2/S3/S4/S5 — wiring source contracts', () => {
   it('S5: storage never emits a public bucket URL for sensitive categories', () => {
     expect(STORAGE).toMatch(/R2_PUBLIC_URL && !SENSITIVE_PHOTO_CATEGORIES\.has\(category\)/);
   });
+
+  it('S6: BOTH photo proxies enforce the sensitive-category signature, not just one', () => {
+    // Regression 2026-08-04: the `/photos/:category/...` proxy validated `measurements`
+    // as an allowed category but skipped the signature gate its `/api/serve-photo/...`
+    // twin enforces, so a bare prefix-swap streamed a client's body photo from a
+    // permanent unauthenticated link. Both proxies must gate SENSITIVE_PHOTO_CATEGORIES.
+    const occurrences = ROUTES.split('SENSITIVE_PHOTO_CATEGORIES.has(category)').length - 1;
+    expect(occurrences).toBeGreaterThanOrEqual(2);
+    // The short-prefix proxy specifically must carry the verify call.
+    const shortIdx = ROUTES.indexOf("app.get('/photos/:category/:userId/:yearMonth/:filename'");
+    expect(shortIdx).toBeGreaterThan(-1);
+    const shortHandler = ROUTES.slice(shortIdx, shortIdx + 1600);
+    expect(shortHandler).toContain('verifySignedPhotoPath');
+    expect(shortHandler).toContain('Signed URL required or expired');
+  });
 });

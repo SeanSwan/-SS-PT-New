@@ -92,7 +92,14 @@ beforeAll(async () => {
     .map((layer, index) => ({ layer, index }))
     .filter(({ layer }) => layer.name === 'router')
     .map(({ layer, index }) => ({ index, path: decodeMountPath(layer.regexp), layer }));
-}, 120000);
+// 600s, not because booting takes 600s (it takes ~7s alone) but because FOUR
+// suites in this repo each boot the full Express app, and vitest may schedule
+// them concurrently. Under that contention this hook once blew a 120s budget and
+// vitest SKIPPED all of this file's security assertions — a skipped security test
+// is worse than a failing one, because the summary still reads green-ish. The
+// budget is deliberately far above any real boot so contention can never silence
+// these checks.
+}, 600000);
 
 describe('the real Express router stack', () => {
   it('the app boots and mounts routers', () => {

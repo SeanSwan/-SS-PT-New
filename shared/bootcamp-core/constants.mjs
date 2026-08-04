@@ -25,15 +25,26 @@ export const WORK_SHAPES = Object.freeze(['stations', 'full_group']);
  * render a fabricated justification for an exercise the brain never chose.
  */
 export const CHIPS = Object.freeze([
+  // Structural — properties of the movement itself.
   'same_pattern',
   'same_kit',
   'no_setup',
   'joint_safe',
   'low_impact',
+  // Earned — properties of this gym's history with the movement.
   'not_used_recently',
   'new',
   'coach_favorite',
   'was_here',
+  // Relaxed (SWA-105 Slice 2) — one per relaxable rung, naming the bent rule.
+  // Added deliberately: without these, a relaxed selection has no vocabulary to
+  // confess with, and the ladder's whole point is that the trainer SEES which
+  // rule was broken. The pairing is enforced by validate.mjs, not by review.
+  'used_recently',
+  'familiar',
+  'different_pattern',
+  'repeated_this_class',
+  'bodyweight_sub',
 ]);
 
 /**
@@ -44,6 +55,43 @@ export const CHIPS = Object.freeze([
  * when the trainer rejects bodyweight.
  */
 export const RUNGS = Object.freeze(['R0', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6']);
+
+/** Rung -> the single constraint it relaxes. R0 relaxes nothing; R6 is structural. */
+export const RUNG_CONSTRAINT = Object.freeze({
+  R0: null,
+  R1: 'anti_repeat',
+  R2: 'novelty',
+  R3: 'pattern_fidelity',
+  R4: 'not_used_this_class',
+  R5: 'equipment',
+  R6: 'structure',
+});
+
+/**
+ * Rung -> the chip that CONFESSES it. R0 has none (nothing to confess) and R6
+ * has none (an R6 item cannot exist — R6 offers structural outs, not exercises).
+ */
+export const RUNG_CHIP = Object.freeze({
+  R1: 'used_recently',
+  R2: 'familiar',
+  R3: 'different_pattern',
+  R4: 'repeated_this_class',
+  R5: 'bodyweight_sub',
+});
+
+/**
+ * Block pacing modes (SWA-105 Slice 3 — Sean ratified 2026-07-31: shipped
+ * class styles ride into V2 as schema, not folklore).
+ *  - interval: the default; timing comes from structure / per-slot overrides.
+ *  - amrap:  ONE timed window (blockMin); slots are the menu, the clock is the
+ *            whole block. The screen shows the list, not a per-exercise timer.
+ *  - emom:   every minute on the minute; each 60s segment binds one slot,
+ *            cycling. rounds = total minutes.
+ *  - tabata: rounds x (workSec/restSec) — classic 8 x 20/10 — cycling slots.
+ * A non-interval block is SYNCHRONIZED (everyone together): its slots carry no
+ * stationIndex and it sits outside the station circuit math.
+ */
+export const PACING_MODES = Object.freeze(['interval', 'amrap', 'emom', 'tabata']);
 
 /** Who acted. A ROLE, never a person — Rule 8 by construction. */
 export const ACTORS = Object.freeze(['system', 'trainer', 'brain']);

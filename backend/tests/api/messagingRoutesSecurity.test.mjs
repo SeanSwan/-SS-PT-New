@@ -75,4 +75,15 @@ describe('messaging routes security hardening', () => {
     expect(controllerSource).toContain("'lastName', u.\"lastName\"");
     expect(controllerSource).toContain("'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END");
   });
+
+  it('escapes LIKE wildcards in user search so `%` cannot dump the directory', () => {
+    // Regression 2026-08-04 (Kimi hostile pass): the search wrapped raw input as
+    // `%${query}%`, so query=`%` became `%%%` and ILIKE-matched every user — a
+    // one-character dump of the whole directory. The query replacement must run the
+    // input through the LIKE-escape helper, never interpolate it raw.
+    const controllerSource = readMessagingControllerSource();
+    expect(controllerSource).toContain('const escapeLikePattern =');
+    expect(controllerSource).toContain('`%${escapeLikePattern(query)}%`');
+    expect(controllerSource).not.toContain('query: `%${query}%`');
+  });
 });
