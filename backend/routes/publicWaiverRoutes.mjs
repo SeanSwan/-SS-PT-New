@@ -9,11 +9,11 @@
 import express from 'express';
 import { getCurrentWaiverVersions, submitPublicWaiver } from '../controllers/publicWaiverController.mjs';
 import { optionalAuth } from '../middleware/optionalAuth.mjs';
-import { waiverLimiter } from '../middleware/rateLimiter.mjs';
+import { waiverLimiter, waiverVersionsLimiter } from '../middleware/rateLimiter.mjs';
 
 const router = express.Router();
 
-router.get('/versions/current', getCurrentWaiverVersions);
+router.get('/versions/current', waiverVersionsLimiter, getCurrentWaiverVersions);
 router.post('/submit', waiverLimiter, optionalAuth, submitPublicWaiver);
 
 export default router;

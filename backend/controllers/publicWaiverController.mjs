@@ -9,10 +9,12 @@
  *
  * Contract: WAIVER-CONSENT-QR-FLOW-CONTRACT.md §5, §10.1, §12.6/7/8
  */
+import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import { getModel, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { composeWaiverArtifactHtml } from '../services/waivers/waiverArtifactService.mjs';
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -73,6 +75,15 @@ function isValidCalendarDate(dateStr) {
   );
 }
 
+/** Whole-year age at `at` for a validated YYYY-MM-DD date-of-birth string. */
+function computeAgeAt(dobStr, at) {
+  const [y, m, d] = dobStr.split('-').map(Number);
+  let age = at.getFullYear() - y;
+  const monthDiff = at.getMonth() + 1 - m;
+  if (monthDiff < 0 || (monthDiff === 0 && at.getDate() < d)) age -= 1;
+  return age;
+}
+
 // ── Shared Helpers ───────────────────────────────────────────────
 
 function resolveDisplayText(version) {
@@ -90,40 +101,77 @@ function dedupeVersions(versions) {
 }
 
 const VERSION_ATTRIBUTES = [
-  'id', 'waiverType', 'activityType', 'title',
-  'htmlText', 'markdownText', 'textHash',
+  'id', 'waiverType', 'activityType', 'version', 'title',
+  'htmlText', 'markdownText', 'textHash', 'effectiveAt', 'changeSummary',
 ];
+
+/**
+ * Bundle identity — sha256 over the sorted (id, textHash) pairs of the active
+ * set. The client echoes it on submit; a mismatch means the documents changed
+ * between display and signature, which must reject rather than silently
+ * snapshot text the signer never saw (SWA-140 / Opus R6).
+ */
+export function computeBundleHash(versions) {
+  const canonical = [...versions]
+    .sort((a, b) => a.id - b.id)
+    .map((v) => `${v.id}:${v.textHash}`)
+    .join('|');
+  return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+}
+
+async function loadActiveVersions(WaiverVersion, now) {
+  const rawVersions = await WaiverVersion.findAll({
+    where: {
+      retiredAt: null,
+      effectiveAt: { [Op.lte]: now },
+    },
+    attributes: VERSION_ATTRIBUTES,
+    order: [['effectiveAt', 'DESC'], ['id', 'DESC']],
+  });
+  return dedupeVersions(rawVersions);
+}
+
+// 60s in-process cache — this endpoint is public, unauthenticated, and was
+// running an unbounded findAll + sanitize pass on every hit (SWA-140 W3).
+// TTL-only invalidation: activation happens via deploy/seeder (process restart).
+const VERSIONS_CACHE_TTL_MS = 60 * 1000;
+let versionsCache = { payload: null, expiresAt: 0 };
+
+/** Test hook — resets the cache between specs. */
+export function __clearVersionsCache() {
+  versionsCache = { payload: null, expiresAt: 0 };
+}
 
 // ── GET /versions/current ────────────────────────────────────────
 
 export async function getCurrentWaiverVersions(req, res) {
   try {
+    if (versionsCache.payload && versionsCache.expiresAt > Date.now()) {
+      return res.status(200).json(versionsCache.payload);
+    }
+
     const WaiverVersion = getModel('WaiverVersion');
     const now = new Date();
-
-    const rawVersions = await WaiverVersion.findAll({
-      where: {
-        retiredAt: null,
-        effectiveAt: { [Op.lte]: now },
-      },
-      attributes: VERSION_ATTRIBUTES,
-      order: [['effectiveAt', 'DESC'], ['id', 'DESC']],
-    });
-
-    const deduped = dedupeVersions(rawVersions);
+    const deduped = await loadActiveVersions(WaiverVersion, now);
 
     const versions = deduped.map((v) => ({
       id: v.id,
       waiverType: v.waiverType,
       activityType: v.activityType,
+      version: v.version,
       title: v.title,
       // Sanitize the DISPLAY copy — it's rendered as HTML on the public page.
       // (The legal snapshot stored on submit stays verbatim for evidence.)
       displayText: sanitizeWaiverDisplayHtml(resolveDisplayText(v)),
       textHash: v.textHash,
+      effectiveAt: v.effectiveAt,
+      changeSummary: v.changeSummary ?? null,
     }));
 
-    return res.status(200).json({ success: true, versions });
+    const payload = { success: true, versions, bundleHash: computeBundleHash(deduped) };
+    versionsCache = { payload, expiresAt: Date.now() + VERSIONS_CACHE_TTL_MS };
+
+    return res.status(200).json(payload);
   } catch (err) {
     logger.error('getCurrentWaiverVersions error:', err);
     return res.status(500).json({
@@ -261,6 +309,45 @@ export async function submitPublicWaiver(req, res) {
       });
     }
 
+    // A.11 Minor policy — DOB is evaluated, not just collected (SWA-140).
+    // Under 18: a parent/guardian must be the contracting party (they draw the
+    // binding signature) and an emergency contact is required. The guardian
+    // checkbox alone was self-declared theater; the fork is now server-enforced.
+    const signerAge = computeAgeAt(dateOfBirth, new Date());
+    const isMinor = signerAge < 18;
+    const {
+      emergencyContactName,
+      emergencyContactPhone,
+      minorAssentName,
+      idempotencyKey: rawIdempotencyKey,
+      bundleHash: clientBundleHash,
+    } = req.body;
+
+    if (isMinor && !submittedByGuardian) {
+      return res.status(400).json({
+        success: false,
+        error: 'Participants under 18 need a parent or legal guardian to sign',
+        code: 'WAIVER_GUARDIAN_REQUIRED',
+        ageBand: signerAge < 13 ? 'under_13' : '13_17',
+      });
+    }
+
+    const trimmedEmergencyName = typeof emergencyContactName === 'string' ? emergencyContactName.trim() : '';
+    const trimmedEmergencyPhone = typeof emergencyContactPhone === 'string' ? emergencyContactPhone.trim() : '';
+    if (isMinor && (!trimmedEmergencyName || !trimmedEmergencyPhone)) {
+      return res.status(400).json({
+        success: false,
+        error: 'An emergency contact name and phone are required for participants under 18',
+        code: 'WAIVER_VALIDATION_FAILED',
+      });
+    }
+
+    // A.12 idempotency key shape (optional; uniqueness enforced by index)
+    const idempotencyKey =
+      typeof rawIdempotencyKey === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(rawIdempotencyKey.trim())
+        ? rawIdempotencyKey.trim()
+        : null;
+
     // ── Phase B: Version Resolution ──────────────────────────
 
     const WaiverVersion = getModel('WaiverVersion');
@@ -317,16 +404,52 @@ export async function submitPublicWaiver(req, res) {
       });
     }
 
+    // B.5 Bundle staleness (SWA-140 / Opus R6): if the client tells us which
+    // bundle it DISPLAYED, and the active set has since changed, reject —
+    // snapshotting text the signer never saw is evidence corruption, not a
+    // submission. Missing hash = older client; accepted and flagged, so a
+    // deploy never bricks an in-flight signer (grace documented in blueprint).
+    let bundleHashVerified = false;
+    if (typeof clientBundleHash === 'string' && clientBundleHash.length > 0) {
+      const activeSet = await loadActiveVersions(WaiverVersion, now);
+      const currentBundleHash = computeBundleHash(activeSet);
+      if (clientBundleHash !== currentBundleHash) {
+        return res.status(409).json({
+          success: false,
+          error: 'The waiver documents were updated while you had the page open. Please review the current version and sign again.',
+          code: 'WAIVER_BUNDLE_STALE',
+        });
+      }
+      bundleHashVerified = true;
+    }
+
     // ── Phase C: Transaction ─────────────────────────────────
 
     const rawId = req.user?.id ? Number(req.user.id) : null;
     const userId = (rawId !== null && Number.isFinite(rawId)) ? rawId : null;
     const status = userId ? 'linked' : 'pending_match';
 
+    const WaiverRecordModel = getModel('WaiverRecord');
+
+    // C.0 Idempotency replay — a double-tap must return the original record,
+    // never mint a second legal document (SWA-140 / Opus 6C.1 #2).
+    if (idempotencyKey) {
+      const existing = await WaiverRecordModel.findOne({ where: { idempotencyKey } });
+      if (existing) {
+        return res.status(201).json({
+          success: true,
+          waiverRecordId: existing.id,
+          status: existing.status,
+          replayed: true,
+          message: 'Waiver already submitted',
+        });
+      }
+    }
+
     const transaction = await sequelize.transaction();
 
     try {
-      const WaiverRecord = getModel('WaiverRecord');
+      const WaiverRecord = WaiverRecordModel;
       const WaiverRecordVersion = getModel('WaiverRecordVersion');
       const WaiverConsentFlags = getModel('WaiverConsentFlags');
 
@@ -338,11 +461,19 @@ export async function submitPublicWaiver(req, res) {
         dateOfBirth,
         email: trimmedEmail || null,
         phone: trimmedPhone || null,
+        activityTypes,
         signatureData,
+        signedAt: now,
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
         source,
         submittedByGuardian: !!submittedByGuardian,
         guardianName: submittedByGuardian ? guardianName?.trim() : null,
         guardianTypedSignature: submittedByGuardian ? guardianTypedSignature?.trim() : null,
+        participantName: submittedByGuardian ? trimmedName : null,
+        emergencyContactName: trimmedEmergencyName || null,
+        emergencyContactPhone: trimmedEmergencyPhone || null,
+        idempotencyKey,
         metadata: {
           versionTextSnapshots: resolvedVersions.map((v) => ({
             id: v.id,
@@ -354,6 +485,13 @@ export async function submitPublicWaiver(req, res) {
           userAgent: req.headers['user-agent'],
           source,
           submittedAt: now.toISOString(),
+          signerAgeBand: signerAge < 13 ? 'under_13' : (isMinor ? '13_17' : '18_plus'),
+          minorAssentName:
+            isMinor && typeof minorAssentName === 'string' && minorAssentName.trim()
+              ? minorAssentName.trim()
+              : null,
+          bundleHashVerified,
+          clientBundleHash: bundleHashVerified ? clientBundleHash : null,
         },
       }, { transaction });
 
@@ -422,6 +560,47 @@ export async function submitPublicWaiver(req, res) {
         }
       }
 
+      // C.5 Durable signed artifact (SWA-140 / Opus R1) — a self-contained
+      // HTML document composed server-side from the exact snapshot, stored
+      // with the record so the evidence never depends on a future React
+      // bundle re-rendering correctly.
+      const artifact = composeWaiverArtifactHtml({
+        recordId: record.id,
+        fullName: trimmedName,
+        dateOfBirth,
+        email: trimmedEmail || null,
+        phone: trimmedPhone || null,
+        signedAt: now,
+        source,
+        submittedByGuardian: !!submittedByGuardian,
+        guardianName: submittedByGuardian ? guardianName?.trim() : null,
+        participantName: submittedByGuardian ? trimmedName : null,
+        emergencyContactName: trimmedEmergencyName || null,
+        emergencyContactPhone: trimmedEmergencyPhone || null,
+        signatureData,
+        consents: {
+          liabilityAccepted: true,
+          aiConsentAccepted,
+          mediaConsentAccepted: mediaConsentAccepted ?? false,
+          guardianAcknowledged: !!submittedByGuardian,
+        },
+        versions: resolvedVersions.map((v) => ({
+          id: v.id,
+          waiverType: v.waiverType,
+          activityType: v.activityType,
+          version: v.version,
+          title: v.title,
+          textHash: v.textHash,
+          effectiveAt: v.effectiveAt,
+          displayText: resolveDisplayText(v),
+        })),
+      });
+
+      await record.update(
+        { metadata: { ...record.metadata, artifactSha256: artifact.sha256, artifactHtml: artifact.html } },
+        { transaction },
+      );
+
       await transaction.commit();
 
       // ── Phase D: Response ──────────────────────────────────
@@ -430,9 +609,33 @@ export async function submitPublicWaiver(req, res) {
         waiverRecordId: record.id,
         status,
         message: 'Waiver submitted successfully',
+        signedAt: now.toISOString(),
+        signedSummary: resolvedVersions.map((v) => ({
+          id: v.id,
+          title: v.title,
+          version: v.version,
+          waiverType: v.waiverType,
+          activityType: v.activityType,
+        })),
+        artifactHtml: artifact.html,
+        artifactSha256: artifact.sha256,
       });
     } catch (err) {
       await transaction.rollback();
+      // Idempotency race: two in-flight submits with the same key — the loser
+      // of the unique-index race replays the winner instead of failing.
+      if (idempotencyKey && err?.name === 'SequelizeUniqueConstraintError') {
+        const existing = await getModel('WaiverRecord').findOne({ where: { idempotencyKey } });
+        if (existing) {
+          return res.status(201).json({
+            success: true,
+            waiverRecordId: existing.id,
+            status: existing.status,
+            replayed: true,
+            message: 'Waiver already submitted',
+          });
+        }
+      }
       throw err;
     }
   } catch (err) {

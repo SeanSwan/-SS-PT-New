@@ -16,8 +16,14 @@ import {
   markReconsentRequired,
 } from '../controllers/adminWaiverController.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { adminLimiter } from '../middleware/rateLimiter.mjs';
 
 const router = express.Router();
+
+// adminLimiter on every endpoint — these were the only admin surfaces with no
+// throttle at all, and the list endpoint is the most expensive query in the
+// waiver family (SWA-140 W9).
+router.use(adminLimiter);
 
 router.get('/', protect, adminOnly, listWaiverRecords);
 router.get('/:id', protect, adminOnly, getWaiverRecordDetail);

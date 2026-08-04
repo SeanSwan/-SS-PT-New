@@ -93,6 +93,26 @@ WaiverRecord.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // When a guardian is the contracting party (minor flow), the minor is the
+    // named participant — the guardian signs, the participant is protected.
+    participantName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    emergencyContactName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    emergencyContactPhone: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    // Client-generated at page load; unique when present so a double-tap
+    // replays the original record instead of duplicating a legal document.
+    idempotencyKey: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+    },
     metadata: {
       type: DataTypes.JSONB,
       allowNull: true,

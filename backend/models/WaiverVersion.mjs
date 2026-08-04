@@ -73,6 +73,12 @@ WaiverVersion.init(
       allowNull: false,
       defaultValue: false,
     },
+    // Plain-language "what changed since you signed" — rendered in the
+    // re-consent flow so a forced re-sign explains itself (SWA-140).
+    changeSummary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     createdByUserId: {
       type: DataTypes.INTEGER,
       allowNull: true,

@@ -78,6 +78,28 @@ export const uploadLimiter = rateLimit({
   legacyHeaders: false
 });
 
+/**
+ * Public waiver VERSIONS read limiter (30 req / 5 min per IP).
+ *
+ * GET /api/public/waivers/versions/current is unauthenticated and used to run
+ * an unbounded findAll + sanitize-html pass per hit (SWA-140 W3) — trivially
+ * amplifiable DB+CPU load from one IP. 30/5min is generous for a legitimate
+ * signer (the page fetches once, retries a few times on bad WiFi) and kills
+ * scripted hammering. Pairs with the 60s in-process cache in the controller.
+ */
+export const waiverVersionsLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: {
+    success: false,
+    error: 'Too many requests — please wait a few minutes and try again.',
+    message: 'Too many requests — please wait a few minutes and try again.',
+    retryAfter: '5 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Public waiver submission rate limiter (10 req / 15 min per IP)
 export const waiverLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
