@@ -21,6 +21,12 @@ import { tmpdir } from 'node:os';
 const SS_PT_ADAPTER_LINES = 45;
 const norm = (s) => s.replace(/\r\n/g, '\n');
 
+// Resolved from this file, not process.cwd(). This suite asserts the HOOK is
+// cwd-independent while its own reads were not — run from anywhere else it failed
+// on a missing AGENTS.md (found 2026-08-03). Same class it exists to police.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const repoFile = (p) => readFileSync(resolve(REPO_ROOT, p), 'utf-8');
+
 /** Mirrors the hook's SS-PT contract: AGENTS.md = adapter + CLAUDE.md body. */
 function ssPtMirrorDrifted(agentsText, claudeText) {
   const body = norm(agentsText).split('\n').slice(SS_PT_ADAPTER_LINES).join('\n');
@@ -53,8 +59,8 @@ test('FIRES on real drift — main had a genuinely drifted mirror on 2026-08-02'
 });
 
 test('SILENT when clean — the working tree after sync', () => {
-  const agents = readFileSync('AGENTS.md', 'utf-8');
-  const claude = readFileSync('CLAUDE.md', 'utf-8');
+  const agents = repoFile('AGENTS.md');
+  const claude = repoFile('CLAUDE.md');
   assert.equal(
     ssPtMirrorDrifted(agents, claude), false,
     'false positive on a synced pair — a noisy guard gets ignored, then fails silently',
@@ -62,8 +68,8 @@ test('SILENT when clean — the working tree after sync', () => {
 });
 
 test('adapter is preserved — byte-identical would be WRONG for SS-PT', () => {
-  const agents = norm(readFileSync('AGENTS.md', 'utf-8'));
-  const claude = norm(readFileSync('CLAUDE.md', 'utf-8'));
+  const agents = norm(repoFile('AGENTS.md'));
+  const claude = norm(repoFile('CLAUDE.md'));
   assert.notEqual(agents, claude, 'SS-PT AGENTS.md must retain its Codex adapter header');
   const adapter = agents.split('\n').slice(0, SS_PT_ADAPTER_LINES).join('\n');
   assert.match(adapter, /Codex Adapter Notes/, 'adapter header missing from lines 1-45');
@@ -83,6 +89,44 @@ test('CRLF vs LF alone never reports as drift', () => {
 test('byte-mirror contract (SwanGuard) detects a one-character change', () => {
   assert.equal(byteMirrorDrifted('same\n', 'same\n'), false);
   assert.equal(byteMirrorDrifted('same\n', 'sameX\n'), true);
+});
+
+test('branch freshness measures against origin/main, not the stale local main', () => {
+  // Regression, hostile review 2026-08-03 round 2: the check ran
+  // `rev-list main...HEAD`. Local `main` is itself a branch that goes stale — on
+  // 2026-08-03 it sat 746 commits behind origin, so this gate announced "684
+  // commits behind" when the true distance was 1430. A staleness detector that is
+  // itself stale is worse than no detector: it reads as authoritative and
+  // understates the risk. The finding must also NAME the ref it measured, so the
+  // number can be audited instead of trusted.
+  const hook = fileURLToPath(new URL('./drift-check-gate.mjs', import.meta.url));
+  const repoRoot = resolve(dirname(hook), '..', '..');
+  const behindOf = (ref) => Number(
+    execFileSync('git', ['rev-list', '--left-right', '--count', `${ref}...HEAD`], {
+      cwd: repoRoot, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim().split(/\s+/)[0],
+  );
+
+  let out;
+  try {
+    out = execFileSync(process.execPath, [hook], {
+      cwd: repoRoot, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30000,
+    });
+  } catch { return; } // hook unavailable in this environment
+
+  // Counted AFTER the run so the hook's own fetch cannot race the expectation.
+  let local, remote;
+  try { local = behindOf('main'); remote = behindOf('origin/main'); } catch { return; }
+  if (!Number.isFinite(remote) || remote < 50) return; // nothing for the gate to report
+
+  assert.match(out, /behind origin\/main/,
+    'branch finding must name the ref it measured against');
+  assert.match(out, new RegExp(`\\b${remote} commits behind`),
+    `must report the origin/main distance (${remote})`);
+  if (Number.isFinite(local) && local !== remote) {
+    assert.doesNotMatch(out, new RegExp(`\\b${local} commits behind`),
+      `reported the stale local-main distance (${local}) instead of ${remote}`);
+  }
 });
 
 test('cwd-independent — the hook must not silently no-op from a foreign directory', () => {

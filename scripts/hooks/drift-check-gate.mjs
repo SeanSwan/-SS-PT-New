@@ -92,15 +92,34 @@ try {
 } catch { /* fail-open */ }
 
 // ---- Check 2: branch freshness --------------------------------------------
+// Measured against origin/main, refreshed first. This used to run `main...HEAD`,
+// but local `main` is itself a branch that goes stale: on 2026-08-03 it sat 746
+// commits behind origin, so this gate announced "684 commits behind" when the true
+// distance was 1430. A staleness detector that is itself stale is worse than no
+// detector — it reads as authoritative and understates the risk, which is the exact
+// failure class this hook exists to catch. The finding names the ref it measured so
+// the number can be audited rather than trusted.
 try {
-  const out = execFileSync('git', ['rev-list', '--left-right', '--count', 'main...HEAD'],
-    { cwd: SS_PT, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 });
+  const git = (args, timeout = 5000) => execFileSync('git', args,
+    { cwd: SS_PT, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout });
+
+  const hasRef = (ref) => {
+    try { git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]); return true; }
+    catch { return false; }
+  };
+
+  // Bounded refresh. Offline or slow remote falls through to whatever ref exists —
+  // a stale origin/main still beats local main, and the label stays honest either way.
+  try { git(['fetch', '--quiet', 'origin', 'main'], 8000); } catch { /* offline — fail-open */ }
+
+  const ref = hasRef('origin/main') ? 'origin/main' : 'main';
+  const out = git(['rev-list', '--left-right', '--count', `${ref}...HEAD`]);
   const [behind, ahead] = out.trim().split(/\s+/).map(Number);
   if (Number.isFinite(behind) && behind >= 50) {
     findings.push(
-      `SS-PT branch is ${behind} commits behind main (${ahead} ahead). Files here may ` +
+      `SS-PT branch is ${behind} commits behind ${ref} (${ahead} ahead). Files here may ` +
       'not reflect reality, tooling may appear "missing" when it exists on main, and ' +
-      'fixes made here do NOT reach main. Verify against main before auditing.'
+      `fixes made here do NOT reach main. Verify against ${ref} before auditing.`
     );
   }
 } catch { /* not a repo / no main / git absent — fail-open */ }

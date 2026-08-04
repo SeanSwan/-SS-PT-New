@@ -49,14 +49,24 @@ opposite correct responses in these two repos.
 ### 2. Stale branch — you are auditing a fossil
 
 ```bash
-git rev-list --left-right --count main...HEAD   # left = behind, right = ahead
+git fetch --quiet origin main                          # local `main` is itself a branch
+git rev-list --left-right --count origin/main...HEAD   # left = behind, right = ahead
 ```
 
 Hundreds behind means the files you are reading may not reflect reality, and a fix you
 make here does **not** fix `main`.
 
+**Measure against `origin/main`, never local `main`.** Local `main` only moves when someone
+checks it out and pulls, so it silently becomes its own fossil — and then this check reports
+a comforting number instead of a true one.
+
 > Found 2026-08-02: a working branch 684 commits behind main. A tool the docs referenced
 > was "missing" — it existed on main and postdated the branch by two days.
+>
+> Found 2026-08-03: that 684 was itself wrong. Local `main` had not moved since 2026-07-16
+> and sat 746 commits behind origin, so the real distance was **1430**. The staleness
+> detector was stale. Always name the ref alongside the number, so the reader can audit it
+> rather than trust it.
 
 ### 3. Stale registry — the task board does not know about the current program
 
