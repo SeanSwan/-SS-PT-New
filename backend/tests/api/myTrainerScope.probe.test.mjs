@@ -12,6 +12,8 @@
  * depend on DB state.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import request from 'supertest';
 
 let app;
@@ -76,6 +78,35 @@ describe('GET /api/assignments/my-trainer — executed scoping probe', () => {
       .timeout({ deadline: 15000 });
     expect(attacked.status).toBe(clean.status);
     expect(attacked.body).toEqual(clean.body);
+  });
+
+  /**
+   * MUTATION-PROVEN GAP (deep loop round 2, 2026-08-03): the runtime PII
+   * assertion above is inside `if (trainer)`, and this environment has no DB
+   * rows — so the trainer branch NEVER executes and a mutation that added
+   * `email` to the handler passed 4/4. The runtime checks cannot cover the
+   * populated shape here, so the PII contract is ALSO asserted statically
+   * against the handler source. This test bites without a database.
+   */
+  it('the handler never selects or returns trainer contact PII (source contract)', () => {
+    const routePath = fileURLToPath(
+      new URL('../../routes/clientTrainerAssignmentRoutes.mjs', import.meta.url),
+    );
+    const source = readFileSync(routePath, 'utf8');
+    const handler = source.slice(
+      source.indexOf("router.get('/my-trainer'"),
+      source.indexOf("router.get('/test'"),
+    );
+    expect(handler.length).toBeGreaterThan(200); // guards against a silent slice miss
+
+    // The include's attribute allowlist is the whole defense — it must stay
+    // exactly these four, and no contact field may be echoed into the payload.
+    expect(handler).toContain("attributes: ['id', 'firstName', 'lastName', 'photo']");
+    expect(handler).not.toMatch(/\bemail\b/);
+    expect(handler).not.toMatch(/\bphone\b/);
+    // Target is derived from the token only — no request-controlled id.
+    expect(handler).toContain('req.user.id');
+    expect(handler).not.toMatch(/req\.(params|query|body)/);
   });
 
   it('non-positive-integer user ids fail safe to trainer:null (never a query with garbage)', async () => {
