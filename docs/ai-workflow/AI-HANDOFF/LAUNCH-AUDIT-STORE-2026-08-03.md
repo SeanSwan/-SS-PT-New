@@ -455,16 +455,18 @@ needs verification I could not do without dashboard access.
 
 | Gate | Result | Scope |
 |---|---|---|
-| New backend tests | 20/20 pass | seeder guard 7, money-path limits 13 |
-| New frontend tests | 23/23 pass | cancel-recovery 7, post-charge failure 6, money-path safety 10 |
-| Final combined backend money-path run | **8 files / 47 tests pass** | seeder guard, limits, cart security, checkout gate, price gating, v2 identity, webhook paid-status, Stripe env safety |
-| Final combined frontend run | **23 files / 90 tests pass** | `ShoppingCart`, `NewCheckout`, `pages/shop`, `pages/checkout` |
-| Stripe environment suites | 9/9 pass | env safety, local-live guard, checkout errors |
-| Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
+| Final backend money-path suites | **7 files / 83 tests pass** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
+| Full backend suite | **1036 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base commit `0949eaf6b` |
+| Lane frontend suites | **40 files / 192 tests pass** | `pages/shop`, `NewCheckout`, `ShoppingCart`, `pages/checkout`, `context` |
+| Full frontend suite | **1516 / 1517 files pass** | the 1 failure is the same pre-existing one (workout-builder, Lane 5 territory) |
 | `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide**, not merely slice-clean | full frontend |
-| `node --check` + import-execution | clean | all 5 edited/created backend files |
-| Pre-commit secret scan | CLEAN on all 5 commits | staged blobs |
-| Live production probes | 11 endpoints, read-only, unauthenticated | see §2/§3/§5 |
+| Production `vite build` | **succeeds** | real bundle, not just typecheck |
+| Runtime probe | limiter first-429 at request **121** against a cap of 120 | real HTTP server + `fetch`, unauthenticated IP-fallback key |
+| `node --check` | clean on **every** `.mjs` this lane touched | syntax sweep over the full diff |
+| Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
+| Pre-commit secret scan | CLEAN on all 15 commits | staged blobs |
+| Live production probes | 13 endpoints, read-only, unauthenticated | see §2/§3/§5 |
+| Dry-loop | **12 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
 
 **Not verified — disclosed gaps.** (a) Live catalog *prices* — invisible behind the
 invitation gate without an admin credential (B2). (b) The Stripe dashboard's configured
