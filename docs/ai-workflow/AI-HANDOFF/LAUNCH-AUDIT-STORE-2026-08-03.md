@@ -257,6 +257,65 @@ the same over-claiming this audit flags elsewhere (Rule 75), applied to my own w
 the module and F-B now disclose the limits and name the condition under which they must
 move to a shared store.
 
+### F-K · Correction — I asserted 320px damage I never rendered
+`d0d4c4563` · see the CORRECTION block in §7b
+
+Round 13 drove the **live site in a real browser**. It disproved my own §7b claims, which
+had been derived from reading stylesheets and written as though observed. Details and
+measurements in §7b. Methodology trap worth carrying: asking the harness for a 320px
+viewport yields `innerWidth: 465` — requests are scaled 1.5×, so a naive run "verifies
+320px" while actually measuring 480. Request **213** to get a true 320.
+
+### F-L · P1 — Cart quantity had no upper bound at all
+`ac68e2b07` · `backend/routes/cartRoutes.mjs`, new `cartQuantityCeiling.test.mjs`
+
+Fuzzing the quantity parser with 21 hostile values showed it is genuinely solid —
+negatives, zero, floats, hex, exponent notation, leading zeros, oversized strings,
+booleans, arrays, objects, unicode digits and a SQL-injection string are all rejected.
+But it has **no ceiling**, and the chain behind that matters: `parsePositiveInteger`
+accepts anything up to `Number.MAX_SAFE_INTEGER`; training packages carry
+`stockQuantity: null` (**verified on the live catalog**), so `getAvailableStock` returns
+null and the stock check is skipped for exactly the items Sean sells; and
+`ShoppingCart.total` is `DECIMAL(10,2)` — max 99,999,999.99. An authenticated buyer could
+therefore push a quantity large enough to overflow the column and turn a money-path request
+into a 500 (~571,429 for a $175 item), and anything below that still mints a real, absurd
+Stripe Checkout Session.
+
+Capped at **99 per line** — far above how packages are sold (a package already bundles up to
+192 sessions, so quantity counts *packages*) and comfortably inside the column at the top
+price. Enforced on **all three** entry points including the add-again merge path, so adding
+50 twice cannot reach 100. The refusal names the limit and points at a human.
+
+**Proof.** `cartQuantityCeiling.test.mjs` **10/10**; with `cartRoutes.mjs` stashed, **5 of
+10 fail** (failing→passing verified). Cart suites **6 files / 41 tests**.
+
+### F-M / F-N · P1 — The raw-transport-string leak had three more surfaces
+`1ec70a2d7`, `8e959056f` · `cartContextContracts.ts`, `StoreV3.tsx`, `StoreV2.tsx`, `CheckoutView.tsx`
+
+Having fixed "never show a buyer a raw transport error" on the checkout and post-payment
+screens (F-F), I stopped — and it was still live in three more places:
+1. **The cart panel.** `getCartErrorMessage` fell through to `error.message`, which
+   `ShoppingCart` renders directly, so a failed cart call showed "Request failed with status
+   code 500" / "Network Error" / "timeout of 30000ms exceeded".
+2. **The store itself, both surfaces.** `setPackagesError(error.message || …)` printed the
+   raw axios string onto **the first screen cold YouTube traffic sees**.
+3. **CheckoutView's non-HTTP branch** rendered any throw verbatim — fine for our own
+   deliberate copy, wrong for a genuine `TypeError` at the payment step.
+
+Each fix preserves intentional copy: server-authored messages still surface (that is how the
+new quantity-ceiling message reaches the user), a plain `Error` thrown by our own code still
+shows ("Please login to add items to cart"), and Stripe-authored decline text in
+`ACHPayment`/`PaymentMethodSelector` is **deliberately left alone** — suppressing it would
+make a decline less actionable, not more. Discrimination is on `error.name === 'Error'` and
+on whether the error is an axios error.
+
+**This is the round-7 lesson repeating twice more: fixing the first surface a defect appears
+on is not fixing the defect.** Round 16 stopped fixing instances and swept the whole money
+path instead.
+
+**Proof.** `cartContextContracts` **9/9** (5 new), `moneyPathSafety` **12/12** (2 new), lane
+frontend **40 files / 199 tests**, `tsc` 0 errors.
+
 ---
 
 ## 2. FINDINGS NOT FIXED IN-LANE (ranked)
@@ -455,18 +514,28 @@ needs verification I could not do without dashboard access.
 
 | Gate | Result | Scope |
 |---|---|---|
-| Final backend money-path suites | **7 files / 83 tests pass** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
-| Full backend suite | **1036 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base commit `0949eaf6b` |
-| Lane frontend suites | **40 files / 192 tests pass** | `pages/shop`, `NewCheckout`, `ShoppingCart`, `pages/checkout`, `context` |
-| Full frontend suite | **1516 / 1517 files pass** | the 1 failure is the same pre-existing one (workout-builder, Lane 5 territory) |
-| `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide**, not merely slice-clean | full frontend |
-| Production `vite build` | **succeeds** | real bundle, not just typecheck |
-| Runtime probe | limiter first-429 at request **121** against a cap of 120 | real HTTP server + `fetch`, unauthenticated IP-fallback key |
-| `node --check` | clean on **every** `.mjs` this lane touched | syntax sweep over the full diff |
+| Backend money-path suites | **7 files / 83 tests pass** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
+| Full backend suite | **1037 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
+| Frontend importer-closure sweep | **47 files / 242 tests pass** | every module importing anything this lane changed — `context`, `pages/shop`, `ShoppingCart`, `NewCheckout`, `pages/checkout`, `content/marketingStats`, `routes` |
+| Full frontend suite | **1516 / 1517 files pass** — measured at round 12 | see the disclosure below: the round-18 re-run had to be substituted |
+| `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide** | full frontend |
+| Production `vite build` | **succeeds** | real bundle |
+| Live browser, true 320px | overflow **0px**; **0** sub-44px targets; inquiry dialog fully usable; Escape restores focus | `https://sswanstudios.com/store` |
+| Runtime probe | limiter first-429 at request **121** vs cap 120 | real HTTP server + `fetch`, unauthenticated IP-fallback key |
+| Adversarial input fuzz | 21 hostile values — **0 accepted-but-unsafe** | cart quantity parser |
+| `node --check` | clean on **every** `.mjs` this lane touched | full diff sweep |
 | Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
-| Pre-commit secret scan | CLEAN on all 15 commits | staged blobs |
-| Live production probes | 13 endpoints, read-only, unauthenticated | see §2/§3/§5 |
-| Dry-loop | **12 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+| Pre-commit secret scan | CLEAN on all commits | staged blobs |
+| Dry-loop | **18 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+
+**Full-frontend-suite disclosure (Rule 56).** The 1516/1517 figure was measured at round 12.
+The round-18 re-run was started twice and **stopped producing output for 25+ minutes** with
+the machine saturated, so it was killed rather than reported. In its place, the round-18
+sweep enumerated **every importer** of every file rounds 13–16 touched — `cartContextContracts`
+(→ `CartContextProvider`, `cartContextState`), `StoreV3`/`StoreV2` (→ `main-routes` + 5 test
+surfaces), `CheckoutView` (→ `main-routes`, `CheckoutCancel`, both stores) — and ran that
+complete closure green at 47 files / 242 tests. That is dependency-complete for this lane's
+changes but is **not** the same claim as a green full-suite run, and is labelled accordingly.
 
 **Not verified — disclosed gaps.** (a) Live catalog *prices* — invisible behind the
 invitation gate without an admin credential (B2). (b) The Stripe dashboard's configured
