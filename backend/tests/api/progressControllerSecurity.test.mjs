@@ -48,7 +48,10 @@ describe('progress controller security hardening', () => {
     expect(controllerSource).toContain('MEMBER_MAX_ROWS');
     expect(controllerSource).toMatch(/offset = isStaffViewer\s*\?\s*rawOffset/);
     expect(controllerSource).toContain('limit: normalizedLimit');
-    expect(controllerSource).toContain('page: normalizedPage');
+    // `page` is no longer echoed back verbatim: a member's offset is clamped,
+    // so reporting the REQUESTED page told them they were reading page 7 while
+    // they were served rows 1-100. Staff still get the true page.
+    expect(controllerSource).toContain('page: isStaffViewer ? normalizedPage :');
     expect(controllerSource).not.toContain('parseInt(');
   });
 });

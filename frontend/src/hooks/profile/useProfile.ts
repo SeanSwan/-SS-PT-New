@@ -81,6 +81,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [statsStatus, setStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const statsSeqRef = useRef(0);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
   const [isLoadingFollowStats, setIsLoadingFollowStats] = useState(false);
@@ -134,19 +135,34 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     // loading — returning early while the status still read 'loading' left a
     // spinner that could never resolve, and left any boolean gate wide open.
     if (!user) {
+      statsSeqRef.current += 1; // cancel anything in flight for a prior user
       setStatsStatus('unavailable');
+      setIsLoadingStats(false);
       return;
     }
 
-    setStatsStatus('loading');
+    // Only announce 'loading' when there is nothing good on screen. A manual
+    // refresh after a recovered outage used to drop straight back to 'loading',
+    // which blanked the member's stats and pulled the sidebar tiles.
+    setStatsStatus((current) => (current === 'ready' ? 'ready' : 'loading'));
     setIsLoadingStats(true);
+
+    // Sequence the request. Without this, an account switch or a double-tapped
+    // Retry can resolve out of order and publish a STALE payload as 'ready' —
+    // another context's numbers presented as this member's record, which is the
+    // exact class the status flag exists to prevent. Same guard the banner
+    // upload path in this file already uses.
+    const sequence = statsSeqRef.current + 1;
+    statsSeqRef.current = sequence;
     
     try {
       const statsData = await profileService.getUserStats();
+      if (statsSeqRef.current !== sequence) return;
       setStats(statsData);
       setStatsStatus('ready');
     } catch (err: any) {
       logger.warn('Stats endpoint not available yet:', err.message);
+      if (statsSeqRef.current !== sequence) return;
       // Substituting zeros keeps the UI from crashing, but those zeros are NOT
       // the member's record. Flag it so consumers can omit the numbers instead
       // of asserting "0 workouts / 0 posts / Level 1 / bronze" as fact.
@@ -162,7 +178,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
         tier: 'bronze'
       });
     } finally {
-      setIsLoadingStats(false);
+      if (statsSeqRef.current === sequence) setIsLoadingStats(false);
     }
   }, [user]);
 

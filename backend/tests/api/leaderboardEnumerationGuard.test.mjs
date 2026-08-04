@@ -22,7 +22,7 @@ const { findAllMock, countMock } = vi.hoisted(() => ({
 
 vi.mock('../../models/associations.mjs', () => ({
   default: async () => ({
-    User: { findAll: findAllMock, count: countMock },
+    User: { findAll: findAllMock, count: countMock, findByPk: (...args) => findByPkMock(...args) },
     ProgressData: null,
     Achievement: null,
   }),
@@ -37,6 +37,8 @@ const makeRes = () => {
   return res;
 };
 
+const findByPkMock = vi.fn();
+
 const callLeaderboard = async ({ role = 'user', query = {} } = {}) => {
   const controller = await loadController();
   findAllMock.mockReset();
@@ -49,7 +51,10 @@ const callLeaderboard = async ({ role = 'user', query = {} } = {}) => {
   await controller.getLeaderboard(req, res);
 
   expect(findAllMock).toHaveBeenCalled();
-  return findAllMock.mock.calls[0][0];
+  return {
+    options: findAllMock.mock.calls[0][0],
+    body: res.json.mock.calls[0]?.[0],
+  };
 };
 
 describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
@@ -59,7 +64,7 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
   });
 
   it('caps TOTAL reachable rows for a member, not just page depth', async () => {
-    const options = await callLeaderboard({ role: 'user', query: { limit: 100, page: 500 } });
+    const { options } = await callLeaderboard({ role: 'user', query: { limit: 100, page: 500 } });
 
     expect(options.offset + options.limit).toBeLessThanOrEqual(100);
   });
@@ -69,7 +74,7 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
     // `metric` to read the other end of each slice.
     for (const tier of ['bronze', 'silver', 'gold']) {
       for (const metric of ['points', 'workouts']) {
-        const options = await callLeaderboard({
+        const { options } = await callLeaderboard({
           role: 'user',
           query: { tier, metric, limit: 100, page: 99 },
         });
@@ -79,7 +84,7 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
   });
 
   it('does not rank trainers and admins on the member-facing board', async () => {
-    const options = await callLeaderboard({ role: 'user' });
+    const { options } = await callLeaderboard({ role: 'user' });
 
     // Op.in is a Symbol key, so JSON.stringify would drop it — read it directly.
     const roleClause = options.where?.role;
@@ -94,7 +99,7 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
   });
 
   it('withholds surnames from members', async () => {
-    const options = await callLeaderboard({ role: 'user' });
+    const { options } = await callLeaderboard({ role: 'user' });
 
     const flat = JSON.stringify(options.attributes);
     expect(flat).not.toContain('lastName');
@@ -102,9 +107,41 @@ describe('GET /api/v1/gamification/leaderboard enumeration guard', () => {
   });
 
   it('still gives admins the full board they already rely on', async () => {
-    const options = await callLeaderboard({ role: 'admin', query: { limit: 100, page: 500 } });
+    const { options } = await callLeaderboard({ role: 'admin', query: { limit: 100, page: 500 } });
 
     expect(JSON.stringify(options.attributes)).toContain('lastName');
     expect(options.offset).toBe(49900);
+  });
+
+  it('never probes an arbitrary account — the includeUser oracle is gone', async () => {
+    findByPkMock.mockReset();
+
+    await callLeaderboard({ role: 'user', query: { includeUser: 9999, metric: 'streak' } });
+
+    // findByPk fed an attacker-controlled id with no ownership check, and it
+    // bypassed the role filter, so a member could rank (and binary-read) any
+    // account's stats including staff. The parameter had zero callers.
+    expect(findByPkMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores an unrecognised tier instead of querying and echoing it', async () => {
+    const { options, body } = await callLeaderboard({ role: 'user', query: { tier: 'diamond' } });
+
+    expect(options.where.tier).toBeUndefined();
+    expect(body?.filters?.tier).toBeNull();
+  });
+
+  it('does not hand a member the member population or a false page number', async () => {
+    const { body } = await callLeaderboard({ role: 'user', query: { limit: 100, page: 7 } });
+
+    expect(body?.pagination?.total).toBeLessThanOrEqual(100);
+    expect(body?.pagination?.page).toBe(1);
+  });
+
+  it('still reports the true total and page to staff', async () => {
+    const { body } = await callLeaderboard({ role: 'admin', query: { limit: 100, page: 7 } });
+
+    expect(body?.pagination?.total).toBe(5000);
+    expect(body?.pagination?.page).toBe(7);
   });
 });
