@@ -31,7 +31,8 @@ import userRoutes from '../routes/userRoutes.mjs';
 // ===================== USER MANAGEMENT =====================
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
-import packageRoutes from '../routes/packageRoutes.mjs';
+// packageRoutes import retired with its mount (SWA-115) — see the /api/packages note below.
+// import packageRoutes from '../routes/packageRoutes.mjs';
 // trainingSessionRoutes was disabled for a deployment hotfix and never re-enabled.
 // The module was deleted 2026-07-27 (launch audit). Session endpoints are served
 // by sessionRoutes / sessions.mjs / sessionPackageRoutes above.
@@ -329,7 +330,13 @@ export const setupRoutes = async (app) => {
   // `400 Invalid session id`. Do NOT add new single-segment routes to sessionRoutes; they will be
   // dead on arrival, and dead-but-present routes are how unguarded copies survive unnoticed.
   app.use('/api/session-packages', sessionPackageRoutes);
-  app.use('/api/packages', packageRoutes);
+  // /api/packages RETIRED (SWA-115, 2026-08-04): the Package model's `packages` table never
+  // existed in production, so every one of these five handlers 500'd since inception, and a
+  // repo-wide + frontend-wide grep found ZERO consumers. Canonical catalog surface is
+  // StorefrontItem (/api/storefront, /api/admin/packages). Unmounting converts a guaranteed
+  // 500 into a clean 404. Model/routes files intentionally left in place (Rule 34) pending
+  // the SWA-115 retire/delete decision.
+  // app.use('/api/packages', packageRoutes);
 
   // ===================== ONBOARDING ROUTES (AI-POWERED PERSONAL TRAINING) =====================
   // Onboarding-to-Database Pipeline - transforms 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md
