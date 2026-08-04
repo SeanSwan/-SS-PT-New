@@ -168,6 +168,32 @@ test('memoMissingMistakes accepts any heading depth and names the offending file
   assert.equal(memoMissingMistakes(['bad.md'], () => 'no heading at all'), 'bad.md');
 });
 
+// HOSTILE ROUND 2026-08-04: headings that only LOOK like the contract must not
+// satisfy it — otherwise the gate can be waived by renaming, which is exactly
+// the deny-list failure this whole enforcement chain exists to prevent.
+test('lookalike headings do not satisfy the mistakes contract', () => {
+  for (const text of [
+    '## Mistakes-adjacent notes',      // hyphen-joined word, not the section
+    '## Mistaken assumptions\n- x',    // different word entirely
+    'prose mentioning Mistakes I made but with no heading',
+    'Some text ## Mistakes I made',    // not at line start
+  ]) {
+    assert.equal(memoMissingMistakes(['bad.md'], () => text), 'bad.md', text);
+  }
+});
+
+test('legitimate heading variations still satisfy it', () => {
+  for (const text of [
+    '## Mistakes I made\n- x',
+    '## mistakes i made\n- x',         // case-insensitive
+    '   ## Mistakes I made',           // indented
+    '##Mistakes I made',               // no space after hashes
+    '## Mistakes I made — none surfaced this task',
+  ]) {
+    assert.equal(memoMissingMistakes(['ok.md'], () => text), null, text);
+  }
+});
+
 test('stop_hook_active still short-circuits even with a non-compliant memo', () => {
   assert.equal(
     decide({ stop_hook_active: true }, memoTurn, () => 'no mistakes heading'),

@@ -151,7 +151,9 @@ export function memoMissingMistakes(memoPaths, readFile) {
       continue; // unreadable -> do not punish (heuristic gate, fail-open)
     }
     // Accept the honest-empty form; only a MISSING heading blocks.
-    if (!/^\s*#{1,4}\s*Mistakes\b/im.test(text)) return p;
+    // `(?!-)` so a hyphen-joined lookalike heading ("## Mistakes-adjacent notes")
+    // cannot satisfy the gate — hostile round 2026-08-04.
+    if (!/^\s*#{1,4}\s*Mistakes\b(?!-)/im.test(text)) return p;
   }
   return null;
 }

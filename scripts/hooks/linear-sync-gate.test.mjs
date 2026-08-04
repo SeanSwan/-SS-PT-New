@@ -43,6 +43,29 @@ test('an explicit LINEAR: SWA-<n> claim passes', () => {
   assert.equal(decide({}, buildTurn('Done.\n\nLINEAR: SWA-144 (updated)')), null);
 });
 
+// HOSTILE ROUND (same day): the first tightening still allowed arbitrary text
+// between the label and the id, so prose + an incidental citation reassembled
+// the accidental pass. These lock the label→id adjacency.
+test('LINEAR: followed by prose plus an incidental citation does NOT pass', () => {
+  for (const closeout of [
+    'LINEAR: none — but SWA-9 exists',
+    'blah LINEAR: pending, see SWA-5 later',
+    'LINEAR: will file tomorrow, tracked under SWA-77',
+  ]) {
+    assert.match(decide({}, buildTurn(closeout)) ?? '', /Linear board sync/, closeout);
+  }
+});
+
+test('markdown emphasis and a following note around the claim still pass', () => {
+  for (const closeout of [
+    '**LINEAR:** SWA-144',
+    'LINEAR: SWA-144 (created + commented this turn)',
+    'linear: swa-144',
+  ]) {
+    assert.equal(decide({}, buildTurn(closeout)), null, closeout);
+  }
+});
+
 test('the N/A opt-out with a reason still passes', () => {
   assert.equal(
     decide({}, buildTurn('LINEAR: N/A — typo fix, maps to no issue')),

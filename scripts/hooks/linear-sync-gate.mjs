@@ -50,8 +50,16 @@ const LINEAR_WRITE_RE = /^mcp__linear-server__(save_issue|save_comment)\b/;
  * when it means "this issue is synced". Real `save_issue`/`save_comment` calls
  * still pass with no marker at all (the preferred path), and the N/A opt-out is
  * unchanged, so every documented escape hatch survives.
+ *
+ * HOSTILE-ROUND CORRECTION (same day): the first cut allowed arbitrary text
+ * between the label and the id (`LINEAR:\s*(?:[^\n]*\b)?SWA-\d+`), which let
+ * `LINEAR: none — but SWA-9 exists` and `LINEAR: pending, see SWA-5 later`
+ * pass — re-opening the accidental-pass hole this exists to close, because
+ * "LINEAR:" followed by prose plus an incidental citation is NOT a sync claim.
+ * The id must now follow the label directly (only whitespace / markdown
+ * emphasis between), so the marker cannot be assembled by accident.
  */
-const ISSUE_REF_RE = /LINEAR:\s*(?:[^\n]*\b)?SWA-\d+\b/i;
+const ISSUE_REF_RE = /LINEAR:\s*\**\s*SWA-\d+\b/i;
 const OPTOUT_RE = /LINEAR:\s*N\/A/i;
 
 const BLOCK_REASON =
