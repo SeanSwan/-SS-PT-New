@@ -224,14 +224,36 @@ The round-7 reviewer mutation-tested the new tests rather than reading them, and
 
 ---
 
+## 8b. Rounds 11-14 — the member-directory enumeration class
+
+The audit's second P0 took four rounds to close because every fix was scoped to a handler instead of the class.
+
+**The defect, in one shape, on four sibling endpoints:** surnames shipped ungated (staff legal names to any member) · no role filter · unbounded `page` · unvalidated `tier` (partitions the table into independently walkable slices) · a `count` returned (exact population, and the page count to walk it).
+
+| Round | What I fixed | What I missed |
+|---|---|---|
+| 11 | `/leaderboard`: role filter, surnames withheld, page depth capped | the cap bound page DEPTH; `tier`/`metric` still partitioned the table |
+| 12 | capped total rows per query; removed `includeUser` (a zero-caller param feeding an attacker id straight into `findByPk`, bypassing the role filter) | the reachable set is the UNION over the parameter space, not per query |
+| 13 | members get NO paging (offset pinned 0); tier allowlisted; population withheld; 3 `challengeController` surname sites | the allowlist was the legacy ALIAS map — 6 of ~100 storable values, so every member past level 10 still had their filter silently dropped |
+| 14 | **`/discover-users` had all five, 60 lines below the route I'd hardened**, returning *more* fields than the leaderboard ever did. Plus followers/following (no ownership check, unbounded offset) and 4 social-feed surname sites. | — |
+
+**Round 14's structural fix:** `backend/utils/memberDirectoryAccess.mjs` owns the policy — `directoryAttributes` / `directoryOffset` / `directoryLimit` / `directoryTotal` / `scopeToMembers` / `isKnownTier` — and both the leaderboard and the social directory import it. `backend/tests/api/memberDirectoryAccess.test.mjs` pins the policy AND asserts each surface routes through it, so a new endpoint that hand-rolls its own attribute list fails the guard rather than silently reopening the hole.
+
+The tier domain is now the **union** of `RANK_TITLES` keys (what `getTier()` writes) and the legacy aliases (what sits on existing rows — `User.tier` defaults to `bronze_forge`, an alias, so rank keys alone would have rejected the commonest stored value). 110 keys, derived from the source of truth rather than hand-copied.
+
+**Lesson worth carrying:** four rounds of per-handler fixes bought nothing for the threat they were about. The class only closed when the rule moved out of the handlers.
+
+---
+
 ## 9. Launch readiness
 
 **LAUNCH-READY: YES for Lane 1's own surface**, with the following named conditions.
 
 - ✅ The member dashboard no longer ships a falsehood: no fabricated rank, no invented training days, no zeros-as-facts, no mock data on a live surface.
 - ✅ Navigation is internally consistent; the Product Core Loop (Home → Progress → log) is one tap.
-- ✅ The one exploitable-today leak on this surface is closed and regression-tested.
+- ✅ Both P0 leaks are closed and regression-tested: the schedule roster PII leak, and the member-directory enumeration class across four endpoints.
 - ⚠ **Blockers owned by others:** the two `session.service.mjs` leaks (§4) are P1 and trivially fixable — they should land before promotion. Lane 3's fabricated client metrics (finding 12) ship a falsehood on a member-facing surface.
+- ⚠ **Open in-lane, disclosed not fixed:** `NutritionWorkspace` shows "Upgrade to Swan Guardian" to a **paying** member for the whole pending window of every page load and permanently on a failed subscription fetch (revenue/trust, highest of the remainder); `useProfile` swallows a posts failure with no `postsStatus`, so a member's gallery reads as "you have posted nothing"; `topBadges`, `useGamificationData` achievements and `useGroups` members share the same swallow class.
 - ⚠ **Unproven, not failed:** authenticated lateral IDOR across member-scoped routes has still never been probed at runtime.
 
 ---
@@ -240,4 +262,12 @@ The round-7 reviewer mutation-tested the new tests rather than reading them, and
 
 Created: 4 test files + this artifact (all intended, all committed). No temp files, screenshots, or debug output left behind. `git status` in the worktree is **clean**. The worktree itself (`c:/tmp/ss-launch-audit-lane1-20260803`) should be removed by the integrator after the branch is reconciled.
 
-**Next slice:** hand this branch to the integrator for cross-lane reconciliation and a single batch push (Rule 70), and route the §4 shared-infra proposals to whoever owns the session service — those two one-line role fixes are the highest-value remaining work in this class.
+**Process finding worth recording:** rounds 12-13 were partly corrupted by running a mutation-testing reviewer against the same worktree I was editing. Its probes overwrote an in-progress fix and its parallel suite runs produced phantom failures that cost real time to attribute. On this machine a full `tests/api` run also reports "failed files" that pass in isolation, because other lane suites run concurrently. **Serialize: review or edit, never both — and verify a suspicious failure file-by-file before believing the count.**
+
+**Next slice:** hand this branch to the integrator for cross-lane reconciliation and a single batch push (Rule 70). Concretely:
+1. Rebase all five lane branches onto current `origin/main` (this branch is cut from `0949eaf6b` and main has moved 1,500+ commits).
+2. Apply the §4 shared-infra proposals once, centrally — the two `session.service.mjs` role fixes are one line each and are the highest-value remaining work in this class.
+3. Run the full gates ONCE on the merged tree (backend `tests/api`, frontend suite, `tsc --noEmit`, build, Rule 42 audit, secret scan).
+4. One push → one Render deploy → one verification.
+
+**Do not push Lane 1 alone:** the cross-lane handoffs in `launch-audit-conflicts.md` only make sense applied together, and the two P1 leaks this lane found live in shared infrastructure it deliberately did not edit.
