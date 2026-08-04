@@ -36,6 +36,7 @@ vi.mock('../models/User.mjs', () => ({
 }));
 
 vi.stubEnv('NODE_ENV', 'development');
+vi.stubEnv('ENABLE_TEST_SESSION_GRANTS', 'true'); // reach the downstream validation past the F3 allowlist gate
 const { default: sessionPackageManualGrantRoutes } = await import('../routes/sessionPackageManualGrantRoutes.mjs');
 
 function buildApp() {
