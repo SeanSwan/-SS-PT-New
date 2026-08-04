@@ -228,13 +228,11 @@ router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid userId' });
     }
 
-    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, userId);
-    if (!allowed) {
-      return res.status(404).json({ success: false, error: 'Macro data not found' });
-    }
-
     // S1.3: range mode (?start&?end, ≤31 days) kills the today-only coach view.
     // Single-date mode (?date, default today) keeps the original contract.
+    // Date validation runs BEFORE the assignment check — invalid input must
+    // fail fast without touching access-control or the DB (locked by
+    // dailyMacroRosterReviewRoutes.test.mjs).
     const hasRange = req.query.start !== undefined || req.query.end !== undefined;
     let where;
     let responseDates;
@@ -262,6 +260,11 @@ router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
       responseDates = { date: dateResult.date };
     }
 
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, userId);
+    if (!allowed) {
+      return res.status(404).json({ success: false, error: 'Macro data not found' });
+    }
+
     const rows = await DailyMacroLog.findAll({
       attributes: REVIEW_MACRO_ATTRIBUTES,
       where,
@@ -277,7 +280,9 @@ router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
     const rangeDays = hasRange
       ? Math.round((new Date(responseDates.end) - new Date(responseDates.start)) / 86400000) + 1
       : 1;
-    const adherence = summarizeAdherence(rows.map((r) => r.get({ plain: true })), target, rangeDays);
+    // Lean/mocked rows may not carry .get — never let adherence math 500 a read.
+    const plainRows = rows.map((r) => (typeof r?.get === 'function' ? r.get({ plain: true }) : r));
+    const adherence = summarizeAdherence(plainRows, target, rangeDays);
 
     return res.json({
       success: true,
