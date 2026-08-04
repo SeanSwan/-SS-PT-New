@@ -1,8 +1,10 @@
 /**
  * Equipment Scan Service - Gemini Flash Vision
  * ============================================
- * Sends equipment photos to Gemini, returns review-gated scan candidates, and
- * preserves the legacy single-item wrapper used by the current frontend.
+ * Sends equipment photos to Gemini via the V3 census→detail pipeline, returns
+ * review-gated scan candidates, and preserves the legacy single-item wrapper.
+ * Degrades to a caption fallback (flagged degraded:true) only when the census
+ * finds nothing usable — never silently.
  */
 import logger from '../utils/logger.mjs';
 import {
@@ -29,6 +31,15 @@ import {
   buildEquipmentCaptionPrompt,
   scanResultFromCaption,
 } from './equipmentScanCaptionFallback.mjs';
+import {
+  CENSUS_MAX_OUTPUT_TOKENS,
+  DETAIL_MAX_OUTPUT_TOKENS,
+  buildCensusResponseSchema,
+  buildDetailResponseSchema,
+  buildEquipmentCensusPrompt,
+  buildEquipmentDetailPrompt,
+} from './equipmentScanV3Support.mjs';
+import { runEquipmentScanV3 } from './equipmentScanV3Pipeline.mjs';
 
 export function getEquipmentScanApiKey() {
   return process.env.GOOGLE_API_KEY
@@ -65,21 +76,33 @@ function validateEquipmentScanInput(imageBuffer, mimeType) {
 async function getGeminiClient() {
   try {
     const mod = await import('@google/generative-ai');
-    return mod.GoogleGenerativeAI;
+    return { GoogleGenerativeAI: mod.GoogleGenerativeAI, SchemaType: mod.SchemaType };
   } catch {
     throw new Error('Google Generative AI SDK not installed');
   }
 }
 
-function createGeminiModels(GoogleGenerativeAI, apiKey, modelName) {
+function createGeminiModels({ GoogleGenerativeAI, SchemaType }, apiKey, modelName) {
   const genAI = new GoogleGenerativeAI(apiKey);
+  const censusSchema = buildCensusResponseSchema(SchemaType);
+  const detailSchema = buildDetailResponseSchema(SchemaType);
   return {
-    model: genAI.getGenerativeModel({
+    censusModel: genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {
-        maxOutputTokens: 1800,
+        maxOutputTokens: CENSUS_MAX_OUTPUT_TOKENS,
         temperature: 0.2,
         responseMimeType: 'application/json',
+        ...(censusSchema ? { responseSchema: censusSchema } : {}),
+      },
+    }),
+    detailModel: genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        maxOutputTokens: DETAIL_MAX_OUTPUT_TOKENS,
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+        ...(detailSchema ? { responseSchema: detailSchema } : {}),
       },
     }),
     captionModel: genAI.getGenerativeModel({
@@ -104,20 +127,6 @@ async function generateWithImage(model, { base64Image, mimeType, prompt }) {
   });
   const response = result?.response;
   return typeof response?.text === 'function' ? response.text() : '';
-}
-
-async function tryGeminiEquipmentScanV2(model, params, pass, modelName, startMs) {
-  try {
-    const text = await generateWithImage(model, params);
-    const parsed = parseEquipmentScanResponseV2(text);
-    return { scan: buildMultiScanResult(parsed, Date.now() - startMs, modelName), error: null };
-  } catch (err) {
-    logger.warn('[EquipmentScan] Multi-item JSON scan pass failed', {
-      pass,
-      error: String(err?.message || 'unknown').slice(0, 160),
-    });
-    return { scan: null, error: err };
-  }
 }
 
 async function captionFallbackScan(captionModel, params, startMs, modelName) {
@@ -150,27 +159,18 @@ export async function scanEquipmentImageMulti(imageBuffer, mimeType) {
   if (!apiKey) throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY is not configured');
   validateEquipmentScanInput(imageBuffer, mimeType);
 
-  const GoogleGenerativeAI = await getGeminiClient();
+  const geminiSdk = await getGeminiClient();
   const modelName = getEquipmentScanModel();
-  const { model, captionModel } = createGeminiModels(GoogleGenerativeAI, apiKey, modelName);
+  const { censusModel, detailModel, captionModel } = createGeminiModels(geminiSdk, apiKey, modelName);
   const imageParams = { base64Image: imageBuffer.toString('base64'), mimeType };
   const startMs = Date.now();
 
   try {
-    const primary = await tryGeminiEquipmentScanV2(model, {
-      ...imageParams,
-      prompt: buildEquipmentScanPromptV2(),
-    }, 'primary', modelName, startMs);
-    let scan = primary.scan;
+    let scan = await runEquipmentScanV3({ censusModel, detailModel, imageParams, modelName, startMs });
 
     if (!isReviewableMultiScan(scan)) {
-      const retry = await tryGeminiEquipmentScanV2(model, {
-        ...imageParams,
-        prompt: buildEquipmentScanPromptV2({ retry: true }),
-      }, 'retry', modelName, startMs);
-      scan = isReviewableMultiScan(retry.scan)
-        ? retry.scan
-        : await captionFallbackScan(captionModel, imageParams, startMs, modelName);
+      const fallback = await captionFallbackScan(captionModel, imageParams, startMs, modelName);
+      scan = { ...fallback, pipelineVersion: 'v3-caption-fallback', degraded: true, enriched: false };
     }
 
     if (!isReviewableMultiScan(scan)) throw new Error('AI could not identify visible workout equipment');
@@ -179,6 +179,8 @@ export async function scanEquipmentImageMulti(imageBuffer, mimeType) {
       itemCount: scan.items.length,
       primaryName: scan.scanResult.suggestedName,
       confidence: scan.scanResult.confidence,
+      pipelineVersion: scan.pipelineVersion,
+      degraded: scan.degraded === true,
       latencyMs: scan.latencyMs,
     });
     return scan;
@@ -205,6 +207,8 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
     promptVersion: multiScan.promptVersion,
     imageQuality: multiScan.imageQuality,
     sceneSummary: multiScan.sceneSummary,
+    pipelineVersion: multiScan.pipelineVersion,
+    degraded: multiScan.degraded === true,
   };
 }
 
@@ -222,6 +226,11 @@ export const __testing__ = {
   scanResultFromCaption,
   sanitizeScanResult,
   sanitizeScanCandidate,
+  createGeminiModels,
+  buildEquipmentCensusPrompt,
+  buildEquipmentDetailPrompt,
+  buildCensusResponseSchema,
+  buildDetailResponseSchema,
 };
 
 export default { scanEquipmentImage, scanEquipmentImageMulti };
