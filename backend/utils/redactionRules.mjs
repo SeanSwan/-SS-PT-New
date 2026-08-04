@@ -74,6 +74,45 @@ export const LOG_REDACTION_RULES = Object.freeze([
   ['PHONE', /(?:\+1[-.\s])?\(\d{3}\)[-.\s]?\d{3}[-.\s]?\d{4}\b|\b(?:\+1[-.\s])?\d{3}[-.\s]\d{3}[-.\s]\d{4}\b/g]
 ]);
 
+/**
+ * Key names whose VALUE is secret no matter what the value looks like.
+ *
+ * Every rule above matches a secret by its shape. That structurally cannot catch a bare password:
+ * `hunter2` is indistinguishable from any other word, so no regex over the value will ever find it.
+ * The remaining signal is the key — `{ password: 'hunter2' }` is unambiguous even when its value
+ * is not.
+ *
+ * DELIBERATELY NARROW, for the same reason design rules 3 and 4 exist. A bare `token` key is
+ * ABSENT on purpose: this app logs LLM token *counts* (`'Failed to track token usage'`), and
+ * redacting those would destroy the debuggability logs exist for. Only compound forms that cannot
+ * mean anything else are listed. Every `*Id` is likewise absent — IDs are the allowed identifier
+ * form under Rule 8.
+ *
+ * Compared after lowercasing and stripping `-`/`_`, so `API_KEY`, `api-key` and `apiKey` all match
+ * while `apiKeyRotatedAt` does not (exact membership, not prefix).
+ */
+const CREDENTIAL_KEY_NAMES = Object.freeze(new Set([
+  'password', 'passwd', 'pwd',
+  'secret', 'clientsecret', 'apisecret', 'apikey',
+  'accesstoken', 'refreshtoken', 'idtoken', 'sessiontoken', 'authtoken', 'bearertoken',
+  'privatekey', 'authorization', 'cookie', 'setcookie',
+  'csrftoken', 'xsrftoken',
+  'otp', 'mfacode', 'pin'
+]));
+
+/** Placeholder for a value redacted because of its KEY rather than its shape. */
+const CREDENTIAL_PLACEHOLDER = '<REDACTED-CREDENTIAL>';
+
+/**
+ * Is this object key one whose value must never be logged?
+ * @param {*} key
+ * @returns {boolean}
+ */
+export function isCredentialKey(key) {
+  if (typeof key !== 'string' || key.length === 0 || key.length > 64) return false;
+  return CREDENTIAL_KEY_NAMES.has(key.toLowerCase().replace(/[-_]/g, ''));
+}
+
 /** Multi-line PEM block — the only rule that may span newlines, so it runs before the per-line pass. */
 export const PRIVATE_KEY_RULE =
   /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]{1,8192}?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g;
@@ -148,7 +187,7 @@ export function redactLogValue(v, depth = 0, redactString = redactLogString) {
     if (v instanceof Map) {
       return new Map([...v].map(([k, val]) => [
         redactLogValue(k, depth + 1, redactString),
-        redactLogValue(val, depth + 1, redactString)
+        isCredentialKey(k) ? CREDENTIAL_PLACEHOLDER : redactLogValue(val, depth + 1, redactString)
       ]));
     }
     if (v instanceof Set) {
@@ -161,11 +200,21 @@ export function redactLogValue(v, depth = 0, redactString = redactLogString) {
       const clone = new Error(redactString(v.message));
       clone.name = v.name;
       if (v.stack) clone.stack = redactString(v.stack);
-      for (const k of Object.keys(v)) clone[k] = redactLogValue(v[k], depth + 1, redactString);
+      for (const k of Object.keys(v)) {
+        clone[k] = isCredentialKey(k)
+          ? CREDENTIAL_PLACEHOLDER
+          : redactLogValue(v[k], depth + 1, redactString);
+      }
       return clone;
     }
     const out = {};
-    for (const k of Object.keys(v)) out[k] = redactLogValue(v[k], depth + 1, redactString);
+    for (const k of Object.keys(v)) {
+      // Key-name redaction ADDS to shape redaction — a credential key short-circuits the walk
+      // (its value is secret whatever its shape), everything else still gets the full pass.
+      out[k] = isCredentialKey(k)
+        ? CREDENTIAL_PLACEHOLDER
+        : redactLogValue(v[k], depth + 1, redactString);
+    }
     return out;
   }
 
