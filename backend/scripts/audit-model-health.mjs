@@ -42,6 +42,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { collectModelFiles } from './lib/model-files.mjs';
 import { divergedModelFiles, divergenceCaveat } from './lib/diverged-from-main.mjs';
+import {
+  findingKey, loadBaseline, diffBaseline, writeBaseline, reportRatchet,
+} from './lib/audit-baseline.mjs';
+
+const updateBaseline = process.argv.includes('--update-baseline');
+const BASELINE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'baselines', 'model-health.json');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODELS_DIR = path.join(HERE, '..', 'models');
@@ -201,7 +207,31 @@ async function main() {
     : `\n  ${failed} model(s) cannot query. See SWA-86 (missing tables) / SWA-87 (column drift).\n`);
 
   await sequelize.close();
-  process.exit(failed === 0 ? 0 : 1);
+
+  // RATCHET. Without this the audit exits 1 forever on a 40-model backlog, and a permanently red
+  // check is one everybody learns to skip — at which point the 41st, the actual regression, is
+  // invisible. Keyed file|bucket|detail: the detail line ("relation X does not exist") is stable
+  // for a given defect and changes when the defect does.
+  const keys = [...broken.MISSING_TABLE, ...broken.BROKEN_COLUMN, ...broken.OTHER]
+    .map((b) => findingKey([b.file, b.detail]));
+  const describe = (k) => { const [f, d] = k.split('|'); return `${f.padEnd(34)} ${d}`; };
+
+  if (updateBaseline) {
+    const n = writeBaseline(BASELINE, keys, { audit: 'model-health', queried: total });
+    console.log(`\n  baseline written: ${n} accepted finding(s) -> ${path.relative(process.cwd(), BASELINE)}\n`);
+    process.exit(0);
+  }
+
+  const baseline = loadBaseline(BASELINE);
+  if (!baseline.exists) {
+    console.log(`\n  no baseline at ${path.relative(process.cwd(), BASELINE)} — every finding counts as new.`);
+    console.log('  Record the reviewed state with --update-baseline.\n');
+    process.exit(failed === 0 ? 0 : 1);
+  }
+
+  process.exit(reportRatchet({
+    diff: diffBaseline(baseline, keys), label: 'broken model(s)', baselineFile: BASELINE, describe,
+  }));
 }
 
 main().catch((error) => {
