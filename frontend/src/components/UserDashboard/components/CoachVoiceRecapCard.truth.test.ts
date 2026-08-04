@@ -54,6 +54,18 @@ describe('buildCoachVoiceRecap', () => {
     expect(recap).not.toMatch(/fewer|less|down|dropped/i);
   });
 
+  it('suppresses the week-over-week clause on a first-ever training week', () => {
+    const recap = buildCoachVoiceRecap({
+      ...base,
+      thisWeekCount: 3,
+      minutesThisWeek: 120,
+      weeklyCounts: [0, 0, 0, 3],
+      weekDelta: 3,
+    });
+    expect(recap).toBe('You trained 3 times this week for 120 focused minutes.');
+    expect(recap).not.toMatch(/last week/);
+  });
+
   it('anchors an idle week to the real last session instead of a zero-guilt line', () => {
     const recap = buildCoachVoiceRecap({
       ...base,

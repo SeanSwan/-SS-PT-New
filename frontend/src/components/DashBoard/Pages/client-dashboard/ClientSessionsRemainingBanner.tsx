@@ -20,10 +20,11 @@
  * - Honest states: loading skeleton, error copy (never a fabricated number),
  *   and a low-balance nudge at < 3.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { CalendarPlus, AlertTriangle } from 'lucide-react';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useSessionCredits } from '../../../UniversalMasterSchedule/hooks/useSessionCredits';
 import { isNonDeductingClientSource } from '../../workspaces/clients-team/clientSessionSignal';
 
@@ -152,7 +153,7 @@ interface Props {
   streakDays?: number;
 }
 
-const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource, sessionsThisMonth, streakDays }) => {
+const BannerInner: React.FC<Props> = ({ clientSource, sessionsThisMonth, streakDays }) => {
   const navigate = useNavigate();
   // Non-deducting members (Move Fitness / external) do not draw down a Swan
   // session balance — showing them a numeric count would be misleading.
@@ -165,10 +166,13 @@ const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource, sessions
     // deduction/booking language, zero Swan-balance claims. Renders only when
     // real logged facts exist — never a fabricated stat.
     if (!sessionsThisMonth && !streakDays) return null;
+    // Unlike the Swan variant (whose Book CTA carries the count in its
+    // aria-label), this variant has no button — so the number must NOT be
+    // aria-hidden or screen readers hear the label with no value.
     return (
       <Banner $low={false} data-testid="client-engagement-banner">
         <Left>
-          <Value $low={false} aria-hidden="true">{sessionsThisMonth || streakDays}</Value>
+          <Value $low={false}>{sessionsThisMonth || streakDays}</Value>
           <Meta>
             <Label>
               {sessionsThisMonth
@@ -240,6 +244,31 @@ const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource, sessions
         <CalendarPlus size={18} /> Book a session
       </BookButton>
     </Banner>
+  );
+};
+
+/**
+ * Provider-safe wrapper: the banner uses react-query; the app root provides a
+ * QueryClient in production, but harness/test mounts (and any future portal
+ * mount) may not. A widget must never crash its host over a missing cache
+ * provider — when absent, it self-provides an isolated local client. The
+ * try/catch hook call is unconditional on every render, so hook order is
+ * stable (Rules of Hooks hold).
+ */
+const ClientSessionsRemainingBanner: React.FC<Props> = (props) => {
+  let hasProvider = true;
+  try {
+    useQueryClient();
+  } catch {
+    hasProvider = false;
+  }
+  const [localClient] = useState(() => new QueryClient({
+    defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+  }));
+
+  const inner = <BannerInner {...props} />;
+  return hasProvider ? inner : (
+    <QueryClientProvider client={localClient}>{inner}</QueryClientProvider>
   );
 };
 

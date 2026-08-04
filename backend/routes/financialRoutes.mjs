@@ -141,7 +141,7 @@ router.post('/track-checkout-start', async (req, res) => {
       stripePaymentIntentId: sessionId, // Use session ID as tracking reference
       amount: normalizedAmount,
       currency: 'USD',
-      status: 'checkout_started',
+      status: 'pending', // enum_financial_transactions_status has no 'checkout_started' — every tracking insert threw (drift sweep 2026-08-04); checkout-start context lives in metadata.source
       description: `Checkout initiated - ${sessionCount || 0} sessions`,
       metadata: JSON.stringify({
         sessionCount: sessionCount || 0,

@@ -53,7 +53,7 @@ describe('release verification automation guards', () => {
   });
 
   it('rolls back both payment idempotency indexes in the migration down path', () => {
-    const migration = readRepo('backend/migrations/20260520000001-add-payment-idempotency-unique-indexes.mjs');
+    const migration = readRepo('backend/migrations/retired-mjs-20260804/20260520000001-add-payment-idempotency-unique-indexes.mjs');
 
     expect(migration).toContain('DROP INDEX IF EXISTS "${PRINT_ORDER_INDEX}"');
     expect(migration).toContain('DROP INDEX IF EXISTS "${ORDER_INDEX}"');

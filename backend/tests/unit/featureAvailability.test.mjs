@@ -66,6 +66,14 @@ describe('respondComingSoon (reads)', () => {
     respondComingSoon(res, { profile: null, isCreator: false }, 'Creator economy coming soon');
     expect(res.body).toMatchObject({ profile: null, isCreator: false, status: 'coming_soon' });
   });
+
+  it('emits `degraded: true` — the flag this codebase already uses and the frontend already reads', () => {
+    // apiClientFactory maps `degraded` onto `apiError.isDegraded`. Without it these responses
+    // would need every consumer to learn a second, parallel signal.
+    const res = mockRes();
+    respondComingSoon(res, { streams: [] }, 'x');
+    expect(res.body.degraded).toBe(true);
+  });
 });
 
 describe('respondComingSoonWrite (writes)', () => {
@@ -81,5 +89,11 @@ describe('respondComingSoonWrite (writes)', () => {
     const res = mockRes();
     respondComingSoonWrite(res, 'x');
     expect(res.body).not.toHaveProperty('retryAfter');
+  });
+
+  it('emits `degraded: true` so the existing frontend error handling recognises it', () => {
+    const res = mockRes();
+    respondComingSoonWrite(res, 'x');
+    expect(res.body.degraded).toBe(true);
   });
 });

@@ -37,7 +37,7 @@ const TABLE_CREATION_ORDER = [
   'Notifications',
   'Contacts',
   'shopping_carts',  // FIXED: ShoppingCart uses 'shopping_carts'
-  'user_achievements',  // FIXED: UserAchievement uses 'user_achievements'
+  'UserAchievements',   // UserAchievement's real table is PascalCase (live-DB verified 2026-08-04)
   'user_rewards',       // FIXED: UserReward uses 'user_rewards'
   'user_milestones',    // FIXED: UserMilestone uses 'user_milestones'
   'point_transactions', // FIXED: PointTransaction uses 'point_transactions'
@@ -54,7 +54,7 @@ const TABLE_CREATION_ORDER = [
   
   // PHASE 6: Workout structure tables (depend on exercises/users)
   'workout_plans',      // FIXED: WorkoutPlan uses 'workout_plans'
-  'WorkoutPlanDays',    // FIXED: WorkoutPlanDay uses 'WorkoutPlanDays'
+  'workout_plan_days',  // WorkoutPlanDay's real table is snake_case (the PascalCase name never existed)
   'workout_sessions',   // FIXED: WorkoutSession uses 'workout_sessions'
   'workout_exercises',  // FIXED: WorkoutExercise uses 'workout_exercises'
   'workout_plan_day_exercises', // FIXED: WorkoutPlanDayExercise uses 'workout_plan_day_exercises'
@@ -74,7 +74,7 @@ const TABLE_CREATION_ORDER = [
   'Friendships',
   'Challenges',
   'challenge_participants', // FIXED: ChallengeParticipant uses 'challenge_participants'
-  'challenge_teams',        // FIXED: ChallengeTeam uses 'challenge_teams'
+  'ChallengeTeams',         // ChallengeTeam's real table is PascalCase (live-DB verified 2026-08-04)
   
   // PHASE 10: Financial tracking (depends on orders and users)
   'financial_transactions', // FIXED: FinancialTransaction uses 'financial_transactions'

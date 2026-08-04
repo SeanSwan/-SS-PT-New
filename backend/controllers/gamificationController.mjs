@@ -1648,15 +1648,30 @@ const gamificationController = {
           }, { transaction });
         }
       } else {
-        // Create new user achievement record
-        userAchievement = await UserAchievement.create({
-          userId: normalizedUserId,
-          achievementId,
-          isCompleted: true,
-          progress: 100,
-          earnedAt: new Date(),
-          pointsAwarded: getAchievementPointValue(achievement)
-        }, { transaction });
+        // Create new user achievement record. Same-user awards serialize on the Users row
+        // lock above, but any OTHER write path racing us now hits the DB unique on
+        // (userId, achievementId) — added 2026-08-04 — so catch the constraint instead of
+        // 500ing (Kimi review: the index alone converts double-award into a crash; this
+        // catch converts the crash into the same "already has" answer the lock path gives).
+        try {
+          userAchievement = await UserAchievement.create({
+            userId: normalizedUserId,
+            achievementId,
+            isCompleted: true,
+            progress: 100,
+            earnedAt: new Date(),
+            pointsAwarded: getAchievementPointValue(achievement)
+          }, { transaction });
+        } catch (createErr) {
+          if (createErr?.name === 'SequelizeUniqueConstraintError') {
+            await transaction.rollback();
+            return res.status(409).json({
+              success: false,
+              message: 'User already has this achievement'
+            });
+          }
+          throw createErr;
+        }
       }
       
       // Award points to user

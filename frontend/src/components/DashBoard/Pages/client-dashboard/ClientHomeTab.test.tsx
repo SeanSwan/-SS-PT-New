@@ -103,6 +103,7 @@ vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
 // Workout sessions are configurable per test: [] = zero-history (orientation
 // strip renders, community composer suppressed); non-empty = returning client.
 const mockWorkoutSessionsData = vi.hoisted(() => ({ value: [] as unknown[] }));
+const mockWorkoutSessionsError = vi.hoisted(() => ({ value: null as unknown }));
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useMessageSummary: () => ({
     data: [],
@@ -115,6 +116,7 @@ vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useWorkoutSessions: () => ({
     data: mockWorkoutSessionsData.value,
     isLoading: false,
+    error: mockWorkoutSessionsError.value,
   }),
   useTrendingHashtags: () => ({
     data: [],
@@ -180,6 +182,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     mockGetUpcomingSessions.mockReset();
     mockGetUpcomingSessions.mockResolvedValue([]);
     mockWorkoutSessionsData.value = [];
+    mockWorkoutSessionsError.value = null;
     mockApiGet.mockReset();
     Object.defineProperty(window.URL, 'createObjectURL', {
       configurable: true,
@@ -572,6 +575,15 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     expect(screen.getByTestId('first-session-orientation-strip')).toBeInTheDocument();
     expect(screen.queryByLabelText(/write a community post/i)).not.toBeInTheDocument();
+  });
+
+  it('never mistakes a FAILED session fetch for zero history', async () => {
+    // A veteran client with a transient fetch error must not be greeted like
+    // a brand-new signup (orientation strip) or lose the composer.
+    mockWorkoutSessionsError.value = new Error('fetch failed');
+    await renderClientHomeSettled();
+
+    expect(screen.queryByTestId('first-session-orientation-strip')).not.toBeInTheDocument();
   });
 
   it('keeps the composer and hides the orientation strip once history exists', async () => {

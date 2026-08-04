@@ -65,9 +65,15 @@ export function buildCoachVoiceRecap(proof: HomeTrainingProof): string | null {
       : '';
     sentences.push(`You trained ${count} time${count === 1 ? '' : 's'} this week${minutesPart}.`);
 
-    if (proof.weekDelta != null && proof.weekDelta > 0) {
+    // Week-over-week framing only when last week actually had sessions —
+    // "3 more than last week" on a client's FIRST week is technically true but
+    // hollow (same guard as HomeTabProofViewModel's shareLine).
+    const lastWeekCount = proof.weeklyCounts.length >= 2
+      ? proof.weeklyCounts[proof.weeklyCounts.length - 2]
+      : 0;
+    if (proof.weekDelta != null && proof.weekDelta > 0 && lastWeekCount > 0) {
       sentences.push(`That's ${proof.weekDelta} more than last week — momentum is building.`);
-    } else if (proof.weekDelta === 0) {
+    } else if (proof.weekDelta === 0 && lastWeekCount > 0) {
       sentences.push('Same rhythm as last week — consistency is the win.');
     }
   } else if (proof.lastSession) {

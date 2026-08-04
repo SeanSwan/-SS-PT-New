@@ -33,7 +33,11 @@ ClientPainEntry.init({
   },
   createdById: {
     type: DataTypes.INTEGER,
-    allowNull: true,
+    // DB truth (deep drift audit 2026-08-04): live column is NOT NULL, and all three
+    // create paths (painEntryController, clientSelfServicePainDispatchers,
+    // painWriteService) always supply it. allowNull:true was a lie that deferred the
+    // failure from model validation to a Postgres constraint error.
+    allowNull: false,
     references: { model: 'Users', key: 'id' },
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',

@@ -78,7 +78,9 @@ export async function checkClientsForRenewalAlerts() {
         model: Session,
         as: 'sessions',
         where: {
-          status: { [Op.in]: ['active', 'scheduled', 'completed'] }
+          // 'active' removed: it exists in neither enum_sessions_status nor the model's
+          // SESSION_STATUSES — nothing ever writes it (drift sweep 2026-08-04).
+          status: { [Op.in]: ['scheduled', 'completed'] }
         },
         required: false,
         order: [['sessionDate', 'DESC']]

@@ -33,9 +33,18 @@ const { default: getModels } = await import('../models/associations.mjs');
 
 const models = await getModels();
 
+// COVERAGE (round-2 depth, 2026-08-04): getModels() registers 163 models, but 9 more were
+// db.define'd without registration (Hashtag/Faction/Party/SocialGroup families) and were
+// therefore INVISIBLE to this auditor. Sweep sequelize.models too — anything defined
+// anywhere gets audited, keyed with an unregistered:: prefix so provenance is obvious.
+const registeredInstances = new Set(Object.values(models));
+for (const m of Object.values(sequelize.models)) {
+  if (!registeredInstances.has(m)) models['unregistered::' + m.name] = m;
+}
+
 // ---- live DB: columns ----
 const [dbCols] = await sequelize.query(`
-  SELECT table_name, column_name, data_type, udt_name, is_nullable
+  SELECT table_name, column_name, data_type, udt_name, is_nullable, column_default
   FROM information_schema.columns
   WHERE table_schema = 'public'
   ORDER BY table_name, ordinal_position
@@ -57,6 +66,46 @@ const [dbFks] = await sequelize.query(`
     ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
   WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
 `);
+
+// ---- live DB: enum types with labels (round-2 depth: enum-VALUE drift) ----
+const [dbEnums] = await sequelize.query(`
+  SELECT t.typname, array_agg(e.enumlabel ORDER BY e.enumsortorder) AS labels
+  FROM pg_type t JOIN pg_enum e ON e.enumtypid = t.oid
+  JOIN pg_namespace n ON n.oid = t.typnamespace
+  WHERE n.nspname = 'public'
+  GROUP BY t.typname
+`);
+// pg may deliver array_agg as a native array OR as a '{a,b,c}' string depending on the
+// query path — normalize both (the string form silently made EVERY label "missing" in
+// the first v2 run: 136 false positives).
+const pgArray = (v) => Array.isArray(v)
+  ? v
+  : String(v ?? '').replace(/^\{|\}$/g, '').split(',').map(s => s.replace(/^"|"$/g, '')).filter(Boolean);
+const enumLabels = new Map(dbEnums.map(e => [e.typname, new Set(pgArray(e.labels))]));
+
+// ---- live DB: unique constraints + unique indexes per table (round-2 depth) ----
+// Every findOrCreate / upsert / ON CONFLICT silently depends on one of these existing.
+const [dbUniques] = await sequelize.query(`
+  SELECT c.relname AS table_name, i.relname AS index_name,
+         array_agg(a.attname ORDER BY x.ordinality) AS columns
+  FROM pg_index ix
+  JOIN pg_class c ON c.oid = ix.indrelid
+  JOIN pg_class i ON i.oid = ix.indexrelid
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  CROSS JOIN LATERAL unnest(ix.indkey) WITH ORDINALITY AS x(attnum, ordinality)
+  JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = x.attnum
+  WHERE n.nspname = 'public' AND ix.indisunique AND c.relkind = 'r'
+  GROUP BY c.relname, i.relname
+`);
+const uniquesByTable = new Map();
+for (const u of dbUniques) {
+  if (!uniquesByTable.has(u.table_name)) uniquesByTable.set(u.table_name, []);
+  uniquesByTable.get(u.table_name).push(new Set(pgArray(u.columns)));
+}
+const hasUniqueOn = (table, cols) => {
+  const sets = uniquesByTable.get(table) || [];
+  return sets.some(s => s.size === cols.length && cols.every(c => s.has(c)));
+};
 
 // ---- conservative type compatibility ----
 // map pg data_type/udt_name into coarse families
@@ -115,7 +164,7 @@ for (const [name, model] of Object.entries(models)) {
     continue;
   }
 
-  let missing = 0, typeConf = 0;
+  let missing = 0, typeConf = 0, deepConf = 0;
   const seen = new Set();
   for (const [attrName, attr] of attrs) {
     const sf = seqFamily(attr);
@@ -137,12 +186,100 @@ for (const [name, model] of Object.entries(models)) {
         attribute: attrName, column: col, modelFamily: sf, dbFamily: pf,
         dbType: dbCol.data_type + '/' + dbCol.udt_name });
     }
+
+    // ---- ROUND-2 DEPTH (2026-08-04) ----
+    // (a) allowNull drift, dangerous direction only: model permits omitting the value
+    //     (allowNull !== false), but the DB requires it (NOT NULL, no default, not PK/serial).
+    //     Every create() that omits it 500s at runtime while the model happily validates.
+    const modelAllowsNull = attr.allowNull !== false && !attr.primaryKey;
+    if (modelAllowsNull && dbCol.is_nullable === 'NO' && dbCol.column_default == null && !attr.autoIncrement) {
+      deepConf++;
+      findings.push({ class: 'nullability-drift', severity: 'HIGH', model: name, table: tn,
+        attribute: attrName, column: col,
+        note: 'Model allows null/omission but DB column is NOT NULL with no default — inserts omitting it will fail' });
+    }
+    // Lax direction (model stricter than DB) is informational only — the model still
+    // enforces its own writes; raw SQL could sneak nulls in, but that is not a 500 class.
+    if (attr.allowNull === false && !attr.primaryKey && dbCol.is_nullable === 'YES') {
+      info.push({ class: 'nullability-lax-db', model: name, table: tn, attribute: attrName, column: col });
+    }
+
+    // (b) enum-VALUE drift: model enum labels the DB type lacks → inserts of those values
+    //     throw 22P02. (DB-extra labels are informational: readable, never emitted.)
+    const modelEnumValues = attr.values || attr.type?.values;
+    if (sf === 'enum' && Array.isArray(modelEnumValues) && (dbCol.udt_name || '').startsWith('enum_')) {
+      const live = enumLabels.get(dbCol.udt_name);
+      if (live) {
+        const missingLabels = modelEnumValues.filter(v => !live.has(v));
+        if (missingLabels.length > 0) {
+          deepConf++;
+          findings.push({ class: 'enum-value-drift', severity: 'HIGH', model: name, table: tn,
+            attribute: attrName, column: col, enumType: dbCol.udt_name,
+            missingInDb: missingLabels,
+            note: 'Model enum allows value(s) the live DB type lacks — inserting them fails' });
+        }
+        const extraInDb = [...live].filter(v => !modelEnumValues.includes(v));
+        if (extraInDb.length > 0) {
+          info.push({ class: 'enum-extra-in-db', model: name, table: tn, column: col,
+            enumType: dbCol.udt_name, extraInDb });
+        }
+      }
+    }
+
+    // (c) single-column unique drift: model declares unique but no DB unique constraint/
+    //     index exists → findOrCreate/upsert are not race-safe and ON CONFLICT targets fail.
+    //     NOTE: `unique: '<groupName>'` (string form) declares a COMPOSITE group across all
+    //     attributes sharing that string — collected below, NOT a single-column requirement
+    //     (treating it as one produced 6 false positives in v2 round 2).
+    if (attr.unique === true && !attr.primaryKey && !hasUniqueOn(tn, [col])) {
+      deepConf++;
+      findings.push({ class: 'unique-missing-in-db', severity: 'HIGH', model: name, table: tn,
+        attribute: attrName, column: col,
+        note: 'Model declares unique but live DB has no unique constraint/index on this column' });
+    }
   }
+
+  // (c1) string-named unique groups: attributes sharing unique:'name' form one composite.
+  const uniqueGroups = new Map();
+  for (const [attrName, attr] of attrs) {
+    const u = attr.unique;
+    const groupName = typeof u === 'string' ? u : (u && typeof u === 'object' && u.name ? u.name : null);
+    if (groupName) {
+      if (!uniqueGroups.has(groupName)) uniqueGroups.set(groupName, []);
+      uniqueGroups.get(groupName).push(attr.field || attrName);
+    }
+  }
+  for (const [groupName, cols] of uniqueGroups) {
+    if (!hasUniqueOn(tn, cols)) {
+      deepConf++;
+      findings.push({ class: 'unique-missing-in-db', severity: 'HIGH', model: name, table: tn,
+        columns: cols, group: groupName,
+        note: 'Model declares a named composite unique the live DB does not have' });
+    }
+  }
+
+  // (c2) composite uniques declared in model options.indexes — same hazard class.
+  const attrToCol = new Map(attrs.map(([a, def]) => [a, def.field || a]));
+  for (const idx of (model.options?.indexes || [])) {
+    if (!idx?.unique || !Array.isArray(idx.fields) || idx.fields.length === 0) continue;
+    const cols = idx.fields
+      .map(f => (typeof f === 'string' ? f : f?.attribute || f?.name))
+      .filter(Boolean)
+      .map(f => attrToCol.get(f) || f);
+    if (cols.length > 0 && !hasUniqueOn(tn, cols)) {
+      deepConf++;
+      findings.push({ class: 'unique-missing-in-db', severity: 'HIGH', model: name, table: tn,
+        columns: cols,
+        note: 'Model declares a composite unique index the live DB does not have' });
+    }
+  }
+
   for (const col of dbColsForTable.keys()) {
     if (!seen.has(col)) info.push({ class: 'db-extra-column', model: name, table: tn, column: col });
   }
-  modelSummaries.push({ model: name, table: tn, status: missing || typeConf ? 'DRIFT' : 'CLEAN',
-    attrs: attrs.length, missing, typeConf });
+  modelSummaries.push({ model: name, table: tn,
+    status: missing || typeConf || deepConf ? 'DRIFT' : 'CLEAN',
+    attrs: attrs.length, missing, typeConf, deepConf });
 }
 
 // FK constraints referencing the dead lowercase `users` table

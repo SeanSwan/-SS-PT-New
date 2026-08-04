@@ -238,11 +238,20 @@ export function buildInsights(proof: HomeTrainingProof, progressPercent: number,
   // tiles (Strength Score / Recovery — both wearable-dependent) are replaced
   // with insights computable from the client's REAL logged history. Reintroduce
   // wearable tiles only when a wearable source actually exists.
-  const weekDeltaStatus = proof.weekDelta == null
+  // Sibling-sweep fix (deep loop 4): same hollow-comparison class already
+  // closed in the coach recap — "Up 3 vs last week" against an EMPTY last week
+  // is technically true and meaningless, and "Up 0" is not English. Compare
+  // only when a real prior week exists.
+  const lastWeekCount = proof.weeklyCounts.length >= 2
+    ? proof.weeklyCounts[proof.weeklyCounts.length - 2]
+    : 0;
+  const weekDeltaStatus = proof.weekDelta == null || lastWeekCount === 0
     ? 'Building your baseline'
-    : proof.weekDelta >= 0
+    : proof.weekDelta > 0
       ? `Up ${proof.weekDelta} vs last week`
-      : `${Math.abs(proof.weekDelta)} fewer than last week`;
+      : proof.weekDelta === 0
+        ? 'Matching last week'
+        : `${Math.abs(proof.weekDelta)} fewer than last week`;
   const bestRecentWeek = proof.weeklyCounts.length ? Math.max(...proof.weeklyCounts) : 0;
   return [
     { label: 'Workouts This Week', value: String(proof.thisWeekCount || 0), status: weekDeltaStatus, points: proof.weeklyCounts },
