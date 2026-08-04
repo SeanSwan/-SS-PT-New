@@ -7,6 +7,7 @@
 import { Op } from 'sequelize';
 
 import { getAllModels } from '../../../models/index.mjs';
+import { newAchievementCutoff } from './achievementRecency.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
@@ -245,12 +246,15 @@ export const dispatchMyStreaksBadges = async (_params = {}, ctx = {}) => {
   const { UserAchievement } = getAllModels();
   const userId = selfUserId(ctx);
   const record = await getGamificationRecord(userId);
-  // "New" = earned but not yet notified. The table has no isNew column (rule 58, verified
-  // 2026-07-29) — the previous count on isNew threw against the live DB every time.
+  // "New" = completed AND earned inside the recency window — see achievementRecency.mjs for why
+  // both earlier definitions (`isNew`, then `notificationSent`) produced wrong counts rather than
+  // errors. Shared with `view_xp_streaks` so the two Coach reads cannot disagree.
   const [completedAchievementCount, newAchievementCount] = await Promise.all([
     UserAchievement?.count ? UserAchievement.count({ where: { userId, isCompleted: true } }) : 0,
     UserAchievement?.count
-      ? UserAchievement.count({ where: { userId, isCompleted: true, notificationSent: false } })
+      ? UserAchievement.count({
+        where: { userId, isCompleted: true, earnedAt: { [Op.gte]: newAchievementCutoff() } },
+      })
       : 0,
   ]);
   const badges = Array.isArray(record?.badges) ? record.badges : [];

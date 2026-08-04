@@ -7,6 +7,7 @@
 import { getAllModels } from '../../../models/index.mjs';
 import GamificationPointsService from '../../gamification/GamificationPointsService.mjs';
 import { resolveCommandClientId } from './clientScope.mjs';
+import { isNewAchievement } from './achievementRecency.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -101,13 +102,12 @@ export const dispatchViewXpStreaks = async (params, ctx) => {
     activeStreaks: streakRows.length,
     longestStreak: streakRows.reduce((max, streak) => Math.max(max, toNumber(streak.longestCount)), 0),
     completedAchievements: achievementRows.filter((achievement) => achievement.isCompleted).length,
-    // "New" = earned but not yet notified. There is no `isNew` column in "UserAchievements", so
-    // the previous `achievement.isNew` read was `undefined` on every row and this count was
-    // silently ALWAYS 0 — wrong data rather than an error, which is why it survived
-    // (rule 58/78, verified 2026-07-30). Matches the client-facing `my_streaks_badges`
-    // definition in clientSelfServiceReadDispatchers.
-    newAchievements: achievementRows
-      .filter((achievement) => achievement.isCompleted && !achievement.notificationSent).length,
+    // "New" = completed AND earned inside the recency window. Two earlier versions were both
+    // wrong VALUES rather than errors, which is why neither surfaced: `achievement.isNew` (no such
+    // column → undefined → always 0), then `!notificationSent` (nothing ever sets that flag →
+    // always ALL completed). Definition now lives in achievementRecency.mjs so this and
+    // `my_streaks_badges` cannot drift apart again.
+    newAchievements: achievementRows.filter((achievement) => isNewAchievement(achievement)).length,
   };
 };
 
