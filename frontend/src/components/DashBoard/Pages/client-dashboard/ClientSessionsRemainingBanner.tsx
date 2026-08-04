@@ -165,10 +165,13 @@ const ClientSessionsRemainingBanner: React.FC<Props> = ({ clientSource, sessions
     // deduction/booking language, zero Swan-balance claims. Renders only when
     // real logged facts exist — never a fabricated stat.
     if (!sessionsThisMonth && !streakDays) return null;
+    // Unlike the Swan variant (whose Book CTA carries the count in its
+    // aria-label), this variant has no button — so the number must NOT be
+    // aria-hidden or screen readers hear the label with no value.
     return (
       <Banner $low={false} data-testid="client-engagement-banner">
         <Left>
-          <Value $low={false} aria-hidden="true">{sessionsThisMonth || streakDays}</Value>
+          <Value $low={false}>{sessionsThisMonth || streakDays}</Value>
           <Meta>
             <Label>
               {sessionsThisMonth
