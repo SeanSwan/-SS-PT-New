@@ -78,8 +78,11 @@ vi.mock('../../../../../hooks/useDashboardQueries', () => ({
     data: { notifications: [] },
     isLoading: false,
   }),
+  // One real-shaped session: these tests exercise the QUICK-POST metric-truth
+  // path, which is a with-history surface — zero-history clients get the
+  // orientation strip and no composer (panel Q5 suppression, 2026-08-03).
   useWorkoutSessions: () => ({
-    data: [],
+    data: [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }],
     isLoading: false,
   }),
   useTrendingHashtags: () => ({
