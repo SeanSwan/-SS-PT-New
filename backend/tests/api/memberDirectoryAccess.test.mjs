@@ -15,6 +15,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { sliceBetween } from '../helpers/sliceBetween.mjs';
 import {
   MEMBER_MAX_ROWS,
   STORABLE_TIER_KEYS,
@@ -197,9 +198,18 @@ describe('every member-facing directory surface uses the policy', () => {
 
   it('keeps staff contact details out of the trainer dropdown', () => {
     const sessionService = read('services/sessions/session.service.mjs');
-    const handler = sessionService.slice(
-      sessionService.indexOf('async getTrainers('),
-      sessionService.indexOf('async getTrainers(') + 900,
+    // Integration 2026-08-05: this used to slice a FIXED 900-char window from
+    // the handler start. An 11-line merge comment added above the query pushed
+    // the assertion target past 900 chars and the test failed on prose alone —
+    // the same fixed/absent-anchor window fragility that made a credential
+    // guard scan 16k chars of unrelated code elsewhere in this suite. Bounded
+    // by the NEXT method instead, so the window tracks the handler's real
+    // extent and cannot be broken by a comment.
+    const handler = sliceBetween(
+      sessionService,
+      'async getTrainers(',
+      'async getClients(',
+      { label: 'session.service.getTrainers' },
     );
     // Was: ['id','firstName','lastName','email','phone',...] to any member.
     expect(handler).toContain('directoryAttributes(viewer');

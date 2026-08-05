@@ -2475,15 +2475,9 @@ class UnifiedSessionService {
   async getTrainers(viewer = null) {
     try {
       // Contact details are staff-only. This is a dropdown feed: a name, a
-      // photo and a speciality are all any caller renders.
-      //
-      // MERGE NOTE (integration 2026-08-05): the integrator and lane 1 fixed
-      // this same leak independently (it returned email + phone for every
-      // trainer AND admin to any authenticated caller). Lane 1's version wins:
-      // it routes through the shared `directoryAttributes` helper, which is
-      // fail-closed on unknown roles AND allowlist-filters the extra fields,
-      // and is applied consistently across the leaderboard/challenge surfaces
-      // in the same lane. The integrator's inline projection is superseded.
+      // photo and a speciality are all any caller renders. (Integration
+      // 2026-08-05: lane 1 and the integrator fixed this same leak
+      // independently; lane 1's shared helper won — see SWA-110.)
       const trainers = await this.User.findAll({
         where: { role: { [Op.in]: ['trainer', 'admin'] } },
         attributes: directoryAttributes(viewer, ['specialties', 'bio']),

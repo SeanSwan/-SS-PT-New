@@ -82,15 +82,24 @@ describe('session.service role scoping (launch audit)', () => {
       for (const field of CONTACT_FIELDS) expect(attrs).not.toContain(field);
     });
 
-    it('still gives staff the contact fields they need', async () => {
+    it('withholds contact PII from staff too, and gives staff lastName instead', async () => {
+      // SUPERSEDED ASSERTION (integration merge 2026-08-05). This originally
+      // required staff to KEEP email/phone, matching the integrator's inline
+      // fix. Lane 1's `directoryAttributes` helper was adopted instead and is
+      // STRICTER: this dropdown feed carries no contact PII for ANY viewer —
+      // staff are distinguished only by getting `lastName`. That is defensible
+      // (a dropdown renders a name, not an address) and the display-label
+      // fallback in the schedule modals still resolves via first+last, so
+      // nothing regresses. Pinning the adopted contract, not the old one.
       const service = await makeService();
       for (const role of ['admin', 'trainer']) {
         findAllMock.mockClear();
         await service.getTrainers({ id: 1, role });
         const attrs = findAllMock.mock.calls[0][0].attributes;
         for (const field of CONTACT_FIELDS) {
-          expect(attrs, `staff role "${role}" should keep ${field}`).toContain(field);
+          expect(attrs, `even staff role "${role}" must not receive ${field} from this feed`).not.toContain(field);
         }
+        expect(attrs, `staff role "${role}" should receive lastName`).toContain('lastName');
       }
     });
   });
