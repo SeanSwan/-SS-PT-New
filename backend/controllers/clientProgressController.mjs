@@ -9,6 +9,7 @@ import {
   getWorkoutSession,
 } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { directoryAttributes, isStaffViewer } from '../utils/memberDirectoryAccess.mjs';
 import { COMPARISON_LEVEL_FIELDS, buildComparisonAnalytics } from '../services/clientProgress/comparisonAnalyticsReadModel.mjs';
 import {
   handleClientProgressError,
@@ -85,7 +86,7 @@ export const updateCurrentClientProgress = clientProgressHandler(async (req, res
   });
 }, 'Error updating client progress:', 'Server error updating progress data');
 
-export const getClientProgressLeaderboard = clientProgressHandler(async (_req, res) => {
+export const getClientProgressLeaderboard = clientProgressHandler(async (req, res) => {
   const ClientProgress = getClientProgressModel();
   const User = getUser();
   const leaderboard = await ClientProgress.findAll({
@@ -93,7 +94,13 @@ export const getClientProgressLeaderboard = clientProgressHandler(async (_req, r
     include: [{
       model: User,
       as: 'user',
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+      // Second mounted leaderboard. It carried surnames to every member and
+      // ignored `leaderboardOptIn` entirely, while the guard pinned only the
+      // OTHER implementation — "two implementations of one rule" is exactly how
+      // this class kept re-opening.
+      attributes: directoryAttributes(req.user),
+      where: isStaffViewer(req.user) ? undefined : { leaderboardOptIn: true },
+      required: true,
     }],
     order: [['overallLevel', 'DESC']],
     limit: 10,

@@ -120,10 +120,8 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
           return mapFallbackAchievementsToLegacy(fallbackAchievements);
         } catch {
           logger.warn('[Gamification] Achievements fallback also failed.');
-          // Returning [] here made React Query record SUCCESS with an empty
-          // list, so `isError` stayed false and NO consumer could tell an
-          // outage from "you have earned nothing". Rethrow so the query is
-          // actually in an error state and resolveDataStatus can see it.
+          // Rethrow: returning [] recorded SUCCESS, so `isError` stayed false
+          // and no consumer could tell an outage from "you earned nothing".
           throw new Error('Achievements unavailable');
         }
       }
@@ -282,7 +280,6 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
     profileQuery.refetch();
     achievementsQuery.refetch();
   }, [profileQuery, achievementsQuery]);
-
   return {
     profile: profileQuery,
     achievements: achievementsQuery,

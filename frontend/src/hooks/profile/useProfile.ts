@@ -254,8 +254,10 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       setAchievements(achievementsData.achievements);
     } catch (err: any) {
       logger.warn('Achievements endpoint not available yet:', err.message);
-      // An empty list is the claim "you have earned nothing". A failed fetch is
-      // not that claim — the last two loaders in this hook that still made it.
+      // Clear AND flag, in that order. Flagging alone left the PREVIOUS list
+      // rendered as current — the exact defect just fixed for group members.
+      // Clearing alone was the original "you have earned nothing" lie.
+      setAchievements([]);
       setAchievementsStatus('unavailable');
     } finally {
       setIsLoadingAchievements(false);

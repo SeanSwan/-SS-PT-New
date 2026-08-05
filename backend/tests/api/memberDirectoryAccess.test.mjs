@@ -238,9 +238,25 @@ describe('every member-facing directory surface uses the policy', () => {
     ];
 
     for (const file of files) {
+      // Strip STRINGS first, then comments. Doing it the other way round meant
+      // two ordinary strings containing `/*` and `*/` (e.g. 'uploads/*' and
+      // 'videos*/') swallowed everything between them — so a literal
+      // `attributes: ['id','firstName','lastName']` sitting between two globs
+      // was erased before the scan ever saw it. The sanitiser WAS the bypass.
+      // Deliberately strips ONLY line comments, and FAILS CLOSED on everything
+      // else. Two rejected alternatives, both of which made this guard useless:
+      //   - stripping block comments first: two ordinary strings containing
+      //     `/*` and `*/` (e.g. 'uploads/*' … 'videos*/') swallow the code
+      //     between them, so a literal leak sitting between two globs vanished
+      //     before the scan saw it — the sanitiser became the bypass;
+      //   - stripping string CONTENTS first: the subject of this check IS a
+      //     string literal, so `['id','firstName','lastName']` collapsed to
+      //     `['','','']` and a plain leak passed 21/21. Verified both.
+      // Consequence: a `lastName` mention inside a block comment fails this
+      // test. That is intended — reword the comment. A guard that errs toward
+      // shouting is worth more than one that can be silenced by a glob.
       let source = readFileSync(resolve(socialDir, file), 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
-        .replace(/^\s*\/\/.*$/gm, '');        // line comments
+        .replace(/\/\/[^\n]*/g, '');
       for (const allowed of MATCH_ONLY) source = source.replace(allowed, '');
 
       if (/lastName/.test(source)) {
