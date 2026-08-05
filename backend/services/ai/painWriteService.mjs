@@ -9,8 +9,10 @@
  * Preserves controller-level validation that is NOT enforced by the Sequelize
  * model (ALLOWED_BODY_REGIONS check, painLevel 1-10 range).
  *
- * VALIDATION MIRRORED FROM: backend/controllers/painEntryController.mjs
- *   - bodyRegion must be in ALLOWED_BODY_REGIONS (48 values)
+ * VALIDATION SHARED WITH: backend/controllers/painEntryController.mjs
+ *   - bodyRegion must be a PAIN_INTAKE_REGION (single-sourced in the ontology
+ *     since Slice 1 — both files previously carried hand-duplicated copies
+ *     whose headers both mis-documented the count as 48; it was 50)
  *   - painLevel must be integer 1-10
  *   - side is always 'center' — the narrow command schema does not expose it
  *   - description from params.notes if present
@@ -23,39 +25,11 @@
 
 import { getClientPainEntry } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
+import { PAIN_INTAKE_REGION_SET } from '../training-cortex/ontology/regionMuscleMap.mjs';
 
-// ── Allowed Body Regions ─────────────────────────────────────────────────────
-//
-// Mirrors ALLOWED_BODY_REGIONS in backend/controllers/painEntryController.mjs.
-// Keep in sync manually when the controller set changes.
-
-export const ALLOWED_BODY_REGIONS = new Set([
-  // Front view
-  'neck_front', 'chest_left', 'chest_right', 'chest',
-  'left_shoulder', 'right_shoulder',
-  'left_bicep', 'right_bicep',
-  'left_forearm', 'right_forearm',
-  'left_elbow', 'right_elbow',
-  'upper_abs', 'lower_abs', 'left_oblique', 'right_oblique',
-  'left_hip_flexor', 'right_hip_flexor',
-  'left_quad', 'right_quad',
-  'left_inner_thigh', 'right_inner_thigh',
-  'left_shin', 'right_shin',
-  'left_knee', 'right_knee',
-  'left_ankle_front', 'right_ankle_front',
-  // Back view
-  'neck_back', 'upper_traps_left', 'upper_traps_right',
-  'mid_back_left', 'mid_back_right',
-  'left_rear_delt', 'right_rear_delt',
-  'lower_back_left', 'lower_back_right', 'lower_back',
-  'left_tricep', 'right_tricep',
-  'left_glute', 'right_glute',
-  'left_hamstring', 'right_hamstring',
-  'left_calf', 'right_calf',
-  'left_achilles', 'right_achilles',
-  // Rotator cuff
-  'left_rotator_cuff', 'right_rotator_cuff',
-]);
+// Re-exported under the historical name for existing importers
+// (painFollowUpService imports ALLOWED_BODY_REGIONS from here).
+export const ALLOWED_BODY_REGIONS = PAIN_INTAKE_REGION_SET;
 
 // ── Service ──────────────────────────────────────────────────────────────────
 

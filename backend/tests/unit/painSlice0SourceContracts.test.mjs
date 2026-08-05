@@ -44,7 +44,9 @@ describe('F1 — chronic active severe pain must not age out of exclusion', () =
 
   it('the >=7 exclusion branch no longer requires the 72h recency window', () => {
     expect(src).not.toContain('severity >= PAIN_AUTO_EXCLUDE_SEVERITY && isRecent');
-    expect(src).toContain('if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY) {');
+    // Slice 1 evolved the branch to add rest-pain escalation — the invariant
+    // is that severity>=7 excludes WITHOUT an isRecent conjunction.
+    expect(src).toMatch(/if \(severity >= PAIN_AUTO_EXCLUDE_SEVERITY \|\| \(isRestPain && severity >= PAIN_WARN_SEVERITY\)\) \{/);
   });
 
   it('stale >=7 entries carry the re-confirmation reason', () => {

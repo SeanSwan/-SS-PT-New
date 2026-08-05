@@ -8,35 +8,9 @@
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-
-// Allowed body regions (front + back views)
-const ALLOWED_BODY_REGIONS = new Set([
-  // Front view
-  'neck_front', 'chest_left', 'chest_right', 'chest',
-  'left_shoulder', 'right_shoulder',
-  'left_bicep', 'right_bicep',
-  'left_forearm', 'right_forearm',
-  'left_elbow', 'right_elbow',
-  'upper_abs', 'lower_abs', 'left_oblique', 'right_oblique',
-  'left_hip_flexor', 'right_hip_flexor',
-  'left_quad', 'right_quad',
-  'left_inner_thigh', 'right_inner_thigh',
-  'left_shin', 'right_shin',
-  'left_knee', 'right_knee',
-  'left_ankle_front', 'right_ankle_front',
-  // Back view
-  'neck_back', 'upper_traps_left', 'upper_traps_right',
-  'mid_back_left', 'mid_back_right',
-  'left_rear_delt', 'right_rear_delt',
-  'lower_back_left', 'lower_back_right', 'lower_back',
-  'left_tricep', 'right_tricep',
-  'left_glute', 'right_glute',
-  'left_hamstring', 'right_hamstring',
-  'left_calf', 'right_calf',
-  'left_achilles', 'right_achilles',
-  // Rotator cuff (specific)
-  'left_rotator_cuff', 'right_rotator_cuff',
-]);
+// Slice 1 (C11): the region allowlist is single-sourced in the ontology —
+// this file and painWriteService previously carried hand-duplicated copies.
+import { PAIN_INTAKE_REGION_SET as ALLOWED_BODY_REGIONS } from '../services/training-cortex/ontology/regionMuscleMap.mjs';
 
 const parsePositiveInt = (value) => {
   const parsed = Number(value);
@@ -47,6 +21,19 @@ const parsePainLevel = (value) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : null;
 };
+
+// Slice 1 (F14): onsetDate is client-reported HISTORY — the future is
+// rejected (24h grace absorbs timezone skew). Exclusion windows key on
+// createdAt (system trust); trends display onsetDate.
+const isFutureDate = (value) => {
+  if (!value) return false;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) && parsed > Date.now() + 24 * 60 * 60 * 1000;
+};
+
+// Slice 1 (F5): rest pain is a contraindication signal, load pain a
+// modification signal — validated here, escalated in clientIntelligence.
+const PAIN_CONTEXTS = new Set(['rest', 'daily_activity', 'loaded_movement']);
 
 // Slice 0 (F2): at/above this severity, resolution and severity-reduction are
 // trainer decisions. Without this gate a client could resolve their own 8/10
@@ -177,7 +164,7 @@ export const createPainEntry = async (req, res) => {
 
     const {
       bodyRegion, side, painLevel, painType, description,
-      onsetDate, aggravatingMovements, relievingFactors,
+      onsetDate, aggravatingMovements, relievingFactors, painContext,
       trainerNotes, aiNotes, posturalSyndrome, assessmentFindings,
     } = req.body;
 
@@ -195,6 +182,12 @@ export const createPainEntry = async (req, res) => {
     if (!parsedPainLevel) {
       return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
     }
+    if (isFutureDate(onsetDate)) {
+      return res.status(400).json({ success: false, message: 'onsetDate cannot be in the future' });
+    }
+    if (painContext !== undefined && !PAIN_CONTEXTS.has(painContext)) {
+      return res.status(400).json({ success: false, message: 'painContext must be rest, daily_activity, or loaded_movement' });
+    }
 
     // Clients cannot set trainer-only fields
     const isClient = requester.role === 'client';
@@ -210,6 +203,8 @@ export const createPainEntry = async (req, res) => {
       onsetDate: onsetDate || null,
       aggravatingMovements: aggravatingMovements || null,
       relievingFactors: relievingFactors || null,
+      painContext: painContext || 'loaded_movement',
+      lastConfirmedAt: new Date(),
       trainerNotes: isClient ? null : (trainerNotes || null),
       aiNotes: isClient ? null : (aiNotes || null),
       posturalSyndrome: isClient ? 'none' : (posturalSyndrome || 'none'),
@@ -265,14 +260,21 @@ export const updatePainEntry = async (req, res) => {
     // Clients cannot update trainer-only fields
     const isClient = requester.role === 'client';
     const allowedFields = isClient
-      ? ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'side']
-      : ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'trainerNotes', 'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side'];
+      ? ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'side', 'painContext']
+      : ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'trainerNotes', 'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side', 'painContext'];
 
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
+    }
+
+    if (updates.onsetDate !== undefined && isFutureDate(updates.onsetDate)) {
+      return res.status(400).json({ success: false, message: 'onsetDate cannot be in the future' });
+    }
+    if (updates.painContext !== undefined && !PAIN_CONTEXTS.has(updates.painContext)) {
+      return res.status(400).json({ success: false, message: 'painContext must be rest, daily_activity, or loaded_movement' });
     }
 
     if (updates.painLevel !== undefined) {
@@ -297,6 +299,9 @@ export const updatePainEntry = async (req, res) => {
         message: TRAINER_REVIEW_REQUIRED_MESSAGE,
       });
     }
+
+    // Slice 1: any authorized human update re-confirms the entry's state.
+    updates.lastConfirmedAt = new Date();
 
     await entry.update(updates);
 

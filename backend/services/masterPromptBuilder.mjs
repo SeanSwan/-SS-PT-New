@@ -345,6 +345,7 @@ export async function buildMasterPromptFromUserData(targetUser) {
         type: p.painType,
         avoid: sanitizeClientText(p.aggravatingMovements),
         helps: sanitizeClientText(p.relievingFactors),
+        felt: p.painContext || 'loaded_movement',
         aiGuidance: p.aiNotes,
         syndrome: p.posturalSyndrome,
       })),

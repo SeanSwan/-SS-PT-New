@@ -40,6 +40,13 @@ ClientPainEntry.init({
     allowNull: false,
     references: { model: 'Users', key: 'id' },
     onUpdate: 'CASCADE',
+    // ⚠ C10 (Slice 1 live probe, 2026-08-04): the LIVE FK delete rule is
+    // SET NULL on a NOT NULL column — deleting a creator User would error —
+    // and information_schema shows the constraint exists TWICE. Repairing
+    // that is a destructive constraint migration (SET NULL→RESTRICT or
+    // column→nullable) and is Sean-gated: flagged, intentionally NOT fixed
+    // here. onDelete below mirrors the live constraint so sync never fights
+    // the DB.
     onDelete: 'SET NULL',
     comment: 'Admin/trainer who recorded this entry',
   },
@@ -124,6 +131,26 @@ ClientPainEntry.init({
     type: DataTypes.JSONB,
     allowNull: true,
     comment: 'Structured assessment data: { testsPerformed, compensations, squidUniProtocol }',
+  },
+  lastConfirmedAt: {
+    // Slice 1: staleness anchor — refreshed when a human confirms/updates the
+    // entry state. Staleness keys HERE (fallback updatedAt→createdAt), and a
+    // stale severe entry degrades to "re-confirm" visibility, NEVER to
+    // no-constraint (F1/C8 fix).
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Last time a human confirmed this entry state (staleness anchor)',
+  },
+  painContext: {
+    // Slice 1 (F5): pain at rest is a contraindication signal; pain under
+    // load is a modification signal. One enum, meaningfully different gates.
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'loaded_movement',
+    validate: {
+      isIn: [['rest', 'daily_activity', 'loaded_movement']],
+    },
+    comment: 'rest | daily_activity | loaded_movement',
   },
 }, {
   sequelize,

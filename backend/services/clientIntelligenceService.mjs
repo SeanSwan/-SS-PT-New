@@ -663,14 +663,16 @@ export async function getClientContext(clientId, trainerId) {
   const painExclusions = [];
   const painWarnings = [];
   const staleActiveIssues = [];
+  const painUnmappedRegions = [];
   const excludedMuscles = new Set();
   let lastPainTouchMs = null;
 
+  // Staleness + last-touch run over ALL active entries. Slice 1 (C8 fix):
+  // the confirmation anchor is lastConfirmedAt (trainer/human confirm
+  // refreshes it) with updatedAt→createdAt fallback for pre-migration rows.
   for (const entry of safePainEntries) {
-    const muscles = registryMusclesForRegion(entry.bodyRegion);
-    const isRecent = entry.createdAt >= seventyTwoHoursAgo;
     const severity = entry.painLevel || 0;
-    const lastTouched = entry.updatedAt || entry.createdAt;
+    const lastTouched = entry.lastConfirmedAt || entry.updatedAt || entry.createdAt;
 
     if (lastTouched) {
       const touchedMs = new Date(lastTouched).getTime();
@@ -679,36 +681,72 @@ export async function getClientContext(clientId, trainerId) {
       }
     }
 
-    // Cortex P0 (§5.1): active issue untouched past the review window — flag for
-    // reassessment. It STILL flows through exclusion/warning processing below.
+    // Cortex P0 (§5.1): active issue unconfirmed past the review window —
+    // flag for reassessment. It STILL flows through exclusion processing.
     if (lastTouched && new Date(lastTouched) < painStaleCutoff) {
       staleActiveIssues.push({
         entryId: entry.id,
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         lastReviewedAt: new Date(lastTouched).toISOString(),
-        reason: `Active issue not reviewed in ${PAIN_STALE_REVIEW_DAYS}+ days -- reassess`,
+        reason: `Active issue not confirmed in ${PAIN_STALE_REVIEW_DAYS}+ days -- reassess`,
+      });
+    }
+  }
+
+  // Slice 1 (F4): gate input is DETERMINISTIC — one representative per
+  // (region, side), the max-severity entry. Five duplicate "left shoulder"
+  // rows no longer multiply warnings or randomize which entry explains the
+  // exclusion. (Muscle exclusion was already order-independent set-union;
+  // this fixes the warning/explanation noise and pins the cited entryId.)
+  const gateRepresentatives = new Map();
+  for (const entry of safePainEntries) {
+    const key = `${entry.bodyRegion}|${entry.side || 'center'}`;
+    const prev = gateRepresentatives.get(key);
+    if (!prev || (entry.painLevel || 0) > (prev.painLevel || 0)) {
+      gateRepresentatives.set(key, entry);
+    }
+  }
+
+  for (const entry of gateRepresentatives.values()) {
+    const muscles = registryMusclesForRegion(entry.bodyRegion);
+    const isRecent = entry.createdAt >= seventyTwoHoursAgo;
+    const severity = entry.painLevel || 0;
+    // Slice 1 (F5): pain AT REST escalates one tier — it signals irritation
+    // that loading decisions must respect even at moderate severity.
+    const isRestPain = entry.painContext === 'rest';
+
+    // Slice 1 (C1 parity): a region with no muscle mapping cannot machine-
+    // protect the plan — say so VISIBLY (bootcamp side already did).
+    if (muscles.length === 0 && severity >= PAIN_WARN_SEVERITY) {
+      painUnmappedRegions.push({
+        bodyRegion: entry.bodyRegion,
+        painLevel: severity,
+        entryId: entry.id,
+        reason: 'No automatic muscle mapping -- manual exercise review required',
       });
     }
 
-    // Slice 0 (F1 interim): an ACTIVE >=7 entry excludes regardless of age.
-    // The old `&& isRecent` let chronic severe pain silently age OUT of
-    // exclusion after 72h while still being active — the safety system only
-    // protected acute injuries. Stale >=7 additionally warns for trainer
-    // re-confirmation (full lastConfirmedAt semantics land in Slice 1).
-    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY) {
+    // Slice 0/1 (F1): an ACTIVE >=7 entry excludes regardless of age — the
+    // old `&& isRecent` let chronic severe pain silently age OUT of
+    // exclusion after 72h while still active. Stale >=7 additionally warns
+    // for trainer re-confirmation.
+    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY || (isRestPain && severity >= PAIN_WARN_SEVERITY)) {
       painExclusions.push({
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         painType: entry.painType,
+        painContext: entry.painContext || 'loaded_movement',
         muscles,
-        reason: isRecent
-          ? `Auto-excluded: severity ${severity}/10 within 72h`
-          : `Auto-excluded: active severity ${severity}/10 (logged >72h ago -- trainer re-confirmation recommended)`,
+        reason: isRestPain && severity < PAIN_AUTO_EXCLUDE_SEVERITY
+          ? `Auto-excluded: pain at REST (${severity}/10) -- contraindication signal, trainer review before loading`
+          : isRecent
+            ? `Auto-excluded: severity ${severity}/10 within 72h`
+            : `Auto-excluded: active severity ${severity}/10 (logged >72h ago -- trainer re-confirmation recommended)`,
         entryId: entry.id,
       });
       muscles.forEach(m => excludedMuscles.add(m));
-      if (!isRecent) {
+      if (!isRecent && severity >= PAIN_AUTO_EXCLUDE_SEVERITY) {
         painWarnings.push({
           bodyRegion: entry.bodyRegion,
           painLevel: severity,
@@ -981,6 +1019,9 @@ export async function getClientContext(clientId, trainerId) {
       exclusions: painExclusions,
       warnings: painWarnings,
       excludedMuscles: Array.from(excludedMuscles),
+      // Slice 1 (C1 parity): regions that could NOT be machine-protected —
+      // fail-visible, mirroring bootcamp's unmappedRegion alerts.
+      unmappedRegions: painUnmappedRegions,
     },
 
     movement: {

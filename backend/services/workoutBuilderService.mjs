@@ -20,6 +20,7 @@
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
+import { ONTOLOGY_EXPANSION_2026_08 } from './training-cortex/ontology/regionMuscleMap.mjs';
 import {
   getExerciseRegistry,
   getExerciseRegistryFromDB,
@@ -794,6 +795,22 @@ export async function generateWorkout(options) {
       message: parts.join('; '),
       details: context.pain.exclusions.map(e => `${e.bodyRegion} (${e.painLevel}/10)${(e.muscles || []).length === 0 ? ' [unmapped -- manual review]' : ''}`),
     });
+
+    // Slice 1 (F10): the 2026-08 ontology expansion made exclusions EFFECTIVE
+    // for regions that previously excluded nothing. Say so on first contact,
+    // so a suddenly-different plan reads as a safety upgrade, not a bug.
+    const expansionRegions = [...new Set(
+      context.pain.exclusions
+        .map(e => e.bodyRegion)
+        .filter(r => ONTOLOGY_EXPANSION_2026_08.has(r))
+    )];
+    if (expansionRegions.length > 0) {
+      explanations.push({
+        type: 'ontology_update',
+        message: `Heads-up: automatic exclusions for ${expansionRegions.join(', ')} became active with the 2026-08 pain-mapping expansion -- this plan may differ from earlier ones for the same pain entries.`,
+        details: expansionRegions,
+      });
+    }
   }
 
   if (context.pain.warnings.length > 0) {
