@@ -56,6 +56,16 @@ describe('UpcomingChecksWidget backend contract', () => {
     expect(screen.queryByText('0d overdue')).not.toBeInTheDocument();
   });
 
+  it('a failed fetch renders "Data unavailable" — NEVER "All clients are up to date" (SWA-138 S1 / blueprint C4)', async () => {
+    mockAuthAxios.get.mockReset();
+    mockAuthAxios.get.mockRejectedValue(new Error('Request failed with status code 500'));
+
+    render(<UpcomingChecksWidget />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Data unavailable');
+    expect(screen.queryByText('All clients are up to date')).not.toBeInTheDocument();
+  });
+
   it('does not depend on legacy flat daysRemaining fields that the backend does not return', () => {
     expect(SOURCE).not.toContain('measurementDaysRemaining');
     expect(SOURCE).not.toContain('weighInDaysRemaining');

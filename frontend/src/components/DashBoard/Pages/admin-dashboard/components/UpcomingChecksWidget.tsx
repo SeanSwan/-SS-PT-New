@@ -4,19 +4,22 @@
  * Dashboard widget showing clients with upcoming or overdue
  * measurement check-ins, sorted by urgency (RED first).
  *
- * Phase 11D — Admin Dashboard Widget
+ * SWA-138 S1 — first adopter of the WidgetShell foundation:
+ * error is now DISTINCT from empty (a failed fetch renders
+ * "Data unavailable" + Retry, never "All clients are up to
+ * date"), data auto-refreshes via usePolledFetch, and stale
+ * data survives a failed refresh with a visible notice.
+ *
  * Architecture: styled-components + lucide-react + framer-motion
  * Theme: Crystalline Swan (cosmic dark, cyan accents, glass surfaces)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Ruler, Scale } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import WidgetSkeleton from './WidgetSkeleton';
-import { CommandCard } from '../AdminDashboardCards';
-import { StyledBox } from '@/components/ui/StyledBox';
+import { usePolledFetch, WidgetShell } from '../shell';
 
 /* ─── Styled Components ─────────────────────────────────── */
 
@@ -97,23 +100,6 @@ const DaysBadge = styled.span<{ $color: string }>`
   flex-shrink: 0;
 `;
 
-const EmptyMsg = styled.div`
-  text-align: center;
-  color: var(--text-muted, #94A3B8);
-  padding: 24px 0;
-  font-size: 0.875rem;
-`;
-
-const WidgetTitle = styled.h3`
-  align-items: center;
-  color: var(--accent-primary, #60C0F0);
-  display: flex;
-  font-size: 1.25rem;
-  font-weight: 600;
-  gap: 8px;
-  margin: 0 0 1rem;
-`;
-
 const itemVariants = {
   hidden: { opacity: 0, x: -20 },
   visible: { opacity: 1, x: 0 },
@@ -165,59 +151,53 @@ const normalizeCheckStatus = (value: unknown): NormalizedCheckStatus | null => {
 
 const UpcomingChecksWidget: React.FC = () => {
   const { authAxios } = useAuth();
-  const [checks, setChecks] = useState<UpcomingCheck[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchUpcoming = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await authAxios.get('/api/measurements/schedule/upcoming');
-      const clientsData =
-        res.data?.data?.clients ??
-        res.data?.clients ??
-        res.data?.data ??
-        [];
+  const fetchUpcoming = useCallback(async (): Promise<UpcomingCheck[]> => {
+    const res = await authAxios.get('/api/measurements/schedule/upcoming');
+    const clientsData =
+      res.data?.data?.clients ??
+      res.data?.clients ??
+      res.data?.data ??
+      [];
 
-      // Flatten: each client may have measurement + weighIn entries
-      const flattened: UpcomingCheck[] = [];
-      for (const c of (Array.isArray(clientsData) ? clientsData : [])) {
-        const measurementStatus = normalizeCheckStatus(c.measurementStatus);
-        if (measurementStatus) {
-          flattened.push({
-            userId: c.id || c.userId,
-            firstName: c.firstName,
-            lastName: c.lastName,
-            checkType: 'measurement',
-            status: measurementStatus.status,
-            daysRemaining: measurementStatus.daysRemaining ?? 0,
-          });
-        }
-        const weighInStatus = normalizeCheckStatus(c.weighInStatus);
-        if (weighInStatus) {
-          flattened.push({
-            userId: c.id || c.userId,
-            firstName: c.firstName,
-            lastName: c.lastName,
-            checkType: 'weighIn',
-            status: weighInStatus.status,
-            daysRemaining: weighInStatus.daysRemaining ?? 0,
-          });
-        }
+    // Flatten: each client may have measurement + weighIn entries
+    const flattened: UpcomingCheck[] = [];
+    for (const c of (Array.isArray(clientsData) ? clientsData : [])) {
+      const measurementStatus = normalizeCheckStatus(c.measurementStatus);
+      if (measurementStatus) {
+        flattened.push({
+          userId: c.id || c.userId,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          checkType: 'measurement',
+          status: measurementStatus.status,
+          daysRemaining: measurementStatus.daysRemaining ?? 0,
+        });
       }
-
-      // Sort: red first, then yellow, then green
-      const priority: Record<string, number> = { red: 0, yellow: 1, green: 2 };
-      flattened.sort((a, b) => (priority[a.status] ?? 2) - (priority[b.status] ?? 2));
-
-      setChecks(flattened.slice(0, 10));
-    } catch (err) {
-      console.error('Failed to fetch upcoming checks:', err);
-    } finally {
-      setLoading(false);
+      const weighInStatus = normalizeCheckStatus(c.weighInStatus);
+      if (weighInStatus) {
+        flattened.push({
+          userId: c.id || c.userId,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          checkType: 'weighIn',
+          status: weighInStatus.status,
+          daysRemaining: weighInStatus.daysRemaining ?? 0,
+        });
+      }
     }
+
+    // Sort: red first, then yellow, then green
+    const priority: Record<string, number> = { red: 0, yellow: 1, green: 2 };
+    flattened.sort((a, b) => (priority[a.status] ?? 2) - (priority[b.status] ?? 2));
+
+    return flattened.slice(0, 10);
   }, [authAxios]);
 
-  useEffect(() => { fetchUpcoming(); }, [fetchUpcoming]);
+  const { data, loading, refreshing, error, lastUpdated, refresh } =
+    usePolledFetch<UpcomingCheck[]>(fetchUpcoming);
+
+  const checks = data ?? [];
 
   const formatDays = (days: number) => {
     if (days <= 0) return `${Math.abs(days)}d overdue`;
@@ -225,45 +205,45 @@ const UpcomingChecksWidget: React.FC = () => {
   };
 
   return (
-    <StyledBox as={CommandCard} $style={{ padding: '2rem', height: '100%', marginBottom: '1.5rem' }}>
-      <WidgetTitle>
-        <Ruler size={20} />
-        Upcoming Check-ins
-      </WidgetTitle>
-
-      {loading ? (
-        <WidgetSkeleton count={4} />
-      ) : checks.length === 0 ? (
-        <EmptyMsg>All clients are up to date</EmptyMsg>
-      ) : (
-        <ClientList>
-          {checks.map((check, index) => (
-            <ClientItem
-              key={`${check.userId}-${check.checkType}`}
-              variants={itemVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: index * 0.08 }}
-            >
-              <StatusDot $color={STATUS_COLORS[check.status] || STATUS_FALLBACK} />
-              <ClientInfo>
-                <ClientName>{check.firstName} {check.lastName}</ClientName>
-                <CheckType>
-                  {check.checkType === 'measurement' ? (
-                    <><Ruler size={12} /> Full Measurement</>
-                  ) : (
-                    <><Scale size={12} /> Weigh-In</>
-                  )}
-                </CheckType>
-              </ClientInfo>
-              <DaysBadge $color={STATUS_COLORS[check.status] || STATUS_FALLBACK}>
-                {formatDays(check.daysRemaining)}
-              </DaysBadge>
-            </ClientItem>
-          ))}
-        </ClientList>
-      )}
-    </StyledBox>
+    <WidgetShell
+      title="Upcoming Check-ins"
+      icon={<Ruler size={20} />}
+      loading={loading}
+      error={error}
+      empty={checks.length === 0}
+      emptyMessage="All clients are up to date"
+      hasData={data !== null && checks.length > 0}
+      lastUpdated={lastUpdated}
+      refreshing={refreshing}
+      onRefresh={refresh}
+    >
+      <ClientList>
+        {checks.map((check, index) => (
+          <ClientItem
+            key={`${check.userId}-${check.checkType}`}
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: index * 0.08 }}
+          >
+            <StatusDot $color={STATUS_COLORS[check.status] || STATUS_FALLBACK} />
+            <ClientInfo>
+              <ClientName>{check.firstName} {check.lastName}</ClientName>
+              <CheckType>
+                {check.checkType === 'measurement' ? (
+                  <><Ruler size={12} /> Full Measurement</>
+                ) : (
+                  <><Scale size={12} /> Weigh-In</>
+                )}
+              </CheckType>
+            </ClientInfo>
+            <DaysBadge $color={STATUS_COLORS[check.status] || STATUS_FALLBACK}>
+              {formatDays(check.daysRemaining)}
+            </DaysBadge>
+          </ClientItem>
+        ))}
+      </ClientList>
+    </WidgetShell>
   );
 };
 
