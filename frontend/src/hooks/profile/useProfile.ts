@@ -22,6 +22,11 @@ interface UseProfileReturn {
   /** Same lifecycle for posts: 'ready' is the ONLY value that licenses "no posts yet". */
   postsStatus: 'loading' | 'ready' | 'unavailable';
   postsKnown: boolean;
+  /** Same lifecycle for the last two loaders that rendered failure as emptiness. */
+  achievementsStatus: 'loading' | 'ready' | 'unavailable';
+  achievementsKnown: boolean;
+  followStatsStatus: 'loading' | 'ready' | 'unavailable';
+  followStatsKnown: boolean;
   /** Convenience: `statsStatus === 'ready'`. */
   statsKnown: boolean;
   // Profile data
@@ -85,6 +90,8 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [statsStatus, setStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [postsStatus, setPostsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [achievementsStatus, setAchievementsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [followStatsStatus, setFollowStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const statsSeqRef = useRef(0);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
@@ -243,11 +250,13 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     
     try {
       const achievementsData = await profileService.getUserAchievements();
+      setAchievementsStatus('ready');
       setAchievements(achievementsData.achievements);
     } catch (err: any) {
       logger.warn('Achievements endpoint not available yet:', err.message);
-      // Set empty achievements instead of showing error
-      setAchievements([]);
+      // An empty list is the claim "you have earned nothing". A failed fetch is
+      // not that claim — the last two loaders in this hook that still made it.
+      setAchievementsStatus('unavailable');
     } finally {
       setIsLoadingAchievements(false);
     }
@@ -264,9 +273,10 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     try {
       const followData = await profileService.getFollowStats();
       setFollowStats(followData);
+      setFollowStatsStatus('ready');
     } catch (err: any) {
       logger.warn('Follow stats endpoint not available yet:', err.message);
-      // Set default follow stats instead of showing error
+      setFollowStatsStatus('unavailable');
       setFollowStats({
         followers: { count: 0, list: [] },
         following: { count: 0, list: [] },
@@ -480,6 +490,10 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     statsKnown: statsStatus === 'ready',
     postsStatus,
     postsKnown: postsStatus === 'ready',
+    achievementsStatus,
+    achievementsKnown: achievementsStatus === 'ready',
+    followStatsStatus,
+    followStatsKnown: followStatsStatus === 'ready',
     
     // Operations
     refreshProfile,

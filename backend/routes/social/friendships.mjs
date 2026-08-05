@@ -55,14 +55,15 @@ router.get('/', async (req, res) => {
         ? friendship.recipient 
         : friendship.requester;
         
+      // Carry exactly what the (viewer-narrowed) projection selected — no more,
+      // no less. Naming fields here re-stated a staff-only column in a mapper,
+      // which both emitted `lastName: undefined` to members and read as
+      // intentional to the next person. The projection is the single place that
+      // decides what a viewer may see.
+      const friendFields = friend.toJSON ? friend.toJSON() : friend;
+
       return {
-        id: friend.id,
-        firstName: friend.firstName,
-        lastName: friend.lastName,
-        username: friend.username,
-        photo: friend.photo,
-        points: friend.points,
-        role: friend.role,
+        ...friendFields,
         friendshipId: friendship.id,
         createdAt: friendship.createdAt
       };
@@ -513,13 +514,11 @@ router.get('/search', searchLimiter, async (req, res) => {
       };
     });
 
-    const results = users.map(u => ({
-      id: u.id,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      username: u.username,
-      photo: u.photo,
-      role: u.role,
+    // Same rule as above: carry the viewer-narrowed projection, do not restate
+    // columns. Naming them here re-introduced a staff field into a search
+    // response that the query had already correctly withheld.
+    const results = users.map((u) => ({
+      ...(u.toJSON ? u.toJSON() : u),
       friendshipStatus: friendshipMap[u.id]?.status || null,
       friendshipId: friendshipMap[u.id]?.friendshipId || null,
       isRequester: friendshipMap[u.id]?.isRequester || false
