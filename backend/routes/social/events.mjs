@@ -16,6 +16,7 @@ import { Router } from 'express';
 import { SocialEvent, EventAttendance } from '../../models/social/enhanced/EventManagement.mjs';
 import { getUser } from '../../models/index.mjs';
 import { Op } from 'sequelize';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const router = Router();
 
@@ -76,7 +77,7 @@ router.get('/', async (req, res) => {
       include: [{
         model: User,
         as: 'organizer',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+        attributes: directoryAttributes(req.user),
         required: false,
       }],
     });
@@ -126,7 +127,7 @@ router.get('/:id', async (req, res) => {
       include: [{
         model: User,
         as: 'organizer',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+        attributes: directoryAttributes(req.user),
         required: false,
       }],
     });
@@ -334,7 +335,7 @@ router.get('/:id/attendees', async (req, res) => {
       include: [{
         model: User,
         as: 'user',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+        attributes: directoryAttributes(req.user),
         required: false,
       }],
       order: [['registeredAt', 'ASC']],

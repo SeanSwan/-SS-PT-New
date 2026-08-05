@@ -38,12 +38,12 @@ router.get('/', async (req, res) => {
         {
           model: User,
           as: 'requester',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'points', 'role']
+          attributes: directoryAttributes(req.user, ['points', 'role'])
         },
         {
           model: User,
           as: 'recipient',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'points', 'role']
+          attributes: directoryAttributes(req.user, ['points', 'role'])
         }
       ]
     });
@@ -93,7 +93,7 @@ router.get('/requests', async (req, res) => {
         {
           model: User,
           as: 'requester',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+          attributes: directoryAttributes(req.user)
         }
       ]
     });
@@ -228,7 +228,7 @@ router.post('/accept/:friendshipId', async (req, res) => {
     
     // Get the requester's info
     const requester = await User.findByPk(friendship.requesterId, {
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+      attributes: directoryAttributes(req.user)
     });
     
     return res.status(200).json({
@@ -486,7 +486,7 @@ router.get('/search', searchLimiter, async (req, res) => {
           )
         ]
       },
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+      attributes: directoryAttributes(req.user, ['role']),
       limit,
       order: [['firstName', 'ASC']]
     });

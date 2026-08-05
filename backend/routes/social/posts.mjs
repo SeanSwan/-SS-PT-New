@@ -65,7 +65,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
   const users = numericUserIds.length > 0
     ? await getUser().findAll({
       where: { id: { [Op.in]: numericUserIds } },
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points'],
+      attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points']),
       raw: true
     })
     : [];
@@ -355,7 +355,7 @@ router.get('/feed', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -478,7 +478,7 @@ router.get('/trending', async (req, res) => {
       const users = userIds.length > 0
         ? await User.findAll({
             where: { id: { [Op.in]: userIds } },
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            attributes: directoryAttributes(req.user, ['role']),
             raw: true,
           })
         : [];
@@ -532,7 +532,7 @@ router.get('/trending', async (req, res) => {
       const users = userIds.length > 0
         ? await User.findAll({
             where: { id: { [Op.in]: userIds } },
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            attributes: directoryAttributes(req.user, ['role']),
             raw: true,
           })
         : [];
@@ -628,7 +628,7 @@ router.get('/user/:userId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -863,7 +863,7 @@ router.post('/', upload.single('media'), async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -935,7 +935,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -999,7 +999,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -1079,7 +1079,7 @@ router.put('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -1473,7 +1473,7 @@ router.post('/:postId/comments', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });

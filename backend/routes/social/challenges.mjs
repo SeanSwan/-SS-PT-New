@@ -12,6 +12,7 @@ import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs
 import logger from '../../utils/logger.mjs';
 import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
 import { calculateChallengeProgressAward } from '../../services/gamification/challengeProgressAwardService.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 
@@ -68,7 +69,7 @@ router.get('/active', async (req, res) => {
           {
             model: User,
             as: 'creator',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+            attributes: directoryAttributes(req.user, ['role'])
           }
         ]
       });
@@ -171,7 +172,7 @@ router.get('/my-challenges', async (req, res) => {
             {
               model: User,
               as: 'creator',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+              attributes: directoryAttributes(req.user)
             }
           ]
         }
@@ -215,7 +216,7 @@ router.get('/:challengeId', async (req, res) => {
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: directoryAttributes(req.user, ['role'])
         }
       ]
     });
@@ -249,7 +250,7 @@ router.get('/:challengeId', async (req, res) => {
           {
             model: User,
             as: 'user',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: directoryAttributes(req.user)
           }
         ]
       });
@@ -266,7 +267,7 @@ router.get('/:challengeId', async (req, res) => {
           {
             model: User,
             as: 'captain',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: directoryAttributes(req.user)
           }
         ],
         order: [['totalProgress', 'DESC']]
@@ -693,7 +694,7 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
           {
             model: User,
             as: 'captain',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: directoryAttributes(req.user)
           }
         ]
       });
@@ -723,7 +724,7 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
           {
             model: User,
             as: 'user',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: directoryAttributes(req.user)
           }
         ]
       });

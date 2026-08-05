@@ -51,7 +51,7 @@ const CreativeGallery: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState('');
-  const { posts, refreshProfile } = useProfile();
+  const { posts, refreshProfile, postsStatus } = useProfile();
   const { createPost, refreshPosts } = useSocialFeed();
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,7 +67,15 @@ const CreativeGallery: React.FC = () => {
     () => mediaItems.find((item) => item.id === selectedMediaId) ?? null,
     [mediaItems, selectedMediaId],
   );
-  const emptyStateTitle = mediaItems.length === 0 ? 'No media yet' : `No ${activeTag.toLowerCase()} media yet`;
+  // "No media yet" is a claim about the member's library. A failed fetch is not
+  // that claim, and a pending one certainly is not.
+  const emptyStateTitle = postsStatus === 'unavailable'
+    ? "We couldn't load your media just now"
+    : postsStatus === 'loading'
+      ? 'Loading your media…'
+      : mediaItems.length === 0
+        ? 'No media yet'
+        : `No ${activeTag.toLowerCase()} media yet`;
   const emptyStateDescription = mediaItems.length === 0
     ? 'Share photos and videos to build your creative gallery'
     : 'Try another filter or share new creative media for this category.';

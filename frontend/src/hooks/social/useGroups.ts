@@ -187,6 +187,7 @@ export const useGroupDetail = (groupId: number | null) => {
   const { authAxios, user } = useAuth();
   const [group, setGroup] = useState<CommunityGroup | null>(null);
   const [members, setMembers] = useState<GroupMemberEntry[]>([]);
+  const [membersUnavailable, setMembersUnavailable] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(groupId));
   const [error, setError] = useState<string | null>(null);
   // Monotonic request id: rapid refresh() calls must not let an earlier,
@@ -209,8 +210,11 @@ export const useGroupDetail = (groupId: number | null) => {
           const membersRes = await authAxios.get(`/api/social/groups/${groupId}/members`);
           if (isStale()) return;
           setMembers(membersRes.data.members || []);
+          setMembersUnavailable(false);
         } catch {
-          if (!isStale()) setMembers([]);
+          // An empty roster is a claim about the group. A failed members fetch
+          // is not that claim — the header still reads "42 members" beside it.
+          if (!isStale()) setMembersUnavailable(true);
         }
       } else {
         setMembers([]);

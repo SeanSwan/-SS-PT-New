@@ -15,6 +15,7 @@ import { Router } from 'express';
 import { Faction, FactionMembership } from '../../models/social/index.mjs';
 import db from '../../database.mjs';
 import { Op } from 'sequelize';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const router = Router();
 
@@ -233,7 +234,7 @@ router.get('/:slug/feed', async (req, res) => {
       include: [{
         model: db.models.User || (await import('../../models/User.mjs')).default,
         as: 'user',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'level', 'tier', 'points'],
+        attributes: directoryAttributes(req.user, ['level', 'tier', 'points']),
       }],
     });
 
