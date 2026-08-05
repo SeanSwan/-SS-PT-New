@@ -8,6 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, ChevronDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { useAlertReadState } from './ContactNotifications.alertState';
 import ContactNotificationItem from './ContactNotificationItem';
 import type { ContactNotificationsProps, Notification } from './ContactNotifications.types';
 import {
@@ -58,6 +59,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 }) => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
+  const { refreshReadState, ackAlert, bulkAck, isRead: isAckedRemotely, isArchived } =
+    useAlertReadState(authAxios);
   const pageSize = initialPageSize;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +110,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   useEffect(() => {
     fetchPage(0, 0, false);
-  }, [fetchPage]);
+    refreshReadState();
+  }, [fetchPage, refreshReadState]);
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
@@ -131,19 +135,23 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
         prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
       );
     }
+    // SWA-138 S4: computed finance alerts persist through the alert-state API.
+    if (notification.type !== 'contact' && !notification.isRead) {
+      ackAlert(notification);
+    }
     navigate(NOTIFICATION_ROUTE_DESTINATIONS[notification.type]);
   };
 
   const handleMarkAllRead = useCallback(async () => {
     try {
       await authAxios.patch('/api/contact/mark-all-viewed');
-      setNotifications((prev) =>
-        prev.map((n) => (n.type === 'contact' ? { ...n, isRead: true } : n)),
-      );
+      // SWA-138 S4: finance alerts join mark-all through the alert-state bulk op.
+      await bulkAck(notifications.filter((n) => n.type !== 'contact' && !n.isRead));
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch {
       setError('Could not mark all as read — try again.');
     }
-  }, [authAxios]);
+  }, [authAxios, bulkAck, notifications]);
 
   const handleNotificationKeyDown = (event: React.KeyboardEvent, notification: Notification) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -161,10 +169,14 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
     });
   };
 
+  // SWA-138 S4: overlay per-admin read-state (finance acks) + drop archived.
+  const visibleNotifications = notifications
+    .filter((n) => !isArchived(n))
+    .map((n) => (!n.isRead && n.type !== 'contact' && isAckedRemotely(n) ? { ...n, isRead: true } : n));
   const filteredNotifications = showUnreadOnly
-    ? notifications.filter((n) => !n.isRead)
-    : notifications;
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+    ? visibleNotifications.filter((n) => !n.isRead)
+    : visibleNotifications;
+  const unreadCount = visibleNotifications.filter((n) => !n.isRead).length;
 
   if (loading && notifications.length === 0) {
     return (

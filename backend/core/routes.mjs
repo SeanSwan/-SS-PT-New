@@ -160,6 +160,7 @@ import videoAnalyticsRoutes from '../routes/videoAnalyticsRoutes.mjs';
 import videoCollectionRoutes from '../routes/videoCollectionRoutes.mjs';
 
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
+import adminAlertStateRoutes from '../routes/adminAlertStateRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 import adminWorkoutLoggerRoutes from '../routes/adminWorkoutLoggerRoutes.mjs';
 import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
@@ -544,6 +545,7 @@ export const setupRoutes = async (app) => {
   });
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
+  app.use('/api/admin', adminAlertStateRoutes); // SWA-138 S4: per-admin alert ack/archive read-state
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)
   app.use('/api/admin', adminWorkoutLoggerRoutes); // Phase 1B: Admin workout logging API
 

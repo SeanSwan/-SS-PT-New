@@ -35,13 +35,16 @@ describe('admin enterprise route truth contracts', () => {
     expect(routeSource).toContain('verificationStatus');
   });
 
-  it('labels unconnected read-only social and alert endpoints', () => {
+  it('labels unconnected read-only social endpoints and keeps the alert stub retired', () => {
     expect(routeSource).not.toContain('// TODO: Implement real social media posts fetching');
     expect(routeSource).not.toContain('// TODO: Implement real social media analytics');
     expect(routeSource).not.toContain('// TODO: Implement real alert system');
     expect(routeSource).toContain('providerConnected: false');
-    expect(routeSource).toContain("source: 'not_connected'");
-    expect(routeSource).toContain('alertStoreConnected: false');
+    // SWA-138 S4: the never-connected /alerts/active + /alerts/:id/acknowledge
+    // stubs are RETIRED — per-admin ack/archive lives at /api/admin/alert-state.
+    expect(routeSource).not.toContain("router.get('/alerts/active'");
+    expect(routeSource).not.toContain('alertStoreConnected: false');
+    expect(routeSource).toContain('adminAlertStateRoutes.mjs');
   });
 
   it('does not expose raw operational errors in admin enterprise responses', () => {

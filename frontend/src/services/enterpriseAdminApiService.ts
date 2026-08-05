@@ -544,32 +544,9 @@ class EnterpriseAdminApiService {
   // REAL-TIME NOTIFICATIONS & ALERTS
   // =====================================================
   
-  /**
-   * Get active system alerts
-   */
-  async getActiveAlerts(): Promise<any[]> {
-    try {
-      const response = await productionApiService.get('/api/admin/alerts/active');
-      return response.data.alerts || [];
-    } catch (error) {
-      console.error('[Admin API] Failed to fetch active alerts:', error);
-      throw new Error('Failed to fetch active alerts');
-    }
-  }
-  
-  /**
-   * Acknowledge an alert
-   */
-  async acknowledgeAlert(alertId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await productionApiService.post(`/api/admin/alerts/${alertId}/acknowledge`);
-      return response.data;
-    } catch (error) {
-      console.error(`[Admin API] Failed to acknowledge alert ${alertId}:`, error);
-      throw new Error(`Failed to acknowledge alert ${alertId}`);
-    }
-  }
-  
+  // SWA-138 S4: getActiveAlerts/acknowledgeAlert removed — they called the
+  // retired 501 stub and had zero consumers. Use /api/admin/alert-state.
+
   /**
    * Create custom alert rule
    */

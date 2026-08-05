@@ -241,54 +241,10 @@ router.get('/system/health', async (req, res) => {
   }
 });
 
-/**
- * Get active system alerts
- * GET /api/admin/alerts/active
- */
-router.get('/alerts/active', async (req, res) => {
-  try {
-    const alerts = await getActiveSystemAlerts();
-
-    res.json({
-      success: true,
-      alerts,
-      alertStoreConnected: false,
-      source: 'not_connected',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error('Failed to fetch active alerts:', error);
-    sendFailure(res, 500, 'Failed to fetch active alerts');
-  }
-});
-
-/**
- * Acknowledge an alert
- * POST /api/admin/alerts/:alertId/acknowledge
- */
-router.post('/alerts/:alertId/acknowledge', async (req, res) => {
-  try {
-    const { alertId } = req.params;
-    
-    logger.info(`Admin ${req.user.id} acknowledging alert ${alertId}`);
-    
-    const result = await acknowledgeAlert(alertId, req.user.id);
-
-    res.status(result.statusCode || 200).json(result);
-
-  } catch (error) {
-    logger.error(`Failed to acknowledge alert ${req.params.alertId}:`, error);
-    const statusCode = error.statusCode || 500;
-    const isNotImplemented = statusCode === 501;
-    sendFailure(
-      res,
-      statusCode,
-      isNotImplemented ? error.message : `Failed to acknowledge alert ${req.params.alertId}`,
-      isNotImplemented ? NOT_IMPLEMENTED : INTERNAL_ERROR
-    );
-  }
-});
+// SWA-138 S4: the /alerts/active + /alerts/:id/acknowledge stubs (empty list +
+// 501 thrower, zero UI consumers) are RETIRED. Per-admin ack/archive now lives
+// at /api/admin/alert-state (adminAlertStateRoutes.mjs); AI-monitoring alerts
+// keep their own engine at aiMonitoringRoutes.mjs.
 
 /**
  * Get admin dashboard configuration
@@ -801,15 +757,6 @@ async function checkSystemHealth() {
       uptime: { current: 'unknown', percentage: 0, since: new Date().toISOString() }
     };
   }
-}
-
-async function getActiveSystemAlerts() {
-  // Alert store integration is not connected yet; return an explicitly labeled empty set.
-  return [];
-}
-
-async function acknowledgeAlert(alertId, adminId) {
-  throw createNotImplementedError('Alert acknowledgment is not connected to an alert store yet.');
 }
 
 function getSuperAdminEmails() {

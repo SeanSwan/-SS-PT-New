@@ -53,3 +53,38 @@ describe('read-state wiring contract', () => {
     expect(contactRouteSource).toContain("attributes.push('viewedAt')");
   });
 });
+
+describe('S4 — computed finance alerts persist via the alert-state API', () => {
+  const alertStateSource = readFileSync(
+    resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/ContactNotifications.alertState.ts'),
+    'utf8',
+  );
+  const alertStateRouteSource = readFileSync(
+    resolve(process.cwd(), '../backend/routes/adminAlertStateRoutes.mjs'),
+    'utf8',
+  );
+  const enterpriseRouteSource = readFileSync(
+    resolve(process.cwd(), '../backend/routes/adminEnterpriseRoutes.mjs'),
+    'utf8',
+  );
+
+  it('the hook talks to registered per-admin endpoints', () => {
+    expect(alertStateSource).toContain("authAxios.get('/api/admin/alert-state')");
+    expect(alertStateSource).toContain("authAxios.post('/api/admin/alert-state/ack'");
+    expect(alertStateSource).toContain("authAxios.post('/api/admin/alert-state/bulk'");
+    expect(alertStateRouteSource).toContain("router.get('/alert-state'");
+    expect(alertStateRouteSource).toContain("router.post('/alert-state/ack'");
+    expect(alertStateRouteSource).toContain("router.post('/alert-state/archive'");
+    expect(alertStateRouteSource).toContain("router.post('/alert-state/bulk'");
+  });
+
+  it('the component overlays read-state and drops archived alerts', () => {
+    expect(componentSource).toContain('useAlertReadState(authAxios)');
+    expect(componentSource).toContain('.filter((n) => !isArchived(n))');
+    expect(componentSource).toContain('ackAlert(notification)');
+  });
+
+  it('the abandoned 501 acknowledge stub is retired, not duplicated', () => {
+    expect(enterpriseRouteSource).not.toContain("router.post('/alerts/:alertId/acknowledge'");
+  });
+});
