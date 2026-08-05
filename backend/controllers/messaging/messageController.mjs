@@ -86,10 +86,20 @@ export const searchUsers = async (req, res) => {
   const query = typeof q === 'string' ? q.trim().replace(/\s+/g, ' ') : '';
   if (!currentUserId) return res.status(401).json({ error: 'Authentication required.' });
 
+  // SECURITY: this is open to every authenticated account (deliberately outside
+  // the messagingTier gate) and it used to match on `email`, so
+  // ?q=someone@example.com confirmed that address was registered AND returned
+  // that person's full legal name - an email-existence oracle. The email clause
+  // is gone.
+  //
+  // Name MATCHING is kept: searching "Jane Smith" to start a conversation is a
+  // real product feature (pinned by messagingRoutesSecurity.test.mjs), and
+  // matching on a column you do not RETURN discloses nothing - the caller must
+  // already know the name to find it. The surname is no longer selected.
   try {
     const users = !query || query.length < 2
       ? await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        `SELECT id, "firstName", username, photo, role, "lastActive", "lastLogin"
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
@@ -99,14 +109,13 @@ export const searchUsers = async (req, res) => {
         { replacements: { currentUserId }, type: QueryTypes.SELECT }
       )
       : await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        `SELECT id, "firstName", username, photo, role, "lastActive", "lastLogin"
          FROM "Users"
          WHERE (
              "firstName" ILIKE :query
              OR "lastName" ILIKE :query
              OR ("firstName" || ' ' || "lastName") ILIKE :query
              OR username ILIKE :query
-             OR email ILIKE :query
            )
            AND id != :currentUserId
            AND "deletedAt" IS NULL

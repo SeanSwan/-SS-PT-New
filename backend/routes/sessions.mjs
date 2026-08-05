@@ -1495,13 +1495,16 @@ router.get("/client/:userId", protect, async (req, res) => {
  * GET /api/sessions/users/trainers
  * Get all trainers for dropdown selection
  */
-// SECURITY: was `protect` only, while its sibling /users/clients is
-// trainerOrAdminOnly. It returned the full legal name, EMAIL and PHONE of every
-// trainer and admin, unpaginated, to any account created through the public
-// signup form. All three live consumers are admin/trainer schedule modals that
-// need a name for a dropdown. Gated here AND narrowed in the service, so a
-// future caller cannot re-leak it.
-router.get("/users/trainers", protect, trainerOrAdminOnly, async (req, res) => {
+// SECURITY: this returned the full legal name, EMAIL and PHONE of every trainer
+// and admin, unpaginated, to any account from the public signup form.
+//
+// The fix is least privilege on the DATA, not on the feature. An earlier pass
+// also added `trainerOrAdminOnly` here — that broke client booking, because
+// UniversalSchedule backs BOTH /dashboard/admin/master-schedule AND
+// /dashboard/client/schedule ("Book My Session"), and a member must see trainer
+// names to book. The route stays open to authenticated callers; the service
+// returns contact details to staff only.
+router.get("/users/trainers", protect, async (req, res) => {
   try {
     const trainers = await unifiedSessionService.getTrainers(req.user);
 

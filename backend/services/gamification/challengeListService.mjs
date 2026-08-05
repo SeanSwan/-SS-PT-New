@@ -5,6 +5,9 @@
 
 import { Op } from 'sequelize';
 
+/** Anonymous callers see a first name and a handle. Never a surname. */
+const PUBLIC_PERSON_ATTRIBUTES = Object.freeze(['id', 'firstName', 'username', 'photo']);
+
 const ACTIVE_FILTERS = {
   types: ['daily', 'weekly', 'monthly', 'community', 'custom'],
   categories: ['fitness', 'nutrition', 'social', 'streak', 'dance', 'music', 'art', 'gaming', 'community_meetup'],
@@ -95,7 +98,11 @@ export const getChallengeList = async ({ models, query, defaultStatus = 'active'
       {
         model: User,
         as: 'creator',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+        // This list is served by a PUBLIC route (no middleware at all), so
+        // surnames here reached anonymous callers - worse than the member-only
+        // leaks the directory policy was built for. Its sibling
+        // GET /challenges/:id already strips them; the two were inconsistent.
+        attributes: PUBLIC_PERSON_ATTRIBUTES,
       },
       {
         model: ChallengeParticipant,
@@ -104,7 +111,7 @@ export const getChallengeList = async ({ models, query, defaultStatus = 'active'
         include: [{
           model: User,
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+          attributes: PUBLIC_PERSON_ATTRIBUTES,
         }],
         limit: 5,
       },

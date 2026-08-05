@@ -57,31 +57,47 @@ export const isKnownTier = (tier, extraKeys) =>
   && (STORABLE_TIER_KEYS.has(tier) || Boolean(extraKeys?.has?.(tier)));
 
 /**
- * Fields that must never reach a member about ANOTHER user, whatever a caller
- * passes. A reviewer defeated the previous version in ONE line by injecting
- * 'lastName' through `extra` — the staff gate ran, then `extra` was spread
- * straight past it, and the guard suite still reported 11/11 green. A policy
- * with an unfiltered escape hatch is a suggestion, not a policy.
+ * Fields a member may see about ANOTHER user. ALLOW-list, not deny-list.
+ *
+ * The deny-list this replaces was defeated twice. First by an unfiltered
+ * `extra` (spread straight past the staff gate). Then, after filtering, by the
+ * ARRAY form: `[['lastName','ln']]` renders as `SELECT "lastName" AS "ln"`, and
+ * the filter read `field[1]` — the caller-chosen ALIAS — instead of `field[0]`,
+ * the column. So `[['lastName','ln']]` leaked while `['lastName']` was blocked.
+ *
+ * It was also the wrong shape: 16 entries against a ~90-column model, written
+ * from memory rather than from the model (three named columns that do not
+ * exist; `resetPasswordToken`, `claimTokenHash`, `permissions`, `hourlyRate`
+ * and others omitted). A deny-list must enumerate every future mistake; an
+ * allow-list only has to enumerate what a directory card renders.
  */
-export const STAFF_ONLY_FIELDS = Object.freeze(new Set([
-  'lastName', 'email', 'phone', 'dateOfBirth', 'address',
-  'emergencyContact', 'emergencyContactPhone', 'healthConcerns',
-  'medicalNotes', 'stripeCustomerId', 'registrationIP', 'lastLoginIP',
-  'password', 'refreshTokenHash', 'weight', 'height',
+export const MEMBER_VISIBLE_FIELDS = Object.freeze(new Set([
+  'id', 'firstName', 'username', 'photo',
+  'points', 'level', 'tier', 'streakDays', 'totalWorkouts', 'totalExercises',
+  'specialties', 'bio', 'role', 'createdAt',
+  'lifetimePointsEarned', 'overallLevel',
 ]));
 
-/**
- * Attributes safe to return about OTHER users.
- * Surnames and contact details are staff-only: member surfaces render
- * firstName/username. `extra` is FILTERED, not trusted — see above.
- */
+/** The column a Sequelize attribute entry actually SELECTS. */
+function attributeColumn(field) {
+  if (typeof field === 'string') return field;
+  // ['column', 'alias'] -> the column is [0]. Reading [1] read the alias.
+  if (Array.isArray(field)) {
+    return typeof field[0] === 'string' ? field[0] : null;
+  }
+  // fn()/literal()/col() objects: not a plain column, so never member-visible.
+  return null;
+}
+
 export function directoryAttributes(user, extra = []) {
   const staff = isStaffViewer(user);
+  const extras = Array.isArray(extra) ? extra : [extra];
   const safeExtra = staff
-    ? extra
-    : extra.filter((field) => !STAFF_ONLY_FIELDS.has(
-      typeof field === 'string' ? field : field?.[1] ?? field?.[0],
-    ));
+    ? extras
+    : extras.filter((field) => {
+      const column = attributeColumn(field);
+      return column !== null && MEMBER_VISIBLE_FIELDS.has(column);
+    });
 
   return [
     'id',

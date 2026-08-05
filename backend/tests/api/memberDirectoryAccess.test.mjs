@@ -99,6 +99,30 @@ describe('member directory policy', () => {
     expect(isKnownTier(undefined)).toBe(false);
   });
 
+  it('cannot be bypassed by the ARRAY form, which renders as SELECT col AS alias', () => {
+    // `[['lastName','ln']]` becomes `SELECT "lastName" AS "ln"`. The previous
+    // filter read field[1] — the caller-chosen ALIAS — so this leaked while the
+    // plain string form was correctly blocked.
+    const injected = directoryAttributes(
+      { role: 'user' },
+      [['lastName', 'ln'], ['email', 'e'], ['points', 'p']],
+    );
+
+    expect(JSON.stringify(injected)).not.toContain('lastName');
+    expect(JSON.stringify(injected)).not.toContain('email');
+    expect(JSON.stringify(injected)).toContain('points');
+  });
+
+  it('rejects fn()/literal()/col() objects and a non-array `extra`', () => {
+    expect(JSON.stringify(directoryAttributes({ role: 'user' }, [[{ col: 'lastName' }, 'x']])))
+      .not.toContain('lastName');
+    expect(JSON.stringify(directoryAttributes({ role: 'user' }, [{ fn: 'now' }])))
+      .not.toContain('fn');
+    // A bare string used to throw `extra.filter is not a function` -> 500.
+    expect(() => directoryAttributes({ role: 'user' }, 'lastName')).not.toThrow();
+    expect(directoryAttributes({ role: 'user' }, 'lastName')).not.toContain('lastName');
+  });
+
   it('cannot be bypassed by injecting a staff field through `extra`', () => {
     // A reviewer defeated the previous version in ONE line: the staff gate ran,
     // then `extra` was spread straight past it, and the guard suite stayed
