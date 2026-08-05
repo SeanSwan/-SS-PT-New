@@ -74,19 +74,22 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   const [operationNotice, setOperationNotice] = useState<OperationNoticeState | null>(null);
 
   const fetchPricesForSessions = useCallback(async (targetSessions: CancelledSession[]) => {
-    const priceEntries: Record<number, PackagePriceInfo> = {};
-
-    for (const session of targetSessions) {
-      try {
-        const response = await authAxios.get(`/api/sessions/${session.id}/client-package-price`);
-        priceEntries[session.id] = response.data.success
-          ? normalizePackagePriceInfo(response.data.data)
-          : PRICING_UNAVAILABLE;
-      } catch (err) {
-        logger.warn(`Could not fetch price for session ${session.id}`, err);
-        priceEntries[session.id] = PRICING_UNAVAILABLE;
-      }
-    }
+    // SWA-138 S7: lookups run in PARALLEL (the sequential N+1 loop stalled the
+    // widget when many late-cancels queued up); each item stays error-tolerant.
+    const priceEntryPairs = await Promise.all(
+      targetSessions.map(async (session): Promise<[number, PackagePriceInfo]> => {
+        try {
+          const response = await authAxios.get(`/api/sessions/${session.id}/client-package-price`);
+          return [session.id, response.data.success
+            ? normalizePackagePriceInfo(response.data.data)
+            : PRICING_UNAVAILABLE];
+        } catch (err) {
+          logger.warn(`Could not fetch price for session ${session.id}`, err);
+          return [session.id, PRICING_UNAVAILABLE];
+        }
+      })
+    );
+    const priceEntries: Record<number, PackagePriceInfo> = Object.fromEntries(priceEntryPairs);
 
     setPriceCache((prev) => ({ ...prev, ...priceEntries }));
   }, [authAxios]);

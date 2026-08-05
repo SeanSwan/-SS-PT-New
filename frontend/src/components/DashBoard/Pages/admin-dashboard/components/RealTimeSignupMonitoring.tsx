@@ -112,13 +112,16 @@ const RealTimeSignupMonitoring: React.FC<RealTimeSignupMonitoringProps> = ({
     }
   }, [authAxios]);
 
-  const refreshAll = useCallback(async (includeTotal: boolean) => {
+  // SWA-138 S7: refreshes re-fetch the newest page (upsert dedupes) but only
+  // the INITIAL load resets the Load-More offset — a 30s interval tick must
+  // never silently throw away the admin's pagination position.
+  const refreshAll = useCallback(async (includeTotal: boolean, resetOffset = false) => {
     const [, signupsLoaded] = await Promise.all([
       fetchDashboardStats(),
       fetchSignupsList(0, includeTotal),
       fetchDatabaseHealth()
     ]);
-    if (signupsLoaded) {
+    if (signupsLoaded && resetOffset) {
       setSignupsOffset(0);
     }
     setLastRefresh(new Date());
@@ -154,7 +157,7 @@ const RealTimeSignupMonitoring: React.FC<RealTimeSignupMonitoringProps> = ({
       setLoading(true);
       setError(null);
       try {
-        await refreshAll(true);
+        await refreshAll(true, true);
       } catch (err) {
         console.error('Initial load failed:', err);
       } finally {
