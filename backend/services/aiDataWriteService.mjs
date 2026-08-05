@@ -384,8 +384,11 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
   // `formRating: 3`, `overallIntensity || 5`. When the AI transcription
   // extracts a rating we clamp + keep it; when it doesn't, we omit the
   // field so the persisted row reads as "not rated" rather than a
-  // falsely-confident neutral middle value. `painLevel: 0` stays as-is
-  // per the Phase 16 scope — null-honest painLevel deferred to Phase 16.1.
+  // falsely-confident neutral middle value.
+  // Pain-Chart Slice 5 (C6): painLevel is now null-honest too — the
+  // hardcoded 0 asserted "zero pain" for every AI-logged exercise, which
+  // is exactly the falsely-confident value Phase 16 removed elsewhere.
+  // When the transcription carries a pain rating we clamp + keep it.
   const sanitizedExercises = data.exercises.slice(0, 30).map((ex, i) => {
     const name = String(ex.exerciseName || ex.name || `Exercise ${i + 1}`).slice(0, 200);
     const sets = Math.max(1, Math.min(20, parseInt(ex.sets) || 3));
@@ -414,9 +417,10 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
         if (exRpe !== null) setObj.rpe = exRpe;
         return setObj;
       }),
-      painLevel: 0,
       performanceNotes: '',
     };
+    const exPainLevel = clampIfProvided(ex.painLevel, 0, 10);
+    if (exPainLevel !== null) entry.painLevel = exPainLevel;
     if (exFormRating !== null) entry.formRating = exFormRating;
     return entry;
   });

@@ -11,6 +11,8 @@ import logger from '../utils/logger.mjs';
 // Slice 1 (C11): the region allowlist is single-sourced in the ontology —
 // this file and painWriteService previously carried hand-duplicated copies.
 import { PAIN_INTAKE_REGION_SET as ALLOWED_BODY_REGIONS } from '../services/training-cortex/ontology/regionMuscleMap.mjs';
+import { processPainCheckIn } from '../services/painCheckInService.mjs';
+import { getTrainerPainDigest } from '../services/painDigestService.mjs';
 
 const parsePositiveInt = (value) => {
   const parsed = Number(value);
@@ -422,5 +424,61 @@ export const deletePainEntry = async (req, res) => {
   } catch (error) {
     logger.error('[PainEntry] Error deleting entry:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete pain entry' });
+  }
+};
+
+/**
+ * POST /api/pain-entries/:userId/check-in
+ * Slice 5 (C6): post-workout pain check-in — the closed loop. Asymmetric
+ * gate: worse-than-recorded raises immediately; same/better is acknowledged
+ * for trainer confirmation; unknown region + level >= 4 creates a validated
+ * entry. Clients may only check in for themselves.
+ */
+export const painCheckIn = async (req, res) => {
+  try {
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+    const requester = req.user;
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
+      return res.status(403).json({ success: false, message: 'Clients can only check in for themselves' });
+    }
+
+    const { bodyRegion, side, painLevel } = req.body || {};
+    if (!bodyRegion) {
+      return res.status(400).json({ success: false, message: 'bodyRegion is required' });
+    }
+
+    const result = await processPainCheckIn({
+      userId,
+      actorId: Number(requester.id),
+      bodyRegion,
+      side,
+      painLevel,
+    });
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    if (/Invalid bodyRegion|painLevel must be/.test(error?.message || '')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    logger.error('[PainEntry] Check-in failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to record pain check-in' });
+  }
+};
+
+/**
+ * GET /api/pain-entries/trainer/digest
+ * Slice 5 (#7): roster-scoped pain command surface for trainers — worsening
+ * episodes (computed facts), stale severe entries needing re-confirmation,
+ * severe entries in unmapped regions. Admin sees platform-wide.
+ */
+export const trainerPainDigest = async (req, res) => {
+  try {
+    const digest = await getTrainerPainDigest(Number(req.user.id), { role: req.user.role });
+    return res.json({ success: true, data: digest });
+  } catch (error) {
+    logger.error('[PainEntry] Digest failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to build pain digest' });
   }
 };
