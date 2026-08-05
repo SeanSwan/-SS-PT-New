@@ -1,4 +1,5 @@
 export type PainSide = 'left' | 'right' | 'center' | 'bilateral';
+export type PainContext = 'rest' | 'daily_activity' | 'loaded_movement';
 export type PainType = 'sharp' | 'dull' | 'aching' | 'burning' | 'tingling' | 'numbness' | 'stiffness' | 'throbbing';
 export type PosturalSyndrome = 'upper_crossed' | 'lower_crossed' | 'none';
 export type BodyMapEvidenceStatus = 'pending' | 'processing' | 'needs_review' | 'approved' | 'rejected' | 'failed';
@@ -21,6 +22,11 @@ export interface PainEntry {
   aiNotes: string | null;
   posturalSyndrome: PosturalSyndrome;
   assessmentFindings: Record<string, unknown> | null;
+  /** Slice 1 (F5): rest pain escalates the safety tier server-side. */
+  painContext?: PainContext;
+  /** Slice 4 (F6): same-region entries within 30d share an episode. */
+  episodeId?: string | null;
+  lastConfirmedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +40,7 @@ export interface CreatePainEntryPayload {
   onsetDate?: string;
   aggravatingMovements?: string;
   relievingFactors?: string;
+  painContext?: PainContext;
   trainerNotes?: string;
   aiNotes?: string;
   posturalSyndrome?: PosturalSyndrome;

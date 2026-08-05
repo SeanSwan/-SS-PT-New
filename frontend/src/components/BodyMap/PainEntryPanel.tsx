@@ -25,6 +25,7 @@ import type {
   PainEntry,
   PainType,
   PainSide,
+  PainContext,
   PosturalSyndrome,
   CreatePainEntryPayload,
 } from '../../services/painEntryService';
@@ -488,6 +489,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   const [painLevel, setPainLevel] = useState(5);
   const [painType, setPainType] = useState<PainType>('aching');
   const [side, setSide] = useState<PainSide>('center');
+  // Slice 5 dry-loop finding: F5's rest-pain escalation was server-ready but
+  // the form never sent painContext — unreachable feature. Now first-class.
+  const [painContext, setPainContext] = useState<PainContext>('loaded_movement');
   const [description, setDescription] = useState('');
   const [onsetDate, setOnsetDate] = useState('');
   const [selectedAggravating, setSelectedAggravating] = useState<string[]>([]);
@@ -512,6 +516,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setPainLevel(existingEntry.painLevel);
       setPainType(existingEntry.painType);
       setSide(existingEntry.side);
+      setPainContext(existingEntry.painContext || 'loaded_movement');
       setDescription(existingEntry.description || '');
       setOnsetDate(existingEntry.onsetDate || '');
       setSelectedAggravating(
@@ -532,6 +537,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setPainLevel(5);
       setPainType('aching');
       setSide(currentRegion?.side || 'center');
+      setPainContext('loaded_movement');
       setDescription('');
       setOnsetDate('');
       setSelectedAggravating([]);
@@ -556,6 +562,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       side,
       painLevel,
       painType,
+      painContext,
       description: description.trim() || undefined,
       onsetDate: onsetDate || undefined,
       aggravatingMovements: selectedAggravating.length > 0 ? selectedAggravating.join(', ') : undefined,
@@ -615,6 +622,30 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
           <HintText>
             {painLevel >= 7 ? 'Severe — exercises AVOIDED' : painLevel >= 4 ? 'Moderate — exercises MODIFIED' : 'Mild — include with corrective warm-up'}
           </HintText>
+        </FormGroup>
+
+        {/* Slice 5 (F5): pain felt AT REST is a contraindication signal —
+            escalates the safety tier server-side. */}
+        <FormGroup>
+          <GroupLabel id="pain-context-label">When does it hurt?</GroupLabel>
+          <ChipGrid role="radiogroup" aria-labelledby="pain-context-label">
+            {([
+              ['loaded_movement', 'Under load'],
+              ['daily_activity', 'Daily life'],
+              ['rest', 'At rest'],
+            ] as Array<[PainContext, string]>).map(([value, label]) => (
+              <Chip
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={painContext === value}
+                $active={painContext === value}
+                onClick={() => setPainContext(value)}
+              >
+                {label}
+              </Chip>
+            ))}
+          </ChipGrid>
         </FormGroup>
 
         {/* Pain Type */}
