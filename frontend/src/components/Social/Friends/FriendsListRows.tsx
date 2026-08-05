@@ -56,7 +56,7 @@ function FriendRow({ friend, onRemoveFriend, onViewProfile }: FriendRowProps) {
   return (
     <FriendItem>
       <FriendAvatar $backgroundImage={friendAvatarImage}>
-        {!safeFriendPhoto && `${friend.firstName[0]}${friend.lastName[0]}`}
+        {!safeFriendPhoto && (`${friend.firstName?.[0] ?? ''}${friend.lastName?.[0] ?? ''}` || '?')}
       </FriendAvatar>
       <FriendInfo>
         <FriendName>{fullName}</FriendName>

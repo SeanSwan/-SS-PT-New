@@ -49,7 +49,7 @@ function RequestAvatar({ requester }: { requester: FriendRequestItem['requester'
 
   return (
     <Avatar $backgroundImage={avatarImage}>
-      {!safePhoto && `${requester.firstName[0]}${requester.lastName[0]}`}
+      {!safePhoto && (`${requester.firstName?.[0] ?? ''}${requester.lastName?.[0] ?? ''}` || '?')}
     </Avatar>
   );
 }

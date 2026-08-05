@@ -48,7 +48,10 @@ type SearchPanelProps = FriendSuggestionListProps & {
   searchQuery: string;
 };
 
-const getInitials = (firstName: string, lastName: string) => `${firstName[0] || '?'}${lastName[0] || '?'}`;
+// Surnames are staff-only on member-facing directory responses, so this must
+// tolerate an absent lastName rather than index into undefined.
+const getInitials = (firstName?: string, lastName?: string) =>
+  `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}` || '?';
 
 function getStatusLabel(user: FriendUser, alreadySent: boolean) {
   if (alreadySent) return 'Request Sent';
