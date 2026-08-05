@@ -34,7 +34,7 @@ describe('buildWeekTrainingDays', () => {
   it('fills the days actually trained, not the first N days', () => {
     // Wednesday + Thursday — a 2-day streak, the last two tiles.
     const days = buildWeekTrainingDays(
-      [{ date: at(2026, 7, 5) }, { date: at(2026, 7, 6) }],
+      [{ status: 'completed', date: at(2026, 7, 5) }, { status: 'completed', date: at(2026, 7, 6) }],
       THURSDAY,
     );
 
@@ -59,8 +59,8 @@ describe('buildWeekTrainingDays', () => {
   it('ignores sessions older than the trailing window', () => {
     const days = buildWeekTrainingDays(
       [
-        { date: at(2026, 6, 30) }, // 7+ days back
-        { date: at(2026, 6, 20) },
+        { status: 'completed', date: at(2026, 6, 30) }, // 7+ days back
+        { status: 'completed', date: at(2026, 6, 20) },
       ],
       THURSDAY,
     );
@@ -74,8 +74,8 @@ describe('buildWeekTrainingDays', () => {
     const wednesday = new Date(2026, 10, 4, 12, 0, 0).getTime();
     const days = buildWeekTrainingDays(
       [
-        { date: at(2026, 10, 2, 23) }, // Monday late evening
-        { date: at(2026, 10, 3, 1) }, // Tuesday just after midnight
+        { status: 'completed', date: at(2026, 10, 2, 23) }, // Monday late evening
+        { status: 'completed', date: at(2026, 10, 3, 1) }, // Tuesday just after midnight
       ],
       wednesday,
     );
@@ -89,7 +89,7 @@ describe('buildWeekTrainingDays', () => {
 
   it('tolerates malformed and future-dated sessions', () => {
     const days = buildWeekTrainingDays(
-      [null, 'not-a-session', { date: 'nonsense' }, { date: at(2026, 7, 8) }] as unknown[],
+      [null, 'not-a-session', { date: 'nonsense' }, { status: 'completed', date: at(2026, 7, 8) }] as unknown[],
       THURSDAY,
     );
 
@@ -97,8 +97,8 @@ describe('buildWeekTrainingDays', () => {
   });
 
   it('reads the same date fields as the rest of the proof loop', () => {
-    expect(buildWeekTrainingDays([{ completedAt: at(2026, 7, 5) }], THURSDAY)[5].trained).toBe(true);
-    expect(buildWeekTrainingDays([{ createdAt: at(2026, 7, 5) }], THURSDAY)[5].trained).toBe(true);
+    expect(buildWeekTrainingDays([{ status: 'completed', completedAt: at(2026, 7, 5) }], THURSDAY)[5].trained).toBe(true);
+    expect(buildWeekTrainingDays([{ status: 'completed', createdAt: at(2026, 7, 5) }], THURSDAY)[5].trained).toBe(true);
   });
 
   it('treats an absent session list as no data, not as seven missed days', () => {
@@ -113,7 +113,7 @@ describe('the grid and the "This Week" count share one definition', () => {
     // Last Saturday, 5 days before Thursday: inside the rolling 7-day window
     // but BEFORE the calendar Monday. A calendar-week grid showed zero tiles
     // while the proof card said "1 this week".
-    const sessions = [{ date: at(2026, 8 - 1, 1) }];
+    const sessions = [{ status: 'completed', date: at(2026, 8 - 1, 1) }];
     const proof = buildHomeTrainingProof(sessions, THURSDAY);
     const days = buildWeekTrainingDays(sessions, THURSDAY);
 
@@ -133,7 +133,7 @@ describe('the grid and the "This Week" count share one definition', () => {
     // 6 days and 20 hours before THURSDAY 10:00, i.e. the previous Thursday at
     // 14:00. A sliding `floor((now - t) / 7 days)` window counts this as "this
     // week"; a day-aligned 7-day grid does not. Both must now agree.
-    const sessions = [{ date: at(2026, 6, 30, 14) }];
+    const sessions = [{ status: 'completed', date: at(2026, 6, 30, 14) }];
     const proof = buildHomeTrainingProof(sessions, THURSDAY);
     const days = buildWeekTrainingDays(sessions, THURSDAY);
 
@@ -142,7 +142,7 @@ describe('the grid and the "This Week" count share one definition', () => {
   });
 
   it('agrees for a session logged earlier today', () => {
-    const sessions = [{ date: at(2026, 7, 6, 7) }];
+    const sessions = [{ status: 'completed', date: at(2026, 7, 6, 7) }];
     const proof = buildHomeTrainingProof(sessions, THURSDAY);
     const days = buildWeekTrainingDays(sessions, THURSDAY);
 
@@ -152,9 +152,9 @@ describe('the grid and the "This Week" count share one definition', () => {
 
   it('agrees on a multi-session week', () => {
     const sessions = [
-      { date: at(2026, 7, 2) },
-      { date: at(2026, 7, 4) },
-      { date: at(2026, 7, 6) },
+      { status: 'completed', date: at(2026, 7, 2) },
+      { status: 'completed', date: at(2026, 7, 4) },
+      { status: 'completed', date: at(2026, 7, 6) },
     ];
     const proof = buildHomeTrainingProof(sessions, THURSDAY);
     const days = buildWeekTrainingDays(sessions, THURSDAY);
@@ -169,8 +169,8 @@ describe('the grid and the "This Week" count share one definition', () => {
     // is `count > 0  <=>  some tile lit`. The other fixtures in this file are
     // one-session-per-day, so they would never have caught the difference.
     const sessions = [
-      { date: at(2026, 7, 5, 7) },
-      { date: at(2026, 7, 5, 18) },
+      { status: 'completed', date: at(2026, 7, 5, 7) },
+      { status: 'completed', date: at(2026, 7, 5, 18) },
     ];
     const proof = buildHomeTrainingProof(sessions, THURSDAY);
     const days = buildWeekTrainingDays(sessions, THURSDAY);

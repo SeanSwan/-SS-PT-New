@@ -166,8 +166,13 @@ export function buildWeekTrainingDays(
   const trained = Array.from({ length: TRAILING_DAYS }, () => false);
 
   for (const session of sessions || []) {
-    if (!session || typeof session !== 'object') continue;
-    const record = session as Record<string, unknown>;
+    // Same completeness filter as buildHomeTrainingProof. Without it the two
+    // builders drift apart again: a PLANNED session would light a tile while
+    // the "This Week" count beside it ignored the row — the exact
+    // two-definitions-of-one-week defect the agreement tests below exist to
+    // catch, and which they caught when this filter arrived upstream.
+    if (!isLoggedWorkoutSession(session)) continue;
+    const record = session;
     const rawDate = record.date ?? record.completedAt ?? record.createdAt;
     const timeMs = new Date(String(rawDate || '')).getTime();
     // Future-dated rows are never proof of a completed session.

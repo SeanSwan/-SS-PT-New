@@ -15,7 +15,9 @@ afterEach(() => cleanup());
 const NOW = new Date(2026, 7, 6, 10, 0, 0).getTime();
 const emptyProof = buildHomeTrainingProof([], NOW);
 const realProof = buildHomeTrainingProof(
-  [{ date: new Date(2026, 7, 5, 9).toISOString(), duration: 45, title: 'Lower Body' }],
+  // `status: 'completed'` is required upstream: planned/in-progress rows are
+  // not training proof, so a fixture without it now builds an EMPTY proof.
+  [{ status: 'completed', date: new Date(2026, 7, 5, 9).toISOString(), duration: 45, title: 'Lower Body' }],
   NOW,
 );
 
