@@ -209,8 +209,40 @@ describe('every member-facing directory surface uses the policy', () => {
 
   it('caps and scopes the friend-suggestion feed', () => {
     const friendships = read('routes/social/friendships.mjs');
-    expect(friendships).toContain('directoryAttributes(req.user');
     expect(friendships).toContain('Math.min(requestedLimit, 50)');
+  });
+
+  it('leaves NO raw surname projection in any social route', () => {
+    // A whole-file `toContain('directoryAttributes')` passed on ONE call while
+    // five raw projections sat in the same file. Assert the absence of the
+    // defect across every file instead of the presence of the fix in one.
+    const socialRoutes = [
+      'routes/social/posts.mjs', 'routes/social/friendships.mjs',
+      'routes/social/groups.mjs', 'routes/social/groupMembership.mjs',
+      'routes/social/challenges.mjs', 'routes/social/events.mjs',
+      'routes/social/factions.mjs', 'routes/social/hashtags.mjs',
+    ];
+
+    for (const file of socialRoutes) {
+      const source = read(file);
+      for (const match of source.matchAll(/attributes: \[[^\]]*'lastName'[^\]]*\]/g)) {
+        throw new Error(`${file} still selects a raw surname: ${match[0].slice(0, 80)}`);
+      }
+    }
+  });
+
+  it('keeps the PUBLIC challenge list surname-free', () => {
+    // This route has NO middleware at all — the leak reached anonymous callers.
+    const listService = read('services/gamification/challengeListService.mjs');
+    expect(listService).not.toContain("'lastName'");
+    expect(listService).toContain('PUBLIC_PERSON_ATTRIBUTES');
+  });
+
+  it('never matches a user search on email', () => {
+    // `?q=someone@example.com` confirmed the address was registered AND
+    // returned that person's legal name: an email-existence oracle.
+    const messaging = read('controllers/messaging/messageController.mjs');
+    expect(messaging).not.toContain('email ILIKE :query');
   });
 
   it('keeps the leaderboard on the same policy', () => {

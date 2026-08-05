@@ -19,6 +19,9 @@ interface UseProfileReturn {
    * 'ready' is the ONLY value that licenses rendering `stats` as the record.
    */
   statsStatus: 'loading' | 'ready' | 'unavailable';
+  /** Same lifecycle for posts: 'ready' is the ONLY value that licenses "no posts yet". */
+  postsStatus: 'loading' | 'ready' | 'unavailable';
+  postsKnown: boolean;
   /** Convenience: `statsStatus === 'ready'`. */
   statsKnown: boolean;
   // Profile data
@@ -81,6 +84,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [statsStatus, setStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [postsStatus, setPostsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const statsSeqRef = useRef(0);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
@@ -206,12 +210,15 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       
       setPostsHasMore(postsData.posts.length === limit);
       setPostsOffset(offset + postsData.posts.length);
+      setPostsStatus('ready');
     } catch (err: any) {
       logger.warn('Posts endpoint not available yet:', err.message);
-      // Set empty posts instead of showing error
-      setPosts([]);
+      // An empty list is a CLAIM: "you have posted nothing". A failed fetch is
+      // not that claim. Keep whatever we already hold and mark the status, the
+      // same shape `statsStatus` uses — three of this hook's four loaders used
+      // to render failure as emptiness.
+      setPostsStatus('unavailable');
       setPostsHasMore(false);
-      setPostsOffset(0);
     } finally {
       setIsLoadingPosts(false);
     }
@@ -471,6 +478,8 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     error,
     statsStatus,
     statsKnown: statsStatus === 'ready',
+    postsStatus,
+    postsKnown: postsStatus === 'ready',
     
     // Operations
     refreshProfile,

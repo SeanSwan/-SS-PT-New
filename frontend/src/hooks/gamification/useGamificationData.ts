@@ -120,7 +120,11 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
           return mapFallbackAchievementsToLegacy(fallbackAchievements);
         } catch {
           logger.warn('[Gamification] Achievements fallback also failed.');
-          return [];
+          // Returning [] here made React Query record SUCCESS with an empty
+          // list, so `isError` stayed false and NO consumer could tell an
+          // outage from "you have earned nothing". Rethrow so the query is
+          // actually in an error state and resolveDataStatus can see it.
+          throw new Error('Achievements unavailable');
         }
       }
     },
