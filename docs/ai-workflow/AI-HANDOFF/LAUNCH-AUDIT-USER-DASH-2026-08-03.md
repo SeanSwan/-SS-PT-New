@@ -161,9 +161,23 @@ Stated explicitly so the fix list stays honest and short.
 
 ### Baseline disclosure (Rule 56)
 
-The frontend and type/build gates above are **repo-wide, not slice-scoped**, and are clean.
+> **CORRECTION, 2026-08-05.** The line above reporting "backend API 2157 passed / 1 failed" was **scoped to `tests/api`** (2,162 tests) and was presented as if it were the backend gate. It is not. The **full** backend suite is **8,518 tests across 1,106 files**, and on the rebased tree it is **8,509 passed / 5 failed / 4 skipped — 5 failing files, not 1**. The pass count was accurate; the *scope* was not, and the scope is what made it read as a clean bill of health. A pass count without the exact command that produced it is not evidence.
+>
+> **All 5 are outside this lane's changed surface**, proven at file level — Lane 1's backend diff is 27 files, and none of them is `controllers/adminWorkoutLoggerController.mjs`, `routes/equipmentRoutes.mjs`, or `routes/galleryRoutes.mjs`, which is what these five exercise:
+>
+> | Failing file | Exercises | In Lane 1 diff? |
+> |---|---|---|
+> | `tests/unit/adminWorkoutLoggerHistoryDate.test.mjs` | `adminWorkoutLoggerController.mjs` | no |
+> | `tests/unit/editWorkoutDateParsing.test.mjs` | `adminWorkoutLoggerController.mjs` | no |
+> | `__tests__/equipmentScanService.multi.test.mjs` | `routes/equipmentRoutes.mjs` | no |
+> | `__tests__/equipmentScanService.retry.test.mjs` | equipment scan service | no |
+> | `tests/api/galleryReferralCreditGuardTruth.test.mjs` | `routes/galleryRoutes.mjs` | no |
+>
+> **Frontend, same correction.** The repo-wide frontend suite is **1,555 files / ~7,700 tests**; the `src/components/UserDashboard` figure below (337/337) is a **slice** of it. After the rebase 5 files failed: **2 were ours** and are fixed (`main` had added a `status === 'completed'` completeness filter that our week-day builder did not pick up, so the two "this week" definitions silently diverged again — our own agreement tests caught it); **3 are baseline**, reproduced on a **pristine `origin/main` worktree**: `ClientStellarSidebar.navigation.test.ts`, `EquipmentProfilePicker.authPipeline.test.ts`, `WorkoutGenerationAuthPipeline.truth.test.ts`.
+>
+> **`tsc --noEmit` is red on `main` too** — `SuccessPage.stateViews.tsx`, from **lane 4's** `42c84a077`. This lane has a **0-line diff** under `NewCheckout`. Lane 4 owns it. (The `exit 0` recorded below was true at the original branch point, before that commit landed on main.)
 
-The backend suite has **1 pre-existing failure**: `galleryReferralCreditGuardTruth.test.mjs:12`. **Proven not mine:** that test reads only `backend/routes/galleryRoutes.mjs`, and this lane's entire backend diff is `scheduleController.mjs` + its own new test — so the test's inputs are byte-identical to `origin/main`. Root cause: the referral duplicate-guard was **improved** from a read-then-write `findOne` to a DB partial-unique index + `SequelizeUniqueConstraintError` → 409 (`galleryRoutes.mjs:1043,1066-1068`), which is concurrency-safe; the assertion was never updated. **Stale test, stronger code.** Handed to the gallery owner.
+The backend suite has **1 pre-existing failure** *(within `tests/api` — see the correction above for the full-suite picture)*: `galleryReferralCreditGuardTruth.test.mjs:12`. **Proven not mine:** that test reads only `backend/routes/galleryRoutes.mjs`, and this lane's entire backend diff is `scheduleController.mjs` + its own new test — so the test's inputs are byte-identical to `origin/main`. Root cause: the referral duplicate-guard was **improved** from a read-then-write `findOne` to a DB partial-unique index + `SequelizeUniqueConstraintError` → 409 (`galleryRoutes.mjs:1043,1066-1068`), which is concurrency-safe; the assertion was never updated. **Stale test, stronger code.** Handed to the gallery owner.
 
 `tsc --noEmit` requires a **14GB heap** in this repo; 8GB OOMs. That is a known environment gotcha, not a code defect.
 
